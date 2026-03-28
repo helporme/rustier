@@ -579,5 +579,6 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { greet } = nativeBinding
-export { greet }
+const { build, BuildTarget } = nativeBinding
+export { build }
+export { BuildTarget }

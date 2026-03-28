@@ -12,18 +12,31 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "rust-curse-native": "workspace:*",
     "@eslint/js": "^10.0.1",
     "@napi-rs/cli": "^3.5.1",
+    "@types/node": "^25.5.0",
     "eslint": "^10.1.0",
     "prettier": "^3.5.3",
     "publint": "^0.3.18",
+    "rust-curse-native": "workspace:*",
     "tsdown": "^0.21.6",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.27.0"
   },
   "exports": {
     ".": "./dist/index.mjs",
-    "./package.json": "./package.json"
+    "./vite": "./dist/vite/index.mjs"
+  },
+  "peerDependencies": {
+    "tsdown": "^0.21.0",
+    "vite": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    },
+    "tsdown": {
+      "optional": true
+    }
   }
 }

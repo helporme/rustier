@@ -1,12 +1,13 @@
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
-  entry: ['src/index.ts'],
-  exports: true,
-  format: ['es'],
+  entry: ['src/index.ts', 'src/vite/index.ts'],
+  exports: {
+    packageJson: false,
+  },
+  dts: true,
   publint: true,
   deps: {
-    neverBundle: [/\.node$/],
+    neverBundle: [/\.node$/, 'rust-curse-native', '@napi-rs/cli'],
   },
-  copy: ['../rust-curse-native/*.node'],
 })
