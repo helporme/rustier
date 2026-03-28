@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "dist"
+  },
+  "include": ["src", "packages/rust-curse-native/index.js", "packages/rust-curse-native/src", "packages/rust-curse-native/target", "packages/rust-curse-native/index.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

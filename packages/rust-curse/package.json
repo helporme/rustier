@@ -1,0 +1,29 @@
+{
+  "name": "rust-curse",
+  "version": "0.1.0",
+  "description": "Vite plugin to import rust code in your js/ts code.",
+  "type": "module",
+  "scripts": {
+    "build:ts": "tsdown",
+    "build:native": "cd ../rust-curse-native && npm run build",
+    "build": "npm run build:native && npm run build:ts",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "rust-curse-native": "workspace:*",
+    "@eslint/js": "^10.0.1",
+    "@napi-rs/cli": "^3.5.1",
+    "eslint": "^10.1.0",
+    "prettier": "^3.5.3",
+    "publint": "^0.3.18",
+    "tsdown": "^0.21.6",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.27.0"
+  },
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  }
+}

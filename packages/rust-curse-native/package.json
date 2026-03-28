@@ -1,0 +1,19 @@
+{
+  "name": "rust-curse-native",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "rust-curse.d.ts",
+  "main": "rust-curse.js",
+  "scripts": {
+    "build:release": "napi build --manifest-path ./Cargo.toml --platform --release --esm --js rust-curse.js --dts rust-curse.d.ts --output-dir .",
+    "build": "napi build --manifest-path ./Cargo.toml --platform --esm --js rust-curse.js --dts rust-curse.d.ts --output-dir ."
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.5.1"
+  },
+  "napi": {
+    "binaryName": "rust-curse",
+    "targets": []
+  }
+}
