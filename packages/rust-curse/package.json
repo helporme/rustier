@@ -25,6 +25,7 @@
   },
   "exports": {
     ".": "./dist/index.mjs",
+    "./tsdown": "./dist/tsdown/index.mjs",
     "./vite": "./dist/vite/index.mjs"
   },
   "peerDependencies": {

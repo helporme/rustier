@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "rootDirs": [".rust-curse/dev/types", "./"],
+    "moduleResolution": "bundler",
+    "module": "Preserve",
+  },
+}

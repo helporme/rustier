@@ -36,7 +36,12 @@ pub fn generate_lib_and_modules(
          // This file does not influence building and exists only to support rust analyzer.\n\n",
     );
 
-    for (name, _) in &tree.children {
+    for (name, child) in &tree.children {
+        if child.children.is_empty() {
+            if let Some(ref path) = child.file_path {
+                writeln!(lib_rs, "#[path = {:?}]", path).unwrap();
+            }
+        }
         writeln!(lib_rs, "pub(crate) mod {};", name).unwrap();
     }
     writeln!(lib_rs).unwrap();
@@ -52,15 +57,7 @@ pub fn generate_lib_and_modules(
 
     // Generate mod.rs scaffold for each subtree
     for (name, child) in &tree.children {
-        if child.children.is_empty() {
-            // Leaf at top level: create a proxy file that includes the original
-            if let Some(ref path) = child.file_path {
-                let proxy = format!("include!({:?});\n", path);
-                fs::write(output_dir.join(format!("{}.rs", name)), &proxy)
-                    .expect("failed to write proxy module file");
-            }
-        } else {
-            // Non-leaf: create directory with mod.rs
+        if !child.children.is_empty() {
             let dir = output_dir.join(name);
             fs::create_dir_all(&dir).expect("failed to create module directory");
             write_mod_file(child, &dir);

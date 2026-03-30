@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/vite/index.ts'],
+  entry: ['src/index.ts', 'src/vite/index.ts', 'src/tsdown/index.ts'],
   exports: {
     packageJson: false,
   },
