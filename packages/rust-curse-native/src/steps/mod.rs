@@ -3,5 +3,7 @@ pub mod s2_import_scan;
 pub mod s3_treeshake;
 pub mod s4_dev_generate_rust;
 pub mod s4_napi_generate_rust;
+pub mod s4_wasm_generate_rust;
 pub mod s5_dev_typescript;
 pub mod s6_napi_js;
+pub mod s6_wasm_js;

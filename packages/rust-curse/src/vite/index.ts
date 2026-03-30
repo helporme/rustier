@@ -4,19 +4,31 @@ import type { Plugin, ResolvedConfig } from 'vite'
 import { RustCurseOptions } from './options'
 import { build, BuildTarget } from 'rust-curse-native'
 import { buildNapi } from '../napi'
+import { buildWasm } from '../wasm'
 
 const VIRTUAL_PREFIX = '\0rust-curse:'
 
 export default function rustCurse(options: RustCurseOptions = {}): Plugin {
   let config: ResolvedConfig
-  // Maps relative source key (e.g. ./src/routes/greeting.rs) to absolute glue file path
-  let moduleMap: Map<string, string> = new Map()
-  // Maps absolute filesystem path to the relative source key
+  // Maps relative source key to absolute glue file path, per target
+  let ssrModuleMap: Map<string, string> = new Map()
+  let wasmModuleMap: Map<string, string> = new Map()
+  // Maps absolute filesystem path to the relative source key (shared)
   let absToKey: Map<string, string> = new Map()
 
   return {
     name: 'rust-curse',
     enforce: 'pre',
+
+    config() {
+      return {
+        server: {
+          fs: {
+            allow: ['.rust-curse'],
+          },
+        },
+      }
+    },
 
     configResolved(resolved) {
       config = resolved
@@ -24,14 +36,18 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
 
     async buildStart() {
       const ssrDir = resolve(config.root, '.rust-curse/ssr')
-      const modulesDir = resolve(ssrDir, 'modules')
+      const ssrModulesDir = resolve(ssrDir, 'modules')
+      const wasmDir = resolve(config.root, '.rust-curse/wasm')
+      const wasmModulesDir = resolve(wasmDir, 'modules')
+
+      const jsSource = {
+        include: ['src/**/*.ts', 'src/**/*.svelte'],
+        exclude: [],
+      }
 
       // dev build
       build({
-        jsSource: {
-          include: ['src/**/*.ts', 'src/**/*.svelte'],
-          exclude: [],
-        },
+        jsSource,
         moduleDir: 'src/',
         target: BuildTarget.Dev,
         cargoPath: 'Cargo.toml',
@@ -39,12 +55,9 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
         projectRoot: config.root,
       })
 
-      // napi build
+      // napi build (SSR)
       build({
-        jsSource: {
-          include: ['src/**/*.ts', 'src/**/*.svelte'],
-          exclude: [],
-        },
+        jsSource,
         moduleDir: 'src/',
         target: BuildTarget.Napi,
         cargoPath: 'Cargo.toml',
@@ -58,21 +71,41 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
         outputDir: '.rust-curse/ssr/output',
       })
 
-      // Load the module map
-      const modulesJsonPath = resolve(modulesDir, 'modules.json')
-      const modulesJson: Record<string, string> = JSON.parse(
-        readFileSync(modulesJsonPath, 'utf-8'),
-      )
+      // wasm build (browser)
+      build({
+        jsSource,
+        moduleDir: 'src/',
+        target: BuildTarget.Wasm,
+        cargoPath: 'Cargo.toml',
+        outputDir: '.rust-curse/wasm/',
+        projectRoot: config.root,
+      })
 
-      moduleMap = new Map()
+      buildWasm({
+        release: false,
+        manifestPath: '.rust-curse/wasm/Cargo.toml',
+        outputDir: '.rust-curse/wasm/output',
+      })
+
+      // Load SSR module map
+      ssrModuleMap = new Map()
       absToKey = new Map()
-      for (const [sourceKey, glueFile] of Object.entries(modulesJson)) {
-        const gluePath = resolve(modulesDir, glueFile)
-        moduleMap.set(sourceKey, gluePath)
+      const ssrModulesJson: Record<string, string> = JSON.parse(
+        readFileSync(resolve(ssrModulesDir, 'modules.json'), 'utf-8'),
+      )
+      for (const [sourceKey, glueFile] of Object.entries(ssrModulesJson)) {
+        ssrModuleMap.set(sourceKey, resolve(ssrModulesDir, glueFile))
+        absToKey.set(resolve(config.root, sourceKey), sourceKey)
+      }
 
-        // Also map absolute path to key for direct resolution
-        const absPath = resolve(config.root, sourceKey)
-        absToKey.set(absPath, sourceKey)
+      // Load Wasm module map
+      wasmModuleMap = new Map()
+      const wasmModulesJson: Record<string, string> = JSON.parse(
+        readFileSync(resolve(wasmModulesDir, 'modules.json'), 'utf-8'),
+      )
+      for (const [sourceKey, glueFile] of Object.entries(wasmModulesJson)) {
+        wasmModuleMap.set(sourceKey, resolve(wasmModulesDir, glueFile))
+        // absToKey is shared — keys are the same for both targets
       }
     },
 
@@ -110,7 +143,9 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
       if (!id.startsWith(VIRTUAL_PREFIX)) return null
 
       const sourceKey = id.slice(VIRTUAL_PREFIX.length)
-      const gluePath = moduleMap.get(sourceKey)
+      const isSSR = this.environment?.name === 'ssr'
+      const map = isSSR ? ssrModuleMap : wasmModuleMap
+      const gluePath = map.get(sourceKey)
       if (!gluePath) return null
 
       return readFileSync(gluePath, 'utf-8')

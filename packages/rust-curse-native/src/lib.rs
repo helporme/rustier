@@ -8,13 +8,14 @@ use toml_edit::DocumentMut;
 
 use steps::{
     s1_discovery, s2_import_scan, s3_treeshake, s4_dev_generate_rust, s4_napi_generate_rust,
-    s5_dev_typescript, s6_napi_js,
+    s4_wasm_generate_rust, s5_dev_typescript, s6_napi_js, s6_wasm_js,
 };
 
 #[napi(string_enum)]
 pub enum BuildTarget {
     Dev,
     Napi,
+    Wasm,
 }
 
 #[napi(object)]
@@ -67,6 +68,9 @@ pub fn build(options: BuildOptions) {
         BuildTarget::Napi => {
             s4_napi_generate_rust::generate_lib_and_modules(output_dir, &discovered, &shaked);
         }
+        BuildTarget::Wasm => {
+            s4_wasm_generate_rust::generate_lib_and_modules(output_dir, &discovered, &shaked);
+        }
     };
 
     // Patch Cargo.toml
@@ -96,6 +100,25 @@ pub fn build(options: BuildOptions) {
             s6_napi_js::generate_js_glue(
                 &shaked,
                 "../output/index.js",
+                &output_dir.join("modules"),
+                Path::new(&options.project_root),
+            );
+        }
+        BuildTarget::Wasm => {
+            let crate_name = doc["package"]["name"]
+                .as_str()
+                .expect("Cargo.toml must have [package] name")
+                .replace('-', "_");
+
+            let patched = s4_wasm_generate_rust::generate_cargo_toml(doc, "./lib.rs");
+            let cargo_out_path = output_dir.join("Cargo.toml");
+            fs::write(&cargo_out_path, patched.to_string()).expect("failed to write Cargo.toml");
+
+            // Step 6: Generate JS glue modules
+            let binding_file = format!("../output/pkg/{}.js", crate_name);
+            s6_wasm_js::generate_js_glue(
+                &shaked,
+                &binding_file,
                 &output_dir.join("modules"),
                 Path::new(&options.project_root),
             );

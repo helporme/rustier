@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { browser } from "$app/environment";
   import { greet } from "./greeting.rs";
 </script>
 
@@ -7,4 +8,4 @@
   <meta name="description" content="Rust curse demo" />
 </svelte:head>
 
-<section>{greet("%user%")}</section>
+<section>{greet(browser ? "%browser user%" : "%server user%")}</section>

@@ -19,7 +19,8 @@ export interface BuildOptions {
 
 export declare const enum BuildTarget {
   Dev = 'Dev',
-  Napi = 'Napi'
+  Napi = 'Napi',
+  Wasm = 'Wasm'
 }
 
 export interface SourceOptions {
