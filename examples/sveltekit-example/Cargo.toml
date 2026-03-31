@@ -9,4 +9,4 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [lib]
-path = ".rust-curse/dev/lib.rs"
+path = "/Users/helporme/Projects/rust-curse/examples/sveltekit-example/.rust-curse/dev/lib.rs"

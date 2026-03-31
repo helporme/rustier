@@ -1,5 +1,5 @@
-pub fn hello() -> &'static str {
-    "Meow meow!"
+pub fn hello() -> String {
+    "Meow meow!".to_owned()
 }
 
 pub use std::*;
