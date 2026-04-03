@@ -8,4 +8,6 @@
   <meta name="description" content="Rust curse demo" />
 </svelte:head>
 
-<section>{greet(browser ? "%browser user%" : "%server user%")}</section>
+<section>
+  {greet({ name: browser ? "%browser user%" : "%server user%" })}
+</section>

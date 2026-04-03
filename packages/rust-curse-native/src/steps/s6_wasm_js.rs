@@ -99,12 +99,25 @@ fn generate_module_glue(
 
     for f in &fns {
         let params = f.arg_names.join(", ");
-        writeln!(
-            out,
-            "export function {}({}) {{ return $_{}({}); }}",
-            f.export_name, params, f.wasm_name, params
-        )
-        .unwrap();
+        if f.arg_names.is_empty() {
+            writeln!(
+                out,
+                "export function {}() {{ return $_{}(); }}",
+                f.export_name, f.wasm_name
+            )
+            .unwrap();
+        } else {
+            let obj_fields: Vec<String> = f.arg_names.iter().map(|a| a.to_string()).collect();
+            writeln!(
+                out,
+                "export function {}({}) {{ return $_{}({{ {} }}); }}",
+                f.export_name,
+                params,
+                f.wasm_name,
+                obj_fields.join(", ")
+            )
+            .unwrap();
+        }
     }
 
     out

@@ -140,10 +140,14 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
     },
 
     resolveId(source, importer) {
-      // Externalize the NAPI loader — we emit it into _rust_curse/ in generateBundle
-      // and fix up the import path in renderChunk
+      // Externalize the NAPI loader during builds — we emit it into _rust_curse/
+      // in generateBundle and fix up the import path in renderChunk.
+      // In dev mode, resolve to the actual file so Vite's dev server can serve it.
       if (napiIndexPath && source === napiIndexPath) {
-        return { id: NAPI_EXTERNAL_ID, external: true }
+        if (config.command === 'build') {
+          return { id: NAPI_EXTERNAL_ID, external: true }
+        }
+        return napiIndexPath
       }
 
       if (!importer) return null
