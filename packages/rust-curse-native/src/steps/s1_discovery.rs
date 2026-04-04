@@ -18,7 +18,7 @@ pub struct RustFnArg {
 }
 
 #[derive(Clone, Debug)]
-pub struct RustModuleFn {
+pub struct RustFn {
     /// Fully qualified name from parent module, e.g. `foo::bar::greet`.
     pub name: String,
     pub docs: Option<String>,
@@ -27,9 +27,26 @@ pub struct RustModuleFn {
 }
 
 #[derive(Clone, Debug)]
-pub enum RustModuleMember {
+pub struct RustStructField {
+    pub name: String,
+    pub docs: Option<String>,
+    /// Full type path, e.g. `std::collections::HashSet`.
+    pub type_name: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct RustStruct {
+    /// Fully qualified name, e.g. `crate::kitty::Wrap`.
+    pub name: String,
+    pub docs: Option<String>,
+    pub fields: Vec<RustStructField>,
+}
+
+#[derive(Clone, Debug)]
+pub enum RustMember {
     Module(RustModule),
-    Fn(RustModuleFn),
+    Fn(RustFn),
+    Struct(RustStruct),
 }
 
 #[derive(Clone, Debug)]
@@ -40,7 +57,16 @@ pub struct RustModule {
     pub path: String,
     /// Public members (functions, submodules).
     /// `None` if the file could not be read or parsed.
-    pub members: Option<Vec<RustModuleMember>>,
+    pub members: Option<Vec<RustMember>>,
+}
+
+/// Discovers a crate's public API by parsing its `lib.rs` and walking the module tree.
+/// `crate_name` is used as the root module name prefix.
+pub fn discover_crate(lib_rs_path: &Path, crate_name: &str) -> Option<RustModule> {
+    if !lib_rs_path.exists() {
+        return None;
+    }
+    Some(parse_module_file(lib_rs_path, crate_name))
 }
 
 /// Discovers all Rust orphan modules under the given root directory,
@@ -148,7 +174,7 @@ fn parse_module_file(file_path: &Path, module_name: &str) -> RustModule {
         }
     };
 
-    let use_map = collect_uses(&file.items);
+    let use_map = collect_uses(&file.items, module_name);
     let parent_dir = canonical.parent().unwrap_or(Path::new("."));
     let members = extract_members(&file.items, module_name, parent_dir, &use_map);
 
@@ -164,7 +190,7 @@ fn extract_members(
     parent_name: &str,
     parent_dir: &Path,
     use_map: &UseMap,
-) -> Vec<RustModuleMember> {
+) -> Vec<RustMember> {
     // First pass: collect pub fn and pub mod (these are the "real" members)
     let mut members = Vec::new();
 
@@ -172,11 +198,19 @@ fn extract_members(
         match item {
             syn::Item::Fn(func) if matches!(func.vis, Visibility::Public(_)) => {
                 let func_data = extract_fn(func, use_map);
-                members.push(RustModuleMember::Fn(RustModuleFn {
+                members.push(RustMember::Fn(RustFn {
                     name: format!("{}::{}", parent_name, func_data.name),
                     docs: func_data.docs,
                     args: func_data.args,
                     return_type_name: func_data.return_type_name,
+                }));
+            }
+            syn::Item::Struct(item_struct) if matches!(item_struct.vis, Visibility::Public(_)) => {
+                let parsed = extract_struct(item_struct, use_map);
+                members.push(RustMember::Struct(RustStruct {
+                    name: format!("{}::{}", parent_name, parsed.name),
+                    docs: parsed.docs,
+                    fields: parsed.fields,
                 }));
             }
             syn::Item::Mod(item_mod) if matches!(item_mod.vis, Visibility::Public(_)) => {
@@ -184,10 +218,10 @@ fn extract_members(
                 let full_name = format!("{}::{}", parent_name, mod_name);
 
                 if let Some((_, ref content_items)) = item_mod.content {
-                    let inner_use_map = collect_uses(content_items);
+                    let inner_use_map = collect_uses(content_items, &full_name);
                     let inner_members =
                         extract_members(content_items, &full_name, parent_dir, &inner_use_map);
-                    members.push(RustModuleMember::Module(RustModule {
+                    members.push(RustMember::Module(RustModule {
                         name: full_name,
                         path: String::new(),
                         members: Some(inner_members),
@@ -195,7 +229,7 @@ fn extract_members(
                 } else {
                     let mod_path = resolve_mod_path(item_mod, parent_dir, &mod_name);
                     if let Some(resolved_path) = mod_path {
-                        members.push(RustModuleMember::Module(parse_module_file(
+                        members.push(RustMember::Module(parse_module_file(
                             &resolved_path,
                             &full_name,
                         )));
@@ -208,11 +242,11 @@ fn extract_members(
                 let full_name = format!("{}::{}", parent_name, mod_name);
 
                 if let Some((_, ref content_items)) = item_mod.content {
-                    let inner_use_map = collect_uses(content_items);
+                    let inner_use_map = collect_uses(content_items, &full_name);
                     let inner_members =
                         extract_members(content_items, &full_name, parent_dir, &inner_use_map);
                     // Store privately — will be used for pub use resolution but not exposed
-                    members.push(RustModuleMember::Module(RustModule {
+                    members.push(RustMember::Module(RustModule {
                         name: full_name,
                         path: String::new(),
                         members: Some(inner_members),
@@ -220,7 +254,7 @@ fn extract_members(
                 } else {
                     let mod_path = resolve_mod_path(item_mod, parent_dir, &mod_name);
                     if let Some(resolved_path) = mod_path {
-                        members.push(RustModuleMember::Module(parse_module_file(
+                        members.push(RustMember::Module(parse_module_file(
                             &resolved_path,
                             &full_name,
                         )));
@@ -261,7 +295,7 @@ fn extract_members(
         .collect();
 
     members.retain(|m| match m {
-        RustModuleMember::Module(module) => pub_mod_names.contains(&module.name),
+        RustMember::Module(module) => pub_mod_names.contains(&module.name),
         _ => true,
     });
 
@@ -273,8 +307,8 @@ fn extract_members(
 fn resolve_reexport(
     reexport_path: &str,
     parent_name: &str,
-    members: &[RustModuleMember],
-) -> Vec<RustModuleMember> {
+    members: &[RustMember],
+) -> Vec<RustMember> {
     let segments: Vec<&str> = reexport_path.split("::").collect();
     if segments.is_empty() {
         return vec![];
@@ -297,8 +331,9 @@ fn resolve_reexport(
 
     // Find the member matching search_name
     let found = members.iter().find(|m| match m {
-        RustModuleMember::Module(module) => module.name == search_name,
-        RustModuleMember::Fn(f) => f.name == search_name,
+        RustMember::Module(module) => module.name == search_name,
+        RustMember::Fn(f) => f.name == search_name,
+        RustMember::Struct(s) => s.name == search_name,
     });
 
     let Some(found) = found else {
@@ -311,7 +346,7 @@ fn resolve_reexport(
     }
 
     // We need to dig deeper into a module
-    let RustModuleMember::Module(module) = found else {
+    let RustMember::Module(module) = found else {
         return vec![];
     };
 
@@ -329,8 +364,9 @@ fn resolve_reexport(
     // `pub use foo::bar` — look for `bar` inside the module
     let deeper_name = format!("{}::{}", module.name, next);
     let deeper_found = module_members.iter().find(|m| match m {
-        RustModuleMember::Module(m) => m.name == deeper_name,
-        RustModuleMember::Fn(f) => f.name == deeper_name,
+        RustMember::Module(m) => m.name == deeper_name,
+        RustMember::Fn(f) => f.name == deeper_name,
+        RustMember::Struct(s) => s.name == deeper_name,
     });
 
     if rest.len() == 1 {
@@ -454,13 +490,74 @@ fn extract_fn(func: &ItemFn, use_map: &UseMap) -> ParsedFn {
     }
 }
 
+struct ParsedStruct {
+    name: String,
+    docs: Option<String>,
+    fields: Vec<RustStructField>,
+}
+
+fn extract_struct(item_struct: &syn::ItemStruct, use_map: &UseMap) -> ParsedStruct {
+    let name = item_struct.ident.to_string();
+    let docs = extract_docs(&item_struct.attrs);
+
+    let fields = match &item_struct.fields {
+        syn::Fields::Named(named) => named
+            .named
+            .iter()
+            .filter(|f| matches!(f.vis, Visibility::Public(_)))
+            .map(|f| {
+                let field_name = f.ident.as_ref().unwrap().to_string();
+                let field_docs = extract_docs(&f.attrs);
+                let type_name = resolve_type_tokens(f.ty.to_token_stream(), use_map);
+                RustStructField {
+                    name: field_name,
+                    docs: field_docs,
+                    type_name,
+                }
+            })
+            .collect(),
+        syn::Fields::Unnamed(unnamed) => unnamed
+            .unnamed
+            .iter()
+            .enumerate()
+            .filter(|(_, f)| matches!(f.vis, Visibility::Public(_)))
+            .map(|(i, f)| {
+                let field_docs = extract_docs(&f.attrs);
+                let type_name = resolve_type_tokens(f.ty.to_token_stream(), use_map);
+                RustStructField {
+                    name: i.to_string(),
+                    docs: field_docs,
+                    type_name,
+                }
+            })
+            .collect(),
+        syn::Fields::Unit => vec![],
+    };
+
+    ParsedStruct { name, docs, fields }
+}
+
 type UseMap = HashMap<String, String>;
 
-fn collect_uses(items: &[syn::Item]) -> UseMap {
+fn collect_uses(items: &[syn::Item], module_name: &str) -> UseMap {
     let mut map = UseMap::new();
     for item in items {
         if let syn::Item::Use(item_use) = item {
             flatten_use_tree(&item_use.tree, &mut Vec::new(), &mut map);
+        }
+    }
+    // Also map locally declared types (structs, enums, type aliases, unions)
+    for item in items {
+        let type_name = match item {
+            syn::Item::Struct(s) => Some(s.ident.to_string()),
+            syn::Item::Enum(e) => Some(e.ident.to_string()),
+            syn::Item::Type(t) => Some(t.ident.to_string()),
+            syn::Item::Union(u) => Some(u.ident.to_string()),
+            _ => None,
+        };
+        if let Some(name) = type_name {
+            let full_path = format!("crate::{}::{}", module_name, name);
+            map.entry(name).or_insert(full_path);
         }
     }
     map

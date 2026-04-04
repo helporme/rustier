@@ -7,8 +7,8 @@ use napi_derive::napi;
 use toml_edit::DocumentMut;
 
 use steps::{
-    s1_discovery, s2_import_scan, s3_treeshake, s4_dev_generate_rust, s4_napi_generate_rust,
-    s4_wasm_generate_rust, s5_dev_typescript, s6_napi_js, s6_wasm_js,
+    s1_discovery, s1b_dep_discovery, s2_import_scan, s3_treeshake, s4_dev_generate_rust,
+    s4_napi_generate_rust, s4_wasm_generate_rust, s5_dev_typescript, s6_napi_js, s6_wasm_js,
 };
 
 #[napi(string_enum)]
@@ -46,6 +46,8 @@ pub fn build(options: BuildOptions) {
     let discovered =
         s1_discovery::discover(&options.module_dir).expect("failed to discover rust modules");
 
+    dbg!(&discovered);
+
     // Step 2: Scan JS/TS files for imports of discovered modules
     let imports = s2_import_scan::scan_for_imports_of_rust_modules_in_js(
         &discovered,
@@ -76,6 +78,10 @@ pub fn build(options: BuildOptions) {
     // Patch Cargo.toml
     let cargo_content = fs::read_to_string(&options.cargo_path).expect("failed to read Cargo.toml");
     let doc: DocumentMut = cargo_content.parse().expect("failed to parse Cargo.toml");
+    let crate_name = doc["package"]["name"]
+        .as_str()
+        .expect("Cargo.toml must have [package] name")
+        .replace('-', "_");
     let lib_rs_rel = lib_rs_path.to_string_lossy().to_string();
 
     match options.target {
@@ -84,11 +90,17 @@ pub fn build(options: BuildOptions) {
             fs::write(&options.cargo_path, patched.to_string())
                 .expect("failed to write Cargo.toml");
 
+            // Discover dependency types
+            let dep_modules =
+                s1b_dep_discovery::discover_dependencies(&options.cargo_path);
+
             // Step 5: Generate .d.ts files
             s5_dev_typescript::generate_types(
                 &discovered,
+                &dep_modules,
                 &output_dir.join("types"),
                 Path::new(&options.project_root),
+                &crate_name,
             );
         }
         BuildTarget::Napi => {

@@ -51,7 +51,7 @@ pub fn treeshake<'a>(
                         members
                             .iter()
                             .filter_map(|m| match m {
-                                crate::steps::s1_discovery::RustModuleMember::Fn(f) => {
+                                crate::steps::s1_discovery::RustMember::Fn(f) => {
                                     // Extract the short name (last segment)
                                     Some(short_name(&f.name).to_string())
                                 }

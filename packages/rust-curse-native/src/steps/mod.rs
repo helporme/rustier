@@ -1,4 +1,5 @@
 pub mod s1_discovery;
+pub mod s1b_dep_discovery;
 pub mod s2_import_scan;
 pub mod s3_treeshake;
 pub mod s4_dev_generate_rust;

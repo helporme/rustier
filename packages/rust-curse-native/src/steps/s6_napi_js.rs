@@ -9,7 +9,7 @@ use std::fs;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::Path;
 
-use crate::steps::s1_discovery::{RustModuleFn, RustModuleMember};
+use crate::steps::s1_discovery::{RustFn, RustMember};
 use crate::steps::s3_treeshake::RustModuleShaked;
 
 struct FnGlue {
@@ -61,8 +61,7 @@ pub fn generate_js_glue(
         let imported: HashSet<&str> = s.imported_members.iter().map(|s| s.as_str()).collect();
         let content = generate_module_glue(&abs_binding_file, members, &imported);
 
-        fs::write(output_dir.join(&glue_filename), &content)
-            .expect("failed to write glue JS file");
+        fs::write(output_dir.join(&glue_filename), &content).expect("failed to write glue JS file");
 
         index.insert(source_key, glue_filename);
     }
@@ -73,7 +72,7 @@ pub fn generate_js_glue(
 
 fn generate_module_glue(
     binding_file: &str,
-    members: &[RustModuleMember],
+    members: &[RustMember],
     imported: &HashSet<&str>,
 ) -> String {
     let mut fns = Vec::new();
@@ -86,7 +85,13 @@ fn generate_module_glue(
             .iter()
             .map(|f| format!("{} as $_{}", f.napi_name, f.napi_name))
             .collect();
-        writeln!(out, "import {{ {} }} from '{}';", import_list.join(", "), binding_file).unwrap();
+        writeln!(
+            out,
+            "import {{ {} }} from '{}';",
+            import_list.join(", "),
+            binding_file
+        )
+        .unwrap();
         writeln!(out).unwrap();
     }
 
@@ -116,21 +121,17 @@ fn generate_module_glue(
     out
 }
 
-fn collect_fns(
-    members: &[RustModuleMember],
-    imported: &HashSet<&str>,
-    fns: &mut Vec<FnGlue>,
-) {
+fn collect_fns(members: &[RustMember], imported: &HashSet<&str>, fns: &mut Vec<FnGlue>) {
     for member in members {
         match member {
-            RustModuleMember::Fn(func) => {
+            RustMember::Fn(func) => {
                 let short_name = func.name.rsplit("::").next().unwrap_or(&func.name);
                 if !imported.contains(short_name) {
                     continue;
                 }
                 fns.push(make_fn_glue(func));
             }
-            RustModuleMember::Module(sub) => {
+            RustMember::Module(sub) => {
                 let short_name = sub.name.rsplit("::").next().unwrap_or(&sub.name);
                 if !imported.contains(short_name) {
                     continue;
@@ -139,26 +140,28 @@ fn collect_fns(
                     collect_all_fns(sub_members, fns);
                 }
             }
+            _ => {}
         }
     }
 }
 
-fn collect_all_fns(members: &[RustModuleMember], fns: &mut Vec<FnGlue>) {
+fn collect_all_fns(members: &[RustMember], fns: &mut Vec<FnGlue>) {
     for member in members {
         match member {
-            RustModuleMember::Fn(func) => {
+            RustMember::Fn(func) => {
                 fns.push(make_fn_glue(func));
             }
-            RustModuleMember::Module(sub) => {
+            RustMember::Module(sub) => {
                 if let Some(ref sub_members) = sub.members {
                     collect_all_fns(sub_members, fns);
                 }
             }
+            _ => {}
         }
     }
 }
 
-fn make_fn_glue(func: &RustModuleFn) -> FnGlue {
+fn make_fn_glue(func: &RustFn) -> FnGlue {
     let short_name = func.name.rsplit("::").next().unwrap_or(&func.name);
     let napi_name = snake_to_camel(&func.name.replace("::", "__"));
     let arg_names = func.args.iter().map(|a| a.name.clone()).collect();

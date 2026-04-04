@@ -10,7 +10,7 @@ use std::path::Path;
 use toml_edit::DocumentMut;
 
 use crate::steps::{
-    s1_discovery::{RustModule, RustModuleFn, RustModuleMember},
+    s1_discovery::{RustFn, RustMember, RustModule},
     s3_treeshake::RustModuleShaked,
 };
 
@@ -90,20 +90,16 @@ pub fn generate_lib_and_modules(
     }
 }
 
-fn write_napi_glue_for_members(
-    out: &mut String,
-    members: &[RustModuleMember],
-    imported: &[String],
-) {
+fn write_napi_glue_for_members(out: &mut String, members: &[RustMember], imported: &[String]) {
     for member in members {
         match member {
-            RustModuleMember::Fn(func) => {
+            RustMember::Fn(func) => {
                 let short = func.name.rsplit("::").next().unwrap_or(&func.name);
                 if imported.contains(&short.to_string()) || imported.contains(&"*".to_string()) {
                     generate_fn_glue(out, &func.name, func);
                 }
             }
-            RustModuleMember::Module(sub) => {
+            RustMember::Module(sub) => {
                 // For sub-modules imported as a member (e.g. `import { messages } from './hello'`),
                 // generate glue for all their public functions
                 let short = sub.name.rsplit("::").next().unwrap_or(&sub.name);
@@ -113,27 +109,29 @@ fn write_napi_glue_for_members(
                     }
                 }
             }
+            _ => {}
         }
     }
 }
 
 /// Generates NAPI glue for all functions in a module tree (used for sub-module imports).
-fn write_napi_glue_all(out: &mut String, _parent_name: &str, members: &[RustModuleMember]) {
+fn write_napi_glue_all(out: &mut String, _parent_name: &str, members: &[RustMember]) {
     for member in members {
         match member {
-            RustModuleMember::Fn(func) => {
+            RustMember::Fn(func) => {
                 generate_fn_glue(out, &func.name, func);
             }
-            RustModuleMember::Module(sub) => {
+            RustMember::Module(sub) => {
                 if let Some(ref sub_members) = sub.members {
                     write_napi_glue_all(out, &sub.name, sub_members);
                 }
             }
+            _ => {}
         }
     }
 }
 
-fn generate_fn_glue(out: &mut String, full_name: &str, func: &RustModuleFn) {
+fn generate_fn_glue(out: &mut String, full_name: &str, func: &RustFn) {
     // Convert foo::bar::fn_name to foo__bar__fn_name
     let napi_name = full_name.replace("::", "__");
     let call_path = full_name; // e.g. routes::greeting::greet

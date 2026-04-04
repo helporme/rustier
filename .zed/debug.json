@@ -1,0 +1,11 @@
+[
+  {
+    "label": "Debug Library Build (Rust)",
+    "adapter": "CodeLLDB",
+    "request": "launch",
+    "program": "node",
+    "args": ["./node_modules/tsdown/dist/run.mjs", "build"],
+    "cwd": "$ZED_WORKTREE_ROOT/examples/library-example",
+    "sourceLanguages": ["rust"],
+  },
+]
