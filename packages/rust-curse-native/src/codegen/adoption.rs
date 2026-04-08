@@ -1,0 +1,151 @@
+//! Generate `lib.rs` that declares orphan modules using `#[path]` attributes.
+
+use crate::model::{GeneratedFile, OrphanModule};
+use std::path::{Path, PathBuf};
+
+/// Generate a `lib.rs` that declares all orphan modules.
+///
+/// `path_prefix` is prepended to each module's `rel_path` in the `#[path]` attribute.
+pub fn generate_lib_rs(
+    modules: &[OrphanModule],
+    path_prefix: &Path,
+    lib_rel_path: PathBuf,
+) -> GeneratedFile {
+    let mut content = String::new();
+
+    for module in modules {
+        let target_rel_path = path_prefix.join(&module.rel_path);
+        let target_rel_path = target_rel_path.to_string_lossy();
+
+        let mod_name = mangle_module_name(&module.name);
+
+        content.push_str(&format!(
+            "#[path = \"{}\"]\npub mod {};\n\n",
+            target_rel_path, mod_name
+        ));
+    }
+
+    GeneratedFile {
+        rel_path: lib_rel_path,
+        content,
+    }
+}
+
+/// Mangle a `::` separated module name into an unambiguous Rust identifier.
+fn mangle_module_name(name: &str) -> String {
+    name.replace('0', "00")
+        .replace('_', "0_")
+        .replace("::", "__")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generates_simple_modules() {
+        let modules = vec![
+            OrphanModule {
+                name: "greet".into(),
+                rel_path: PathBuf::from("greet.rs"),
+            },
+            OrphanModule {
+                name: "math".into(),
+                rel_path: PathBuf::from("math.rs"),
+            },
+        ];
+
+        let file = generate_lib_rs(&modules, Path::new("../../../src"), PathBuf::from("lib.rs"));
+
+        assert_eq!(
+            file.content,
+            concat!(
+                "#[path = \"../../../src/greet.rs\"]\n",
+                "pub mod greet;\n",
+                "\n",
+                "#[path = \"../../../src/math.rs\"]\n",
+                "pub mod math;\n",
+                "\n",
+            )
+        );
+    }
+
+    #[test]
+    fn mangles_nested_module_names() {
+        let modules = vec![OrphanModule {
+            name: "nested::deep".into(),
+            rel_path: PathBuf::from("nested/deep.rs"),
+        }];
+
+        let file = generate_lib_rs(&modules, Path::new("../../src"), PathBuf::from("lib.rs"));
+
+        assert_eq!(
+            file.content,
+            concat!(
+                "#[path = \"../../src/nested/deep.rs\"]\n",
+                "pub mod nested__deep;\n",
+                "\n",
+            )
+        );
+    }
+
+    #[test]
+    fn underscored_names_dont_collide() {
+        let modules = vec![
+            OrphanModule {
+                name: "nested::file".into(),
+                rel_path: PathBuf::from("nested/file.rs"),
+            },
+            OrphanModule {
+                name: "nested__::file".into(),
+                rel_path: PathBuf::from("nested__/file.rs"),
+            },
+        ];
+
+        let file = generate_lib_rs(&modules, Path::new("../src"), PathBuf::from("lib.rs"));
+
+        assert_eq!(
+            file.content,
+            concat!(
+                "#[path = \"../src/nested/file.rs\"]\n",
+                "pub mod nested__file;\n",
+                "\n",
+                "#[path = \"../src/nested__/file.rs\"]\n",
+                "pub mod nested0_0___file;\n",
+                "\n",
+            )
+        );
+    }
+
+    #[test]
+    fn underscored_directory_names() {
+        let modules = vec![OrphanModule {
+            name: "__nested::__deep".into(),
+            rel_path: PathBuf::from("__nested/__deep.rs"),
+        }];
+
+        let file = generate_lib_rs(&modules, Path::new("../src"), PathBuf::from("lib.rs"));
+
+        assert_eq!(
+            file.content,
+            concat!(
+                "#[path = \"../src/__nested/__deep.rs\"]\n",
+                "pub mod 0_0_nested__0_0_deep;\n",
+                "\n",
+            )
+        );
+    }
+
+    #[test]
+    fn mangle_is_unambiguous() {
+        assert_eq!(mangle_module_name("foo"), "foo");
+        assert_eq!(mangle_module_name("foo::bar"), "foo__bar");
+        assert_eq!(mangle_module_name("foo_bar"), "foo0_bar");
+        assert_eq!(mangle_module_name("foo_::bar"), "foo0___bar");
+        assert_eq!(mangle_module_name("__x::__y"), "0_0_x__0_0_y");
+        assert_ne!(mangle_module_name("foo_0"), mangle_module_name("foo::"));
+        assert_eq!(mangle_module_name("foo_0"), "foo0_00");
+        assert_eq!(mangle_module_name("foo0bar"), "foo00bar");
+        assert_eq!(mangle_module_name("a_0b::c"), "a0_00b__c");
+    }
+}
