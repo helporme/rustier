@@ -1,8 +1,8 @@
 import { resolve } from 'node:path'
 import type { Plugin, ResolvedConfig } from 'vite'
 import { defaultOptions, RustCurseOptions } from './options'
-import { Session, BuildTarget } from 'rust-curse-native'
-import type { TargetConfig } from 'rust-curse-native'
+import { Session } from 'rust-curse-native'
+import type { BuildTarget } from 'rust-curse-native'
 import { deepMerge, DeepRequired, normalizeSources } from '../utils'
 
 export default function rustCurse(options?: RustCurseOptions): Plugin {
@@ -36,17 +36,18 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
     },
 
     buildStart() {
-      const targets: TargetConfig[] = [
-        {
-          target: BuildTarget.Wasm,
-          jsSource: normalizeSources(options.sources),
-        },
+      const wasmSource = normalizeSources(options.sources)
+
+      const targets: BuildTarget[] = [
+        { type: 'Default', jsSource: wasmSource },
+        { type: 'Wasm', jsSource: wasmSource, featureName: 'target-wasm' },
       ]
 
       if (config.command === 'build') {
         targets.push({
-          target: BuildTarget.Napi,
+          type: 'Node',
           jsSource: normalizeSources(options.ssr.sources),
+          featureName: 'target-node',
         })
       }
 

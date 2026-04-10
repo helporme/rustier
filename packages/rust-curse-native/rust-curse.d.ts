@@ -12,7 +12,7 @@ export interface BuildResult {
 }
 
 export declare const enum BuildStep {
-  Adoption = 'Adoption',
+  Setup = 'Setup',
   Rustdoc = 'Rustdoc',
   Link = 'Link',
   ImportScan = 'ImportScan',
@@ -20,13 +20,13 @@ export declare const enum BuildStep {
   Codegen = 'Codegen'
 }
 
-export declare const enum BuildTarget {
-  Napi = 'Napi',
-  Wasm = 'Wasm'
-}
+export type BuildTarget =
+  | { type: 'Default', jsSource: SourceOptions }
+  | { type: 'Node', jsSource: SourceOptions, featureName: string }
+  | { type: 'Wasm', jsSource: SourceOptions, featureName: string }
 
 export interface SessionOptions {
-  targets: Array<TargetConfig>
+  targets: Array<BuildTarget>
   /** Directory to discover rust orphan modules, relative to project root. */
   moduleDirRelPath: string
   /** Output dir for placing generated files, relative to project root. */
@@ -42,9 +42,4 @@ export interface SessionOptions {
 export interface SourceOptions {
   include: Array<string>
   exclude: Array<string>
-}
-
-export interface TargetConfig {
-  target: BuildTarget
-  jsSource: SourceOptions
 }

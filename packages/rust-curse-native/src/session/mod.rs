@@ -5,24 +5,69 @@ use anyhow::Context;
 #[cfg(feature = "napi-binding")]
 use napi_derive::napi;
 
-use crate::codegen::adoption;
 use crate::codegen::cargo_toml;
+use crate::codegen::rustdoc as rustdoc_codegen;
+use crate::codegen::setup;
 use crate::discovery::import_scan::scan_imports;
 use crate::discovery::orphans::discover_orphans;
 use crate::discovery::rustdoc::{generate_rustdoc, link_rustdoc_items};
 use crate::discovery::treeshake::{treeshake_modules, TreeshakeWarning};
 use crate::model::{GeneratedFile, OrphanModule};
 
-#[cfg_attr(feature = "napi-binding", napi(string_enum))]
+/// Rustdoc cfg flag name, set via build.rs when `RUST_CURSE_RUSTDOC` env var is present.
+pub const RUSTDOC_CFG: &str = "rust_curse_rustdoc";
+/// Env var that triggers the rustdoc cfg flag in the generated build.rs.
+pub const RUSTDOC_ENV_VAR: &str = "RUST_CURSE_RUSTDOC";
+/// File name for the rustdoc module.
+pub const RUSTDOC_FILE: &str = "rustdoc.rs";
+
+#[cfg_attr(feature = "napi-binding", napi)]
 pub enum BuildTarget {
-    Napi,
-    Wasm,
+    Default {
+        js_source: SourceOptions,
+    },
+    Node {
+        js_source: SourceOptions,
+        feature_name: String,
+    },
+    Wasm {
+        js_source: SourceOptions,
+        feature_name: String,
+    },
+}
+
+impl BuildTarget {
+    /// Cargo feature name that activates this target, if any.
+    pub fn feature_name(&self) -> Option<&str> {
+        match self {
+            BuildTarget::Default { .. } => None,
+            BuildTarget::Node { feature_name, .. } => Some(feature_name),
+            BuildTarget::Wasm { feature_name, .. } => Some(feature_name),
+        }
+    }
+
+    /// File name for the generated module (e.g. `"node.rs"`).
+    pub fn file_name(&self) -> &'static str {
+        match self {
+            BuildTarget::Default { .. } => "default.rs",
+            BuildTarget::Node { .. } => "node.rs",
+            BuildTarget::Wasm { .. } => "wasm.rs",
+        }
+    }
+
+    pub fn js_source(&self) -> &SourceOptions {
+        match self {
+            BuildTarget::Default { js_source, .. }
+            | BuildTarget::Node { js_source, .. }
+            | BuildTarget::Wasm { js_source, .. } => js_source,
+        }
+    }
 }
 
 #[cfg_attr(feature = "napi-binding", napi(string_enum))]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BuildStep {
-    Adoption,
+    Setup,
     Rustdoc,
     Link,
     ImportScan,
@@ -37,14 +82,8 @@ pub struct SourceOptions {
 }
 
 #[cfg_attr(feature = "napi-binding", napi(object))]
-pub struct TargetConfig {
-    pub target: BuildTarget,
-    pub js_source: SourceOptions,
-}
-
-#[cfg_attr(feature = "napi-binding", napi(object))]
 pub struct SessionOptions {
-    pub targets: Vec<TargetConfig>,
+    pub targets: Vec<BuildTarget>,
     /// Directory to discover rust orphan modules, relative to project root.
     pub module_dir_rel_path: String,
     /// Output dir for placing generated files, relative to project root.
@@ -100,7 +139,7 @@ impl Session {
     fn try_build(&mut self) -> anyhow::Result<BuildResult> {
         let last_step = self.options.last_step;
 
-        // Step 1: Adoption -> discover orphan modules, generate lib.rs, patch Cargo.toml
+        // Step 1: Setup -> discover orphans, generate lib.rs + rustdoc.rs, patch Cargo.toml
         let modules = discover_orphans(&PathBuf::from(&self.options.module_dir_rel_path))?;
 
         let abs_module_dir = fs::canonicalize(&self.options.module_dir_rel_path)
@@ -111,24 +150,42 @@ impl Session {
         let abs_output_dir = fs::canonicalize(&self.options.output_dir_rel_path)
             .context("output_dir is not accessible")?;
 
-        let path_prefix = diff_paths(&abs_module_dir, &abs_output_dir);
-        let lib_rs = adoption::generate_lib_rs(&modules, &path_prefix, PathBuf::from("lib.rs"));
+        // Generate feature-gated lib.rs + build.rs
+        let lib_rs = setup::generate_lib_rs(&self.options.targets);
         emit_file(&abs_output_dir, &lib_rs)?;
 
+        let build_rs = setup::generate_build_rs(&self.options.targets);
+        emit_file(&abs_output_dir, &build_rs)?;
+
+        // Generate rustdoc.rs with pub mod declarations for all orphan modules
+        let path_prefix = diff_paths(&abs_module_dir, &abs_output_dir);
+        let rustdoc_rs = rustdoc_codegen::generate_rustdoc_rs(
+            &modules,
+            &path_prefix,
+            PathBuf::from(RUSTDOC_FILE),
+        );
+        emit_file(&abs_output_dir, &rustdoc_rs)?;
+
+        // Patch Cargo.toml with lib.path, build path, features + optional deps
         let abs_cargo_path = fs::canonicalize(&self.options.cargo_toml_rel_path)
             .context("cargo_path does not exist or is not accessible")?;
         let abs_cargo_dir = abs_cargo_path
             .parent()
             .context("cargo_path has no parent directory")?;
 
-        let lib_rs_rel_path = diff_paths(&abs_output_dir.join("lib.rs"), abs_cargo_dir);
+        let output_rel_to_cargo = diff_paths(&abs_output_dir, abs_cargo_dir);
+        let lib_rs_rel_path = output_rel_to_cargo.join("lib.rs");
         let lib_rs_rel_path = lib_rs_rel_path.to_string_lossy();
+        let build_rs_rel_path = output_rel_to_cargo.join("build.rs");
+        let build_rs_rel_path = build_rs_rel_path.to_string_lossy();
 
         let cargo_content =
             fs::read_to_string(&abs_cargo_path).context("cannot read Cargo.toml")?;
         let patched = cargo_toml::patch_cargo_toml(
             &cargo_content,
             &lib_rs_rel_path,
+            &build_rs_rel_path,
+            &self.options.targets,
             PathBuf::from("Cargo.toml"),
         )
         .context("cannot parse Cargo.toml")?;
@@ -138,7 +195,7 @@ impl Session {
 
         self.last_modules = modules;
 
-        if last_step == Some(BuildStep::Adoption) {
+        if last_step == Some(BuildStep::Setup) {
             return Ok(BuildResult::empty());
         }
 
@@ -159,9 +216,10 @@ impl Session {
         // Step 4: Import scan
         let abs_project_root = PathBuf::from(&self.options.project_root_abs_path);
         let mut all_imports = Vec::new();
-        for target_cfg in &self.options.targets {
-            let include = make_absolute_globs(&target_cfg.js_source.include, &abs_project_root);
-            let exclude = make_absolute_globs(&target_cfg.js_source.exclude, &abs_project_root);
+        for target in &self.options.targets {
+            let js_source = target.js_source();
+            let include = make_absolute_globs(&js_source.include, &abs_project_root);
+            let exclude = make_absolute_globs(&js_source.exclude, &abs_project_root);
             let target_imports =
                 scan_imports(&abs_module_dir, &include, &exclude).context("import scan failed")?;
             all_imports.extend(target_imports);

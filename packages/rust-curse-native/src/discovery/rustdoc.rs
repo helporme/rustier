@@ -7,6 +7,7 @@ use std::process::Command;
 use thiserror::Error;
 
 use crate::model::OrphanModule;
+use crate::session::RUSTDOC_ENV_VAR;
 
 #[derive(Debug, Error)]
 pub enum RustdocError {
@@ -60,6 +61,7 @@ pub fn generate_rustdoc(
             "--output-format",
             "json",
         ])
+        .env(RUSTDOC_ENV_VAR, "1")
         .current_dir(project_root_abs_path)
         .output()
         .map_err(RustdocError::CargoNotAvailable)?;

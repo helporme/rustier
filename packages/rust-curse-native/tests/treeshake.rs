@@ -2,7 +2,7 @@ mod common;
 
 use std::path::Path;
 
-use rust_curse::session::{BuildStep, BuildTarget, Session, SessionOptions, SourceOptions, TargetConfig};
+use rust_curse::session::{BuildStep, BuildTarget, Session, SessionOptions, SourceOptions};
 
 use common::copy_dir_recursive;
 
@@ -17,12 +17,12 @@ fn treeshake_resolves_valid_imports() {
     let src_dir = tmp_abs_path.join("src");
 
     let mut session = Session::new(SessionOptions {
-        targets: vec![TargetConfig {
-            target: BuildTarget::Napi,
+        targets: vec![BuildTarget::Node {
             js_source: SourceOptions {
                 include: vec![format!("{}/**/*.js", src_dir.display())],
                 exclude: vec![format!("{}/bad.js", src_dir.display())],
             },
+            feature_name: "target-node".into(),
         }],
         module_dir_rel_path: src_dir.to_string_lossy().into_owned(),
         output_dir_rel_path: tmp_abs_path.join(".rust-curse").to_string_lossy().into_owned(),
@@ -63,13 +63,13 @@ fn treeshake_warns_on_bad_imports() {
     let src_dir = tmp_abs_path.join("src");
 
     let mut session = Session::new(SessionOptions {
-        targets: vec![TargetConfig {
-            target: BuildTarget::Napi,
+        targets: vec![BuildTarget::Node {
             js_source: SourceOptions {
                 // Only include bad.js
                 include: vec![format!("{}/bad.js", src_dir.display())],
                 exclude: vec![],
             },
+            feature_name: "target-node".into(),
         }],
         module_dir_rel_path: src_dir.to_string_lossy().into_owned(),
         output_dir_rel_path: tmp_abs_path.join(".rust-curse").to_string_lossy().into_owned(),

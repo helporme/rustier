@@ -1,8 +1,8 @@
 import { resolve } from 'node:path'
 import { type Rolldown } from 'tsdown'
 import { defaultOptions, RustCurseOptions } from './options'
-import { Session, BuildTarget } from 'rust-curse-native'
-import type { TargetConfig } from 'rust-curse-native'
+import { Session } from 'rust-curse-native'
+import type { BuildTarget } from 'rust-curse-native'
 import { deepMerge, DeepRequired, normalizeSources } from '../utils'
 
 type Plugin = Rolldown.Plugin
@@ -22,13 +22,16 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
 
     buildStart() {
       const jsSource = normalizeSources(options.sources)
-      const target: TargetConfig = {
-        target: options.platform === 'node' ? BuildTarget.Napi : BuildTarget.Wasm,
-        jsSource,
-      }
+
+      const targets: BuildTarget[] = [
+        { type: 'Default', jsSource },
+        options.platform === 'node'
+          ? { type: 'Node', jsSource, featureName: 'target-node' }
+          : { type: 'Wasm', jsSource, featureName: 'target-wasm' },
+      ]
 
       const session = new Session({
-        targets: [target],
+        targets,
         moduleDirRelPath: resolve(options.rootDir, options.rust.moduleDir),
         cargoTomlRelPath: resolve(options.rootDir, options.rust.manifestPath),
         outputDirRelPath: resolve(options.rootDir, options.tempDir),
