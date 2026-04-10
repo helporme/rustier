@@ -10,14 +10,14 @@ export declare class Session {
 export interface BuildOptions {
   target: BuildTarget
   jsSource: SourceOptions
-  /** Directory to discover rust orphan modules. */
-  moduleDir: string
-  /** Output dir for placing generated files e.g. .rust-curse/prelude. */
-  outputDir: string
-  /** Path to the original Cargo.toml. */
-  cargoPath: string
-  /** Project root directory. */
-  projectRoot: string
+  /** Directory to discover rust orphan modules, relative to project root. */
+  moduleDirRelPath: string
+  /** Output dir for placing generated files, relative to project root. */
+  outputDirRelPath: string
+  /** Path to the original Cargo.toml, relative to project root. */
+  cargoTomlRelPath: string
+  /** Absolute path to the project root directory. */
+  projectRootAbsPath: string
 }
 
 export declare const enum BuildTarget {

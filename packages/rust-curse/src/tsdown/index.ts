@@ -25,11 +25,11 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
 
       const session = new Session({
         jsSource,
-        moduleDir: resolve(options.rootDir, options.rust.moduleDir),
+        moduleDirRelPath: resolve(options.rootDir, options.rust.moduleDir),
         target: BuildTarget.Prelude,
-        cargoPath: resolve(options.rootDir, options.rust.manifestPath),
-        outputDir: resolve(options.rootDir, join(options.tempDir, 'prelude')),
-        projectRoot: options.rootDir,
+        cargoTomlRelPath: resolve(options.rootDir, options.rust.manifestPath),
+        outputDirRelPath: resolve(options.rootDir, join(options.tempDir, 'prelude')),
+        projectRootAbsPath: options.rootDir,
       })
 
       session.build()

@@ -5,6 +5,7 @@ use anyhow::Context;
 use napi_derive::napi;
 
 use crate::codegen::adoption;
+use crate::codegen::cargo_toml;
 use crate::discovery::orphans::discover_orphans;
 use crate::model::{GeneratedFile, OrphanModule};
 
@@ -25,14 +26,14 @@ pub struct SourceOptions {
 pub struct BuildOptions {
     pub target: BuildTarget,
     pub js_source: SourceOptions,
-    /// Directory to discover rust orphan modules.
-    pub module_dir: String,
-    /// Output dir for placing generated files e.g. .rust-curse/prelude.
-    pub output_dir: String,
-    /// Path to the original Cargo.toml.
-    pub cargo_path: String,
-    /// Project root directory.
-    pub project_root: String,
+    /// Directory to discover rust orphan modules, relative to project root.
+    pub module_dir_rel_path: String,
+    /// Output dir for placing generated files, relative to project root.
+    pub output_dir_rel_path: String,
+    /// Path to the original Cargo.toml, relative to project root.
+    pub cargo_toml_rel_path: String,
+    /// Absolute path to the project root directory.
+    pub project_root_abs_path: String,
 }
 
 #[napi]
@@ -58,19 +59,41 @@ impl Session {
 
     fn try_build(&mut self) -> anyhow::Result<()> {
         // Step 1: Discover orphan modules
-        let modules = discover_orphans(&PathBuf::from(&self.options.module_dir))?;
+        let modules = discover_orphans(&PathBuf::from(&self.options.module_dir_rel_path))?;
 
         // Step 1b: Generate lib.rs that adopts orphan modules
-        let abs_module_dir = fs::canonicalize(&self.options.module_dir)
+        let abs_module_dir = fs::canonicalize(&self.options.module_dir_rel_path)
             .context("module_dir does not exist or is not accessible")?;
 
-        fs::create_dir_all(&self.options.output_dir).context("cannot create output_dir")?;
+        fs::create_dir_all(&self.options.output_dir_rel_path).context("cannot create output_dir")?;
         let abs_output_dir =
-            fs::canonicalize(&self.options.output_dir).context("output_dir is not accessible")?;
+            fs::canonicalize(&self.options.output_dir_rel_path).context("output_dir is not accessible")?;
 
         let path_prefix = diff_paths(&abs_module_dir, &abs_output_dir);
         let lib_rs = adoption::generate_lib_rs(&modules, &path_prefix, PathBuf::from("lib.rs"));
         emit_file(&abs_output_dir, &lib_rs)?;
+
+        // Step 1c: Patch Cargo.toml to point [lib].path at the generated lib.rs
+        let abs_cargo_path = fs::canonicalize(&self.options.cargo_toml_rel_path)
+            .context("cargo_path does not exist or is not accessible")?;
+        let abs_cargo_dir = abs_cargo_path
+            .parent()
+            .context("cargo_path has no parent directory")?;
+
+        let lib_rs_rel_path = diff_paths(&abs_output_dir.join("lib.rs"), abs_cargo_dir);
+        let lib_rs_rel_path = lib_rs_rel_path.to_string_lossy();
+
+        let cargo_content =
+            fs::read_to_string(&abs_cargo_path).context("cannot read Cargo.toml")?;
+        let patched = cargo_toml::patch_cargo_toml(
+            &cargo_content,
+            &lib_rs_rel_path,
+            PathBuf::from("Cargo.toml"),
+        )
+        .context("cannot parse Cargo.toml")?;
+
+        fs::write(&abs_cargo_path, &patched.content)
+            .with_context(|| format!("cannot write '{}'", abs_cargo_path.display()))?;
 
         // TODO: Step 2 — run cargo rustdoc, load JSON
         // TODO: Step 3 — link rustdoc items to orphan modules

@@ -47,11 +47,11 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
           include: [...jsSourceClient.include, ...jsSourceServer.include],
           exclude: [],
         },
-        moduleDir: resolve(config.root, options.rust.moduleDir),
+        moduleDirRelPath: resolve(config.root, options.rust.moduleDir),
         target: BuildTarget.Prelude,
-        cargoPath: resolve(config.root, options.rust.manifestPath),
-        outputDir: preludeDir,
-        projectRoot: config.root,
+        cargoTomlRelPath: resolve(config.root, options.rust.manifestPath),
+        outputDirRelPath: preludeDir,
+        projectRootAbsPath: config.root,
       })
 
       session.build()
