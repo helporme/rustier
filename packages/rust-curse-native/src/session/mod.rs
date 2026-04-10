@@ -2,30 +2,47 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
+#[cfg(feature = "napi-binding")]
 use napi_derive::napi;
 
 use crate::codegen::adoption;
 use crate::codegen::cargo_toml;
 use crate::discovery::orphans::discover_orphans;
+use crate::discovery::rustdoc::generate_rustdoc;
 use crate::model::{GeneratedFile, OrphanModule};
 
-#[napi(string_enum)]
+#[cfg_attr(feature = "napi-binding", napi(string_enum))]
 pub enum BuildTarget {
-    Prelude,
     Napi,
     Wasm,
 }
 
-#[napi(object)]
+#[cfg_attr(feature = "napi-binding", napi(string_enum))]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum BuildStep {
+    Adoption,
+    Rustdoc,
+    Link,
+    ImportScan,
+    Treeshake,
+    Codegen,
+}
+
+#[cfg_attr(feature = "napi-binding", napi(object))]
 pub struct SourceOptions {
     pub include: Vec<String>,
     pub exclude: Vec<String>,
 }
 
-#[napi(object)]
-pub struct BuildOptions {
+#[cfg_attr(feature = "napi-binding", napi(object))]
+pub struct TargetConfig {
     pub target: BuildTarget,
     pub js_source: SourceOptions,
+}
+
+#[cfg_attr(feature = "napi-binding", napi(object))]
+pub struct SessionOptions {
+    pub targets: Vec<TargetConfig>,
     /// Directory to discover rust orphan modules, relative to project root.
     pub module_dir_rel_path: String,
     /// Output dir for placing generated files, relative to project root.
@@ -34,46 +51,49 @@ pub struct BuildOptions {
     pub cargo_toml_rel_path: String,
     /// Absolute path to the project root directory.
     pub project_root_abs_path: String,
+    /// Last step to execute (for testing). If None, runs the full pipeline.
+    pub last_step: Option<BuildStep>,
 }
 
-#[napi]
+#[cfg_attr(feature = "napi-binding", napi)]
 pub struct Session {
-    options: BuildOptions,
+    options: SessionOptions,
     last_modules: Vec<OrphanModule>,
 }
 
-#[napi]
+#[cfg_attr(feature = "napi-binding", napi)]
 impl Session {
-    #[napi(constructor)]
-    pub fn new(options: BuildOptions) -> Self {
+    #[cfg_attr(feature = "napi-binding", napi(constructor))]
+    pub fn new(options: SessionOptions) -> Self {
         Self {
             options,
             last_modules: Vec::new(),
         }
     }
 
-    #[napi]
+    #[cfg_attr(feature = "napi-binding", napi)]
     pub fn build(&mut self) {
         self.try_build().expect("build failed");
     }
 
     fn try_build(&mut self) -> anyhow::Result<()> {
-        // Step 1: Discover orphan modules
+        let last_step = self.options.last_step;
+
+        // Step 1: Adoption -> discover orphan modules, generate lib.rs, patch Cargo.toml
         let modules = discover_orphans(&PathBuf::from(&self.options.module_dir_rel_path))?;
 
-        // Step 1b: Generate lib.rs that adopts orphan modules
         let abs_module_dir = fs::canonicalize(&self.options.module_dir_rel_path)
             .context("module_dir does not exist or is not accessible")?;
 
-        fs::create_dir_all(&self.options.output_dir_rel_path).context("cannot create output_dir")?;
-        let abs_output_dir =
-            fs::canonicalize(&self.options.output_dir_rel_path).context("output_dir is not accessible")?;
+        fs::create_dir_all(&self.options.output_dir_rel_path)
+            .context("cannot create output_dir")?;
+        let abs_output_dir = fs::canonicalize(&self.options.output_dir_rel_path)
+            .context("output_dir is not accessible")?;
 
         let path_prefix = diff_paths(&abs_module_dir, &abs_output_dir);
         let lib_rs = adoption::generate_lib_rs(&modules, &path_prefix, PathBuf::from("lib.rs"));
         emit_file(&abs_output_dir, &lib_rs)?;
 
-        // Step 1c: Patch Cargo.toml to point [lib].path at the generated lib.rs
         let abs_cargo_path = fs::canonicalize(&self.options.cargo_toml_rel_path)
             .context("cargo_path does not exist or is not accessible")?;
         let abs_cargo_dir = abs_cargo_path
@@ -95,22 +115,33 @@ impl Session {
         fs::write(&abs_cargo_path, &patched.content)
             .with_context(|| format!("cannot write '{}'", abs_cargo_path.display()))?;
 
-        // TODO: Step 2 — run cargo rustdoc, load JSON
+        self.last_modules = modules;
+
+        if last_step == Some(BuildStep::Adoption) {
+            return Ok(());
+        }
+
+        // Step 2: Run cargo rustdoc, load JSON
+        let _crate_ = generate_rustdoc(abs_cargo_dir).context("failed to generate rustdoc")?;
+
+        if last_step == Some(BuildStep::Rustdoc) {
+            return Ok(());
+        }
+
         // TODO: Step 3 — link rustdoc items to orphan modules
         // TODO: Step 4 — import scan
         // TODO: Step 5 — treeshake
         // TODO: Step 6 — codegen + emit
 
-        self.last_modules = modules;
         Ok(())
     }
 
-    #[napi]
+    #[cfg_attr(feature = "napi-binding", napi)]
     pub fn on_rs_file_changed(&mut self, _abs_path: String) {
         // TODO: re-run adoption + rustdoc + affected codegen
     }
 
-    #[napi]
+    #[cfg_attr(feature = "napi-binding", napi)]
     pub fn on_js_file_changed(&mut self, _abs_path: String) {
         // TODO: re-scan imports for changed file + treeshake + codegen
     }

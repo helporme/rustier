@@ -402,6 +402,7 @@ dependencies = [
  "napi-derive",
  "proc-macro2",
  "quote",
+ "rustdoc-types",
  "serde",
  "serde_json",
  "syn",
@@ -415,6 +416,16 @@ name = "rustc-hash"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "357703d41365b4b27c590e3ed91eabb1b663f07c4c084095e60cbed4362dff0d"
+
+[[package]]
+name = "rustdoc-types"
+version = "0.57.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e6919c49bdd9cca072b3b502d16c073d0a4d3b7283ff6e0c86a5f6e6b07bbfe"
+dependencies = [
+ "serde",
+ "serde_derive",
+]
 
 [[package]]
 name = "rustix"

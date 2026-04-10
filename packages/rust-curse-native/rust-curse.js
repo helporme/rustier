@@ -579,6 +579,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Session, BuildTarget } = nativeBinding
+const { Session, BuildStep, BuildTarget } = nativeBinding
 export { Session }
+export { BuildStep }
 export { BuildTarget }

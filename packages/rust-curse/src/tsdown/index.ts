@@ -1,8 +1,8 @@
-import { resolve, join } from 'node:path'
-import { mkdirSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { type Rolldown } from 'tsdown'
 import { defaultOptions, RustCurseOptions } from './options'
 import { Session, BuildTarget } from 'rust-curse-native'
+import type { TargetConfig } from 'rust-curse-native'
 import { deepMerge, DeepRequired, normalizeSources } from '../utils'
 
 type Plugin = Rolldown.Plugin
@@ -22,19 +22,20 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
 
     buildStart() {
       const jsSource = normalizeSources(options.sources)
+      const target: TargetConfig = {
+        target: options.platform === 'node' ? BuildTarget.Napi : BuildTarget.Wasm,
+        jsSource,
+      }
 
       const session = new Session({
-        jsSource,
+        targets: [target],
         moduleDirRelPath: resolve(options.rootDir, options.rust.moduleDir),
-        target: BuildTarget.Prelude,
         cargoTomlRelPath: resolve(options.rootDir, options.rust.manifestPath),
-        outputDirRelPath: resolve(options.rootDir, join(options.tempDir, 'prelude')),
+        outputDirRelPath: resolve(options.rootDir, options.tempDir),
         projectRootAbsPath: options.rootDir,
       })
 
       session.build()
-
-      // TODO: platform build (napi/wasm) once later pipeline steps are implemented
     },
   }
 }
