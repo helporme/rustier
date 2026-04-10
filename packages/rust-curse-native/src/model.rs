@@ -18,3 +18,24 @@ pub struct GeneratedFile {
     pub rel_path: PathBuf,
     pub content: String,
 }
+
+/// A single ESM import of a Rust module found in a JS/TS file.
+#[derive(Clone, Debug)]
+pub struct RsImport {
+    /// Absolute path to the JS/TS file containing the import.
+    pub js_abs_path: PathBuf,
+    /// Relative path of the imported Rust module (matches `OrphanModule.rel_path`).
+    pub rs_rel_path: PathBuf,
+    /// Unresolved imported member names (may include "*")
+    pub members: Vec<String>,
+}
+
+/// An OrphanModule that survived treeshaking
+#[derive(Clone, Debug)]
+pub struct ShakedModule {
+    pub module: OrphanModule,
+    /// Absolute paths of JS/TS files that import this module.
+    pub importer_abs_paths: Vec<PathBuf>,
+    /// Rustdoc item IDs of the members actually imported.
+    pub imported_item_ids: Vec<rustdoc_types::Id>,
+}

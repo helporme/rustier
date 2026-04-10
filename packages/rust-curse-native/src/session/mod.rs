@@ -7,8 +7,10 @@ use napi_derive::napi;
 
 use crate::codegen::adoption;
 use crate::codegen::cargo_toml;
+use crate::discovery::import_scan::scan_imports;
 use crate::discovery::orphans::discover_orphans;
 use crate::discovery::rustdoc::{generate_rustdoc, link_rustdoc_items};
+use crate::discovery::treeshake::{treeshake_modules, TreeshakeWarning};
 use crate::model::{GeneratedFile, OrphanModule};
 
 #[cfg_attr(feature = "napi-binding", napi(string_enum))]
@@ -61,6 +63,25 @@ pub struct Session {
     last_modules: Vec<OrphanModule>,
 }
 
+#[cfg_attr(feature = "napi-binding", napi(object))]
+pub struct BuildResult {
+    pub warnings: Vec<String>,
+}
+
+impl BuildResult {
+    fn empty() -> Self {
+        Self {
+            warnings: Vec::new(),
+        }
+    }
+
+    fn from_warnings(warnings: Vec<TreeshakeWarning>) -> Self {
+        Self {
+            warnings: warnings.iter().map(|w| w.to_string()).collect(),
+        }
+    }
+}
+
 #[cfg_attr(feature = "napi-binding", napi)]
 impl Session {
     #[cfg_attr(feature = "napi-binding", napi(constructor))]
@@ -72,11 +93,11 @@ impl Session {
     }
 
     #[cfg_attr(feature = "napi-binding", napi)]
-    pub fn build(&mut self) {
-        self.try_build().expect("build failed");
+    pub fn build(&mut self) -> BuildResult {
+        self.try_build().expect("build failed")
     }
 
-    fn try_build(&mut self) -> anyhow::Result<()> {
+    fn try_build(&mut self) -> anyhow::Result<BuildResult> {
         let last_step = self.options.last_step;
 
         // Step 1: Adoption -> discover orphan modules, generate lib.rs, patch Cargo.toml
@@ -118,14 +139,14 @@ impl Session {
         self.last_modules = modules;
 
         if last_step == Some(BuildStep::Adoption) {
-            return Ok(());
+            return Ok(BuildResult::empty());
         }
 
         // Step 2: Run cargo rustdoc, load JSON
         let crate_ = generate_rustdoc(abs_cargo_dir).context("failed to generate rustdoc")?;
 
         if last_step == Some(BuildStep::Rustdoc) {
-            return Ok(());
+            return Ok(BuildResult::empty());
         }
 
         // Step 3: Link rustdoc items to orphan modules
@@ -133,13 +154,34 @@ impl Session {
         link_rustdoc_items(&crate_, &mut self.last_modules, &module_dir_rel_to_cargo);
 
         if last_step == Some(BuildStep::Link) {
-            return Ok(());
+            return Ok(BuildResult::empty());
         }
-        // TODO: Step 4 — import scan
-        // TODO: Step 5 — treeshake
+        // Step 4: Import scan
+        let abs_project_root = PathBuf::from(&self.options.project_root_abs_path);
+        let mut all_imports = Vec::new();
+        for target_cfg in &self.options.targets {
+            let include = make_absolute_globs(&target_cfg.js_source.include, &abs_project_root);
+            let exclude = make_absolute_globs(&target_cfg.js_source.exclude, &abs_project_root);
+            let target_imports =
+                scan_imports(&abs_module_dir, &include, &exclude).context("import scan failed")?;
+            all_imports.extend(target_imports);
+        }
+
+        if last_step == Some(BuildStep::ImportScan) {
+            return Ok(BuildResult::empty());
+        }
+
+        // Step 5: Treeshake
+        let treeshake_result = treeshake_modules(&self.last_modules, &all_imports, &crate_);
+        let warnings = treeshake_result.warnings;
+
+        if last_step == Some(BuildStep::Treeshake) {
+            return Ok(BuildResult::from_warnings(warnings));
+        }
+
         // TODO: Step 6 — codegen + emit
 
-        Ok(())
+        Ok(BuildResult::from_warnings(warnings))
     }
 
     pub fn last_modules(&self) -> &[OrphanModule] {
@@ -185,6 +227,20 @@ fn diff_paths(abs_to: &Path, abs_from: &Path) -> PathBuf {
     }
 
     result
+}
+
+fn make_absolute_globs(patterns: &[String], abs_root: &Path) -> Vec<String> {
+    patterns
+        .iter()
+        .map(|p| {
+            let path = Path::new(p);
+            if path.is_absolute() {
+                p.clone()
+            } else {
+                abs_root.join(p).to_string_lossy().into_owned()
+            }
+        })
+        .collect()
 }
 
 fn emit_file(abs_output_dir: &Path, file: &GeneratedFile) -> anyhow::Result<()> {

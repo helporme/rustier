@@ -35,7 +35,10 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
         projectRootAbsPath: options.rootDir,
       })
 
-      session.build()
+      const result = session.build()
+      for (const warning of result.warnings) {
+        console.warn(`[rust-curse] ${warning}`)
+      }
     },
   }
 }

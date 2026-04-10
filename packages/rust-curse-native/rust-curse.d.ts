@@ -2,9 +2,13 @@
 /* eslint-disable */
 export declare class Session {
   constructor(options: SessionOptions)
-  build(): void
+  build(): BuildResult
   onRsFileChanged(absPath: string): void
   onJsFileChanged(absPath: string): void
+}
+
+export interface BuildResult {
+  warnings: Array<string>
 }
 
 export declare const enum BuildStep {
