@@ -55,10 +55,12 @@ mod tests {
             OrphanModule {
                 name: "greet".into(),
                 rel_path: PathBuf::from("greet.rs"),
+                item_ids: Vec::new(),
             },
             OrphanModule {
                 name: "math".into(),
                 rel_path: PathBuf::from("math.rs"),
+                item_ids: Vec::new(),
             },
         ];
 
@@ -84,6 +86,7 @@ mod tests {
         let modules = vec![OrphanModule {
             name: "nested::deep".into(),
             rel_path: PathBuf::from("nested/deep.rs"),
+            item_ids: Vec::new(),
         }];
 
         let file = generate_lib_rs(&modules, Path::new("../../src"), PathBuf::from("lib.rs"));
@@ -105,10 +108,12 @@ mod tests {
             OrphanModule {
                 name: "nested::file".into(),
                 rel_path: PathBuf::from("nested/file.rs"),
+                item_ids: Vec::new(),
             },
             OrphanModule {
                 name: "nested__::file".into(),
                 rel_path: PathBuf::from("nested__/file.rs"),
+                item_ids: Vec::new(),
             },
         ];
 
@@ -133,6 +138,7 @@ mod tests {
         let modules = vec![OrphanModule {
             name: "__nested::__deep".into(),
             rel_path: PathBuf::from("__nested/__deep.rs"),
+            item_ids: Vec::new(),
         }];
 
         let file = generate_lib_rs(&modules, Path::new("../src"), PathBuf::from("lib.rs"));

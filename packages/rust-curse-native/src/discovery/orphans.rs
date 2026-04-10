@@ -80,7 +80,7 @@ fn discover_recursive(
         }
         let rel_path = abs_path.strip_prefix(abs_root).unwrap().to_path_buf();
         let name = build_module_name(&rel_path);
-        result.push(OrphanModule { name, rel_path });
+        result.push(OrphanModule { name, rel_path, item_ids: Vec::new() });
     }
 
     for abs_path in &dirs {
@@ -91,7 +91,7 @@ fn discover_recursive(
             // Old layout: dir/mod.rs
             let rel_path = abs_mod_file.strip_prefix(abs_root).unwrap().to_path_buf();
             let name = build_module_name(&rel_path);
-            result.push(OrphanModule { name, rel_path });
+            result.push(OrphanModule { name, rel_path, item_ids: Vec::new() });
         } else if rs_stems.contains(dir_name.as_ref()) {
             // Modern layout: file.rs alongside file/ directory.
             // Submodules in file/ are handled by Rust's module system, skip.

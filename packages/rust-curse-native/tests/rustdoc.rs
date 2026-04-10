@@ -10,7 +10,6 @@ use rust_curse::session::{BuildStep, Session, SessionOptions};
 use common::copy_dir_recursive;
 
 #[test]
-#[ignore] // requires cargo +nightly, slow (~10s)
 fn rustdoc_loads_basic_crate() {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/basic_crate");
     let tmp = tempfile::tempdir().unwrap();

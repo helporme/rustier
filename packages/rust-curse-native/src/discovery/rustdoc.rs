@@ -1,9 +1,12 @@
+use std::collections::HashMap;
 use std::fs;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
 use thiserror::Error;
+
+use crate::model::OrphanModule;
 
 #[derive(Debug, Error)]
 pub enum RustdocError {
@@ -131,4 +134,229 @@ fn cargo_metadata(abs_cargo_dir: &Path) -> Result<CrateMetadata, RustdocError> {
         target_dir,
         lib_name,
     })
+}
+
+/// Match rustdoc items to orphan modules by comparing `item.span.filename`
+/// against each module's source path.
+pub fn link_rustdoc_items(
+    crate_: &rustdoc_types::Crate,
+    modules: &mut [OrphanModule],
+    module_dir_rel_path: &Path,
+) {
+    // Build a lookup: normalized span filename -> module index.
+    // Rustdoc span filenames may contain `..` segments (e.g. `.rust-curse/../src/greet.rs`),
+    // so we normalize both sides before comparing.
+    let filename_to_idx: HashMap<_, _> = modules
+        .iter()
+        .enumerate()
+        .map(|(idx, m)| {
+            let expected = normalize_path(&module_dir_rel_path.join(&m.rel_path));
+            (expected, idx)
+        })
+        .collect();
+
+    for item in crate_.index.values() {
+        let Some(span) = &item.span else {
+            continue;
+        };
+
+        let normalized = normalize_path(&span.filename);
+        if let Some(&idx) = filename_to_idx.get(&normalized) {
+            modules[idx].item_ids.push(item.id);
+        }
+    }
+}
+
+/// Normalize a relative path by resolving `.` and `..` components logically
+/// (without touching the filesystem).
+fn normalize_path(path: &Path) -> PathBuf {
+    let mut parts: Vec<Component> = Vec::new();
+    for component in path.components() {
+        match component {
+            Component::ParentDir => {
+                if let Some(Component::Normal(_)) = parts.last() {
+                    parts.pop();
+                } else {
+                    parts.push(component);
+                }
+            }
+            Component::CurDir => {}
+            _ => parts.push(component),
+        }
+    }
+    parts.iter().collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rustdoc_types::{Crate, Id, Item, ItemEnum, Span};
+
+    fn make_item(id_num: u32, name: &str, filename: &str) -> (Id, Item) {
+        let id = Id(id_num);
+        let item = Item {
+            id,
+            crate_id: 0,
+            name: Some(name.to_string()),
+            span: Some(Span {
+                filename: PathBuf::from(filename),
+                begin: (1, 0),
+                end: (1, 0),
+            }),
+            visibility: rustdoc_types::Visibility::Public,
+            docs: None,
+            links: HashMap::new(),
+            attrs: Vec::new(),
+            deprecation: None,
+            inner: ItemEnum::Function(rustdoc_types::Function {
+                sig: rustdoc_types::FunctionSignature {
+                    inputs: Vec::new(),
+                    output: None,
+                    is_c_variadic: false,
+                },
+                generics: rustdoc_types::Generics {
+                    params: Vec::new(),
+                    where_predicates: Vec::new(),
+                },
+                header: rustdoc_types::FunctionHeader {
+                    is_const: false,
+                    is_unsafe: false,
+                    is_async: false,
+                    abi: rustdoc_types::Abi::Rust,
+                },
+                has_body: true,
+            }),
+        };
+        (id, item)
+    }
+
+    fn make_crate(items: Vec<(Id, Item)>) -> Crate {
+        let mut index = HashMap::new();
+        for (id, item) in items {
+            index.insert(id, item);
+        }
+        Crate {
+            root: Id(0),
+            crate_version: None,
+            includes_private: false,
+            index,
+            paths: HashMap::new(),
+            external_crates: HashMap::new(),
+            target: rustdoc_types::Target {
+                triple: String::new(),
+                target_features: Vec::new(),
+            },
+            format_version: 0,
+        }
+    }
+
+    #[test]
+    fn links_items_to_modules() {
+        let crate_ = make_crate(vec![
+            make_item(1, "hello", "src/greet.rs"),
+            make_item(2, "add", "src/math.rs"),
+            make_item(3, "Point", "src/math.rs"),
+        ]);
+
+        let mut modules = vec![
+            OrphanModule {
+                name: "greet".into(),
+                rel_path: PathBuf::from("greet.rs"),
+                item_ids: Vec::new(),
+            },
+            OrphanModule {
+                name: "math".into(),
+                rel_path: PathBuf::from("math.rs"),
+                item_ids: Vec::new(),
+            },
+        ];
+
+        link_rustdoc_items(&crate_, &mut modules, Path::new("src"));
+
+        assert_eq!(modules[0].item_ids.len(), 1, "greet should have 1 item");
+        assert_eq!(modules[1].item_ids.len(), 2, "math should have 2 items");
+    }
+
+    #[test]
+    fn ignores_items_without_span() {
+        let (id, mut item) = make_item(1, "phantom", "src/greet.rs");
+        item.span = None;
+        let crate_ = make_crate(vec![(id, item)]);
+
+        let mut modules = vec![OrphanModule {
+            name: "greet".into(),
+            rel_path: PathBuf::from("greet.rs"),
+            item_ids: Vec::new(),
+        }];
+
+        link_rustdoc_items(&crate_, &mut modules, Path::new("src"));
+
+        assert!(modules[0].item_ids.is_empty());
+    }
+
+    #[test]
+    fn ignores_items_from_other_files() {
+        let crate_ = make_crate(vec![
+            make_item(1, "hello", "src/greet.rs"),
+            make_item(2, "external", "src/other.rs"),
+        ]);
+
+        let mut modules = vec![OrphanModule {
+            name: "greet".into(),
+            rel_path: PathBuf::from("greet.rs"),
+            item_ids: Vec::new(),
+        }];
+
+        link_rustdoc_items(&crate_, &mut modules, Path::new("src"));
+
+        assert_eq!(modules[0].item_ids.len(), 1);
+    }
+
+    #[test]
+    fn nested_module_paths() {
+        let crate_ = make_crate(vec![make_item(1, "go", "src/nested/deep.rs")]);
+
+        let mut modules = vec![OrphanModule {
+            name: "nested::deep".into(),
+            rel_path: PathBuf::from("nested/deep.rs"),
+            item_ids: Vec::new(),
+        }];
+
+        link_rustdoc_items(&crate_, &mut modules, Path::new("src"));
+
+        assert_eq!(modules[0].item_ids.len(), 1);
+    }
+
+    #[test]
+    fn normalizes_dotdot_in_span_filenames() {
+        // Rustdoc emits paths like `.rust-curse/../src/greet.rs` for #[path] modules
+        let crate_ = make_crate(vec![make_item(1, "hello", ".rust-curse/../src/greet.rs")]);
+
+        let mut modules = vec![OrphanModule {
+            name: "greet".into(),
+            rel_path: PathBuf::from("greet.rs"),
+            item_ids: Vec::new(),
+        }];
+
+        link_rustdoc_items(&crate_, &mut modules, Path::new("src"));
+
+        assert_eq!(modules[0].item_ids.len(), 1);
+    }
+
+    #[test]
+    fn normalize_path_resolves_dotdot() {
+        assert_eq!(normalize_path(Path::new("a/b/../c")), PathBuf::from("a/c"));
+        assert_eq!(
+            normalize_path(Path::new(".rust-curse/../src/greet.rs")),
+            PathBuf::from("src/greet.rs"),
+        );
+        assert_eq!(
+            normalize_path(Path::new("src/greet.rs")),
+            PathBuf::from("src/greet.rs")
+        );
+        assert_eq!(
+            normalize_path(Path::new("./src/greet.rs")),
+            PathBuf::from("src/greet.rs")
+        );
+    }
 }

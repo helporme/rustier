@@ -8,7 +8,7 @@ use napi_derive::napi;
 use crate::codegen::adoption;
 use crate::codegen::cargo_toml;
 use crate::discovery::orphans::discover_orphans;
-use crate::discovery::rustdoc::generate_rustdoc;
+use crate::discovery::rustdoc::{generate_rustdoc, link_rustdoc_items};
 use crate::model::{GeneratedFile, OrphanModule};
 
 #[cfg_attr(feature = "napi-binding", napi(string_enum))]
@@ -122,18 +122,28 @@ impl Session {
         }
 
         // Step 2: Run cargo rustdoc, load JSON
-        let _crate_ = generate_rustdoc(abs_cargo_dir).context("failed to generate rustdoc")?;
+        let crate_ = generate_rustdoc(abs_cargo_dir).context("failed to generate rustdoc")?;
 
         if last_step == Some(BuildStep::Rustdoc) {
             return Ok(());
         }
 
-        // TODO: Step 3 — link rustdoc items to orphan modules
+        // Step 3: Link rustdoc items to orphan modules
+        let module_dir_rel_to_cargo = diff_paths(&abs_module_dir, abs_cargo_dir);
+        link_rustdoc_items(&crate_, &mut self.last_modules, &module_dir_rel_to_cargo);
+
+        if last_step == Some(BuildStep::Link) {
+            return Ok(());
+        }
         // TODO: Step 4 — import scan
         // TODO: Step 5 — treeshake
         // TODO: Step 6 — codegen + emit
 
         Ok(())
+    }
+
+    pub fn last_modules(&self) -> &[OrphanModule] {
+        &self.last_modules
     }
 
     #[cfg_attr(feature = "napi-binding", napi)]
