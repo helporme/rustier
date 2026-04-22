@@ -1,0 +1,12 @@
+{
+  "lsp": {
+    "rust-analyzer": {
+      "initialization_options": {
+        "rustfmt": {
+          // supports doc string wrap
+          "extraArgs": ["+nightly"],
+        },
+      },
+    },
+  },
+}

@@ -3,9 +3,14 @@ name = "rust-curse"
 version = "0.1.0"
 edition = "2021"
 publish = false
+autotests = false
 
 [lib]
 crate-type = ["cdylib", "lib"]
+
+[[test]]
+name = "from_rustdoc"
+path = "tests/from_rustdoc.rs"
 
 [features]
 default = ["napi-binding"]
@@ -30,3 +35,4 @@ napi-build = { version = "2", optional = true }
 
 [dev-dependencies]
 tempfile = "3.27.0"
+insta = "1"

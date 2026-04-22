@@ -1,0 +1,77 @@
+---
+source: src/codegen/ir/from_rustdoc/tests.rs
+assertion_line: 74
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i32,
+        ),
+    ],
+    structs: [],
+    enums: [
+        EnumDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "E",
+                ],
+            },
+            variants: [
+                EnumVariant {
+                    name: "A",
+                    shape: Unit,
+                    docs: None,
+                },
+                EnumVariant {
+                    name: "B",
+                    shape: Tuple(
+                        [
+                            TypeId(
+                                0,
+                            ),
+                        ],
+                    ),
+                    docs: None,
+                },
+                EnumVariant {
+                    name: "C",
+                    shape: Struct(
+                        [
+                            StructField {
+                                name: "x",
+                                type_id: TypeId(
+                                    0,
+                                ),
+                                docs: None,
+                            },
+                        ],
+                    ),
+                    docs: None,
+                },
+            ],
+            docs: None,
+        },
+    ],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Enum(
+                    EnumId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

@@ -1,0 +1,80 @@
+---
+source: src/codegen/ir/from_rustdoc/tests.rs
+assertion_line: 60
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i32,
+        ),
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Opaque",
+                ],
+            },
+            boundary: Ref {
+                ctor: Explicit(
+                    FnId(
+                        0,
+                    ),
+                ),
+            },
+            shape: Struct(
+                [],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "new",
+                ],
+            },
+            params: [
+                FnParam {
+                    name: "x",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        0,
+                    ),
+                },
+            ],
+            return_type: TypeId(
+                1,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

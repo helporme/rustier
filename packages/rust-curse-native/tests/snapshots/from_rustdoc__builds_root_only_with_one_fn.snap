@@ -1,0 +1,63 @@
+---
+source: src/codegen/ir/from_rustdoc/tests.rs
+assertion_line: 11
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i32,
+        ),
+    ],
+    structs: [],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "add",
+                ],
+            },
+            params: [
+                FnParam {
+                    name: "a",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        0,
+                    ),
+                },
+                FnParam {
+                    name: "b",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        0,
+                    ),
+                },
+            ],
+            return_type: TypeId(
+                0,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Fn(
+                    FnId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

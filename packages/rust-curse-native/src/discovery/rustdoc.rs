@@ -49,7 +49,22 @@ pub fn generate_rustdoc(
     project_root_abs_path: &Path,
 ) -> Result<rustdoc_types::Crate, RustdocError> {
     let meta = cargo_metadata(project_root_abs_path)?;
+    run_cargo_rustdoc_json(
+        project_root_abs_path,
+        Path::new(&meta.target_dir),
+        &meta.lib_name,
+    )
+}
 
+/// Runs `cargo +nightly rustdoc --output-format json` with a caller-supplied
+/// target directory and lib name, skipping the `cargo metadata` lookup that
+/// `generate_rustdoc` performs. Used by tests that build synthetic temp
+/// crates where `cargo metadata --frozen` would fail for lack of Cargo.lock.
+pub fn run_cargo_rustdoc_json(
+    project_abs_path: &Path,
+    target_abs_dir: &Path,
+    lib_name: &str,
+) -> Result<rustdoc_types::Crate, RustdocError> {
     let output = Command::new("cargo")
         .args([
             "+nightly",
@@ -62,7 +77,8 @@ pub fn generate_rustdoc(
             "json",
         ])
         .env(RUSTDOC_ENV_VAR, "1")
-        .current_dir(project_root_abs_path)
+        .env("CARGO_TARGET_DIR", target_abs_dir)
+        .current_dir(project_abs_path)
         .output()
         .map_err(RustdocError::CargoNotAvailable)?;
 
@@ -73,9 +89,7 @@ pub fn generate_rustdoc(
         });
     }
 
-    let json_abs_path = Path::new(&meta.target_dir)
-        .join("doc")
-        .join(format!("{}.json", meta.lib_name));
+    let json_abs_path = target_abs_dir.join("doc").join(format!("{lib_name}.json"));
 
     if !json_abs_path.exists() {
         return Err(RustdocError::JsonNotFound(json_abs_path));
