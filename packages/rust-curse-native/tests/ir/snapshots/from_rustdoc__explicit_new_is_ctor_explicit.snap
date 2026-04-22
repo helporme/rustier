@@ -1,6 +1,6 @@
 ---
-source: src/codegen/ir/from_rustdoc/tests.rs
-assertion_line: 21
+source: tests/ir/from_rustdoc.rs
+description: "pub struct Opaque { x: i32, } impl Opaque\n{ pub fn new(x: i32) -> Self { Self { x } } }"
 expression: ir
 ---
 IR {
@@ -11,28 +11,44 @@ IR {
         Number(
             i32,
         ),
-        Unit,
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
     ],
-    structs: [],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Opaque",
+                ],
+            },
+            boundary: Ref {
+                ctor: Explicit(
+                    FnId(
+                        0,
+                    ),
+                ),
+            },
+            shape: Struct(
+                [],
+            ),
+            docs: None,
+        },
+    ],
     enums: [],
     fns: [
         FnDef {
             path: ItemPath {
                 segments: [
-                    "rustdoc_test_crate",
-                    "two_i32",
+                    "new",
                 ],
             },
             params: [
                 FnParam {
-                    name: "a",
-                    mode: ByValue,
-                    type_id: TypeId(
-                        0,
-                    ),
-                },
-                FnParam {
-                    name: "b",
+                    name: "x",
                     mode: ByValue,
                     type_id: TypeId(
                         0,
@@ -53,8 +69,8 @@ IR {
                 ],
             },
             exports: [
-                Fn(
-                    FnId(
+                Struct(
+                    StructId(
                         0,
                     ),
                 ),

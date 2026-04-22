@@ -1,0 +1,33 @@
+---
+source: tests/ir/ts.rs
+description: "/// A geometric shape with mixed variant kinds.\npub enum Shape {\n    /// A circle defined by its radius.\n    Circle { radius: f64 },\n    /// An axis-aligned rectangle.\n    Rect { width: f64, height: f64 },\n    /// A dimensionless point.\n    Point,\n}\n"
+expression: ir.print_ts()
+---
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+declare module "$rust/rustdoc_test_crate" {
+    /** A geometric shape with mixed variant kinds. */
+    export type Shape =
+        | {
+            /** A circle defined by its radius. */
+            type: 'Circle';
+            radius: number;
+        }
+        | {
+            /** An axis-aligned rectangle. */
+            type: 'Rect';
+            width: number;
+            height: number;
+        }
+        | {
+            /** A dimensionless point. */
+            type: 'Point';
+        };
+}

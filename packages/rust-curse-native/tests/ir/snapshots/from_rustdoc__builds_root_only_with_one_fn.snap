@@ -1,6 +1,6 @@
 ---
-source: src/codegen/ir/from_rustdoc/tests.rs
-assertion_line: 11
+source: tests/ir/from_rustdoc.rs
+description: "pub fn add(a: i32, b: i32) -> i32 { a + b }"
 expression: ir
 ---
 IR {

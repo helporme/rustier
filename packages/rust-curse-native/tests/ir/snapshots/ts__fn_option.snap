@@ -1,0 +1,18 @@
+---
+source: tests/ir/ts.rs
+description: "/// `Option<T>` maps to `T | undefined`.\npub fn f(a: Option<i32>) -> Option<String> {\n    None\n}\n"
+expression: ir.print_ts()
+---
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+declare module "$rust/rustdoc_test_crate" {
+    /** `Option<T>` maps to `T | undefined`. */
+    export function f(a: number | undefined): string | undefined;
+}

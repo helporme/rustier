@@ -1,0 +1,18 @@
+---
+source: tests/ir/ts.rs
+description: "/// `Result<T, E>` maps to the Ok type; the error branch is erased.\npub fn f(x: i32) -> Result<String, i32> {\n    Ok(String::new())\n}\n"
+expression: ir.print_ts()
+---
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+declare module "$rust/rustdoc_test_crate" {
+    /** `Result<T, E>` maps to the Ok type; the error branch is erased. */
+    export function f(x: number): string;
+}

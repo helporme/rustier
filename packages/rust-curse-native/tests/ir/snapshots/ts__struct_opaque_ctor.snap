@@ -1,0 +1,22 @@
+---
+source: tests/ir/ts.rs
+description: "/// A counter whose constructor is the canonical entry point.\npub struct Counter {\n    count: u32,\n}\nimpl Counter {\n    /// Creates a new counter starting at `start`.\n    pub fn new(start: u32) -> Self {\n        Self { count: start }\n    }\n}\n"
+expression: ir.print_ts()
+---
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+declare module "$rust/rustdoc_test_crate" {
+    /** A counter whose constructor is the canonical entry point. */
+    export class Counter {
+        private [" "]!: 'Counter';
+
+        constructor(start: number);
+    }
+}

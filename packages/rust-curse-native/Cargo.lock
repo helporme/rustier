@@ -430,6 +430,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "prettyplease",
  "proc-macro2",
  "quote",
  "rustdoc-types",

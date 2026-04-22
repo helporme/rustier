@@ -1,6 +1,6 @@
 ---
-source: src/codegen/ir/from_rustdoc/tests.rs
-assertion_line: 97
+source: tests/ir/from_rustdoc.rs
+description: "pub fn f(v: Vec<Option<i32>>) { let _ = v; }"
 expression: ir
 ---
 IR {
@@ -8,6 +8,19 @@ IR {
         0,
     ),
     types: [
+        Number(
+            i32,
+        ),
+        Option(
+            TypeId(
+                0,
+            ),
+        ),
+        Vec(
+            TypeId(
+                1,
+            ),
+        ),
         Unit,
     ],
     structs: [],
@@ -17,13 +30,20 @@ IR {
             path: ItemPath {
                 segments: [
                     "rustdoc_test_crate",
-                    "child",
-                    "leaf",
+                    "f",
                 ],
             },
-            params: [],
+            params: [
+                FnParam {
+                    name: "v",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        2,
+                    ),
+                },
+            ],
             return_type: TypeId(
-                0,
+                3,
             ),
             docs: None,
         },
@@ -33,21 +53,6 @@ IR {
             path: ItemPath {
                 segments: [
                     "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Mod(
-                    ModId(
-                        1,
-                    ),
-                ),
-            ],
-        },
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "child",
                 ],
             },
             exports: [

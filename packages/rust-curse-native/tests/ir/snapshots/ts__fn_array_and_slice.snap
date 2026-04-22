@@ -1,0 +1,18 @@
+---
+source: tests/ir/ts.rs
+description: "/// Fixed-size arrays and slices both map to `T[]`.\npub fn f(arr: [i32; 4], slice: &[String]) -> [bool; 2] {\n    todo!()\n}\n"
+expression: ir.print_ts()
+---
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+declare module "$rust/rustdoc_test_crate" {
+    /** Fixed-size arrays and slices both map to `T[]`. */
+    export function f(arr: number[], slice: string[]): boolean[];
+}

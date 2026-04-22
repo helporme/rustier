@@ -1,0 +1,18 @@
+---
+source: tests/ir/ts.rs
+description: "/// Exercises every primitive type that maps to `number` or `string` or `boolean`.\npub fn f(\n    a: i8,\n    b: i16,\n    c: i32,\n    d: u8,\n    e: u16,\n    f: u32,\n    g: f32,\n    h: f64,\n    i: bool,\n    j: char,\n    k: String,\n    l: &str,\n) {}\n"
+expression: ir.print_ts()
+---
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+declare module "$rust/rustdoc_test_crate" {
+    /** Exercises every primitive type that maps to `number` or `string` or `boolean`. */
+    export function f(a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: boolean, j: string, k: string, l: string): void;
+}

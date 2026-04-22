@@ -1,6 +1,6 @@
 ---
-source: src/codegen/ir/from_rustdoc/tests.rs
-assertion_line: 74
+source: tests/ir/from_rustdoc.rs
+description: "pub enum E { A, B(i32), C { x: i32 }, }"
 expression: ir
 ---
 IR {

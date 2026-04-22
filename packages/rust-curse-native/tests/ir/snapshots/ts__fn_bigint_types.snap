@@ -1,0 +1,18 @@
+---
+source: tests/ir/ts.rs
+description: "/// 64-bit and pointer-sized integers map to `bigint`.\npub fn f(a: i64, b: u64, c: isize, d: usize) {}\n"
+expression: ir.print_ts()
+---
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+declare module "$rust/rustdoc_test_crate" {
+    /** 64-bit and pointer-sized integers map to `bigint`. */
+    export function f(a: bigint, b: bigint, c: bigint, d: bigint): void;
+}

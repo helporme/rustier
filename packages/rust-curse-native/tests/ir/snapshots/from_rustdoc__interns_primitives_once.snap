@@ -1,6 +1,6 @@
 ---
-source: src/codegen/ir/from_rustdoc/tests.rs
-assertion_line: 60
+source: tests/ir/from_rustdoc.rs
+description: "pub fn two_i32(a: i32, b: i32) {}"
 expression: ir
 ---
 IR {
@@ -11,44 +11,28 @@ IR {
         Number(
             i32,
         ),
-        Struct(
-            StructId(
-                0,
-            ),
-        ),
+        Unit,
     ],
-    structs: [
-        StructDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "Opaque",
-                ],
-            },
-            boundary: Ref {
-                ctor: Explicit(
-                    FnId(
-                        0,
-                    ),
-                ),
-            },
-            shape: Struct(
-                [],
-            ),
-            docs: None,
-        },
-    ],
+    structs: [],
     enums: [],
     fns: [
         FnDef {
             path: ItemPath {
                 segments: [
-                    "new",
+                    "rustdoc_test_crate",
+                    "two_i32",
                 ],
             },
             params: [
                 FnParam {
-                    name: "x",
+                    name: "a",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        0,
+                    ),
+                },
+                FnParam {
+                    name: "b",
                     mode: ByValue,
                     type_id: TypeId(
                         0,
@@ -69,8 +53,8 @@ IR {
                 ],
             },
             exports: [
-                Struct(
-                    StructId(
+                Fn(
+                    FnId(
                         0,
                     ),
                 ),

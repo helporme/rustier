@@ -1,6 +1,6 @@
 ---
-source: src/codegen/ir/from_rustdoc/tests.rs
-assertion_line: 84
+source: tests/ir/from_rustdoc.rs
+description: "pub mod child { pub fn leaf() {} } pub mod empty {}"
 expression: ir
 ---
 IR {
@@ -8,19 +8,6 @@ IR {
         0,
     ),
     types: [
-        Number(
-            i32,
-        ),
-        Option(
-            TypeId(
-                0,
-            ),
-        ),
-        Vec(
-            TypeId(
-                1,
-            ),
-        ),
         Unit,
     ],
     structs: [],
@@ -30,20 +17,13 @@ IR {
             path: ItemPath {
                 segments: [
                     "rustdoc_test_crate",
-                    "f",
+                    "child",
+                    "leaf",
                 ],
             },
-            params: [
-                FnParam {
-                    name: "v",
-                    mode: ByValue,
-                    type_id: TypeId(
-                        2,
-                    ),
-                },
-            ],
+            params: [],
             return_type: TypeId(
-                3,
+                0,
             ),
             docs: None,
         },
@@ -53,6 +33,21 @@ IR {
             path: ItemPath {
                 segments: [
                     "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Mod(
+                    ModId(
+                        1,
+                    ),
+                ),
+            ],
+        },
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "child",
                 ],
             },
             exports: [

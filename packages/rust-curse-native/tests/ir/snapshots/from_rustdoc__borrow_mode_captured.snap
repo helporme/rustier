@@ -1,6 +1,6 @@
 ---
-source: src/codegen/ir/from_rustdoc/tests.rs
-assertion_line: 107
+source: tests/ir/from_rustdoc.rs
+description: "pub fn takes(x: &mut i32) { *x += 1; }"
 expression: ir
 ---
 IR {

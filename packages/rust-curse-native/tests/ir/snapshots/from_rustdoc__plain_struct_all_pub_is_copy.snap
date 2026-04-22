@@ -1,26 +1,36 @@
 ---
-source: src/codegen/ir/from_rustdoc/tests.rs
-assertion_line: 45
+source: tests/ir/from_rustdoc.rs
+description: "pub struct Point { pub x: i32, }"
 expression: ir
 ---
 IR {
     root: ModId(
         0,
     ),
-    types: [],
+    types: [
+        Number(
+            i32,
+        ),
+    ],
     structs: [
         StructDef {
             path: ItemPath {
                 segments: [
                     "rustdoc_test_crate",
-                    "Opaque",
+                    "Point",
                 ],
             },
-            boundary: Ref {
-                ctor: Implicit,
-            },
+            boundary: Copy,
             shape: Struct(
-                [],
+                [
+                    StructField {
+                        name: "x",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                ],
             ),
             docs: None,
         },

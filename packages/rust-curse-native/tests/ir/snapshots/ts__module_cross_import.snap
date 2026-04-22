@@ -1,0 +1,32 @@
+---
+source: tests/ir/ts.rs
+description: "pub mod types {\n    /// An authentication token.\n    pub struct Token {\n        /// The raw token string.\n        pub value: String,\n    }\n}\npub mod ops {\n    /// Parses a raw string into a Token.\n    pub fn parse(s: String) -> crate::types::Token {\n        todo!()\n    }\n}\n"
+expression: ir.print_ts()
+---
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+declare module "$rust/rustdoc_test_crate/types" {
+    /** An authentication token. */
+    export class Token {
+        private [" "]!: 'Token';
+
+        /** The raw token string. */
+        value: string;
+
+        constructor(value: string);
+    }
+}
+
+declare module "$rust/rustdoc_test_crate/ops" {
+    import type { Token } from "$rust/rustdoc_test_crate/types";
+
+    /** Parses a raw string into a Token. */
+    export function parse(s: string): Token;
+}
