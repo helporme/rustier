@@ -1,0 +1,105 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub struct Point {\n    pub x: f64,\n    pub y: f64,\n}\npub fn translate(origin: &Point, target: &mut Point, offset: Point) {}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            f64,
+        ),
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
+        Unit,
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Point",
+                ],
+            },
+            boundary: Copy,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "x",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                    StructField {
+                        name: "y",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                ],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "translate",
+                ],
+            },
+            params: [
+                FnParam {
+                    name: "origin",
+                    mode: ByRef,
+                    type_id: TypeId(
+                        1,
+                    ),
+                },
+                FnParam {
+                    name: "target",
+                    mode: ByMut,
+                    type_id: TypeId(
+                        1,
+                    ),
+                },
+                FnParam {
+                    name: "offset",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        1,
+                    ),
+                },
+            ],
+            return_type: TypeId(
+                2,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Fn(
+                    FnId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

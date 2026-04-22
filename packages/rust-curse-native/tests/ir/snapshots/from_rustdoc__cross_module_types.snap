@@ -1,0 +1,118 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub mod types {\n    pub struct Token {\n        pub value: String,\n    }\n}\npub mod ops {\n    pub fn parse(s: String) -> crate::types::Token {\n        todo!()\n    }\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        String,
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "types",
+                    "Token",
+                ],
+            },
+            boundary: Copy,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "value",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                ],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "ops",
+                    "parse",
+                ],
+            },
+            params: [
+                FnParam {
+                    name: "s",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        0,
+                    ),
+                },
+            ],
+            return_type: TypeId(
+                1,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Mod(
+                    ModId(
+                        1,
+                    ),
+                ),
+                Mod(
+                    ModId(
+                        2,
+                    ),
+                ),
+            ],
+        },
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "types",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "ops",
+                ],
+            },
+            exports: [
+                Fn(
+                    FnId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

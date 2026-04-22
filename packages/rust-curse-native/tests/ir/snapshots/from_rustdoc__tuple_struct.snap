@@ -1,0 +1,58 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub struct Pair(pub i32, pub String);\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i32,
+        ),
+        String,
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Pair",
+                ],
+            },
+            boundary: Ref {
+                ctor: Implicit,
+            },
+            shape: Tuple(
+                [
+                    TypeId(
+                        0,
+                    ),
+                    TypeId(
+                        1,
+                    ),
+                ],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

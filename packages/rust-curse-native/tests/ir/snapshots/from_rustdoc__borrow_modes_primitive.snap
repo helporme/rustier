@@ -1,0 +1,71 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub fn f(by_ref: &i32, by_mut_ref: &mut i32, by_value: i32) {}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i32,
+        ),
+        Unit,
+    ],
+    structs: [],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "f",
+                ],
+            },
+            params: [
+                FnParam {
+                    name: "by_ref",
+                    mode: ByRef,
+                    type_id: TypeId(
+                        0,
+                    ),
+                },
+                FnParam {
+                    name: "by_mut_ref",
+                    mode: ByMut,
+                    type_id: TypeId(
+                        0,
+                    ),
+                },
+                FnParam {
+                    name: "by_value",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        0,
+                    ),
+                },
+            ],
+            return_type: TypeId(
+                1,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Fn(
+                    FnId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

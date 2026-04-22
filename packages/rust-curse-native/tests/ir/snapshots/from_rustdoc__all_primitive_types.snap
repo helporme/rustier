@@ -1,0 +1,159 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub fn f(\n    a: i8,\n    b: i16,\n    c: i32,\n    d: u8,\n    e: u16,\n    f: u32,\n    g: f32,\n    h: f64,\n    i: bool,\n    j: char,\n    k: String,\n    l: &str,\n) {}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i8,
+        ),
+        Number(
+            i16,
+        ),
+        Number(
+            i32,
+        ),
+        Number(
+            u8,
+        ),
+        Number(
+            u16,
+        ),
+        Number(
+            u32,
+        ),
+        Number(
+            f32,
+        ),
+        Number(
+            f64,
+        ),
+        Boolean,
+        Char,
+        String,
+        Str,
+        Unit,
+    ],
+    structs: [],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "f",
+                ],
+            },
+            params: [
+                FnParam {
+                    name: "a",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        0,
+                    ),
+                },
+                FnParam {
+                    name: "b",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        1,
+                    ),
+                },
+                FnParam {
+                    name: "c",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        2,
+                    ),
+                },
+                FnParam {
+                    name: "d",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        3,
+                    ),
+                },
+                FnParam {
+                    name: "e",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        4,
+                    ),
+                },
+                FnParam {
+                    name: "f",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        5,
+                    ),
+                },
+                FnParam {
+                    name: "g",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        6,
+                    ),
+                },
+                FnParam {
+                    name: "h",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        7,
+                    ),
+                },
+                FnParam {
+                    name: "i",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        8,
+                    ),
+                },
+                FnParam {
+                    name: "j",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        9,
+                    ),
+                },
+                FnParam {
+                    name: "k",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        10,
+                    ),
+                },
+                FnParam {
+                    name: "l",
+                    mode: ByRef,
+                    type_id: TypeId(
+                        11,
+                    ),
+                },
+            ],
+            return_type: TypeId(
+                12,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Fn(
+                    FnId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}
