@@ -1,0 +1,83 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub mod zeta {\n    pub trait Factory {\n        fn new(from_zeta: i32) -> Self;\n    }\n}\npub mod alpha {\n    pub trait Factory {\n        fn new(from_alpha: u64) -> Self;\n    }\n}\npub struct Foo {\n    x: i32,\n}\nimpl zeta::Factory for Foo {\n    fn new(from_zeta: i32) -> Self {\n        Foo { x: from_zeta }\n    }\n}\nimpl alpha::Factory for Foo {\n    fn new(from_alpha: u64) -> Self {\n        Foo { x: from_alpha as i32 }\n    }\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            u64,
+        ),
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Foo",
+                ],
+            },
+            boundary: Ref {
+                ctor: Explicit(
+                    FnId(
+                        0,
+                    ),
+                ),
+            },
+            shape: Struct(
+                [],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "new",
+                ],
+            },
+            params: [
+                FnParam {
+                    name: "from_alpha",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        0,
+                    ),
+                },
+            ],
+            return_type: TypeId(
+                1,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Export {
+                    name: "Foo",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
+                    ),
+                },
+            ],
+        },
+    ],
+}

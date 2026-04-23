@@ -467,6 +467,21 @@ fn ctor_multiple_impls_finds_new() {
 }
 
 #[test]
+fn ctor_multiple_new_across_traits_picks_smallest_path() {
+    assert_ir_snap!(["Foo"] => {
+        pub mod zeta {
+            pub trait Factory { fn new(from_zeta: i32) -> Self; }
+        }
+        pub mod alpha {
+            pub trait Factory { fn new(from_alpha: u64) -> Self; }
+        }
+        pub struct Foo { x: i32 }
+        impl zeta::Factory for Foo { fn new(from_zeta: i32) -> Self { Foo { x: from_zeta } } }
+        impl alpha::Factory for Foo { fn new(from_alpha: u64) -> Self { Foo { x: from_alpha as i32 } } }
+    });
+}
+
+#[test]
 fn ctor_new_returning_struct_name() {
     assert_ir_snap!(["Token"] => {
         pub struct Token {

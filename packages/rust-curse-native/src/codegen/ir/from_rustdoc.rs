@@ -315,6 +315,13 @@ impl<'a> Builder<'a> {
     }
 
     fn find_ctor(&mut self, impls: &[Id], self_id: Id) -> Result<Ctor, BuildError> {
+        struct Candidate {
+            key: Vec<String>,
+            impl_id_ord: u32,
+            assoc_id: Id,
+        }
+        let mut candidates: Vec<Candidate> = Vec::new();
+
         for impl_id in impls {
             let Some(impl_item) = self.crate_.index.get(impl_id) else {
                 continue;
@@ -338,14 +345,35 @@ impl<'a> Builder<'a> {
                 if !returns_self(func.sig.output.as_ref(), self_id) {
                     continue;
                 }
-                self.self_stack.push(self_id);
-                let res = self.intern_fn(*assoc_id);
-                self.self_stack.pop();
-                let fid = res?;
-                return Ok(Ctor::Explicit(fid));
+                let mut key: Vec<String> = match &impl_.trait_ {
+                    Some(trait_path) => match self.crate_.paths.get(&trait_path.id) {
+                        Some(summary) => summary.path.clone(),
+                        None => trait_path.path.split("::").map(str::to_string).collect(),
+                    },
+                    None => {
+                        let item = self.get_item(self_id)?;
+                        path_of(item, self_id, self.crate_).segments
+                    }
+                };
+                key.push("new".to_string());
+                candidates.push(Candidate {
+                    key,
+                    impl_id_ord: impl_id.0,
+                    assoc_id: *assoc_id,
+                });
             }
         }
-        Ok(Ctor::Implicit)
+
+        candidates.sort_by(|a, b| a.key.cmp(&b.key).then(a.impl_id_ord.cmp(&b.impl_id_ord)));
+
+        let Some(chosen) = candidates.into_iter().next() else {
+            return Ok(Ctor::Implicit);
+        };
+
+        self.self_stack.push(self_id);
+        let res = self.intern_fn(chosen.assoc_id);
+        self.self_stack.pop();
+        Ok(Ctor::Explicit(res?))
     }
 
     fn intern_enum(&mut self, id: Id) -> Result<EnumId, BuildError> {
