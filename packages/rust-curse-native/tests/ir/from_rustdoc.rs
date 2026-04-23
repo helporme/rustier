@@ -504,7 +504,7 @@ fn deep_nested_modules() {
 }
 
 #[test]
-fn re_export_is_dropped() {
+fn re_export_of_struct() {
     assert_ir_snap!(["Inner"] => {
         pub mod inner {
             pub struct Inner {
@@ -512,6 +512,63 @@ fn re_export_is_dropped() {
             }
         }
         pub use inner::Inner;
+    });
+}
+
+#[test]
+fn re_export_renamed_struct() {
+    assert_ir_snap!(["Inner"] => {
+        pub mod inner {
+            pub struct Inner {
+                pub x: i32,
+            }
+        }
+        pub use inner::Inner as Renamed;
+    });
+}
+
+#[test]
+fn re_export_glob_surfaces_all_public_items() {
+    assert_ir_snap_all!({
+        pub mod inner {
+            pub struct S { pub x: i32 }
+            pub enum E { A, B }
+            pub fn f() -> i32 { 0 }
+        }
+        pub use inner::*;
+    });
+}
+
+#[test]
+fn re_export_glob_expands_transitively() {
+    assert_ir_snap_all!({
+        pub mod deeper {
+            pub struct X { pub x: i32 }
+        }
+        pub mod inner {
+            pub use super::deeper::X;
+        }
+        pub use inner::*;
+    });
+}
+
+#[test]
+fn re_export_chain_resolves() {
+    assert_ir_snap!(["Inner"] => {
+        pub mod inner {
+            pub struct Inner { pub x: i32 }
+        }
+        pub mod middle {
+            pub use super::inner::Inner;
+        }
+        pub use middle::Inner;
+    });
+}
+
+#[test]
+fn re_export_of_primitive_is_skipped() {
+    assert_ir_snap_all!({
+        pub use i32 as MyI32;
     });
 }
 

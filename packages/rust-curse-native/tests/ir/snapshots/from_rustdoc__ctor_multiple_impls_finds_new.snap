@@ -58,11 +58,14 @@ IR {
                 ],
             },
             exports: [
-                Struct(
-                    StructId(
-                        0,
+                Export {
+                    name: "Counter",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

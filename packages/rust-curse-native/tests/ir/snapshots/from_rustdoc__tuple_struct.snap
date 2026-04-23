@@ -47,11 +47,14 @@ IR {
                 ],
             },
             exports: [
-                Struct(
-                    StructId(
-                        0,
+                Export {
+                    name: "Pair",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

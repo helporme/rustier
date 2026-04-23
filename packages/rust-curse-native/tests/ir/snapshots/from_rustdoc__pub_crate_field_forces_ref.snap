@@ -47,11 +47,14 @@ IR {
                 ],
             },
             exports: [
-                Struct(
-                    StructId(
-                        0,
+                Export {
+                    name: "Gated",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

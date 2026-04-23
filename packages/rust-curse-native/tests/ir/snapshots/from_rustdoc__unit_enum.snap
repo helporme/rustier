@@ -51,11 +51,14 @@ IR {
                 ],
             },
             exports: [
-                Enum(
-                    EnumId(
-                        0,
+                Export {
+                    name: "Direction",
+                    kind: Enum(
+                        EnumId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

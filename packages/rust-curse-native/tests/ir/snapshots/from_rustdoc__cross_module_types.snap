@@ -72,16 +72,22 @@ IR {
                 ],
             },
             exports: [
-                Mod(
-                    ModId(
-                        1,
+                Export {
+                    name: "types",
+                    kind: Mod(
+                        ModId(
+                            1,
+                        ),
                     ),
-                ),
-                Mod(
-                    ModId(
-                        2,
+                },
+                Export {
+                    name: "ops",
+                    kind: Mod(
+                        ModId(
+                            2,
+                        ),
                     ),
-                ),
+                },
             ],
         },
         ModDef {
@@ -92,11 +98,14 @@ IR {
                 ],
             },
             exports: [
-                Struct(
-                    StructId(
-                        0,
+                Export {
+                    name: "Token",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
         ModDef {
@@ -107,11 +116,14 @@ IR {
                 ],
             },
             exports: [
-                Fn(
-                    FnId(
-                        0,
+                Export {
+                    name: "parse",
+                    kind: Fn(
+                        FnId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

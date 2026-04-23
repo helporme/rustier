@@ -76,16 +76,22 @@ IR {
                 ],
             },
             exports: [
-                Fn(
-                    FnId(
-                        0,
+                Export {
+                    name: "f",
+                    kind: Fn(
+                        FnId(
+                            0,
+                        ),
                     ),
-                ),
-                Fn(
-                    FnId(
-                        1,
+                },
+                Export {
+                    name: "g",
+                    kind: Fn(
+                        FnId(
+                            1,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

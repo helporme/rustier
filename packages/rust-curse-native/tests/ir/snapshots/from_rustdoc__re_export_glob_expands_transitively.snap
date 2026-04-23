@@ -1,0 +1,112 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub mod deeper {\n    pub struct X {\n        pub x: i32,\n    }\n}\npub mod inner {\n    pub use super::deeper::X;\n}\npub use inner::*;\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i32,
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "deeper",
+                    "X",
+                ],
+            },
+            boundary: Copy,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "x",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                ],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Export {
+                    name: "deeper",
+                    kind: Mod(
+                        ModId(
+                            1,
+                        ),
+                    ),
+                },
+                Export {
+                    name: "inner",
+                    kind: Mod(
+                        ModId(
+                            2,
+                        ),
+                    ),
+                },
+                Export {
+                    name: "X",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
+                    ),
+                },
+            ],
+        },
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "deeper",
+                ],
+            },
+            exports: [
+                Export {
+                    name: "X",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
+                    ),
+                },
+            ],
+        },
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "inner",
+                ],
+            },
+            exports: [
+                Export {
+                    name: "X",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
+                    ),
+                },
+            ],
+        },
+    ],
+}

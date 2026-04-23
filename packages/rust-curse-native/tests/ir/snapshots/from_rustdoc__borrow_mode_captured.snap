@@ -1,6 +1,6 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub fn takes(x: &mut i32) { *x += 1; }"
+description: "pub fn takes(x: &mut i32) {\n    *x += 1;\n}\n"
 expression: ir
 ---
 IR {
@@ -46,11 +46,14 @@ IR {
                 ],
             },
             exports: [
-                Fn(
-                    FnId(
-                        0,
+                Export {
+                    name: "takes",
+                    kind: Fn(
+                        FnId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

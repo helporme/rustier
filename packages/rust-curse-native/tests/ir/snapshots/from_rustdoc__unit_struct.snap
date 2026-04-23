@@ -33,11 +33,14 @@ IR {
                 ],
             },
             exports: [
-                Struct(
-                    StructId(
-                        0,
+                Export {
+                    name: "Marker",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

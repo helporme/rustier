@@ -1,6 +1,6 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub fn add(a: i32, b: i32) -> i32 { a + b }"
+description: "pub fn add(a: i32, b: i32) -> i32 {\n    a + b\n}\n"
 expression: ir
 ---
 IR {
@@ -52,11 +52,14 @@ IR {
                 ],
             },
             exports: [
-                Fn(
-                    FnId(
-                        0,
+                Export {
+                    name: "add",
+                    kind: Fn(
+                        FnId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

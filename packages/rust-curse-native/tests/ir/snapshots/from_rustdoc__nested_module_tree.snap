@@ -1,6 +1,6 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub mod child { pub fn leaf() {} } pub mod empty {}"
+description: "pub mod child {\n    pub fn leaf() {}\n}\npub mod empty {}\n"
 expression: ir
 ---
 IR {
@@ -36,11 +36,14 @@ IR {
                 ],
             },
             exports: [
-                Mod(
-                    ModId(
-                        1,
+                Export {
+                    name: "child",
+                    kind: Mod(
+                        ModId(
+                            1,
+                        ),
                     ),
-                ),
+                },
             ],
         },
         ModDef {
@@ -51,11 +54,14 @@ IR {
                 ],
             },
             exports: [
-                Fn(
-                    FnId(
-                        0,
+                Export {
+                    name: "leaf",
+                    kind: Fn(
+                        FnId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

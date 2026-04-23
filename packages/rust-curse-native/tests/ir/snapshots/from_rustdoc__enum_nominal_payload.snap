@@ -85,11 +85,14 @@ IR {
                 ],
             },
             exports: [
-                Enum(
-                    EnumId(
-                        0,
+                Export {
+                    name: "Msg",
+                    kind: Enum(
+                        EnumId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

@@ -4,17 +4,10 @@
 
 use std::collections::HashSet;
 use std::fs;
-use std::path::PathBuf;
-use std::sync::OnceLock;
 
 use rust_curse::discovery::rustdoc::run_cargo_rustdoc_json;
 
 const TEST_CRATE_NAME: &str = "rustdoc_test_crate";
-
-fn shared_target_abs_dir() -> &'static PathBuf {
-    static DIR: OnceLock<PathBuf> = OnceLock::new();
-    DIR.get_or_init(|| std::env::temp_dir().join("rust_curse_rustdoc_test_cache"))
-}
 
 pub fn gen_rustdoc(src: &str) -> rustdoc_types::Crate {
     let project_dir = tempfile::tempdir().expect("create tempdir");
@@ -36,10 +29,9 @@ pub fn gen_rustdoc(src: &str) -> rustdoc_types::Crate {
     fs::create_dir_all(project_abs_path.join("src")).expect("create src/");
     fs::write(project_abs_path.join("src/lib.rs"), src).expect("write src/lib.rs");
 
-    let target_abs_dir = shared_target_abs_dir();
-    fs::create_dir_all(target_abs_dir).expect("create shared target dir");
+    let target_abs_dir = project_abs_path.join("target");
 
-    run_cargo_rustdoc_json(project_abs_path, target_abs_dir, TEST_CRATE_NAME)
+    run_cargo_rustdoc_json(project_abs_path, &target_abs_dir, TEST_CRATE_NAME)
         .unwrap_or_else(|e| panic!("rustdoc generation failed: {e}"))
 }
 

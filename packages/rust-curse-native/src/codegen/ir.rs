@@ -162,7 +162,13 @@ pub struct ModDef {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Export {
+pub struct Export {
+    pub name: String,
+    pub kind: ExportKind,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ExportKind {
     Fn(FnId),
     Struct(StructId),
     Enum(EnumId),

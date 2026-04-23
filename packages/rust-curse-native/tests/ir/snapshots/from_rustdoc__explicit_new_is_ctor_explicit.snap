@@ -1,6 +1,6 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Opaque { x: i32, } impl Opaque\n{ pub fn new(x: i32) -> Self { Self { x } } }"
+description: "pub struct Opaque {\n    x: i32,\n}\nimpl Opaque {\n    pub fn new(x: i32) -> Self {\n        Self { x }\n    }\n}\n"
 expression: ir
 ---
 IR {
@@ -69,11 +69,14 @@ IR {
                 ],
             },
             exports: [
-                Struct(
-                    StructId(
-                        0,
+                Export {
+                    name: "Opaque",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

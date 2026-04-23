@@ -50,16 +50,22 @@ IR {
                 ],
             },
             exports: [
-                Struct(
-                    StructId(
-                        0,
+                Export {
+                    name: "A",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
                     ),
-                ),
-                Struct(
-                    StructId(
-                        1,
+                },
+                Export {
+                    name: "B",
+                    kind: Struct(
+                        StructId(
+                            1,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

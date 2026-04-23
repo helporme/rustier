@@ -1,0 +1,24 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub use i32 as MyI32;\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [],
+    structs: [],
+    enums: [],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [],
+        },
+    ],
+}

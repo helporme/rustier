@@ -1,6 +1,6 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub fn f(v: Vec<Option<i32>>) { let _ = v; }"
+description: "pub fn f(v: Vec<Option<i32>>) {\n    let _ = v;\n}\n"
 expression: ir
 ---
 IR {
@@ -56,11 +56,14 @@ IR {
                 ],
             },
             exports: [
-                Fn(
-                    FnId(
-                        0,
+                Export {
+                    name: "f",
+                    kind: Fn(
+                        FnId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

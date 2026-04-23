@@ -46,11 +46,22 @@ IR {
                 ],
             },
             exports: [
-                Mod(
-                    ModId(
-                        1,
+                Export {
+                    name: "inner",
+                    kind: Mod(
+                        ModId(
+                            1,
+                        ),
                     ),
-                ),
+                },
+                Export {
+                    name: "Inner",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
+                    ),
+                },
             ],
         },
         ModDef {
@@ -61,11 +72,14 @@ IR {
                 ],
             },
             exports: [
-                Struct(
-                    StructId(
-                        0,
+                Export {
+                    name: "Inner",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

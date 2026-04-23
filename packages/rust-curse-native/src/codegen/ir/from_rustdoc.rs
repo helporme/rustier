@@ -4,13 +4,14 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 use rustdoc_types::{
-    Crate, GenericArg, GenericArgs, Id, Item, ItemEnum, Path, StructKind, Type as RType, Variant,
-    VariantKind, Visibility,
+    Crate, GenericArg, GenericArgs, Id, Item, ItemEnum, Path, StructKind, Type as RType, Use,
+    Variant, VariantKind, Visibility,
 };
 
 use super::{
-    Ctor, EnumDef, EnumVariant, Export, FnDef, FnId, FnParam, ItemPath, ModDef, ModId, NumberType,
-    ParamMode, StructBoundary, StructDef, StructField, StructId, StructShape, Type, TypeId, IR,
+    Ctor, EnumDef, EnumVariant, Export, ExportKind, FnDef, FnId, FnParam, ItemPath, ModDef, ModId,
+    NumberType, ParamMode, StructBoundary, StructDef, StructField, StructId, StructShape, Type,
+    TypeId, IR,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -31,6 +32,7 @@ pub fn build_ir(allowed: &HashSet<Id>, crate_: &Crate) -> Result<IR, BuildError>
         struct_intern: HashMap::new(),
         enum_intern: HashMap::new(),
         fn_intern: HashMap::new(),
+        mod_intern: HashMap::new(),
         self_stack: Vec::new(),
     };
 
@@ -48,6 +50,7 @@ struct Builder<'a> {
     struct_intern: HashMap<Id, StructId>,
     enum_intern: HashMap<Id, EnumId>,
     fn_intern: HashMap<Id, FnId>,
+    mod_intern: HashMap<Id, ModId>,
     self_stack: Vec<Id>,
 }
 
@@ -59,6 +62,9 @@ impl<'a> Builder<'a> {
         mod_id: Id,
         allowed: &HashSet<Id>,
     ) -> Result<Option<ModId>, BuildError> {
+        if let Some(&mid) = self.mod_intern.get(&mod_id) {
+            return Ok(Some(mid));
+        }
         let item = self.get_item(mod_id)?;
         let module = match &item.inner {
             ItemEnum::Module(m) => m,
@@ -66,41 +72,165 @@ impl<'a> Builder<'a> {
         };
 
         let mid = self.reserve_mod(path_of(item, mod_id, self.crate_));
+        self.mod_intern.insert(mod_id, mid);
         let mut exports = Vec::new();
 
         for child_id in &module.items {
             let Some(child) = self.crate_.index.get(child_id) else {
                 continue;
             };
+            let child_name = child.name.clone().unwrap_or_default();
             match &child.inner {
                 ItemEnum::Module(_) => {
                     if let Some(child_mid) = self.build_module(*child_id, allowed)? {
-                        exports.push(Export::Mod(child_mid));
+                        exports.push(Export {
+                            name: child_name,
+                            kind: ExportKind::Mod(child_mid),
+                        });
                     }
                 }
                 ItemEnum::Struct(_) if allowed.contains(child_id) => {
                     let sid = self.intern_struct(*child_id)?;
-                    exports.push(Export::Struct(sid));
+                    exports.push(Export {
+                        name: child_name,
+                        kind: ExportKind::Struct(sid),
+                    });
                 }
                 ItemEnum::Enum(_) if allowed.contains(child_id) => {
                     let eid = self.intern_enum(*child_id)?;
-                    exports.push(Export::Enum(eid));
+                    exports.push(Export {
+                        name: child_name,
+                        kind: ExportKind::Enum(eid),
+                    });
                 }
                 ItemEnum::Function(_) if allowed.contains(child_id) => {
                     let fid = self.intern_fn(*child_id)?;
-                    exports.push(Export::Fn(fid));
+                    exports.push(Export {
+                        name: child_name,
+                        kind: ExportKind::Fn(fid),
+                    });
+                }
+                ItemEnum::Use(use_) => {
+                    let mut visited = HashSet::new();
+                    self.add_use(use_, allowed, &mut exports, &mut visited)?;
                 }
                 _ => {}
             }
         }
 
         if exports.is_empty() && mod_id != self.crate_.root {
+            // Module produced nothing -> remove from IR and intern map.
+            // Safe to pop because nothing else can reference this ModId yet.
             self.ir.mods.pop();
+            self.mod_intern.remove(&mod_id);
             return Ok(None);
         }
 
         self.ir.mods[mid.0 as usize].exports = exports;
         Ok(Some(mid))
+    }
+
+    fn add_use(
+        &mut self,
+        use_: &Use,
+        allowed: &HashSet<Id>,
+        exports: &mut Vec<Export>,
+        visited: &mut HashSet<Id>,
+    ) -> Result<(), BuildError> {
+        let Some(tid) = use_.id else { return Ok(()) };
+        let Some(target) = self.crate_.index.get(&tid) else {
+            return Ok(());
+        };
+
+        if use_.is_glob {
+            if !visited.insert(tid) {
+                return Ok(());
+            }
+            let ItemEnum::Module(source_mod) = &target.inner else {
+                return Ok(());
+            };
+            let child_ids: Vec<Id> = source_mod.items.clone();
+            for child_id in child_ids {
+                let Some(child) = self.crate_.index.get(&child_id) else {
+                    continue;
+                };
+                let child_name = child.name.clone().unwrap_or_default();
+                match &child.inner {
+                    ItemEnum::Struct(_) if allowed.contains(&child_id) => {
+                        let sid = self.intern_struct(child_id)?;
+                        exports.push(Export {
+                            name: child_name,
+                            kind: ExportKind::Struct(sid),
+                        });
+                    }
+                    ItemEnum::Enum(_) if allowed.contains(&child_id) => {
+                        let eid = self.intern_enum(child_id)?;
+                        exports.push(Export {
+                            name: child_name,
+                            kind: ExportKind::Enum(eid),
+                        });
+                    }
+                    ItemEnum::Function(_) if allowed.contains(&child_id) => {
+                        let fid = self.intern_fn(child_id)?;
+                        exports.push(Export {
+                            name: child_name,
+                            kind: ExportKind::Fn(fid),
+                        });
+                    }
+                    ItemEnum::Module(_) => {
+                        if let Some(mid) = self.build_module(child_id, allowed)? {
+                            exports.push(Export {
+                                name: child_name,
+                                kind: ExportKind::Mod(mid),
+                            });
+                        }
+                    }
+                    ItemEnum::Use(inner_use) => {
+                        self.add_use(inner_use, allowed, exports, visited)?;
+                    }
+                    _ => {}
+                }
+            }
+            return Ok(());
+        }
+
+        let name = use_.name.clone();
+        match &target.inner {
+            ItemEnum::Struct(_) if allowed.contains(&tid) => {
+                let sid = self.intern_struct(tid)?;
+                exports.push(Export {
+                    name,
+                    kind: ExportKind::Struct(sid),
+                });
+            }
+            ItemEnum::Enum(_) if allowed.contains(&tid) => {
+                let eid = self.intern_enum(tid)?;
+                exports.push(Export {
+                    name,
+                    kind: ExportKind::Enum(eid),
+                });
+            }
+            ItemEnum::Function(_) if allowed.contains(&tid) => {
+                let fid = self.intern_fn(tid)?;
+                exports.push(Export {
+                    name,
+                    kind: ExportKind::Fn(fid),
+                });
+            }
+            ItemEnum::Module(_) => {
+                if let Some(target_mid) = self.build_module(tid, allowed)? {
+                    exports.push(Export {
+                        name,
+                        kind: ExportKind::Mod(target_mid),
+                    });
+                }
+            }
+            ItemEnum::Use(inner_use) => {
+                self.add_use(inner_use, allowed, exports, visited)?;
+            }
+            _ => {}
+        }
+        Ok(())
     }
 
     fn reserve_mod(&mut self, path: ItemPath) -> ModId {

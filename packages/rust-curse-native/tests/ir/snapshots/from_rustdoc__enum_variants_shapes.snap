@@ -1,6 +1,6 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub enum E { A, B(i32), C { x: i32 }, }"
+description: "pub enum E {\n    A,\n    B(i32),\n    C { x: i32 },\n}\n"
 expression: ir
 ---
 IR {
@@ -66,11 +66,14 @@ IR {
                 ],
             },
             exports: [
-                Enum(
-                    EnumId(
-                        0,
+                Export {
+                    name: "E",
+                    kind: Enum(
+                        EnumId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

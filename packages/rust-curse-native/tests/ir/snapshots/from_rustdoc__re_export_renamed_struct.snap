@@ -1,0 +1,86 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub mod inner {\n    pub struct Inner {\n        pub x: i32,\n    }\n}\npub use inner::Inner as Renamed;\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i32,
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "inner",
+                    "Inner",
+                ],
+            },
+            boundary: Copy,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "x",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                ],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Export {
+                    name: "inner",
+                    kind: Mod(
+                        ModId(
+                            1,
+                        ),
+                    ),
+                },
+                Export {
+                    name: "Renamed",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
+                    ),
+                },
+            ],
+        },
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "inner",
+                ],
+            },
+            exports: [
+                Export {
+                    name: "Inner",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
+                    ),
+                },
+            ],
+        },
+    ],
+}

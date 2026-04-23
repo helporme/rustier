@@ -1,6 +1,6 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub fn two_i32(a: i32, b: i32) {}"
+description: "pub fn two_i32(a: i32, b: i32) {}\n"
 expression: ir
 ---
 IR {
@@ -53,11 +53,14 @@ IR {
                 ],
             },
             exports: [
-                Fn(
-                    FnId(
-                        0,
+                Export {
+                    name: "two_i32",
+                    kind: Fn(
+                        FnId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

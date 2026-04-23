@@ -1,6 +1,6 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Point { pub x: i32, }"
+description: "pub struct Point {\n    pub x: i32,\n}\n"
 expression: ir
 ---
 IR {
@@ -45,11 +45,14 @@ IR {
                 ],
             },
             exports: [
-                Struct(
-                    StructId(
-                        0,
+                Export {
+                    name: "Point",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

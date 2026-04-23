@@ -38,11 +38,14 @@ IR {
                 ],
             },
             exports: [
-                Mod(
-                    ModId(
-                        1,
+                Export {
+                    name: "a",
+                    kind: Mod(
+                        ModId(
+                            1,
+                        ),
                     ),
-                ),
+                },
             ],
         },
         ModDef {
@@ -53,11 +56,14 @@ IR {
                 ],
             },
             exports: [
-                Mod(
-                    ModId(
-                        2,
+                Export {
+                    name: "b",
+                    kind: Mod(
+                        ModId(
+                            2,
+                        ),
                     ),
-                ),
+                },
             ],
         },
         ModDef {
@@ -69,11 +75,14 @@ IR {
                 ],
             },
             exports: [
-                Mod(
-                    ModId(
-                        3,
+                Export {
+                    name: "c",
+                    kind: Mod(
+                        ModId(
+                            3,
+                        ),
                     ),
-                ),
+                },
             ],
         },
         ModDef {
@@ -86,11 +95,14 @@ IR {
                 ],
             },
             exports: [
-                Fn(
-                    FnId(
-                        0,
+                Export {
+                    name: "deep",
+                    kind: Fn(
+                        FnId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

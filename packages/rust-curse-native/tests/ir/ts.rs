@@ -454,7 +454,7 @@ fn module_duplicate_struct_names() {
 }
 
 #[test]
-fn module_re_export_is_dropped() {
+fn module_re_export_of_struct() {
     assert_ts_snap! {
         pub mod inner {
             pub struct Inner {
@@ -462,6 +462,30 @@ fn module_re_export_is_dropped() {
             }
         }
         pub use inner::Inner;
+    };
+}
+
+#[test]
+fn module_re_export_renamed_struct() {
+    assert_ts_snap! {
+        pub mod inner {
+            pub struct Inner {
+                pub x: i32,
+            }
+        }
+        pub use inner::Inner as Renamed;
+    };
+}
+
+#[test]
+fn module_re_export_glob() {
+    assert_ts_snap! {
+        pub mod inner {
+            pub struct S { pub x: i32 }
+            pub enum E { A, B }
+            pub fn f() -> i32 { 0 }
+        }
+        pub use inner::*;
     };
 }
 

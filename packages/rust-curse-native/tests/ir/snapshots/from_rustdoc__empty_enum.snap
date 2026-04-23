@@ -30,11 +30,14 @@ IR {
                 ],
             },
             exports: [
-                Enum(
-                    EnumId(
-                        0,
+                Export {
+                    name: "Void",
+                    kind: Enum(
+                        EnumId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],

@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use super::{
-    Ctor, EnumId, Export, FnId, FnParam, ItemPath, ModId, NumberType, ParamMode, StructBoundary,
-    StructId, StructShape, Type, TypeId, IR,
+    Ctor, EnumId, ExportKind, FnId, FnParam, ItemPath, ModId, NumberType, ParamMode,
+    StructBoundary, StructId, StructShape, Type, TypeId, IR,
 };
 
 const PREAMBLE: &str = r#"declare module "$rust-curse" {
@@ -59,14 +59,19 @@ impl<'a> Printer<'a> {
 
         self.local_structs.clear();
         self.local_enums.clear();
+        let mod_segments = self.ir.mod_(mid).path.segments.clone();
         let exports = self.ir.mod_(mid).exports.clone();
         for export in &exports {
-            match export {
-                Export::Struct(sid) => {
-                    self.local_structs.insert(*sid);
+            match &export.kind {
+                ExportKind::Struct(sid) => {
+                    if is_canonical_origin(&self.ir.struct_(*sid).path, &mod_segments) {
+                        self.local_structs.insert(*sid);
+                    }
                 }
-                Export::Enum(eid) => {
-                    self.local_enums.insert(*eid);
+                ExportKind::Enum(eid) => {
+                    if is_canonical_origin(&self.ir.enum_(*eid).path, &mod_segments) {
+                        self.local_enums.insert(*eid);
+                    }
                 }
                 _ => {}
             }
@@ -102,14 +107,36 @@ impl<'a> Printer<'a> {
     }
 
     fn print_mod_exports(&mut self, mid: ModId) -> String {
+        let mod_segments = self.ir.mod_(mid).path.segments.clone();
         let exports = self.ir.mod_(mid).exports.clone();
         let mut parts: Vec<String> = Vec::new();
         for export in &exports {
-            match export {
-                Export::Struct(sid) => parts.push(self.print_struct(*sid)),
-                Export::Enum(eid) => parts.push(self.print_enum(*eid)),
-                Export::Fn(fid) => parts.push(self.print_fn(*fid)),
-                Export::Mod(_) => {}
+            match &export.kind {
+                ExportKind::Struct(sid) => {
+                    let canonical = self.ir.struct_(*sid).path.clone();
+                    if is_canonical_origin(&canonical, &mod_segments) {
+                        parts.push(self.print_struct(*sid));
+                    } else {
+                        parts.push(print_reexport(&canonical, &export.name));
+                    }
+                }
+                ExportKind::Enum(eid) => {
+                    let canonical = self.ir.enum_(*eid).path.clone();
+                    if is_canonical_origin(&canonical, &mod_segments) {
+                        parts.push(self.print_enum(*eid));
+                    } else {
+                        parts.push(print_reexport(&canonical, &export.name));
+                    }
+                }
+                ExportKind::Fn(fid) => {
+                    let canonical = self.ir.fn_(*fid).path.clone();
+                    if is_canonical_origin(&canonical, &mod_segments) {
+                        parts.push(self.print_fn(*fid));
+                    } else {
+                        parts.push(print_reexport(&canonical, &export.name));
+                    }
+                }
+                ExportKind::Mod(_) => {}
             }
         }
         parts.join("\n\n")
@@ -403,6 +430,24 @@ fn parens_if_union(s: String) -> String {
 
 fn mod_ambient_path(mod_: &super::ModDef) -> String {
     format!("$rust/{}", mod_.path.segments.join("/"))
+}
+
+fn is_canonical_origin(item_path: &ItemPath, mod_segments: &[String]) -> bool {
+    if item_path.segments.len() < 2 {
+        return false;
+    }
+    &item_path.segments[..item_path.segments.len() - 1] == mod_segments
+}
+
+fn print_reexport(canonical: &ItemPath, local_name: &str) -> String {
+    let canonical_name = canonical.name().unwrap_or(local_name);
+    let module_segments = &canonical.segments[..canonical.segments.len() - 1];
+    let source = format!("$rust/{}", module_segments.join("/"));
+    if canonical_name == local_name {
+        format!("    export {{ {local_name} }} from \"{source}\";")
+    } else {
+        format!("    export {{ {canonical_name} as {local_name} }} from \"{source}\";")
+    }
 }
 
 fn line_comment(docs: &str, indent: &str) -> String {

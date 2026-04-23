@@ -68,16 +68,22 @@ IR {
                 ],
             },
             exports: [
-                Mod(
-                    ModId(
-                        1,
+                Export {
+                    name: "a",
+                    kind: Mod(
+                        ModId(
+                            1,
+                        ),
                     ),
-                ),
-                Mod(
-                    ModId(
-                        2,
+                },
+                Export {
+                    name: "b",
+                    kind: Mod(
+                        ModId(
+                            2,
+                        ),
                     ),
-                ),
+                },
             ],
         },
         ModDef {
@@ -88,11 +94,14 @@ IR {
                 ],
             },
             exports: [
-                Struct(
-                    StructId(
-                        0,
+                Export {
+                    name: "Thing",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
                     ),
-                ),
+                },
             ],
         },
         ModDef {
@@ -103,11 +112,14 @@ IR {
                 ],
             },
             exports: [
-                Struct(
-                    StructId(
-                        1,
+                Export {
+                    name: "Thing",
+                    kind: Struct(
+                        StructId(
+                            1,
+                        ),
                     ),
-                ),
+                },
             ],
         },
     ],
