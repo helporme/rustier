@@ -13,6 +13,10 @@ name = "from_rustdoc"
 path = "tests/ir/from_rustdoc.rs"
 
 [[test]]
+name = "negative"
+path = "tests/ir/negative.rs"
+
+[[test]]
 name = "ts"
 path = "tests/ir/ts.rs"
 

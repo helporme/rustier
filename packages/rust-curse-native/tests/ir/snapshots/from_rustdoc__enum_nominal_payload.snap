@@ -1,0 +1,96 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub struct Point {\n    pub x: i32,\n    pub y: i32,\n}\npub enum Msg {\n    Move(Point),\n    Stop,\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i32,
+        ),
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Point",
+                ],
+            },
+            boundary: Copy,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "x",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                    StructField {
+                        name: "y",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                ],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [
+        EnumDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Msg",
+                ],
+            },
+            variants: [
+                EnumVariant {
+                    name: "Move",
+                    shape: Tuple(
+                        [
+                            TypeId(
+                                1,
+                            ),
+                        ],
+                    ),
+                    docs: None,
+                },
+                EnumVariant {
+                    name: "Stop",
+                    shape: Unit,
+                    docs: None,
+                },
+            ],
+            docs: None,
+        },
+    ],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Enum(
+                    EnumId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

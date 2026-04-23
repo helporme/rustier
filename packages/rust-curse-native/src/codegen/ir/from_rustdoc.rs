@@ -192,9 +192,6 @@ impl<'a> Builder<'a> {
             let ItemEnum::Impl(impl_) = &impl_item.inner else {
                 continue;
             };
-            if impl_.trait_.is_some() {
-                continue;
-            }
             for assoc_id in &impl_.items {
                 let Some(assoc) = self.crate_.index.get(assoc_id) else {
                     continue;
@@ -252,6 +249,12 @@ impl<'a> Builder<'a> {
             let ItemEnum::Variant(variant) = &variant_item.inner else {
                 continue;
             };
+            if variant.discriminant.is_some() {
+                return Err(BuildError::UnsupportedType {
+                    id: *vid,
+                    reason: "enum variant with explicit discriminant is not supported".into(),
+                });
+            }
             variants.push(EnumVariant {
                 name: variant_item.name.clone().unwrap_or_default(),
                 shape: self.build_variant_shape(variant)?,
@@ -541,9 +544,26 @@ fn returns_self(output: Option<&RType>, self_id: Id) -> bool {
     let Some(ty) = output else { return false };
     match ty {
         RType::Generic(name) if name == "Self" => true,
-        RType::ResolvedPath(p) => p.id == self_id,
+        RType::ResolvedPath(p) if p.id == self_id => true,
+        RType::ResolvedPath(p) if is_result_path(p) => {
+            first_type_arg(p).is_some_and(|t| returns_self(Some(t), self_id))
+        }
         _ => false,
     }
+}
+
+fn is_result_path(p: &Path) -> bool {
+    p.path.rsplit("::").next() == Some("Result")
+}
+
+fn first_type_arg(p: &Path) -> Option<&RType> {
+    let GenericArgs::AngleBracketed { args, .. } = p.args.as_deref()? else {
+        return None;
+    };
+    args.iter().find_map(|a| match a {
+        GenericArg::Type(t) => Some(t),
+        _ => None,
+    })
 }
 
 fn path_of(item: &Item, id: Id, crate_: &Crate) -> ItemPath {

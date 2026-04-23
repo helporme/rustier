@@ -1,5 +1,7 @@
 //! Shared test helpers.
 
+#![allow(dead_code)]
+
 use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
@@ -130,5 +132,40 @@ macro_rules! assert_ts_snap {
         insta::with_settings!({ description => src }, {
             insta::assert_snapshot!(ir.print_ts());
         });
+    }};
+}
+
+/// Like `assert_ir_snap!` but allows every leaf item. Use when name-based
+/// filtering is ambiguous (e.g. two items share a name in different modules).
+#[macro_export]
+macro_rules! assert_ir_snap_all {
+    ({ $($tt:tt)* }) => {{
+        let src = $crate::common::fmt_src(stringify!($($tt)*));
+        let crate_ = $crate::common::gen_rustdoc(&src);
+        let allowed = $crate::common::all_leaf_ids(&crate_);
+        let ir = rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap();
+        insta::with_settings!({ description => src }, {
+            insta::assert_debug_snapshot!(ir);
+        });
+    }};
+}
+
+/// Assert that building IR returns `Err(pat)`.
+#[macro_export]
+macro_rules! assert_ir_err {
+    ([$($name:literal),+] => { $($tt:tt)* }, $pat:pat) => {{
+        let src = $crate::common::fmt_src(stringify!($($tt)*));
+        let crate_ = $crate::common::gen_rustdoc(&src);
+        let allowed = $crate::common::allowed_by_name(&crate_, &[$($name),+]);
+        let result = rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_);
+        match result {
+            Err(e) => assert!(
+                matches!(e, $pat),
+                "expected error {}, got {:?}",
+                stringify!($pat),
+                e
+            ),
+            Ok(ir) => panic!("expected error {}, got Ok({:?})", stringify!($pat), ir),
+        }
     }};
 }

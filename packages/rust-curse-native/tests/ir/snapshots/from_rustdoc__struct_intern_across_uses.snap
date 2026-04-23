@@ -1,0 +1,135 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub struct Point {\n    pub x: i32,\n    pub y: i32,\n}\npub struct Wrapper {\n    pub p: Point,\n}\npub fn take(p: Point) {}\npub fn produce() -> Point {\n    Point { x: 0, y: 0 }\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i32,
+        ),
+        Struct(
+            StructId(
+                1,
+            ),
+        ),
+        Unit,
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Wrapper",
+                ],
+            },
+            boundary: Copy,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "p",
+                        type_id: TypeId(
+                            1,
+                        ),
+                        docs: None,
+                    },
+                ],
+            ),
+            docs: None,
+        },
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Point",
+                ],
+            },
+            boundary: Copy,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "x",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                    StructField {
+                        name: "y",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                ],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "take",
+                ],
+            },
+            params: [
+                FnParam {
+                    name: "p",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        1,
+                    ),
+                },
+            ],
+            return_type: TypeId(
+                2,
+            ),
+            docs: None,
+        },
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "produce",
+                ],
+            },
+            params: [],
+            return_type: TypeId(
+                1,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        0,
+                    ),
+                ),
+                Fn(
+                    FnId(
+                        0,
+                    ),
+                ),
+                Fn(
+                    FnId(
+                        1,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

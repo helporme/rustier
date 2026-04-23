@@ -1,0 +1,46 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub struct Builder {\n    x: i32,\n}\nimpl Builder {\n    pub fn new(&self) -> Self {\n        Self { x: self.x }\n    }\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Builder",
+                ],
+            },
+            boundary: Ref {
+                ctor: Implicit,
+            },
+            shape: Struct(
+                [],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

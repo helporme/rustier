@@ -1,0 +1,44 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub struct Empty {}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Empty",
+                ],
+            },
+            boundary: Copy,
+            shape: Struct(
+                [],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

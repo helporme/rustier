@@ -1,0 +1,97 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub mod a {\n    pub mod b {\n        pub mod c {\n            pub fn deep() {}\n        }\n    }\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Unit,
+    ],
+    structs: [],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "a",
+                    "b",
+                    "c",
+                    "deep",
+                ],
+            },
+            params: [],
+            return_type: TypeId(
+                0,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Mod(
+                    ModId(
+                        1,
+                    ),
+                ),
+            ],
+        },
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "a",
+                ],
+            },
+            exports: [
+                Mod(
+                    ModId(
+                        2,
+                    ),
+                ),
+            ],
+        },
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "a",
+                    "b",
+                ],
+            },
+            exports: [
+                Mod(
+                    ModId(
+                        3,
+                    ),
+                ),
+            ],
+        },
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "a",
+                    "b",
+                    "c",
+                ],
+            },
+            exports: [
+                Fn(
+                    FnId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

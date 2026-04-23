@@ -216,3 +216,386 @@ fn cross_module_types() {
         }
     });
 }
+
+#[test]
+fn unit_struct() {
+    assert_ir_snap!(["Marker"] => {
+        pub struct Marker;
+    });
+}
+
+#[test]
+fn empty_struct_plain() {
+    assert_ir_snap!(["Empty"] => {
+        pub struct Empty {}
+    });
+}
+
+#[test]
+fn vec_deque_and_linked_list() {
+    assert_ir_snap!(["f"] => {
+        pub fn f(
+            a: std::collections::VecDeque<i32>,
+            b: std::collections::LinkedList<String>,
+        ) {}
+    });
+}
+
+#[test]
+fn hash_set_and_btree_set() {
+    assert_ir_snap!(["f"] => {
+        pub fn f(
+            a: std::collections::HashSet<i32>,
+            b: std::collections::BTreeSet<String>,
+        ) {}
+    });
+}
+
+#[test]
+fn smart_pointer_inlining() {
+    assert_ir_snap!(["f"] => {
+        pub fn f(
+            a: Box<i32>,
+            b: std::sync::Arc<i32>,
+            c: std::rc::Rc<i32>,
+            d: std::cell::Cell<i32>,
+            e: std::cell::RefCell<i32>,
+        ) {}
+    });
+}
+
+#[test]
+fn smart_pointer_nested() {
+    assert_ir_snap!(["f"] => {
+        pub fn f(a: Vec<Box<i32>>, b: Option<std::sync::Arc<String>>) {}
+    });
+}
+
+#[test]
+fn mut_slice() {
+    assert_ir_snap!(["f"] => {
+        pub fn f(items: &mut [i32]) {}
+    });
+}
+
+#[test]
+fn primitives_intern_across_fns() {
+    assert_ir_snap!(["f", "g"] => {
+        pub fn f(x: i32) {}
+        pub fn g(y: i32) {}
+    });
+}
+
+#[test]
+fn struct_intern_across_uses() {
+    assert_ir_snap!(["take", "produce", "Wrapper"] => {
+        pub struct Point {
+            pub x: i32,
+            pub y: i32,
+        }
+        pub struct Wrapper {
+            pub p: Point,
+        }
+        pub fn take(p: Point) {}
+        pub fn produce() -> Point { Point { x: 0, y: 0 } }
+    });
+}
+
+#[test]
+fn recursive_struct_via_box() {
+    assert_ir_snap!(["Node"] => {
+        pub struct Node {
+            next: Option<Box<Node>>,
+        }
+    });
+}
+
+#[test]
+fn mutually_recursive_structs() {
+    assert_ir_snap!(["A", "B"] => {
+        pub struct A {
+            b: Option<Box<B>>,
+        }
+        pub struct B {
+            a: Option<Box<A>>,
+        }
+    });
+}
+
+#[test]
+fn deeply_nested_generics() {
+    assert_ir_snap!(["f"] => {
+        pub fn f(x: Vec<std::collections::HashMap<String, Vec<i32>>>) {}
+    });
+}
+
+#[test]
+fn result_with_unit() {
+    assert_ir_snap!(["f", "g"] => {
+        pub fn f() -> Result<(), String> { Ok(()) }
+        pub fn g(x: i32) -> Result<i32, ()> { Ok(x) }
+    });
+}
+
+#[test]
+fn tuple_with_unit_element() {
+    assert_ir_snap!(["f"] => {
+        pub fn f(t: (i32, (), String)) {}
+    });
+}
+
+#[test]
+fn large_tuple() {
+    assert_ir_snap!(["f"] => {
+        pub fn f(t: (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32)) {}
+    });
+}
+
+#[test]
+fn zero_length_array() {
+    assert_ir_snap!(["f"] => {
+        pub fn f(a: [i32; 0]) {}
+    });
+}
+
+#[test]
+fn array_of_nominal() {
+    assert_ir_snap!(["f"] => {
+        pub struct Point {
+            pub x: i32,
+        }
+        pub fn f(arr: [Point; 4]) {}
+    });
+}
+
+#[test]
+fn nested_tuple() {
+    assert_ir_snap!(["f"] => {
+        pub fn f(t: ((i32, i32), String)) {}
+    });
+}
+
+#[test]
+fn struct_mixed_pub_priv_fields() {
+    assert_ir_snap!(["Mixed"] => {
+        pub struct Mixed {
+            pub x: i32,
+            y: i32,
+        }
+    });
+}
+
+#[test]
+fn ctor_new_with_self_arg_is_implicit() {
+    assert_ir_snap!(["Builder"] => {
+        pub struct Builder {
+            x: i32,
+        }
+        impl Builder {
+            pub fn new(&self) -> Self { Self { x: self.x } }
+        }
+    });
+}
+
+#[test]
+fn ctor_new_returning_result_is_explicit() {
+    assert_ir_snap!(["Loader"] => {
+        pub struct Loader {
+            data: Vec<u8>,
+        }
+        impl Loader {
+            pub fn new() -> Result<Self, String> { Ok(Self { data: Vec::new() }) }
+        }
+    });
+}
+
+#[test]
+fn ctor_new_returning_result_struct_name_is_explicit() {
+    assert_ir_snap!(["Token"] => {
+        pub struct Token {
+            value: String,
+        }
+        impl Token {
+            pub fn new(value: String) -> Result<Token, String> { Ok(Token { value }) }
+        }
+    });
+}
+
+#[test]
+fn ctor_new_in_trait_impl_is_explicit() {
+    assert_ir_snap!(["Foo"] => {
+        pub trait Factory {
+            fn new() -> Self;
+        }
+        pub struct Foo {
+            x: i32,
+        }
+        impl Factory for Foo {
+            fn new() -> Self { Foo { x: 0 } }
+        }
+    });
+}
+
+#[test]
+fn ctor_new_in_trait_impl_returning_result_is_explicit() {
+    assert_ir_snap!(["Foo"] => {
+        pub trait TryFactory {
+            fn new() -> Result<Self, String> where Self: Sized;
+        }
+        pub struct Foo {
+            x: i32,
+        }
+        impl TryFactory for Foo {
+            fn new() -> Result<Self, String> { Ok(Foo { x: 0 }) }
+        }
+    });
+}
+
+#[test]
+fn ctor_multiple_impls_finds_new() {
+    assert_ir_snap!(["Counter"] => {
+        pub struct Counter {
+            count: u32,
+        }
+        impl Counter {
+            pub fn increment(&mut self) { self.count += 1; }
+        }
+        impl Counter {
+            pub fn new() -> Self { Counter { count: 0 } }
+        }
+    });
+}
+
+#[test]
+fn ctor_new_returning_struct_name() {
+    assert_ir_snap!(["Token"] => {
+        pub struct Token {
+            value: String,
+        }
+        impl Token {
+            pub fn new(value: String) -> Token { Token { value } }
+        }
+    });
+}
+
+#[test]
+fn empty_module_is_pruned() {
+    assert_ir_snap!(["stays"] => {
+        pub mod kept {
+            pub fn stays() {}
+        }
+        pub mod pruned {
+            pub fn dropped() {}
+        }
+    });
+}
+
+#[test]
+fn deep_nested_modules() {
+    assert_ir_snap!(["deep"] => {
+        pub mod a {
+            pub mod b {
+                pub mod c {
+                    pub fn deep() {}
+                }
+            }
+        }
+    });
+}
+
+#[test]
+fn re_export_is_dropped() {
+    assert_ir_snap!(["Inner"] => {
+        pub mod inner {
+            pub struct Inner {
+                pub x: i32,
+            }
+        }
+        pub use inner::Inner;
+    });
+}
+
+#[test]
+fn pub_crate_field_forces_ref() {
+    assert_ir_snap!(["Gated"] => {
+        pub struct Gated {
+            pub x: i32,
+            pub(crate) y: i32,
+        }
+    });
+}
+
+#[test]
+fn duplicate_struct_names_in_different_modules() {
+    assert_ir_snap_all!({
+        pub mod a {
+            pub struct Thing { pub x: i32 }
+        }
+        pub mod b {
+            pub struct Thing { pub y: i32 }
+        }
+    });
+}
+
+#[test]
+fn empty_enum() {
+    assert_ir_snap!(["Void"] => {
+        pub enum Void {}
+    });
+}
+
+#[test]
+fn enum_nominal_payload() {
+    assert_ir_snap!(["Msg"] => {
+        pub struct Point {
+            pub x: i32,
+            pub y: i32,
+        }
+        pub enum Msg {
+            Move(Point),
+            Stop,
+        }
+    });
+}
+
+#[test]
+fn recursive_enum_via_box() {
+    assert_ir_snap!(["Tree"] => {
+        pub enum Tree {
+            Node(Box<Tree>, Box<Tree>),
+            Leaf(i32),
+        }
+    });
+}
+
+#[test]
+fn items_not_in_allowed_are_dropped() {
+    assert_ir_snap!(["keep"] => {
+        pub fn keep() {}
+        pub fn drop_me() {}
+    });
+}
+
+#[test]
+fn dependency_struct_is_reached_via_fn_signature() {
+    assert_ir_snap!(["f"] => {
+        pub struct Point {
+            pub x: i32,
+        }
+        pub fn f(p: Point) {}
+    });
+}
+
+#[test]
+fn empty_allowed_set_produces_empty_root() {
+    let src = common::fmt_src(stringify!(
+        pub fn a() {}
+        pub fn b() {}
+    ));
+    let crate_ = common::gen_rustdoc(&src);
+    let allowed = std::collections::HashSet::new();
+    let ir = rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap();
+    insta::with_settings!({ description => src }, {
+        insta::assert_debug_snapshot!(ir);
+    });
+}

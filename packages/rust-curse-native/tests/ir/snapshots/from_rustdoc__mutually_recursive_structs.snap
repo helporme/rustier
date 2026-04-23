@@ -1,0 +1,66 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub struct A {\n    b: Option<Box<B>>,\n}\npub struct B {\n    a: Option<Box<A>>,\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "A",
+                ],
+            },
+            boundary: Ref {
+                ctor: Implicit,
+            },
+            shape: Struct(
+                [],
+            ),
+            docs: None,
+        },
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "B",
+                ],
+            },
+            boundary: Ref {
+                ctor: Implicit,
+            },
+            shape: Struct(
+                [],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        0,
+                    ),
+                ),
+                Struct(
+                    StructId(
+                        1,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

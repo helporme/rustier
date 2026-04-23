@@ -1,0 +1,114 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub mod a {\n    pub struct Thing {\n        pub x: i32,\n    }\n}\npub mod b {\n    pub struct Thing {\n        pub y: i32,\n    }\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i32,
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "a",
+                    "Thing",
+                ],
+            },
+            boundary: Copy,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "x",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                ],
+            ),
+            docs: None,
+        },
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "b",
+                    "Thing",
+                ],
+            },
+            boundary: Copy,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "y",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                ],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Mod(
+                    ModId(
+                        1,
+                    ),
+                ),
+                Mod(
+                    ModId(
+                        2,
+                    ),
+                ),
+            ],
+        },
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "a",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "b",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        1,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

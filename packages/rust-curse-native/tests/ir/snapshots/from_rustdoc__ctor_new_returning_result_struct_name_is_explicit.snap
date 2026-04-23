@@ -1,0 +1,86 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub struct Token {\n    value: String,\n}\nimpl Token {\n    pub fn new(value: String) -> Result<Token, String> {\n        Ok(Token { value })\n    }\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        String,
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
+        Result(
+            TypeId(
+                1,
+            ),
+            TypeId(
+                0,
+            ),
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Token",
+                ],
+            },
+            boundary: Ref {
+                ctor: Explicit(
+                    FnId(
+                        0,
+                    ),
+                ),
+            },
+            shape: Struct(
+                [],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "new",
+                ],
+            },
+            params: [
+                FnParam {
+                    name: "value",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        0,
+                    ),
+                },
+            ],
+            return_type: TypeId(
+                2,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

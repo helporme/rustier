@@ -1,0 +1,84 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub struct Point {\n    pub x: i32,\n}\npub fn f(p: Point) {}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i32,
+        ),
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
+        Unit,
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Point",
+                ],
+            },
+            boundary: Copy,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "x",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: None,
+                    },
+                ],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "f",
+                ],
+            },
+            params: [
+                FnParam {
+                    name: "p",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        1,
+                    ),
+                },
+            ],
+            return_type: TypeId(
+                2,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Fn(
+                    FnId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

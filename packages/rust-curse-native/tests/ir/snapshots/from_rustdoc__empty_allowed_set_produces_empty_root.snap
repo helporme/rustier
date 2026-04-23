@@ -1,0 +1,24 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub fn a() {}\npub fn b() {}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [],
+    structs: [],
+    enums: [],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [],
+        },
+    ],
+}

@@ -1,0 +1,69 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub trait Factory {\n    fn new() -> Self;\n}\npub struct Foo {\n    x: i32,\n}\nimpl Factory for Foo {\n    fn new() -> Self {\n        Foo { x: 0 }\n    }\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Foo",
+                ],
+            },
+            boundary: Ref {
+                ctor: Explicit(
+                    FnId(
+                        0,
+                    ),
+                ),
+            },
+            shape: Struct(
+                [],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "new",
+                ],
+            },
+            params: [],
+            return_type: TypeId(
+                0,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

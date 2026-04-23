@@ -1,0 +1,100 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub fn f(t: (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32)) {}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Number(
+            i32,
+        ),
+        Tuple(
+            [
+                TypeId(
+                    0,
+                ),
+                TypeId(
+                    0,
+                ),
+                TypeId(
+                    0,
+                ),
+                TypeId(
+                    0,
+                ),
+                TypeId(
+                    0,
+                ),
+                TypeId(
+                    0,
+                ),
+                TypeId(
+                    0,
+                ),
+                TypeId(
+                    0,
+                ),
+                TypeId(
+                    0,
+                ),
+                TypeId(
+                    0,
+                ),
+                TypeId(
+                    0,
+                ),
+                TypeId(
+                    0,
+                ),
+                TypeId(
+                    0,
+                ),
+            ],
+        ),
+        Unit,
+    ],
+    structs: [],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "f",
+                ],
+            },
+            params: [
+                FnParam {
+                    name: "t",
+                    mode: ByValue,
+                    type_id: TypeId(
+                        1,
+                    ),
+                },
+            ],
+            return_type: TypeId(
+                2,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Fn(
+                    FnId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

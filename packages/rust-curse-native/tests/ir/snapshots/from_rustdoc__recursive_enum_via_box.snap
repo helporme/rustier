@@ -1,0 +1,76 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub enum Tree {\n    Node(Box<Tree>, Box<Tree>),\n    Leaf(i32),\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Enum(
+            EnumId(
+                0,
+            ),
+        ),
+        Number(
+            i32,
+        ),
+    ],
+    structs: [],
+    enums: [
+        EnumDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Tree",
+                ],
+            },
+            variants: [
+                EnumVariant {
+                    name: "Node",
+                    shape: Tuple(
+                        [
+                            TypeId(
+                                0,
+                            ),
+                            TypeId(
+                                0,
+                            ),
+                        ],
+                    ),
+                    docs: None,
+                },
+                EnumVariant {
+                    name: "Leaf",
+                    shape: Tuple(
+                        [
+                            TypeId(
+                                1,
+                            ),
+                        ],
+                    ),
+                    docs: None,
+                },
+            ],
+            docs: None,
+        },
+    ],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Enum(
+                    EnumId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

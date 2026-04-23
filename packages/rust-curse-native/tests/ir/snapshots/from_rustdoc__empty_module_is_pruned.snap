@@ -1,0 +1,62 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub mod kept {\n    pub fn stays() {}\n}\npub mod pruned {\n    pub fn dropped() {}\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Unit,
+    ],
+    structs: [],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "kept",
+                    "stays",
+                ],
+            },
+            params: [],
+            return_type: TypeId(
+                0,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Mod(
+                    ModId(
+                        1,
+                    ),
+                ),
+            ],
+        },
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "kept",
+                ],
+            },
+            exports: [
+                Fn(
+                    FnId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

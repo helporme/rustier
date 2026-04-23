@@ -1,0 +1,69 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub struct Counter {\n    count: u32,\n}\nimpl Counter {\n    pub fn increment(&mut self) {\n        self.count += 1;\n    }\n}\nimpl Counter {\n    pub fn new() -> Self {\n        Counter { count: 0 }\n    }\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Counter",
+                ],
+            },
+            boundary: Ref {
+                ctor: Explicit(
+                    FnId(
+                        0,
+                    ),
+                ),
+            },
+            shape: Struct(
+                [],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "new",
+                ],
+            },
+            params: [],
+            return_type: TypeId(
+                0,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

@@ -1,0 +1,41 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub enum Void {}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [],
+    structs: [],
+    enums: [
+        EnumDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Void",
+                ],
+            },
+            variants: [],
+            docs: None,
+        },
+    ],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Enum(
+                    EnumId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}

@@ -1,0 +1,78 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "pub struct Loader {\n    data: Vec<u8>,\n}\nimpl Loader {\n    pub fn new() -> Result<Self, String> {\n        Ok(Self { data: Vec::new() })\n    }\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    types: [
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
+        String,
+        Result(
+            TypeId(
+                0,
+            ),
+            TypeId(
+                1,
+            ),
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Loader",
+                ],
+            },
+            boundary: Ref {
+                ctor: Explicit(
+                    FnId(
+                        0,
+                    ),
+                ),
+            },
+            shape: Struct(
+                [],
+            ),
+            docs: None,
+        },
+    ],
+    enums: [],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "new",
+                ],
+            },
+            params: [],
+            return_type: TypeId(
+                2,
+            ),
+            docs: None,
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Struct(
+                    StructId(
+                        0,
+                    ),
+                ),
+            ],
+        },
+    ],
+}
