@@ -104,13 +104,42 @@ fn type_alias_unsupported() {
 }
 
 #[test]
-fn enum_c_style_discriminants_unsupported() {
+fn unit_enum_unsupported() {
+    assert_ir_err!(
+        ["E"] => {
+            pub enum E { A, B, C }
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn tuple_variant_enum_unsupported() {
+    assert_ir_err!(
+        ["E"] => {
+            pub enum E { A(i32), B(String) }
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn struct_variant_enum_unsupported() {
+    assert_ir_err!(
+        ["E"] => {
+            pub enum E { A { x: i32 }, B { y: String } }
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn enum_with_discriminants_unsupported() {
     assert_ir_err!(
         ["E"] => {
             pub enum E {
                 A = 1,
                 B = 2,
-                C = 4,
             }
         },
         BuildError::UnsupportedType { .. }
@@ -118,25 +147,11 @@ fn enum_c_style_discriminants_unsupported() {
 }
 
 #[test]
-fn enum_single_discriminant_unsupported() {
+fn enum_in_fn_signature_unsupported() {
     assert_ir_err!(
-        ["E"] => {
-            pub enum E {
-                Only = 7,
-            }
-        },
-        BuildError::UnsupportedType { .. }
-    );
-}
-
-#[test]
-fn enum_mixed_plain_and_discriminant_unsupported() {
-    assert_ir_err!(
-        ["E"] => {
-            pub enum E {
-                Plain,
-                Tagged = 3,
-            }
+        ["f"] => {
+            pub enum E { A, B }
+            pub fn f(e: E) {}
         },
         BuildError::UnsupportedType { .. }
     );

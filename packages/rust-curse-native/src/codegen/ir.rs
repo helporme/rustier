@@ -18,7 +18,6 @@ macro_rules! id_type {
 
 id_type!(TypeId);
 id_type!(StructId);
-id_type!(EnumId);
 id_type!(FnId);
 id_type!(ModId);
 
@@ -59,7 +58,6 @@ pub enum Type {
     HashMap(TypeId, TypeId),
     BTreeMap(TypeId, TypeId),
     Struct(StructId),
-    Enum(EnumId),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -142,20 +140,6 @@ pub struct StructField {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct EnumDef {
-    pub path: ItemPath,
-    pub variants: Vec<EnumVariant>,
-    pub docs: Option<String>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct EnumVariant {
-    pub name: String,
-    pub shape: StructShape,
-    pub docs: Option<String>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ModDef {
     pub path: ItemPath,
     pub exports: Vec<Export>,
@@ -171,7 +155,6 @@ pub struct Export {
 pub enum ExportKind {
     Fn(FnId),
     Struct(StructId),
-    Enum(EnumId),
     Mod(ModId),
 }
 
@@ -180,7 +163,6 @@ pub struct IR {
     pub root: ModId,
     pub types: Vec<Type>,
     pub structs: Vec<StructDef>,
-    pub enums: Vec<EnumDef>,
     pub fns: Vec<FnDef>,
     pub mods: Vec<ModDef>,
 }
@@ -191,9 +173,6 @@ impl IR {
     }
     pub fn struct_(&self, id: StructId) -> &StructDef {
         &self.structs[id.0 as usize]
-    }
-    pub fn enum_(&self, id: EnumId) -> &EnumDef {
-        &self.enums[id.0 as usize]
     }
     pub fn fn_(&self, id: FnId) -> &FnDef {
         &self.fns[id.0 as usize]

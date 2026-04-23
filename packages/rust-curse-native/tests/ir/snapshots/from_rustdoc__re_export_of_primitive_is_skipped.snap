@@ -9,7 +9,6 @@ IR {
     ),
     types: [],
     structs: [],
-    enums: [],
     fns: [],
     mods: [
         ModDef {

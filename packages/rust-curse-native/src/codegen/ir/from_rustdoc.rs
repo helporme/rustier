@@ -5,13 +5,12 @@ use std::collections::HashSet;
 
 use rustdoc_types::{
     Crate, GenericArg, GenericArgs, Id, Item, ItemEnum, Path, StructKind, Type as RType, Use,
-    Variant, VariantKind, Visibility,
+    Visibility,
 };
 
 use super::{
-    Ctor, EnumDef, EnumVariant, Export, ExportKind, FnDef, FnId, FnParam, ItemPath, ModDef, ModId,
-    NumberType, ParamMode, StructBoundary, StructDef, StructField, StructId, StructShape, Type,
-    TypeId, IR,
+    Ctor, Export, ExportKind, FnDef, FnId, FnParam, ItemPath, ModDef, ModId, NumberType, ParamMode,
+    StructBoundary, StructDef, StructField, StructId, StructShape, Type, TypeId, IR,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -30,7 +29,6 @@ pub fn build_ir(allowed: &HashSet<Id>, crate_: &Crate) -> Result<IR, BuildError>
         ir: IR::default(),
         type_intern: HashMap::new(),
         struct_intern: HashMap::new(),
-        enum_intern: HashMap::new(),
         fn_intern: HashMap::new(),
         mod_intern: HashMap::new(),
         self_stack: Vec::new(),
@@ -48,13 +46,10 @@ struct Builder<'a> {
     ir: IR,
     type_intern: HashMap<Type, TypeId>,
     struct_intern: HashMap<Id, StructId>,
-    enum_intern: HashMap<Id, EnumId>,
     fn_intern: HashMap<Id, FnId>,
     mod_intern: HashMap<Id, ModId>,
     self_stack: Vec<Id>,
 }
-
-use super::EnumId;
 
 impl<'a> Builder<'a> {
     fn build_module(
@@ -97,10 +92,9 @@ impl<'a> Builder<'a> {
                     });
                 }
                 ItemEnum::Enum(_) if allowed.contains(child_id) => {
-                    let eid = self.intern_enum(*child_id)?;
-                    exports.push(Export {
-                        name: child_name,
-                        kind: ExportKind::Enum(eid),
+                    return Err(BuildError::UnsupportedType {
+                        id: *child_id,
+                        reason: "enums are not supported".into(),
                     });
                 }
                 ItemEnum::Function(_) if allowed.contains(child_id) => {
@@ -164,10 +158,9 @@ impl<'a> Builder<'a> {
                         });
                     }
                     ItemEnum::Enum(_) if allowed.contains(&child_id) => {
-                        let eid = self.intern_enum(child_id)?;
-                        exports.push(Export {
-                            name: child_name,
-                            kind: ExportKind::Enum(eid),
+                        return Err(BuildError::UnsupportedType {
+                            id: child_id,
+                            reason: "enums are not supported".into(),
                         });
                     }
                     ItemEnum::Function(_) if allowed.contains(&child_id) => {
@@ -204,10 +197,9 @@ impl<'a> Builder<'a> {
                 });
             }
             ItemEnum::Enum(_) if allowed.contains(&tid) => {
-                let eid = self.intern_enum(tid)?;
-                exports.push(Export {
-                    name,
-                    kind: ExportKind::Enum(eid),
+                return Err(BuildError::UnsupportedType {
+                    id: tid,
+                    reason: "enums are not supported".into(),
                 });
             }
             ItemEnum::Function(_) if allowed.contains(&tid) => {
@@ -376,86 +368,6 @@ impl<'a> Builder<'a> {
         Ok(Ctor::Explicit(res?))
     }
 
-    fn intern_enum(&mut self, id: Id) -> Result<EnumId, BuildError> {
-        if let Some(&eid) = self.enum_intern.get(&id) {
-            return Ok(eid);
-        }
-        let item = self.get_item(id)?;
-        let enum_ = match &item.inner {
-            ItemEnum::Enum(e) => e,
-            _ => {
-                return Err(BuildError::UnsupportedType {
-                    id,
-                    reason: "expected enum".into(),
-                });
-            }
-        };
-
-        let eid = EnumId(self.ir.enums.len() as u32);
-        self.enum_intern.insert(id, eid);
-        self.ir.enums.push(EnumDef {
-            path: path_of(item, id, self.crate_),
-            variants: Vec::new(),
-            docs: item.docs.clone(),
-        });
-
-        let mut variants = Vec::new();
-        for vid in &enum_.variants {
-            let Some(variant_item) = self.crate_.index.get(vid) else {
-                continue;
-            };
-            let ItemEnum::Variant(variant) = &variant_item.inner else {
-                continue;
-            };
-            if variant.discriminant.is_some() {
-                return Err(BuildError::UnsupportedType {
-                    id: *vid,
-                    reason: "enum variant with explicit discriminant is not supported".into(),
-                });
-            }
-            variants.push(EnumVariant {
-                name: variant_item.name.clone().unwrap_or_default(),
-                shape: self.build_variant_shape(variant)?,
-                docs: variant_item.docs.clone(),
-            });
-        }
-        self.ir.enums[eid.0 as usize].variants = variants;
-        Ok(eid)
-    }
-
-    fn build_variant_shape(&mut self, variant: &Variant) -> Result<StructShape, BuildError> {
-        match &variant.kind {
-            VariantKind::Plain => Ok(StructShape::Unit),
-            VariantKind::Tuple(fields) => {
-                let mut out = Vec::new();
-                for opt_id in fields {
-                    let Some(fid) = opt_id else { continue };
-                    let field_item = self.get_item(*fid)?;
-                    let ItemEnum::StructField(ty) = &field_item.inner else {
-                        continue;
-                    };
-                    out.push(self.intern_type(ty)?);
-                }
-                Ok(StructShape::Tuple(out))
-            }
-            VariantKind::Struct { fields, .. } => {
-                let mut out = Vec::new();
-                for fid in fields {
-                    let field_item = self.get_item(*fid)?;
-                    let ItemEnum::StructField(ty) = &field_item.inner else {
-                        continue;
-                    };
-                    out.push(StructField {
-                        name: field_item.name.clone().unwrap_or_default(),
-                        type_id: self.intern_type(ty)?,
-                        docs: field_item.docs.clone(),
-                    });
-                }
-                Ok(StructShape::Struct(out))
-            }
-        }
-    }
-
     fn intern_fn(&mut self, id: Id) -> Result<FnId, BuildError> {
         if let Some(&fid) = self.fn_intern.get(&id) {
             return Ok(fid);
@@ -568,10 +480,9 @@ impl<'a> Builder<'a> {
         };
         match &item.inner {
             ItemEnum::Struct(_) => Ok(Type::Struct(self.intern_struct(path.id)?)),
-            ItemEnum::Enum(_) => Ok(Type::Enum(self.intern_enum(path.id)?)),
             _ => Err(BuildError::UnsupportedType {
                 id: path.id,
-                reason: "resolved path is not a struct or enum".into(),
+                reason: "resolved path is not a struct".into(),
             }),
         }
     }

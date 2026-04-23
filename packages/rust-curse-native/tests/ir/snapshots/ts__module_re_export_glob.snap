@@ -1,6 +1,6 @@
 ---
 source: tests/ir/ts.rs
-description: "pub mod inner {\n    pub struct S {\n        pub x: i32,\n    }\n    pub enum E {\n        A,\n        B,\n    }\n    pub fn f() -> i32 {\n        0\n    }\n}\npub use inner::*;\n"
+description: "pub mod inner {\n    pub struct S {\n        pub x: i32,\n    }\n    pub fn f() -> i32 {\n        0\n    }\n}\npub use inner::*;\n"
 expression: ir.print_ts()
 ---
 declare module "$rust-curse" {
@@ -15,8 +15,6 @@ declare module "$rust-curse" {
 declare module "$rust/rustdoc_test_crate" {
     export { S } from "$rust/rustdoc_test_crate/inner";
 
-    export { E } from "$rust/rustdoc_test_crate/inner";
-
     export { f } from "$rust/rustdoc_test_crate/inner";
 }
 
@@ -28,8 +26,6 @@ declare module "$rust/rustdoc_test_crate/inner" {
 
         constructor(x: number);
     }
-
-    export type E = 'A' | 'B';
 
     export function f(): number;
 }

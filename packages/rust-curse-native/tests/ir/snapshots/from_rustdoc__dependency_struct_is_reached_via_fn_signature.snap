@@ -41,7 +41,6 @@ IR {
             docs: None,
         },
     ],
-    enums: [],
     fns: [
         FnDef {
             path: ItemPath {

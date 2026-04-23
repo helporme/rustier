@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use super::{
-    Ctor, EnumId, ExportKind, FnId, FnParam, ItemPath, ModId, NumberType, ParamMode,
-    StructBoundary, StructId, StructShape, Type, TypeId, IR,
+    Ctor, ExportKind, FnId, FnParam, ItemPath, ModId, NumberType, ParamMode, StructBoundary,
+    StructId, StructShape, Type, TypeId, IR,
 };
 
 const PREAMBLE: &str = r#"declare module "$rust-curse" {
@@ -23,7 +23,6 @@ impl IR {
 struct Printer<'a> {
     ir: &'a IR,
     local_structs: HashSet<StructId>,
-    local_enums: HashSet<EnumId>,
     imports: BTreeMap<String, BTreeSet<String>>,
     needs_copy: bool,
 }
@@ -33,7 +32,6 @@ impl<'a> Printer<'a> {
         Self {
             ir,
             local_structs: HashSet::new(),
-            local_enums: HashSet::new(),
             imports: BTreeMap::new(),
             needs_copy: false,
         }
@@ -58,7 +56,6 @@ impl<'a> Printer<'a> {
         self.needs_copy = false;
 
         self.local_structs.clear();
-        self.local_enums.clear();
         let mod_segments = self.ir.mod_(mid).path.segments.clone();
         let exports = self.ir.mod_(mid).exports.clone();
         for export in &exports {
@@ -66,11 +63,6 @@ impl<'a> Printer<'a> {
                 ExportKind::Struct(sid) => {
                     if is_canonical_origin(&self.ir.struct_(*sid).path, &mod_segments) {
                         self.local_structs.insert(*sid);
-                    }
-                }
-                ExportKind::Enum(eid) => {
-                    if is_canonical_origin(&self.ir.enum_(*eid).path, &mod_segments) {
-                        self.local_enums.insert(*eid);
                     }
                 }
                 _ => {}
@@ -116,14 +108,6 @@ impl<'a> Printer<'a> {
                     let canonical = self.ir.struct_(*sid).path.clone();
                     if is_canonical_origin(&canonical, &mod_segments) {
                         parts.push(self.print_struct(*sid));
-                    } else {
-                        parts.push(print_reexport(&canonical, &export.name));
-                    }
-                }
-                ExportKind::Enum(eid) => {
-                    let canonical = self.ir.enum_(*eid).path.clone();
-                    if is_canonical_origin(&canonical, &mod_segments) {
-                        parts.push(self.print_enum(*eid));
                     } else {
                         parts.push(print_reexport(&canonical, &export.name));
                     }
@@ -183,23 +167,12 @@ impl<'a> Printer<'a> {
                 }
                 name
             }
-            Type::Enum(eid) => {
-                let path = self.ir.enum_(eid).path.clone();
-                let name = path.name().unwrap_or("unknown").to_string();
-                if !self.local_enums.contains(&eid) {
-                    self.record_import(&path);
-                }
-                name
-            }
         }
     }
 
     fn param_to_ts(&mut self, param: &FnParam) -> String {
         let base = self.type_to_ts(param.type_id);
-        let is_nominal = matches!(
-            self.ir.type_(param.type_id),
-            Type::Struct(_) | Type::Enum(_)
-        );
+        let is_nominal = matches!(self.ir.type_(param.type_id), Type::Struct(_));
         if param.mode == ParamMode::ByValue && is_nominal {
             self.needs_copy = true;
             format!("Copy<{base}>")
@@ -291,95 +264,6 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn print_enum(&mut self, eid: EnumId) -> String {
-        let def = self.ir.enum_(eid).clone();
-        let name = def.path.name().unwrap_or("unknown").to_string();
-        let mut out = String::new();
-
-        if let Some(docs) = &def.docs {
-            out.push_str(&doc_comment(docs, "    "));
-        }
-
-        let all_unit = def
-            .variants
-            .iter()
-            .all(|v| matches!(v.shape, StructShape::Unit));
-        let any_variant_docs = def.variants.iter().any(|v| v.docs.is_some());
-
-        if all_unit && !any_variant_docs {
-            let rhs = if def.variants.is_empty() {
-                "never".to_string()
-            } else {
-                def.variants
-                    .iter()
-                    .map(|v| format!("'{}'", v.name))
-                    .collect::<Vec<_>>()
-                    .join(" | ")
-            };
-            out.push_str(&format!("    export type {name} = {rhs};"));
-        } else if all_unit {
-            // JSDoc doesn't support per-literal documentation, so use // comments.
-            let mut lines: Vec<String> = Vec::new();
-            for v in &def.variants {
-                let mut line = String::new();
-                if let Some(docs) = &v.docs {
-                    line.push_str(&line_comment(docs, "        "));
-                }
-                line.push_str(&format!("        | '{}'", v.name));
-                lines.push(line);
-            }
-            out.push_str(&format!("    export type {name} =\n"));
-            out.push_str(&lines.join("\n"));
-            out.push(';');
-        } else {
-            let has_type_field = def.variants.iter().any(|v| {
-                if let StructShape::Struct(fields) = &v.shape {
-                    fields.iter().any(|f| f.name == "type")
-                } else {
-                    false
-                }
-            });
-            let disc = if has_type_field { "$type" } else { "type" };
-
-            let mut variant_lines: Vec<String> = Vec::new();
-            for v in &def.variants {
-                let mut field_lines: Vec<String> = Vec::new();
-
-                // Discriminant field with optional doc comment above it.
-                if let Some(docs) = &v.docs {
-                    field_lines.push(format!("            /** {} */", docs.trim()));
-                }
-                field_lines.push(format!("            {disc}: '{}';", v.name));
-
-                match &v.shape {
-                    StructShape::Unit => {}
-                    StructShape::Tuple(types) => {
-                        for (i, &type_id) in types.iter().enumerate() {
-                            let ty = self.type_to_ts(type_id);
-                            field_lines.push(format!("            {i}: {ty};"));
-                        }
-                    }
-                    StructShape::Struct(fields) => {
-                        for field in fields {
-                            let ty = self.type_to_ts(field.type_id);
-                            field_lines.push(format!("            {}: {ty};", field.name));
-                        }
-                    }
-                }
-
-                variant_lines.push(format!(
-                    "        | {{\n{}\n        }}",
-                    field_lines.join("\n")
-                ));
-            }
-            out.push_str(&format!("    export type {name} =\n"));
-            out.push_str(&variant_lines.join("\n"));
-            out.push(';');
-        }
-
-        out
-    }
-
     fn print_fn(&mut self, fid: FnId) -> String {
         let def = self.ir.fn_(fid).clone();
         let name = def.path.name().unwrap_or("unknown").to_string();
@@ -448,13 +332,6 @@ fn print_reexport(canonical: &ItemPath, local_name: &str) -> String {
     } else {
         format!("    export {{ {canonical_name} as {local_name} }} from \"{source}\";")
     }
-}
-
-fn line_comment(docs: &str, indent: &str) -> String {
-    docs.trim()
-        .lines()
-        .map(|l| format!("{indent}// {}\n", l.trim()))
-        .collect()
 }
 
 fn doc_comment(docs: &str, indent: &str) -> String {

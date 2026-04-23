@@ -43,7 +43,6 @@ IR {
         Unit,
     ],
     structs: [],
-    enums: [],
     fns: [
         FnDef {
             path: ItemPath {

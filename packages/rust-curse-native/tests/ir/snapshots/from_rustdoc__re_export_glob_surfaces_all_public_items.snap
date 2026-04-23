@@ -1,6 +1,6 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub mod inner {\n    pub struct S {\n        pub x: i32,\n    }\n    pub enum E {\n        A,\n        B,\n    }\n    pub fn f() -> i32 {\n        0\n    }\n}\npub use inner::*;\n"
+description: "pub mod inner {\n    pub struct S {\n        pub x: i32,\n    }\n    pub fn f() -> i32 {\n        0\n    }\n}\npub use inner::*;\n"
 expression: ir
 ---
 IR {
@@ -33,30 +33,6 @@ IR {
                     },
                 ],
             ),
-            docs: None,
-        },
-    ],
-    enums: [
-        EnumDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "inner",
-                    "E",
-                ],
-            },
-            variants: [
-                EnumVariant {
-                    name: "A",
-                    shape: Unit,
-                    docs: None,
-                },
-                EnumVariant {
-                    name: "B",
-                    shape: Unit,
-                    docs: None,
-                },
-            ],
             docs: None,
         },
     ],
@@ -101,14 +77,6 @@ IR {
                     ),
                 },
                 Export {
-                    name: "E",
-                    kind: Enum(
-                        EnumId(
-                            0,
-                        ),
-                    ),
-                },
-                Export {
                     name: "f",
                     kind: Fn(
                         FnId(
@@ -130,14 +98,6 @@ IR {
                     name: "S",
                     kind: Struct(
                         StructId(
-                            0,
-                        ),
-                    ),
-                },
-                Export {
-                    name: "E",
-                    kind: Enum(
-                        EnumId(
                             0,
                         ),
                     ),

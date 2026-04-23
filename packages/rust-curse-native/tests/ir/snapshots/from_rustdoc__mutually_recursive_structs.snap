@@ -40,7 +40,6 @@ IR {
             docs: None,
         },
     ],
-    enums: [],
     fns: [],
     mods: [
         ModDef {

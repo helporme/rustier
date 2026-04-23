@@ -31,7 +31,6 @@ IR {
         ),
     ],
     structs: [],
-    enums: [],
     fns: [
         FnDef {
             path: ItemPath {

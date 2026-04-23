@@ -171,6 +171,7 @@ fn tuple_struct() {
 }
 
 #[test]
+#[ignore = "enum support dropped for now"]
 fn unit_enum() {
     assert_ir_snap!(["Direction"] => {
         pub enum Direction {
@@ -183,6 +184,7 @@ fn unit_enum() {
 }
 
 #[test]
+#[ignore = "enum support dropped for now"]
 fn enum_variants_shapes() {
     assert_ir_snap!(["E"] => {
         pub enum E {
@@ -547,7 +549,6 @@ fn re_export_glob_surfaces_all_public_items() {
     assert_ir_snap_all!({
         pub mod inner {
             pub struct S { pub x: i32 }
-            pub enum E { A, B }
             pub fn f() -> i32 { 0 }
         }
         pub use inner::*;
@@ -610,6 +611,7 @@ fn duplicate_struct_names_in_different_modules() {
 }
 
 #[test]
+#[ignore = "enum support dropped for now"]
 fn empty_enum() {
     assert_ir_snap!(["Void"] => {
         pub enum Void {}
@@ -617,6 +619,7 @@ fn empty_enum() {
 }
 
 #[test]
+#[ignore = "enum support dropped for now"]
 fn enum_nominal_payload() {
     assert_ir_snap!(["Msg"] => {
         pub struct Point {
@@ -631,6 +634,7 @@ fn enum_nominal_payload() {
 }
 
 #[test]
+#[ignore = "enum support dropped for now"]
 fn recursive_enum_via_box() {
     assert_ir_snap!(["Tree"] => {
         pub enum Tree {
