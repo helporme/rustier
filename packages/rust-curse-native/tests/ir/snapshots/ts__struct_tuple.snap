@@ -15,7 +15,7 @@ declare module "$rust-curse" {
 declare module "$rust/rustdoc_test_crate" {
     /** A pair of values stored as a tuple struct. */
     export class Pair {
-        private [" "]!: 'Pair';
+        private [" "]!: 'rustdoc_test_crate::Pair';
 
         0: number;
 

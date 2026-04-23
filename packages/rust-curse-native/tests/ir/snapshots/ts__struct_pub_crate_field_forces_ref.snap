@@ -1,0 +1,24 @@
+---
+source: tests/ir/ts.rs
+description: "/// A `pub(crate)` field downgrades the boundary to ref (opaque class).\npub struct Gated {\n    pub x: i32,\n    pub(crate) y: i32,\n}\n"
+expression: ir.print_ts()
+---
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+declare module "$rust/rustdoc_test_crate" {
+    /** A `pub(crate)` field downgrades the boundary to ref (opaque class). */
+    export class Gated {
+        private [" "]!: 'rustdoc_test_crate::Gated';
+
+        x: number;
+
+        constructor(x: number);
+    }
+}

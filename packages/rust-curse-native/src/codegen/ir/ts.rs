@@ -131,16 +131,13 @@ impl<'a> Printer<'a> {
                 format!("{inner_ts} | undefined")
             }
             Type::Result(ok, _) => self.type_to_ts(ok),
-            Type::Vec(inner)
-            | Type::Slice(inner)
-            | Type::HashSet(inner)
-            | Type::BTreeSet(inner) => {
+            Type::Vec(inner) | Type::Slice(inner) | Type::Array(inner, _) => {
                 let inner_ts = self.type_to_ts(inner);
                 format!("{}[]", parens_if_union(inner_ts))
             }
-            Type::Array(inner, _) => {
+            Type::HashSet(inner) | Type::BTreeSet(inner) => {
                 let inner_ts = self.type_to_ts(inner);
-                format!("{}[]", parens_if_union(inner_ts))
+                format!("Set<{inner_ts}>")
             }
             Type::Tuple(items) => {
                 let parts: Vec<String> = items.iter().map(|&id| self.type_to_ts(id)).collect();
@@ -187,10 +184,11 @@ impl<'a> Printer<'a> {
     fn print_struct(&mut self, sid: StructId) -> String {
         let def = self.ir.struct_(sid).clone();
         let name = def.path.name().unwrap_or("unknown").to_string();
+        let brand = def.path.segments.join("::");
 
         let mut members: Vec<String> = Vec::new();
 
-        members.push(format!("        private [\" \"]!: '{name}';"));
+        members.push(format!("        private [\" \"]!: '{brand}';"));
 
         if let StructShape::Struct(fields) = &def.shape {
             for field in fields {
@@ -282,15 +280,16 @@ impl<'a> Printer<'a> {
         let any_variant_docs = def.variants.iter().any(|v| v.docs.is_some());
 
         if all_unit && !any_variant_docs {
-            let variants: Vec<String> = def
-                .variants
-                .iter()
-                .map(|v| format!("'{}'", v.name))
-                .collect();
-            out.push_str(&format!(
-                "    export type {name} = {};",
-                variants.join(" | ")
-            ));
+            let rhs = if def.variants.is_empty() {
+                "never".to_string()
+            } else {
+                def.variants
+                    .iter()
+                    .map(|v| format!("'{}'", v.name))
+                    .collect::<Vec<_>>()
+                    .join(" | ")
+            };
+            out.push_str(&format!("    export type {name} = {rhs};"));
         } else if all_unit {
             // JSDoc doesn't support per-literal documentation, so use // comments.
             let mut lines: Vec<String> = Vec::new();
@@ -330,7 +329,7 @@ impl<'a> Printer<'a> {
                     StructShape::Tuple(types) => {
                         for (i, &type_id) in types.iter().enumerate() {
                             let ty = self.type_to_ts(type_id);
-                            field_lines.push(format!("            _{i}: {ty};"));
+                            field_lines.push(format!("            {i}: {ty};"));
                         }
                     }
                     StructShape::Struct(fields) => {

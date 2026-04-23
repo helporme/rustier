@@ -291,7 +291,7 @@ fn fn_smart_pointer_nested() {
 #[test]
 fn fn_hash_set_and_btree_set() {
     assert_ts_snap! {
-        /// Both set flavours map to `T[]`.
+        /// Both set flavours map to `Set<T>`.
         pub fn f(
             a: std::collections::HashSet<i32>,
             b: std::collections::BTreeSet<String>,
@@ -385,7 +385,7 @@ fn struct_recursive_via_box() {
     assert_ts_snap! {
         /// Self-referencing class must not emit a self-import.
         pub struct Node {
-            next: Option<Box<Node>>,
+            pub next: Option<Box<Node>>,
         }
     };
 }
@@ -468,25 +468,46 @@ fn module_re_export_is_dropped() {
 #[test]
 fn ctor_new_returning_struct_name() {
     assert_ts_snap! {
-        /// `new() -> Token` is recognised as an explicit constructor.
+        /// `new() -> Token` is recognised as an explicit constructor. The `raw` param name
+        /// differs from the field name `value` so the snapshot proves the ctor is picked
+        /// up rather than synthesised from the struct's fields.
         pub struct Token {
             value: String,
         }
         impl Token {
-            pub fn new(value: String) -> Token { Token { value } }
+            pub fn new(raw: String) -> Token { Token { value: raw } }
         }
     };
 }
 
 #[test]
-fn ctor_new_returning_result_is_implicit() {
+fn ctor_new_returning_result_is_explicit() {
     assert_ts_snap! {
-        /// `new() -> Result<Self, _>` is not treated as an explicit ctor.
+        /// `new() -> Result<Self, _>` is recognised as an explicit constructor. The
+        /// `capacity` param name differs from the field `data`, so the snapshot proves
+        /// the ctor is picked up rather than synthesised from the struct's fields.
         pub struct Loader {
             data: Vec<u8>,
         }
         impl Loader {
-            pub fn new() -> Result<Self, String> { Ok(Self { data: Vec::new() }) }
+            pub fn new(capacity: usize) -> Result<Self, String> {
+                Ok(Self { data: Vec::with_capacity(capacity) })
+            }
+        }
+    };
+}
+
+#[test]
+fn ctor_new_returning_result_struct_name_is_explicit() {
+    assert_ts_snap! {
+        /// `new() -> Result<Token, _>` with a named struct in `Ok` is recognised as an
+        /// explicit constructor. The `raw` param name differs from the field `value` so
+        /// the snapshot proves the ctor is picked up rather than synthesised.
+        pub struct Token {
+            value: String,
+        }
+        impl Token {
+            pub fn new(raw: String) -> Result<Token, String> { Ok(Token { value: raw }) }
         }
     };
 }
@@ -507,6 +528,8 @@ fn ctor_new_with_self_arg_is_implicit() {
 #[test]
 fn ctor_multiple_impls_finds_new() {
     assert_ts_snap! {
+        /// The `seed` param name differs from the field `count` so the snapshot proves
+        /// the ctor from the second impl block is picked up.
         pub struct Counter {
             count: u32,
         }
@@ -514,22 +537,43 @@ fn ctor_multiple_impls_finds_new() {
             pub fn increment(&mut self) { self.count += 1; }
         }
         impl Counter {
-            pub fn new() -> Self { Counter { count: 0 } }
+            pub fn new(seed: u32) -> Self { Counter { count: seed } }
         }
     };
 }
 
 #[test]
-fn ctor_new_in_trait_impl_is_ignored() {
+fn ctor_new_in_trait_impl_is_explicit() {
     assert_ts_snap! {
+        /// `new()` in a trait impl is recognised as an explicit constructor. The `seed`
+        /// param name differs from the field `x` so the snapshot proves the trait-impl
+        /// ctor is picked up rather than synthesised from the struct's fields.
         pub trait Factory {
-            fn new() -> Self;
+            fn new(seed: u32) -> Self;
         }
         pub struct Foo {
             x: i32,
         }
         impl Factory for Foo {
-            fn new() -> Self { Foo { x: 0 } }
+            fn new(seed: u32) -> Self { Foo { x: seed as i32 } }
+        }
+    };
+}
+
+#[test]
+fn ctor_new_in_trait_impl_returning_result_is_explicit() {
+    assert_ts_snap! {
+        /// `new() -> Result<Self, _>` in a trait impl is recognised as an explicit
+        /// constructor. The `seed` param name differs from the field `x` so the snapshot
+        /// proves the trait-impl ctor is picked up rather than synthesised.
+        pub trait TryFactory {
+            fn new(seed: u32) -> Result<Self, String> where Self: Sized;
+        }
+        pub struct Foo {
+            x: i32,
+        }
+        impl TryFactory for Foo {
+            fn new(seed: u32) -> Result<Self, String> { Ok(Foo { x: seed as i32 }) }
         }
     };
 }

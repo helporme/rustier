@@ -1,0 +1,18 @@
+---
+source: tests/ir/ts.rs
+description: "/// Smart pointers are erased, so every parameter maps to `number`.\npub fn f(\n    a: Box<i32>,\n    b: std::sync::Arc<i32>,\n    c: std::rc::Rc<i32>,\n    d: std::cell::Cell<i32>,\n    e: std::cell::RefCell<i32>,\n) {}\n"
+expression: ir.print_ts()
+---
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+declare module "$rust/rustdoc_test_crate" {
+    /** Smart pointers are erased, so every parameter maps to `number`. */
+    export function f(a: number, b: number, c: number, d: number, e: number): void;
+}
