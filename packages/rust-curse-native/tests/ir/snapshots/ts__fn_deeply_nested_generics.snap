@@ -1,6 +1,6 @@
 ---
 source: tests/ir/ts.rs
-description: "pub fn f(x: Vec<std::collections::HashMap<String, Vec<i32>>>) {}\n"
+description: "pub fn f(x: Vec<Option<Vec<Option<i32>>>>) {}\n"
 expression: ir.print_ts()
 ---
 declare module "$rust-curse" {
@@ -13,5 +13,5 @@ declare module "$rust-curse" {
 }
 
 declare module "$rust/rustdoc_test_crate" {
-    export function f(x: Map<string, number[]>[]): void;
+    export function f(x: ((number | undefined)[] | undefined)[]): void;
 }

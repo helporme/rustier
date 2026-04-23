@@ -439,13 +439,10 @@ impl<'a> Builder<'a> {
                 })
             }
             RType::Tuple(ts) if ts.is_empty() => Ok(Type::Unit),
-            RType::Tuple(ts) => {
-                let mut out = Vec::with_capacity(ts.len());
-                for t in ts {
-                    out.push(self.intern_type(t)?);
-                }
-                Ok(Type::Tuple(out))
-            }
+            RType::Tuple(_) => Err(BuildError::UnsupportedType {
+                id: Id(0),
+                reason: "tuples are not supported".into(),
+            }),
             RType::Slice(inner) => Ok(Type::Slice(self.intern_type(inner)?)),
             RType::Array { type_, len } => {
                 let n = len
@@ -504,14 +501,6 @@ impl<'a> Builder<'a> {
             Some("String") => Type::String,
             Some("Vec") | Some("VecDeque") | Some("LinkedList") => {
                 Type::Vec(self.type_arg(&path.args, 0)?)
-            }
-            Some("HashSet") => Type::HashSet(self.type_arg(&path.args, 0)?),
-            Some("BTreeSet") => Type::BTreeSet(self.type_arg(&path.args, 0)?),
-            Some("HashMap") => {
-                Type::HashMap(self.type_arg(&path.args, 0)?, self.type_arg(&path.args, 1)?)
-            }
-            Some("BTreeMap") => {
-                Type::BTreeMap(self.type_arg(&path.args, 0)?, self.type_arg(&path.args, 1)?)
             }
             Some("Option") => Type::Option(self.type_arg(&path.args, 0)?),
             Some("Result") => {

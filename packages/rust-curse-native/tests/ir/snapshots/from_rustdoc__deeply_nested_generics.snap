@@ -1,6 +1,6 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub fn f(x: Vec<std::collections::HashMap<String, Vec<i32>>>) {}\n"
+description: "pub fn f(x: Vec<Option<Vec<Option<i32>>>>) {}\n"
 expression: ir
 ---
 IR {
@@ -8,19 +8,20 @@ IR {
         0,
     ),
     types: [
-        String,
         Number(
             i32,
+        ),
+        Option(
+            TypeId(
+                0,
+            ),
         ),
         Vec(
             TypeId(
                 1,
             ),
         ),
-        HashMap(
-            TypeId(
-                0,
-            ),
+        Option(
             TypeId(
                 2,
             ),

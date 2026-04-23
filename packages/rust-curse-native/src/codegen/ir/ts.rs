@@ -146,19 +146,6 @@ impl<'a> Printer<'a> {
                 let inner_ts = self.type_to_ts(inner);
                 format!("{}[]", parens_if_union(inner_ts))
             }
-            Type::HashSet(inner) | Type::BTreeSet(inner) => {
-                let inner_ts = self.type_to_ts(inner);
-                format!("Set<{inner_ts}>")
-            }
-            Type::Tuple(items) => {
-                let parts: Vec<String> = items.iter().map(|&id| self.type_to_ts(id)).collect();
-                format!("[{}]", parts.join(", "))
-            }
-            Type::HashMap(k, v) | Type::BTreeMap(k, v) => {
-                let k_ts = self.type_to_ts(k);
-                let v_ts = self.type_to_ts(v);
-                format!("Map<{k_ts}, {v_ts}>")
-            }
             Type::Struct(sid) => {
                 let path = self.ir.struct_(sid).path.clone();
                 let name = path.name().unwrap_or("unknown").to_string();

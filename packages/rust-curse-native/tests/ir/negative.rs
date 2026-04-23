@@ -156,3 +156,63 @@ fn enum_in_fn_signature_unsupported() {
         BuildError::UnsupportedType { .. }
     );
 }
+
+#[test]
+fn tuple_type_unsupported() {
+    assert_ir_err!(
+        ["f"] => {
+            pub fn f(t: (i32, String)) {}
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn nested_tuple_unsupported() {
+    assert_ir_err!(
+        ["f"] => {
+            pub fn f(t: ((i32, i32), String)) {}
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn hash_map_unsupported() {
+    assert_ir_err!(
+        ["f"] => {
+            pub fn f(m: std::collections::HashMap<String, i32>) {}
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn btree_map_unsupported() {
+    assert_ir_err!(
+        ["f"] => {
+            pub fn f(m: std::collections::BTreeMap<String, i32>) {}
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn hash_set_unsupported() {
+    assert_ir_err!(
+        ["f"] => {
+            pub fn f(s: std::collections::HashSet<i32>) {}
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn btree_set_unsupported() {
+    assert_ir_err!(
+        ["f"] => {
+            pub fn f(s: std::collections::BTreeSet<i32>) {}
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}

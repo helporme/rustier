@@ -102,6 +102,7 @@ fn result_type() {
 }
 
 #[test]
+#[ignore = "map support dropped for now"]
 fn map_types() {
     assert_ir_snap!(["f"] => {
         pub fn f(
@@ -120,6 +121,7 @@ fn array_and_slice() {
 }
 
 #[test]
+#[ignore = "tuple support dropped for now"]
 fn tuple_types() {
     assert_ir_snap!(["f"] => {
         pub fn f(pair: (i32, String)) -> (bool, f64, String) { todo!() }
@@ -244,6 +246,7 @@ fn vec_deque_and_linked_list() {
 }
 
 #[test]
+#[ignore = "set support dropped for now"]
 fn hash_set_and_btree_set() {
     assert_ir_snap!(["f"] => {
         pub fn f(
@@ -327,7 +330,7 @@ fn mutually_recursive_structs() {
 #[test]
 fn deeply_nested_generics() {
     assert_ir_snap!(["f"] => {
-        pub fn f(x: Vec<std::collections::HashMap<String, Vec<i32>>>) {}
+        pub fn f(x: Vec<Option<Vec<Option<i32>>>>) {}
     });
 }
 
@@ -340,6 +343,7 @@ fn result_with_unit() {
 }
 
 #[test]
+#[ignore = "tuple support dropped for now"]
 fn tuple_with_unit_element() {
     assert_ir_snap!(["f"] => {
         pub fn f(t: (i32, (), String)) {}
@@ -347,6 +351,7 @@ fn tuple_with_unit_element() {
 }
 
 #[test]
+#[ignore = "tuple support dropped for now"]
 fn large_tuple() {
     assert_ir_snap!(["f"] => {
         pub fn f(t: (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32)) {}
@@ -371,6 +376,7 @@ fn array_of_nominal() {
 }
 
 #[test]
+#[ignore = "tuple support dropped for now"]
 fn nested_tuple() {
     assert_ir_snap!(["f"] => {
         pub fn f(t: ((i32, i32), String)) {}

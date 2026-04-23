@@ -51,12 +51,7 @@ pub enum Type {
     Result(TypeId, TypeId),
     Array(TypeId, usize),
     Slice(TypeId),
-    Tuple(Vec<TypeId>),
     Vec(TypeId),
-    HashSet(TypeId),
-    BTreeSet(TypeId),
-    HashMap(TypeId, TypeId),
-    BTreeMap(TypeId, TypeId),
     Struct(StructId),
 }
 
