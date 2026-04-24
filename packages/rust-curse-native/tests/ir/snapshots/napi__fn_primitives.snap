@@ -1,0 +1,25 @@
+---
+source: tests/ir/napi.rs
+description: "/// Every primitive type passes straight through to a napi-native type.\npub fn f(\n    a: i8,\n    b: i16,\n    c: i32,\n    d: u8,\n    e: u16,\n    f: u32,\n    g: f32,\n    h: f64,\n    i: bool,\n    j: char,\n    k: String,\n    l: &str,\n) {}\n"
+expression: formatted
+---
+#![allow(non_camel_case_types, non_snake_case)]
+use napi_derive::napi;
+/// Every primitive type passes straight through to a napi-native type.
+#[napi(js_name = "f")]
+pub fn __cursed_rustdoc_test_crate__f(
+    a: i8,
+    b: i16,
+    c: i32,
+    d: u8,
+    e: u16,
+    f: u32,
+    g: f32,
+    h: f64,
+    i: bool,
+    j: char,
+    k: String,
+    l: String,
+) {
+    crate::f(a, b, c, d, e, f, g, h, i, j, k, &l);
+}

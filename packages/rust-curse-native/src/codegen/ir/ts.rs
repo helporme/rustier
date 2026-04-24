@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use super::{
-    Ctor, ExportKind, FnId, FnParam, ItemPath, ModId, NumberType, ParamMode, StructBoundary,
-    StructId, StructShape, Type, TypeId, IR,
+    Ctor, ExportKind, FnId, FnParam, ItemPath, ModId, NumberType, ParamMode, StructId, StructShape,
+    Type, TypeId, IR,
 };
 
 const PREAMBLE: &str = r#"declare module "$rust-curse" {
@@ -194,10 +194,8 @@ impl<'a> Printer<'a> {
             }
         }
 
-        let ctor = match &def.boundary {
-            StructBoundary::Ref {
-                ctor: Ctor::Explicit(fid),
-            } => {
+        let ctor = match &def.ctor {
+            Ctor::Explicit(fid) => {
                 let fid = *fid;
                 let params: Vec<String> = self
                     .ir
@@ -212,7 +210,7 @@ impl<'a> Printer<'a> {
                     .collect();
                 format!("        constructor({});", params.join(", "))
             }
-            _ => {
+            Ctor::Implicit => {
                 let params = self.shape_ctor_params(&def.shape);
                 format!("        constructor({});", params.join(", "))
             }

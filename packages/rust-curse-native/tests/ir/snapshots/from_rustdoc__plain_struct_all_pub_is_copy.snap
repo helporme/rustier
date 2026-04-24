@@ -20,7 +20,8 @@ IR {
                     "Point",
                 ],
             },
-            boundary: Copy,
+            ctor: Implicit,
+            has_copy_variant: false,
             shape: Struct(
                 [
                     StructField {

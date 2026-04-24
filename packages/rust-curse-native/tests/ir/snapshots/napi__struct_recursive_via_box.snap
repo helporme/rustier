@@ -1,0 +1,48 @@
+---
+source: tests/ir/napi.rs
+description: "/// Self-referencing struct must not self-import.\npub struct Node {\n    pub next: Option<Box<Node>>,\n}\n"
+expression: formatted
+---
+#![allow(non_camel_case_types, non_snake_case)]
+use napi_derive::napi;
+use crate::Node;
+/// Self-referencing struct must not self-import.
+#[napi(js_name = "__cursed_rustdoc_test_crate__Node__Ref")]
+pub struct __cursed_rustdoc_test_crate__Node__Ref {
+    inner: Node,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Node__Ref {
+    #[napi(constructor)]
+    pub fn new(next: Option<__cursed_rustdoc_test_crate__Node__Ref>) -> Self {
+        Self { inner: Node { next } }
+    }
+    #[napi(getter, js_name = "next")]
+    pub fn next(&self) -> Option<__cursed_rustdoc_test_crate__Node__Ref> {
+        self.inner.next.clone()
+    }
+    #[napi(setter, js_name = "next")]
+    pub fn set_next(&mut self, v: Option<__cursed_rustdoc_test_crate__Node__Ref>) {
+        self.inner.next = v;
+    }
+}
+impl From<Node> for __cursed_rustdoc_test_crate__Node__Ref {
+    fn from(v: Node) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Node__Ref> for Node {
+    fn from(v: __cursed_rustdoc_test_crate__Node__Ref) -> Self {
+        v.inner
+    }
+}
+#[napi(object, js_name = "__cursed_rustdoc_test_crate__Node__Copy")]
+pub struct __cursed_rustdoc_test_crate__Node__Copy {
+    #[napi(js_name = "next")]
+    pub next: Option<__cursed_rustdoc_test_crate__Node__Ref>,
+}
+impl From<__cursed_rustdoc_test_crate__Node__Copy> for Node {
+    fn from(v: __cursed_rustdoc_test_crate__Node__Copy) -> Self {
+        Node { next: v.next }
+    }
+}

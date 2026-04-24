@@ -21,7 +21,8 @@ IR {
                     "Thing",
                 ],
             },
-            boundary: Copy,
+            ctor: Implicit,
+            has_copy_variant: false,
             shape: Struct(
                 [
                     StructField {
@@ -43,7 +44,8 @@ IR {
                     "Thing",
                 ],
             },
-            boundary: Copy,
+            ctor: Implicit,
+            has_copy_variant: false,
             shape: Struct(
                 [
                     StructField {

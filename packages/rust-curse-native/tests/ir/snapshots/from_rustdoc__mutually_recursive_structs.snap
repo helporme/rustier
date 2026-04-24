@@ -16,9 +16,8 @@ IR {
                     "A",
                 ],
             },
-            boundary: Ref {
-                ctor: Implicit,
-            },
+            ctor: Implicit,
+            has_copy_variant: false,
             shape: Struct(
                 [],
             ),
@@ -31,9 +30,8 @@ IR {
                     "B",
                 ],
             },
-            boundary: Ref {
-                ctor: Implicit,
-            },
+            ctor: Implicit,
+            has_copy_variant: false,
             shape: Struct(
                 [],
             ),

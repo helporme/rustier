@@ -20,6 +20,10 @@ path = "tests/ir/negative.rs"
 name = "ts"
 path = "tests/ir/ts.rs"
 
+[[test]]
+name = "napi"
+path = "tests/ir/napi.rs"
+
 [features]
 default = ["napi-binding"]
 napi-binding = ["dep:napi", "dep:napi-derive", "dep:napi-build"]

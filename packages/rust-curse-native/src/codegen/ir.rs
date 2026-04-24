@@ -49,7 +49,6 @@ pub enum Type {
     Str,
     Option(TypeId),
     Result(TypeId, TypeId),
-    Array(TypeId, usize),
     Slice(TypeId),
     Vec(TypeId),
     Struct(StructId),
@@ -96,17 +95,13 @@ pub enum ParamMode {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StructDef {
     pub path: ItemPath,
-    pub boundary: StructBoundary,
+    pub ctor: Ctor,
+    /// Additional plain-object wrapper emitted when the struct is moved
+    /// into a fn by value somewhere in the crate and its shape allows
+    /// full serialization (all fields public, no stripped fields).
+    pub has_copy_variant: bool,
     pub shape: StructShape,
     pub docs: Option<String>,
-}
-
-/// How the struct crosses the js/rust boundary: as an opaque handle
-/// (Ref) or by full serialization (Copy).
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum StructBoundary {
-    Ref { ctor: Ctor },
-    Copy,
 }
 
 /// Shape of a struct or enum variant payload.
@@ -178,4 +173,5 @@ impl IR {
 }
 
 pub mod from_rustdoc;
+pub mod napi;
 pub mod ts;

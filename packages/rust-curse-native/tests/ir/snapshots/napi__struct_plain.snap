@@ -1,0 +1,46 @@
+---
+source: tests/ir/napi.rs
+description: "/// All-public-field struct with no by-value use gets only the `__Ref` wrapper.\npub struct Point {\n    /// Horizontal position.\n    pub x: f64,\n    /// Vertical position.\n    pub y: f64,\n}\n"
+expression: formatted
+---
+#![allow(non_camel_case_types, non_snake_case)]
+use napi_derive::napi;
+use crate::Point;
+/// All-public-field struct with no by-value use gets only the `__Ref` wrapper.
+#[napi(js_name = "__cursed_rustdoc_test_crate__Point__Ref")]
+pub struct __cursed_rustdoc_test_crate__Point__Ref {
+    inner: Point,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Point__Ref {
+    #[napi(constructor)]
+    pub fn new(x: f64, y: f64) -> Self {
+        Self { inner: Point { x, y } }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> f64 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: f64) {
+        self.inner.x = v;
+    }
+    #[napi(getter, js_name = "y")]
+    pub fn y(&self) -> f64 {
+        self.inner.y
+    }
+    #[napi(setter, js_name = "y")]
+    pub fn set_y(&mut self, v: f64) {
+        self.inner.y = v;
+    }
+}
+impl From<Point> for __cursed_rustdoc_test_crate__Point__Ref {
+    fn from(v: Point) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Point__Ref> for Point {
+    fn from(v: __cursed_rustdoc_test_crate__Point__Ref) -> Self {
+        v.inner
+    }
+}

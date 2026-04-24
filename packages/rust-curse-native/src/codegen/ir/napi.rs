@@ -1,0 +1,438 @@
+//! IR -> Rust napi glue printer.
+//!
+//! Emits a single `.rs` source string containing (in order):
+//! 1. A preamble of `use` statements for `napi_derive::napi` and every
+//!    user struct referenced in the IR.
+//! 2. `__Ref` opaque handle wrappers and optional `__Copy` plain-object
+//!    wrappers for every struct (plus `From` impls both ways).
+//! 3. `#[napi]` glue functions for every canonical-origin fn export in
+//!    every module, delegating to the user's original fn.
+//!
+//! The emitted Rust is designed so that when `napi-rs` macro-expands
+//! this file, its generated `index.d.ts` matches the shape produced by
+//! the sibling `print_ts` printer.
+
+use std::collections::BTreeSet;
+
+use super::{
+    Ctor, ExportKind, FnId, FnParam, ItemPath, ModId, NumberType, ParamMode, StructDef,
+    StructField, StructId, StructShape, Type, TypeId, IR,
+};
+
+impl IR {
+    pub fn print_napi(&self) -> String {
+        Printer::new(self).run()
+    }
+}
+
+struct Printer<'a> {
+    ir: &'a IR,
+    uses: BTreeSet<Vec<String>>,
+}
+
+impl<'a> Printer<'a> {
+    fn new(ir: &'a IR) -> Self {
+        Self {
+            ir,
+            uses: BTreeSet::new(),
+        }
+    }
+
+    fn run(&mut self) -> String {
+        for def in &self.ir.structs {
+            if def.path.segments.len() > 1 {
+                self.uses.insert(def.path.segments.clone());
+            }
+        }
+
+        let mut out = String::new();
+        out.push_str("#![allow(non_camel_case_types, non_snake_case)]\n");
+        out.push_str("use napi_derive::napi;\n");
+        for path in self.uses.clone() {
+            out.push_str(&format!("use crate::{};\n", path[1..].join("::")));
+        }
+
+        for i in 0..self.ir.structs.len() {
+            out.push('\n');
+            out.push_str(&self.print_struct_wrappers(StructId(i as u32)));
+        }
+
+        for mi in 0..self.ir.mods.len() {
+            let mid = ModId(mi as u32);
+            let mod_segs = self.ir.mod_(mid).path.segments.clone();
+            for export in self.ir.mod_(mid).exports.clone() {
+                let ExportKind::Fn(fid) = export.kind else {
+                    continue;
+                };
+                let canonical = self.ir.fn_(fid).path.clone();
+                if is_canonical_origin(&canonical, &mod_segs) {
+                    out.push('\n');
+                    out.push_str(&self.print_fn_glue(fid, &mod_segs));
+                }
+            }
+        }
+
+        out
+    }
+
+    fn print_struct_wrappers(&mut self, sid: StructId) -> String {
+        let def = self.ir.struct_(sid).clone();
+        let orig = def.path.name().unwrap().to_string();
+        let mangled = mangle_ref(&def.path);
+
+        let mut out = String::new();
+        if let Some(docs) = &def.docs {
+            out.push_str(&rust_doc(docs, ""));
+        }
+        out.push_str(&format!(
+            "#[napi(js_name = \"{mangled}\")]\npub struct {mangled} {{\n    inner: {orig},\n}}\n\n"
+        ));
+
+        out.push_str(&format!("#[napi]\nimpl {mangled} {{\n"));
+        out.push_str(&self.print_ctor(&def, &orig));
+        if let StructShape::Struct(fields) = &def.shape {
+            for field in fields {
+                out.push('\n');
+                out.push_str(&self.print_getter_setter(field));
+            }
+        }
+        out.push_str("}\n\n");
+
+        out.push_str(&format!(
+            "impl From<{orig}> for {mangled} {{\n    fn from(v: {orig}) -> Self {{ Self {{ inner: v }} }}\n}}\n\n"
+        ));
+        out.push_str(&format!(
+            "impl From<{mangled}> for {orig} {{\n    fn from(v: {mangled}) -> Self {{ v.inner }}\n}}\n"
+        ));
+
+        if def.has_copy_variant {
+            out.push('\n');
+            out.push_str(&self.print_copy_wrapper(&def, &orig));
+        }
+
+        out
+    }
+
+    fn print_copy_wrapper(&mut self, def: &StructDef, orig: &str) -> String {
+        let copy_mangled = format!("{}__Copy", mangle_path(&def.path.segments));
+        let mut out = String::new();
+        out.push_str(&format!(
+            "#[napi(object, js_name = \"{copy_mangled}\")]\npub struct {copy_mangled} {{\n"
+        ));
+        match &def.shape {
+            StructShape::Unit => {}
+            StructShape::Tuple(ts) => {
+                for (i, &tid) in ts.iter().enumerate() {
+                    let ty = self.type_to_rs(tid);
+                    out.push_str(&format!(
+                        "    #[napi(js_name = \"{i}\")]\n    pub _{i}: {ty},\n"
+                    ));
+                }
+            }
+            StructShape::Struct(fs) => {
+                for f in fs {
+                    let ty = self.type_to_rs(f.type_id);
+                    out.push_str(&format!(
+                        "    #[napi(js_name = \"{}\")]\n    pub {}: {ty},\n",
+                        f.name, f.name
+                    ));
+                }
+            }
+        }
+        out.push_str("}\n\n");
+
+        out.push_str(&format!(
+            "impl From<{copy_mangled}> for {orig} {{\n    fn from(v: {copy_mangled}) -> Self {{\n"
+        ));
+        match &def.shape {
+            StructShape::Unit => {
+                out.push_str(&format!("        {orig}\n"));
+            }
+            StructShape::Tuple(ts) => {
+                let parts: Vec<String> = (0..ts.len()).map(|i| format!("v._{i}")).collect();
+                out.push_str(&format!("        {orig}({})\n", parts.join(", ")));
+            }
+            StructShape::Struct(fs) => {
+                let parts: Vec<String> = fs
+                    .iter()
+                    .map(|f| format!("{}: v.{}", f.name, f.name))
+                    .collect();
+                out.push_str(&format!("        {orig} {{ {} }}\n", parts.join(", ")));
+            }
+        }
+        out.push_str("    }\n}\n");
+        out
+    }
+
+    fn print_ctor(&mut self, def: &StructDef, orig: &str) -> String {
+        match &def.ctor {
+            Ctor::Explicit(fid) => {
+                let fn_def = self.ir.fn_(*fid).clone();
+                let params: Vec<String> = fn_def
+                    .params
+                    .iter()
+                    .map(|p| {
+                        let ty = self.type_to_rs(p.type_id);
+                        format!("{}: {ty}", p.name)
+                    })
+                    .collect();
+                let args: Vec<String> = fn_def.params.iter().map(|p| p.name.clone()).collect();
+                let returns_result =
+                    matches!(self.ir.type_(fn_def.return_type), Type::Result(_, _));
+                if returns_result {
+                    format!(
+                        "    #[napi(constructor)]\n    pub fn new({}) -> napi::Result<Self> {{\n        {orig}::new({}).map(|inner| Self {{ inner }}).map_err(|e| napi::Error::from_reason(format!(\"{{e:?}}\")))\n    }}\n",
+                        params.join(", "),
+                        args.join(", "),
+                    )
+                } else {
+                    format!(
+                        "    #[napi(constructor)]\n    pub fn new({}) -> Self {{\n        Self {{ inner: {orig}::new({}) }}\n    }}\n",
+                        params.join(", "),
+                        args.join(", "),
+                    )
+                }
+            }
+            Ctor::Implicit => {
+                let (params, body) = match &def.shape {
+                    StructShape::Unit => (vec![], orig.to_string()),
+                    StructShape::Tuple(ts) => {
+                        let params: Vec<String> = ts
+                            .iter()
+                            .enumerate()
+                            .map(|(i, &tid)| {
+                                let ty = self.type_to_rs(tid);
+                                format!("_{i}: {ty}")
+                            })
+                            .collect();
+                        let args: Vec<String> = (0..ts.len()).map(|i| format!("_{i}")).collect();
+                        (params, format!("{orig}({})", args.join(", ")))
+                    }
+                    StructShape::Struct(fs) => {
+                        let params: Vec<String> = fs
+                            .iter()
+                            .map(|f| {
+                                let ty = self.type_to_rs(f.type_id);
+                                format!("{}: {ty}", f.name)
+                            })
+                            .collect();
+                        let names: Vec<String> = fs.iter().map(|f| f.name.clone()).collect();
+                        (params, format!("{orig} {{ {} }}", names.join(", ")))
+                    }
+                };
+                format!(
+                    "    #[napi(constructor)]\n    pub fn new({}) -> Self {{\n        Self {{ inner: {body} }}\n    }}\n",
+                    params.join(", ")
+                )
+            }
+        }
+    }
+
+    fn print_getter_setter(&mut self, field: &StructField) -> String {
+        let name = &field.name;
+        let ty = self.type_to_rs(field.type_id);
+        let needs_clone = !is_primitive_ty(self.ir.type_(field.type_id));
+        let getter_body = if needs_clone {
+            format!("self.inner.{name}.clone()")
+        } else {
+            format!("self.inner.{name}")
+        };
+        format!(
+            "    #[napi(getter, js_name = \"{name}\")]\n    pub fn {name}(&self) -> {ty} {{ {getter_body} }}\n    #[napi(setter, js_name = \"{name}\")]\n    pub fn set_{name}(&mut self, v: {ty}) {{ self.inner.{name} = v; }}\n"
+        )
+    }
+
+    fn print_fn_glue(&mut self, fid: FnId, mod_segs: &[String]) -> String {
+        let fn_def = self.ir.fn_(fid).clone();
+        let fn_name = fn_def.path.name().unwrap().to_string();
+
+        let mod_parts: &[String] = if mod_segs.len() > 1 {
+            &mod_segs[1..]
+        } else {
+            &[]
+        };
+        let js_name = if mod_parts.is_empty() {
+            fn_name.clone()
+        } else {
+            format!("{}__{}", mod_parts.join("__"), fn_name)
+        };
+        // Rust-side name mirrors the struct-wrapper mangling: the full IR
+        // path (crate + modules + fn_name) joined by `__`, prefixed by
+        // `__cursed_`. This keeps glue names from colliding with the user's
+        // own fn of the same name when the glue lives in the same crate.
+        let glue_name = mangle_path(&fn_def.path.segments);
+
+        let orig_call_path = if fn_def.path.segments.len() > 1 {
+            let parts: Vec<String> = fn_def.path.segments.iter().skip(1).cloned().collect();
+            format!("crate::{}", parts.join("::"))
+        } else {
+            fn_name.clone()
+        };
+
+        let params: Vec<String> = fn_def
+            .params
+            .iter()
+            .map(|p| {
+                let ty = self.param_type_to_rs(p);
+                format!("{}: {ty}", p.name)
+            })
+            .collect();
+
+        let call_args: Vec<String> = fn_def
+            .params
+            .iter()
+            .map(|p| self.param_call_expr(p))
+            .collect();
+
+        let call = format!("{orig_call_path}({})", call_args.join(", "));
+        let (ret_ty, body) = self.return_expr(fn_def.return_type, &call);
+
+        let mut out = String::new();
+        if let Some(docs) = &fn_def.docs {
+            out.push_str(&rust_doc(docs, ""));
+        }
+        out.push_str(&format!("#[napi(js_name = \"{js_name}\")]\n"));
+        if matches!(self.ir.type_(fn_def.return_type), Type::Unit) {
+            out.push_str(&format!(
+                "pub fn {glue_name}({}) {{\n    {body}\n}}\n",
+                params.join(", ")
+            ));
+        } else {
+            out.push_str(&format!(
+                "pub fn {glue_name}({}) -> {ret_ty} {{\n    {body}\n}}\n",
+                params.join(", ")
+            ));
+        }
+        out
+    }
+
+    fn param_type_to_rs(&mut self, p: &FnParam) -> String {
+        if let Type::Struct(sid) = self.ir.type_(p.type_id).clone() {
+            let def = self.ir.struct_(sid).clone();
+            let handle = mangle_ref(&def.path);
+            return match p.mode {
+                ParamMode::ByRef => format!("&{handle}"),
+                ParamMode::ByMut => format!("&mut {handle}"),
+                ParamMode::ByValue => {
+                    if def.has_copy_variant {
+                        format!("{handle}__Copy")
+                    } else {
+                        handle
+                    }
+                }
+            };
+        }
+        self.type_to_rs(p.type_id)
+    }
+
+    fn param_call_expr(&mut self, p: &FnParam) -> String {
+        let ty = self.ir.type_(p.type_id).clone();
+        match (&ty, &p.mode) {
+            (Type::Struct(_), ParamMode::ByRef) => format!("&{}.inner", p.name),
+            (Type::Struct(_), ParamMode::ByMut) => format!("&mut {}.inner", p.name),
+            (Type::Struct(_), ParamMode::ByValue) => format!("{}.into()", p.name),
+            (Type::Slice(_), ParamMode::ByRef) => format!("&{}", p.name),
+            (Type::Slice(_), ParamMode::ByMut) => format!("&mut {}", p.name),
+            (Type::Str, _) => format!("&{}", p.name),
+            _ => p.name.clone(),
+        }
+    }
+
+    fn return_expr(&mut self, tid: TypeId, call: &str) -> (String, String) {
+        match self.ir.type_(tid).clone() {
+            Type::Unit => ("()".into(), format!("{call};")),
+            Type::Result(ok, _) => {
+                let ok_ty = self.type_to_rs(ok);
+                let inner = self.ir.type_(ok).clone();
+                let expr = match inner {
+                    Type::Unit => format!(
+                        "{call}.map_err(|e| napi::Error::from_reason(format!(\"{{e:?}}\")))"
+                    ),
+                    Type::Struct(_) => format!(
+                        "{call}.map(Into::into).map_err(|e| napi::Error::from_reason(format!(\"{{e:?}}\")))"
+                    ),
+                    Type::Slice(_) => format!(
+                        "{call}.map(|v| v.to_vec()).map_err(|e| napi::Error::from_reason(format!(\"{{e:?}}\")))"
+                    ),
+                    _ => format!(
+                        "{call}.map_err(|e| napi::Error::from_reason(format!(\"{{e:?}}\")))"
+                    ),
+                };
+                (format!("napi::Result<{ok_ty}>"), expr)
+            }
+            Type::Struct(_) => {
+                let ty = self.type_to_rs(tid);
+                (ty, format!("{call}.into()"))
+            }
+            Type::Slice(_) => {
+                let ty = self.type_to_rs(tid);
+                (ty, format!("{call}.to_vec()"))
+            }
+            _ => {
+                let ty = self.type_to_rs(tid);
+                (ty, call.to_string())
+            }
+        }
+    }
+
+    fn type_to_rs(&mut self, tid: TypeId) -> String {
+        match self.ir.type_(tid).clone() {
+            Type::Unit => "()".into(),
+            Type::Boolean => "bool".into(),
+            Type::Char => "char".into(),
+            Type::String | Type::Str => "String".into(),
+            Type::Number(n) => number_name(&n).to_string(),
+            Type::Option(t) => format!("Option<{}>", self.type_to_rs(t)),
+            Type::Result(t, _) => format!("napi::Result<{}>", self.type_to_rs(t)),
+            Type::Vec(t) | Type::Slice(t) => {
+                format!("Vec<{}>", self.type_to_rs(t))
+            }
+            Type::Struct(sid) => mangle_ref(&self.ir.struct_(sid).path.clone()),
+        }
+    }
+}
+
+fn mangle_ref(path: &ItemPath) -> String {
+    format!("__cursed_{}__Ref", path.segments.join("__"))
+}
+
+fn mangle_path(segments: &[String]) -> String {
+    format!("__cursed_{}", segments.join("__"))
+}
+
+fn is_canonical_origin(item_path: &ItemPath, mod_segments: &[String]) -> bool {
+    if item_path.segments.len() < 2 {
+        return false;
+    }
+    &item_path.segments[..item_path.segments.len() - 1] == mod_segments
+}
+
+fn is_primitive_ty(t: &Type) -> bool {
+    matches!(t, Type::Boolean | Type::Char | Type::Number(_))
+}
+
+fn number_name(n: &NumberType) -> &'static str {
+    match n {
+        NumberType::i8 => "i8",
+        NumberType::u8 => "u8",
+        NumberType::i16 => "i16",
+        NumberType::u16 => "u16",
+        NumberType::i32 => "i32",
+        NumberType::u32 => "u32",
+        NumberType::i64 => "i64",
+        NumberType::u64 => "u64",
+        NumberType::isize => "isize",
+        NumberType::usize => "usize",
+        NumberType::f32 => "f32",
+        NumberType::f64 => "f64",
+    }
+}
+
+fn rust_doc(docs: &str, indent: &str) -> String {
+    let trimmed = docs.trim();
+    let mut out = String::new();
+    for line in trimmed.lines() {
+        out.push_str(&format!("{indent}/// {}\n", line.trim()));
+    }
+    out
+}

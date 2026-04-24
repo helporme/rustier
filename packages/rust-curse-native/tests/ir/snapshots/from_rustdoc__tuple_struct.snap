@@ -21,9 +21,8 @@ IR {
                     "Pair",
                 ],
             },
-            boundary: Ref {
-                ctor: Implicit,
-            },
+            ctor: Implicit,
+            has_copy_variant: false,
             shape: Tuple(
                 [
                     TypeId(

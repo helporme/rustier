@@ -23,13 +23,12 @@ IR {
                     "Token",
                 ],
             },
-            boundary: Ref {
-                ctor: Explicit(
-                    FnId(
-                        0,
-                    ),
+            ctor: Explicit(
+                FnId(
+                    0,
                 ),
-            },
+            ),
+            has_copy_variant: false,
             shape: Struct(
                 [],
             ),

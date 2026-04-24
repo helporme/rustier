@@ -10,7 +10,7 @@ use rustdoc_types::{
 
 use super::{
     Ctor, Export, ExportKind, FnDef, FnId, FnParam, ItemPath, ModDef, ModId, NumberType, ParamMode,
-    StructBoundary, StructDef, StructField, StructId, StructShape, Type, TypeId, IR,
+    StructDef, StructField, StructId, StructShape, Type, TypeId, IR,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -30,12 +30,14 @@ pub fn build_ir(allowed: &HashSet<Id>, crate_: &Crate) -> Result<IR, BuildError>
         fn_intern: HashMap::new(),
         mod_intern: HashMap::new(),
         self_stack: Vec::new(),
+        copy_eligible: HashMap::new(),
     };
 
     let root = b
         .build_module(crate_.root, allowed)?
         .expect("root module has no id reservation");
     b.ir.root = root;
+    b.mark_copy_variants();
     Ok(b.ir)
 }
 
@@ -47,6 +49,7 @@ struct Builder<'a> {
     fn_intern: HashMap<Id, FnId>,
     mod_intern: HashMap<Id, ModId>,
     self_stack: Vec<Id>,
+    copy_eligible: HashMap<StructId, bool>,
 }
 
 impl<'a> Builder<'a> {
@@ -251,24 +254,42 @@ impl<'a> Builder<'a> {
         self.struct_intern.insert(id, sid);
         self.ir.structs.push(StructDef {
             path: path_of(item, id, self.crate_),
-            boundary: StructBoundary::Copy,
+            ctor: Ctor::Implicit,
+            has_copy_variant: false,
             shape: StructShape::Unit,
             docs: item.docs.clone(),
         });
 
         let shape = self.build_struct_shape(&struct_.kind)?;
-        let is_copy = can_copy_struct_kind(&struct_.kind, self.crate_);
-        let boundary = if is_copy {
-            StructBoundary::Copy
-        } else {
-            let ctor = self.find_ctor(&struct_.impls, id)?;
-            StructBoundary::Ref { ctor }
-        };
+        let ctor = self.find_ctor(&struct_.impls, id)?;
+        self.copy_eligible
+            .insert(sid, can_copy_struct_kind(&struct_.kind, self.crate_));
 
         let def = &mut self.ir.structs[sid.0 as usize];
         def.shape = shape;
-        def.boundary = boundary;
+        def.ctor = ctor;
         Ok(sid)
+    }
+
+    /// Walk every fn param; mark copy-eligible structs passed by value so
+    /// codegen emits a `__Copy` wrapper alongside the `__Ref` handle.
+    fn mark_copy_variants(&mut self) {
+        let mut to_mark: Vec<StructId> = Vec::new();
+        for fn_def in &self.ir.fns {
+            for param in &fn_def.params {
+                if param.mode != ParamMode::ByValue {
+                    continue;
+                }
+                if let Type::Struct(sid) = &self.ir.types[param.type_id.0 as usize] {
+                    to_mark.push(*sid);
+                }
+            }
+        }
+        for sid in to_mark {
+            if self.copy_eligible.get(&sid).copied().unwrap_or(false) {
+                self.ir.structs[sid.0 as usize].has_copy_variant = true;
+            }
+        }
     }
 
     fn build_struct_shape(&mut self, kind: &StructKind) -> Result<StructShape, BuildError> {

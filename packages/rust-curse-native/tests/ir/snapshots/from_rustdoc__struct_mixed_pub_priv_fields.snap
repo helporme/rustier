@@ -20,9 +20,8 @@ IR {
                     "Mixed",
                 ],
             },
-            boundary: Ref {
-                ctor: Implicit,
-            },
+            ctor: Implicit,
+            has_copy_variant: false,
             shape: Struct(
                 [
                     StructField {

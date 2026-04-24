@@ -127,6 +127,26 @@ macro_rules! assert_ts_snap {
     }};
 }
 
+/// Build IR from all items and snapshot the napi printer output,
+/// formatted through `prettyplease` so the snapshot is canonical Rust
+/// and we get a syntactic-validity check for free.
+#[macro_export]
+macro_rules! assert_napi_snap {
+    ($($tt:tt)*) => {{
+        let src = $crate::common::fmt_src(stringify!($($tt)*));
+        let ir = {
+            let crate_ = $crate::common::gen_rustdoc(&src);
+            let allowed = $crate::common::all_leaf_ids(&crate_);
+            rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap()
+        };
+        let napi_src = ir.print_napi();
+        let formatted = $crate::common::fmt_src(&napi_src);
+        insta::with_settings!({ description => src }, {
+            insta::assert_snapshot!(formatted);
+        });
+    }};
+}
+
 /// Like `assert_ir_snap!` but allows every leaf item. Use when name-based
 /// filtering is ambiguous (e.g. two items share a name in different modules).
 #[macro_export]

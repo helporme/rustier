@@ -1,0 +1,55 @@
+---
+source: tests/ir/napi.rs
+description: "pub mod types {\n    /// An authentication token.\n    pub struct Token {\n        /// The raw token string.\n        pub value: String,\n    }\n}\npub mod ops {\n    /// Parses a raw string into a Token.\n    pub fn parse(s: String) -> crate::types::Token {\n        todo!()\n    }\n}\n"
+expression: formatted
+---
+#![allow(non_camel_case_types, non_snake_case)]
+use napi_derive::napi;
+use crate::types::Token;
+/// An authentication token.
+#[napi(js_name = "__cursed_rustdoc_test_crate__types__Token__Ref")]
+pub struct __cursed_rustdoc_test_crate__types__Token__Ref {
+    inner: Token,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__types__Token__Ref {
+    #[napi(constructor)]
+    pub fn new(value: String) -> Self {
+        Self { inner: Token { value } }
+    }
+    #[napi(getter, js_name = "value")]
+    pub fn value(&self) -> String {
+        self.inner.value.clone()
+    }
+    #[napi(setter, js_name = "value")]
+    pub fn set_value(&mut self, v: String) {
+        self.inner.value = v;
+    }
+}
+impl From<Token> for __cursed_rustdoc_test_crate__types__Token__Ref {
+    fn from(v: Token) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__types__Token__Ref> for Token {
+    fn from(v: __cursed_rustdoc_test_crate__types__Token__Ref) -> Self {
+        v.inner
+    }
+}
+#[napi(object, js_name = "__cursed_rustdoc_test_crate__types__Token__Copy")]
+pub struct __cursed_rustdoc_test_crate__types__Token__Copy {
+    #[napi(js_name = "value")]
+    pub value: String,
+}
+impl From<__cursed_rustdoc_test_crate__types__Token__Copy> for Token {
+    fn from(v: __cursed_rustdoc_test_crate__types__Token__Copy) -> Self {
+        Token { value: v.value }
+    }
+}
+/// Parses a raw string into a Token.
+#[napi(js_name = "ops__parse")]
+pub fn __cursed_rustdoc_test_crate__ops__parse(
+    s: String,
+) -> __cursed_rustdoc_test_crate__types__Token__Ref {
+    crate::ops::parse(s).into()
+}
