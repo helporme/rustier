@@ -114,13 +114,6 @@ fn map_types() {
 }
 
 #[test]
-fn array_and_slice() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(arr: [i32; 4], slice: &[String]) -> [bool; 2] { todo!() }
-    });
-}
-
-#[test]
 #[ignore = "tuple support dropped for now"]
 fn tuple_types() {
     assert_ir_snap!(["f"] => {
@@ -355,23 +348,6 @@ fn tuple_with_unit_element() {
 fn large_tuple() {
     assert_ir_snap!(["f"] => {
         pub fn f(t: (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32)) {}
-    });
-}
-
-#[test]
-fn zero_length_array() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(a: [i32; 0]) {}
-    });
-}
-
-#[test]
-fn array_of_nominal() {
-    assert_ir_snap!(["f"] => {
-        pub struct Point {
-            pub x: i32,
-        }
-        pub fn f(arr: [Point; 4]) {}
     });
 }
 

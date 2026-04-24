@@ -19,8 +19,6 @@ pub enum BuildError {
     MissingItem(Id),
     #[error("unsupported type at {id:?}: {reason}")]
     UnsupportedType { id: Id, reason: String },
-    #[error("array length {0:?} is not a usize")]
-    BadArrayLen(String),
 }
 
 pub fn build_ir(allowed: &HashSet<Id>, crate_: &Crate) -> Result<IR, BuildError> {
@@ -444,12 +442,10 @@ impl<'a> Builder<'a> {
                 reason: "tuples are not supported".into(),
             }),
             RType::Slice(inner) => Ok(Type::Slice(self.intern_type(inner)?)),
-            RType::Array { type_, len } => {
-                let n = len
-                    .parse::<usize>()
-                    .map_err(|_| BuildError::BadArrayLen(len.clone()))?;
-                Ok(Type::Array(self.intern_type(type_)?, n))
-            }
+            RType::Array { .. } => Err(BuildError::UnsupportedType {
+                id: Id(0),
+                reason: "fixed-size arrays are not supported".into(),
+            }),
             RType::BorrowedRef { type_, .. } => self.resolve_type(type_),
             RType::ResolvedPath(path) => self.resolve_path(path),
             RType::Generic(name) if name == "Self" => {

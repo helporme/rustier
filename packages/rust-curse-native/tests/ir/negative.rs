@@ -69,12 +69,53 @@ fn raw_pointer_unsupported() {
 }
 
 #[test]
+fn fixed_size_array_param_unsupported() {
+    assert_ir_err!(
+        ["f"] => {
+            pub fn f(x: [i32; 4]) {}
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn fixed_size_array_return_unsupported() {
+    assert_ir_err!(
+        ["f"] => {
+            pub fn f() -> [bool; 2] { todo!() }
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn zero_length_array_unsupported() {
+    assert_ir_err!(
+        ["f"] => {
+            pub fn f(x: [i32; 0]) {}
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn array_of_nominal_unsupported() {
+    assert_ir_err!(
+        ["f"] => {
+            pub struct Point { pub x: i32 }
+            pub fn f(arr: [Point; 4]) {}
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
 fn const_generic_array_length_unsupported() {
     assert_ir_err!(
         ["f"] => {
             pub fn f<const N: usize>(x: [i32; N]) {}
         },
-        BuildError::BadArrayLen(_)
+        BuildError::UnsupportedType { .. }
     );
 }
 

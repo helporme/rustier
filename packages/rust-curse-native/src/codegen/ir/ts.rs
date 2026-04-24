@@ -142,7 +142,7 @@ impl<'a> Printer<'a> {
                 format!("{inner_ts} | undefined")
             }
             Type::Result(ok, _) => self.type_to_ts(ok),
-            Type::Vec(inner) | Type::Slice(inner) | Type::Array(inner, _) => {
+            Type::Vec(inner) | Type::Slice(inner) => {
                 let inner_ts = self.type_to_ts(inner);
                 format!("{}[]", parens_if_union(inner_ts))
             }

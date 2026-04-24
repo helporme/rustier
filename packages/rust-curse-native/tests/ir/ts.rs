@@ -100,10 +100,10 @@ fn fn_map() {
 }
 
 #[test]
-fn fn_array_and_slice() {
+fn fn_slice() {
     assert_ts_snap! {
-        /// Fixed-size arrays and slices both map to `T[]`.
-        pub fn f(arr: [i32; 4], slice: &[String]) -> [bool; 2] { todo!() }
+        /// Slices map to `T[]`.
+        pub fn f(slice: &[String]) {}
     };
 }
 
@@ -267,13 +267,6 @@ fn fn_large_tuple() {
 }
 
 #[test]
-fn fn_zero_length_array() {
-    assert_ts_snap! {
-        pub fn f(a: [i32; 0]) {}
-    };
-}
-
-#[test]
 fn fn_smart_pointer_inlining() {
     assert_ts_snap! {
         /// Smart pointers are erased, so every parameter maps to `number`.
@@ -345,17 +338,6 @@ fn fn_tuple_with_unit_element() {
     assert_ts_snap! {
         /// A `()` element inside a tuple prints as `void`.
         pub fn f(t: (i32, (), String)) {}
-    };
-}
-
-#[test]
-fn fn_array_of_nominal() {
-    assert_ts_snap! {
-        pub struct Point {
-            pub x: i32,
-        }
-        /// Nominal types inside arrays are not wrapped in `Copy<>`.
-        pub fn f(arr: [Point; 4]) {}
     };
 }
 
