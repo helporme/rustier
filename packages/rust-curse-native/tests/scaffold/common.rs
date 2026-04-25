@@ -54,6 +54,31 @@ impl TestProject {
         })
         .expect("scaffold init")
     }
+
+    /// Build insta settings that redact the per-run tempdir prefix from
+    /// snapshots so paths like `/var/.../T/abc123/foo.rs` render as
+    /// `<root>/foo.rs`.
+    pub fn snapshot_settings(&self) -> insta::Settings {
+        let mut settings = insta::Settings::clone_current();
+        let abs_root = self.abs_root_path.to_string_lossy().to_string();
+        settings.add_filter(&regex_escape(&abs_root), "<root>");
+        settings
+    }
+}
+
+fn regex_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for ch in s.chars() {
+        match ch {
+            '.' | '+' | '*' | '?' | '(' | ')' | '|' | '[' | ']' | '{' | '}' | '^' | '$' | '\\'
+            | '/' => {
+                out.push('\\');
+                out.push(ch);
+            }
+            _ => out.push(ch),
+        }
+    }
+    out
 }
 
 /// Walk the project root and emit every file as a fenced markdown block.

@@ -1,5 +1,7 @@
 use std::fs;
+use std::path::PathBuf;
 
+use rust_curse::model::OrphanModule;
 use rust_curse::scaffold::default::DefaultSectionOpts;
 use rust_curse::scaffold::napi::NapiSectionOpts;
 use rust_curse::scaffold::rustdoc::RustdocSectionOpts;
@@ -7,6 +9,14 @@ use rust_curse::scaffold::wasm::WasmSectionOpts;
 use rust_curse::scaffold::{BuildContribution, ScaffoldError, ScaffoldSection};
 
 use crate::common::{project_to_md, TestProject, WORKSPACE_CARGO_TOML};
+
+fn test_module(name: &str, rel_path: &str) -> OrphanModule {
+    OrphanModule {
+        name: name.into(),
+        rel_path: PathBuf::from(rel_path),
+        item_ids: Vec::new(),
+    }
+}
 
 #[test]
 fn set_default_only() {
@@ -54,12 +64,72 @@ fn set_rustdoc_only() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
     scaffold
-        .set_rustdoc(RustdocSectionOpts {
-            lib_content: "pub mod foo;\n".into(),
-        })
+        .rustdoc(RustdocSectionOpts { modules: &[] })
         .unwrap();
     scaffold.deploy().unwrap();
     insta::assert_snapshot!(project_to_md(&project));
+}
+
+#[test]
+fn rustdoc_renders_simple_modules() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    let modules = vec![
+        test_module("greet", "greet.rs"),
+        test_module("math", "math.rs"),
+    ];
+    scaffold
+        .rustdoc(RustdocSectionOpts { modules: &modules })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+#[test]
+fn rustdoc_mangles_nested_module_names() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    let modules = vec![test_module("nested::deep", "nested/deep.rs")];
+    scaffold
+        .rustdoc(RustdocSectionOpts { modules: &modules })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+#[test]
+fn rustdoc_underscored_names_dont_collide() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    let modules = vec![
+        test_module("nested::file", "nested/file.rs"),
+        test_module("nested__::file", "nested__/file.rs"),
+    ];
+    scaffold
+        .rustdoc(RustdocSectionOpts { modules: &modules })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+#[test]
+fn rustdoc_underscored_directory_names() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    let modules = vec![test_module("__nested::__deep", "__nested/__deep.rs")];
+    scaffold
+        .rustdoc(RustdocSectionOpts { modules: &modules })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
 }
 
 #[test]
@@ -84,9 +154,7 @@ fn set_combo_all_four_sections() {
         })
         .unwrap();
     scaffold
-        .set_rustdoc(RustdocSectionOpts {
-            lib_content: "// rustdoc\n".into(),
-        })
+        .rustdoc(RustdocSectionOpts { modules: &[] })
         .unwrap();
     scaffold.deploy().unwrap();
     insta::assert_snapshot!(project_to_md(&project));

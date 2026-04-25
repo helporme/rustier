@@ -25,9 +25,7 @@
 //!     feature_name: "node".into(),
 //!     lib_content: "// generated napi glue\n".into(),
 //! })?;
-//! scaffold.set_rustdoc(RustdocSectionOpts {
-//!     lib_content: "pub mod foo;\n".into(),
-//! })?;
+//! scaffold.rustdoc(RustdocSectionOpts { modules: &[] })?;
 //!
 //! scaffold.deploy()?;
 //! ```

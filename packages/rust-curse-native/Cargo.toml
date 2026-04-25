@@ -30,5 +30,5 @@ napi-build = { version = "2", optional = true }
 
 [dev-dependencies]
 tempfile = "3.27.0"
-insta = "1"
+insta = { version = "1", features = ["filters"] }
 prettyplease = "0.2"

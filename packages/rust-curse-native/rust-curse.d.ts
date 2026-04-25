@@ -3,21 +3,10 @@
 export declare class Session {
   constructor(options: SessionOptions)
   build(): BuildResult
-  onRsFileChanged(absPath: string): void
-  onJsFileChanged(absPath: string): void
 }
 
 export interface BuildResult {
   warnings: Array<string>
-}
-
-export declare const enum BuildStep {
-  Setup = 'Setup',
-  Rustdoc = 'Rustdoc',
-  Link = 'Link',
-  ImportScan = 'ImportScan',
-  Treeshake = 'Treeshake',
-  Codegen = 'Codegen'
 }
 
 export type BuildTarget =
@@ -35,8 +24,6 @@ export interface SessionOptions {
   cargoTomlRelPath: string
   /** Absolute path to the project root directory. */
   projectRootAbsPath: string
-  /** Last step to execute (for testing). If None, runs the full pipeline. */
-  lastStep?: BuildStep
 }
 
 export interface SourceOptions {
