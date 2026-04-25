@@ -1,6 +1,6 @@
 //! Error-path tests: inputs that should be rejected by `build_ir`.
 
-use rust_curse::codegen::ir::from_rustdoc::BuildError;
+use rust_curse::ir::from_rustdoc::BuildError;
 
 #[test]
 fn i128_is_unsupported_primitive() {

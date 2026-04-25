@@ -65,13 +65,13 @@ pub fn fmt_src(src: &str) -> String {
     }
 }
 
-pub fn print_js_per_mod<F>(ir: &rust_curse::codegen::ir::IR, mut printer: F) -> String
+pub fn print_js_per_mod<F>(ir: &rust_curse::ir::IR, mut printer: F) -> String
 where
-    F: FnMut(&rust_curse::codegen::ir::IR, rust_curse::codegen::ir::ModId) -> String,
+    F: FnMut(&rust_curse::ir::IR, rust_curse::ir::ModId) -> String,
 {
     let mut out = String::new();
     for i in 0..ir.mods.len() {
-        let mid = rust_curse::codegen::ir::ModId(i as u32);
+        let mid = rust_curse::ir::ModId(i as u32);
         let mod_path = ir.mod_(mid).path.segments.join("/");
         if !out.is_empty() {
             out.push('\n');
@@ -108,7 +108,7 @@ macro_rules! ir {
     ($($tt:tt)*) => {{
         let crate_ = $crate::common::gen_rustdoc(stringify!($($tt)*));
         let allowed = $crate::common::all_leaf_ids(&crate_);
-        rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap()
+        rust_curse::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap()
     }};
 }
 
@@ -120,7 +120,7 @@ macro_rules! assert_ir_snap {
         let src = $crate::common::fmt_src(stringify!($($tt)*));
         let crate_ = $crate::common::gen_rustdoc(&src);
         let allowed = $crate::common::allowed_by_name(&crate_, &[$($name),+]);
-        let ir = rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap();
+        let ir = rust_curse::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap();
         insta::with_settings!({ description => src }, {
             insta::assert_debug_snapshot!(ir);
         });
@@ -136,7 +136,7 @@ macro_rules! assert_ts_snap {
         let ir = {
             let crate_ = $crate::common::gen_rustdoc(&src);
             let allowed = $crate::common::all_leaf_ids(&crate_);
-            rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap()
+            rust_curse::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap()
         };
         insta::with_settings!({ description => src }, {
             insta::assert_snapshot!(ir.print_ts());
@@ -154,7 +154,7 @@ macro_rules! assert_napi_snap {
         let ir = {
             let crate_ = $crate::common::gen_rustdoc(&src);
             let allowed = $crate::common::all_leaf_ids(&crate_);
-            rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap()
+            rust_curse::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap()
         };
         let napi_src = ir.print_napi();
         let formatted = $crate::common::fmt_src(&napi_src);
@@ -174,7 +174,7 @@ macro_rules! assert_wasm_snap {
         let ir = {
             let crate_ = $crate::common::gen_rustdoc(&src);
             let allowed = $crate::common::all_leaf_ids(&crate_);
-            rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap()
+            rust_curse::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap()
         };
         let wasm_src = ir.print_wasm();
         let formatted = $crate::common::fmt_src(&wasm_src);
@@ -194,7 +194,7 @@ macro_rules! assert_js_snap {
         let ir = {
             let crate_ = $crate::common::gen_rustdoc(&src);
             let allowed = $crate::common::all_leaf_ids(&crate_);
-            rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap()
+            rust_curse::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap()
         };
         let out = $crate::common::print_js_per_mod(&ir, |ir, mid| ir.print_js(mid, "$test".to_owned()));
         insta::with_settings!({ description => src }, {
@@ -211,7 +211,7 @@ macro_rules! assert_ir_snap_all {
         let src = $crate::common::fmt_src(stringify!($($tt)*));
         let crate_ = $crate::common::gen_rustdoc(&src);
         let allowed = $crate::common::all_leaf_ids(&crate_);
-        let ir = rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap();
+        let ir = rust_curse::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap();
         insta::with_settings!({ description => src }, {
             insta::assert_debug_snapshot!(ir);
         });
@@ -225,7 +225,7 @@ macro_rules! assert_ir_err {
         let src = $crate::common::fmt_src(stringify!($($tt)*));
         let crate_ = $crate::common::gen_rustdoc(&src);
         let allowed = $crate::common::allowed_by_name(&crate_, &[$($name),+]);
-        let result = rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_);
+        let result = rust_curse::ir::from_rustdoc::build_ir(&allowed, &crate_);
         match result {
             Err(e) => assert!(
                 matches!(e, $pat),

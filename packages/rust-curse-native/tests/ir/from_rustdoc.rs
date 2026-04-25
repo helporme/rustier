@@ -395,7 +395,7 @@ fn empty_allowed_set_produces_empty_root() {
     ));
     let crate_ = crate::common::gen_rustdoc(&src);
     let allowed = std::collections::HashSet::new();
-    let ir = rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap();
+    let ir = rust_curse::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap();
     insta::with_settings!({ description => src }, {
         insta::assert_debug_snapshot!(ir);
     });
