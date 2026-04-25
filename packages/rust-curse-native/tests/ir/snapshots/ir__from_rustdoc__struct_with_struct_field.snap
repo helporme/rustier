@@ -1,0 +1,121 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "/// A point in 2D space.\npub struct Point {\n    /// Horizontal position.\n    pub x: f64,\n    /// Vertical position.\n    pub y: f64,\n}\n/// A circle defined by its center and radius.\npub struct Circle {\n    /// The center point.\n    pub center: Point,\n    /// The radius in the same units as `center`.\n    pub radius: f64,\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    types: [
+        Number(
+            f64,
+        ),
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Point",
+                ],
+            },
+            ctor: Implicit,
+            has_copy_variant: false,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "x",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: Some(
+                            "Horizontal position.",
+                        ),
+                    },
+                    StructField {
+                        name: "y",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: Some(
+                            "Vertical position.",
+                        ),
+                    },
+                ],
+            ),
+            docs: Some(
+                "A point in 2D space.",
+            ),
+        },
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Circle",
+                ],
+            },
+            ctor: Implicit,
+            has_copy_variant: false,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "center",
+                        type_id: TypeId(
+                            1,
+                        ),
+                        docs: Some(
+                            "The center point.",
+                        ),
+                    },
+                    StructField {
+                        name: "radius",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: Some(
+                            "The radius in the same units as `center`.",
+                        ),
+                    },
+                ],
+            ),
+            docs: Some(
+                "A circle defined by its center and radius.",
+            ),
+        },
+    ],
+    fns: [],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Export {
+                    name: "Point",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
+                    ),
+                },
+                Export {
+                    name: "Circle",
+                    kind: Struct(
+                        StructId(
+                            1,
+                        ),
+                    ),
+                },
+            ],
+        },
+    ],
+}

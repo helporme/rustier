@@ -105,6 +105,26 @@ fn struct_mixed_pub_priv_fields() {
 }
 
 #[test]
+fn struct_with_struct_field() {
+    assert_napi_snap! {
+        /// A point in 2D space.
+        pub struct Point {
+            /// Horizontal position.
+            pub x: f64,
+            /// Vertical position.
+            pub y: f64,
+        }
+        /// A circle defined by its center and radius.
+        pub struct Circle {
+            /// The center point.
+            pub center: Point,
+            /// The radius in the same units as `center`.
+            pub radius: f64,
+        }
+    };
+}
+
+#[test]
 fn module_nested() {
     assert_napi_snap! {
         pub mod math {

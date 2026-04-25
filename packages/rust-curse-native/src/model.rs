@@ -5,7 +5,8 @@ use std::path::PathBuf;
 pub struct OrphanModule {
     /// Module name using `::` separators, e.g. `foo::bar`.
     pub name: String,
-    /// Path relative to the module_dir root (e.g. `greet.rs`, `nested/deep.rs`).
+    /// Path relative to the module_dir root (e.g. `greet.rs`,
+    /// `nested/deep.rs`).
     pub rel_path: PathBuf,
     /// Rustdoc item IDs whose span.filename matches this module's source file.
     pub item_ids: Vec<rustdoc_types::Id>,
@@ -24,7 +25,8 @@ pub struct GeneratedFile {
 pub struct RsImport {
     /// Absolute path to the JS/TS file containing the import.
     pub js_abs_path: PathBuf,
-    /// Relative path of the imported Rust module (matches `OrphanModule.rel_path`).
+    /// Relative path of the imported Rust module (matches
+    /// `OrphanModule.rel_path`).
     pub rs_rel_path: PathBuf,
     /// Unresolved imported member names (may include "*")
     pub members: Vec<String>,
