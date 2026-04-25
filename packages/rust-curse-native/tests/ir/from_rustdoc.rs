@@ -1,5 +1,3 @@
-mod common;
-
 #[test]
 fn builds_root_only_with_one_fn() {
     assert_ir_snap!(["add"] => {
@@ -391,11 +389,11 @@ fn dependency_struct_is_reached_via_fn_signature() {
 
 #[test]
 fn empty_allowed_set_produces_empty_root() {
-    let src = common::fmt_src(stringify!(
+    let src = crate::common::fmt_src(stringify!(
         pub fn a() {}
         pub fn b() {}
     ));
-    let crate_ = common::gen_rustdoc(&src);
+    let crate_ = crate::common::gen_rustdoc(&src);
     let allowed = std::collections::HashSet::new();
     let ir = rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap();
     insta::with_settings!({ description => src }, {

@@ -1,5 +1,3 @@
-mod common;
-
 #[test]
 fn fn_primitives() {
     assert_napi_snap! {

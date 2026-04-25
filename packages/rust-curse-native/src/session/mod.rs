@@ -5,21 +5,17 @@ use anyhow::Context;
 #[cfg(feature = "napi-binding")]
 use napi_derive::napi;
 
-use crate::codegen::cargo_toml;
 use crate::codegen::rustdoc as rustdoc_codegen;
-use crate::codegen::setup;
 use crate::discovery::import_scan::scan_imports;
 use crate::discovery::orphans::discover_orphans;
 use crate::discovery::rustdoc::{generate_rustdoc, link_rustdoc_items};
 use crate::discovery::treeshake::{treeshake_modules, TreeshakeWarning};
-use crate::model::{GeneratedFile, OrphanModule};
-
-/// Rustdoc cfg flag name, set via build.rs when `RUST_CURSE_RUSTDOC` env var is present.
-pub const RUSTDOC_CFG: &str = "rust_curse_rustdoc";
-/// Env var that triggers the rustdoc cfg flag in the generated build.rs.
-pub const RUSTDOC_ENV_VAR: &str = "RUST_CURSE_RUSTDOC";
-/// File name for the rustdoc module.
-pub const RUSTDOC_FILE: &str = "rustdoc.rs";
+use crate::model::OrphanModule;
+use crate::scaffold::default::DefaultSectionOpts;
+use crate::scaffold::napi::NapiSectionOpts;
+use crate::scaffold::rustdoc::RustdocSectionOpts;
+use crate::scaffold::wasm::WasmSectionOpts;
+use crate::scaffold::{Scaffold, ScaffoldOptions};
 
 #[cfg_attr(feature = "napi-binding", napi)]
 pub enum BuildTarget {
@@ -139,59 +135,70 @@ impl Session {
     fn try_build(&mut self) -> anyhow::Result<BuildResult> {
         let last_step = self.options.last_step;
 
-        // Step 1: Setup -> discover orphans, generate lib.rs + rustdoc.rs, patch Cargo.toml
+        // Step 1: Setup -> discover orphans, deploy scaffold sections.
         let modules = discover_orphans(&PathBuf::from(&self.options.module_dir_rel_path))?;
 
         let abs_module_dir = fs::canonicalize(&self.options.module_dir_rel_path)
             .context("module_dir does not exist or is not accessible")?;
 
-        fs::create_dir_all(&self.options.output_dir_rel_path)
-            .context("cannot create output_dir")?;
-        let abs_output_dir = fs::canonicalize(&self.options.output_dir_rel_path)
-            .context("output_dir is not accessible")?;
+        let mut scaffold = Scaffold::new(ScaffoldOptions {
+            abs_root_path: PathBuf::from(&self.options.project_root_abs_path),
+            temp_folder_rel_path: PathBuf::from(&self.options.output_dir_rel_path),
+            cargo_toml_rel_path: PathBuf::from(&self.options.cargo_toml_rel_path),
+        })
+        .context("cannot initialise scaffold")?;
 
-        // Generate feature-gated lib.rs + build.rs
-        let lib_rs = setup::generate_lib_rs(&self.options.targets);
-        emit_file(&abs_output_dir, &lib_rs)?;
-
-        let build_rs = setup::generate_build_rs(&self.options.targets);
-        emit_file(&abs_output_dir, &build_rs)?;
-
-        // Generate rustdoc.rs with pub mod declarations for all orphan modules
-        let path_prefix = diff_paths(&abs_module_dir, &abs_output_dir);
-        let rustdoc_rs = rustdoc_codegen::generate_rustdoc_rs(
+        let abs_temp_dir = scaffold.abs_path_to("");
+        let path_prefix = diff_paths(&abs_module_dir, &abs_temp_dir);
+        let rustdoc_lib = rustdoc_codegen::generate_rustdoc_rs(
             &modules,
             &path_prefix,
-            PathBuf::from(RUSTDOC_FILE),
-        );
-        emit_file(&abs_output_dir, &rustdoc_rs)?;
+            PathBuf::from("rustdoc.rs"),
+        )
+        .content;
 
-        // Patch Cargo.toml with lib.path, build path, features + optional deps
+        scaffold
+            .set_rustdoc(RustdocSectionOpts {
+                lib_content: rustdoc_lib,
+            })
+            .context("scaffold: set_rustdoc")?;
+
+        for target in &self.options.targets {
+            match target {
+                BuildTarget::Default { .. } => {
+                    scaffold
+                        .set_default(DefaultSectionOpts {
+                            lib_content: String::new(),
+                        })
+                        .context("scaffold: set_default")?;
+                }
+                BuildTarget::Node { feature_name, .. } => {
+                    scaffold
+                        .set_napi(NapiSectionOpts {
+                            feature_name: feature_name.clone(),
+                            lib_content: String::new(),
+                        })
+                        .context("scaffold: set_napi")?;
+                }
+                BuildTarget::Wasm { feature_name, .. } => {
+                    scaffold
+                        .set_wasm(WasmSectionOpts {
+                            feature_name: feature_name.clone(),
+                            lib_content: String::new(),
+                        })
+                        .context("scaffold: set_wasm")?;
+                }
+            }
+        }
+
+        scaffold.deploy().context("scaffold: deploy")?;
+
         let abs_cargo_path = fs::canonicalize(&self.options.cargo_toml_rel_path)
             .context("cargo_path does not exist or is not accessible")?;
         let abs_cargo_dir = abs_cargo_path
             .parent()
-            .context("cargo_path has no parent directory")?;
-
-        let output_rel_to_cargo = diff_paths(&abs_output_dir, abs_cargo_dir);
-        let lib_rs_rel_path = output_rel_to_cargo.join("lib.rs");
-        let lib_rs_rel_path = lib_rs_rel_path.to_string_lossy();
-        let build_rs_rel_path = output_rel_to_cargo.join("build.rs");
-        let build_rs_rel_path = build_rs_rel_path.to_string_lossy();
-
-        let cargo_content =
-            fs::read_to_string(&abs_cargo_path).context("cannot read Cargo.toml")?;
-        let patched = cargo_toml::patch_cargo_toml(
-            &cargo_content,
-            &lib_rs_rel_path,
-            &build_rs_rel_path,
-            &self.options.targets,
-            PathBuf::from("Cargo.toml"),
-        )
-        .context("cannot parse Cargo.toml")?;
-
-        fs::write(&abs_cargo_path, &patched.content)
-            .with_context(|| format!("cannot write '{}'", abs_cargo_path.display()))?;
+            .context("cargo_path has no parent directory")?
+            .to_path_buf();
 
         self.last_modules = modules;
 
@@ -200,14 +207,14 @@ impl Session {
         }
 
         // Step 2: Run cargo rustdoc, load JSON
-        let crate_ = generate_rustdoc(abs_cargo_dir).context("failed to generate rustdoc")?;
+        let crate_ = generate_rustdoc(&abs_cargo_dir).context("failed to generate rustdoc")?;
 
         if last_step == Some(BuildStep::Rustdoc) {
             return Ok(BuildResult::empty());
         }
 
         // Step 3: Link rustdoc items to orphan modules
-        let module_dir_rel_to_cargo = diff_paths(&abs_module_dir, abs_cargo_dir);
+        let module_dir_rel_to_cargo = diff_paths(&abs_module_dir, &abs_cargo_dir);
         link_rustdoc_items(&crate_, &mut self.last_modules, &module_dir_rel_to_cargo);
 
         if last_step == Some(BuildStep::Link) {
@@ -299,17 +306,6 @@ fn make_absolute_globs(patterns: &[String], abs_root: &Path) -> Vec<String> {
             }
         })
         .collect()
-}
-
-fn emit_file(abs_output_dir: &Path, file: &GeneratedFile) -> anyhow::Result<()> {
-    let abs_path = abs_output_dir.join(&file.rel_path);
-    if let Some(abs_parent) = abs_path.parent() {
-        fs::create_dir_all(abs_parent)
-            .with_context(|| format!("cannot create directory '{}'", abs_parent.display()))?;
-    }
-    fs::write(&abs_path, &file.content)
-        .with_context(|| format!("cannot write '{}'", abs_path.display()))?;
-    Ok(())
 }
 
 #[cfg(test)]

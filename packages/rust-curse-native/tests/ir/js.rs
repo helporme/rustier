@@ -1,5 +1,3 @@
-mod common;
-
 #[test]
 fn fn_primitives_root() {
     assert_js_snap! {

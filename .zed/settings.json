@@ -9,4 +9,7 @@
       },
     },
   },
+  "file_types": {
+    "Markdown": ["snap", "new"],
+  },
 }

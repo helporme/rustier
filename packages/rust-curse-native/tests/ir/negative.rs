@@ -1,7 +1,5 @@
 //! Error-path tests: inputs that should be rejected by `build_ir`.
 
-mod common;
-
 use rust_curse::codegen::ir::from_rustdoc::BuildError;
 
 #[test]

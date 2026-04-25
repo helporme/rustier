@@ -3,34 +3,9 @@ name = "rust-curse"
 version = "0.1.0"
 edition = "2021"
 publish = false
-autotests = false
 
 [lib]
 crate-type = ["cdylib", "lib"]
-
-[[test]]
-name = "from_rustdoc"
-path = "tests/ir/from_rustdoc.rs"
-
-[[test]]
-name = "negative"
-path = "tests/ir/negative.rs"
-
-[[test]]
-name = "ts"
-path = "tests/ir/ts.rs"
-
-[[test]]
-name = "napi"
-path = "tests/ir/napi.rs"
-
-[[test]]
-name = "wasm"
-path = "tests/ir/wasm.rs"
-
-[[test]]
-name = "js"
-path = "tests/ir/js.rs"
 
 [features]
 default = ["napi-binding"]
