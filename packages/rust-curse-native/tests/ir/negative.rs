@@ -257,3 +257,104 @@ fn btree_set_unsupported() {
         BuildError::UnsupportedType { .. }
     );
 }
+
+#[test]
+fn vec_param_unsupported() {
+    assert_ir_err!(
+        ["f"] => { pub fn f(v: Vec<i32>) {} },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn vec_return_unsupported() {
+    assert_ir_err!(
+        ["f"] => { pub fn f() -> Vec<i32> { vec![] } },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn vec_deque_unsupported() {
+    assert_ir_err!(
+        ["f"] => { pub fn f(v: std::collections::VecDeque<i32>) {} },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn linked_list_unsupported() {
+    assert_ir_err!(
+        ["f"] => { pub fn f(v: std::collections::LinkedList<i32>) {} },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn slice_param_unsupported() {
+    assert_ir_err!(
+        ["f"] => { pub fn f(v: &[i32]) {} },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn mut_slice_param_unsupported() {
+    assert_ir_err!(
+        ["f"] => { pub fn f(v: &mut [i32]) {} },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn slice_return_unsupported() {
+    assert_ir_err!(
+        ["f"] => { pub fn f() -> &'static [i32] { &[] } },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn option_param_unsupported() {
+    assert_ir_err!(
+        ["f"] => { pub fn f(x: Option<i32>) {} },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn option_return_unsupported() {
+    assert_ir_err!(
+        ["f"] => { pub fn f() -> Option<i32> { None } },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn result_return_unsupported() {
+    assert_ir_err!(
+        ["f"] => { pub fn f() -> Result<i32, String> { Ok(0) } },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn result_with_unit_return_unsupported() {
+    assert_ir_err!(
+        ["f"] => { pub fn f() -> Result<(), String> { Ok(()) } },
+        BuildError::UnsupportedType { .. }
+    );
+}
+
+#[test]
+fn ctor_new_returning_result_unsupported() {
+    assert_ir_err!(
+        ["S"] => {
+            pub struct S { x: i32 }
+            impl S {
+                pub fn new() -> Result<Self, String> { Ok(Self { x: 0 }) }
+            }
+        },
+        BuildError::UnsupportedType { .. }
+    );
+}

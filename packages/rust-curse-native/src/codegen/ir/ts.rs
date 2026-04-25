@@ -137,15 +137,6 @@ impl<'a> Printer<'a> {
                 }
                 _ => "number".into(),
             },
-            Type::Option(inner) => {
-                let inner_ts = self.type_to_ts(inner);
-                format!("{inner_ts} | undefined")
-            }
-            Type::Result(ok, _) => self.type_to_ts(ok),
-            Type::Vec(inner) | Type::Slice(inner) => {
-                let inner_ts = self.type_to_ts(inner);
-                format!("{}[]", parens_if_union(inner_ts))
-            }
             Type::Struct(sid) => {
                 let path = self.ir.struct_(sid).path.clone();
                 let name = path.name().unwrap_or("unknown").to_string();
@@ -286,14 +277,6 @@ impl<'a> Printer<'a> {
             .entry(module_path)
             .or_default()
             .insert(type_name);
-    }
-}
-
-fn parens_if_union(s: String) -> String {
-    if s.contains(" | ") {
-        format!("({s})")
-    } else {
-        s
     }
 }
 

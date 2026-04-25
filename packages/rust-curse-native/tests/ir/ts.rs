@@ -47,76 +47,6 @@ fn fn_borrow_modes_struct() {
 }
 
 #[test]
-fn fn_option() {
-    assert_ts_snap! {
-        /// `Option<T>` maps to `T | undefined`.
-        pub fn f(a: Option<i32>) -> Option<String> { None }
-    };
-}
-
-#[test]
-fn fn_vec() {
-    assert_ts_snap! {
-        /// `Vec<T>` maps to `T[]`.
-        pub fn f(items: Vec<i32>) -> Vec<String> { vec![] }
-    };
-}
-
-#[test]
-fn fn_vec_of_option() {
-    assert_ts_snap! {
-        /// `Vec<Option<T>>` must parenthesise the union: `(T | undefined)[]`.
-        pub fn f(items: Vec<Option<i32>>) -> Vec<Option<String>> { vec![] }
-    };
-}
-
-#[test]
-fn fn_option_of_vec() {
-    assert_ts_snap! {
-        /// `Option<Vec<T>>` does not need parens: `T[] | undefined`.
-        pub fn f(items: Option<Vec<i32>>) -> Option<Vec<String>> { None }
-    };
-}
-
-#[test]
-fn fn_result() {
-    assert_ts_snap! {
-        /// `Result<T, E>` maps to the Ok type; the error branch is erased.
-        pub fn f(x: i32) -> Result<String, i32> { Ok(String::new()) }
-    };
-}
-
-#[test]
-#[ignore = "map support dropped for now"]
-fn fn_map() {
-    assert_ts_snap! {
-        /// All maps become `Map<K, V>` regardless of key type.
-        pub fn f(
-            a: std::collections::HashMap<String, i32>,
-            b: std::collections::BTreeMap<i32, bool>,
-            c: std::collections::HashMap<i64, String>,
-        ) {}
-    };
-}
-
-#[test]
-fn fn_slice() {
-    assert_ts_snap! {
-        /// Slices map to `T[]`.
-        pub fn f(slice: &[String]) {}
-    };
-}
-
-#[test]
-#[ignore = "tuple support dropped for now"]
-fn fn_tuple() {
-    assert_ts_snap! {
-        /// Tuples map to TypeScript tuple types.
-        pub fn f(pair: (i32, String)) -> (bool, f64, String) { todo!() }
-    };
-}
-
-#[test]
 fn fn_return_void() {
     assert_ts_snap! {
         /// Unit return type maps to `void`.
@@ -171,42 +101,6 @@ fn struct_tuple() {
     };
 }
 
-// ── enums ────────────────────────────────────────────────────────────────────
-
-#[test]
-#[ignore = "enum support dropped for now"]
-fn enum_unit() {
-    assert_ts_snap! {
-        /// Cardinal compass directions — all unit variants become a string union.
-        pub enum Direction {
-            /// Toward the top.
-            North,
-            /// Toward the bottom.
-            South,
-            /// Toward the right.
-            East,
-            /// Toward the left.
-            West,
-        }
-    };
-}
-
-#[test]
-#[ignore = "enum support dropped for now"]
-fn enum_complex() {
-    assert_ts_snap! {
-        /// A geometric shape with mixed variant kinds.
-        pub enum Shape {
-            /// A circle defined by its radius.
-            Circle { radius: f64 },
-            /// An axis-aligned rectangle.
-            Rect { width: f64, height: f64 },
-            /// A dimensionless point.
-            Point,
-        }
-    };
-}
-
 // ── modules ──────────────────────────────────────────────────────────────────
 
 #[test]
@@ -237,14 +131,6 @@ fn module_cross_import() {
 }
 
 #[test]
-#[ignore = "enum support dropped for now"]
-fn empty_enum() {
-    assert_ts_snap! {
-        pub enum Void {}
-    };
-}
-
-#[test]
 fn unit_struct() {
     assert_ts_snap! {
         pub struct Marker;
@@ -259,14 +145,6 @@ fn empty_struct_plain() {
 }
 
 #[test]
-#[ignore = "tuple support dropped for now"]
-fn fn_large_tuple() {
-    assert_ts_snap! {
-        pub fn f(t: (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32)) {}
-    };
-}
-
-#[test]
 fn fn_smart_pointer_inlining() {
     assert_ts_snap! {
         /// Smart pointers are erased, so every parameter maps to `number`.
@@ -277,76 +155,6 @@ fn fn_smart_pointer_inlining() {
             d: std::cell::Cell<i32>,
             e: std::cell::RefCell<i32>,
         ) {}
-    };
-}
-
-#[test]
-fn fn_smart_pointer_nested() {
-    assert_ts_snap! {
-        pub fn f(a: Vec<Box<i32>>, b: Option<std::sync::Arc<String>>) {}
-    };
-}
-
-#[test]
-#[ignore = "set support dropped for now"]
-fn fn_hash_set_and_btree_set() {
-    assert_ts_snap! {
-        /// Both set flavours map to `Set<T>`.
-        pub fn f(
-            a: std::collections::HashSet<i32>,
-            b: std::collections::BTreeSet<String>,
-        ) {}
-    };
-}
-
-#[test]
-fn fn_vec_deque_and_linked_list() {
-    assert_ts_snap! {
-        pub fn f(
-            a: std::collections::VecDeque<i32>,
-            b: std::collections::LinkedList<String>,
-        ) {}
-    };
-}
-
-#[test]
-fn fn_mut_slice() {
-    assert_ts_snap! {
-        /// Mutability of the borrow does not change the TypeScript type.
-        pub fn f(items: &mut [i32]) {}
-    };
-}
-
-#[test]
-fn fn_deeply_nested_generics() {
-    assert_ts_snap! {
-        pub fn f(x: Vec<Option<Vec<Option<i32>>>>) {}
-    };
-}
-
-#[test]
-#[ignore = "tuple support dropped for now"]
-fn fn_nested_tuple() {
-    assert_ts_snap! {
-        pub fn f(t: ((i32, i32), String)) {}
-    };
-}
-
-#[test]
-#[ignore = "tuple support dropped for now"]
-fn fn_tuple_with_unit_element() {
-    assert_ts_snap! {
-        /// A `()` element inside a tuple prints as `void`.
-        pub fn f(t: (i32, (), String)) {}
-    };
-}
-
-#[test]
-fn fn_result_with_unit() {
-    assert_ts_snap! {
-        /// `Result<(), _>` returns `void`; `Result<T, ()>` returns `T`.
-        pub fn f() -> Result<(), String> { Ok(()) }
-        pub fn g(x: i32) -> Result<i32, ()> { Ok(x) }
     };
 }
 
@@ -367,56 +175,6 @@ fn struct_mixed_pub_priv_fields() {
         pub struct Mixed {
             pub x: i32,
             y: i32,
-        }
-    };
-}
-
-#[test]
-fn struct_recursive_via_box() {
-    assert_ts_snap! {
-        /// Self-referencing class must not emit a self-import.
-        pub struct Node {
-            pub next: Option<Box<Node>>,
-        }
-    };
-}
-
-#[test]
-fn struct_mutually_recursive() {
-    assert_ts_snap! {
-        /// Both classes live in the same module, so neither should be imported.
-        pub struct A {
-            b: Option<Box<B>>,
-        }
-        pub struct B {
-            a: Option<Box<A>>,
-        }
-    };
-}
-
-#[test]
-#[ignore = "enum support dropped for now"]
-fn enum_recursive_via_box() {
-    assert_ts_snap! {
-        pub enum Tree {
-            Node(Box<Tree>, Box<Tree>),
-            Leaf(i32),
-        }
-    };
-}
-
-#[test]
-#[ignore = "enum support dropped for now"]
-fn enum_nominal_payload() {
-    assert_ts_snap! {
-        pub struct Point {
-            pub x: i32,
-            pub y: i32,
-        }
-        /// Mixes a tuple-with-nominal variant and a unit variant.
-        pub enum Msg {
-            Move(Point),
-            Stop,
         }
     };
 }
@@ -497,38 +255,6 @@ fn ctor_new_returning_struct_name() {
 }
 
 #[test]
-fn ctor_new_returning_result_is_explicit() {
-    assert_ts_snap! {
-        /// `new() -> Result<Self, _>` is recognised as an explicit constructor. The
-        /// `capacity` param name differs from the field `data`, so the snapshot proves
-        /// the ctor is picked up rather than synthesised from the struct's fields.
-        pub struct Loader {
-            data: Vec<u8>,
-        }
-        impl Loader {
-            pub fn new(capacity: usize) -> Result<Self, String> {
-                Ok(Self { data: Vec::with_capacity(capacity) })
-            }
-        }
-    };
-}
-
-#[test]
-fn ctor_new_returning_result_struct_name_is_explicit() {
-    assert_ts_snap! {
-        /// `new() -> Result<Token, _>` with a named struct in `Ok` is recognised as an
-        /// explicit constructor. The `raw` param name differs from the field `value` so
-        /// the snapshot proves the ctor is picked up rather than synthesised.
-        pub struct Token {
-            value: String,
-        }
-        impl Token {
-            pub fn new(raw: String) -> Result<Token, String> { Ok(Token { value: raw }) }
-        }
-    };
-}
-
-#[test]
 fn ctor_new_with_self_arg_is_implicit() {
     assert_ts_snap! {
         /// `new(&self)` is not treated as an explicit ctor.
@@ -576,20 +302,3 @@ fn ctor_new_in_trait_impl_is_explicit() {
     };
 }
 
-#[test]
-fn ctor_new_in_trait_impl_returning_result_is_explicit() {
-    assert_ts_snap! {
-        /// `new() -> Result<Self, _>` in a trait impl is recognised as an explicit
-        /// constructor. The `seed` param name differs from the field `x` so the snapshot
-        /// proves the trait-impl ctor is picked up rather than synthesised.
-        pub trait TryFactory {
-            fn new(seed: u32) -> Result<Self, String> where Self: Sized;
-        }
-        pub struct Foo {
-            x: i32,
-        }
-        impl TryFactory for Foo {
-            fn new(seed: u32) -> Result<Self, String> { Ok(Foo { x: seed as i32 }) }
-        }
-    };
-}

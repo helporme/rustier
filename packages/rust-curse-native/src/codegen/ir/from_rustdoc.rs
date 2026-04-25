@@ -37,6 +37,11 @@ pub fn build_ir(allowed: &HashSet<Id>, crate_: &Crate) -> Result<IR, BuildError>
         .build_module(crate_.root, allowed)?
         .expect("root module has no id reservation");
     b.ir.root = root;
+    b.ir.crate_name = crate_
+        .index
+        .get(&crate_.root)
+        .and_then(|it| it.name.clone())
+        .unwrap_or_default();
     b.mark_copy_variants();
     Ok(b.ir)
 }
@@ -462,7 +467,10 @@ impl<'a> Builder<'a> {
                 id: Id(0),
                 reason: "tuples are not supported".into(),
             }),
-            RType::Slice(inner) => Ok(Type::Slice(self.intern_type(inner)?)),
+            RType::Slice(_) => Err(BuildError::UnsupportedType {
+                id: Id(0),
+                reason: "slices are not supported".into(),
+            }),
             RType::Array { .. } => Err(BuildError::UnsupportedType {
                 id: Id(0),
                 reason: "fixed-size arrays are not supported".into(),
@@ -516,13 +524,6 @@ impl<'a> Builder<'a> {
         let last = summary.path.last().map(String::as_str);
         let out = match last {
             Some("String") => Type::String,
-            Some("Vec") | Some("VecDeque") | Some("LinkedList") => {
-                Type::Vec(self.type_arg(&path.args, 0)?)
-            }
-            Some("Option") => Type::Option(self.type_arg(&path.args, 0)?),
-            Some("Result") => {
-                Type::Result(self.type_arg(&path.args, 0)?, self.type_arg(&path.args, 1)?)
-            }
             Some("Box" | "Arc" | "Rc" | "Cell" | "RefCell") => {
                 let inner = self.type_arg(&path.args, 0)?;
                 return Ok(Some(self.ir.types[inner.0 as usize].clone()));

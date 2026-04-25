@@ -38,6 +38,23 @@ impl ItemPath {
     }
 }
 
+/// Renders `path` as a Rust source path string. If the first segment
+/// matches `local_crate`, it's rewritten to `crate` so the emitted code
+/// is valid from inside that crate; otherwise segments are joined as-is,
+/// preserving extern-crate references.
+pub fn rust_path(path: &ItemPath, local_crate: &str) -> String {
+    match path.segments.split_first() {
+        Some((head, tail)) if head == local_crate => {
+            if tail.is_empty() {
+                "crate".to_string()
+            } else {
+                format!("crate::{}", tail.join("::"))
+            }
+        }
+        _ => path.segments.join("::"),
+    }
+}
+
 /// Structural type term. Nominal defs are referenced by id.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Type {
@@ -47,10 +64,6 @@ pub enum Type {
     Number(NumberType),
     String,
     Str,
-    Option(TypeId),
-    Result(TypeId, TypeId),
-    Slice(TypeId),
-    Vec(TypeId),
     Struct(StructId),
 }
 
@@ -96,9 +109,6 @@ pub enum ParamMode {
 pub struct StructDef {
     pub path: ItemPath,
     pub ctor: Ctor,
-    /// Additional plain-object wrapper emitted when the struct is moved
-    /// into a fn by value somewhere in the crate and its shape allows
-    /// full serialization (all fields public, no stripped fields).
     pub has_copy_variant: bool,
     pub shape: StructShape,
     pub docs: Option<String>,
@@ -151,6 +161,7 @@ pub enum ExportKind {
 #[derive(Clone, Debug, Default)]
 pub struct IR {
     pub root: ModId,
+    pub crate_name: String,
     pub types: Vec<Type>,
     pub structs: Vec<StructDef>,
     pub fns: Vec<FnDef>,
@@ -175,3 +186,4 @@ impl IR {
 pub mod from_rustdoc;
 pub mod napi;
 pub mod ts;
+pub mod wasm;

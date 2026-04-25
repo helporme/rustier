@@ -24,6 +24,10 @@ path = "tests/ir/ts.rs"
 name = "napi"
 path = "tests/ir/napi.rs"
 
+[[test]]
+name = "wasm"
+path = "tests/ir/wasm.rs"
+
 [features]
 default = ["napi-binding"]
 napi-binding = ["dep:napi", "dep:napi-derive", "dep:napi-build"]

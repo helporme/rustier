@@ -5,25 +5,26 @@ expression: formatted
 ---
 #![allow(non_camel_case_types, non_snake_case)]
 use napi_derive::napi;
-use crate::Counter;
 /// Explicit ctor delegates to `Counter::new`.
 #[napi(js_name = "__cursed_rustdoc_test_crate__Counter__Ref")]
 pub struct __cursed_rustdoc_test_crate__Counter__Ref {
-    inner: Counter,
+    inner: crate::Counter,
 }
 #[napi]
 impl __cursed_rustdoc_test_crate__Counter__Ref {
     #[napi(constructor)]
     pub fn new(start: u32) -> Self {
-        Self { inner: Counter::new(start) }
+        Self {
+            inner: crate::Counter::new(start),
+        }
     }
 }
-impl From<Counter> for __cursed_rustdoc_test_crate__Counter__Ref {
-    fn from(v: Counter) -> Self {
+impl From<crate::Counter> for __cursed_rustdoc_test_crate__Counter__Ref {
+    fn from(v: crate::Counter) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Counter__Ref> for Counter {
+impl From<__cursed_rustdoc_test_crate__Counter__Ref> for crate::Counter {
     fn from(v: __cursed_rustdoc_test_crate__Counter__Ref) -> Self {
         v.inner
     }

@@ -1,0 +1,12 @@
+---
+source: tests/ir/wasm.rs
+description: "pub mod math {\n    /// Returns the square of `x`.\n    pub fn square(x: f64) -> f64 {\n        x * x\n    }\n}\n"
+expression: formatted
+---
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+/// Returns the square of `x`.
+#[wasm_bindgen(js_name = "math__square")]
+pub fn __cursed_rustdoc_test_crate__math__square(x: f64) -> f64 {
+    crate::math::square(x)
+}

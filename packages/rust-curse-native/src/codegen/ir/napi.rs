@@ -1,21 +1,21 @@
 //! IR -> Rust napi glue printer.
 //!
 //! Emits a single `.rs` source string containing (in order):
-//! 1. A preamble of `use` statements for `napi_derive::napi` and every
-//!    user struct referenced in the IR.
+//! 1. A preamble `use napi_derive::napi;`.
 //! 2. `__Ref` opaque handle wrappers and optional `__Copy` plain-object
-//!    wrappers for every struct (plus `From` impls both ways).
-//! 3. `#[napi]` glue functions for every canonical-origin fn export in
-//!    every module, delegating to the user's original fn.
+//!    wrappers for every struct (plus `From` impls both ways). User structs are
+//!    referenced by their full `crate::...` path so no imports of user items
+//!    are emitted.
+//! 3. `#[napi]` glue functions for every canonical-origin fn export in every
+//!    module, delegating to the user's original fn via its full `crate::...`
+//!    path.
 //!
 //! The emitted Rust is designed so that when `napi-rs` macro-expands
 //! this file, its generated `index.d.ts` matches the shape produced by
 //! the sibling `print_ts` printer.
 
-use std::collections::BTreeSet;
-
 use super::{
-    Ctor, ExportKind, FnId, FnParam, ItemPath, ModId, NumberType, ParamMode, StructDef,
+    rust_path, Ctor, ExportKind, FnId, FnParam, ItemPath, ModId, NumberType, ParamMode, StructDef,
     StructField, StructId, StructShape, Type, TypeId, IR,
 };
 
@@ -27,30 +27,17 @@ impl IR {
 
 struct Printer<'a> {
     ir: &'a IR,
-    uses: BTreeSet<Vec<String>>,
 }
 
 impl<'a> Printer<'a> {
     fn new(ir: &'a IR) -> Self {
-        Self {
-            ir,
-            uses: BTreeSet::new(),
-        }
+        Self { ir }
     }
 
     fn run(&mut self) -> String {
-        for def in &self.ir.structs {
-            if def.path.segments.len() > 1 {
-                self.uses.insert(def.path.segments.clone());
-            }
-        }
-
         let mut out = String::new();
         out.push_str("#![allow(non_camel_case_types, non_snake_case)]\n");
         out.push_str("use napi_derive::napi;\n");
-        for path in self.uses.clone() {
-            out.push_str(&format!("use crate::{};\n", path[1..].join("::")));
-        }
 
         for i in 0..self.ir.structs.len() {
             out.push('\n');
@@ -77,7 +64,7 @@ impl<'a> Printer<'a> {
 
     fn print_struct_wrappers(&mut self, sid: StructId) -> String {
         let def = self.ir.struct_(sid).clone();
-        let orig = def.path.name().unwrap().to_string();
+        let orig = rust_path(&def.path, &self.ir.crate_name);
         let mangled = mangle_ref(&def.path);
 
         let mut out = String::new();
@@ -177,21 +164,11 @@ impl<'a> Printer<'a> {
                     })
                     .collect();
                 let args: Vec<String> = fn_def.params.iter().map(|p| p.name.clone()).collect();
-                let returns_result =
-                    matches!(self.ir.type_(fn_def.return_type), Type::Result(_, _));
-                if returns_result {
-                    format!(
-                        "    #[napi(constructor)]\n    pub fn new({}) -> napi::Result<Self> {{\n        {orig}::new({}).map(|inner| Self {{ inner }}).map_err(|e| napi::Error::from_reason(format!(\"{{e:?}}\")))\n    }}\n",
-                        params.join(", "),
-                        args.join(", "),
-                    )
-                } else {
-                    format!(
-                        "    #[napi(constructor)]\n    pub fn new({}) -> Self {{\n        Self {{ inner: {orig}::new({}) }}\n    }}\n",
-                        params.join(", "),
-                        args.join(", "),
-                    )
-                }
+                format!(
+                    "    #[napi(constructor)]\n    pub fn new({}) -> Self {{\n        Self {{ inner: {orig}::new({}) }}\n    }}\n",
+                    params.join(", "),
+                    args.join(", "),
+                )
             }
             Ctor::Implicit => {
                 let (params, body) = match &def.shape {
@@ -256,18 +233,10 @@ impl<'a> Printer<'a> {
         } else {
             format!("{}__{}", mod_parts.join("__"), fn_name)
         };
-        // Rust-side name mirrors the struct-wrapper mangling: the full IR
-        // path (crate + modules + fn_name) joined by `__`, prefixed by
-        // `__cursed_`. This keeps glue names from colliding with the user's
-        // own fn of the same name when the glue lives in the same crate.
+
         let glue_name = mangle_path(&fn_def.path.segments);
 
-        let orig_call_path = if fn_def.path.segments.len() > 1 {
-            let parts: Vec<String> = fn_def.path.segments.iter().skip(1).cloned().collect();
-            format!("crate::{}", parts.join("::"))
-        } else {
-            fn_name.clone()
-        };
+        let orig_call_path = rust_path(&fn_def.path, &self.ir.crate_name);
 
         let params: Vec<String> = fn_def
             .params
@@ -331,8 +300,6 @@ impl<'a> Printer<'a> {
             (Type::Struct(_), ParamMode::ByRef) => format!("&{}.inner", p.name),
             (Type::Struct(_), ParamMode::ByMut) => format!("&mut {}.inner", p.name),
             (Type::Struct(_), ParamMode::ByValue) => format!("{}.into()", p.name),
-            (Type::Slice(_), ParamMode::ByRef) => format!("&{}", p.name),
-            (Type::Slice(_), ParamMode::ByMut) => format!("&mut {}", p.name),
             (Type::Str, _) => format!("&{}", p.name),
             _ => p.name.clone(),
         }
@@ -341,32 +308,9 @@ impl<'a> Printer<'a> {
     fn return_expr(&mut self, tid: TypeId, call: &str) -> (String, String) {
         match self.ir.type_(tid).clone() {
             Type::Unit => ("()".into(), format!("{call};")),
-            Type::Result(ok, _) => {
-                let ok_ty = self.type_to_rs(ok);
-                let inner = self.ir.type_(ok).clone();
-                let expr = match inner {
-                    Type::Unit => format!(
-                        "{call}.map_err(|e| napi::Error::from_reason(format!(\"{{e:?}}\")))"
-                    ),
-                    Type::Struct(_) => format!(
-                        "{call}.map(Into::into).map_err(|e| napi::Error::from_reason(format!(\"{{e:?}}\")))"
-                    ),
-                    Type::Slice(_) => format!(
-                        "{call}.map(|v| v.to_vec()).map_err(|e| napi::Error::from_reason(format!(\"{{e:?}}\")))"
-                    ),
-                    _ => format!(
-                        "{call}.map_err(|e| napi::Error::from_reason(format!(\"{{e:?}}\")))"
-                    ),
-                };
-                (format!("napi::Result<{ok_ty}>"), expr)
-            }
             Type::Struct(_) => {
                 let ty = self.type_to_rs(tid);
                 (ty, format!("{call}.into()"))
-            }
-            Type::Slice(_) => {
-                let ty = self.type_to_rs(tid);
-                (ty, format!("{call}.to_vec()"))
             }
             _ => {
                 let ty = self.type_to_rs(tid);
@@ -382,17 +326,12 @@ impl<'a> Printer<'a> {
             Type::Char => "char".into(),
             Type::String | Type::Str => "String".into(),
             Type::Number(n) => number_name(&n).to_string(),
-            Type::Option(t) => format!("Option<{}>", self.type_to_rs(t)),
-            Type::Result(t, _) => format!("napi::Result<{}>", self.type_to_rs(t)),
-            Type::Vec(t) | Type::Slice(t) => {
-                format!("Vec<{}>", self.type_to_rs(t))
-            }
             Type::Struct(sid) => mangle_ref(&self.ir.struct_(sid).path.clone()),
         }
     }
 }
 
-fn mangle_ref(path: &ItemPath) -> String {
+pub(super) fn mangle_ref(path: &ItemPath) -> String {
     format!("__cursed_{}__Ref", path.segments.join("__"))
 }
 
@@ -400,7 +339,7 @@ fn mangle_path(segments: &[String]) -> String {
     format!("__cursed_{}", segments.join("__"))
 }
 
-fn is_canonical_origin(item_path: &ItemPath, mod_segments: &[String]) -> bool {
+pub(super) fn is_canonical_origin(item_path: &ItemPath, mod_segments: &[String]) -> bool {
     if item_path.segments.len() < 2 {
         return false;
     }

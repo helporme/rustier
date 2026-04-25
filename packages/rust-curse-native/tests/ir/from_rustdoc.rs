@@ -60,68 +60,6 @@ fn borrow_modes_struct() {
 }
 
 #[test]
-fn option_param_and_return() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(a: Option<i32>) -> Option<String> { None }
-    });
-}
-
-#[test]
-fn vec_param_and_return() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(items: Vec<i32>) -> Vec<String> { vec![] }
-    });
-}
-
-#[test]
-fn vec_and_option_map_to_ir() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(v: Vec<Option<i32>>) { let _ = v; }
-    });
-}
-
-#[test]
-fn vec_of_option() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(items: Vec<Option<i32>>) -> Vec<Option<String>> { vec![] }
-    });
-}
-
-#[test]
-fn option_of_vec() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(items: Option<Vec<i32>>) -> Option<Vec<String>> { None }
-    });
-}
-
-#[test]
-fn result_type() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(x: i32) -> Result<String, i32> { Ok(String::new()) }
-    });
-}
-
-#[test]
-#[ignore = "map support dropped for now"]
-fn map_types() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(
-            a: std::collections::HashMap<String, i32>,
-            b: std::collections::BTreeMap<i32, bool>,
-            c: std::collections::HashMap<i64, String>,
-        ) {}
-    });
-}
-
-#[test]
-#[ignore = "tuple support dropped for now"]
-fn tuple_types() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(pair: (i32, String)) -> (bool, f64, String) { todo!() }
-    });
-}
-
-#[test]
 fn return_void() {
     assert_ir_snap!(["f"] => {
         pub fn f() {}
@@ -166,31 +104,6 @@ fn tuple_struct() {
 }
 
 #[test]
-#[ignore = "enum support dropped for now"]
-fn unit_enum() {
-    assert_ir_snap!(["Direction"] => {
-        pub enum Direction {
-            North,
-            South,
-            East,
-            West,
-        }
-    });
-}
-
-#[test]
-#[ignore = "enum support dropped for now"]
-fn enum_variants_shapes() {
-    assert_ir_snap!(["E"] => {
-        pub enum E {
-            A,
-            B(i32),
-            C { x: i32 },
-        }
-    });
-}
-
-#[test]
 fn nested_module_tree() {
     assert_ir_snap!(["leaf"] => {
         pub mod child {
@@ -229,27 +142,6 @@ fn empty_struct_plain() {
 }
 
 #[test]
-fn vec_deque_and_linked_list() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(
-            a: std::collections::VecDeque<i32>,
-            b: std::collections::LinkedList<String>,
-        ) {}
-    });
-}
-
-#[test]
-#[ignore = "set support dropped for now"]
-fn hash_set_and_btree_set() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(
-            a: std::collections::HashSet<i32>,
-            b: std::collections::BTreeSet<String>,
-        ) {}
-    });
-}
-
-#[test]
 fn smart_pointer_inlining() {
     assert_ir_snap!(["f"] => {
         pub fn f(
@@ -259,20 +151,6 @@ fn smart_pointer_inlining() {
             d: std::cell::Cell<i32>,
             e: std::cell::RefCell<i32>,
         ) {}
-    });
-}
-
-#[test]
-fn smart_pointer_nested() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(a: Vec<Box<i32>>, b: Option<std::sync::Arc<String>>) {}
-    });
-}
-
-#[test]
-fn mut_slice() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(items: &mut [i32]) {}
     });
 }
 
@@ -300,66 +178,6 @@ fn struct_intern_across_uses() {
 }
 
 #[test]
-fn recursive_struct_via_box() {
-    assert_ir_snap!(["Node"] => {
-        pub struct Node {
-            next: Option<Box<Node>>,
-        }
-    });
-}
-
-#[test]
-fn mutually_recursive_structs() {
-    assert_ir_snap!(["A", "B"] => {
-        pub struct A {
-            b: Option<Box<B>>,
-        }
-        pub struct B {
-            a: Option<Box<A>>,
-        }
-    });
-}
-
-#[test]
-fn deeply_nested_generics() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(x: Vec<Option<Vec<Option<i32>>>>) {}
-    });
-}
-
-#[test]
-fn result_with_unit() {
-    assert_ir_snap!(["f", "g"] => {
-        pub fn f() -> Result<(), String> { Ok(()) }
-        pub fn g(x: i32) -> Result<i32, ()> { Ok(x) }
-    });
-}
-
-#[test]
-#[ignore = "tuple support dropped for now"]
-fn tuple_with_unit_element() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(t: (i32, (), String)) {}
-    });
-}
-
-#[test]
-#[ignore = "tuple support dropped for now"]
-fn large_tuple() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(t: (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32)) {}
-    });
-}
-
-#[test]
-#[ignore = "tuple support dropped for now"]
-fn nested_tuple() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(t: ((i32, i32), String)) {}
-    });
-}
-
-#[test]
 fn struct_mixed_pub_priv_fields() {
     assert_ir_snap!(["Mixed"] => {
         pub struct Mixed {
@@ -382,30 +200,6 @@ fn ctor_new_with_self_arg_is_implicit() {
 }
 
 #[test]
-fn ctor_new_returning_result_is_explicit() {
-    assert_ir_snap!(["Loader"] => {
-        pub struct Loader {
-            data: Vec<u8>,
-        }
-        impl Loader {
-            pub fn new() -> Result<Self, String> { Ok(Self { data: Vec::new() }) }
-        }
-    });
-}
-
-#[test]
-fn ctor_new_returning_result_struct_name_is_explicit() {
-    assert_ir_snap!(["Token"] => {
-        pub struct Token {
-            value: String,
-        }
-        impl Token {
-            pub fn new(value: String) -> Result<Token, String> { Ok(Token { value }) }
-        }
-    });
-}
-
-#[test]
 fn ctor_new_in_trait_impl_is_explicit() {
     assert_ir_snap!(["Foo"] => {
         pub trait Factory {
@@ -416,21 +210,6 @@ fn ctor_new_in_trait_impl_is_explicit() {
         }
         impl Factory for Foo {
             fn new() -> Self { Foo { x: 0 } }
-        }
-    });
-}
-
-#[test]
-fn ctor_new_in_trait_impl_returning_result_is_explicit() {
-    assert_ir_snap!(["Foo"] => {
-        pub trait TryFactory {
-            fn new() -> Result<Self, String> where Self: Sized;
-        }
-        pub struct Foo {
-            x: i32,
-        }
-        impl TryFactory for Foo {
-            fn new() -> Result<Self, String> { Ok(Foo { x: 0 }) }
         }
     });
 }
@@ -588,40 +367,6 @@ fn duplicate_struct_names_in_different_modules() {
         }
         pub mod b {
             pub struct Thing { pub y: i32 }
-        }
-    });
-}
-
-#[test]
-#[ignore = "enum support dropped for now"]
-fn empty_enum() {
-    assert_ir_snap!(["Void"] => {
-        pub enum Void {}
-    });
-}
-
-#[test]
-#[ignore = "enum support dropped for now"]
-fn enum_nominal_payload() {
-    assert_ir_snap!(["Msg"] => {
-        pub struct Point {
-            pub x: i32,
-            pub y: i32,
-        }
-        pub enum Msg {
-            Move(Point),
-            Stop,
-        }
-    });
-}
-
-#[test]
-#[ignore = "enum support dropped for now"]
-fn recursive_enum_via_box() {
-    assert_ir_snap!(["Tree"] => {
-        pub enum Tree {
-            Node(Box<Tree>, Box<Tree>),
-            Leaf(i32),
         }
     });
 }

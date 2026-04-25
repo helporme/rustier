@@ -45,30 +45,6 @@ fn fn_borrow_modes_struct() {
 }
 
 #[test]
-fn fn_option() {
-    assert_napi_snap! {
-        /// `Option<T>` passes through unchanged.
-        pub fn f(a: Option<i32>) -> Option<String> { None }
-    };
-}
-
-#[test]
-fn fn_vec() {
-    assert_napi_snap! {
-        /// `Vec<T>` passes through unchanged.
-        pub fn f(items: Vec<i32>) -> Vec<String> { vec![] }
-    };
-}
-
-#[test]
-fn fn_result() {
-    assert_napi_snap! {
-        /// `Result<T, E>` at return position becomes `napi::Result<T>`.
-        pub fn f(x: i32) -> Result<String, i32> { Ok(String::new()) }
-    };
-}
-
-#[test]
 fn fn_return_void() {
     assert_napi_snap! {
         /// Unit return type emits no return clause on the glue fn.
@@ -109,21 +85,6 @@ fn struct_opaque_ctor() {
         impl Counter {
             /// Creates a new counter starting at `start`.
             pub fn new(start: u32) -> Self { Self { count: start } }
-        }
-    };
-}
-
-#[test]
-fn ctor_new_returning_result() {
-    assert_napi_snap! {
-        /// `new() -> Result<Self, _>` lifts to `napi::Result<Self>` on the ctor.
-        pub struct Loader {
-            data: Vec<u8>,
-        }
-        impl Loader {
-            pub fn new(capacity: usize) -> Result<Self, String> {
-                Ok(Self { data: Vec::with_capacity(capacity) })
-            }
         }
     };
 }
@@ -185,20 +146,3 @@ fn module_deep_nested() {
     };
 }
 
-#[test]
-fn fn_slice() {
-    assert_napi_snap! {
-        /// Slices appear as `Vec<T>` on the glue side.
-        pub fn f(slice: &[String]) {}
-    };
-}
-
-#[test]
-fn struct_recursive_via_box() {
-    assert_napi_snap! {
-        /// Self-referencing struct must not self-import.
-        pub struct Node {
-            pub next: Option<Box<Node>>,
-        }
-    };
-}
