@@ -6,7 +6,7 @@ expression: formatted
 #![allow(non_camel_case_types, non_snake_case)]
 use napi_derive::napi;
 /// Borrow mode for primitives passes through without wrapping.
-#[napi(js_name = "f")]
+#[napi(js_name = "__cursed_rustdoc_test_crate__f")]
 pub fn __cursed_rustdoc_test_crate__f(by_ref: i32, by_mut_ref: i32, by_value: i32) {
     crate::f(by_ref, by_mut_ref, by_value);
 }

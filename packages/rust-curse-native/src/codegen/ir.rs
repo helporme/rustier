@@ -184,6 +184,8 @@ impl IR {
 }
 
 pub mod from_rustdoc;
+pub mod js;
+pub mod mangle;
 pub mod napi;
 pub mod ts;
 pub mod wasm;

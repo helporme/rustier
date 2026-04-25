@@ -1,5 +1,8 @@
+//! IR -> TS printer.
+
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
+use super::mangle::is_canonical_origin;
 use super::{
     Ctor, ExportKind, FnId, FnParam, ItemPath, ModId, NumberType, ParamMode, StructId, StructShape,
     Type, TypeId, IR,
@@ -59,13 +62,10 @@ impl<'a> Printer<'a> {
         let mod_segments = self.ir.mod_(mid).path.segments.clone();
         let exports = self.ir.mod_(mid).exports.clone();
         for export in &exports {
-            match &export.kind {
-                ExportKind::Struct(sid) => {
-                    if is_canonical_origin(&self.ir.struct_(*sid).path, &mod_segments) {
-                        self.local_structs.insert(*sid);
-                    }
+            if let ExportKind::Struct(sid) = &export.kind {
+                if is_canonical_origin(&self.ir.struct_(*sid).path, &mod_segments) {
+                    self.local_structs.insert(*sid);
                 }
-                _ => {}
             }
         }
 
@@ -282,13 +282,6 @@ impl<'a> Printer<'a> {
 
 fn mod_ambient_path(mod_: &super::ModDef) -> String {
     format!("$rust/{}", mod_.path.segments.join("/"))
-}
-
-fn is_canonical_origin(item_path: &ItemPath, mod_segments: &[String]) -> bool {
-    if item_path.segments.len() < 2 {
-        return false;
-    }
-    &item_path.segments[..item_path.segments.len() - 1] == mod_segments
 }
 
 fn print_reexport(canonical: &ItemPath, local_name: &str) -> String {

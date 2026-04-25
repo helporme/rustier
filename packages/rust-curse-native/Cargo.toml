@@ -28,6 +28,10 @@ path = "tests/ir/napi.rs"
 name = "wasm"
 path = "tests/ir/wasm.rs"
 
+[[test]]
+name = "js"
+path = "tests/ir/js.rs"
+
 [features]
 default = ["napi-binding"]
 napi-binding = ["dep:napi", "dep:napi-derive", "dep:napi-build"]

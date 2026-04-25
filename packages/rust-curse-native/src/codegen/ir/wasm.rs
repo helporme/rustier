@@ -1,29 +1,9 @@
 //! IR -> Rust wasm-bindgen glue printer.
-//!
-//! Emits a single `.rs` source string containing (in order):
-//! 1. A preamble `use wasm_bindgen::prelude::*;`.
-//! 2. `__Ref` opaque handle wrappers (always) and optional `__Copy`
-//!    plain-object wrappers (when `StructDef::has_copy_variant`) for
-//!    every struct, plus `From` impls in both directions. User structs
-//!    are referenced by their full `crate::...` path so no imports of
-//!    user items are emitted.
-//! 3. `#[wasm_bindgen]` glue functions for every canonical-origin fn
-//!    export, delegating to the user's original fn via its full
-//!    `crate::...` path.
-//!
-//! The emitted Rust is designed so that when `wasm-bindgen`
-//! macro-expands this file the generated JS matches the shape produced
-//! by the sibling `print_ts` printer.
-//!
-//! Unlike napi-rs, wasm-bindgen has no `#[wasm_bindgen(object)]`
-//! equivalent for plain-object params. The `__Copy` wrapper is a pure
-//! `serde::Deserialize` struct; glue fns that take an owned Copy struct
-//! accept `JsValue` and call `__Copy::from_js(p)?`, which couples them
-//! to a `Result<_, JsValue>` return.
 
+use super::mangle::{is_canonical_origin, mangle_copy, mangle_fn, mangle_ref};
 use super::{
-    rust_path, Ctor, ExportKind, FnDef, FnId, FnParam, ItemPath, ModId, NumberType, ParamMode,
-    StructDef, StructField, StructId, StructShape, Type, TypeId, IR,
+    rust_path, Ctor, ExportKind, FnDef, FnId, FnParam, ModId, NumberType, ParamMode, StructDef,
+    StructField, StructId, StructShape, Type, TypeId, IR,
 };
 
 impl IR {
@@ -61,7 +41,7 @@ impl<'a> Printer<'a> {
                 let canonical = self.ir.fn_(fid).path.clone();
                 if is_canonical_origin(&canonical, &mod_segs) {
                     out.push('\n');
-                    out.push_str(&self.print_fn_glue(fid, &mod_segs));
+                    out.push_str(&self.print_fn_glue(fid));
                 }
             }
         }
@@ -108,7 +88,7 @@ impl<'a> Printer<'a> {
     }
 
     fn print_copy_wrapper(&mut self, def: &StructDef, orig: &str) -> String {
-        let copy_mangled = mangle_copy(&def.path.segments);
+        let copy_mangled = mangle_copy(&def.path);
         let mut out = String::new();
         out.push_str(&format!(
             "#[derive(serde::Deserialize)]\npub struct {copy_mangled} {{\n"
@@ -227,21 +207,10 @@ impl<'a> Printer<'a> {
         )
     }
 
-    fn print_fn_glue(&mut self, fid: FnId, mod_segs: &[String]) -> String {
+    fn print_fn_glue(&mut self, fid: FnId) -> String {
         let fn_def = self.ir.fn_(fid).clone();
-        let fn_name = fn_def.path.name().unwrap().to_string();
-
-        let mod_parts: &[String] = if mod_segs.len() > 1 {
-            &mod_segs[1..]
-        } else {
-            &[]
-        };
-        let js_name = if mod_parts.is_empty() {
-            fn_name.clone()
-        } else {
-            format!("{}__{}", mod_parts.join("__"), fn_name)
-        };
-        let glue_name = mangle_path(&fn_def.path.segments);
+        let glue_name = mangle_fn(&fn_def.path);
+        let js_name = glue_name.clone();
 
         let orig_call_path = rust_path(&fn_def.path, &self.ir.crate_name);
 
@@ -313,7 +282,7 @@ impl<'a> Printer<'a> {
             (Type::Struct(sid), ParamMode::ByValue) => {
                 let def = self.ir.struct_(*sid);
                 if def.has_copy_variant {
-                    let copy = mangle_copy(&def.path.segments);
+                    let copy = mangle_copy(&def.path);
                     format!("{copy}::from_js({})?.into()", p.name)
                 } else {
                     format!("{}.into()", p.name)
@@ -336,7 +305,10 @@ impl<'a> Printer<'a> {
             Type::Struct(_) => {
                 let ty = self.type_to_rs(tid);
                 if fallible {
-                    (format!("Result<{ty}, JsValue>"), format!("Ok({call}.into())"))
+                    (
+                        format!("Result<{ty}, JsValue>"),
+                        format!("Ok({call}.into())"),
+                    )
                 } else {
                     (ty, format!("{call}.into()"))
                 }
@@ -375,25 +347,6 @@ impl<'a> Printer<'a> {
             Type::Struct(sid) => mangle_ref(&self.ir.struct_(sid).path.clone()),
         }
     }
-}
-
-fn mangle_ref(path: &ItemPath) -> String {
-    format!("__cursed_{}__Ref", path.segments.join("__"))
-}
-
-fn mangle_path(segments: &[String]) -> String {
-    format!("__cursed_{}", segments.join("__"))
-}
-
-fn mangle_copy(segments: &[String]) -> String {
-    format!("__cursed_{}__Copy", segments.join("__"))
-}
-
-fn is_canonical_origin(item_path: &ItemPath, mod_segments: &[String]) -> bool {
-    if item_path.segments.len() < 2 {
-        return false;
-    }
-    &item_path.segments[..item_path.segments.len() - 1] == mod_segments
 }
 
 fn is_primitive_ty(t: &Type) -> bool {

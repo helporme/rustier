@@ -65,6 +65,23 @@ pub fn fmt_src(src: &str) -> String {
     }
 }
 
+pub fn print_js_per_mod<F>(ir: &rust_curse::codegen::ir::IR, mut printer: F) -> String
+where
+    F: FnMut(&rust_curse::codegen::ir::IR, rust_curse::codegen::ir::ModId) -> String,
+{
+    let mut out = String::new();
+    for i in 0..ir.mods.len() {
+        let mid = rust_curse::codegen::ir::ModId(i as u32);
+        let mod_path = ir.mod_(mid).path.segments.join("/");
+        if !out.is_empty() {
+            out.push('\n');
+        }
+        out.push_str(&format!("// $rust/{mod_path}\n"));
+        out.push_str(&printer(ir, mid));
+    }
+    out
+}
+
 pub fn all_leaf_ids(crate_: &rustdoc_types::Crate) -> HashSet<rustdoc_types::Id> {
     crate_
         .index
@@ -163,6 +180,25 @@ macro_rules! assert_wasm_snap {
         let formatted = $crate::common::fmt_src(&wasm_src);
         insta::with_settings!({ description => src }, {
             insta::assert_snapshot!(formatted);
+        });
+    }};
+}
+
+/// Build IR from all items and snapshot the napi-targeted JS re-export
+/// printer output for every module, separated by `// $rust/<path>` headers
+/// so one fixture exercises the whole module tree.
+#[macro_export]
+macro_rules! assert_js_snap {
+    ($($tt:tt)*) => {{
+        let src = $crate::common::fmt_src(stringify!($($tt)*));
+        let ir = {
+            let crate_ = $crate::common::gen_rustdoc(&src);
+            let allowed = $crate::common::all_leaf_ids(&crate_);
+            rust_curse::codegen::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap()
+        };
+        let out = $crate::common::print_js_per_mod(&ir, |ir, mid| ir.print_js(mid, "$test".to_owned()));
+        insta::with_settings!({ description => src }, {
+            insta::assert_snapshot!(out);
         });
     }};
 }

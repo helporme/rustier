@@ -6,7 +6,7 @@ expression: formatted
 #![allow(non_camel_case_types, non_snake_case)]
 use napi_derive::napi;
 /// Unit return type emits no return clause on the glue fn.
-#[napi(js_name = "f")]
+#[napi(js_name = "__cursed_rustdoc_test_crate__f")]
 pub fn __cursed_rustdoc_test_crate__f() {
     crate::f();
 }
