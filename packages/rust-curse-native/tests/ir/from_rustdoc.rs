@@ -65,6 +65,21 @@ fn return_void() {
 }
 
 #[test]
+fn fn_returns_struct() {
+    assert_ir_snap!(["Point", "make_origin"] => {
+        /// A point in 2D space.
+        pub struct Point {
+            /// Horizontal position.
+            pub x: f64,
+            /// Vertical position.
+            pub y: f64,
+        }
+        /// Returns the origin point `(0, 0)`.
+        pub fn make_origin() -> Point { Point { x: 0.0, y: 0.0 } }
+    });
+}
+
+#[test]
 fn plain_struct_all_pub_is_copy() {
     assert_ir_snap!(["Point"] => {
         pub struct Point {

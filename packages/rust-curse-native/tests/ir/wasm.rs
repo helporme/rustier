@@ -51,6 +51,21 @@ fn fn_return_void() {
 }
 
 #[test]
+fn fn_returns_struct() {
+    assert_wasm_snap! {
+        /// Returning a user-defined struct by value goes through the `__Ref` wrapper.
+        pub struct Point {
+            /// Horizontal position.
+            pub x: f64,
+            /// Vertical position.
+            pub y: f64,
+        }
+        /// Returns the origin point `(0, 0)`.
+        pub fn make_origin() -> Point { Point { x: 0.0, y: 0.0 } }
+    };
+}
+
+#[test]
 fn struct_plain() {
     assert_wasm_snap! {
         /// All-public-field struct with no by-value use gets only the `__Ref` wrapper.

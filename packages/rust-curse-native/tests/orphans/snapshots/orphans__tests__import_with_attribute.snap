@@ -1,0 +1,15 @@
+---
+source: tests/orphans/tests.rs
+description: "`app/main.js`\n```js\nimport { hello } from '../src/greet.rs' with { type: 'rust' }\n```\n\n`src/greet.rs`\n```rs\n\n```\n\n"
+expression: shaked
+---
+[
+    OrphanModuleShaked {
+        rel_rs_path: "greet.rs",
+        imported_members: Specific(
+            [
+                "hello",
+            ],
+        ),
+    },
+]

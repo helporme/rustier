@@ -4,25 +4,32 @@
 use std::path::{Path, PathBuf};
 
 use crate::codegen::common::{mangle_module_name, needs_non_snake_case_allow, HEADER};
-use crate::model::{GeneratedFile, OrphanModule, ShakedModule};
+use crate::orphans::OrphanModuleShaked;
+
+#[derive(Clone, Debug)]
+pub struct GeneratedFile {
+    /// Relative path (e.g. `lib.rs`, `modules/math.rs`). The emit layer
+    /// joins this with the output directory.
+    pub rel_path: PathBuf,
+    pub content: String,
+}
 
 /// Generate `default.rs` with private mod declarations for all orphan modules
-/// and `pub use` re-exports for only the treeshaked items.
+/// and `pub use` re-exports for only the JS-imported items.
 pub fn generate_default_rs(
-    modules: &[OrphanModule],
-    shaked: &[ShakedModule],
+    modules: &[OrphanModuleShaked],
     path_prefix: &Path,
     crate_: &rustdoc_types::Crate,
+    module_dir_rel_path: &Path,
     default_rel_path: PathBuf,
 ) -> GeneratedFile {
     let mut content = String::from(HEADER);
 
-    // Emit mod declarations for all orphan modules
     for module in modules {
-        let target_rel_path = path_prefix.join(&module.rel_path);
+        let target_rel_path = path_prefix.join(&module.rel_rs_path);
         let target_rel_path = target_rel_path.to_string_lossy();
 
-        let mod_name = mangle_module_name(&module.name);
+        let mod_name = mangle_module_name(&module.gen_module_name());
 
         content.push_str(&format!("#[path = \"{}\"]\n", target_rel_path));
         if needs_non_snake_case_allow(&mod_name) {
@@ -31,12 +38,12 @@ pub fn generate_default_rs(
         content.push_str(&format!("mod {};\n\n", mod_name));
     }
 
-    // Emit pub use re-exports for treeshaked items
-    for shaked_module in shaked {
-        let mod_name = mangle_module_name(&shaked_module.module.name);
+    for module in modules {
+        let mod_name = mangle_module_name(&module.gen_module_name());
 
-        for id in &shaked_module.imported_item_ids {
-            if let Some(item) = crate_.index.get(id) {
+        for resolved in module.find_matching_members(crate_, module_dir_rel_path) {
+            let Ok(id) = resolved else { continue };
+            if let Some(item) = crate_.index.get(&id) {
                 if let Some(name) = item.name.as_deref() {
                     content.push_str(&format!("pub use {mod_name}::{name};\n"));
                 }
@@ -53,17 +60,22 @@ pub fn generate_default_rs(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rustdoc_types::{Crate, Id, Item, ItemEnum, Visibility};
+    use crate::orphans::OrphanModuleMembers;
+    use rustdoc_types::{Crate, Id, Item, ItemEnum, Span, Visibility};
     use std::collections::HashMap;
 
-    fn make_item(id: u32, name: &str, visibility: Visibility) -> (Id, Item) {
+    fn make_item(id: u32, name: &str, filename: &str, visibility: Visibility) -> (Id, Item) {
         (
             Id(id),
             Item {
                 id: Id(id),
                 crate_id: 0,
                 name: Some(name.to_string()),
-                span: None,
+                span: Some(Span {
+                    filename: PathBuf::from(filename),
+                    begin: (1, 0),
+                    end: (1, 0),
+                }),
                 visibility,
                 docs: None,
                 links: HashMap::new(),
@@ -111,34 +123,26 @@ mod tests {
     #[test]
     fn generates_mod_declarations_for_all_modules() {
         let modules = vec![
-            OrphanModule {
-                name: "greet".into(),
-                rel_path: PathBuf::from("greet.rs"),
-                item_ids: vec![Id(1)],
+            OrphanModuleShaked {
+                rel_rs_path: PathBuf::from("greet.rs"),
+                imported_members: OrphanModuleMembers::Specific(vec!["hello".into()]),
             },
-            OrphanModule {
-                name: "unused".into(),
-                rel_path: PathBuf::from("unused.rs"),
-                item_ids: vec![Id(2)],
+            OrphanModuleShaked {
+                rel_rs_path: PathBuf::from("unused.rs"),
+                imported_members: OrphanModuleMembers::None,
             },
         ];
 
-        let shaked = vec![ShakedModule {
-            module: modules[0].clone(),
-            importer_abs_paths: vec![PathBuf::from("/app/main.js")],
-            imported_item_ids: vec![Id(1)],
-        }];
-
         let crate_ = make_crate(vec![
-            make_item(1, "hello", Visibility::Public),
-            make_item(2, "unused_fn", Visibility::Public),
+            make_item(1, "hello", "src/greet.rs", Visibility::Public),
+            make_item(2, "unused_fn", "src/unused.rs", Visibility::Public),
         ]);
 
         let file = generate_default_rs(
             &modules,
-            &shaked,
             Path::new("../src"),
             &crate_,
+            Path::new("src"),
             PathBuf::from("default.rs"),
         );
 
@@ -161,25 +165,23 @@ mod tests {
 
     #[test]
     fn mangled_names_get_allow_attribute() {
-        let modules = vec![OrphanModule {
-            name: "nested::deep".into(),
-            rel_path: PathBuf::from("nested/deep.rs"),
-            item_ids: vec![Id(1)],
+        let modules = vec![OrphanModuleShaked {
+            rel_rs_path: PathBuf::from("nested/deep.rs"),
+            imported_members: OrphanModuleMembers::Specific(vec!["run".into()]),
         }];
 
-        let shaked = vec![ShakedModule {
-            module: modules[0].clone(),
-            importer_abs_paths: vec![PathBuf::from("/app/main.js")],
-            imported_item_ids: vec![Id(1)],
-        }];
-
-        let crate_ = make_crate(vec![make_item(1, "run", Visibility::Public)]);
+        let crate_ = make_crate(vec![make_item(
+            1,
+            "run",
+            "src/nested/deep.rs",
+            Visibility::Public,
+        )]);
 
         let file = generate_default_rs(
             &modules,
-            &shaked,
             Path::new("../../src"),
             &crate_,
+            Path::new("src"),
             PathBuf::from("default.rs"),
         );
 
@@ -197,20 +199,24 @@ mod tests {
     }
 
     #[test]
-    fn no_reexports_when_nothing_shaked() {
-        let modules = vec![OrphanModule {
-            name: "greet".into(),
-            rel_path: PathBuf::from("greet.rs"),
-            item_ids: vec![Id(1)],
+    fn no_reexports_when_nothing_imported() {
+        let modules = vec![OrphanModuleShaked {
+            rel_rs_path: PathBuf::from("greet.rs"),
+            imported_members: OrphanModuleMembers::None,
         }];
 
-        let crate_ = make_crate(vec![make_item(1, "hello", Visibility::Public)]);
+        let crate_ = make_crate(vec![make_item(
+            1,
+            "hello",
+            "src/greet.rs",
+            Visibility::Public,
+        )]);
 
         let file = generate_default_rs(
             &modules,
-            &[], // no shaked modules
             Path::new("../src"),
             &crate_,
+            Path::new("src"),
             PathBuf::from("default.rs"),
         );
 
@@ -222,30 +228,23 @@ mod tests {
     }
 
     #[test]
-    fn multiple_items_reexported() {
-        let modules = vec![OrphanModule {
-            name: "math".into(),
-            rel_path: PathBuf::from("math.rs"),
-            item_ids: vec![Id(1), Id(2), Id(3)],
-        }];
-
-        let shaked = vec![ShakedModule {
-            module: modules[0].clone(),
-            importer_abs_paths: vec![PathBuf::from("/app/main.js")],
-            imported_item_ids: vec![Id(1), Id(2)],
+    fn star_import_re_exports_public_only() {
+        let modules = vec![OrphanModuleShaked {
+            rel_rs_path: PathBuf::from("math.rs"),
+            imported_members: OrphanModuleMembers::All,
         }];
 
         let crate_ = make_crate(vec![
-            make_item(1, "add", Visibility::Public),
-            make_item(2, "sub", Visibility::Public),
-            make_item(3, "internal", Visibility::Default),
+            make_item(1, "add", "src/math.rs", Visibility::Public),
+            make_item(2, "sub", "src/math.rs", Visibility::Public),
+            make_item(3, "internal", "src/math.rs", Visibility::Default),
         ]);
 
         let file = generate_default_rs(
             &modules,
-            &shaked,
             Path::new("../src"),
             &crate_,
+            Path::new("src"),
             PathBuf::from("default.rs"),
         );
 

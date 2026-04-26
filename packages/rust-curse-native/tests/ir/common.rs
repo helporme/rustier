@@ -5,7 +5,7 @@
 use std::collections::HashSet;
 use std::fs;
 
-use rust_curse::discovery::rustdoc::run_cargo_rustdoc_json;
+use rust_curse::rustdoc::run_cargo_rustdoc_json;
 
 const TEST_CRATE_NAME: &str = "rustdoc_test_crate";
 

@@ -52,6 +52,21 @@ fn fn_return_void() {
     };
 }
 
+#[test]
+fn fn_returns_struct() {
+    assert_ts_snap! {
+        /// Returning a user-defined struct surfaces the class type as the return type.
+        pub struct Point {
+            /// Horizontal position.
+            pub x: f64,
+            /// Vertical position.
+            pub y: f64,
+        }
+        /// Returns the origin point `(0, 0)`.
+        pub fn make_origin() -> Point { Point { x: 0.0, y: 0.0 } }
+    };
+}
+
 // ── structs ──────────────────────────────────────────────────────────────────
 
 #[test]

@@ -1,0 +1,15 @@
+---
+source: tests/orphans/tests.rs
+description: "`app/main.js`\n```js\nimport { help } from '../src/utils'\n```\n\n`src/utils/mod.rs`\n```rs\n\n```\n\n"
+expression: shaked
+---
+[
+    OrphanModuleShaked {
+        rel_rs_path: "utils/mod.rs",
+        imported_members: Specific(
+            [
+                "help",
+            ],
+        ),
+    },
+]

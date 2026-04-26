@@ -1,0 +1,15 @@
+---
+source: tests/orphans/tests.rs
+description: "`app/main.js`\n```js\nimport { go } from '../src/nested/deep.rs'\n```\n\n`src/nested/deep.rs`\n```rs\n\n```\n\n"
+expression: shaked
+---
+[
+    OrphanModuleShaked {
+        rel_rs_path: "nested/deep.rs",
+        imported_members: Specific(
+            [
+                "go",
+            ],
+        ),
+    },
+]

@@ -1,0 +1,13 @@
+---
+source: tests/orphans/tests.rs
+description: "`src/other.rs`\n```rs\n\n```\n\n`src/parent/child.rs`\n```rs\n\n```\n\n`src/parent.rs`\n```rs\npub mod child;\n```\n\n"
+expression: modules
+---
+[
+    OrphanModule {
+        rel_rs_path: "other.rs",
+    },
+    OrphanModule {
+        rel_rs_path: "parent.rs",
+    },
+]

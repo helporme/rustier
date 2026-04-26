@@ -1,0 +1,16 @@
+---
+source: tests/orphans/tests.rs
+description: "`app/main.js`\n```js\nimport { hello as hi, goodbye as bye } from '../src/greet.rs'\n```\n\n`src/greet.rs`\n```rs\n\n```\n\n"
+expression: shaked
+---
+[
+    OrphanModuleShaked {
+        rel_rs_path: "greet.rs",
+        imported_members: Specific(
+            [
+                "goodbye",
+                "hello",
+            ],
+        ),
+    },
+]

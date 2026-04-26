@@ -1,0 +1,10 @@
+---
+source: tests/orphans/tests.rs
+description: "`src/drop.rs`\n```rs\n\n```\n\n`src/keep.rs`\n```rs\n\n```\n\n"
+expression: modules
+---
+[
+    OrphanModule {
+        rel_rs_path: "keep.rs",
+    },
+]

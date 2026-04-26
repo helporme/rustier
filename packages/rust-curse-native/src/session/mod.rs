@@ -4,7 +4,7 @@ use anyhow::Context;
 #[cfg(feature = "napi-binding")]
 use napi_derive::napi;
 
-use crate::discovery::orphans::discover_orphans;
+use crate::orphans::{self, OrphanScanOpts, SourceFilter};
 use crate::scaffold::rustdoc::RustdocSectionOpts;
 use crate::scaffold::{Scaffold, ScaffoldOptions};
 
@@ -101,7 +101,13 @@ impl Session {
     }
 
     fn try_build(&mut self) -> anyhow::Result<BuildResult> {
-        let modules = discover_orphans(&PathBuf::from(&self.options.module_dir_rel_path))?;
+        let module_root = PathBuf::from(&self.options.project_root_abs_path)
+            .join(&self.options.module_dir_rel_path);
+
+        let modules = orphans::scan(OrphanScanOpts {
+            root_abs_path: &module_root,
+            rs_filter: SourceFilter::default(),
+        })?;
 
         let mut scaffold = Scaffold::new(ScaffoldOptions {
             abs_root_path: PathBuf::from(&self.options.project_root_abs_path),

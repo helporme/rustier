@@ -1,6 +1,6 @@
 use crate::{
     codegen::common::{mangle_module_name, needs_non_snake_case_allow, HEADER},
-    model::OrphanModule,
+    orphans::{gen_module_name, OrphanModule},
 };
 
 use super::{Scaffold, ScaffoldError, ScaffoldSection};
@@ -24,10 +24,10 @@ impl Scaffold {
         let mut content = String::from(HEADER);
 
         for module in modules {
-            let target_rel_path = self.abs_path_from_project_root_to(&module.rel_path);
+            let target_rel_path = self.abs_path_from_project_root_to(&module.rel_rs_path);
             let target_rel_path = target_rel_path.to_string_lossy();
 
-            let mod_name = mangle_module_name(&module.name);
+            let mod_name = mangle_module_name(&gen_module_name(&module.rel_rs_path));
 
             content.push_str(&format!("#[path = \"{}\"]\n", target_rel_path));
             if needs_non_snake_case_allow(&mod_name) {

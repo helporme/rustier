@@ -1,0 +1,11 @@
+---
+source: tests/orphans/tests.rs
+description: "`app/main.js`\n```js\nimport * from '../src/math.rs'\n```\n\n`src/math.rs`\n```rs\npub fn add() {}\n```\n\n"
+expression: shaked
+---
+[
+    OrphanModuleShaked {
+        rel_rs_path: "math.rs",
+        imported_members: All,
+    },
+]

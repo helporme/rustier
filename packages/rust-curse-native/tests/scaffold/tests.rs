@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use rust_curse::model::OrphanModule;
+use rust_curse::orphans::OrphanModule;
 use rust_curse::scaffold::default::DefaultSectionOpts;
 use rust_curse::scaffold::napi::NapiSectionOpts;
 use rust_curse::scaffold::rustdoc::RustdocSectionOpts;
@@ -10,11 +10,9 @@ use rust_curse::scaffold::{BuildContribution, ScaffoldError, ScaffoldSection};
 
 use crate::common::{project_to_md, TestProject, WORKSPACE_CARGO_TOML};
 
-fn test_module(name: &str, rel_path: &str) -> OrphanModule {
+fn test_module(_name: &str, rel_rs_path: &str) -> OrphanModule {
     OrphanModule {
-        name: name.into(),
-        rel_path: PathBuf::from(rel_path),
-        item_ids: Vec::new(),
+        rel_rs_path: PathBuf::from(rel_rs_path),
     }
 }
 
