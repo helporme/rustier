@@ -1,0 +1,102 @@
+---
+source: tests/ir/from_rustdoc.rs
+description: "/// A point in 2D space.\npub struct Point {\n    /// Horizontal position.\n    pub x: f64,\n    /// Vertical position.\n    pub y: f64,\n}\n/// Returns the origin point `(0, 0)`.\npub fn make_origin() -> Point {\n    Point { x: 0.0, y: 0.0 }\n}\n"
+expression: ir
+---
+IR {
+    root: ModId(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    types: [
+        Number(
+            f64,
+        ),
+        Struct(
+            StructId(
+                0,
+            ),
+        ),
+    ],
+    structs: [
+        StructDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "Point",
+                ],
+            },
+            ctor: Implicit,
+            has_copy_variant: false,
+            shape: Struct(
+                [
+                    StructField {
+                        name: "x",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: Some(
+                            "Horizontal position.",
+                        ),
+                    },
+                    StructField {
+                        name: "y",
+                        type_id: TypeId(
+                            0,
+                        ),
+                        docs: Some(
+                            "Vertical position.",
+                        ),
+                    },
+                ],
+            ),
+            docs: Some(
+                "A point in 2D space.",
+            ),
+        },
+    ],
+    fns: [
+        FnDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                    "make_origin",
+                ],
+            },
+            params: [],
+            return_type: TypeId(
+                1,
+            ),
+            docs: Some(
+                "Returns the origin point `(0, 0)`.",
+            ),
+        },
+    ],
+    mods: [
+        ModDef {
+            path: ItemPath {
+                segments: [
+                    "rustdoc_test_crate",
+                ],
+            },
+            exports: [
+                Export {
+                    name: "Point",
+                    kind: Struct(
+                        StructId(
+                            0,
+                        ),
+                    ),
+                },
+                Export {
+                    name: "make_origin",
+                    kind: Fn(
+                        FnId(
+                            0,
+                        ),
+                    ),
+                },
+            ],
+        },
+    ],
+}
