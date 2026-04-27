@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Write;
 
-use crate::codegen::common::HEADER;
+use crate::common::HEADER;
 
 use super::{Activation, BuildContribution, Section};
 

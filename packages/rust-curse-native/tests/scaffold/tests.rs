@@ -1,14 +1,15 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use rust_curse::orphans::OrphanModule;
+use rust_curse::orphans::{OrphanModule, OrphanModuleMembers, OrphanModuleShaked};
 use rust_curse::scaffold::default::DefaultSectionOpts;
 use rust_curse::scaffold::napi::NapiSectionOpts;
 use rust_curse::scaffold::rustdoc::RustdocSectionOpts;
 use rust_curse::scaffold::wasm::WasmSectionOpts;
 use rust_curse::scaffold::{BuildContribution, ScaffoldError, ScaffoldSection};
+use rustdoc_types::Visibility;
 
-use crate::common::{project_to_md, TestProject, WORKSPACE_CARGO_TOML};
+use crate::common::{make_crate, make_item, project_to_md, TestProject, WORKSPACE_CARGO_TOML};
 
 fn test_module(_name: &str, rel_rs_path: &str) -> OrphanModule {
     OrphanModule {
@@ -16,17 +17,257 @@ fn test_module(_name: &str, rel_rs_path: &str) -> OrphanModule {
     }
 }
 
+fn empty_default_opts<'a>(crate_: &'a rustdoc_types::Crate) -> DefaultSectionOpts<'a> {
+    DefaultSectionOpts {
+        modules: &[],
+        crate_,
+        module_dir_rel_path: Path::new("src"),
+    }
+}
+
 #[test]
 fn set_default_only() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
+    let crate_ = make_crate(vec![]);
+    scaffold.set_default(empty_default_opts(&crate_)).unwrap();
+    scaffold.deploy().unwrap();
+    insta::assert_snapshot!(project_to_md(&project));
+}
+
+#[test]
+fn default_emits_mod_decls_and_treeshaked_reexports() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+
+    let modules = vec![
+        OrphanModuleShaked {
+            rel_rs_path: PathBuf::from("greet.rs"),
+            imported_members: OrphanModuleMembers::Specific(vec!["hello".into()]),
+        },
+        OrphanModuleShaked {
+            rel_rs_path: PathBuf::from("unused.rs"),
+            imported_members: OrphanModuleMembers::None,
+        },
+    ];
+    let crate_ = make_crate(vec![
+        make_item(1, "hello", "src/greet.rs", Visibility::Public),
+        make_item(2, "unused_fn", "src/unused.rs", Visibility::Public),
+    ]);
+
     scaffold
         .set_default(DefaultSectionOpts {
-            lib_content: "// default lib body\n".into(),
+            modules: &modules,
+            crate_: &crate_,
+            module_dir_rel_path: Path::new("src"),
         })
         .unwrap();
     scaffold.deploy().unwrap();
-    insta::assert_snapshot!(project_to_md(&project));
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+#[test]
+fn default_mangled_names_get_allow_attribute() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+
+    let modules = vec![OrphanModuleShaked {
+        rel_rs_path: PathBuf::from("nested/deep.rs"),
+        imported_members: OrphanModuleMembers::Specific(vec!["run".into()]),
+    }];
+    let crate_ = make_crate(vec![make_item(
+        1,
+        "run",
+        "src/nested/deep.rs",
+        Visibility::Public,
+    )]);
+
+    scaffold
+        .set_default(DefaultSectionOpts {
+            modules: &modules,
+            crate_: &crate_,
+            module_dir_rel_path: Path::new("src"),
+        })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+#[test]
+fn default_no_reexports_when_nothing_imported() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+
+    let modules = vec![OrphanModuleShaked {
+        rel_rs_path: PathBuf::from("greet.rs"),
+        imported_members: OrphanModuleMembers::None,
+    }];
+    let crate_ = make_crate(vec![make_item(
+        1,
+        "hello",
+        "src/greet.rs",
+        Visibility::Public,
+    )]);
+
+    scaffold
+        .set_default(DefaultSectionOpts {
+            modules: &modules,
+            crate_: &crate_,
+            module_dir_rel_path: Path::new("src"),
+        })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+#[test]
+fn default_star_import_re_exports_public_only() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+
+    let modules = vec![OrphanModuleShaked {
+        rel_rs_path: PathBuf::from("math.rs"),
+        imported_members: OrphanModuleMembers::All,
+    }];
+    let crate_ = make_crate(vec![
+        make_item(1, "add", "src/math.rs", Visibility::Public),
+        make_item(2, "sub", "src/math.rs", Visibility::Public),
+        make_item(3, "internal", "src/math.rs", Visibility::Default),
+    ]);
+
+    scaffold
+        .set_default(DefaultSectionOpts {
+            modules: &modules,
+            crate_: &crate_,
+            module_dir_rel_path: Path::new("src"),
+        })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+/// Default with real modules + napi: lib.rs default include must be
+/// gated by `not(any(feature = "node"))`.
+#[test]
+fn default_with_modules_combined_with_napi() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+
+    let modules = vec![OrphanModuleShaked {
+        rel_rs_path: PathBuf::from("greet.rs"),
+        imported_members: OrphanModuleMembers::Specific(vec!["hello".into()]),
+    }];
+    let crate_ = make_crate(vec![make_item(
+        1,
+        "hello",
+        "src/greet.rs",
+        Visibility::Public,
+    )]);
+
+    scaffold
+        .set_default(DefaultSectionOpts {
+            modules: &modules,
+            crate_: &crate_,
+            module_dir_rel_path: Path::new("src"),
+        })
+        .unwrap();
+    scaffold
+        .set_napi(NapiSectionOpts {
+            feature_name: "node".into(),
+            lib_content: "// napi glue\n".into(),
+        })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+/// Default with real modules + rustdoc (env-activated): lib.rs default
+/// include must be gated by `not(any(rust_curse_rustdoc))`, and rustdoc
+/// gets `#[cfg(rust_curse_rustdoc)]`.
+#[test]
+fn default_with_modules_combined_with_rustdoc() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+
+    let modules = vec![OrphanModuleShaked {
+        rel_rs_path: PathBuf::from("greet.rs"),
+        imported_members: OrphanModuleMembers::Specific(vec!["hello".into()]),
+    }];
+    let crate_ = make_crate(vec![make_item(
+        1,
+        "hello",
+        "src/greet.rs",
+        Visibility::Public,
+    )]);
+
+    scaffold
+        .set_default(DefaultSectionOpts {
+            modules: &modules,
+            crate_: &crate_,
+            module_dir_rel_path: Path::new("src"),
+        })
+        .unwrap();
+    scaffold
+        .rustdoc(RustdocSectionOpts {
+            modules: &[test_module("greet", "greet.rs")],
+        })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+/// Default with real modules + napi + wasm: lib.rs default include must
+/// be gated by `not(any(feature = "node", feature = "wasm"))`, exercising
+/// the multi-exclusion path of the dispatcher.
+#[test]
+fn default_with_modules_combined_with_napi_and_wasm() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+
+    let modules = vec![OrphanModuleShaked {
+        rel_rs_path: PathBuf::from("math.rs"),
+        imported_members: OrphanModuleMembers::All,
+    }];
+    let crate_ = make_crate(vec![
+        make_item(1, "add", "src/math.rs", Visibility::Public),
+        make_item(2, "sub", "src/math.rs", Visibility::Public),
+    ]);
+
+    scaffold
+        .set_default(DefaultSectionOpts {
+            modules: &modules,
+            crate_: &crate_,
+            module_dir_rel_path: Path::new("src"),
+        })
+        .unwrap();
+    scaffold
+        .set_napi(NapiSectionOpts {
+            feature_name: "node".into(),
+            lib_content: "// napi glue\n".into(),
+        })
+        .unwrap();
+    scaffold
+        .set_wasm(WasmSectionOpts {
+            feature_name: "wasm".into(),
+            lib_content: "// wasm glue\n".into(),
+        })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
 }
 
 #[test]
@@ -134,11 +375,8 @@ fn rustdoc_underscored_directory_names() {
 fn set_combo_all_four_sections() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
-    scaffold
-        .set_default(DefaultSectionOpts {
-            lib_content: "// default\n".into(),
-        })
-        .unwrap();
+    let crate_ = make_crate(vec![]);
+    scaffold.set_default(empty_default_opts(&crate_)).unwrap();
     scaffold
         .set_napi(NapiSectionOpts {
             feature_name: "node".into(),
@@ -236,13 +474,10 @@ fn deploy_is_byte_identical_on_rerun() {
     let project = TestProject::new();
     let snap = |project: &TestProject| -> String { project_to_md(project) };
 
+    let crate_ = make_crate(vec![]);
     let run = |project: &TestProject| {
         let mut scaffold = project.scaffold();
-        scaffold
-            .set_default(DefaultSectionOpts {
-                lib_content: "// d\n".into(),
-            })
-            .unwrap();
+        scaffold.set_default(empty_default_opts(&crate_)).unwrap();
         scaffold
             .set_napi(NapiSectionOpts {
                 feature_name: "node".into(),

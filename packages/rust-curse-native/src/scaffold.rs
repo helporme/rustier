@@ -6,7 +6,6 @@
 //! the generated crate, and the dependencies it needs.
 //!
 //! ```no_run
-//! use rust_curse::scaffold::default::DefaultSectionOpts;
 //! use rust_curse::scaffold::napi::NapiSectionOpts;
 //! use rust_curse::scaffold::rustdoc::RustdocSectionOpts;
 //! use rust_curse::scaffold::{Scaffold, ScaffoldOptions};
@@ -18,9 +17,6 @@
 //!     cargo_toml_rel_path: "Cargo.toml".into(),
 //! })?;
 //!
-//! scaffold.set_default(DefaultSectionOpts {
-//!     lib_content: "// rust-analyzer fallback\n".into(),
-//! })?;
 //! scaffold.set_napi(NapiSectionOpts {
 //!     feature_name: "node".into(),
 //!     lib_content: "// generated napi glue\n".into(),
@@ -498,8 +494,6 @@ impl Scaffold {
     /// ```no_run
     /// # use std::path::PathBuf;
     /// # use rust_curse::scaffold::{Scaffold, ScaffoldOptions, ScaffoldSection};
-    /// # use rust_curse::scaffold::default::DefaultSectionOpts;
-    /// # use rust_curse::scaffold::napi::NapiSectionOpts;
     /// let mut scaffold = Scaffold::new(ScaffoldOptions {
     ///     abs_root_path: "/tmp/example".into(),
     ///     temp_folder_rel_path: ".rust-curse".into(),

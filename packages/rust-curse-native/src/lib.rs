@@ -1,4 +1,4 @@
-pub mod codegen;
+pub mod common;
 pub mod ir;
 pub mod orphans;
 pub mod rustdoc;

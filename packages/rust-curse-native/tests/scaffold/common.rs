@@ -3,10 +3,12 @@
 
 #![allow(dead_code)]
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use rust_curse::scaffold::{Scaffold, ScaffoldOptions};
+use rustdoc_types::{Crate, Id, Item, ItemEnum, Span, Visibility};
 
 pub const TEMP_FOLDER: &str = ".rust-curse";
 
@@ -143,5 +145,61 @@ fn detect_lang(path: &Path) -> &'static str {
         Some("json") => "json",
         Some("md") => "md",
         _ => "text",
+    }
+}
+
+pub fn make_item(id: u32, name: &str, filename: &str, visibility: Visibility) -> (Id, Item) {
+    (
+        Id(id),
+        Item {
+            id: Id(id),
+            crate_id: 0,
+            name: Some(name.to_string()),
+            span: Some(Span {
+                filename: PathBuf::from(filename),
+                begin: (1, 0),
+                end: (1, 0),
+            }),
+            visibility,
+            docs: None,
+            links: HashMap::new(),
+            attrs: Vec::new(),
+            deprecation: None,
+            inner: ItemEnum::Function(rustdoc_types::Function {
+                sig: rustdoc_types::FunctionSignature {
+                    inputs: Vec::new(),
+                    output: None,
+                    is_c_variadic: false,
+                },
+                generics: rustdoc_types::Generics {
+                    params: Vec::new(),
+                    where_predicates: Vec::new(),
+                },
+                header: rustdoc_types::FunctionHeader {
+                    is_const: false,
+                    is_unsafe: false,
+                    is_async: false,
+                    abi: rustdoc_types::Abi::Rust,
+                },
+                has_body: true,
+            }),
+        },
+    )
+}
+
+pub fn make_crate(items: Vec<(Id, Item)>) -> Crate {
+    let index = items.into_iter().collect();
+    Crate {
+        root: Id(0),
+        crate_version: None,
+        includes_private: false,
+        index,
+        paths: HashMap::new(),
+        external_crates: HashMap::new(),
+        format_version: 0,
+        target: rustdoc_types::Target {
+            triple: String::new(),
+            target_features: Vec::new(),
+        },
     }
 }

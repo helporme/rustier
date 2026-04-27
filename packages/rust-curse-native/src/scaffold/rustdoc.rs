@@ -1,5 +1,5 @@
 use crate::{
-    codegen::common::{mangle_module_name, needs_non_snake_case_allow, HEADER},
+    common::{mangle_module_name, needs_non_snake_case_allow, HEADER},
     orphans::{gen_module_name, OrphanModule},
 };
 

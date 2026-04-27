@@ -1,4 +1,4 @@
-//! Shared helpers for codegen modules.
+//! Shared helpers for generated-file output.
 
 /// Header comment prepended to every generated file.
 pub const HEADER: &str = "\
