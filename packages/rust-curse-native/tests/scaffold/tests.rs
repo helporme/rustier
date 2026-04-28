@@ -460,6 +460,99 @@ fn remove_section_drops_files_and_deps() {
     insta::assert_snapshot!(project_to_md(&project));
 }
 
+/// A section with no deps / build-deps / feature must not produce empty
+/// `[features]`, `[dependencies]`, or `[build-dependencies]` tables in
+/// the patched `Cargo.toml`.
+#[test]
+fn default_only_emits_no_empty_blocks() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    let crate_ = make_crate(vec![]);
+    scaffold.set_default(empty_default_opts(&crate_)).unwrap();
+    scaffold.deploy().unwrap();
+    let cargo = fs::read_to_string(project.abs_root_path.join("Cargo.toml")).unwrap();
+    assert!(!cargo.contains("[features]"), "unexpected [features] table:\n{cargo}");
+    assert!(!cargo.contains("[dependencies]"), "unexpected [dependencies] table:\n{cargo}");
+    assert!(
+        !cargo.contains("[build-dependencies]"),
+        "unexpected [build-dependencies] table:\n{cargo}"
+    );
+    insta::assert_snapshot!(project_to_md(&project));
+}
+
+/// Removing a section whose deps were the only owners of
+/// `[build-dependencies]` (and similarly for `[features]` /
+/// `[dependencies]`) must drop the now-empty tables, not leave headers
+/// behind.
+#[test]
+fn remove_last_section_drops_empty_blocks() {
+    let project = TestProject::new();
+    {
+        let mut scaffold = project.scaffold();
+        scaffold
+            .set_napi(NapiSectionOpts {
+                feature_name: "node".into(),
+                lib_content: "// napi\n".into(),
+            })
+            .unwrap();
+        scaffold.deploy().unwrap();
+    }
+    {
+        let mut scaffold = project.scaffold();
+        scaffold.deploy().unwrap();
+    }
+    let cargo = fs::read_to_string(project.abs_root_path.join("Cargo.toml")).unwrap();
+    assert!(!cargo.contains("[features]"), "unexpected [features]:\n{cargo}");
+    assert!(!cargo.contains("[dependencies]"), "unexpected [dependencies]:\n{cargo}");
+    assert!(
+        !cargo.contains("[build-dependencies]"),
+        "unexpected [build-dependencies]:\n{cargo}"
+    );
+    insta::assert_snapshot!(project_to_md(&project));
+}
+
+/// Removing only the section that contributed `[build-dependencies]`
+/// should drop that table but keep `[features]` and `[dependencies]`
+/// for the surviving section.
+#[test]
+fn remove_napi_drops_only_build_dependencies() {
+    let project = TestProject::new();
+    {
+        let mut scaffold = project.scaffold();
+        scaffold
+            .set_napi(NapiSectionOpts {
+                feature_name: "node".into(),
+                lib_content: "// napi\n".into(),
+            })
+            .unwrap();
+        scaffold
+            .set_wasm(WasmSectionOpts {
+                feature_name: "wasm".into(),
+                lib_content: "// wasm\n".into(),
+            })
+            .unwrap();
+        scaffold.deploy().unwrap();
+    }
+    {
+        let mut scaffold = project.scaffold();
+        scaffold
+            .set_wasm(WasmSectionOpts {
+                feature_name: "wasm".into(),
+                lib_content: "// wasm\n".into(),
+            })
+            .unwrap();
+        scaffold.deploy().unwrap();
+    }
+    let cargo = fs::read_to_string(project.abs_root_path.join("Cargo.toml")).unwrap();
+    assert!(
+        !cargo.contains("[build-dependencies]"),
+        "unexpected [build-dependencies]:\n{cargo}"
+    );
+    assert!(cargo.contains("[features]"), "missing [features]:\n{cargo}");
+    assert!(cargo.contains("[dependencies]"), "missing [dependencies]:\n{cargo}");
+    insta::assert_snapshot!(project_to_md(&project));
+}
+
 #[test]
 fn workspace_inherited_napi_dep_preserved() {
     let project = TestProject::with_cargo_toml(WORKSPACE_CARGO_TOML);

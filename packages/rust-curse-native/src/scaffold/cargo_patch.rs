@@ -152,6 +152,8 @@ fn update_features(doc: &mut DocumentMut, sections: &BTreeMap<String, Section>, 
             features_table.insert(feature_name, tag_array(arr));
         }
     }
+
+    remove_if_empty(doc, "features");
 }
 
 fn scaffold_owned_features_prev(prev: &Meta) -> BTreeSet<String> {
@@ -223,18 +225,29 @@ fn update_deps(
     }
 
     let any_now = sections.values().any(|s| !iter(s).is_empty());
-    if !any_now {
-        return;
+    if any_now {
+        let table = doc[table_key].or_insert(Item::Table(Table::new()));
+        let table = table.as_table_mut().expect("dependencies-like table");
+
+        for section in sections.values() {
+            let optional = section.activation.is_some();
+            for dep in iter(section) {
+                upsert_dep(table, dep, optional);
+            }
+        }
     }
 
-    let table = doc[table_key].or_insert(Item::Table(Table::new()));
-    let table = table.as_table_mut().expect("dependencies-like table");
+    remove_if_empty(doc, table_key);
+}
 
-    for section in sections.values() {
-        let optional = section.activation.is_some();
-        for dep in iter(section) {
-            upsert_dep(table, dep, optional);
-        }
+fn remove_if_empty(doc: &mut DocumentMut, key: &str) {
+    let is_empty = doc
+        .get(key)
+        .and_then(Item::as_table)
+        .map(|t| t.is_empty())
+        .unwrap_or(false);
+    if is_empty {
+        doc.remove(key);
     }
 }
 

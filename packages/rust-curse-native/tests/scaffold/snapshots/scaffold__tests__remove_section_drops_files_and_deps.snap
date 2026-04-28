@@ -79,6 +79,4 @@ wasm = ["dep:wasm-bindgen", "dep:serde", "dep:serde-wasm-bindgen"] # do not chan
 wasm-bindgen = { version = "0.2", optional = true } # do not change
 serde = { version = "1", features = ["derive"], optional = true } # do not change
 serde-wasm-bindgen = { version = "0.6", optional = true } # do not change
-
-[build-dependencies]
 ```
