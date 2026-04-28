@@ -106,14 +106,16 @@ fn flat_module_with_named_import() {
     let include = vec![format!("{}/**/*.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let shaked = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &[],
@@ -138,14 +140,16 @@ fn star_import_yields_all() {
     let include = vec![format!("{}/**/*.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let shaked = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &[],
@@ -174,14 +178,16 @@ fn unimported_module_yields_none() {
     let include = vec![format!("{}/**/*.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let shaked = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &[],
@@ -213,14 +219,16 @@ fn multiple_importers_merge_members() {
     let include = vec![format!("{}/**/*.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let shaked = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &[],
@@ -248,14 +256,16 @@ fn directory_module() {
     let include = vec![format!("{}/**/*.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let shaked = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &[],
@@ -283,14 +293,16 @@ fn nested_orphan() {
     let include = vec![format!("{}/**/*.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let shaked = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &[],
@@ -314,7 +326,8 @@ fn modern_layout_skips_submodules() {
     let abs_root = fs::canonicalize(&src).unwrap();
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
@@ -334,7 +347,8 @@ fn rs_exclude_filter_drops_module() {
     let exclude = vec!["drop.rs".to_string()];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter {
             include: &[],
             exclude: &exclude,
@@ -362,14 +376,16 @@ fn js_exclude_filter_ignores_importer() {
     let exclude = vec![format!("{}/main.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let shaked = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &exclude,
@@ -397,14 +413,16 @@ fn export_named_reexport() {
     let include = vec![format!("{}/**/*.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let shaked = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &[],
@@ -432,14 +450,16 @@ fn aliased_import_uses_source_name() {
     let include = vec![format!("{}/**/*.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let shaked = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &[],
@@ -467,14 +487,16 @@ fn import_with_attribute() {
     let include = vec![format!("{}/**/*.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let shaked = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &[],
@@ -502,14 +524,16 @@ fn import_assert_attribute() {
     let include = vec![format!("{}/**/*.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let shaked = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &[],
@@ -537,14 +561,16 @@ fn export_star_alias_yields_all() {
     let include = vec![format!("{}/**/*.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let shaked = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &[],
@@ -572,14 +598,16 @@ fn default_import_errors_during_shake() {
     let include = vec![format!("{}/**/*.js", app.display())];
 
     let modules = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
     let err = shake(
         &modules,
         OrphanShakeOpts {
-            root_abs_path: &abs_root,
+            project_root_abs_path: &abs_root,
+            mod_root_rel_paths: &[PathBuf::new()],
             js_filter: SourceFilter {
                 include: &include,
                 exclude: &[],
@@ -605,7 +633,8 @@ fn conflict_errors_on_abc_rs_and_abc_mod_rs() {
     let abs_root = fs::canonicalize(&src).unwrap();
 
     let err = scan(OrphanScanOpts {
-        root_abs_path: &abs_root,
+        project_root_abs_path: &abs_root,
+        mod_root_rel_paths: &[PathBuf::new()],
         rs_filter: SourceFilter::default(),
     })
     .unwrap_err();

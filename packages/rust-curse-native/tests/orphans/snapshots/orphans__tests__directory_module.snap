@@ -6,6 +6,7 @@ expression: shaked
 [
     OrphanModuleShaked {
         rel_rs_path: "utils/mod.rs",
+        mod_name: "utils",
         imported_members: Specific(
             [
                 "help",

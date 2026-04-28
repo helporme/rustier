@@ -5,7 +5,7 @@
 use std::collections::HashSet;
 use std::fs;
 
-use rust_curse::rustdoc::run_cargo_rustdoc_json;
+use rust_curse::*;
 
 const TEST_CRATE_NAME: &str = "rustdoc_test_crate";
 
@@ -31,7 +31,7 @@ pub fn gen_rustdoc(src: &str) -> rustdoc_types::Crate {
 
     let target_abs_dir = project_abs_path.join("target");
 
-    run_cargo_rustdoc_json(project_abs_path, &target_abs_dir, TEST_CRATE_NAME)
+    rustdoc::run(project_abs_path, &target_abs_dir, TEST_CRATE_NAME)
         .unwrap_or_else(|e| panic!("rustdoc generation failed: {e}"))
 }
 

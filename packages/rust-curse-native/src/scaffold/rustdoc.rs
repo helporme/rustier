@@ -1,6 +1,6 @@
 use crate::{
     common::{mangle_module_name, needs_non_snake_case_allow, HEADER},
-    orphans::{gen_module_name, OrphanModule},
+    orphans::OrphanModule,
 };
 
 use super::{Scaffold, ScaffoldError, ScaffoldSection};
@@ -12,7 +12,7 @@ pub struct RustdocSectionOpts<'a> {
 }
 
 impl Scaffold {
-    pub fn rustdoc(&mut self, opts: RustdocSectionOpts) -> Result<(), ScaffoldError> {
+    pub fn set_rustdoc(&mut self, opts: RustdocSectionOpts) -> Result<(), ScaffoldError> {
         let section = ScaffoldSection::new("rustdoc")
             .env_flag(RUSTDOC_ENV_VAR)
             .lib(self.generate_lib_content(opts.modules));
@@ -27,7 +27,7 @@ impl Scaffold {
             let target_rel_path = self.abs_path_from_project_root_to(&module.rel_rs_path);
             let target_rel_path = target_rel_path.to_string_lossy();
 
-            let mod_name = mangle_module_name(&gen_module_name(&module.rel_rs_path));
+            let mod_name = mangle_module_name(&module.mod_name);
 
             content.push_str(&format!("#[path = \"{}\"]\n", target_rel_path));
             if needs_non_snake_case_allow(&mod_name) {

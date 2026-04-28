@@ -6,6 +6,7 @@ expression: shaked
 [
     OrphanModuleShaked {
         rel_rs_path: "math.rs",
+        mod_name: "math",
         imported_members: All,
     },
 ]

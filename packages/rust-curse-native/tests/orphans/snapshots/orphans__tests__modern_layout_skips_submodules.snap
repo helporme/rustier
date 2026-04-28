@@ -6,8 +6,10 @@ expression: modules
 [
     OrphanModule {
         rel_rs_path: "other.rs",
+        mod_name: "other",
     },
     OrphanModule {
         rel_rs_path: "parent.rs",
+        mod_name: "parent",
     },
 ]

@@ -2,7 +2,7 @@
 
 use std::fs;
 use std::io;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use thiserror::Error;
@@ -45,11 +45,9 @@ pub enum RustdocError {
 /// Generates rustdoc in json format.
 ///
 /// Requires nightly version of rust installed.
-pub fn generate_rustdoc(
-    project_root_abs_path: &Path,
-) -> Result<rustdoc_types::Crate, RustdocError> {
+pub fn gen(project_root_abs_path: &Path) -> Result<rustdoc_types::Crate, RustdocError> {
     let meta = cargo_metadata(project_root_abs_path)?;
-    run_cargo_rustdoc_json(
+    run(
         project_root_abs_path,
         Path::new(&meta.target_dir),
         &meta.lib_name,
@@ -60,7 +58,7 @@ pub fn generate_rustdoc(
 /// target directory and lib name, skipping the `cargo metadata` lookup that
 /// `generate_rustdoc` performs. Used by tests that build synthetic temp
 /// crates where `cargo metadata --frozen` would fail for lack of Cargo.lock.
-pub fn run_cargo_rustdoc_json(
+pub fn run(
     project_abs_path: &Path,
     target_abs_dir: &Path,
     lib_name: &str,
@@ -149,46 +147,4 @@ fn cargo_metadata(abs_cargo_dir: &Path) -> Result<CrateMetadata, RustdocError> {
         target_dir,
         lib_name,
     })
-}
-
-/// Normalize a relative path by resolving `.` and `..` components logically
-/// (without touching the filesystem).
-pub fn normalize_path(path: &Path) -> PathBuf {
-    let mut parts: Vec<Component> = Vec::new();
-    for component in path.components() {
-        match component {
-            Component::ParentDir => {
-                if let Some(Component::Normal(_)) = parts.last() {
-                    parts.pop();
-                } else {
-                    parts.push(component);
-                }
-            }
-            Component::CurDir => {}
-            _ => parts.push(component),
-        }
-    }
-    parts.iter().collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn normalize_path_resolves_dotdot() {
-        assert_eq!(normalize_path(Path::new("a/b/../c")), PathBuf::from("a/c"));
-        assert_eq!(
-            normalize_path(Path::new(".rust-curse/../src/greet.rs")),
-            PathBuf::from("src/greet.rs"),
-        );
-        assert_eq!(
-            normalize_path(Path::new("src/greet.rs")),
-            PathBuf::from("src/greet.rs")
-        );
-        assert_eq!(
-            normalize_path(Path::new("./src/greet.rs")),
-            PathBuf::from("src/greet.rs")
-        );
-    }
 }

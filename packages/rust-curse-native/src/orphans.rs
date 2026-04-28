@@ -16,23 +16,28 @@ mod discover;
 mod imports;
 mod resolve;
 
-pub use resolve::gen_module_name;
-
 #[derive(Debug)]
 pub struct OrphanScanOpts<'a> {
-    /// Absolute path of the directory under which orphan `.rs` modules are
-    /// discovered.
-    pub root_abs_path: &'a Path,
-    /// Filters applied to discovered `.rs` orphans.
+    /// Absolute path of the project root.
+    pub project_root_abs_path: &'a Path,
+    /// Module roots, each relative to `project_root_abs_path`. Each root is
+    /// walked independently for orphan `.rs` modules; the rust module name
+    /// of a discovered file is derived from its path within its containing
+    /// module root.
+    pub mod_root_rel_paths: &'a [PathBuf],
+    /// Filters applied to discovered `.rs` orphans, matched against paths
+    /// relative to the project root.
     pub rs_filter: SourceFilter<'a>,
 }
 
 #[derive(Debug)]
 pub struct OrphanShakeOpts<'a> {
-    /// Absolute path of the directory under which orphan `.rs` modules live.
-    /// JS specifiers like `'../src/greet.rs'` resolve relative to this
-    /// directory.
-    pub root_abs_path: &'a Path,
+    /// Absolute path of the project root.
+    pub project_root_abs_path: &'a Path,
+    /// Module roots, each relative to `project_root_abs_path`. JS specifiers
+    /// like `'../src/greet.rs'` resolve to a `.rs` file under one of these
+    /// roots.
+    pub mod_root_rel_paths: &'a [PathBuf],
     /// Filters selecting which JS/TS files are scanned for imports.
     pub js_filter: SourceFilter<'a>,
 }
@@ -47,15 +52,20 @@ pub struct SourceFilter<'a> {
 
 #[derive(Clone, Debug)]
 pub struct OrphanModule {
-    /// Path to the `.rs` file relative to `OrphanScanOpts.root_abs_path`,
-    /// e.g. `greet.rs`, `nested/deep.rs`, `utils/mod.rs`.
+    /// Path to the `.rs` file relative to the project root,
+    /// e.g. `src/greet.rs`, `src/nested/deep.rs`, `generated/src/utils/mod.rs`.
     pub rel_rs_path: PathBuf,
+    /// Rust module name derived from the path within the containing module
+    pub mod_name: String,
 }
 
 #[derive(Clone, Debug)]
 pub struct OrphanModuleShaked {
-    /// Path to the `.rs` file relative to the module root.
+    /// Path to the `.rs` file relative to the project root.
     pub rel_rs_path: PathBuf,
+    /// Rust module name derived from the path within the containing module
+    /// root.
+    pub mod_name: String,
     /// Members imported from at least one JS/TS file.
     pub imported_members: OrphanModuleMembers,
 }
@@ -116,23 +126,39 @@ pub enum OrphanScanError {
     DefaultImport { rel_rs_path: PathBuf },
 }
 
-/// Discover orphan rust modules under `opts.root_abs_path`.
+/// Discover orphan rust modules under each entry of `opts.mod_root_rel_paths`.
 pub fn scan(opts: OrphanScanOpts<'_>) -> Result<Vec<OrphanModule>, OrphanScanError> {
-    let abs_root =
-        fs::canonicalize(opts.root_abs_path).map_err(|source| OrphanScanError::RootNotFound {
-            abs_path: opts.root_abs_path.to_path_buf(),
+    let abs_project_root = fs::canonicalize(opts.project_root_abs_path).map_err(|source| {
+        OrphanScanError::RootNotFound {
+            abs_path: opts.project_root_abs_path.to_path_buf(),
             source,
-        })?;
+        }
+    })?;
 
-    let mut rel_paths = discover::walk_orphans(&abs_root)?;
-    apply_rs_filter(&mut rel_paths, &opts.rs_filter)?;
-    detect_conflicts(&rel_paths)?;
+    let mut modules: Vec<OrphanModule> = Vec::new();
+    for mod_root_rel in opts.mod_root_rel_paths {
+        let abs_mod_root = abs_project_root.join(mod_root_rel);
+        let abs_mod_root =
+            fs::canonicalize(&abs_mod_root).map_err(|source| OrphanScanError::RootNotFound {
+                abs_path: abs_mod_root,
+                source,
+            })?;
 
-    rel_paths.sort();
-    Ok(rel_paths
-        .into_iter()
-        .map(|rel_rs_path| OrphanModule { rel_rs_path })
-        .collect())
+        for rel_within_mod_root in discover::walk_orphans(&abs_mod_root)? {
+            let mod_name = resolve::gen_module_name(&rel_within_mod_root);
+            let rel_rs_path = mod_root_rel.join(&rel_within_mod_root);
+            modules.push(OrphanModule {
+                rel_rs_path,
+                mod_name,
+            });
+        }
+    }
+
+    apply_rs_filter(&mut modules, &opts.rs_filter)?;
+    detect_conflicts(&modules)?;
+
+    modules.sort_by(|a, b| a.rel_rs_path.cmp(&b.rel_rs_path));
+    Ok(modules)
 }
 
 /// Join a discovered set of orphan modules with the JS/TS imports referencing
@@ -144,26 +170,34 @@ pub fn shake(
     modules: &[OrphanModule],
     opts: OrphanShakeOpts<'_>,
 ) -> Result<Vec<OrphanModuleShaked>, OrphanScanError> {
-    let abs_root =
-        fs::canonicalize(opts.root_abs_path).map_err(|source| OrphanScanError::RootNotFound {
-            abs_path: opts.root_abs_path.to_path_buf(),
+    let abs_project_root = fs::canonicalize(opts.project_root_abs_path).map_err(|source| {
+        OrphanScanError::RootNotFound {
+            abs_path: opts.project_root_abs_path.to_path_buf(),
             source,
-        })?;
-
-    let raw_imports = imports::scan_js_imports(&abs_root, &opts.js_filter)?;
-    let mut buckets: BTreeMap<PathBuf, Bucket> = BTreeMap::new();
-    for import in raw_imports {
-        if import.members.iter().any(|m| m == "default") {
-            return Err(OrphanScanError::DefaultImport {
-                rel_rs_path: import.rel_rs_path,
-            });
         }
-        let entry = buckets.entry(import.rel_rs_path).or_default();
-        for m in import.members {
-            if m == "*" {
-                entry.star = true;
-            } else {
-                entry.members.insert(m);
+    })?;
+
+    let mut buckets: BTreeMap<PathBuf, Bucket> = BTreeMap::new();
+    for mod_root_rel in opts.mod_root_rel_paths {
+        let abs_mod_root = abs_project_root.join(mod_root_rel);
+        let abs_mod_root =
+            fs::canonicalize(&abs_mod_root).map_err(|source| OrphanScanError::RootNotFound {
+                abs_path: abs_mod_root,
+                source,
+            })?;
+
+        for import in imports::scan_js_imports(&abs_mod_root, &opts.js_filter)? {
+            let rel_rs_path = mod_root_rel.join(&import.rel_rs_path);
+            if import.members.iter().any(|m| m == "default") {
+                return Err(OrphanScanError::DefaultImport { rel_rs_path });
+            }
+            let entry = buckets.entry(rel_rs_path).or_default();
+            for m in import.members {
+                if m == "*" {
+                    entry.star = true;
+                } else {
+                    entry.members.insert(m);
+                }
             }
         }
     }
@@ -178,6 +212,7 @@ pub fn shake(
             };
             OrphanModuleShaked {
                 rel_rs_path: module.rel_rs_path.clone(),
+                mod_name: module.mod_name.clone(),
                 imported_members,
             }
         })
@@ -191,14 +226,14 @@ struct Bucket {
 }
 
 fn apply_rs_filter(
-    rel_paths: &mut Vec<PathBuf>,
+    modules: &mut Vec<OrphanModule>,
     filter: &SourceFilter<'_>,
 ) -> Result<(), OrphanScanError> {
     let include = compile_patterns(filter.include)?;
     let exclude = compile_patterns(filter.exclude)?;
 
-    rel_paths.retain(|rel| {
-        let s = rel.to_string_lossy();
+    modules.retain(|module| {
+        let s = module.rel_rs_path.to_string_lossy();
         let included = include.is_empty() || include.iter().any(|p| p.matches(&s));
         let excluded = exclude.iter().any(|p| p.matches(&s));
         included && !excluded
@@ -218,15 +253,14 @@ fn compile_patterns(patterns: &[String]) -> Result<Vec<glob::Pattern>, OrphanSca
         .collect()
 }
 
-fn detect_conflicts(rel_paths: &[PathBuf]) -> Result<(), OrphanScanError> {
-    let mut by_name: BTreeMap<String, &PathBuf> = BTreeMap::new();
-    for rel in rel_paths {
-        let name = gen_module_name(rel);
-        if let Some(prev) = by_name.insert(name.clone(), rel) {
+fn detect_conflicts(modules: &[OrphanModule]) -> Result<(), OrphanScanError> {
+    let mut by_name: BTreeMap<&str, &PathBuf> = BTreeMap::new();
+    for module in modules {
+        if let Some(prev) = by_name.insert(&module.mod_name, &module.rel_rs_path) {
             return Err(OrphanScanError::Conflict {
-                name,
+                name: module.mod_name.clone(),
                 rel_path_a: prev.clone(),
-                rel_path_b: rel.clone(),
+                rel_path_b: module.rel_rs_path.clone(),
             });
         }
     }

@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use rust_curse::orphans::{OrphanModule, OrphanModuleMembers, OrphanModuleShaked};
 use rust_curse::scaffold::default::DefaultSectionOpts;
@@ -11,9 +11,18 @@ use rustdoc_types::Visibility;
 
 use crate::common::{make_crate, make_item, project_to_md, TestProject, WORKSPACE_CARGO_TOML};
 
-fn test_module(_name: &str, rel_rs_path: &str) -> OrphanModule {
+fn test_module(mod_name: &str, rel_rs_path: &str) -> OrphanModule {
     OrphanModule {
         rel_rs_path: PathBuf::from(rel_rs_path),
+        mod_name: mod_name.to_string(),
+    }
+}
+
+fn test_shaked(mod_name: &str, rel_rs_path: &str, members: OrphanModuleMembers) -> OrphanModuleShaked {
+    OrphanModuleShaked {
+        rel_rs_path: PathBuf::from(rel_rs_path),
+        mod_name: mod_name.to_string(),
+        imported_members: members,
     }
 }
 
@@ -21,7 +30,6 @@ fn empty_default_opts<'a>(crate_: &'a rustdoc_types::Crate) -> DefaultSectionOpt
     DefaultSectionOpts {
         modules: &[],
         crate_,
-        module_dir_rel_path: Path::new("src"),
     }
 }
 
@@ -41,14 +49,12 @@ fn default_emits_mod_decls_and_treeshaked_reexports() {
     let mut scaffold = project.scaffold();
 
     let modules = vec![
-        OrphanModuleShaked {
-            rel_rs_path: PathBuf::from("greet.rs"),
-            imported_members: OrphanModuleMembers::Specific(vec!["hello".into()]),
-        },
-        OrphanModuleShaked {
-            rel_rs_path: PathBuf::from("unused.rs"),
-            imported_members: OrphanModuleMembers::None,
-        },
+        test_shaked(
+            "greet",
+            "src/greet.rs",
+            OrphanModuleMembers::Specific(vec!["hello".into()]),
+        ),
+        test_shaked("unused", "src/unused.rs", OrphanModuleMembers::None),
     ];
     let crate_ = make_crate(vec![
         make_item(1, "hello", "src/greet.rs", Visibility::Public),
@@ -59,7 +65,6 @@ fn default_emits_mod_decls_and_treeshaked_reexports() {
         .set_default(DefaultSectionOpts {
             modules: &modules,
             crate_: &crate_,
-            module_dir_rel_path: Path::new("src"),
         })
         .unwrap();
     scaffold.deploy().unwrap();
@@ -73,10 +78,11 @@ fn default_mangled_names_get_allow_attribute() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
-    let modules = vec![OrphanModuleShaked {
-        rel_rs_path: PathBuf::from("nested/deep.rs"),
-        imported_members: OrphanModuleMembers::Specific(vec!["run".into()]),
-    }];
+    let modules = vec![test_shaked(
+        "nested::deep",
+        "src/nested/deep.rs",
+        OrphanModuleMembers::Specific(vec!["run".into()]),
+    )];
     let crate_ = make_crate(vec![make_item(
         1,
         "run",
@@ -88,7 +94,6 @@ fn default_mangled_names_get_allow_attribute() {
         .set_default(DefaultSectionOpts {
             modules: &modules,
             crate_: &crate_,
-            module_dir_rel_path: Path::new("src"),
         })
         .unwrap();
     scaffold.deploy().unwrap();
@@ -102,10 +107,11 @@ fn default_no_reexports_when_nothing_imported() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
-    let modules = vec![OrphanModuleShaked {
-        rel_rs_path: PathBuf::from("greet.rs"),
-        imported_members: OrphanModuleMembers::None,
-    }];
+    let modules = vec![test_shaked(
+        "greet",
+        "src/greet.rs",
+        OrphanModuleMembers::None,
+    )];
     let crate_ = make_crate(vec![make_item(
         1,
         "hello",
@@ -117,7 +123,6 @@ fn default_no_reexports_when_nothing_imported() {
         .set_default(DefaultSectionOpts {
             modules: &modules,
             crate_: &crate_,
-            module_dir_rel_path: Path::new("src"),
         })
         .unwrap();
     scaffold.deploy().unwrap();
@@ -131,10 +136,11 @@ fn default_star_import_re_exports_public_only() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
-    let modules = vec![OrphanModuleShaked {
-        rel_rs_path: PathBuf::from("math.rs"),
-        imported_members: OrphanModuleMembers::All,
-    }];
+    let modules = vec![test_shaked(
+        "math",
+        "src/math.rs",
+        OrphanModuleMembers::All,
+    )];
     let crate_ = make_crate(vec![
         make_item(1, "add", "src/math.rs", Visibility::Public),
         make_item(2, "sub", "src/math.rs", Visibility::Public),
@@ -145,7 +151,6 @@ fn default_star_import_re_exports_public_only() {
         .set_default(DefaultSectionOpts {
             modules: &modules,
             crate_: &crate_,
-            module_dir_rel_path: Path::new("src"),
         })
         .unwrap();
     scaffold.deploy().unwrap();
@@ -161,10 +166,11 @@ fn default_with_modules_combined_with_napi() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
-    let modules = vec![OrphanModuleShaked {
-        rel_rs_path: PathBuf::from("greet.rs"),
-        imported_members: OrphanModuleMembers::Specific(vec!["hello".into()]),
-    }];
+    let modules = vec![test_shaked(
+        "greet",
+        "src/greet.rs",
+        OrphanModuleMembers::Specific(vec!["hello".into()]),
+    )];
     let crate_ = make_crate(vec![make_item(
         1,
         "hello",
@@ -176,7 +182,6 @@ fn default_with_modules_combined_with_napi() {
         .set_default(DefaultSectionOpts {
             modules: &modules,
             crate_: &crate_,
-            module_dir_rel_path: Path::new("src"),
         })
         .unwrap();
     scaffold
@@ -199,10 +204,11 @@ fn default_with_modules_combined_with_rustdoc() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
-    let modules = vec![OrphanModuleShaked {
-        rel_rs_path: PathBuf::from("greet.rs"),
-        imported_members: OrphanModuleMembers::Specific(vec!["hello".into()]),
-    }];
+    let modules = vec![test_shaked(
+        "greet",
+        "src/greet.rs",
+        OrphanModuleMembers::Specific(vec!["hello".into()]),
+    )];
     let crate_ = make_crate(vec![make_item(
         1,
         "hello",
@@ -214,11 +220,10 @@ fn default_with_modules_combined_with_rustdoc() {
         .set_default(DefaultSectionOpts {
             modules: &modules,
             crate_: &crate_,
-            module_dir_rel_path: Path::new("src"),
         })
         .unwrap();
     scaffold
-        .rustdoc(RustdocSectionOpts {
+        .set_rustdoc(RustdocSectionOpts {
             modules: &[test_module("greet", "greet.rs")],
         })
         .unwrap();
@@ -236,10 +241,11 @@ fn default_with_modules_combined_with_napi_and_wasm() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
-    let modules = vec![OrphanModuleShaked {
-        rel_rs_path: PathBuf::from("math.rs"),
-        imported_members: OrphanModuleMembers::All,
-    }];
+    let modules = vec![test_shaked(
+        "math",
+        "src/math.rs",
+        OrphanModuleMembers::All,
+    )];
     let crate_ = make_crate(vec![
         make_item(1, "add", "src/math.rs", Visibility::Public),
         make_item(2, "sub", "src/math.rs", Visibility::Public),
@@ -249,7 +255,6 @@ fn default_with_modules_combined_with_napi_and_wasm() {
         .set_default(DefaultSectionOpts {
             modules: &modules,
             crate_: &crate_,
-            module_dir_rel_path: Path::new("src"),
         })
         .unwrap();
     scaffold
@@ -303,7 +308,7 @@ fn set_rustdoc_only() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
     scaffold
-        .rustdoc(RustdocSectionOpts { modules: &[] })
+        .set_rustdoc(RustdocSectionOpts { modules: &[] })
         .unwrap();
     scaffold.deploy().unwrap();
     insta::assert_snapshot!(project_to_md(&project));
@@ -318,7 +323,7 @@ fn rustdoc_renders_simple_modules() {
         test_module("math", "math.rs"),
     ];
     scaffold
-        .rustdoc(RustdocSectionOpts { modules: &modules })
+        .set_rustdoc(RustdocSectionOpts { modules: &modules })
         .unwrap();
     scaffold.deploy().unwrap();
     project.snapshot_settings().bind(|| {
@@ -332,7 +337,7 @@ fn rustdoc_mangles_nested_module_names() {
     let mut scaffold = project.scaffold();
     let modules = vec![test_module("nested::deep", "nested/deep.rs")];
     scaffold
-        .rustdoc(RustdocSectionOpts { modules: &modules })
+        .set_rustdoc(RustdocSectionOpts { modules: &modules })
         .unwrap();
     scaffold.deploy().unwrap();
     project.snapshot_settings().bind(|| {
@@ -349,7 +354,7 @@ fn rustdoc_underscored_names_dont_collide() {
         test_module("nested__::file", "nested__/file.rs"),
     ];
     scaffold
-        .rustdoc(RustdocSectionOpts { modules: &modules })
+        .set_rustdoc(RustdocSectionOpts { modules: &modules })
         .unwrap();
     scaffold.deploy().unwrap();
     project.snapshot_settings().bind(|| {
@@ -363,7 +368,7 @@ fn rustdoc_underscored_directory_names() {
     let mut scaffold = project.scaffold();
     let modules = vec![test_module("__nested::__deep", "__nested/__deep.rs")];
     scaffold
-        .rustdoc(RustdocSectionOpts { modules: &modules })
+        .set_rustdoc(RustdocSectionOpts { modules: &modules })
         .unwrap();
     scaffold.deploy().unwrap();
     project.snapshot_settings().bind(|| {
@@ -390,7 +395,7 @@ fn set_combo_all_four_sections() {
         })
         .unwrap();
     scaffold
-        .rustdoc(RustdocSectionOpts { modules: &[] })
+        .set_rustdoc(RustdocSectionOpts { modules: &[] })
         .unwrap();
     scaffold.deploy().unwrap();
     insta::assert_snapshot!(project_to_md(&project));

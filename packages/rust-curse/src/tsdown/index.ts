@@ -26,8 +26,8 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
       const targets: BuildTarget[] = [
         { type: 'Default', jsSource },
         options.platform === 'node'
-          ? { type: 'Node', jsSource, featureName: 'target-node' }
-          : { type: 'Wasm', jsSource, featureName: 'target-wasm' },
+          ? { type: 'Node', jsSource }
+          : { type: 'Wasm', jsSource },
       ]
 
       const rustCurse = new RustCurse({

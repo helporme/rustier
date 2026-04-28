@@ -11,8 +11,8 @@ export interface BuildResult {
 
 export type BuildTarget =
   | { type: 'Default', jsSource: SourceOptions }
-  | { type: 'Node', jsSource: SourceOptions, featureName: string }
-  | { type: 'Wasm', jsSource: SourceOptions, featureName: string }
+  | { type: 'Node', jsSource: SourceOptions }
+  | { type: 'Wasm', jsSource: SourceOptions }
 
 export interface RustCurseOptions {
   targets: Array<BuildTarget>

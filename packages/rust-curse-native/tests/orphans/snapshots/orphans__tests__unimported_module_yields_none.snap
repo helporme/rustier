@@ -6,6 +6,7 @@ expression: shaked
 [
     OrphanModuleShaked {
         rel_rs_path: "greet.rs",
+        mod_name: "greet",
         imported_members: Specific(
             [
                 "hello",
@@ -14,6 +15,7 @@ expression: shaked
     },
     OrphanModuleShaked {
         rel_rs_path: "unused.rs",
+        mod_name: "unused",
         imported_members: None,
     },
 ]

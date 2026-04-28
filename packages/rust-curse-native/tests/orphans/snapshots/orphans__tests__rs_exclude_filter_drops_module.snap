@@ -6,5 +6,6 @@ expression: modules
 [
     OrphanModule {
         rel_rs_path: "keep.rs",
+        mod_name: "keep",
     },
 ]

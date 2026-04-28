@@ -8,3 +8,13 @@ build = ".rust-curse/build.rs" # do not change
 
 [lib]
 path = ".rust-curse/lib.rs" # do not change
+
+[features]
+napi = ["dep:napi", "dep:napi-derive"] # do not change
+
+[dependencies]
+napi = { version = "3", optional = true } # do not change
+napi-derive = { version = "3", optional = true } # do not change
+
+[build-dependencies]
+napi-build = { version = "2", optional = true } # do not change
