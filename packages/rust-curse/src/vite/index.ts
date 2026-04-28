@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import type { Plugin, ResolvedConfig } from 'vite'
 import { defaultOptions, RustCurseOptions } from './options'
-import { Session } from 'rust-curse-native'
+import { RustCurse } from 'rust-curse-native'
 import type { BuildTarget } from 'rust-curse-native'
 import { deepMerge, DeepRequired, normalizeSources } from '../utils'
 
@@ -51,7 +51,7 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
         })
       }
 
-      const session = new Session({
+      const rustCurse = new RustCurse({
         targets,
         moduleDirRelPath: resolve(config.root, options.rust.moduleDir),
         cargoTomlRelPath: resolve(config.root, options.rust.manifestPath),
@@ -59,7 +59,7 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
         projectRootAbsPath: config.root,
       })
 
-      const result = session.build()
+      const result = rustCurse.build()
       for (const warning of result.warnings) {
         config.logger.warn(`[rust-curse] ${warning}`)
       }

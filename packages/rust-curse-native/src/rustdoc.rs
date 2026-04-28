@@ -1,3 +1,5 @@
+//! Wrapper to run the cargo rustdoc command
+
 use std::fs;
 use std::io;
 use std::path::{Component, Path, PathBuf};

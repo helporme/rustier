@@ -579,5 +579,5 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Session } = nativeBinding
-export { Session }
+const { RustCurse } = nativeBinding
+export { RustCurse }
