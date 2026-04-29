@@ -18,6 +18,7 @@ use crate::orphans::{OrphanModuleShaked, OrphanScanOpts, OrphanShakeOpts, Source
 use crate::scaffold::default::DefaultSectionOpts;
 use crate::scaffold::napi::NapiSectionOpts;
 use crate::scaffold::rustdoc::RustdocSectionOpts;
+use crate::scaffold::ts::TsSectionOpts;
 use crate::scaffold::wasm::WasmSectionOpts;
 use crate::scaffold::{Scaffold, ScaffoldError, ScaffoldOptions};
 
@@ -26,6 +27,7 @@ pub enum BuildTarget {
     Default { js_source: SourceOptions },
     Node { js_source: SourceOptions },
     Wasm { js_source: SourceOptions },
+    Ts { js_source: SourceOptions },
 }
 
 impl BuildTarget {
@@ -33,7 +35,8 @@ impl BuildTarget {
         match self {
             BuildTarget::Default { js_source }
             | BuildTarget::Node { js_source }
-            | BuildTarget::Wasm { js_source } => js_source,
+            | BuildTarget::Wasm { js_source }
+            | BuildTarget::Ts { js_source } => js_source,
         }
     }
 
@@ -42,6 +45,7 @@ impl BuildTarget {
             BuildTarget::Default { .. } => "default",
             BuildTarget::Node { .. } => "napi",
             BuildTarget::Wasm { .. } => "wasm",
+            BuildTarget::Ts { .. } => "ts",
         }
     }
 
@@ -59,11 +63,14 @@ impl BuildTarget {
             }),
             BuildTarget::Node { .. } => scaffold.set_napi(NapiSectionOpts {
                 feature_name: "napi".into(),
-                lib_content: ir.print_napi(),
+                content: ir.print_napi(),
             }),
             BuildTarget::Wasm { .. } => scaffold.set_wasm(WasmSectionOpts {
                 feature_name: "wasm".into(),
-                lib_content: ir.print_wasm(),
+                content: ir.print_wasm(),
+            }),
+            BuildTarget::Ts { .. } => scaffold.set_ts(TsSectionOpts {
+                content: ir.print_ts(),
             }),
         }
     }
@@ -93,19 +100,6 @@ pub struct RustCurse {
     options: RustCurseOptions,
 }
 
-#[cfg_attr(feature = "napi-binding", napi(object))]
-pub struct BuildResult {
-    pub warnings: Vec<String>,
-}
-
-impl BuildResult {
-    fn empty() -> Self {
-        Self {
-            warnings: Vec::new(),
-        }
-    }
-}
-
 #[cfg_attr(feature = "napi-binding", napi)]
 impl RustCurse {
     #[cfg_attr(feature = "napi-binding", napi(constructor))]
@@ -114,11 +108,11 @@ impl RustCurse {
     }
 
     #[cfg_attr(feature = "napi-binding", napi)]
-    pub fn build(&mut self) -> BuildResult {
+    pub fn build(&mut self) {
         self.try_build().expect("build failed")
     }
 
-    fn try_build(&mut self) -> anyhow::Result<BuildResult> {
+    fn try_build(&mut self) -> anyhow::Result<()> {
         let project_root = PathBuf::from(&self.options.project_root_abs_path);
         let mod_root_rel_paths = vec![PathBuf::from(&self.options.module_dir_rel_path)];
 
@@ -173,6 +167,6 @@ impl RustCurse {
 
         scaffold.deploy().context("scaffold: deploy targets")?;
 
-        Ok(BuildResult::empty())
+        Ok(())
     }
 }

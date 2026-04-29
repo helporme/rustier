@@ -2,14 +2,14 @@ use super::{BuildContribution, Scaffold, ScaffoldError, ScaffoldSection};
 
 pub struct NapiSectionOpts {
     pub feature_name: String,
-    pub lib_content: String,
+    pub content: String,
 }
 
 impl Scaffold {
     pub fn set_napi(&mut self, opts: NapiSectionOpts) -> Result<(), ScaffoldError> {
         let section = ScaffoldSection::new("napi")
             .cargo_feature_flag(&opts.feature_name)
-            .lib(opts.lib_content)
+            .lib(opts.content)
             .build(BuildContribution {
                 preamble: "use napi_build;".into(),
                 main: "napi_build::setup();".into(),

@@ -2,17 +2,14 @@
 /* eslint-disable */
 export declare class RustCurse {
   constructor(options: RustCurseOptions)
-  build(): BuildResult
-}
-
-export interface BuildResult {
-  warnings: Array<string>
+  build(): void
 }
 
 export type BuildTarget =
   | { type: 'Default', jsSource: SourceOptions }
   | { type: 'Node', jsSource: SourceOptions }
   | { type: 'Wasm', jsSource: SourceOptions }
+  | { type: 'Ts', jsSource: SourceOptions }
 
 export interface RustCurseOptions {
   targets: Array<BuildTarget>

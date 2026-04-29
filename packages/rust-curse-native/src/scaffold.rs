@@ -11,6 +11,7 @@
 //! use rust_curse::scaffold::{Scaffold, ScaffoldOptions};
 //! use std::path::PathBuf;
 //!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let mut scaffold = Scaffold::new(ScaffoldOptions {
 //!     abs_root_path: "/path/to/project".into(),
 //!     temp_folder_rel_path: ".rust-curse".into(),
@@ -19,11 +20,13 @@
 //!
 //! scaffold.set_napi(NapiSectionOpts {
 //!     feature_name: "node".into(),
-//!     lib_content: "// generated napi glue\n".into(),
+//!     content: "// generated napi glue\n".into(),
 //! })?;
-//! scaffold.rustdoc(RustdocSectionOpts { modules: &[] })?;
+//! scaffold.set_rustdoc(RustdocSectionOpts { modules: &[] })?;
 //!
 //! scaffold.deploy()?;
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! For lower-level control, build a [`ScaffoldSection`] directly and
@@ -812,4 +815,5 @@ mod dispatcher;
 mod meta;
 pub mod napi;
 pub mod rustdoc;
+pub mod ts;
 pub mod wasm;

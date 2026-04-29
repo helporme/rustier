@@ -5,6 +5,7 @@ use rust_curse::orphans::{OrphanModule, OrphanModuleMembers, OrphanModuleShaked}
 use rust_curse::scaffold::default::DefaultSectionOpts;
 use rust_curse::scaffold::napi::NapiSectionOpts;
 use rust_curse::scaffold::rustdoc::RustdocSectionOpts;
+use rust_curse::scaffold::ts::{TsSectionOpts, TS_FILE};
 use rust_curse::scaffold::wasm::WasmSectionOpts;
 use rust_curse::scaffold::{BuildContribution, ScaffoldError, ScaffoldSection};
 use rustdoc_types::Visibility;
@@ -18,7 +19,11 @@ fn test_module(mod_name: &str, rel_rs_path: &str) -> OrphanModule {
     }
 }
 
-fn test_shaked(mod_name: &str, rel_rs_path: &str, members: OrphanModuleMembers) -> OrphanModuleShaked {
+fn test_shaked(
+    mod_name: &str,
+    rel_rs_path: &str,
+    members: OrphanModuleMembers,
+) -> OrphanModuleShaked {
     OrphanModuleShaked {
         rel_rs_path: PathBuf::from(rel_rs_path),
         mod_name: mod_name.to_string(),
@@ -136,11 +141,7 @@ fn default_star_import_re_exports_public_only() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
-    let modules = vec![test_shaked(
-        "math",
-        "src/math.rs",
-        OrphanModuleMembers::All,
-    )];
+    let modules = vec![test_shaked("math", "src/math.rs", OrphanModuleMembers::All)];
     let crate_ = make_crate(vec![
         make_item(1, "add", "src/math.rs", Visibility::Public),
         make_item(2, "sub", "src/math.rs", Visibility::Public),
@@ -187,7 +188,7 @@ fn default_with_modules_combined_with_napi() {
     scaffold
         .set_napi(NapiSectionOpts {
             feature_name: "node".into(),
-            lib_content: "// napi glue\n".into(),
+            content: "// napi glue\n".into(),
         })
         .unwrap();
     scaffold.deploy().unwrap();
@@ -241,11 +242,7 @@ fn default_with_modules_combined_with_napi_and_wasm() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
-    let modules = vec![test_shaked(
-        "math",
-        "src/math.rs",
-        OrphanModuleMembers::All,
-    )];
+    let modules = vec![test_shaked("math", "src/math.rs", OrphanModuleMembers::All)];
     let crate_ = make_crate(vec![
         make_item(1, "add", "src/math.rs", Visibility::Public),
         make_item(2, "sub", "src/math.rs", Visibility::Public),
@@ -260,13 +257,13 @@ fn default_with_modules_combined_with_napi_and_wasm() {
     scaffold
         .set_napi(NapiSectionOpts {
             feature_name: "node".into(),
-            lib_content: "// napi glue\n".into(),
+            content: "// napi glue\n".into(),
         })
         .unwrap();
     scaffold
         .set_wasm(WasmSectionOpts {
             feature_name: "wasm".into(),
-            lib_content: "// wasm glue\n".into(),
+            content: "// wasm glue\n".into(),
         })
         .unwrap();
     scaffold.deploy().unwrap();
@@ -282,7 +279,7 @@ fn set_napi_only() {
     scaffold
         .set_napi(NapiSectionOpts {
             feature_name: "node".into(),
-            lib_content: "// napi glue\n".into(),
+            content: "// napi glue\n".into(),
         })
         .unwrap();
     scaffold.deploy().unwrap();
@@ -296,11 +293,81 @@ fn set_wasm_only() {
     scaffold
         .set_wasm(WasmSectionOpts {
             feature_name: "wasm".into(),
-            lib_content: "// wasm glue\n".into(),
+            content: "// wasm glue\n".into(),
         })
         .unwrap();
     scaffold.deploy().unwrap();
     insta::assert_snapshot!(project_to_md(&project));
+}
+
+#[test]
+fn set_ts_only() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    scaffold
+        .set_ts(TsSectionOpts {
+            content: "export declare function hello(): void;\n".into(),
+        })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    insta::assert_snapshot!(project_to_md(&project));
+}
+
+#[test]
+fn set_ts_writes_ambient_dts() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    let content = "export declare const VERSION: string;\n";
+    scaffold
+        .set_ts(TsSectionOpts {
+            content: content.into(),
+        })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    let written = fs::read_to_string(project.abs_temp_path.join(TS_FILE)).unwrap();
+    assert_eq!(written, content);
+}
+
+#[test]
+fn set_ts_combined_with_napi() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    scaffold
+        .set_napi(NapiSectionOpts {
+            feature_name: "node".into(),
+            content: "// napi glue\n".into(),
+        })
+        .unwrap();
+    scaffold
+        .set_ts(TsSectionOpts {
+            content: "export declare function hello(): void;\n".into(),
+        })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    insta::assert_snapshot!(project_to_md(&project));
+}
+
+#[test]
+fn remove_ts_clears_ambient_dts() {
+    let project = TestProject::new();
+    {
+        let mut scaffold = project.scaffold();
+        scaffold
+            .set_ts(TsSectionOpts {
+                content: "export declare function hello(): void;\n".into(),
+            })
+            .unwrap();
+        scaffold.deploy().unwrap();
+    }
+    assert!(project.abs_temp_path.join(TS_FILE).exists());
+    {
+        let mut scaffold = project.scaffold();
+        scaffold.deploy().unwrap();
+    }
+    assert!(
+        !project.abs_temp_path.join(TS_FILE).exists(),
+        "ambient.d.ts should be removed when ts section is dropped"
+    );
 }
 
 #[test]
@@ -385,13 +452,13 @@ fn set_combo_all_four_sections() {
     scaffold
         .set_napi(NapiSectionOpts {
             feature_name: "node".into(),
-            lib_content: "// napi\n".into(),
+            content: "// napi\n".into(),
         })
         .unwrap();
     scaffold
         .set_wasm(WasmSectionOpts {
             feature_name: "wasm".into(),
-            lib_content: "// wasm\n".into(),
+            content: "// wasm\n".into(),
         })
         .unwrap();
     scaffold
@@ -408,7 +475,7 @@ fn patch_replaces_only_lib_content() {
     scaffold
         .set_napi(NapiSectionOpts {
             feature_name: "node".into(),
-            lib_content: "// original\n".into(),
+            content: "// original\n".into(),
         })
         .unwrap();
     scaffold
@@ -436,13 +503,13 @@ fn remove_section_drops_files_and_deps() {
         scaffold
             .set_napi(NapiSectionOpts {
                 feature_name: "node".into(),
-                lib_content: "// napi\n".into(),
+                content: "// napi\n".into(),
             })
             .unwrap();
         scaffold
             .set_wasm(WasmSectionOpts {
                 feature_name: "wasm".into(),
-                lib_content: "// wasm\n".into(),
+                content: "// wasm\n".into(),
             })
             .unwrap();
         scaffold.deploy().unwrap();
@@ -452,7 +519,7 @@ fn remove_section_drops_files_and_deps() {
         scaffold
             .set_wasm(WasmSectionOpts {
                 feature_name: "wasm".into(),
-                lib_content: "// wasm\n".into(),
+                content: "// wasm\n".into(),
             })
             .unwrap();
         scaffold.deploy().unwrap();
@@ -471,8 +538,14 @@ fn default_only_emits_no_empty_blocks() {
     scaffold.set_default(empty_default_opts(&crate_)).unwrap();
     scaffold.deploy().unwrap();
     let cargo = fs::read_to_string(project.abs_root_path.join("Cargo.toml")).unwrap();
-    assert!(!cargo.contains("[features]"), "unexpected [features] table:\n{cargo}");
-    assert!(!cargo.contains("[dependencies]"), "unexpected [dependencies] table:\n{cargo}");
+    assert!(
+        !cargo.contains("[features]"),
+        "unexpected [features] table:\n{cargo}"
+    );
+    assert!(
+        !cargo.contains("[dependencies]"),
+        "unexpected [dependencies] table:\n{cargo}"
+    );
     assert!(
         !cargo.contains("[build-dependencies]"),
         "unexpected [build-dependencies] table:\n{cargo}"
@@ -492,7 +565,7 @@ fn remove_last_section_drops_empty_blocks() {
         scaffold
             .set_napi(NapiSectionOpts {
                 feature_name: "node".into(),
-                lib_content: "// napi\n".into(),
+                content: "// napi\n".into(),
             })
             .unwrap();
         scaffold.deploy().unwrap();
@@ -502,8 +575,14 @@ fn remove_last_section_drops_empty_blocks() {
         scaffold.deploy().unwrap();
     }
     let cargo = fs::read_to_string(project.abs_root_path.join("Cargo.toml")).unwrap();
-    assert!(!cargo.contains("[features]"), "unexpected [features]:\n{cargo}");
-    assert!(!cargo.contains("[dependencies]"), "unexpected [dependencies]:\n{cargo}");
+    assert!(
+        !cargo.contains("[features]"),
+        "unexpected [features]:\n{cargo}"
+    );
+    assert!(
+        !cargo.contains("[dependencies]"),
+        "unexpected [dependencies]:\n{cargo}"
+    );
     assert!(
         !cargo.contains("[build-dependencies]"),
         "unexpected [build-dependencies]:\n{cargo}"
@@ -522,13 +601,13 @@ fn remove_napi_drops_only_build_dependencies() {
         scaffold
             .set_napi(NapiSectionOpts {
                 feature_name: "node".into(),
-                lib_content: "// napi\n".into(),
+                content: "// napi\n".into(),
             })
             .unwrap();
         scaffold
             .set_wasm(WasmSectionOpts {
                 feature_name: "wasm".into(),
-                lib_content: "// wasm\n".into(),
+                content: "// wasm\n".into(),
             })
             .unwrap();
         scaffold.deploy().unwrap();
@@ -538,7 +617,7 @@ fn remove_napi_drops_only_build_dependencies() {
         scaffold
             .set_wasm(WasmSectionOpts {
                 feature_name: "wasm".into(),
-                lib_content: "// wasm\n".into(),
+                content: "// wasm\n".into(),
             })
             .unwrap();
         scaffold.deploy().unwrap();
@@ -549,7 +628,10 @@ fn remove_napi_drops_only_build_dependencies() {
         "unexpected [build-dependencies]:\n{cargo}"
     );
     assert!(cargo.contains("[features]"), "missing [features]:\n{cargo}");
-    assert!(cargo.contains("[dependencies]"), "missing [dependencies]:\n{cargo}");
+    assert!(
+        cargo.contains("[dependencies]"),
+        "missing [dependencies]:\n{cargo}"
+    );
     insta::assert_snapshot!(project_to_md(&project));
 }
 
@@ -560,7 +642,7 @@ fn workspace_inherited_napi_dep_preserved() {
     scaffold
         .set_napi(NapiSectionOpts {
             feature_name: "node".into(),
-            lib_content: "// napi\n".into(),
+            content: "// napi\n".into(),
         })
         .unwrap();
     scaffold.deploy().unwrap();
@@ -579,7 +661,7 @@ fn deploy_is_byte_identical_on_rerun() {
         scaffold
             .set_napi(NapiSectionOpts {
                 feature_name: "node".into(),
-                lib_content: "// n\n".into(),
+                content: "// n\n".into(),
             })
             .unwrap();
         scaffold.deploy().unwrap();

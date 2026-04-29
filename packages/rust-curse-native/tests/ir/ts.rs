@@ -334,4 +334,3 @@ fn ctor_new_in_trait_impl_is_explicit() {
         }
     };
 }
-

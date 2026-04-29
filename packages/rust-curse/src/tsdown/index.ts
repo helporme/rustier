@@ -25,6 +25,7 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
 
       const targets: BuildTarget[] = [
         { type: 'Default', jsSource },
+        { type: 'Ts', jsSource },
         options.platform === 'node'
           ? { type: 'Node', jsSource }
           : { type: 'Wasm', jsSource },
@@ -38,10 +39,7 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
         projectRootAbsPath: options.rootDir,
       })
 
-      const result = rustCurse.build()
-      for (const warning of result.warnings) {
-        console.warn(`[rust-curse] ${warning}`)
-      }
+      rustCurse.build()
     },
   }
 }
