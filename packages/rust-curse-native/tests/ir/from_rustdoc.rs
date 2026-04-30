@@ -1,20 +1,20 @@
 #[test]
 fn builds_root_only_with_one_fn() {
-    assert_ir_snap!(["add"] => {
+    assert_ir_snap! {
         pub fn add(a: i32, b: i32) -> i32 { a + b }
-    });
+    };
 }
 
 #[test]
 fn interns_primitives_once() {
-    assert_ir_snap!(["two_i32"] => {
+    assert_ir_snap! {
         pub fn two_i32(a: i32, b: i32) {}
-    });
+    };
 }
 
 #[test]
 fn all_primitive_types() {
-    assert_ir_snap!(["f"] => {
+    assert_ir_snap! {
         pub fn f(
             a: i8, b: i16, c: i32,
             d: u8, e: u16, f: u32,
@@ -22,51 +22,51 @@ fn all_primitive_types() {
             i: bool,
             j: char, k: String, l: &str,
         ) {}
-    });
+    };
 }
 
 #[test]
 fn bigint_types() {
-    assert_ir_snap!(["f"] => {
+    assert_ir_snap! {
         pub fn f(a: i64, b: u64, c: isize, d: usize) {}
-    });
+    };
 }
 
 #[test]
 fn borrow_mode_captured() {
-    assert_ir_snap!(["takes"] => {
+    assert_ir_snap! {
         pub fn takes(x: &mut i32) { *x += 1; }
-    });
+    };
 }
 
 #[test]
 fn borrow_modes_primitive() {
-    assert_ir_snap!(["f"] => {
+    assert_ir_snap! {
         pub fn f(by_ref: &i32, by_mut_ref: &mut i32, by_value: i32) {}
-    });
+    };
 }
 
 #[test]
 fn borrow_modes_struct() {
-    assert_ir_snap!(["translate"] => {
+    assert_ir_snap! {
         pub struct Point {
             pub x: f64,
             pub y: f64,
         }
         pub fn translate(origin: &Point, target: &mut Point, offset: Point) {}
-    });
+    };
 }
 
 #[test]
 fn return_void() {
-    assert_ir_snap!(["f"] => {
+    assert_ir_snap! {
         pub fn f() {}
-    });
+    };
 }
 
 #[test]
 fn fn_returns_struct() {
-    assert_ir_snap!(["Point", "make_origin"] => {
+    assert_ir_snap! {
         /// A point in 2D space.
         pub struct Point {
             /// Horizontal position.
@@ -76,59 +76,60 @@ fn fn_returns_struct() {
         }
         /// Returns the origin point `(0, 0)`.
         pub fn make_origin() -> Point { Point { x: 0.0, y: 0.0 } }
-    });
+    };
 }
 
 #[test]
 fn plain_struct_all_pub_is_copy() {
-    assert_ir_snap!(["Point"] => {
+    assert_ir_snap! {
         pub struct Point {
             pub x: i32,
         }
-    });
+        pub fn use_it(p: Point) {}
+    };
 }
 
 #[test]
 fn plain_struct_private_field_is_ref_implicit() {
-    assert_ir_snap!(["Opaque"] => {
+    assert_ir_snap! {
         pub struct Opaque {
             x: i32,
         }
-    });
+    };
 }
 
 #[test]
 fn explicit_new_is_ctor_explicit() {
-    assert_ir_snap!(["Opaque"] => {
+    assert_ir_snap! {
         pub struct Opaque {
             x: i32,
         }
         impl Opaque {
             pub fn new(x: i32) -> Self { Self { x } }
         }
-    });
+    };
 }
 
 #[test]
 fn tuple_struct() {
-    assert_ir_snap!(["Pair"] => {
+    assert_ir_snap! {
         pub struct Pair(pub i32, pub String);
-    });
+    };
 }
 
 #[test]
 fn nested_module_tree() {
-    assert_ir_snap!(["leaf"] => {
+    assert_ir_snap! {
         pub mod child {
             pub fn leaf() {}
         }
         pub mod empty {}
-    });
+    };
 }
 
 #[test]
 fn cross_module_types() {
-    assert_ir_snap!(["Token", "parse"] => {
+    assert_ir_snap! {
         pub mod types {
             pub struct Token {
                 pub value: String,
@@ -137,47 +138,33 @@ fn cross_module_types() {
         pub mod ops {
             pub fn parse(s: String) -> crate::types::Token { todo!() }
         }
-    });
+    };
 }
 
 #[test]
 fn unit_struct() {
-    assert_ir_snap!(["Marker"] => {
+    assert_ir_snap! {
         pub struct Marker;
-    });
+    };
 }
 
 #[test]
 fn empty_struct_plain() {
-    assert_ir_snap!(["Empty"] => {
+    assert_ir_snap! {
         pub struct Empty {}
-    });
+    };
 }
-
-#[test]
-fn smart_pointer_inlining() {
-    assert_ir_snap!(["f"] => {
-        pub fn f(
-            a: Box<i32>,
-            b: std::sync::Arc<i32>,
-            c: std::rc::Rc<i32>,
-            d: std::cell::Cell<i32>,
-            e: std::cell::RefCell<i32>,
-        ) {}
-    });
-}
-
 #[test]
 fn primitives_intern_across_fns() {
-    assert_ir_snap!(["f", "g"] => {
+    assert_ir_snap! {
         pub fn f(x: i32) {}
         pub fn g(y: i32) {}
-    });
+    };
 }
 
 #[test]
 fn struct_intern_across_uses() {
-    assert_ir_snap!(["take", "produce", "Wrapper"] => {
+    assert_ir_snap! {
         pub struct Point {
             pub x: i32,
             pub y: i32,
@@ -187,12 +174,12 @@ fn struct_intern_across_uses() {
         }
         pub fn take(p: Point) {}
         pub fn produce() -> Point { Point { x: 0, y: 0 } }
-    });
+    };
 }
 
 #[test]
 fn struct_with_struct_field() {
-    assert_ir_snap!(["Point", "Circle"] => {
+    assert_ir_snap! {
         /// A point in 2D space.
         pub struct Point {
             /// Horizontal position.
@@ -207,34 +194,34 @@ fn struct_with_struct_field() {
             /// The radius in the same units as `center`.
             pub radius: f64,
         }
-    });
+    };
 }
 
 #[test]
 fn struct_mixed_pub_priv_fields() {
-    assert_ir_snap!(["Mixed"] => {
+    assert_ir_snap! {
         pub struct Mixed {
             pub x: i32,
             y: i32,
         }
-    });
+    };
 }
 
 #[test]
 fn ctor_new_with_self_arg_is_implicit() {
-    assert_ir_snap!(["Builder"] => {
+    assert_ir_snap! {
         pub struct Builder {
             x: i32,
         }
         impl Builder {
             pub fn new(&self) -> Self { Self { x: self.x } }
         }
-    });
+    };
 }
 
 #[test]
 fn ctor_new_in_trait_impl_is_explicit() {
-    assert_ir_snap!(["Foo"] => {
+    assert_ir_snap! {
         pub trait Factory {
             fn new() -> Self;
         }
@@ -244,12 +231,12 @@ fn ctor_new_in_trait_impl_is_explicit() {
         impl Factory for Foo {
             fn new() -> Self { Foo { x: 0 } }
         }
-    });
+    };
 }
 
 #[test]
 fn ctor_multiple_impls_finds_new() {
-    assert_ir_snap!(["Counter"] => {
+    assert_ir_snap! {
         pub struct Counter {
             count: u32,
         }
@@ -259,12 +246,12 @@ fn ctor_multiple_impls_finds_new() {
         impl Counter {
             pub fn new() -> Self { Counter { count: 0 } }
         }
-    });
+    };
 }
 
 #[test]
 fn ctor_multiple_new_across_traits_picks_smallest_path() {
-    assert_ir_snap!(["Foo"] => {
+    assert_ir_snap! {
         pub mod zeta {
             pub trait Factory { fn new(from_zeta: i32) -> Self; }
         }
@@ -274,36 +261,34 @@ fn ctor_multiple_new_across_traits_picks_smallest_path() {
         pub struct Foo { x: i32 }
         impl zeta::Factory for Foo { fn new(from_zeta: i32) -> Self { Foo { x: from_zeta } } }
         impl alpha::Factory for Foo { fn new(from_alpha: u64) -> Self { Foo { x: from_alpha as i32 } } }
-    });
+    };
 }
 
 #[test]
 fn ctor_new_returning_struct_name() {
-    assert_ir_snap!(["Token"] => {
+    assert_ir_snap! {
         pub struct Token {
             value: String,
         }
         impl Token {
             pub fn new(value: String) -> Token { Token { value } }
         }
-    });
+    };
 }
 
 #[test]
 fn empty_module_is_pruned() {
-    assert_ir_snap!(["stays"] => {
+    assert_ir_snap! {
         pub mod kept {
             pub fn stays() {}
         }
-        pub mod pruned {
-            pub fn dropped() {}
-        }
-    });
+        pub mod pruned {}
+    };
 }
 
 #[test]
 fn deep_nested_modules() {
-    assert_ir_snap!(["deep"] => {
+    assert_ir_snap! {
         pub mod a {
             pub mod b {
                 pub mod c {
@@ -311,47 +296,47 @@ fn deep_nested_modules() {
                 }
             }
         }
-    });
+    };
 }
 
 #[test]
 fn re_export_of_struct() {
-    assert_ir_snap!(["Inner"] => {
+    assert_ir_snap! {
         pub mod inner {
             pub struct Inner {
                 pub x: i32,
             }
         }
         pub use inner::Inner;
-    });
+    };
 }
 
 #[test]
 fn re_export_renamed_struct() {
-    assert_ir_snap!(["Inner"] => {
+    assert_ir_snap! {
         pub mod inner {
             pub struct Inner {
                 pub x: i32,
             }
         }
         pub use inner::Inner as Renamed;
-    });
+    };
 }
 
 #[test]
 fn re_export_glob_surfaces_all_public_items() {
-    assert_ir_snap_all!({
+    assert_ir_snap! {
         pub mod inner {
             pub struct S { pub x: i32 }
             pub fn f() -> i32 { 0 }
         }
         pub use inner::*;
-    });
+    };
 }
 
 #[test]
 fn re_export_glob_expands_transitively() {
-    assert_ir_snap_all!({
+    assert_ir_snap! {
         pub mod deeper {
             pub struct X { pub x: i32 }
         }
@@ -359,12 +344,12 @@ fn re_export_glob_expands_transitively() {
             pub use super::deeper::X;
         }
         pub use inner::*;
-    });
+    };
 }
 
 #[test]
 fn re_export_chain_resolves() {
-    assert_ir_snap!(["Inner"] => {
+    assert_ir_snap! {
         pub mod inner {
             pub struct Inner { pub x: i32 }
         }
@@ -372,66 +357,44 @@ fn re_export_chain_resolves() {
             pub use super::inner::Inner;
         }
         pub use middle::Inner;
-    });
+    };
 }
 
 #[test]
 fn re_export_of_primitive_is_skipped() {
-    assert_ir_snap_all!({
+    assert_ir_snap! {
         pub use i32 as MyI32;
-    });
+    };
 }
 
 #[test]
 fn pub_crate_field_forces_ref() {
-    assert_ir_snap!(["Gated"] => {
+    assert_ir_snap! {
         pub struct Gated {
             pub x: i32,
             pub(crate) y: i32,
         }
-    });
+    };
 }
 
 #[test]
 fn duplicate_struct_names_in_different_modules() {
-    assert_ir_snap_all!({
+    assert_ir_snap! {
         pub mod a {
             pub struct Thing { pub x: i32 }
         }
         pub mod b {
             pub struct Thing { pub y: i32 }
         }
-    });
-}
-
-#[test]
-fn items_not_in_allowed_are_dropped() {
-    assert_ir_snap!(["keep"] => {
-        pub fn keep() {}
-        pub fn drop_me() {}
-    });
+    };
 }
 
 #[test]
 fn dependency_struct_is_reached_via_fn_signature() {
-    assert_ir_snap!(["f"] => {
+    assert_ir_snap! {
         pub struct Point {
             pub x: i32,
         }
         pub fn f(p: Point) {}
-    });
-}
-
-#[test]
-fn empty_allowed_set_produces_empty_root() {
-    let src = crate::common::fmt_src(stringify!(
-        pub fn a() {}
-        pub fn b() {}
-    ));
-    let crate_ = crate::common::gen_rustdoc(&src);
-    let allowed = std::collections::HashSet::new();
-    let ir = rust_curse::ir::from_rustdoc::build_ir(&allowed, &crate_).unwrap();
-    insta::with_settings!({ description => src }, {
-        insta::assert_debug_snapshot!(ir);
-    });
+    };
 }

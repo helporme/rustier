@@ -4,79 +4,71 @@ description: "pub mod zeta {\n    pub trait Factory {\n        fn new(from_zeta:
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [
-        Number(
-            u64,
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                exports: [
+                    Export {
+                        name: "Foo",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
         ),
         Struct(
-            StructId(
-                0,
-            ),
-        ),
-    ],
-    structs: [
-        StructDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "Foo",
-                ],
-            },
-            ctor: Explicit(
-                FnId(
-                    0,
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Foo",
+                    ],
+                },
+                ctor: Explicit(
+                    Id(
+                        2,
+                    ),
                 ),
-            ),
-            has_copy_variant: false,
-            shape: Struct(
-                [],
-            ),
-            docs: None,
-        },
-    ],
-    fns: [
-        FnDef {
-            path: ItemPath {
-                segments: [
-                    "new",
-                ],
+                has_copy_variant: false,
+                shape: Struct(
+                    [],
+                ),
+                docs: None,
             },
-            params: [
-                FnParam {
-                    name: "from_alpha",
-                    mode: ByValue,
-                    type_id: TypeId(
-                        0,
-                    ),
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "new",
+                    ],
                 },
-            ],
-            return_type: TypeId(
-                1,
-            ),
-            docs: None,
-        },
-    ],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Export {
-                    name: "Foo",
-                    kind: Struct(
-                        StructId(
-                            0,
+                params: [
+                    FnParam {
+                        name: "from_alpha",
+                        mode: ByValue,
+                        ty: Number(
+                            u64,
                         ),
+                    },
+                ],
+                return_type: Struct(
+                    Id(
+                        1,
                     ),
-                },
-            ],
-        },
+                ),
+                docs: None,
+            },
+        ),
     ],
 }

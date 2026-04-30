@@ -4,45 +4,43 @@ description: "pub struct Opaque {\n    x: i32,\n}\n"
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [],
-    structs: [
-        StructDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "Opaque",
-                ],
-            },
-            ctor: Implicit,
-            has_copy_variant: false,
-            shape: Struct(
-                [],
-            ),
-            docs: None,
-        },
-    ],
-    fns: [],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Export {
-                    name: "Opaque",
-                    kind: Struct(
-                        StructId(
-                            0,
-                        ),
-                    ),
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
                 },
-            ],
-        },
+                exports: [
+                    Export {
+                        name: "Opaque",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Opaque",
+                    ],
+                },
+                ctor: Implicit,
+                has_copy_variant: false,
+                shape: Struct(
+                    [],
+                ),
+                docs: None,
+            },
+        ),
     ],
 }

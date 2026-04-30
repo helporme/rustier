@@ -1,24 +1,29 @@
 //! IR -> Rust wasm-bindgen glue printer.
 
+use std::collections::HashSet;
+
 use super::mangle::{is_canonical_origin, mangle_copy, mangle_fn, mangle_ref};
 use super::{
-    rust_path, Ctor, ExportKind, FnDef, FnId, FnParam, ModId, NumberType, ParamMode, StructDef,
-    StructField, StructId, StructShape, Type, TypeId, IR,
+    rust_path, Ctor, FnDef, FnParam, Id, Item, NumberType, ParamMode, StructDef, StructField,
+    StructShape, Type, IR,
 };
 
 impl IR {
-    pub fn print_wasm(&self) -> String {
-        Printer::new(self).run()
+    /// Prints the IR as wasm-bindgen glue code, exposing items in the `exposed`
+    /// set.
+    pub fn print_wasm(&self, exposed: &HashSet<Id>) -> String {
+        Printer::new(self, exposed).run()
     }
 }
 
 struct Printer<'a> {
     ir: &'a IR,
+    exposed: &'a HashSet<Id>,
 }
 
 impl<'a> Printer<'a> {
-    fn new(ir: &'a IR) -> Self {
-        Self { ir }
+    fn new(ir: &'a IR, exposed: &'a HashSet<Id>) -> Self {
+        Self { ir, exposed }
     }
 
     fn run(&mut self) -> String {
@@ -26,22 +31,34 @@ impl<'a> Printer<'a> {
         out.push_str("#![allow(non_camel_case_types, non_snake_case)]\n");
         out.push_str("use wasm_bindgen::prelude::*;\n");
 
-        for i in 0..self.ir.structs.len() {
-            out.push('\n');
-            out.push_str(&self.print_struct_wrappers(StructId(i as u32)));
+        for i in 0..self.ir.items.len() {
+            let id = Id(i as u32);
+            if let Item::Struct(_) = self.ir.get_unchecked(id) {
+                if !self.exposed.contains(&id) {
+                    continue;
+                }
+                out.push('\n');
+                out.push_str(&self.print_struct_wrappers(id));
+            }
         }
 
-        for mi in 0..self.ir.mods.len() {
-            let mid = ModId(mi as u32);
-            let mod_segs = self.ir.mod_(mid).path.segments.clone();
-            for export in self.ir.mod_(mid).exports.clone() {
-                let ExportKind::Fn(fid) = export.kind else {
+        for i in 0..self.ir.items.len() {
+            let mid = Id(i as u32);
+            let Item::Mod(mod_def) = self.ir.get_unchecked(mid) else {
+                continue;
+            };
+            let mod_segs = mod_def.path.segments.clone();
+            for export in mod_def.exports.clone() {
+                if !self.exposed.contains(&export.target) {
+                    continue;
+                }
+                let Item::Fn(fn_def) = self.ir.get_unchecked(export.target) else {
                     continue;
                 };
-                let canonical = self.ir.fn_(fid).path.clone();
+                let canonical = fn_def.path.clone();
                 if is_canonical_origin(&canonical, &mod_segs) {
                     out.push('\n');
-                    out.push_str(&self.print_fn_glue(fid));
+                    out.push_str(&self.print_fn_glue(export.target));
                 }
             }
         }
@@ -49,8 +66,8 @@ impl<'a> Printer<'a> {
         out
     }
 
-    fn print_struct_wrappers(&mut self, sid: StructId) -> String {
-        let def = self.ir.struct_(sid).clone();
+    fn print_struct_wrappers(&mut self, sid: Id) -> String {
+        let def = self.ir.get_struct_unchecked(sid).clone();
         let orig = rust_path(&def.path, &self.ir.crate_name);
         let mangled = mangle_ref(&def.path);
 
@@ -96,8 +113,8 @@ impl<'a> Printer<'a> {
         match &def.shape {
             StructShape::Unit => {}
             StructShape::Tuple(ts) => {
-                for (i, &tid) in ts.iter().enumerate() {
-                    let ty = self.type_to_rs(tid);
+                for (i, ty) in ts.iter().enumerate() {
+                    let ty = self.type_to_rs(ty);
                     out.push_str(&format!(
                         "    #[serde(rename = \"{i}\")]\n    pub _{i}: {ty},\n"
                     ));
@@ -105,7 +122,7 @@ impl<'a> Printer<'a> {
             }
             StructShape::Struct(fs) => {
                 for f in fs {
-                    let ty = self.type_to_rs(f.type_id);
+                    let ty = self.type_to_rs(&f.ty);
                     out.push_str(&format!("    pub {}: {ty},\n", f.name));
                 }
             }
@@ -142,12 +159,12 @@ impl<'a> Printer<'a> {
     fn print_ctor(&mut self, def: &StructDef, orig: &str) -> String {
         match &def.ctor {
             Ctor::Explicit(fid) => {
-                let fn_def = self.ir.fn_(*fid).clone();
+                let fn_def = self.ir.get_fn_unchecked(*fid).clone();
                 let params: Vec<String> = fn_def
                     .params
                     .iter()
                     .map(|p| {
-                        let ty = self.type_to_rs(p.type_id);
+                        let ty = self.type_to_rs(&p.ty);
                         format!("{}: {ty}", p.name)
                     })
                     .collect();
@@ -165,8 +182,8 @@ impl<'a> Printer<'a> {
                         let params: Vec<String> = ts
                             .iter()
                             .enumerate()
-                            .map(|(i, &tid)| {
-                                let ty = self.type_to_rs(tid);
+                            .map(|(i, ty)| {
+                                let ty = self.type_to_rs(ty);
                                 format!("_{i}: {ty}")
                             })
                             .collect();
@@ -177,7 +194,7 @@ impl<'a> Printer<'a> {
                         let params: Vec<String> = fs
                             .iter()
                             .map(|f| {
-                                let ty = self.type_to_rs(f.type_id);
+                                let ty = self.type_to_rs(&f.ty);
                                 format!("{}: {ty}", f.name)
                             })
                             .collect();
@@ -195,8 +212,8 @@ impl<'a> Printer<'a> {
 
     fn print_getter_setter(&mut self, field: &StructField) -> String {
         let name = &field.name;
-        let ty = self.type_to_rs(field.type_id);
-        let needs_clone = !is_primitive_ty(self.ir.type_(field.type_id));
+        let ty = self.type_to_rs(&field.ty);
+        let needs_clone = !is_primitive_ty(&field.ty);
         let getter_body = if needs_clone {
             format!("self.inner.{name}.clone()")
         } else {
@@ -207,8 +224,8 @@ impl<'a> Printer<'a> {
         )
     }
 
-    fn print_fn_glue(&mut self, fid: FnId) -> String {
-        let fn_def = self.ir.fn_(fid).clone();
+    fn print_fn_glue(&mut self, fid: Id) -> String {
+        let fn_def = self.ir.get_fn_unchecked(fid).clone();
         let glue_name = mangle_fn(&fn_def.path);
         let js_name = glue_name.clone();
 
@@ -231,7 +248,7 @@ impl<'a> Printer<'a> {
 
         let call = format!("{orig_call_path}({})", call_args.join(", "));
         let fallible = self.has_fallible_copy_param(&fn_def);
-        let (ret_ty, body) = self.return_expr(fn_def.return_type, &call, fallible);
+        let (ret_ty, body) = self.return_expr(&fn_def.return_type, &call, fallible);
 
         let mut out = String::new();
         if let Some(docs) = &fn_def.docs {
@@ -253,8 +270,8 @@ impl<'a> Printer<'a> {
     }
 
     fn param_type_to_rs(&mut self, p: &FnParam) -> String {
-        if let Type::Struct(sid) = self.ir.type_(p.type_id).clone() {
-            let def = self.ir.struct_(sid).clone();
+        if let Type::Struct(sid) = &p.ty {
+            let def = self.ir.get_struct_unchecked(*sid).clone();
             let handle = mangle_ref(&def.path);
             return match p.mode {
                 ParamMode::ByRef => format!("&{handle}"),
@@ -268,19 +285,15 @@ impl<'a> Printer<'a> {
                 }
             };
         }
-        self.type_to_rs(p.type_id)
+        self.type_to_rs(&p.ty)
     }
 
     fn param_call_expr(&mut self, p: &FnParam) -> String {
-        let ty = self.ir.type_(p.type_id).clone();
-        match (&ty, &p.mode) {
-            (Type::Struct(sid), ParamMode::ByRef) => {
-                let _ = sid;
-                format!("&{}.inner", p.name)
-            }
+        match (&p.ty, &p.mode) {
+            (Type::Struct(_), ParamMode::ByRef) => format!("&{}.inner", p.name),
             (Type::Struct(_), ParamMode::ByMut) => format!("&mut {}.inner", p.name),
             (Type::Struct(sid), ParamMode::ByValue) => {
-                let def = self.ir.struct_(*sid);
+                let def = self.ir.get_struct_unchecked(*sid);
                 if def.has_copy_variant {
                     let copy = mangle_copy(&def.path);
                     format!("{copy}::from_js({})?.into()", p.name)
@@ -293,8 +306,8 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn return_expr(&mut self, tid: TypeId, call: &str, fallible: bool) -> (String, String) {
-        match self.ir.type_(tid).clone() {
+    fn return_expr(&mut self, ty: &Type, call: &str, fallible: bool) -> (String, String) {
+        match ty {
             Type::Unit => {
                 if fallible {
                     ("Result<(), JsValue>".into(), format!("{call};\n    Ok(())"))
@@ -303,7 +316,7 @@ impl<'a> Printer<'a> {
                 }
             }
             Type::Struct(_) => {
-                let ty = self.type_to_rs(tid);
+                let ty = self.type_to_rs(ty);
                 if fallible {
                     (
                         format!("Result<{ty}, JsValue>"),
@@ -314,7 +327,7 @@ impl<'a> Printer<'a> {
                 }
             }
             _ => {
-                let ty = self.type_to_rs(tid);
+                let ty = self.type_to_rs(ty);
                 if fallible {
                     (format!("Result<{ty}, JsValue>"), format!("Ok({call})"))
                 } else {
@@ -329,22 +342,22 @@ impl<'a> Printer<'a> {
             if !matches!(p.mode, ParamMode::ByValue) {
                 return false;
             }
-            if let Type::Struct(sid) = self.ir.type_(p.type_id) {
-                self.ir.struct_(*sid).has_copy_variant
+            if let Type::Struct(sid) = &p.ty {
+                self.ir.get_struct_unchecked(*sid).has_copy_variant
             } else {
                 false
             }
         })
     }
 
-    fn type_to_rs(&mut self, tid: TypeId) -> String {
-        match self.ir.type_(tid).clone() {
+    fn type_to_rs(&mut self, ty: &Type) -> String {
+        match ty {
             Type::Unit => "()".into(),
             Type::Boolean => "bool".into(),
             Type::Char => "char".into(),
             Type::String | Type::Str => "String".into(),
-            Type::Number(n) => number_name(&n).to_string(),
-            Type::Struct(sid) => mangle_ref(&self.ir.struct_(sid).path.clone()),
+            Type::Number(n) => number_name(n).to_string(),
+            Type::Struct(sid) => mangle_ref(&self.ir.get_struct_unchecked(*sid).path.clone()),
         }
     }
 }

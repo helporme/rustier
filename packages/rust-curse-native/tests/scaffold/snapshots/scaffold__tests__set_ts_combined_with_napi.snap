@@ -57,7 +57,7 @@ include!("lib-napi.rs");
     "napi": {
       "activation": {
         "kind": "cargo_feature",
-        "name": "nde"
+        "name": "node"
       },
       "has_lib": true,
       "has_build": true,

@@ -1,14 +1,18 @@
 //! Default fallback section: active when no cargo feature and no env
 //! flag are set, primarily so rust-analyzer has something to load.
 
+use std::collections::HashSet;
+
 use crate::common::{mangle_module_name, needs_non_snake_case_allow, HEADER};
-use crate::orphans::OrphanModuleShaked;
+use crate::ir::{Id, Item, IR};
+use crate::orphans::OrphanModule;
 
 use super::{Scaffold, ScaffoldError, ScaffoldSection};
 
 pub struct DefaultSectionOpts<'a> {
-    pub modules: &'a [OrphanModuleShaked],
-    pub crate_: &'a rustdoc_types::Crate,
+    pub modules: &'a [OrphanModule],
+    pub ir: &'a IR,
+    pub exposed: &'a HashSet<Id>,
 }
 
 impl Scaffold {
@@ -36,21 +40,38 @@ impl Scaffold {
         }
 
         for module in opts.modules {
-            let mod_name = mangle_module_name(&module.mod_name);
+            let mangled = mangle_module_name(&module.mod_name);
+            let Some(ir_mod) = find_module(opts.ir, &mangled) else {
+                continue;
+            };
 
-            let mut names: Vec<&str> = module
-                .find_matching_members(opts.crate_)
-                .filter_map(Result::ok)
-                .filter_map(|id| opts.crate_.index.get(&id))
-                .filter_map(|item| item.name.as_deref())
+            let mut names: Vec<&str> = opts
+                .ir
+                .get_mod_unchecked(ir_mod)
+                .exports
+                .iter()
+                .filter(|e| opts.exposed.contains(&e.target))
+                .map(|e| e.name.as_str())
                 .collect();
             names.sort_unstable();
 
             for name in names {
-                content.push_str(&format!("pub use {mod_name}::{name};\n"));
+                content.push_str(&format!("pub use {mangled}::{name};\n"));
             }
         }
 
         content
     }
+}
+
+fn find_module(ir: &IR, mangled_name: &str) -> Option<Id> {
+    let expected: Vec<&str> = vec![ir.crate_name.as_str(), mangled_name];
+    for (i, item) in ir.items.iter().enumerate() {
+        let Item::Mod(def) = item else { continue };
+        let segments: Vec<&str> = def.path.segments.iter().map(String::as_str).collect();
+        if segments == expected {
+            return Some(Id(i as u32));
+        }
+    }
+    None
 }

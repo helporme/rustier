@@ -4,125 +4,119 @@ description: "pub mod a {\n    pub struct Thing {\n        pub x: i32,\n    }\n}
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [
-        Number(
-            i32,
-        ),
-    ],
-    structs: [
-        StructDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "a",
-                    "Thing",
-                ],
-            },
-            ctor: Implicit,
-            has_copy_variant: false,
-            shape: Struct(
-                [
-                    StructField {
-                        name: "x",
-                        type_id: TypeId(
-                            0,
-                        ),
-                        docs: None,
-                    },
-                ],
-            ),
-            docs: None,
-        },
-        StructDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "b",
-                    "Thing",
-                ],
-            },
-            ctor: Implicit,
-            has_copy_variant: false,
-            shape: Struct(
-                [
-                    StructField {
-                        name: "y",
-                        type_id: TypeId(
-                            0,
-                        ),
-                        docs: None,
-                    },
-                ],
-            ),
-            docs: None,
-        },
-    ],
-    fns: [],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Export {
-                    name: "a",
-                    kind: Mod(
-                        ModId(
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                exports: [
+                    Export {
+                        name: "a",
+                        target: Id(
                             1,
                         ),
-                    ),
+                    },
+                    Export {
+                        name: "b",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                    ],
                 },
-                Export {
-                    name: "b",
-                    kind: Mod(
-                        ModId(
+                exports: [
+                    Export {
+                        name: "Thing",
+                        target: Id(
                             2,
                         ),
-                    ),
-                },
-            ],
-        },
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "a",
+                    },
                 ],
             },
-            exports: [
-                Export {
-                    name: "Thing",
-                    kind: Struct(
-                        StructId(
-                            0,
-                        ),
-                    ),
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                        "Thing",
+                    ],
                 },
-            ],
-        },
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "b",
+                ctor: Implicit,
+                has_copy_variant: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Number(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "b",
+                    ],
+                },
+                exports: [
+                    Export {
+                        name: "Thing",
+                        target: Id(
+                            4,
+                        ),
+                    },
                 ],
             },
-            exports: [
-                Export {
-                    name: "Thing",
-                    kind: Struct(
-                        StructId(
-                            1,
-                        ),
-                    ),
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "b",
+                        "Thing",
+                    ],
                 },
-            ],
-        },
+                ctor: Implicit,
+                has_copy_variant: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "y",
+                            ty: Number(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
     ],
 }

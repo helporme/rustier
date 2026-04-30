@@ -3,6 +3,7 @@ pub mod ir;
 pub mod orphans;
 pub mod rustdoc;
 pub mod scaffold;
+pub mod tree_shake;
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -10,17 +11,16 @@ use std::path::PathBuf;
 use anyhow::Context;
 #[cfg(feature = "napi-binding")]
 use napi_derive::napi;
-use rustdoc_types::{Crate, Id};
 
-use crate::ir::from_rustdoc::build_ir;
-use crate::ir::IR;
-use crate::orphans::{OrphanModuleShaked, OrphanScanOpts, OrphanShakeOpts, SourceFilter};
+use crate::ir::{Id, IR};
+use crate::orphans::{OrphanModule, OrphanScanOpts, SourceFilter};
 use crate::scaffold::default::DefaultSectionOpts;
 use crate::scaffold::napi::NapiSectionOpts;
 use crate::scaffold::rustdoc::RustdocSectionOpts;
 use crate::scaffold::ts::TsSectionOpts;
 use crate::scaffold::wasm::WasmSectionOpts;
 use crate::scaffold::{Scaffold, ScaffoldError, ScaffoldOptions};
+use crate::tree_shake::TreeShakeOpts;
 
 #[cfg_attr(feature = "napi-binding", napi)]
 pub enum BuildTarget {
@@ -52,22 +52,23 @@ impl BuildTarget {
     fn set_scaffold_section(
         &self,
         scaffold: &mut Scaffold,
-        shaked: &[OrphanModuleShaked],
-        rustdoc: &Crate,
+        modules: &[OrphanModule],
         ir: &IR,
+        exposed: &HashSet<Id>,
     ) -> Result<(), ScaffoldError> {
         match self {
             BuildTarget::Default { .. } => scaffold.set_default(DefaultSectionOpts {
-                modules: shaked,
-                crate_: rustdoc,
+                modules,
+                ir,
+                exposed,
             }),
             BuildTarget::Node { .. } => scaffold.set_napi(NapiSectionOpts {
                 feature_name: "napi".into(),
-                content: ir.print_napi(),
+                content: ir.print_napi(exposed),
             }),
             BuildTarget::Wasm { .. } => scaffold.set_wasm(WasmSectionOpts {
                 feature_name: "wasm".into(),
-                content: ir.print_wasm(),
+                content: ir.print_wasm(exposed),
             }),
             BuildTarget::Ts { .. } => scaffold.set_ts(TsSectionOpts {
                 content: ir.print_ts(),
@@ -136,13 +137,14 @@ impl RustCurse {
         scaffold.deploy().context("scaffold: deploy rustdoc")?;
 
         let rustdoc = rustdoc::gen(&project_root)?;
+        let ir = IR::try_from(&rustdoc).context("build ir")?;
 
         for target in &self.options.targets {
             let js_source = target.js_source();
 
-            let shaked = orphans::shake(
-                &modules,
-                OrphanShakeOpts {
+            let exposed = tree_shake::shake(
+                &ir,
+                TreeShakeOpts {
                     project_root_abs_path: &project_root,
                     mod_root_rel_paths: &mod_root_rel_paths,
                     js_filter: SourceFilter {
@@ -152,16 +154,8 @@ impl RustCurse {
                 },
             )?;
 
-            let allowed: HashSet<Id> = shaked
-                .iter()
-                .flat_map(|m| m.find_matching_members(&rustdoc))
-                .filter_map(Result::ok) // todo: do not silence errors
-                .collect();
-
-            let ir = build_ir(&allowed, &rustdoc).context("build ir")?;
-
             target
-                .set_scaffold_section(&mut scaffold, &shaked, &rustdoc, &ir)
+                .set_scaffold_section(&mut scaffold, &modules, &ir, &exposed)
                 .with_context(|| format!("scaffold: {}", target.section_name()))?;
         }
 

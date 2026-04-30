@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
-    "rootDirs": [".rust-curse/dev/types", "./"],
+    "rootDirs": ["./"],
     "moduleResolution": "bundler",
     "module": "Preserve",
   },
+  "include": ["src/**/*", ".rust-curse/ambient.d.ts"],
 }

@@ -4,57 +4,48 @@ description: "pub struct Pair(pub i32, pub String);\n"
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [
-        Number(
-            i32,
-        ),
-        String,
-    ],
-    structs: [
-        StructDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "Pair",
-                ],
-            },
-            ctor: Implicit,
-            has_copy_variant: false,
-            shape: Tuple(
-                [
-                    TypeId(
-                        0,
-                    ),
-                    TypeId(
-                        1,
-                    ),
-                ],
-            ),
-            docs: None,
-        },
-    ],
-    fns: [],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Export {
-                    name: "Pair",
-                    kind: Struct(
-                        StructId(
-                            0,
-                        ),
-                    ),
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
                 },
-            ],
-        },
+                exports: [
+                    Export {
+                        name: "Pair",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Pair",
+                    ],
+                },
+                ctor: Implicit,
+                has_copy_variant: false,
+                shape: Tuple(
+                    [
+                        Number(
+                            i32,
+                        ),
+                        String,
+                    ],
+                ),
+                docs: None,
+            },
+        ),
     ],
 }

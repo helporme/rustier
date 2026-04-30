@@ -9,17 +9,16 @@
 
 #![allow(non_camel_case_types)]
 
-macro_rules! id_type {
-    ($name:ident) => {
-        #[derive(Copy, Clone, Default, Debug, Hash, PartialEq, Eq)]
-        pub struct $name(pub u32);
-    };
-}
+pub mod from_rustdoc;
+pub mod js;
+pub mod mangle;
+pub mod napi;
+pub mod ts;
+pub mod wasm;
 
-id_type!(TypeId);
-id_type!(StructId);
-id_type!(FnId);
-id_type!(ModId);
+/// A unique identifier for an item in the IR.
+#[derive(Copy, Clone, Default, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Id(pub u32);
 
 /// Complete path to an item as it appears in the source crate,
 /// e.g. `crate::module::Type` is stored as `["crate", "module", "Type"]`.
@@ -55,7 +54,7 @@ pub fn rust_path(path: &ItemPath, local_crate: &str) -> String {
     }
 }
 
-/// Structural type term. Nominal defs are referenced by id.
+/// A structural type term. Nominal defs are referenced by id.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Type {
     Unit,
@@ -64,9 +63,10 @@ pub enum Type {
     Number(NumberType),
     String,
     Str,
-    Struct(StructId),
+    Struct(Id),
 }
 
+/// A numeric type.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum NumberType {
     i8,
@@ -83,21 +83,24 @@ pub enum NumberType {
     f64,
 }
 
+/// A function definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FnDef {
     pub path: ItemPath,
     pub params: Vec<FnParam>,
-    pub return_type: TypeId,
+    pub return_type: Type,
     pub docs: Option<String>,
 }
 
+/// A function parameter.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FnParam {
     pub name: String,
     pub mode: ParamMode,
-    pub type_id: TypeId,
+    pub ty: Type,
 }
 
+/// A parameter mode.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParamMode {
     ByValue,
@@ -105,6 +108,7 @@ pub enum ParamMode {
     ByMut,
 }
 
+/// A struct definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StructDef {
     pub path: ItemPath,
@@ -118,74 +122,86 @@ pub struct StructDef {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum StructShape {
     Unit,
-    Tuple(Vec<TypeId>),
+    Tuple(Vec<Type>),
     Struct(Vec<StructField>),
 }
 
+/// A "constructor" for a ref struct.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Ctor {
     /// `new` function defined in an `impl` block is used to construct ref
     /// struct.
-    Explicit(FnId),
+    Explicit(Id),
     /// struct expression (e.g. `Foo { a, b, c }`) is used to construct the ref
     /// struct.
     Implicit,
 }
 
+/// A struct field.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StructField {
     pub name: String,
-    pub type_id: TypeId,
+    pub ty: Type,
     pub docs: Option<String>,
 }
 
+/// A module definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ModDef {
     pub path: ItemPath,
     pub exports: Vec<Export>,
 }
 
+/// An "export" from a module.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Export {
     pub name: String,
-    pub kind: ExportKind,
+    pub target: Id,
 }
 
+/// An item in the IR.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ExportKind {
-    Fn(FnId),
-    Struct(StructId),
-    Mod(ModId),
+pub enum Item {
+    Struct(StructDef),
+    Fn(FnDef),
+    Mod(ModDef),
 }
 
+/// The rust curse IR for a Rust crate.
 #[derive(Clone, Debug, Default)]
 pub struct IR {
-    pub root: ModId,
+    pub root: Id,
     pub crate_name: String,
-    pub types: Vec<Type>,
-    pub structs: Vec<StructDef>,
-    pub fns: Vec<FnDef>,
-    pub mods: Vec<ModDef>,
+    pub items: Vec<Item>,
 }
 
 impl IR {
-    pub fn type_(&self, id: TypeId) -> &Type {
-        &self.types[id.0 as usize]
+    /// Gets an item by its ID, panics if the item is not found.
+    pub fn get_unchecked(&self, id: Id) -> &Item {
+        &self.items[id.0 as usize]
     }
-    pub fn struct_(&self, id: StructId) -> &StructDef {
-        &self.structs[id.0 as usize]
+
+    /// Gets a struct by its ID, panics if the item is not a struct.
+    pub fn get_struct_unchecked(&self, id: Id) -> &StructDef {
+        match self.get_unchecked(id) {
+            Item::Struct(s) => s,
+            other => panic!("expected struct at {id:?}, got {other:?}"),
+        }
     }
-    pub fn fn_(&self, id: FnId) -> &FnDef {
-        &self.fns[id.0 as usize]
+
+    /// Gets a function by its ID, panics if the item is not a function.
+    pub fn get_fn_unchecked(&self, id: Id) -> &FnDef {
+        match self.get_unchecked(id) {
+            Item::Fn(f) => f,
+            other => panic!("expected fn at {id:?}, got {other:?}"),
+        }
     }
-    pub fn mod_(&self, id: ModId) -> &ModDef {
-        &self.mods[id.0 as usize]
+
+    /// Gets a module by its ID, panics if the item is not a module.
+    pub fn get_mod_unchecked(&self, id: Id) -> &ModDef {
+        match self.get_unchecked(id) {
+            Item::Mod(m) => m,
+            other => panic!("expected mod at {id:?}, got {other:?}"),
+        }
     }
 }
-
-pub mod from_rustdoc;
-pub mod js;
-pub mod mangle;
-pub mod napi;
-pub mod ts;
-pub mod wasm;

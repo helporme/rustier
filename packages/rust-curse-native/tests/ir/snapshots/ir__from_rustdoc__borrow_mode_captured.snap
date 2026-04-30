@@ -4,57 +4,48 @@ description: "pub fn takes(x: &mut i32) {\n    *x += 1;\n}\n"
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [
-        Number(
-            i32,
-        ),
-        Unit,
-    ],
-    structs: [],
-    fns: [
-        FnDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "takes",
-                ],
-            },
-            params: [
-                FnParam {
-                    name: "x",
-                    mode: ByMut,
-                    type_id: TypeId(
-                        0,
-                    ),
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
                 },
-            ],
-            return_type: TypeId(
-                1,
-            ),
-            docs: None,
-        },
-    ],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Export {
-                    name: "takes",
-                    kind: Fn(
-                        FnId(
-                            0,
+                exports: [
+                    Export {
+                        name: "takes",
+                        target: Id(
+                            1,
                         ),
-                    ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "takes",
+                    ],
                 },
-            ],
-        },
+                params: [
+                    FnParam {
+                        name: "x",
+                        mode: ByMut,
+                        ty: Number(
+                            i32,
+                        ),
+                    },
+                ],
+                return_type: Unit,
+                docs: None,
+            },
+        ),
     ],
 }

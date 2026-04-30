@@ -4,106 +4,100 @@ description: "pub mod a {\n    pub mod b {\n        pub mod c {\n            pub
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [
-        Unit,
-    ],
-    structs: [],
-    fns: [
-        FnDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "a",
-                    "b",
-                    "c",
-                    "deep",
-                ],
-            },
-            params: [],
-            return_type: TypeId(
-                0,
-            ),
-            docs: None,
-        },
-    ],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Export {
-                    name: "a",
-                    kind: Mod(
-                        ModId(
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                exports: [
+                    Export {
+                        name: "a",
+                        target: Id(
                             1,
                         ),
-                    ),
-                },
-            ],
-        },
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "a",
+                    },
                 ],
             },
-            exports: [
-                Export {
-                    name: "b",
-                    kind: Mod(
-                        ModId(
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                    ],
+                },
+                exports: [
+                    Export {
+                        name: "b",
+                        target: Id(
                             2,
                         ),
-                    ),
-                },
-            ],
-        },
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "a",
-                    "b",
+                    },
                 ],
             },
-            exports: [
-                Export {
-                    name: "c",
-                    kind: Mod(
-                        ModId(
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                        "b",
+                    ],
+                },
+                exports: [
+                    Export {
+                        name: "c",
+                        target: Id(
                             3,
                         ),
-                    ),
-                },
-            ],
-        },
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "a",
-                    "b",
-                    "c",
+                    },
                 ],
             },
-            exports: [
-                Export {
-                    name: "deep",
-                    kind: Fn(
-                        FnId(
-                            0,
-                        ),
-                    ),
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                        "b",
+                        "c",
+                    ],
                 },
-            ],
-        },
+                exports: [
+                    Export {
+                        name: "deep",
+                        target: Id(
+                            4,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                        "b",
+                        "c",
+                        "deep",
+                    ],
+                },
+                params: [],
+                return_type: Unit,
+                docs: None,
+            },
+        ),
     ],
 }

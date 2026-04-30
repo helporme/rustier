@@ -1,0 +1,10 @@
+---
+source: tests/tree_shake/tests.rs
+description: "`Cargo.toml`\n```toml\n[package]\nname = \"rustdoc_tree_shake_test\"\nversion = \"0.0.0\"\nedition = \"2021\"\npublish = false\n\n[lib]\npath = \"lib.rs\"\n\n[workspace]\n```\n\n`app/main.js`\n```js\nimport { make_circle } from '../src/shapes.rs'\n```\n\n`lib.rs`\n```rs\n#[path = \"src/shapes.rs\"]\n#[allow(non_snake_case)]\npub mod shapes;\n```\n\n`src/shapes.rs`\n```rs\npub struct Point { pub x: i32, pub y: i32 }\npub struct Circle { pub center: Point, pub radius: f64 }\npub fn make_circle() -> Circle { Circle { center: Point { x: 0, y: 0 }, radius: 1.0 } }\n```\n\n"
+expression: names
+---
+[
+    "rustdoc_tree_shake_test::shapes::Circle",
+    "rustdoc_tree_shake_test::shapes::Point",
+    "rustdoc_tree_shake_test::shapes::make_circle",
+]

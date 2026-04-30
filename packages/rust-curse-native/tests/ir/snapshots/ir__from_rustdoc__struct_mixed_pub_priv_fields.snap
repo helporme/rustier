@@ -4,57 +4,51 @@ description: "pub struct Mixed {\n    pub x: i32,\n    y: i32,\n}\n"
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [
-        Number(
-            i32,
-        ),
-    ],
-    structs: [
-        StructDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "Mixed",
-                ],
-            },
-            ctor: Implicit,
-            has_copy_variant: false,
-            shape: Struct(
-                [
-                    StructField {
-                        name: "x",
-                        type_id: TypeId(
-                            0,
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                exports: [
+                    Export {
+                        name: "Mixed",
+                        target: Id(
+                            1,
                         ),
-                        docs: None,
                     },
                 ],
-            ),
-            docs: None,
-        },
-    ],
-    fns: [],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
             },
-            exports: [
-                Export {
-                    name: "Mixed",
-                    kind: Struct(
-                        StructId(
-                            0,
-                        ),
-                    ),
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Mixed",
+                    ],
                 },
-            ],
-        },
+                ctor: Implicit,
+                has_copy_variant: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Number(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
     ],
 }

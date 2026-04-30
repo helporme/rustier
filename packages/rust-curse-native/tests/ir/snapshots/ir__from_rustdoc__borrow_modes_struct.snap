@@ -4,106 +4,105 @@ description: "pub struct Point {\n    pub x: f64,\n    pub y: f64,\n}\npub fn tr
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [
-        Number(
-            f64,
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                exports: [
+                    Export {
+                        name: "Point",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "translate",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
         ),
         Struct(
-            StructId(
-                0,
-            ),
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Point",
+                    ],
+                },
+                ctor: Implicit,
+                has_copy_variant: true,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Number(
+                                f64,
+                            ),
+                            docs: None,
+                        },
+                        StructField {
+                            name: "y",
+                            ty: Number(
+                                f64,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
         ),
-        Unit,
-    ],
-    structs: [
-        StructDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "Point",
-                ],
-            },
-            ctor: Implicit,
-            has_copy_variant: true,
-            shape: Struct(
-                [
-                    StructField {
-                        name: "x",
-                        type_id: TypeId(
-                            0,
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "translate",
+                    ],
+                },
+                params: [
+                    FnParam {
+                        name: "origin",
+                        mode: ByRef,
+                        ty: Struct(
+                            Id(
+                                1,
+                            ),
                         ),
-                        docs: None,
                     },
-                    StructField {
-                        name: "y",
-                        type_id: TypeId(
-                            0,
+                    FnParam {
+                        name: "target",
+                        mode: ByMut,
+                        ty: Struct(
+                            Id(
+                                1,
+                            ),
                         ),
-                        docs: None,
+                    },
+                    FnParam {
+                        name: "offset",
+                        mode: ByValue,
+                        ty: Struct(
+                            Id(
+                                1,
+                            ),
+                        ),
                     },
                 ],
-            ),
-            docs: None,
-        },
-    ],
-    fns: [
-        FnDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "translate",
-                ],
+                return_type: Unit,
+                docs: None,
             },
-            params: [
-                FnParam {
-                    name: "origin",
-                    mode: ByRef,
-                    type_id: TypeId(
-                        1,
-                    ),
-                },
-                FnParam {
-                    name: "target",
-                    mode: ByMut,
-                    type_id: TypeId(
-                        1,
-                    ),
-                },
-                FnParam {
-                    name: "offset",
-                    mode: ByValue,
-                    type_id: TypeId(
-                        1,
-                    ),
-                },
-            ],
-            return_type: TypeId(
-                2,
-            ),
-            docs: None,
-        },
-    ],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Export {
-                    name: "translate",
-                    kind: Fn(
-                        FnId(
-                            0,
-                        ),
-                    ),
-                },
-            ],
-        },
+        ),
     ],
 }

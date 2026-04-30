@@ -1,4 +1,4 @@
-import { hello } from "./kitty.rs";
+import { hello } from "$rust/library_example/kitty";
 
 export function fn() {
   return hello();

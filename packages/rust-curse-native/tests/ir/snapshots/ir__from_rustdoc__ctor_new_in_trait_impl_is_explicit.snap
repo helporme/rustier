@@ -4,68 +4,63 @@ description: "pub trait Factory {\n    fn new() -> Self;\n}\npub struct Foo {\n 
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [
-        Struct(
-            StructId(
-                0,
-            ),
-        ),
-    ],
-    structs: [
-        StructDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "Foo",
-                ],
-            },
-            ctor: Explicit(
-                FnId(
-                    0,
-                ),
-            ),
-            has_copy_variant: false,
-            shape: Struct(
-                [],
-            ),
-            docs: None,
-        },
-    ],
-    fns: [
-        FnDef {
-            path: ItemPath {
-                segments: [
-                    "new",
-                ],
-            },
-            params: [],
-            return_type: TypeId(
-                0,
-            ),
-            docs: None,
-        },
-    ],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Export {
-                    name: "Foo",
-                    kind: Struct(
-                        StructId(
-                            0,
-                        ),
-                    ),
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
                 },
-            ],
-        },
+                exports: [
+                    Export {
+                        name: "Foo",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Foo",
+                    ],
+                },
+                ctor: Explicit(
+                    Id(
+                        2,
+                    ),
+                ),
+                has_copy_variant: false,
+                shape: Struct(
+                    [],
+                ),
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "new",
+                    ],
+                },
+                params: [],
+                return_type: Struct(
+                    Id(
+                        1,
+                    ),
+                ),
+                docs: None,
+            },
+        ),
     ],
 }

@@ -3,10 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use super::mangle::is_canonical_origin;
-use super::{
-    Ctor, ExportKind, FnId, FnParam, ItemPath, ModId, NumberType, ParamMode, StructId, StructShape,
-    Type, TypeId, IR,
-};
+use super::{Ctor, FnParam, Id, Item, ItemPath, NumberType, ParamMode, StructShape, Type, IR};
 
 const PREAMBLE: &str = r#"declare module "$rust-curse" {
     export type Copy<T> = {
@@ -18,6 +15,8 @@ const PREAMBLE: &str = r#"declare module "$rust-curse" {
 }"#;
 
 impl IR {
+    /// Prints the IR as TypeScript ambient module code, featuring _all_
+    /// exported items.
     pub fn print_ts(&self) -> String {
         Printer::new(self).run()
     }
@@ -25,7 +24,7 @@ impl IR {
 
 struct Printer<'a> {
     ir: &'a IR,
-    local_structs: HashSet<StructId>,
+    local_structs: HashSet<Id>,
     imports: BTreeMap<String, BTreeSet<String>>,
     needs_copy: bool,
 }
@@ -42,8 +41,14 @@ impl<'a> Printer<'a> {
 
     fn run(&mut self) -> String {
         let mut out = String::from(PREAMBLE);
-        for i in 0..self.ir.mods.len() {
-            let mid = ModId(i as u32);
+        let mod_ids: Vec<Id> = self
+            .ir
+            .items
+            .iter()
+            .enumerate()
+            .filter_map(|(i, it)| matches!(it, Item::Mod(_)).then_some(Id(i as u32)))
+            .collect();
+        for mid in mod_ids {
             let block = self.print_mod_block(mid);
             if !block.is_empty() {
                 out.push('\n');
@@ -54,17 +59,17 @@ impl<'a> Printer<'a> {
         out
     }
 
-    fn print_mod_block(&mut self, mid: ModId) -> String {
+    fn print_mod_block(&mut self, mid: Id) -> String {
         self.imports.clear();
         self.needs_copy = false;
 
         self.local_structs.clear();
-        let mod_segments = self.ir.mod_(mid).path.segments.clone();
-        let exports = self.ir.mod_(mid).exports.clone();
+        let mod_segments = self.ir.get_mod_unchecked(mid).path.segments.clone();
+        let exports = self.ir.get_mod_unchecked(mid).exports.clone();
         for export in &exports {
-            if let ExportKind::Struct(sid) = &export.kind {
-                if is_canonical_origin(&self.ir.struct_(*sid).path, &mod_segments) {
-                    self.local_structs.insert(*sid);
+            if let Item::Struct(def) = self.ir.get_unchecked(export.target) {
+                if is_canonical_origin(&def.path, &mod_segments) {
+                    self.local_structs.insert(export.target);
                 }
             }
         }
@@ -74,7 +79,7 @@ impl<'a> Printer<'a> {
             return String::new();
         }
 
-        let module_path = mod_ambient_path(self.ir.mod_(mid));
+        let module_path = mod_ambient_path(self.ir.get_mod_unchecked(mid));
 
         let mut block = format!("declare module \"{module_path}\" {{\n");
 
@@ -98,36 +103,36 @@ impl<'a> Printer<'a> {
         block
     }
 
-    fn print_mod_exports(&mut self, mid: ModId) -> String {
-        let mod_segments = self.ir.mod_(mid).path.segments.clone();
-        let exports = self.ir.mod_(mid).exports.clone();
+    fn print_mod_exports(&mut self, mid: Id) -> String {
+        let mod_segments = self.ir.get_mod_unchecked(mid).path.segments.clone();
+        let exports = self.ir.get_mod_unchecked(mid).exports.clone();
         let mut parts: Vec<String> = Vec::new();
         for export in &exports {
-            match &export.kind {
-                ExportKind::Struct(sid) => {
-                    let canonical = self.ir.struct_(*sid).path.clone();
+            match self.ir.get_unchecked(export.target) {
+                Item::Struct(def) => {
+                    let canonical = def.path.clone();
                     if is_canonical_origin(&canonical, &mod_segments) {
-                        parts.push(self.print_struct(*sid));
+                        parts.push(self.print_struct(export.target));
                     } else {
                         parts.push(print_reexport(&canonical, &export.name));
                     }
                 }
-                ExportKind::Fn(fid) => {
-                    let canonical = self.ir.fn_(*fid).path.clone();
+                Item::Fn(def) => {
+                    let canonical = def.path.clone();
                     if is_canonical_origin(&canonical, &mod_segments) {
-                        parts.push(self.print_fn(*fid));
+                        parts.push(self.print_fn(export.target));
                     } else {
                         parts.push(print_reexport(&canonical, &export.name));
                     }
                 }
-                ExportKind::Mod(_) => {}
+                Item::Mod(_) => {}
             }
         }
         parts.join("\n\n")
     }
 
-    fn type_to_ts(&mut self, id: TypeId) -> String {
-        match self.ir.type_(id).clone() {
+    fn type_to_ts(&mut self, ty: &Type) -> String {
+        match ty {
             Type::Unit => "void".into(),
             Type::Boolean => "boolean".into(),
             Type::Char | Type::String | Type::Str => "string".into(),
@@ -138,9 +143,9 @@ impl<'a> Printer<'a> {
                 _ => "number".into(),
             },
             Type::Struct(sid) => {
-                let path = self.ir.struct_(sid).path.clone();
+                let path = self.ir.get_struct_unchecked(*sid).path.clone();
                 let name = path.name().unwrap_or("unknown").to_string();
-                if !self.local_structs.contains(&sid) {
+                if !self.local_structs.contains(sid) {
                     self.record_import(&path);
                 }
                 name
@@ -149,8 +154,8 @@ impl<'a> Printer<'a> {
     }
 
     fn param_to_ts(&mut self, param: &FnParam) -> String {
-        let base = self.type_to_ts(param.type_id);
-        let is_nominal = matches!(self.ir.type_(param.type_id), Type::Struct(_));
+        let base = self.type_to_ts(&param.ty);
+        let is_nominal = matches!(param.ty, Type::Struct(_));
         if param.mode == ParamMode::ByValue && is_nominal {
             self.needs_copy = true;
             format!("Copy<{base}>")
@@ -159,18 +164,18 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn print_struct(&mut self, sid: StructId) -> String {
-        let def = self.ir.struct_(sid).clone();
+    fn print_struct(&mut self, sid: Id) -> String {
+        let def = self.ir.get_struct_unchecked(sid).clone();
         let name = def.path.name().unwrap_or("unknown").to_string();
         let brand = def.path.segments.join("::");
 
         let mut members: Vec<String> = Vec::new();
 
-        members.push(format!("        private [\" \"]!: '{brand}';"));
+        members.push(format!("        private [\" \"]: '{brand}';"));
 
         if let StructShape::Struct(fields) = &def.shape {
             for field in fields {
-                let ty = self.type_to_ts(field.type_id);
+                let ty = self.type_to_ts(&field.ty);
                 let mut member = String::new();
                 if let Some(docs) = &field.docs {
                     member.push_str(&doc_comment(docs, "        "));
@@ -179,8 +184,8 @@ impl<'a> Printer<'a> {
                 members.push(member);
             }
         } else if let StructShape::Tuple(types) = &def.shape {
-            for (i, &type_id) in types.iter().enumerate() {
-                let ty = self.type_to_ts(type_id);
+            for (i, ty) in types.iter().enumerate() {
+                let ty = self.type_to_ts(ty);
                 members.push(format!("        {i}: {ty};"));
             }
         }
@@ -190,12 +195,12 @@ impl<'a> Printer<'a> {
                 let fid = *fid;
                 let params: Vec<String> = self
                     .ir
-                    .fn_(fid)
+                    .get_fn_unchecked(fid)
                     .params
                     .clone()
                     .iter()
                     .map(|p| {
-                        let ty = self.type_to_ts(p.type_id);
+                        let ty = self.type_to_ts(&p.ty);
                         format!("{}: {ty}", p.name)
                     })
                     .collect();
@@ -225,23 +230,23 @@ impl<'a> Printer<'a> {
             StructShape::Tuple(types) => types
                 .iter()
                 .enumerate()
-                .map(|(i, &type_id)| {
-                    let ty = self.type_to_ts(type_id);
+                .map(|(i, ty)| {
+                    let ty = self.type_to_ts(ty);
                     format!("_{i}: {ty}")
                 })
                 .collect(),
             StructShape::Struct(fields) => fields
                 .iter()
                 .map(|f| {
-                    let ty = self.type_to_ts(f.type_id);
+                    let ty = self.type_to_ts(&f.ty);
                     format!("{}: {ty}", f.name)
                 })
                 .collect(),
         }
     }
 
-    fn print_fn(&mut self, fid: FnId) -> String {
-        let def = self.ir.fn_(fid).clone();
+    fn print_fn(&mut self, fid: Id) -> String {
+        let def = self.ir.get_fn_unchecked(fid).clone();
         let name = def.path.name().unwrap_or("unknown").to_string();
         let mut out = String::new();
 
@@ -258,7 +263,7 @@ impl<'a> Printer<'a> {
             })
             .collect();
 
-        let ret = self.type_to_ts(def.return_type);
+        let ret = self.type_to_ts(&def.return_type);
         out.push_str(&format!(
             "    export function {name}({}): {ret};",
             params.join(", ")

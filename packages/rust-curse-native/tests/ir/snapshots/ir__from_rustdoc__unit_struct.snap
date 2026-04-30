@@ -4,43 +4,41 @@ description: "pub struct Marker;\n"
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [],
-    structs: [
-        StructDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "Marker",
-                ],
-            },
-            ctor: Implicit,
-            has_copy_variant: false,
-            shape: Unit,
-            docs: None,
-        },
-    ],
-    fns: [],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Export {
-                    name: "Marker",
-                    kind: Struct(
-                        StructId(
-                            0,
-                        ),
-                    ),
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
                 },
-            ],
-        },
+                exports: [
+                    Export {
+                        name: "Marker",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Marker",
+                    ],
+                },
+                ctor: Implicit,
+                has_copy_variant: false,
+                shape: Unit,
+                docs: None,
+            },
+        ),
     ],
 }

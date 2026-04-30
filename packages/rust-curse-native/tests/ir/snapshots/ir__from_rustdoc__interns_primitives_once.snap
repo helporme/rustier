@@ -4,64 +4,55 @@ description: "pub fn two_i32(a: i32, b: i32) {}\n"
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [
-        Number(
-            i32,
-        ),
-        Unit,
-    ],
-    structs: [],
-    fns: [
-        FnDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "two_i32",
-                ],
-            },
-            params: [
-                FnParam {
-                    name: "a",
-                    mode: ByValue,
-                    type_id: TypeId(
-                        0,
-                    ),
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
                 },
-                FnParam {
-                    name: "b",
-                    mode: ByValue,
-                    type_id: TypeId(
-                        0,
-                    ),
-                },
-            ],
-            return_type: TypeId(
-                1,
-            ),
-            docs: None,
-        },
-    ],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Export {
-                    name: "two_i32",
-                    kind: Fn(
-                        FnId(
-                            0,
+                exports: [
+                    Export {
+                        name: "two_i32",
+                        target: Id(
+                            1,
                         ),
-                    ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "two_i32",
+                    ],
                 },
-            ],
-        },
+                params: [
+                    FnParam {
+                        name: "a",
+                        mode: ByValue,
+                        ty: Number(
+                            i32,
+                        ),
+                    },
+                    FnParam {
+                        name: "b",
+                        mode: ByValue,
+                        ty: Number(
+                            i32,
+                        ),
+                    },
+                ],
+                return_type: Unit,
+                docs: None,
+            },
+        ),
     ],
 }

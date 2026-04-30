@@ -4,86 +4,75 @@ description: "pub fn f(x: i32) {}\npub fn g(y: i32) {}\n"
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [
-        Number(
-            i32,
-        ),
-        Unit,
-    ],
-    structs: [],
-    fns: [
-        FnDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "f",
-                ],
-            },
-            params: [
-                FnParam {
-                    name: "x",
-                    mode: ByValue,
-                    type_id: TypeId(
-                        0,
-                    ),
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
                 },
-            ],
-            return_type: TypeId(
-                1,
-            ),
-            docs: None,
-        },
-        FnDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "g",
-                ],
-            },
-            params: [
-                FnParam {
-                    name: "y",
-                    mode: ByValue,
-                    type_id: TypeId(
-                        0,
-                    ),
-                },
-            ],
-            return_type: TypeId(
-                1,
-            ),
-            docs: None,
-        },
-    ],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Export {
-                    name: "f",
-                    kind: Fn(
-                        FnId(
-                            0,
-                        ),
-                    ),
-                },
-                Export {
-                    name: "g",
-                    kind: Fn(
-                        FnId(
+                exports: [
+                    Export {
+                        name: "f",
+                        target: Id(
                             1,
                         ),
-                    ),
+                    },
+                    Export {
+                        name: "g",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "f",
+                    ],
                 },
-            ],
-        },
+                params: [
+                    FnParam {
+                        name: "x",
+                        mode: ByValue,
+                        ty: Number(
+                            i32,
+                        ),
+                    },
+                ],
+                return_type: Unit,
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "g",
+                    ],
+                },
+                params: [
+                    FnParam {
+                        name: "y",
+                        mode: ByValue,
+                        ty: Number(
+                            i32,
+                        ),
+                    },
+                ],
+                return_type: Unit,
+                docs: None,
+            },
+        ),
     ],
 }

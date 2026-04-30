@@ -4,85 +4,80 @@ description: "pub struct Point {\n    pub x: i32,\n}\npub fn f(p: Point) {}\n"
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [
-        Number(
-            i32,
-        ),
-        Struct(
-            StructId(
-                0,
-            ),
-        ),
-        Unit,
-    ],
-    structs: [
-        StructDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "Point",
-                ],
-            },
-            ctor: Implicit,
-            has_copy_variant: true,
-            shape: Struct(
-                [
-                    StructField {
-                        name: "x",
-                        type_id: TypeId(
-                            0,
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                exports: [
+                    Export {
+                        name: "Point",
+                        target: Id(
+                            1,
                         ),
-                        docs: None,
+                    },
+                    Export {
+                        name: "f",
+                        target: Id(
+                            2,
+                        ),
                     },
                 ],
-            ),
-            docs: None,
-        },
-    ],
-    fns: [
-        FnDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "f",
-                ],
             },
-            params: [
-                FnParam {
-                    name: "p",
-                    mode: ByValue,
-                    type_id: TypeId(
-                        1,
-                    ),
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Point",
+                    ],
                 },
-            ],
-            return_type: TypeId(
-                2,
-            ),
-            docs: None,
-        },
-    ],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
+                ctor: Implicit,
+                has_copy_variant: true,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Number(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
             },
-            exports: [
-                Export {
-                    name: "f",
-                    kind: Fn(
-                        FnId(
-                            0,
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "f",
+                    ],
+                },
+                params: [
+                    FnParam {
+                        name: "p",
+                        mode: ByValue,
+                        ty: Struct(
+                            Id(
+                                1,
+                            ),
                         ),
-                    ),
-                },
-            ],
-        },
+                    },
+                ],
+                return_type: Unit,
+                docs: None,
+            },
+        ),
     ],
 }

@@ -4,68 +4,63 @@ description: "pub struct Counter {\n    count: u32,\n}\nimpl Counter {\n    pub 
 expression: ir
 ---
 IR {
-    root: ModId(
+    root: Id(
         0,
     ),
     crate_name: "rustdoc_test_crate",
-    types: [
-        Struct(
-            StructId(
-                0,
-            ),
-        ),
-    ],
-    structs: [
-        StructDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                    "Counter",
-                ],
-            },
-            ctor: Explicit(
-                FnId(
-                    0,
-                ),
-            ),
-            has_copy_variant: false,
-            shape: Struct(
-                [],
-            ),
-            docs: None,
-        },
-    ],
-    fns: [
-        FnDef {
-            path: ItemPath {
-                segments: [
-                    "new",
-                ],
-            },
-            params: [],
-            return_type: TypeId(
-                0,
-            ),
-            docs: None,
-        },
-    ],
-    mods: [
-        ModDef {
-            path: ItemPath {
-                segments: [
-                    "rustdoc_test_crate",
-                ],
-            },
-            exports: [
-                Export {
-                    name: "Counter",
-                    kind: Struct(
-                        StructId(
-                            0,
-                        ),
-                    ),
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
                 },
-            ],
-        },
+                exports: [
+                    Export {
+                        name: "Counter",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Counter",
+                    ],
+                },
+                ctor: Explicit(
+                    Id(
+                        2,
+                    ),
+                ),
+                has_copy_variant: false,
+                shape: Struct(
+                    [],
+                ),
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "new",
+                    ],
+                },
+                params: [],
+                return_type: Struct(
+                    Id(
+                        1,
+                    ),
+                ),
+                docs: None,
+            },
+        ),
     ],
 }

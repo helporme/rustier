@@ -178,20 +178,6 @@ fn empty_struct_plain() {
 }
 
 #[test]
-fn fn_smart_pointer_inlining() {
-    assert_ts_snap! {
-        /// Smart pointers are erased, so every parameter maps to `number`.
-        pub fn f(
-            a: Box<i32>,
-            b: std::sync::Arc<i32>,
-            c: std::rc::Rc<i32>,
-            d: std::cell::Cell<i32>,
-            e: std::cell::RefCell<i32>,
-        ) {}
-    };
-}
-
-#[test]
 fn struct_pub_crate_field_forces_ref() {
     assert_ts_snap! {
         /// A `pub(crate)` field downgrades the boundary to ref (opaque class).

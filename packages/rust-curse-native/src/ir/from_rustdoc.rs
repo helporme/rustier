@@ -4,65 +4,63 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 use rustdoc_types::{
-    Crate, GenericArg, GenericArgs, Id, Item, ItemEnum, Path, StructKind, Type as RType, Use,
-    Visibility,
+    Crate, GenericArg, GenericArgs, Id as RId, Item as RItem, ItemEnum, Path, StructKind,
+    Type as RType, Use, Visibility,
 };
 
 use super::{
-    Ctor, Export, ExportKind, FnDef, FnId, FnParam, ItemPath, ModDef, ModId, NumberType, ParamMode,
-    StructDef, StructField, StructId, StructShape, Type, TypeId, IR,
+    Ctor, Export, FnDef, FnParam, Id, Item, ItemPath, ModDef, NumberType, ParamMode, StructDef,
+    StructField, StructShape, Type, IR,
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum BuildError {
     #[error("item {0:?} not found in crate index")]
-    MissingItem(Id),
+    MissingItem(RId),
     #[error("unsupported type at {id:?}: {reason}")]
-    UnsupportedType { id: Id, reason: String },
+    UnsupportedType { id: RId, reason: String },
 }
 
-pub fn build_ir(allowed: &HashSet<Id>, crate_: &Crate) -> Result<IR, BuildError> {
-    let mut b = Builder {
-        crate_,
-        ir: IR::default(),
-        type_intern: HashMap::new(),
-        struct_intern: HashMap::new(),
-        fn_intern: HashMap::new(),
-        mod_intern: HashMap::new(),
-        self_stack: Vec::new(),
-        copy_eligible: HashMap::new(),
-    };
+impl<'a> TryFrom<&'a Crate> for IR {
+    type Error = BuildError;
 
-    let root = b
-        .build_module(crate_.root, allowed)?
-        .expect("root module has no id reservation");
-    b.ir.root = root;
-    b.ir.crate_name = crate_
-        .index
-        .get(&crate_.root)
-        .and_then(|it| it.name.clone())
-        .unwrap_or_default();
-    b.mark_copy_variants();
-    Ok(b.ir)
+    fn try_from(crate_: &'a Crate) -> Result<Self, Self::Error> {
+        let mut b = Builder {
+            crate_,
+            ir: IR::default(),
+            struct_intern: HashMap::new(),
+            fn_intern: HashMap::new(),
+            mod_intern: HashMap::new(),
+            self_stack: Vec::new(),
+            copy_eligible: HashMap::new(),
+        };
+
+        let root = b
+            .build_module(crate_.root)?
+            .expect("root module has no id reservation");
+        b.ir.root = root;
+        b.ir.crate_name = crate_
+            .index
+            .get(&crate_.root)
+            .and_then(|it| it.name.clone())
+            .unwrap_or_default();
+        b.mark_copy_variants();
+        Ok(b.ir)
+    }
 }
 
 struct Builder<'a> {
     crate_: &'a Crate,
     ir: IR,
-    type_intern: HashMap<Type, TypeId>,
-    struct_intern: HashMap<Id, StructId>,
-    fn_intern: HashMap<Id, FnId>,
-    mod_intern: HashMap<Id, ModId>,
-    self_stack: Vec<Id>,
-    copy_eligible: HashMap<StructId, bool>,
+    struct_intern: HashMap<RId, Id>,
+    fn_intern: HashMap<RId, Id>,
+    mod_intern: HashMap<RId, Id>,
+    self_stack: Vec<RId>,
+    copy_eligible: HashMap<Id, bool>,
 }
 
 impl<'a> Builder<'a> {
-    fn build_module(
-        &mut self,
-        mod_id: Id,
-        allowed: &HashSet<Id>,
-    ) -> Result<Option<ModId>, BuildError> {
+    fn build_module(&mut self, mod_id: RId) -> Result<Option<Id>, BuildError> {
         if let Some(&mid) = self.mod_intern.get(&mod_id) {
             return Ok(Some(mid));
         }
@@ -80,39 +78,42 @@ impl<'a> Builder<'a> {
             let Some(child) = self.crate_.index.get(child_id) else {
                 continue;
             };
+            if !is_public(child) {
+                continue;
+            }
             let child_name = child.name.clone().unwrap_or_default();
             match &child.inner {
                 ItemEnum::Module(_) => {
-                    if let Some(child_mid) = self.build_module(*child_id, allowed)? {
+                    if let Some(child_mid) = self.build_module(*child_id)? {
                         exports.push(Export {
                             name: child_name,
-                            kind: ExportKind::Mod(child_mid),
+                            target: child_mid,
                         });
                     }
                 }
-                ItemEnum::Struct(_) if allowed.contains(child_id) => {
+                ItemEnum::Struct(_) => {
                     let sid = self.intern_struct(*child_id)?;
                     exports.push(Export {
                         name: child_name,
-                        kind: ExportKind::Struct(sid),
+                        target: sid,
                     });
                 }
-                ItemEnum::Enum(_) if allowed.contains(child_id) => {
+                ItemEnum::Enum(_) => {
                     return Err(BuildError::UnsupportedType {
                         id: *child_id,
                         reason: "enums are not supported".into(),
                     });
                 }
-                ItemEnum::Function(_) if allowed.contains(child_id) => {
+                ItemEnum::Function(_) => {
                     let fid = self.intern_fn(*child_id)?;
                     exports.push(Export {
                         name: child_name,
-                        kind: ExportKind::Fn(fid),
+                        target: fid,
                     });
                 }
                 ItemEnum::Use(use_) => {
                     let mut visited = HashSet::new();
-                    self.add_use(use_, allowed, &mut exports, &mut visited)?;
+                    self.add_use(use_, &mut exports, &mut visited)?;
                 }
                 _ => {}
             }
@@ -120,22 +121,23 @@ impl<'a> Builder<'a> {
 
         if exports.is_empty() && mod_id != self.crate_.root {
             // Module produced nothing -> remove from IR and intern map.
-            // Safe to pop because nothing else can reference this ModId yet.
-            self.ir.mods.pop();
+            // Safe to pop because nothing else can reference this mod yet.
+            self.ir.items.pop();
             self.mod_intern.remove(&mod_id);
             return Ok(None);
         }
 
-        self.ir.mods[mid.0 as usize].exports = exports;
+        if let Item::Mod(m) = &mut self.ir.items[mid.0 as usize] {
+            m.exports = exports;
+        }
         Ok(Some(mid))
     }
 
     fn add_use(
         &mut self,
         use_: &Use,
-        allowed: &HashSet<Id>,
         exports: &mut Vec<Export>,
-        visited: &mut HashSet<Id>,
+        visited: &mut HashSet<RId>,
     ) -> Result<(), BuildError> {
         let Some(tid) = use_.id else { return Ok(()) };
         let Some(target) = self.crate_.index.get(&tid) else {
@@ -149,43 +151,46 @@ impl<'a> Builder<'a> {
             let ItemEnum::Module(source_mod) = &target.inner else {
                 return Ok(());
             };
-            let child_ids: Vec<Id> = source_mod.items.clone();
+            let child_ids: Vec<RId> = source_mod.items.clone();
             for child_id in child_ids {
                 let Some(child) = self.crate_.index.get(&child_id) else {
                     continue;
                 };
+                if !is_public(child) {
+                    continue;
+                }
                 let child_name = child.name.clone().unwrap_or_default();
                 match &child.inner {
-                    ItemEnum::Struct(_) if allowed.contains(&child_id) => {
+                    ItemEnum::Struct(_) => {
                         let sid = self.intern_struct(child_id)?;
                         exports.push(Export {
                             name: child_name,
-                            kind: ExportKind::Struct(sid),
+                            target: sid,
                         });
                     }
-                    ItemEnum::Enum(_) if allowed.contains(&child_id) => {
+                    ItemEnum::Enum(_) => {
                         return Err(BuildError::UnsupportedType {
                             id: child_id,
                             reason: "enums are not supported".into(),
                         });
                     }
-                    ItemEnum::Function(_) if allowed.contains(&child_id) => {
+                    ItemEnum::Function(_) => {
                         let fid = self.intern_fn(child_id)?;
                         exports.push(Export {
                             name: child_name,
-                            kind: ExportKind::Fn(fid),
+                            target: fid,
                         });
                     }
                     ItemEnum::Module(_) => {
-                        if let Some(mid) = self.build_module(child_id, allowed)? {
+                        if let Some(mid) = self.build_module(child_id)? {
                             exports.push(Export {
                                 name: child_name,
-                                kind: ExportKind::Mod(mid),
+                                target: mid,
                             });
                         }
                     }
                     ItemEnum::Use(inner_use) => {
-                        self.add_use(inner_use, allowed, exports, visited)?;
+                        self.add_use(inner_use, exports, visited)?;
                     }
                     _ => {}
                 }
@@ -195,52 +200,46 @@ impl<'a> Builder<'a> {
 
         let name = use_.name.clone();
         match &target.inner {
-            ItemEnum::Struct(_) if allowed.contains(&tid) => {
+            ItemEnum::Struct(_) if is_public(target) => {
                 let sid = self.intern_struct(tid)?;
-                exports.push(Export {
-                    name,
-                    kind: ExportKind::Struct(sid),
-                });
+                exports.push(Export { name, target: sid });
             }
-            ItemEnum::Enum(_) if allowed.contains(&tid) => {
+            ItemEnum::Enum(_) if is_public(target) => {
                 return Err(BuildError::UnsupportedType {
                     id: tid,
                     reason: "enums are not supported".into(),
                 });
             }
-            ItemEnum::Function(_) if allowed.contains(&tid) => {
+            ItemEnum::Function(_) if is_public(target) => {
                 let fid = self.intern_fn(tid)?;
-                exports.push(Export {
-                    name,
-                    kind: ExportKind::Fn(fid),
-                });
+                exports.push(Export { name, target: fid });
             }
             ItemEnum::Module(_) => {
-                if let Some(target_mid) = self.build_module(tid, allowed)? {
+                if let Some(target_mid) = self.build_module(tid)? {
                     exports.push(Export {
                         name,
-                        kind: ExportKind::Mod(target_mid),
+                        target: target_mid,
                     });
                 }
             }
             ItemEnum::Use(inner_use) => {
-                self.add_use(inner_use, allowed, exports, visited)?;
+                self.add_use(inner_use, exports, visited)?;
             }
             _ => {}
         }
         Ok(())
     }
 
-    fn reserve_mod(&mut self, path: ItemPath) -> ModId {
-        let id = ModId(self.ir.mods.len() as u32);
-        self.ir.mods.push(ModDef {
+    fn reserve_mod(&mut self, path: ItemPath) -> Id {
+        let id = Id(self.ir.items.len() as u32);
+        self.ir.items.push(Item::Mod(ModDef {
             path,
             exports: Vec::new(),
-        });
+        }));
         id
     }
 
-    fn intern_struct(&mut self, id: Id) -> Result<StructId, BuildError> {
+    fn intern_struct(&mut self, id: RId) -> Result<Id, BuildError> {
         if let Some(&sid) = self.struct_intern.get(&id) {
             return Ok(sid);
         }
@@ -255,44 +254,48 @@ impl<'a> Builder<'a> {
             }
         };
 
-        let sid = StructId(self.ir.structs.len() as u32);
+        let sid = Id(self.ir.items.len() as u32);
         self.struct_intern.insert(id, sid);
-        self.ir.structs.push(StructDef {
+        self.ir.items.push(Item::Struct(StructDef {
             path: path_of(item, id, self.crate_),
             ctor: Ctor::Implicit,
             has_copy_variant: false,
             shape: StructShape::Unit,
             docs: item.docs.clone(),
-        });
+        }));
 
         let shape = self.build_struct_shape(&struct_.kind)?;
         let ctor = self.find_ctor(&struct_.impls, id)?;
         self.copy_eligible
             .insert(sid, can_copy_struct_kind(&struct_.kind, self.crate_));
 
-        let def = &mut self.ir.structs[sid.0 as usize];
-        def.shape = shape;
-        def.ctor = ctor;
+        if let Item::Struct(def) = &mut self.ir.items[sid.0 as usize] {
+            def.shape = shape;
+            def.ctor = ctor;
+        }
         Ok(sid)
     }
 
     /// Walk every fn param; mark copy-eligible structs passed by value so
     /// codegen emits a `__Copy` wrapper alongside the `__Ref` handle.
     fn mark_copy_variants(&mut self) {
-        let mut to_mark: Vec<StructId> = Vec::new();
-        for fn_def in &self.ir.fns {
+        let mut to_mark: Vec<Id> = Vec::new();
+        for item in &self.ir.items {
+            let Item::Fn(fn_def) = item else { continue };
             for param in &fn_def.params {
                 if param.mode != ParamMode::ByValue {
                     continue;
                 }
-                if let Type::Struct(sid) = &self.ir.types[param.type_id.0 as usize] {
+                if let Type::Struct(sid) = &param.ty {
                     to_mark.push(*sid);
                 }
             }
         }
         for sid in to_mark {
             if self.copy_eligible.get(&sid).copied().unwrap_or(false) {
-                self.ir.structs[sid.0 as usize].has_copy_variant = true;
+                if let Item::Struct(def) = &mut self.ir.items[sid.0 as usize] {
+                    def.has_copy_variant = true;
+                }
             }
         }
     }
@@ -308,7 +311,7 @@ impl<'a> Builder<'a> {
                     let ItemEnum::StructField(ty) = &field_item.inner else {
                         continue;
                     };
-                    out.push(self.intern_type(ty)?);
+                    out.push(self.resolve_type(ty)?);
                 }
                 Ok(StructShape::Tuple(out))
             }
@@ -321,7 +324,7 @@ impl<'a> Builder<'a> {
                     };
                     out.push(StructField {
                         name: field_item.name.clone().unwrap_or_default(),
-                        type_id: self.intern_type(ty)?,
+                        ty: self.resolve_type(ty)?,
                         docs: field_item.docs.clone(),
                     });
                 }
@@ -330,11 +333,11 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn find_ctor(&mut self, impls: &[Id], self_id: Id) -> Result<Ctor, BuildError> {
+    fn find_ctor(&mut self, impls: &[RId], self_id: RId) -> Result<Ctor, BuildError> {
         struct Candidate {
             key: Vec<String>,
             impl_id_ord: u32,
-            assoc_id: Id,
+            assoc_id: RId,
         }
         let mut candidates: Vec<Candidate> = Vec::new();
 
@@ -392,7 +395,7 @@ impl<'a> Builder<'a> {
         Ok(Ctor::Explicit(res?))
     }
 
-    fn intern_fn(&mut self, id: Id) -> Result<FnId, BuildError> {
+    fn intern_fn(&mut self, id: RId) -> Result<Id, BuildError> {
         if let Some(&fid) = self.fn_intern.get(&id) {
             return Ok(fid);
         }
@@ -407,14 +410,14 @@ impl<'a> Builder<'a> {
             }
         };
 
-        let fid = FnId(self.ir.fns.len() as u32);
+        let fid = Id(self.ir.items.len() as u32);
         self.fn_intern.insert(id, fid);
-        self.ir.fns.push(FnDef {
+        self.ir.items.push(Item::Fn(FnDef {
             path: path_of(item, id, self.crate_),
             params: Vec::new(),
-            return_type: TypeId::default(),
+            return_type: Type::Unit,
             docs: item.docs.clone(),
-        });
+        }));
 
         let mut params = Vec::new();
         for (name, ty) in &func.sig.inputs {
@@ -425,54 +428,40 @@ impl<'a> Builder<'a> {
             params.push(FnParam {
                 name: name.clone(),
                 mode,
-                type_id: self.intern_type(underlying)?,
+                ty: self.resolve_type(underlying)?,
             });
         }
         let return_type = match &func.sig.output {
-            Some(ty) => self.intern_type(ty)?,
-            None => self.intern(Type::Unit),
+            Some(ty) => self.resolve_type(ty)?,
+            None => Type::Unit,
         };
 
-        let def = &mut self.ir.fns[fid.0 as usize];
-        def.params = params;
-        def.return_type = return_type;
-        Ok(fid)
-    }
-
-    fn intern_type(&mut self, ty: &RType) -> Result<TypeId, BuildError> {
-        let t = self.resolve_type(ty)?;
-        Ok(self.intern(t))
-    }
-
-    fn intern(&mut self, ty: Type) -> TypeId {
-        if let Some(&id) = self.type_intern.get(&ty) {
-            return id;
+        if let Item::Fn(def) = &mut self.ir.items[fid.0 as usize] {
+            def.params = params;
+            def.return_type = return_type;
         }
-        let id = TypeId(self.ir.types.len() as u32);
-        self.ir.types.push(ty.clone());
-        self.type_intern.insert(ty, id);
-        id
+        Ok(fid)
     }
 
     fn resolve_type(&mut self, ty: &RType) -> Result<Type, BuildError> {
         match ty {
             RType::Primitive(name) => {
                 primitive_to_type(name).ok_or_else(|| BuildError::UnsupportedType {
-                    id: Id(0),
+                    id: RId(0),
                     reason: format!("unsupported primitive `{name}`"),
                 })
             }
             RType::Tuple(ts) if ts.is_empty() => Ok(Type::Unit),
             RType::Tuple(_) => Err(BuildError::UnsupportedType {
-                id: Id(0),
+                id: RId(0),
                 reason: "tuples are not supported".into(),
             }),
             RType::Slice(_) => Err(BuildError::UnsupportedType {
-                id: Id(0),
+                id: RId(0),
                 reason: "slices are not supported".into(),
             }),
             RType::Array { .. } => Err(BuildError::UnsupportedType {
-                id: Id(0),
+                id: RId(0),
                 reason: "fixed-size arrays are not supported".into(),
             }),
             RType::BorrowedRef { type_, .. } => self.resolve_type(type_),
@@ -480,14 +469,14 @@ impl<'a> Builder<'a> {
             RType::Generic(name) if name == "Self" => {
                 let Some(&self_id) = self.self_stack.last() else {
                     return Err(BuildError::UnsupportedType {
-                        id: Id(0),
+                        id: RId(0),
                         reason: "Self outside of impl context".into(),
                     });
                 };
                 Ok(Type::Struct(self.intern_struct(self_id)?))
             }
             other => Err(BuildError::UnsupportedType {
-                id: Id(0),
+                id: RId(0),
                 reason: format!("unsupported type variant: {other:?}"),
             }),
         }
@@ -524,10 +513,6 @@ impl<'a> Builder<'a> {
         let last = summary.path.last().map(String::as_str);
         let out = match last {
             Some("String") => Type::String,
-            Some("Box" | "Arc" | "Rc" | "Cell" | "RefCell") => {
-                let inner = self.type_arg(&path.args, 0)?;
-                return Ok(Some(self.ir.types[inner.0 as usize].clone()));
-            }
             _ => {
                 return Err(BuildError::UnsupportedType {
                     id: path.id,
@@ -538,45 +523,17 @@ impl<'a> Builder<'a> {
         Ok(Some(out))
     }
 
-    fn type_arg(
-        &mut self,
-        args: &Option<Box<GenericArgs>>,
-        index: usize,
-    ) -> Result<TypeId, BuildError> {
-        let Some(args) = args else {
-            return Err(BuildError::UnsupportedType {
-                id: Id(0),
-                reason: "missing generic args".into(),
-            });
-        };
-        let GenericArgs::AngleBracketed { args, .. } = args.as_ref() else {
-            return Err(BuildError::UnsupportedType {
-                id: Id(0),
-                reason: "parenthesized generic args".into(),
-            });
-        };
-        let type_args: Vec<&RType> = args
-            .iter()
-            .filter_map(|a| match a {
-                GenericArg::Type(ty) => Some(ty),
-                _ => None,
-            })
-            .collect();
-        let Some(ty) = type_args.get(index) else {
-            return Err(BuildError::UnsupportedType {
-                id: Id(0),
-                reason: format!("missing generic arg at index {index}"),
-            });
-        };
-        self.intern_type(ty)
-    }
-
-    fn get_item(&self, id: Id) -> Result<&'a Item, BuildError> {
+    fn get_item(&self, id: RId) -> Result<&'a RItem, BuildError> {
         self.crate_
             .index
             .get(&id)
             .ok_or(BuildError::MissingItem(id))
     }
+}
+
+fn is_public(item: &RItem) -> bool {
+    matches!(item.visibility, Visibility::Public)
+        || matches!(item.inner, ItemEnum::Use(_) | ItemEnum::Module(_))
 }
 
 fn primitive_to_type(name: &str) -> Option<Type> {
@@ -616,7 +573,7 @@ fn param_mode_and_type(ty: &RType) -> (ParamMode, &RType) {
     }
 }
 
-fn returns_self(output: Option<&RType>, self_id: Id) -> bool {
+fn returns_self(output: Option<&RType>, self_id: RId) -> bool {
     let Some(ty) = output else { return false };
     match ty {
         RType::Generic(name) if name == "Self" => true,
@@ -642,7 +599,7 @@ fn first_type_arg(p: &Path) -> Option<&RType> {
     })
 }
 
-fn path_of(item: &Item, id: Id, crate_: &Crate) -> ItemPath {
+fn path_of(item: &RItem, id: RId, crate_: &Crate) -> ItemPath {
     if let Some(summary) = crate_.paths.get(&id) {
         return ItemPath::new(summary.path.clone());
     }

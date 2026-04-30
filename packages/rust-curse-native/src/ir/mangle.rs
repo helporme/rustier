@@ -1,6 +1,4 @@
-//! Shared mangling for the JS-side flat namespace exposed by napi-rs /
-//! wasm-bindgen. Every printer that emits or references those names goes
-//! through these helpers so the names stay consistent across targets.
+//! Module mangling utilities.
 
 use super::ItemPath;
 

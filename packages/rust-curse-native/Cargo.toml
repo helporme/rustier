@@ -14,9 +14,6 @@ napi-binding = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
 [dependencies]
 napi = { version = "3", default-features = false, features = ["napi6", "serde-json"], optional = true }
 napi-derive = { version = "3", features = ["type-def"], optional = true }
-syn = { version = "2", features = ["full", "parsing", "visit"] }
-quote = "1"
-proc-macro2 = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rustdoc-types = "0.57"
@@ -32,3 +29,4 @@ napi-build = { version = "2", optional = true }
 tempfile = "3.27.0"
 insta = { version = "1", features = ["filters"] }
 prettyplease = "0.2"
+syn = { version = "2", features = ["parsing"] }
