@@ -126,7 +126,9 @@ include!("lib-wasm.rs");
       "has_build": false,
       "deps": [],
       "build_deps": [],
-      "external_files": []
+      "external_files": [
+        "lib-rustdoc/"
+      ]
     },
     "wasm": {
       "activation": {

@@ -68,7 +68,7 @@ pub fn print_ts_per_mod(ir: &rust_curse::ir::IR, rel_src_path: std::path::PathBu
 
         let body = ir.print_ts_mod(rust_curse::ir::ts::PrintTsModOpts {
             mod_id: mid,
-            rel_src_path: rel_src_path.clone(),
+            rel_src_path: &rel_src_path,
         });
         out.push('\n');
         out.push_str(&format!("// {}\n", dts.display()));

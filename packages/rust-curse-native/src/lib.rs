@@ -17,7 +17,6 @@ use crate::orphans::{OrphanModule, OrphanScanOpts, SourceFilter};
 use crate::scaffold::default::DefaultSectionOpts;
 use crate::scaffold::napi::NapiSectionOpts;
 use crate::scaffold::rustdoc::RustdocSectionOpts;
-use crate::scaffold::ts::TsSectionOpts;
 use crate::scaffold::wasm::WasmSectionOpts;
 use crate::scaffold::{Scaffold, ScaffoldError, ScaffoldOptions};
 use crate::tree_shake::TreeShakeOpts;
@@ -70,12 +69,7 @@ impl BuildTarget {
                 feature_name: "wasm".into(),
                 content: ir.print_wasm(exposed),
             }),
-            BuildTarget::Ts { .. } => scaffold.set_ts(TsSectionOpts {
-                // todo: also iterate orphan modules and emit per-module
-                // .d.ts files via `ir.print_ts_mod(...)` into
-                // `.rust-curse/types/<rel_src_path>/...`.
-                content: ir.print_ts_ambient(),
-            }),
+            BuildTarget::Ts { .. } => scaffold.set_ts(ir),
         }
     }
 }

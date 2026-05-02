@@ -17,13 +17,13 @@ const PREAMBLE: &str = r#"declare module "$rust-curse" {
 "#;
 
 /// Options for printing a single module's `.d.ts` body.
-pub struct PrintTsModOpts {
+pub struct PrintTsModOpts<'a> {
     /// IR id of the module to print.
     pub mod_id: Id,
     /// Source-tree prefix shared by all module files in the build, e.g.
     /// `PathBuf::from("src")`. Module files live at
     /// `<rel_src_path>/<segs-after-crate>.d.ts`.
-    pub rel_src_path: PathBuf,
+    pub rel_src_path: &'a Path,
 }
 
 impl IR {
@@ -37,7 +37,7 @@ impl IR {
     /// Prints the body of a single module's `.d.ts` file (no `declare
     /// module` wrapper). Cross-module imports are emitted as relative
     /// specifiers based on `opts.rel_src_path`.
-    pub fn print_ts_mod(&self, opts: PrintTsModOpts) -> String {
+    pub fn print_ts_mod(&self, opts: PrintTsModOpts<'_>) -> String {
         Printer::new(self, opts.mod_id, opts.rel_src_path).run()
     }
 }
@@ -45,7 +45,7 @@ impl IR {
 struct Printer<'a> {
     ir: &'a IR,
     mod_id: Id,
-    rel_src_path: PathBuf,
+    rel_src_path: &'a Path,
     local_structs: HashSet<Id>,
     /// Map of relative import specifier (e.g. `"./types"`) to the set of
     /// type names imported from there.
@@ -54,7 +54,7 @@ struct Printer<'a> {
 }
 
 impl<'a> Printer<'a> {
-    fn new(ir: &'a IR, mod_id: Id, rel_src_path: PathBuf) -> Self {
+    fn new(ir: &'a IR, mod_id: Id, rel_src_path: &'a Path) -> Self {
         Self {
             ir,
             mod_id,
@@ -291,10 +291,10 @@ impl<'a> Printer<'a> {
     /// module to the module identified by `target_mod_segments`.
     fn specifier_to_module(&self, target_mod_segments: &[String]) -> String {
         let from = mod_file_path(
-            &self.rel_src_path,
+            self.rel_src_path,
             &self.ir.get_mod_unchecked(self.mod_id).path.segments,
         );
-        let to = mod_file_path(&self.rel_src_path, target_mod_segments);
+        let to = mod_file_path(self.rel_src_path, target_mod_segments);
         relative_specifier(&from, &to)
     }
 }

@@ -4,8 +4,8 @@ use std::path::PathBuf;
 use rust_curse::orphans::OrphanModule;
 use rust_curse::scaffold::default::DefaultSectionOpts;
 use rust_curse::scaffold::napi::NapiSectionOpts;
-use rust_curse::scaffold::rustdoc::RustdocSectionOpts;
-use rust_curse::scaffold::ts::{TsSectionOpts, TS_FILE};
+use rust_curse::scaffold::rustdoc::{RustdocSectionError, RustdocSectionOpts, RUSTDOC_DIR};
+use rust_curse::scaffold::ts::TS_FILE;
 use rust_curse::scaffold::wasm::WasmSectionOpts;
 use rust_curse::scaffold::{BuildContribution, ScaffoldError, ScaffoldSection};
 
@@ -335,11 +335,8 @@ fn set_wasm_only() {
 fn set_ts_only() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
-    scaffold
-        .set_ts(TsSectionOpts {
-            content: "export declare function hello(): void;\n".into(),
-        })
-        .unwrap();
+    let (ir, _) = empty_ir(TEST_CRATE);
+    scaffold.set_ts(&ir).unwrap();
     scaffold.deploy().unwrap();
     insta::assert_snapshot!(project_to_md(&project));
 }
@@ -348,32 +345,25 @@ fn set_ts_only() {
 fn set_ts_writes_ambient_dts() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
-    let content = "export declare const VERSION: string;\n";
-    scaffold
-        .set_ts(TsSectionOpts {
-            content: content.into(),
-        })
-        .unwrap();
+    let (ir, _) = empty_ir(TEST_CRATE);
+    scaffold.set_ts(&ir).unwrap();
     scaffold.deploy().unwrap();
     let written = fs::read_to_string(project.abs_temp_path.join(TS_FILE)).unwrap();
-    assert_eq!(written, content);
+    assert_eq!(written, ir.print_ts_ambient());
 }
 
 #[test]
 fn set_ts_combined_with_napi() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
+    let (ir, _) = empty_ir(TEST_CRATE);
     scaffold
         .set_napi(NapiSectionOpts {
             feature_name: "node".into(),
             content: "// napi glue\n".into(),
         })
         .unwrap();
-    scaffold
-        .set_ts(TsSectionOpts {
-            content: "export declare function hello(): void;\n".into(),
-        })
-        .unwrap();
+    scaffold.set_ts(&ir).unwrap();
     scaffold.deploy().unwrap();
     insta::assert_snapshot!(project_to_md(&project));
 }
@@ -381,13 +371,10 @@ fn set_ts_combined_with_napi() {
 #[test]
 fn remove_ts_clears_ambient_dts() {
     let project = TestProject::new();
+    let (ir, _) = empty_ir(TEST_CRATE);
     {
         let mut scaffold = project.scaffold();
-        scaffold
-            .set_ts(TsSectionOpts {
-                content: "export declare function hello(): void;\n".into(),
-            })
-            .unwrap();
+        scaffold.set_ts(&ir).unwrap();
         scaffold.deploy().unwrap();
     }
     assert!(project.abs_temp_path.join(TS_FILE).exists());
@@ -430,7 +417,7 @@ fn rustdoc_renders_simple_modules() {
 }
 
 #[test]
-fn rustdoc_mangles_nested_module_names() {
+fn rustdoc_emits_nested_subtree() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
     let modules = vec![test_module("nested::deep", "nested/deep.rs")];
@@ -444,12 +431,26 @@ fn rustdoc_mangles_nested_module_names() {
 }
 
 #[test]
-fn rustdoc_underscored_names_dont_collide() {
+fn rustdoc_deeply_nested_single_branch() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    let modules = vec![test_module("a::b::c::d", "src/a/b/c/d.rs")];
+    scaffold
+        .set_rustdoc(RustdocSectionOpts { modules: &modules })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+#[test]
+fn rustdoc_siblings_share_parent_file() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
     let modules = vec![
-        test_module("nested::file", "nested/file.rs"),
-        test_module("nested__::file", "nested__/file.rs"),
+        test_module("abc::hi", "src/abc/hi.rs"),
+        test_module("abc::bye", "src/abc/bye.rs"),
     ];
     scaffold
         .set_rustdoc(RustdocSectionOpts { modules: &modules })
@@ -461,10 +462,14 @@ fn rustdoc_underscored_names_dont_collide() {
 }
 
 #[test]
-fn rustdoc_underscored_directory_names() {
+fn rustdoc_multiple_deep_branches() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
-    let modules = vec![test_module("__nested::__deep", "__nested/__deep.rs")];
+    let modules = vec![
+        test_module("a::b::c", "src/a/b/c.rs"),
+        test_module("a::b::d", "src/a/b/d.rs"),
+        test_module("a::e::f", "src/a/e/f.rs"),
+    ];
     scaffold
         .set_rustdoc(RustdocSectionOpts { modules: &modules })
         .unwrap();
@@ -472,6 +477,88 @@ fn rustdoc_underscored_directory_names() {
     project.snapshot_settings().bind(|| {
         insta::assert_snapshot!(project_to_md(&project));
     });
+}
+
+#[test]
+fn rustdoc_mixes_flat_and_nested_at_root() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    let modules = vec![
+        test_module("kitty", "src/kitty.rs"),
+        test_module("abc::hi", "src/abc/hi.rs"),
+    ];
+    scaffold
+        .set_rustdoc(RustdocSectionOpts { modules: &modules })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+#[test]
+fn rustdoc_uppercase_segment_gets_allow() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    let modules = vec![test_module("MyMod::something", "src/MyMod/something.rs")];
+    scaffold
+        .set_rustdoc(RustdocSectionOpts { modules: &modules })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+#[test]
+fn rustdoc_leaf_branch_collision_errors() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    let modules = vec![
+        test_module("abc", "src/abc.rs"),
+        test_module("abc::hi", "src/abc/hi.rs"),
+    ];
+    let err = scaffold
+        .set_rustdoc(RustdocSectionOpts { modules: &modules })
+        .unwrap_err();
+    match err {
+        RustdocSectionError::LeafBranchCollision { name } => assert_eq!(name, "abc"),
+        other => panic!("expected LeafBranchCollision, got {other:?}"),
+    }
+}
+
+#[test]
+fn rustdoc_stale_subtree_cleaned_on_redeploy() {
+    let project = TestProject::new();
+    let abs_subtree_dir = project.abs_temp_path.join(RUSTDOC_DIR);
+    let abs_lib_rustdoc = project.abs_temp_path.join("lib-rustdoc.rs");
+
+    {
+        let mut scaffold = project.scaffold();
+        let modules = vec![test_module("a::b", "src/a/b.rs")];
+        scaffold
+            .set_rustdoc(RustdocSectionOpts { modules: &modules })
+            .unwrap();
+        scaffold.deploy().unwrap();
+    }
+    assert!(abs_subtree_dir.join("a.rs").exists());
+
+    {
+        let mut scaffold = project.scaffold();
+        scaffold
+            .set_rustdoc(RustdocSectionOpts { modules: &[] })
+            .unwrap();
+        scaffold.deploy().unwrap();
+    }
+    assert!(
+        !abs_subtree_dir.exists(),
+        "lib-rustdoc/ directory should be cleaned when no modules remain"
+    );
+    let lib_content = fs::read_to_string(&abs_lib_rustdoc).unwrap();
+    assert_eq!(
+        lib_content,
+        "// generated by rust-curse with love <3\n// do not change manually\n\n"
+    );
 }
 
 #[test]
