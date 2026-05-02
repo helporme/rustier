@@ -117,11 +117,11 @@ impl RustCurse {
 
     fn try_build(&mut self) -> anyhow::Result<()> {
         let project_root = PathBuf::from(&self.options.project_root_abs_path);
-        let mod_root_rel_paths = vec![PathBuf::from(&self.options.module_dir_rel_path)];
+        let src_rel_path = PathBuf::from(&self.options.module_dir_rel_path);
 
         let modules = orphans::scan(OrphanScanOpts {
             project_root_abs_path: &project_root,
-            mod_root_rel_paths: &mod_root_rel_paths,
+            src_rel_path: &src_rel_path,
             rs_filter: SourceFilter::default(), // todo: add as an option
         })?;
 
@@ -148,7 +148,7 @@ impl RustCurse {
                 &ir,
                 TreeShakeOpts {
                     project_root_abs_path: &project_root,
-                    mod_root_rel_paths: &mod_root_rel_paths,
+                    src_rel_path: &src_rel_path,
                     js_filter: SourceFilter {
                         include: &js_source.include,
                         exclude: &js_source.exclude,

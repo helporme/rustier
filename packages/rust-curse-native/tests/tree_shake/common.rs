@@ -70,10 +70,10 @@ impl Fixture {
 
     pub fn run_shake(
         &self,
-        mod_root_rel: &str,
+        src_rel: &str,
         js_include: &[String],
     ) -> Result<(IR, HashSet<Id>), TreeShakeError> {
-        let mod_root_rel_paths = vec![PathBuf::from(mod_root_rel)];
+        let src_rel_path = PathBuf::from(src_rel);
 
         let target_dir = self.abs_root.join("target");
         let crate_ = rust_curse::rustdoc::run(&self.abs_root, &target_dir, TEST_CRATE)
@@ -84,7 +84,7 @@ impl Fixture {
             &ir,
             TreeShakeOpts {
                 project_root_abs_path: &self.abs_root,
-                mod_root_rel_paths: &mod_root_rel_paths,
+                src_rel_path: &src_rel_path,
                 js_filter: SourceFilter {
                     include: js_include,
                     exclude: &[],

@@ -20,10 +20,9 @@ use crate::orphans::{self, SourceFilter};
 pub struct TreeShakeOpts<'a> {
     /// Absolute path of the project root.
     pub project_root_abs_path: &'a Path,
-    /// Module roots, each relative to `project_root_abs_path`. JS specifiers
-    /// like `'../src/greet.rs'` resolve to a `.rs` file under one of these
-    /// roots.
-    pub mod_root_rel_paths: &'a [PathBuf],
+    /// Source root, relative to `project_root_abs_path`. JS specifiers
+    /// like `'../src/greet.rs'` resolve to a `.rs` file under this root.
+    pub src_rel_path: &'a Path,
     /// Filters selecting which JS/TS files are scanned for imports.
     pub js_filter: SourceFilter<'a>,
 }
@@ -69,37 +68,34 @@ pub fn shake(ir: &IR, opts: TreeShakeOpts<'_>) -> Result<HashSet<Id>, TreeShakeE
         }
     })?;
 
-    let mut buckets: BTreeMap<(PathBuf, PathBuf), Bucket> = BTreeMap::new();
-    for mod_root_rel in opts.mod_root_rel_paths {
-        let abs_mod_root = abs_project_root.join(mod_root_rel);
-        let abs_mod_root =
-            fs::canonicalize(&abs_mod_root).map_err(|source| TreeShakeError::RootNotFound {
-                abs_path: abs_mod_root,
-                source,
-            })?;
+    let abs_src_root = abs_project_root.join(opts.src_rel_path);
+    let abs_src_root =
+        fs::canonicalize(&abs_src_root).map_err(|source| TreeShakeError::RootNotFound {
+            abs_path: abs_src_root,
+            source,
+        })?;
 
-        for import in scan_js_imports(&abs_mod_root, &opts.js_filter)? {
-            if import.members.iter().any(|m| m == "default") {
-                return Err(TreeShakeError::DefaultImport {
-                    rel_rs_path: mod_root_rel.join(&import.rel_rs_path),
-                });
-            }
-            let key = (mod_root_rel.clone(), import.rel_rs_path);
-            let entry = buckets.entry(key).or_default();
-            for m in import.members {
-                if m == "*" {
-                    entry.star = true;
-                } else {
-                    entry.members.insert(m);
-                }
+    let mut buckets: BTreeMap<PathBuf, Bucket> = BTreeMap::new();
+    for import in scan_js_imports(&abs_src_root, &opts.js_filter)? {
+        if import.members.iter().any(|m| m == "default") {
+            return Err(TreeShakeError::DefaultImport {
+                rel_rs_path: opts.src_rel_path.join(&import.rel_rs_path),
+            });
+        }
+        let entry = buckets.entry(import.rel_rs_path).or_default();
+        for m in import.members {
+            if m == "*" {
+                entry.star = true;
+            } else {
+                entry.members.insert(m);
             }
         }
     }
 
     let mut seeds: Vec<Id> = Vec::new();
-    for ((mod_root_rel, rel_within_mod_root), bucket) in buckets {
-        let mod_name = orphans::gen_module_name(&rel_within_mod_root);
-        let rel_rs_path = mod_root_rel.join(&rel_within_mod_root);
+    for (rel_within_src_root, bucket) in buckets {
+        let mod_name = orphans::gen_module_name(&rel_within_src_root);
+        let rel_rs_path = opts.src_rel_path.join(&rel_within_src_root);
         let Some(mod_id) = find_module(ir, &mod_name) else {
             return Err(TreeShakeError::UnresolvedFile { rel_rs_path });
         };

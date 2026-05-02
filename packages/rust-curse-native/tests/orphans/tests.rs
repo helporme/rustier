@@ -98,7 +98,7 @@ fn modern_layout_skips_submodules() {
 
     let modules = scan(OrphanScanOpts {
         project_root_abs_path: &abs_root,
-        mod_root_rel_paths: &[PathBuf::new()],
+        src_rel_path: Path::new(""),
         rs_filter: SourceFilter::default(),
     })
     .unwrap();
@@ -119,7 +119,7 @@ fn rs_exclude_filter_drops_module() {
 
     let modules = scan(OrphanScanOpts {
         project_root_abs_path: &abs_root,
-        mod_root_rel_paths: &[PathBuf::new()],
+        src_rel_path: Path::new(""),
         rs_filter: SourceFilter {
             include: &[],
             exclude: &exclude,
@@ -142,7 +142,7 @@ fn conflict_errors_on_abc_rs_and_abc_mod_rs() {
 
     let err = scan(OrphanScanOpts {
         project_root_abs_path: &abs_root,
-        mod_root_rel_paths: &[PathBuf::new()],
+        src_rel_path: Path::new(""),
         rs_filter: SourceFilter::default(),
     })
     .unwrap_err();

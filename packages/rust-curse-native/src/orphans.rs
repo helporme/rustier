@@ -24,11 +24,10 @@ use std::path::{Path, PathBuf};
 pub struct OrphanScanOpts<'a> {
     /// Absolute path of the project root.
     pub project_root_abs_path: &'a Path,
-    /// Module roots, each relative to `project_root_abs_path`. Each root is
-    /// walked independently for orphan `.rs` modules; the rust module name
-    /// of a discovered file is derived from its path within its containing
-    /// module root.
-    pub mod_root_rel_paths: &'a [PathBuf],
+    /// Source root, relative to `project_root_abs_path`. Walked for orphan
+    /// `.rs` modules; the rust module name of a discovered file is derived
+    /// from its path within this root.
+    pub src_rel_path: &'a Path,
     /// Filters applied to discovered `.rs` orphans, matched against paths
     /// relative to the project root.
     pub rs_filter: SourceFilter<'a>,
@@ -82,7 +81,7 @@ pub enum OrphanScanError {
     },
 }
 
-/// Discover orphan rust modules under each entry of `opts.mod_root_rel_paths`.
+/// Discover orphan rust modules under `opts.src_rel_path`.
 pub fn scan(opts: OrphanScanOpts<'_>) -> Result<Vec<OrphanModule>, OrphanScanError> {
     let abs_project_root = fs::canonicalize(opts.project_root_abs_path).map_err(|source| {
         OrphanScanError::RootNotFound {
@@ -91,23 +90,21 @@ pub fn scan(opts: OrphanScanOpts<'_>) -> Result<Vec<OrphanModule>, OrphanScanErr
         }
     })?;
 
-    let mut modules: Vec<OrphanModule> = Vec::new();
-    for mod_root_rel in opts.mod_root_rel_paths {
-        let abs_mod_root = abs_project_root.join(mod_root_rel);
-        let abs_mod_root =
-            fs::canonicalize(&abs_mod_root).map_err(|source| OrphanScanError::RootNotFound {
-                abs_path: abs_mod_root,
-                source,
-            })?;
+    let abs_src_root = abs_project_root.join(opts.src_rel_path);
+    let abs_src_root =
+        fs::canonicalize(&abs_src_root).map_err(|source| OrphanScanError::RootNotFound {
+            abs_path: abs_src_root,
+            source,
+        })?;
 
-        for rel_within_mod_root in walk_orphans(&abs_mod_root)? {
-            let mod_name = gen_module_name(&rel_within_mod_root);
-            let rel_rs_path = mod_root_rel.join(&rel_within_mod_root);
-            modules.push(OrphanModule {
-                rel_rs_path,
-                mod_name,
-            });
-        }
+    let mut modules: Vec<OrphanModule> = Vec::new();
+    for rel_within_src_root in walk_orphans(&abs_src_root)? {
+        let mod_name = gen_module_name(&rel_within_src_root);
+        let rel_rs_path = opts.src_rel_path.join(&rel_within_src_root);
+        modules.push(OrphanModule {
+            rel_rs_path,
+            mod_name,
+        });
     }
 
     apply_rs_filter(&mut modules, &opts.rs_filter)?;
