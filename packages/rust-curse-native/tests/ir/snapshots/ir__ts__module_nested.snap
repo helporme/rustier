@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "pub mod math {\n    /// Returns the square of `x`.\n    pub fn square(x: f64) -> f64 {\n        x * x\n    }\n}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,7 +12,9 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate/math" {
-    /** Returns the square of `x`. */
-    export function square(x: number): number;
-}
+// src/lib.d.ts
+
+
+// src/math.d.ts
+/** Returns the square of `x`. */
+export function square(x: number): number;

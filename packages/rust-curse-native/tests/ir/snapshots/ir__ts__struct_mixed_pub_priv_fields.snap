@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "pub struct Mixed {\n    pub x: i32,\n    y: i32,\n}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,12 +12,11 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate" {
-    export class Mixed {
-        private [" "]: 'rustdoc_test_crate::Mixed';
+// src/lib.d.ts
+export class Mixed {
+    private [" "]: 'rustdoc_test_crate::Mixed';
 
-        x: number;
+    x: number;
 
-        constructor(x: number);
-    }
+    constructor(x: number);
 }

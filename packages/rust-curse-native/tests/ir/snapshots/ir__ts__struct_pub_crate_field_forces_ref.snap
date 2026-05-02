@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "/// A `pub(crate)` field downgrades the boundary to ref (opaque class).\npub struct Gated {\n    pub x: i32,\n    pub(crate) y: i32,\n}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,13 +12,12 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate" {
-    /** A `pub(crate)` field downgrades the boundary to ref (opaque class). */
-    export class Gated {
-        private [" "]: 'rustdoc_test_crate::Gated';
+// src/lib.d.ts
+/** A `pub(crate)` field downgrades the boundary to ref (opaque class). */
+export class Gated {
+    private [" "]: 'rustdoc_test_crate::Gated';
 
-        x: number;
+    x: number;
 
-        constructor(x: number);
-    }
+    constructor(x: number);
 }

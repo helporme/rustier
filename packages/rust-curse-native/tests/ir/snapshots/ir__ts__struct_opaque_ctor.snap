@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "/// A counter whose constructor is the canonical entry point.\npub struct Counter {\n    count: u32,\n}\nimpl Counter {\n    /// Creates a new counter starting at `start`.\n    pub fn new(start: u32) -> Self {\n        Self { count: start }\n    }\n}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,11 +12,10 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate" {
-    /** A counter whose constructor is the canonical entry point. */
-    export class Counter {
-        private [" "]: 'rustdoc_test_crate::Counter';
+// src/lib.d.ts
+/** A counter whose constructor is the canonical entry point. */
+export class Counter {
+    private [" "]: 'rustdoc_test_crate::Counter';
 
-        constructor(start: number);
-    }
+    constructor(start: number);
 }

@@ -42,6 +42,41 @@ pub fn fmt_src(src: &str) -> String {
     }
 }
 
+/// Print the ambient preamble once, then every module's `.d.ts` body
+/// under a `// <rel_dts_path>` header. Single snapshot per test. The
+/// crate root maps to `<rel_src_path>/lib.d.ts`.
+pub fn print_ts_per_mod(ir: &rust_curse::ir::IR, rel_src_path: std::path::PathBuf) -> String {
+    let mut out = ir.print_ts_ambient().to_string();
+    for (i, item) in ir.items.iter().enumerate() {
+        if !matches!(item, rust_curse::ir::Item::Mod(_)) {
+            continue;
+        }
+        let mid = rust_curse::ir::Id(i as u32);
+        let segs = &ir.get_mod_unchecked(mid).path.segments;
+        if segs.is_empty() {
+            continue;
+        }
+        let mut dts = rel_src_path.clone();
+        if segs.len() == 1 {
+            dts.push("lib.d.ts");
+        } else {
+            for seg in &segs[1..segs.len() - 1] {
+                dts.push(seg);
+            }
+            dts.push(format!("{}.d.ts", segs.last().unwrap()));
+        }
+
+        let body = ir.print_ts_mod(rust_curse::ir::ts::PrintTsModOpts {
+            mod_id: mid,
+            rel_src_path: rel_src_path.clone(),
+        });
+        out.push('\n');
+        out.push_str(&format!("// {}\n", dts.display()));
+        out.push_str(&body);
+    }
+    out
+}
+
 pub fn print_js_per_mod<F>(ir: &rust_curse::ir::IR, mut printer: F) -> String
 where
     F: FnMut(&rust_curse::ir::IR, rust_curse::ir::Id) -> String,
@@ -137,8 +172,10 @@ macro_rules! assert_ir_snap {
     }};
 }
 
-/// Build IR and snapshot the TypeScript output. TS prints the full public
-/// surface, so there is no exposed-ids parameter.
+/// Build IR and snapshot the per-module TypeScript output. The ambient
+/// preamble is printed once at the top, then each non-root module's
+/// `.d.ts` body is appended under a `// <rel_dts_path>` header so a
+/// single snapshot covers the whole crate.
 #[macro_export]
 macro_rules! assert_ts_snap {
     ($($tt:tt)*) => {{
@@ -147,8 +184,9 @@ macro_rules! assert_ts_snap {
             let crate_ = $crate::common::gen_rustdoc(&src);
             rust_curse::ir::IR::try_from(&crate_).unwrap()
         };
+        let out = $crate::common::print_ts_per_mod(&ir, std::path::PathBuf::from("src"));
         insta::with_settings!({ description => src }, {
-            insta::assert_snapshot!(ir.print_ts());
+            insta::assert_snapshot!(out);
         });
     }};
 }

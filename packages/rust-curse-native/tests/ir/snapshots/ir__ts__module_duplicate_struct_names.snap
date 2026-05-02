@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "pub mod a {\n    pub struct Thing {\n        pub x: i32,\n    }\n}\npub mod b {\n    pub struct Thing {\n        pub y: i32,\n    }\n}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,22 +12,23 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate/a" {
-    export class Thing {
-        private [" "]: 'rustdoc_test_crate::a::Thing';
+// src/lib.d.ts
 
-        x: number;
 
-        constructor(x: number);
-    }
+// src/a.d.ts
+export class Thing {
+    private [" "]: 'rustdoc_test_crate::a::Thing';
+
+    x: number;
+
+    constructor(x: number);
 }
 
-declare module "$rust/rustdoc_test_crate/b" {
-    export class Thing {
-        private [" "]: 'rustdoc_test_crate::b::Thing';
+// src/b.d.ts
+export class Thing {
+    private [" "]: 'rustdoc_test_crate::b::Thing';
 
-        y: number;
+    y: number;
 
-        constructor(y: number);
-    }
+    constructor(y: number);
 }

@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "pub struct Empty {}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,10 +12,9 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate" {
-    export class Empty {
-        private [" "]: 'rustdoc_test_crate::Empty';
+// src/lib.d.ts
+export class Empty {
+    private [" "]: 'rustdoc_test_crate::Empty';
 
-        constructor();
-    }
+    constructor();
 }

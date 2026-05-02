@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "/// A point in 2D space. All fields are public, so it is copy-constructible.\npub struct Point {\n    /// Horizontal position.\n    pub x: f64,\n    /// Vertical position.\n    pub y: f64,\n}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,17 +12,16 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate" {
-    /** A point in 2D space. All fields are public, so it is copy-constructible. */
-    export class Point {
-        private [" "]: 'rustdoc_test_crate::Point';
+// src/lib.d.ts
+/** A point in 2D space. All fields are public, so it is copy-constructible. */
+export class Point {
+    private [" "]: 'rustdoc_test_crate::Point';
 
-        /** Horizontal position. */
-        x: number;
+    /** Horizontal position. */
+    x: number;
 
-        /** Vertical position. */
-        y: number;
+    /** Vertical position. */
+    y: number;
 
-        constructor(x: number, y: number);
-    }
+    constructor(x: number, y: number);
 }

@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "/// `new(&self)` is not treated as an explicit ctor.\npub struct Builder {\n    x: i32,\n}\nimpl Builder {\n    pub fn new(&self) -> Self {\n        Self { x: self.x }\n    }\n}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,11 +12,10 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate" {
-    /** `new(&self)` is not treated as an explicit ctor. */
-    export class Builder {
-        private [" "]: 'rustdoc_test_crate::Builder';
+// src/lib.d.ts
+/** `new(&self)` is not treated as an explicit ctor. */
+export class Builder {
+    private [" "]: 'rustdoc_test_crate::Builder';
 
-        constructor();
-    }
+    constructor();
 }

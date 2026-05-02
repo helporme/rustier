@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "/// Unit return type maps to `void`.\npub fn f() {}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,7 +12,6 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate" {
-    /** Unit return type maps to `void`. */
-    export function f(): void;
-}
+// src/lib.d.ts
+/** Unit return type maps to `void`. */
+export function f(): void;

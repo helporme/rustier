@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "pub mod types {\n    /// An authentication token.\n    pub struct Token {\n        /// The raw token string.\n        pub value: String,\n    }\n}\npub mod ops {\n    /// Parses a raw string into a Token.\n    pub fn parse(s: String) -> crate::types::Token {\n        todo!()\n    }\n}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,21 +12,22 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate/types" {
-    /** An authentication token. */
-    export class Token {
-        private [" "]: 'rustdoc_test_crate::types::Token';
+// src/lib.d.ts
 
-        /** The raw token string. */
-        value: string;
 
-        constructor(value: string);
-    }
+// src/types.d.ts
+/** An authentication token. */
+export class Token {
+    private [" "]: 'rustdoc_test_crate::types::Token';
+
+    /** The raw token string. */
+    value: string;
+
+    constructor(value: string);
 }
 
-declare module "$rust/rustdoc_test_crate/ops" {
-    import type { Token } from "$rust/rustdoc_test_crate/types";
+// src/ops.d.ts
+import type { Token } from "./types";
 
-    /** Parses a raw string into a Token. */
-    export function parse(s: string): Token;
-}
+/** Parses a raw string into a Token. */
+export function parse(s: string): Token;

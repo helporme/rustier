@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "/// A point in 2D space.\npub struct Point {\n    /// Horizontal position.\n    pub x: f64,\n    /// Vertical position.\n    pub y: f64,\n}\n/// A circle defined by its center and radius.\npub struct Circle {\n    /// The center point.\n    pub center: Point,\n    /// The radius in the same units as `center`.\n    pub radius: f64,\n}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,30 +12,29 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate" {
-    /** A point in 2D space. */
-    export class Point {
-        private [" "]: 'rustdoc_test_crate::Point';
+// src/lib.d.ts
+/** A point in 2D space. */
+export class Point {
+    private [" "]: 'rustdoc_test_crate::Point';
 
-        /** Horizontal position. */
-        x: number;
+    /** Horizontal position. */
+    x: number;
 
-        /** Vertical position. */
-        y: number;
+    /** Vertical position. */
+    y: number;
 
-        constructor(x: number, y: number);
-    }
+    constructor(x: number, y: number);
+}
 
-    /** A circle defined by its center and radius. */
-    export class Circle {
-        private [" "]: 'rustdoc_test_crate::Circle';
+/** A circle defined by its center and radius. */
+export class Circle {
+    private [" "]: 'rustdoc_test_crate::Circle';
 
-        /** The center point. */
-        center: Point;
+    /** The center point. */
+    center: Point;
 
-        /** The radius in the same units as `center`. */
-        radius: number;
+    /** The radius in the same units as `center`. */
+    radius: number;
 
-        constructor(center: Point, radius: number);
-    }
+    constructor(center: Point, radius: number);
 }

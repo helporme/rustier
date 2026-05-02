@@ -1,6 +1,7 @@
 //! IR -> TS printer.
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::path::{Path, PathBuf};
 
 use super::mangle::is_canonical_origin;
 use super::{Ctor, FnParam, Id, Item, ItemPath, NumberType, ParamMode, StructShape, Type, IR};
@@ -12,27 +13,52 @@ const PREAMBLE: &str = r#"declare module "$rust-curse" {
             | Record<string, unknown> | unknown[]
             ? K : never]: Copy<T[K]>;
     };
-}"#;
+}
+"#;
+
+/// Options for printing a single module's `.d.ts` body.
+pub struct PrintTsModOpts {
+    /// IR id of the module to print.
+    pub mod_id: Id,
+    /// Source-tree prefix shared by all module files in the build, e.g.
+    /// `PathBuf::from("src")`. Module files live at
+    /// `<rel_src_path>/<segs-after-crate>.d.ts`.
+    pub rel_src_path: PathBuf,
+}
 
 impl IR {
-    /// Prints the IR as TypeScript ambient module code, featuring _all_
-    /// exported items.
-    pub fn print_ts(&self) -> String {
-        Printer::new(self).run()
+    /// Prints the ambient declarations shared across the build (the
+    /// `$rust-curse` module with the `Copy<T>` utility). Per-module bodies
+    /// live in their own files; see [`IR::print_ts_mod`].
+    pub fn print_ts_ambient(&self) -> &'static str {
+        PREAMBLE
+    }
+
+    /// Prints the body of a single module's `.d.ts` file (no `declare
+    /// module` wrapper). Cross-module imports are emitted as relative
+    /// specifiers based on `opts.rel_src_path`.
+    pub fn print_ts_mod(&self, opts: PrintTsModOpts) -> String {
+        Printer::new(self, opts.mod_id, opts.rel_src_path).run()
     }
 }
 
 struct Printer<'a> {
     ir: &'a IR,
+    mod_id: Id,
+    rel_src_path: PathBuf,
     local_structs: HashSet<Id>,
+    /// Map of relative import specifier (e.g. `"./types"`) to the set of
+    /// type names imported from there.
     imports: BTreeMap<String, BTreeSet<String>>,
     needs_copy: bool,
 }
 
 impl<'a> Printer<'a> {
-    fn new(ir: &'a IR) -> Self {
+    fn new(ir: &'a IR, mod_id: Id, rel_src_path: PathBuf) -> Self {
         Self {
             ir,
+            mod_id,
+            rel_src_path,
             local_structs: HashSet::new(),
             imports: BTreeMap::new(),
             needs_copy: false,
@@ -40,32 +66,9 @@ impl<'a> Printer<'a> {
     }
 
     fn run(&mut self) -> String {
-        let mut out = String::from(PREAMBLE);
-        let mod_ids: Vec<Id> = self
-            .ir
-            .items
-            .iter()
-            .enumerate()
-            .filter_map(|(i, it)| matches!(it, Item::Mod(_)).then_some(Id(i as u32)))
-            .collect();
-        for mid in mod_ids {
-            let block = self.print_mod_block(mid);
-            if !block.is_empty() {
-                out.push('\n');
-                out.push('\n');
-                out.push_str(&block);
-            }
-        }
-        out
-    }
+        let mod_segments = self.ir.get_mod_unchecked(self.mod_id).path.segments.clone();
+        let exports = self.ir.get_mod_unchecked(self.mod_id).exports.clone();
 
-    fn print_mod_block(&mut self, mid: Id) -> String {
-        self.imports.clear();
-        self.needs_copy = false;
-
-        self.local_structs.clear();
-        let mod_segments = self.ir.get_mod_unchecked(mid).path.segments.clone();
-        let exports = self.ir.get_mod_unchecked(mid).exports.clone();
         for export in &exports {
             if let Item::Struct(def) = self.ir.get_unchecked(export.target) {
                 if is_canonical_origin(&def.path, &mod_segments) {
@@ -74,55 +77,47 @@ impl<'a> Printer<'a> {
             }
         }
 
-        let body = self.print_mod_exports(mid);
-        if body.is_empty() {
-            return String::new();
-        }
+        let body = self.print_exports(&mod_segments, &exports);
 
-        let module_path = mod_ambient_path(self.ir.get_mod_unchecked(mid));
-
-        let mut block = format!("declare module \"{module_path}\" {{\n");
-
+        let mut out = String::new();
         if self.needs_copy {
-            block.push_str("    import type { Copy } from \"$rust-curse\";\n");
+            out.push_str("import type { Copy } from \"$rust-curse\";\n");
         }
-        for (path, names) in &self.imports {
+        for (specifier, names) in &self.imports {
             let names_str: Vec<&str> = names.iter().map(String::as_str).collect();
-            block.push_str(&format!(
-                "    import type {{ {} }} from \"{path}\";\n",
+            out.push_str(&format!(
+                "import type {{ {} }} from \"{specifier}\";\n",
                 names_str.join(", ")
             ));
         }
         if self.needs_copy || !self.imports.is_empty() {
-            block.push('\n');
+            out.push('\n');
         }
-
-        block.push_str(&body);
-        block.push('\n');
-        block.push('}');
-        block
+        out.push_str(&body);
+        if !out.ends_with('\n') {
+            out.push('\n');
+        }
+        out
     }
 
-    fn print_mod_exports(&mut self, mid: Id) -> String {
-        let mod_segments = self.ir.get_mod_unchecked(mid).path.segments.clone();
-        let exports = self.ir.get_mod_unchecked(mid).exports.clone();
+    fn print_exports(&mut self, mod_segments: &[String], exports: &[super::Export]) -> String {
         let mut parts: Vec<String> = Vec::new();
-        for export in &exports {
+        for export in exports {
             match self.ir.get_unchecked(export.target) {
                 Item::Struct(def) => {
                     let canonical = def.path.clone();
-                    if is_canonical_origin(&canonical, &mod_segments) {
+                    if is_canonical_origin(&canonical, mod_segments) {
                         parts.push(self.print_struct(export.target));
                     } else {
-                        parts.push(print_reexport(&canonical, &export.name));
+                        parts.push(self.print_reexport(&canonical, &export.name));
                     }
                 }
                 Item::Fn(def) => {
                     let canonical = def.path.clone();
-                    if is_canonical_origin(&canonical, &mod_segments) {
+                    if is_canonical_origin(&canonical, mod_segments) {
                         parts.push(self.print_fn(export.target));
                     } else {
-                        parts.push(print_reexport(&canonical, &export.name));
+                        parts.push(self.print_reexport(&canonical, &export.name));
                     }
                 }
                 Item::Mod(_) => {}
@@ -171,22 +166,22 @@ impl<'a> Printer<'a> {
 
         let mut members: Vec<String> = Vec::new();
 
-        members.push(format!("        private [\" \"]: '{brand}';"));
+        members.push(format!("    private [\" \"]: '{brand}';"));
 
         if let StructShape::Struct(fields) = &def.shape {
             for field in fields {
                 let ty = self.type_to_ts(&field.ty);
                 let mut member = String::new();
                 if let Some(docs) = &field.docs {
-                    member.push_str(&doc_comment(docs, "        "));
+                    member.push_str(&doc_comment(docs, "    "));
                 }
-                member.push_str(&format!("        {}: {ty};", field.name));
+                member.push_str(&format!("    {}: {ty};", field.name));
                 members.push(member);
             }
         } else if let StructShape::Tuple(types) = &def.shape {
             for (i, ty) in types.iter().enumerate() {
                 let ty = self.type_to_ts(ty);
-                members.push(format!("        {i}: {ty};"));
+                members.push(format!("    {i}: {ty};"));
             }
         }
 
@@ -204,23 +199,23 @@ impl<'a> Printer<'a> {
                         format!("{}: {ty}", p.name)
                     })
                     .collect();
-                format!("        constructor({});", params.join(", "))
+                format!("    constructor({});", params.join(", "))
             }
             Ctor::Implicit => {
                 let params = self.shape_ctor_params(&def.shape);
-                format!("        constructor({});", params.join(", "))
+                format!("    constructor({});", params.join(", "))
             }
         };
         members.push(ctor);
 
         let mut out = String::new();
         if let Some(docs) = &def.docs {
-            out.push_str(&doc_comment(docs, "    "));
+            out.push_str(&doc_comment(docs, ""));
         }
-        out.push_str(&format!("    export class {name} {{\n"));
+        out.push_str(&format!("export class {name} {{\n"));
         out.push_str(&members.join("\n\n"));
         out.push('\n');
-        out.push_str("    }");
+        out.push('}');
         out
     }
 
@@ -251,7 +246,7 @@ impl<'a> Printer<'a> {
         let mut out = String::new();
 
         if let Some(docs) = &def.docs {
-            out.push_str(&doc_comment(docs, "    "));
+            out.push_str(&doc_comment(docs, ""));
         }
 
         let params: Vec<String> = def
@@ -265,10 +260,21 @@ impl<'a> Printer<'a> {
 
         let ret = self.type_to_ts(&def.return_type);
         out.push_str(&format!(
-            "    export function {name}({}): {ret};",
+            "export function {name}({}): {ret};",
             params.join(", ")
         ));
         out
+    }
+
+    fn print_reexport(&mut self, canonical: &ItemPath, local_name: &str) -> String {
+        let canonical_name = canonical.name().unwrap_or(local_name).to_string();
+        let target_mod_segments = &canonical.segments[..canonical.segments.len() - 1];
+        let specifier = self.specifier_to_module(target_mod_segments);
+        if canonical_name == local_name {
+            format!("export {{ {local_name} }} from \"{specifier}\";")
+        } else {
+            format!("export {{ {canonical_name} as {local_name} }} from \"{specifier}\";")
+        }
     }
 
     fn record_import(&mut self, path: &ItemPath) {
@@ -276,28 +282,83 @@ impl<'a> Printer<'a> {
             return;
         }
         let type_name = path.name().unwrap().to_string();
-        let module_segments = &path.segments[..path.segments.len() - 1];
-        let module_path = format!("$rust/{}", module_segments.join("/"));
-        self.imports
-            .entry(module_path)
-            .or_default()
-            .insert(type_name);
+        let target_mod_segments = &path.segments[..path.segments.len() - 1];
+        let specifier = self.specifier_to_module(target_mod_segments);
+        self.imports.entry(specifier).or_default().insert(type_name);
+    }
+
+    /// Resolve a relative import specifier from this printer's current
+    /// module to the module identified by `target_mod_segments`.
+    fn specifier_to_module(&self, target_mod_segments: &[String]) -> String {
+        let from = mod_file_path(
+            &self.rel_src_path,
+            &self.ir.get_mod_unchecked(self.mod_id).path.segments,
+        );
+        let to = mod_file_path(&self.rel_src_path, target_mod_segments);
+        relative_specifier(&from, &to)
     }
 }
 
-fn mod_ambient_path(mod_: &super::ModDef) -> String {
-    format!("$rust/{}", mod_.path.segments.join("/"))
+/// Compute the `.d.ts` file path for a module given its full segment path
+/// (the first segment is the crate name and is dropped). The crate root
+/// (`segments.len() == 1`) maps to `<rel_src_path>/lib.d.ts`, mirroring
+/// `src/lib.rs`. Otherwise the remaining segments become directory
+/// components, with the last as the file stem.
+fn mod_file_path(rel_src_path: &Path, segments: &[String]) -> PathBuf {
+    assert!(
+        !segments.is_empty(),
+        "mod_file_path requires non-empty segments"
+    );
+    let mut path = rel_src_path.to_path_buf();
+    if segments.len() == 1 {
+        path.push("lib.d.ts");
+        return path;
+    }
+    for seg in &segments[1..segments.len() - 1] {
+        path.push(seg);
+    }
+    path.push(format!("{}.d.ts", segments.last().unwrap()));
+    path
 }
 
-fn print_reexport(canonical: &ItemPath, local_name: &str) -> String {
-    let canonical_name = canonical.name().unwrap_or(local_name);
-    let module_segments = &canonical.segments[..canonical.segments.len() - 1];
-    let source = format!("$rust/{}", module_segments.join("/"));
-    if canonical_name == local_name {
-        format!("    export {{ {local_name} }} from \"{source}\";")
+/// Compute a TS-style relative import specifier from `from_file` to
+/// `to_file`. Both are paths to `.d.ts` files. The result has no
+/// extension and is prefixed with `./` for sibling/descendant targets.
+fn relative_specifier(from_file: &Path, to_file: &Path) -> String {
+    let from_dir: Vec<&str> = from_file
+        .parent()
+        .map(|p| p.iter().filter_map(|s| s.to_str()).collect())
+        .unwrap_or_default();
+    let to_components: Vec<&str> = to_file.iter().filter_map(|s| s.to_str()).collect();
+
+    let common_prefix_len = from_dir
+        .iter()
+        .zip(to_components.iter())
+        .take_while(|(a, b)| a == b)
+        .count();
+
+    let ups = from_dir.len() - common_prefix_len;
+    let mut downs: Vec<&str> = to_components[common_prefix_len..].to_vec();
+
+    let last = downs.pop().expect("to_file has at least one component");
+    let stem = last
+        .strip_suffix(".d.ts")
+        .expect("module file ends with .d.ts");
+
+    let mut spec = String::new();
+    if ups == 0 {
+        spec.push_str("./");
     } else {
-        format!("    export {{ {canonical_name} as {local_name} }} from \"{source}\";")
+        for _ in 0..ups {
+            spec.push_str("../");
+        }
     }
+    for d in &downs {
+        spec.push_str(d);
+        spec.push('/');
+    }
+    spec.push_str(stem);
+    spec
 }
 
 fn doc_comment(docs: &str, indent: &str) -> String {

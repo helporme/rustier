@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "/// A pair of values stored as a tuple struct.\npub struct Pair(pub i32, pub String);\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,15 +12,14 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate" {
-    /** A pair of values stored as a tuple struct. */
-    export class Pair {
-        private [" "]: 'rustdoc_test_crate::Pair';
+// src/lib.d.ts
+/** A pair of values stored as a tuple struct. */
+export class Pair {
+    private [" "]: 'rustdoc_test_crate::Pair';
 
-        0: number;
+    0: number;
 
-        1: string;
+    1: string;
 
-        constructor(_0: number, _1: string);
-    }
+    constructor(_0: number, _1: string);
 }

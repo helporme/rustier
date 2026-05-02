@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "pub mod a {\n    pub mod b {\n        pub mod c {\n            pub fn deep() {}\n        }\n    }\n}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,6 +12,14 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate/a/b/c" {
-    export function deep(): void;
-}
+// src/lib.d.ts
+
+
+// src/a.d.ts
+
+
+// src/a/b.d.ts
+
+
+// src/a/b/c.d.ts
+export function deep(): void;

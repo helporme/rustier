@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "pub mod inner {\n    pub struct S {\n        pub x: i32,\n    }\n    pub fn f() -> i32 {\n        0\n    }\n}\npub use inner::*;\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,20 +12,18 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate" {
-    export { S } from "$rust/rustdoc_test_crate/inner";
+// src/lib.d.ts
+export { S } from "./inner";
 
-    export { f } from "$rust/rustdoc_test_crate/inner";
+export { f } from "./inner";
+
+// src/inner.d.ts
+export class S {
+    private [" "]: 'rustdoc_test_crate::inner::S';
+
+    x: number;
+
+    constructor(x: number);
 }
 
-declare module "$rust/rustdoc_test_crate/inner" {
-    export class S {
-        private [" "]: 'rustdoc_test_crate::inner::S';
-
-        x: number;
-
-        constructor(x: number);
-    }
-
-    export function f(): number;
-}
+export function f(): number;

@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "/// Returning a user-defined struct surfaces the class type as the return type.\npub struct Point {\n    /// Horizontal position.\n    pub x: f64,\n    /// Vertical position.\n    pub y: f64,\n}\n/// Returns the origin point `(0, 0)`.\npub fn make_origin() -> Point {\n    Point { x: 0.0, y: 0.0 }\n}\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,20 +12,19 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate" {
-    /** Returning a user-defined struct surfaces the class type as the return type. */
-    export class Point {
-        private [" "]: 'rustdoc_test_crate::Point';
+// src/lib.d.ts
+/** Returning a user-defined struct surfaces the class type as the return type. */
+export class Point {
+    private [" "]: 'rustdoc_test_crate::Point';
 
-        /** Horizontal position. */
-        x: number;
+    /** Horizontal position. */
+    x: number;
 
-        /** Vertical position. */
-        y: number;
+    /** Vertical position. */
+    y: number;
 
-        constructor(x: number, y: number);
-    }
-
-    /** Returns the origin point `(0, 0)`. */
-    export function make_origin(): Point;
+    constructor(x: number, y: number);
 }
+
+/** Returns the origin point `(0, 0)`. */
+export function make_origin(): Point;

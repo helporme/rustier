@@ -71,7 +71,10 @@ impl BuildTarget {
                 content: ir.print_wasm(exposed),
             }),
             BuildTarget::Ts { .. } => scaffold.set_ts(TsSectionOpts {
-                content: ir.print_ts(),
+                // todo: also iterate orphan modules and emit per-module
+                // .d.ts files via `ir.print_ts_mod(...)` into
+                // `.rust-curse/types/<rel_src_path>/...`.
+                content: ir.print_ts_ambient(),
             }),
         }
     }

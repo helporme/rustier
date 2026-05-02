@@ -1,7 +1,7 @@
 ---
 source: tests/ir/ts.rs
 description: "pub struct Marker;\n"
-expression: ir.print_ts()
+expression: out
 ---
 declare module "$rust-curse" {
     export type Copy<T> = {
@@ -12,10 +12,9 @@ declare module "$rust-curse" {
     };
 }
 
-declare module "$rust/rustdoc_test_crate" {
-    export class Marker {
-        private [" "]: 'rustdoc_test_crate::Marker';
+// src/lib.d.ts
+export class Marker {
+    private [" "]: 'rustdoc_test_crate::Marker';
 
-        constructor();
-    }
+    constructor();
 }
