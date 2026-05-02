@@ -19,6 +19,8 @@ pub enum BuildError {
     MissingItem(RId),
     #[error("unsupported type at {id:?}: {reason}")]
     UnsupportedType { id: RId, reason: String },
+    #[error("unsupported import from external crate `{crate_name}`: `{path}`")]
+    UnsupportedImport { crate_name: String, path: String },
 }
 
 impl<'a> TryFrom<&'a Crate> for IR {
@@ -141,6 +143,9 @@ impl<'a> Builder<'a> {
     ) -> Result<(), BuildError> {
         let Some(tid) = use_.id else { return Ok(()) };
         let Some(target) = self.crate_.index.get(&tid) else {
+            if let Some(err) = self.external_import_error(tid) {
+                return Err(err);
+            }
             return Ok(());
         };
 
@@ -487,6 +492,9 @@ impl<'a> Builder<'a> {
             return Ok(t);
         }
         let Some(item) = self.crate_.index.get(&path.id) else {
+            if let Some(err) = self.external_import_error(path.id) {
+                return Err(err);
+            }
             return Err(BuildError::MissingItem(path.id));
         };
         match &item.inner {
@@ -528,6 +536,15 @@ impl<'a> Builder<'a> {
             .index
             .get(&id)
             .ok_or(BuildError::MissingItem(id))
+    }
+
+    fn external_import_error(&self, id: RId) -> Option<BuildError> {
+        let summary = self.crate_.paths.get(&id)?;
+        let ext = self.crate_.external_crates.get(&summary.crate_id)?;
+        Some(BuildError::UnsupportedImport {
+            crate_name: ext.name.clone(),
+            path: summary.path.join("::"),
+        })
     }
 }
 

@@ -356,3 +356,56 @@ fn ctor_new_returning_result_unsupported() {
         BuildError::UnsupportedType { .. }
     );
 }
+
+#[test]
+fn use_from_external_crate_unsupported() {
+    assert_ir_err!(
+        {
+            pub use std::collections::HashMap;
+        },
+        BuildError::UnsupportedImport { .. }
+    );
+}
+
+#[test]
+fn use_renamed_from_external_crate_unsupported() {
+    assert_ir_err!(
+        {
+            pub use std::collections::HashMap as Map;
+        },
+        BuildError::UnsupportedImport { .. }
+    );
+}
+
+#[test]
+fn use_glob_from_external_crate_unsupported() {
+    assert_ir_err!(
+        {
+            pub use std::collections::*;
+        },
+        BuildError::UnsupportedImport { .. }
+    );
+}
+
+#[test]
+fn use_external_function_unsupported() {
+    assert_ir_err!(
+        {
+            pub use std::mem::swap;
+        },
+        BuildError::UnsupportedImport { .. }
+    );
+}
+
+#[test]
+fn use_external_in_nested_module_unsupported() {
+    assert_ir_err!(
+        {
+            pub mod inner {
+                pub use std::collections::HashMap;
+            }
+        },
+        BuildError::UnsupportedImport { .. }
+    );
+}
+
