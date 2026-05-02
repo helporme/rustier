@@ -50,7 +50,7 @@ impl Scaffold {
             for seg in &segs[1..segs.len() - 1] {
                 rel_path.push(seg);
             }
-            rel_path.push(format!("{}.d.ts", segs.last().unwrap()));
+            rel_path.push(format!("{}.d.rs.ts", segs.last().unwrap()));
 
             let content = ir.print_ts_mod(PrintTsModOpts {
                 mod_id: mid,

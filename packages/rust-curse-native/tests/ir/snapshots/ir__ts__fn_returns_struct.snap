@@ -12,7 +12,7 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.ts
+// src/lib.d.rs.ts
 /** Returning a user-defined struct surfaces the class type as the return type. */
 export class Point {
     private [" "]: 'rustdoc_test_crate::Point';

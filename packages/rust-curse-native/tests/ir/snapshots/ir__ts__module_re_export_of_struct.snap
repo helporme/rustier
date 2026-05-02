@@ -12,10 +12,10 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.ts
-export { Inner } from "./inner";
+// src/lib.d.rs.ts
+export { Inner } from "./inner.rs";
 
-// src/inner.d.ts
+// src/inner.d.rs.ts
 export class Inner {
     private [" "]: 'rustdoc_test_crate::inner::Inner';
 

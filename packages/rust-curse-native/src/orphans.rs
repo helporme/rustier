@@ -6,14 +6,7 @@
 //!
 //! Examples:
 //! - `src/greet.rs` -> orphan module `greet`
-//! - `src/utils/mod.rs` -> orphan module `utils`
 //! - `src/nested/deep.rs` -> orphan module `nested::deep`
-//!
-//! Directories with a `mod.rs` are treated as a single module (not recursed
-//! into). Directories without `mod.rs` are recursed into to find deeper
-//! orphans. A `file.rs` alongside a `file/` directory is the modern layout
-//! and the directory's submodules are owned by `file.rs`, so the directory
-//! is not recursed.
 
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
@@ -44,7 +37,7 @@ pub struct SourceFilter<'a> {
 #[derive(Clone, Debug)]
 pub struct OrphanModule {
     /// Path to the `.rs` file relative to the project root,
-    /// e.g. `src/greet.rs`, `src/nested/deep.rs`, `generated/src/utils/mod.rs`.
+    /// e.g. `src/greet.rs` or `src/nested/deep.rs`.
     pub rel_rs_path: PathBuf,
     /// Rust module name derived from the path within the containing module
     pub mod_name: String,
@@ -79,6 +72,12 @@ pub enum OrphanScanError {
         rel_path_a: PathBuf,
         rel_path_b: PathBuf,
     },
+
+    #[error(
+        "legacy 'mod.rs' layout is not supported at '{}'; use the modern layout (file.rs + file/ submodules)",
+        rel_path.display()
+    )]
+    LegacyModRs { rel_path: PathBuf },
 }
 
 /// Discover orphan rust modules under `opts.src_rel_path`.
@@ -116,13 +115,14 @@ pub fn scan(opts: OrphanScanOpts<'_>) -> Result<Vec<OrphanModule>, OrphanScanErr
 
 fn walk_orphans(abs_root: &Path) -> Result<Vec<PathBuf>, OrphanScanError> {
     let mut rel_paths = Vec::new();
-    walk_dir(abs_root, abs_root, &mut rel_paths)?;
+    walk_dir(abs_root, abs_root, true, &mut rel_paths)?;
     Ok(rel_paths)
 }
 
 fn walk_dir(
     abs_dir: &Path,
     abs_root: &Path,
+    collect_orphans: bool,
     out: &mut Vec<PathBuf>,
 ) -> Result<(), OrphanScanError> {
     let entries = fs::read_dir(abs_dir).map_err(|source| OrphanScanError::ReadDir {
@@ -142,36 +142,31 @@ fn walk_dir(
         }
     }
 
-    let rs_stems: HashSet<String> = rs_files
-        .iter()
-        .filter_map(|p| {
-            let stem = p.file_stem()?.to_string_lossy().into_owned();
-            (stem != "mod").then_some(stem)
-        })
-        .collect();
-
     for abs_path in &rs_files {
         let stem = abs_path.file_stem().unwrap().to_string_lossy();
         if stem == "mod" {
-            continue;
+            let rel_path = abs_path.strip_prefix(abs_root).unwrap().to_path_buf();
+            return Err(OrphanScanError::LegacyModRs { rel_path });
         }
-        let rel_path = abs_path.strip_prefix(abs_root).unwrap().to_path_buf();
-        out.push(rel_path);
+        if collect_orphans {
+            let rel_path = abs_path.strip_prefix(abs_root).unwrap().to_path_buf();
+            out.push(rel_path);
+        }
     }
+
+    let rs_stems: HashSet<String> = rs_files
+        .iter()
+        .filter_map(|p| Some(p.file_stem()?.to_string_lossy().into_owned()))
+        .collect();
 
     for abs_path in &dirs {
         let dir_name = abs_path.file_name().unwrap().to_string_lossy();
-        let abs_mod_file = abs_path.join("mod.rs");
 
-        if abs_mod_file.exists() {
-            let rel_path = abs_mod_file.strip_prefix(abs_root).unwrap().to_path_buf();
-            out.push(rel_path);
-        } else if rs_stems.contains(dir_name.as_ref()) {
-            // Modern layout: file.rs alongside file/ directory. Submodules
-            // inside file/ are owned by file.rs and are not orphans.
-        } else {
-            walk_dir(abs_path, abs_root, out)?;
-        }
+        // In a modern-layout submodule subtree (file.rs + file/), submodules
+        // are owned by file.rs and are not orphans, but we still recurse to
+        // reject any legacy `mod.rs` files.
+        let recurse_collect = collect_orphans && !rs_stems.contains(dir_name.as_ref());
+        walk_dir(abs_path, abs_root, recurse_collect, out)?;
     }
 
     Ok(())
@@ -193,13 +188,7 @@ pub fn gen_module_name(rel_rs_path: &Path) -> String {
         .map(sanitize_segment)
         .collect();
 
-    let trimmed = if segments.last().map(String::as_str) == Some("mod") {
-        &segments[..segments.len() - 1]
-    } else {
-        &segments
-    };
-
-    trimmed.join("::")
+    segments.join("::")
 }
 
 fn sanitize_segment(segment: &str) -> String {
@@ -287,11 +276,6 @@ mod tests {
     }
 
     #[test]
-    fn module_name_from_mod_rs() {
-        assert_eq!(gen_module_name(Path::new("utils/mod.rs")), "utils");
-    }
-
-    #[test]
     fn module_name_segment_starting_with_digit_gets_underscore_prefix() {
         assert_eq!(gen_module_name(Path::new("2024/log.rs")), "_2024::log");
         assert_eq!(gen_module_name(Path::new("9foo.rs")), "_9foo");
@@ -322,9 +306,6 @@ mod tests {
         fs::write(dir.path().join("greet.rs"), "pub fn hello() {}").unwrap();
         fs::write(dir.path().join("math.rs"), "pub fn add() {}").unwrap();
 
-        fs::create_dir_all(dir.path().join("utils")).unwrap();
-        fs::write(dir.path().join("utils/mod.rs"), "pub fn help() {}").unwrap();
-
         fs::create_dir_all(dir.path().join("nested")).unwrap();
         fs::write(dir.path().join("nested/deep.rs"), "pub fn go() {}").unwrap();
 
@@ -342,21 +323,44 @@ mod tests {
                 PathBuf::from("math.rs"),
                 PathBuf::from("nested/deep.rs"),
                 PathBuf::from("parent.rs"),
-                PathBuf::from("utils/mod.rs"),
             ]
         );
     }
 
     #[test]
-    fn skips_standalone_mod_rs() {
+    fn standalone_mod_rs_errors() {
         let dir = tempfile::tempdir().unwrap();
         fs::write(dir.path().join("mod.rs"), "").unwrap();
         fs::write(dir.path().join("real.rs"), "").unwrap();
 
         let abs_root = fs::canonicalize(dir.path()).unwrap();
-        let paths = sorted(walk_orphans(&abs_root).unwrap());
+        let err = walk_orphans(&abs_root).unwrap_err();
 
-        assert_eq!(paths, vec![PathBuf::from("real.rs")]);
+        assert!(
+            matches!(
+                err,
+                OrphanScanError::LegacyModRs { ref rel_path } if rel_path == &PathBuf::from("mod.rs")
+            ),
+            "{err:?}"
+        );
+    }
+
+    #[test]
+    fn nested_mod_rs_errors() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("utils")).unwrap();
+        fs::write(dir.path().join("utils/mod.rs"), "").unwrap();
+
+        let abs_root = fs::canonicalize(dir.path()).unwrap();
+        let err = walk_orphans(&abs_root).unwrap_err();
+
+        assert!(
+            matches!(
+                err,
+                OrphanScanError::LegacyModRs { ref rel_path } if rel_path == &PathBuf::from("utils/mod.rs")
+            ),
+            "{err:?}"
+        );
     }
 
     #[test]

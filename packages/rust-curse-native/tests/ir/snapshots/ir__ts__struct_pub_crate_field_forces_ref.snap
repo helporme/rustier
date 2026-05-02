@@ -12,7 +12,7 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.ts
+// src/lib.d.rs.ts
 /** A `pub(crate)` field downgrades the boundary to ref (opaque class). */
 export class Gated {
     private [" "]: 'rustdoc_test_crate::Gated';

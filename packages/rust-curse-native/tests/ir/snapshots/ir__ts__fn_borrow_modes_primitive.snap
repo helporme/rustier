@@ -12,6 +12,6 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.ts
+// src/lib.d.rs.ts
 /** Borrow mode does not affect the TypeScript type for primitives. */
 export function f(by_ref: number, by_mut_ref: number, by_value: number): void;

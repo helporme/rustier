@@ -12,7 +12,7 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.ts
+// src/lib.d.rs.ts
 export class Mixed {
     private [" "]: 'rustdoc_test_crate::Mixed';
 

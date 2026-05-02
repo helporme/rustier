@@ -299,11 +299,11 @@ impl<'a> Printer<'a> {
     }
 }
 
-/// Compute the `.d.ts` file path for a module given its full segment path
-/// (the first segment is the crate name and is dropped). The crate root
-/// (`segments.len() == 1`) maps to `<rel_src_path>/lib.d.ts`, mirroring
-/// `src/lib.rs`. Otherwise the remaining segments become directory
-/// components, with the last as the file stem.
+/// Compute the `.d.rs.ts` file path for a module given its full segment
+/// path (the first segment is the crate name and is dropped). The crate
+/// root (`segments.len() == 1`) maps to `<rel_src_path>/lib.d.rs.ts`,
+/// mirroring `src/lib.rs`. Otherwise the remaining segments become
+/// directory components, with the last as the file stem.
 fn mod_file_path(rel_src_path: &Path, segments: &[String]) -> PathBuf {
     assert!(
         !segments.is_empty(),
@@ -311,19 +311,20 @@ fn mod_file_path(rel_src_path: &Path, segments: &[String]) -> PathBuf {
     );
     let mut path = rel_src_path.to_path_buf();
     if segments.len() == 1 {
-        path.push("lib.d.ts");
+        path.push("lib.d.rs.ts");
         return path;
     }
     for seg in &segments[1..segments.len() - 1] {
         path.push(seg);
     }
-    path.push(format!("{}.d.ts", segments.last().unwrap()));
+    path.push(format!("{}.d.rs.ts", segments.last().unwrap()));
     path
 }
 
 /// Compute a TS-style relative import specifier from `from_file` to
-/// `to_file`. Both are paths to `.d.ts` files. The result has no
-/// extension and is prefixed with `./` for sibling/descendant targets.
+/// `to_file`. Both are paths to `.d.rs.ts` files. The result keeps the
+/// `.rs` extension (so TS resolves it via `allowArbitraryExtensions`) and
+/// is prefixed with `./` for sibling/descendant targets.
 fn relative_specifier(from_file: &Path, to_file: &Path) -> String {
     let from_dir: Vec<&str> = from_file
         .parent()
@@ -342,8 +343,8 @@ fn relative_specifier(from_file: &Path, to_file: &Path) -> String {
 
     let last = downs.pop().expect("to_file has at least one component");
     let stem = last
-        .strip_suffix(".d.ts")
-        .expect("module file ends with .d.ts");
+        .strip_suffix(".d.rs.ts")
+        .expect("module file ends with .d.rs.ts");
 
     let mut spec = String::new();
     if ups == 0 {
@@ -358,6 +359,7 @@ fn relative_specifier(from_file: &Path, to_file: &Path) -> String {
         spec.push('/');
     }
     spec.push_str(stem);
+    spec.push_str(".rs");
     spec
 }
 

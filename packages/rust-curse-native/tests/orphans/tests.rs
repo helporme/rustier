@@ -131,7 +131,7 @@ fn rs_exclude_filter_drops_module() {
 }
 
 #[test]
-fn conflict_errors_on_abc_rs_and_abc_mod_rs() {
+fn legacy_mod_rs_errors() {
     let dir = tempfile::tempdir().unwrap();
     let src = dir.path().join("src");
 
@@ -147,5 +147,8 @@ fn conflict_errors_on_abc_rs_and_abc_mod_rs() {
     })
     .unwrap_err();
 
-    assert!(matches!(err, OrphanScanError::Conflict { .. }), "{err:?}");
+    assert!(
+        matches!(err, OrphanScanError::LegacyModRs { .. }),
+        "{err:?}"
+    );
 }

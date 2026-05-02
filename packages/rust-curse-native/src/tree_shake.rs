@@ -373,25 +373,11 @@ fn find_first_quoted(s: &str, quote_char: char) -> Option<(usize, String)> {
 }
 
 fn resolve_specifier(specifier: &str, file_dir: &Path, abs_module_dir: &Path) -> Option<PathBuf> {
-    let base = file_dir.join(specifier);
-
-    if let Some(rel) = try_resolve(&base, abs_module_dir) {
-        return Some(rel);
-    }
-
     if !specifier.ends_with(".rs") {
-        let with_rs = base.with_extension("rs");
-        if let Some(rel) = try_resolve(&with_rs, abs_module_dir) {
-            return Some(rel);
-        }
-
-        let mod_rs = base.join("mod.rs");
-        if let Some(rel) = try_resolve(&mod_rs, abs_module_dir) {
-            return Some(rel);
-        }
+        return None;
     }
-
-    None
+    let candidate = file_dir.join(specifier);
+    try_resolve(&candidate, abs_module_dir)
 }
 
 fn try_resolve(candidate: &Path, abs_module_dir: &Path) -> Option<PathBuf> {
