@@ -18,7 +18,7 @@ declare module "$rust/rustdoc_test_crate" {
      * the ctor from the second impl block is picked up.
      */
     export class Counter {
-        private [" "]!: 'rustdoc_test_crate::Counter';
+        private [" "]: 'rustdoc_test_crate::Counter';
 
         constructor(seed: number);
     }

@@ -14,7 +14,7 @@ declare module "$rust-curse" {
 
 declare module "$rust/rustdoc_test_crate" {
     export class Marker {
-        private [" "]!: 'rustdoc_test_crate::Marker';
+        private [" "]: 'rustdoc_test_crate::Marker';
 
         constructor();
     }

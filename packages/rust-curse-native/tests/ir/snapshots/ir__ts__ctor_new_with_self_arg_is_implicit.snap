@@ -15,7 +15,7 @@ declare module "$rust-curse" {
 declare module "$rust/rustdoc_test_crate" {
     /** `new(&self)` is not treated as an explicit ctor. */
     export class Builder {
-        private [" "]!: 'rustdoc_test_crate::Builder';
+        private [" "]: 'rustdoc_test_crate::Builder';
 
         constructor();
     }

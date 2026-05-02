@@ -14,7 +14,7 @@ declare module "$rust-curse" {
 
 declare module "$rust/rustdoc_test_crate" {
     export class Foo {
-        private [" "]!: 'rustdoc_test_crate::Foo';
+        private [" "]: 'rustdoc_test_crate::Foo';
 
         constructor(seed: number);
     }

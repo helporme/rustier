@@ -19,7 +19,7 @@ declare module "$rust/rustdoc_test_crate" {
      * up rather than synthesised from the struct's fields.
      */
     export class Token {
-        private [" "]!: 'rustdoc_test_crate::Token';
+        private [" "]: 'rustdoc_test_crate::Token';
 
         constructor(raw: string);
     }

@@ -108,9 +108,11 @@ impl RustCurse {
         Self { options }
     }
 
-    #[cfg_attr(feature = "napi-binding", napi)]
-    pub fn build(&mut self) {
-        self.try_build().expect("build failed")
+    #[cfg(feature = "napi-binding")]
+    #[napi]
+    pub fn build(&mut self) -> napi::Result<(), &'static str> {
+        self.try_build()
+            .map_err(|e| napi::Error::new("rust-curse error", format!("{:#}", e)))
     }
 
     fn try_build(&mut self) -> anyhow::Result<()> {

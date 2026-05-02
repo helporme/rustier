@@ -15,7 +15,7 @@ declare module "$rust-curse" {
 declare module "$rust/rustdoc_test_crate/types" {
     /** An authentication token. */
     export class Token {
-        private [" "]!: 'rustdoc_test_crate::types::Token';
+        private [" "]: 'rustdoc_test_crate::types::Token';
 
         /** The raw token string. */
         value: string;

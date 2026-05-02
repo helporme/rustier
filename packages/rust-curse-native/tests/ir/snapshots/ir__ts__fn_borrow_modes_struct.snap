@@ -17,7 +17,7 @@ declare module "$rust/rustdoc_test_crate" {
 
     /** By-value nominal types are wrapped in `Copy<>`, borrows are not. */
     export class Point {
-        private [" "]!: 'rustdoc_test_crate::Point';
+        private [" "]: 'rustdoc_test_crate::Point';
 
         /** X coordinate. */
         x: number;

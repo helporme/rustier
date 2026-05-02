@@ -15,7 +15,7 @@ declare module "$rust-curse" {
 declare module "$rust/rustdoc_test_crate" {
     /** A `pub(crate)` field downgrades the boundary to ref (opaque class). */
     export class Gated {
-        private [" "]!: 'rustdoc_test_crate::Gated';
+        private [" "]: 'rustdoc_test_crate::Gated';
 
         x: number;
 

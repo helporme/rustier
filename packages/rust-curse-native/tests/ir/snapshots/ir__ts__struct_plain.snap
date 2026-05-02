@@ -15,7 +15,7 @@ declare module "$rust-curse" {
 declare module "$rust/rustdoc_test_crate" {
     /** A point in 2D space. All fields are public, so it is copy-constructible. */
     export class Point {
-        private [" "]!: 'rustdoc_test_crate::Point';
+        private [" "]: 'rustdoc_test_crate::Point';
 
         /** Horizontal position. */
         x: number;

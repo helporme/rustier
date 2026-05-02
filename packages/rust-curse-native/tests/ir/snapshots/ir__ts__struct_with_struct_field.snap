@@ -15,7 +15,7 @@ declare module "$rust-curse" {
 declare module "$rust/rustdoc_test_crate" {
     /** A point in 2D space. */
     export class Point {
-        private [" "]!: 'rustdoc_test_crate::Point';
+        private [" "]: 'rustdoc_test_crate::Point';
 
         /** Horizontal position. */
         x: number;
@@ -28,7 +28,7 @@ declare module "$rust/rustdoc_test_crate" {
 
     /** A circle defined by its center and radius. */
     export class Circle {
-        private [" "]!: 'rustdoc_test_crate::Circle';
+        private [" "]: 'rustdoc_test_crate::Circle';
 
         /** The center point. */
         center: Point;

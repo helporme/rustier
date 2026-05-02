@@ -14,7 +14,7 @@ declare module "$rust-curse" {
 
 declare module "$rust/rustdoc_test_crate" {
     export class Mixed {
-        private [" "]!: 'rustdoc_test_crate::Mixed';
+        private [" "]: 'rustdoc_test_crate::Mixed';
 
         x: number;
 

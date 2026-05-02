@@ -15,7 +15,7 @@ declare module "$rust-curse" {
 declare module "$rust/rustdoc_test_crate" {
     /** A handle with a hidden internal state and no explicit constructor. */
     export class Handle {
-        private [" "]!: 'rustdoc_test_crate::Handle';
+        private [" "]: 'rustdoc_test_crate::Handle';
 
         constructor();
     }

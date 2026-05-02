@@ -18,7 +18,7 @@ declare module "$rust/rustdoc_test_crate" {
 
 declare module "$rust/rustdoc_test_crate/inner" {
     export class Inner {
-        private [" "]!: 'rustdoc_test_crate::inner::Inner';
+        private [" "]: 'rustdoc_test_crate::inner::Inner';
 
         x: number;
 

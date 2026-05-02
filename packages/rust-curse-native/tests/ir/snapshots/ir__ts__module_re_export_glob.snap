@@ -20,7 +20,7 @@ declare module "$rust/rustdoc_test_crate" {
 
 declare module "$rust/rustdoc_test_crate/inner" {
     export class S {
-        private [" "]!: 'rustdoc_test_crate::inner::S';
+        private [" "]: 'rustdoc_test_crate::inner::S';
 
         x: number;
 

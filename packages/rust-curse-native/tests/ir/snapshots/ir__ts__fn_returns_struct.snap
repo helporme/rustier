@@ -15,7 +15,7 @@ declare module "$rust-curse" {
 declare module "$rust/rustdoc_test_crate" {
     /** Returning a user-defined struct surfaces the class type as the return type. */
     export class Point {
-        private [" "]!: 'rustdoc_test_crate::Point';
+        private [" "]: 'rustdoc_test_crate::Point';
 
         /** Horizontal position. */
         x: number;
