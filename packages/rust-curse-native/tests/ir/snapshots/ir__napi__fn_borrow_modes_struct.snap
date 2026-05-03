@@ -3,7 +3,6 @@ source: tests/ir/napi.rs
 description: "/// `&T` / `&mut T` take handle refs, owned `T` takes the `__Copy` wrapper.\npub struct Point {\n    /// X coordinate.\n    pub x: f64,\n    /// Y coordinate.\n    pub y: f64,\n}\npub fn translate(origin: &Point, target: &mut Point, offset: Point) {}\n"
 expression: formatted
 ---
-#![allow(non_camel_case_types, non_snake_case)]
 use napi_derive::napi;
 /// `&T` / `&mut T` take handle refs, owned `T` takes the `__Copy` wrapper.
 #[napi(js_name = "__cursed_rustdoc_test_crate__Point__Ref")]

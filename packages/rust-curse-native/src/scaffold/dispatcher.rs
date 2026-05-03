@@ -13,6 +13,7 @@ use super::{Activation, BuildContribution, Section};
 /// at runtime so item names don't collide across sections.
 pub(crate) fn render_lib_dispatcher(sections: &BTreeMap<String, Section>) -> String {
     let mut out = String::from(HEADER);
+    out.push_str("#![allow(non_camel_case_types, non_snake_case)]\n\n");
 
     for (name, section) in sections {
         if section.lib.is_none() {
@@ -177,6 +178,7 @@ mod tests {
         sections.insert("default".to_string(), default_section(Some("// d")));
 
         let out = render_lib_dispatcher(&sections);
+        assert!(out.contains("#![allow(non_camel_case_types, non_snake_case)]"));
         assert!(out.contains("include!(\"lib-default.rs\");"));
         assert!(!out.contains("mod target_"));
         assert!(!out.contains("#[cfg("));
@@ -193,6 +195,7 @@ mod tests {
         );
 
         let out = render_lib_dispatcher(&sections);
+        assert!(out.contains("#![allow(non_camel_case_types, non_snake_case)]"));
         assert!(out.contains("#[cfg(not(any(feature = \"node\", rust_curse_rustdoc)))]"));
         assert!(out.contains("#[cfg(feature = \"node\")]"));
         assert!(out.contains("#[cfg(rust_curse_rustdoc)]"));

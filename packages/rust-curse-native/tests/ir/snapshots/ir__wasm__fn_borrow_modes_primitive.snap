@@ -3,7 +3,6 @@ source: tests/ir/wasm.rs
 description: "/// Borrow mode for primitives passes through without wrapping.\npub fn f(by_ref: &i32, by_mut_ref: &mut i32, by_value: i32) {}\n"
 expression: formatted
 ---
-#![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 /// Borrow mode for primitives passes through without wrapping.
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__f")]

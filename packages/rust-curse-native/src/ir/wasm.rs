@@ -28,7 +28,6 @@ impl<'a> Printer<'a> {
 
     fn run(&mut self) -> String {
         let mut out = String::new();
-        out.push_str("#![allow(non_camel_case_types, non_snake_case)]\n");
         out.push_str("use wasm_bindgen::prelude::*;\n");
 
         for i in 0..self.ir.items.len() {

@@ -3,7 +3,6 @@ source: tests/ir/wasm.rs
 description: "/// Explicit ctor delegates to `Counter::new`.\npub struct Counter {\n    count: u32,\n}\nimpl Counter {\n    /// Creates a new counter starting at `start`.\n    pub fn new(start: u32) -> Self {\n        Self { count: start }\n    }\n}\n"
 expression: formatted
 ---
-#![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 /// Explicit ctor delegates to `Counter::new`.
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Counter__Ref")]

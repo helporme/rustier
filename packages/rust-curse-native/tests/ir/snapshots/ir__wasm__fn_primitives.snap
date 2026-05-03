@@ -3,7 +3,6 @@ source: tests/ir/wasm.rs
 description: "/// Every primitive type passes straight through to a wasm-bindgen-native type.\npub fn f(\n    a: i8,\n    b: i16,\n    c: i32,\n    d: u8,\n    e: u16,\n    f: u32,\n    g: f32,\n    h: f64,\n    i: bool,\n    j: char,\n    k: String,\n    l: &str,\n) {}\n"
 expression: formatted
 ---
-#![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 /// Every primitive type passes straight through to a wasm-bindgen-native type.
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__f")]
