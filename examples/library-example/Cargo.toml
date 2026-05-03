@@ -11,11 +11,9 @@ path = ".rust-curse/lib.rs" # do not change
 
 [dependencies]
 taffy = { version = "0.3" }
-napi = { version = "3", optional = true } # do not change
-napi-derive = { version = "3", optional = true } # do not change
+wasm-bindgen = { version = "0.2", optional = true } # do not change
+serde = { version = "1", features = ["derive"], optional = true } # do not change
+serde-wasm-bindgen = { version = "0.6", optional = true } # do not change
 
 [features]
-napi = ["dep:napi", "dep:napi-derive"] # do not change
-
-[build-dependencies]
-napi-build = { version = "2", optional = true } # do not change
+wasm = ["dep:wasm-bindgen", "dep:serde", "dep:serde-wasm-bindgen"] # do not change

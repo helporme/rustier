@@ -89,7 +89,13 @@ fn render_lib(root: &Node, abs_project_root: &Path, abs_rustdoc_dir: &Path) -> S
     let mut segs: Vec<String> = Vec::new();
     for (seg, child) in &root.children {
         segs.push(seg.clone());
-        out.push_str(&render_decl(seg, child, &segs, abs_project_root, abs_rustdoc_dir));
+        out.push_str(&render_decl(
+            seg,
+            child,
+            &segs,
+            abs_project_root,
+            abs_rustdoc_dir,
+        ));
         segs.pop();
     }
     out

@@ -32,9 +32,9 @@ pub(crate) fn render_lib_dispatcher(sections: &BTreeMap<String, Section>) -> Str
 /// section contributes build code or activates via an env var (which
 /// requires emitting `cargo:rustc-cfg`).
 pub(crate) fn needs_build_rs(sections: &BTreeMap<String, Section>) -> bool {
-    sections.values().any(|s| {
-        s.build.is_some() || matches!(s.activation, Some(Activation::Env { .. }))
-    })
+    sections
+        .values()
+        .any(|s| s.build.is_some() || matches!(s.activation, Some(Activation::Env { .. })))
 }
 
 /// Render the top-level `build.rs` that includes each section's

@@ -1,3 +1,4 @@
+pub mod builder;
 pub mod common; // todo: should be private
 pub mod ir;
 pub mod orphans;
@@ -12,6 +13,7 @@ use anyhow::Context;
 #[cfg(feature = "napi-binding")]
 use napi_derive::napi;
 
+use crate::builder::wasm::{build_wasm, BuildWasmOpts};
 use crate::ir::{Id, IR};
 use crate::orphans::{OrphanModule, OrphanScanOpts, SourceFilter};
 use crate::scaffold::default::DefaultSectionOpts;
@@ -111,17 +113,17 @@ impl RustCurse {
     }
 
     fn try_build(&mut self) -> anyhow::Result<()> {
-        let project_root = PathBuf::from(&self.options.project_root_abs_path);
+        let project_root_abs_path = PathBuf::from(&self.options.project_root_abs_path);
         let src_rel_path = PathBuf::from(&self.options.module_dir_rel_path);
 
         let modules = orphans::scan(OrphanScanOpts {
-            project_root_abs_path: &project_root,
+            project_root_abs_path: &project_root_abs_path,
             src_rel_path: &src_rel_path,
             rs_filter: SourceFilter::default(), // todo: add as an option
         })?;
 
         let mut scaffold = Scaffold::new(ScaffoldOptions {
-            abs_root_path: project_root.clone(),
+            abs_root_path: project_root_abs_path.clone(),
             temp_folder_rel_path: PathBuf::from(&self.options.output_dir_rel_path),
             cargo_toml_rel_path: PathBuf::from(&self.options.cargo_toml_rel_path),
         })
@@ -133,7 +135,7 @@ impl RustCurse {
 
         scaffold.deploy().context("scaffold: deploy rustdoc")?;
 
-        let rustdoc = rustdoc::gen(&project_root)?;
+        let rustdoc = rustdoc::gen(&project_root_abs_path)?;
         let ir = IR::try_from(&rustdoc).context("build ir")?;
 
         for target in &self.options.targets {
@@ -142,7 +144,7 @@ impl RustCurse {
             let exposed = tree_shake::shake(
                 &ir,
                 TreeShakeOpts {
-                    project_root_abs_path: &project_root,
+                    project_root_abs_path: &project_root_abs_path,
                     src_rel_path: &src_rel_path,
                     js_filter: SourceFilter {
                         include: &js_source.include,
@@ -157,6 +159,18 @@ impl RustCurse {
         }
 
         scaffold.deploy().context("scaffold: deploy targets")?;
+
+        for target in &self.options.targets {
+            if matches!(target, BuildTarget::Wasm { .. }) {
+                build_wasm(BuildWasmOpts {
+                    project_root_abs_path: &project_root_abs_path,
+                    tools_dir_abs_path: &scaffold.abs_path_to("tools"),
+                    wasm_output_dir_abs_path: &scaffold.abs_path_to("output/wasm"),
+                    release: false,
+                })
+                .context("builder: wasm")?;
+            }
+        }
 
         Ok(())
     }

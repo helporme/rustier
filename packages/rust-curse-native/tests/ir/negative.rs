@@ -5,7 +5,9 @@ use rust_curse::ir::from_rustdoc::BuildError;
 #[test]
 fn i128_is_unsupported_primitive() {
     assert_ir_err!(
-        { pub fn f(x: i128) {} },
+        {
+            pub fn f(x: i128) {}
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -13,7 +15,9 @@ fn i128_is_unsupported_primitive() {
 #[test]
 fn u128_is_unsupported_primitive() {
     assert_ir_err!(
-        { pub fn f(x: u128) {} },
+        {
+            pub fn f(x: u128) {}
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -21,7 +25,9 @@ fn u128_is_unsupported_primitive() {
 #[test]
 fn generic_type_parameter_unsupported() {
     assert_ir_err!(
-        { pub fn f<T>(x: T) {} },
+        {
+            pub fn f<T>(x: T) {}
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -40,7 +46,9 @@ fn dyn_trait_unsupported() {
 fn impl_trait_return_unsupported() {
     assert_ir_err!(
         {
-            pub fn f() -> impl std::fmt::Debug { 1i32 }
+            pub fn f() -> impl std::fmt::Debug {
+                1i32
+            }
         },
         BuildError::UnsupportedType { .. }
     );
@@ -80,7 +88,9 @@ fn fixed_size_array_param_unsupported() {
 fn fixed_size_array_return_unsupported() {
     assert_ir_err!(
         {
-            pub fn f() -> [bool; 2] { todo!() }
+            pub fn f() -> [bool; 2] {
+                todo!()
+            }
         },
         BuildError::UnsupportedType { .. }
     );
@@ -100,7 +110,9 @@ fn zero_length_array_unsupported() {
 fn array_of_nominal_unsupported() {
     assert_ir_err!(
         {
-            pub struct Point { pub x: i32 }
+            pub struct Point {
+                pub x: i32,
+            }
             pub fn f(arr: [Point; 4]) {}
         },
         BuildError::UnsupportedType { .. }
@@ -146,7 +158,11 @@ fn type_alias_unsupported() {
 fn unit_enum_unsupported() {
     assert_ir_err!(
         {
-            pub enum E { A, B, C }
+            pub enum E {
+                A,
+                B,
+                C,
+            }
         },
         BuildError::UnsupportedType { .. }
     );
@@ -156,7 +172,10 @@ fn unit_enum_unsupported() {
 fn tuple_variant_enum_unsupported() {
     assert_ir_err!(
         {
-            pub enum E { A(i32), B(String) }
+            pub enum E {
+                A(i32),
+                B(String),
+            }
         },
         BuildError::UnsupportedType { .. }
     );
@@ -166,7 +185,10 @@ fn tuple_variant_enum_unsupported() {
 fn struct_variant_enum_unsupported() {
     assert_ir_err!(
         {
-            pub enum E { A { x: i32 }, B { y: String } }
+            pub enum E {
+                A { x: i32 },
+                B { y: String },
+            }
         },
         BuildError::UnsupportedType { .. }
     );
@@ -189,7 +211,10 @@ fn enum_with_discriminants_unsupported() {
 fn enum_in_fn_signature_unsupported() {
     assert_ir_err!(
         {
-            pub enum E { A, B }
+            pub enum E {
+                A,
+                B,
+            }
             pub fn f(e: E) {}
         },
         BuildError::UnsupportedType { .. }
@@ -259,7 +284,9 @@ fn btree_set_unsupported() {
 #[test]
 fn vec_param_unsupported() {
     assert_ir_err!(
-        { pub fn f(v: Vec<i32>) {} },
+        {
+            pub fn f(v: Vec<i32>) {}
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -267,7 +294,11 @@ fn vec_param_unsupported() {
 #[test]
 fn vec_return_unsupported() {
     assert_ir_err!(
-        { pub fn f() -> Vec<i32> { vec![] } },
+        {
+            pub fn f() -> Vec<i32> {
+                vec![]
+            }
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -275,7 +306,9 @@ fn vec_return_unsupported() {
 #[test]
 fn vec_deque_unsupported() {
     assert_ir_err!(
-        { pub fn f(v: std::collections::VecDeque<i32>) {} },
+        {
+            pub fn f(v: std::collections::VecDeque<i32>) {}
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -283,7 +316,9 @@ fn vec_deque_unsupported() {
 #[test]
 fn linked_list_unsupported() {
     assert_ir_err!(
-        { pub fn f(v: std::collections::LinkedList<i32>) {} },
+        {
+            pub fn f(v: std::collections::LinkedList<i32>) {}
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -291,7 +326,9 @@ fn linked_list_unsupported() {
 #[test]
 fn slice_param_unsupported() {
     assert_ir_err!(
-        { pub fn f(v: &[i32]) {} },
+        {
+            pub fn f(v: &[i32]) {}
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -299,7 +336,9 @@ fn slice_param_unsupported() {
 #[test]
 fn mut_slice_param_unsupported() {
     assert_ir_err!(
-        { pub fn f(v: &mut [i32]) {} },
+        {
+            pub fn f(v: &mut [i32]) {}
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -307,7 +346,11 @@ fn mut_slice_param_unsupported() {
 #[test]
 fn slice_return_unsupported() {
     assert_ir_err!(
-        { pub fn f() -> &'static [i32] { &[] } },
+        {
+            pub fn f() -> &'static [i32] {
+                &[]
+            }
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -315,7 +358,9 @@ fn slice_return_unsupported() {
 #[test]
 fn option_param_unsupported() {
     assert_ir_err!(
-        { pub fn f(x: Option<i32>) {} },
+        {
+            pub fn f(x: Option<i32>) {}
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -323,7 +368,11 @@ fn option_param_unsupported() {
 #[test]
 fn option_return_unsupported() {
     assert_ir_err!(
-        { pub fn f() -> Option<i32> { None } },
+        {
+            pub fn f() -> Option<i32> {
+                None
+            }
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -331,7 +380,11 @@ fn option_return_unsupported() {
 #[test]
 fn result_return_unsupported() {
     assert_ir_err!(
-        { pub fn f() -> Result<i32, String> { Ok(0) } },
+        {
+            pub fn f() -> Result<i32, String> {
+                Ok(0)
+            }
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -339,7 +392,11 @@ fn result_return_unsupported() {
 #[test]
 fn result_with_unit_return_unsupported() {
     assert_ir_err!(
-        { pub fn f() -> Result<(), String> { Ok(()) } },
+        {
+            pub fn f() -> Result<(), String> {
+                Ok(())
+            }
+        },
         BuildError::UnsupportedType { .. }
     );
 }
@@ -348,9 +405,13 @@ fn result_with_unit_return_unsupported() {
 fn ctor_new_returning_result_unsupported() {
     assert_ir_err!(
         {
-            pub struct S { x: i32 }
+            pub struct S {
+                x: i32,
+            }
             impl S {
-                pub fn new() -> Result<Self, String> { Ok(Self { x: 0 }) }
+                pub fn new() -> Result<Self, String> {
+                    Ok(Self { x: 0 })
+                }
             }
         },
         BuildError::UnsupportedType { .. }
@@ -408,4 +469,3 @@ fn use_external_in_nested_module_unsupported() {
         BuildError::UnsupportedImport { .. }
     );
 }
-

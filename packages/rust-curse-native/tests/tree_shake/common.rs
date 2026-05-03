@@ -76,8 +76,8 @@ impl Fixture {
         let src_rel_path = PathBuf::from(src_rel);
 
         let target_dir = self.abs_root.join("target");
-        let crate_ = rust_curse::rustdoc::run(&self.abs_root, &target_dir, TEST_CRATE)
-            .expect("rustdoc gen");
+        let crate_ =
+            rust_curse::rustdoc::run(&self.abs_root, &target_dir, TEST_CRATE).expect("rustdoc gen");
         let ir = IR::try_from(&crate_).expect("build ir");
 
         let exposed = tree_shake::shake(
