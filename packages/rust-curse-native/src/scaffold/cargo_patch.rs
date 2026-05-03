@@ -100,9 +100,12 @@ fn tag_array(arr: Array) -> Item {
 
 fn set_lib_path(doc: &mut DocumentMut, lib_rs_rel_path: &str) {
     let lib = doc["lib"].or_insert(Item::Table(Table::new()));
-    lib.as_table_mut()
-        .expect("[lib] should be a table")
-        .insert("path", tagged_string_value(lib_rs_rel_path));
+    let table = lib.as_table_mut().expect("[lib] should be a table");
+    table.insert("path", tagged_string_value(lib_rs_rel_path));
+    let mut crate_type = Array::new();
+    crate_type.push("cdylib");
+    crate_type.push("rlib");
+    table.insert("crate-type", tag_array(crate_type));
 }
 
 fn set_package_build(doc: &mut DocumentMut, build_rs_rel_path: &str) {

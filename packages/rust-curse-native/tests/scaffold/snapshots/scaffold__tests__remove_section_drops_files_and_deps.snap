@@ -1,6 +1,5 @@
 ---
 source: tests/scaffold/tests.rs
-assertion_line: 639
 expression: project_to_md(&project)
 ---
 `.rust-curse/lib-wasm.rs`
@@ -74,6 +73,7 @@ edition = "2021"
 
 [lib]
 path = ".rust-curse/lib.rs" # do not change
+crate-type = ["cdylib", "rlib"] # do not change
 
 [features]
 wasm = ["dep:wasm-bindgen", "dep:serde", "dep:serde-wasm-bindgen"] # do not change

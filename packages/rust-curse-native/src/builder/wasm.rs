@@ -244,9 +244,11 @@ fn read_lib_name(project_root_abs_path: &Path) -> Result<String, WasmBuildError>
         .and_then(|pkg| pkg["targets"].as_array())
         .and_then(|targets| {
             targets.iter().find(|t| {
-                t["kind"]
-                    .as_array()
-                    .is_some_and(|kinds| kinds.iter().any(|k| k.as_str() == Some("lib")))
+                t["kind"].as_array().is_some_and(|kinds| {
+                    kinds.iter().any(|k| {
+                        matches!(k.as_str(), Some("lib") | Some("rlib") | Some("cdylib"))
+                    })
+                })
             })
         })
         .and_then(|t| t["name"].as_str())

@@ -1,6 +1,5 @@
 ---
 source: tests/scaffold/tests.rs
-assertion_line: 762
 expression: project_to_md(&project)
 ---
 `.rust-curse/build-napi.rs`
@@ -105,6 +104,7 @@ napi-derive = { version = "3", optional = true } # do not change
 
 [lib]
 path = ".rust-curse/lib.rs" # do not change
+crate-type = ["cdylib", "rlib"] # do not change
 
 [features]
 node = ["dep:napi", "dep:napi-derive"] # do not change

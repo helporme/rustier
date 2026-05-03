@@ -1,6 +1,5 @@
 ---
 source: tests/scaffold/tests.rs
-assertion_line: 336
 expression: project_to_md(&project)
 ---
 `.rust-curse/ambient.d.ts`
@@ -60,4 +59,5 @@ edition = "2021"
 
 [lib]
 path = ".rust-curse/lib.rs" # do not change
+crate-type = ["cdylib", "rlib"] # do not change
 ```
