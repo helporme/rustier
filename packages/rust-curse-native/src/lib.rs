@@ -62,11 +62,9 @@ impl BuildTarget {
                 exposed,
             }),
             BuildTarget::Node { .. } => scaffold.set_napi(NapiSectionOpts {
-                feature_name: "napi".into(),
                 content: ir.print_napi(exposed),
             }),
             BuildTarget::Wasm { .. } => scaffold.set_wasm(WasmSectionOpts {
-                feature_name: "wasm".into(),
                 content: ir.print_wasm(exposed),
             }),
             BuildTarget::Ts { .. } => scaffold.set_ts(ir),

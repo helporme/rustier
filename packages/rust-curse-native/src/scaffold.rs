@@ -1,9 +1,9 @@
 //! Scaffolding for the `.rust-curse/` output directory.
 //!
-//! A [`Scaffold`] manages the `.rust-curse/` folder inside the user's project
-//! and it's composed of named [`ScaffoldSection`]s. Each section specifies its
-//! own activation (when it should be active), the code it contributes to
-//! the generated crate, and the dependencies it needs.
+//! A [`Scaffold`] manages the `.rust-curse/` folder and Cargo.toml inside the
+//! user's project and it's composed of named [`ScaffoldSection`]s. Each section
+//! specifies its own activation (when it should be active), the code it
+//! contributes to the generated crate, and the dependencies it needs.
 //!
 //! ```no_run
 //! use rust_curse::scaffold::napi::NapiSectionOpts;
@@ -19,7 +19,6 @@
 //! })?;
 //!
 //! scaffold.set_napi(NapiSectionOpts {
-//!     feature_name: "node".into(),
 //!     content: "// generated napi glue\n".into(),
 //! })?;
 //! scaffold.set_rustdoc(RustdocSectionOpts { modules: &[] })?;

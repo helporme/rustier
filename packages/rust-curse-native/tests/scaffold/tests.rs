@@ -204,7 +204,6 @@ fn default_with_modules_combined_with_napi() {
         .unwrap();
     scaffold
         .set_napi(NapiSectionOpts {
-            feature_name: "node".into(),
             content: "// napi glue\n".into(),
         })
         .unwrap();
@@ -287,13 +286,11 @@ fn default_with_modules_combined_with_napi_and_wasm() {
         .unwrap();
     scaffold
         .set_napi(NapiSectionOpts {
-            feature_name: "node".into(),
             content: "// napi glue\n".into(),
         })
         .unwrap();
     scaffold
         .set_wasm(WasmSectionOpts {
-            feature_name: "wasm".into(),
             content: "// wasm glue\n".into(),
         })
         .unwrap();
@@ -309,7 +306,6 @@ fn set_napi_only() {
     let mut scaffold = project.scaffold();
     scaffold
         .set_napi(NapiSectionOpts {
-            feature_name: "node".into(),
             content: "// napi glue\n".into(),
         })
         .unwrap();
@@ -323,7 +319,6 @@ fn set_wasm_only() {
     let mut scaffold = project.scaffold();
     scaffold
         .set_wasm(WasmSectionOpts {
-            feature_name: "wasm".into(),
             content: "// wasm glue\n".into(),
         })
         .unwrap();
@@ -359,7 +354,6 @@ fn set_ts_combined_with_napi() {
     let (ir, _) = empty_ir(TEST_CRATE);
     scaffold
         .set_napi(NapiSectionOpts {
-            feature_name: "node".into(),
             content: "// napi glue\n".into(),
         })
         .unwrap();
@@ -575,13 +569,11 @@ fn set_combo_all_four_sections() {
         .unwrap();
     scaffold
         .set_napi(NapiSectionOpts {
-            feature_name: "node".into(),
             content: "// napi\n".into(),
         })
         .unwrap();
     scaffold
         .set_wasm(WasmSectionOpts {
-            feature_name: "wasm".into(),
             content: "// wasm\n".into(),
         })
         .unwrap();
@@ -598,7 +590,6 @@ fn patch_replaces_only_lib_content() {
     let mut scaffold = project.scaffold();
     scaffold
         .set_napi(NapiSectionOpts {
-            feature_name: "node".into(),
             content: "// original\n".into(),
         })
         .unwrap();
@@ -626,13 +617,11 @@ fn remove_section_drops_files_and_deps() {
         let mut scaffold = project.scaffold();
         scaffold
             .set_napi(NapiSectionOpts {
-                feature_name: "node".into(),
                 content: "// napi\n".into(),
             })
             .unwrap();
         scaffold
             .set_wasm(WasmSectionOpts {
-                feature_name: "wasm".into(),
                 content: "// wasm\n".into(),
             })
             .unwrap();
@@ -642,7 +631,6 @@ fn remove_section_drops_files_and_deps() {
         let mut scaffold = project.scaffold();
         scaffold
             .set_wasm(WasmSectionOpts {
-                feature_name: "wasm".into(),
                 content: "// wasm\n".into(),
             })
             .unwrap();
@@ -694,7 +682,6 @@ fn remove_last_section_drops_empty_blocks() {
         let mut scaffold = project.scaffold();
         scaffold
             .set_napi(NapiSectionOpts {
-                feature_name: "node".into(),
                 content: "// napi\n".into(),
             })
             .unwrap();
@@ -730,13 +717,11 @@ fn remove_napi_drops_only_build_dependencies() {
         let mut scaffold = project.scaffold();
         scaffold
             .set_napi(NapiSectionOpts {
-                feature_name: "node".into(),
                 content: "// napi\n".into(),
             })
             .unwrap();
         scaffold
             .set_wasm(WasmSectionOpts {
-                feature_name: "wasm".into(),
                 content: "// wasm\n".into(),
             })
             .unwrap();
@@ -746,7 +731,6 @@ fn remove_napi_drops_only_build_dependencies() {
         let mut scaffold = project.scaffold();
         scaffold
             .set_wasm(WasmSectionOpts {
-                feature_name: "wasm".into(),
                 content: "// wasm\n".into(),
             })
             .unwrap();
@@ -771,7 +755,6 @@ fn workspace_inherited_napi_dep_preserved() {
     let mut scaffold = project.scaffold();
     scaffold
         .set_napi(NapiSectionOpts {
-            feature_name: "node".into(),
             content: "// napi\n".into(),
         })
         .unwrap();
@@ -796,7 +779,6 @@ fn deploy_is_byte_identical_on_rerun() {
             .unwrap();
         scaffold
             .set_napi(NapiSectionOpts {
-                feature_name: "node".into(),
                 content: "// n\n".into(),
             })
             .unwrap();
