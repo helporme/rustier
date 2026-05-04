@@ -8,8 +8,8 @@ impl Scaffold {
     pub fn set_napi(&mut self, opts: NapiSectionOpts) -> Result<(), ScaffoldError> {
         let section = ScaffoldSection::new("napi")
             .cargo_feature_flag("node")
-            .lib(opts.content)
-            .build(BuildContribution {
+            .content(opts.content)
+            .build_content(BuildContribution {
                 preamble: "use napi_build;".into(),
                 main: "napi_build::setup();".into(),
             })

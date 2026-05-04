@@ -37,6 +37,16 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
+mod cargo_patch;
+mod dispatcher;
+pub mod link;
+mod meta;
+pub mod napi;
+pub mod rustdoc;
+mod tree;
+pub mod ts;
+pub mod wasm;
+
 #[derive(Debug, Clone)]
 pub struct ScaffoldOptions {
     /// Absolute path to the project dir root, e.g. to the folder that contains
@@ -55,10 +65,16 @@ pub enum Activation {
     /// gates with `#[cfg(feature = "...")]` in the dispatcher.
     CargoFeature(String),
 
-    /// Active when an env var is set during `cargo build`. The build
-    /// dispatcher emits `cargo:rustc-cfg=<cfg_flag>` when the env var is
-    /// present; the lib dispatcher gates with `#[cfg(<cfg_flag>)]`.
-    Env { env_var: String, cfg_flag: String },
+    /// Active when an env var is set during `cargo build`, and exclusively
+    /// so: every other section in the scaffold is suppressed while this
+    /// section is active. The build dispatcher emits
+    /// `cargo:rustc-cfg=<cfg_flag>` when the env var is present; the lib
+    /// dispatcher gates this section with `#[cfg(<cfg_flag>)]` and gates
+    /// every non-exclusive section with `#[cfg(not(<cfg_flag>))]`.
+    ///
+    /// At most one section per [`Scaffold`] may use this activation;
+    /// adding a second returns [`ScaffoldError::MultipleExclusiveEnv`].
+    ExclusiveEnv { env_var: String, cfg_flag: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,8 +106,8 @@ pub(crate) enum Field<T> {
 pub struct ScaffoldSection {
     pub(crate) name: String,
     pub(crate) activation: Field<Option<Activation>>,
-    pub(crate) lib: Field<String>,
-    pub(crate) build: Field<BuildContribution>,
+    pub(crate) content: Field<String>,
+    pub(crate) build_content: Field<BuildContribution>,
     pub(crate) deps: Field<Vec<Dep>>,
     pub(crate) build_deps: Field<Vec<Dep>>,
     pub(crate) external_files: Field<Vec<String>>,
@@ -99,6 +115,10 @@ pub struct ScaffoldSection {
 
 impl ScaffoldSection {
     /// Start a new section with the given name.
+    ///
+    /// A section without an activation applies unconditionally — it is
+    /// always linked in by the dispatcher, unless suppressed by a section
+    /// with [`exclusive_env_flag`](Self::exclusive_env_flag).
     ///
     /// ```
     /// use rust_curse::scaffold::ScaffoldSection;
@@ -112,21 +132,6 @@ impl ScaffoldSection {
         }
     }
 
-    /// Mark this section as the default fallback. It will be used when all
-    /// other sections are conditionally disabled.
-    ///
-    /// ```
-    /// use rust_curse::scaffold::ScaffoldSection;
-    ///
-    /// let default = ScaffoldSection::new("default")
-    ///     .cargo_feature_default()
-    ///     .lib("// generated default body\n");
-    /// ```
-    pub fn cargo_feature_default(mut self) -> Self {
-        self.activation = Field::Set(None);
-        self
-    }
-
     /// Activate this section when the named cargo feature is enabled.
     ///
     /// ```
@@ -134,7 +139,7 @@ impl ScaffoldSection {
     ///
     /// let napi = ScaffoldSection::new("napi")
     ///     .cargo_feature_flag("node")
-    ///     .lib("// napi glue\n");
+    ///     .content("// napi glue\n");
     /// ```
     pub fn cargo_feature_flag(mut self, name: impl Into<String>) -> Self {
         self.activation = Field::Set(Some(Activation::CargoFeature(name.into())));
@@ -142,50 +147,56 @@ impl ScaffoldSection {
     }
 
     /// Activate this section when the given env var is set during
-    /// `cargo build`.
+    /// `cargo build`, and *exclusively* so — when this section is active,
+    /// every other section in the scaffold is suppressed.
+    ///
+    /// At most one section may use this; a second call to
+    /// [`Scaffold::set`] with another exclusive section returns
+    /// [`ScaffoldError::MultipleExclusiveEnv`].
     ///
     /// ```
     /// use rust_curse::scaffold::ScaffoldSection;
     ///
     /// let rustdoc = ScaffoldSection::new("rustdoc")
-    ///     .env_flag("RUST_CURSE_RUSTDOC")
-    ///     .lib("pub mod foo;\n");
-    /// // Active when `RUST_CURSE_RUSTDOC=1 cargo build`; gated by
+    ///     .exclusive_env_flag("RUST_CURSE_RUSTDOC")
+    ///     .content("pub mod foo;\n");
+    /// // Active when `RUST_CURSE_RUSTDOC=1 cargo build`; everything else
+    /// // is gated off via `#[cfg(not(rust_curse_rustdoc))]`.
     /// ```
-    pub fn env_flag(mut self, env_var: impl Into<String>) -> Self {
+    pub fn exclusive_env_flag(mut self, env_var: impl Into<String>) -> Self {
         let env_var = env_var.into();
         let cfg_flag = env_var.to_lowercase();
-        self.activation = Field::Set(Some(Activation::Env { env_var, cfg_flag }));
+        self.activation = Field::Set(Some(Activation::ExclusiveEnv { env_var, cfg_flag }));
         self
     }
 
-    /// Set the body of `lib.rs` when this section is enabled.
+    /// Set the body of `lib-{name}.rs` for this section.
     ///
     /// ```
     /// use rust_curse::scaffold::ScaffoldSection;
     ///
     /// let section = ScaffoldSection::new("napi")
     ///     .cargo_feature_flag("node")
-    ///     .lib("pub fn add(a: i32, b: i32) -> i32 { a + b }\n");
+    ///     .content("pub fn add(a: i32, b: i32) -> i32 { a + b }\n");
     /// ```
-    pub fn lib(mut self, content: impl Into<String>) -> Self {
-        self.lib = Field::Set(content.into());
+    pub fn content(mut self, content: impl Into<String>) -> Self {
+        self.content = Field::Set(content.into());
         self
     }
 
-    /// Contribute build.rs code when this section is enabled.
+    /// Contribute `build-{name}.rs` code for this section.
     /// ```
     /// use rust_curse::scaffold::{BuildContribution, ScaffoldSection};
     ///
     /// let napi = ScaffoldSection::new("napi")
     ///     .cargo_feature_flag("node")
-    ///     .build(BuildContribution {
+    ///     .build_content(BuildContribution {
     ///         preamble: "use napi_build;".into(),
     ///         main: "napi_build::setup();".into(),
     ///     });
     /// ```
-    pub fn build(mut self, contrib: BuildContribution) -> Self {
-        self.build = Field::Set(contrib);
+    pub fn build_content(mut self, contrib: BuildContribution) -> Self {
+        self.build_content = Field::Set(contrib);
         self
     }
 
@@ -249,7 +260,7 @@ impl ScaffoldSection {
     ///
     /// let napi = ScaffoldSection::new("napi")
     ///     .cargo_feature_flag("node")
-    ///     .build(BuildContribution {
+    ///     .build_content(BuildContribution {
     ///         preamble: "use napi_build;".into(),
     ///         main: "napi_build::setup();".into(),
     ///     })
@@ -304,8 +315,8 @@ impl ScaffoldSection {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct Section {
     pub activation: Option<Activation>,
-    pub lib: Option<String>,
-    pub build: Option<BuildContribution>,
+    pub content: Option<String>,
+    pub build_content: Option<BuildContribution>,
     pub deps: Vec<Dep>,
     pub build_deps: Vec<Dep>,
     pub external_files: Vec<String>,
@@ -323,6 +334,11 @@ pub enum ScaffoldError {
     PathEscape(String),
     #[error("section '{0}' has not been set; call set() before patch()")]
     PatchUnknownSection(String),
+    #[error(
+        "section '{attempted}' uses exclusive_env_flag, but section '{existing}' already does; \
+         only one exclusive_env_flag section is allowed per scaffold"
+    )]
+    MultipleExclusiveEnv { existing: String, attempted: String },
     #[error("invalid Cargo.toml: {0}")]
     CargoToml(#[from] toml_edit::TomlError),
     #[error("invalid meta.json: {0}")]
@@ -389,7 +405,7 @@ impl Scaffold {
     ///     .set(
     ///         ScaffoldSection::new("napi")
     ///             .cargo_feature_flag("node")
-    ///             .lib("// generated\n"),
+    ///             .content("// generated\n"),
     ///     )
     ///     .unwrap();
     /// ```
@@ -398,8 +414,26 @@ impl Scaffold {
             validate_external_path(ef)?;
         }
         let resolved = resolve_set(&section);
+        if matches!(resolved.activation, Some(Activation::ExclusiveEnv { .. })) {
+            if let Some(existing) = self.find_exclusive_env(&section.name) {
+                return Err(ScaffoldError::MultipleExclusiveEnv {
+                    existing,
+                    attempted: section.name,
+                });
+            }
+        }
         self.sections.insert(section.name, resolved);
         Ok(())
+    }
+
+    fn find_exclusive_env(&self, ignore_name: &str) -> Option<String> {
+        self.sections
+            .iter()
+            .find(|(name, s)| {
+                name.as_str() != ignore_name
+                    && matches!(s.activation, Some(Activation::ExclusiveEnv { .. }))
+            })
+            .map(|(name, _)| name.clone())
     }
 
     /// Update only the fields that were explicitly set on `section`,
@@ -418,12 +452,12 @@ impl Scaffold {
     ///     .set(
     ///         ScaffoldSection::new("napi")
     ///             .cargo_feature_flag("node")
-    ///             .lib("// generated\n"),
+    ///             .content("// generated\n"),
     ///     )
     ///     .unwrap();
     ///
     /// scaffold
-    ///     .patch(ScaffoldSection::new("napi").lib("// updated\n"))
+    ///     .patch(ScaffoldSection::new("napi").content("// updated\n"))
     ///     .unwrap();
     /// ```
     pub fn patch(&mut self, section: ScaffoldSection) -> Result<(), ScaffoldError> {
@@ -507,7 +541,7 @@ impl Scaffold {
     ///     .set(
     ///         ScaffoldSection::new("example")
     ///             .cargo_feature_flag("example")
-    ///             .lib("// generated\n"),
+    ///             .content("// generated\n"),
     ///     )
     ///     .unwrap();
     ///
@@ -541,13 +575,13 @@ impl Scaffold {
             }
 
             let lib_path = self.abs_temp_path.join(format!("lib-{name}.rs"));
-            match &section.lib {
+            match &section.content {
                 Some(content) => self.write_file(&lib_path, content)?,
                 None => self.delete_if_exists(&lib_path)?,
             }
 
             let build_path = self.abs_temp_path.join(format!("build-{name}.rs"));
-            match &section.build {
+            match &section.build_content {
                 Some(contrib) => {
                     let content = dispatcher::render_section_build(contrib);
                     self.write_file(&build_path, &content)?;
@@ -690,11 +724,11 @@ fn resolve_set(section: &ScaffoldSection) -> Section {
             Field::Set(a) => a.clone(),
             Field::Untouched => None,
         },
-        lib: match &section.lib {
+        content: match &section.content {
             Field::Set(s) => Some(s.clone()),
             Field::Untouched => None,
         },
-        build: match &section.build {
+        build_content: match &section.build_content {
             Field::Set(b) => Some(b.clone()),
             Field::Untouched => None,
         },
@@ -717,11 +751,11 @@ fn apply_patch(section: ScaffoldSection, existing: &mut Section) {
     if let Field::Set(a) = section.activation {
         existing.activation = a;
     }
-    if let Field::Set(s) = section.lib {
-        existing.lib = Some(s);
+    if let Field::Set(s) = section.content {
+        existing.content = Some(s);
     }
-    if let Field::Set(b) = section.build {
-        existing.build = Some(b);
+    if let Field::Set(b) = section.build_content {
+        existing.build_content = Some(b);
     }
     if let Field::Set(v) = section.deps {
         existing.deps = v;
@@ -807,12 +841,3 @@ mod tests {
         );
     }
 }
-
-mod cargo_patch;
-pub mod default;
-mod dispatcher;
-mod meta;
-pub mod napi;
-pub mod rustdoc;
-pub mod ts;
-pub mod wasm;

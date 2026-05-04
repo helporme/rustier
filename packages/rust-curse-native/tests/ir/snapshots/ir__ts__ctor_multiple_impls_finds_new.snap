@@ -12,7 +12,7 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 /**
  * The `seed` param name differs from the field `count` so the snapshot proves
  * the ctor from the second impl block is picked up.

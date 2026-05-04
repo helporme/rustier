@@ -12,9 +12,9 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 
 
-// src/math.d.rs.ts
+// src/math.rs.d.ts
 /** Returns the square of `x`. */
 export function square(x: number): number;

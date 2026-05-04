@@ -12,6 +12,6 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 /** Exercises every primitive type that maps to `number` or `string` or `boolean`. */
 export function f(a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: boolean, j: string, k: string, l: string): void;

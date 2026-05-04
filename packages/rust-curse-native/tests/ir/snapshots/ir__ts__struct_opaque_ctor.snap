@@ -12,7 +12,7 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 /** A counter whose constructor is the canonical entry point. */
 export class Counter {
     private [" "]: 'rustdoc_test_crate::Counter';

@@ -12,7 +12,7 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 import type { Copy } from "$rust-curse";
 
 /** By-value nominal types are wrapped in `Copy<>`, borrows are not. */

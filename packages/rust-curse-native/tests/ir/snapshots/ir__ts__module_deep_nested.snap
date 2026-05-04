@@ -12,14 +12,14 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 
 
-// src/a.d.rs.ts
+// src/a.rs.d.ts
 
 
-// src/a/b.d.rs.ts
+// src/a/b.rs.d.ts
 
 
-// src/a/b/c.d.rs.ts
+// src/a/b/c.rs.d.ts
 export function deep(): void;

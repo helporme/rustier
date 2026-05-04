@@ -579,5 +579,6 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { RustCurse } = nativeBinding
+const { RustCurse, BuildTarget } = nativeBinding
 export { RustCurse }
+export { BuildTarget }

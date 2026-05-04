@@ -12,7 +12,7 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 /**
  * `new() -> Token` is recognised as an explicit constructor. The `raw` param name
  * differs from the field name `value` so the snapshot proves the ctor is picked

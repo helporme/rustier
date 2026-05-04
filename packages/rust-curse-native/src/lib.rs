@@ -15,8 +15,8 @@ use napi_derive::napi;
 
 use crate::builder::wasm::{build_wasm, BuildWasmOpts};
 use crate::ir::{Id, IR};
-use crate::orphans::{OrphanModule, OrphanScanOpts, SourceFilter};
-use crate::scaffold::default::DefaultSectionOpts;
+use crate::orphans::{OrphanScanOpts, SourceFilter};
+use crate::scaffold::link::LinkSectionOpts;
 use crate::scaffold::napi::NapiSectionOpts;
 use crate::scaffold::rustdoc::RustdocSectionOpts;
 use crate::scaffold::wasm::WasmSectionOpts;
@@ -25,51 +25,34 @@ use crate::tree_shake::TreeShakeOpts;
 
 #[cfg_attr(feature = "napi-binding", napi)]
 pub enum BuildTarget {
-    Default { js_source: SourceOptions },
-    Node { js_source: SourceOptions },
-    Wasm { js_source: SourceOptions },
-    Ts { js_source: SourceOptions },
+    Node,
+    Wasm,
+    Ts,
 }
 
 impl BuildTarget {
-    fn js_source(&self) -> &SourceOptions {
-        match self {
-            BuildTarget::Default { js_source }
-            | BuildTarget::Node { js_source }
-            | BuildTarget::Wasm { js_source }
-            | BuildTarget::Ts { js_source } => js_source,
-        }
-    }
-
     fn section_name(&self) -> &'static str {
         match self {
-            BuildTarget::Default { .. } => "default",
-            BuildTarget::Node { .. } => "napi",
-            BuildTarget::Wasm { .. } => "wasm",
-            BuildTarget::Ts { .. } => "ts",
+            BuildTarget::Node => "napi",
+            BuildTarget::Wasm => "wasm",
+            BuildTarget::Ts => "ts",
         }
     }
 
     fn set_scaffold_section(
         &self,
         scaffold: &mut Scaffold,
-        modules: &[OrphanModule],
         ir: &IR,
         exposed: &HashSet<Id>,
     ) -> Result<(), ScaffoldError> {
         match self {
-            BuildTarget::Default { .. } => scaffold.set_default(DefaultSectionOpts {
-                modules,
-                ir,
-                exposed,
-            }),
-            BuildTarget::Node { .. } => scaffold.set_napi(NapiSectionOpts {
+            BuildTarget::Node => scaffold.set_napi(NapiSectionOpts {
                 content: ir.print_napi(exposed),
             }),
-            BuildTarget::Wasm { .. } => scaffold.set_wasm(WasmSectionOpts {
+            BuildTarget::Wasm => scaffold.set_wasm(WasmSectionOpts {
                 content: ir.print_wasm(exposed),
             }),
-            BuildTarget::Ts { .. } => scaffold.set_ts(ir),
+            BuildTarget::Ts => scaffold.set_ts(ir),
         }
     }
 }
@@ -83,6 +66,9 @@ pub struct SourceOptions {
 #[cfg_attr(feature = "napi-binding", napi(object))]
 pub struct RustCurseOptions {
     pub targets: Vec<BuildTarget>,
+    /// Glob filter applied to JS sources to determine which Rust items
+    /// are exposed to the bindings. Shared by every target.
+    pub js_source: SourceOptions,
     /// Directory to discover rust orphan modules, relative to project root.
     pub module_dir_rel_path: String,
     /// Output dir for placing generated files, relative to project root.
@@ -138,30 +124,36 @@ impl RustCurse {
         let rustdoc = rustdoc::gen(&project_root_abs_path)?;
         let ir = IR::try_from(&rustdoc).context("build ir")?;
 
-        for target in &self.options.targets {
-            let js_source = target.js_source();
-
-            let exposed = tree_shake::shake(
-                &ir,
-                TreeShakeOpts {
-                    project_root_abs_path: &project_root_abs_path,
-                    src_rel_path: &src_rel_path,
-                    js_filter: SourceFilter {
-                        include: &js_source.include,
-                        exclude: &js_source.exclude,
-                    },
+        let exposed = tree_shake::shake(
+            &ir,
+            TreeShakeOpts {
+                project_root_abs_path: &project_root_abs_path,
+                src_rel_path: &src_rel_path,
+                js_filter: SourceFilter {
+                    include: &self.options.js_source.include,
+                    exclude: &self.options.js_source.exclude,
                 },
-            )?;
+            },
+        )?;
 
+        scaffold
+            .set_link(LinkSectionOpts {
+                modules: &modules,
+                ir: &ir,
+                exposed: &exposed,
+            })
+            .context("scaffold: link")?;
+
+        for target in &self.options.targets {
             target
-                .set_scaffold_section(&mut scaffold, &modules, &ir, &exposed)
+                .set_scaffold_section(&mut scaffold, &ir, &exposed)
                 .with_context(|| format!("scaffold: {}", target.section_name()))?;
         }
 
         scaffold.deploy().context("scaffold: deploy targets")?;
 
         for target in &self.options.targets {
-            if matches!(target, BuildTarget::Wasm { .. }) {
+            if matches!(target, BuildTarget::Wasm) {
                 build_wasm(BuildWasmOpts {
                     project_root_abs_path: &project_root_abs_path,
                     tools_dir_abs_path: &scaffold.abs_path_to("tools"),

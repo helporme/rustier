@@ -29,8 +29,8 @@ include!("lib-wasm.rs");
         "kind": "cargo_feature",
         "name": "wasm"
       },
-      "has_lib": true,
-      "has_build": false,
+      "has_content": true,
+      "has_build_content": false,
       "deps": [
         {
           "name": "wasm-bindgen",

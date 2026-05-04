@@ -5,14 +5,19 @@ export declare class RustCurse {
   build(): void
 }
 
-export type BuildTarget =
-  | { type: 'Default', jsSource: SourceOptions }
-  | { type: 'Node', jsSource: SourceOptions }
-  | { type: 'Wasm', jsSource: SourceOptions }
-  | { type: 'Ts', jsSource: SourceOptions }
+export declare const enum BuildTarget {
+  Node = 0,
+  Wasm = 1,
+  Ts = 2
+}
 
 export interface RustCurseOptions {
   targets: Array<BuildTarget>
+  /**
+   * Glob filter applied to JS sources to determine which Rust items
+   * are exposed to the bindings. Shared by every target.
+   */
+  jsSource: SourceOptions
   /** Directory to discover rust orphan modules, relative to project root. */
   moduleDirRelPath: string
   /** Output dir for placing generated files, relative to project root. */

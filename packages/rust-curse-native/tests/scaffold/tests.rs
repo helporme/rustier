@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use rust_curse::orphans::OrphanModule;
-use rust_curse::scaffold::default::DefaultSectionOpts;
+use rust_curse::scaffold::link::{LinkSectionError, LinkSectionOpts, LINK_DIR};
 use rust_curse::scaffold::napi::NapiSectionOpts;
 use rust_curse::scaffold::rustdoc::{RustdocSectionError, RustdocSectionOpts, RUSTDOC_DIR};
 use rust_curse::scaffold::ts::TS_FILE;
@@ -23,12 +23,12 @@ fn test_module(mod_name: &str, rel_rs_path: &str) -> OrphanModule {
 }
 
 #[test]
-fn set_default_only() {
+fn set_link_only() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
     let (ir, exposed) = empty_ir(TEST_CRATE);
     scaffold
-        .set_default(DefaultSectionOpts {
+        .set_link(LinkSectionOpts {
             modules: &[],
             ir: &ir,
             exposed: &exposed,
@@ -39,7 +39,7 @@ fn set_default_only() {
 }
 
 #[test]
-fn default_emits_mod_decls_and_treeshaked_reexports() {
+fn link_emits_mod_tree_and_reexports() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
@@ -68,7 +68,7 @@ fn default_emits_mod_decls_and_treeshaked_reexports() {
     );
 
     scaffold
-        .set_default(DefaultSectionOpts {
+        .set_link(LinkSectionOpts {
             modules: &modules,
             ir: &ir,
             exposed: &exposed,
@@ -81,37 +81,7 @@ fn default_emits_mod_decls_and_treeshaked_reexports() {
 }
 
 #[test]
-fn default_mangled_names_get_allow_attribute() {
-    let project = TestProject::new();
-    let mut scaffold = project.scaffold();
-
-    let modules = vec![test_module("nested::deep", "src/nested/deep.rs")];
-    let (ir, exposed) = make_ir(
-        TEST_CRATE,
-        &[ModFixture {
-            mod_name: "nested::deep",
-            fns: &[FnFixture {
-                name: "run",
-                exposed: true,
-            }],
-        }],
-    );
-
-    scaffold
-        .set_default(DefaultSectionOpts {
-            modules: &modules,
-            ir: &ir,
-            exposed: &exposed,
-        })
-        .unwrap();
-    scaffold.deploy().unwrap();
-    project.snapshot_settings().bind(|| {
-        insta::assert_snapshot!(project_to_md(&project));
-    });
-}
-
-#[test]
-fn default_no_reexports_when_nothing_imported() {
+fn link_no_tree_or_reexports_when_nothing_exposed() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
@@ -128,7 +98,7 @@ fn default_no_reexports_when_nothing_imported() {
     );
 
     scaffold
-        .set_default(DefaultSectionOpts {
+        .set_link(LinkSectionOpts {
             modules: &modules,
             ir: &ir,
             exposed: &exposed,
@@ -141,7 +111,7 @@ fn default_no_reexports_when_nothing_imported() {
 }
 
 #[test]
-fn default_star_import_re_exports_public_only() {
+fn link_reexports_all_exposed_items() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
@@ -164,7 +134,7 @@ fn default_star_import_re_exports_public_only() {
     );
 
     scaffold
-        .set_default(DefaultSectionOpts {
+        .set_link(LinkSectionOpts {
             modules: &modules,
             ir: &ir,
             exposed: &exposed,
@@ -176,10 +146,54 @@ fn default_star_import_re_exports_public_only() {
     });
 }
 
-/// Default with real modules + napi: lib.rs default include must be
-/// gated by `not(any(feature = "node"))`.
 #[test]
-fn default_with_modules_combined_with_napi() {
+fn link_nested_modules_emit_subtree_files() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+
+    let modules = vec![
+        test_module("nested::deep", "src/nested/deep.rs"),
+        test_module("nested::shallow", "src/nested/shallow.rs"),
+    ];
+    let (ir, exposed) = make_ir(
+        TEST_CRATE,
+        &[
+            ModFixture {
+                mod_name: "nested::deep",
+                fns: &[FnFixture {
+                    name: "run",
+                    exposed: true,
+                }],
+            },
+            ModFixture {
+                mod_name: "nested::shallow",
+                fns: &[FnFixture {
+                    name: "skim",
+                    exposed: true,
+                }],
+            },
+        ],
+    );
+
+    scaffold
+        .set_link(LinkSectionOpts {
+            modules: &modules,
+            ir: &ir,
+            exposed: &exposed,
+        })
+        .unwrap();
+    scaffold.deploy().unwrap();
+    assert!(project.abs_temp_path.join(LINK_DIR).join("nested.rs").exists());
+    project.snapshot_settings().bind(|| {
+        insta::assert_snapshot!(project_to_md(&project));
+    });
+}
+
+/// link is always-applied with no activation; combined with napi
+/// (cargo-feature gated) and no exclusive section, link's include should
+/// have no `#[cfg]` attr and napi's should be `#[cfg(feature = "node")]`.
+#[test]
+fn link_with_napi() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
@@ -196,7 +210,7 @@ fn default_with_modules_combined_with_napi() {
     );
 
     scaffold
-        .set_default(DefaultSectionOpts {
+        .set_link(LinkSectionOpts {
             modules: &modules,
             ir: &ir,
             exposed: &exposed,
@@ -213,11 +227,11 @@ fn default_with_modules_combined_with_napi() {
     });
 }
 
-/// Default with real modules + rustdoc (env-activated): lib.rs default
-/// include must be gated by `not(any(rust_curse_rustdoc))`, and rustdoc
-/// gets `#[cfg(rust_curse_rustdoc)]`.
+/// link + rustdoc: rustdoc uses exclusive_env_flag, so link's include
+/// must be gated by `#[cfg(not(rust_curse_rustdoc))]` and rustdoc's by
+/// `#[cfg(rust_curse_rustdoc)]`.
 #[test]
-fn default_with_modules_combined_with_rustdoc() {
+fn link_with_rustdoc_exclusive() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
@@ -234,7 +248,7 @@ fn default_with_modules_combined_with_rustdoc() {
     );
 
     scaffold
-        .set_default(DefaultSectionOpts {
+        .set_link(LinkSectionOpts {
             modules: &modules,
             ir: &ir,
             exposed: &exposed,
@@ -242,7 +256,7 @@ fn default_with_modules_combined_with_rustdoc() {
         .unwrap();
     scaffold
         .set_rustdoc(RustdocSectionOpts {
-            modules: &[test_module("greet", "greet.rs")],
+            modules: &[test_module("greet", "src/greet.rs")],
         })
         .unwrap();
     scaffold.deploy().unwrap();
@@ -251,11 +265,11 @@ fn default_with_modules_combined_with_rustdoc() {
     });
 }
 
-/// Default with real modules + napi + wasm: lib.rs default include must
-/// be gated by `not(any(feature = "node", feature = "wasm"))`, exercising
-/// the multi-exclusion path of the dispatcher.
+/// link + napi + wasm: link is always-on, both targets are
+/// cargo-feature-gated and additive. Verifies the bug fix — wasm glue
+/// can resolve `crate::math::add` because link provides the tree.
 #[test]
-fn default_with_modules_combined_with_napi_and_wasm() {
+fn link_with_napi_and_wasm() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
 
@@ -278,7 +292,7 @@ fn default_with_modules_combined_with_napi_and_wasm() {
     );
 
     scaffold
-        .set_default(DefaultSectionOpts {
+        .set_link(LinkSectionOpts {
             modules: &modules,
             ir: &ir,
             exposed: &exposed,
@@ -556,12 +570,52 @@ fn rustdoc_stale_subtree_cleaned_on_redeploy() {
 }
 
 #[test]
-fn set_combo_all_four_sections() {
+fn link_leaf_branch_collision_errors() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    let modules = vec![
+        test_module("abc", "src/abc.rs"),
+        test_module("abc::hi", "src/abc/hi.rs"),
+    ];
+    let (ir, exposed) = make_ir(
+        TEST_CRATE,
+        &[
+            ModFixture {
+                mod_name: "abc",
+                fns: &[FnFixture {
+                    name: "x",
+                    exposed: true,
+                }],
+            },
+            ModFixture {
+                mod_name: "abc::hi",
+                fns: &[FnFixture {
+                    name: "y",
+                    exposed: true,
+                }],
+            },
+        ],
+    );
+    let err = scaffold
+        .set_link(LinkSectionOpts {
+            modules: &modules,
+            ir: &ir,
+            exposed: &exposed,
+        })
+        .unwrap_err();
+    match err {
+        LinkSectionError::LeafBranchCollision { name } => assert_eq!(name, "abc"),
+        other => panic!("expected LeafBranchCollision, got {other:?}"),
+    }
+}
+
+#[test]
+fn set_combo_link_napi_wasm_rustdoc() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
     let (ir, exposed) = empty_ir(TEST_CRATE);
     scaffold
-        .set_default(DefaultSectionOpts {
+        .set_link(LinkSectionOpts {
             modules: &[],
             ir: &ir,
             exposed: &exposed,
@@ -585,7 +639,57 @@ fn set_combo_all_four_sections() {
 }
 
 #[test]
-fn patch_replaces_only_lib_content() {
+fn second_exclusive_env_section_returns_error() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    scaffold
+        .set(
+            ScaffoldSection::new("rustdoc")
+                .exclusive_env_flag("RUST_CURSE_RUSTDOC")
+                .content("// r\n"),
+        )
+        .unwrap();
+    let err = scaffold
+        .set(
+            ScaffoldSection::new("other")
+                .exclusive_env_flag("RUST_CURSE_OTHER")
+                .content("// o\n"),
+        )
+        .unwrap_err();
+    match err {
+        ScaffoldError::MultipleExclusiveEnv {
+            existing,
+            attempted,
+        } => {
+            assert_eq!(existing, "rustdoc");
+            assert_eq!(attempted, "other");
+        }
+        other => panic!("expected MultipleExclusiveEnv, got {other:?}"),
+    }
+}
+
+#[test]
+fn replacing_exclusive_env_section_with_itself_is_allowed() {
+    let project = TestProject::new();
+    let mut scaffold = project.scaffold();
+    scaffold
+        .set(
+            ScaffoldSection::new("rustdoc")
+                .exclusive_env_flag("RUST_CURSE_RUSTDOC")
+                .content("// r\n"),
+        )
+        .unwrap();
+    scaffold
+        .set(
+            ScaffoldSection::new("rustdoc")
+                .exclusive_env_flag("RUST_CURSE_RUSTDOC")
+                .content("// r2\n"),
+        )
+        .unwrap();
+}
+
+#[test]
+fn patch_replaces_only_content() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
     scaffold
@@ -594,7 +698,7 @@ fn patch_replaces_only_lib_content() {
         })
         .unwrap();
     scaffold
-        .patch(ScaffoldSection::new("napi").lib("// patched\n"))
+        .patch(ScaffoldSection::new("napi").content("// patched\n"))
         .unwrap();
     scaffold.deploy().unwrap();
     insta::assert_snapshot!(project_to_md(&project));
@@ -605,7 +709,7 @@ fn patch_unknown_section_errors() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
     let err = scaffold
-        .patch(ScaffoldSection::new("nope").lib("x"))
+        .patch(ScaffoldSection::new("nope").content("x"))
         .unwrap_err();
     assert!(matches!(err, ScaffoldError::PatchUnknownSection(_)));
 }
@@ -643,12 +747,12 @@ fn remove_section_drops_files_and_deps() {
 /// `[features]`, `[dependencies]`, or `[build-dependencies]` tables in
 /// the patched `Cargo.toml`.
 #[test]
-fn default_only_emits_no_empty_blocks() {
+fn link_only_emits_no_empty_blocks() {
     let project = TestProject::new();
     let mut scaffold = project.scaffold();
     let (ir, exposed) = empty_ir(TEST_CRATE);
     scaffold
-        .set_default(DefaultSectionOpts {
+        .set_link(LinkSectionOpts {
             modules: &[],
             ir: &ir,
             exposed: &exposed,
@@ -771,7 +875,7 @@ fn deploy_is_byte_identical_on_rerun() {
     let run = |project: &TestProject| {
         let mut scaffold = project.scaffold();
         scaffold
-            .set_default(DefaultSectionOpts {
+            .set_link(LinkSectionOpts {
                 modules: &[],
                 ir: &ir,
                 exposed: &exposed,
@@ -808,7 +912,7 @@ fn external_files_swap_removes_stale_paths() {
             .set(
                 ScaffoldSection::new("napi")
                     .cargo_feature_flag("node")
-                    .lib("// n\n")
+                    .content("// n\n")
                     .external("napi/")
                     .external("side_artifact.txt"),
             )
@@ -828,7 +932,7 @@ fn external_files_swap_removes_stale_paths() {
             .set(
                 ScaffoldSection::new("napi")
                     .cargo_feature_flag("node")
-                    .lib("// n\n")
+                    .content("// n\n")
                     .external("napi/"),
             )
             .unwrap();
@@ -855,7 +959,7 @@ fn remove_section_clears_its_external_files() {
             .set(
                 ScaffoldSection::new("wasm")
                     .cargo_feature_flag("wasm")
-                    .lib("// w\n")
+                    .content("// w\n")
                     .external("wasm/"),
             )
             .unwrap();
@@ -898,8 +1002,8 @@ fn build_contribution_renders_setup_fn() {
         .set(
             ScaffoldSection::new("napi")
                 .cargo_feature_flag("node")
-                .lib("// n\n")
-                .build(BuildContribution {
+                .content("// n\n")
+                .build_content(BuildContribution {
                     preamble: "use napi_build;".into(),
                     main: "napi_build::setup();".into(),
                 }),

@@ -300,8 +300,8 @@ mod tests {
     fn napi_section() -> Section {
         Section {
             activation: Some(Activation::CargoFeature("node".into())),
-            lib: Some("// n".into()),
-            build: Some(BuildContribution::default()),
+            content: Some("// n".into()),
+            build_content: Some(BuildContribution::default()),
             deps: vec![
                 Dep {
                     name: "napi".into(),
@@ -326,8 +326,8 @@ mod tests {
     fn wasm_section() -> Section {
         Section {
             activation: Some(Activation::CargoFeature("wasm".into())),
-            lib: Some("// w".into()),
-            build: None,
+            content: Some("// w".into()),
+            build_content: None,
             deps: vec![Dep {
                 name: "wasm-bindgen".into(),
                 version: "0.2".into(),

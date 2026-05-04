@@ -12,10 +12,10 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 
 
-// src/types.d.rs.ts
+// src/types.rs.d.ts
 /** An authentication token. */
 export class Token {
     private [" "]: 'rustdoc_test_crate::types::Token';
@@ -26,7 +26,7 @@ export class Token {
     constructor(value: string);
 }
 
-// src/ops.d.rs.ts
+// src/ops.rs.d.ts
 import type { Token } from "./types.rs";
 
 /** Parses a raw string into a Token. */

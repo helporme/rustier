@@ -12,7 +12,7 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 /** `new(&self)` is not treated as an explicit ctor. */
 export class Builder {
     private [" "]: 'rustdoc_test_crate::Builder';

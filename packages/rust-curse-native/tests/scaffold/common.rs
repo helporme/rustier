@@ -7,7 +7,6 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use rust_curse::common::mangle_module_name;
 use rust_curse::ir::{Export, FnDef, Id, Item, ItemPath, ModDef, Type, IR};
 use rust_curse::scaffold::{Scaffold, ScaffoldOptions};
 
@@ -156,17 +155,17 @@ pub struct FnFixture<'a> {
 }
 
 /// Description of one orphan module's IR contribution: its `mod_name` (as
-/// a `::`-separated path that scaffolds will mangle) and the list of
-/// exported functions.
+/// a `::`-separated path) and the list of exported functions.
 pub struct ModFixture<'a> {
     pub mod_name: &'a str,
     pub fns: &'a [FnFixture<'a>],
 }
 
 /// Build a synthetic IR + exposed-id set for scaffold tests. Each module
-/// fixture becomes one `Item::Mod` (with a path of `[crate_name,
-/// mangled_mod_name]`) plus one `Item::Fn` per declared function. A fn
-/// marked `exposed: true` is included in the returned `HashSet<Id>`.
+/// fixture becomes one `Item::Mod` whose `path.segments` are the crate
+/// name followed by the unmangled `mod_name` segments (matching what
+/// real rustdoc IR produces), plus one `Item::Fn` per declared function.
+/// A fn marked `exposed: true` is included in the returned `HashSet<Id>`.
 pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (IR, HashSet<Id>) {
     let mut ir = IR {
         crate_name: crate_name.to_string(),
@@ -185,22 +184,22 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (IR, HashSet<Id>) {
     let mut root_exports: Vec<Export> = Vec::new();
 
     for module in modules {
-        let mangled = mangle_module_name(module.mod_name);
+        let mod_segs: Vec<String> = std::iter::once(crate_name.to_string())
+            .chain(module.mod_name.split("::").map(String::from))
+            .collect();
         let mod_id = Id(ir.items.len() as u32);
         ir.items.push(Item::Mod(ModDef {
-            path: ItemPath::new(vec![crate_name.to_string(), mangled.clone()]),
+            path: ItemPath::new(mod_segs.clone()),
             exports: Vec::new(),
         }));
 
         let mut mod_exports: Vec<Export> = Vec::new();
         for fn_fix in module.fns {
+            let mut fn_segs = mod_segs.clone();
+            fn_segs.push(fn_fix.name.to_string());
             let fn_id = Id(ir.items.len() as u32);
             ir.items.push(Item::Fn(FnDef {
-                path: ItemPath::new(vec![
-                    crate_name.to_string(),
-                    mangled.clone(),
-                    fn_fix.name.to_string(),
-                ]),
+                path: ItemPath::new(fn_segs),
                 params: Vec::new(),
                 return_type: Type::Unit,
                 docs: None,
@@ -218,7 +217,7 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (IR, HashSet<Id>) {
         }
 
         root_exports.push(Export {
-            name: mangled.clone(),
+            name: module.mod_name.to_string(),
             target: mod_id,
         });
     }
@@ -231,7 +230,7 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (IR, HashSet<Id>) {
 }
 
 /// Convenience wrapper for building an empty IR (for tests that just need
-/// `set_default` to run with no modules).
+/// to exercise the scaffold with no modules).
 pub fn empty_ir(crate_name: &str) -> (IR, HashSet<Id>) {
     make_ir(crate_name, &[])
 }

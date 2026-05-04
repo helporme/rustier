@@ -24,9 +24,9 @@ pub(crate) struct MetaSection {
     #[serde(default)]
     pub activation: Option<MetaActivation>,
     #[serde(default)]
-    pub has_lib: bool,
+    pub has_content: bool,
     #[serde(default)]
-    pub has_build: bool,
+    pub has_build_content: bool,
     #[serde(default)]
     pub deps: Vec<MetaDep>,
     #[serde(default)]
@@ -38,8 +38,13 @@ pub(crate) struct MetaSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub(crate) enum MetaActivation {
-    CargoFeature { name: String },
-    Env { env_var: String, cfg_flag: String },
+    CargoFeature {
+        name: String,
+    },
+    ExclusiveEnv {
+        env_var: String,
+        cfg_flag: String,
+    },
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -103,13 +108,13 @@ fn section_to_meta(s: &Section) -> MetaSection {
     MetaSection {
         activation: s.activation.as_ref().map(|a| match a {
             Activation::CargoFeature(name) => MetaActivation::CargoFeature { name: name.clone() },
-            Activation::Env { env_var, cfg_flag } => MetaActivation::Env {
+            Activation::ExclusiveEnv { env_var, cfg_flag } => MetaActivation::ExclusiveEnv {
                 env_var: env_var.clone(),
                 cfg_flag: cfg_flag.clone(),
             },
         }),
-        has_lib: s.lib.is_some(),
-        has_build: s.build.is_some(),
+        has_content: s.content.is_some(),
+        has_build_content: s.build_content.is_some(),
         deps: s.deps.iter().map(dep_to_meta).collect(),
         build_deps: s.build_deps.iter().map(dep_to_meta).collect(),
         external_files: s.external_files.clone(),

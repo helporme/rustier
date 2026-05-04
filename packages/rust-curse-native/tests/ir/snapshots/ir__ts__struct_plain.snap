@@ -12,7 +12,7 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 /** A point in 2D space. All fields are public, so it is copy-constructible. */
 export class Point {
     private [" "]: 'rustdoc_test_crate::Point';

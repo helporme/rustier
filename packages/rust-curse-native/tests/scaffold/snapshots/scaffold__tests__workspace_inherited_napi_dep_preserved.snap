@@ -56,8 +56,8 @@ include!("lib-napi.rs");
         "kind": "cargo_feature",
         "name": "node"
       },
-      "has_lib": true,
-      "has_build": true,
+      "has_content": true,
+      "has_build_content": true,
       "deps": [
         {
           "name": "napi",

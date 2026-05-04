@@ -12,7 +12,7 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 export class Marker {
     private [" "]: 'rustdoc_test_crate::Marker';
 

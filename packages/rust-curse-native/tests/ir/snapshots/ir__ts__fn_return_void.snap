@@ -12,6 +12,6 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 /** Unit return type maps to `void`. */
 export function f(): void;

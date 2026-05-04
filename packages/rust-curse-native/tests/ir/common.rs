@@ -42,9 +42,9 @@ pub fn fmt_src(src: &str) -> String {
     }
 }
 
-/// Print the ambient preamble once, then every module's `.d.rs.ts` body
+/// Print the ambient preamble once, then every module's `.rs.d.ts` body
 /// under a `// <rel_dts_path>` header. Single snapshot per test. The
-/// crate root maps to `<rel_src_path>/lib.d.rs.ts`.
+/// crate root maps to `<rel_src_path>/lib.rs.d.ts`.
 pub fn print_ts_per_mod(ir: &rust_curse::ir::IR, rel_src_path: std::path::PathBuf) -> String {
     let mut out = ir.print_ts_ambient().to_string();
     for (i, item) in ir.items.iter().enumerate() {
@@ -58,12 +58,12 @@ pub fn print_ts_per_mod(ir: &rust_curse::ir::IR, rel_src_path: std::path::PathBu
         }
         let mut dts = rel_src_path.clone();
         if segs.len() == 1 {
-            dts.push("lib.d.rs.ts");
+            dts.push("lib.rs.d.ts");
         } else {
             for seg in &segs[1..segs.len() - 1] {
                 dts.push(seg);
             }
-            dts.push(format!("{}.d.rs.ts", segs.last().unwrap()));
+            dts.push(format!("{}.rs.d.ts", segs.last().unwrap()));
         }
 
         let body = ir.print_ts_mod(rust_curse::ir::ts::PrintTsModOpts {

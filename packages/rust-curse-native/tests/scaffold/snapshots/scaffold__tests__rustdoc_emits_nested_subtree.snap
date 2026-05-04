@@ -53,12 +53,12 @@ include!("lib-rustdoc.rs");
   "sections": {
     "rustdoc": {
       "activation": {
-        "kind": "env",
+        "kind": "exclusive_env",
         "env_var": "RUST_CURSE_RUSTDOC",
         "cfg_flag": "rust_curse_rustdoc"
       },
-      "has_lib": true,
-      "has_build": false,
+      "has_content": true,
+      "has_build_content": false,
       "deps": [],
       "build_deps": [],
       "external_files": [

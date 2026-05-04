@@ -12,10 +12,10 @@ declare module "$rust-curse" {
     };
 }
 
-// src/lib.d.rs.ts
+// src/lib.rs.d.ts
 
 
-// src/a.d.rs.ts
+// src/a.rs.d.ts
 export class Thing {
     private [" "]: 'rustdoc_test_crate::a::Thing';
 
@@ -24,7 +24,7 @@ export class Thing {
     constructor(x: number);
 }
 
-// src/b.d.rs.ts
+// src/b.rs.d.ts
 export class Thing {
     private [" "]: 'rustdoc_test_crate::b::Thing';
 

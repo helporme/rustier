@@ -8,18 +8,22 @@ use crate::common::HEADER;
 
 use super::{Activation, BuildContribution, Section};
 
-/// Render the top-level `lib.rs` that inlines the active section's
-/// `lib-{name}.rs` via `include!`. Activations must be mutually exclusive
-/// at runtime so item names don't collide across sections.
+/// Render the top-level `lib.rs` that inlines each section's
+/// `lib-{name}.rs` via `include!`. Sections without an activation are
+/// always linked in; cargo-feature sections are gated by their feature.
+/// At most one `ExclusiveEnv` section may exist; when its env var is
+/// set, every other section is suppressed.
 pub(crate) fn render_lib_dispatcher(sections: &BTreeMap<String, Section>) -> String {
     let mut out = String::from(HEADER);
     out.push_str("#![allow(non_camel_case_types, non_snake_case)]\n\n");
 
+    let exclusive_cfg = exclusive_cfg_flag(sections);
+
     for (name, section) in sections {
-        if section.lib.is_none() {
+        if section.content.is_none() {
             continue;
         }
-        let cfg_attr = activation_cfg_attr(&section.activation, sections, name);
+        let cfg_attr = activation_cfg_attr(&section.activation, exclusive_cfg.as_deref());
         if !cfg_attr.is_empty() {
             writeln!(out, "{cfg_attr}").unwrap();
         }
@@ -30,26 +34,28 @@ pub(crate) fn render_lib_dispatcher(sections: &BTreeMap<String, Section>) -> Str
 }
 
 /// Whether a `build.rs` dispatcher is needed: only when at least one
-/// section contributes build code or activates via an env var (which
-/// requires emitting `cargo:rustc-cfg`).
+/// section contributes build code or activates via an exclusive env var
+/// (which requires emitting `cargo:rustc-cfg`).
 pub(crate) fn needs_build_rs(sections: &BTreeMap<String, Section>) -> bool {
-    sections
-        .values()
-        .any(|s| s.build.is_some() || matches!(s.activation, Some(Activation::Env { .. })))
+    sections.values().any(|s| {
+        s.build_content.is_some() || matches!(s.activation, Some(Activation::ExclusiveEnv { .. }))
+    })
 }
 
 /// Render the top-level `build.rs` that includes each section's
 /// `build-{name}.rs` (gated by activation) and calls `setup()` on every
-/// active section. Env-activated sections also contribute env-var → cfg
-/// mappings emitted at the top of `main()`.
+/// active section. Exclusive-env-activated sections also contribute
+/// env-var → cfg mappings emitted at the top of `main()`.
 pub(crate) fn render_build_dispatcher(sections: &BTreeMap<String, Section>) -> String {
     let mut out = String::from(HEADER);
 
+    let exclusive_cfg = exclusive_cfg_flag(sections);
+
     for (name, section) in sections {
-        if section.build.is_none() {
+        if section.build_content.is_none() {
             continue;
         }
-        let cfg_attr = activation_cfg_attr(&section.activation, sections, name);
+        let cfg_attr = activation_cfg_attr(&section.activation, exclusive_cfg.as_deref());
         if !cfg_attr.is_empty() {
             writeln!(out, "{cfg_attr}").unwrap();
         }
@@ -60,7 +66,7 @@ pub(crate) fn render_build_dispatcher(sections: &BTreeMap<String, Section>) -> S
     writeln!(out, "fn main() {{").unwrap();
 
     for section in sections.values() {
-        if let Some(Activation::Env { env_var, cfg_flag }) = &section.activation {
+        if let Some(Activation::ExclusiveEnv { env_var, cfg_flag }) = &section.activation {
             writeln!(out, "    if std::env::var(\"{env_var}\").is_ok() {{").unwrap();
             writeln!(out, "        println!(\"cargo:rustc-cfg={cfg_flag}\");").unwrap();
             writeln!(out, "    }}").unwrap();
@@ -68,10 +74,10 @@ pub(crate) fn render_build_dispatcher(sections: &BTreeMap<String, Section>) -> S
     }
 
     for (name, section) in sections {
-        if section.build.is_none() {
+        if section.build_content.is_none() {
             continue;
         }
-        let cfg_attr = activation_cfg_attr(&section.activation, sections, name);
+        let cfg_attr = activation_cfg_attr(&section.activation, exclusive_cfg.as_deref());
         if !cfg_attr.is_empty() {
             writeln!(out, "    {cfg_attr}").unwrap();
         }
@@ -106,38 +112,24 @@ pub(crate) fn render_section_build(contrib: &BuildContribution) -> String {
     out
 }
 
-fn activation_cfg_attr(
-    activation: &Option<Activation>,
-    all: &BTreeMap<String, Section>,
-    this_name: &str,
-) -> String {
+fn exclusive_cfg_flag(sections: &BTreeMap<String, Section>) -> Option<String> {
+    sections.values().find_map(|s| match &s.activation {
+        Some(Activation::ExclusiveEnv { cfg_flag, .. }) => Some(cfg_flag.clone()),
+        _ => None,
+    })
+}
+
+fn activation_cfg_attr(activation: &Option<Activation>, exclusive_cfg: Option<&str>) -> String {
     match activation {
-        Some(Activation::CargoFeature(f)) => format!("#[cfg(feature = \"{f}\")]"),
-        Some(Activation::Env { cfg_flag, .. }) => format!("#[cfg({cfg_flag})]"),
-        None => {
-            let mut excluded: Vec<String> = Vec::new();
-            for (n, s) in all {
-                if n == this_name {
-                    continue;
-                }
-                match &s.activation {
-                    Some(Activation::CargoFeature(f)) => {
-                        excluded.push(format!("feature = \"{f}\""));
-                    }
-                    Some(Activation::Env { cfg_flag, .. }) => {
-                        excluded.push(cfg_flag.clone());
-                    }
-                    None => {}
-                }
-            }
-            if excluded.is_empty() {
-                String::new()
-            } else if excluded.len() == 1 {
-                format!("#[cfg(not({}))]", excluded[0])
-            } else {
-                format!("#[cfg(not(any({})))]", excluded.join(", "))
-            }
-        }
+        Some(Activation::CargoFeature(f)) => match exclusive_cfg {
+            Some(ex) => format!("#[cfg(all(feature = \"{f}\", not({ex})))]"),
+            None => format!("#[cfg(feature = \"{f}\")]"),
+        },
+        Some(Activation::ExclusiveEnv { cfg_flag, .. }) => format!("#[cfg({cfg_flag})]"),
+        None => match exclusive_cfg {
+            Some(ex) => format!("#[cfg(not({ex}))]"),
+            None => String::new(),
+        },
     }
 }
 
@@ -145,67 +137,82 @@ fn activation_cfg_attr(
 mod tests {
     use super::*;
 
-    fn cargo_section(lib: Option<&str>, feature: &str) -> Section {
+    fn cargo_section(content: Option<&str>, feature: &str) -> Section {
         Section {
             activation: Some(Activation::CargoFeature(feature.into())),
-            lib: lib.map(String::from),
+            content: content.map(String::from),
             ..Section::default()
         }
     }
 
-    fn env_section(lib: Option<&str>, env: &str, cfg: &str) -> Section {
+    fn exclusive_env_section(content: Option<&str>, env: &str, cfg: &str) -> Section {
         Section {
-            activation: Some(Activation::Env {
+            activation: Some(Activation::ExclusiveEnv {
                 env_var: env.into(),
                 cfg_flag: cfg.into(),
             }),
-            lib: lib.map(String::from),
+            content: content.map(String::from),
             ..Section::default()
         }
     }
 
-    fn default_section(lib: Option<&str>) -> Section {
+    fn always_section(content: Option<&str>) -> Section {
         Section {
             activation: None,
-            lib: lib.map(String::from),
+            content: content.map(String::from),
             ..Section::default()
         }
     }
 
     #[test]
-    fn lib_dispatcher_default_only() {
+    fn lib_dispatcher_always_only() {
         let mut sections = BTreeMap::new();
-        sections.insert("default".to_string(), default_section(Some("// d")));
+        sections.insert("link".to_string(), always_section(Some("// l")));
 
         let out = render_lib_dispatcher(&sections);
         assert!(out.contains("#![allow(non_camel_case_types, non_snake_case)]"));
-        assert!(out.contains("include!(\"lib-default.rs\");"));
-        assert!(!out.contains("mod target_"));
+        assert!(out.contains("include!(\"lib-link.rs\");"));
         assert!(!out.contains("#[cfg("));
     }
 
     #[test]
-    fn lib_dispatcher_default_excludes_cargo_and_env() {
+    fn lib_dispatcher_always_and_cargo_coexist_without_exclusive() {
         let mut sections = BTreeMap::new();
-        sections.insert("default".to_string(), default_section(Some("// d")));
+        sections.insert("link".to_string(), always_section(Some("// l")));
+        sections.insert("napi".to_string(), cargo_section(Some("// n"), "node"));
+
+        let out = render_lib_dispatcher(&sections);
+        assert!(out.contains("include!(\"lib-link.rs\");"));
+        assert!(out.contains("#[cfg(feature = \"node\")]"));
+        assert!(out.contains("include!(\"lib-napi.rs\");"));
+        // No exclusive env in play; "always" section gets no cfg attr.
+        assert!(
+            !out.contains("#[cfg(not("),
+            "no exclusive env exists, so no `cfg(not(...))` should be emitted; got:\n{out}"
+        );
+    }
+
+    #[test]
+    fn lib_dispatcher_exclusive_suppresses_others() {
+        let mut sections = BTreeMap::new();
+        sections.insert("link".to_string(), always_section(Some("// l")));
         sections.insert("napi".to_string(), cargo_section(Some("// n"), "node"));
         sections.insert(
             "rustdoc".to_string(),
-            env_section(Some("// r"), "RUST_CURSE_RUSTDOC", "rust_curse_rustdoc"),
+            exclusive_env_section(Some("// r"), "RUST_CURSE_RUSTDOC", "rust_curse_rustdoc"),
         );
 
         let out = render_lib_dispatcher(&sections);
-        assert!(out.contains("#![allow(non_camel_case_types, non_snake_case)]"));
-        assert!(out.contains("#[cfg(not(any(feature = \"node\", rust_curse_rustdoc)))]"));
-        assert!(out.contains("#[cfg(feature = \"node\")]"));
+        assert!(out.contains("#[cfg(not(rust_curse_rustdoc))]"));
+        assert!(out.contains("#[cfg(all(feature = \"node\", not(rust_curse_rustdoc)))]"));
         assert!(out.contains("#[cfg(rust_curse_rustdoc)]"));
-        assert!(out.contains("include!(\"lib-default.rs\");"));
+        assert!(out.contains("include!(\"lib-link.rs\");"));
         assert!(out.contains("include!(\"lib-napi.rs\");"));
         assert!(out.contains("include!(\"lib-rustdoc.rs\");"));
     }
 
     #[test]
-    fn lib_dispatcher_skips_section_without_lib() {
+    fn lib_dispatcher_skips_section_without_content() {
         let mut sections = BTreeMap::new();
         sections.insert("napi".to_string(), cargo_section(None, "node"));
         let out = render_lib_dispatcher(&sections);
@@ -213,19 +220,19 @@ mod tests {
     }
 
     #[test]
-    fn needs_build_rs_false_when_only_lib_only_sections() {
+    fn needs_build_rs_false_when_only_content_only_sections() {
         let mut sections = BTreeMap::new();
-        sections.insert("default".to_string(), default_section(Some("// d")));
+        sections.insert("link".to_string(), always_section(Some("// l")));
         sections.insert("napi".to_string(), cargo_section(Some("// n"), "node"));
         assert!(!needs_build_rs(&sections));
     }
 
     #[test]
-    fn needs_build_rs_true_with_env_activation() {
+    fn needs_build_rs_true_with_exclusive_env_activation() {
         let mut sections = BTreeMap::new();
         sections.insert(
             "rustdoc".to_string(),
-            env_section(Some("// r"), "RUST_CURSE_RUSTDOC", "rust_curse_rustdoc"),
+            exclusive_env_section(Some("// r"), "RUST_CURSE_RUSTDOC", "rust_curse_rustdoc"),
         );
         assert!(needs_build_rs(&sections));
     }
@@ -235,8 +242,8 @@ mod tests {
         let mut sections = BTreeMap::new();
         let napi = Section {
             activation: Some(Activation::CargoFeature("node".into())),
-            lib: Some("// n".into()),
-            build: Some(BuildContribution {
+            content: Some("// n".into()),
+            build_content: Some(BuildContribution {
                 preamble: "use napi_build;".into(),
                 main: "napi_build::setup();".into(),
             }),
@@ -247,11 +254,11 @@ mod tests {
     }
 
     #[test]
-    fn build_dispatcher_emits_env_cfg_setup() {
+    fn build_dispatcher_emits_exclusive_env_cfg_setup() {
         let mut sections = BTreeMap::new();
         sections.insert(
             "rustdoc".to_string(),
-            env_section(Some("// r"), "RUST_CURSE_RUSTDOC", "rust_curse_rustdoc"),
+            exclusive_env_section(Some("// r"), "RUST_CURSE_RUSTDOC", "rust_curse_rustdoc"),
         );
         let out = render_build_dispatcher(&sections);
         assert!(out.contains("if std::env::var(\"RUST_CURSE_RUSTDOC\").is_ok()"));
@@ -263,8 +270,8 @@ mod tests {
         let mut sections = BTreeMap::new();
         let napi = Section {
             activation: Some(Activation::CargoFeature("node".into())),
-            lib: Some("// n".into()),
-            build: Some(BuildContribution {
+            content: Some("// n".into()),
+            build_content: Some(BuildContribution {
                 preamble: "use napi_build;".into(),
                 main: "napi_build::setup();".into(),
             }),
