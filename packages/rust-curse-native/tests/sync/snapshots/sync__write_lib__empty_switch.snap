@@ -1,0 +1,16 @@
+---
+source: tests/sync/write_lib.rs
+expression: "apply(&LibSwitch::new())"
+---
+## Switch
+
+```
+branches: []
+```
+
+## Output
+
+### lib.rs
+
+```rust
+```

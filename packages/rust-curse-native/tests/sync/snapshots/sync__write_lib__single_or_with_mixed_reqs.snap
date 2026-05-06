@@ -1,0 +1,25 @@
+---
+source: tests/sync/write_lib.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - mixed (or) cargo_features=["node"] env_flags=["rust_curse_extra"]
+```
+
+## Output
+
+### lib.rs
+
+```rust
+#[cfg(all(feature = "node", rust_curse_extra))]
+include!("mixed.rs");
+```
+
+### mixed.rs
+
+```rust
+// mixed
+```

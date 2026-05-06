@@ -1,0 +1,45 @@
+---
+source: tests/sync/write_lib.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - link (or)
+  - rustdoc (xor) env_flags=["rust_curse_rustdoc"]
+  - wasm (xor) cargo_features=["wasm"]
+```
+
+## Output
+
+### lib.rs
+
+```rust
+#[cfg(not(any(feature = "wasm", rust_curse_rustdoc)))]
+include!("link.rs");
+
+#[cfg(rust_curse_rustdoc)]
+include!("rustdoc.rs");
+
+#[cfg(feature = "wasm")]
+include!("wasm.rs");
+```
+
+### link.rs
+
+```rust
+// link
+```
+
+### rustdoc.rs
+
+```rust
+// rustdoc
+```
+
+### wasm.rs
+
+```rust
+// wasm
+```

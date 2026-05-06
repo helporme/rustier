@@ -1,0 +1,25 @@
+---
+source: tests/sync/write_lib.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - node (or) cargo_features=["node"]
+```
+
+## Output
+
+### lib.rs
+
+```rust
+#[cfg(feature = "node")]
+include!("node.rs");
+```
+
+### node.rs
+
+```rust
+// node
+```

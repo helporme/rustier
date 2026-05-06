@@ -1,0 +1,24 @@
+---
+source: tests/sync/write_lib.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - extras (or)
+```
+
+## Output
+
+### extras.rs
+
+```rust
+// extras
+```
+
+### lib.rs
+
+```rust
+include!("extras.rs");
+```

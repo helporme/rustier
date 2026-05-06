@@ -1,0 +1,38 @@
+---
+source: tests/sync/write_lib.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - feature_x (or) cargo_features=["feature-x"]
+  - feature_y (xor) cargo_features=["feature-y"]
+  - lib (or)
+```
+
+## Output
+
+### feature_x.rs
+
+```rust
+// feature-x
+```
+
+### feature_y.rs
+
+```rust
+// feature-y
+```
+
+### lib.rs
+
+```rust
+// always included
+
+#[cfg(all(feature = "feature-x", not(feature = "feature-y")))]
+include!("feature_x.rs");
+
+#[cfg(feature = "feature-y")]
+include!("feature_y.rs");
+```

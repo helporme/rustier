@@ -1,0 +1,42 @@
+---
+source: tests/sync/write_lib.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - alpha (or)
+  - middle (or)
+  - zeta (or)
+```
+
+## Output
+
+### alpha.rs
+
+```rust
+// alpha
+```
+
+### lib.rs
+
+```rust
+include!("alpha.rs");
+
+include!("middle.rs");
+
+include!("zeta.rs");
+```
+
+### middle.rs
+
+```rust
+// middle
+```
+
+### zeta.rs
+
+```rust
+// zeta
+```

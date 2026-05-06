@@ -1,0 +1,25 @@
+---
+source: tests/sync/write_lib.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - rustdoc (or) env_flags=["rust_curse_rustdoc"]
+```
+
+## Output
+
+### lib.rs
+
+```rust
+#[cfg(rust_curse_rustdoc)]
+include!("rustdoc.rs");
+```
+
+### rustdoc.rs
+
+```rust
+// rustdoc
+```

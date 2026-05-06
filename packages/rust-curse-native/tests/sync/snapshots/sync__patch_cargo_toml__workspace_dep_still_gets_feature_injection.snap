@@ -1,0 +1,33 @@
+---
+source: tests/sync/patch_cargo_toml.rs
+expression: "apply(cargo, &patch)"
+---
+## Input
+
+```toml
+[package]
+name = "x"
+version = "0.1"
+[dependencies]
+napi = { workspace = true }
+```
+
+## Patch
+
+```
+deps:
+  - napi@3 require_features=["node"]
+```
+
+## Output
+
+```toml
+[package]
+name = "x"
+version = "0.1"
+[dependencies]
+napi = { workspace = true }
+
+[features]
+node = ["dep:napi"]
+```

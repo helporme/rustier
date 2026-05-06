@@ -1,0 +1,48 @@
+---
+source: tests/sync/write_lib.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - lib (or)
+  - link (or)
+  - napi (or) cargo_features=["node"]
+  - rustdoc (xor) env_flags=["rust_curse_rustdoc"]
+```
+
+## Output
+
+### lib.rs
+
+```rust
+// prelude
+
+#[cfg(not(rust_curse_rustdoc))]
+include!("link.rs");
+
+#[cfg(all(feature = "node", not(rust_curse_rustdoc)))]
+include!("napi.rs");
+
+#[cfg(rust_curse_rustdoc)]
+include!("rustdoc.rs");
+```
+
+### link.rs
+
+```rust
+// link
+```
+
+### napi.rs
+
+```rust
+// napi
+```
+
+### rustdoc.rs
+
+```rust
+// rustdoc
+```

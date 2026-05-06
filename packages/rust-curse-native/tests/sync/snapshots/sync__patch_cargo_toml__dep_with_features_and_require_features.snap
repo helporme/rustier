@@ -1,0 +1,32 @@
+---
+source: tests/sync/patch_cargo_toml.rs
+expression: "apply(PKG, &patch)"
+---
+## Input
+
+```toml
+[package]
+name = "x"
+version = "0.1"
+```
+
+## Patch
+
+```
+deps:
+  - napi@3 features=["napi6"] require_features=["node"]
+```
+
+## Output
+
+```toml
+[package]
+name = "x"
+version = "0.1"
+
+[dependencies]
+napi = { version = "3", features = ["napi6"], optional = true }
+
+[features]
+node = ["dep:napi"]
+```
