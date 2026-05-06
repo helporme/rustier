@@ -45,19 +45,19 @@ use std::{collections::HashMap, fmt, fs, io, path::Path};
 /// ```
 #[derive(Default, Debug)]
 pub struct LibSwitch {
-    pub branches: HashMap<String, LibBranchVariant>,
+    pub branches: HashMap<String, LibBranchKind>,
 }
 
 #[derive(Debug)]
-pub enum LibBranchVariant {
+pub enum LibBranchKind {
     Or(LibBranch),
     Xor(LibBranch),
 }
 
-impl LibBranchVariant {
+impl LibBranchKind {
     fn lib(&self) -> &LibBranch {
         match self {
-            LibBranchVariant::Or(l) | LibBranchVariant::Xor(l) => l,
+            LibBranchKind::Or(l) | LibBranchKind::Xor(l) => l,
         }
     }
 }
@@ -71,7 +71,7 @@ impl LibSwitch {
     /// alongside any other matching branches; replaces any existing branch
     /// with the same name.
     pub fn set_branch(&mut self, name: impl Into<String>, lib: LibBranch) -> &mut Self {
-        self.branches.insert(name.into(), LibBranchVariant::Or(lib));
+        self.branches.insert(name.into(), LibBranchKind::Or(lib));
         self
     }
 
@@ -80,7 +80,7 @@ impl LibSwitch {
     /// branch with the same name.
     pub fn set_xor_branch(&mut self, name: impl Into<String>, lib: LibBranch) -> &mut Self {
         self.branches
-            .insert(name.into(), LibBranchVariant::Xor(lib));
+            .insert(name.into(), LibBranchKind::Xor(lib));
         self
     }
 }
@@ -125,13 +125,13 @@ impl fmt::Display for LibSwitch {
         if self.branches.is_empty() {
             return writeln!(f, "branches: []");
         }
-        let mut sorted: Vec<(&String, &LibBranchVariant)> = self.branches.iter().collect();
+        let mut sorted: Vec<(&String, &LibBranchKind)> = self.branches.iter().collect();
         sorted.sort_by(|a, b| a.0.cmp(b.0));
         writeln!(f, "branches:")?;
         for (name, branch) in sorted {
             let (kind, lib) = match branch {
-                LibBranchVariant::Or(l) => ("or", l),
-                LibBranchVariant::Xor(l) => ("xor", l),
+                LibBranchKind::Or(l) => ("or", l),
+                LibBranchKind::Xor(l) => ("xor", l),
             };
             write!(f, "  - {name} ({kind})")?;
             if let Some(features) = lib.req_cargo_features.as_ref().filter(|v| !v.is_empty()) {
@@ -206,11 +206,11 @@ pub fn render_lib(switch: &LibSwitch) -> Result<Option<Vec<RenderedFile>>, Rende
     if switch.branches.is_empty() {
         return Ok(None);
     }
-    if let Some(LibBranchVariant::Xor(_)) = switch.branches.get("lib") {
+    if let Some(LibBranchKind::Xor(_)) = switch.branches.get("lib") {
         return Err(RenderLibError::LibBranchMustBeOr);
     }
     for (name, branch) in &switch.branches {
-        if let LibBranchVariant::Xor(lib) = branch {
+        if let LibBranchKind::Xor(lib) = branch {
             if requirements(lib).is_empty() {
                 return Err(RenderLibError::XorBranchHasNoRequirements { name: name.clone() });
             }
@@ -219,7 +219,7 @@ pub fn render_lib(switch: &LibSwitch) -> Result<Option<Vec<RenderedFile>>, Rende
 
     let suppress = suppress_condition(switch);
 
-    let mut sorted: Vec<(&String, &LibBranchVariant)> = switch
+    let mut sorted: Vec<(&String, &LibBranchKind)> = switch
         .branches
         .iter()
         .filter(|(name, _)| name.as_str() != "lib")
@@ -285,7 +285,7 @@ fn requirements(lib: &LibBranch) -> Vec<String> {
 fn suppress_condition(switch: &LibSwitch) -> Option<String> {
     let mut xor_preds: Vec<String> = Vec::new();
     for branch in switch.branches.values() {
-        if let LibBranchVariant::Xor(lib) = branch {
+        if let LibBranchKind::Xor(lib) = branch {
             let preds = requirements(lib);
             match preds.len() {
                 0 => continue,
@@ -302,9 +302,9 @@ fn suppress_condition(switch: &LibSwitch) -> Option<String> {
     }
 }
 
-fn cfg_for_branch(branch: &LibBranchVariant, suppress: Option<&str>) -> Option<String> {
+fn cfg_for_branch(branch: &LibBranchKind, suppress: Option<&str>) -> Option<String> {
     let mut preds = requirements(branch.lib());
-    if matches!(branch, LibBranchVariant::Or(_)) {
+    if matches!(branch, LibBranchKind::Or(_)) {
         if let Some(s) = suppress {
             preds.push(format!("not({s})"));
         }

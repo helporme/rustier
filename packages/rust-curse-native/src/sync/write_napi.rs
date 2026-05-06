@@ -17,12 +17,10 @@ impl Syncer {
         patch_cargo_toml_file(
             &self.project_root_abs_path.join("Cargo.toml"),
             &CargoTomlPatch::new()
-                .dep(Dep::new("wasm-bindgen", "0.2").requires_feature(NAPI_CARGO_FEATURE))
-                .dep(Dep::new("serde-wasm-bindgen", "0.6").requires_feature(NAPI_CARGO_FEATURE))
-                .dep(
-                    Dep::new("serde", "1")
-                        .feature("derive")
-                        .requires_feature(NAPI_CARGO_FEATURE),
+                .dep(Dep::new("napi", "3").requires_feature(NAPI_CARGO_FEATURE))
+                .dep(Dep::new("napi-derive", "3").requires_feature(NAPI_CARGO_FEATURE))
+                .build_dep(
+                    Dep::new("napi-build", "2").requires_feature(NAPI_CARGO_FEATURE),
                 ),
         )
         .unwrap();

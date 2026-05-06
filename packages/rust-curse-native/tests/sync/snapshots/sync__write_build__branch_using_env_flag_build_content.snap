@@ -14,6 +14,7 @@ branches:
 ```rust
 fn main() {
     {
+        println!("cargo:rerun-if-env-changed=RUST_CURSE_RUSTDOC");
         if std::env::var("RUST_CURSE_RUSTDOC").is_ok() {
             println!("cargo:rustc-cfg=rust_curse_rustdoc");
         }
