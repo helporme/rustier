@@ -1,7 +1,7 @@
 use std::fs;
 
 use rust_curse::sync::write_lib::{
-    render_lib, write_lib, Lib, LibSwitch, RenderLibError, RenderedFile,
+    render_lib, write_lib, LibBranch, LibSwitch, RenderLibError, RenderedFile,
 };
 
 /// Render `switch` twice and assert idempotency, then return a
@@ -11,13 +11,16 @@ fn apply(switch: &LibSwitch) -> String {
     let once = render_lib(switch).unwrap();
     let twice = render_lib(switch).unwrap();
     assert_eq!(
-        files_to_string(&once),
-        files_to_string(&twice),
+        once.as_deref().map(files_to_string),
+        twice.as_deref().map(files_to_string),
         "render must be idempotent",
     );
-    let mut sorted = once;
-    sorted.sort_by(|a, b| a.name.cmp(&b.name));
     let mut report = format!("## Switch\n\n```\n{switch}```\n\n## Output\n\n");
+    let Some(mut sorted) = once else {
+        report.push_str("(none)\n");
+        return report;
+    };
+    sorted.sort_by(|a, b| a.name.cmp(&b.name));
     for f in &sorted {
         report.push_str(&format!(
             "### {}.rs\n\n```rust\n{}```\n\n",
@@ -44,39 +47,44 @@ fn empty_switch() {
 
 #[test]
 fn lib_branch_only() {
-    let switch = LibSwitch::new().branch("lib", Lib::new("// always included\n"));
+    let mut switch = LibSwitch::new();
+    switch.set_branch("lib", LibBranch::new("// always included\n"));
     insta::assert_snapshot!(apply(&switch));
 }
 
 #[test]
 fn single_or_no_reqs() {
-    let switch = LibSwitch::new().branch("extras", Lib::new("// extras\n"));
+    let mut switch = LibSwitch::new();
+    switch.set_branch("extras", LibBranch::new("// extras\n"));
     insta::assert_snapshot!(apply(&switch));
 }
 
 #[test]
 fn single_or_with_cargo_feature() {
-    let switch = LibSwitch::new().branch(
+    let mut switch = LibSwitch::new();
+    switch.set_branch(
         "node",
-        Lib::new("// node\n").requires_cargo_feature("node"),
+        LibBranch::new("// node\n").requires_cargo_feature("node"),
     );
     insta::assert_snapshot!(apply(&switch));
 }
 
 #[test]
 fn single_or_with_env_flag() {
-    let switch = LibSwitch::new().branch(
+    let mut switch = LibSwitch::new();
+    switch.set_branch(
         "rustdoc",
-        Lib::new("// rustdoc\n").requires_env_flag("rust_curse_rustdoc"),
+        LibBranch::new("// rustdoc\n").requires_env_flag("rust_curse_rustdoc"),
     );
     insta::assert_snapshot!(apply(&switch));
 }
 
 #[test]
 fn single_or_with_multiple_cargo_features() {
-    let switch = LibSwitch::new().branch(
+    let mut switch = LibSwitch::new();
+    switch.set_branch(
         "combo",
-        Lib::new("// combo\n")
+        LibBranch::new("// combo\n")
             .requires_cargo_feature("a")
             .requires_cargo_feature("b"),
     );
@@ -85,9 +93,10 @@ fn single_or_with_multiple_cargo_features() {
 
 #[test]
 fn single_or_with_mixed_reqs() {
-    let switch = LibSwitch::new().branch(
+    let mut switch = LibSwitch::new();
+    switch.set_branch(
         "mixed",
-        Lib::new("// mixed\n")
+        LibBranch::new("// mixed\n")
             .requires_cargo_feature("node")
             .requires_env_flag("rust_curse_extra"),
     );
@@ -96,81 +105,87 @@ fn single_or_with_mixed_reqs() {
 
 #[test]
 fn single_xor_with_cargo_feature() {
-    let switch = LibSwitch::new().xor_branch(
+    let mut switch = LibSwitch::new();
+    switch.set_xor_branch(
         "rustdoc",
-        Lib::new("// rustdoc\n").requires_cargo_feature("rustdoc"),
+        LibBranch::new("// rustdoc\n").requires_cargo_feature("rustdoc"),
     );
     insta::assert_snapshot!(apply(&switch));
 }
 
 #[test]
 fn xor_with_or_branches() {
-    let switch = LibSwitch::new()
-        .branch("lib", Lib::new("// always included"))
-        .branch(
+    let mut switch = LibSwitch::new();
+    switch
+        .set_branch("lib", LibBranch::new("// always included"))
+        .set_branch(
             "feature_x",
-            Lib::new("// feature-x\n").requires_cargo_feature("feature-x"),
+            LibBranch::new("// feature-x\n").requires_cargo_feature("feature-x"),
         )
-        .xor_branch(
+        .set_xor_branch(
             "feature_y",
-            Lib::new("// feature-y\n").requires_cargo_feature("feature-y"),
+            LibBranch::new("// feature-y\n").requires_cargo_feature("feature-y"),
         );
     insta::assert_snapshot!(apply(&switch));
 }
 
 #[test]
 fn lib_plus_or_plus_xor() {
-    let switch = LibSwitch::new()
-        .branch("lib", Lib::new("// prelude\n"))
-        .branch("link", Lib::new("// link\n"))
-        .branch(
+    let mut switch = LibSwitch::new();
+    switch
+        .set_branch("lib", LibBranch::new("// prelude\n"))
+        .set_branch("link", LibBranch::new("// link\n"))
+        .set_branch(
             "napi",
-            Lib::new("// napi\n").requires_cargo_feature("node"),
+            LibBranch::new("// napi\n").requires_cargo_feature("node"),
         )
-        .xor_branch(
+        .set_xor_branch(
             "rustdoc",
-            Lib::new("// rustdoc\n").requires_env_flag("rust_curse_rustdoc"),
+            LibBranch::new("// rustdoc\n").requires_env_flag("rust_curse_rustdoc"),
         );
     insta::assert_snapshot!(apply(&switch));
 }
 
 #[test]
 fn multiple_or_branches_sorted() {
-    let switch = LibSwitch::new()
-        .branch("zeta", Lib::new("// zeta\n"))
-        .branch("alpha", Lib::new("// alpha\n"))
-        .branch("middle", Lib::new("// middle\n"));
+    let mut switch = LibSwitch::new();
+    switch
+        .set_branch("zeta", LibBranch::new("// zeta\n"))
+        .set_branch("alpha", LibBranch::new("// alpha\n"))
+        .set_branch("middle", LibBranch::new("// middle\n"));
     insta::assert_snapshot!(apply(&switch));
 }
 
 #[test]
 fn multiple_xor_branches() {
-    let switch = LibSwitch::new()
-        .branch("link", Lib::new("// link\n"))
-        .xor_branch(
+    let mut switch = LibSwitch::new();
+    switch
+        .set_branch("link", LibBranch::new("// link\n"))
+        .set_xor_branch(
             "rustdoc",
-            Lib::new("// rustdoc\n").requires_env_flag("rust_curse_rustdoc"),
+            LibBranch::new("// rustdoc\n").requires_env_flag("rust_curse_rustdoc"),
         )
-        .xor_branch(
+        .set_xor_branch(
             "wasm",
-            Lib::new("// wasm\n").requires_cargo_feature("wasm"),
+            LibBranch::new("// wasm\n").requires_cargo_feature("wasm"),
         );
     insta::assert_snapshot!(apply(&switch));
 }
 
 #[test]
 fn docstring_example_matches_byte_for_byte() {
-    let switch = LibSwitch::new()
-        .branch("lib", Lib::new("// always included"))
-        .branch(
+    let mut switch = LibSwitch::new();
+    switch
+        .set_branch("lib", LibBranch::new("// always included"))
+        .set_branch(
             "feature_x",
-            Lib::new("// feature-x\n").requires_cargo_feature("feature-x"),
+            LibBranch::new("// feature-x\n").requires_cargo_feature("feature-x"),
         )
-        .xor_branch(
+        .set_xor_branch(
             "feature_y",
-            Lib::new("// feature-y\n").requires_cargo_feature("feature-y"),
+            LibBranch::new("// feature-y\n").requires_cargo_feature("feature-y"),
         );
-    let files = render_lib(&switch).unwrap();
+    let files = render_lib(&switch).unwrap().unwrap();
     let lib = files.iter().find(|f| f.name == "lib").unwrap();
     assert_eq!(
         lib.content,
@@ -191,15 +206,16 @@ fn docstring_example_matches_byte_for_byte() {
 #[test]
 fn write_lib_writes_files_to_disk() {
     let dir = tempfile::tempdir().unwrap();
-    let switch = LibSwitch::new()
-        .branch("lib", Lib::new("// prelude\n"))
-        .branch(
+    let mut switch = LibSwitch::new();
+    switch
+        .set_branch("lib", LibBranch::new("// prelude\n"))
+        .set_branch(
             "feature_x",
-            Lib::new("// feature-x\n").requires_cargo_feature("feature-x"),
+            LibBranch::new("// feature-x\n").requires_cargo_feature("feature-x"),
         );
     write_lib(dir.path(), &switch).unwrap();
 
-    let rendered = render_lib(&switch).unwrap();
+    let rendered = render_lib(&switch).unwrap().unwrap();
     for file in &rendered {
         let p = dir.path().join(format!("{}.rs", file.name));
         let on_disk = fs::read_to_string(&p).unwrap();
@@ -213,8 +229,8 @@ fn write_lib_writes_files_to_disk() {
 
 #[test]
 fn xor_lib_branch_is_error() {
-    let switch =
-        LibSwitch::new().xor_branch("lib", Lib::new("// nope").requires_cargo_feature("z"));
+    let mut switch = LibSwitch::new();
+    switch.set_xor_branch("lib", LibBranch::new("// nope").requires_cargo_feature("z"));
     match render_lib(&switch) {
         Err(RenderLibError::LibBranchMustBeOr) => {}
         other => panic!("expected LibBranchMustBeOr, got {other:?}"),
@@ -223,11 +239,19 @@ fn xor_lib_branch_is_error() {
 
 #[test]
 fn xor_with_no_reqs_is_error() {
-    let switch = LibSwitch::new().xor_branch("foo", Lib::new("// foo"));
+    let mut switch = LibSwitch::new();
+    switch.set_xor_branch("foo", LibBranch::new("// foo"));
     match render_lib(&switch) {
         Err(RenderLibError::XorBranchHasNoRequirements { name }) => {
             assert_eq!(name, "foo");
         }
         other => panic!("expected XorBranchHasNoRequirements, got {other:?}"),
     }
+}
+
+#[test]
+fn write_lib_is_noop_when_empty() {
+    let dir = tempfile::tempdir().unwrap();
+    write_lib(dir.path(), &LibSwitch::new()).unwrap();
+    assert!(!dir.path().join("lib.rs").exists());
 }

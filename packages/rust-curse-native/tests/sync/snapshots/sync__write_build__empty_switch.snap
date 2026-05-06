@@ -1,0 +1,15 @@
+---
+source: tests/sync/write_build.rs
+expression: "apply(&BuildSwitch::new())"
+---
+## Switch
+
+```
+branches: []
+```
+
+## build.rs
+
+```rust
+(none)
+```

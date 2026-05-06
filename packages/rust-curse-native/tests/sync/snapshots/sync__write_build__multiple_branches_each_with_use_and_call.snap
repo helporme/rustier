@@ -1,0 +1,29 @@
+---
+source: tests/sync/write_build.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - napi cargo_features=["node"]
+  - wasm cargo_features=["wasm"]
+```
+
+## build.rs
+
+```rust
+fn main() {
+    #[cfg(feature = "node")]
+    {
+        use napi_build;
+        napi_build::setup();
+    }
+
+    #[cfg(feature = "wasm")]
+    {
+        use wasm_build;
+        wasm_build::setup();
+    }
+}
+```

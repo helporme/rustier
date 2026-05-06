@@ -1,7 +1,7 @@
 use std::fs;
 
 use rust_curse::sync::patch_cargo_toml::{
-    patch_cargo_toml, write_cargo_toml_file, CargoTomlPatch, Dep, PatchCargoTomlError,
+    patch_cargo_toml, patch_cargo_toml_file, CargoTomlPatch, Dep, PatchCargoTomlError,
 };
 
 /// Apply `patch` twice and assert the second pass produces identical output to
@@ -26,132 +26,129 @@ fn empty_patch() {
 
 #[test]
 fn lib_path_only() {
-    let patch = CargoTomlPatch::new().lib_path("src/lib.rs".into());
+    let patch = CargoTomlPatch::new().lib_path("src/lib.rs");
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn lib_path_overwrites_existing() {
     let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\n[lib]\npath = \"old.rs\"\n";
-    let patch = CargoTomlPatch::new().lib_path("new.rs".into());
+    let patch = CargoTomlPatch::new().lib_path("new.rs");
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
 #[test]
 fn build_path_only() {
-    let patch = CargoTomlPatch::new().build_path("build.rs".into());
+    let patch = CargoTomlPatch::new().build_path("build.rs");
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn build_path_overwrites_existing() {
     let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\nbuild = \"old.rs\"\n";
-    let patch = CargoTomlPatch::new().build_path("new.rs".into());
+    let patch = CargoTomlPatch::new().build_path("new.rs");
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
 #[test]
 fn crate_type_into_empty() {
-    let patch = CargoTomlPatch::new().crate_type("cdylib".into());
+    let patch = CargoTomlPatch::new().crate_type("cdylib");
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn crate_type_already_present() {
     let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\n[lib]\ncrate-type = [\"cdylib\"]\n";
-    let patch = CargoTomlPatch::new().crate_type("cdylib".into());
+    let patch = CargoTomlPatch::new().crate_type("cdylib");
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
 #[test]
 fn crate_type_extends() {
     let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\n[lib]\ncrate-type = [\"rlib\"]\n";
-    let patch = CargoTomlPatch::new().crate_type("cdylib".into());
+    let patch = CargoTomlPatch::new().crate_type("cdylib");
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
 #[test]
 fn crate_type_writes_sorted_array() {
     let patch = CargoTomlPatch::new()
-        .crate_type("staticlib".into())
-        .crate_type("cdylib".into())
-        .crate_type("rlib".into());
+        .crate_type("staticlib")
+        .crate_type("cdylib")
+        .crate_type("rlib");
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn dep_simple() {
-    let patch = CargoTomlPatch::new().dep(Dep::new("anyhow".into(), "1".into()));
+    let patch = CargoTomlPatch::new().dep(Dep::new("anyhow", "1"));
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn dep_with_features() {
-    let patch = CargoTomlPatch::new()
-        .dep(Dep::new("serde".into(), "1".into()).features(vec!["derive".into(), "rc".into()]));
+    let patch = CargoTomlPatch::new().dep(Dep::new("serde", "1").feature("derive").feature("rc"));
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn dep_with_require_features() {
-    let patch = CargoTomlPatch::new()
-        .dep(Dep::new("napi".into(), "3".into()).require_features(vec!["node".into()]));
+    let patch = CargoTomlPatch::new().dep(Dep::new("napi", "3").requires_feature("node"));
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn dep_with_features_and_require_features() {
     let patch = CargoTomlPatch::new().dep(
-        Dep::new("napi".into(), "3".into())
-            .features(vec!["napi6".into()])
-            .require_features(vec!["node".into()]),
+        Dep::new("napi", "3")
+            .feature("napi6")
+            .requires_feature("node"),
     );
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn build_dep_simple() {
-    let patch = CargoTomlPatch::new().build_dep(Dep::new("napi-build".into(), "2".into()));
+    let patch = CargoTomlPatch::new().build_dep(Dep::new("napi-build", "2"));
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn dep_overwrites_existing_version() {
     let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\n[dependencies]\nserde = \"0.9\"\n";
-    let patch = CargoTomlPatch::new().dep(Dep::new("serde".into(), "1".into()));
+    let patch = CargoTomlPatch::new().dep(Dep::new("serde", "1"));
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
 #[test]
 fn existing_features_entry_preserved() {
     let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\n[features]\nnode = [\"dep:other\"]\n";
-    let patch = CargoTomlPatch::new()
-        .dep(Dep::new("napi".into(), "3".into()).require_features(vec!["node".into()]));
+    let patch = CargoTomlPatch::new().dep(Dep::new("napi", "3").requires_feature("node"));
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
 #[test]
 fn existing_features_dep_already_listed() {
     let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\n[features]\nnode = [\"dep:napi\"]\n";
-    let patch = CargoTomlPatch::new()
-        .dep(Dep::new("napi".into(), "3".into()).require_features(vec!["node".into()]));
+    let patch = CargoTomlPatch::new().dep(Dep::new("napi", "3").requires_feature("node"));
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
 #[test]
 fn full_realistic_patch() {
     let patch = CargoTomlPatch::new()
-        .lib_path("src/lib.rs".into())
-        .build_path("build.rs".into())
-        .crate_type("cdylib".into())
-        .crate_type("rlib".into())
-        .dep(Dep::new("serde".into(), "1".into()).features(vec!["derive".into()]))
-        .dep(Dep::new("napi".into(), "3".into()).require_features(vec!["node".into()]))
+        .lib_path("src/lib.rs")
+        .build_path("build.rs")
+        .crate_type("cdylib")
+        .crate_type("rlib")
+        .dep(Dep::new("serde", "1").feature("derive"))
+        .dep(Dep::new("napi", "3").requires_feature("node"))
         .dep(
-            Dep::new("wasm-bindgen".into(), "0.2".into())
-                .require_features(vec!["wasm".into(), "node".into()]),
+            Dep::new("wasm-bindgen", "0.2")
+                .requires_feature("wasm")
+                .requires_feature("node"),
         )
-        .build_dep(Dep::new("napi-build".into(), "2".into()));
+        .build_dep(Dep::new("napi-build", "2"));
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
@@ -165,42 +162,41 @@ fn empty_patch_is_noop_semantically() {
 
 #[test]
 fn dep_with_empty_features_vec_omits_features_key() {
-    let patch = CargoTomlPatch::new().dep(Dep::new("a".into(), "1".into()).features(vec![]));
+    let patch = CargoTomlPatch::new().dep(Dep::new("a", "1"));
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn dep_with_empty_require_features_vec_does_not_optional() {
-    let patch =
-        CargoTomlPatch::new().dep(Dep::new("a".into(), "1".into()).require_features(vec![]));
+    let patch = CargoTomlPatch::new().dep(Dep::new("a", "1"));
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn multiple_deps_share_one_require_feature() {
     let patch = CargoTomlPatch::new()
-        .dep(Dep::new("b".into(), "1".into()).require_features(vec!["wasm".into()]))
-        .dep(Dep::new("a".into(), "1".into()).require_features(vec!["wasm".into()]));
+        .dep(Dep::new("b", "1").requires_feature("wasm"))
+        .dep(Dep::new("a", "1").requires_feature("wasm"));
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn lib_path_creates_lib_table_when_missing() {
-    let patch = CargoTomlPatch::new().lib_path("src/lib.rs".into());
+    let patch = CargoTomlPatch::new().lib_path("src/lib.rs");
     insta::assert_snapshot!(apply(PKG, &patch));
 }
 
 #[test]
 fn build_path_creates_package_table_when_missing() {
     let cargo = "[workspace]\nmembers = []\n";
-    let patch = CargoTomlPatch::new().build_path("build.rs".into());
+    let patch = CargoTomlPatch::new().build_path("build.rs");
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
 #[test]
 fn preserves_other_top_level_tables() {
     let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\n\n[workspace]\nmembers = [\"a\"]\n\n[profile.release]\nlto = true\n";
-    let patch = CargoTomlPatch::new().dep(Dep::new("anyhow".into(), "1".into()));
+    let patch = CargoTomlPatch::new().dep(Dep::new("anyhow", "1"));
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
@@ -215,8 +211,9 @@ fn parse_error_returns_error_variant() {
 
 #[test]
 fn preserves_workspace_inherited_dep_inline_table() {
-    let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\n[dependencies]\nnapi = { workspace = true }\n";
-    let patch = CargoTomlPatch::new().dep(Dep::new("napi".into(), "3".into()));
+    let cargo =
+        "[package]\nname = \"x\"\nversion = \"0.1\"\n[dependencies]\nnapi = { workspace = true }\n";
+    let patch = CargoTomlPatch::new().dep(Dep::new("napi", "3"));
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
@@ -224,22 +221,22 @@ fn preserves_workspace_inherited_dep_inline_table() {
 fn preserves_workspace_inherited_dep_full_table() {
     let cargo =
         "[package]\nname = \"x\"\nversion = \"0.1\"\n[dependencies.napi]\nworkspace = true\n";
-    let patch = CargoTomlPatch::new().dep(Dep::new("napi".into(), "3".into()));
+    let patch = CargoTomlPatch::new().dep(Dep::new("napi", "3"));
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
 #[test]
 fn preserves_workspace_inherited_build_dep() {
     let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\n[build-dependencies]\nnapi-build = { workspace = true }\n";
-    let patch = CargoTomlPatch::new().build_dep(Dep::new("napi-build".into(), "2".into()));
+    let patch = CargoTomlPatch::new().build_dep(Dep::new("napi-build", "2"));
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
 #[test]
 fn workspace_dep_still_gets_feature_injection() {
-    let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\n[dependencies]\nnapi = { workspace = true }\n";
-    let patch = CargoTomlPatch::new()
-        .dep(Dep::new("napi".into(), "3".into()).require_features(vec!["node".into()]));
+    let cargo =
+        "[package]\nname = \"x\"\nversion = \"0.1\"\n[dependencies]\nnapi = { workspace = true }\n";
+    let patch = CargoTomlPatch::new().dep(Dep::new("napi", "3").requires_feature("node"));
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
@@ -247,8 +244,8 @@ fn workspace_dep_still_gets_feature_injection() {
 fn with_workspace_dep() {
     let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\n[dependencies]\nnapi = { workspace = true }\nanyhow = \"0.9\"\n";
     let patch = CargoTomlPatch::new()
-        .dep(Dep::new("napi".into(), "3".into()))
-        .dep(Dep::new("anyhow".into(), "1".into()));
+        .dep(Dep::new("napi", "3"))
+        .dep(Dep::new("anyhow", "1"));
     insta::assert_snapshot!(apply(cargo, &patch));
 }
 
@@ -258,27 +255,12 @@ fn write_cargo_toml_file_matches_in_memory_variant() {
     let p = dir.path().join("Cargo.toml");
     let original = "[package]\nname = \"x\"\nversion = \"0.1\"\n";
     fs::write(&p, original).unwrap();
-    let patch = CargoTomlPatch::new().dep(Dep::new("anyhow".into(), "1".into()));
-    write_cargo_toml_file(&p, &patch).unwrap();
+    let patch = CargoTomlPatch::new().dep(Dep::new("anyhow", "1"));
+    patch_cargo_toml_file(&p, &patch).unwrap();
     let on_disk = fs::read_to_string(&p).unwrap();
     let in_memory = patch_cargo_toml(original, &patch).unwrap();
     assert_eq!(
         on_disk, in_memory,
         "file wrapper must delegate to the in-memory patch verbatim",
     );
-}
-
-#[test]
-fn merge_combines_two_patches() {
-    let a = CargoTomlPatch::new()
-        .dep(Dep::new("a".into(), "1".into()))
-        .crate_type("cdylib".into());
-    let b = CargoTomlPatch::new()
-        .dep(Dep::new("b".into(), "2".into()))
-        .crate_type("rlib".into())
-        .lib_path("src/lib.rs".into());
-    let merged = a.merge(b);
-    assert_eq!(merged.deps.as_ref().unwrap().len(), 2);
-    assert_eq!(merged.crate_type.as_ref().unwrap().len(), 2);
-    assert_eq!(merged.lib_path.as_deref(), Some("src/lib.rs"));
 }

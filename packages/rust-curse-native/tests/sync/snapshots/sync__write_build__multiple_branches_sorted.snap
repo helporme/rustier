@@ -1,0 +1,30 @@
+---
+source: tests/sync/write_build.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - alpha
+  - middle
+  - zeta
+```
+
+## build.rs
+
+```rust
+fn main() {
+    {
+        // alpha
+    }
+
+    {
+        // middle
+    }
+
+    {
+        // zeta
+    }
+}
+```

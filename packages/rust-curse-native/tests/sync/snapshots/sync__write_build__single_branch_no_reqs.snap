@@ -1,0 +1,20 @@
+---
+source: tests/sync/write_build.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - default
+```
+
+## build.rs
+
+```rust
+fn main() {
+    {
+        println!("cargo:rerun-if-changed=src");
+    }
+}
+```

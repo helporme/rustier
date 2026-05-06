@@ -1,0 +1,21 @@
+---
+source: tests/sync/write_build.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - combo cargo_features=["a", "b"]
+```
+
+## build.rs
+
+```rust
+fn main() {
+    #[cfg(all(feature = "a", feature = "b"))]
+    {
+        // combo
+    }
+}
+```

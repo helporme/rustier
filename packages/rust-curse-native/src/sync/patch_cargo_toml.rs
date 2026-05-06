@@ -25,8 +25,8 @@ pub enum PatchCargoTomlError {
 /// use rust_curse::sync::patch_cargo_toml::{patch_cargo_toml, CargoTomlPatch, Dep};
 ///
 /// let patch = CargoTomlPatch::new()
-///     .crate_type("cdylib".into())
-///     .dep(Dep::new("anyhow".into(), "1".into()));
+///     .crate_type("cdylib")
+///     .dep(Dep::new("anyhow", "1"));
 ///
 /// let original = "[package]\nname = \"x\"\nversion = \"0.1\"\n";
 /// let patched = patch_cargo_toml(original, &patch).unwrap();
@@ -48,64 +48,33 @@ impl CargoTomlPatch {
 
     /// Specifies a dependency to be added to the Cargo.toml.
     pub fn dep(mut self, dep: Dep) -> Self {
-        let mut deps = self.deps.unwrap_or_default();
-        deps.insert(dep);
-        self.deps = Some(deps);
+        self.deps.get_or_insert_with(HashSet::new).insert(dep);
         self
     }
 
     /// Specifies a build dependency to be added to the Cargo.toml.
     pub fn build_dep(mut self, dep: Dep) -> Self {
-        let mut deps = self.build_deps.unwrap_or_default();
-        deps.insert(dep);
-        self.build_deps = Some(deps);
+        self.build_deps.get_or_insert_with(HashSet::new).insert(dep);
         self
     }
 
     /// Specifies the crate type to be added to the Cargo.toml, e.g `cdylib`
-    pub fn crate_type(mut self, crate_type: String) -> Self {
-        let mut crate_types = self.crate_type.unwrap_or_default();
-        crate_types.insert(crate_type);
-        self.crate_type = Some(crate_types);
+    pub fn crate_type(mut self, crate_type: impl Into<String>) -> Self {
+        self.crate_type
+            .get_or_insert_with(HashSet::new)
+            .insert(crate_type.into());
         self
     }
 
     /// Specifies the lib path to be added to the Cargo.toml, e.g `lib`
-    pub fn lib_path(mut self, lib_path: String) -> Self {
-        self.lib_path = Some(lib_path);
+    pub fn lib_path(mut self, lib_path: impl Into<String>) -> Self {
+        self.lib_path = Some(lib_path.into());
         self
     }
 
     /// Specifies the build path to be added to the Cargo.toml, e.g `build`
-    pub fn build_path(mut self, build_path: String) -> Self {
-        self.build_path = Some(build_path);
-        self
-    }
-
-    /// Merges another patch into this one, combining dependencies and crate
-    /// types. Overrides paths with those from the other patch.
-    pub fn merge(mut self, other: Self) -> Self {
-        if let Some(deps) = other.deps {
-            let mut merged_deps = self.deps.unwrap_or_default();
-            merged_deps.extend(deps);
-            self.deps = Some(merged_deps);
-        }
-        if let Some(build_deps) = other.build_deps {
-            let mut merged_build_deps = self.build_deps.unwrap_or_default();
-            merged_build_deps.extend(build_deps);
-            self.build_deps = Some(merged_build_deps);
-        }
-        if let Some(crate_types) = other.crate_type {
-            let mut merged_crate_types = self.crate_type.unwrap_or_default();
-            merged_crate_types.extend(crate_types);
-            self.crate_type = Some(merged_crate_types);
-        }
-        if let Some(lib_path) = other.lib_path {
-            self.lib_path = Some(lib_path);
-        }
-        if let Some(build_path) = other.build_path {
-            self.build_path = Some(build_path);
-        }
+    pub fn build_path(mut self, build_path: impl Into<String>) -> Self {
+        self.build_path = Some(build_path.into());
         self
     }
 }
@@ -126,23 +95,27 @@ pub struct Dep {
 }
 
 impl Dep {
-    pub fn new(name: String, version: String) -> Self {
+    pub fn new(name: impl Into<String>, version: impl Into<String>) -> Self {
         Self {
-            name,
-            version,
+            name: name.into(),
+            version: version.into(),
             ..Default::default()
         }
     }
 
-    /// Specifies the features to enable for this dependency.
-    pub fn features(mut self, features: Vec<String>) -> Self {
+    /// Specifies the feature to enable for this dependency.
+    pub fn feature(mut self, feature: impl Into<String>) -> Self {
+        let mut features = self.features.unwrap_or_default();
+        features.push(feature.into());
         self.features = Some(features);
         self
     }
 
-    /// Specifies the features that must be enabled for this dependency to be
+    /// Specifies the feature that must be enabled for this dependency to be
     /// used.
-    pub fn require_features(mut self, require_features: Vec<String>) -> Self {
+    pub fn requires_feature(mut self, require_feature: impl Into<String>) -> Self {
+        let mut require_features = self.require_features.unwrap_or_default();
+        require_features.push(require_feature.into());
         self.require_features = Some(require_features);
         self
     }
@@ -205,13 +178,13 @@ fn sorted_deps(deps: &HashSet<Dep>) -> Vec<&Dep> {
 ///
 /// ```no_run
 /// // no_run: remove once napi feature is removed
-/// use rust_curse::sync::patch_cargo_toml::{write_cargo_toml_file, CargoTomlPatch, Dep};
+/// use rust_curse::sync::patch_cargo_toml::{patch_cargo_toml_file, CargoTomlPatch, Dep};
 /// use std::path::Path;
 ///
-/// let patch = CargoTomlPatch::new().dep(Dep::new("serde".into(), "1".into()));
-/// write_cargo_toml_file(Path::new("Cargo.toml"), &patch).unwrap();
+/// let patch = CargoTomlPatch::new().dep(Dep::new("serde", "1"));
+/// patch_cargo_toml_file(Path::new("Cargo.toml"), &patch).unwrap();
 /// ```
-pub fn write_cargo_toml_file(
+pub fn patch_cargo_toml_file(
     path: &Path,
     patch: &CargoTomlPatch,
 ) -> Result<(), PatchCargoTomlError> {

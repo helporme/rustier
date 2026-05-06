@@ -1,0 +1,21 @@
+---
+source: tests/sync/write_build.rs
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - napi cargo_features=["node"]
+```
+
+## build.rs
+
+```rust
+fn main() {
+    #[cfg(feature = "node")]
+    {
+        napi_build::setup();
+    }
+}
+```
