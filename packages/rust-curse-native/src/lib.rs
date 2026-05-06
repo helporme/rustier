@@ -4,6 +4,7 @@ pub mod ir;
 pub mod orphans;
 pub mod rustdoc;
 pub mod scaffold;
+pub mod sync;
 pub mod tree_shake;
 
 use std::collections::HashSet;

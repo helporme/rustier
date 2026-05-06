@@ -1,0 +1,24 @@
+---
+source: tests/sync/write_cargo_toml.rs
+expression: "apply(PKG, &CargoTomlPatch::new())"
+---
+## Input
+
+```toml
+[package]
+name = "x"
+version = "0.1"
+```
+
+## Patch
+
+```
+```
+
+## Output
+
+```toml
+[package]
+name = "x"
+version = "0.1"
+```

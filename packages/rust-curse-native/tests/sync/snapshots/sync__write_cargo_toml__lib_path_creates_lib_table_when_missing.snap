@@ -1,0 +1,28 @@
+---
+source: tests/sync/write_cargo_toml.rs
+expression: "apply(PKG, &patch)"
+---
+## Input
+
+```toml
+[package]
+name = "x"
+version = "0.1"
+```
+
+## Patch
+
+```
+lib_path = "src/lib.rs"
+```
+
+## Output
+
+```toml
+[package]
+name = "x"
+version = "0.1"
+
+[lib]
+path = "src/lib.rs"
+```

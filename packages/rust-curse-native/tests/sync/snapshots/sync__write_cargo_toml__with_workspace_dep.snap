@@ -1,0 +1,33 @@
+---
+source: tests/sync/write_cargo_toml.rs
+expression: "apply(cargo, &patch)"
+---
+## Input
+
+```toml
+[package]
+name = "x"
+version = "0.1"
+[dependencies]
+napi = { workspace = true }
+anyhow = "0.9"
+```
+
+## Patch
+
+```
+deps:
+  - anyhow@1
+  - napi@3
+```
+
+## Output
+
+```toml
+[package]
+name = "x"
+version = "0.1"
+[dependencies]
+napi = { workspace = true }
+anyhow = { version = "1" }
+```
