@@ -80,6 +80,10 @@ impl RustCurse {
             PathBuf::from(&self.options.output_dir_rel_path),
         );
 
+        syncer
+            .write_wired_cargo_toml()
+            .context("sync: wired Cargo.toml")?;
+
         syncer.write_rustdoc(&modules).context("sync: rustdoc")?;
 
         let rustdoc = rustdoc::gen(&project_root_abs_path)?;

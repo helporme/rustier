@@ -1,6 +1,5 @@
 ---
 source: tests/sync/write_lib.rs
-assertion_line: 297
 expression: apply(&switch)
 ---
 ## Switch

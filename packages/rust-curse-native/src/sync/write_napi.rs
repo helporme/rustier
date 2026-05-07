@@ -29,6 +29,7 @@ impl Syncer {
         patch_cargo_toml_file(
             &self.project_root_abs_path.join("Cargo.toml"),
             &CargoTomlPatch::new()
+                .crate_type("cdylib")
                 .dep(Dep::new("napi", "3").requires_feature(NAPI_CARGO_FEATURE))
                 .dep(Dep::new("napi-derive", "3").requires_feature(NAPI_CARGO_FEATURE))
                 .build_dep(

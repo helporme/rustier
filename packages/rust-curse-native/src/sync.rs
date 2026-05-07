@@ -13,6 +13,7 @@ pub mod write_orphan_tree;
 pub mod write_rustdoc;
 pub mod write_ts;
 pub mod write_wasm;
+pub mod write_wired_cargo_toml;
 
 #[derive(Default, Debug)]
 pub struct Syncer {

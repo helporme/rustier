@@ -225,10 +225,23 @@ pub fn patch_cargo_toml(
     }
 
     if let Some(crate_types) = &patch.crate_type {
-        let table = lib_table(&mut doc);
-        let mut merged = read_string_array(table.get("crate-type"));
+        let mut merged = read_string_array(
+            doc.get("lib")
+                .and_then(Item::as_table)
+                .and_then(|t| t.get("crate-type")),
+        );
         merged.extend(crate_types.iter().cloned());
-        table.insert("crate-type", Item::Value(string_array(&merged).into()));
+        if merged.len() == 1 && merged.contains("rlib") {
+            if let Some(table) = doc.get_mut("lib").and_then(Item::as_table_mut) {
+                table.remove("crate-type");
+                if table.is_empty() {
+                    doc.as_table_mut().remove("lib");
+                }
+            }
+        } else {
+            let table = lib_table(&mut doc);
+            table.insert("crate-type", Item::Value(string_array(&merged).into()));
+        }
     }
 
     if let Some(deps) = &patch.deps {

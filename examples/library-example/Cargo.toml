@@ -1,20 +1,20 @@
-# patched by rust-curse with love <3
+
 [package]
 name = "library-example"
 version = "0.1.0"
 edition = "2021"
 publish = false
-build = ".rust-curse/build.rs" # do not change
+build = ".rust-curse/build.rs" #!
 
 [lib]
-path = ".rust-curse/lib.rs" # do not change
-crate-type = ["cdylib", "rlib"] # do not change
+path = ".rust-curse/lib.rs" #!
+crate-type = ["cdylib", "rlib"] #!
 
 [dependencies]
 taffy = { version = "0.3" }
-wasm-bindgen = { version = "0.2", optional = true }
-serde = { version = "1", features = ["derive"], optional = true }
-serde-wasm-bindgen = { version = "0.6", optional = true }
+wasm-bindgen = { version = "0.2", optional = true } #!
+serde = { version = "1", features = ["derive"], optional = true } #!
+serde-wasm-bindgen = { version = "0.6", optional = true } #!
 
 [features]
-wasm = ["dep:serde", "dep:serde-wasm-bindgen", "dep:wasm-bindgen"]
+wasm = ["dep:serde", "dep:serde-wasm-bindgen", "dep:wasm-bindgen"] #!

@@ -1,6 +1,5 @@
 ---
 source: tests/sync/write_rustdoc.rs
-assertion_line: 50
 expression: project_to_md(&project)
 ---
 `.rust-curse/build.rs`
@@ -21,19 +20,12 @@ fn main() {
 include!("rustdoc.rs");
 ```
 
-`.rust-curse/rustdoc/nested.rs`
-```rs
-#[path = "<root>/src/nested/deep.rs"]
-pub mod deep;
-
-#[path = "<root>/src/nested/shallow.rs"]
-pub mod shallow;
-
-```
-
 `.rust-curse/rustdoc.rs`
 ```rs
-#[path = "<root>/.rust-curse/rustdoc/nested.rs"]
-pub mod nested;
+#[path = "<root>/src/greet.rs"]
+pub mod greet;
+
+#[path = "<root>/src/math.rs"]
+pub mod math;
 
 ```

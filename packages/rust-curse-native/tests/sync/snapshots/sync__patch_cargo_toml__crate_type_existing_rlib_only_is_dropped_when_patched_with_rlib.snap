@@ -1,0 +1,28 @@
+---
+source: tests/sync/patch_cargo_toml.rs
+expression: "apply(cargo, &patch)"
+---
+## Input
+
+```toml
+[package]
+name = "x"
+version = "0.1"
+[lib]
+crate-type = ["rlib"]
+```
+
+## Patch
+
+```
+crate_type = ["rlib"]
+```
+
+## Output
+
+```toml
+[package]
+name = "x"
+version = "0.1"
+[lib]
+```

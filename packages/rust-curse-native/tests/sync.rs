@@ -18,3 +18,6 @@ mod write_rustdoc;
 
 #[path = "sync/write_ts.rs"]
 mod write_ts;
+
+#[path = "sync/write_wired_cargo_toml.rs"]
+mod write_wired_cargo_toml;

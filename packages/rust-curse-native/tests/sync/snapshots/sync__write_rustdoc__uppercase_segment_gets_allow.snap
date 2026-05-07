@@ -1,6 +1,5 @@
 ---
 source: tests/sync/write_rustdoc.rs
-assertion_line: 15
 expression: project_to_md(&project)
 ---
 `.rust-curse/build.rs`
@@ -13,4 +12,25 @@ fn main() {
         }
     }
 }
+```
+
+`.rust-curse/lib.rs`
+```rs
+#[cfg(rust_curse_rustdoc)]
+include!("rustdoc.rs");
+```
+
+`.rust-curse/rustdoc/MyMod.rs`
+```rs
+#[path = "<root>/src/MyMod/something.rs"]
+pub mod something;
+
+```
+
+`.rust-curse/rustdoc.rs`
+```rs
+#[path = "<root>/.rust-curse/rustdoc/MyMod.rs"]
+#[allow(non_snake_case)]
+pub mod MyMod;
+
 ```

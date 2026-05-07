@@ -1,6 +1,5 @@
 ---
 source: tests/sync/write_rustdoc.rs
-assertion_line: 132
 expression: build_rs
 ---
 fn main() {

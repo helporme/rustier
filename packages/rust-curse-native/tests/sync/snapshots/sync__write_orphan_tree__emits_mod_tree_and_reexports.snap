@@ -1,6 +1,5 @@
 ---
 source: tests/sync/write_orphan_tree.rs
-assertion_line: 67
 expression: project_to_md(&project)
 ---
 `.rust-curse/lib.rs`

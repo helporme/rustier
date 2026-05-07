@@ -26,6 +26,7 @@ impl Syncer {
         patch_cargo_toml_file(
             &self.project_root_abs_path.join("Cargo.toml"),
             &CargoTomlPatch::new()
+                .crate_type("cdylib")
                 .dep(Dep::new("wasm-bindgen", "0.2").requires_feature(WASM_CARGO_FEATURE))
                 .dep(Dep::new("serde-wasm-bindgen", "0.6").requires_feature(WASM_CARGO_FEATURE))
                 .dep(

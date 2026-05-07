@@ -1,6 +1,5 @@
 ---
-source: tests/sync/write_rustdoc.rs
-assertion_line: 31
+source: tests/sync/write_orphan_tree.rs
 expression: project_to_md(&project)
 ---
 `.rust-curse/build.rs`
@@ -17,16 +16,24 @@ fn main() {
 
 `.rust-curse/lib.rs`
 ```rs
+#[cfg(not(rust_curse_rustdoc))]
+include!("orphan_tree.rs");
+
 #[cfg(rust_curse_rustdoc)]
 include!("rustdoc.rs");
+```
+
+`.rust-curse/orphan_tree.rs`
+```rs
+#[path = "<root>/src/greet.rs"]
+pub mod greet;
+
+pub use greet::hello;
 ```
 
 `.rust-curse/rustdoc.rs`
 ```rs
 #[path = "<root>/src/greet.rs"]
 pub mod greet;
-
-#[path = "<root>/src/math.rs"]
-pub mod math;
 
 ```

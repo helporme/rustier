@@ -9,8 +9,8 @@ use std::process::Command;
 use thiserror::Error;
 
 use crate::builder::{self, BuildError, BuildOpts};
+use crate::sync::write_wasm::WASM_CARGO_FEATURE;
 
-pub const WASM_FEATURE_FLAG: &str = "wasm";
 const WASM_TARGET_TRIPLE: &str = "wasm32-unknown-unknown";
 
 #[derive(Debug, Error)]
@@ -113,7 +113,7 @@ pub fn build_wasm(opts: BuildWasmOpts<'_>) -> Result<(), WasmBuildError> {
         project_root_abs_path: opts.project_root_abs_path,
         target_dir_abs_path: &target_dir_abs_path,
         target_triple: Some(WASM_TARGET_TRIPLE),
-        features: &[WASM_FEATURE_FLAG],
+        features: &[WASM_CARGO_FEATURE],
         release: opts.release,
     })?;
 
@@ -245,9 +245,9 @@ fn read_lib_name(project_root_abs_path: &Path) -> Result<String, WasmBuildError>
         .and_then(|targets| {
             targets.iter().find(|t| {
                 t["kind"].as_array().is_some_and(|kinds| {
-                    kinds.iter().any(|k| {
-                        matches!(k.as_str(), Some("lib") | Some("rlib") | Some("cdylib"))
-                    })
+                    kinds
+                        .iter()
+                        .any(|k| matches!(k.as_str(), Some("lib") | Some("rlib") | Some("cdylib")))
                 })
             })
         })

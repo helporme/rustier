@@ -71,6 +71,19 @@ fn crate_type_extends() {
 }
 
 #[test]
+fn crate_type_rlib_only_is_omitted() {
+    let patch = CargoTomlPatch::new().crate_type("rlib");
+    insta::assert_snapshot!(apply(PKG, &patch));
+}
+
+#[test]
+fn crate_type_existing_rlib_only_is_dropped_when_patched_with_rlib() {
+    let cargo = "[package]\nname = \"x\"\nversion = \"0.1\"\n[lib]\ncrate-type = [\"rlib\"]\n";
+    let patch = CargoTomlPatch::new().crate_type("rlib");
+    insta::assert_snapshot!(apply(cargo, &patch));
+}
+
+#[test]
 fn crate_type_writes_sorted_array() {
     let patch = CargoTomlPatch::new()
         .crate_type("staticlib")

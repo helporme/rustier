@@ -1,6 +1,5 @@
 ---
-source: tests/sync/write_orphan_tree.rs
-assertion_line: 624
+source: tests/sync/write_rustdoc.rs
 expression: project_to_md(&project)
 ---
 `.rust-curse/build.rs`
@@ -17,24 +16,23 @@ fn main() {
 
 `.rust-curse/lib.rs`
 ```rs
-#[cfg(not(rust_curse_rustdoc))]
-include!("orphan_tree.rs");
-
 #[cfg(rust_curse_rustdoc)]
 include!("rustdoc.rs");
 ```
 
-`.rust-curse/orphan_tree.rs`
+`.rust-curse/rustdoc/nested.rs`
 ```rs
-#[path = "<root>/src/greet.rs"]
-pub mod greet;
+#[path = "<root>/src/nested/deep.rs"]
+pub mod deep;
 
-pub use greet::hello;
+#[path = "<root>/src/nested/shallow.rs"]
+pub mod shallow;
+
 ```
 
 `.rust-curse/rustdoc.rs`
 ```rs
-#[path = "<root>/src/greet.rs"]
-pub mod greet;
+#[path = "<root>/.rust-curse/rustdoc/nested.rs"]
+pub mod nested;
 
 ```
