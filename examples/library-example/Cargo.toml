@@ -12,9 +12,9 @@ crate-type = ["cdylib", "rlib"] # do not change
 
 [dependencies]
 taffy = { version = "0.3" }
-wasm-bindgen = { version = "0.2", optional = true } # do not change
-serde = { version = "1", features = ["derive"], optional = true } # do not change
-serde-wasm-bindgen = { version = "0.6", optional = true } # do not change
+wasm-bindgen = { version = "0.2", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+serde-wasm-bindgen = { version = "0.6", optional = true }
 
 [features]
-wasm = ["dep:wasm-bindgen", "dep:serde", "dep:serde-wasm-bindgen"] # do not change
+wasm = ["dep:serde", "dep:serde-wasm-bindgen", "dep:wasm-bindgen"]

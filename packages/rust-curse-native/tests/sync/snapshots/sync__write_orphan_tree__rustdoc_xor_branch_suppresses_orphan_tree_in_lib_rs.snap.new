@@ -1,0 +1,40 @@
+---
+source: tests/sync/write_orphan_tree.rs
+assertion_line: 624
+expression: project_to_md(&project)
+---
+`.rust-curse/build.rs`
+```rs
+fn main() {
+    {
+        println!("cargo:rerun-if-env-changed=RUST_CURSE_RUSTDOC");
+        if std::env::var("RUST_CURSE_RUSTDOC").is_ok() {
+            println!("cargo:rustc-cfg=rust_curse_rustdoc");
+        }
+    }
+}
+```
+
+`.rust-curse/lib.rs`
+```rs
+#[cfg(not(rust_curse_rustdoc))]
+include!("orphan_tree.rs");
+
+#[cfg(rust_curse_rustdoc)]
+include!("rustdoc.rs");
+```
+
+`.rust-curse/orphan_tree.rs`
+```rs
+#[path = "<root>/src/greet.rs"]
+pub mod greet;
+
+pub use greet::hello;
+```
+
+`.rust-curse/rustdoc.rs`
+```rs
+#[path = "<root>/src/greet.rs"]
+pub mod greet;
+
+```

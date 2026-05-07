@@ -1,0 +1,32 @@
+---
+source: tests/sync/write_orphan_tree.rs
+assertion_line: 383
+expression: project_to_md(&project)
+---
+`.rust-curse/lib.rs`
+```rs
+include!("orphan_tree.rs");
+```
+
+`.rust-curse/orphan-tree/nested.rs`
+```rs
+#[path = "<root>/src/nested/a.rs"]
+pub mod a;
+
+#[path = "<root>/src/nested/b.rs"]
+pub mod b;
+
+#[path = "<root>/src/nested/c.rs"]
+pub mod c;
+
+```
+
+`.rust-curse/orphan_tree.rs`
+```rs
+#[path = "<root>/.rust-curse/orphan-tree/nested.rs"]
+pub mod nested;
+
+pub use nested::a::fa;
+pub use nested::b::fb;
+pub use nested::c::fc;
+```

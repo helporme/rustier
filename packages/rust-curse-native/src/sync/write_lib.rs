@@ -198,10 +198,13 @@ pub struct RenderedFile {
 /// used to define the content to include, hence multiple [`RenderedFile`]s are
 /// returned.
 ///
+/// Branches whose content is empty are skipped entirely: no helper file is
+/// emitted and no `include!` line is added to the switch lib.
+///
 /// All rendered lib files should be written to the disk in the same directory
 /// as the caller, file names are derived from the branch names. "switch" lib
-/// file is always named lib.rs. Returns [`None`] when there are no branches
-/// (the lib.rs would be empty).
+/// file is always named lib.rs. Returns [`None`] when there is nothing to
+/// emit (no non-empty branches and no "lib" prelude).
 pub fn render_lib(switch: &LibSwitch) -> Result<Option<Vec<RenderedFile>>, RenderLibError> {
     if switch.branches.is_empty() {
         return Ok(None);
@@ -210,6 +213,9 @@ pub fn render_lib(switch: &LibSwitch) -> Result<Option<Vec<RenderedFile>>, Rende
         return Err(RenderLibError::LibBranchMustBeOr);
     }
     for (name, branch) in &switch.branches {
+        if branch.lib().content.is_empty() {
+            continue;
+        }
         if let LibBranchKind::Xor(lib) = branch {
             if requirements(lib).is_empty() {
                 return Err(RenderLibError::XorBranchHasNoRequirements { name: name.clone() });
@@ -222,7 +228,9 @@ pub fn render_lib(switch: &LibSwitch) -> Result<Option<Vec<RenderedFile>>, Rende
     let mut sorted: Vec<(&String, &LibBranchKind)> = switch
         .branches
         .iter()
-        .filter(|(name, _)| name.as_str() != "lib")
+        .filter(|(name, branch)| {
+            name.as_str() != "lib" && !branch.lib().content.is_empty()
+        })
         .collect();
     sorted.sort_by(|a, b| a.0.cmp(b.0));
 
@@ -231,6 +239,10 @@ pub fn render_lib(switch: &LibSwitch) -> Result<Option<Vec<RenderedFile>>, Rende
         .get("lib")
         .map(|b| b.lib().content.as_str())
         .unwrap_or("");
+
+    if sorted.is_empty() && lib_prelude.is_empty() {
+        return Ok(None);
+    }
 
     let mut lib_content = String::new();
     if !lib_prelude.is_empty() {
@@ -286,6 +298,9 @@ fn suppress_condition(switch: &LibSwitch) -> Option<String> {
     let mut xor_preds: Vec<String> = Vec::new();
     for branch in switch.branches.values() {
         if let LibBranchKind::Xor(lib) = branch {
+            if lib.content.is_empty() {
+                continue;
+            }
             let preds = requirements(lib);
             match preds.len() {
                 0 => continue,

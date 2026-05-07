@@ -4,10 +4,14 @@ use crate::sync::{write_build::BuildSwitch, write_lib::LibSwitch};
 
 // todo: check how to remove pub and have tests
 pub mod patch_cargo_toml;
+pub mod tree;
 pub mod write_build;
 pub mod write_lib;
 
 pub mod write_napi;
+pub mod write_orphan_tree;
+pub mod write_rustdoc;
+pub mod write_ts;
 pub mod write_wasm;
 
 #[derive(Default, Debug)]
@@ -29,5 +33,11 @@ impl Syncer {
             out_dir_rel_path,
             ..Default::default()
         }
+    }
+
+    /// Absolute path to the output directory
+    /// (`project_root_abs_path / out_dir_rel_path`).
+    pub fn abs_out_dir(&self) -> PathBuf {
+        self.project_root_abs_path.join(&self.out_dir_rel_path)
     }
 }

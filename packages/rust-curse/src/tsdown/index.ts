@@ -31,7 +31,6 @@ function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
         targets,
         jsSource,
         moduleDirRelPath: resolve(options.rootDir, options.rust.moduleDir),
-        cargoTomlRelPath: resolve(options.rootDir, options.rust.manifestPath),
         outputDirRelPath: resolve(options.rootDir, options.tempDir),
         projectRootAbsPath: options.rootDir,
       })

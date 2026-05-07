@@ -39,7 +39,7 @@ impl Syncer {
             "wasm",
             LibBranch::new(wasm_glue_code).requires_cargo_feature(WASM_CARGO_FEATURE),
         );
-        write_lib(&self.project_root_abs_path, &self.lib)?;
+        write_lib(&self.abs_out_dir(), &self.lib)?;
 
         Ok(())
     }

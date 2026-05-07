@@ -36,18 +36,20 @@ impl Syncer {
                 ),
         )?;
 
+        let abs_out_dir = self.abs_out_dir();
+
         self.lib.set_branch(
             "napi",
             LibBranch::new(napi_glue_code).requires_cargo_feature(NAPI_CARGO_FEATURE),
         );
-        write_lib(&self.project_root_abs_path, &self.lib)?;
+        write_lib(&abs_out_dir, &self.lib)?;
 
         self.build.set_branch(
             "napi",
             BuildBranch::new("use napi_build;\nnapi_build::setup();")
                 .requires_cargo_feature(NAPI_CARGO_FEATURE),
         );
-        write_build(&self.project_root_abs_path, &self.build)?;
+        write_build(&abs_out_dir, &self.build)?;
 
         Ok(())
     }

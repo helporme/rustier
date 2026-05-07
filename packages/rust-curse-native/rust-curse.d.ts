@@ -22,8 +22,6 @@ export interface RustCurseOptions {
   moduleDirRelPath: string
   /** Output dir for placing generated files, relative to project root. */
   outputDirRelPath: string
-  /** Path to the original Cargo.toml, relative to project root. */
-  cargoTomlRelPath: string
   /** Absolute path to the project root directory. */
   projectRootAbsPath: string
 }

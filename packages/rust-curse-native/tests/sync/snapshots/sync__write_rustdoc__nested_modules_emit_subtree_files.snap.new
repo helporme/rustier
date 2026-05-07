@@ -1,0 +1,39 @@
+---
+source: tests/sync/write_rustdoc.rs
+assertion_line: 50
+expression: project_to_md(&project)
+---
+`.rust-curse/build.rs`
+```rs
+fn main() {
+    {
+        println!("cargo:rerun-if-env-changed=RUST_CURSE_RUSTDOC");
+        if std::env::var("RUST_CURSE_RUSTDOC").is_ok() {
+            println!("cargo:rustc-cfg=rust_curse_rustdoc");
+        }
+    }
+}
+```
+
+`.rust-curse/lib.rs`
+```rs
+#[cfg(rust_curse_rustdoc)]
+include!("rustdoc.rs");
+```
+
+`.rust-curse/rustdoc/nested.rs`
+```rs
+#[path = "<root>/src/nested/deep.rs"]
+pub mod deep;
+
+#[path = "<root>/src/nested/shallow.rs"]
+pub mod shallow;
+
+```
+
+`.rust-curse/rustdoc.rs`
+```rs
+#[path = "<root>/.rust-curse/rustdoc/nested.rs"]
+pub mod nested;
+
+```

@@ -7,7 +7,7 @@ use std::process::Command;
 
 use thiserror::Error;
 
-use crate::scaffold::rustdoc::RUSTDOC_ENV_VAR;
+use crate::sync::write_rustdoc::RUSTDOC_ENV_VAR;
 
 #[derive(Debug, Error)]
 pub enum RustdocError {

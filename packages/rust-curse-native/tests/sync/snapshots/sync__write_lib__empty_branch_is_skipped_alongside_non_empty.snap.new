@@ -1,0 +1,26 @@
+---
+source: tests/sync/write_lib.rs
+assertion_line: 297
+expression: apply(&switch)
+---
+## Switch
+
+```
+branches:
+  - empty (xor) env_flags=["rust_curse_empty"]
+  - real (or)
+```
+
+## Output
+
+### lib.rs
+
+```rust
+include!("real.rs");
+```
+
+### real.rs
+
+```rust
+// real
+```

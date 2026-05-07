@@ -1,0 +1,25 @@
+---
+source: tests/sync/write_orphan_tree.rs
+assertion_line: 207
+expression: project_to_md(&project)
+---
+`.rust-curse/lib.rs`
+```rs
+include!("orphan_tree.rs");
+```
+
+`.rust-curse/orphan-tree/MyMod.rs`
+```rs
+#[path = "<root>/src/MyMod/something.rs"]
+pub mod something;
+
+```
+
+`.rust-curse/orphan_tree.rs`
+```rs
+#[path = "<root>/.rust-curse/orphan-tree/MyMod.rs"]
+#[allow(non_snake_case)]
+pub mod MyMod;
+
+pub use MyMod::something::do_it;
+```

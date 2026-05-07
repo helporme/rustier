@@ -1,0 +1,18 @@
+---
+source: tests/sync/write_orphan_tree.rs
+assertion_line: 131
+expression: project_to_md(&project)
+---
+`.rust-curse/lib.rs`
+```rs
+include!("orphan_tree.rs");
+```
+
+`.rust-curse/orphan_tree.rs`
+```rs
+#[path = "<root>/src/math.rs"]
+pub mod math;
+
+pub use math::add;
+pub use math::sub;
+```

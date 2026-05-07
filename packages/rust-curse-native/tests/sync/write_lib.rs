@@ -255,3 +255,44 @@ fn write_lib_is_noop_when_empty() {
     write_lib(dir.path(), &LibSwitch::new()).unwrap();
     assert!(!dir.path().join("lib.rs").exists());
 }
+
+#[test]
+fn empty_branch_is_skipped() {
+    let mut switch = LibSwitch::new();
+    switch.set_xor_branch(
+        "rustdoc",
+        LibBranch::new("").requires_env_flag("rust_curse_rustdoc"),
+    );
+    assert!(
+        render_lib(&switch).unwrap().is_none(),
+        "empty xor branch with no prelude should render nothing",
+    );
+}
+
+#[test]
+fn empty_branch_is_skipped_alongside_non_empty() {
+    let mut switch = LibSwitch::new();
+    switch
+        .set_branch("real", LibBranch::new("// real\n"))
+        .set_xor_branch(
+            "empty",
+            LibBranch::new("").requires_env_flag("rust_curse_empty"),
+        );
+    let files = render_lib(&switch).unwrap().unwrap();
+    assert!(
+        !files.iter().any(|f| f.name == "empty"),
+        "empty branch must not produce a helper file",
+    );
+    let lib = files.iter().find(|f| f.name == "lib").unwrap();
+    assert!(
+        !lib.content.contains("empty"),
+        "lib.rs must not include the empty branch: {}",
+        lib.content,
+    );
+    assert!(
+        !lib.content.contains("rust_curse_empty"),
+        "empty xor branch must not contribute to suppression: {}",
+        lib.content,
+    );
+    insta::assert_snapshot!(apply(&switch));
+}

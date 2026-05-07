@@ -1,0 +1,21 @@
+---
+source: tests/sync/write_ts.rs
+assertion_line: 175
+expression: project_to_md(&project)
+---
+`.rust-curse/ambient.d.ts`
+```ts
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+```
+
+`.rust-curse/types/MyMod/sub.rs.d.ts`
+```ts
+export function do_it(): void;
+```
