@@ -1,10 +1,20 @@
 use crate::sync::patch_cargo_toml::CargoTomlPatch;
 
-use super::patch_cargo_toml::{patch_cargo_toml_file, Dep};
-use super::write_lib::{write_lib, LibBranch};
+use super::patch_cargo_toml::{patch_cargo_toml_file, Dep, PatchCargoTomlError};
+use super::write_lib::{write_lib, LibBranch, WriteLibError};
 use super::Syncer;
 
 pub const WASM_CARGO_FEATURE: &str = "wasm";
+
+/// Error returned by [`Syncer::write_wasm`] when patching `Cargo.toml`,
+/// rendering, or writing fails.
+#[derive(Debug, thiserror::Error)]
+pub enum WriteWasmError {
+    #[error("failed to patch Cargo.toml: {0}")]
+    PatchCargoToml(#[from] PatchCargoTomlError),
+    #[error("failed to write lib.rs: {0}")]
+    WriteLib(#[from] WriteLibError),
+}
 
 impl Syncer {
     /// Writes WASM glue code to the `lib.rs` file and patches the `Cargo.toml`
@@ -12,7 +22,7 @@ impl Syncer {
     ///
     /// `lib.rs` content is combined with previous `Syncer::write_*` calls if
     /// any.
-    pub fn write_wasm(&mut self, wasm_glue_code: String) {
+    pub fn write_wasm(&mut self, wasm_glue_code: String) -> Result<(), WriteWasmError> {
         patch_cargo_toml_file(
             &self.project_root_abs_path.join("Cargo.toml"),
             &CargoTomlPatch::new()
@@ -23,13 +33,14 @@ impl Syncer {
                         .feature("derive")
                         .requires_feature(WASM_CARGO_FEATURE),
                 ),
-        )
-        .unwrap();
+        )?;
 
         self.lib.set_branch(
             "wasm",
             LibBranch::new(wasm_glue_code).requires_cargo_feature(WASM_CARGO_FEATURE),
         );
-        write_lib(&self.project_root_abs_path, &self.lib).unwrap();
+        write_lib(&self.project_root_abs_path, &self.lib)?;
+
+        Ok(())
     }
 }

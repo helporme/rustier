@@ -1,11 +1,23 @@
 use crate::sync::patch_cargo_toml::CargoTomlPatch;
 
-use super::patch_cargo_toml::{patch_cargo_toml_file, Dep};
-use super::write_build::{write_build, BuildBranch};
-use super::write_lib::{write_lib, LibBranch};
+use super::patch_cargo_toml::{patch_cargo_toml_file, Dep, PatchCargoTomlError};
+use super::write_build::{write_build, BuildBranch, WriteBuildError};
+use super::write_lib::{write_lib, LibBranch, WriteLibError};
 use super::Syncer;
 
 pub const NAPI_CARGO_FEATURE: &str = "node";
+
+/// Error returned by [`Syncer::write_napi`] when patching `Cargo.toml`,
+/// rendering, or writing fails.
+#[derive(Debug, thiserror::Error)]
+pub enum WriteNapiError {
+    #[error("failed to patch Cargo.toml: {0}")]
+    PatchCargoToml(#[from] PatchCargoTomlError),
+    #[error("failed to write lib.rs: {0}")]
+    WriteLib(#[from] WriteLibError),
+    #[error("failed to write build.rs: {0}")]
+    WriteBuild(#[from] WriteBuildError),
+}
 
 impl Syncer {
     /// Writes NAPI glue code to the `lib.rs`, `build.rs` and patches the
@@ -13,7 +25,7 @@ impl Syncer {
     ///
     /// `lib.rs` and `build.rs` content is combined with previous
     /// `Syncer::write_*` calls if any.
-    pub fn write_napi(&mut self, napi_glue_code: String) {
+    pub fn write_napi(&mut self, napi_glue_code: String) -> Result<(), WriteNapiError> {
         patch_cargo_toml_file(
             &self.project_root_abs_path.join("Cargo.toml"),
             &CargoTomlPatch::new()
@@ -22,20 +34,21 @@ impl Syncer {
                 .build_dep(
                     Dep::new("napi-build", "2").requires_feature(NAPI_CARGO_FEATURE),
                 ),
-        )
-        .unwrap();
+        )?;
 
         self.lib.set_branch(
             "napi",
             LibBranch::new(napi_glue_code).requires_cargo_feature(NAPI_CARGO_FEATURE),
         );
-        write_lib(&self.project_root_abs_path, &self.lib).unwrap();
+        write_lib(&self.project_root_abs_path, &self.lib)?;
 
         self.build.set_branch(
             "napi",
             BuildBranch::new("use napi_build;\nnapi_build::setup();")
                 .requires_cargo_feature(NAPI_CARGO_FEATURE),
         );
-        write_build(&self.project_root_abs_path, &self.build).unwrap();
+        write_build(&self.project_root_abs_path, &self.build)?;
+
+        Ok(())
     }
 }
