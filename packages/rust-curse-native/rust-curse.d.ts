@@ -24,7 +24,7 @@ export interface JsOpts {
 
 export type ProfileBuildTarget =
   | { type: 'wasm' }
-  | { type: 'node-api' }
+  | { type: 'node' }
 
 export interface ProfileOpts {
   /**

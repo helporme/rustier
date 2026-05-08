@@ -24,15 +24,19 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
     name: 'rust-curse',
 
     buildStart() {
-      const profile: ProfileOpts = {
-        name: options.platform,
+      let platforms =
+        typeof options.platform === 'string'
+          ? [options.platform]
+          : options.platform
+
+      const profiles: ProfileOpts[] = platforms.map((platform) => ({
+        name: platform,
         rust: {
-          target:
-            options.platform === 'node'
-              ? { type: 'node-api' }
-              : { type: 'wasm' },
+          target: {
+            type: platform,
+          },
         },
-      }
+      }))
 
       const rustCurse = new RustCurse({
         projectRoot: resolve(options.rootDir),
@@ -42,10 +46,10 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
           filter: normalizeFilter(options.js.filter),
           typescript: options.js.typescript ?? true,
         },
-        profiles: [profile],
+        profiles,
       })
 
-      rustCurse.build([profile.name])
+      rustCurse.build(profiles.map((p) => p.name))
     },
   }
 }

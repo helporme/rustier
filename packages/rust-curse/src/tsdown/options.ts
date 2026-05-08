@@ -25,7 +25,7 @@ export type RustCurseOptions = {
   /**
    * Js side configuration
    */
-  js: {
+  js?: {
     /**
      * Files to scan for ESM imports/exports.
      *
@@ -68,7 +68,7 @@ export type RustCurseOptions = {
    *
    * @default 'wasm'
    */
-  platform?: 'wasm' | 'node'
+  platform?: 'wasm' | 'node' | ('wasm' | 'node')[]
 }
 
 export const defaultOptions: RustCurseOptions = {

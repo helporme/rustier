@@ -22,7 +22,7 @@ use crate::tree_shake::TreeShakeOpts;
 #[cfg_attr(feature = "napi-binding", napi(discriminant_case = "kebab-case"))]
 pub enum ProfileBuildTarget {
     Wasm {},
-    NodeApi {},
+    Node {},
 }
 
 #[derive(Debug)]
@@ -179,7 +179,7 @@ impl RustCurse {
         let profiles = self.get_profiles(profile_names)?;
         for profile in &profiles {
             match profile.rust.target {
-                ProfileBuildTarget::NodeApi {} => sync
+                ProfileBuildTarget::Node {} => sync
                     .write_napi(&profile.name, ir.print_napi(&exposed_mod_items))
                     .with_context(|| format!("sync: napi profile '{}'", profile.name))?,
                 ProfileBuildTarget::Wasm {} => sync
