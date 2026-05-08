@@ -8,6 +8,8 @@ use super::{Id, Item, IR};
 impl IR {
     /// Prints the IR as a JavaScript re-export module, exposing items in the
     /// `exposed` set.
+    ///
+    /// The `source_js` parameter is the path to the source JavaScript file.
     pub fn print_js(&self, module_id: Id, source_js: String, exposed: &HashSet<Id>) -> String {
         Printer::new(self, source_js, exposed).run(module_id)
     }

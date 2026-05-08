@@ -6,14 +6,15 @@ pub mod rustdoc;
 pub mod sync;
 pub mod tree_shake;
 
+use core::str;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 #[cfg(feature = "napi-binding")]
 use napi_derive::napi;
 
-use crate::builder::wasm::{build_wasm, BuildWasmOpts};
-use crate::ir::IR;
+use crate::ir::{Id, Item, IR};
 use crate::orphans::OrphanScanOpts;
 use crate::sync::write_orphan_tree::WriteOrphanTreeOpts;
 use crate::sync::Syncer;
@@ -112,9 +113,29 @@ impl RustCurseOpts {
     }
 }
 
+pub enum ProfileBuildOutput {
+    Wasm(builder::wasm::WasmBuildOutput),
+}
+
+pub struct BuildOutput {
+    ir: IR,
+    exposed: HashSet<Id>,
+    artifacts: HashMap<String, ProfileBuildOutput>,
+}
+
 #[cfg_attr(feature = "napi-binding", napi)]
 pub struct RustCurse {
+    // Project root directory absolute path
+    project_root_abs_path: PathBuf,
+    // Modules root directory relative to project root (e.g. "./src")
+    modules_root_rel_path: PathBuf,
+    // Output directory absolute path (e.g. "/path/to/project/.rust-curse")
+    out_dir_abs_path: PathBuf,
+    // Build output directory absolute path (e.g. "/path/to/project/.rust-curse/output")
+    build_out_dir_abs_path: PathBuf,
     options: RustCurseOpts,
+    // Last successful build artifacts
+    built: Option<BuildOutput>,
 }
 
 #[cfg_attr(feature = "napi-binding", napi)]
@@ -126,28 +147,48 @@ impl RustCurse {
             .validate()
             .map_err(|e| napi::Error::new(napi::Status::InvalidArg, format!("{:#}", e)))?;
 
-        Ok(Self { options })
+        let project_root_abs_path = PathBuf::from(&options.project_root);
+        let modules_root_rel_path = PathBuf::from(&options.rust.modules_root_dir);
+        let out_dir_abs_path = project_root_abs_path.join(&options.out_dir);
+        let build_out_dir_abs_path = out_dir_abs_path.join("output");
+
+        Ok(Self {
+            project_root_abs_path,
+            modules_root_rel_path,
+            out_dir_abs_path,
+            build_out_dir_abs_path,
+            options,
+            built: None,
+        })
     }
 
     #[cfg(feature = "napi-binding")]
     #[napi]
     pub fn build(&mut self, profile_names: Vec<String>) -> napi::Result<()> {
-        self.try_build(&profile_names)
+        self._build(&profile_names)
             .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{:#}", e)))
     }
 
-    fn try_build(&mut self, profile_names: &[String]) -> anyhow::Result<()> {
-        let project_root_abs_path = PathBuf::from(&self.options.project_root);
-        let modules_root_rel_path = PathBuf::from(&self.options.rust.modules_root_dir);
+    /// Returns the JS code that re-exports items from a single rust orphan
+    /// module under `profile_name`. The shape of the emitted code depends on
+    /// the profile's build target (wasm-bindgen output for `Wasm`, native
+    /// addon binding for `Node`).
+    #[cfg(feature = "napi-binding")]
+    #[napi]
+    pub fn resolve(&mut self, profile_name: String, rs_rel_path: String) -> napi::Result<String> {
+        self._resolve(&profile_name, &rs_rel_path)
+            .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{:#}", e)))
+    }
 
+    fn _build(&mut self, profile_names: &[String]) -> anyhow::Result<()> {
         let orphan_modules = orphans::scan(OrphanScanOpts {
-            project_root_abs_path: &project_root_abs_path,
-            src_rel_path: &modules_root_rel_path,
+            project_root_abs_path: &self.project_root_abs_path,
+            src_rel_path: &self.modules_root_rel_path,
             rs_filter: None,
         })?;
 
         let mut sync = Syncer::new(
-            project_root_abs_path.clone(),
+            self.project_root_abs_path.clone(),
             PathBuf::from(&self.options.out_dir),
         );
 
@@ -156,14 +197,14 @@ impl RustCurse {
         sync.write_rustdoc(&orphan_modules)
             .context("sync: rustdoc")?;
 
-        let rustdoc = rustdoc::gen(&project_root_abs_path)?;
+        let rustdoc = rustdoc::gen(&self.project_root_abs_path)?;
         let ir = IR::try_from(&rustdoc).context("build ir")?;
 
-        let exposed_mod_items = tree_shake::shake(
+        let exposed = tree_shake::shake(
             &ir,
             TreeShakeOpts {
-                project_root_abs_path: &project_root_abs_path,
-                src_rel_path: &modules_root_rel_path,
+                project_root_abs_path: &self.project_root_abs_path,
+                src_rel_path: &self.modules_root_rel_path,
                 js_filter: &self.options.js.filter,
             },
         )
@@ -171,7 +212,7 @@ impl RustCurse {
 
         sync.write_orphan_tree(WriteOrphanTreeOpts {
             ir: &ir,
-            exposed: &exposed_mod_items,
+            exposed: &exposed,
         })
         .context("sync: orphan_tree")?;
 
@@ -179,10 +220,10 @@ impl RustCurse {
         for profile in &profiles {
             match profile.rust.target {
                 ProfileBuildTarget::Node {} => sync
-                    .write_napi(&profile.name, ir.print_napi(&exposed_mod_items))
+                    .write_napi(&profile.name, ir.print_napi(&exposed))
                     .with_context(|| format!("sync: napi profile '{}'", profile.name))?,
                 ProfileBuildTarget::Wasm {} => sync
-                    .write_wasm(&profile.name, ir.print_wasm(&exposed_mod_items))
+                    .write_wasm(&profile.name, ir.print_wasm(&exposed))
                     .with_context(|| format!("sync: wasm profile '{}'", profile.name))?,
             }
         }
@@ -191,21 +232,79 @@ impl RustCurse {
             sync.write_ts(&ir).context("sync: ts")?;
         }
 
+        let wasm_bindgen_tool_bin_abs_path: Option<PathBuf> = profiles
+            .iter()
+            .any(|p| matches!(p.rust.target, ProfileBuildTarget::Wasm {}))
+            .then(|| {
+                builder::wasm::ensure_wasm_target_installed()?;
+                builder::wasm::ensure_bindgen_tool_installed(
+                    &self.out_dir_abs_path.join("tools/wasm-bindgen-cli"),
+                )
+            })
+            .transpose()?;
+
+        let mut artifacts: HashMap<String, ProfileBuildOutput> = HashMap::new();
+
         for profile in &profiles {
             if matches!(profile.rust.target, ProfileBuildTarget::Wasm {}) {
-                let abs_out_dir = sync.abs_out_dir();
-                build_wasm(BuildWasmOpts {
-                    project_root_abs_path: &project_root_abs_path,
-                    tools_dir_abs_path: &abs_out_dir.join("tools"),
-                    wasm_output_dir_abs_path: &abs_out_dir.join("output").join(&profile.name),
-                    profile_name: Some(&profile.name),
+                let bin = wasm_bindgen_tool_bin_abs_path.as_deref().expect(
+                    "wasm-bindgen bin path was provisioned above for any wasm-targeting profile",
+                );
+                let output = builder::wasm::build(builder::wasm::WasmBuildOpts {
+                    project_root_abs_path: &self.project_root_abs_path,
+                    out_dir_abs_path: &self.build_out_dir_abs_path,
+                    wasm_bindgen_tool_bin_abs_path: bin,
+                    profile_name: &profile.name,
                     release: false,
                 })
                 .with_context(|| format!("builder: wasm profile '{}'", profile.name))?;
+
+                artifacts.insert(profile.name.clone(), ProfileBuildOutput::Wasm(output));
             }
         }
 
+        self.built = Some(BuildOutput {
+            ir,
+            exposed,
+            artifacts,
+        });
+
         Ok(())
+    }
+
+    fn _resolve(&mut self, profile_name: &str, path: &str) -> anyhow::Result<String> {
+        let build_output = self.built.as_ref().ok_or(anyhow!(
+            "reslolve cannot be called before build, please call build first."
+        ))?;
+
+        let artifact = build_output
+            .artifacts
+            .get(profile_name)
+            .ok_or_else(|| anyhow!("unknown profile '{profile_name}'"))?;
+
+        let path_buf = PathBuf::from(path);
+        let mid = Id(build_output
+            .ir
+            .items
+            .iter()
+            .enumerate()
+            .find(
+                |(_, i)| matches!(i, Item::Mod(def) if def.filename.as_deref() == Some(&path_buf)),
+            )
+            .ok_or(anyhow!("cannot resolve the module '{}'", path))?
+            .0 as u32);
+
+        let js_source_abs_path = match artifact {
+            ProfileBuildOutput::Wasm(wasm) => &wasm.js_output_abs_path,
+        };
+
+        let js_glue = build_output.ir.print_js(
+            mid,
+            js_source_abs_path.to_string_lossy().into_owned(),
+            &build_output.exposed,
+        );
+
+        Ok(js_glue)
     }
 
     fn get_profiles(&self, names: &[String]) -> Result<Vec<&ProfileOpts>, anyhow::Error> {

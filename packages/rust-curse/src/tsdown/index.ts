@@ -1,4 +1,4 @@
-import { resolve } from 'node:path'
+import { dirname, resolve as resolvePath } from 'node:path'
 import { type Rolldown } from 'tsdown'
 import { defaultOptions, RustCurseOptions } from './options'
 import { ProfileOpts, RustCurse } from 'rust-curse-native'
@@ -20,11 +20,17 @@ export default function rustCurse(options?: RustCurseOptions): Plugin {
 }
 
 function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
+  let curse: RustCurse | null = null
+  // The profile resolved against when a JS file imports a `.rs` module.
+  // When the user configured multiple platforms we currently pick the first
+  // one; refining this (e.g. routing per-output-condition) is future work.
+  let resolveProfileName: string | null = null
+
   return {
     name: 'rust-curse',
 
     buildStart() {
-      let platforms =
+      const platforms =
         typeof options.platform === 'string'
           ? [options.platform]
           : options.platform
@@ -38,8 +44,10 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
         },
       }))
 
-      const rustCurse = new RustCurse({
-        projectRoot: resolve(options.rootDir),
+      resolveProfileName = profiles[0]?.name ?? null
+
+      curse = new RustCurse({
+        projectRoot: resolvePath(options.rootDir),
         outDir: options.outDir,
         rust: { modulesRootDir: options.rust.moduleDir },
         js: {
@@ -49,7 +57,21 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
         profiles,
       })
 
-      rustCurse.build(profiles.map((p) => p.name))
+      curse.build(profiles.map((p) => p.name))
+    },
+
+    resolveId(source, importer) {
+      if (!source.endsWith('.rs')) return null
+      if (importer && (source.startsWith('./') || source.startsWith('../'))) {
+        return resolvePath(dirname(importer), source)
+      }
+      return null
+    },
+
+    load(id) {
+      if (!id.endsWith('.rs')) return null
+      if (!curse || !resolveProfileName) return null
+      return curse.resolve(resolveProfileName, id)
     },
   }
 }

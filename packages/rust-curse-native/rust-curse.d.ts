@@ -3,6 +3,13 @@
 export declare class RustCurse {
   constructor(options: RustCurseOpts)
   build(profileNames: Array<string>): void
+  /**
+   * Returns the JS code that re-exports items from a single rust orphan
+   * module under `profile_name`. The shape of the emitted code depends on
+   * the profile's build target (wasm-bindgen output for `Wasm`, native
+   * addon binding for `Node`).
+   */
+  resolve(profileName: string, rsRelPath: string): string
 }
 
 export interface FileFilter {
