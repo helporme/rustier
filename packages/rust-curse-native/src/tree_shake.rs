@@ -404,7 +404,14 @@ fn parse_members(specifier_part: &str) -> Vec<String> {
             .split(',')
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
-            .map(|s| s.split_whitespace().next().unwrap_or(s).to_string())
+            .filter_map(|s| {
+                let first = s.split_whitespace().next()?;
+                if first == "type" {
+                    None
+                } else {
+                    Some(first.to_string())
+                }
+            })
             .collect();
     }
 
@@ -460,5 +467,26 @@ mod tests {
             parse_members(" { add as myAdd, remove } "),
             vec!["add", "remove"]
         );
+    }
+
+    #[test]
+    fn parse_inline_type_member_dropped() {
+        assert_eq!(parse_members(" { type Foo } "), Vec::<String>::new());
+        assert_eq!(parse_members(" { type Foo as F } "), Vec::<String>::new());
+        assert_eq!(
+            parse_members(" { type Foo, type Bar } "),
+            Vec::<String>::new()
+        );
+    }
+
+    #[test]
+    fn parse_mixed_type_and_value_members() {
+        assert_eq!(parse_members(" { Foo, type Bar } "), vec!["Foo"]);
+        assert_eq!(parse_members(" { type Bar, Foo } "), vec!["Foo"]);
+    }
+
+    #[test]
+    fn parse_identifier_starting_with_type_kept() {
+        assert_eq!(parse_members(" { typeValue } "), vec!["typeValue"]);
     }
 }

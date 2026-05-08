@@ -180,6 +180,76 @@ fn unresolved_file_import_errors() {
 }
 
 #[test]
+fn type_only_import_yields_empty_set() {
+    let fixture = Fixture::new(
+        "src",
+        &["greet.rs"],
+        &[
+            File {
+                rel_path: "src/greet.rs",
+                content: "pub fn hello() {}\n",
+            },
+            File {
+                rel_path: "app/main.js",
+                content: "import type { hello } from '../src/greet.rs'\n\
+                          import { type hello as H } from '../src/greet.rs'\n",
+            },
+        ],
+    );
+
+    let include = vec![format!("{}/app/**/*.js", fixture.abs_root.display())];
+    let (ir, exposed) = fixture.run_shake("src", &include).expect("shake ok");
+    snapshot!(fixture, ir, exposed);
+}
+
+#[test]
+fn mixed_inline_type_value_import_seeds_only_value() {
+    let fixture = Fixture::new(
+        "src",
+        &["greet.rs"],
+        &[
+            File {
+                rel_path: "src/greet.rs",
+                content: "pub fn hello() {}\n\
+                          pub struct Greeting { pub msg: String }\n",
+            },
+            File {
+                rel_path: "app/main.js",
+                content: "import { hello, type Greeting } from '../src/greet.rs'\n",
+            },
+        ],
+    );
+
+    let include = vec![format!("{}/app/**/*.js", fixture.abs_root.display())];
+    let (ir, exposed) = fixture.run_shake("src", &include).expect("shake ok");
+    snapshot!(fixture, ir, exposed);
+}
+
+#[test]
+fn value_import_and_separate_type_import_seeds_only_value() {
+    let fixture = Fixture::new(
+        "src",
+        &["greet.rs"],
+        &[
+            File {
+                rel_path: "src/greet.rs",
+                content: "pub fn hello() {}\n\
+                          pub struct Greeting { pub msg: String }\n",
+            },
+            File {
+                rel_path: "app/main.js",
+                content: "import { hello } from '../src/greet.rs'\n\
+                          import type { Greeting } from '../src/greet.rs'\n",
+            },
+        ],
+    );
+
+    let include = vec![format!("{}/app/**/*.js", fixture.abs_root.display())];
+    let (ir, exposed) = fixture.run_shake("src", &include).expect("shake ok");
+    snapshot!(fixture, ir, exposed);
+}
+
+#[test]
 fn nested_orphan_module_resolved_by_path() {
     let fixture = Fixture::new(
         "src",
