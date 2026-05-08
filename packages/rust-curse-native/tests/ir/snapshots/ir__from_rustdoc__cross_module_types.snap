@@ -16,6 +16,9 @@ IR {
                         "rustdoc_test_crate",
                     ],
                 },
+                filename: Some(
+                    "src/lib.rs",
+                ),
                 exports: [
                     Export {
                         name: "types",
@@ -40,6 +43,9 @@ IR {
                         "types",
                     ],
                 },
+                filename: Some(
+                    "src/lib.rs",
+                ),
                 exports: [
                     Export {
                         name: "Token",
@@ -81,6 +87,9 @@ IR {
                         "ops",
                     ],
                 },
+                filename: Some(
+                    "src/lib.rs",
+                ),
                 exports: [
                     Export {
                         name: "parse",

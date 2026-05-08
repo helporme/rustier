@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::path::PathBuf;
 
 use rustdoc_types::{
     Crate, GenericArg, GenericArgs, Id as RId, Item as RItem, ItemEnum, Path, StructKind,
@@ -72,7 +73,8 @@ impl<'a> Builder<'a> {
             _ => return Ok(None),
         };
 
-        let mid = self.reserve_mod(path_of(item, mod_id, self.crate_));
+        let filename = item.span.as_ref().map(|s| s.filename.clone());
+        let mid = self.reserve_mod(path_of(item, mod_id, self.crate_), filename);
         self.mod_intern.insert(mod_id, mid);
         let mut exports = Vec::new();
 
@@ -235,10 +237,11 @@ impl<'a> Builder<'a> {
         Ok(())
     }
 
-    fn reserve_mod(&mut self, path: ItemPath) -> Id {
+    fn reserve_mod(&mut self, path: ItemPath, filename: Option<PathBuf>) -> Id {
         let id = Id(self.ir.items.len() as u32);
         self.ir.items.push(Item::Mod(ModDef {
             path,
+            filename,
             exports: Vec::new(),
         }));
         id

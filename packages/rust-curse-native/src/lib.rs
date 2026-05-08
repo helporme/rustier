@@ -170,7 +170,6 @@ impl RustCurse {
         .with_context(|| "tree_shake")?;
 
         sync.write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &orphan_modules,
             ir: &ir,
             exposed: &exposed_mod_items,
         })

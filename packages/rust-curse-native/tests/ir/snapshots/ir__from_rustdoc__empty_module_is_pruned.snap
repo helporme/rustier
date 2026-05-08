@@ -16,6 +16,9 @@ IR {
                         "rustdoc_test_crate",
                     ],
                 },
+                filename: Some(
+                    "src/lib.rs",
+                ),
                 exports: [
                     Export {
                         name: "kept",
@@ -34,6 +37,9 @@ IR {
                         "kept",
                     ],
                 },
+                filename: Some(
+                    "src/lib.rs",
+                ),
                 exports: [
                     Export {
                         name: "stays",

@@ -140,9 +140,11 @@ pub struct FnFixture<'a> {
 }
 
 /// Description of one module's IR contribution: its `mod_name` (as a
-/// `::`-separated path) and the list of exported functions.
+/// `::`-separated path), source file path (relative to project root),
+/// and the list of exported functions.
 pub struct ModFixture<'a> {
     pub mod_name: &'a str,
+    pub rel_rs_path: &'a str,
     pub fns: &'a [FnFixture<'a>],
 }
 
@@ -162,6 +164,7 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (IR, HashSet<Id>) {
     let root_id = Id(ir.items.len() as u32);
     ir.items.push(Item::Mod(ModDef {
         path: ItemPath::new(vec![crate_name.to_string()]),
+        filename: None,
         exports: Vec::new(),
     }));
     ir.root = root_id;
@@ -175,6 +178,7 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (IR, HashSet<Id>) {
         let mod_id = Id(ir.items.len() as u32);
         ir.items.push(Item::Mod(ModDef {
             path: ItemPath::new(mod_segs.clone()),
+            filename: Some(PathBuf::from(module.rel_rs_path)),
             exports: Vec::new(),
         }));
 

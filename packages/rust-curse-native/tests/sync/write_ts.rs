@@ -30,6 +30,7 @@ fn single_flat_module() {
         TEST_CRATE,
         &[ModFixture {
             mod_name: "foo",
+            rel_rs_path: "src/foo.rs",
             fns: &[FnFixture {
                 name: "f",
                 exposed: true,
@@ -54,6 +55,7 @@ fn multiple_flat_modules() {
         &[
             ModFixture {
                 mod_name: "foo",
+                rel_rs_path: "src/foo.rs",
                 fns: &[FnFixture {
                     name: "f",
                     exposed: true,
@@ -61,6 +63,7 @@ fn multiple_flat_modules() {
             },
             ModFixture {
                 mod_name: "bar",
+                rel_rs_path: "src/bar.rs",
                 fns: &[FnFixture {
                     name: "g",
                     exposed: true,
@@ -86,6 +89,7 @@ fn nested_modules() {
         &[
             ModFixture {
                 mod_name: "nested::deep",
+                rel_rs_path: "src/nested/deep.rs",
                 fns: &[FnFixture {
                     name: "run",
                     exposed: true,
@@ -93,6 +97,7 @@ fn nested_modules() {
             },
             ModFixture {
                 mod_name: "nested::shallow",
+                rel_rs_path: "src/nested/shallow.rs",
                 fns: &[FnFixture {
                     name: "skim",
                     exposed: true,
@@ -125,6 +130,7 @@ fn deeply_nested_module() {
         TEST_CRATE,
         &[ModFixture {
             mod_name: "a::b::c",
+            rel_rs_path: "src/a/b/c.rs",
             fns: &[FnFixture {
                 name: "f",
                 exposed: true,
@@ -155,6 +161,7 @@ fn uppercase_segment_preserved() {
         TEST_CRATE,
         &[ModFixture {
             mod_name: "MyMod::sub",
+            rel_rs_path: "src/MyMod/sub.rs",
             fns: &[FnFixture {
                 name: "do_it",
                 exposed: true,
@@ -188,6 +195,7 @@ fn stale_subtree_cleaned_on_rerun() {
             TEST_CRATE,
             &[ModFixture {
                 mod_name: "a::b",
+                rel_rs_path: "src/a/b.rs",
                 fns: &[FnFixture {
                     name: "f",
                     exposed: true,

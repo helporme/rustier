@@ -16,6 +16,9 @@ IR {
                         "rustdoc_test_crate",
                     ],
                 },
+                filename: Some(
+                    "src/lib.rs",
+                ),
                 exports: [
                     Export {
                         name: "Opaque",

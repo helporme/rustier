@@ -16,6 +16,9 @@ IR {
                         "rustdoc_test_crate",
                     ],
                 },
+                filename: Some(
+                    "src/lib.rs",
+                ),
                 exports: [
                     Export {
                         name: "a",
@@ -34,6 +37,9 @@ IR {
                         "a",
                     ],
                 },
+                filename: Some(
+                    "src/lib.rs",
+                ),
                 exports: [
                     Export {
                         name: "b",
@@ -53,6 +59,9 @@ IR {
                         "b",
                     ],
                 },
+                filename: Some(
+                    "src/lib.rs",
+                ),
                 exports: [
                     Export {
                         name: "c",
@@ -73,6 +82,9 @@ IR {
                         "c",
                     ],
                 },
+                filename: Some(
+                    "src/lib.rs",
+                ),
                 exports: [
                     Export {
                         name: "deep",

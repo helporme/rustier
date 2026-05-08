@@ -17,7 +17,6 @@ fn empty_modules() {
     let (ir, exposed) = empty_ir(TEST_CRATE);
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &[],
             ir: &ir,
             exposed: &exposed,
         })
@@ -32,15 +31,12 @@ fn emits_mod_tree_and_reexports() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let modules = vec![
-        test_module("greet", "src/greet.rs"),
-        test_module("unused", "src/unused.rs"),
-    ];
     let (ir, exposed) = make_ir(
         TEST_CRATE,
         &[
             ModFixture {
                 mod_name: "greet",
+                rel_rs_path: "src/greet.rs",
                 fns: &[FnFixture {
                     name: "hello",
                     exposed: true,
@@ -48,6 +44,7 @@ fn emits_mod_tree_and_reexports() {
             },
             ModFixture {
                 mod_name: "unused",
+                rel_rs_path: "src/unused.rs",
                 fns: &[FnFixture {
                     name: "unused_fn",
                     exposed: false,
@@ -58,7 +55,6 @@ fn emits_mod_tree_and_reexports() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &modules,
             ir: &ir,
             exposed: &exposed,
         })
@@ -73,11 +69,11 @@ fn no_tree_or_reexports_when_nothing_exposed() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let modules = vec![test_module("greet", "src/greet.rs")];
     let (ir, exposed) = make_ir(
         TEST_CRATE,
         &[ModFixture {
             mod_name: "greet",
+            rel_rs_path: "src/greet.rs",
             fns: &[FnFixture {
                 name: "hello",
                 exposed: false,
@@ -87,7 +83,6 @@ fn no_tree_or_reexports_when_nothing_exposed() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &modules,
             ir: &ir,
             exposed: &exposed,
         })
@@ -102,11 +97,11 @@ fn reexports_all_exposed_items() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let modules = vec![test_module("math", "src/math.rs")];
     let (ir, exposed) = make_ir(
         TEST_CRATE,
         &[ModFixture {
             mod_name: "math",
+            rel_rs_path: "src/math.rs",
             fns: &[
                 FnFixture {
                     name: "add",
@@ -122,7 +117,6 @@ fn reexports_all_exposed_items() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &modules,
             ir: &ir,
             exposed: &exposed,
         })
@@ -137,15 +131,12 @@ fn nested_modules_emit_subtree_files() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let modules = vec![
-        test_module("nested::deep", "src/nested/deep.rs"),
-        test_module("nested::shallow", "src/nested/shallow.rs"),
-    ];
     let (ir, exposed) = make_ir(
         TEST_CRATE,
         &[
             ModFixture {
                 mod_name: "nested::deep",
+                rel_rs_path: "src/nested/deep.rs",
                 fns: &[FnFixture {
                     name: "run",
                     exposed: true,
@@ -153,6 +144,7 @@ fn nested_modules_emit_subtree_files() {
             },
             ModFixture {
                 mod_name: "nested::shallow",
+                rel_rs_path: "src/nested/shallow.rs",
                 fns: &[FnFixture {
                     name: "skim",
                     exposed: true,
@@ -163,7 +155,6 @@ fn nested_modules_emit_subtree_files() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &modules,
             ir: &ir,
             exposed: &exposed,
         })
@@ -184,11 +175,11 @@ fn uppercase_segment_gets_allow() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let modules = vec![test_module("MyMod::something", "src/MyMod/something.rs")];
     let (ir, exposed) = make_ir(
         TEST_CRATE,
         &[ModFixture {
             mod_name: "MyMod::something",
+            rel_rs_path: "src/MyMod/something.rs",
             fns: &[FnFixture {
                 name: "do_it",
                 exposed: true,
@@ -198,7 +189,6 @@ fn uppercase_segment_gets_allow() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &modules,
             ir: &ir,
             exposed: &exposed,
         })
@@ -213,15 +203,12 @@ fn leaf_branch_collision_errors() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let modules = vec![
-        test_module("abc", "src/abc.rs"),
-        test_module("abc::hi", "src/abc/hi.rs"),
-    ];
     let (ir, exposed) = make_ir(
         TEST_CRATE,
         &[
             ModFixture {
                 mod_name: "abc",
+                rel_rs_path: "src/abc.rs",
                 fns: &[FnFixture {
                     name: "f",
                     exposed: true,
@@ -229,6 +216,7 @@ fn leaf_branch_collision_errors() {
             },
             ModFixture {
                 mod_name: "abc::hi",
+                rel_rs_path: "src/abc/hi.rs",
                 fns: &[FnFixture {
                     name: "g",
                     exposed: true,
@@ -239,7 +227,6 @@ fn leaf_branch_collision_errors() {
 
     let err = syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &modules,
             ir: &ir,
             exposed: &exposed,
         })
@@ -265,11 +252,11 @@ fn stale_subtree_cleaned_on_rerun() {
 
     {
         let mut syncer = project.syncer();
-        let modules = vec![test_module("a::b", "src/a/b.rs")];
         let (ir, exposed) = make_ir(
             TEST_CRATE,
             &[ModFixture {
                 mod_name: "a::b",
+                rel_rs_path: "src/a/b.rs",
                 fns: &[FnFixture {
                     name: "f",
                     exposed: true,
@@ -278,7 +265,6 @@ fn stale_subtree_cleaned_on_rerun() {
         );
         syncer
             .write_orphan_tree(WriteOrphanTreeOpts {
-                modules: &modules,
                 ir: &ir,
                 exposed: &exposed,
             })
@@ -291,7 +277,6 @@ fn stale_subtree_cleaned_on_rerun() {
         let (ir, exposed) = empty_ir(TEST_CRATE);
         syncer
             .write_orphan_tree(WriteOrphanTreeOpts {
-                modules: &[],
                 ir: &ir,
                 exposed: &exposed,
             })
@@ -305,11 +290,11 @@ fn deep_nesting_three_levels() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let modules = vec![test_module("a::b::c", "src/a/b/c.rs")];
     let (ir, exposed) = make_ir(
         TEST_CRATE,
         &[ModFixture {
             mod_name: "a::b::c",
+            rel_rs_path: "src/a/b/c.rs",
             fns: &[FnFixture {
                 name: "go",
                 exposed: true,
@@ -319,7 +304,6 @@ fn deep_nesting_three_levels() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &modules,
             ir: &ir,
             exposed: &exposed,
         })
@@ -339,16 +323,12 @@ fn siblings_share_parent_subtree_file() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let modules = vec![
-        test_module("nested::a", "src/nested/a.rs"),
-        test_module("nested::b", "src/nested/b.rs"),
-        test_module("nested::c", "src/nested/c.rs"),
-    ];
     let (ir, exposed) = make_ir(
         TEST_CRATE,
         &[
             ModFixture {
                 mod_name: "nested::a",
+                rel_rs_path: "src/nested/a.rs",
                 fns: &[FnFixture {
                     name: "fa",
                     exposed: true,
@@ -356,6 +336,7 @@ fn siblings_share_parent_subtree_file() {
             },
             ModFixture {
                 mod_name: "nested::b",
+                rel_rs_path: "src/nested/b.rs",
                 fns: &[FnFixture {
                     name: "fb",
                     exposed: true,
@@ -363,6 +344,7 @@ fn siblings_share_parent_subtree_file() {
             },
             ModFixture {
                 mod_name: "nested::c",
+                rel_rs_path: "src/nested/c.rs",
                 fns: &[FnFixture {
                     name: "fc",
                     exposed: true,
@@ -373,7 +355,6 @@ fn siblings_share_parent_subtree_file() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &modules,
             ir: &ir,
             exposed: &exposed,
         })
@@ -393,15 +374,12 @@ fn partial_module_reduction_regenerates_parent_subtree_file() {
         .join(ORPHAN_TREE_DIR)
         .join("a.rs");
 
-    let full_modules = vec![
-        test_module("a::b", "src/a/b.rs"),
-        test_module("a::c", "src/a/c.rs"),
-    ];
     let (full_ir, full_exposed) = make_ir(
         TEST_CRATE,
         &[
             ModFixture {
                 mod_name: "a::b",
+                rel_rs_path: "src/a/b.rs",
                 fns: &[FnFixture {
                     name: "fb",
                     exposed: true,
@@ -409,6 +387,7 @@ fn partial_module_reduction_regenerates_parent_subtree_file() {
             },
             ModFixture {
                 mod_name: "a::c",
+                rel_rs_path: "src/a/c.rs",
                 fns: &[FnFixture {
                     name: "fc",
                     exposed: true,
@@ -421,7 +400,6 @@ fn partial_module_reduction_regenerates_parent_subtree_file() {
         let mut syncer = project.syncer();
         syncer
             .write_orphan_tree(WriteOrphanTreeOpts {
-                modules: &full_modules,
                 ir: &full_ir,
                 exposed: &full_exposed,
             })
@@ -431,11 +409,11 @@ fn partial_module_reduction_regenerates_parent_subtree_file() {
     assert!(first.contains("pub mod b;"), "first a.rs: {first:?}");
     assert!(first.contains("pub mod c;"), "first a.rs: {first:?}");
 
-    let reduced_modules = vec![test_module("a::b", "src/a/b.rs")];
     let (reduced_ir, reduced_exposed) = make_ir(
         TEST_CRATE,
         &[ModFixture {
             mod_name: "a::b",
+            rel_rs_path: "src/a/b.rs",
             fns: &[FnFixture {
                 name: "fb",
                 exposed: true,
@@ -446,7 +424,6 @@ fn partial_module_reduction_regenerates_parent_subtree_file() {
         let mut syncer = project.syncer();
         syncer
             .write_orphan_tree(WriteOrphanTreeOpts {
-                modules: &reduced_modules,
                 ir: &reduced_ir,
                 exposed: &reduced_exposed,
             })
@@ -464,11 +441,11 @@ fn flattening_module_cleans_old_subtree() {
 
     {
         let mut syncer = project.syncer();
-        let modules = vec![test_module("a::b", "src/a/b.rs")];
         let (ir, exposed) = make_ir(
             TEST_CRATE,
             &[ModFixture {
                 mod_name: "a::b",
+                rel_rs_path: "src/a/b.rs",
                 fns: &[FnFixture {
                     name: "f",
                     exposed: true,
@@ -477,7 +454,6 @@ fn flattening_module_cleans_old_subtree() {
         );
         syncer
             .write_orphan_tree(WriteOrphanTreeOpts {
-                modules: &modules,
                 ir: &ir,
                 exposed: &exposed,
             })
@@ -488,11 +464,11 @@ fn flattening_module_cleans_old_subtree() {
 
     {
         let mut syncer = project.syncer();
-        let modules = vec![test_module("a", "src/a.rs")];
         let (ir, exposed) = make_ir(
             TEST_CRATE,
             &[ModFixture {
                 mod_name: "a",
+                rel_rs_path: "src/a.rs",
                 fns: &[FnFixture {
                     name: "f",
                     exposed: true,
@@ -501,7 +477,6 @@ fn flattening_module_cleans_old_subtree() {
         );
         syncer
             .write_orphan_tree(WriteOrphanTreeOpts {
-                modules: &modules,
                 ir: &ir,
                 exposed: &exposed,
             })
@@ -515,15 +490,12 @@ fn flattening_module_cleans_old_subtree() {
 #[test]
 fn idempotent_when_called_twice_with_same_inputs() {
     let project = TestProject::new();
-    let modules = vec![
-        test_module("greet", "src/greet.rs"),
-        test_module("nested::deep", "src/nested/deep.rs"),
-    ];
     let (ir, exposed) = make_ir(
         TEST_CRATE,
         &[
             ModFixture {
                 mod_name: "greet",
+                rel_rs_path: "src/greet.rs",
                 fns: &[FnFixture {
                     name: "hello",
                     exposed: true,
@@ -531,6 +503,7 @@ fn idempotent_when_called_twice_with_same_inputs() {
             },
             ModFixture {
                 mod_name: "nested::deep",
+                rel_rs_path: "src/nested/deep.rs",
                 fns: &[FnFixture {
                     name: "go",
                     exposed: true,
@@ -542,7 +515,6 @@ fn idempotent_when_called_twice_with_same_inputs() {
     let mut syncer = project.syncer();
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &modules,
             ir: &ir,
             exposed: &exposed,
         })
@@ -551,7 +523,6 @@ fn idempotent_when_called_twice_with_same_inputs() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &modules,
             ir: &ir,
             exposed: &exposed,
         })
@@ -562,20 +533,34 @@ fn idempotent_when_called_twice_with_same_inputs() {
 }
 
 #[test]
-fn module_in_modules_but_missing_from_ir_is_skipped() {
+fn module_without_filename_is_skipped() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    // `ghost` appears in `modules` but the IR is empty so it has no
-    // ModDef. The current contract: such modules are filtered out by
-    // `module_has_exposed_export` before reaching the tree builder, so
-    // no `pub mod ghost;` decl and no `pub use` line is emitted.
-    let modules = vec![test_module("ghost", "src/ghost.rs")];
-    let (ir, exposed) = empty_ir(TEST_CRATE);
+    // A `ModDef` with `filename: None` (e.g. one rustdoc emitted no
+    // span for) is filtered out by `write_orphan_tree`, so no
+    // `pub mod` decl and no `pub use` line is emitted.
+    let (mut ir, exposed) = make_ir(
+        TEST_CRATE,
+        &[ModFixture {
+            mod_name: "ghost",
+            rel_rs_path: "src/ghost.rs",
+            fns: &[FnFixture {
+                name: "boo",
+                exposed: true,
+            }],
+        }],
+    );
+    for item in ir.items.iter_mut() {
+        if let rust_curse::ir::Item::Mod(m) = item {
+            if m.path.segments.last().map(String::as_str) == Some("ghost") {
+                m.filename = None;
+            }
+        }
+    }
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &modules,
             ir: &ir,
             exposed: &exposed,
         })
@@ -587,7 +572,7 @@ fn module_in_modules_but_missing_from_ir_is_skipped() {
         .join("orphan_tree.rs");
     assert!(
         !abs_orphan_tree_rs.exists(),
-        "orphan_tree.rs must not be written when no module has an exposed export: {}",
+        "orphan_tree.rs must not be written when no module has a filename: {}",
         project_to_md(&project),
     );
 }
@@ -602,6 +587,7 @@ fn rustdoc_xor_branch_suppresses_orphan_tree_in_lib_rs() {
         TEST_CRATE,
         &[ModFixture {
             mod_name: "greet",
+            rel_rs_path: "src/greet.rs",
             fns: &[FnFixture {
                 name: "hello",
                 exposed: true,
@@ -611,7 +597,6 @@ fn rustdoc_xor_branch_suppresses_orphan_tree_in_lib_rs() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            modules: &modules,
             ir: &ir,
             exposed: &exposed,
         })

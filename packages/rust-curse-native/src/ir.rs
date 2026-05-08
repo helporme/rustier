@@ -16,6 +16,8 @@ pub mod napi;
 pub mod ts;
 pub mod wasm;
 
+use std::path::PathBuf;
+
 /// A unique identifier for an item in the IR.
 #[derive(Copy, Clone, Default, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Id(pub u32);
@@ -149,6 +151,12 @@ pub struct StructField {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ModDef {
     pub path: ItemPath,
+    /// Source file declaring this module.
+    ///
+    /// Interpretation depends on the originating crate: relative to the project
+    /// root for the local crate, absolute under `~/.cargo/...` for registry
+    /// deps, and so on. `None` if there is no source file available.
+    pub filename: Option<PathBuf>,
     pub exports: Vec<Export>,
 }
 
