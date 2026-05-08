@@ -68,7 +68,7 @@ export type RustCurseOptions = {
    *
    * @default 'wasm'
    */
-  platform?: 'wasm' | 'node' | ('wasm' | 'node')[]
+  platform?: 'wasm' | 'node'
 }
 
 export const defaultOptions: RustCurseOptions = {

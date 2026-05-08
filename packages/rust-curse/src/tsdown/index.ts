@@ -21,30 +21,19 @@ export default function rustCurse(options?: RustCurseOptions): Plugin {
 
 function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
   let curse: RustCurse | null = null
-  // The profile resolved against when a JS file imports a `.rs` module.
-  // When the user configured multiple platforms we currently pick the first
-  // one; refining this (e.g. routing per-output-condition) is future work.
-  let resolveProfileName: string | null = null
 
   return {
     name: 'rust-curse',
 
     buildStart() {
-      const platforms =
-        typeof options.platform === 'string'
-          ? [options.platform]
-          : options.platform
-
-      const profiles: ProfileOpts[] = platforms.map((platform) => ({
-        name: platform,
+      const profile: ProfileOpts = {
+        name: options.platform,
         rust: {
           target: {
-            type: platform,
+            type: options.platform,
           },
         },
-      }))
-
-      resolveProfileName = profiles[0]?.name ?? null
+      }
 
       curse = new RustCurse({
         projectRoot: resolvePath(options.rootDir),
@@ -54,10 +43,10 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
           filter: normalizeFilter(options.js.filter),
           typescript: options.js.typescript ?? true,
         },
-        profiles,
+        profiles: [profile],
       })
 
-      curse.build(profiles.map((p) => p.name))
+      curse.build([profile.name])
     },
 
     resolveId(source, importer) {
@@ -70,8 +59,8 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
 
     load(id) {
       if (!id.endsWith('.rs')) return null
-      if (!curse || !resolveProfileName) return null
-      return curse.resolve(resolveProfileName, id)
+      if (!curse) return null
+      return curse.resolve(options.platform, id)
     },
   }
 }
