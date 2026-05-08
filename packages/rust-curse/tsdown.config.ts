@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
-  entry: ['src/vite/index.ts', 'src/tsdown/index.ts'],
+  entry: { tsdown: 'src/tsdown/index.ts', utils: 'src/utils.ts' },
   exports: {
     packageJson: false,
   },

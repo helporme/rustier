@@ -1,8 +1,12 @@
 import { resolve } from 'node:path'
 import { type Rolldown } from 'tsdown'
 import { defaultOptions, RustCurseOptions } from './options'
-import { BuildTarget, RustCurse } from 'rust-curse-native'
-import { deepMerge, DeepRequired, normalizeSources } from '../utils'
+import { ProfileOpts, RustCurse } from 'rust-curse-native'
+import {
+  deepMerge,
+  DeepRequired,
+  normalizeSources as normalizeFilter,
+} from '../utils'
 
 type Plugin = Rolldown.Plugin
 
@@ -12,30 +16,36 @@ export default function rustCurse(options?: RustCurseOptions): Plugin {
     options ?? {},
   ) as DeepRequired<RustCurseOptions>
 
-  return rustCursePlugin(_options)
+  return _rustCurse(_options)
 }
 
-function rustCursePlugin(options: DeepRequired<RustCurseOptions>): Plugin {
+function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
   return {
     name: 'rust-curse',
 
     buildStart() {
-      const jsSource = normalizeSources(options.sources)
-
-      const targets: BuildTarget[] = [
-        BuildTarget.Ts,
-        options.platform === 'node' ? BuildTarget.Node : BuildTarget.Wasm,
-      ]
+      const profile: ProfileOpts = {
+        name: options.platform,
+        rust: {
+          target:
+            options.platform === 'node'
+              ? { type: 'node-api' }
+              : { type: 'wasm' },
+        },
+      }
 
       const rustCurse = new RustCurse({
-        targets,
-        jsSource,
-        moduleDirRelPath: resolve(options.rootDir, options.rust.moduleDir),
-        outputDirRelPath: resolve(options.rootDir, options.tempDir),
-        projectRootAbsPath: options.rootDir,
+        projectRoot: resolve(options.rootDir),
+        outDir: options.outDir,
+        rust: { modulesRootDir: options.rust.moduleDir },
+        js: {
+          filter: normalizeFilter(options.js.filter),
+          typescript: options.js.typescript ?? true,
+        },
+        profiles: [profile],
       })
 
-      rustCurse.build()
+      rustCurse.build([profile.name])
     },
   }
 }

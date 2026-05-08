@@ -78,8 +78,9 @@ pub struct BuildWasmOpts<'a> {
     /// [`install_wasm_tools`]).
     pub tools_dir_abs_path: &'a Path,
     /// Where to write `target/` and `package/`. Typically
-    /// `<project>/.rust-curse/output/wasm`.
+    /// `<project>/.rust-curse/output/wasm.
     pub wasm_output_dir_abs_path: &'a Path,
+    pub profile_name: Option<&'a str>,
     pub release: bool,
 }
 
@@ -109,11 +110,15 @@ pub fn build_wasm(opts: BuildWasmOpts<'_>) -> Result<(), WasmBuildError> {
         source: e,
     })?;
 
+    let mut features: Vec<&str> = vec![WASM_CARGO_FEATURE];
+    if let Some(extra) = opts.profile_name {
+        features.push(extra);
+    }
     builder::build_project(BuildOpts {
         project_root_abs_path: opts.project_root_abs_path,
         target_dir_abs_path: &target_dir_abs_path,
         target_triple: Some(WASM_TARGET_TRIPLE),
-        features: &[WASM_CARGO_FEATURE],
+        features: &features,
         release: opts.release,
     })?;
 

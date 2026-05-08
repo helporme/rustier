@@ -22,5 +22,4 @@ version = "0.1"
 build = ".rust-curse/build.rs"
 [lib]
 path = ".rust-curse/lib.rs"
-crate-type = ["rlib"]
 ```

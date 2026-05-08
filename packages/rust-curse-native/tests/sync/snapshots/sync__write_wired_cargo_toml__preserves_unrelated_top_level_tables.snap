@@ -32,5 +32,4 @@ lto = true
 
 [lib]
 path = ".rust-curse/lib.rs"
-crate-type = ["rlib"]
 ```

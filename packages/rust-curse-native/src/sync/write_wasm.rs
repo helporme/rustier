@@ -22,11 +22,16 @@ impl Syncer {
     ///
     /// `lib.rs` content is combined with previous `Syncer::write_*` calls if
     /// any.
-    pub fn write_wasm(&mut self, wasm_glue_code: String) -> Result<(), WriteWasmError> {
+    pub fn write_wasm(
+        &mut self,
+        profile_name: &str,
+        wasm_glue_code: String,
+    ) -> Result<(), WriteWasmError> {
         patch_cargo_toml_file(
             &self.project_root_abs_path.join("Cargo.toml"),
             &CargoTomlPatch::new()
                 .crate_type("cdylib")
+                .empty_feature(profile_name)
                 .dep(Dep::new("wasm-bindgen", "0.2").requires_feature(WASM_CARGO_FEATURE))
                 .dep(Dep::new("serde-wasm-bindgen", "0.6").requires_feature(WASM_CARGO_FEATURE))
                 .dep(
@@ -37,8 +42,10 @@ impl Syncer {
         )?;
 
         self.lib.set_branch(
-            "wasm",
-            LibBranch::new(wasm_glue_code).requires_cargo_feature(WASM_CARGO_FEATURE),
+            profile_name,
+            LibBranch::new(wasm_glue_code)
+                .requires_cargo_feature(WASM_CARGO_FEATURE)
+                .requires_cargo_feature(profile_name),
         );
         write_lib(&self.abs_out_dir(), &self.lib)?;
 

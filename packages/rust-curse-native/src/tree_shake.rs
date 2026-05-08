@@ -14,7 +14,8 @@ use glob::glob;
 
 use crate::common::mangle_module_name;
 use crate::ir::{Ctor, Id, Item, StructShape, Type, IR};
-use crate::orphans::{self, SourceFilter};
+use crate::orphans;
+use crate::FileFilter;
 
 #[derive(Debug)]
 pub struct TreeShakeOpts<'a> {
@@ -24,7 +25,7 @@ pub struct TreeShakeOpts<'a> {
     /// like `'../src/greet.rs'` resolve to a `.rs` file under this root.
     pub src_rel_path: &'a Path,
     /// Filters selecting which JS/TS files are scanned for imports.
-    pub js_filter: SourceFilter<'a>,
+    pub js_filter: &'a FileFilter,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -76,7 +77,7 @@ pub fn shake(ir: &IR, opts: TreeShakeOpts<'_>) -> Result<HashSet<Id>, TreeShakeE
         })?;
 
     let mut buckets: BTreeMap<PathBuf, Bucket> = BTreeMap::new();
-    for import in scan_js_imports(&abs_src_root, &opts.js_filter)? {
+    for import in scan_js_imports(&abs_src_root, opts.js_filter)? {
         if import.members.iter().any(|m| m == "default") {
             return Err(TreeShakeError::DefaultImport {
                 rel_rs_path: opts.src_rel_path.join(&import.rel_rs_path),
@@ -191,12 +192,15 @@ struct RawImport {
 
 fn scan_js_imports(
     abs_module_dir: &Path,
-    filter: &SourceFilter<'_>,
+    filter: &FileFilter,
 ) -> Result<Vec<RawImport>, TreeShakeError> {
-    let excluded_paths = expand_paths(filter.exclude)?;
+    let include = filter.include.as_deref().unwrap_or(&[]);
+    let exclude = filter.exclude.as_deref().unwrap_or(&[]);
+
+    let excluded_paths = expand_paths(exclude)?;
     let mut result = Vec::new();
 
-    for pattern in filter.include {
+    for pattern in include {
         let entries = glob(pattern).map_err(|source| TreeShakeError::InvalidGlob {
             pattern: pattern.clone(),
             source,

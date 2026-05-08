@@ -24,5 +24,4 @@ crate_type = ["rlib"]
 [package]
 name = "x"
 version = "0.1"
-[lib]
 ```

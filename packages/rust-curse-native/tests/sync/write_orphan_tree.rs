@@ -581,16 +581,14 @@ fn module_in_modules_but_missing_from_ir_is_skipped() {
         })
         .unwrap();
 
-    let orphan_tree_rs = fs::read_to_string(
-        project
-            .abs_root_path
-            .join(OUT_DIR)
-            .join("orphan_tree.rs"),
-    )
-    .unwrap();
+    let abs_orphan_tree_rs = project
+        .abs_root_path
+        .join(OUT_DIR)
+        .join("orphan_tree.rs");
     assert!(
-        !orphan_tree_rs.contains("ghost"),
-        "ghost must not appear in orphan_tree.rs: {orphan_tree_rs:?}"
+        !abs_orphan_tree_rs.exists(),
+        "orphan_tree.rs must not be written when no module has an exposed export: {}",
+        project_to_md(&project),
     );
 }
 

@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 
 use insta::Settings;
 
-use rust_curse::orphans::{scan, OrphanScanError, OrphanScanOpts, SourceFilter};
+use rust_curse::orphans::{scan, OrphanScanError, OrphanScanOpts};
+use rust_curse::FileFilter;
 
 fn snapshot_settings(abs_root: &Path) -> Settings {
     let mut settings = Settings::clone_current();
@@ -99,7 +100,7 @@ fn modern_layout_skips_submodules() {
     let modules = scan(OrphanScanOpts {
         project_root_abs_path: &abs_root,
         src_rel_path: Path::new(""),
-        rs_filter: SourceFilter::default(),
+        rs_filter: None,
     })
     .unwrap();
 
@@ -115,15 +116,15 @@ fn rs_exclude_filter_drops_module() {
     write(&src.join("drop.rs"), "");
 
     let abs_root = fs::canonicalize(&src).unwrap();
-    let exclude = vec!["drop.rs".to_string()];
+    let filter = FileFilter {
+        include: None,
+        exclude: Some(vec!["drop.rs".to_string()]),
+    };
 
     let modules = scan(OrphanScanOpts {
         project_root_abs_path: &abs_root,
         src_rel_path: Path::new(""),
-        rs_filter: SourceFilter {
-            include: &[],
-            exclude: &exclude,
-        },
+        rs_filter: Some(&filter),
     })
     .unwrap();
 
@@ -143,7 +144,7 @@ fn legacy_mod_rs_errors() {
     let err = scan(OrphanScanOpts {
         project_root_abs_path: &abs_root,
         src_rel_path: Path::new(""),
-        rs_filter: SourceFilter::default(),
+        rs_filter: None,
     })
     .unwrap_err();
 

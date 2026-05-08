@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "rust-curse": "workspace:*",
-    "tsdown": "^0.21.7",
+    "tsdown": "^0.22.0",
     "typescript": "^6.0.2"
   }
 }

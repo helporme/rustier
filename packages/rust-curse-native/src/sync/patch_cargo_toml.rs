@@ -39,6 +39,7 @@ pub struct CargoTomlPatch {
     pub lib_path: Option<String>,
     pub build_path: Option<String>,
     pub crate_type: Option<HashSet<String>>,
+    pub features: Option<HashSet<String>>,
 }
 
 impl CargoTomlPatch {
@@ -75,6 +76,14 @@ impl CargoTomlPatch {
     /// Specifies the build path to be added to the Cargo.toml, e.g `build`
     pub fn build_path(mut self, build_path: impl Into<String>) -> Self {
         self.build_path = Some(build_path.into());
+        self
+    }
+
+    /// Declares an empty feature in `[features]`, e.g. `client = []`.
+    pub fn empty_feature(mut self, name: impl Into<String>) -> Self {
+        self.features
+            .get_or_insert_with(HashSet::new)
+            .insert(name.into());
         self
     }
 }
@@ -162,6 +171,11 @@ impl fmt::Display for CargoTomlPatch {
                 writeln!(f, "  - {dep}")?;
             }
         }
+        if let Some(features) = &self.features {
+            let mut sorted: Vec<&String> = features.iter().collect();
+            sorted.sort();
+            writeln!(f, "features = {sorted:?}")?;
+        }
         Ok(())
     }
 }
@@ -203,7 +217,7 @@ pub fn patch_cargo_toml_file(
 /// // no_run: remove once napi feature is removed
 /// use rust_curse::sync::patch_cargo_toml::{patch_cargo_toml, CargoTomlPatch};
 ///
-/// let patch = CargoTomlPatch::new().lib_path("src/lib.rs".into());
+/// let patch = CargoTomlPatch::new().lib_path("src/lib.rs");
 /// let original = "[package]\nname = \"x\"\nversion = \"0.1\"\n";
 /// let patched = patch_cargo_toml(original, &patch).unwrap();
 /// assert!(patched.contains("path = \"src/lib.rs\""));
@@ -307,6 +321,11 @@ fn collect_feature_additions(patch: &CargoTomlPatch) -> BTreeMap<String, HashSet
             out.entry(feat.clone())
                 .or_default()
                 .insert(format!("dep:{}", dep.name));
+        }
+    }
+    if let Some(features) = &patch.features {
+        for feat in features {
+            out.entry(feat.clone()).or_default();
         }
     }
     out

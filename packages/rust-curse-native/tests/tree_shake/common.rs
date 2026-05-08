@@ -10,8 +10,9 @@ use std::path::{Path, PathBuf};
 
 use rust_curse::common::mangle_module_name;
 use rust_curse::ir::{Id, IR};
-use rust_curse::orphans::{self, SourceFilter};
+use rust_curse::orphans;
 use rust_curse::tree_shake::{self, item_path, TreeShakeError, TreeShakeOpts};
+use rust_curse::FileFilter;
 
 pub const TEST_CRATE: &str = "rustdoc_tree_shake_test";
 
@@ -80,15 +81,16 @@ impl Fixture {
             rust_curse::rustdoc::run(&self.abs_root, &target_dir, TEST_CRATE).expect("rustdoc gen");
         let ir = IR::try_from(&crate_).expect("build ir");
 
+        let js_filter = FileFilter {
+            include: Some(js_include.to_vec()),
+            exclude: None,
+        };
         let exposed = tree_shake::shake(
             &ir,
             TreeShakeOpts {
                 project_root_abs_path: &self.abs_root,
                 src_rel_path: &src_rel_path,
-                js_filter: SourceFilter {
-                    include: js_include,
-                    exclude: &[],
-                },
+                js_filter: &js_filter,
             },
         )?;
 

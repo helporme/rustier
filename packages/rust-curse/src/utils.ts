@@ -1,4 +1,4 @@
-import { SourceOptions } from 'rust-curse-native'
+import { FileFilter } from 'rust-curse-native'
 
 /**
  * `Required` type but also applied on properties.
@@ -49,7 +49,7 @@ export function normalizeSources(
       }
     | string
     | string[],
-): SourceOptions {
+): Required<FileFilter> {
   if (typeof options === 'string') return { include: [options], exclude: [] }
   if (Array.isArray(options)) return { include: options, exclude: [] }
 

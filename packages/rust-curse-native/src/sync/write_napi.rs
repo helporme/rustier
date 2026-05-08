@@ -25,23 +25,28 @@ impl Syncer {
     ///
     /// `lib.rs` and `build.rs` content is combined with previous
     /// `Syncer::write_*` calls if any.
-    pub fn write_napi(&mut self, napi_glue_code: String) -> Result<(), WriteNapiError> {
+    pub fn write_napi(
+        &mut self,
+        profile_name: &str,
+        napi_glue_code: String,
+    ) -> Result<(), WriteNapiError> {
         patch_cargo_toml_file(
             &self.project_root_abs_path.join("Cargo.toml"),
             &CargoTomlPatch::new()
                 .crate_type("cdylib")
+                .empty_feature(profile_name)
                 .dep(Dep::new("napi", "3").requires_feature(NAPI_CARGO_FEATURE))
                 .dep(Dep::new("napi-derive", "3").requires_feature(NAPI_CARGO_FEATURE))
-                .build_dep(
-                    Dep::new("napi-build", "2").requires_feature(NAPI_CARGO_FEATURE),
-                ),
+                .build_dep(Dep::new("napi-build", "2").requires_feature(NAPI_CARGO_FEATURE)),
         )?;
 
         let abs_out_dir = self.abs_out_dir();
 
         self.lib.set_branch(
-            "napi",
-            LibBranch::new(napi_glue_code).requires_cargo_feature(NAPI_CARGO_FEATURE),
+            profile_name,
+            LibBranch::new(napi_glue_code)
+                .requires_cargo_feature(NAPI_CARGO_FEATURE)
+                .requires_cargo_feature(profile_name),
         );
         write_lib(&abs_out_dir, &self.lib)?;
 

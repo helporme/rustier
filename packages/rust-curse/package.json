@@ -13,28 +13,24 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@napi-rs/cli": "^3.5.1",
-    "@types/node": "^25.5.0",
-    "eslint": "^10.1.0",
-    "prettier": "^3.5.3",
-    "publint": "^0.3.18",
+    "@napi-rs/cli": "^3.6.2",
+    "@types/node": "^25.6.2",
+    "eslint": "^10.3.0",
+    "prettier": "^3.8.3",
+    "publint": "^0.3.20",
     "rust-curse-native": "workspace:*",
-    "tsdown": "^0.21.6",
-    "typescript": "^5.8.2",
-    "typescript-eslint": "^8.27.0"
+    "tsdown": "^0.21.10",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.2"
   },
   "exports": {
-    "./tsdown": "./dist/tsdown/index.mjs",
-    "./vite": "./dist/vite/index.mjs"
+    "./tsdown": "./dist/tsdown.mjs",
+    "./utils": "./dist/utils.mjs"
   },
   "peerDependencies": {
-    "tsdown": "^0.21.0",
-    "vite": "^8.0.0"
+    "tsdown": "^0.22.0"
   },
   "peerDependenciesMeta": {
-    "vite": {
-      "optional": true
-    },
     "tsdown": {
       "optional": true
     }

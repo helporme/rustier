@@ -13,6 +13,8 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::FileFilter;
+
 #[derive(Debug)]
 pub struct OrphanScanOpts<'a> {
     /// Absolute path of the project root.
@@ -22,16 +24,8 @@ pub struct OrphanScanOpts<'a> {
     /// from its path within this root.
     pub src_rel_path: &'a Path,
     /// Filters applied to discovered `.rs` orphans, matched against paths
-    /// relative to the project root.
-    pub rs_filter: SourceFilter<'a>,
-}
-
-#[derive(Debug, Default)]
-pub struct SourceFilter<'a> {
-    /// Glob patterns to include.
-    pub include: &'a [String],
-    /// Glob patterns to exclude.
-    pub exclude: &'a [String],
+    /// relative to the project root. `None` means no filtering.
+    pub rs_filter: Option<&'a FileFilter>,
 }
 
 #[derive(Clone, Debug)]
@@ -106,7 +100,7 @@ pub fn scan(opts: OrphanScanOpts<'_>) -> Result<Vec<OrphanModule>, OrphanScanErr
         });
     }
 
-    apply_rs_filter(&mut modules, &opts.rs_filter)?;
+    apply_rs_filter(&mut modules, opts.rs_filter)?;
     detect_conflicts(&modules)?;
 
     modules.sort_by(|a, b| a.rel_rs_path.cmp(&b.rel_rs_path));
@@ -216,10 +210,12 @@ fn sanitize_segment(segment: &str) -> String {
 
 fn apply_rs_filter(
     modules: &mut Vec<OrphanModule>,
-    filter: &SourceFilter<'_>,
+    filter: Option<&FileFilter>,
 ) -> Result<(), OrphanScanError> {
-    let include = compile_patterns(filter.include)?;
-    let exclude = compile_patterns(filter.exclude)?;
+    let include_patterns = filter.and_then(|f| f.include.as_deref()).unwrap_or(&[]);
+    let exclude_patterns = filter.and_then(|f| f.exclude.as_deref()).unwrap_or(&[]);
+    let include = compile_patterns(include_patterns)?;
+    let exclude = compile_patterns(exclude_patterns)?;
 
     modules.retain(|module| {
         let s = module.rel_rs_path.to_string_lossy();

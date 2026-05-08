@@ -20,27 +20,31 @@ export type RustCurseOptions = {
    *
    * @default './.rust-curse'
    */
-  tempDir?: string
+  outDir?: string
 
   /**
-   * Files to scan for ESM imports/exports.
-   *
-   * Based on the imports, rust code will be "treeshaked", so marked as dead.
-   *
-   * Defaults to all `.js` and `.ts` files under `src/`.
+   * Js side configuration
    */
-  sources?: SourcesOptions
+  js: {
+    /**
+     * Files to scan for ESM imports/exports.
+     *
+     * Based on the imports, rust code will be "treeshaked", so marked as dead.
+     *
+     * Defaults to all `.js` and `.ts` files under `src/`.
+     */
+    filter?: SourcesOptions
+
+    /**
+     * Generate ts types? True by default.
+     */
+    typescript?: boolean
+  }
 
   /**
    * Rust side configuration
    */
   rust?: {
-    /**
-     * Where `Cargo.toml` is located.
-     * @default './Cargo.toml'
-     */
-    manifestPath?: string
-
     /**
      * Root folder relative to which Rust modules will be registered.
      *
@@ -62,18 +66,19 @@ export type RustCurseOptions = {
   /**
    * Target platform.
    *
-   * @default 'browser'
+   * @default 'wasm'
    */
-  platform?: 'node' | 'browser'
+  platform?: 'wasm' | 'node'
 }
 
 export const defaultOptions: RustCurseOptions = {
   rootDir: process.cwd(),
-  tempDir: './.rust-curse',
-  sources: ['./src/**/*.js', './src/**/*.ts'],
+  outDir: './.rust-curse',
+  js: {
+    filter: ['./src/**/*.js', './src/**/*.ts'],
+  },
   rust: {
-    manifestPath: './Cargo.toml',
     moduleDir: './src',
   },
-  platform: 'browser',
+  platform: 'wasm',
 }
