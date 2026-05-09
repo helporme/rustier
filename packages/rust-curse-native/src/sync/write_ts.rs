@@ -1,6 +1,6 @@
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::ir::ts::PrintTsModOpts;
 use crate::ir::{Id, Item, IR};
@@ -27,13 +27,8 @@ pub enum WriteTsError {
 impl Syncer {
     /// Writes the ambient `$rust-curse` preamble to `<out>/ambient.d.ts`
     /// and one `<out>/types/<seg1>/.../<segN>.rs.d.ts` body per non-root
-    /// module in `ir`. Wipes `<out>/types/` first so stale per-module
-    /// files from a prior call are cleaned; `ambient.d.ts` is rewritten
-    /// in place.
-    ///
-    /// Does not touch `lib.rs`, `build.rs`, or `Cargo.toml` -> TS files
-    /// are external to the Rust compile.
-    pub fn write_ts(&mut self, ir: &IR) -> Result<(), WriteTsError> {
+    /// module in `ir`.
+    pub fn write_ts(&mut self, ir: &IR, modules_root_rel_path: &Path) -> Result<(), WriteTsError> {
         let abs_out_dir = self.abs_out_dir();
         fs::create_dir_all(&abs_out_dir).map_err(WriteTsError::CreateOutDir)?;
 
@@ -51,7 +46,6 @@ impl Syncer {
             })?;
         }
 
-        let rel_src_path = PathBuf::from("src");
         for (i, item) in ir.items.iter().enumerate() {
             if !matches!(item, Item::Mod(_)) {
                 continue;
@@ -62,7 +56,7 @@ impl Syncer {
                 continue;
             }
 
-            let mut rel_dts = PathBuf::new();
+            let mut rel_dts = PathBuf::from(&modules_root_rel_path);
             for seg in &segs[1..segs.len() - 1] {
                 rel_dts.push(seg);
             }
@@ -70,7 +64,7 @@ impl Syncer {
 
             let body = ir.print_ts_mod(PrintTsModOpts {
                 mod_id: mid,
-                rel_src_path: &rel_src_path,
+                rel_src_path: modules_root_rel_path,
             });
 
             let abs_dts = abs_types_dir.join(&rel_dts);

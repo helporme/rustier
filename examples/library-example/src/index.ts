@@ -1,5 +1,3 @@
-import { hello } from "./kitty.rs";
+import { hello } from "./greet.rs";
 
-export function fn() {
-  return hello();
-}
+console.log(hello("world"));

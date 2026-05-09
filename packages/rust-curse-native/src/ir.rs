@@ -10,11 +10,11 @@
 #![allow(non_camel_case_types)]
 
 pub mod from_rustdoc;
-pub mod js;
 pub mod mangle;
 pub mod napi;
 pub mod ts;
 pub mod wasm;
+pub mod wasm_js;
 
 use std::path::PathBuf;
 

@@ -77,7 +77,7 @@ pub fn print_ts_per_mod(ir: &rust_curse::ir::IR, rel_src_path: std::path::PathBu
     out
 }
 
-pub fn print_js_per_mod<F>(ir: &rust_curse::ir::IR, mut printer: F) -> String
+pub fn print_wasm_js_per_mod<F>(ir: &rust_curse::ir::IR, mut printer: F) -> String
 where
     F: FnMut(&rust_curse::ir::IR, rust_curse::ir::Id) -> String,
 {
@@ -265,10 +265,10 @@ macro_rules! assert_wasm_snap_exposed {
     }};
 }
 
-/// Build IR and snapshot the napi-targeted JS re-export printer output for
-/// every module, separated by `// $rust/<path>` headers.
+/// Build IR and snapshot the wasm-bindgen JS glue printer output for every
+/// module, separated by `// $rust/<path>` headers.
 #[macro_export]
-macro_rules! assert_js_snap {
+macro_rules! assert_wasm_js_snap {
     ($($tt:tt)*) => {{
         let src = $crate::common::fmt_src(stringify!($($tt)*));
         let ir = {
@@ -276,8 +276,8 @@ macro_rules! assert_js_snap {
             rust_curse::ir::IR::try_from(&crate_).unwrap()
         };
         let exposed = $crate::common::all_exposed_ids(&ir);
-        let out = $crate::common::print_js_per_mod(&ir, |ir, mid| {
-            ir.print_js(mid, "$test".to_owned(), &exposed)
+        let out = $crate::common::print_wasm_js_per_mod(&ir, |ir, mid| {
+            ir.print_wasm_js(mid, "$test".to_owned(), &exposed)
         });
         insta::with_settings!({ description => src }, {
             insta::assert_snapshot!(out);

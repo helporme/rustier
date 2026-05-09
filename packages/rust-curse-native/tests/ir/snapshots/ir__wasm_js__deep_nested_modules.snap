@@ -1,5 +1,5 @@
 ---
-source: tests/ir/js.rs
+source: tests/ir/wasm_js.rs
 description: "pub mod a {\n    pub mod b {\n        pub mod c {\n            pub fn deep() {}\n        }\n    }\n}\n"
 expression: out
 ---
@@ -13,4 +13,6 @@ export {};
 export {};
 
 // $rust/rustdoc_test_crate/a/b/c
-export { __cursed_rustdoc_test_crate__a__b__c__deep as deep } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__a__b__c__deep } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__a__b__c__deep as deep };

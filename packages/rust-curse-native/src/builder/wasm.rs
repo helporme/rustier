@@ -157,6 +157,7 @@ pub struct WasmBuildOpts<'a> {
 }
 
 /// Paths to generated wasm output files.
+#[derive(Debug, Clone)]
 pub struct WasmBuildOutput {
     pub js_output_abs_path: PathBuf,
     pub ts_output_abs_path: PathBuf,

@@ -2,7 +2,7 @@
 /* eslint-disable */
 export declare class RustCurse {
   constructor(options: RustCurseOpts)
-  build(profileNames: Array<string>): void
+  build(profileNames: Array<string>): BuildOutput
   /**
    * Returns the JS code that re-exports items from a single rust orphan
    * module under `profile_name`. The shape of the emitted code depends on
@@ -10,6 +10,10 @@ export declare class RustCurse {
    * addon binding for `Node`).
    */
   resolve(profileName: string, rsRelPath: string): string
+}
+
+export interface BuildOutput {
+  artifacts: Record<string, ProfileBuildOutput>
 }
 
 export interface FileFilter {
@@ -28,6 +32,9 @@ export interface JsOpts {
   /** Generate ts types for rust modules? */
   typescript: boolean
 }
+
+export type ProfileBuildOutput =
+  | { type: 'wasm', wasmAbsPath: string }
 
 export type ProfileBuildTarget =
   | { type: 'wasm' }
@@ -68,4 +75,13 @@ export interface RustOpts {
    * Usually src/.
    */
   modulesRootDir: string
+}
+
+/** Per-profile artifact paths produced by a wasm-targeting build. */
+export interface WasmProfileArtifact {
+  profileName: string
+  /** Absolute path to the wasm-bindgen-generated `package.js`. */
+  jsAbsPath: string
+  /** Absolute path to the compiled `package_bg.wasm`. */
+  wasmAbsPath: string
 }

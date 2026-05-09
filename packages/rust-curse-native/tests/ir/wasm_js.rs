@@ -1,6 +1,6 @@
 #[test]
 fn fn_primitives_root() {
-    assert_js_snap! {
+    assert_wasm_js_snap! {
         pub fn square(x: f64) -> f64 { x * x }
         pub fn square2(x: f64) -> f64 { x * x }
     };
@@ -8,7 +8,7 @@ fn fn_primitives_root() {
 
 #[test]
 fn module_nested_fn() {
-    assert_js_snap! {
+    assert_wasm_js_snap! {
         pub mod math {
             pub fn square(x: f64) -> f64 { x * x }
             pub fn square2(x: f64) -> f64 { x * x }
@@ -18,7 +18,7 @@ fn module_nested_fn() {
 
 #[test]
 fn napi_struct_plain_root() {
-    assert_js_snap! {
+    assert_wasm_js_snap! {
         pub struct Point {
             pub x: f64,
             pub y: f64,
@@ -33,7 +33,7 @@ fn napi_struct_plain_root() {
 
 #[test]
 fn module_cross_import() {
-    assert_js_snap! {
+    assert_wasm_js_snap! {
         pub mod types {
             pub struct Token {
                 pub value: String,
@@ -47,7 +47,7 @@ fn module_cross_import() {
 
 #[test]
 fn re_export_renamed() {
-    assert_js_snap! {
+    assert_wasm_js_snap! {
         pub mod inner {
             pub struct Inner { pub x: i32 }
         }
@@ -57,7 +57,7 @@ fn re_export_renamed() {
 
 #[test]
 fn re_export_renamed_multiple() {
-    assert_js_snap! {
+    assert_wasm_js_snap! {
         pub mod inner {
             pub struct Inner { pub x: i32 }
             pub struct Outer { pub y: i32 }
@@ -68,7 +68,7 @@ fn re_export_renamed_multiple() {
 
 #[test]
 fn re_export_glob() {
-    assert_js_snap! {
+    assert_wasm_js_snap! {
         pub mod inner {
             pub struct S { pub x: i32 }
             pub fn f() -> i32 { 0 }
@@ -79,7 +79,7 @@ fn re_export_glob() {
 
 #[test]
 fn deep_nested_modules() {
-    assert_js_snap! {
+    assert_wasm_js_snap! {
         pub mod a {
             pub mod b {
                 pub mod c {
@@ -92,7 +92,7 @@ fn deep_nested_modules() {
 
 #[test]
 fn only_submodule_exports() {
-    assert_js_snap! {
+    assert_wasm_js_snap! {
         pub mod inner {
             pub fn f() {}
         }

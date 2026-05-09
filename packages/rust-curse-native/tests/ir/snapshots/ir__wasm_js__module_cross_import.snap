@@ -1,0 +1,17 @@
+---
+source: tests/ir/wasm_js.rs
+description: "pub mod types {\n    pub struct Token {\n        pub value: String,\n    }\n}\npub mod ops {\n    pub fn parse(s: String) -> crate::types::Token {\n        todo!()\n    }\n}\n"
+expression: out
+---
+// $rust/rustdoc_test_crate
+export {};
+
+// $rust/rustdoc_test_crate/types
+import __wbg_init, { __cursed_rustdoc_test_crate__types__Token__Ref } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__types__Token__Ref as Token };
+
+// $rust/rustdoc_test_crate/ops
+import __wbg_init, { __cursed_rustdoc_test_crate__ops__parse } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__ops__parse as parse };

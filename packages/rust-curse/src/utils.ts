@@ -41,7 +41,7 @@ function isObject(value: unknown): value is DeepMergeable {
 /**
  * Normalizes source options
  */
-export function normalizeSources(
+export function normalizeFilter(
   options:
     | {
         include?: string | string[]

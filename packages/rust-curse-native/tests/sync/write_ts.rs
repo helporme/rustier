@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use rust_curse::sync::write_ts::{TS_AMBIENT_FILE, TS_TYPES_DIR};
 
 use crate::common::{
@@ -5,13 +7,14 @@ use crate::common::{
 };
 
 const TEST_CRATE: &str = "test_crate";
+const MODULES_ROOT: &str = "";
 
 #[test]
 fn empty_ir_writes_only_ambient() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
     let (ir, _) = empty_ir(TEST_CRATE);
-    syncer.write_ts(&ir).unwrap();
+    syncer.write_ts(&ir, Path::new(MODULES_ROOT)).unwrap();
 
     assert!(project.abs_root_path.join(OUT_DIR).join(TS_AMBIENT_FILE).exists());
     assert!(!project.abs_root_path.join(OUT_DIR).join(TS_TYPES_DIR).exists());
@@ -38,7 +41,7 @@ fn single_flat_module() {
         }],
     );
 
-    syncer.write_ts(&ir).unwrap();
+    syncer.write_ts(&ir, Path::new(MODULES_ROOT)).unwrap();
 
     project.snapshot_settings().bind(|| {
         insta::assert_snapshot!(project_to_md(&project));
@@ -72,7 +75,7 @@ fn multiple_flat_modules() {
         ],
     );
 
-    syncer.write_ts(&ir).unwrap();
+    syncer.write_ts(&ir, Path::new(MODULES_ROOT)).unwrap();
 
     project.snapshot_settings().bind(|| {
         insta::assert_snapshot!(project_to_md(&project));
@@ -106,7 +109,7 @@ fn nested_modules() {
         ],
     );
 
-    syncer.write_ts(&ir).unwrap();
+    syncer.write_ts(&ir, Path::new(MODULES_ROOT)).unwrap();
 
     let abs_types_dir = project.abs_root_path.join(OUT_DIR).join(TS_TYPES_DIR);
     assert!(abs_types_dir.join("nested/deep.rs.d.ts").exists());
@@ -138,7 +141,7 @@ fn deeply_nested_module() {
         }],
     );
 
-    syncer.write_ts(&ir).unwrap();
+    syncer.write_ts(&ir, Path::new(MODULES_ROOT)).unwrap();
 
     assert!(project
         .abs_root_path
@@ -169,7 +172,7 @@ fn uppercase_segment_preserved() {
         }],
     );
 
-    syncer.write_ts(&ir).unwrap();
+    syncer.write_ts(&ir, Path::new(MODULES_ROOT)).unwrap();
 
     assert!(project
         .abs_root_path
@@ -202,14 +205,14 @@ fn stale_subtree_cleaned_on_rerun() {
                 }],
             }],
         );
-        syncer.write_ts(&ir).unwrap();
+        syncer.write_ts(&ir, Path::new(MODULES_ROOT)).unwrap();
     }
     assert!(abs_types_dir.join("a/b.rs.d.ts").exists());
 
     {
         let mut syncer = project.syncer();
         let (ir, _) = empty_ir(TEST_CRATE);
-        syncer.write_ts(&ir).unwrap();
+        syncer.write_ts(&ir, Path::new(MODULES_ROOT)).unwrap();
     }
     assert!(!abs_types_dir.exists(), "types/ should be wiped on rerun");
     assert!(abs_ambient.exists(), "ambient.d.ts should still be present");

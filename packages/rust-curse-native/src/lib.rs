@@ -113,14 +113,61 @@ impl RustCurseOpts {
     }
 }
 
-pub enum ProfileBuildOutput {
+#[derive(Debug, Clone)]
+pub struct BuildCache {
+    ir: IR,
+    exposed: HashSet<Id>,
+    artifacts: HashMap<String, ProfileBuildCache>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ProfileBuildCache {
     Wasm(builder::wasm::WasmBuildOutput),
 }
 
+impl BuildCache {
+    pub fn mint_build_output(&self) -> BuildOutput {
+        BuildOutput {
+            artifacts: self
+                .artifacts
+                .iter()
+                .map(|(name, cache)| {
+                    (
+                        name.clone(),
+                        match cache {
+                            ProfileBuildCache::Wasm(wasm_output) => ProfileBuildOutput::Wasm {
+                                wasm_abs_path: wasm_output
+                                    .wasm_output_abs_path
+                                    .to_string_lossy()
+                                    .into_owned(),
+                            },
+                        },
+                    )
+                })
+                .collect(),
+        }
+    }
+}
+
+#[cfg_attr(feature = "napi-binding", napi(object))]
 pub struct BuildOutput {
-    ir: IR,
-    exposed: HashSet<Id>,
-    artifacts: HashMap<String, ProfileBuildOutput>,
+    pub artifacts: HashMap<String, ProfileBuildOutput>,
+}
+
+#[cfg_attr(feature = "napi-binding", napi(discriminant_case = "kebab-case"))]
+#[derive(Debug, Clone)]
+pub enum ProfileBuildOutput {
+    Wasm { wasm_abs_path: String },
+}
+
+/// Per-profile artifact paths produced by a wasm-targeting build.
+#[cfg_attr(feature = "napi-binding", napi(object))]
+pub struct WasmProfileArtifact {
+    pub profile_name: String,
+    /// Absolute path to the wasm-bindgen-generated `package.js`.
+    pub js_abs_path: String,
+    /// Absolute path to the compiled `package_bg.wasm`.
+    pub wasm_abs_path: String,
 }
 
 #[cfg_attr(feature = "napi-binding", napi)]
@@ -135,7 +182,7 @@ pub struct RustCurse {
     build_out_dir_abs_path: PathBuf,
     options: RustCurseOpts,
     // Last successful build artifacts
-    built: Option<BuildOutput>,
+    last_build: Option<BuildCache>,
 }
 
 #[cfg_attr(feature = "napi-binding", napi)]
@@ -158,13 +205,13 @@ impl RustCurse {
             out_dir_abs_path,
             build_out_dir_abs_path,
             options,
-            built: None,
+            last_build: None,
         })
     }
 
     #[cfg(feature = "napi-binding")]
     #[napi]
-    pub fn build(&mut self, profile_names: Vec<String>) -> napi::Result<()> {
+    pub fn build(&mut self, profile_names: Vec<String>) -> napi::Result<BuildOutput> {
         self._build(&profile_names)
             .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{:#}", e)))
     }
@@ -180,7 +227,7 @@ impl RustCurse {
             .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{:#}", e)))
     }
 
-    fn _build(&mut self, profile_names: &[String]) -> anyhow::Result<()> {
+    fn _build(&mut self, profile_names: &[String]) -> anyhow::Result<BuildOutput> {
         let orphan_modules = orphans::scan(OrphanScanOpts {
             project_root_abs_path: &self.project_root_abs_path,
             src_rel_path: &self.modules_root_rel_path,
@@ -229,7 +276,8 @@ impl RustCurse {
         }
 
         if self.options.js.typescript {
-            sync.write_ts(&ir).context("sync: ts")?;
+            sync.write_ts(&ir, &self.modules_root_rel_path)
+                .context("sync: ts")?;
         }
 
         let wasm_bindgen_tool_bin_abs_path: Option<PathBuf> = profiles
@@ -243,7 +291,7 @@ impl RustCurse {
             })
             .transpose()?;
 
-        let mut artifacts: HashMap<String, ProfileBuildOutput> = HashMap::new();
+        let mut artifacts: HashMap<String, ProfileBuildCache> = HashMap::new();
 
         for profile in &profiles {
             if matches!(profile.rust.target, ProfileBuildTarget::Wasm {}) {
@@ -259,21 +307,35 @@ impl RustCurse {
                 })
                 .with_context(|| format!("builder: wasm profile '{}'", profile.name))?;
 
-                artifacts.insert(profile.name.clone(), ProfileBuildOutput::Wasm(output));
+                artifacts.insert(profile.name.clone(), ProfileBuildCache::Wasm(output));
             }
         }
 
-        self.built = Some(BuildOutput {
+        let mut wasm_artifacts: Vec<WasmProfileArtifact> = Vec::new();
+        for (profile_name, output) in &artifacts {
+            match output {
+                ProfileBuildCache::Wasm(w) => wasm_artifacts.push(WasmProfileArtifact {
+                    profile_name: profile_name.clone(),
+                    js_abs_path: w.js_output_abs_path.to_string_lossy().into_owned(),
+                    wasm_abs_path: w.wasm_output_abs_path.to_string_lossy().into_owned(),
+                }),
+            }
+        }
+
+        let build_cache = BuildCache {
             ir,
             exposed,
             artifacts,
-        });
+        };
+        let build_output = build_cache.mint_build_output();
 
-        Ok(())
+        self.last_build = Some(build_cache);
+
+        Ok(build_output)
     }
 
     fn _resolve(&mut self, profile_name: &str, path: &str) -> anyhow::Result<String> {
-        let build_output = self.built.as_ref().ok_or(anyhow!(
+        let build_output = self.last_build.as_ref().ok_or(anyhow!(
             "reslolve cannot be called before build, please call build first."
         ))?;
 
@@ -295,10 +357,10 @@ impl RustCurse {
             .0 as u32);
 
         let js_source_abs_path = match artifact {
-            ProfileBuildOutput::Wasm(wasm) => &wasm.js_output_abs_path,
+            ProfileBuildCache::Wasm(wasm) => &wasm.js_output_abs_path,
         };
 
-        let js_glue = build_output.ir.print_js(
+        let js_glue = build_output.ir.print_wasm_js(
             mid,
             js_source_abs_path.to_string_lossy().into_owned(),
             &build_output.exposed,

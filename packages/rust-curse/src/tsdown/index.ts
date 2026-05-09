@@ -1,12 +1,9 @@
-import { dirname, resolve as resolvePath } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { basename, resolve as resolvePath } from 'node:path'
 import { type Rolldown } from 'tsdown'
 import { defaultOptions, RustCurseOptions } from './options'
-import { ProfileOpts, RustCurse } from 'rust-curse-native'
-import {
-  deepMerge,
-  DeepRequired,
-  normalizeSources as normalizeFilter,
-} from '../utils'
+import { ProfileOpts, RustCurse, WasmProfileArtifact } from 'rust-curse-native'
+import { deepMerge, DeepRequired, normalizeFilter } from '../utils'
 
 type Plugin = Rolldown.Plugin
 
@@ -46,15 +43,17 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
         profiles: [profile],
       })
 
-      curse.build([profile.name])
-    },
+      const output = curse.build([profile.name])
 
-    resolveId(source, importer) {
-      if (!source.endsWith('.rs')) return null
-      if (importer && (source.startsWith('./') || source.startsWith('../'))) {
-        return resolvePath(dirname(importer), source)
+      for (const [profileName, artifact] of Object.entries(output.artifacts)) {
+        if (profileName !== options.platform) continue
+
+        this.emitFile({
+          type: 'asset',
+          fileName: basename(artifact.wasmAbsPath),
+          source: readFileSync(artifact.wasmAbsPath),
+        })
       }
-      return null
     },
 
     load(id) {

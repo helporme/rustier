@@ -4,8 +4,6 @@ mod common;
 
 #[path = "ir/from_rustdoc.rs"]
 mod from_rustdoc;
-#[path = "ir/js.rs"]
-mod js;
 #[path = "ir/napi.rs"]
 mod napi;
 #[path = "ir/negative.rs"]
@@ -14,3 +12,5 @@ mod negative;
 mod ts;
 #[path = "ir/wasm.rs"]
 mod wasm;
+#[path = "ir/wasm_js.rs"]
+mod wasm_js;
