@@ -92,6 +92,30 @@ fn single_or_with_multiple_cargo_features() {
 }
 
 #[test]
+fn duplicate_cargo_feature_is_deduped() {
+    let mut switch = LibSwitch::new();
+    switch.set_branch(
+        "node",
+        LibBranch::new("// node\n")
+            .requires_cargo_feature("node")
+            .requires_cargo_feature("node"),
+    );
+    insta::assert_snapshot!(apply(&switch));
+}
+
+#[test]
+fn duplicate_env_flag_is_deduped() {
+    let mut switch = LibSwitch::new();
+    switch.set_branch(
+        "rustdoc",
+        LibBranch::new("// rustdoc\n")
+            .requires_env_flag("rust_curse_rustdoc")
+            .requires_env_flag("rust_curse_rustdoc"),
+    );
+    insta::assert_snapshot!(apply(&switch));
+}
+
+#[test]
 fn single_or_with_mixed_reqs() {
     let mut switch = LibSwitch::new();
     switch.set_branch(

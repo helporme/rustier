@@ -79,8 +79,7 @@ impl LibSwitch {
     /// exclusion of every other branch in the switch; replaces any existing
     /// branch with the same name.
     pub fn set_xor_branch(&mut self, name: impl Into<String>, lib: LibBranch) -> &mut Self {
-        self.branches
-            .insert(name.into(), LibBranchKind::Xor(lib));
+        self.branches.insert(name.into(), LibBranchKind::Xor(lib));
         self
     }
 }
@@ -105,16 +104,22 @@ impl LibBranch {
 
     /// Requires the given cargo feature to be enabled.
     pub fn requires_cargo_feature(mut self, feature: impl Into<String>) -> Self {
+        let feature = feature.into();
         let mut req_cargo_features = self.req_cargo_features.unwrap_or_default();
-        req_cargo_features.push(feature.into());
+        if !req_cargo_features.contains(&feature) {
+            req_cargo_features.push(feature);
+        }
         self.req_cargo_features = Some(req_cargo_features);
         self
     }
 
     /// Requires the given environment flag to be set.
     pub fn requires_env_flag(mut self, flag: impl Into<String>) -> Self {
+        let flag = flag.into();
         let mut req_env_flags = self.req_env_flags.unwrap_or_default();
-        req_env_flags.push(flag.into());
+        if !req_env_flags.contains(&flag) {
+            req_env_flags.push(flag);
+        }
         self.req_env_flags = Some(req_env_flags);
         self
     }
@@ -228,9 +233,7 @@ pub fn render_lib(switch: &LibSwitch) -> Result<Option<Vec<RenderedFile>>, Rende
     let mut sorted: Vec<(&String, &LibBranchKind)> = switch
         .branches
         .iter()
-        .filter(|(name, branch)| {
-            name.as_str() != "lib" && !branch.lib().content.is_empty()
-        })
+        .filter(|(name, branch)| name.as_str() != "lib" && !branch.lib().content.is_empty())
         .collect();
     sorted.sort_by(|a, b| a.0.cmp(b.0));
 
