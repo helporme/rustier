@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 
 use insta::Settings;
 
+use rust_curse::common::FileFilter;
 use rust_curse::orphans::{scan, OrphanScanError, OrphanScanOpts};
-use rust_curse::FileFilter;
 
 fn snapshot_settings(abs_root: &Path) -> Settings {
     let mut settings = Settings::clone_current();

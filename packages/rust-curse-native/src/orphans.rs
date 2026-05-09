@@ -13,7 +13,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::FileFilter;
+use crate::common::FileFilter;
 
 #[derive(Debug)]
 pub struct OrphanScanOpts<'a> {

@@ -1,5 +1,6 @@
 //! Utilities to build the project.
 
+pub mod napi;
 pub mod wasm;
 
 use std::io;

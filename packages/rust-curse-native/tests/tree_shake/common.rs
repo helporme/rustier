@@ -8,11 +8,10 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use rust_curse::common::mangle_module_name;
+use rust_curse::common::{mangle_module_name, FileFilter};
 use rust_curse::ir::{Id, IR};
 use rust_curse::orphans;
 use rust_curse::tree_shake::{self, item_path, TreeShakeError, TreeShakeOpts};
-use rust_curse::FileFilter;
 
 pub const TEST_CRATE: &str = "rustdoc_tree_shake_test";
 

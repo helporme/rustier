@@ -33,20 +33,24 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
         },
       }
 
-      curse = new RustCurse({
-        projectRoot: resolvePath(options.rootDir),
-        outDir: options.outDir,
-        rust: { modulesRootDir: options.rust.moduleDir },
-        js: {
-          filter: normalizeFilter(options.js.filter),
-          typescript: options.js.typescript ?? true,
+      curse = new RustCurse(
+        {
+          projectRoot: resolvePath(options.rootDir),
+          outDir: options.outDir,
+          rust: { modulesRootDir: options.rust.moduleDir },
+          js: {
+            filter: normalizeFilter(options.js.filter),
+            typescript: options.js.typescript ?? true,
+          },
+          profiles: [profile],
         },
-        profiles: [profile],
-      })
+        buildNapi,
+      )
 
-      const artifact = curse.build([profile.name]).artifacts[profile.name]
+      const output = await curse.build([profile.name])
+      const artifact = output.artifacts[profile.name]
 
-      if (profile.name === 'wasm') {
+      if (artifact.type === 'wasm') {
         // wasm-bindgen is called from rust
         this.emitFile({
           type: 'asset',
@@ -54,20 +58,12 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
           source: readFileSync(artifact.wasmAbsPath),
         })
       } else {
-        // napi-cli is called by js
-        const output = await buildNapi({
-          outputDir: join(options.rootDir, options.outDir, 'output/node'),
-          manifestPath: join(options.rootDir, 'Cargo.toml'),
-          release: false,
-        })
-        for (const artifact of output) {
-          if (artifact.kind === 'node') {
-            this.emitFile({
-              type: 'asset',
-              fileName: basename(artifact.path),
-              source: readFileSync(artifact.path),
-            })
-          }
+        for (const nodePath of artifact.nodePaths) {
+          this.emitFile({
+            type: 'asset',
+            fileName: basename(nodePath),
+            source: readFileSync(nodePath),
+          })
         }
       }
     },

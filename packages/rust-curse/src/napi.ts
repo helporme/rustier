@@ -1,4 +1,5 @@
 import { NapiCli } from '@napi-rs/cli'
+import { NapiBuildArgs, NapiBuildAritfact } from 'rust-curse-native'
 
 export interface BuildNapiOptions {
   /** Build in release mode. Defaults to false (debug). */
@@ -9,16 +10,26 @@ export interface BuildNapiOptions {
   outputDir: string
 }
 
-export async function buildNapi(options: BuildNapiOptions) {
-  const cli = new NapiCli()
+const cli = new NapiCli()
+
+export async function buildNapi(
+  err: unknown,
+  options: NapiBuildArgs,
+): Promise<NapiBuildAritfact[]> {
+  if (err) throw err
+
   const { task } = await cli.build({
-    manifestPath: options.manifestPath,
-    outputDir: options.outputDir,
-    release: options.release ?? false,
+    manifestPath: options.manifestAbsPath,
+    outputDir: options.outputAbsDir,
+    targetDir: options.targetAbsDir,
+    release: options.release,
+    // seems to be a little typo in napi, it expects a space separated list of features
+    // instead of an array
+    features: [options.features.join(' ')],
     platform: true,
     esm: true,
     noDtsHeader: true,
     dtsCache: false,
   })
-  return task
+  return task as Promise<NapiBuildAritfact[]>
 }

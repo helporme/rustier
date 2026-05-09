@@ -12,10 +12,9 @@ use std::path::{Path, PathBuf};
 
 use glob::glob;
 
-use crate::common::mangle_module_name;
+use crate::common::{mangle_module_name, FileFilter};
 use crate::ir::{Ctor, Id, Item, StructShape, Type, IR};
 use crate::orphans;
-use crate::FileFilter;
 
 #[derive(Debug)]
 pub struct TreeShakeOpts<'a> {
