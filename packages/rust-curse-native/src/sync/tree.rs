@@ -57,13 +57,14 @@ where
     Ok(root)
 }
 
-/// Append `pub mod <seg>;` declarations for the root node's direct
+/// Append `<vis> mod <seg>;` declarations for the root node's direct
 /// children to `out`.
 pub(super) fn render_root_decls(
     out: &mut String,
     root: &Node,
     abs_project_root: &Path,
     abs_external_dir: &Path,
+    vis: &str,
 ) {
     let mut segs: Vec<String> = Vec::new();
     for (seg, child) in &root.children {
@@ -74,18 +75,20 @@ pub(super) fn render_root_decls(
             &segs,
             abs_project_root,
             abs_external_dir,
+            vis,
         ));
         segs.pop();
     }
 }
 
 /// Wipe `abs_external_dir` if it exists, then write a `.rs` file for
-/// every non-leaf node beneath `root`. Each file contains `pub mod`
+/// every non-leaf node beneath `root`. Each file contains `<vis> mod`
 /// declarations for that node's children.
 pub(super) fn write_subtree(
     root: &Node,
     abs_project_root: &Path,
     abs_external_dir: &Path,
+    vis: &str,
 ) -> Result<(), TreeError> {
     if abs_external_dir.exists() {
         fs::remove_dir_all(abs_external_dir).map_err(|e| TreeError::Io {
@@ -94,7 +97,7 @@ pub(super) fn write_subtree(
         })?;
     }
     let mut segs: Vec<String> = Vec::new();
-    write_subtree_inner(root, &mut segs, abs_project_root, abs_external_dir)
+    write_subtree_inner(root, &mut segs, abs_project_root, abs_external_dir, vis)
 }
 
 fn write_subtree_inner(
@@ -102,6 +105,7 @@ fn write_subtree_inner(
     segs: &mut Vec<String>,
     abs_project_root: &Path,
     abs_external_dir: &Path,
+    vis: &str,
 ) -> Result<(), TreeError> {
     for (seg, child) in &node.children {
         segs.push(seg.clone());
@@ -115,6 +119,7 @@ fn write_subtree_inner(
                     segs,
                     abs_project_root,
                     abs_external_dir,
+                    vis,
                 ));
                 segs.pop();
             }
@@ -131,7 +136,7 @@ fn write_subtree_inner(
                 source: e,
             })?;
 
-            write_subtree_inner(child, segs, abs_project_root, abs_external_dir)?;
+            write_subtree_inner(child, segs, abs_project_root, abs_external_dir, vis)?;
         }
         segs.pop();
     }
@@ -144,6 +149,7 @@ fn render_decl(
     segs_to_child: &[String],
     abs_project_root: &Path,
     abs_external_dir: &Path,
+    vis: &str,
 ) -> String {
     let target = if child.children.is_empty() {
         let leaf = child
@@ -160,6 +166,6 @@ fn render_decl(
     if seg.chars().any(|c| c.is_ascii_uppercase()) {
         out.push_str("#[allow(non_snake_case)]\n");
     }
-    out.push_str(&format!("pub mod {seg};\n\n"));
+    out.push_str(&format!("{vis} mod {seg};\n\n"));
     out
 }

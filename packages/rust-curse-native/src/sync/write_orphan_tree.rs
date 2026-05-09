@@ -29,9 +29,8 @@ pub enum WriteOrphanTreeError {
 }
 
 impl Syncer {
-    /// Writes a `pub mod` tree of every local-crate module that exposes
-    /// at least one exported item to `lib.rs`, plus `pub use` re-exports
-    /// for every exposed export.
+    /// Writes a `pub mod` tree of every local-crate module to `lib.rs`,
+    /// plus `pub use` re-exports for every exposed export.
     ///
     /// `lib.rs` content is combined with previous `Syncer::write_*` calls if
     /// any.
@@ -60,13 +59,6 @@ impl Syncer {
                 let mod_name = m.path.segments[1..].join("::");
                 Some((mod_name, rel_rs_path, id))
             })
-            .filter(|(_, _, id)| {
-                opts.ir
-                    .get_mod_unchecked(*id)
-                    .exports
-                    .iter()
-                    .any(|e| opts.exposed.contains(&e.target))
-            })
             .collect();
         local_modules.sort_by(|a, b| a.0.cmp(&b.0));
 
@@ -77,7 +69,13 @@ impl Syncer {
         )?;
 
         let mut content = String::new();
-        tree::render_root_decls(&mut content, &root, &abs_project_root, &abs_mod_out_dir);
+        tree::render_root_decls(
+            &mut content,
+            &root,
+            &abs_project_root,
+            &abs_mod_out_dir,
+            "pub(crate)",
+        );
 
         for (mod_name, _, id) in &local_modules {
             let mut names: Vec<&str> = opts
@@ -97,7 +95,7 @@ impl Syncer {
         self.lib.set_branch("orphan_tree", LibBranch::new(content));
         write_lib(&abs_out_dir, &self.lib)?;
 
-        tree::write_subtree(&root, &abs_project_root, &abs_mod_out_dir)?;
+        tree::write_subtree(&root, &abs_project_root, &abs_mod_out_dir, "pub(crate)")?;
 
         Ok(())
     }

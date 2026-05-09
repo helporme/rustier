@@ -26,7 +26,7 @@ include!("rustdoc.rs");
 `.rust-curse/orphan_tree.rs`
 ```rs
 #[path = "<root>/src/greet.rs"]
-pub mod greet;
+pub(crate) mod greet;
 
 pub use greet::hello;
 ```

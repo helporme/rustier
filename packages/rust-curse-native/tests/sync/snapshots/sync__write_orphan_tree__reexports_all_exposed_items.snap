@@ -10,7 +10,7 @@ include!("orphan_tree.rs");
 `.rust-curse/orphan_tree.rs`
 ```rs
 #[path = "<root>/src/math.rs"]
-pub mod math;
+pub(crate) mod math;
 
 pub use math::add;
 pub use math::sub;

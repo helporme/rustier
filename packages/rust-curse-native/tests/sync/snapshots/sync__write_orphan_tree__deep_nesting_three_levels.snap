@@ -10,21 +10,21 @@ include!("orphan_tree.rs");
 `.rust-curse/orphan-tree/a/b.rs`
 ```rs
 #[path = "<root>/src/a/b/c.rs"]
-pub mod c;
+pub(crate) mod c;
 
 ```
 
 `.rust-curse/orphan-tree/a.rs`
 ```rs
 #[path = "<root>/.rust-curse/orphan-tree/a/b.rs"]
-pub mod b;
+pub(crate) mod b;
 
 ```
 
 `.rust-curse/orphan_tree.rs`
 ```rs
 #[path = "<root>/.rust-curse/orphan-tree/a.rs"]
-pub mod a;
+pub(crate) mod a;
 
 pub use a::b::c::go;
 ```

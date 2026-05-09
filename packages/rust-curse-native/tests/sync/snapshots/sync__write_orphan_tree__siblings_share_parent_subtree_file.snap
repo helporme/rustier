@@ -10,20 +10,20 @@ include!("orphan_tree.rs");
 `.rust-curse/orphan-tree/nested.rs`
 ```rs
 #[path = "<root>/src/nested/a.rs"]
-pub mod a;
+pub(crate) mod a;
 
 #[path = "<root>/src/nested/b.rs"]
-pub mod b;
+pub(crate) mod b;
 
 #[path = "<root>/src/nested/c.rs"]
-pub mod c;
+pub(crate) mod c;
 
 ```
 
 `.rust-curse/orphan_tree.rs`
 ```rs
 #[path = "<root>/.rust-curse/orphan-tree/nested.rs"]
-pub mod nested;
+pub(crate) mod nested;
 
 pub use nested::a::fa;
 pub use nested::b::fb;

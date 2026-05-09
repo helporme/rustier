@@ -65,7 +65,7 @@ fn emits_mod_tree_and_reexports() {
 }
 
 #[test]
-fn no_tree_or_reexports_when_nothing_exposed() {
+fn emits_mod_decl_but_no_reexports_when_nothing_exposed() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
@@ -406,8 +406,8 @@ fn partial_module_reduction_regenerates_parent_subtree_file() {
             .unwrap();
     }
     let first = fs::read_to_string(&abs_a_rs).unwrap();
-    assert!(first.contains("pub mod b;"), "first a.rs: {first:?}");
-    assert!(first.contains("pub mod c;"), "first a.rs: {first:?}");
+    assert!(first.contains("pub(crate) mod b;"), "first a.rs: {first:?}");
+    assert!(first.contains("pub(crate) mod c;"), "first a.rs: {first:?}");
 
     let (reduced_ir, reduced_exposed) = make_ir(
         TEST_CRATE,
@@ -430,8 +430,8 @@ fn partial_module_reduction_regenerates_parent_subtree_file() {
             .unwrap();
     }
     let second = fs::read_to_string(&abs_a_rs).unwrap();
-    assert!(second.contains("pub mod b;"), "second a.rs: {second:?}");
-    assert!(!second.contains("pub mod c;"), "second a.rs: {second:?}");
+    assert!(second.contains("pub(crate) mod b;"), "second a.rs: {second:?}");
+    assert!(!second.contains("pub(crate) mod c;"), "second a.rs: {second:?}");
 }
 
 #[test]
