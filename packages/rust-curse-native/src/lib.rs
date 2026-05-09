@@ -9,6 +9,7 @@ pub mod tree_shake;
 use core::str;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 use anyhow::{anyhow, bail, Context};
 #[cfg(feature = "napi-binding")]
@@ -182,7 +183,7 @@ pub struct RustCurse {
     build_out_dir_abs_path: PathBuf,
     options: RustCurseOpts,
     // Last successful build artifacts
-    last_build: Option<BuildCache>,
+    last_build: Mutex<Option<BuildCache>>,
 }
 
 #[cfg_attr(feature = "napi-binding", napi)]
@@ -205,29 +206,25 @@ impl RustCurse {
             out_dir_abs_path,
             build_out_dir_abs_path,
             options,
-            last_build: None,
+            last_build: Mutex::new(None),
         })
     }
 
     #[cfg(feature = "napi-binding")]
     #[napi]
-    pub fn build(&mut self, profile_names: Vec<String>) -> napi::Result<BuildOutput> {
+    pub fn build(&self, profile_names: Vec<String>) -> napi::Result<BuildOutput> {
         self._build(&profile_names)
             .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{:#}", e)))
     }
 
-    /// Returns the JS code that re-exports items from a single rust orphan
-    /// module under `profile_name`. The shape of the emitted code depends on
-    /// the profile's build target (wasm-bindgen output for `Wasm`, native
-    /// addon binding for `Node`).
     #[cfg(feature = "napi-binding")]
     #[napi]
-    pub fn resolve(&mut self, profile_name: String, rs_rel_path: String) -> napi::Result<String> {
+    pub fn resolve(&self, profile_name: String, rs_rel_path: String) -> napi::Result<String> {
         self._resolve(&profile_name, &rs_rel_path)
             .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{:#}", e)))
     }
 
-    fn _build(&mut self, profile_names: &[String]) -> anyhow::Result<BuildOutput> {
+    fn _build(&self, profile_names: &[String]) -> anyhow::Result<BuildOutput> {
         let orphan_modules = orphans::scan(OrphanScanOpts {
             project_root_abs_path: &self.project_root_abs_path,
             src_rel_path: &self.modules_root_rel_path,
@@ -329,13 +326,14 @@ impl RustCurse {
         };
         let build_output = build_cache.mint_build_output();
 
-        self.last_build = Some(build_cache);
+        *self.last_build.lock().unwrap() = Some(build_cache);
 
         Ok(build_output)
     }
 
-    fn _resolve(&mut self, profile_name: &str, path: &str) -> anyhow::Result<String> {
-        let build_output = self.last_build.as_ref().ok_or(anyhow!(
+    fn _resolve(&self, profile_name: &str, path: &str) -> anyhow::Result<String> {
+        let last_build = self.last_build.lock().unwrap();
+        let build_output = last_build.as_ref().ok_or(anyhow!(
             "reslolve cannot be called before build, please call build first."
         ))?;
 

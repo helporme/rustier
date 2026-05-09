@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs'
-import { basename, resolve as resolvePath } from 'node:path'
+import { basename, join, resolve as resolvePath } from 'node:path'
 import { type Rolldown } from 'tsdown'
 import { defaultOptions, RustCurseOptions } from './options'
 import { ProfileOpts, RustCurse, WasmProfileArtifact } from 'rust-curse-native'
 import { deepMerge, DeepRequired, normalizeFilter } from '../utils'
+import { buildNapi } from '../napi'
 
 type Plugin = Rolldown.Plugin
 
@@ -22,7 +23,7 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
   return {
     name: 'rust-curse',
 
-    buildStart() {
+    async buildStart() {
       const profile: ProfileOpts = {
         name: options.platform,
         rust: {
@@ -43,16 +44,31 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
         profiles: [profile],
       })
 
-      const output = curse.build([profile.name])
+      const artifact = curse.build([profile.name]).artifacts[profile.name]
 
-      for (const [profileName, artifact] of Object.entries(output.artifacts)) {
-        if (profileName !== options.platform) continue
-
+      if (profile.name === 'wasm') {
+        // wasm-bindgen is called from rust
         this.emitFile({
           type: 'asset',
           fileName: basename(artifact.wasmAbsPath),
           source: readFileSync(artifact.wasmAbsPath),
         })
+      } else {
+        // napi-cli is called by js
+        const output = await buildNapi({
+          outputDir: join(options.rootDir, options.outDir, 'output/node'),
+          manifestPath: join(options.rootDir, 'Cargo.toml'),
+          release: false,
+        })
+        for (const artifact of output) {
+          if (artifact.kind === 'node') {
+            this.emitFile({
+              type: 'asset',
+              fileName: basename(artifact.path),
+              source: readFileSync(artifact.path),
+            })
+          }
+        }
       }
     },
 

@@ -1,0 +1,8 @@
+---
+source: tests/ir/napi_js.rs
+description: "pub struct Point {\n    pub x: f64,\n    pub y: f64,\n}\npub struct Point2 {\n    pub x: f64,\n    pub y: f64,\n}\n"
+expression: out
+---
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Point__Ref, __cursed_rustdoc_test_crate__Point2__Ref } from '$test';
+export { __cursed_rustdoc_test_crate__Point__Ref as Point, __cursed_rustdoc_test_crate__Point2__Ref as Point2 };

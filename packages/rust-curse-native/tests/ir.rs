@@ -6,6 +6,8 @@ mod common;
 mod from_rustdoc;
 #[path = "ir/napi.rs"]
 mod napi;
+#[path = "ir/napi_js.rs"]
+mod napi_js;
 #[path = "ir/negative.rs"]
 mod negative;
 #[path = "ir/ts.rs"]

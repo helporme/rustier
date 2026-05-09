@@ -285,6 +285,26 @@ macro_rules! assert_wasm_js_snap {
     }};
 }
 
+/// Build IR and snapshot the napi JS glue printer output for every module,
+/// separated by `// $rust/<path>` headers.
+#[macro_export]
+macro_rules! assert_napi_js_snap {
+    ($($tt:tt)*) => {{
+        let src = $crate::common::fmt_src(stringify!($($tt)*));
+        let ir = {
+            let crate_ = $crate::common::gen_rustdoc(&src);
+            rust_curse::ir::IR::try_from(&crate_).unwrap()
+        };
+        let exposed = $crate::common::all_exposed_ids(&ir);
+        let out = $crate::common::print_wasm_js_per_mod(&ir, |ir, mid| {
+            ir.print_napi_js(mid, "$test".to_owned(), &exposed)
+        });
+        insta::with_settings!({ description => src }, {
+            insta::assert_snapshot!(out);
+        });
+    }};
+}
+
 /// Assert that building IR returns `Err(pat)`.
 #[macro_export]
 macro_rules! assert_ir_err {

@@ -1,0 +1,11 @@
+---
+source: tests/ir/napi_js.rs
+description: "pub mod inner {\n    pub fn f() {}\n}\n"
+expression: out
+---
+// $rust/rustdoc_test_crate
+export {};
+
+// $rust/rustdoc_test_crate/inner
+import { __cursed_rustdoc_test_crate__inner__f } from '$test';
+export { __cursed_rustdoc_test_crate__inner__f as f };
