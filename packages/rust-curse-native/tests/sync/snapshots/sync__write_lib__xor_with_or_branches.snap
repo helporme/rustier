@@ -31,8 +31,10 @@ branches:
 // always included
 
 #[cfg(all(feature = "feature-x", not(feature = "feature-y")))]
-include!("feature_x.rs");
+#[path = "feature_x.rs"]
+mod feature_x;
 
 #[cfg(feature = "feature-y")]
-include!("feature_y.rs");
+#[path = "feature_y.rs"]
+mod feature_y;
 ```

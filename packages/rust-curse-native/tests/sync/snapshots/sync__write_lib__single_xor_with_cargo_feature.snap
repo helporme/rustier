@@ -15,7 +15,8 @@ branches:
 
 ```rust
 #[cfg(feature = "rustdoc")]
-include!("rustdoc.rs");
+#[path = "rustdoc.rs"]
+mod rustdoc;
 ```
 
 ### rustdoc.rs

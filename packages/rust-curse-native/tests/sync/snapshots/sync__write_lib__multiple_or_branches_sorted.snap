@@ -22,11 +22,14 @@ branches:
 ### lib.rs
 
 ```rust
-include!("alpha.rs");
+#[path = "alpha.rs"]
+mod alpha;
 
-include!("middle.rs");
+#[path = "middle.rs"]
+mod middle;
 
-include!("zeta.rs");
+#[path = "zeta.rs"]
+mod zeta;
 ```
 
 ### middle.rs

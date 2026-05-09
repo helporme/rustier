@@ -15,7 +15,8 @@ branches:
 ### lib.rs
 
 ```rust
-include!("real.rs");
+#[path = "real.rs"]
+mod real;
 ```
 
 ### real.rs

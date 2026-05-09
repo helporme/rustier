@@ -50,7 +50,9 @@ impl Syncer {
 
         self.lib.set_xor_branch(
             "rustdoc",
-            LibBranch::new(content).requires_env_flag(RUSTDOC_CFG_FLAG),
+            LibBranch::new(content)
+                .requires_env_flag(RUSTDOC_CFG_FLAG)
+                .include(),
         );
         write_lib(&abs_out_dir, &self.lib)?;
 

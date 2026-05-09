@@ -207,7 +207,9 @@ fn docstring_example_matches_byte_for_byte() {
         )
         .set_xor_branch(
             "feature_y",
-            LibBranch::new("// feature-y\n").requires_cargo_feature("feature-y"),
+            LibBranch::new("// feature-y\n")
+                .requires_cargo_feature("feature-y")
+                .include(),
         );
     let files = render_lib(&switch).unwrap().unwrap();
     let lib = files.iter().find(|f| f.name == "lib").unwrap();
@@ -216,7 +218,8 @@ fn docstring_example_matches_byte_for_byte() {
         "// always included\n\
          \n\
          #[cfg(all(feature = \"feature-x\", not(feature = \"feature-y\")))]\n\
-         include!(\"feature_x.rs\");\n\
+         #[path = \"feature_x.rs\"]\n\
+         mod feature_x;\n\
          \n\
          #[cfg(feature = \"feature-y\")]\n\
          include!(\"feature_y.rs\");\n",
@@ -225,6 +228,35 @@ fn docstring_example_matches_byte_for_byte() {
     assert_eq!(feature_x.content, "// feature-x\n");
     let feature_y = files.iter().find(|f| f.name == "feature_y").unwrap();
     assert_eq!(feature_y.content, "// feature-y\n");
+}
+
+#[test]
+fn include_branch_emits_include_macro() {
+    let mut switch = LibSwitch::new();
+    switch.set_branch(
+        "orphan_tree",
+        LibBranch::new("pub mod greet;\n").include(),
+    );
+    let files = render_lib(&switch).unwrap().unwrap();
+    let lib = files.iter().find(|f| f.name == "lib").unwrap();
+    assert_eq!(lib.content, "include!(\"orphan_tree.rs\");\n");
+}
+
+#[test]
+fn default_branch_emits_path_mod() {
+    let mut switch = LibSwitch::new();
+    switch.set_branch(
+        "node",
+        LibBranch::new("// napi glue\n").requires_cargo_feature("node"),
+    );
+    let files = render_lib(&switch).unwrap().unwrap();
+    let lib = files.iter().find(|f| f.name == "lib").unwrap();
+    assert_eq!(
+        lib.content,
+        "#[cfg(feature = \"node\")]\n\
+         #[path = \"node.rs\"]\n\
+         mod node;\n",
+    );
 }
 
 #[test]

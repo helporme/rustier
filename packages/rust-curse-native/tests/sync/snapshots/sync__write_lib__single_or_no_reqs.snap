@@ -20,5 +20,6 @@ branches:
 ### lib.rs
 
 ```rust
-include!("extras.rs");
+#[path = "extras.rs"]
+mod extras;
 ```

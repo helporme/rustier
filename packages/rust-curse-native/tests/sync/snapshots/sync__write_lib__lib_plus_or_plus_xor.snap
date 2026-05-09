@@ -20,13 +20,16 @@ branches:
 // prelude
 
 #[cfg(not(rust_curse_rustdoc))]
-include!("link.rs");
+#[path = "link.rs"]
+mod link;
 
 #[cfg(all(feature = "node", not(rust_curse_rustdoc)))]
-include!("napi.rs");
+#[path = "napi.rs"]
+mod napi;
 
 #[cfg(rust_curse_rustdoc)]
-include!("rustdoc.rs");
+#[path = "rustdoc.rs"]
+mod rustdoc;
 ```
 
 ### link.rs

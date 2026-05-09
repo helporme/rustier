@@ -92,7 +92,8 @@ impl Syncer {
             }
         }
 
-        self.lib.set_branch("orphan_tree", LibBranch::new(content));
+        self.lib
+            .set_branch("orphan_tree", LibBranch::new(content).include());
         write_lib(&abs_out_dir, &self.lib)?;
 
         tree::write_subtree(&root, &abs_project_root, &abs_mod_out_dir, "pub(crate)")?;

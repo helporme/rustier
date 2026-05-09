@@ -17,13 +17,16 @@ branches:
 
 ```rust
 #[cfg(not(any(feature = "wasm", rust_curse_rustdoc)))]
-include!("link.rs");
+#[path = "link.rs"]
+mod link;
 
 #[cfg(rust_curse_rustdoc)]
-include!("rustdoc.rs");
+#[path = "rustdoc.rs"]
+mod rustdoc;
 
 #[cfg(feature = "wasm")]
-include!("wasm.rs");
+#[path = "wasm.rs"]
+mod wasm;
 ```
 
 ### link.rs

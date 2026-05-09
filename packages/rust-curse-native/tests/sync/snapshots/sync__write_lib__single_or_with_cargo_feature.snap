@@ -15,7 +15,8 @@ branches:
 
 ```rust
 #[cfg(feature = "node")]
-include!("node.rs");
+#[path = "node.rs"]
+mod node;
 ```
 
 ### node.rs

@@ -18,20 +18,25 @@ use std::{collections::HashMap, fmt, fs, io, path::Path};
 ///     )
 ///     .set_xor_branch(
 ///         "feature_y",
-///         LibBranch::new("// feature-y\n").requires_cargo_feature("feature-y"),
+///         LibBranch::new("// feature-y\n")
+///             .requires_cargo_feature("feature-y")
+///             .include(),
 ///     );
 ///
 /// let files = render_lib(&switch).unwrap().unwrap();
 ///
-/// // The top-level switch includes each branch's `{name}.rs`,
-/// // gated by the branch's requirements.
+/// // The top-level switch wires up each branch's `{name}.rs` with a cfg
+/// // gate. Default branches use `#[path] mod` so proc-macro state (e.g.
+/// // napi-derive) flows correctly between items; `.include()` opts back
+/// // into `include!()` for branches that must inject items at crate root.
 /// let lib = files.iter().find(|f| f.name == "lib").unwrap();
 /// assert_eq!(
 ///     lib.content,
 ///     "// always included\n\
 ///      \n\
 ///      #[cfg(all(feature = \"feature-x\", not(feature = \"feature-y\")))]\n\
-///      include!(\"feature_x.rs\");\n\
+///      #[path = \"feature_x.rs\"]\n\
+///      mod feature_x;\n\
 ///      \n\
 ///      #[cfg(feature = \"feature-y\")]\n\
 ///      include!(\"feature_y.rs\");\n",
@@ -91,6 +96,7 @@ pub struct LibBranch {
     pub content: String,
     pub req_cargo_features: Option<Vec<String>>,
     pub req_env_flags: Option<Vec<String>>,
+    pub use_include: bool,
 }
 
 impl LibBranch {
@@ -121,6 +127,22 @@ impl LibBranch {
             req_env_flags.push(flag);
         }
         self.req_env_flags = Some(req_env_flags);
+        self
+    }
+
+    /// Emits `include!("<name>.rs");` for this branch instead of the default
+    /// `#[path = "<name>.rs"] mod <name>;`. Use when the branch's content
+    /// must land at the crate root -> e.g. `pub mod` declarations or
+    /// `pub use` re-exports that downstream code references as
+    /// `crate::<...>`.
+    ///
+    /// The default mod-based emission is preferred because it preserves
+    /// proc-macro expansion order between items in the same branch
+    /// (notably napi-derive, which links a `#[napi] struct` to its
+    /// `#[napi] impl` via process-global state that does not flow across
+    /// `include!` boundaries).
+    pub fn include(mut self) -> Self {
+        self.use_include = true;
         self
     }
 }
@@ -197,14 +219,15 @@ pub struct RenderedFile {
 
 /// Renders the given [`LibSwitch`] into a bunch of [`RenderedFile`]s.
 ///
-/// Utilizes the include!() with #[cfg] directives to conditionally include
-/// lib.rs content based on the presence of cargo features / env flags. For
-/// include!() to work inside "switch" lib file, multiple "helper" lib files are
-/// used to define the content to include, hence multiple [`RenderedFile`]s are
-/// returned.
+/// Each branch is wired into the "switch" lib file with a `#[cfg(...)]`
+/// gate built from its requirements. By default a branch is emitted as
+/// `#[path = "<name>.rs"] mod <name>;`; branches that opt in via
+/// [`LibBranch::include`] are emitted as `include!("<name>.rs");`
+/// instead, for cases where the branch's items must live at the crate
+/// root.
 ///
 /// Branches whose content is empty are skipped entirely: no helper file is
-/// emitted and no `include!` line is added to the switch lib.
+/// emitted and no wiring line is added to the switch lib.
 ///
 /// All rendered lib files should be written to the disk in the same directory
 /// as the caller, file names are derived from the branch names. "switch" lib
@@ -266,7 +289,11 @@ pub fn render_lib(switch: &LibSwitch) -> Result<Option<Vec<RenderedFile>>, Rende
             lib_content.push_str(&cfg);
             lib_content.push('\n');
         }
-        lib_content.push_str(&format!("include!(\"{name}.rs\");\n"));
+        if branch.lib().use_include {
+            lib_content.push_str(&format!("include!(\"{name}.rs\");\n"));
+        } else {
+            lib_content.push_str(&format!("#[path = \"{name}.rs\"]\nmod {name};\n"));
+        }
 
         files.push(RenderedFile {
             name: (*name).clone(),

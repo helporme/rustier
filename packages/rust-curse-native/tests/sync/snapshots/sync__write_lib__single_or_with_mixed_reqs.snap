@@ -15,7 +15,8 @@ branches:
 
 ```rust
 #[cfg(all(feature = "node", rust_curse_extra))]
-include!("mixed.rs");
+#[path = "mixed.rs"]
+mod mixed;
 ```
 
 ### mixed.rs
