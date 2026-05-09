@@ -1,8 +1,19 @@
 ---
 source: tests/ir/wasm_js.rs
-description: "pub mod math {\n    pub fn square(x: f64) -> f64 {\n        x * x\n    }\n    pub fn square2(x: f64) -> f64 {\n        x * x\n    }\n}\n"
-expression: out
+expression: body
 ---
+```rs
+pub mod math {
+    pub fn square(x: f64) -> f64 {
+        x * x
+    }
+    pub fn square2(x: f64) -> f64 {
+        x * x
+    }
+}
+```
+
+```js
 // $rust/rustdoc_test_crate
 export {};
 
@@ -10,3 +21,4 @@ export {};
 import __wbg_init, { __cursed_rustdoc_test_crate__math__square, __cursed_rustdoc_test_crate__math__square2 } from '$test';
 await __wbg_init();
 export { __cursed_rustdoc_test_crate__math__square as square, __cursed_rustdoc_test_crate__math__square2 as square2 };
+```

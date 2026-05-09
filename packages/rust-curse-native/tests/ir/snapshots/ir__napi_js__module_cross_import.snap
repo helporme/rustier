@@ -1,8 +1,21 @@
 ---
 source: tests/ir/napi_js.rs
-description: "pub mod types {\n    pub struct Token {\n        pub value: String,\n    }\n}\npub mod ops {\n    pub fn parse(s: String) -> crate::types::Token {\n        todo!()\n    }\n}\n"
-expression: out
+expression: body
 ---
+```rs
+pub mod types {
+    pub struct Token {
+        pub value: String,
+    }
+}
+pub mod ops {
+    pub fn parse(s: String) -> crate::types::Token {
+        todo!()
+    }
+}
+```
+
+```js
 // $rust/rustdoc_test_crate
 export {};
 
@@ -13,3 +26,4 @@ export { __cursed_rustdoc_test_crate__types__Token__Ref as Token };
 // $rust/rustdoc_test_crate/ops
 import { __cursed_rustdoc_test_crate__ops__parse } from '$test';
 export { __cursed_rustdoc_test_crate__ops__parse as parse };
+```

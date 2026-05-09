@@ -1,8 +1,26 @@
 ---
 source: tests/ir/ts.rs
-description: "/// The `seed` param name differs from the field `count` so the snapshot proves\n/// the ctor from the second impl block is picked up.\npub struct Counter {\n    count: u32,\n}\nimpl Counter {\n    pub fn increment(&mut self) {\n        self.count += 1;\n    }\n}\nimpl Counter {\n    pub fn new(seed: u32) -> Self {\n        Counter { count: seed }\n    }\n}\n"
-expression: out
+expression: body
 ---
+```rs
+/// The `seed` param name differs from the field `count` so the snapshot proves
+/// the ctor from the second impl block is picked up.
+pub struct Counter {
+    count: u32,
+}
+impl Counter {
+    pub fn increment(&mut self) {
+        self.count += 1;
+    }
+}
+impl Counter {
+    pub fn new(seed: u32) -> Self {
+        Counter { count: seed }
+    }
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -22,3 +40,4 @@ export class Counter {
 
     constructor(seed: number);
 }
+```

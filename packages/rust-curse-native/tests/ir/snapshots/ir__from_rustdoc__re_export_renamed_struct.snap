@@ -1,8 +1,17 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub mod inner {\n    pub struct Inner {\n        pub x: i32,\n    }\n}\npub use inner::Inner as Renamed;\n"
-expression: ir
+expression: body
 ---
+```rs
+pub mod inner {
+    pub struct Inner {
+        pub x: i32,
+    }
+}
+pub use inner::Inner as Renamed;
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -83,3 +92,4 @@ IR {
         ),
     ],
 }
+```

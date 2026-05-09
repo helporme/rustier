@@ -1,8 +1,15 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Gated {\n    pub x: i32,\n    pub(crate) y: i32,\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub struct Gated {
+    pub x: i32,
+    pub(crate) y: i32,
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -55,3 +62,4 @@ IR {
         ),
     ],
 }
+```

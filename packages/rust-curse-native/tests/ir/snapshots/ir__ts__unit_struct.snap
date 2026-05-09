@@ -1,8 +1,12 @@
 ---
 source: tests/ir/ts.rs
-description: "pub struct Marker;\n"
-expression: out
+expression: body
 ---
+```rs
+pub struct Marker;
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -18,3 +22,4 @@ export class Marker {
 
     constructor();
 }
+```

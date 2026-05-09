@@ -1,8 +1,15 @@
 ---
 source: tests/ir/ts.rs
-description: "pub struct Mixed {\n    pub x: i32,\n    y: i32,\n}\n"
-expression: out
+expression: body
 ---
+```rs
+pub struct Mixed {
+    pub x: i32,
+    y: i32,
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -20,3 +27,4 @@ export class Mixed {
 
     constructor(x: number);
 }
+```

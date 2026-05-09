@@ -1,8 +1,22 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub trait Factory {\n    fn new() -> Self;\n}\npub struct Foo {\n    x: i32,\n}\nimpl Factory for Foo {\n    fn new() -> Self {\n        Foo { x: 0 }\n    }\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub trait Factory {
+    fn new() -> Self;
+}
+pub struct Foo {
+    x: i32,
+}
+impl Factory for Foo {
+    fn new() -> Self {
+        Foo { x: 0 }
+    }
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -67,3 +81,4 @@ IR {
         ),
     ],
 }
+```

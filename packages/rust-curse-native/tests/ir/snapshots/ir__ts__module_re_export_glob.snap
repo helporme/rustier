@@ -1,8 +1,20 @@
 ---
 source: tests/ir/ts.rs
-description: "pub mod inner {\n    pub struct S {\n        pub x: i32,\n    }\n    pub fn f() -> i32 {\n        0\n    }\n}\npub use inner::*;\n"
-expression: out
+expression: body
 ---
+```rs
+pub mod inner {
+    pub struct S {
+        pub x: i32,
+    }
+    pub fn f() -> i32 {
+        0
+    }
+}
+pub use inner::*;
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -27,3 +39,4 @@ export class S {
 }
 
 export function f(): number;
+```

@@ -1,8 +1,21 @@
 ---
 source: tests/ir/ts.rs
-description: "/// A counter whose constructor is the canonical entry point.\npub struct Counter {\n    count: u32,\n}\nimpl Counter {\n    /// Creates a new counter starting at `start`.\n    pub fn new(start: u32) -> Self {\n        Self { count: start }\n    }\n}\n"
-expression: out
+expression: body
 ---
+```rs
+/// A counter whose constructor is the canonical entry point.
+pub struct Counter {
+    count: u32,
+}
+impl Counter {
+    /// Creates a new counter starting at `start`.
+    pub fn new(start: u32) -> Self {
+        Self { count: start }
+    }
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -19,3 +32,4 @@ export class Counter {
 
     constructor(start: number);
 }
+```

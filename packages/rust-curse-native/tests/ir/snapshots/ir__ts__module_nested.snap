@@ -1,8 +1,17 @@
 ---
 source: tests/ir/ts.rs
-description: "pub mod math {\n    /// Returns the square of `x`.\n    pub fn square(x: f64) -> f64 {\n        x * x\n    }\n}\n"
-expression: out
+expression: body
 ---
+```rs
+pub mod math {
+    /// Returns the square of `x`.
+    pub fn square(x: f64) -> f64 {
+        x * x
+    }
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -18,3 +27,4 @@ declare module "$rust-curse" {
 // src/math.rs.d.ts
 /** Returns the square of `x`. */
 export function square(x: number): number;
+```

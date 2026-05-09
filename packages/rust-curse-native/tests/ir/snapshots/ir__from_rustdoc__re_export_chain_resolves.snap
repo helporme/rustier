@@ -1,8 +1,20 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub mod inner {\n    pub struct Inner {\n        pub x: i32,\n    }\n}\npub mod middle {\n    pub use super::inner::Inner;\n}\npub use middle::Inner;\n"
-expression: ir
+expression: body
 ---
+```rs
+pub mod inner {
+    pub struct Inner {
+        pub x: i32,
+    }
+}
+pub mod middle {
+    pub use super::inner::Inner;
+}
+pub use middle::Inner;
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -110,3 +122,4 @@ IR {
         ),
     ],
 }
+```

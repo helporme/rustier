@@ -1,8 +1,12 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub use i32 as MyI32;\n"
-expression: ir
+expression: body
 ---
+```rs
+pub use i32 as MyI32;
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -24,3 +28,4 @@ IR {
         ),
     ],
 }
+```

@@ -1,8 +1,12 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub fn f() {}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub fn f() {}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -44,3 +48,4 @@ IR {
         ),
     ],
 }
+```

@@ -1,8 +1,22 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Point {\n    pub x: i32,\n    pub y: i32,\n}\npub struct Wrapper {\n    pub p: Point,\n}\npub fn take(p: Point) {}\npub fn produce() -> Point {\n    Point { x: 0, y: 0 }\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub struct Point {
+    pub x: i32,
+    pub y: i32,
+}
+pub struct Wrapper {
+    pub p: Point,
+}
+pub fn take(p: Point) {}
+pub fn produce() -> Point {
+    Point { x: 0, y: 0 }
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -146,3 +160,4 @@ IR {
         ),
     ],
 }
+```

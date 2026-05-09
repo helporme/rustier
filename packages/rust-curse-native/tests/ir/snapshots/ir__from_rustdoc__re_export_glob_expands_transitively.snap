@@ -1,8 +1,20 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub mod deeper {\n    pub struct X {\n        pub x: i32,\n    }\n}\npub mod inner {\n    pub use super::deeper::X;\n}\npub use inner::*;\n"
-expression: ir
+expression: body
 ---
+```rs
+pub mod deeper {
+    pub struct X {
+        pub x: i32,
+    }
+}
+pub mod inner {
+    pub use super::deeper::X;
+}
+pub use inner::*;
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -110,3 +122,4 @@ IR {
         ),
     ],
 }
+```

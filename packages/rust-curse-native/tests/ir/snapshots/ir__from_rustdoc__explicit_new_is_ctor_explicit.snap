@@ -1,8 +1,19 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Opaque {\n    x: i32,\n}\nimpl Opaque {\n    pub fn new(x: i32) -> Self {\n        Self { x }\n    }\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub struct Opaque {
+    x: i32,
+}
+impl Opaque {
+    pub fn new(x: i32) -> Self {
+        Self { x }
+    }
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -75,3 +86,4 @@ IR {
         ),
     ],
 }
+```

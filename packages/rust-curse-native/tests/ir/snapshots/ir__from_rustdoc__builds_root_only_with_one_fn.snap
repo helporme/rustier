@@ -1,8 +1,14 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub fn add(a: i32, b: i32) -> i32 {\n    a + b\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -61,3 +67,4 @@ IR {
         ),
     ],
 }
+```

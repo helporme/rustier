@@ -1,8 +1,22 @@
 ---
 source: tests/ir/ts.rs
-description: "/// `new() -> Token` is recognised as an explicit constructor. The `raw` param name\n/// differs from the field name `value` so the snapshot proves the ctor is picked\n/// up rather than synthesised from the struct's fields.\npub struct Token {\n    value: String,\n}\nimpl Token {\n    pub fn new(raw: String) -> Token {\n        Token { value: raw }\n    }\n}\n"
-expression: out
+expression: body
 ---
+```rs
+/// `new() -> Token` is recognised as an explicit constructor. The `raw` param name
+/// differs from the field name `value` so the snapshot proves the ctor is picked
+/// up rather than synthesised from the struct's fields.
+pub struct Token {
+    value: String,
+}
+impl Token {
+    pub fn new(raw: String) -> Token {
+        Token { value: raw }
+    }
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -23,3 +37,4 @@ export class Token {
 
     constructor(raw: string);
 }
+```

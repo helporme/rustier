@@ -1,8 +1,25 @@
 ---
 source: tests/ir/ts.rs
-description: "/// A point in 2D space.\npub struct Point {\n    /// Horizontal position.\n    pub x: f64,\n    /// Vertical position.\n    pub y: f64,\n}\n/// A circle defined by its center and radius.\npub struct Circle {\n    /// The center point.\n    pub center: Point,\n    /// The radius in the same units as `center`.\n    pub radius: f64,\n}\n"
-expression: out
+expression: body
 ---
+```rs
+/// A point in 2D space.
+pub struct Point {
+    /// Horizontal position.
+    pub x: f64,
+    /// Vertical position.
+    pub y: f64,
+}
+/// A circle defined by its center and radius.
+pub struct Circle {
+    /// The center point.
+    pub center: Point,
+    /// The radius in the same units as `center`.
+    pub radius: f64,
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -38,3 +55,4 @@ export class Circle {
 
     constructor(center: Point, radius: number);
 }
+```

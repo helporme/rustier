@@ -166,9 +166,8 @@ macro_rules! assert_ir_snap {
         let src = $crate::common::fmt_src(stringify!($($tt)*));
         let crate_ = $crate::common::gen_rustdoc(&src);
         let ir = rust_curse::ir::IR::try_from(&crate_).unwrap();
-        insta::with_settings!({ description => src }, {
-            insta::assert_debug_snapshot!(ir);
-        });
+        let body = format!("```rs\n{src}```\n\n```rs\n{:#?}\n```", ir);
+        insta::assert_snapshot!(body);
     }};
 }
 
@@ -185,9 +184,8 @@ macro_rules! assert_ts_snap {
             rust_curse::ir::IR::try_from(&crate_).unwrap()
         };
         let out = $crate::common::print_ts_per_mod(&ir, std::path::PathBuf::from("src"));
-        insta::with_settings!({ description => src }, {
-            insta::assert_snapshot!(out);
-        });
+        let body = format!("```rs\n{src}```\n\n```ts\n{out}```");
+        insta::assert_snapshot!(body);
     }};
 }
 
@@ -204,9 +202,8 @@ macro_rules! assert_napi_snap {
         let exposed = $crate::common::all_exposed_ids(&ir);
         let napi_src = ir.print_napi(&exposed);
         let formatted = $crate::common::fmt_src(&napi_src);
-        insta::with_settings!({ description => src }, {
-            insta::assert_snapshot!(formatted);
-        });
+        let body = format!("```rs\n{src}```\n\n```rs\n{formatted}```");
+        insta::assert_snapshot!(body);
     }};
 }
 
@@ -223,9 +220,8 @@ macro_rules! assert_napi_snap_exposed {
         let exposed = $crate::common::exposed_by_name(&ir, &[$($name),+]);
         let napi_src = ir.print_napi(&exposed);
         let formatted = $crate::common::fmt_src(&napi_src);
-        insta::with_settings!({ description => src }, {
-            insta::assert_snapshot!(formatted);
-        });
+        let body = format!("```rs\n{src}```\n\n```rs\n{formatted}```");
+        insta::assert_snapshot!(body);
     }};
 }
 
@@ -242,9 +238,8 @@ macro_rules! assert_wasm_snap {
         let exposed = $crate::common::all_exposed_ids(&ir);
         let wasm_src = ir.print_wasm(&exposed);
         let formatted = $crate::common::fmt_src(&wasm_src);
-        insta::with_settings!({ description => src }, {
-            insta::assert_snapshot!(formatted);
-        });
+        let body = format!("```rs\n{src}```\n\n```rs\n{formatted}```");
+        insta::assert_snapshot!(body);
     }};
 }
 
@@ -259,9 +254,8 @@ macro_rules! assert_wasm_snap_exposed {
         let exposed = $crate::common::exposed_by_name(&ir, &[$($name),+]);
         let wasm_src = ir.print_wasm(&exposed);
         let formatted = $crate::common::fmt_src(&wasm_src);
-        insta::with_settings!({ description => src }, {
-            insta::assert_snapshot!(formatted);
-        });
+        let body = format!("```rs\n{src}```\n\n```rs\n{formatted}```");
+        insta::assert_snapshot!(body);
     }};
 }
 
@@ -279,9 +273,8 @@ macro_rules! assert_wasm_js_snap {
         let out = $crate::common::print_wasm_js_per_mod(&ir, |ir, mid| {
             ir.print_wasm_js(mid, "$test".to_owned(), &exposed)
         });
-        insta::with_settings!({ description => src }, {
-            insta::assert_snapshot!(out);
-        });
+        let body = format!("```rs\n{src}```\n\n```js\n{out}```");
+        insta::assert_snapshot!(body);
     }};
 }
 
@@ -299,9 +292,8 @@ macro_rules! assert_napi_js_snap {
         let out = $crate::common::print_wasm_js_per_mod(&ir, |ir, mid| {
             ir.print_napi_js(mid, "$test".to_owned(), &exposed)
         });
-        insta::with_settings!({ description => src }, {
-            insta::assert_snapshot!(out);
-        });
+        let body = format!("```rs\n{src}```\n\n```js\n{out}```");
+        insta::assert_snapshot!(body);
     }};
 }
 

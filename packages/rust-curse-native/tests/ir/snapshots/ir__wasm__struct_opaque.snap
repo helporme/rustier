@@ -1,8 +1,15 @@
 ---
 source: tests/ir/wasm.rs
-description: "/// A handle with a hidden internal state — no `__Copy` wrapper emitted.\npub struct Handle {\n    id: u32,\n}\n"
-expression: formatted
+expression: body
 ---
+```rs
+/// A handle with a hidden internal state — no `__Copy` wrapper emitted.
+pub struct Handle {
+    id: u32,
+}
+```
+
+```rs
 use wasm_bindgen::prelude::*;
 /// A handle with a hidden internal state — no `__Copy` wrapper emitted.
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Handle__Ref")]
@@ -26,3 +33,4 @@ impl From<__cursed_rustdoc_test_crate__Handle__Ref> for crate::Handle {
         v.inner
     }
 }
+```

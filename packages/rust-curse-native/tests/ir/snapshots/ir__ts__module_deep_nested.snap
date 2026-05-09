@@ -1,8 +1,18 @@
 ---
 source: tests/ir/ts.rs
-description: "pub mod a {\n    pub mod b {\n        pub mod c {\n            pub fn deep() {}\n        }\n    }\n}\n"
-expression: out
+expression: body
 ---
+```rs
+pub mod a {
+    pub mod b {
+        pub mod c {
+            pub fn deep() {}
+        }
+    }
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -23,3 +33,4 @@ declare module "$rust-curse" {
 
 // src/a/b/c.rs.d.ts
 export function deep(): void;
+```

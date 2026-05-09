@@ -1,8 +1,12 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Empty {}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub struct Empty {}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -47,3 +51,4 @@ IR {
         ),
     ],
 }
+```

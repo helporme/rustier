@@ -1,8 +1,13 @@
 ---
 source: tests/ir/ts.rs
-description: "/// Unit return type maps to `void`.\npub fn f() {}\n"
-expression: out
+expression: body
 ---
+```rs
+/// Unit return type maps to `void`.
+pub fn f() {}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -15,3 +20,4 @@ declare module "$rust-curse" {
 // src/lib.rs.d.ts
 /** Unit return type maps to `void`. */
 export function f(): void;
+```

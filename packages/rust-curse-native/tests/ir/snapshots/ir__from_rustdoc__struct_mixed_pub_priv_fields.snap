@@ -1,8 +1,15 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Mixed {\n    pub x: i32,\n    y: i32,\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub struct Mixed {
+    pub x: i32,
+    y: i32,
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -55,3 +62,4 @@ IR {
         ),
     ],
 }
+```

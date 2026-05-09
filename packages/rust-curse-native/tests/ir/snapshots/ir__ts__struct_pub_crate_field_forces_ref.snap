@@ -1,8 +1,16 @@
 ---
 source: tests/ir/ts.rs
-description: "/// A `pub(crate)` field downgrades the boundary to ref (opaque class).\npub struct Gated {\n    pub x: i32,\n    pub(crate) y: i32,\n}\n"
-expression: out
+expression: body
 ---
+```rs
+/// A `pub(crate)` field downgrades the boundary to ref (opaque class).
+pub struct Gated {
+    pub x: i32,
+    pub(crate) y: i32,
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -21,3 +29,4 @@ export class Gated {
 
     constructor(x: number);
 }
+```

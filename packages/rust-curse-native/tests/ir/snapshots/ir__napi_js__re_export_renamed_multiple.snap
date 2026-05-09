@@ -1,8 +1,20 @@
 ---
 source: tests/ir/napi_js.rs
-description: "pub mod inner {\n    pub struct Inner {\n        pub x: i32,\n    }\n    pub struct Outer {\n        pub y: i32,\n    }\n}\npub use inner::{Inner as Outer, Outer as Inner};\n"
-expression: out
+expression: body
 ---
+```rs
+pub mod inner {
+    pub struct Inner {
+        pub x: i32,
+    }
+    pub struct Outer {
+        pub y: i32,
+    }
+}
+pub use inner::{Inner as Outer, Outer as Inner};
+```
+
+```js
 // $rust/rustdoc_test_crate
 import { __cursed_rustdoc_test_crate__inner__Inner__Ref, __cursed_rustdoc_test_crate__inner__Outer__Ref } from '$test';
 export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Outer, __cursed_rustdoc_test_crate__inner__Outer__Ref as Inner };
@@ -10,3 +22,4 @@ export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Outer, __cursed_rustd
 // $rust/rustdoc_test_crate/inner
 import { __cursed_rustdoc_test_crate__inner__Inner__Ref, __cursed_rustdoc_test_crate__inner__Outer__Ref } from '$test';
 export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Inner, __cursed_rustdoc_test_crate__inner__Outer__Ref as Outer };
+```

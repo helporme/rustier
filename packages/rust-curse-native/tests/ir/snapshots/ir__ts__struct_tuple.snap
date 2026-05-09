@@ -1,8 +1,13 @@
 ---
 source: tests/ir/ts.rs
-description: "/// A pair of values stored as a tuple struct.\npub struct Pair(pub i32, pub String);\n"
-expression: out
+expression: body
 ---
+```rs
+/// A pair of values stored as a tuple struct.
+pub struct Pair(pub i32, pub String);
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -23,3 +28,4 @@ export class Pair {
 
     constructor(_0: number, _1: string);
 }
+```

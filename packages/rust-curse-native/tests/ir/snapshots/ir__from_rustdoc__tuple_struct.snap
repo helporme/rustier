@@ -1,8 +1,12 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Pair(pub i32, pub String);\n"
-expression: ir
+expression: body
 ---
+```rs
+pub struct Pair(pub i32, pub String);
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -52,3 +56,4 @@ IR {
         ),
     ],
 }
+```

@@ -1,8 +1,13 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub fn f(x: i32) {}\npub fn g(y: i32) {}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub fn f(x: i32) {}
+pub fn g(y: i32) {}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -79,3 +84,4 @@ IR {
         ),
     ],
 }
+```

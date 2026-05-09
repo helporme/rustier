@@ -1,8 +1,19 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Builder {\n    x: i32,\n}\nimpl Builder {\n    pub fn new(&self) -> Self {\n        Self { x: self.x }\n    }\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub struct Builder {
+    x: i32,
+}
+impl Builder {
+    pub fn new(&self) -> Self {
+        Self { x: self.x }
+    }
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -47,3 +58,4 @@ IR {
         ),
     ],
 }
+```

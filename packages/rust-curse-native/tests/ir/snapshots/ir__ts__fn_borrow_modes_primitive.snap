@@ -1,8 +1,13 @@
 ---
 source: tests/ir/ts.rs
-description: "/// Borrow mode does not affect the TypeScript type for primitives.\npub fn f(by_ref: &i32, by_mut_ref: &mut i32, by_value: i32) {}\n"
-expression: out
+expression: body
 ---
+```rs
+/// Borrow mode does not affect the TypeScript type for primitives.
+pub fn f(by_ref: &i32, by_mut_ref: &mut i32, by_value: i32) {}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -15,3 +20,4 @@ declare module "$rust-curse" {
 // src/lib.rs.d.ts
 /** Borrow mode does not affect the TypeScript type for primitives. */
 export function f(by_ref: number, by_mut_ref: number, by_value: number): void;
+```

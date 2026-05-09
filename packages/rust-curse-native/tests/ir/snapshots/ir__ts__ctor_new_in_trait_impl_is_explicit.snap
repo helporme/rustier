@@ -1,8 +1,25 @@
 ---
 source: tests/ir/ts.rs
-description: "/// `new()` in a trait impl is recognised as an explicit constructor. The `seed`\n/// param name differs from the field `x` so the snapshot proves the trait-impl\n/// ctor is picked up rather than synthesised from the struct's fields.\npub trait Factory {\n    fn new(seed: u32) -> Self;\n}\npub struct Foo {\n    x: i32,\n}\nimpl Factory for Foo {\n    fn new(seed: u32) -> Self {\n        Foo { x: seed as i32 }\n    }\n}\n"
-expression: out
+expression: body
 ---
+```rs
+/// `new()` in a trait impl is recognised as an explicit constructor. The `seed`
+/// param name differs from the field `x` so the snapshot proves the trait-impl
+/// ctor is picked up rather than synthesised from the struct's fields.
+pub trait Factory {
+    fn new(seed: u32) -> Self;
+}
+pub struct Foo {
+    x: i32,
+}
+impl Factory for Foo {
+    fn new(seed: u32) -> Self {
+        Foo { x: seed as i32 }
+    }
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -18,3 +35,4 @@ export class Foo {
 
     constructor(seed: number);
 }
+```

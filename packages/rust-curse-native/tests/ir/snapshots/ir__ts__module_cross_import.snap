@@ -1,8 +1,24 @@
 ---
 source: tests/ir/ts.rs
-description: "pub mod types {\n    /// An authentication token.\n    pub struct Token {\n        /// The raw token string.\n        pub value: String,\n    }\n}\npub mod ops {\n    /// Parses a raw string into a Token.\n    pub fn parse(s: String) -> crate::types::Token {\n        todo!()\n    }\n}\n"
-expression: out
+expression: body
 ---
+```rs
+pub mod types {
+    /// An authentication token.
+    pub struct Token {
+        /// The raw token string.
+        pub value: String,
+    }
+}
+pub mod ops {
+    /// Parses a raw string into a Token.
+    pub fn parse(s: String) -> crate::types::Token {
+        todo!()
+    }
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -31,3 +47,4 @@ import type { Token } from "./types.rs";
 
 /** Parses a raw string into a Token. */
 export function parse(s: string): Token;
+```

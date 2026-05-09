@@ -1,8 +1,20 @@
 ---
 source: tests/ir/ts.rs
-description: "/// `new(&self)` is not treated as an explicit ctor.\npub struct Builder {\n    x: i32,\n}\nimpl Builder {\n    pub fn new(&self) -> Self {\n        Self { x: self.x }\n    }\n}\n"
-expression: out
+expression: body
 ---
+```rs
+/// `new(&self)` is not treated as an explicit ctor.
+pub struct Builder {
+    x: i32,
+}
+impl Builder {
+    pub fn new(&self) -> Self {
+        Self { x: self.x }
+    }
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -19,3 +31,4 @@ export class Builder {
 
     constructor();
 }
+```

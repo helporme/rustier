@@ -1,8 +1,34 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub mod zeta {\n    pub trait Factory {\n        fn new(from_zeta: i32) -> Self;\n    }\n}\npub mod alpha {\n    pub trait Factory {\n        fn new(from_alpha: u64) -> Self;\n    }\n}\npub struct Foo {\n    x: i32,\n}\nimpl zeta::Factory for Foo {\n    fn new(from_zeta: i32) -> Self {\n        Foo { x: from_zeta }\n    }\n}\nimpl alpha::Factory for Foo {\n    fn new(from_alpha: u64) -> Self {\n        Foo { x: from_alpha as i32 }\n    }\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub mod zeta {
+    pub trait Factory {
+        fn new(from_zeta: i32) -> Self;
+    }
+}
+pub mod alpha {
+    pub trait Factory {
+        fn new(from_alpha: u64) -> Self;
+    }
+}
+pub struct Foo {
+    x: i32,
+}
+impl zeta::Factory for Foo {
+    fn new(from_zeta: i32) -> Self {
+        Foo { x: from_zeta }
+    }
+}
+impl alpha::Factory for Foo {
+    fn new(from_alpha: u64) -> Self {
+        Foo { x: from_alpha as i32 }
+    }
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -75,3 +101,4 @@ IR {
         ),
     ],
 }
+```

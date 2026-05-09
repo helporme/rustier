@@ -1,8 +1,19 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Token {\n    value: String,\n}\nimpl Token {\n    pub fn new(value: String) -> Token {\n        Token { value }\n    }\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub struct Token {
+    value: String,
+}
+impl Token {
+    pub fn new(value: String) -> Token {
+        Token { value }
+    }
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -73,3 +84,4 @@ IR {
         ),
     ],
 }
+```

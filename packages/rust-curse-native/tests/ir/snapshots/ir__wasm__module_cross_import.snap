@@ -1,8 +1,24 @@
 ---
 source: tests/ir/wasm.rs
-description: "pub mod types {\n    /// An authentication token.\n    pub struct Token {\n        /// The raw token string.\n        pub value: String,\n    }\n}\npub mod ops {\n    /// Parses a raw string into a Token.\n    pub fn parse(s: String) -> crate::types::Token {\n        todo!()\n    }\n}\n"
-expression: formatted
+expression: body
 ---
+```rs
+pub mod types {
+    /// An authentication token.
+    pub struct Token {
+        /// The raw token string.
+        pub value: String,
+    }
+}
+pub mod ops {
+    /// Parses a raw string into a Token.
+    pub fn parse(s: String) -> crate::types::Token {
+        todo!()
+    }
+}
+```
+
+```rs
 use wasm_bindgen::prelude::*;
 /// An authentication token.
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__types__Token__Ref")]
@@ -43,3 +59,4 @@ pub fn __cursed_rustdoc_test_crate__ops__parse(
 ) -> __cursed_rustdoc_test_crate__types__Token__Ref {
     crate::ops::parse(s).into()
 }
+```

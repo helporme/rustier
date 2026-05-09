@@ -1,8 +1,18 @@
 ---
 source: tests/ir/ts.rs
-description: "/// A point in 2D space. All fields are public, so it is copy-constructible.\npub struct Point {\n    /// Horizontal position.\n    pub x: f64,\n    /// Vertical position.\n    pub y: f64,\n}\n"
-expression: out
+expression: body
 ---
+```rs
+/// A point in 2D space. All fields are public, so it is copy-constructible.
+pub struct Point {
+    /// Horizontal position.
+    pub x: f64,
+    /// Vertical position.
+    pub y: f64,
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -25,3 +35,4 @@ export class Point {
 
     constructor(x: number, y: number);
 }
+```

@@ -1,8 +1,14 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub fn takes(x: &mut i32) {\n    *x += 1;\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub fn takes(x: &mut i32) {
+    *x += 1;
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -52,3 +58,4 @@ IR {
         ),
     ],
 }
+```

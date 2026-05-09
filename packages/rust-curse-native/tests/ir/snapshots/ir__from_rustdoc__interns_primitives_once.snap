@@ -1,8 +1,12 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub fn two_i32(a: i32, b: i32) {}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub fn two_i32(a: i32, b: i32) {}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -59,3 +63,4 @@ IR {
         ),
     ],
 }
+```

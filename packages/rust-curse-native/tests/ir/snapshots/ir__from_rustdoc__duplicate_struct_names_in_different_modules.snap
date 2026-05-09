@@ -1,8 +1,21 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub mod a {\n    pub struct Thing {\n        pub x: i32,\n    }\n}\npub mod b {\n    pub struct Thing {\n        pub y: i32,\n    }\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub mod a {
+    pub struct Thing {
+        pub x: i32,
+    }
+}
+pub mod b {
+    pub struct Thing {
+        pub y: i32,
+    }
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -129,3 +142,4 @@ IR {
         ),
     ],
 }
+```

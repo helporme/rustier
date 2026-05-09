@@ -1,8 +1,19 @@
 ---
 source: tests/ir/ts.rs
-description: "/// By-value nominal types are wrapped in `Copy<>`, borrows are not.\npub struct Point {\n    /// X coordinate.\n    pub x: f64,\n    /// Y coordinate.\n    pub y: f64,\n}\npub fn translate(origin: &Point, target: &mut Point, offset: Point) {}\n"
-expression: out
+expression: body
 ---
+```rs
+/// By-value nominal types are wrapped in `Copy<>`, borrows are not.
+pub struct Point {
+    /// X coordinate.
+    pub x: f64,
+    /// Y coordinate.
+    pub y: f64,
+}
+pub fn translate(origin: &Point, target: &mut Point, offset: Point) {}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -29,3 +40,4 @@ export class Point {
 }
 
 export function translate(origin: Point, target: Point, offset: Copy<Point>): void;
+```

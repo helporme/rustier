@@ -1,8 +1,17 @@
 ---
 source: tests/ir/ts.rs
-description: "pub mod inner {\n    pub struct Inner {\n        pub x: i32,\n    }\n}\npub use inner::Inner as Renamed;\n"
-expression: out
+expression: body
 ---
+```rs
+pub mod inner {
+    pub struct Inner {
+        pub x: i32,
+    }
+}
+pub use inner::Inner as Renamed;
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -23,3 +32,4 @@ export class Inner {
 
     constructor(x: number);
 }
+```

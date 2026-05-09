@@ -1,8 +1,12 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub fn f(a: i64, b: u64, c: isize, d: usize) {}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub fn f(a: i64, b: u64, c: isize, d: usize) {}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -73,3 +77,4 @@ IR {
         ),
     ],
 }
+```

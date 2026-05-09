@@ -1,8 +1,15 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Point {\n    pub x: i32,\n}\npub fn use_it(p: Point) {}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub struct Point {
+    pub x: i32,
+}
+pub fn use_it(p: Point) {}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -84,3 +91,4 @@ IR {
         ),
     ],
 }
+```

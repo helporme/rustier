@@ -1,8 +1,24 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Counter {\n    count: u32,\n}\nimpl Counter {\n    pub fn increment(&mut self) {\n        self.count += 1;\n    }\n}\nimpl Counter {\n    pub fn new() -> Self {\n        Counter { count: 0 }\n    }\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub struct Counter {
+    count: u32,
+}
+impl Counter {
+    pub fn increment(&mut self) {
+        self.count += 1;
+    }
+}
+impl Counter {
+    pub fn new() -> Self {
+        Counter { count: 0 }
+    }
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -67,3 +83,4 @@ IR {
         ),
     ],
 }
+```

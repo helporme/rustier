@@ -1,8 +1,15 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub mod child {\n    pub fn leaf() {}\n}\npub mod empty {}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub mod child {
+    pub fn leaf() {}
+}
+pub mod empty {}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -66,3 +73,4 @@ IR {
         ),
     ],
 }
+```

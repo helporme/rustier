@@ -1,8 +1,16 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Point {\n    pub x: f64,\n    pub y: f64,\n}\npub fn translate(origin: &Point, target: &mut Point, offset: Point) {}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub struct Point {
+    pub x: f64,
+    pub y: f64,
+}
+pub fn translate(origin: &Point, target: &mut Point, offset: Point) {}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -109,3 +117,4 @@ IR {
         ),
     ],
 }
+```

@@ -1,8 +1,22 @@
 ---
 source: tests/ir/ts.rs
-description: "/// Returning a user-defined struct surfaces the class type as the return type.\npub struct Point {\n    /// Horizontal position.\n    pub x: f64,\n    /// Vertical position.\n    pub y: f64,\n}\n/// Returns the origin point `(0, 0)`.\npub fn make_origin() -> Point {\n    Point { x: 0.0, y: 0.0 }\n}\n"
-expression: out
+expression: body
 ---
+```rs
+/// Returning a user-defined struct surfaces the class type as the return type.
+pub struct Point {
+    /// Horizontal position.
+    pub x: f64,
+    /// Vertical position.
+    pub y: f64,
+}
+/// Returns the origin point `(0, 0)`.
+pub fn make_origin() -> Point {
+    Point { x: 0.0, y: 0.0 }
+}
+```
+
+```ts
 declare module "$rust-curse" {
     export type Copy<T> = {
         [K in keyof T as T[K] extends
@@ -28,3 +42,4 @@ export class Point {
 
 /** Returns the origin point `(0, 0)`. */
 export function make_origin(): Point;
+```

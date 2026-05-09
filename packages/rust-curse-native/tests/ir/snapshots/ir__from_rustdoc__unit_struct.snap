@@ -1,8 +1,12 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub struct Marker;\n"
-expression: ir
+expression: body
 ---
+```rs
+pub struct Marker;
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -45,3 +49,4 @@ IR {
         ),
     ],
 }
+```

@@ -1,8 +1,21 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub mod types {\n    pub struct Token {\n        pub value: String,\n    }\n}\npub mod ops {\n    pub fn parse(s: String) -> crate::types::Token {\n        todo!()\n    }\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub mod types {
+    pub struct Token {
+        pub value: String,
+    }
+}
+pub mod ops {
+    pub fn parse(s: String) -> crate::types::Token {
+        todo!()
+    }
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -126,3 +139,4 @@ IR {
         ),
     ],
 }
+```

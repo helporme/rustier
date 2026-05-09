@@ -1,8 +1,18 @@
 ---
 source: tests/ir/from_rustdoc.rs
-description: "pub mod a {\n    pub mod b {\n        pub mod c {\n            pub fn deep() {}\n        }\n    }\n}\n"
-expression: ir
+expression: body
 ---
+```rs
+pub mod a {
+    pub mod b {
+        pub mod c {
+            pub fn deep() {}
+        }
+    }
+}
+```
+
+```rs
 IR {
     root: Id(
         0,
@@ -113,3 +123,4 @@ IR {
         ),
     ],
 }
+```
