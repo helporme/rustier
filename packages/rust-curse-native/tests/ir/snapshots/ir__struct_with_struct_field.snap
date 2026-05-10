@@ -1,0 +1,366 @@
+---
+source: tests/ir.rs
+expression: body
+---
+# Source
+
+```rs
+/// A point in 2D space.
+pub struct Point {
+    /// Horizontal position.
+    pub x: f64,
+    /// Vertical position.
+    pub y: f64,
+}
+/// A circle defined by its center and radius.
+pub struct Circle {
+    /// The center point.
+    pub center: Point,
+    /// The radius in the same units as `center`.
+    pub radius: f64,
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+/// A point in 2D space.
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Point__Ref")]
+pub struct __cursed_rustdoc_test_crate__Point__Ref {
+    inner: crate::Point,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Point__Ref {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: f64, y: f64) -> Self {
+        Self {
+            inner: crate::Point { x, y },
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn x(&self) -> f64 {
+        self.inner.x
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: f64) {
+        self.inner.x = v;
+    }
+    #[wasm_bindgen(getter, js_name = "y")]
+    pub fn y(&self) -> f64 {
+        self.inner.y
+    }
+    #[wasm_bindgen(setter, js_name = "y")]
+    pub fn set_y(&mut self, v: f64) {
+        self.inner.y = v;
+    }
+}
+impl From<crate::Point> for __cursed_rustdoc_test_crate__Point__Ref {
+    fn from(v: crate::Point) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Point__Ref> for crate::Point {
+    fn from(v: __cursed_rustdoc_test_crate__Point__Ref) -> Self {
+        v.inner
+    }
+}
+/// A circle defined by its center and radius.
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Circle__Ref")]
+pub struct __cursed_rustdoc_test_crate__Circle__Ref {
+    inner: crate::Circle,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Circle__Ref {
+    #[wasm_bindgen(constructor)]
+    pub fn new(center: __cursed_rustdoc_test_crate__Point__Ref, radius: f64) -> Self {
+        Self {
+            inner: crate::Circle { center, radius },
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "center")]
+    pub fn center(&self) -> __cursed_rustdoc_test_crate__Point__Ref {
+        self.inner.center.clone()
+    }
+    #[wasm_bindgen(setter, js_name = "center")]
+    pub fn set_center(&mut self, v: __cursed_rustdoc_test_crate__Point__Ref) {
+        self.inner.center = v;
+    }
+    #[wasm_bindgen(getter, js_name = "radius")]
+    pub fn radius(&self) -> f64 {
+        self.inner.radius
+    }
+    #[wasm_bindgen(setter, js_name = "radius")]
+    pub fn set_radius(&mut self, v: f64) {
+        self.inner.radius = v;
+    }
+}
+impl From<crate::Circle> for __cursed_rustdoc_test_crate__Circle__Ref {
+    fn from(v: crate::Circle) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Circle__Ref> for crate::Circle {
+    fn from(v: __cursed_rustdoc_test_crate__Circle__Ref) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+/// A point in 2D space.
+#[napi(js_name = "__cursed_rustdoc_test_crate__Point__Ref")]
+pub struct __cursed_rustdoc_test_crate__Point__Ref {
+    inner: crate::Point,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Point__Ref {
+    #[napi(constructor)]
+    pub fn new(x: f64, y: f64) -> Self {
+        Self {
+            inner: crate::Point { x, y },
+        }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> f64 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: f64) {
+        self.inner.x = v;
+    }
+    #[napi(getter, js_name = "y")]
+    pub fn y(&self) -> f64 {
+        self.inner.y
+    }
+    #[napi(setter, js_name = "y")]
+    pub fn set_y(&mut self, v: f64) {
+        self.inner.y = v;
+    }
+}
+impl From<crate::Point> for __cursed_rustdoc_test_crate__Point__Ref {
+    fn from(v: crate::Point) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Point__Ref> for crate::Point {
+    fn from(v: __cursed_rustdoc_test_crate__Point__Ref) -> Self {
+        v.inner
+    }
+}
+/// A circle defined by its center and radius.
+#[napi(js_name = "__cursed_rustdoc_test_crate__Circle__Ref")]
+pub struct __cursed_rustdoc_test_crate__Circle__Ref {
+    inner: crate::Circle,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Circle__Ref {
+    #[napi(constructor)]
+    pub fn new(center: __cursed_rustdoc_test_crate__Point__Ref, radius: f64) -> Self {
+        Self {
+            inner: crate::Circle { center, radius },
+        }
+    }
+    #[napi(getter, js_name = "center")]
+    pub fn center(&self) -> __cursed_rustdoc_test_crate__Point__Ref {
+        self.inner.center.clone()
+    }
+    #[napi(setter, js_name = "center")]
+    pub fn set_center(&mut self, v: __cursed_rustdoc_test_crate__Point__Ref) {
+        self.inner.center = v;
+    }
+    #[napi(getter, js_name = "radius")]
+    pub fn radius(&self) -> f64 {
+        self.inner.radius
+    }
+    #[napi(setter, js_name = "radius")]
+    pub fn set_radius(&mut self, v: f64) {
+        self.inner.radius = v;
+    }
+}
+impl From<crate::Circle> for __cursed_rustdoc_test_crate__Circle__Ref {
+    fn from(v: crate::Circle) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Circle__Ref> for crate::Circle {
+    fn from(v: __cursed_rustdoc_test_crate__Circle__Ref) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+// src/lib.rs.d.ts
+/** A point in 2D space. */
+export class Point {
+    private [" "]: 'rustdoc_test_crate::Point';
+
+    /** Horizontal position. */
+    x: number;
+
+    /** Vertical position. */
+    y: number;
+
+    constructor(x: number, y: number);
+}
+
+/** A circle defined by its center and radius. */
+export class Circle {
+    private [" "]: 'rustdoc_test_crate::Circle';
+
+    /** The center point. */
+    center: Point;
+
+    /** The radius in the same units as `center`. */
+    radius: number;
+
+    constructor(center: Point, radius: number);
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Point__Ref, __cursed_rustdoc_test_crate__Circle__Ref } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Point__Ref as Point, __cursed_rustdoc_test_crate__Circle__Ref as Circle };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Point__Ref, __cursed_rustdoc_test_crate__Circle__Ref } from '$test';
+export { __cursed_rustdoc_test_crate__Point__Ref as Point, __cursed_rustdoc_test_crate__Circle__Ref as Circle };
+```
+
+# ir
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "Point",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "Circle",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Point",
+                    ],
+                },
+                ctor: Implicit,
+                has_copy_variant: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Number(
+                                f64,
+                            ),
+                            docs: Some(
+                                "Horizontal position.",
+                            ),
+                        },
+                        StructField {
+                            name: "y",
+                            ty: Number(
+                                f64,
+                            ),
+                            docs: Some(
+                                "Vertical position.",
+                            ),
+                        },
+                    ],
+                ),
+                docs: Some(
+                    "A point in 2D space.",
+                ),
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Circle",
+                    ],
+                },
+                ctor: Implicit,
+                has_copy_variant: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "center",
+                            ty: Struct(
+                                Id(
+                                    1,
+                                ),
+                            ),
+                            docs: Some(
+                                "The center point.",
+                            ),
+                        },
+                        StructField {
+                            name: "radius",
+                            ty: Number(
+                                f64,
+                            ),
+                            docs: Some(
+                                "The radius in the same units as `center`.",
+                            ),
+                        },
+                    ],
+                ),
+                docs: Some(
+                    "A circle defined by its center and radius.",
+                ),
+            },
+        ),
+    ],
+}
+```

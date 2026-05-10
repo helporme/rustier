@@ -1,0 +1,162 @@
+---
+source: tests/ir.rs
+expression: body
+---
+# Source
+
+```rs
+pub fn square(x: f64) -> f64 {
+    x * x
+}
+pub fn square2(x: f64) -> f64 {
+    x * x
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__square")]
+pub fn __cursed_rustdoc_test_crate__square(x: f64) -> f64 {
+    crate::square(x)
+}
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__square2")]
+pub fn __cursed_rustdoc_test_crate__square2(x: f64) -> f64 {
+    crate::square2(x)
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__square")]
+pub fn __cursed_rustdoc_test_crate__square(x: f64) -> f64 {
+    crate::square(x)
+}
+#[napi(js_name = "__cursed_rustdoc_test_crate__square2")]
+pub fn __cursed_rustdoc_test_crate__square2(x: f64) -> f64 {
+    crate::square2(x)
+}
+```
+
+# ts
+
+```ts
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+// src/lib.rs.d.ts
+export function square(x: number): number;
+
+export function square2(x: number): number;
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__square, __cursed_rustdoc_test_crate__square2 } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__square as square, __cursed_rustdoc_test_crate__square2 as square2 };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__square, __cursed_rustdoc_test_crate__square2 } from '$test';
+export { __cursed_rustdoc_test_crate__square as square, __cursed_rustdoc_test_crate__square2 as square2 };
+```
+
+# ir
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "square",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "square2",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "square",
+                    ],
+                },
+                params: [
+                    FnParam {
+                        name: "x",
+                        mode: ByValue,
+                        ty: Number(
+                            f64,
+                        ),
+                    },
+                ],
+                return_type: Number(
+                    f64,
+                ),
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "square2",
+                    ],
+                },
+                params: [
+                    FnParam {
+                        name: "x",
+                        mode: ByValue,
+                        ty: Number(
+                            f64,
+                        ),
+                    },
+                ],
+                return_type: Number(
+                    f64,
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

@@ -1,0 +1,159 @@
+---
+source: tests/ir.rs
+expression: body
+---
+# Source
+
+```rs
+pub mod math {
+    /// Returns the square of `x`.
+    pub fn square(x: f64) -> f64 {
+        x * x
+    }
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+/// Returns the square of `x`.
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__math__square")]
+pub fn __cursed_rustdoc_test_crate__math__square(x: f64) -> f64 {
+    crate::math::square(x)
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+/// Returns the square of `x`.
+#[napi(js_name = "__cursed_rustdoc_test_crate__math__square")]
+pub fn __cursed_rustdoc_test_crate__math__square(x: f64) -> f64 {
+    crate::math::square(x)
+}
+```
+
+# ts
+
+```ts
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+// src/lib.rs.d.ts
+
+
+// src/math.rs.d.ts
+/** Returns the square of `x`. */
+export function square(x: number): number;
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+
+// $rust/rustdoc_test_crate/math
+import __wbg_init, { __cursed_rustdoc_test_crate__math__square } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__math__square as square };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+
+// $rust/rustdoc_test_crate/math
+import { __cursed_rustdoc_test_crate__math__square } from '$test';
+export { __cursed_rustdoc_test_crate__math__square as square };
+```
+
+# ir
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "math",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "math",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "square",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "math",
+                        "square",
+                    ],
+                },
+                params: [
+                    FnParam {
+                        name: "x",
+                        mode: ByValue,
+                        ty: Number(
+                            f64,
+                        ),
+                    },
+                ],
+                return_type: Number(
+                    f64,
+                ),
+                docs: Some(
+                    "Returns the square of `x`.",
+                ),
+            },
+        ),
+    ],
+}
+```

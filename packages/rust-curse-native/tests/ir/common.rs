@@ -4,6 +4,7 @@
 
 use std::collections::HashSet;
 use std::fs;
+use std::path::PathBuf;
 
 use rust_curse::*;
 
@@ -158,142 +159,64 @@ macro_rules! ir {
     }};
 }
 
-/// Snapshot the IR debug output, showing the Rust source in the review UI
-/// when pressing `i`.
+/// Render all six IR-target snapshots in a single markdown body:
+/// `Source` (Rust input), then `wasm`, `napi`, `ts`, `js-wasm`, `js-napi`,
+/// and `ir` debug at the bottom.
+pub fn build_unified_snap(raw_src: &str) -> String {
+    let src = fmt_src(raw_src);
+    let crate_ = gen_rustdoc(&src);
+    let ir = rust_curse::ir::IR::try_from(&crate_).expect("build IR");
+    let exposed = all_exposed_ids(&ir);
+
+    let wasm_rs = fmt_src(&ir.print_wasm(&exposed));
+    let napi_rs = fmt_src(&ir.print_napi(&exposed));
+    let ts_out = print_ts_per_mod(&ir, PathBuf::from("src"));
+    let wasm_js = print_wasm_js_per_mod(&ir, |ir, mid| {
+        ir.print_wasm_js(mid, "$test".to_owned(), &exposed)
+    });
+    let napi_js = print_wasm_js_per_mod(&ir, |ir, mid| {
+        ir.print_napi_js(mid, "$test".to_owned(), &exposed)
+    });
+    let ir_dbg = format!("{ir:#?}");
+
+    let mut body = String::new();
+    push_section(&mut body, "Source", "rs", &src);
+    push_section(&mut body, "wasm", "rs", &wasm_rs);
+    push_section(&mut body, "napi", "rs", &napi_rs);
+    push_section(&mut body, "ts", "ts", &ts_out);
+    push_section(&mut body, "js-wasm", "js", &wasm_js);
+    push_section(&mut body, "js-napi", "js", &napi_js);
+    push_section(&mut body, "ir", "rs", &ir_dbg);
+    body
+}
+
+fn push_section(body: &mut String, name: &str, lang: &str, content: &str) {
+    body.push_str(&format!("# {name}\n\n"));
+    push_block(body, lang, content);
+    body.push('\n');
+}
+
+fn push_block(body: &mut String, lang: &str, content: &str) {
+    body.push_str("```");
+    body.push_str(lang);
+    body.push('\n');
+    body.push_str(content);
+    if !content.ends_with('\n') {
+        body.push('\n');
+    }
+    body.push_str("```\n");
+}
+
+/// One unified snapshot covering every IR target plus IR debug.
+///
+/// Usage: `assert_snap! { <rust source> };`
 #[macro_export]
-macro_rules! assert_ir_snap {
+macro_rules! assert_snap {
     ($($tt:tt)*) => {{
-        let src = $crate::common::fmt_src(stringify!($($tt)*));
-        let crate_ = $crate::common::gen_rustdoc(&src);
-        let ir = rust_curse::ir::IR::try_from(&crate_).unwrap();
-        let body = format!("```rs\n{src}```\n\n```rs\n{:#?}\n```", ir);
-        insta::assert_snapshot!(body);
-    }};
-}
-
-/// Build IR and snapshot the per-module TypeScript output. The ambient
-/// preamble is printed once at the top, then each non-root module's
-/// `.d.ts` body is appended under a `// <rel_dts_path>` header so a
-/// single snapshot covers the whole crate.
-#[macro_export]
-macro_rules! assert_ts_snap {
-    ($($tt:tt)*) => {{
-        let src = $crate::common::fmt_src(stringify!($($tt)*));
-        let ir = {
-            let crate_ = $crate::common::gen_rustdoc(&src);
-            rust_curse::ir::IR::try_from(&crate_).unwrap()
-        };
-        let out = $crate::common::print_ts_per_mod(&ir, std::path::PathBuf::from("src"));
-        let body = format!("```rs\n{src}```\n\n```ts\n{out}```");
-        insta::assert_snapshot!(body);
-    }};
-}
-
-/// Build IR and snapshot the napi printer output with all items exposed,
-/// formatted through `prettyplease` for syntactic-validity verification.
-#[macro_export]
-macro_rules! assert_napi_snap {
-    ($($tt:tt)*) => {{
-        let src = $crate::common::fmt_src(stringify!($($tt)*));
-        let ir = {
-            let crate_ = $crate::common::gen_rustdoc(&src);
-            rust_curse::ir::IR::try_from(&crate_).unwrap()
-        };
-        let exposed = $crate::common::all_exposed_ids(&ir);
-        let napi_src = ir.print_napi(&exposed);
-        let formatted = $crate::common::fmt_src(&napi_src);
-        let body = format!("```rs\n{src}```\n\n```rs\n{formatted}```");
-        insta::assert_snapshot!(body);
-    }};
-}
-
-/// Like `assert_napi_snap!` but exposes only items whose name matches one
-/// of the given identifiers. Use to snapshot tree-shaking pruning.
-#[macro_export]
-macro_rules! assert_napi_snap_exposed {
-    ([$($name:literal),+] => { $($tt:tt)* }) => {{
-        let src = $crate::common::fmt_src(stringify!($($tt)*));
-        let ir = {
-            let crate_ = $crate::common::gen_rustdoc(&src);
-            rust_curse::ir::IR::try_from(&crate_).unwrap()
-        };
-        let exposed = $crate::common::exposed_by_name(&ir, &[$($name),+]);
-        let napi_src = ir.print_napi(&exposed);
-        let formatted = $crate::common::fmt_src(&napi_src);
-        let body = format!("```rs\n{src}```\n\n```rs\n{formatted}```");
-        insta::assert_snapshot!(body);
-    }};
-}
-
-/// Build IR and snapshot the wasm-bindgen printer output with all items
-/// exposed, formatted through `prettyplease`.
-#[macro_export]
-macro_rules! assert_wasm_snap {
-    ($($tt:tt)*) => {{
-        let src = $crate::common::fmt_src(stringify!($($tt)*));
-        let ir = {
-            let crate_ = $crate::common::gen_rustdoc(&src);
-            rust_curse::ir::IR::try_from(&crate_).unwrap()
-        };
-        let exposed = $crate::common::all_exposed_ids(&ir);
-        let wasm_src = ir.print_wasm(&exposed);
-        let formatted = $crate::common::fmt_src(&wasm_src);
-        let body = format!("```rs\n{src}```\n\n```rs\n{formatted}```");
-        insta::assert_snapshot!(body);
-    }};
-}
-
-#[macro_export]
-macro_rules! assert_wasm_snap_exposed {
-    ([$($name:literal),+] => { $($tt:tt)* }) => {{
-        let src = $crate::common::fmt_src(stringify!($($tt)*));
-        let ir = {
-            let crate_ = $crate::common::gen_rustdoc(&src);
-            rust_curse::ir::IR::try_from(&crate_).unwrap()
-        };
-        let exposed = $crate::common::exposed_by_name(&ir, &[$($name),+]);
-        let wasm_src = ir.print_wasm(&exposed);
-        let formatted = $crate::common::fmt_src(&wasm_src);
-        let body = format!("```rs\n{src}```\n\n```rs\n{formatted}```");
-        insta::assert_snapshot!(body);
-    }};
-}
-
-/// Build IR and snapshot the wasm-bindgen JS glue printer output for every
-/// module, separated by `// $rust/<path>` headers.
-#[macro_export]
-macro_rules! assert_wasm_js_snap {
-    ($($tt:tt)*) => {{
-        let src = $crate::common::fmt_src(stringify!($($tt)*));
-        let ir = {
-            let crate_ = $crate::common::gen_rustdoc(&src);
-            rust_curse::ir::IR::try_from(&crate_).unwrap()
-        };
-        let exposed = $crate::common::all_exposed_ids(&ir);
-        let out = $crate::common::print_wasm_js_per_mod(&ir, |ir, mid| {
-            ir.print_wasm_js(mid, "$test".to_owned(), &exposed)
+        let body = $crate::common::build_unified_snap(stringify!($($tt)*));
+        insta::with_settings!({ snapshot_path => "ir/snapshots" }, {
+            insta::assert_snapshot!(body);
         });
-        let body = format!("```rs\n{src}```\n\n```js\n{out}```");
-        insta::assert_snapshot!(body);
-    }};
-}
-
-/// Build IR and snapshot the napi JS glue printer output for every module,
-/// separated by `// $rust/<path>` headers.
-#[macro_export]
-macro_rules! assert_napi_js_snap {
-    ($($tt:tt)*) => {{
-        let src = $crate::common::fmt_src(stringify!($($tt)*));
-        let ir = {
-            let crate_ = $crate::common::gen_rustdoc(&src);
-            rust_curse::ir::IR::try_from(&crate_).unwrap()
-        };
-        let exposed = $crate::common::all_exposed_ids(&ir);
-        let out = $crate::common::print_wasm_js_per_mod(&ir, |ir, mid| {
-            ir.print_napi_js(mid, "$test".to_owned(), &exposed)
-        });
-        let body = format!("```rs\n{src}```\n\n```js\n{out}```");
-        insta::assert_snapshot!(body);
     }};
 }
 

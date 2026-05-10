@@ -1,0 +1,178 @@
+---
+source: tests/ir.rs
+expression: body
+---
+# Source
+
+```rs
+pub struct Mixed {
+    pub x: i32,
+    y: i32,
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Mixed__Ref")]
+pub struct __cursed_rustdoc_test_crate__Mixed__Ref {
+    inner: crate::Mixed,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Mixed__Ref {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self { inner: crate::Mixed { x } }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::Mixed> for __cursed_rustdoc_test_crate__Mixed__Ref {
+    fn from(v: crate::Mixed) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Mixed__Ref> for crate::Mixed {
+    fn from(v: __cursed_rustdoc_test_crate__Mixed__Ref) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__Mixed__Ref")]
+pub struct __cursed_rustdoc_test_crate__Mixed__Ref {
+    inner: crate::Mixed,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Mixed__Ref {
+    #[napi(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self { inner: crate::Mixed { x } }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::Mixed> for __cursed_rustdoc_test_crate__Mixed__Ref {
+    fn from(v: crate::Mixed) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Mixed__Ref> for crate::Mixed {
+    fn from(v: __cursed_rustdoc_test_crate__Mixed__Ref) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+// src/lib.rs.d.ts
+export class Mixed {
+    private [" "]: 'rustdoc_test_crate::Mixed';
+
+    x: number;
+
+    constructor(x: number);
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Mixed__Ref } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Mixed__Ref as Mixed };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Mixed__Ref } from '$test';
+export { __cursed_rustdoc_test_crate__Mixed__Ref as Mixed };
+```
+
+# ir
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "Mixed",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Mixed",
+                    ],
+                },
+                ctor: Implicit,
+                has_copy_variant: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Number(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

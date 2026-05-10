@@ -1,0 +1,336 @@
+---
+source: tests/ir.rs
+expression: body
+---
+# Source
+
+```rs
+pub mod inner {
+    pub struct Inner {
+        pub x: i32,
+    }
+    pub struct Outer {
+        pub y: i32,
+    }
+}
+pub use inner::{Inner as Outer, Outer as Inner};
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__Inner__Ref")]
+pub struct __cursed_rustdoc_test_crate__inner__Inner__Ref {
+    inner: crate::inner::Inner,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__inner__Inner__Ref {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::inner::Inner { x },
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::inner::Inner> for __cursed_rustdoc_test_crate__inner__Inner__Ref {
+    fn from(v: crate::inner::Inner) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__inner__Inner__Ref> for crate::inner::Inner {
+    fn from(v: __cursed_rustdoc_test_crate__inner__Inner__Ref) -> Self {
+        v.inner
+    }
+}
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__Outer__Ref")]
+pub struct __cursed_rustdoc_test_crate__inner__Outer__Ref {
+    inner: crate::inner::Outer,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__inner__Outer__Ref {
+    #[wasm_bindgen(constructor)]
+    pub fn new(y: i32) -> Self {
+        Self {
+            inner: crate::inner::Outer { y },
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "y")]
+    pub fn y(&self) -> i32 {
+        self.inner.y
+    }
+    #[wasm_bindgen(setter, js_name = "y")]
+    pub fn set_y(&mut self, v: i32) {
+        self.inner.y = v;
+    }
+}
+impl From<crate::inner::Outer> for __cursed_rustdoc_test_crate__inner__Outer__Ref {
+    fn from(v: crate::inner::Outer) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__inner__Outer__Ref> for crate::inner::Outer {
+    fn from(v: __cursed_rustdoc_test_crate__inner__Outer__Ref) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__inner__Inner__Ref")]
+pub struct __cursed_rustdoc_test_crate__inner__Inner__Ref {
+    inner: crate::inner::Inner,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__inner__Inner__Ref {
+    #[napi(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::inner::Inner { x },
+        }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::inner::Inner> for __cursed_rustdoc_test_crate__inner__Inner__Ref {
+    fn from(v: crate::inner::Inner) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__inner__Inner__Ref> for crate::inner::Inner {
+    fn from(v: __cursed_rustdoc_test_crate__inner__Inner__Ref) -> Self {
+        v.inner
+    }
+}
+#[napi(js_name = "__cursed_rustdoc_test_crate__inner__Outer__Ref")]
+pub struct __cursed_rustdoc_test_crate__inner__Outer__Ref {
+    inner: crate::inner::Outer,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__inner__Outer__Ref {
+    #[napi(constructor)]
+    pub fn new(y: i32) -> Self {
+        Self {
+            inner: crate::inner::Outer { y },
+        }
+    }
+    #[napi(getter, js_name = "y")]
+    pub fn y(&self) -> i32 {
+        self.inner.y
+    }
+    #[napi(setter, js_name = "y")]
+    pub fn set_y(&mut self, v: i32) {
+        self.inner.y = v;
+    }
+}
+impl From<crate::inner::Outer> for __cursed_rustdoc_test_crate__inner__Outer__Ref {
+    fn from(v: crate::inner::Outer) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__inner__Outer__Ref> for crate::inner::Outer {
+    fn from(v: __cursed_rustdoc_test_crate__inner__Outer__Ref) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+// src/lib.rs.d.ts
+export { Inner as Outer } from "./inner.rs";
+
+export { Outer as Inner } from "./inner.rs";
+
+// src/inner.rs.d.ts
+export class Inner {
+    private [" "]: 'rustdoc_test_crate::inner::Inner';
+
+    x: number;
+
+    constructor(x: number);
+}
+
+export class Outer {
+    private [" "]: 'rustdoc_test_crate::inner::Outer';
+
+    y: number;
+
+    constructor(y: number);
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__inner__Inner__Ref, __cursed_rustdoc_test_crate__inner__Outer__Ref } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Outer, __cursed_rustdoc_test_crate__inner__Outer__Ref as Inner };
+
+// $rust/rustdoc_test_crate/inner
+import __wbg_init, { __cursed_rustdoc_test_crate__inner__Inner__Ref, __cursed_rustdoc_test_crate__inner__Outer__Ref } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Inner, __cursed_rustdoc_test_crate__inner__Outer__Ref as Outer };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__inner__Inner__Ref, __cursed_rustdoc_test_crate__inner__Outer__Ref } from '$test';
+export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Outer, __cursed_rustdoc_test_crate__inner__Outer__Ref as Inner };
+
+// $rust/rustdoc_test_crate/inner
+import { __cursed_rustdoc_test_crate__inner__Inner__Ref, __cursed_rustdoc_test_crate__inner__Outer__Ref } from '$test';
+export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Inner, __cursed_rustdoc_test_crate__inner__Outer__Ref as Outer };
+```
+
+# ir
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "inner",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "Outer",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                    Export {
+                        name: "Inner",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "inner",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "Inner",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                    Export {
+                        name: "Outer",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "inner",
+                        "Inner",
+                    ],
+                },
+                ctor: Implicit,
+                has_copy_variant: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Number(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "inner",
+                        "Outer",
+                    ],
+                },
+                ctor: Implicit,
+                has_copy_variant: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "y",
+                            ty: Number(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

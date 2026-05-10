@@ -1,0 +1,149 @@
+---
+source: tests/ir.rs
+expression: body
+---
+# Source
+
+```rs
+pub struct Empty {}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Empty__Ref")]
+pub struct __cursed_rustdoc_test_crate__Empty__Ref {
+    inner: crate::Empty,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Empty__Ref {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self { inner: crate::Empty {} }
+    }
+}
+impl From<crate::Empty> for __cursed_rustdoc_test_crate__Empty__Ref {
+    fn from(v: crate::Empty) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Empty__Ref> for crate::Empty {
+    fn from(v: __cursed_rustdoc_test_crate__Empty__Ref) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__Empty__Ref")]
+pub struct __cursed_rustdoc_test_crate__Empty__Ref {
+    inner: crate::Empty,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Empty__Ref {
+    #[napi(constructor)]
+    pub fn new() -> Self {
+        Self { inner: crate::Empty {} }
+    }
+}
+impl From<crate::Empty> for __cursed_rustdoc_test_crate__Empty__Ref {
+    fn from(v: crate::Empty) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Empty__Ref> for crate::Empty {
+    fn from(v: __cursed_rustdoc_test_crate__Empty__Ref) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+// src/lib.rs.d.ts
+export class Empty {
+    private [" "]: 'rustdoc_test_crate::Empty';
+
+    constructor();
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Empty__Ref } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Empty__Ref as Empty };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Empty__Ref } from '$test';
+export { __cursed_rustdoc_test_crate__Empty__Ref as Empty };
+```
+
+# ir
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "Empty",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Empty",
+                    ],
+                },
+                ctor: Implicit,
+                has_copy_variant: false,
+                shape: Struct(
+                    [],
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

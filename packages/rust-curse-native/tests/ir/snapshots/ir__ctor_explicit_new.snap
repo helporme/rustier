@@ -1,0 +1,188 @@
+---
+source: tests/ir.rs
+expression: body
+---
+# Source
+
+```rs
+pub struct Opaque {
+    x: i32,
+}
+impl Opaque {
+    pub fn new(x: i32) -> Self {
+        Self { x }
+    }
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Opaque__Ref")]
+pub struct __cursed_rustdoc_test_crate__Opaque__Ref {
+    inner: crate::Opaque,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Opaque__Ref {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::Opaque::new(x),
+        }
+    }
+}
+impl From<crate::Opaque> for __cursed_rustdoc_test_crate__Opaque__Ref {
+    fn from(v: crate::Opaque) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Opaque__Ref> for crate::Opaque {
+    fn from(v: __cursed_rustdoc_test_crate__Opaque__Ref) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__Opaque__Ref")]
+pub struct __cursed_rustdoc_test_crate__Opaque__Ref {
+    inner: crate::Opaque,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Opaque__Ref {
+    #[napi(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::Opaque::new(x),
+        }
+    }
+}
+impl From<crate::Opaque> for __cursed_rustdoc_test_crate__Opaque__Ref {
+    fn from(v: crate::Opaque) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Opaque__Ref> for crate::Opaque {
+    fn from(v: __cursed_rustdoc_test_crate__Opaque__Ref) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+// src/lib.rs.d.ts
+export class Opaque {
+    private [" "]: 'rustdoc_test_crate::Opaque';
+
+    constructor(x: number);
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Opaque__Ref } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Opaque__Ref as Opaque };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Opaque__Ref } from '$test';
+export { __cursed_rustdoc_test_crate__Opaque__Ref as Opaque };
+```
+
+# ir
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "Opaque",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Opaque",
+                    ],
+                },
+                ctor: Explicit(
+                    Id(
+                        2,
+                    ),
+                ),
+                has_copy_variant: false,
+                shape: Struct(
+                    [],
+                ),
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "new",
+                    ],
+                },
+                params: [
+                    FnParam {
+                        name: "x",
+                        mode: ByValue,
+                        ty: Number(
+                            i32,
+                        ),
+                    },
+                ],
+                return_type: Struct(
+                    Id(
+                        1,
+                    ),
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

@@ -1,0 +1,210 @@
+---
+source: tests/ir.rs
+expression: body
+---
+# Source
+
+```rs
+pub mod a {
+    pub mod b {
+        pub mod c {
+            pub fn deep() {}
+        }
+    }
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__a__b__c__deep")]
+pub fn __cursed_rustdoc_test_crate__a__b__c__deep() {
+    crate::a::b::c::deep();
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__a__b__c__deep")]
+pub fn __cursed_rustdoc_test_crate__a__b__c__deep() {
+    crate::a::b::c::deep();
+}
+```
+
+# ts
+
+```ts
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+// src/lib.rs.d.ts
+
+
+// src/a.rs.d.ts
+
+
+// src/a/b.rs.d.ts
+
+
+// src/a/b/c.rs.d.ts
+export function deep(): void;
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+
+// $rust/rustdoc_test_crate/a
+export {};
+
+// $rust/rustdoc_test_crate/a/b
+export {};
+
+// $rust/rustdoc_test_crate/a/b/c
+import __wbg_init, { __cursed_rustdoc_test_crate__a__b__c__deep } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__a__b__c__deep as deep };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+
+// $rust/rustdoc_test_crate/a
+export {};
+
+// $rust/rustdoc_test_crate/a/b
+export {};
+
+// $rust/rustdoc_test_crate/a/b/c
+import { __cursed_rustdoc_test_crate__a__b__c__deep } from '$test';
+export { __cursed_rustdoc_test_crate__a__b__c__deep as deep };
+```
+
+# ir
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "a",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "b",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                        "b",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "c",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                        "b",
+                        "c",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "deep",
+                        target: Id(
+                            4,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                        "b",
+                        "c",
+                        "deep",
+                    ],
+                },
+                params: [],
+                return_type: Unit,
+                docs: None,
+            },
+        ),
+    ],
+}
+```

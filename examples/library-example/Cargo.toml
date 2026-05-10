@@ -19,9 +19,8 @@ napi = { version = "3", optional = true }
 napi-derive = { version = "3", optional = true }
 
 [features]
+default=["node"]
 wasm = ["dep:serde", "dep:serde-wasm-bindgen", "dep:wasm-bindgen"]
-main = []
-browser = []
 node = ["dep:napi", "dep:napi-build", "dep:napi-derive"]
 
 [build-dependencies]

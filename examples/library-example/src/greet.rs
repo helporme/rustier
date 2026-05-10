@@ -8,10 +8,18 @@ impl MsgRef {
     }
 }
 
-pub fn hello_ref(msg: &MsgRef) -> String {
-    format!("Hello, {}!", msg.name)
+pub struct MsgCopy {
+    pub name: String,
 }
 
-pub fn hello_copy(msg: MsgRef) -> String {
+pub fn hi_ref(msg: &MsgRef) -> String {
+    format!("Hello form ref, {}!", msg.name)
+}
+
+pub fn hi_copy(msg: MsgCopy) -> String {
+    format!("Hello from copy, {}!", msg.name)
+}
+
+pub fn hi_copy_err(msg: MsgRef) -> String {
     format!("Hello, {}!", msg.name)
 }

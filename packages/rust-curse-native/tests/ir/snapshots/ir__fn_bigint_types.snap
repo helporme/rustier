@@ -1,0 +1,137 @@
+---
+source: tests/ir.rs
+expression: body
+---
+# Source
+
+```rs
+pub fn f(a: i64, b: u64, c: isize, d: usize) {}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__f")]
+pub fn __cursed_rustdoc_test_crate__f(a: i64, b: u64, c: isize, d: usize) {
+    crate::f(a, b, c, d);
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__f")]
+pub fn __cursed_rustdoc_test_crate__f(a: i64, b: u64, c: isize, d: usize) {
+    crate::f(a, b, c, d);
+}
+```
+
+# ts
+
+```ts
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+// src/lib.rs.d.ts
+export function f(a: bigint, b: bigint, c: bigint, d: bigint): void;
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__f } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__f as f };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__f } from '$test';
+export { __cursed_rustdoc_test_crate__f as f };
+```
+
+# ir
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                filename: Some(
+                    "src/lib.rs",
+                ),
+                exports: [
+                    Export {
+                        name: "f",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "f",
+                    ],
+                },
+                params: [
+                    FnParam {
+                        name: "a",
+                        mode: ByValue,
+                        ty: Number(
+                            i64,
+                        ),
+                    },
+                    FnParam {
+                        name: "b",
+                        mode: ByValue,
+                        ty: Number(
+                            u64,
+                        ),
+                    },
+                    FnParam {
+                        name: "c",
+                        mode: ByValue,
+                        ty: Number(
+                            isize,
+                        ),
+                    },
+                    FnParam {
+                        name: "d",
+                        mode: ByValue,
+                        ty: Number(
+                            usize,
+                        ),
+                    },
+                ],
+                return_type: Unit,
+                docs: None,
+            },
+        ),
+    ],
+}
+```

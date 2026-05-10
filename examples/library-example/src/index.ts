@@ -1,3 +1,6 @@
-import { hello } from "./greet.rs";
+import { hi_copy, hi_ref, MsgRef } from "./greet.rs";
 
-console.log(hello("world"));
+let ref = new MsgRef("world");
+
+console.log(hi_ref(ref));
+console.log(hi_copy({ name: "world" }));
