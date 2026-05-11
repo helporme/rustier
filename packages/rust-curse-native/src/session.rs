@@ -363,7 +363,7 @@ impl RustCurse {
             .iter()
             .enumerate()
             .find(
-                |(_, i)| matches!(i, Item::Mod(def) if def.filename.as_deref() == Some(&path_buf)),
+                |(_, i)| matches!(i, Item::Mod(def) if def.span.as_ref().map(|s| s.filename.as_path()) == Some(path_buf.as_path())),
             )
             .ok_or(anyhow!("cannot resolve the module '{}'", path))?
             .0 as u32);

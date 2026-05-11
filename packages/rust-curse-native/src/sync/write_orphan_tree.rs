@@ -55,7 +55,7 @@ impl Syncer {
                 if id == opts.ir.root {
                     return None;
                 }
-                let rel_rs_path = m.filename.as_ref()?.clone();
+                let rel_rs_path = m.span.as_ref()?.filename.clone();
                 let mod_name = m.path.segments[1..].join("::");
                 Some((mod_name, rel_rs_path, id))
             })

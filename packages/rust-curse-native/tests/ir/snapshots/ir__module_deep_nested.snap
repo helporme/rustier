@@ -110,8 +110,18 @@ IR {
                         "rustdoc_test_crate",
                     ],
                 },
-                filename: Some(
-                    "src/lib.rs",
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
                 ),
                 exports: [
                     Export {
@@ -131,8 +141,18 @@ IR {
                         "a",
                     ],
                 },
-                filename: Some(
-                    "src/lib.rs",
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            10,
+                        ),
+                    },
                 ),
                 exports: [
                     Export {
@@ -153,8 +173,18 @@ IR {
                         "b",
                     ],
                 },
-                filename: Some(
-                    "src/lib.rs",
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            2,
+                            14,
+                        ),
+                    },
                 ),
                 exports: [
                     Export {
@@ -176,8 +206,18 @@ IR {
                         "c",
                     ],
                 },
-                filename: Some(
-                    "src/lib.rs",
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            3,
+                            9,
+                        ),
+                        end: (
+                            3,
+                            18,
+                        ),
+                    },
                 ),
                 exports: [
                     Export {

@@ -2,16 +2,15 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::path::PathBuf;
 
 use rustdoc_types::{
-    Crate, GenericArg, GenericArgs, Id as RId, Item as RItem, ItemEnum, Path, StructKind,
-    Type as RType, Use, Visibility,
+    Crate, GenericArg, GenericArgs, Id as RId, Item as RItem, ItemEnum, Path, Span as RSpan,
+    StructKind, Type as RType, Use, Visibility,
 };
 
 use super::{
-    Ctor, Export, FnDef, FnParam, Id, Item, ItemPath, ModDef, NumberType, ParamMode, StructDef,
-    StructField, StructShape, Type, IR,
+    Ctor, Export, FnDef, FnParam, Id, Item, ItemPath, ModDef, NumberType, ParamMode, Span,
+    StructDef, StructField, StructShape, Type, IR,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -73,8 +72,8 @@ impl<'a> Builder<'a> {
             _ => return Ok(None),
         };
 
-        let filename = item.span.as_ref().map(|s| s.filename.clone());
-        let mid = self.reserve_mod(path_of(item, mod_id, self.crate_), filename);
+        let span = item.span.as_ref().map(convert_span);
+        let mid = self.reserve_mod(path_of(item, mod_id, self.crate_), span);
         self.mod_intern.insert(mod_id, mid);
         let mut exports = Vec::new();
 
@@ -237,11 +236,11 @@ impl<'a> Builder<'a> {
         Ok(())
     }
 
-    fn reserve_mod(&mut self, path: ItemPath, filename: Option<PathBuf>) -> Id {
+    fn reserve_mod(&mut self, path: ItemPath, span: Option<Span>) -> Id {
         let id = Id(self.ir.items.len() as u32);
         self.ir.items.push(Item::Mod(ModDef {
             path,
-            filename,
+            span,
             exports: Vec::new(),
         }));
         id
@@ -617,6 +616,14 @@ fn first_type_arg(p: &Path) -> Option<&RType> {
         GenericArg::Type(t) => Some(t),
         _ => None,
     })
+}
+
+fn convert_span(s: &RSpan) -> Span {
+    Span {
+        filename: s.filename.clone(),
+        begin: s.begin,
+        end: s.end,
+    }
 }
 
 fn path_of(item: &RItem, id: RId, crate_: &Crate) -> ItemPath {

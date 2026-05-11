@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use rust_curse::ir::{Export, FnDef, Id, Item, ItemPath, ModDef, Type, IR};
+use rust_curse::ir::{Export, FnDef, Id, Item, ItemPath, ModDef, Span, Type, IR};
 use rust_curse::orphans::OrphanModule;
 use rust_curse::sync::Syncer;
 
@@ -164,7 +164,7 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (IR, HashSet<Id>) {
     let root_id = Id(ir.items.len() as u32);
     ir.items.push(Item::Mod(ModDef {
         path: ItemPath::new(vec![crate_name.to_string()]),
-        filename: None,
+        span: None,
         exports: Vec::new(),
     }));
     ir.root = root_id;
@@ -178,7 +178,11 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (IR, HashSet<Id>) {
         let mod_id = Id(ir.items.len() as u32);
         ir.items.push(Item::Mod(ModDef {
             path: ItemPath::new(mod_segs.clone()),
-            filename: Some(PathBuf::from(module.rel_rs_path)),
+            span: Some(Span {
+                filename: PathBuf::from(module.rel_rs_path),
+                begin: (1, 1),
+                end: (1, 1),
+            }),
             exports: Vec::new(),
         }));
 

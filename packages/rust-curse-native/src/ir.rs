@@ -4,9 +4,6 @@
 //! distinguish between **"ref" struct** and **"copy" struct** in the same vein
 //! as C# distinguish between class and struct.
 
-// Note: All supported types are stated explicitly so IR-printing is error free, also it's nice to
-// read.
-
 #![allow(non_camel_case_types)]
 
 pub mod from_rustdoc;
@@ -152,13 +149,21 @@ pub struct StructField {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ModDef {
     pub path: ItemPath,
-    /// Source file declaring this module.
-    ///
-    /// Interpretation depends on the originating crate: relative to the project
-    /// root for the local crate, absolute under `~/.cargo/...` for registry
-    /// deps, and so on. `None` if there is no source file available.
-    pub filename: Option<PathBuf>,
+    /// Source span where this module is declared.
+    pub span: Option<Span>,
     pub exports: Vec<Export>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Span {
+    /// `filename` interpretation depends on the originating crate: relative to
+    /// the project root for the local crate, absolute under `~/.cargo/...` for
+    /// registry deps, and so on. `None` if there is no source span available.
+    pub filename: PathBuf,
+    /// 1-indexed `(line, column)` begin/end of the span.
+    pub begin: (usize, usize),
+    /// 1-indexed `(line, column)` begin/end of the span.
+    pub end: (usize, usize),
 }
 
 /// An "export" from a module.

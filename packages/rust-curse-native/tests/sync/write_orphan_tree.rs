@@ -537,7 +537,7 @@ fn module_without_filename_is_skipped() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    // A `ModDef` with `filename: None` (e.g. one rustdoc emitted no
+    // A `ModDef` with `span: None` (e.g. one rustdoc emitted no
     // span for) is filtered out by `write_orphan_tree`, so no
     // `pub mod` decl and no `pub use` line is emitted.
     let (mut ir, exposed) = make_ir(
@@ -554,7 +554,7 @@ fn module_without_filename_is_skipped() {
     for item in ir.items.iter_mut() {
         if let rust_curse::ir::Item::Mod(m) = item {
             if m.path.segments.last().map(String::as_str) == Some("ghost") {
-                m.filename = None;
+                m.span = None;
             }
         }
     }

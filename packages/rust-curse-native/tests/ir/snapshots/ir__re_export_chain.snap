@@ -169,8 +169,18 @@ IR {
                         "rustdoc_test_crate",
                     ],
                 },
-                filename: Some(
-                    "src/lib.rs",
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            9,
+                            23,
+                        ),
+                    },
                 ),
                 exports: [
                     Export {
@@ -202,8 +212,18 @@ IR {
                         "inner",
                     ],
                 },
-                filename: Some(
-                    "src/lib.rs",
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            14,
+                        ),
+                    },
                 ),
                 exports: [
                     Export {
@@ -248,8 +268,18 @@ IR {
                         "middle",
                     ],
                 },
-                filename: Some(
-                    "src/lib.rs",
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            6,
+                            1,
+                        ),
+                        end: (
+                            6,
+                            15,
+                        ),
+                    },
                 ),
                 exports: [
                     Export {
