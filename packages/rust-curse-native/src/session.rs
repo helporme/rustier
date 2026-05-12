@@ -14,6 +14,7 @@ use crate::orphans::OrphanScanOpts;
 use crate::sync::write_orphan_tree::WriteOrphanTreeOpts;
 use crate::sync::Syncer;
 use crate::tree_shake::{self, TreeShakeOpts};
+use crate::warns::{Theme, WarnRendered, Warns, WarnsRenderer};
 use crate::{builder, common, orphans, rustdoc};
 
 #[cfg_attr(feature = "napi-binding", napi(discriminant_case = "kebab-case"))]
@@ -123,7 +124,7 @@ pub enum ProfileBuildCache {
 }
 
 impl BuildCache {
-    pub fn mint_build_output(&self) -> BuildOutput {
+    pub fn mint_build_output(&self, warns: Vec<WarnRendered>) -> BuildOutput {
         BuildOutput {
             artifacts: self
                 .artifacts
@@ -145,6 +146,7 @@ impl BuildCache {
                     )
                 })
                 .collect(),
+            warns,
         }
     }
 }
@@ -152,6 +154,8 @@ impl BuildCache {
 #[cfg_attr(feature = "napi-binding", napi(object))]
 pub struct BuildOutput {
     pub artifacts: HashMap<String, ProfileBuildOutput>,
+    /// Non-fatal diagnostics emitted during the build.
+    pub warns: Vec<WarnRendered>,
 }
 
 #[cfg_attr(feature = "napi-binding", napi(discriminant_case = "kebab-case"))]
@@ -248,7 +252,8 @@ impl RustCurse {
             .context("sync: rustdoc")?;
 
         let rustdoc = rustdoc::gen(&self.project_root_abs_path)?;
-        let ir = IR::try_from(&rustdoc).context("build ir")?;
+        let mut warns = Warns::new();
+        let ir = IR::from_rustdoc(&rustdoc, &mut warns).context("build ir")?;
 
         let exposed = tree_shake::shake(
             &ir,
@@ -338,7 +343,12 @@ impl RustCurse {
             exposed,
             artifacts,
         };
-        let build_output = build_cache.mint_build_output();
+
+        let rendered_warns = warns
+            .render(&self.project_root_abs_path, Theme::Unicode)
+            .context("warn render failed")?;
+
+        let build_output = build_cache.mint_build_output(rendered_warns);
 
         *self.last_build.lock().unwrap() = Some(build_cache);
 

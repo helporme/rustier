@@ -269,6 +269,12 @@ import { __cursed_rustdoc_test_crate__Point__Ref, __cursed_rustdoc_test_crate__W
 export { __cursed_rustdoc_test_crate__Point__Ref as Point, __cursed_rustdoc_test_crate__Wrapper__Ref as Wrapper, __cursed_rustdoc_test_crate__take as take, __cursed_rustdoc_test_crate__produce as produce };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -334,6 +340,19 @@ IR {
                         "Point",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            4,
+                            2,
+                        ),
+                    },
+                ),
                 ctor: Implicit,
                 has_copy_variant: true,
                 shape: Struct(
@@ -365,6 +384,19 @@ IR {
                         "Wrapper",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
+                ),
                 ctor: Implicit,
                 has_copy_variant: false,
                 shape: Struct(
@@ -391,6 +423,19 @@ IR {
                         "take",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            8,
+                            1,
+                        ),
+                        end: (
+                            8,
+                            25,
+                        ),
+                    },
+                ),
                 params: [
                     FnParam {
                         name: "p",
@@ -414,6 +459,19 @@ IR {
                         "produce",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            9,
+                            1,
+                        ),
+                        end: (
+                            11,
+                            2,
+                        ),
+                    },
+                ),
                 params: [],
                 return_type: Struct(
                     Id(

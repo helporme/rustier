@@ -195,6 +195,12 @@ import { __cursed_rustdoc_test_crate__Point__Ref, __cursed_rustdoc_test_crate__t
 export { __cursed_rustdoc_test_crate__Point__Ref as Point, __cursed_rustdoc_test_crate__translate as translate };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -248,6 +254,19 @@ IR {
                         "Point",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            4,
+                            2,
+                        ),
+                    },
+                ),
                 ctor: Implicit,
                 has_copy_variant: true,
                 shape: Struct(
@@ -279,6 +298,19 @@ IR {
                         "translate",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            1,
+                        ),
+                        end: (
+                            5,
+                            71,
+                        ),
+                    },
+                ),
                 params: [
                     FnParam {
                         name: "origin",

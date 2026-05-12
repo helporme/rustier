@@ -7,12 +7,16 @@ use std::fs;
 use std::path::PathBuf;
 
 use rust_curse::*;
+use tempfile::TempDir;
 
 const TEST_CRATE_NAME: &str = "rustdoc_test_crate";
 
-pub fn gen_rustdoc(src: &str) -> rustdoc_types::Crate {
+/// Render a rustdoc crate from inline source. Returns the `TempDir` so
+/// callers can keep source files alive across `IR::build` (warning
+/// emission reads source for miette snippets).
+pub fn gen_rustdoc(src: &str) -> (TempDir, PathBuf, rustdoc_types::Crate) {
     let project_dir = tempfile::tempdir().expect("create tempdir");
-    let project_abs_path = project_dir.path();
+    let project_abs_path = project_dir.path().to_path_buf();
 
     let cargo_toml = format!(
         "[package]\n\
@@ -32,8 +36,10 @@ pub fn gen_rustdoc(src: &str) -> rustdoc_types::Crate {
 
     let target_abs_dir = project_abs_path.join("target");
 
-    rustdoc::run(project_abs_path, &target_abs_dir, TEST_CRATE_NAME)
-        .unwrap_or_else(|e| panic!("rustdoc generation failed: {e}"))
+    let crate_ = rustdoc::run(&project_abs_path, &target_abs_dir, TEST_CRATE_NAME)
+        .unwrap_or_else(|e| panic!("rustdoc generation failed: {e}"));
+
+    (project_dir, project_abs_path, crate_)
 }
 
 pub fn fmt_src(src: &str) -> String {
@@ -146,26 +152,31 @@ pub fn exposed_by_name(ir: &rust_curse::ir::IR, names: &[&str]) -> HashSet<rust_
 
 #[macro_export]
 macro_rules! rustdoc {
-    ($($tt:tt)*) => {
-        $crate::common::gen_rustdoc(stringify!($($tt)*))
-    };
+    ($($tt:tt)*) => {{
+        let (_dir, _root, crate_) = $crate::common::gen_rustdoc(stringify!($($tt)*));
+        crate_
+    }};
 }
 
 #[macro_export]
 macro_rules! ir {
     ($($tt:tt)*) => {{
-        let crate_ = $crate::common::gen_rustdoc(stringify!($($tt)*));
-        rust_curse::ir::IR::try_from(&crate_).unwrap()
+        let (_dir, _root, crate_) = $crate::common::gen_rustdoc(stringify!($($tt)*));
+        let mut warns = rust_curse::warns::Warns::new();
+        rust_curse::ir::IR::from_rustdoc(&crate_, &mut warns).unwrap()
     }};
 }
 
-/// Render all six IR-target snapshots in a single markdown body:
+/// Render all IR-target snapshots in a single markdown body:
 /// `Source` (Rust input), then `wasm`, `napi`, `ts`, `js-wasm`, `js-napi`,
-/// and `ir` debug at the bottom.
+/// `warns`, and `ir` debug at the bottom.
 pub fn build_unified_snap(raw_src: &str) -> String {
+    use rust_curse::warns::WarnsRenderer;
+
     let src = fmt_src(raw_src);
-    let crate_ = gen_rustdoc(&src);
-    let ir = rust_curse::ir::IR::try_from(&crate_).expect("build IR");
+    let (_dir, project_root, crate_) = gen_rustdoc(&src);
+    let mut warns = rust_curse::warns::Warns::new();
+    let ir = rust_curse::ir::IR::from_rustdoc(&crate_, &mut warns).expect("build IR");
     let exposed = all_exposed_ids(&ir);
 
     let wasm_rs = fmt_src(&ir.print_wasm(&exposed));
@@ -177,6 +188,23 @@ pub fn build_unified_snap(raw_src: &str) -> String {
     let napi_js = print_wasm_js_per_mod(&ir, |ir, mid| {
         ir.print_napi_js(mid, "$test".to_owned(), &exposed)
     });
+    let warns_text = if warns.is_empty() {
+        "(no warnings)\n".to_string()
+    } else {
+        let rendered = warns
+            .render(&project_root, rust_curse::warns::Theme::UnicodeNoColor)
+            .expect("render warns");
+        let mut out = String::new();
+        for w in rendered {
+            if let Some(text) = w.rendered {
+                out.push_str(&text);
+                if !out.ends_with('\n') {
+                    out.push('\n');
+                }
+            }
+        }
+        out
+    };
     let ir_dbg = format!("{ir:#?}");
 
     let mut body = String::new();
@@ -186,6 +214,7 @@ pub fn build_unified_snap(raw_src: &str) -> String {
     push_section(&mut body, "ts", "ts", &ts_out);
     push_section(&mut body, "js-wasm", "js", &wasm_js);
     push_section(&mut body, "js-napi", "js", &napi_js);
+    push_section(&mut body, "warns", "text", &warns_text);
     push_section(&mut body, "ir", "rs", &ir_dbg);
     body
 }
@@ -220,21 +249,22 @@ macro_rules! assert_snap {
     }};
 }
 
-/// Assert that building IR returns `Err(pat)`.
+/// Assert that the build succeeded and at least one warning with the given
+/// diagnostic code was emitted.
 #[macro_export]
-macro_rules! assert_ir_err {
-    ({ $($tt:tt)* }, $pat:pat) => {{
+macro_rules! assert_warns {
+    ({ $($tt:tt)* }, $code:expr) => {{
         let src = $crate::common::fmt_src(stringify!($($tt)*));
-        let crate_ = $crate::common::gen_rustdoc(&src);
-        let result = rust_curse::ir::IR::try_from(&crate_);
-        match result {
-            Err(e) => assert!(
-                matches!(e, $pat),
-                "expected error {}, got {:?}",
-                stringify!($pat),
-                e
-            ),
-            Ok(ir) => panic!("expected error {}, got Ok({:?})", stringify!($pat), ir),
-        }
+        let (_dir, _root, crate_) = $crate::common::gen_rustdoc(&src);
+        let mut warns = rust_curse::warns::Warns::new();
+        rust_curse::ir::IR::from_rustdoc(&crate_, &mut warns).expect("build succeeded");
+        let expected: &str = $code;
+        let found = warns.iter().any(|w| w.code == expected);
+        assert!(
+            found,
+            "expected warning with code `{}`, got codes: {:?}",
+            expected,
+            warns.iter().map(|w| w.code.as_str()).collect::<Vec<_>>()
+        );
     }};
 }

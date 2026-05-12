@@ -72,6 +72,12 @@ import { __cursed_rustdoc_test_crate__f, __cursed_rustdoc_test_crate__g } from '
 export { __cursed_rustdoc_test_crate__f as f, __cursed_rustdoc_test_crate__g as g };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -125,6 +131,19 @@ IR {
                         "f",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            20,
+                        ),
+                    },
+                ),
                 params: [
                     FnParam {
                         name: "x",
@@ -146,6 +165,19 @@ IR {
                         "g",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            2,
+                            20,
+                        ),
+                    },
+                ),
                 params: [
                     FnParam {
                         name: "y",

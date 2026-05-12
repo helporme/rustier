@@ -120,6 +120,12 @@ import { __cursed_rustdoc_test_crate__Gated__Ref } from '$test';
 export { __cursed_rustdoc_test_crate__Gated__Ref as Gated };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -167,6 +173,19 @@ IR {
                         "Gated",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            4,
+                            2,
+                        ),
+                    },
+                ),
                 ctor: Implicit,
                 has_copy_variant: false,
                 shape: Struct(

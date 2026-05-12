@@ -6,10 +6,6 @@
 //! the snapshot description so `cargo insta review` shows the source layout
 //! when pressing `i`.
 
-use std::path::PathBuf;
-
-use rust_curse::tree_shake::TreeShakeError;
-
 use crate::common::{File, Fixture};
 
 #[test]
@@ -122,7 +118,7 @@ fn no_js_imports_yields_empty_set() {
 }
 
 #[test]
-fn unresolved_named_import_errors() {
+fn unresolved_named_import_silently_skipped() {
     let fixture = Fixture::new(
         "src",
         &["greet.rs"],
@@ -139,15 +135,12 @@ fn unresolved_named_import_errors() {
     );
 
     let include = vec![format!("{}/app/**/*.js", fixture.abs_root.display())];
-    let err = fixture.run_shake("src", &include).unwrap_err();
-    assert!(
-        matches!(err, TreeShakeError::UnresolvedImport { ref name, .. } if name == "goodbye"),
-        "{err:?}"
-    );
+    let (_ir, exposed) = fixture.run_shake("src", &include).expect("shake ok");
+    assert!(exposed.is_empty(), "unresolved import should not seed anything");
 }
 
 #[test]
-fn unresolved_file_import_errors() {
+fn unresolved_file_import_silently_skipped() {
     let fixture = Fixture::new(
         "src",
         &["greet.rs"],
@@ -168,15 +161,8 @@ fn unresolved_file_import_errors() {
     );
 
     let include = vec![format!("{}/app/**/*.js", fixture.abs_root.display())];
-    let err = fixture.run_shake("src", &include).unwrap_err();
-    assert!(
-        matches!(
-            err,
-            TreeShakeError::UnresolvedFile { ref rel_rs_path }
-                if rel_rs_path == &PathBuf::from("src/missing.rs")
-        ),
-        "{err:?}"
-    );
+    let (_ir, exposed) = fixture.run_shake("src", &include).expect("shake ok");
+    assert!(exposed.is_empty(), "unresolved file should not seed anything");
 }
 
 #[test]

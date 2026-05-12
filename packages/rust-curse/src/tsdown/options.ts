@@ -73,12 +73,12 @@ export type RustCurseOptions = {
 
 export const defaultOptions: RustCurseOptions = {
   rootDir: process.cwd(),
-  outDir: './.rust-curse',
+  outDir: '.rust-curse',
   js: {
-    filter: ['./src/**/*.js', './src/**/*.ts'],
+    filter: ['src/**/*.js', 'src/**/*.ts'],
   },
   rust: {
-    moduleDir: './src',
+    moduleDir: 'src',
   },
   platform: 'wasm',
 }

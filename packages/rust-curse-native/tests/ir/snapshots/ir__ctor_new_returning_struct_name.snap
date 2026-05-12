@@ -110,6 +110,12 @@ import { __cursed_rustdoc_test_crate__Token__Ref } from '$test';
 export { __cursed_rustdoc_test_crate__Token__Ref as Token };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -157,6 +163,19 @@ IR {
                         "Token",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
                 ctor: Explicit(
                     Id(
                         2,
@@ -176,6 +195,19 @@ IR {
                         "new",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            5,
+                        ),
+                        end: (
+                            7,
+                            6,
+                        ),
+                    },
+                ),
                 params: [
                     FnParam {
                         name: "raw",

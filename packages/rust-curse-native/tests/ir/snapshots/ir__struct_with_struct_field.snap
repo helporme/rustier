@@ -250,6 +250,12 @@ import { __cursed_rustdoc_test_crate__Point__Ref, __cursed_rustdoc_test_crate__C
 export { __cursed_rustdoc_test_crate__Point__Ref as Point, __cursed_rustdoc_test_crate__Circle__Ref as Circle };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -303,6 +309,19 @@ IR {
                         "Point",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
+                ),
                 ctor: Implicit,
                 has_copy_variant: false,
                 shape: Struct(
@@ -340,6 +359,19 @@ IR {
                         "Circle",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            9,
+                            1,
+                        ),
+                        end: (
+                            14,
+                            2,
+                        ),
+                    },
+                ),
                 ctor: Implicit,
                 has_copy_variant: false,
                 shape: Struct(

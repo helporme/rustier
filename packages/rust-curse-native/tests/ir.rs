@@ -476,3 +476,68 @@ fn ctor_multiple_new_across_traits() {
         impl alpha::Factory for Foo { fn new(from_alpha: u64) -> Self { Foo { x: from_alpha as i32 } } }
     };
 }
+
+#[test]
+fn warn_unsupported_type_on_fn_param() {
+    assert_snap! {
+        pub fn f(v: Vec<i32>) {}
+    };
+}
+
+#[test]
+fn warn_unsupported_type_on_fn_return() {
+    assert_snap! {
+        pub fn f() -> Option<i32> { None }
+    };
+}
+
+#[test]
+fn warn_unsupported_type_on_enum() {
+    assert_snap! {
+        pub enum E { A, B, C }
+    };
+}
+
+#[test]
+fn warn_unsupported_type_on_struct_field() {
+    assert_snap! {
+        pub struct S {
+            pub items: Vec<i32>,
+        }
+    };
+}
+
+#[test]
+fn warn_unsupported_import_external_crate() {
+    assert_snap! {
+        pub use std::collections::HashMap;
+    };
+}
+
+#[test]
+fn warn_unsupported_import_glob() {
+    assert_snap! {
+        pub use std::collections::*;
+    };
+}
+
+#[test]
+fn warn_unsupported_ctor_returning_result() {
+    assert_snap! {
+        pub struct S {
+            x: i32,
+        }
+        impl S {
+            pub fn new() -> Result<Self, String> { Ok(Self { x: 0 }) }
+        }
+    };
+}
+
+#[test]
+fn warn_mixed_some_items_skipped() {
+    assert_snap! {
+        pub fn good(a: i32, b: i32) -> i32 { a + b }
+        pub fn bad(v: Vec<i32>) {}
+        pub use std::mem::swap;
+    };
+}

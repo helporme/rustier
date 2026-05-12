@@ -61,6 +61,12 @@ import { __cursed_rustdoc_test_crate__two_i32 } from '$test';
 export { __cursed_rustdoc_test_crate__two_i32 as two_i32 };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -108,6 +114,19 @@ IR {
                         "two_i32",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            34,
+                        ),
+                    },
+                ),
                 params: [
                     FnParam {
                         name: "a",

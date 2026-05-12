@@ -4,10 +4,10 @@ name = "library-example"
 version = "0.1.0"
 edition = "2021"
 publish = false
-build = "./.rust-curse/build.rs"
+build = ".rust-curse/build.rs"
 
 [lib]
-path = "./.rust-curse/lib.rs"
+path = ".rust-curse/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

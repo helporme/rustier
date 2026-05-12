@@ -47,19 +47,11 @@ pub enum TreeShakeError {
         #[source]
         source: io::Error,
     },
-    #[error(
-        "default import of '{}' is not supported; rust modules have no default export, \
-         use named imports like `import {{ name }} from '...'`",
-        rel_rs_path.display()
-    )]
-    DefaultImport { rel_rs_path: PathBuf },
-    #[error("import from '{}' did not resolve to any IR module", rel_rs_path.display())]
-    UnresolvedFile { rel_rs_path: PathBuf },
-    #[error("import '{name}' from '{}' did not resolve to any IR item", rel_rs_path.display())]
-    UnresolvedImport { rel_rs_path: PathBuf, name: String },
 }
 
-/// Compute the set of IR ids reachable from JS/TS imports.
+/// Compute the set of IR ids reachable from JS/TS imports. JS imports that
+/// reference a non-existent `.rs` module, a name not exported by the
+/// targeted module, or use a default-import syntax are silently skipped.
 pub fn shake(ir: &IR, opts: TreeShakeOpts<'_>) -> Result<HashSet<Id>, TreeShakeError> {
     let abs_project_root = fs::canonicalize(opts.project_root_abs_path).map_err(|source| {
         TreeShakeError::RootNotFound {
@@ -77,10 +69,11 @@ pub fn shake(ir: &IR, opts: TreeShakeOpts<'_>) -> Result<HashSet<Id>, TreeShakeE
 
     let mut buckets: BTreeMap<PathBuf, Bucket> = BTreeMap::new();
     for import in scan_js_imports(&abs_src_root, opts.js_filter)? {
+        // Default imports are unsupported (rust modules have no default
+        // export). Silently skip — the user will notice their JS doesn't
+        // see anything and switch to named imports.
         if import.members.iter().any(|m| m == "default") {
-            return Err(TreeShakeError::DefaultImport {
-                rel_rs_path: opts.src_rel_path.join(&import.rel_rs_path),
-            });
+            continue;
         }
         let entry = buckets.entry(import.rel_rs_path).or_default();
         for m in import.members {
@@ -95,9 +88,8 @@ pub fn shake(ir: &IR, opts: TreeShakeOpts<'_>) -> Result<HashSet<Id>, TreeShakeE
     let mut seeds: Vec<Id> = Vec::new();
     for (rel_within_src_root, bucket) in buckets {
         let mod_name = orphans::gen_module_name(&rel_within_src_root);
-        let rel_rs_path = opts.src_rel_path.join(&rel_within_src_root);
         let Some(mod_id) = find_module(ir, &mod_name) else {
-            return Err(TreeShakeError::UnresolvedFile { rel_rs_path });
+            continue;
         };
         let exports = &ir.get_mod_unchecked(mod_id).exports;
         if bucket.star {
@@ -107,10 +99,7 @@ pub fn shake(ir: &IR, opts: TreeShakeOpts<'_>) -> Result<HashSet<Id>, TreeShakeE
         } else {
             for name in &bucket.members {
                 let Some(export) = exports.iter().find(|e| &e.name == name) else {
-                    return Err(TreeShakeError::UnresolvedImport {
-                        rel_rs_path,
-                        name: name.clone(),
-                    });
+                    continue;
                 };
                 seeds.push(export.target);
             }

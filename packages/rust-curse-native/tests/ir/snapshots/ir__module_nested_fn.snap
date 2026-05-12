@@ -78,6 +78,12 @@ import { __cursed_rustdoc_test_crate__math__square } from '$test';
 export { __cursed_rustdoc_test_crate__math__square as square };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -157,6 +163,19 @@ IR {
                         "square",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            3,
+                            5,
+                        ),
+                        end: (
+                            5,
+                            6,
+                        ),
+                    },
+                ),
                 params: [
                     FnParam {
                         name: "x",

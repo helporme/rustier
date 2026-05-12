@@ -153,6 +153,12 @@ import { __cursed_rustdoc_test_crate__inner__S__Ref, __cursed_rustdoc_test_crate
 export { __cursed_rustdoc_test_crate__inner__S__Ref as S, __cursed_rustdoc_test_crate__inner__f as f };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -250,6 +256,19 @@ IR {
                         "S",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
                 ctor: Implicit,
                 has_copy_variant: false,
                 shape: Struct(
@@ -275,6 +294,19 @@ IR {
                         "f",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            5,
+                        ),
+                        end: (
+                            7,
+                            6,
+                        ),
+                    },
+                ),
                 params: [],
                 return_type: Number(
                     i32,

@@ -107,6 +107,12 @@ import { __cursed_rustdoc_test_crate__Pair__Ref } from '$test';
 export { __cursed_rustdoc_test_crate__Pair__Ref as Pair };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -154,6 +160,19 @@ IR {
                         "Pair",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            2,
+                            38,
+                        ),
+                    },
+                ),
                 ctor: Implicit,
                 has_copy_variant: false,
                 shape: Tuple(

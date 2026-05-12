@@ -115,6 +115,12 @@ import { __cursed_rustdoc_test_crate__Counter__Ref } from '$test';
 export { __cursed_rustdoc_test_crate__Counter__Ref as Counter };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -162,6 +168,19 @@ IR {
                         "Counter",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
                 ctor: Explicit(
                     Id(
                         2,
@@ -181,6 +200,19 @@ IR {
                         "new",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            10,
+                            5,
+                        ),
+                        end: (
+                            12,
+                            6,
+                        ),
+                    },
+                ),
                 params: [
                     FnParam {
                         name: "seed",

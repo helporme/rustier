@@ -48,6 +48,12 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
       )
 
       const output = await curse.build([profile.name])
+      for (const warn of output.warns) {
+        this.warn({
+          code: warn.code,
+          message: warn.rendered ?? warn.message,
+        })
+      }
       const artifact = output.artifacts[profile.name]
 
       if (artifact.type === 'wasm') {

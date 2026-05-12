@@ -8,6 +8,8 @@ export declare class RustCurse {
 
 export interface BuildOutput {
   artifacts: Record<string, ProfileBuildOutput>
+  /** Non-fatal diagnostics emitted during the build. */
+  warns: Array<WarnRendered>
 }
 
 export interface FileFilter {
@@ -91,6 +93,22 @@ export interface RustOpts {
    * Usually src/.
    */
   modulesRootDir: string
+}
+
+/** Rendered warning message with nice rendered string. */
+export interface WarnRendered {
+  /** Code of the error, like `rust-curse::unresolved_import`. */
+  code: string
+  /**
+   * Primary leading message. Should explain the warning as if no context was
+   * attached to it.
+   */
+  message: string
+  /**
+   * Rendered warning message with syntax highlighting and source code
+   * context.
+   */
+  rendered?: string
 }
 
 /** Per-profile artifact paths produced by a wasm-targeting build. */

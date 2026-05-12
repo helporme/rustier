@@ -193,6 +193,7 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (IR, HashSet<Id>) {
             let fn_id = Id(ir.items.len() as u32);
             ir.items.push(Item::Fn(FnDef {
                 path: ItemPath::new(fn_segs),
+                span: None,
                 params: Vec::new(),
                 return_type: Type::Unit,
                 docs: None,

@@ -1,0 +1,99 @@
+---
+source: tests/ir.rs
+expression: body
+---
+# Source
+
+```rs
+pub use std::collections::*;
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+```
+
+# ts
+
+```ts
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+// src/lib.rs.d.ts
+
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+```
+
+# warns
+
+```text
+rust-curse::unsupported_import
+
+  ⚠ import from external crate "std": "std::collections"
+   ╭─[src/lib.rs:1:1]
+ 1 │ pub use std::collections::*;
+   · ────────────────────────────
+   ╰────
+```
+
+# ir
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            29,
+                        ),
+                    },
+                ),
+                exports: [],
+            },
+        ),
+    ],
+}
+```

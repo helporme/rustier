@@ -4,31 +4,32 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 use rustdoc_types::{
-    Crate, GenericArg, GenericArgs, Id as RId, Item as RItem, ItemEnum, Path, Span as RSpan,
-    StructKind, Type as RType, Use, Visibility,
+    Crate, GenericArg, GenericArgs, Id as RId, Item as RItem, ItemEnum, Path as RPath,
+    Span as RSpan, StructKind, Type as RType, Use, Visibility,
 };
 
 use super::{
     Ctor, Export, FnDef, FnParam, Id, Item, ItemPath, ModDef, NumberType, ParamMode, Span,
     StructDef, StructField, StructShape, Type, IR,
 };
+use crate::warns::Warn;
+use crate::warns::WarnLabel;
+use crate::warns::Warns;
 
 #[derive(Debug, thiserror::Error)]
 pub enum BuildError {
     #[error("item {0:?} not found in crate index")]
     MissingItem(RId),
-    #[error("unsupported type at {id:?}: {reason}")]
-    UnsupportedType { id: RId, reason: String },
-    #[error("unsupported import from external crate `{crate_name}`: `{path}`")]
-    UnsupportedImport { crate_name: String, path: String },
 }
 
-impl<'a> TryFrom<&'a Crate> for IR {
-    type Error = BuildError;
-
-    fn try_from(crate_: &'a Crate) -> Result<Self, Self::Error> {
+impl IR {
+    /// Build the rust-curse IR from a rustdoc `Crate`. Unsupported items are
+    /// soft-skipped and recorded in `warns`. The build succeeds as long as no
+    /// `MissingItem` is encountered.
+    pub fn from_rustdoc(crate_: &Crate, warns: &mut Warns) -> Result<IR, BuildError> {
         let mut b = Builder {
             crate_,
+            warns,
             ir: IR::default(),
             struct_intern: HashMap::new(),
             fn_intern: HashMap::new(),
@@ -38,8 +39,16 @@ impl<'a> TryFrom<&'a Crate> for IR {
         };
 
         let root = b
-            .build_module(crate_.root)?
+            .build_module(crate_.root)
+            .map_err(|err| {
+                if let ProbeError::MissingItem(id) = err {
+                    BuildError::MissingItem(id)
+                } else {
+                    panic!("unexpected probe error: {:?}", err);
+                }
+            })?
             .expect("root module has no id reservation");
+
         b.ir.root = root;
         b.ir.crate_name = crate_
             .index
@@ -53,16 +62,19 @@ impl<'a> TryFrom<&'a Crate> for IR {
 
 struct Builder<'a> {
     crate_: &'a Crate,
+    warns: &'a mut Warns,
     ir: IR,
-    struct_intern: HashMap<RId, Id>,
-    fn_intern: HashMap<RId, Id>,
+    /// `None` means the struct was probed and skipped.
+    struct_intern: HashMap<RId, Option<Id>>,
+    /// `None` means the fn was probed and skipped.
+    fn_intern: HashMap<RId, Option<Id>>,
     mod_intern: HashMap<RId, Id>,
     self_stack: Vec<RId>,
     copy_eligible: HashMap<Id, bool>,
 }
 
 impl<'a> Builder<'a> {
-    fn build_module(&mut self, mod_id: RId) -> Result<Option<Id>, BuildError> {
+    fn build_module(&mut self, mod_id: RId) -> Result<Option<Id>, ProbeError> {
         if let Some(&mid) = self.mod_intern.get(&mod_id) {
             return Ok(Some(mid));
         }
@@ -95,36 +107,34 @@ impl<'a> Builder<'a> {
                     }
                 }
                 ItemEnum::Struct(_) => {
-                    let sid = self.intern_struct(*child_id)?;
-                    exports.push(Export {
-                        name: child_name,
-                        target: sid,
-                    });
+                    if let Some(sid) = self.intern_struct(*child_id)? {
+                        exports.push(Export {
+                            name: child_name,
+                            target: sid,
+                        });
+                    }
                 }
                 ItemEnum::Enum(_) => {
-                    return Err(BuildError::UnsupportedType {
-                        id: *child_id,
-                        reason: "enums are not supported".into(),
-                    });
+                    self.warns
+                        .push(warn_unsupported_enum().attach_span(&child.span));
                 }
                 ItemEnum::Function(_) => {
-                    let fid = self.intern_fn(*child_id)?;
-                    exports.push(Export {
-                        name: child_name,
-                        target: fid,
-                    });
+                    if let Some(fid) = self.intern_fn(*child_id)? {
+                        exports.push(Export {
+                            name: child_name,
+                            target: fid,
+                        });
+                    }
                 }
                 ItemEnum::Use(use_) => {
                     let mut visited = HashSet::new();
-                    self.add_use(use_, &mut exports, &mut visited)?;
+                    self.add_use(use_, &mut exports, &mut visited, child)?;
                 }
                 _ => {}
             }
         }
 
         if exports.is_empty() && mod_id != self.crate_.root {
-            // Module produced nothing -> remove from IR and intern map.
-            // Safe to pop because nothing else can reference this mod yet.
             self.ir.items.pop();
             self.mod_intern.remove(&mod_id);
             return Ok(None);
@@ -141,11 +151,13 @@ impl<'a> Builder<'a> {
         use_: &Use,
         exports: &mut Vec<Export>,
         visited: &mut HashSet<RId>,
-    ) -> Result<(), BuildError> {
+        use_item: &RItem,
+    ) -> Result<(), ProbeError> {
         let Some(tid) = use_.id else { return Ok(()) };
         let Some(target) = self.crate_.index.get(&tid) else {
-            if let Some(err) = self.external_import_error(tid) {
-                return Err(err);
+            if let Some((crate_name, path)) = self.external_import(tid) {
+                self.warns
+                    .push(warn_unsupported_import(crate_name, path).attach_span(&use_item.span));
             }
             return Ok(());
         };
@@ -168,24 +180,24 @@ impl<'a> Builder<'a> {
                 let child_name = child.name.clone().unwrap_or_default();
                 match &child.inner {
                     ItemEnum::Struct(_) => {
-                        let sid = self.intern_struct(child_id)?;
-                        exports.push(Export {
-                            name: child_name,
-                            target: sid,
-                        });
+                        if let Some(sid) = self.intern_struct(child_id)? {
+                            exports.push(Export {
+                                name: child_name,
+                                target: sid,
+                            });
+                        }
                     }
                     ItemEnum::Enum(_) => {
-                        return Err(BuildError::UnsupportedType {
-                            id: child_id,
-                            reason: "enums are not supported".into(),
-                        });
+                        self.warns
+                            .push(warn_unsupported_enum().attach_span(&child.span));
                     }
                     ItemEnum::Function(_) => {
-                        let fid = self.intern_fn(child_id)?;
-                        exports.push(Export {
-                            name: child_name,
-                            target: fid,
-                        });
+                        if let Some(fid) = self.intern_fn(child_id)? {
+                            exports.push(Export {
+                                name: child_name,
+                                target: fid,
+                            });
+                        }
                     }
                     ItemEnum::Module(_) => {
                         if let Some(mid) = self.build_module(child_id)? {
@@ -196,7 +208,7 @@ impl<'a> Builder<'a> {
                         }
                     }
                     ItemEnum::Use(inner_use) => {
-                        self.add_use(inner_use, exports, visited)?;
+                        self.add_use(inner_use, exports, visited, child)?;
                     }
                     _ => {}
                 }
@@ -207,18 +219,18 @@ impl<'a> Builder<'a> {
         let name = use_.name.clone();
         match &target.inner {
             ItemEnum::Struct(_) if is_public(target) => {
-                let sid = self.intern_struct(tid)?;
-                exports.push(Export { name, target: sid });
+                if let Some(sid) = self.intern_struct(tid)? {
+                    exports.push(Export { name, target: sid });
+                }
             }
             ItemEnum::Enum(_) if is_public(target) => {
-                return Err(BuildError::UnsupportedType {
-                    id: tid,
-                    reason: "enums are not supported".into(),
-                });
+                self.warns
+                    .push(warn_unsupported_enum().attach_span(&target.span));
             }
             ItemEnum::Function(_) if is_public(target) => {
-                let fid = self.intern_fn(tid)?;
-                exports.push(Export { name, target: fid });
+                if let Some(fid) = self.intern_fn(tid)? {
+                    exports.push(Export { name, target: fid });
+                }
             }
             ItemEnum::Module(_) => {
                 if let Some(target_mid) = self.build_module(tid)? {
@@ -229,7 +241,7 @@ impl<'a> Builder<'a> {
                 }
             }
             ItemEnum::Use(inner_use) => {
-                self.add_use(inner_use, exports, visited)?;
+                self.add_use(inner_use, exports, visited, target)?;
             }
             _ => {}
         }
@@ -246,45 +258,71 @@ impl<'a> Builder<'a> {
         id
     }
 
-    fn intern_struct(&mut self, id: RId) -> Result<Id, BuildError> {
-        if let Some(&sid) = self.struct_intern.get(&id) {
-            return Ok(sid);
+    fn intern_struct(&mut self, id: RId) -> Result<Option<Id>, ProbeError> {
+        if let Some(slot) = self.struct_intern.get(&id) {
+            return Ok(*slot);
         }
         let item = self.get_item(id)?;
         let struct_ = match &item.inner {
             ItemEnum::Struct(s) => s,
             _ => {
-                return Err(BuildError::UnsupportedType {
-                    id,
+                return Err(ProbeError::UnsupportedType {
                     reason: "expected struct".into(),
                 });
             }
         };
 
+        let span = item.span.as_ref().map(convert_span);
+        let path = path_of(item, id, self.crate_);
+
+        // Dry-probe: resolve the shape without committing the slot. If any
+        // field type fails, emit a warning and mark the struct skipped.
+        let shape = match self.build_struct_shape(&struct_.kind) {
+            Ok(s) => s,
+            Err(ProbeError::MissingItem(rid)) => return Err(ProbeError::MissingItem(rid)),
+            Err(ProbeError::Suppressed) => {
+                // Field-level warning already emitted at precise span.
+                self.struct_intern.insert(id, None);
+                return Ok(None);
+            }
+            Err(ProbeError::SkippedStructRef { struct_name }) => {
+                self.warns
+                    .push(warn_skipped_struct_ref(struct_name).attach_span(&item.span));
+                self.struct_intern.insert(id, None);
+                return Ok(None);
+            }
+            Err(ProbeError::UnsupportedType { reason, .. })
+            | Err(ProbeError::UnsupportedImport { path: reason, .. }) => {
+                self.warns
+                    .push(warn_unsupported_type(reason).attach_span(&item.span));
+                self.struct_intern.insert(id, None);
+                return Ok(None);
+            }
+        };
+
+        // Shape is good. Commit slot before computing ctor (ctor may
+        // recurse back via Self).
         let sid = Id(self.ir.items.len() as u32);
-        self.struct_intern.insert(id, sid);
+        self.struct_intern.insert(id, Some(sid));
         self.ir.items.push(Item::Struct(StructDef {
-            path: path_of(item, id, self.crate_),
+            path,
+            span,
             ctor: Ctor::Implicit,
             has_copy_variant: false,
-            shape: StructShape::Unit,
+            shape,
             docs: item.docs.clone(),
         }));
 
-        let shape = self.build_struct_shape(&struct_.kind)?;
-        let ctor = self.find_ctor(&struct_.impls, id)?;
+        let ctor = self.find_ctor(&struct_.impls, id, item)?;
         self.copy_eligible
             .insert(sid, can_copy_struct_kind(&struct_.kind, self.crate_));
 
         if let Item::Struct(def) = &mut self.ir.items[sid.0 as usize] {
-            def.shape = shape;
             def.ctor = ctor;
         }
-        Ok(sid)
+        Ok(Some(sid))
     }
 
-    /// Walk every fn param; mark copy-eligible structs passed by value so
-    /// codegen emits a `__Copy` wrapper alongside the `__Ref` handle.
     fn mark_copy_variants(&mut self) {
         let mut to_mark: Vec<Id> = Vec::new();
         for item in &self.ir.items {
@@ -307,7 +345,7 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn build_struct_shape(&mut self, kind: &StructKind) -> Result<StructShape, BuildError> {
+    fn build_struct_shape(&mut self, kind: &StructKind) -> Result<StructShape, ProbeError> {
         match kind {
             StructKind::Unit => Ok(StructShape::Unit),
             StructKind::Tuple(fields) => {
@@ -318,7 +356,7 @@ impl<'a> Builder<'a> {
                     let ItemEnum::StructField(ty) = &field_item.inner else {
                         continue;
                     };
-                    out.push(self.resolve_type(ty)?);
+                    out.push(self.resolve_field_type(ty, field_item)?);
                 }
                 Ok(StructShape::Tuple(out))
             }
@@ -331,7 +369,7 @@ impl<'a> Builder<'a> {
                     };
                     out.push(StructField {
                         name: field_item.name.clone().unwrap_or_default(),
-                        ty: self.resolve_type(ty)?,
+                        ty: self.resolve_field_type(ty, field_item)?,
                         docs: field_item.docs.clone(),
                     });
                 }
@@ -340,7 +378,34 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn find_ctor(&mut self, impls: &[RId], self_id: RId) -> Result<Ctor, BuildError> {
+    /// Resolve a struct field's type. On failure, emit the warning anchored
+    /// at the field's own span (precise underline) and return `Suppressed`
+    /// so the enclosing struct skips silently.
+    fn resolve_field_type(&mut self, ty: &RType, field_item: &RItem) -> Result<Type, ProbeError> {
+        match self.resolve_type(ty) {
+            Ok(t) => Ok(t),
+            Err(ProbeError::MissingItem(rid)) => Err(ProbeError::MissingItem(rid)),
+            Err(ProbeError::Suppressed) => Err(ProbeError::Suppressed),
+            Err(ProbeError::SkippedStructRef { struct_name }) => {
+                self.warns
+                    .push(warn_skipped_struct_ref(struct_name).attach_span(&field_item.span));
+                Err(ProbeError::Suppressed)
+            }
+            Err(ProbeError::UnsupportedType { reason, .. })
+            | Err(ProbeError::UnsupportedImport { path: reason, .. }) => {
+                self.warns
+                    .push(warn_unsupported_type(reason).attach_span(&field_item.span));
+                Err(ProbeError::Suppressed)
+            }
+        }
+    }
+
+    fn find_ctor(
+        &mut self,
+        impls: &[RId],
+        self_id: RId,
+        self_item: &RItem,
+    ) -> Result<Ctor, ProbeError> {
         struct Candidate {
             key: Vec<String>,
             impl_id_ord: u32,
@@ -376,10 +441,7 @@ impl<'a> Builder<'a> {
                         Some(summary) => summary.path.clone(),
                         None => trait_path.path.split("::").map(str::to_string).collect(),
                     },
-                    None => {
-                        let item = self.get_item(self_id)?;
-                        path_of(item, self_id, self.crate_).segments
-                    }
+                    None => path_of(self_item, self_id, self.crate_).segments,
                 };
                 key.push("new".to_string());
                 candidates.push(Candidate {
@@ -399,116 +461,154 @@ impl<'a> Builder<'a> {
         self.self_stack.push(self_id);
         let res = self.intern_fn(chosen.assoc_id);
         self.self_stack.pop();
-        Ok(Ctor::Explicit(res?))
+
+        match res? {
+            Some(fid) => Ok(Ctor::Explicit(fid)),
+            None => Ok(Ctor::Implicit),
+        }
     }
 
-    fn intern_fn(&mut self, id: RId) -> Result<Id, BuildError> {
-        if let Some(&fid) = self.fn_intern.get(&id) {
-            return Ok(fid);
+    fn intern_fn(&mut self, id: RId) -> Result<Option<Id>, ProbeError> {
+        if let Some(slot) = self.fn_intern.get(&id) {
+            return Ok(*slot);
         }
         let item = self.get_item(id)?;
         let func = match &item.inner {
             ItemEnum::Function(f) => f,
             _ => {
-                return Err(BuildError::UnsupportedType {
-                    id,
+                return Err(ProbeError::UnsupportedType {
                     reason: "expected function".into(),
                 });
             }
         };
 
-        let fid = Id(self.ir.items.len() as u32);
-        self.fn_intern.insert(id, fid);
-        self.ir.items.push(Item::Fn(FnDef {
-            path: path_of(item, id, self.crate_),
-            params: Vec::new(),
-            return_type: Type::Unit,
-            docs: item.docs.clone(),
-        }));
+        let span = item.span.as_ref().map(convert_span);
+        let path = path_of(item, id, self.crate_);
 
-        let mut params = Vec::new();
-        for (name, ty) in &func.sig.inputs {
-            if name == "self" {
-                continue;
+        // Dry-probe signature.
+        let probed: Result<(Vec<FnParam>, Type), ProbeError> = (|| {
+            let mut params = Vec::new();
+            for (pname, ty) in &func.sig.inputs {
+                if pname == "self" {
+                    continue;
+                }
+                let (mode, underlying) = param_mode_and_type(ty);
+                params.push(FnParam {
+                    name: pname.clone(),
+                    mode,
+                    ty: self.resolve_type(underlying)?,
+                });
             }
-            let (mode, underlying) = param_mode_and_type(ty);
-            params.push(FnParam {
-                name: name.clone(),
-                mode,
-                ty: self.resolve_type(underlying)?,
-            });
-        }
-        let return_type = match &func.sig.output {
-            Some(ty) => self.resolve_type(ty)?,
-            None => Type::Unit,
+            let return_type = match &func.sig.output {
+                Some(ty) => self.resolve_type(ty)?,
+                None => Type::Unit,
+            };
+            Ok((params, return_type))
+        })();
+
+        let (params, return_type) = match probed {
+            Ok(p) => p,
+            Err(ProbeError::MissingItem(rid)) => return Err(ProbeError::MissingItem(rid)),
+            Err(ProbeError::Suppressed) => {
+                self.fn_intern.insert(id, None);
+                return Ok(None);
+            }
+            Err(ProbeError::SkippedStructRef { struct_name }) => {
+                self.warns
+                    .push(warn_skipped_struct_ref(struct_name).attach_span(&item.span));
+                self.fn_intern.insert(id, None);
+                return Ok(None);
+            }
+            Err(ProbeError::UnsupportedType { reason, .. })
+            | Err(ProbeError::UnsupportedImport { path: reason, .. }) => {
+                self.warns
+                    .push(warn_unsupported_type(reason).attach_span(&item.span));
+
+                self.fn_intern.insert(id, None);
+                return Ok(None);
+            }
         };
 
-        if let Item::Fn(def) = &mut self.ir.items[fid.0 as usize] {
-            def.params = params;
-            def.return_type = return_type;
-        }
-        Ok(fid)
+        let fid = Id(self.ir.items.len() as u32);
+        self.fn_intern.insert(id, Some(fid));
+        self.ir.items.push(Item::Fn(FnDef {
+            path,
+            span,
+            params,
+            return_type,
+            docs: item.docs.clone(),
+        }));
+        Ok(Some(fid))
     }
 
-    fn resolve_type(&mut self, ty: &RType) -> Result<Type, BuildError> {
+    fn resolve_type(&mut self, ty: &RType) -> Result<Type, ProbeError> {
         match ty {
             RType::Primitive(name) => {
-                primitive_to_type(name).ok_or_else(|| BuildError::UnsupportedType {
-                    id: RId(0),
-                    reason: format!("unsupported primitive `{name}`"),
+                primitive_to_type(name).ok_or_else(|| ProbeError::UnsupportedType {
+                    reason: format!("unsupported primitive \"{name}\""),
                 })
             }
             RType::Tuple(ts) if ts.is_empty() => Ok(Type::Unit),
-            RType::Tuple(_) => Err(BuildError::UnsupportedType {
-                id: RId(0),
+            RType::Tuple(_) => Err(ProbeError::UnsupportedType {
                 reason: "tuples are not supported".into(),
             }),
-            RType::Slice(_) => Err(BuildError::UnsupportedType {
-                id: RId(0),
+            RType::Slice(_) => Err(ProbeError::UnsupportedType {
                 reason: "slices are not supported".into(),
             }),
-            RType::Array { .. } => Err(BuildError::UnsupportedType {
-                id: RId(0),
+            RType::Array { .. } => Err(ProbeError::UnsupportedType {
                 reason: "fixed-size arrays are not supported".into(),
             }),
             RType::BorrowedRef { type_, .. } => self.resolve_type(type_),
             RType::ResolvedPath(path) => self.resolve_path(path),
             RType::Generic(name) if name == "Self" => {
                 let Some(&self_id) = self.self_stack.last() else {
-                    return Err(BuildError::UnsupportedType {
-                        id: RId(0),
+                    return Err(ProbeError::UnsupportedType {
                         reason: "Self outside of impl context".into(),
                     });
                 };
-                Ok(Type::Struct(self.intern_struct(self_id)?))
+                match self.intern_struct(self_id)? {
+                    Some(sid) => Ok(Type::Struct(sid)),
+                    None => {
+                        let struct_name = self
+                            .crate_
+                            .index
+                            .get(&self_id)
+                            .and_then(|it| it.name.clone())
+                            .unwrap_or_else(|| "Self".to_string());
+                        Err(ProbeError::SkippedStructRef { struct_name })
+                    }
+                }
             }
-            other => Err(BuildError::UnsupportedType {
-                id: RId(0),
+            other => Err(ProbeError::UnsupportedType {
                 reason: format!("unsupported type variant: {other:?}"),
             }),
         }
     }
 
-    fn resolve_path(&mut self, path: &Path) -> Result<Type, BuildError> {
+    fn resolve_path(&mut self, path: &RPath) -> Result<Type, ProbeError> {
         if let Some(t) = self.try_well_known(path)? {
             return Ok(t);
         }
         let Some(item) = self.crate_.index.get(&path.id) else {
-            if let Some(err) = self.external_import_error(path.id) {
-                return Err(err);
+            if let Some((_, ext_path)) = self.external_import(path.id) {
+                return Err(ProbeError::UnsupportedImport { path: ext_path });
             }
-            return Err(BuildError::MissingItem(path.id));
+            return Err(ProbeError::MissingItem(path.id));
         };
         match &item.inner {
-            ItemEnum::Struct(_) => Ok(Type::Struct(self.intern_struct(path.id)?)),
-            _ => Err(BuildError::UnsupportedType {
-                id: path.id,
-                reason: "resolved path is not a struct".into(),
+            ItemEnum::Struct(_) => match self.intern_struct(path.id)? {
+                Some(sid) => Ok(Type::Struct(sid)),
+                None => Err(ProbeError::SkippedStructRef {
+                    struct_name: path.path.clone(),
+                }),
+            },
+            _ => Err(ProbeError::UnsupportedType {
+                reason: format!("resolved path \"{}\" is not a struct", path.path),
             }),
         }
     }
 
-    fn try_well_known(&mut self, path: &Path) -> Result<Option<Type>, BuildError> {
+    fn try_well_known(&mut self, path: &RPath) -> Result<Option<Type>, ProbeError> {
         let Some(summary) = self.crate_.paths.get(&path.id) else {
             return Ok(None);
         };
@@ -524,29 +624,25 @@ impl<'a> Builder<'a> {
         let out = match last {
             Some("String") => Type::String,
             _ => {
-                return Err(BuildError::UnsupportedType {
-                    id: path.id,
-                    reason: format!("unsupported std type `{}`", summary.path.join("::")),
+                return Err(ProbeError::UnsupportedType {
+                    reason: format!("unsupported std type \"{}\"", summary.path.join("::")),
                 });
             }
         };
         Ok(Some(out))
     }
 
-    fn get_item(&self, id: RId) -> Result<&'a RItem, BuildError> {
+    fn get_item(&self, id: RId) -> Result<&'a RItem, ProbeError> {
         self.crate_
             .index
             .get(&id)
-            .ok_or(BuildError::MissingItem(id))
+            .ok_or(ProbeError::MissingItem(id))
     }
 
-    fn external_import_error(&self, id: RId) -> Option<BuildError> {
+    fn external_import(&self, id: RId) -> Option<(String, String)> {
         let summary = self.crate_.paths.get(&id)?;
         let ext = self.crate_.external_crates.get(&summary.crate_id)?;
-        Some(BuildError::UnsupportedImport {
-            crate_name: ext.name.clone(),
-            path: summary.path.join("::"),
-        })
+        Some((ext.name.clone(), summary.path.join("::")))
     }
 }
 
@@ -604,11 +700,11 @@ fn returns_self(output: Option<&RType>, self_id: RId) -> bool {
     }
 }
 
-fn is_result_path(p: &Path) -> bool {
+fn is_result_path(p: &RPath) -> bool {
     p.path.rsplit("::").next() == Some("Result")
 }
 
-fn first_type_arg(p: &Path) -> Option<&RType> {
+fn first_type_arg(p: &RPath) -> Option<&RType> {
     let GenericArgs::AngleBracketed { args, .. } = p.args.as_deref()? else {
         return None;
     };
@@ -618,7 +714,7 @@ fn first_type_arg(p: &Path) -> Option<&RType> {
     })
 }
 
-fn convert_span(s: &RSpan) -> Span {
+pub(crate) fn convert_span(s: &RSpan) -> Span {
     Span {
         filename: s.filename.clone(),
         begin: s.begin,
@@ -652,5 +748,48 @@ fn can_copy_struct_kind(kind: &StructKind, crate_: &Crate) -> bool {
             })
         }
         _ => false,
+    }
+}
+
+#[derive(Debug)]
+enum ProbeError {
+    MissingItem(RId),
+    UnsupportedType { reason: String },
+    UnsupportedImport { path: String },
+    SkippedStructRef { struct_name: String },
+    Suppressed,
+}
+
+fn warn_unsupported_enum() -> Warn {
+    warn_unsupported_type("enums are not supported".into())
+}
+
+fn warn_unsupported_type(reason: String) -> Warn {
+    Warn::new("rust-curse::unsupported_type", reason)
+}
+
+fn warn_skipped_struct_ref(struct_name: String) -> Warn {
+    Warn::new(
+        "rust-curse::skipped_struct_ref",
+        format!("references a skipped struct \"{struct_name}\""),
+    )
+    .help("fix the warning emitted for this struct to expose it")
+}
+
+fn warn_unsupported_import(crate_name: String, path: String) -> Warn {
+    Warn::new(
+        "rust-curse::unsupported_import",
+        format!("import from external crate \"{crate_name}\": \"{path}\""),
+    )
+}
+
+impl Warn {
+    pub(self) fn attach_span(self, span: &Option<rustdoc_types::Span>) -> Self {
+        match span {
+            Some(span) => self
+                .label(WarnLabel::new(None, span.begin, span.end))
+                .source_code(&span.filename),
+            None => self,
+        }
     }
 }

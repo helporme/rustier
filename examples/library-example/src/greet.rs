@@ -20,6 +20,6 @@ pub fn hi_copy(msg: MsgCopy) -> String {
     format!("Hello from copy, {}!", msg.name)
 }
 
-pub fn hi_copy_err(msg: MsgRef) -> String {
-    format!("Hello, {}!", msg.name)
-}
+// pub fn hi_copy_err(msg: MsgRef) -> String {
+//     format!("Hello, {}!", msg.name)
+// }

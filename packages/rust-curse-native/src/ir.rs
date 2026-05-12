@@ -87,6 +87,7 @@ pub enum NumberType {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FnDef {
     pub path: ItemPath,
+    pub span: Option<Span>,
     pub params: Vec<FnParam>,
     pub return_type: Type,
     pub docs: Option<String>,
@@ -112,6 +113,7 @@ pub enum ParamMode {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StructDef {
     pub path: ItemPath,
+    pub span: Option<Span>,
     pub ctor: Ctor,
     pub has_copy_variant: bool,
     pub shape: StructShape,

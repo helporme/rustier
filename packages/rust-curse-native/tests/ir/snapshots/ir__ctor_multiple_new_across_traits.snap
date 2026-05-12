@@ -125,6 +125,12 @@ import { __cursed_rustdoc_test_crate__Foo__Ref } from '$test';
 export { __cursed_rustdoc_test_crate__Foo__Ref as Foo };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -172,6 +178,19 @@ IR {
                         "Foo",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            11,
+                            1,
+                        ),
+                        end: (
+                            13,
+                            2,
+                        ),
+                    },
+                ),
                 ctor: Explicit(
                     Id(
                         2,
@@ -191,6 +210,19 @@ IR {
                         "new",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            20,
+                            5,
+                        ),
+                        end: (
+                            22,
+                            6,
+                        ),
+                    },
+                ),
                 params: [
                     FnParam {
                         name: "from_alpha",

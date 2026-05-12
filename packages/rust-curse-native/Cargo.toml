@@ -22,6 +22,7 @@ toml_edit = "0.25"
 anyhow = "1.0.102"
 thiserror = "2.0.18"
 cargo_metadata = "0.23.1"
+miette = { version = "7", features = ["fancy"] }
 
 [build-dependencies]
 napi-build = { version = "2", optional = true }

@@ -72,6 +72,12 @@ import { __cursed_rustdoc_test_crate__inner__f } from '$test';
 export { __cursed_rustdoc_test_crate__inner__f as f };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -151,6 +157,19 @@ IR {
                         "f",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            2,
+                            18,
+                        ),
+                    },
+                ),
                 params: [],
                 return_type: Unit,
                 docs: None,

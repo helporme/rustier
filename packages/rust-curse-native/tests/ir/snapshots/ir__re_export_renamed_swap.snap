@@ -213,6 +213,12 @@ import { __cursed_rustdoc_test_crate__inner__Inner__Ref, __cursed_rustdoc_test_c
 export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Inner, __cursed_rustdoc_test_crate__inner__Outer__Ref as Outer };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -310,6 +316,19 @@ IR {
                         "Inner",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
                 ctor: Implicit,
                 has_copy_variant: false,
                 shape: Struct(
@@ -335,6 +354,19 @@ IR {
                         "Outer",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            5,
+                        ),
+                        end: (
+                            7,
+                            6,
+                        ),
+                    },
+                ),
                 ctor: Implicit,
                 has_copy_variant: false,
                 shape: Struct(

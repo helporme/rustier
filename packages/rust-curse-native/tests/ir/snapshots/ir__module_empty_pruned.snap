@@ -73,6 +73,12 @@ import { __cursed_rustdoc_test_crate__kept__stays } from '$test';
 export { __cursed_rustdoc_test_crate__kept__stays as stays };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -152,6 +158,19 @@ IR {
                         "stays",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            2,
+                            22,
+                        ),
+                    },
+                ),
                 params: [],
                 return_type: Unit,
                 docs: None,

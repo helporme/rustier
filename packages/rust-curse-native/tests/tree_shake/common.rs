@@ -12,6 +12,7 @@ use rust_curse::common::{mangle_module_name, FileFilter};
 use rust_curse::ir::{Id, IR};
 use rust_curse::orphans;
 use rust_curse::tree_shake::{self, item_path, TreeShakeError, TreeShakeOpts};
+use rust_curse::warns::Warns;
 
 pub const TEST_CRATE: &str = "rustdoc_tree_shake_test";
 
@@ -78,7 +79,8 @@ impl Fixture {
         let target_dir = self.abs_root.join("target");
         let crate_ =
             rust_curse::rustdoc::run(&self.abs_root, &target_dir, TEST_CRATE).expect("rustdoc gen");
-        let ir = IR::try_from(&crate_).expect("build ir");
+        let mut warns = Warns::new();
+        let ir = IR::from_rustdoc(&crate_, &mut warns).expect("build ir");
 
         let js_filter = FileFilter {
             include: Some(js_include.to_vec()),

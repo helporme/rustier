@@ -138,6 +138,12 @@ import { __cursed_rustdoc_test_crate__inner__Inner__Ref } from '$test';
 export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Inner };
 ```
 
+# warns
+
+```text
+(no warnings)
+```
+
 # ir
 
 ```rs
@@ -223,6 +229,19 @@ IR {
                         "Inner",
                     ],
                 },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
                 ctor: Implicit,
                 has_copy_variant: false,
                 shape: Struct(
