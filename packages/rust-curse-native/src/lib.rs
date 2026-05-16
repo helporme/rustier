@@ -11,5 +11,6 @@ pub mod builder;
 
 #[cfg(feature = "napi-binding")]
 pub mod session;
+
 #[cfg(feature = "napi-binding")]
 pub use session::*;

@@ -1,6 +1,3 @@
-import { hi_copy, hi_ref, MsgRef } from "./greet.rs";
+import { Circle, Point } from "./math.rs";
 
-let ref = new MsgRef("world");
-
-console.log(hi_ref(ref));
-console.log(hi_copy({ name: "world" }));
+let circle = new Circle(10, new Point(1, 2));

@@ -190,6 +190,31 @@ fn struct_pub_crate_field_forces_ref() {
 }
 
 #[test]
+fn struct_clone_derive() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Cloneable {
+            pub x: i32,
+        }
+        pub struct NotCloneable {
+            pub x: i32,
+        }
+    };
+}
+
+#[test]
+fn struct_clone_manual_impl() {
+    assert_snap! {
+        pub struct Manual {
+            pub x: i32,
+        }
+        impl Clone for Manual {
+            fn clone(&self) -> Self { Manual { x: self.x } }
+        }
+    };
+}
+
+#[test]
 fn struct_intern_across_uses() {
     assert_snap! {
         pub struct Point {

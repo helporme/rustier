@@ -331,6 +331,7 @@ IR {
                 ),
                 ctor: Implicit,
                 has_copy_variant: false,
+                clonable: false,
                 shape: Struct(
                     [
                         StructField {
@@ -369,6 +370,7 @@ IR {
                 ),
                 ctor: Implicit,
                 has_copy_variant: false,
+                clonable: false,
                 shape: Struct(
                     [
                         StructField {

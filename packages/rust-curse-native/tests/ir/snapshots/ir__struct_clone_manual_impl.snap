@@ -1,0 +1,212 @@
+---
+source: tests/ir.rs
+expression: body
+---
+# Source
+
+```rs
+pub struct Manual {
+    pub x: i32,
+}
+impl Clone for Manual {
+    fn clone(&self) -> Self {
+        Manual { x: self.x }
+    }
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Manual__Ref")]
+pub struct __cursed_rustdoc_test_crate__Manual__Ref {
+    inner: crate::Manual,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Manual__Ref {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self { inner: crate::Manual { x } }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::Manual> for __cursed_rustdoc_test_crate__Manual__Ref {
+    fn from(v: crate::Manual) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Manual__Ref> for crate::Manual {
+    fn from(v: __cursed_rustdoc_test_crate__Manual__Ref) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__Manual__Ref")]
+pub struct __cursed_rustdoc_test_crate__Manual__Ref {
+    inner: crate::Manual,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Manual__Ref {
+    #[napi(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self { inner: crate::Manual { x } }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::Manual> for __cursed_rustdoc_test_crate__Manual__Ref {
+    fn from(v: crate::Manual) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Manual__Ref> for crate::Manual {
+    fn from(v: __cursed_rustdoc_test_crate__Manual__Ref) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+declare module "$rust-curse" {
+    export type Copy<T> = {
+        [K in keyof T as T[K] extends
+            | string | number | boolean | bigint
+            | Record<string, unknown> | unknown[]
+            ? K : never]: Copy<T[K]>;
+    };
+}
+
+// src/lib.rs.d.ts
+export class Manual {
+    private [" "]: 'rustdoc_test_crate::Manual';
+
+    x: number;
+
+    constructor(x: number);
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Manual__Ref } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Manual__Ref as Manual };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Manual__Ref } from '$test';
+export { __cursed_rustdoc_test_crate__Manual__Ref as Manual };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ir
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            8,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Manual",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Manual",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                has_copy_variant: false,
+                clonable: true,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Number(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

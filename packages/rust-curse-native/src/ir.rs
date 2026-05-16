@@ -116,6 +116,8 @@ pub struct StructDef {
     pub span: Option<Span>,
     pub ctor: Ctor,
     pub has_copy_variant: bool,
+    /// `true` if the source crate exposes a `Clone` impl for this struct
+    pub clonable: bool,
     pub shape: StructShape,
     pub docs: Option<String>,
 }

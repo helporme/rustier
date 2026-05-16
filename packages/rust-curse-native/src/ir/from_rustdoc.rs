@@ -300,6 +300,8 @@ impl<'a> Builder<'a> {
             }
         };
 
+        let clonable = has_clone_impl(&struct_.impls, self.crate_);
+
         // Shape is good. Commit slot before computing ctor (ctor may
         // recurse back via Self).
         let sid = Id(self.ir.items.len() as u32);
@@ -309,6 +311,7 @@ impl<'a> Builder<'a> {
             span,
             ctor: Ctor::Implicit,
             has_copy_variant: false,
+            clonable,
             shape,
             docs: item.docs.clone(),
         }));
@@ -728,6 +731,32 @@ fn path_of(item: &RItem, id: RId, crate_: &Crate) -> ItemPath {
     }
     let name = item.name.clone().unwrap_or_default();
     ItemPath::new(vec![name])
+}
+
+fn has_clone_impl(impls: &[RId], crate_: &Crate) -> bool {
+    impls.iter().any(|impl_id| {
+        let Some(impl_item) = crate_.index.get(impl_id) else {
+            return false;
+        };
+        let ItemEnum::Impl(impl_) = &impl_item.inner else {
+            return false;
+        };
+        if impl_.is_negative {
+            return false;
+        }
+        let Some(trait_path) = impl_.trait_.as_ref() else {
+            return false;
+        };
+        if let Some(summary) = crate_.paths.get(&trait_path.id) {
+            let crate_name = crate_
+                .external_crates
+                .get(&summary.crate_id)
+                .map(|ec| ec.name.as_str());
+            return matches!(crate_name, Some("std" | "core" | "alloc"))
+                && summary.path.last().map(String::as_str) == Some("Clone");
+        }
+        trait_path.path.rsplit("::").next() == Some("Clone")
+    })
 }
 
 fn can_copy_struct_kind(kind: &StructKind, crate_: &Crate) -> bool {
