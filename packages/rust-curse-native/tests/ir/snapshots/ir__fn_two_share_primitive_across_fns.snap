@@ -140,12 +140,14 @@ IR {
                     FnParam {
                         name: "x",
                         mode: ByValue,
-                        ty: Number(
+                        ty: Primitive(
                             i32,
                         ),
                     },
                 ],
-                return_type: Unit,
+                return_type: Primitive(
+                    Unit,
+                ),
                 docs: None,
             },
         ),
@@ -174,12 +176,14 @@ IR {
                     FnParam {
                         name: "y",
                         mode: ByValue,
-                        ty: Number(
+                        ty: Primitive(
                             i32,
                         ),
                     },
                 ],
-                return_type: Unit,
+                return_type: Primitive(
+                    Unit,
+                ),
                 docs: None,
             },
         ),

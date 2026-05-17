@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
 use super::mangle::is_canonical_origin;
-use super::{Ctor, Id, Item, ItemPath, NumberType, StructShape, Type, IR};
+use super::{Ctor, Id, Item, ItemPath, Primitive, StructShape, Type, IR};
 
 const PREAMBLE: &str = "";
 
@@ -115,15 +115,24 @@ impl<'a> Printer<'a> {
 
     fn type_to_ts(&mut self, ty: &Type) -> String {
         match ty {
-            Type::Unit => "void".into(),
-            Type::Boolean => "boolean".into(),
-            Type::Char | Type::String | Type::Str => "string".into(),
-            Type::Number(n) => match n {
-                NumberType::i64 | NumberType::u64 | NumberType::isize | NumberType::usize => {
-                    "bigint".into()
-                }
-                _ => "number".into(),
-            },
+            Type::Primitive(Primitive::Unit) => "void".into(),
+            Type::Primitive(Primitive::Boolean) => "boolean".into(),
+            Type::Primitive(Primitive::Char | Primitive::String | Primitive::Str) => {
+                "string".into()
+            }
+            Type::Primitive(
+                Primitive::i64 | Primitive::u64 | Primitive::isize | Primitive::usize,
+            ) => "bigint".into(),
+            Type::Primitive(
+                Primitive::i8
+                | Primitive::u8
+                | Primitive::i16
+                | Primitive::u16
+                | Primitive::i32
+                | Primitive::u32
+                | Primitive::f32
+                | Primitive::f64,
+            ) => "number".into(),
             Type::Struct(sid) => {
                 let path = self.ir.get_struct_unchecked(*sid).path.clone();
                 let name = path.name().unwrap_or("unknown").to_string();

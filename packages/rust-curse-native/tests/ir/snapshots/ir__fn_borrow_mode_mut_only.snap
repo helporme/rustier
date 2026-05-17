@@ -125,12 +125,14 @@ IR {
                     FnParam {
                         name: "x",
                         mode: ByMut,
-                        ty: Number(
+                        ty: Primitive(
                             i32,
                         ),
                     },
                 ],
-                return_type: Unit,
+                return_type: Primitive(
+                    Unit,
+                ),
                 docs: None,
             },
         ),

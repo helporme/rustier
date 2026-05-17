@@ -57,18 +57,18 @@ pub fn rust_path(path: &ItemPath, local_crate: &str) -> String {
 /// A structural type term. Nominal defs are referenced by id.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Type {
-    Unit,
-    Boolean,
-    Char,
-    Number(NumberType),
-    String,
-    Str,
+    Primitive(Primitive),
     Struct(Id),
 }
 
-/// A numeric type.
+/// A primitive type (everything that isn't a nominal struct).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum NumberType {
+pub enum Primitive {
+    Unit,
+    Boolean,
+    Char,
+    String,
+    Str,
     i8,
     u8,
     i16,

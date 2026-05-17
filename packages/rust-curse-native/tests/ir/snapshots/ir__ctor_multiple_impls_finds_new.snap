@@ -209,7 +209,7 @@ IR {
                     FnParam {
                         name: "seed",
                         mode: ByValue,
-                        ty: Number(
+                        ty: Primitive(
                             u32,
                         ),
                     },

@@ -169,10 +169,12 @@ IR {
                 clonable: false,
                 shape: Tuple(
                     [
-                        Number(
+                        Primitive(
                             i32,
                         ),
-                        String,
+                        Primitive(
+                            String,
+                        ),
                     ],
                 ),
                 docs: Some(

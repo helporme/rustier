@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use rust_curse::ir::{Export, FnDef, Id, Item, ItemPath, ModDef, Span, Type, IR};
+use rust_curse::ir::{Export, FnDef, Id, Item, ItemPath, ModDef, Primitive, Span, Type, IR};
 use rust_curse::orphans::OrphanModule;
 use rust_curse::sync::Syncer;
 
@@ -195,7 +195,7 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (IR, HashSet<Id>) {
                 path: ItemPath::new(fn_segs),
                 span: None,
                 params: Vec::new(),
-                return_type: Type::Unit,
+                return_type: Type::Primitive(Primitive::Unit),
                 docs: None,
             }));
             if fn_fix.exposed {

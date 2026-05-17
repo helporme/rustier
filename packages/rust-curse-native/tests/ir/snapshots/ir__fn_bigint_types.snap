@@ -123,33 +123,35 @@ IR {
                     FnParam {
                         name: "a",
                         mode: ByValue,
-                        ty: Number(
+                        ty: Primitive(
                             i64,
                         ),
                     },
                     FnParam {
                         name: "b",
                         mode: ByValue,
-                        ty: Number(
+                        ty: Primitive(
                             u64,
                         ),
                     },
                     FnParam {
                         name: "c",
                         mode: ByValue,
-                        ty: Number(
+                        ty: Primitive(
                             isize,
                         ),
                     },
                     FnParam {
                         name: "d",
                         mode: ByValue,
-                        ty: Number(
+                        ty: Primitive(
                             usize,
                         ),
                     },
                 ],
-                return_type: Unit,
+                return_type: Primitive(
+                    Unit,
+                ),
                 docs: None,
             },
         ),

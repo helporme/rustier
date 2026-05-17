@@ -123,26 +123,28 @@ IR {
                     FnParam {
                         name: "by_ref",
                         mode: ByRef,
-                        ty: Number(
+                        ty: Primitive(
                             i32,
                         ),
                     },
                     FnParam {
                         name: "by_mut_ref",
                         mode: ByMut,
-                        ty: Number(
+                        ty: Primitive(
                             i32,
                         ),
                     },
                     FnParam {
                         name: "by_value",
                         mode: ByValue,
-                        ty: Number(
+                        ty: Primitive(
                             i32,
                         ),
                     },
                 ],
-                return_type: Unit,
+                return_type: Primitive(
+                    Unit,
+                ),
                 docs: None,
             },
         ),

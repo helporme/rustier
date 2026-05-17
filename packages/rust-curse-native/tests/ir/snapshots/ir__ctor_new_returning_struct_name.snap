@@ -204,7 +204,9 @@ IR {
                     FnParam {
                         name: "raw",
                         mode: ByValue,
-                        ty: String,
+                        ty: Primitive(
+                            String,
+                        ),
                     },
                 ],
                 return_type: Struct(

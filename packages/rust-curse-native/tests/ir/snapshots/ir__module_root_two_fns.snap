@@ -144,12 +144,12 @@ IR {
                     FnParam {
                         name: "x",
                         mode: ByValue,
-                        ty: Number(
+                        ty: Primitive(
                             f64,
                         ),
                     },
                 ],
-                return_type: Number(
+                return_type: Primitive(
                     f64,
                 ),
                 docs: None,
@@ -180,12 +180,12 @@ IR {
                     FnParam {
                         name: "x",
                         mode: ByValue,
-                        ty: Number(
+                        ty: Primitive(
                             f64,
                         ),
                     },
                 ],
-                return_type: Number(
+                return_type: Primitive(
                     f64,
                 ),
                 docs: None,

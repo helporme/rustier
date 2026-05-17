@@ -9,7 +9,7 @@ use rustdoc_types::{
 };
 
 use super::{
-    Ctor, Export, FnDef, FnParam, Id, Item, ItemPath, ModDef, NumberType, ParamMode, Span,
+    Ctor, Export, FnDef, FnParam, Id, Item, ItemPath, ModDef, ParamMode, Primitive, Span,
     StructDef, StructField, StructShape, Type, IR,
 };
 use crate::warns::Warn;
@@ -476,7 +476,7 @@ impl<'a> Builder<'a> {
             }
             let return_type = match &func.sig.output {
                 Some(ty) => self.resolve_type(ty)?,
-                None => Type::Unit,
+                None => Type::Primitive(Primitive::Unit),
             };
             Ok((params, return_type))
         })();
@@ -523,7 +523,7 @@ impl<'a> Builder<'a> {
                     reason: format!("unsupported primitive \"{name}\""),
                 })
             }
-            RType::Tuple(ts) if ts.is_empty() => Ok(Type::Unit),
+            RType::Tuple(ts) if ts.is_empty() => Ok(Type::Primitive(Primitive::Unit)),
             RType::Tuple(_) => Err(ProbeError::UnsupportedType {
                 reason: "tuples are not supported".into(),
             }),
@@ -597,7 +597,7 @@ impl<'a> Builder<'a> {
         }
         let last = summary.path.last().map(String::as_str);
         let out = match last {
-            Some("String") => Type::String,
+            Some("String") => Type::Primitive(Primitive::String),
             _ => {
                 return Err(ProbeError::UnsupportedType {
                     reason: format!("unsupported std type \"{}\"", summary.path.join("::")),
@@ -627,24 +627,25 @@ fn is_public(item: &RItem) -> bool {
 }
 
 fn primitive_to_type(name: &str) -> Option<Type> {
-    Some(match name {
-        "bool" => Type::Boolean,
-        "char" => Type::Char,
-        "str" => Type::Str,
-        "i8" => Type::Number(NumberType::i8),
-        "i16" => Type::Number(NumberType::i16),
-        "i32" => Type::Number(NumberType::i32),
-        "i64" => Type::Number(NumberType::i64),
-        "u8" => Type::Number(NumberType::u8),
-        "u16" => Type::Number(NumberType::u16),
-        "u32" => Type::Number(NumberType::u32),
-        "u64" => Type::Number(NumberType::u64),
-        "isize" => Type::Number(NumberType::isize),
-        "usize" => Type::Number(NumberType::usize),
-        "f32" => Type::Number(NumberType::f32),
-        "f64" => Type::Number(NumberType::f64),
+    let prim = match name {
+        "bool" => Primitive::Boolean,
+        "char" => Primitive::Char,
+        "str" => Primitive::Str,
+        "i8" => Primitive::i8,
+        "i16" => Primitive::i16,
+        "i32" => Primitive::i32,
+        "i64" => Primitive::i64,
+        "u8" => Primitive::u8,
+        "u16" => Primitive::u16,
+        "u32" => Primitive::u32,
+        "u64" => Primitive::u64,
+        "isize" => Primitive::isize,
+        "usize" => Primitive::usize,
+        "f32" => Primitive::f32,
+        "f64" => Primitive::f64,
         _ => return None,
-    })
+    };
+    Some(Type::Primitive(prim))
 }
 
 fn param_mode_and_type(ty: &RType) -> (ParamMode, &RType) {

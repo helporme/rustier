@@ -120,7 +120,9 @@ IR {
                     },
                 ),
                 params: [],
-                return_type: Unit,
+                return_type: Primitive(
+                    Unit,
+                ),
                 docs: None,
             },
         ),

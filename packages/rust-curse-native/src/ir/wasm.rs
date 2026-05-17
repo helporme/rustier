@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 use super::mangle::{is_canonical_origin, mangle};
 use super::{
-    rust_path, Ctor, FnParam, Id, Item, NumberType, ParamMode, StructDef, StructField, StructShape,
+    rust_path, Ctor, FnParam, Id, Item, ParamMode, Primitive, StructDef, StructField, StructShape,
     Type, IR,
 };
 
@@ -228,14 +228,14 @@ impl<'a> Printer<'a> {
             (Type::Struct(_), ParamMode::ByRef) => format!("&{}.inner", p.name),
             (Type::Struct(_), ParamMode::ByMut) => format!("&mut {}.inner", p.name),
             (Type::Struct(_), ParamMode::ByValue) => format!("{}.into()", p.name),
-            (Type::Str, _) => format!("&{}", p.name),
+            (Type::Primitive(Primitive::Str), _) => format!("&{}", p.name),
             _ => p.name.clone(),
         }
     }
 
     fn return_expr(&mut self, ty: &Type, call: &str) -> (String, String) {
         match ty {
-            Type::Unit => ("()".into(), format!("{call};")),
+            Type::Primitive(Primitive::Unit) => ("()".into(), format!("{call};")),
             Type::Struct(_) => {
                 let ty = self.type_to_rs(ty);
                 (ty, format!("{call}.into()"))
@@ -249,35 +249,53 @@ impl<'a> Printer<'a> {
 
     fn type_to_rs(&mut self, ty: &Type) -> String {
         match ty {
-            Type::Unit => "()".into(),
-            Type::Boolean => "bool".into(),
-            Type::Char => "char".into(),
-            Type::String | Type::Str => "String".into(),
-            Type::Number(n) => number_name(n).to_string(),
+            Type::Primitive(p) => primitive_to_rs(p).to_string(),
             Type::Struct(sid) => mangle(&self.ir.get_struct_unchecked(*sid).path.clone()),
         }
     }
 }
 
-fn is_primitive_ty(t: &Type) -> bool {
-    matches!(t, Type::Boolean | Type::Char | Type::Number(_))
+fn primitive_to_rs(p: &Primitive) -> &'static str {
+    match p {
+        Primitive::Unit => "()",
+        Primitive::Boolean => "bool",
+        Primitive::Char => "char",
+        Primitive::String | Primitive::Str => "String",
+        Primitive::i8 => "i8",
+        Primitive::u8 => "u8",
+        Primitive::i16 => "i16",
+        Primitive::u16 => "u16",
+        Primitive::i32 => "i32",
+        Primitive::u32 => "u32",
+        Primitive::i64 => "i64",
+        Primitive::u64 => "u64",
+        Primitive::isize => "isize",
+        Primitive::usize => "usize",
+        Primitive::f32 => "f32",
+        Primitive::f64 => "f64",
+    }
 }
 
-fn number_name(n: &NumberType) -> &'static str {
-    match n {
-        NumberType::i8 => "i8",
-        NumberType::u8 => "u8",
-        NumberType::i16 => "i16",
-        NumberType::u16 => "u16",
-        NumberType::i32 => "i32",
-        NumberType::u32 => "u32",
-        NumberType::i64 => "i64",
-        NumberType::u64 => "u64",
-        NumberType::isize => "isize",
-        NumberType::usize => "usize",
-        NumberType::f32 => "f32",
-        NumberType::f64 => "f64",
-    }
+fn is_primitive_ty(t: &Type) -> bool {
+    matches!(
+        t,
+        Type::Primitive(
+            Primitive::Boolean
+                | Primitive::Char
+                | Primitive::i8
+                | Primitive::u8
+                | Primitive::i16
+                | Primitive::u16
+                | Primitive::i32
+                | Primitive::u32
+                | Primitive::i64
+                | Primitive::u64
+                | Primitive::isize
+                | Primitive::usize
+                | Primitive::f32
+                | Primitive::f64,
+        )
+    )
 }
 
 fn rust_doc(docs: &str, indent: &str) -> String {

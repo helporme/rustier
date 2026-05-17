@@ -143,19 +143,19 @@ IR {
                     FnParam {
                         name: "a",
                         mode: ByValue,
-                        ty: Number(
+                        ty: Primitive(
                             i32,
                         ),
                     },
                     FnParam {
                         name: "b",
                         mode: ByValue,
-                        ty: Number(
+                        ty: Primitive(
                             i32,
                         ),
                     },
                 ],
-                return_type: Number(
+                return_type: Primitive(
                     i32,
                 ),
                 docs: None,

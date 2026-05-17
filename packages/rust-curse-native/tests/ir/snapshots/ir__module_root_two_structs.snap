@@ -304,14 +304,14 @@ IR {
                     [
                         StructField {
                             name: "x",
-                            ty: Number(
+                            ty: Primitive(
                                 f64,
                             ),
                             docs: None,
                         },
                         StructField {
                             name: "y",
-                            ty: Number(
+                            ty: Primitive(
                                 f64,
                             ),
                             docs: None,
@@ -348,14 +348,14 @@ IR {
                     [
                         StructField {
                             name: "x",
-                            ty: Number(
+                            ty: Primitive(
                                 f64,
                             ),
                             docs: None,
                         },
                         StructField {
                             name: "y",
-                            ty: Number(
+                            ty: Primitive(
                                 f64,
                             ),
                             docs: None,

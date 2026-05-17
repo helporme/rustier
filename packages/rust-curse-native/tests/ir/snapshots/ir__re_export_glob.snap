@@ -267,7 +267,7 @@ IR {
                     [
                         StructField {
                             name: "x",
-                            ty: Number(
+                            ty: Primitive(
                                 i32,
                             ),
                             docs: None,
@@ -300,7 +300,7 @@ IR {
                     },
                 ),
                 params: [],
-                return_type: Number(
+                return_type: Primitive(
                     i32,
                 ),
                 docs: None,
