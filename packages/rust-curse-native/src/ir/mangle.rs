@@ -3,18 +3,8 @@
 use super::ItemPath;
 
 /// `__cursed_<seg1>__<seg2>__..._<name>`
-pub fn mangle_fn(path: &ItemPath) -> String {
+pub fn mangle(path: &ItemPath) -> String {
     format!("__cursed_{}", path.segments.join("__"))
-}
-
-/// `__cursed_<seg1>__<seg2>__..._<name>__Ref`
-pub fn mangle_ref(path: &ItemPath) -> String {
-    format!("__cursed_{}__Ref", path.segments.join("__"))
-}
-
-/// `__cursed_<seg1>__<seg2>__..._<name>__Copy`
-pub fn mangle_copy(path: &ItemPath) -> String {
-    format!("__cursed_{}__Copy", path.segments.join("__"))
 }
 
 /// True when `item_path` lives directly inside `mod_segments` (i.e. the

@@ -23,12 +23,12 @@ pub fn make_origin() -> Point {
 ```rs
 use wasm_bindgen::prelude::*;
 /// A point in 2D space.
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Point__Ref")]
-pub struct __cursed_rustdoc_test_crate__Point__Ref {
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Point")]
+pub struct __cursed_rustdoc_test_crate__Point {
     inner: crate::Point,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Point__Ref {
+impl __cursed_rustdoc_test_crate__Point {
     #[wasm_bindgen(constructor)]
     pub fn new(x: f64, y: f64) -> Self {
         Self {
@@ -52,19 +52,19 @@ impl __cursed_rustdoc_test_crate__Point__Ref {
         self.inner.y = v;
     }
 }
-impl From<crate::Point> for __cursed_rustdoc_test_crate__Point__Ref {
+impl From<crate::Point> for __cursed_rustdoc_test_crate__Point {
     fn from(v: crate::Point) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Point__Ref> for crate::Point {
-    fn from(v: __cursed_rustdoc_test_crate__Point__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Point> for crate::Point {
+    fn from(v: __cursed_rustdoc_test_crate__Point) -> Self {
         v.inner
     }
 }
 /// Returns the origin point `(0, 0)`.
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__make_origin")]
-pub fn __cursed_rustdoc_test_crate__make_origin() -> __cursed_rustdoc_test_crate__Point__Ref {
+pub fn __cursed_rustdoc_test_crate__make_origin() -> __cursed_rustdoc_test_crate__Point {
     crate::make_origin().into()
 }
 ```
@@ -74,12 +74,12 @@ pub fn __cursed_rustdoc_test_crate__make_origin() -> __cursed_rustdoc_test_crate
 ```rs
 use napi_derive::napi;
 /// A point in 2D space.
-#[napi(js_name = "__cursed_rustdoc_test_crate__Point__Ref")]
-pub struct __cursed_rustdoc_test_crate__Point__Ref {
+#[napi(js_name = "__cursed_rustdoc_test_crate__Point")]
+pub struct __cursed_rustdoc_test_crate__Point {
     inner: crate::Point,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Point__Ref {
+impl __cursed_rustdoc_test_crate__Point {
     #[napi(constructor)]
     pub fn new(x: f64, y: f64) -> Self {
         Self {
@@ -103,19 +103,19 @@ impl __cursed_rustdoc_test_crate__Point__Ref {
         self.inner.y = v;
     }
 }
-impl From<crate::Point> for __cursed_rustdoc_test_crate__Point__Ref {
+impl From<crate::Point> for __cursed_rustdoc_test_crate__Point {
     fn from(v: crate::Point) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Point__Ref> for crate::Point {
-    fn from(v: __cursed_rustdoc_test_crate__Point__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Point> for crate::Point {
+    fn from(v: __cursed_rustdoc_test_crate__Point) -> Self {
         v.inner
     }
 }
 /// Returns the origin point `(0, 0)`.
 #[napi(js_name = "__cursed_rustdoc_test_crate__make_origin")]
-pub fn __cursed_rustdoc_test_crate__make_origin() -> __cursed_rustdoc_test_crate__Point__Ref {
+pub fn __cursed_rustdoc_test_crate__make_origin() -> __cursed_rustdoc_test_crate__Point {
     crate::make_origin().into()
 }
 ```
@@ -123,14 +123,6 @@ pub fn __cursed_rustdoc_test_crate__make_origin() -> __cursed_rustdoc_test_crate
 # ts
 
 ```ts
-declare module "$rust-curse" {
-    export type Copy<T> = {
-        [K in keyof T as T[K] extends
-            | string | number | boolean | bigint
-            | Record<string, unknown> | unknown[]
-            ? K : never]: Copy<T[K]>;
-    };
-}
 
 // src/lib.rs.d.ts
 /** A point in 2D space. */
@@ -154,17 +146,17 @@ export function make_origin(): Point;
 
 ```js
 // $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Point__Ref, __cursed_rustdoc_test_crate__make_origin } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__Point, __cursed_rustdoc_test_crate__make_origin } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Point__Ref as Point, __cursed_rustdoc_test_crate__make_origin as make_origin };
+export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crate__make_origin as make_origin };
 ```
 
 # js-napi
 
 ```js
 // $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Point__Ref, __cursed_rustdoc_test_crate__make_origin } from '$test';
-export { __cursed_rustdoc_test_crate__Point__Ref as Point, __cursed_rustdoc_test_crate__make_origin as make_origin };
+import { __cursed_rustdoc_test_crate__Point, __cursed_rustdoc_test_crate__make_origin } from '$test';
+export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crate__make_origin as make_origin };
 ```
 
 # warns
@@ -240,7 +232,6 @@ IR {
                     },
                 ),
                 ctor: Implicit,
-                has_copy_variant: false,
                 clonable: false,
                 shape: Struct(
                     [

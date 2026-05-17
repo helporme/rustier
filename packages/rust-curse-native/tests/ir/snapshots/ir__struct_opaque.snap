@@ -16,24 +16,24 @@ pub struct Handle {
 ```rs
 use wasm_bindgen::prelude::*;
 /// A handle with a hidden internal state.
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Handle__Ref")]
-pub struct __cursed_rustdoc_test_crate__Handle__Ref {
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Handle")]
+pub struct __cursed_rustdoc_test_crate__Handle {
     inner: crate::Handle,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Handle__Ref {
+impl __cursed_rustdoc_test_crate__Handle {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self { inner: crate::Handle {} }
     }
 }
-impl From<crate::Handle> for __cursed_rustdoc_test_crate__Handle__Ref {
+impl From<crate::Handle> for __cursed_rustdoc_test_crate__Handle {
     fn from(v: crate::Handle) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Handle__Ref> for crate::Handle {
-    fn from(v: __cursed_rustdoc_test_crate__Handle__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Handle> for crate::Handle {
+    fn from(v: __cursed_rustdoc_test_crate__Handle) -> Self {
         v.inner
     }
 }
@@ -44,24 +44,24 @@ impl From<__cursed_rustdoc_test_crate__Handle__Ref> for crate::Handle {
 ```rs
 use napi_derive::napi;
 /// A handle with a hidden internal state.
-#[napi(js_name = "__cursed_rustdoc_test_crate__Handle__Ref")]
-pub struct __cursed_rustdoc_test_crate__Handle__Ref {
+#[napi(js_name = "__cursed_rustdoc_test_crate__Handle")]
+pub struct __cursed_rustdoc_test_crate__Handle {
     inner: crate::Handle,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Handle__Ref {
+impl __cursed_rustdoc_test_crate__Handle {
     #[napi(constructor)]
     pub fn new() -> Self {
         Self { inner: crate::Handle {} }
     }
 }
-impl From<crate::Handle> for __cursed_rustdoc_test_crate__Handle__Ref {
+impl From<crate::Handle> for __cursed_rustdoc_test_crate__Handle {
     fn from(v: crate::Handle) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Handle__Ref> for crate::Handle {
-    fn from(v: __cursed_rustdoc_test_crate__Handle__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Handle> for crate::Handle {
+    fn from(v: __cursed_rustdoc_test_crate__Handle) -> Self {
         v.inner
     }
 }
@@ -70,14 +70,6 @@ impl From<__cursed_rustdoc_test_crate__Handle__Ref> for crate::Handle {
 # ts
 
 ```ts
-declare module "$rust-curse" {
-    export type Copy<T> = {
-        [K in keyof T as T[K] extends
-            | string | number | boolean | bigint
-            | Record<string, unknown> | unknown[]
-            ? K : never]: Copy<T[K]>;
-    };
-}
 
 // src/lib.rs.d.ts
 /** A handle with a hidden internal state. */
@@ -92,17 +84,17 @@ export class Handle {
 
 ```js
 // $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Handle__Ref } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__Handle } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Handle__Ref as Handle };
+export { __cursed_rustdoc_test_crate__Handle as Handle };
 ```
 
 # js-napi
 
 ```js
 // $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Handle__Ref } from '$test';
-export { __cursed_rustdoc_test_crate__Handle__Ref as Handle };
+import { __cursed_rustdoc_test_crate__Handle } from '$test';
+export { __cursed_rustdoc_test_crate__Handle as Handle };
 ```
 
 # warns
@@ -172,7 +164,6 @@ IR {
                     },
                 ),
                 ctor: Implicit,
-                has_copy_variant: false,
                 clonable: false,
                 shape: Struct(
                     [],

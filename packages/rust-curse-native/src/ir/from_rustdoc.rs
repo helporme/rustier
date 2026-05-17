@@ -35,7 +35,6 @@ impl IR {
             fn_intern: HashMap::new(),
             mod_intern: HashMap::new(),
             self_stack: Vec::new(),
-            copy_eligible: HashMap::new(),
         };
 
         let root = b
@@ -55,7 +54,6 @@ impl IR {
             .get(&crate_.root)
             .and_then(|it| it.name.clone())
             .unwrap_or_default();
-        b.mark_copy_variants();
         Ok(b.ir)
     }
 }
@@ -70,7 +68,6 @@ struct Builder<'a> {
     fn_intern: HashMap<RId, Option<Id>>,
     mod_intern: HashMap<RId, Id>,
     self_stack: Vec<RId>,
-    copy_eligible: HashMap<Id, bool>,
 }
 
 impl<'a> Builder<'a> {
@@ -310,42 +307,17 @@ impl<'a> Builder<'a> {
             path,
             span,
             ctor: Ctor::Implicit,
-            has_copy_variant: false,
             clonable,
             shape,
             docs: item.docs.clone(),
         }));
 
         let ctor = self.find_ctor(&struct_.impls, id, item)?;
-        self.copy_eligible
-            .insert(sid, can_copy_struct_kind(&struct_.kind, self.crate_));
 
         if let Item::Struct(def) = &mut self.ir.items[sid.0 as usize] {
             def.ctor = ctor;
         }
         Ok(Some(sid))
-    }
-
-    fn mark_copy_variants(&mut self) {
-        let mut to_mark: Vec<Id> = Vec::new();
-        for item in &self.ir.items {
-            let Item::Fn(fn_def) = item else { continue };
-            for param in &fn_def.params {
-                if param.mode != ParamMode::ByValue {
-                    continue;
-                }
-                if let Type::Struct(sid) = &param.ty {
-                    to_mark.push(*sid);
-                }
-            }
-        }
-        for sid in to_mark {
-            if self.copy_eligible.get(&sid).copied().unwrap_or(false) {
-                if let Item::Struct(def) = &mut self.ir.items[sid.0 as usize] {
-                    def.has_copy_variant = true;
-                }
-            }
-        }
     }
 
     fn build_struct_shape(&mut self, kind: &StructKind) -> Result<StructShape, ProbeError> {
@@ -757,27 +729,6 @@ fn has_clone_impl(impls: &[RId], crate_: &Crate) -> bool {
         }
         trait_path.path.rsplit("::").next() == Some("Clone")
     })
-}
-
-fn can_copy_struct_kind(kind: &StructKind, crate_: &Crate) -> bool {
-    match kind {
-        StructKind::Plain {
-            fields,
-            has_stripped_fields,
-        } => {
-            if *has_stripped_fields {
-                return false;
-            }
-            fields.iter().all(|fid| {
-                crate_
-                    .index
-                    .get(fid)
-                    .map(|f| f.visibility == Visibility::Public)
-                    .unwrap_or(false)
-            })
-        }
-        _ => false,
-    }
 }
 
 #[derive(Debug)]

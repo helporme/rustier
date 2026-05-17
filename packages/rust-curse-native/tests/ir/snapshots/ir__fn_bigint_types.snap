@@ -31,14 +31,6 @@ pub fn __cursed_rustdoc_test_crate__f(a: i64, b: u64, c: isize, d: usize) {
 # ts
 
 ```ts
-declare module "$rust-curse" {
-    export type Copy<T> = {
-        [K in keyof T as T[K] extends
-            | string | number | boolean | bigint
-            | Record<string, unknown> | unknown[]
-            ? K : never]: Copy<T[K]>;
-    };
-}
 
 // src/lib.rs.d.ts
 export function f(a: bigint, b: bigint, c: bigint, d: bigint): void;

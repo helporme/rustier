@@ -17,12 +17,12 @@ pub use inner::Inner as Renamed;
 
 ```rs
 use wasm_bindgen::prelude::*;
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__Inner__Ref")]
-pub struct __cursed_rustdoc_test_crate__inner__Inner__Ref {
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__Inner")]
+pub struct __cursed_rustdoc_test_crate__inner__Inner {
     inner: crate::inner::Inner,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__inner__Inner__Ref {
+impl __cursed_rustdoc_test_crate__inner__Inner {
     #[wasm_bindgen(constructor)]
     pub fn new(x: i32) -> Self {
         Self {
@@ -38,13 +38,13 @@ impl __cursed_rustdoc_test_crate__inner__Inner__Ref {
         self.inner.x = v;
     }
 }
-impl From<crate::inner::Inner> for __cursed_rustdoc_test_crate__inner__Inner__Ref {
+impl From<crate::inner::Inner> for __cursed_rustdoc_test_crate__inner__Inner {
     fn from(v: crate::inner::Inner) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__inner__Inner__Ref> for crate::inner::Inner {
-    fn from(v: __cursed_rustdoc_test_crate__inner__Inner__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__inner__Inner> for crate::inner::Inner {
+    fn from(v: __cursed_rustdoc_test_crate__inner__Inner) -> Self {
         v.inner
     }
 }
@@ -54,12 +54,12 @@ impl From<__cursed_rustdoc_test_crate__inner__Inner__Ref> for crate::inner::Inne
 
 ```rs
 use napi_derive::napi;
-#[napi(js_name = "__cursed_rustdoc_test_crate__inner__Inner__Ref")]
-pub struct __cursed_rustdoc_test_crate__inner__Inner__Ref {
+#[napi(js_name = "__cursed_rustdoc_test_crate__inner__Inner")]
+pub struct __cursed_rustdoc_test_crate__inner__Inner {
     inner: crate::inner::Inner,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__inner__Inner__Ref {
+impl __cursed_rustdoc_test_crate__inner__Inner {
     #[napi(constructor)]
     pub fn new(x: i32) -> Self {
         Self {
@@ -75,13 +75,13 @@ impl __cursed_rustdoc_test_crate__inner__Inner__Ref {
         self.inner.x = v;
     }
 }
-impl From<crate::inner::Inner> for __cursed_rustdoc_test_crate__inner__Inner__Ref {
+impl From<crate::inner::Inner> for __cursed_rustdoc_test_crate__inner__Inner {
     fn from(v: crate::inner::Inner) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__inner__Inner__Ref> for crate::inner::Inner {
-    fn from(v: __cursed_rustdoc_test_crate__inner__Inner__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__inner__Inner> for crate::inner::Inner {
+    fn from(v: __cursed_rustdoc_test_crate__inner__Inner) -> Self {
         v.inner
     }
 }
@@ -90,14 +90,6 @@ impl From<__cursed_rustdoc_test_crate__inner__Inner__Ref> for crate::inner::Inne
 # ts
 
 ```ts
-declare module "$rust-curse" {
-    export type Copy<T> = {
-        [K in keyof T as T[K] extends
-            | string | number | boolean | bigint
-            | Record<string, unknown> | unknown[]
-            ? K : never]: Copy<T[K]>;
-    };
-}
 
 // src/lib.rs.d.ts
 export { Inner as Renamed } from "./inner.rs";
@@ -116,26 +108,26 @@ export class Inner {
 
 ```js
 // $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__inner__Inner__Ref } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__inner__Inner } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Renamed };
+export { __cursed_rustdoc_test_crate__inner__Inner as Renamed };
 
 // $rust/rustdoc_test_crate/inner
-import __wbg_init, { __cursed_rustdoc_test_crate__inner__Inner__Ref } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__inner__Inner } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Inner };
+export { __cursed_rustdoc_test_crate__inner__Inner as Inner };
 ```
 
 # js-napi
 
 ```js
 // $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__inner__Inner__Ref } from '$test';
-export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Renamed };
+import { __cursed_rustdoc_test_crate__inner__Inner } from '$test';
+export { __cursed_rustdoc_test_crate__inner__Inner as Renamed };
 
 // $rust/rustdoc_test_crate/inner
-import { __cursed_rustdoc_test_crate__inner__Inner__Ref } from '$test';
-export { __cursed_rustdoc_test_crate__inner__Inner__Ref as Inner };
+import { __cursed_rustdoc_test_crate__inner__Inner } from '$test';
+export { __cursed_rustdoc_test_crate__inner__Inner as Inner };
 ```
 
 # warns
@@ -243,7 +235,6 @@ IR {
                     },
                 ),
                 ctor: Implicit,
-                has_copy_variant: false,
                 clonable: false,
                 shape: Struct(
                     [

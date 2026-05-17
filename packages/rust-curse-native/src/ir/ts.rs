@@ -4,17 +4,9 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
 use super::mangle::is_canonical_origin;
-use super::{Ctor, FnParam, Id, Item, ItemPath, NumberType, ParamMode, StructShape, Type, IR};
+use super::{Ctor, Id, Item, ItemPath, NumberType, StructShape, Type, IR};
 
-const PREAMBLE: &str = r#"declare module "$rust-curse" {
-    export type Copy<T> = {
-        [K in keyof T as T[K] extends
-            | string | number | boolean | bigint
-            | Record<string, unknown> | unknown[]
-            ? K : never]: Copy<T[K]>;
-    };
-}
-"#;
+const PREAMBLE: &str = "";
 
 /// Options for printing a single module's `.d.ts` body.
 pub struct PrintTsModOpts<'a> {
@@ -50,7 +42,6 @@ struct Printer<'a> {
     /// Map of relative import specifier (e.g. `"./types"`) to the set of
     /// type names imported from there.
     imports: BTreeMap<String, BTreeSet<String>>,
-    needs_copy: bool,
 }
 
 impl<'a> Printer<'a> {
@@ -61,7 +52,6 @@ impl<'a> Printer<'a> {
             rel_src_path,
             local_structs: HashSet::new(),
             imports: BTreeMap::new(),
-            needs_copy: false,
         }
     }
 
@@ -80,9 +70,6 @@ impl<'a> Printer<'a> {
         let body = self.print_exports(&mod_segments, &exports);
 
         let mut out = String::new();
-        if self.needs_copy {
-            out.push_str("import type { Copy } from \"$rust-curse\";\n");
-        }
         for (specifier, names) in &self.imports {
             let names_str: Vec<&str> = names.iter().map(String::as_str).collect();
             out.push_str(&format!(
@@ -90,7 +77,7 @@ impl<'a> Printer<'a> {
                 names_str.join(", ")
             ));
         }
-        if self.needs_copy || !self.imports.is_empty() {
+        if !self.imports.is_empty() {
             out.push('\n');
         }
         out.push_str(&body);
@@ -145,17 +132,6 @@ impl<'a> Printer<'a> {
                 }
                 name
             }
-        }
-    }
-
-    fn param_to_ts(&mut self, param: &FnParam) -> String {
-        let base = self.type_to_ts(&param.ty);
-        let is_nominal = matches!(param.ty, Type::Struct(_));
-        if param.mode == ParamMode::ByValue && is_nominal {
-            self.needs_copy = true;
-            format!("Copy<{base}>")
-        } else {
-            base
         }
     }
 
@@ -253,7 +229,7 @@ impl<'a> Printer<'a> {
             .params
             .iter()
             .map(|p| {
-                let ty = self.param_to_ts(p);
+                let ty = self.type_to_ts(&p.ty);
                 format!("{}: {ty}", p.name)
             })
             .collect();

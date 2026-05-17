@@ -19,12 +19,12 @@ impl Opaque {
 
 ```rs
 use wasm_bindgen::prelude::*;
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Opaque__Ref")]
-pub struct __cursed_rustdoc_test_crate__Opaque__Ref {
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Opaque")]
+pub struct __cursed_rustdoc_test_crate__Opaque {
     inner: crate::Opaque,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Opaque__Ref {
+impl __cursed_rustdoc_test_crate__Opaque {
     #[wasm_bindgen(constructor)]
     pub fn new(x: i32) -> Self {
         Self {
@@ -32,13 +32,13 @@ impl __cursed_rustdoc_test_crate__Opaque__Ref {
         }
     }
 }
-impl From<crate::Opaque> for __cursed_rustdoc_test_crate__Opaque__Ref {
+impl From<crate::Opaque> for __cursed_rustdoc_test_crate__Opaque {
     fn from(v: crate::Opaque) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Opaque__Ref> for crate::Opaque {
-    fn from(v: __cursed_rustdoc_test_crate__Opaque__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Opaque> for crate::Opaque {
+    fn from(v: __cursed_rustdoc_test_crate__Opaque) -> Self {
         v.inner
     }
 }
@@ -48,12 +48,12 @@ impl From<__cursed_rustdoc_test_crate__Opaque__Ref> for crate::Opaque {
 
 ```rs
 use napi_derive::napi;
-#[napi(js_name = "__cursed_rustdoc_test_crate__Opaque__Ref")]
-pub struct __cursed_rustdoc_test_crate__Opaque__Ref {
+#[napi(js_name = "__cursed_rustdoc_test_crate__Opaque")]
+pub struct __cursed_rustdoc_test_crate__Opaque {
     inner: crate::Opaque,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Opaque__Ref {
+impl __cursed_rustdoc_test_crate__Opaque {
     #[napi(constructor)]
     pub fn new(x: i32) -> Self {
         Self {
@@ -61,13 +61,13 @@ impl __cursed_rustdoc_test_crate__Opaque__Ref {
         }
     }
 }
-impl From<crate::Opaque> for __cursed_rustdoc_test_crate__Opaque__Ref {
+impl From<crate::Opaque> for __cursed_rustdoc_test_crate__Opaque {
     fn from(v: crate::Opaque) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Opaque__Ref> for crate::Opaque {
-    fn from(v: __cursed_rustdoc_test_crate__Opaque__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Opaque> for crate::Opaque {
+    fn from(v: __cursed_rustdoc_test_crate__Opaque) -> Self {
         v.inner
     }
 }
@@ -76,14 +76,6 @@ impl From<__cursed_rustdoc_test_crate__Opaque__Ref> for crate::Opaque {
 # ts
 
 ```ts
-declare module "$rust-curse" {
-    export type Copy<T> = {
-        [K in keyof T as T[K] extends
-            | string | number | boolean | bigint
-            | Record<string, unknown> | unknown[]
-            ? K : never]: Copy<T[K]>;
-    };
-}
 
 // src/lib.rs.d.ts
 export class Opaque {
@@ -97,17 +89,17 @@ export class Opaque {
 
 ```js
 // $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Opaque__Ref } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__Opaque } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Opaque__Ref as Opaque };
+export { __cursed_rustdoc_test_crate__Opaque as Opaque };
 ```
 
 # js-napi
 
 ```js
 // $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Opaque__Ref } from '$test';
-export { __cursed_rustdoc_test_crate__Opaque__Ref as Opaque };
+import { __cursed_rustdoc_test_crate__Opaque } from '$test';
+export { __cursed_rustdoc_test_crate__Opaque as Opaque };
 ```
 
 # warns
@@ -181,7 +173,6 @@ IR {
                         2,
                     ),
                 ),
-                has_copy_variant: false,
                 clonable: false,
                 shape: Struct(
                     [],

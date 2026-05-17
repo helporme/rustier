@@ -14,24 +14,24 @@ pub struct Pair(pub i32, pub String);
 ```rs
 use wasm_bindgen::prelude::*;
 /// A pair of values stored as a tuple struct.
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Pair__Ref")]
-pub struct __cursed_rustdoc_test_crate__Pair__Ref {
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Pair")]
+pub struct __cursed_rustdoc_test_crate__Pair {
     inner: crate::Pair,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Pair__Ref {
+impl __cursed_rustdoc_test_crate__Pair {
     #[wasm_bindgen(constructor)]
     pub fn new(_0: i32, _1: String) -> Self {
         Self { inner: crate::Pair(_0, _1) }
     }
 }
-impl From<crate::Pair> for __cursed_rustdoc_test_crate__Pair__Ref {
+impl From<crate::Pair> for __cursed_rustdoc_test_crate__Pair {
     fn from(v: crate::Pair) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Pair__Ref> for crate::Pair {
-    fn from(v: __cursed_rustdoc_test_crate__Pair__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Pair> for crate::Pair {
+    fn from(v: __cursed_rustdoc_test_crate__Pair) -> Self {
         v.inner
     }
 }
@@ -42,24 +42,24 @@ impl From<__cursed_rustdoc_test_crate__Pair__Ref> for crate::Pair {
 ```rs
 use napi_derive::napi;
 /// A pair of values stored as a tuple struct.
-#[napi(js_name = "__cursed_rustdoc_test_crate__Pair__Ref")]
-pub struct __cursed_rustdoc_test_crate__Pair__Ref {
+#[napi(js_name = "__cursed_rustdoc_test_crate__Pair")]
+pub struct __cursed_rustdoc_test_crate__Pair {
     inner: crate::Pair,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Pair__Ref {
+impl __cursed_rustdoc_test_crate__Pair {
     #[napi(constructor)]
     pub fn new(_0: i32, _1: String) -> Self {
         Self { inner: crate::Pair(_0, _1) }
     }
 }
-impl From<crate::Pair> for __cursed_rustdoc_test_crate__Pair__Ref {
+impl From<crate::Pair> for __cursed_rustdoc_test_crate__Pair {
     fn from(v: crate::Pair) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Pair__Ref> for crate::Pair {
-    fn from(v: __cursed_rustdoc_test_crate__Pair__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Pair> for crate::Pair {
+    fn from(v: __cursed_rustdoc_test_crate__Pair) -> Self {
         v.inner
     }
 }
@@ -68,14 +68,6 @@ impl From<__cursed_rustdoc_test_crate__Pair__Ref> for crate::Pair {
 # ts
 
 ```ts
-declare module "$rust-curse" {
-    export type Copy<T> = {
-        [K in keyof T as T[K] extends
-            | string | number | boolean | bigint
-            | Record<string, unknown> | unknown[]
-            ? K : never]: Copy<T[K]>;
-    };
-}
 
 // src/lib.rs.d.ts
 /** A pair of values stored as a tuple struct. */
@@ -94,17 +86,17 @@ export class Pair {
 
 ```js
 // $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Pair__Ref } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__Pair } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Pair__Ref as Pair };
+export { __cursed_rustdoc_test_crate__Pair as Pair };
 ```
 
 # js-napi
 
 ```js
 // $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Pair__Ref } from '$test';
-export { __cursed_rustdoc_test_crate__Pair__Ref as Pair };
+import { __cursed_rustdoc_test_crate__Pair } from '$test';
+export { __cursed_rustdoc_test_crate__Pair as Pair };
 ```
 
 # warns
@@ -174,7 +166,6 @@ IR {
                     },
                 ),
                 ctor: Implicit,
-                has_copy_variant: false,
                 clonable: false,
                 shape: Tuple(
                     [

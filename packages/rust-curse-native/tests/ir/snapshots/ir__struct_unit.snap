@@ -12,24 +12,24 @@ pub struct Marker;
 
 ```rs
 use wasm_bindgen::prelude::*;
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Marker__Ref")]
-pub struct __cursed_rustdoc_test_crate__Marker__Ref {
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Marker")]
+pub struct __cursed_rustdoc_test_crate__Marker {
     inner: crate::Marker,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Marker__Ref {
+impl __cursed_rustdoc_test_crate__Marker {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self { inner: crate::Marker }
     }
 }
-impl From<crate::Marker> for __cursed_rustdoc_test_crate__Marker__Ref {
+impl From<crate::Marker> for __cursed_rustdoc_test_crate__Marker {
     fn from(v: crate::Marker) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Marker__Ref> for crate::Marker {
-    fn from(v: __cursed_rustdoc_test_crate__Marker__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Marker> for crate::Marker {
+    fn from(v: __cursed_rustdoc_test_crate__Marker) -> Self {
         v.inner
     }
 }
@@ -39,24 +39,24 @@ impl From<__cursed_rustdoc_test_crate__Marker__Ref> for crate::Marker {
 
 ```rs
 use napi_derive::napi;
-#[napi(js_name = "__cursed_rustdoc_test_crate__Marker__Ref")]
-pub struct __cursed_rustdoc_test_crate__Marker__Ref {
+#[napi(js_name = "__cursed_rustdoc_test_crate__Marker")]
+pub struct __cursed_rustdoc_test_crate__Marker {
     inner: crate::Marker,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Marker__Ref {
+impl __cursed_rustdoc_test_crate__Marker {
     #[napi(constructor)]
     pub fn new() -> Self {
         Self { inner: crate::Marker }
     }
 }
-impl From<crate::Marker> for __cursed_rustdoc_test_crate__Marker__Ref {
+impl From<crate::Marker> for __cursed_rustdoc_test_crate__Marker {
     fn from(v: crate::Marker) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Marker__Ref> for crate::Marker {
-    fn from(v: __cursed_rustdoc_test_crate__Marker__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Marker> for crate::Marker {
+    fn from(v: __cursed_rustdoc_test_crate__Marker) -> Self {
         v.inner
     }
 }
@@ -65,14 +65,6 @@ impl From<__cursed_rustdoc_test_crate__Marker__Ref> for crate::Marker {
 # ts
 
 ```ts
-declare module "$rust-curse" {
-    export type Copy<T> = {
-        [K in keyof T as T[K] extends
-            | string | number | boolean | bigint
-            | Record<string, unknown> | unknown[]
-            ? K : never]: Copy<T[K]>;
-    };
-}
 
 // src/lib.rs.d.ts
 export class Marker {
@@ -86,17 +78,17 @@ export class Marker {
 
 ```js
 // $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Marker__Ref } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__Marker } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Marker__Ref as Marker };
+export { __cursed_rustdoc_test_crate__Marker as Marker };
 ```
 
 # js-napi
 
 ```js
 // $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Marker__Ref } from '$test';
-export { __cursed_rustdoc_test_crate__Marker__Ref as Marker };
+import { __cursed_rustdoc_test_crate__Marker } from '$test';
+export { __cursed_rustdoc_test_crate__Marker as Marker };
 ```
 
 # warns
@@ -166,7 +158,6 @@ IR {
                     },
                 ),
                 ctor: Implicit,
-                has_copy_variant: false,
                 clonable: false,
                 shape: Unit,
                 docs: None,

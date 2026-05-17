@@ -20,12 +20,12 @@ pub use inner::*;
 
 ```rs
 use wasm_bindgen::prelude::*;
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__S__Ref")]
-pub struct __cursed_rustdoc_test_crate__inner__S__Ref {
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__S")]
+pub struct __cursed_rustdoc_test_crate__inner__S {
     inner: crate::inner::S,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__inner__S__Ref {
+impl __cursed_rustdoc_test_crate__inner__S {
     #[wasm_bindgen(constructor)]
     pub fn new(x: i32) -> Self {
         Self {
@@ -41,13 +41,13 @@ impl __cursed_rustdoc_test_crate__inner__S__Ref {
         self.inner.x = v;
     }
 }
-impl From<crate::inner::S> for __cursed_rustdoc_test_crate__inner__S__Ref {
+impl From<crate::inner::S> for __cursed_rustdoc_test_crate__inner__S {
     fn from(v: crate::inner::S) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__inner__S__Ref> for crate::inner::S {
-    fn from(v: __cursed_rustdoc_test_crate__inner__S__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__inner__S> for crate::inner::S {
+    fn from(v: __cursed_rustdoc_test_crate__inner__S) -> Self {
         v.inner
     }
 }
@@ -61,12 +61,12 @@ pub fn __cursed_rustdoc_test_crate__inner__f() -> i32 {
 
 ```rs
 use napi_derive::napi;
-#[napi(js_name = "__cursed_rustdoc_test_crate__inner__S__Ref")]
-pub struct __cursed_rustdoc_test_crate__inner__S__Ref {
+#[napi(js_name = "__cursed_rustdoc_test_crate__inner__S")]
+pub struct __cursed_rustdoc_test_crate__inner__S {
     inner: crate::inner::S,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__inner__S__Ref {
+impl __cursed_rustdoc_test_crate__inner__S {
     #[napi(constructor)]
     pub fn new(x: i32) -> Self {
         Self {
@@ -82,13 +82,13 @@ impl __cursed_rustdoc_test_crate__inner__S__Ref {
         self.inner.x = v;
     }
 }
-impl From<crate::inner::S> for __cursed_rustdoc_test_crate__inner__S__Ref {
+impl From<crate::inner::S> for __cursed_rustdoc_test_crate__inner__S {
     fn from(v: crate::inner::S) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__inner__S__Ref> for crate::inner::S {
-    fn from(v: __cursed_rustdoc_test_crate__inner__S__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__inner__S> for crate::inner::S {
+    fn from(v: __cursed_rustdoc_test_crate__inner__S) -> Self {
         v.inner
     }
 }
@@ -101,14 +101,6 @@ pub fn __cursed_rustdoc_test_crate__inner__f() -> i32 {
 # ts
 
 ```ts
-declare module "$rust-curse" {
-    export type Copy<T> = {
-        [K in keyof T as T[K] extends
-            | string | number | boolean | bigint
-            | Record<string, unknown> | unknown[]
-            ? K : never]: Copy<T[K]>;
-    };
-}
 
 // src/lib.rs.d.ts
 export { S } from "./inner.rs";
@@ -131,26 +123,26 @@ export function f(): number;
 
 ```js
 // $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__inner__S__Ref, __cursed_rustdoc_test_crate__inner__f } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__inner__S, __cursed_rustdoc_test_crate__inner__f } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__inner__S__Ref as S, __cursed_rustdoc_test_crate__inner__f as f };
+export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate__inner__f as f };
 
 // $rust/rustdoc_test_crate/inner
-import __wbg_init, { __cursed_rustdoc_test_crate__inner__S__Ref, __cursed_rustdoc_test_crate__inner__f } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__inner__S, __cursed_rustdoc_test_crate__inner__f } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__inner__S__Ref as S, __cursed_rustdoc_test_crate__inner__f as f };
+export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate__inner__f as f };
 ```
 
 # js-napi
 
 ```js
 // $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__inner__S__Ref, __cursed_rustdoc_test_crate__inner__f } from '$test';
-export { __cursed_rustdoc_test_crate__inner__S__Ref as S, __cursed_rustdoc_test_crate__inner__f as f };
+import { __cursed_rustdoc_test_crate__inner__S, __cursed_rustdoc_test_crate__inner__f } from '$test';
+export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate__inner__f as f };
 
 // $rust/rustdoc_test_crate/inner
-import { __cursed_rustdoc_test_crate__inner__S__Ref, __cursed_rustdoc_test_crate__inner__f } from '$test';
-export { __cursed_rustdoc_test_crate__inner__S__Ref as S, __cursed_rustdoc_test_crate__inner__f as f };
+import { __cursed_rustdoc_test_crate__inner__S, __cursed_rustdoc_test_crate__inner__f } from '$test';
+export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate__inner__f as f };
 ```
 
 # warns
@@ -270,7 +262,6 @@ IR {
                     },
                 ),
                 ctor: Implicit,
-                has_copy_variant: false,
                 clonable: false,
                 shape: Struct(
                     [

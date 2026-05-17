@@ -12,24 +12,24 @@ pub struct Empty {}
 
 ```rs
 use wasm_bindgen::prelude::*;
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Empty__Ref")]
-pub struct __cursed_rustdoc_test_crate__Empty__Ref {
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Empty")]
+pub struct __cursed_rustdoc_test_crate__Empty {
     inner: crate::Empty,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Empty__Ref {
+impl __cursed_rustdoc_test_crate__Empty {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self { inner: crate::Empty {} }
     }
 }
-impl From<crate::Empty> for __cursed_rustdoc_test_crate__Empty__Ref {
+impl From<crate::Empty> for __cursed_rustdoc_test_crate__Empty {
     fn from(v: crate::Empty) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Empty__Ref> for crate::Empty {
-    fn from(v: __cursed_rustdoc_test_crate__Empty__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Empty> for crate::Empty {
+    fn from(v: __cursed_rustdoc_test_crate__Empty) -> Self {
         v.inner
     }
 }
@@ -39,24 +39,24 @@ impl From<__cursed_rustdoc_test_crate__Empty__Ref> for crate::Empty {
 
 ```rs
 use napi_derive::napi;
-#[napi(js_name = "__cursed_rustdoc_test_crate__Empty__Ref")]
-pub struct __cursed_rustdoc_test_crate__Empty__Ref {
+#[napi(js_name = "__cursed_rustdoc_test_crate__Empty")]
+pub struct __cursed_rustdoc_test_crate__Empty {
     inner: crate::Empty,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Empty__Ref {
+impl __cursed_rustdoc_test_crate__Empty {
     #[napi(constructor)]
     pub fn new() -> Self {
         Self { inner: crate::Empty {} }
     }
 }
-impl From<crate::Empty> for __cursed_rustdoc_test_crate__Empty__Ref {
+impl From<crate::Empty> for __cursed_rustdoc_test_crate__Empty {
     fn from(v: crate::Empty) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Empty__Ref> for crate::Empty {
-    fn from(v: __cursed_rustdoc_test_crate__Empty__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Empty> for crate::Empty {
+    fn from(v: __cursed_rustdoc_test_crate__Empty) -> Self {
         v.inner
     }
 }
@@ -65,14 +65,6 @@ impl From<__cursed_rustdoc_test_crate__Empty__Ref> for crate::Empty {
 # ts
 
 ```ts
-declare module "$rust-curse" {
-    export type Copy<T> = {
-        [K in keyof T as T[K] extends
-            | string | number | boolean | bigint
-            | Record<string, unknown> | unknown[]
-            ? K : never]: Copy<T[K]>;
-    };
-}
 
 // src/lib.rs.d.ts
 export class Empty {
@@ -86,17 +78,17 @@ export class Empty {
 
 ```js
 // $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Empty__Ref } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__Empty } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Empty__Ref as Empty };
+export { __cursed_rustdoc_test_crate__Empty as Empty };
 ```
 
 # js-napi
 
 ```js
 // $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Empty__Ref } from '$test';
-export { __cursed_rustdoc_test_crate__Empty__Ref as Empty };
+import { __cursed_rustdoc_test_crate__Empty } from '$test';
+export { __cursed_rustdoc_test_crate__Empty as Empty };
 ```
 
 # warns
@@ -166,7 +158,6 @@ IR {
                     },
                 ),
                 ctor: Implicit,
-                has_copy_variant: false,
                 clonable: false,
                 shape: Struct(
                     [],

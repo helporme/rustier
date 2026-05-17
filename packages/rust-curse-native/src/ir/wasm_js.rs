@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use super::mangle::{mangle_fn, mangle_ref};
+use super::mangle::mangle;
 use super::{Id, Item, IR};
 
 impl IR {
@@ -44,11 +44,11 @@ impl<'a> Printer<'a> {
             }
             match self.ir.get_unchecked(export.target) {
                 Item::Fn(def) => bindings.push(Binding {
-                    js_name: mangle_fn(&def.path),
+                    js_name: mangle(&def.path),
                     local_name: export.name.clone(),
                 }),
                 Item::Struct(def) => bindings.push(Binding {
-                    js_name: mangle_ref(&def.path),
+                    js_name: mangle(&def.path),
                     local_name: export.name.clone(),
                 }),
                 Item::Mod(_) => {}

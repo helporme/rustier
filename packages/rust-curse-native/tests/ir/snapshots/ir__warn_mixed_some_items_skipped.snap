@@ -35,14 +35,6 @@ pub fn __cursed_rustdoc_test_crate__good(a: i32, b: i32) -> i32 {
 # ts
 
 ```ts
-declare module "$rust-curse" {
-    export type Copy<T> = {
-        [K in keyof T as T[K] extends
-            | string | number | boolean | bigint
-            | Record<string, unknown> | unknown[]
-            ? K : never]: Copy<T[K]>;
-    };
-}
 
 // src/lib.rs.d.ts
 export function good(a: number, b: number): number;

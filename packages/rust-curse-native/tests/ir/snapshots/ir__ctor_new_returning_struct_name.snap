@@ -19,12 +19,12 @@ impl Token {
 
 ```rs
 use wasm_bindgen::prelude::*;
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Token__Ref")]
-pub struct __cursed_rustdoc_test_crate__Token__Ref {
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Token")]
+pub struct __cursed_rustdoc_test_crate__Token {
     inner: crate::Token,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Token__Ref {
+impl __cursed_rustdoc_test_crate__Token {
     #[wasm_bindgen(constructor)]
     pub fn new(raw: String) -> Self {
         Self {
@@ -32,13 +32,13 @@ impl __cursed_rustdoc_test_crate__Token__Ref {
         }
     }
 }
-impl From<crate::Token> for __cursed_rustdoc_test_crate__Token__Ref {
+impl From<crate::Token> for __cursed_rustdoc_test_crate__Token {
     fn from(v: crate::Token) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Token__Ref> for crate::Token {
-    fn from(v: __cursed_rustdoc_test_crate__Token__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Token> for crate::Token {
+    fn from(v: __cursed_rustdoc_test_crate__Token) -> Self {
         v.inner
     }
 }
@@ -48,12 +48,12 @@ impl From<__cursed_rustdoc_test_crate__Token__Ref> for crate::Token {
 
 ```rs
 use napi_derive::napi;
-#[napi(js_name = "__cursed_rustdoc_test_crate__Token__Ref")]
-pub struct __cursed_rustdoc_test_crate__Token__Ref {
+#[napi(js_name = "__cursed_rustdoc_test_crate__Token")]
+pub struct __cursed_rustdoc_test_crate__Token {
     inner: crate::Token,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Token__Ref {
+impl __cursed_rustdoc_test_crate__Token {
     #[napi(constructor)]
     pub fn new(raw: String) -> Self {
         Self {
@@ -61,13 +61,13 @@ impl __cursed_rustdoc_test_crate__Token__Ref {
         }
     }
 }
-impl From<crate::Token> for __cursed_rustdoc_test_crate__Token__Ref {
+impl From<crate::Token> for __cursed_rustdoc_test_crate__Token {
     fn from(v: crate::Token) -> Self {
         Self { inner: v }
     }
 }
-impl From<__cursed_rustdoc_test_crate__Token__Ref> for crate::Token {
-    fn from(v: __cursed_rustdoc_test_crate__Token__Ref) -> Self {
+impl From<__cursed_rustdoc_test_crate__Token> for crate::Token {
+    fn from(v: __cursed_rustdoc_test_crate__Token) -> Self {
         v.inner
     }
 }
@@ -76,14 +76,6 @@ impl From<__cursed_rustdoc_test_crate__Token__Ref> for crate::Token {
 # ts
 
 ```ts
-declare module "$rust-curse" {
-    export type Copy<T> = {
-        [K in keyof T as T[K] extends
-            | string | number | boolean | bigint
-            | Record<string, unknown> | unknown[]
-            ? K : never]: Copy<T[K]>;
-    };
-}
 
 // src/lib.rs.d.ts
 export class Token {
@@ -97,17 +89,17 @@ export class Token {
 
 ```js
 // $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Token__Ref } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__Token } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Token__Ref as Token };
+export { __cursed_rustdoc_test_crate__Token as Token };
 ```
 
 # js-napi
 
 ```js
 // $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Token__Ref } from '$test';
-export { __cursed_rustdoc_test_crate__Token__Ref as Token };
+import { __cursed_rustdoc_test_crate__Token } from '$test';
+export { __cursed_rustdoc_test_crate__Token as Token };
 ```
 
 # warns
@@ -181,7 +173,6 @@ IR {
                         2,
                     ),
                 ),
-                has_copy_variant: false,
                 clonable: false,
                 shape: Struct(
                     [],

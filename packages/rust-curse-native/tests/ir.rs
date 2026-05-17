@@ -108,16 +108,6 @@ fn struct_plain() {
 }
 
 #[test]
-fn struct_used_by_value() {
-    assert_snap! {
-        pub struct Point {
-            pub x: i32,
-        }
-        pub fn use_it(p: Point) {}
-    };
-}
-
-#[test]
 fn struct_opaque() {
     assert_snap! {
         /// A handle with a hidden internal state.
@@ -175,16 +165,6 @@ fn struct_with_struct_field() {
             pub center: Point,
             /// The radius in the same units as `center`.
             pub radius: f64,
-        }
-    };
-}
-
-#[test]
-fn struct_pub_crate_field_forces_ref() {
-    assert_snap! {
-        pub struct Gated {
-            pub x: i32,
-            pub(crate) y: i32,
         }
     };
 }
