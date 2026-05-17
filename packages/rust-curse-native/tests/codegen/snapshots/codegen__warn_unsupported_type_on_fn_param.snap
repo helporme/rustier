@@ -1,0 +1,91 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub fn f(v: Vec<i32>) {}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+```
+
+# warns
+
+```text
+rust-curse::unsupported_type
+
+  ⚠ unsupported std type "alloc::vec::Vec"
+   ╭─[src/lib.rs:1:1]
+ 1 │ pub fn f(v: Vec<i32>) {}
+   · ────────────────────────
+   ╰────
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            25,
+                        ),
+                    },
+                ),
+                exports: [],
+            },
+        ),
+    ],
+}
+```

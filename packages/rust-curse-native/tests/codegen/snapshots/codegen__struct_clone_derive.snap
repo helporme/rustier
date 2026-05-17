@@ -1,0 +1,319 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+#[derive(Clone)]
+pub struct Cloneable {
+    pub x: i32,
+}
+pub struct NotCloneable {
+    pub x: i32,
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Cloneable")]
+pub struct __cursed_rustdoc_test_crate__Cloneable {
+    inner: crate::Cloneable,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Cloneable {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::Cloneable { x },
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::Cloneable> for __cursed_rustdoc_test_crate__Cloneable {
+    fn from(v: crate::Cloneable) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Cloneable> for crate::Cloneable {
+    fn from(v: __cursed_rustdoc_test_crate__Cloneable) -> Self {
+        v.inner
+    }
+}
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__NotCloneable")]
+pub struct __cursed_rustdoc_test_crate__NotCloneable {
+    inner: crate::NotCloneable,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__NotCloneable {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::NotCloneable { x },
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::NotCloneable> for __cursed_rustdoc_test_crate__NotCloneable {
+    fn from(v: crate::NotCloneable) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__NotCloneable> for crate::NotCloneable {
+    fn from(v: __cursed_rustdoc_test_crate__NotCloneable) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__Cloneable")]
+pub struct __cursed_rustdoc_test_crate__Cloneable {
+    inner: crate::Cloneable,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Cloneable {
+    #[napi(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::Cloneable { x },
+        }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::Cloneable> for __cursed_rustdoc_test_crate__Cloneable {
+    fn from(v: crate::Cloneable) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Cloneable> for crate::Cloneable {
+    fn from(v: __cursed_rustdoc_test_crate__Cloneable) -> Self {
+        v.inner
+    }
+}
+#[napi(js_name = "__cursed_rustdoc_test_crate__NotCloneable")]
+pub struct __cursed_rustdoc_test_crate__NotCloneable {
+    inner: crate::NotCloneable,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__NotCloneable {
+    #[napi(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::NotCloneable { x },
+        }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::NotCloneable> for __cursed_rustdoc_test_crate__NotCloneable {
+    fn from(v: crate::NotCloneable) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__NotCloneable> for crate::NotCloneable {
+    fn from(v: __cursed_rustdoc_test_crate__NotCloneable) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+export class Cloneable {
+    private [" "]: 'rustdoc_test_crate::Cloneable';
+
+    x: number;
+
+    constructor(x: number);
+}
+
+export class NotCloneable {
+    private [" "]: 'rustdoc_test_crate::NotCloneable';
+
+    x: number;
+
+    constructor(x: number);
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Cloneable, __cursed_rustdoc_test_crate__NotCloneable } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Cloneable as Cloneable, __cursed_rustdoc_test_crate__NotCloneable as NotCloneable };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Cloneable, __cursed_rustdoc_test_crate__NotCloneable } from '$test';
+export { __cursed_rustdoc_test_crate__Cloneable as Cloneable, __cursed_rustdoc_test_crate__NotCloneable as NotCloneable };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Cloneable",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "NotCloneable",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Cloneable",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            4,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: true,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "NotCloneable",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

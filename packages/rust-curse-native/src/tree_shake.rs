@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 use glob::glob;
 
 use crate::common::{mangle_module_name, FileFilter};
-use crate::ir::{Ctor, Id, Item, StructShape, Type, IR};
+use crate::codegen::asg::{Ctor, Id, Item, StructShape, Type, ASG};
 use crate::orphans;
 
 #[derive(Debug)]
@@ -52,7 +52,7 @@ pub enum TreeShakeError {
 /// Compute the set of IR ids reachable from JS/TS imports. JS imports that
 /// reference a non-existent `.rs` module, a name not exported by the
 /// targeted module, or use a default-import syntax are silently skipped.
-pub fn shake(ir: &IR, opts: TreeShakeOpts<'_>) -> Result<HashSet<Id>, TreeShakeError> {
+pub fn shake(ir: &ASG, opts: TreeShakeOpts<'_>) -> Result<HashSet<Id>, TreeShakeError> {
     let abs_project_root = fs::canonicalize(opts.project_root_abs_path).map_err(|source| {
         TreeShakeError::RootNotFound {
             abs_path: opts.project_root_abs_path.to_path_buf(),
@@ -150,7 +150,7 @@ fn walk_type(ty: &Type, stack: &mut Vec<Id>) {
     }
 }
 
-fn find_module(ir: &IR, mod_name: &str) -> Option<Id> {
+fn find_module(ir: &ASG, mod_name: &str) -> Option<Id> {
     let mangled = mangle_module_name(mod_name);
     let expected: Vec<&str> = vec![ir.crate_name.as_str(), mangled.as_str()];
     for (i, item) in ir.items.iter().enumerate() {
@@ -417,7 +417,7 @@ fn parse_members(specifier_part: &str) -> Vec<String> {
 
 /// Return the segments-joined `crate::path::to::item` string for a given Id.
 /// Used by tree_shake tests to render id sets in a stable, human-readable form.
-pub fn item_path(ir: &IR, id: Id) -> String {
+pub fn item_path(ir: &ASG, id: Id) -> String {
     let segs = match ir.get_unchecked(id) {
         Item::Fn(def) => &def.path.segments,
         Item::Struct(def) => &def.path.segments,

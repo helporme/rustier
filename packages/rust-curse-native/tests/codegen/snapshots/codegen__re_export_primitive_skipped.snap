@@ -1,0 +1,85 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub use i32 as MyI32;
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            22,
+                        ),
+                    },
+                ),
+                exports: [],
+            },
+        ),
+    ],
+}
+```

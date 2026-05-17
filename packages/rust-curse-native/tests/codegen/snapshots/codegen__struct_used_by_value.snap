@@ -1,0 +1,251 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub struct Point {
+    pub x: i32,
+}
+pub fn use_it(p: Point) {}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Point")]
+pub struct __cursed_rustdoc_test_crate__Point {
+    inner: crate::Point,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Point {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self { inner: crate::Point { x } }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::Point> for __cursed_rustdoc_test_crate__Point {
+    fn from(v: crate::Point) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Point> for crate::Point {
+    fn from(v: __cursed_rustdoc_test_crate__Point) -> Self {
+        v.inner
+    }
+}
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__use_it")]
+pub fn __cursed_rustdoc_test_crate__use_it(p: __cursed_rustdoc_test_crate__Point) {
+    crate::use_it(p.into());
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__Point")]
+pub struct __cursed_rustdoc_test_crate__Point {
+    inner: crate::Point,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Point {
+    #[napi(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self { inner: crate::Point { x } }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::Point> for __cursed_rustdoc_test_crate__Point {
+    fn from(v: crate::Point) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Point> for crate::Point {
+    fn from(v: __cursed_rustdoc_test_crate__Point) -> Self {
+        v.inner
+    }
+}
+#[napi(js_name = "__cursed_rustdoc_test_crate__use_it")]
+pub fn __cursed_rustdoc_test_crate__use_it(p: __cursed_rustdoc_test_crate__Point) {
+    crate::use_it(p.into());
+}
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+export class Point {
+    private [" "]: 'rustdoc_test_crate::Point';
+
+    x: number;
+
+    constructor(x: number);
+}
+
+export function use_it(p: Point): void;
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Point, __cursed_rustdoc_test_crate__use_it } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crate__use_it as use_it };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Point, __cursed_rustdoc_test_crate__use_it } from '$test';
+export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crate__use_it as use_it };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            4,
+                            27,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Point",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "use_it",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Point",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Number(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "use_it",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            4,
+                            1,
+                        ),
+                        end: (
+                            4,
+                            27,
+                        ),
+                    },
+                ),
+                params: [
+                    FnParam {
+                        name: "p",
+                        mode: ByValue,
+                        ty: Struct(
+                            Id(
+                                1,
+                            ),
+                        ),
+                    },
+                ],
+                return_type: Unit,
+                docs: None,
+            },
+        ),
+    ],
+}
+```

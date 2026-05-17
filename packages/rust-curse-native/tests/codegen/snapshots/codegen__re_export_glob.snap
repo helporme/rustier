@@ -1,0 +1,311 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub mod inner {
+    pub struct S {
+        pub x: i32,
+    }
+    pub fn f() -> i32 {
+        0
+    }
+}
+pub use inner::*;
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__S")]
+pub struct __cursed_rustdoc_test_crate__inner__S {
+    inner: crate::inner::S,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__inner__S {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::inner::S { x },
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::inner::S> for __cursed_rustdoc_test_crate__inner__S {
+    fn from(v: crate::inner::S) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__inner__S> for crate::inner::S {
+    fn from(v: __cursed_rustdoc_test_crate__inner__S) -> Self {
+        v.inner
+    }
+}
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__f")]
+pub fn __cursed_rustdoc_test_crate__inner__f() -> i32 {
+    crate::inner::f()
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__inner__S")]
+pub struct __cursed_rustdoc_test_crate__inner__S {
+    inner: crate::inner::S,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__inner__S {
+    #[napi(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::inner::S { x },
+        }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::inner::S> for __cursed_rustdoc_test_crate__inner__S {
+    fn from(v: crate::inner::S) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__inner__S> for crate::inner::S {
+    fn from(v: __cursed_rustdoc_test_crate__inner__S) -> Self {
+        v.inner
+    }
+}
+#[napi(js_name = "__cursed_rustdoc_test_crate__inner__f")]
+pub fn __cursed_rustdoc_test_crate__inner__f() -> i32 {
+    crate::inner::f()
+}
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+export { S } from "./inner.rs";
+
+export { f } from "./inner.rs";
+
+// src/inner.rs.d.ts
+export class S {
+    private [" "]: 'rustdoc_test_crate::inner::S';
+
+    x: number;
+
+    constructor(x: number);
+}
+
+export function f(): number;
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__inner__S, __cursed_rustdoc_test_crate__inner__f } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate__inner__f as f };
+
+// $rust/rustdoc_test_crate/inner
+import __wbg_init, { __cursed_rustdoc_test_crate__inner__S, __cursed_rustdoc_test_crate__inner__f } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate__inner__f as f };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__inner__S, __cursed_rustdoc_test_crate__inner__f } from '$test';
+export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate__inner__f as f };
+
+// $rust/rustdoc_test_crate/inner
+import { __cursed_rustdoc_test_crate__inner__S, __cursed_rustdoc_test_crate__inner__f } from '$test';
+export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate__inner__f as f };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            9,
+                            18,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "inner",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "S",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                    Export {
+                        name: "f",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "inner",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            14,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "S",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                    Export {
+                        name: "f",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "inner",
+                        "S",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "inner",
+                        "f",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            5,
+                        ),
+                        end: (
+                            7,
+                            6,
+                        ),
+                    },
+                ),
+                params: [],
+                return_type: Primitive(
+                    i32,
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

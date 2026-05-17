@@ -1,0 +1,368 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub mod types {
+    /// An authentication token.
+    pub struct Token {
+        /// The raw token string.
+        pub value: String,
+    }
+}
+pub mod ops {
+    /// Parses a raw string into a Token.
+    pub fn parse(s: String) -> crate::types::Token {
+        todo!()
+    }
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+/// An authentication token.
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__types__Token")]
+pub struct __cursed_rustdoc_test_crate__types__Token {
+    inner: crate::types::Token,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__types__Token {
+    #[wasm_bindgen(constructor)]
+    pub fn new(value: String) -> Self {
+        Self {
+            inner: crate::types::Token { value },
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "value")]
+    pub fn value(&self) -> String {
+        self.inner.value.clone()
+    }
+    #[wasm_bindgen(setter, js_name = "value")]
+    pub fn set_value(&mut self, v: String) {
+        self.inner.value = v;
+    }
+}
+impl From<crate::types::Token> for __cursed_rustdoc_test_crate__types__Token {
+    fn from(v: crate::types::Token) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__types__Token> for crate::types::Token {
+    fn from(v: __cursed_rustdoc_test_crate__types__Token) -> Self {
+        v.inner
+    }
+}
+/// Parses a raw string into a Token.
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__ops__parse")]
+pub fn __cursed_rustdoc_test_crate__ops__parse(
+    s: String,
+) -> __cursed_rustdoc_test_crate__types__Token {
+    crate::ops::parse(s).into()
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+/// An authentication token.
+#[napi(js_name = "__cursed_rustdoc_test_crate__types__Token")]
+pub struct __cursed_rustdoc_test_crate__types__Token {
+    inner: crate::types::Token,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__types__Token {
+    #[napi(constructor)]
+    pub fn new(value: String) -> Self {
+        Self {
+            inner: crate::types::Token { value },
+        }
+    }
+    #[napi(getter, js_name = "value")]
+    pub fn value(&self) -> String {
+        self.inner.value.clone()
+    }
+    #[napi(setter, js_name = "value")]
+    pub fn set_value(&mut self, v: String) {
+        self.inner.value = v;
+    }
+}
+impl From<crate::types::Token> for __cursed_rustdoc_test_crate__types__Token {
+    fn from(v: crate::types::Token) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__types__Token> for crate::types::Token {
+    fn from(v: __cursed_rustdoc_test_crate__types__Token) -> Self {
+        v.inner
+    }
+}
+/// Parses a raw string into a Token.
+#[napi(js_name = "__cursed_rustdoc_test_crate__ops__parse")]
+pub fn __cursed_rustdoc_test_crate__ops__parse(
+    s: String,
+) -> __cursed_rustdoc_test_crate__types__Token {
+    crate::ops::parse(s).into()
+}
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+
+
+// src/types.rs.d.ts
+/** An authentication token. */
+export class Token {
+    private [" "]: 'rustdoc_test_crate::types::Token';
+
+    /** The raw token string. */
+    value: string;
+
+    constructor(value: string);
+}
+
+// src/ops.rs.d.ts
+import type { Token } from "./types.rs";
+
+/** Parses a raw string into a Token. */
+export function parse(s: string): Token;
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+
+// $rust/rustdoc_test_crate/types
+import __wbg_init, { __cursed_rustdoc_test_crate__types__Token } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__types__Token as Token };
+
+// $rust/rustdoc_test_crate/ops
+import __wbg_init, { __cursed_rustdoc_test_crate__ops__parse } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__ops__parse as parse };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+
+// $rust/rustdoc_test_crate/types
+import { __cursed_rustdoc_test_crate__types__Token } from '$test';
+export { __cursed_rustdoc_test_crate__types__Token as Token };
+
+// $rust/rustdoc_test_crate/ops
+import { __cursed_rustdoc_test_crate__ops__parse } from '$test';
+export { __cursed_rustdoc_test_crate__ops__parse as parse };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            13,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "types",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "ops",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "types",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            14,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Token",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "types",
+                        "Token",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            3,
+                            5,
+                        ),
+                        end: (
+                            6,
+                            6,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "value",
+                            ty: Primitive(
+                                String,
+                            ),
+                            docs: Some(
+                                "The raw token string.",
+                            ),
+                        },
+                    ],
+                ),
+                docs: Some(
+                    "An authentication token.",
+                ),
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "ops",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            8,
+                            1,
+                        ),
+                        end: (
+                            8,
+                            12,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "parse",
+                        target: Id(
+                            4,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "ops",
+                        "parse",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            10,
+                            5,
+                        ),
+                        end: (
+                            12,
+                            6,
+                        ),
+                    },
+                ),
+                params: [
+                    FnParam {
+                        name: "s",
+                        mode: ByValue,
+                        ty: Primitive(
+                            String,
+                        ),
+                    },
+                ],
+                return_type: Struct(
+                    Id(
+                        2,
+                    ),
+                ),
+                docs: Some(
+                    "Parses a raw string into a Token.",
+                ),
+            },
+        ),
+    ],
+}
+```

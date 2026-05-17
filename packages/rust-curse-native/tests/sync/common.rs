@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use rust_curse::ir::{Export, FnDef, Id, Item, ItemPath, ModDef, Primitive, Span, Type, IR};
+use rust_curse::codegen::asg::{Export, FnDef, Id, Item, ItemPath, ModDef, Primitive, Span, Type, ASG};
 use rust_curse::orphans::OrphanModule;
 use rust_curse::sync::Syncer;
 
@@ -153,8 +153,8 @@ pub struct ModFixture<'a> {
 /// name followed by the unmangled `mod_name` segments, plus one
 /// `Item::Fn` per declared function. A fn marked `exposed: true` is
 /// included in the returned `HashSet<Id>`.
-pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (IR, HashSet<Id>) {
-    let mut ir = IR {
+pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (ASG, HashSet<Id>) {
+    let mut ir = ASG {
         crate_name: crate_name.to_string(),
         root: Id(0),
         items: Vec::new(),
@@ -225,6 +225,6 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (IR, HashSet<Id>) {
 
 /// Convenience wrapper for building an empty IR (for tests that just need
 /// to exercise the writer with no modules).
-pub fn empty_ir(crate_name: &str) -> (IR, HashSet<Id>) {
+pub fn empty_ir(crate_name: &str) -> (ASG, HashSet<Id>) {
     make_ir(crate_name, &[])
 }

@@ -1,0 +1,225 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub trait Factory {
+    fn new(seed: u32) -> Self;
+}
+pub struct Foo {
+    x: i32,
+}
+impl Factory for Foo {
+    fn new(seed: u32) -> Self {
+        Foo { x: seed as i32 }
+    }
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Foo")]
+pub struct __cursed_rustdoc_test_crate__Foo {
+    inner: crate::Foo,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Foo {
+    #[wasm_bindgen(constructor)]
+    pub fn new(seed: u32) -> Self {
+        Self {
+            inner: crate::Foo::new(seed),
+        }
+    }
+}
+impl From<crate::Foo> for __cursed_rustdoc_test_crate__Foo {
+    fn from(v: crate::Foo) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Foo> for crate::Foo {
+    fn from(v: __cursed_rustdoc_test_crate__Foo) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__Foo")]
+pub struct __cursed_rustdoc_test_crate__Foo {
+    inner: crate::Foo,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Foo {
+    #[napi(constructor)]
+    pub fn new(seed: u32) -> Self {
+        Self {
+            inner: crate::Foo::new(seed),
+        }
+    }
+}
+impl From<crate::Foo> for __cursed_rustdoc_test_crate__Foo {
+    fn from(v: crate::Foo) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Foo> for crate::Foo {
+    fn from(v: __cursed_rustdoc_test_crate__Foo) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+export class Foo {
+    private [" "]: 'rustdoc_test_crate::Foo';
+
+    constructor(seed: number);
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Foo } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Foo as Foo };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Foo } from '$test';
+export { __cursed_rustdoc_test_crate__Foo as Foo };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            11,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Foo",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Foo",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            4,
+                            1,
+                        ),
+                        end: (
+                            6,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Explicit(
+                    Id(
+                        2,
+                    ),
+                ),
+                clonable: false,
+                shape: Struct(
+                    [],
+                ),
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "new",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            8,
+                            5,
+                        ),
+                        end: (
+                            10,
+                            6,
+                        ),
+                    },
+                ),
+                params: [
+                    FnParam {
+                        name: "seed",
+                        mode: ByValue,
+                        ty: Primitive(
+                            u32,
+                        ),
+                    },
+                ],
+                return_type: Struct(
+                    Id(
+                        1,
+                    ),
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

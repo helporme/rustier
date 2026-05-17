@@ -2,8 +2,8 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::ir::ts::PrintTsModOpts;
-use crate::ir::{Id, Item, IR};
+use crate::codegen::ts::PrintTsModOpts;
+use crate::codegen::asg::{Id, Item, ASG};
 
 use super::Syncer;
 
@@ -28,7 +28,7 @@ impl Syncer {
     /// Writes the ambient `$rust-curse` preamble to `<out>/ambient.d.ts`
     /// and one `<out>/types/<seg1>/.../<segN>.rs.d.ts` body per non-root
     /// module in `ir`.
-    pub fn write_ts(&mut self, ir: &IR, modules_root_rel_path: &Path) -> Result<(), WriteTsError> {
+    pub fn write_ts(&mut self, ir: &ASG, modules_root_rel_path: &Path) -> Result<(), WriteTsError> {
         let abs_out_dir = self.abs_out_dir();
         fs::create_dir_all(&abs_out_dir).map_err(WriteTsError::CreateOutDir)?;
 

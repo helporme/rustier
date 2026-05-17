@@ -9,7 +9,7 @@ use napi_derive::napi;
 
 #[cfg(feature = "napi-binding")]
 use crate::builder::napi::{NapiBuildFn, NapiBuildOpts, NapiBuilder};
-use crate::ir::{Id, Item, IR};
+use crate::codegen::asg::{Id, Item, ASG};
 use crate::orphans::OrphanScanOpts;
 use crate::sync::write_orphan_tree::WriteOrphanTreeOpts;
 use crate::sync::Syncer;
@@ -112,7 +112,7 @@ impl RustCurseOpts {
 
 #[derive(Debug, Clone)]
 pub struct BuildCache {
-    ir: IR,
+    ir: ASG,
     exposed: HashSet<Id>,
     artifacts: HashMap<String, ProfileBuildCache>,
 }
@@ -253,7 +253,7 @@ impl RustCurse {
 
         let rustdoc = rustdoc::gen(&self.project_root_abs_path)?;
         let mut warns = Warns::new();
-        let ir = IR::from_rustdoc(&rustdoc, &mut warns).context("build ir")?;
+        let ir = ASG::from_rustdoc(&rustdoc, &mut warns).context("build ir")?;
 
         let exposed = tree_shake::shake(
             &ir,

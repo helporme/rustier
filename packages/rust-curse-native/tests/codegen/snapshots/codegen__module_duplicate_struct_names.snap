@@ -1,0 +1,405 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub mod a {
+    pub struct Thing {
+        pub x: i32,
+    }
+}
+pub mod b {
+    pub struct Thing {
+        pub y: i32,
+    }
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__a__Thing")]
+pub struct __cursed_rustdoc_test_crate__a__Thing {
+    inner: crate::a::Thing,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__a__Thing {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::a::Thing { x },
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::a::Thing> for __cursed_rustdoc_test_crate__a__Thing {
+    fn from(v: crate::a::Thing) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__a__Thing> for crate::a::Thing {
+    fn from(v: __cursed_rustdoc_test_crate__a__Thing) -> Self {
+        v.inner
+    }
+}
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__b__Thing")]
+pub struct __cursed_rustdoc_test_crate__b__Thing {
+    inner: crate::b::Thing,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__b__Thing {
+    #[wasm_bindgen(constructor)]
+    pub fn new(y: i32) -> Self {
+        Self {
+            inner: crate::b::Thing { y },
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "y")]
+    pub fn y(&self) -> i32 {
+        self.inner.y
+    }
+    #[wasm_bindgen(setter, js_name = "y")]
+    pub fn set_y(&mut self, v: i32) {
+        self.inner.y = v;
+    }
+}
+impl From<crate::b::Thing> for __cursed_rustdoc_test_crate__b__Thing {
+    fn from(v: crate::b::Thing) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__b__Thing> for crate::b::Thing {
+    fn from(v: __cursed_rustdoc_test_crate__b__Thing) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__a__Thing")]
+pub struct __cursed_rustdoc_test_crate__a__Thing {
+    inner: crate::a::Thing,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__a__Thing {
+    #[napi(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::a::Thing { x },
+        }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::a::Thing> for __cursed_rustdoc_test_crate__a__Thing {
+    fn from(v: crate::a::Thing) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__a__Thing> for crate::a::Thing {
+    fn from(v: __cursed_rustdoc_test_crate__a__Thing) -> Self {
+        v.inner
+    }
+}
+#[napi(js_name = "__cursed_rustdoc_test_crate__b__Thing")]
+pub struct __cursed_rustdoc_test_crate__b__Thing {
+    inner: crate::b::Thing,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__b__Thing {
+    #[napi(constructor)]
+    pub fn new(y: i32) -> Self {
+        Self {
+            inner: crate::b::Thing { y },
+        }
+    }
+    #[napi(getter, js_name = "y")]
+    pub fn y(&self) -> i32 {
+        self.inner.y
+    }
+    #[napi(setter, js_name = "y")]
+    pub fn set_y(&mut self, v: i32) {
+        self.inner.y = v;
+    }
+}
+impl From<crate::b::Thing> for __cursed_rustdoc_test_crate__b__Thing {
+    fn from(v: crate::b::Thing) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__b__Thing> for crate::b::Thing {
+    fn from(v: __cursed_rustdoc_test_crate__b__Thing) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+
+
+// src/a.rs.d.ts
+export class Thing {
+    private [" "]: 'rustdoc_test_crate::a::Thing';
+
+    x: number;
+
+    constructor(x: number);
+}
+
+// src/b.rs.d.ts
+export class Thing {
+    private [" "]: 'rustdoc_test_crate::b::Thing';
+
+    y: number;
+
+    constructor(y: number);
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+
+// $rust/rustdoc_test_crate/a
+import __wbg_init, { __cursed_rustdoc_test_crate__a__Thing } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__a__Thing as Thing };
+
+// $rust/rustdoc_test_crate/b
+import __wbg_init, { __cursed_rustdoc_test_crate__b__Thing } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__b__Thing as Thing };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+
+// $rust/rustdoc_test_crate/a
+import { __cursed_rustdoc_test_crate__a__Thing } from '$test';
+export { __cursed_rustdoc_test_crate__a__Thing as Thing };
+
+// $rust/rustdoc_test_crate/b
+import { __cursed_rustdoc_test_crate__b__Thing } from '$test';
+export { __cursed_rustdoc_test_crate__b__Thing as Thing };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            10,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "a",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "b",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            10,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Thing",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                        "Thing",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "b",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            6,
+                            1,
+                        ),
+                        end: (
+                            6,
+                            10,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Thing",
+                        target: Id(
+                            4,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "b",
+                        "Thing",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            7,
+                            5,
+                        ),
+                        end: (
+                            9,
+                            6,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "y",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

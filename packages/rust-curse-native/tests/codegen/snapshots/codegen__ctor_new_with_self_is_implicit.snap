@@ -1,0 +1,177 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub struct Builder {
+    x: i32,
+}
+impl Builder {
+    pub fn new(&self) -> Self {
+        Self { x: self.x }
+    }
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Builder")]
+pub struct __cursed_rustdoc_test_crate__Builder {
+    inner: crate::Builder,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Builder {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self { inner: crate::Builder {} }
+    }
+}
+impl From<crate::Builder> for __cursed_rustdoc_test_crate__Builder {
+    fn from(v: crate::Builder) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Builder> for crate::Builder {
+    fn from(v: __cursed_rustdoc_test_crate__Builder) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__Builder")]
+pub struct __cursed_rustdoc_test_crate__Builder {
+    inner: crate::Builder,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Builder {
+    #[napi(constructor)]
+    pub fn new() -> Self {
+        Self { inner: crate::Builder {} }
+    }
+}
+impl From<crate::Builder> for __cursed_rustdoc_test_crate__Builder {
+    fn from(v: crate::Builder) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Builder> for crate::Builder {
+    fn from(v: __cursed_rustdoc_test_crate__Builder) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+export class Builder {
+    private [" "]: 'rustdoc_test_crate::Builder';
+
+    constructor();
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Builder } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Builder as Builder };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Builder } from '$test';
+export { __cursed_rustdoc_test_crate__Builder as Builder };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            8,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Builder",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Builder",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [],
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

@@ -1,0 +1,94 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub fn f() -> Option<i32> {
+    None
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+```
+
+# warns
+
+```text
+rust-curse::unsupported_type
+
+  ⚠ unsupported std type "core::option::Option"
+   ╭─[src/lib.rs:1:1]
+ 1 │ ╭─▶ pub fn f() -> Option<i32> {
+ 2 │ │       None
+ 3 │ ╰─▶ }
+   ╰────
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [],
+            },
+        ),
+    ],
+}
+```

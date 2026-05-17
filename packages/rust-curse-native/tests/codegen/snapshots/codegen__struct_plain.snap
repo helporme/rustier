@@ -1,0 +1,242 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+/// A point in 2D space.
+pub struct Point {
+    /// Horizontal position.
+    pub x: f64,
+    /// Vertical position.
+    pub y: f64,
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+/// A point in 2D space.
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Point")]
+pub struct __cursed_rustdoc_test_crate__Point {
+    inner: crate::Point,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Point {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: f64, y: f64) -> Self {
+        Self {
+            inner: crate::Point { x, y },
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn x(&self) -> f64 {
+        self.inner.x
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: f64) {
+        self.inner.x = v;
+    }
+    #[wasm_bindgen(getter, js_name = "y")]
+    pub fn y(&self) -> f64 {
+        self.inner.y
+    }
+    #[wasm_bindgen(setter, js_name = "y")]
+    pub fn set_y(&mut self, v: f64) {
+        self.inner.y = v;
+    }
+}
+impl From<crate::Point> for __cursed_rustdoc_test_crate__Point {
+    fn from(v: crate::Point) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Point> for crate::Point {
+    fn from(v: __cursed_rustdoc_test_crate__Point) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+/// A point in 2D space.
+#[napi(js_name = "__cursed_rustdoc_test_crate__Point")]
+pub struct __cursed_rustdoc_test_crate__Point {
+    inner: crate::Point,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Point {
+    #[napi(constructor)]
+    pub fn new(x: f64, y: f64) -> Self {
+        Self {
+            inner: crate::Point { x, y },
+        }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> f64 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: f64) {
+        self.inner.x = v;
+    }
+    #[napi(getter, js_name = "y")]
+    pub fn y(&self) -> f64 {
+        self.inner.y
+    }
+    #[napi(setter, js_name = "y")]
+    pub fn set_y(&mut self, v: f64) {
+        self.inner.y = v;
+    }
+}
+impl From<crate::Point> for __cursed_rustdoc_test_crate__Point {
+    fn from(v: crate::Point) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Point> for crate::Point {
+    fn from(v: __cursed_rustdoc_test_crate__Point) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+/** A point in 2D space. */
+export class Point {
+    private [" "]: 'rustdoc_test_crate::Point';
+
+    /** Horizontal position. */
+    x: number;
+
+    /** Vertical position. */
+    y: number;
+
+    constructor(x: number, y: number);
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Point } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Point as Point };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Point } from '$test';
+export { __cursed_rustdoc_test_crate__Point as Point };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Point",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Point",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                f64,
+                            ),
+                            docs: Some(
+                                "Horizontal position.",
+                            ),
+                        },
+                        StructField {
+                            name: "y",
+                            ty: Primitive(
+                                f64,
+                            ),
+                            docs: Some(
+                                "Vertical position.",
+                            ),
+                        },
+                    ],
+                ),
+                docs: Some(
+                    "A point in 2D space.",
+                ),
+            },
+        ),
+    ],
+}
+```

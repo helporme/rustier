@@ -1,0 +1,307 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub mod deeper {
+    pub struct X {
+        pub x: i32,
+    }
+}
+pub mod inner {
+    pub use super::deeper::X;
+}
+pub use inner::*;
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__deeper__X")]
+pub struct __cursed_rustdoc_test_crate__deeper__X {
+    inner: crate::deeper::X,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__deeper__X {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::deeper::X { x },
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::deeper::X> for __cursed_rustdoc_test_crate__deeper__X {
+    fn from(v: crate::deeper::X) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__deeper__X> for crate::deeper::X {
+    fn from(v: __cursed_rustdoc_test_crate__deeper__X) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__deeper__X")]
+pub struct __cursed_rustdoc_test_crate__deeper__X {
+    inner: crate::deeper::X,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__deeper__X {
+    #[napi(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self {
+            inner: crate::deeper::X { x },
+        }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::deeper::X> for __cursed_rustdoc_test_crate__deeper__X {
+    fn from(v: crate::deeper::X) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__deeper__X> for crate::deeper::X {
+    fn from(v: __cursed_rustdoc_test_crate__deeper__X) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+export { X } from "./deeper.rs";
+
+// src/deeper.rs.d.ts
+export class X {
+    private [" "]: 'rustdoc_test_crate::deeper::X';
+
+    x: number;
+
+    constructor(x: number);
+}
+
+// src/inner.rs.d.ts
+export { X } from "./deeper.rs";
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__deeper__X } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__deeper__X as X };
+
+// $rust/rustdoc_test_crate/deeper
+import __wbg_init, { __cursed_rustdoc_test_crate__deeper__X } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__deeper__X as X };
+
+// $rust/rustdoc_test_crate/inner
+import __wbg_init, { __cursed_rustdoc_test_crate__deeper__X } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__deeper__X as X };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__deeper__X } from '$test';
+export { __cursed_rustdoc_test_crate__deeper__X as X };
+
+// $rust/rustdoc_test_crate/deeper
+import { __cursed_rustdoc_test_crate__deeper__X } from '$test';
+export { __cursed_rustdoc_test_crate__deeper__X as X };
+
+// $rust/rustdoc_test_crate/inner
+import { __cursed_rustdoc_test_crate__deeper__X } from '$test';
+export { __cursed_rustdoc_test_crate__deeper__X as X };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            9,
+                            18,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "deeper",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "inner",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                    Export {
+                        name: "X",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "deeper",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            15,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "X",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "deeper",
+                        "X",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "inner",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            6,
+                            1,
+                        ),
+                        end: (
+                            6,
+                            14,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "X",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+    ],
+}
+```

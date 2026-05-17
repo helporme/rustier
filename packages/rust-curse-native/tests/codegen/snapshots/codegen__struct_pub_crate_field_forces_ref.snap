@@ -1,0 +1,199 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub struct Gated {
+    pub x: i32,
+    pub(crate) y: i32,
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Gated")]
+pub struct __cursed_rustdoc_test_crate__Gated {
+    inner: crate::Gated,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Gated {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self { inner: crate::Gated { x } }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::Gated> for __cursed_rustdoc_test_crate__Gated {
+    fn from(v: crate::Gated) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Gated> for crate::Gated {
+    fn from(v: __cursed_rustdoc_test_crate__Gated) -> Self {
+        v.inner
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[napi(js_name = "__cursed_rustdoc_test_crate__Gated")]
+pub struct __cursed_rustdoc_test_crate__Gated {
+    inner: crate::Gated,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Gated {
+    #[napi(constructor)]
+    pub fn new(x: i32) -> Self {
+        Self { inner: crate::Gated { x } }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn x(&self) -> i32 {
+        self.inner.x
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn set_x(&mut self, v: i32) {
+        self.inner.x = v;
+    }
+}
+impl From<crate::Gated> for __cursed_rustdoc_test_crate__Gated {
+    fn from(v: crate::Gated) -> Self {
+        Self { inner: v }
+    }
+}
+impl From<__cursed_rustdoc_test_crate__Gated> for crate::Gated {
+    fn from(v: __cursed_rustdoc_test_crate__Gated) -> Self {
+        v.inner
+    }
+}
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+export class Gated {
+    private [" "]: 'rustdoc_test_crate::Gated';
+
+    x: number;
+
+    constructor(x: number);
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Gated } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Gated as Gated };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Gated } from '$test';
+export { __cursed_rustdoc_test_crate__Gated as Gated };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            4,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Gated",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Gated",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            4,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Number(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

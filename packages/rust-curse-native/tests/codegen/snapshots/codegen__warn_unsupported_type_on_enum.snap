@@ -1,0 +1,98 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub enum E {
+    A,
+    B,
+    C,
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+```
+
+# warns
+
+```text
+rust-curse::unsupported_type
+
+  ⚠ enums are not supported
+   ╭─[src/lib.rs:1:1]
+ 1 │ ╭─▶ pub enum E {
+ 2 │ │       A,
+ 3 │ │       B,
+ 4 │ │       C,
+ 5 │ ╰─▶ }
+   ╰────
+```
+
+# ASG
+
+```rs
+ASG {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            5,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [],
+            },
+        ),
+    ],
+}
+```

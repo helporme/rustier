@@ -3,7 +3,7 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 
-use crate::ir::{Id, Item, IR};
+use crate::codegen::asg::{Id, Item, ASG};
 
 use super::tree::{self, TreeError};
 use super::write_lib::{write_lib, LibBranch, WriteLibError};
@@ -12,7 +12,7 @@ use super::Syncer;
 pub const ORPHAN_TREE_DIR: &str = "orphan-tree";
 
 pub struct WriteOrphanTreeOpts<'a> {
-    pub ir: &'a IR,
+    pub ir: &'a ASG,
     pub exposed: &'a HashSet<Id>,
 }
 
