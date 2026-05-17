@@ -9,7 +9,8 @@ use napi_derive::napi;
 
 #[cfg(feature = "napi-binding")]
 use crate::builder::napi::{NapiBuildFn, NapiBuildOpts, NapiBuilder};
-use crate::codegen::asg::{Id, Item, ASG};
+use crate::codegen::asg::ASG;
+use crate::codegen::ir::{self, Item, IR};
 use crate::orphans::OrphanScanOpts;
 use crate::sync::write_orphan_tree::WriteOrphanTreeOpts;
 use crate::sync::Syncer;
@@ -112,8 +113,8 @@ impl RustCurseOpts {
 
 #[derive(Debug, Clone)]
 pub struct BuildCache {
-    ir: ASG,
-    exposed: HashSet<Id>,
+    ir: IR,
+    exposed: HashSet<ir::Id>,
     artifacts: HashMap<String, ProfileBuildCache>,
 }
 
@@ -253,10 +254,10 @@ impl RustCurse {
 
         let rustdoc = rustdoc::gen(&self.project_root_abs_path)?;
         let mut warns = Warns::new();
-        let ir = ASG::from_rustdoc(&rustdoc, &mut warns).context("build ir")?;
+        let asg = ASG::from_rustdoc(&rustdoc, &mut warns).context("build asg")?;
 
-        let exposed = tree_shake::shake(
-            &ir,
+        let asg_exposed = tree_shake::shake(
+            &asg,
             TreeShakeOpts {
                 project_root_abs_path: &self.project_root_abs_path,
                 src_rel_path: &self.modules_root_rel_path,
@@ -271,10 +272,13 @@ impl RustCurse {
         .with_context(|| "tree_shake")?;
 
         sync.write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
-            exposed: &exposed,
+            asg: &asg,
+            exposed: &asg_exposed,
         })
         .context("sync: orphan_tree")?;
+
+        let ir = IR::from_asg(&mut warns, &asg).context("build ir")?;
+        let exposed: HashSet<ir::Id> = asg_exposed.iter().map(|id| ir::Id(id.0)).collect();
 
         let profiles = self.get_profiles(profile_names)?;
         for profile in &profiles {
@@ -367,7 +371,7 @@ impl RustCurse {
             .ok_or_else(|| anyhow!("unknown profile '{profile_name}'"))?;
 
         let path_buf = PathBuf::from(path);
-        let mid = Id(build_output
+        let mid = ir::Id(build_output
             .ir
             .items
             .iter()

@@ -185,3 +185,84 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            2,
+                            38,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Pair",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Pair",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            2,
+                            38,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Tuple(
+                    [
+                        Primitive(
+                            i32,
+                        ),
+                        Primitive(
+                            String,
+                        ),
+                    ],
+                ),
+                docs: Some(
+                    "A pair of values stored as a tuple struct.",
+                ),
+            },
+        ),
+    ],
+}
+```

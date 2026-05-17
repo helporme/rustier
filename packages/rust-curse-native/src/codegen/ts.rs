@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
 use super::mangle::is_canonical_origin;
-use super::asg::{Ctor, Id, Item, ItemPath, Primitive, StructShape, Type, ASG};
+use super::ir::{Ctor, Id, Item, ItemPath, Primitive, StructShape, Type, IR};
 
 const PREAMBLE: &str = "";
 
@@ -18,7 +18,7 @@ pub struct PrintTsModOpts<'a> {
     pub rel_src_path: &'a Path,
 }
 
-impl ASG {
+impl IR {
     /// Prints the ambient declarations shared across the build (the
     /// `$rust-curse` module with the `Copy<T>` utility). Per-module bodies
     /// live in their own files; see [`IR::print_ts_mod`].
@@ -35,7 +35,7 @@ impl ASG {
 }
 
 struct Printer<'a> {
-    ir: &'a ASG,
+    ir: &'a IR,
     mod_id: Id,
     rel_src_path: &'a Path,
     local_structs: HashSet<Id>,
@@ -45,7 +45,7 @@ struct Printer<'a> {
 }
 
 impl<'a> Printer<'a> {
-    fn new(ir: &'a ASG, mod_id: Id, rel_src_path: &'a Path) -> Self {
+    fn new(ir: &'a IR, mod_id: Id, rel_src_path: &'a Path) -> Self {
         Self {
             ir,
             mod_id,
@@ -87,7 +87,7 @@ impl<'a> Printer<'a> {
         out
     }
 
-    fn print_exports(&mut self, mod_segments: &[String], exports: &[super::asg::Export]) -> String {
+    fn print_exports(&mut self, mod_segments: &[String], exports: &[super::ir::Export]) -> String {
         let mut parts: Vec<String> = Vec::new();
         for export in exports {
             match self.ir.get_unchecked(export.target) {

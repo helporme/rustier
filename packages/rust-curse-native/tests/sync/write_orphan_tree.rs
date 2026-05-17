@@ -5,7 +5,7 @@ use rust_curse::sync::write_orphan_tree::{
 };
 
 use crate::common::{
-    empty_ir, make_ir, project_to_md, test_module, FnFixture, ModFixture, TestProject, OUT_DIR,
+    empty_asg, make_asg, project_to_md, test_module, FnFixture, ModFixture, TestProject, OUT_DIR,
 };
 
 const TEST_CRATE: &str = "test_crate";
@@ -14,10 +14,10 @@ const TEST_CRATE: &str = "test_crate";
 fn empty_modules() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
-    let (ir, exposed) = empty_ir(TEST_CRATE);
+    let (asg, exposed) = empty_asg(TEST_CRATE);
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap();
@@ -31,7 +31,7 @@ fn emits_mod_tree_and_reexports() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let (ir, exposed) = make_ir(
+    let (asg, exposed) = make_asg(
         TEST_CRATE,
         &[
             ModFixture {
@@ -55,7 +55,7 @@ fn emits_mod_tree_and_reexports() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap();
@@ -69,7 +69,7 @@ fn emits_mod_decl_but_no_reexports_when_nothing_exposed() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let (ir, exposed) = make_ir(
+    let (asg, exposed) = make_asg(
         TEST_CRATE,
         &[ModFixture {
             mod_name: "greet",
@@ -83,7 +83,7 @@ fn emits_mod_decl_but_no_reexports_when_nothing_exposed() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap();
@@ -97,7 +97,7 @@ fn reexports_all_exposed_items() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let (ir, exposed) = make_ir(
+    let (asg, exposed) = make_asg(
         TEST_CRATE,
         &[ModFixture {
             mod_name: "math",
@@ -117,7 +117,7 @@ fn reexports_all_exposed_items() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap();
@@ -131,7 +131,7 @@ fn nested_modules_emit_subtree_files() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let (ir, exposed) = make_ir(
+    let (asg, exposed) = make_asg(
         TEST_CRATE,
         &[
             ModFixture {
@@ -155,7 +155,7 @@ fn nested_modules_emit_subtree_files() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap();
@@ -175,7 +175,7 @@ fn uppercase_segment_gets_allow() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let (ir, exposed) = make_ir(
+    let (asg, exposed) = make_asg(
         TEST_CRATE,
         &[ModFixture {
             mod_name: "MyMod::something",
@@ -189,7 +189,7 @@ fn uppercase_segment_gets_allow() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap();
@@ -203,7 +203,7 @@ fn leaf_branch_collision_errors() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let (ir, exposed) = make_ir(
+    let (asg, exposed) = make_asg(
         TEST_CRATE,
         &[
             ModFixture {
@@ -227,7 +227,7 @@ fn leaf_branch_collision_errors() {
 
     let err = syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap_err();
@@ -252,7 +252,7 @@ fn stale_subtree_cleaned_on_rerun() {
 
     {
         let mut syncer = project.syncer();
-        let (ir, exposed) = make_ir(
+        let (asg, exposed) = make_asg(
             TEST_CRATE,
             &[ModFixture {
                 mod_name: "a::b",
@@ -265,7 +265,7 @@ fn stale_subtree_cleaned_on_rerun() {
         );
         syncer
             .write_orphan_tree(WriteOrphanTreeOpts {
-                ir: &ir,
+                asg: &asg,
                 exposed: &exposed,
             })
             .unwrap();
@@ -274,10 +274,10 @@ fn stale_subtree_cleaned_on_rerun() {
 
     {
         let mut syncer = project.syncer();
-        let (ir, exposed) = empty_ir(TEST_CRATE);
+        let (asg, exposed) = empty_asg(TEST_CRATE);
         syncer
             .write_orphan_tree(WriteOrphanTreeOpts {
-                ir: &ir,
+                asg: &asg,
                 exposed: &exposed,
             })
             .unwrap();
@@ -290,7 +290,7 @@ fn deep_nesting_three_levels() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let (ir, exposed) = make_ir(
+    let (asg, exposed) = make_asg(
         TEST_CRATE,
         &[ModFixture {
             mod_name: "a::b::c",
@@ -304,7 +304,7 @@ fn deep_nesting_three_levels() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap();
@@ -323,7 +323,7 @@ fn siblings_share_parent_subtree_file() {
     let project = TestProject::new();
     let mut syncer = project.syncer();
 
-    let (ir, exposed) = make_ir(
+    let (asg, exposed) = make_asg(
         TEST_CRATE,
         &[
             ModFixture {
@@ -355,7 +355,7 @@ fn siblings_share_parent_subtree_file() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap();
@@ -374,7 +374,7 @@ fn partial_module_reduction_regenerates_parent_subtree_file() {
         .join(ORPHAN_TREE_DIR)
         .join("a.rs");
 
-    let (full_ir, full_exposed) = make_ir(
+    let (full_asg, full_exposed) = make_asg(
         TEST_CRATE,
         &[
             ModFixture {
@@ -400,7 +400,7 @@ fn partial_module_reduction_regenerates_parent_subtree_file() {
         let mut syncer = project.syncer();
         syncer
             .write_orphan_tree(WriteOrphanTreeOpts {
-                ir: &full_ir,
+                asg: &full_asg,
                 exposed: &full_exposed,
             })
             .unwrap();
@@ -409,7 +409,7 @@ fn partial_module_reduction_regenerates_parent_subtree_file() {
     assert!(first.contains("pub(crate) mod b;"), "first a.rs: {first:?}");
     assert!(first.contains("pub(crate) mod c;"), "first a.rs: {first:?}");
 
-    let (reduced_ir, reduced_exposed) = make_ir(
+    let (reduced_asg, reduced_exposed) = make_asg(
         TEST_CRATE,
         &[ModFixture {
             mod_name: "a::b",
@@ -424,7 +424,7 @@ fn partial_module_reduction_regenerates_parent_subtree_file() {
         let mut syncer = project.syncer();
         syncer
             .write_orphan_tree(WriteOrphanTreeOpts {
-                ir: &reduced_ir,
+                asg: &reduced_asg,
                 exposed: &reduced_exposed,
             })
             .unwrap();
@@ -441,7 +441,7 @@ fn flattening_module_cleans_old_subtree() {
 
     {
         let mut syncer = project.syncer();
-        let (ir, exposed) = make_ir(
+        let (asg, exposed) = make_asg(
             TEST_CRATE,
             &[ModFixture {
                 mod_name: "a::b",
@@ -454,7 +454,7 @@ fn flattening_module_cleans_old_subtree() {
         );
         syncer
             .write_orphan_tree(WriteOrphanTreeOpts {
-                ir: &ir,
+                asg: &asg,
                 exposed: &exposed,
             })
             .unwrap();
@@ -464,7 +464,7 @@ fn flattening_module_cleans_old_subtree() {
 
     {
         let mut syncer = project.syncer();
-        let (ir, exposed) = make_ir(
+        let (asg, exposed) = make_asg(
             TEST_CRATE,
             &[ModFixture {
                 mod_name: "a",
@@ -477,7 +477,7 @@ fn flattening_module_cleans_old_subtree() {
         );
         syncer
             .write_orphan_tree(WriteOrphanTreeOpts {
-                ir: &ir,
+                asg: &asg,
                 exposed: &exposed,
             })
             .unwrap();
@@ -490,7 +490,7 @@ fn flattening_module_cleans_old_subtree() {
 #[test]
 fn idempotent_when_called_twice_with_same_inputs() {
     let project = TestProject::new();
-    let (ir, exposed) = make_ir(
+    let (asg, exposed) = make_asg(
         TEST_CRATE,
         &[
             ModFixture {
@@ -515,7 +515,7 @@ fn idempotent_when_called_twice_with_same_inputs() {
     let mut syncer = project.syncer();
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap();
@@ -523,7 +523,7 @@ fn idempotent_when_called_twice_with_same_inputs() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap();
@@ -540,7 +540,7 @@ fn module_without_filename_is_skipped() {
     // A `ModDef` with `span: None` (e.g. one rustdoc emitted no
     // span for) is filtered out by `write_orphan_tree`, so no
     // `pub mod` decl and no `pub use` line is emitted.
-    let (mut ir, exposed) = make_ir(
+    let (mut asg, exposed) = make_asg(
         TEST_CRATE,
         &[ModFixture {
             mod_name: "ghost",
@@ -551,7 +551,7 @@ fn module_without_filename_is_skipped() {
             }],
         }],
     );
-    for item in ir.items.iter_mut() {
+    for item in asg.items.iter_mut() {
         if let rust_curse::codegen::asg::Item::Mod(m) = item {
             if m.path.segments.last().map(String::as_str) == Some("ghost") {
                 m.span = None;
@@ -561,7 +561,7 @@ fn module_without_filename_is_skipped() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap();
@@ -583,7 +583,7 @@ fn rustdoc_xor_branch_suppresses_orphan_tree_in_lib_rs() {
     let mut syncer = project.syncer();
 
     let modules = vec![test_module("greet", "src/greet.rs")];
-    let (ir, exposed) = make_ir(
+    let (asg, exposed) = make_asg(
         TEST_CRATE,
         &[ModFixture {
             mod_name: "greet",
@@ -597,7 +597,7 @@ fn rustdoc_xor_branch_suppresses_orphan_tree_in_lib_rs() {
 
     syncer
         .write_orphan_tree(WriteOrphanTreeOpts {
-            ir: &ir,
+            asg: &asg,
             exposed: &exposed,
         })
         .unwrap();

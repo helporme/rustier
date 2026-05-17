@@ -305,3 +305,158 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            9,
+                            23,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "inner",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "middle",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                    Export {
+                        name: "Inner",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "inner",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            14,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Inner",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "inner",
+                        "Inner",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "middle",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            6,
+                            1,
+                        ),
+                        end: (
+                            6,
+                            15,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Inner",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+    ],
+}
+```

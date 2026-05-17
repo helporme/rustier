@@ -238,3 +238,157 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            8,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "math",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "math",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            13,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "square",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                    Export {
+                        name: "square2",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "math",
+                        "square",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
+                params: [
+                    FnParam {
+                        name: "x",
+                        mode: ByValue,
+                        ty: Primitive(
+                            f64,
+                        ),
+                    },
+                ],
+                return_type: Primitive(
+                    f64,
+                ),
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "math",
+                        "square2",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            5,
+                        ),
+                        end: (
+                            7,
+                            6,
+                        ),
+                    },
+                ),
+                params: [
+                    FnParam {
+                        name: "x",
+                        mode: ByValue,
+                        ty: Primitive(
+                            f64,
+                        ),
+                    },
+                ],
+                return_type: Primitive(
+                    f64,
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

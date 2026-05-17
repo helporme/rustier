@@ -253,3 +253,159 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            14,
+                            5,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "f",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "f",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            14,
+                            5,
+                        ),
+                    },
+                ),
+                params: [
+                    FnParam {
+                        name: "a",
+                        mode: ByValue,
+                        ty: Primitive(
+                            i8,
+                        ),
+                    },
+                    FnParam {
+                        name: "b",
+                        mode: ByValue,
+                        ty: Primitive(
+                            i16,
+                        ),
+                    },
+                    FnParam {
+                        name: "c",
+                        mode: ByValue,
+                        ty: Primitive(
+                            i32,
+                        ),
+                    },
+                    FnParam {
+                        name: "d",
+                        mode: ByValue,
+                        ty: Primitive(
+                            u8,
+                        ),
+                    },
+                    FnParam {
+                        name: "e",
+                        mode: ByValue,
+                        ty: Primitive(
+                            u16,
+                        ),
+                    },
+                    FnParam {
+                        name: "f",
+                        mode: ByValue,
+                        ty: Primitive(
+                            u32,
+                        ),
+                    },
+                    FnParam {
+                        name: "g",
+                        mode: ByValue,
+                        ty: Primitive(
+                            f32,
+                        ),
+                    },
+                    FnParam {
+                        name: "h",
+                        mode: ByValue,
+                        ty: Primitive(
+                            f64,
+                        ),
+                    },
+                    FnParam {
+                        name: "i",
+                        mode: ByValue,
+                        ty: Primitive(
+                            Boolean,
+                        ),
+                    },
+                    FnParam {
+                        name: "j",
+                        mode: ByValue,
+                        ty: Primitive(
+                            Char,
+                        ),
+                    },
+                    FnParam {
+                        name: "k",
+                        mode: ByValue,
+                        ty: Primitive(
+                            String,
+                        ),
+                    },
+                    FnParam {
+                        name: "l",
+                        mode: ByRef,
+                        ty: Primitive(
+                            Str,
+                        ),
+                    },
+                ],
+                return_type: Primitive(
+                    Unit,
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

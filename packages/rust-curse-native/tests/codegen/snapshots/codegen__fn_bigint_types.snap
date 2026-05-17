@@ -158,3 +158,103 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            48,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "f",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "f",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            48,
+                        ),
+                    },
+                ),
+                params: [
+                    FnParam {
+                        name: "a",
+                        mode: ByValue,
+                        ty: Primitive(
+                            i64,
+                        ),
+                    },
+                    FnParam {
+                        name: "b",
+                        mode: ByValue,
+                        ty: Primitive(
+                            u64,
+                        ),
+                    },
+                    FnParam {
+                        name: "c",
+                        mode: ByValue,
+                        ty: Primitive(
+                            isize,
+                        ),
+                    },
+                    FnParam {
+                        name: "d",
+                        mode: ByValue,
+                        ty: Primitive(
+                            usize,
+                        ),
+                    },
+                ],
+                return_type: Primitive(
+                    Unit,
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

@@ -366,3 +366,197 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            13,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "types",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "ops",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "types",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            14,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Token",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "types",
+                        "Token",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            3,
+                            5,
+                        ),
+                        end: (
+                            6,
+                            6,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "value",
+                            ty: Primitive(
+                                String,
+                            ),
+                            docs: Some(
+                                "The raw token string.",
+                            ),
+                        },
+                    ],
+                ),
+                docs: Some(
+                    "An authentication token.",
+                ),
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "ops",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            8,
+                            1,
+                        ),
+                        end: (
+                            8,
+                            12,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "parse",
+                        target: Id(
+                            4,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "ops",
+                        "parse",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            10,
+                            5,
+                        ),
+                        end: (
+                            12,
+                            6,
+                        ),
+                    },
+                ),
+                params: [
+                    FnParam {
+                        name: "s",
+                        mode: ByValue,
+                        ty: Primitive(
+                            String,
+                        ),
+                    },
+                ],
+                return_type: Struct(
+                    Id(
+                        2,
+                    ),
+                ),
+                docs: Some(
+                    "Parses a raw string into a Token.",
+                ),
+            },
+        ),
+    ],
+}
+```

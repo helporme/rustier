@@ -173,3 +173,106 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            4,
+                            18,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "kept",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "kept",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            13,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "stays",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "kept",
+                        "stays",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            2,
+                            22,
+                        ),
+                    },
+                ),
+                params: [],
+                return_type: Primitive(
+                    Unit,
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

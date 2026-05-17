@@ -1,7 +1,7 @@
-//! Codegen layer: ASG plus the target printers (ts/wasm/napi).
+//! Codegen layer: ASG, IR, plus the target printers (ts/wasm/napi).
 
 pub mod asg;
-pub mod from_rustdoc;
+pub mod ir;
 pub mod mangle;
 pub mod napi;
 pub mod napi_js;

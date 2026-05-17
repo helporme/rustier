@@ -1,6 +1,6 @@
 //! Module mangling utilities.
 
-use super::asg::ItemPath;
+use super::ir::ItemPath;
 
 /// `__cursed_<seg1>__<seg2>__..._<name>`
 pub fn mangle(path: &ItemPath) -> String {

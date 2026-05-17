@@ -3,12 +3,12 @@
 use std::collections::HashSet;
 
 use super::mangle::{is_canonical_origin, mangle};
-use super::asg::{
+use super::ir::{
     rust_path, Ctor, FnParam, Id, Item, ParamMode, Primitive, StructDef, StructField, StructShape,
-    Type, ASG,
+    Type, IR,
 };
 
-impl ASG {
+impl IR {
     /// Prints the IR as napi glue code, exposing items in the `exposed`
     /// set.
     pub fn print_napi(&self, exposed: &HashSet<Id>) -> String {
@@ -17,12 +17,12 @@ impl ASG {
 }
 
 struct Printer<'a> {
-    ir: &'a ASG,
+    ir: &'a IR,
     exposed: &'a HashSet<Id>,
 }
 
 impl<'a> Printer<'a> {
-    fn new(ir: &'a ASG, exposed: &'a HashSet<Id>) -> Self {
+    fn new(ir: &'a IR, exposed: &'a HashSet<Id>) -> Self {
         Self { ir, exposed }
     }
 

@@ -146,3 +146,89 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "add",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "add",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
+                params: [
+                    FnParam {
+                        name: "a",
+                        mode: ByValue,
+                        ty: Primitive(
+                            i32,
+                        ),
+                    },
+                    FnParam {
+                        name: "b",
+                        mode: ByValue,
+                        ty: Primitive(
+                            i32,
+                        ),
+                    },
+                ],
+                return_type: Primitive(
+                    i32,
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

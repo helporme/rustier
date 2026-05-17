@@ -12,8 +12,8 @@ use tempfile::TempDir;
 const TEST_CRATE_NAME: &str = "rustdoc_test_crate";
 
 /// Render a rustdoc crate from inline source. Returns the `TempDir` so
-/// callers can keep source files alive across `IR::build` (warning
-/// emission reads source for miette snippets).
+/// callers can keep source files alive across `ASG::from_rustdoc`
+/// (warning emission reads source for miette snippets).
 pub fn gen_rustdoc(src: &str) -> (TempDir, PathBuf, rustdoc_types::Crate) {
     let project_dir = tempfile::tempdir().expect("create tempdir");
     let project_abs_path = project_dir.path().to_path_buf();
@@ -52,13 +52,13 @@ pub fn fmt_src(src: &str) -> String {
 /// Print the ambient preamble once, then every module's `.rs.d.ts` body
 /// under a `// <rel_dts_path>` header. Single snapshot per test. The
 /// crate root maps to `<rel_src_path>/lib.rs.d.ts`.
-pub fn print_ts_per_mod(ir: &rust_curse::codegen::asg::ASG, rel_src_path: std::path::PathBuf) -> String {
+pub fn print_ts_per_mod(ir: &rust_curse::codegen::ir::IR, rel_src_path: std::path::PathBuf) -> String {
     let mut out = ir.print_ts_ambient().to_string();
     for (i, item) in ir.items.iter().enumerate() {
-        if !matches!(item, rust_curse::codegen::asg::Item::Mod(_)) {
+        if !matches!(item, rust_curse::codegen::ir::Item::Mod(_)) {
             continue;
         }
-        let mid = rust_curse::codegen::asg::Id(i as u32);
+        let mid = rust_curse::codegen::ir::Id(i as u32);
         let segs = &ir.get_mod_unchecked(mid).path.segments;
         if segs.is_empty() {
             continue;
@@ -84,16 +84,16 @@ pub fn print_ts_per_mod(ir: &rust_curse::codegen::asg::ASG, rel_src_path: std::p
     out
 }
 
-pub fn print_wasm_js_per_mod<F>(ir: &rust_curse::codegen::asg::ASG, mut printer: F) -> String
+pub fn print_wasm_js_per_mod<F>(ir: &rust_curse::codegen::ir::IR, mut printer: F) -> String
 where
-    F: FnMut(&rust_curse::codegen::asg::ASG, rust_curse::codegen::asg::Id) -> String,
+    F: FnMut(&rust_curse::codegen::ir::IR, rust_curse::codegen::ir::Id) -> String,
 {
     let mut out = String::new();
     for (i, item) in ir.items.iter().enumerate() {
-        if !matches!(item, rust_curse::codegen::asg::Item::Mod(_)) {
+        if !matches!(item, rust_curse::codegen::ir::Item::Mod(_)) {
             continue;
         }
-        let mid = rust_curse::codegen::asg::Id(i as u32);
+        let mid = rust_curse::codegen::ir::Id(i as u32);
         let mod_path = ir.get_mod_unchecked(mid).path.segments.join("/");
         if !out.is_empty() {
             out.push('\n');
@@ -106,13 +106,13 @@ where
 
 /// Set of all struct + fn ids in the IR. Used as the default "everything is
 /// exposed" set for napi/wasm/js printer snapshots.
-pub fn all_exposed_ids(ir: &rust_curse::codegen::asg::ASG) -> HashSet<rust_curse::codegen::asg::Id> {
+pub fn all_exposed_ids(ir: &rust_curse::codegen::ir::IR) -> HashSet<rust_curse::codegen::ir::Id> {
     ir.items
         .iter()
         .enumerate()
         .filter_map(|(i, it)| match it {
-            rust_curse::codegen::asg::Item::Fn(_) | rust_curse::codegen::asg::Item::Struct(_) => {
-                Some(rust_curse::codegen::asg::Id(i as u32))
+            rust_curse::codegen::ir::Item::Fn(_) | rust_curse::codegen::ir::Item::Struct(_) => {
+                Some(rust_curse::codegen::ir::Id(i as u32))
             }
             _ => None,
         })
@@ -122,7 +122,7 @@ pub fn all_exposed_ids(ir: &rust_curse::codegen::asg::ASG) -> HashSet<rust_curse
 /// Resolve a list of item names into a set of ids by matching the last
 /// segment of each item's path. Panics on missing or ambiguous names so
 /// fixtures fail loudly.
-pub fn exposed_by_name(ir: &rust_curse::codegen::asg::ASG, names: &[&str]) -> HashSet<rust_curse::codegen::asg::Id> {
+pub fn exposed_by_name(ir: &rust_curse::codegen::ir::IR, names: &[&str]) -> HashSet<rust_curse::codegen::ir::Id> {
     let mut out = HashSet::new();
     for name in names {
         let matches: Vec<_> = ir
@@ -131,13 +131,13 @@ pub fn exposed_by_name(ir: &rust_curse::codegen::asg::ASG, names: &[&str]) -> Ha
             .enumerate()
             .filter(|(_, it)| {
                 let path = match it {
-                    rust_curse::codegen::asg::Item::Fn(def) => &def.path,
-                    rust_curse::codegen::asg::Item::Struct(def) => &def.path,
-                    rust_curse::codegen::asg::Item::Mod(def) => &def.path,
+                    rust_curse::codegen::ir::Item::Fn(def) => &def.path,
+                    rust_curse::codegen::ir::Item::Struct(def) => &def.path,
+                    rust_curse::codegen::ir::Item::Mod(def) => &def.path,
                 };
                 path.name() == Some(*name)
             })
-            .map(|(i, _)| rust_curse::codegen::asg::Id(i as u32))
+            .map(|(i, _)| rust_curse::codegen::ir::Id(i as u32))
             .collect();
         match matches.as_slice() {
             [] => panic!("no item named `{name}` in IR"),
@@ -163,20 +163,22 @@ macro_rules! ir {
     ($($tt:tt)*) => {{
         let (_dir, _root, crate_) = $crate::common::gen_rustdoc(stringify!($($tt)*));
         let mut warns = rust_curse::warns::Warns::new();
-        rust_curse::codegen::asg::ASG::from_rustdoc(&crate_, &mut warns).unwrap()
+        let asg = rust_curse::codegen::asg::ASG::from_rustdoc(&crate_, &mut warns).unwrap();
+        rust_curse::codegen::ir::IR::from_asg(&mut warns, &asg).unwrap()
     }};
 }
 
-/// Render all IR-target snapshots in a single markdown body:
+/// Render all target snapshots in a single markdown body:
 /// `Source` (Rust input), then `wasm`, `napi`, `ts`, `js-wasm`, `js-napi`,
-/// `warns`, and `ir` debug at the bottom.
+/// `warns`, and both the source `ASG` and lowered `IR` debug at the bottom.
 pub fn build_unified_snap(raw_src: &str) -> String {
     use rust_curse::warns::WarnsRenderer;
 
     let src = fmt_src(raw_src);
     let (_dir, project_root, crate_) = gen_rustdoc(&src);
     let mut warns = rust_curse::warns::Warns::new();
-    let ir = rust_curse::codegen::asg::ASG::from_rustdoc(&crate_, &mut warns).expect("build IR");
+    let asg = rust_curse::codegen::asg::ASG::from_rustdoc(&crate_, &mut warns).expect("build ASG");
+    let ir = rust_curse::codegen::ir::IR::from_asg(&mut warns, &asg).expect("lower ASG to IR");
     let exposed = all_exposed_ids(&ir);
 
     let wasm_rs = fmt_src(&ir.print_wasm(&exposed));
@@ -205,6 +207,7 @@ pub fn build_unified_snap(raw_src: &str) -> String {
         }
         out
     };
+    let asg_dbg = format!("{asg:#?}");
     let ir_dbg = format!("{ir:#?}");
 
     let mut body = String::new();
@@ -215,7 +218,8 @@ pub fn build_unified_snap(raw_src: &str) -> String {
     push_section(&mut body, "js-wasm", "js", &wasm_js);
     push_section(&mut body, "js-napi", "js", &napi_js);
     push_section(&mut body, "warns", "text", &warns_text);
-    push_section(&mut body, "ASG", "rs", &ir_dbg);
+    push_section(&mut body, "ASG", "rs", &asg_dbg);
+    push_section(&mut body, "IR", "rs", &ir_dbg);
     body
 }
 

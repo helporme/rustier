@@ -80,14 +80,14 @@ impl Fixture {
         let crate_ =
             rust_curse::rustdoc::run(&self.abs_root, &target_dir, TEST_CRATE).expect("rustdoc gen");
         let mut warns = Warns::new();
-        let ir = ASG::from_rustdoc(&crate_, &mut warns).expect("build ir");
+        let asg = ASG::from_rustdoc(&crate_, &mut warns).expect("build asg");
 
         let js_filter = FileFilter {
             include: Some(js_include.to_vec()),
             exclude: None,
         };
         let exposed = tree_shake::shake(
-            &ir,
+            &asg,
             TreeShakeOpts {
                 project_root_abs_path: &self.abs_root,
                 src_rel_path: &src_rel_path,
@@ -95,7 +95,7 @@ impl Fixture {
             },
         )?;
 
-        Ok((ir, exposed))
+        Ok((asg, exposed))
     }
 }
 
@@ -163,16 +163,16 @@ fn collect_entries(abs_root: &Path, abs_dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-pub fn snapshot_set(ir: &ASG, ids: &HashSet<Id>) -> Vec<String> {
-    let mut names: Vec<String> = ids.iter().map(|id| item_path(ir, *id)).collect();
+pub fn snapshot_set(asg: &ASG, ids: &HashSet<Id>) -> Vec<String> {
+    let mut names: Vec<String> = ids.iter().map(|id| item_path(asg, *id)).collect();
     names.sort();
     names
 }
 
 #[macro_export]
 macro_rules! snapshot {
-    ($fixture:expr, $ir:expr, $exposed:expr) => {{
-        let names = $crate::common::snapshot_set(&$ir, &$exposed);
+    ($fixture:expr, $asg:expr, $exposed:expr) => {{
+        let names = $crate::common::snapshot_set(&$asg, &$exposed);
         let md = $crate::common::fixture_md(&$fixture.abs_root);
         insta::with_settings!({ description => md }, {
             insta::assert_debug_snapshot!(names);

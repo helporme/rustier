@@ -1,9 +1,9 @@
-//! Walks the IR starting from items imported by JS/TS code and returns the
-//! set of `ir::Id`s that should be exposed in target glue (napi/wasm) and the
+//! Walks the ASG starting from items imported by JS/TS code and returns the
+//! set of `asg::Id`s that should be exposed in target glue (napi/wasm) and the
 //! rust-analyzer fallback section.
 //!
 //! TS ambient declarations are *not* gated by this set; they always reflect
-//! the full IR so editor intellisense surfaces every public item.
+//! the full ASG so editor intellisense surfaces every public item.
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fs;
@@ -49,10 +49,10 @@ pub enum TreeShakeError {
     },
 }
 
-/// Compute the set of IR ids reachable from JS/TS imports. JS imports that
+/// Compute the set of ASG ids reachable from JS/TS imports. JS imports that
 /// reference a non-existent `.rs` module, a name not exported by the
 /// targeted module, or use a default-import syntax are silently skipped.
-pub fn shake(ir: &ASG, opts: TreeShakeOpts<'_>) -> Result<HashSet<Id>, TreeShakeError> {
+pub fn shake(asg: &ASG, opts: TreeShakeOpts<'_>) -> Result<HashSet<Id>, TreeShakeError> {
     let abs_project_root = fs::canonicalize(opts.project_root_abs_path).map_err(|source| {
         TreeShakeError::RootNotFound {
             abs_path: opts.project_root_abs_path.to_path_buf(),
@@ -88,10 +88,10 @@ pub fn shake(ir: &ASG, opts: TreeShakeOpts<'_>) -> Result<HashSet<Id>, TreeShake
     let mut seeds: Vec<Id> = Vec::new();
     for (rel_within_src_root, bucket) in buckets {
         let mod_name = orphans::gen_module_name(&rel_within_src_root);
-        let Some(mod_id) = find_module(ir, &mod_name) else {
+        let Some(mod_id) = find_module(asg, &mod_name) else {
             continue;
         };
-        let exports = &ir.get_mod_unchecked(mod_id).exports;
+        let exports = &asg.get_mod_unchecked(mod_id).exports;
         if bucket.star {
             for export in exports {
                 seeds.push(export.target);
@@ -112,7 +112,7 @@ pub fn shake(ir: &ASG, opts: TreeShakeOpts<'_>) -> Result<HashSet<Id>, TreeShake
         if !visited.insert(id) {
             continue;
         }
-        match ir.get_unchecked(id) {
+        match asg.get_unchecked(id) {
             Item::Fn(def) => {
                 for param in &def.params {
                     walk_type(&param.ty, &mut stack);
@@ -150,10 +150,10 @@ fn walk_type(ty: &Type, stack: &mut Vec<Id>) {
     }
 }
 
-fn find_module(ir: &ASG, mod_name: &str) -> Option<Id> {
+fn find_module(asg: &ASG, mod_name: &str) -> Option<Id> {
     let mangled = mangle_module_name(mod_name);
-    let expected: Vec<&str> = vec![ir.crate_name.as_str(), mangled.as_str()];
-    for (i, item) in ir.items.iter().enumerate() {
+    let expected: Vec<&str> = vec![asg.crate_name.as_str(), mangled.as_str()];
+    for (i, item) in asg.items.iter().enumerate() {
         let Item::Mod(def) = item else { continue };
         let segments: Vec<&str> = def.path.segments.iter().map(String::as_str).collect();
         if segments == expected {
@@ -417,8 +417,8 @@ fn parse_members(specifier_part: &str) -> Vec<String> {
 
 /// Return the segments-joined `crate::path::to::item` string for a given Id.
 /// Used by tree_shake tests to render id sets in a stable, human-readable form.
-pub fn item_path(ir: &ASG, id: Id) -> String {
-    let segs = match ir.get_unchecked(id) {
+pub fn item_path(asg: &ASG, id: Id) -> String {
+    let segs = match asg.get_unchecked(id) {
         Item::Fn(def) => &def.path.segments,
         Item::Struct(def) => &def.path.segments,
         Item::Mod(def) => &def.path.segments,

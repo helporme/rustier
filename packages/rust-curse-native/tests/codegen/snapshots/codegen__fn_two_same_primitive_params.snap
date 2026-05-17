@@ -144,3 +144,89 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            34,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "two_i32",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "two_i32",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            34,
+                        ),
+                    },
+                ),
+                params: [
+                    FnParam {
+                        name: "a",
+                        mode: ByValue,
+                        ty: Primitive(
+                            i32,
+                        ),
+                    },
+                    FnParam {
+                        name: "b",
+                        mode: ByValue,
+                        ty: Primitive(
+                            i32,
+                        ),
+                    },
+                ],
+                return_type: Primitive(
+                    Unit,
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

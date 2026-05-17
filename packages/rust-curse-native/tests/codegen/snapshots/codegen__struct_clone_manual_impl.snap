@@ -201,3 +201,83 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            8,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Manual",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Manual",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: true,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

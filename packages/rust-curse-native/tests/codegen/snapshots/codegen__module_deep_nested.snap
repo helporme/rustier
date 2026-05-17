@@ -261,3 +261,173 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "a",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            10,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "b",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                        "b",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            2,
+                            14,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "c",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                        "b",
+                        "c",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            3,
+                            9,
+                        ),
+                        end: (
+                            3,
+                            18,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "deep",
+                        target: Id(
+                            4,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                        "b",
+                        "c",
+                        "deep",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            4,
+                            13,
+                        ),
+                        end: (
+                            4,
+                            29,
+                        ),
+                    },
+                ),
+                params: [],
+                return_type: Primitive(
+                    Unit,
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

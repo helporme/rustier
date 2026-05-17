@@ -305,3 +305,158 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            9,
+                            18,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "deeper",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "inner",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                    Export {
+                        name: "X",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "deeper",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            15,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "X",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "deeper",
+                        "X",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "inner",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            6,
+                            1,
+                        ),
+                        end: (
+                            6,
+                            14,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "X",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+    ],
+}
+```

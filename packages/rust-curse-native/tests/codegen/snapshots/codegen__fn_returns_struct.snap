@@ -295,3 +295,134 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            11,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Point",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "make_origin",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Point",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                f64,
+                            ),
+                            docs: Some(
+                                "Horizontal position.",
+                            ),
+                        },
+                        StructField {
+                            name: "y",
+                            ty: Primitive(
+                                f64,
+                            ),
+                            docs: Some(
+                                "Vertical position.",
+                            ),
+                        },
+                    ],
+                ),
+                docs: Some(
+                    "A point in 2D space.",
+                ),
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "make_origin",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            9,
+                            1,
+                        ),
+                        end: (
+                            11,
+                            2,
+                        ),
+                    },
+                ),
+                params: [],
+                return_type: Struct(
+                    Id(
+                        1,
+                    ),
+                ),
+                docs: Some(
+                    "Returns the origin point `(0, 0)`.",
+                ),
+            },
+        ),
+    ],
+}
+```

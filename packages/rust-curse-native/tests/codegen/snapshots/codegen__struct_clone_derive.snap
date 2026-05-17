@@ -317,3 +317,126 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Cloneable",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "NotCloneable",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Cloneable",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            4,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: true,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "NotCloneable",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

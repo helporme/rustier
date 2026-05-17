@@ -1,4 +1,4 @@
-//! Creates rust-curse IR from rustdoc.
+//! Creates rust-curse ASG from rustdoc.
 
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -8,7 +8,7 @@ use rustdoc_types::{
     Span as RSpan, StructKind, Type as RType, Use, Visibility,
 };
 
-use super::asg::{
+use super::{
     Ctor, Export, FnDef, FnParam, Id, Item, ItemPath, ModDef, ParamMode, Primitive, Span,
     StructDef, StructField, StructShape, Type, ASG,
 };
@@ -23,14 +23,14 @@ pub enum BuildError {
 }
 
 impl ASG {
-    /// Build the rust-curse IR from a rustdoc `Crate`. Unsupported items are
+    /// Build the rust-curse ASG from a rustdoc `Crate`. Unsupported items are
     /// soft-skipped and recorded in `warns`. The build succeeds as long as no
     /// `MissingItem` is encountered.
     pub fn from_rustdoc(crate_: &Crate, warns: &mut Warns) -> Result<ASG, BuildError> {
         let mut b = Builder {
             crate_,
             warns,
-            ir: ASG::default(),
+            asg: ASG::default(),
             struct_intern: HashMap::new(),
             fn_intern: HashMap::new(),
             mod_intern: HashMap::new(),
@@ -48,20 +48,20 @@ impl ASG {
             })?
             .expect("root module has no id reservation");
 
-        b.ir.root = root;
-        b.ir.crate_name = crate_
+        b.asg.root = root;
+        b.asg.crate_name = crate_
             .index
             .get(&crate_.root)
             .and_then(|it| it.name.clone())
             .unwrap_or_default();
-        Ok(b.ir)
+        Ok(b.asg)
     }
 }
 
 struct Builder<'a> {
     crate_: &'a Crate,
     warns: &'a mut Warns,
-    ir: ASG,
+    asg: ASG,
     /// `None` means the struct was probed and skipped.
     struct_intern: HashMap<RId, Option<Id>>,
     /// `None` means the fn was probed and skipped.
@@ -132,12 +132,12 @@ impl<'a> Builder<'a> {
         }
 
         if exports.is_empty() && mod_id != self.crate_.root {
-            self.ir.items.pop();
+            self.asg.items.pop();
             self.mod_intern.remove(&mod_id);
             return Ok(None);
         }
 
-        if let Item::Mod(m) = &mut self.ir.items[mid.0 as usize] {
+        if let Item::Mod(m) = &mut self.asg.items[mid.0 as usize] {
             m.exports = exports;
         }
         Ok(Some(mid))
@@ -246,8 +246,8 @@ impl<'a> Builder<'a> {
     }
 
     fn reserve_mod(&mut self, path: ItemPath, span: Option<Span>) -> Id {
-        let id = Id(self.ir.items.len() as u32);
-        self.ir.items.push(Item::Mod(ModDef {
+        let id = Id(self.asg.items.len() as u32);
+        self.asg.items.push(Item::Mod(ModDef {
             path,
             span,
             exports: Vec::new(),
@@ -301,9 +301,9 @@ impl<'a> Builder<'a> {
 
         // Shape is good. Commit slot before computing ctor (ctor may
         // recurse back via Self).
-        let sid = Id(self.ir.items.len() as u32);
+        let sid = Id(self.asg.items.len() as u32);
         self.struct_intern.insert(id, Some(sid));
-        self.ir.items.push(Item::Struct(StructDef {
+        self.asg.items.push(Item::Struct(StructDef {
             path,
             span,
             ctor: Ctor::Implicit,
@@ -314,7 +314,7 @@ impl<'a> Builder<'a> {
 
         let ctor = self.find_ctor(&struct_.impls, id, item)?;
 
-        if let Item::Struct(def) = &mut self.ir.items[sid.0 as usize] {
+        if let Item::Struct(def) = &mut self.asg.items[sid.0 as usize] {
             def.ctor = ctor;
         }
         Ok(Some(sid))
@@ -504,9 +504,9 @@ impl<'a> Builder<'a> {
             }
         };
 
-        let fid = Id(self.ir.items.len() as u32);
+        let fid = Id(self.asg.items.len() as u32);
         self.fn_intern.insert(id, Some(fid));
-        self.ir.items.push(Item::Fn(FnDef {
+        self.asg.items.push(Item::Fn(FnDef {
             path,
             span,
             params,

@@ -225,3 +225,116 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            13,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Counter",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Counter",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
+                ctor: Explicit(
+                    Id(
+                        2,
+                    ),
+                ),
+                clonable: false,
+                shape: Struct(
+                    [],
+                ),
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                path: ItemPath {
+                    segments: [
+                        "new",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            10,
+                            5,
+                        ),
+                        end: (
+                            12,
+                            6,
+                        ),
+                    },
+                ),
+                params: [
+                    FnParam {
+                        name: "seed",
+                        mode: ByValue,
+                        ty: Primitive(
+                            u32,
+                        ),
+                    },
+                ],
+                return_type: Struct(
+                    Id(
+                        1,
+                    ),
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

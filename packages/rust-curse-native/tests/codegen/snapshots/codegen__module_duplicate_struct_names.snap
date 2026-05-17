@@ -403,3 +403,190 @@ ASG {
     ],
 }
 ```
+
+# IR
+
+```rs
+IR {
+    root: Id(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            10,
+                            2,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "a",
+                        target: Id(
+                            1,
+                        ),
+                    },
+                    Export {
+                        name: "b",
+                        target: Id(
+                            3,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            10,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Thing",
+                        target: Id(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "a",
+                        "Thing",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+        Mod(
+            ModDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "b",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            6,
+                            1,
+                        ),
+                        end: (
+                            6,
+                            10,
+                        ),
+                    },
+                ),
+                exports: [
+                    Export {
+                        name: "Thing",
+                        target: Id(
+                            4,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "b",
+                        "Thing",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            7,
+                            5,
+                        ),
+                        end: (
+                            9,
+                            6,
+                        ),
+                    },
+                ),
+                ctor: Implicit,
+                clonable: false,
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "y",
+                            ty: Primitive(
+                                i32,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                docs: None,
+            },
+        ),
+    ],
+}
+```

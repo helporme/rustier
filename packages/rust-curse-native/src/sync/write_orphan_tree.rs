@@ -12,7 +12,7 @@ use super::Syncer;
 pub const ORPHAN_TREE_DIR: &str = "orphan-tree";
 
 pub struct WriteOrphanTreeOpts<'a> {
-    pub ir: &'a ASG,
+    pub asg: &'a ASG,
     pub exposed: &'a HashSet<Id>,
 }
 
@@ -45,14 +45,14 @@ impl Syncer {
         fs::create_dir_all(&abs_out_dir).map_err(WriteOrphanTreeError::CreateOutDir)?;
 
         let mut local_modules: Vec<(String, PathBuf, Id)> = opts
-            .ir
+            .asg
             .items
             .iter()
             .enumerate()
             .filter_map(|(i, it)| {
                 let Item::Mod(m) = it else { return None };
                 let id = Id(i as u32);
-                if id == opts.ir.root {
+                if id == opts.asg.root {
                     return None;
                 }
                 let rel_rs_path = m.span.as_ref()?.filename.clone();
@@ -79,7 +79,7 @@ impl Syncer {
 
         for (mod_name, _, id) in &local_modules {
             let mut names: Vec<&str> = opts
-                .ir
+                .asg
                 .get_mod_unchecked(*id)
                 .exports
                 .iter()

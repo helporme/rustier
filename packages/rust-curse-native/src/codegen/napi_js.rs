@@ -3,9 +3,9 @@
 use std::collections::HashSet;
 
 use super::mangle::mangle;
-use super::asg::{Id, Item, ASG};
+use super::ir::{Id, Item, IR};
 
-impl ASG {
+impl IR {
     /// Prints the napi JS glue for a single rust orphan module.
     ///
     /// `source_js` is the path the bundler will resolve to the
@@ -16,7 +16,7 @@ impl ASG {
 }
 
 struct Printer<'a> {
-    ir: &'a ASG,
+    ir: &'a IR,
     source: String,
     exposed: &'a HashSet<Id>,
 }
@@ -27,7 +27,7 @@ struct Binding {
 }
 
 impl<'a> Printer<'a> {
-    fn new(ir: &'a ASG, source: String, exposed: &'a HashSet<Id>) -> Self {
+    fn new(ir: &'a IR, source: String, exposed: &'a HashSet<Id>) -> Self {
         Self {
             ir,
             source,

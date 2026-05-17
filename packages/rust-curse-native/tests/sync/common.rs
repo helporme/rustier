@@ -1,5 +1,5 @@
 //! Shared helpers for sync tests: tempdir setup, dir-to-md serialisation
-//! for snapshots, IR fixtures.
+//! for snapshots, ASG fixtures.
 
 #![allow(dead_code)]
 
@@ -139,7 +139,7 @@ pub struct FnFixture<'a> {
     pub exposed: bool,
 }
 
-/// Description of one module's IR contribution: its `mod_name` (as a
+/// Description of one module's ASG contribution: its `mod_name` (as a
 /// `::`-separated path), source file path (relative to project root),
 /// and the list of exported functions.
 pub struct ModFixture<'a> {
@@ -148,26 +148,26 @@ pub struct ModFixture<'a> {
     pub fns: &'a [FnFixture<'a>],
 }
 
-/// Build a synthetic IR + exposed-id set for sync tests. Each module
+/// Build a synthetic ASG + exposed-id set for sync tests. Each module
 /// fixture becomes one `Item::Mod` whose `path.segments` are the crate
 /// name followed by the unmangled `mod_name` segments, plus one
 /// `Item::Fn` per declared function. A fn marked `exposed: true` is
 /// included in the returned `HashSet<Id>`.
-pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (ASG, HashSet<Id>) {
-    let mut ir = ASG {
+pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (ASG, HashSet<Id>) {
+    let mut asg = ASG {
         crate_name: crate_name.to_string(),
         root: Id(0),
         items: Vec::new(),
     };
     let mut exposed: HashSet<Id> = HashSet::new();
 
-    let root_id = Id(ir.items.len() as u32);
-    ir.items.push(Item::Mod(ModDef {
+    let root_id = Id(asg.items.len() as u32);
+    asg.items.push(Item::Mod(ModDef {
         path: ItemPath::new(vec![crate_name.to_string()]),
         span: None,
         exports: Vec::new(),
     }));
-    ir.root = root_id;
+    asg.root = root_id;
 
     let mut root_exports: Vec<Export> = Vec::new();
 
@@ -175,8 +175,8 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (ASG, HashSet<Id>) {
         let mod_segs: Vec<String> = std::iter::once(crate_name.to_string())
             .chain(module.mod_name.split("::").map(String::from))
             .collect();
-        let mod_id = Id(ir.items.len() as u32);
-        ir.items.push(Item::Mod(ModDef {
+        let mod_id = Id(asg.items.len() as u32);
+        asg.items.push(Item::Mod(ModDef {
             path: ItemPath::new(mod_segs.clone()),
             span: Some(Span {
                 filename: PathBuf::from(module.rel_rs_path),
@@ -190,8 +190,8 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (ASG, HashSet<Id>) {
         for fn_fix in module.fns {
             let mut fn_segs = mod_segs.clone();
             fn_segs.push(fn_fix.name.to_string());
-            let fn_id = Id(ir.items.len() as u32);
-            ir.items.push(Item::Fn(FnDef {
+            let fn_id = Id(asg.items.len() as u32);
+            asg.items.push(Item::Fn(FnDef {
                 path: ItemPath::new(fn_segs),
                 span: None,
                 params: Vec::new(),
@@ -206,7 +206,7 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (ASG, HashSet<Id>) {
                 target: fn_id,
             });
         }
-        if let Item::Mod(m) = &mut ir.items[mod_id.0 as usize] {
+        if let Item::Mod(m) = &mut asg.items[mod_id.0 as usize] {
             m.exports = mod_exports;
         }
 
@@ -216,15 +216,40 @@ pub fn make_ir(crate_name: &str, modules: &[ModFixture]) -> (ASG, HashSet<Id>) {
         });
     }
 
-    if let Item::Mod(m) = &mut ir.items[root_id.0 as usize] {
+    if let Item::Mod(m) = &mut asg.items[root_id.0 as usize] {
         m.exports = root_exports;
     }
 
+    (asg, exposed)
+}
+
+/// Convenience wrapper for building an empty ASG (for tests that just need
+/// to exercise the writer with no modules).
+pub fn empty_asg(crate_name: &str) -> (ASG, HashSet<Id>) {
+    make_asg(crate_name, &[])
+}
+
+/// Build a synthetic IR + exposed-id set by lowering the synthetic ASG
+/// produced by [`make_asg`]. The IR ids match the ASG ids one-to-one
+/// because today's lowering is a direct clone.
+pub fn make_ir(
+    crate_name: &str,
+    modules: &[ModFixture],
+) -> (rust_curse::codegen::ir::IR, HashSet<rust_curse::codegen::ir::Id>) {
+    let (asg, exposed) = make_asg(crate_name, modules);
+    let mut warns = rust_curse::warns::Warns::new();
+    let ir = rust_curse::codegen::ir::IR::from_asg(&mut warns, &asg).unwrap();
+    let exposed = exposed
+        .into_iter()
+        .map(|id| rust_curse::codegen::ir::Id(id.0))
+        .collect();
     (ir, exposed)
 }
 
 /// Convenience wrapper for building an empty IR (for tests that just need
 /// to exercise the writer with no modules).
-pub fn empty_ir(crate_name: &str) -> (ASG, HashSet<Id>) {
+pub fn empty_ir(
+    crate_name: &str,
+) -> (rust_curse::codegen::ir::IR, HashSet<rust_curse::codegen::ir::Id>) {
     make_ir(crate_name, &[])
 }

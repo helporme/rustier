@@ -1,14 +1,17 @@
-//! IR used to print the target representation (ts/wasm/napi).
+//! ASG built directly from rustdoc. Closely mirrors rustdoc's shape and
+//! is the source the per-target IR is lowered from.
 //!
-//! Main difference from the rustdoc representation is that rust curse IR
-//! distinguish between **"ref" struct** and **"copy" struct** in the same vein
-//! as C# distinguish between class and struct.
+//! Main difference from the rustdoc representation is that rust curse ASG
+//! distinguish between **"ref" struct** and **"copy" struct** in the same
+//! vein as C# distinguish between class and struct.
 
 #![allow(non_camel_case_types)]
 
+pub mod from_rustdoc;
+
 use std::path::PathBuf;
 
-/// A unique identifier for an item in the IR.
+/// A unique identifier for an item in the ASG.
 #[derive(Copy, Clone, Default, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Id(pub u32);
 
@@ -168,7 +171,7 @@ pub struct Export {
     pub target: Id,
 }
 
-/// An item in the IR.
+/// An item in the ASG.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Item {
     Struct(StructDef),
@@ -176,7 +179,7 @@ pub enum Item {
     Mod(ModDef),
 }
 
-/// The rust curse IR for a Rust crate.
+/// The rust curse ASG for a Rust crate.
 #[derive(Clone, Debug, Default)]
 pub struct ASG {
     pub root: Id,
