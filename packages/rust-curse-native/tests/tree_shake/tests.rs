@@ -136,7 +136,10 @@ fn unresolved_named_import_silently_skipped() {
 
     let include = vec![format!("{}/app/**/*.js", fixture.abs_root.display())];
     let (_ir, exposed) = fixture.run_shake("src", &include).expect("shake ok");
-    assert!(exposed.is_empty(), "unresolved import should not seed anything");
+    assert!(
+        exposed.is_empty(),
+        "unresolved import should not seed anything"
+    );
 }
 
 #[test]
@@ -162,7 +165,10 @@ fn unresolved_file_import_silently_skipped() {
 
     let include = vec![format!("{}/app/**/*.js", fixture.abs_root.display())];
     let (_ir, exposed) = fixture.run_shake("src", &include).expect("shake ok");
-    assert!(exposed.is_empty(), "unresolved file should not seed anything");
+    assert!(
+        exposed.is_empty(),
+        "unresolved file should not seed anything"
+    );
 }
 
 #[test]

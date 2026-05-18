@@ -176,8 +176,8 @@ export { __cursed_rustdoc_test_crate__ops__parse as parse };
 # ASG
 
 ```rs
-ASG {
-    root: Id(
+Asg {
+    root: AsgId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -205,13 +205,13 @@ ASG {
                 exports: [
                     Export {
                         name: "types",
-                        target: Id(
+                        target: AsgId(
                             1,
                         ),
                     },
                     Export {
                         name: "ops",
-                        target: Id(
+                        target: AsgId(
                             3,
                         ),
                     },
@@ -242,7 +242,7 @@ ASG {
                 exports: [
                     Export {
                         name: "Token",
-                        target: Id(
+                        target: AsgId(
                             2,
                         ),
                     },
@@ -315,7 +315,7 @@ ASG {
                 exports: [
                     Export {
                         name: "parse",
-                        target: Id(
+                        target: AsgId(
                             4,
                         ),
                     },
@@ -354,7 +354,7 @@ ASG {
                     },
                 ],
                 return_type: Struct(
-                    Id(
+                    AsgId(
                         2,
                     ),
                 ),
@@ -370,8 +370,8 @@ ASG {
 # IR
 
 ```rs
-IR {
-    root: Id(
+Ir {
+    root: IrId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -399,13 +399,13 @@ IR {
                 exports: [
                     Export {
                         name: "types",
-                        target: Id(
+                        target: IrId(
                             1,
                         ),
                     },
                     Export {
                         name: "ops",
-                        target: Id(
+                        target: IrId(
                             3,
                         ),
                     },
@@ -436,7 +436,7 @@ IR {
                 exports: [
                     Export {
                         name: "Token",
-                        target: Id(
+                        target: IrId(
                             2,
                         ),
                     },
@@ -509,7 +509,7 @@ IR {
                 exports: [
                     Export {
                         name: "parse",
-                        target: Id(
+                        target: IrId(
                             4,
                         ),
                     },
@@ -548,7 +548,7 @@ IR {
                     },
                 ],
                 return_type: Struct(
-                    Id(
+                    IrId(
                         2,
                     ),
                 ),

@@ -2,8 +2,8 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::codegen::ir::{Ir, IrId, Item};
 use crate::codegen::ts::PrintTsModOpts;
-use crate::codegen::ir::{Id, Item, IR};
 
 use super::Syncer;
 
@@ -28,7 +28,7 @@ impl Syncer {
     /// Writes the ambient `$rust-curse` preamble to `<out>/ambient.d.ts`
     /// and one `<out>/types/<seg1>/.../<segN>.rs.d.ts` body per non-root
     /// module in `ir`.
-    pub fn write_ts(&mut self, ir: &IR, modules_root_rel_path: &Path) -> Result<(), WriteTsError> {
+    pub fn write_ts(&mut self, ir: &Ir, modules_root_rel_path: &Path) -> Result<(), WriteTsError> {
         let abs_out_dir = self.abs_out_dir();
         fs::create_dir_all(&abs_out_dir).map_err(WriteTsError::CreateOutDir)?;
 
@@ -50,7 +50,7 @@ impl Syncer {
             if !matches!(item, Item::Mod(_)) {
                 continue;
             }
-            let mid = Id(i as u32);
+            let mid = IrId(i as u32);
             let segs = &ir.get_mod_unchecked(mid).path.segments;
             if segs.len() < 2 {
                 continue;

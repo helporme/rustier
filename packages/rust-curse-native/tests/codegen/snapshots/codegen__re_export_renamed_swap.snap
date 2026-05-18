@@ -214,8 +214,8 @@ export { __cursed_rustdoc_test_crate__inner__Inner as Inner, __cursed_rustdoc_te
 # ASG
 
 ```rs
-ASG {
-    root: Id(
+Asg {
+    root: AsgId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -243,19 +243,19 @@ ASG {
                 exports: [
                     Export {
                         name: "inner",
-                        target: Id(
+                        target: AsgId(
                             1,
                         ),
                     },
                     Export {
                         name: "Outer",
-                        target: Id(
+                        target: AsgId(
                             2,
                         ),
                     },
                     Export {
                         name: "Inner",
-                        target: Id(
+                        target: AsgId(
                             3,
                         ),
                     },
@@ -286,13 +286,13 @@ ASG {
                 exports: [
                     Export {
                         name: "Inner",
-                        target: Id(
+                        target: AsgId(
                             2,
                         ),
                     },
                     Export {
                         name: "Outer",
-                        target: Id(
+                        target: AsgId(
                             3,
                         ),
                     },
@@ -382,8 +382,8 @@ ASG {
 # IR
 
 ```rs
-IR {
-    root: Id(
+Ir {
+    root: IrId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -411,19 +411,19 @@ IR {
                 exports: [
                     Export {
                         name: "inner",
-                        target: Id(
+                        target: IrId(
                             1,
                         ),
                     },
                     Export {
                         name: "Outer",
-                        target: Id(
+                        target: IrId(
                             2,
                         ),
                     },
                     Export {
                         name: "Inner",
-                        target: Id(
+                        target: IrId(
                             3,
                         ),
                     },
@@ -454,13 +454,13 @@ IR {
                 exports: [
                     Export {
                         name: "Inner",
-                        target: Id(
+                        target: IrId(
                             2,
                         ),
                     },
                     Export {
                         name: "Outer",
-                        target: Id(
+                        target: IrId(
                             3,
                         ),
                     },

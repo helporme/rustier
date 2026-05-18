@@ -9,8 +9,8 @@ use napi_derive::napi;
 
 #[cfg(feature = "napi-binding")]
 use crate::builder::napi::{NapiBuildFn, NapiBuildOpts, NapiBuilder};
-use crate::codegen::asg::ASG;
-use crate::codegen::ir::{self, Item, IR};
+use crate::codegen::asg::Asg;
+use crate::codegen::ir::{self, Ir, Item};
 use crate::orphans::OrphanScanOpts;
 use crate::sync::write_orphan_tree::WriteOrphanTreeOpts;
 use crate::sync::Syncer;
@@ -113,8 +113,8 @@ impl RustCurseOpts {
 
 #[derive(Debug, Clone)]
 pub struct BuildCache {
-    ir: IR,
-    exposed: HashSet<ir::Id>,
+    ir: Ir,
+    exposed: HashSet<ir::IrId>,
     artifacts: HashMap<String, ProfileBuildCache>,
 }
 
@@ -254,7 +254,7 @@ impl RustCurse {
 
         let rustdoc = rustdoc::gen(&self.project_root_abs_path)?;
         let mut warns = Warns::new();
-        let asg = ASG::from_rustdoc(&rustdoc, &mut warns).context("build asg")?;
+        let asg = Asg::from_rustdoc(&rustdoc, &mut warns).context("build asg")?;
 
         let asg_exposed = tree_shake::shake(
             &asg,
@@ -277,8 +277,8 @@ impl RustCurse {
         })
         .context("sync: orphan_tree")?;
 
-        let ir = IR::from_asg(&mut warns, &asg).context("build ir")?;
-        let exposed: HashSet<ir::Id> = asg_exposed.iter().map(|id| ir::Id(id.0)).collect();
+        let ir = Ir::from_asg(&mut warns, &asg).context("build ir")?;
+        let exposed: HashSet<ir::IrId> = asg_exposed.iter().map(|id| ir::IrId(id.0)).collect();
 
         let profiles = self.get_profiles(profile_names)?;
         for profile in &profiles {
@@ -371,7 +371,7 @@ impl RustCurse {
             .ok_or_else(|| anyhow!("unknown profile '{profile_name}'"))?;
 
         let path_buf = PathBuf::from(path);
-        let mid = ir::Id(build_output
+        let mid = ir::IrId(build_output
             .ir
             .items
             .iter()

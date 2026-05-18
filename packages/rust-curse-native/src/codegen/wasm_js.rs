@@ -2,23 +2,28 @@
 
 use std::collections::HashSet;
 
+use super::ir::{Ir, IrId, Item};
 use super::mangle::mangle;
-use super::ir::{Id, Item, IR};
 
-impl IR {
+impl Ir {
     /// Prints the wasm-bindgen JS glue for a single rust orphan module.
     ///
     /// `source_js` is the path the bundler will resolve to the
     /// wasm-bindgen-generated `package.js`.
-    pub fn print_wasm_js(&self, module_id: Id, source_js: String, exposed: &HashSet<Id>) -> String {
+    pub fn print_wasm_js(
+        &self,
+        module_id: IrId,
+        source_js: String,
+        exposed: &HashSet<IrId>,
+    ) -> String {
         Printer::new(self, source_js, exposed).run(module_id)
     }
 }
 
 struct Printer<'a> {
-    ir: &'a IR,
+    ir: &'a Ir,
     source: String,
-    exposed: &'a HashSet<Id>,
+    exposed: &'a HashSet<IrId>,
 }
 
 struct Binding {
@@ -27,7 +32,7 @@ struct Binding {
 }
 
 impl<'a> Printer<'a> {
-    fn new(ir: &'a IR, source: String, exposed: &'a HashSet<Id>) -> Self {
+    fn new(ir: &'a Ir, source: String, exposed: &'a HashSet<IrId>) -> Self {
         Self {
             ir,
             source,
@@ -35,7 +40,7 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn run(&self, mid: Id) -> String {
+    fn run(&self, mid: IrId) -> String {
         let exports = &self.ir.get_mod_unchecked(mid).exports;
         let mut bindings: Vec<Binding> = Vec::new();
         for export in exports {

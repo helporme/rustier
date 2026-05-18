@@ -51,8 +51,8 @@ export {};
 # ASG
 
 ```rs
-ASG {
-    root: Id(
+Asg {
+    root: AsgId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -87,8 +87,8 @@ ASG {
 # IR
 
 ```rs
-IR {
-    root: Id(
+Ir {
+    root: IrId(
         0,
     ),
     crate_name: "rustdoc_test_crate",

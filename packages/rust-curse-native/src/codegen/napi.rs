@@ -2,27 +2,27 @@
 
 use std::collections::HashSet;
 
-use super::mangle::{is_canonical_origin, mangle};
 use super::ir::{
-    rust_path, Ctor, FnParam, Id, Item, ParamMode, Primitive, StructDef, StructField, StructShape,
-    Type, IR,
+    rust_path, Ctor, FnParam, Ir, IrId, Item, ParamMode, Primitive, StructDef, StructField,
+    StructShape, Type,
 };
+use super::mangle::{is_canonical_origin, mangle};
 
-impl IR {
+impl Ir {
     /// Prints the IR as napi glue code, exposing items in the `exposed`
     /// set.
-    pub fn print_napi(&self, exposed: &HashSet<Id>) -> String {
+    pub fn print_napi(&self, exposed: &HashSet<IrId>) -> String {
         Printer::new(self, exposed).run()
     }
 }
 
 struct Printer<'a> {
-    ir: &'a IR,
-    exposed: &'a HashSet<Id>,
+    ir: &'a Ir,
+    exposed: &'a HashSet<IrId>,
 }
 
 impl<'a> Printer<'a> {
-    fn new(ir: &'a IR, exposed: &'a HashSet<Id>) -> Self {
+    fn new(ir: &'a Ir, exposed: &'a HashSet<IrId>) -> Self {
         Self { ir, exposed }
     }
 
@@ -31,7 +31,7 @@ impl<'a> Printer<'a> {
         out.push_str("use napi_derive::napi;\n");
 
         for i in 0..self.ir.items.len() {
-            let id = Id(i as u32);
+            let id = IrId(i as u32);
             if let Item::Struct(_) = self.ir.get_unchecked(id) {
                 if !self.exposed.contains(&id) {
                     continue;
@@ -42,7 +42,7 @@ impl<'a> Printer<'a> {
         }
 
         for i in 0..self.ir.items.len() {
-            let mid = Id(i as u32);
+            let mid = IrId(i as u32);
             let Item::Mod(mod_def) = self.ir.get_unchecked(mid) else {
                 continue;
             };
@@ -65,7 +65,7 @@ impl<'a> Printer<'a> {
         out
     }
 
-    fn print_struct_wrappers(&mut self, sid: Id) -> String {
+    fn print_struct_wrappers(&mut self, sid: IrId) -> String {
         let def = self.ir.get_struct_unchecked(sid).clone();
         let orig = rust_path(&def.path, &self.ir.crate_name);
         let mangled = mangle(&def.path);
@@ -166,7 +166,7 @@ impl<'a> Printer<'a> {
         )
     }
 
-    fn print_fn_glue(&mut self, fid: Id) -> String {
+    fn print_fn_glue(&mut self, fid: IrId) -> String {
         let fn_def = self.ir.get_fn_unchecked(fid).clone();
         let glue_name = mangle(&fn_def.path);
         let js_name = glue_name.clone();

@@ -162,8 +162,8 @@ export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crat
 # ASG
 
 ```rs
-ASG {
-    root: Id(
+Asg {
+    root: AsgId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -191,13 +191,13 @@ ASG {
                 exports: [
                     Export {
                         name: "Point",
-                        target: Id(
+                        target: AsgId(
                             1,
                         ),
                     },
                     Export {
                         name: "translate",
-                        target: Id(
+                        target: AsgId(
                             2,
                         ),
                     },
@@ -274,7 +274,7 @@ ASG {
                         name: "origin",
                         mode: ByRef,
                         ty: Struct(
-                            Id(
+                            AsgId(
                                 1,
                             ),
                         ),
@@ -283,7 +283,7 @@ ASG {
                         name: "target",
                         mode: ByMut,
                         ty: Struct(
-                            Id(
+                            AsgId(
                                 1,
                             ),
                         ),
@@ -292,7 +292,7 @@ ASG {
                         name: "offset",
                         mode: ByValue,
                         ty: Struct(
-                            Id(
+                            AsgId(
                                 1,
                             ),
                         ),
@@ -311,8 +311,8 @@ ASG {
 # IR
 
 ```rs
-IR {
-    root: Id(
+Ir {
+    root: IrId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -340,13 +340,13 @@ IR {
                 exports: [
                     Export {
                         name: "Point",
-                        target: Id(
+                        target: IrId(
                             1,
                         ),
                     },
                     Export {
                         name: "translate",
-                        target: Id(
+                        target: IrId(
                             2,
                         ),
                     },
@@ -423,7 +423,7 @@ IR {
                         name: "origin",
                         mode: ByRef,
                         ty: Struct(
-                            Id(
+                            IrId(
                                 1,
                             ),
                         ),
@@ -432,7 +432,7 @@ IR {
                         name: "target",
                         mode: ByMut,
                         ty: Struct(
-                            Id(
+                            IrId(
                                 1,
                             ),
                         ),
@@ -441,7 +441,7 @@ IR {
                         name: "offset",
                         mode: ByValue,
                         ty: Struct(
-                            Id(
+                            IrId(
                                 1,
                             ),
                         ),

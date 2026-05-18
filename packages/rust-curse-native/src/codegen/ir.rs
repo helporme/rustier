@@ -1,6 +1,6 @@
 //! Per-target IR used to print the target representation (ts/wasm/napi).
 //!
-//! Lowered from the [`super::asg::ASG`] via [`from_asg::IR::from_asg`].
+//! Lowered from the [`super::asg::ASG`] via [`from_asg::Ir::from_asg`].
 //! Whereas the ASG mirrors rustdoc, the IR is shaped for codegen: it
 //! will diverge from the ASG over time (e.g. flattened class shapes,
 //! synthesised ctors/getters/setters) so each printer can stay simple.
@@ -13,7 +13,7 @@ use std::path::PathBuf;
 
 /// A unique identifier for an item in the IR.
 #[derive(Copy, Clone, Default, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Id(pub u32);
+pub struct IrId(pub u32);
 
 /// Complete path to an item as it appears in the source crate,
 /// e.g. `crate::module::Type` is stored as `["crate", "module", "Type"]`.
@@ -53,7 +53,7 @@ pub fn rust_path(path: &ItemPath, local_crate: &str) -> String {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Type {
     Primitive(Primitive),
-    Struct(Id),
+    Struct(IrId),
 }
 
 /// A primitive type (everything that isn't a nominal struct).
@@ -129,7 +129,7 @@ pub enum StructShape {
 pub enum Ctor {
     /// `new` function defined in an `impl` block is used to construct ref
     /// struct.
-    Explicit(Id),
+    Explicit(IrId),
     /// struct expression (e.g. `Foo { a, b, c }`) is used to construct the ref
     /// struct.
     Implicit,
@@ -168,7 +168,7 @@ pub struct Span {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Export {
     pub name: String,
-    pub target: Id,
+    pub target: IrId,
 }
 
 /// An item in the IR.
@@ -181,20 +181,20 @@ pub enum Item {
 
 /// The rust curse IR for a Rust crate.
 #[derive(Clone, Debug, Default)]
-pub struct IR {
-    pub root: Id,
+pub struct Ir {
+    pub root: IrId,
     pub crate_name: String,
     pub items: Vec<Item>,
 }
 
-impl IR {
+impl Ir {
     /// Gets an item by its ID, panics if the item is not found.
-    pub fn get_unchecked(&self, id: Id) -> &Item {
+    pub fn get_unchecked(&self, id: IrId) -> &Item {
         &self.items[id.0 as usize]
     }
 
     /// Gets a struct by its ID, panics if the item is not a struct.
-    pub fn get_struct_unchecked(&self, id: Id) -> &StructDef {
+    pub fn get_struct_unchecked(&self, id: IrId) -> &StructDef {
         match self.get_unchecked(id) {
             Item::Struct(s) => s,
             other => panic!("expected struct at {id:?}, got {other:?}"),
@@ -202,7 +202,7 @@ impl IR {
     }
 
     /// Gets a function by its ID, panics if the item is not a function.
-    pub fn get_fn_unchecked(&self, id: Id) -> &FnDef {
+    pub fn get_fn_unchecked(&self, id: IrId) -> &FnDef {
         match self.get_unchecked(id) {
             Item::Fn(f) => f,
             other => panic!("expected fn at {id:?}, got {other:?}"),
@@ -210,7 +210,7 @@ impl IR {
     }
 
     /// Gets a module by its ID, panics if the item is not a module.
-    pub fn get_mod_unchecked(&self, id: Id) -> &ModDef {
+    pub fn get_mod_unchecked(&self, id: IrId) -> &ModDef {
         match self.get_unchecked(id) {
             Item::Mod(m) => m,
             other => panic!("expected mod at {id:?}, got {other:?}"),

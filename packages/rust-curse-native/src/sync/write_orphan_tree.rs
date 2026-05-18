@@ -3,7 +3,7 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 
-use crate::codegen::asg::{Id, Item, ASG};
+use crate::codegen::asg::{Asg, AsgId, Item};
 
 use super::tree::{self, TreeError};
 use super::write_lib::{write_lib, LibBranch, WriteLibError};
@@ -12,8 +12,8 @@ use super::Syncer;
 pub const ORPHAN_TREE_DIR: &str = "orphan-tree";
 
 pub struct WriteOrphanTreeOpts<'a> {
-    pub asg: &'a ASG,
-    pub exposed: &'a HashSet<Id>,
+    pub asg: &'a Asg,
+    pub exposed: &'a HashSet<AsgId>,
 }
 
 /// Error returned by [`Syncer::write_orphan_tree`] when building the
@@ -44,14 +44,14 @@ impl Syncer {
 
         fs::create_dir_all(&abs_out_dir).map_err(WriteOrphanTreeError::CreateOutDir)?;
 
-        let mut local_modules: Vec<(String, PathBuf, Id)> = opts
+        let mut local_modules: Vec<(String, PathBuf, AsgId)> = opts
             .asg
             .items
             .iter()
             .enumerate()
             .filter_map(|(i, it)| {
                 let Item::Mod(m) = it else { return None };
-                let id = Id(i as u32);
+                let id = AsgId(i as u32);
                 if id == opts.asg.root {
                     return None;
                 }

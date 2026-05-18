@@ -3,25 +3,25 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
+use super::ir::{Ctor, Ir, IrId, Item, ItemPath, Primitive, StructShape, Type};
 use super::mangle::is_canonical_origin;
-use super::ir::{Ctor, Id, Item, ItemPath, Primitive, StructShape, Type, IR};
 
 const PREAMBLE: &str = "";
 
 /// Options for printing a single module's `.d.ts` body.
 pub struct PrintTsModOpts<'a> {
     /// IR id of the module to print.
-    pub mod_id: Id,
+    pub mod_id: IrId,
     /// Source-tree prefix shared by all module files in the build, e.g.
     /// `PathBuf::from("src")`. Module files live at
     /// `<rel_src_path>/<segs-after-crate>.d.ts`.
     pub rel_src_path: &'a Path,
 }
 
-impl IR {
+impl Ir {
     /// Prints the ambient declarations shared across the build (the
     /// `$rust-curse` module with the `Copy<T>` utility). Per-module bodies
-    /// live in their own files; see [`IR::print_ts_mod`].
+    /// live in their own files; see [`Ir::print_ts_mod`].
     pub fn print_ts_ambient(&self) -> &'static str {
         PREAMBLE
     }
@@ -35,17 +35,17 @@ impl IR {
 }
 
 struct Printer<'a> {
-    ir: &'a IR,
-    mod_id: Id,
+    ir: &'a Ir,
+    mod_id: IrId,
     rel_src_path: &'a Path,
-    local_structs: HashSet<Id>,
+    local_structs: HashSet<IrId>,
     /// Map of relative import specifier (e.g. `"./types"`) to the set of
     /// type names imported from there.
     imports: BTreeMap<String, BTreeSet<String>>,
 }
 
 impl<'a> Printer<'a> {
-    fn new(ir: &'a IR, mod_id: Id, rel_src_path: &'a Path) -> Self {
+    fn new(ir: &'a Ir, mod_id: IrId, rel_src_path: &'a Path) -> Self {
         Self {
             ir,
             mod_id,
@@ -144,7 +144,7 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn print_struct(&mut self, sid: Id) -> String {
+    fn print_struct(&mut self, sid: IrId) -> String {
         let def = self.ir.get_struct_unchecked(sid).clone();
         let name = def.path.name().unwrap_or("unknown").to_string();
         let brand = def.path.segments.join("::");
@@ -225,7 +225,7 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn print_fn(&mut self, fid: Id) -> String {
+    fn print_fn(&mut self, fid: IrId) -> String {
         let def = self.ir.get_fn_unchecked(fid).clone();
         let name = def.path.name().unwrap_or("unknown").to_string();
         let mut out = String::new();

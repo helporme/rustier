@@ -111,8 +111,8 @@ export { __cursed_rustdoc_test_crate__Opaque as Opaque };
 # ASG
 
 ```rs
-ASG {
-    root: Id(
+Asg {
+    root: AsgId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -140,7 +140,7 @@ ASG {
                 exports: [
                     Export {
                         name: "Opaque",
-                        target: Id(
+                        target: AsgId(
                             1,
                         ),
                     },
@@ -169,7 +169,7 @@ ASG {
                     },
                 ),
                 ctor: Explicit(
-                    Id(
+                    AsgId(
                         2,
                     ),
                 ),
@@ -210,7 +210,7 @@ ASG {
                     },
                 ],
                 return_type: Struct(
-                    Id(
+                    AsgId(
                         1,
                     ),
                 ),
@@ -224,8 +224,8 @@ ASG {
 # IR
 
 ```rs
-IR {
-    root: Id(
+Ir {
+    root: IrId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -253,7 +253,7 @@ IR {
                 exports: [
                     Export {
                         name: "Opaque",
-                        target: Id(
+                        target: IrId(
                             1,
                         ),
                     },
@@ -282,7 +282,7 @@ IR {
                     },
                 ),
                 ctor: Explicit(
-                    Id(
+                    IrId(
                         2,
                     ),
                 ),
@@ -323,7 +323,7 @@ IR {
                     },
                 ],
                 return_type: Struct(
-                    Id(
+                    IrId(
                         1,
                     ),
                 ),

@@ -1,4 +1,4 @@
-//! Lowers an [`super::super::asg::ASG`] into the per-target [`IR`].
+//! Lowers an [`super::super::asg::Asg`] into the per-target [`Ir`].
 //!
 //! Today this is a direct clone -> at this point the IR and ASG are
 //! structurally identical. The seam exists so future passes (synthesising
@@ -6,19 +6,19 @@
 //! without disturbing the ASG.
 
 use crate::codegen::asg::{
-    self as asg, Ctor as AsgCtor, Export as AsgExport, FnDef as AsgFnDef, FnParam as AsgFnParam,
-    Item as AsgItem, ModDef as AsgModDef, Primitive as AsgPrimitive, Span as AsgSpan,
-    StructDef as AsgStructDef, StructField as AsgStructField, StructShape as AsgStructShape,
-    Type as AsgType, ASG,
+    self as asg, Asg, Ctor as AsgCtor, Export as AsgExport, FnDef as AsgFnDef,
+    FnParam as AsgFnParam, Item as AsgItem, ModDef as AsgModDef, Primitive as AsgPrimitive,
+    Span as AsgSpan, StructDef as AsgStructDef, StructField as AsgStructField,
+    StructShape as AsgStructShape, Type as AsgType,
 };
 use crate::warns::Warns;
 
 use super::{
-    Ctor, Export, FnDef, FnParam, Id, Item, ItemPath, ModDef, ParamMode, Primitive, Span,
-    StructDef, StructField, StructShape, Type, IR,
+    Ctor, Export, FnDef, FnParam, Ir, IrId, Item, ItemPath, ModDef, ParamMode, Primitive, Span,
+    StructDef, StructField, StructShape, Type,
 };
 
-/// Errors that may be produced by [`IR::from_asg`].
+/// Errors that may be produced by [`Ir::from_asg`].
 ///
 /// Lowering is currently total: every well-formed ASG produces a valid
 /// IR. The enum is reserved so future passes can surface failures without
@@ -30,21 +30,17 @@ pub enum FromAsgError {
     Unreachable,
 }
 
-impl IR {
-    /// Lower an [`ASG`] into the per-target [`IR`].
+impl Ir {
+    /// Lower an [`ASG`] into the per-target [`Ir`].
     ///
     /// `warns` is accepted so future lowering passes can record
     /// non-fatal diagnostics; today no warnings are emitted.
-    pub fn from_asg(warns: &mut Warns, asg: &ASG) -> Result<IR, FromAsgError> {
+    pub fn from_asg(warns: &mut Warns, asg: &Asg) -> Result<Ir, FromAsgError> {
         let _ = warns;
 
-        let items = asg
-            .items
-            .iter()
-            .map(lower_item)
-            .collect::<Vec<_>>();
+        let items = asg.items.iter().map(lower_item).collect::<Vec<_>>();
 
-        Ok(IR {
+        Ok(Ir {
             root: lower_id(asg.root),
             crate_name: asg.crate_name.clone(),
             items,
@@ -52,8 +48,8 @@ impl IR {
     }
 }
 
-fn lower_id(id: asg::Id) -> Id {
-    Id(id.0)
+fn lower_id(id: asg::AsgId) -> IrId {
+    IrId(id.0)
 }
 
 fn lower_item(item: &AsgItem) -> Item {

@@ -95,8 +95,8 @@ export { __cursed_rustdoc_test_crate__a__b__c__deep as deep };
 # ASG
 
 ```rs
-ASG {
-    root: Id(
+Asg {
+    root: AsgId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -124,7 +124,7 @@ ASG {
                 exports: [
                     Export {
                         name: "a",
-                        target: Id(
+                        target: AsgId(
                             1,
                         ),
                     },
@@ -155,7 +155,7 @@ ASG {
                 exports: [
                     Export {
                         name: "b",
-                        target: Id(
+                        target: AsgId(
                             2,
                         ),
                     },
@@ -187,7 +187,7 @@ ASG {
                 exports: [
                     Export {
                         name: "c",
-                        target: Id(
+                        target: AsgId(
                             3,
                         ),
                     },
@@ -220,7 +220,7 @@ ASG {
                 exports: [
                     Export {
                         name: "deep",
-                        target: Id(
+                        target: AsgId(
                             4,
                         ),
                     },
@@ -265,8 +265,8 @@ ASG {
 # IR
 
 ```rs
-IR {
-    root: Id(
+Ir {
+    root: IrId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -294,7 +294,7 @@ IR {
                 exports: [
                     Export {
                         name: "a",
-                        target: Id(
+                        target: IrId(
                             1,
                         ),
                     },
@@ -325,7 +325,7 @@ IR {
                 exports: [
                     Export {
                         name: "b",
-                        target: Id(
+                        target: IrId(
                             2,
                         ),
                     },
@@ -357,7 +357,7 @@ IR {
                 exports: [
                     Export {
                         name: "c",
-                        target: Id(
+                        target: IrId(
                             3,
                         ),
                     },
@@ -390,7 +390,7 @@ IR {
                 exports: [
                     Export {
                         name: "deep",
-                        target: Id(
+                        target: IrId(
                             4,
                         ),
                     },

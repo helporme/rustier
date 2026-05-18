@@ -139,8 +139,8 @@ export { __cursed_rustdoc_test_crate__inner__Inner as Inner };
 # ASG
 
 ```rs
-ASG {
-    root: Id(
+Asg {
+    root: AsgId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -168,13 +168,13 @@ ASG {
                 exports: [
                     Export {
                         name: "inner",
-                        target: Id(
+                        target: AsgId(
                             1,
                         ),
                     },
                     Export {
                         name: "Renamed",
-                        target: Id(
+                        target: AsgId(
                             2,
                         ),
                     },
@@ -205,7 +205,7 @@ ASG {
                 exports: [
                     Export {
                         name: "Inner",
-                        target: Id(
+                        target: AsgId(
                             2,
                         ),
                     },
@@ -257,8 +257,8 @@ ASG {
 # IR
 
 ```rs
-IR {
-    root: Id(
+Ir {
+    root: IrId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -286,13 +286,13 @@ IR {
                 exports: [
                     Export {
                         name: "inner",
-                        target: Id(
+                        target: IrId(
                             1,
                         ),
                     },
                     Export {
                         name: "Renamed",
-                        target: Id(
+                        target: IrId(
                             2,
                         ),
                     },
@@ -323,7 +323,7 @@ IR {
                 exports: [
                     Export {
                         name: "Inner",
-                        target: Id(
+                        target: IrId(
                             2,
                         ),
                     },

@@ -9,8 +9,8 @@ use rustdoc_types::{
 };
 
 use super::{
-    Ctor, Export, FnDef, FnParam, Id, Item, ItemPath, ModDef, ParamMode, Primitive, Span,
-    StructDef, StructField, StructShape, Type, ASG,
+    Asg, AsgId, Ctor, Export, FnDef, FnParam, Item, ItemPath, ModDef, ParamMode, Primitive, Span,
+    StructDef, StructField, StructShape, Type,
 };
 use crate::warns::Warn;
 use crate::warns::WarnLabel;
@@ -22,15 +22,15 @@ pub enum BuildError {
     MissingItem(RId),
 }
 
-impl ASG {
+impl Asg {
     /// Build the rust-curse ASG from a rustdoc `Crate`. Unsupported items are
     /// soft-skipped and recorded in `warns`. The build succeeds as long as no
     /// `MissingItem` is encountered.
-    pub fn from_rustdoc(crate_: &Crate, warns: &mut Warns) -> Result<ASG, BuildError> {
+    pub fn from_rustdoc(crate_: &Crate, warns: &mut Warns) -> Result<Asg, BuildError> {
         let mut b = Builder {
             crate_,
             warns,
-            asg: ASG::default(),
+            asg: Asg::default(),
             struct_intern: HashMap::new(),
             fn_intern: HashMap::new(),
             mod_intern: HashMap::new(),
@@ -61,17 +61,17 @@ impl ASG {
 struct Builder<'a> {
     crate_: &'a Crate,
     warns: &'a mut Warns,
-    asg: ASG,
+    asg: Asg,
     /// `None` means the struct was probed and skipped.
-    struct_intern: HashMap<RId, Option<Id>>,
+    struct_intern: HashMap<RId, Option<AsgId>>,
     /// `None` means the fn was probed and skipped.
-    fn_intern: HashMap<RId, Option<Id>>,
-    mod_intern: HashMap<RId, Id>,
+    fn_intern: HashMap<RId, Option<AsgId>>,
+    mod_intern: HashMap<RId, AsgId>,
     self_stack: Vec<RId>,
 }
 
 impl<'a> Builder<'a> {
-    fn build_module(&mut self, mod_id: RId) -> Result<Option<Id>, ProbeError> {
+    fn build_module(&mut self, mod_id: RId) -> Result<Option<AsgId>, ProbeError> {
         if let Some(&mid) = self.mod_intern.get(&mod_id) {
             return Ok(Some(mid));
         }
@@ -245,8 +245,8 @@ impl<'a> Builder<'a> {
         Ok(())
     }
 
-    fn reserve_mod(&mut self, path: ItemPath, span: Option<Span>) -> Id {
-        let id = Id(self.asg.items.len() as u32);
+    fn reserve_mod(&mut self, path: ItemPath, span: Option<Span>) -> AsgId {
+        let id = AsgId(self.asg.items.len() as u32);
         self.asg.items.push(Item::Mod(ModDef {
             path,
             span,
@@ -255,7 +255,7 @@ impl<'a> Builder<'a> {
         id
     }
 
-    fn intern_struct(&mut self, id: RId) -> Result<Option<Id>, ProbeError> {
+    fn intern_struct(&mut self, id: RId) -> Result<Option<AsgId>, ProbeError> {
         if let Some(slot) = self.struct_intern.get(&id) {
             return Ok(*slot);
         }
@@ -301,7 +301,7 @@ impl<'a> Builder<'a> {
 
         // Shape is good. Commit slot before computing ctor (ctor may
         // recurse back via Self).
-        let sid = Id(self.asg.items.len() as u32);
+        let sid = AsgId(self.asg.items.len() as u32);
         self.struct_intern.insert(id, Some(sid));
         self.asg.items.push(Item::Struct(StructDef {
             path,
@@ -443,7 +443,7 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn intern_fn(&mut self, id: RId) -> Result<Option<Id>, ProbeError> {
+    fn intern_fn(&mut self, id: RId) -> Result<Option<AsgId>, ProbeError> {
         if let Some(slot) = self.fn_intern.get(&id) {
             return Ok(*slot);
         }
@@ -504,7 +504,7 @@ impl<'a> Builder<'a> {
             }
         };
 
-        let fid = Id(self.asg.items.len() as u32);
+        let fid = AsgId(self.asg.items.len() as u32);
         self.fn_intern.insert(id, Some(fid));
         self.asg.items.push(Item::Fn(FnDef {
             path,

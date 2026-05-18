@@ -8,8 +8,8 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use rust_curse::codegen::asg::{Asg, AsgId};
 use rust_curse::common::{mangle_module_name, FileFilter};
-use rust_curse::codegen::asg::{Id, ASG};
 use rust_curse::orphans;
 use rust_curse::tree_shake::{self, item_path, TreeShakeError, TreeShakeOpts};
 use rust_curse::warns::Warns;
@@ -73,14 +73,14 @@ impl Fixture {
         &self,
         src_rel: &str,
         js_include: &[String],
-    ) -> Result<(ASG, HashSet<Id>), TreeShakeError> {
+    ) -> Result<(Asg, HashSet<AsgId>), TreeShakeError> {
         let src_rel_path = PathBuf::from(src_rel);
 
         let target_dir = self.abs_root.join("target");
         let crate_ =
             rust_curse::rustdoc::run(&self.abs_root, &target_dir, TEST_CRATE).expect("rustdoc gen");
         let mut warns = Warns::new();
-        let asg = ASG::from_rustdoc(&crate_, &mut warns).expect("build asg");
+        let asg = Asg::from_rustdoc(&crate_, &mut warns).expect("build asg");
 
         let js_filter = FileFilter {
             include: Some(js_include.to_vec()),
@@ -163,7 +163,7 @@ fn collect_entries(abs_root: &Path, abs_dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-pub fn snapshot_set(asg: &ASG, ids: &HashSet<Id>) -> Vec<String> {
+pub fn snapshot_set(asg: &Asg, ids: &HashSet<AsgId>) -> Vec<String> {
     let mut names: Vec<String> = ids.iter().map(|id| item_path(asg, *id)).collect();
     names.sort();
     names

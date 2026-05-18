@@ -240,8 +240,8 @@ export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crat
 # ASG
 
 ```rs
-ASG {
-    root: Id(
+Asg {
+    root: AsgId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -269,25 +269,25 @@ ASG {
                 exports: [
                     Export {
                         name: "Point",
-                        target: Id(
+                        target: AsgId(
                             1,
                         ),
                     },
                     Export {
                         name: "Wrapper",
-                        target: Id(
+                        target: AsgId(
                             2,
                         ),
                     },
                     Export {
                         name: "take",
-                        target: Id(
+                        target: AsgId(
                             3,
                         ),
                     },
                     Export {
                         name: "produce",
-                        target: Id(
+                        target: AsgId(
                             4,
                         ),
                     },
@@ -366,7 +366,7 @@ ASG {
                         StructField {
                             name: "p",
                             ty: Struct(
-                                Id(
+                                AsgId(
                                     1,
                                 ),
                             ),
@@ -403,7 +403,7 @@ ASG {
                         name: "p",
                         mode: ByValue,
                         ty: Struct(
-                            Id(
+                            AsgId(
                                 1,
                             ),
                         ),
@@ -438,7 +438,7 @@ ASG {
                 ),
                 params: [],
                 return_type: Struct(
-                    Id(
+                    AsgId(
                         1,
                     ),
                 ),
@@ -452,8 +452,8 @@ ASG {
 # IR
 
 ```rs
-IR {
-    root: Id(
+Ir {
+    root: IrId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -481,25 +481,25 @@ IR {
                 exports: [
                     Export {
                         name: "Point",
-                        target: Id(
+                        target: IrId(
                             1,
                         ),
                     },
                     Export {
                         name: "Wrapper",
-                        target: Id(
+                        target: IrId(
                             2,
                         ),
                     },
                     Export {
                         name: "take",
-                        target: Id(
+                        target: IrId(
                             3,
                         ),
                     },
                     Export {
                         name: "produce",
-                        target: Id(
+                        target: IrId(
                             4,
                         ),
                     },
@@ -578,7 +578,7 @@ IR {
                         StructField {
                             name: "p",
                             ty: Struct(
-                                Id(
+                                IrId(
                                     1,
                                 ),
                             ),
@@ -615,7 +615,7 @@ IR {
                         name: "p",
                         mode: ByValue,
                         ty: Struct(
-                            Id(
+                            IrId(
                                 1,
                             ),
                         ),
@@ -650,7 +650,7 @@ IR {
                 ),
                 params: [],
                 return_type: Struct(
-                    Id(
+                    IrId(
                         1,
                     ),
                 ),

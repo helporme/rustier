@@ -7,7 +7,9 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use rust_curse::codegen::asg::{Export, FnDef, Id, Item, ItemPath, ModDef, Primitive, Span, Type, ASG};
+use rust_curse::codegen::asg::{
+    Asg, AsgId, Export, FnDef, Item, ItemPath, ModDef, Primitive, Span, Type,
+};
 use rust_curse::orphans::OrphanModule;
 use rust_curse::sync::Syncer;
 
@@ -153,15 +155,15 @@ pub struct ModFixture<'a> {
 /// name followed by the unmangled `mod_name` segments, plus one
 /// `Item::Fn` per declared function. A fn marked `exposed: true` is
 /// included in the returned `HashSet<Id>`.
-pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (ASG, HashSet<Id>) {
-    let mut asg = ASG {
+pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId>) {
+    let mut asg = Asg {
         crate_name: crate_name.to_string(),
-        root: Id(0),
+        root: AsgId(0),
         items: Vec::new(),
     };
-    let mut exposed: HashSet<Id> = HashSet::new();
+    let mut exposed: HashSet<AsgId> = HashSet::new();
 
-    let root_id = Id(asg.items.len() as u32);
+    let root_id = AsgId(asg.items.len() as u32);
     asg.items.push(Item::Mod(ModDef {
         path: ItemPath::new(vec![crate_name.to_string()]),
         span: None,
@@ -175,7 +177,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (ASG, HashSet<Id>) 
         let mod_segs: Vec<String> = std::iter::once(crate_name.to_string())
             .chain(module.mod_name.split("::").map(String::from))
             .collect();
-        let mod_id = Id(asg.items.len() as u32);
+        let mod_id = AsgId(asg.items.len() as u32);
         asg.items.push(Item::Mod(ModDef {
             path: ItemPath::new(mod_segs.clone()),
             span: Some(Span {
@@ -190,7 +192,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (ASG, HashSet<Id>) 
         for fn_fix in module.fns {
             let mut fn_segs = mod_segs.clone();
             fn_segs.push(fn_fix.name.to_string());
-            let fn_id = Id(asg.items.len() as u32);
+            let fn_id = AsgId(asg.items.len() as u32);
             asg.items.push(Item::Fn(FnDef {
                 path: ItemPath::new(fn_segs),
                 span: None,
@@ -225,7 +227,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (ASG, HashSet<Id>) 
 
 /// Convenience wrapper for building an empty ASG (for tests that just need
 /// to exercise the writer with no modules).
-pub fn empty_asg(crate_name: &str) -> (ASG, HashSet<Id>) {
+pub fn empty_asg(crate_name: &str) -> (Asg, HashSet<AsgId>) {
     make_asg(crate_name, &[])
 }
 
@@ -235,13 +237,16 @@ pub fn empty_asg(crate_name: &str) -> (ASG, HashSet<Id>) {
 pub fn make_ir(
     crate_name: &str,
     modules: &[ModFixture],
-) -> (rust_curse::codegen::ir::IR, HashSet<rust_curse::codegen::ir::Id>) {
+) -> (
+    rust_curse::codegen::ir::Ir,
+    HashSet<rust_curse::codegen::ir::IrId>,
+) {
     let (asg, exposed) = make_asg(crate_name, modules);
     let mut warns = rust_curse::warns::Warns::new();
-    let ir = rust_curse::codegen::ir::IR::from_asg(&mut warns, &asg).unwrap();
+    let ir = rust_curse::codegen::ir::Ir::from_asg(&mut warns, &asg).unwrap();
     let exposed = exposed
         .into_iter()
-        .map(|id| rust_curse::codegen::ir::Id(id.0))
+        .map(|id| rust_curse::codegen::ir::IrId(id.0))
         .collect();
     (ir, exposed)
 }
@@ -250,6 +255,9 @@ pub fn make_ir(
 /// to exercise the writer with no modules).
 pub fn empty_ir(
     crate_name: &str,
-) -> (rust_curse::codegen::ir::IR, HashSet<rust_curse::codegen::ir::Id>) {
+) -> (
+    rust_curse::codegen::ir::Ir,
+    HashSet<rust_curse::codegen::ir::IrId>,
+) {
     make_ir(crate_name, &[])
 }

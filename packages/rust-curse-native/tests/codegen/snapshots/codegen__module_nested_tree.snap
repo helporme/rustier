@@ -74,8 +74,8 @@ export { __cursed_rustdoc_test_crate__child__leaf as leaf };
 # ASG
 
 ```rs
-ASG {
-    root: Id(
+Asg {
+    root: AsgId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -103,7 +103,7 @@ ASG {
                 exports: [
                     Export {
                         name: "child",
-                        target: Id(
+                        target: AsgId(
                             1,
                         ),
                     },
@@ -134,7 +134,7 @@ ASG {
                 exports: [
                     Export {
                         name: "leaf",
-                        target: Id(
+                        target: AsgId(
                             2,
                         ),
                     },
@@ -177,8 +177,8 @@ ASG {
 # IR
 
 ```rs
-IR {
-    root: Id(
+Ir {
+    root: IrId(
         0,
     ),
     crate_name: "rustdoc_test_crate",
@@ -206,7 +206,7 @@ IR {
                 exports: [
                     Export {
                         name: "child",
-                        target: Id(
+                        target: IrId(
                             1,
                         ),
                     },
@@ -237,7 +237,7 @@ IR {
                 exports: [
                     Export {
                         name: "leaf",
-                        target: Id(
+                        target: IrId(
                             2,
                         ),
                     },
