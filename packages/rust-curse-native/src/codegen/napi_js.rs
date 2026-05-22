@@ -3,7 +3,6 @@
 use std::collections::HashSet;
 
 use super::ir::{Ir, IrId, Item};
-use super::mangle::mangle;
 
 impl Ir {
     /// Prints the napi JS glue for a single rust orphan module.
@@ -41,20 +40,20 @@ impl<'a> Printer<'a> {
     }
 
     fn run(&self, mid: IrId) -> String {
-        let exports = &self.ir.get_mod_unchecked(mid).exports;
+        let uses = &self.ir.get_mod_unchecked(mid).uses;
         let mut bindings: Vec<Binding> = Vec::new();
-        for export in exports {
-            if !self.exposed.contains(&export.target) {
+        for use_ in uses {
+            if !self.exposed.contains(&use_.target) {
                 continue;
             }
-            match self.ir.get_unchecked(export.target) {
+            match self.ir.get_unchecked(use_.target) {
                 Item::Fn(def) => bindings.push(Binding {
-                    js_name: mangle(&def.path),
-                    local_name: export.name.clone(),
+                    js_name: def.mangled_name.clone(),
+                    local_name: use_.name.clone(),
                 }),
-                Item::Struct(def) => bindings.push(Binding {
-                    js_name: mangle(&def.path),
-                    local_name: export.name.clone(),
+                Item::Class(def) => bindings.push(Binding {
+                    js_name: def.mangled_name.clone(),
+                    local_name: use_.name.clone(),
                 }),
                 Item::Mod(_) => {}
             }

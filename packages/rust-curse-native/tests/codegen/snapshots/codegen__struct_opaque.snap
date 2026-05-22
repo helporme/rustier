@@ -135,8 +135,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Handle",
                         target: AsgId(
                             1,
@@ -169,11 +169,10 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Struct(
                     [],
                 ),
+                impls: [],
                 docs: Some(
                     "A handle with a hidden internal state.",
                 ),
@@ -197,6 +196,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -215,8 +217,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Handle",
                         target: IrId(
                             1,
@@ -225,9 +227,12 @@ Ir {
                 ],
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -236,24 +241,13 @@ Ir {
                         "Handle",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            2,
-                            1,
-                        ),
-                        end: (
-                            4,
-                            2,
-                        ),
-                    },
-                ),
-                ctor: Implicit,
+                js_name: "Handle",
+                mangled_name: "__cursed_rustdoc_test_crate__Handle",
+                fields: [],
+                ctor: Implicit {
+                    params: [],
+                },
                 clonable: false,
-                shape: Struct(
-                    [],
-                ),
                 docs: Some(
                     "A handle with a hidden internal state.",
                 ),

@@ -80,10 +80,10 @@ impl Syncer {
             let mut names: Vec<&str> = opts
                 .asg
                 .get_mod_unchecked(*id)
-                .exports
+                .uses
                 .iter()
-                .filter(|e| opts.exposed.contains(&e.target))
-                .map(|e| e.name.as_str())
+                .filter(|u| opts.exposed.contains(&u.target))
+                .map(|u| u.name.as_str())
                 .collect();
             names.sort_unstable();
             for name in names {

@@ -150,8 +150,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Mixed",
                         target: AsgId(
                             1,
@@ -184,8 +184,6 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Struct(
                     [
                         StructField {
@@ -197,6 +195,7 @@ Asg {
                         },
                     ],
                 ),
+                impls: [],
                 docs: None,
             },
         ),
@@ -218,6 +217,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -236,8 +238,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Mixed",
                         target: IrId(
                             1,
@@ -246,9 +248,12 @@ Ir {
                 ],
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -257,32 +262,33 @@ Ir {
                         "Mixed",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            1,
-                            1,
+                js_name: "Mixed",
+                mangled_name: "__cursed_rustdoc_test_crate__Mixed",
+                fields: [
+                    ClassField {
+                        orig_name: "x",
+                        js_name: "x",
+                        ty: Primitive(
+                            i32,
                         ),
-                        end: (
-                            4,
-                            2,
-                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: None,
                     },
-                ),
-                ctor: Implicit,
-                clonable: false,
-                shape: Struct(
-                    [
-                        StructField {
+                ],
+                ctor: Implicit {
+                    params: [
+                        FnParam {
                             name: "x",
+                            mode: ByValue,
                             ty: Primitive(
                                 i32,
                             ),
-                            docs: None,
                         },
                     ],
-                ),
+                },
+                clonable: false,
                 docs: None,
             },
         ),

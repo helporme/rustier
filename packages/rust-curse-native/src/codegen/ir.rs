@@ -1,84 +1,31 @@
 //! IR used to print the target representation (ts/wasm/napi).
 
-#![allow(non_camel_case_types)]
-
 pub mod from_asg;
 
-use std::path::PathBuf;
+use std::collections::HashSet;
+
+use crate::codegen::asg::AsgId;
+pub use crate::codegen::asg::{rust_path, ItemPath, ParamMode, Primitive, Span};
 
 /// A unique identifier for an item in the IR.
 #[derive(Copy, Clone, Default, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IrId(pub usize);
 
-/// Complete path to an item as it appears in the source crate,
-/// e.g. `crate::module::Type` is stored as `["crate", "module", "Type"]`.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Default)]
-pub struct ItemPath {
-    pub segments: Vec<String>,
-}
-
-impl ItemPath {
-    pub fn new(segments: Vec<String>) -> Self {
-        Self { segments }
-    }
-
-    pub fn name(&self) -> Option<&str> {
-        self.segments.last().map(String::as_str)
-    }
-}
-
-/// Renders `path` as a Rust source path string. If the first segment
-/// matches `local_crate`, it's rewritten to `crate` so the emitted code
-/// is valid from inside that crate; otherwise segments are joined as-is,
-/// preserving extern-crate references.
-pub fn rust_path(path: &ItemPath, local_crate: &str) -> String {
-    match path.segments.split_first() {
-        Some((head, tail)) if head == local_crate => {
-            if tail.is_empty() {
-                "crate".to_string()
-            } else {
-                format!("crate::{}", tail.join("::"))
-            }
-        }
-        _ => path.segments.join("::"),
-    }
-}
-
 /// A structural type term. Nominal defs are referenced by id.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Type {
     Primitive(Primitive),
-    Struct(IrId),
-}
-
-/// A primitive type (everything that isn't a nominal struct).
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum Primitive {
-    Unit,
-    Boolean,
-    Char,
-    String,
-    Str,
-    i8,
-    u8,
-    i16,
-    u16,
-    i32,
-    u32,
-    i64,
-    u64,
-    isize,
-    usize,
-    f32,
-    f64,
+    Class(IrId),
 }
 
 /// A function definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FnDef {
     pub id: IrId,
+    pub orig: AsgId,
     pub path: ItemPath,
-    pub span: Option<Span>,
+    pub js_name: String,
+    pub mangled_name: String,
     pub params: Vec<FnParam>,
     pub return_type: Type,
     pub docs: Option<String>,
@@ -92,79 +39,51 @@ pub struct FnParam {
     pub ty: Type,
 }
 
-/// A parameter mode.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ParamMode {
-    ByValue,
-    ByRef,
-    ByMut,
-}
-
 /// A struct definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct StructDef {
+pub struct ClassDef {
     pub id: IrId,
+    pub orig: AsgId,
     pub path: ItemPath,
-    pub span: Option<Span>,
+    pub js_name: String,
+    pub mangled_name: String,
+    pub fields: Vec<ClassField>,
     pub ctor: Ctor,
-    /// `true` if the source crate exposes a `Clone` impl for this struct
     pub clonable: bool,
-    pub shape: StructShape,
     pub docs: Option<String>,
 }
 
-/// Shape of a struct or enum variant payload.
+/// A field of a JS class.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum StructShape {
-    Unit,
-    Tuple(Vec<Type>),
-    Struct(Vec<StructField>),
+pub struct ClassField {
+    pub orig_name: String,
+    pub js_name: String,
+    pub ty: Type,
+    pub has_getter: bool,
+    pub has_setter: bool,
+    pub clone_on_get: bool,
+    pub docs: Option<String>,
 }
 
-/// A "constructor" for a ref struct.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Ctor {
-    /// `new` function defined in an `impl` block is used to construct ref
-    /// struct.
-    Explicit(IrId),
-    /// struct expression (e.g. `Foo { a, b, c }`) is used to construct the ref
-    /// struct.
-    Implicit,
-}
-
-/// A struct field.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct StructField {
-    pub name: String,
-    pub ty: Type,
-    pub docs: Option<String>,
+    Explicit { params: Vec<FnParam> },
+    Implicit { params: Vec<FnParam> },
 }
 
 /// A module definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ModDef {
     pub id: IrId,
+    pub orig: AsgId,
     pub path: ItemPath,
-    /// Source span where this module is declared.
     pub span: Option<Span>,
-    pub exports: Vec<Export>,
+    pub uses: Vec<Use>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Span {
-    /// `filename` interpretation depends on the originating crate: relative to
-    /// the project root for the local crate, absolute under `~/.cargo/...` for
-    /// registry deps, and so on. `None` if there is no source span available.
-    pub filename: PathBuf,
-    /// 1-indexed `(line, column)` begin/end of the span.
-    pub begin: (usize, usize),
-    /// 1-indexed `(line, column)` begin/end of the span.
-    pub end: (usize, usize),
-}
-
-/// An "export" from a module.
+/// A name brought into a module's public surface .
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Export {
+pub struct Use {
     pub name: String,
     pub target: IrId,
 }
@@ -172,7 +91,7 @@ pub struct Export {
 /// An item in the IR.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Item {
-    Struct(StructDef),
+    Class(ClassDef),
     Fn(FnDef),
     Mod(ModDef),
 }
@@ -191,11 +110,11 @@ impl Ir {
         &self.items[id.0]
     }
 
-    /// Gets a struct by its ID, panics if the item is not a struct.
-    pub fn get_struct_unchecked(&self, id: IrId) -> &StructDef {
+    /// Gets a class by its ID, panics if the item is not a class.
+    pub fn get_class_unchecked(&self, id: IrId) -> &ClassDef {
         match self.get_unchecked(id) {
-            Item::Struct(s) => s,
-            other => panic!("expected struct at {id:?}, got {other:?}"),
+            Item::Class(c) => c,
+            other => panic!("expected class at {id:?}, got {other:?}"),
         }
     }
 
@@ -213,5 +132,23 @@ impl Ir {
             Item::Mod(m) => m,
             other => panic!("expected mod at {id:?}, got {other:?}"),
         }
+    }
+
+    /// Translate a set of exposed ASG ids into IR ids. Lowering drops items
+    /// (impls, methods, unsupported shapes) and compacts ids, so the mapping
+    /// is by item provenance (`orig`); ASG ids without a surviving IR item
+    /// are dropped.
+    pub fn exposed_from_asg(&self, asg_exposed: &HashSet<AsgId>) -> HashSet<IrId> {
+        self.items
+            .iter()
+            .filter_map(|item| {
+                let (orig, id) = match item {
+                    Item::Class(d) => (d.orig, d.id),
+                    Item::Fn(d) => (d.orig, d.id),
+                    Item::Mod(d) => (d.orig, d.id),
+                };
+                asg_exposed.contains(&orig).then_some(id)
+            })
+            .collect()
     }
 }

@@ -102,8 +102,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "inner",
                         target: AsgId(
                             1,
@@ -136,8 +136,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "f",
                         target: AsgId(
                             2,
@@ -171,6 +171,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [],
                 return_type: Primitive(
                     Unit,
@@ -196,6 +197,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -214,8 +218,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "inner",
                         target: IrId(
                             1,
@@ -227,6 +231,9 @@ Ir {
         Mod(
             ModDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -248,8 +255,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "f",
                         target: IrId(
                             2,
@@ -263,6 +270,9 @@ Ir {
                 id: IrId(
                     2,
                 ),
+                orig: AsgId(
+                    2,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -270,19 +280,8 @@ Ir {
                         "f",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            2,
-                            5,
-                        ),
-                        end: (
-                            2,
-                            18,
-                        ),
-                    },
-                ),
+                js_name: "f",
+                mangled_name: "__cursed_rustdoc_test_crate__inner__f",
                 params: [],
                 return_type: Primitive(
                     Unit,

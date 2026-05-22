@@ -91,8 +91,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "f",
                         target: AsgId(
                             1,
@@ -125,6 +125,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [
                     FnParam {
                         name: "by_ref",
@@ -172,6 +173,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -190,8 +194,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "f",
                         target: IrId(
                             1,
@@ -205,25 +209,17 @@ Ir {
                 id: IrId(
                     1,
                 ),
+                orig: AsgId(
+                    1,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
                         "f",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            1,
-                            1,
-                        ),
-                        end: (
-                            1,
-                            63,
-                        ),
-                    },
-                ),
+                js_name: "f",
+                mangled_name: "__cursed_rustdoc_test_crate__f",
                 params: [
                     FnParam {
                         name: "by_ref",

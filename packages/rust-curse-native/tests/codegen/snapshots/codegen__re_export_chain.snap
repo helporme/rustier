@@ -183,20 +183,20 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "inner",
                         target: AsgId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "middle",
                         target: AsgId(
                             3,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "Inner",
                         target: AsgId(
                             2,
@@ -229,8 +229,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Inner",
                         target: AsgId(
                             2,
@@ -264,8 +264,6 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Struct(
                     [
                         StructField {
@@ -277,6 +275,7 @@ Asg {
                         },
                     ],
                 ),
+                impls: [],
                 docs: None,
             },
         ),
@@ -304,8 +303,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Inner",
                         target: AsgId(
                             2,
@@ -332,6 +331,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -350,20 +352,20 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "inner",
                         target: IrId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "middle",
                         target: IrId(
                             3,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "Inner",
                         target: IrId(
                             2,
@@ -375,6 +377,9 @@ Ir {
         Mod(
             ModDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -396,8 +401,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Inner",
                         target: IrId(
                             2,
@@ -406,9 +411,12 @@ Ir {
                 ],
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    2,
+                ),
+                orig: AsgId(
                     2,
                 ),
                 path: ItemPath {
@@ -418,38 +426,42 @@ Ir {
                         "Inner",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            2,
-                            5,
+                js_name: "Inner",
+                mangled_name: "__cursed_rustdoc_test_crate__inner__Inner",
+                fields: [
+                    ClassField {
+                        orig_name: "x",
+                        js_name: "x",
+                        ty: Primitive(
+                            i32,
                         ),
-                        end: (
-                            4,
-                            6,
-                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: None,
                     },
-                ),
-                ctor: Implicit,
-                clonable: false,
-                shape: Struct(
-                    [
-                        StructField {
+                ],
+                ctor: Implicit {
+                    params: [
+                        FnParam {
                             name: "x",
+                            mode: ByValue,
                             ty: Primitive(
                                 i32,
                             ),
-                            docs: None,
                         },
                     ],
-                ),
+                },
+                clonable: false,
                 docs: None,
             },
         ),
         Mod(
             ModDef {
                 id: IrId(
+                    3,
+                ),
+                orig: AsgId(
                     3,
                 ),
                 path: ItemPath {
@@ -471,8 +483,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Inner",
                         target: IrId(
                             2,

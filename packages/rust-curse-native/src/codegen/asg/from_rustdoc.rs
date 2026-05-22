@@ -4,13 +4,13 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 use rustdoc_types::{
-    Crate, GenericArg, GenericArgs, Id as RId, Item as RItem, ItemEnum, Path as RPath,
-    Span as RSpan, StructKind, Type as RType, Use, Visibility,
+    Crate, GenericParamDefKind, Id as RId, Item as RItem, ItemEnum, Path as RPath, Span as RSpan,
+    StructKind, Type as RType, Use as RUse, Visibility,
 };
 
 use super::{
-    Asg, AsgId, Ctor, Export, FnDef, FnParam, Item, ItemPath, ModDef, ParamMode, Primitive, Span,
-    StructDef, StructField, StructShape, Type,
+    Asg, AsgId, FnDef, FnParam, ImplDef, Item, ItemPath, ModDef, ParamMode, Primitive, Receiver,
+    Span, StructDef, StructField, StructShape, TraitDef, TraitRef, Type, Use, WellKnownTrait,
 };
 use crate::warns::Warn;
 use crate::warns::WarnLabel;
@@ -34,6 +34,7 @@ impl Asg {
             struct_intern: HashMap::new(),
             fn_intern: HashMap::new(),
             mod_intern: HashMap::new(),
+            trait_intern: HashMap::new(),
             self_stack: Vec::new(),
         };
 
@@ -67,6 +68,8 @@ struct Builder<'a> {
     /// `None` means the fn was probed and skipped.
     fn_intern: HashMap<RId, Option<AsgId>>,
     mod_intern: HashMap<RId, AsgId>,
+    // `None` means the trait was probed and skipped (unsupported).
+    trait_intern: HashMap<RId, Option<AsgId>>,
     self_stack: Vec<RId>,
 }
 
@@ -84,7 +87,7 @@ impl<'a> Builder<'a> {
         let span = item.span.as_ref().map(convert_span);
         let mid = self.reserve_mod(path_of(item, mod_id, self.crate_), span);
         self.mod_intern.insert(mod_id, mid);
-        let mut exports = Vec::new();
+        let mut uses = Vec::new();
 
         for child_id in &module.items {
             let Some(child) = self.crate_.index.get(child_id) else {
@@ -97,7 +100,7 @@ impl<'a> Builder<'a> {
             match &child.inner {
                 ItemEnum::Module(_) => {
                     if let Some(child_mid) = self.build_module(*child_id)? {
-                        exports.push(Export {
+                        uses.push(Use {
                             name: child_name,
                             target: child_mid,
                         });
@@ -105,7 +108,7 @@ impl<'a> Builder<'a> {
                 }
                 ItemEnum::Struct(_) => {
                     if let Some(sid) = self.intern_struct(*child_id)? {
-                        exports.push(Export {
+                        uses.push(Use {
                             name: child_name,
                             target: sid,
                         });
@@ -117,7 +120,7 @@ impl<'a> Builder<'a> {
                 }
                 ItemEnum::Function(_) => {
                     if let Some(fid) = self.intern_fn(*child_id)? {
-                        exports.push(Export {
+                        uses.push(Use {
                             name: child_name,
                             target: fid,
                         });
@@ -125,28 +128,28 @@ impl<'a> Builder<'a> {
                 }
                 ItemEnum::Use(use_) => {
                     let mut visited = HashSet::new();
-                    self.add_use(use_, &mut exports, &mut visited, child)?;
+                    self.add_use(use_, &mut uses, &mut visited, child)?;
                 }
                 _ => {}
             }
         }
 
-        if exports.is_empty() && mod_id != self.crate_.root {
+        if uses.is_empty() && mod_id != self.crate_.root {
             self.asg.items.pop();
             self.mod_intern.remove(&mod_id);
             return Ok(None);
         }
 
         if let Item::Mod(m) = &mut self.asg.items[mid.0] {
-            m.exports = exports;
+            m.uses = uses;
         }
         Ok(Some(mid))
     }
 
     fn add_use(
         &mut self,
-        use_: &Use,
-        exports: &mut Vec<Export>,
+        use_: &RUse,
+        uses: &mut Vec<Use>,
         visited: &mut HashSet<RId>,
         use_item: &RItem,
     ) -> Result<(), ProbeError> {
@@ -178,7 +181,7 @@ impl<'a> Builder<'a> {
                 match &child.inner {
                     ItemEnum::Struct(_) => {
                         if let Some(sid) = self.intern_struct(child_id)? {
-                            exports.push(Export {
+                            uses.push(Use {
                                 name: child_name,
                                 target: sid,
                             });
@@ -190,7 +193,7 @@ impl<'a> Builder<'a> {
                     }
                     ItemEnum::Function(_) => {
                         if let Some(fid) = self.intern_fn(child_id)? {
-                            exports.push(Export {
+                            uses.push(Use {
                                 name: child_name,
                                 target: fid,
                             });
@@ -198,14 +201,14 @@ impl<'a> Builder<'a> {
                     }
                     ItemEnum::Module(_) => {
                         if let Some(mid) = self.build_module(child_id)? {
-                            exports.push(Export {
+                            uses.push(Use {
                                 name: child_name,
                                 target: mid,
                             });
                         }
                     }
                     ItemEnum::Use(inner_use) => {
-                        self.add_use(inner_use, exports, visited, child)?;
+                        self.add_use(inner_use, uses, visited, child)?;
                     }
                     _ => {}
                 }
@@ -217,7 +220,7 @@ impl<'a> Builder<'a> {
         match &target.inner {
             ItemEnum::Struct(_) if is_public(target) => {
                 if let Some(sid) = self.intern_struct(tid)? {
-                    exports.push(Export { name, target: sid });
+                    uses.push(Use { name, target: sid });
                 }
             }
             ItemEnum::Enum(_) if is_public(target) => {
@@ -226,19 +229,19 @@ impl<'a> Builder<'a> {
             }
             ItemEnum::Function(_) if is_public(target) => {
                 if let Some(fid) = self.intern_fn(tid)? {
-                    exports.push(Export { name, target: fid });
+                    uses.push(Use { name, target: fid });
                 }
             }
             ItemEnum::Module(_) => {
                 if let Some(target_mid) = self.build_module(tid)? {
-                    exports.push(Export {
+                    uses.push(Use {
                         name,
                         target: target_mid,
                     });
                 }
             }
             ItemEnum::Use(inner_use) => {
-                self.add_use(inner_use, exports, visited, target)?;
+                self.add_use(inner_use, uses, visited, target)?;
             }
             _ => {}
         }
@@ -251,7 +254,7 @@ impl<'a> Builder<'a> {
             id,
             path,
             span,
-            exports: Vec::new(),
+            uses: Vec::new(),
         }));
         id
     }
@@ -272,6 +275,7 @@ impl<'a> Builder<'a> {
 
         let span = item.span.as_ref().map(convert_span);
         let path = path_of(item, id, self.crate_);
+        let impl_rids = struct_.impls.clone();
 
         // Dry-probe: resolve the shape without committing the slot. If any
         // field type fails, emit a warning and mark the struct skipped.
@@ -298,28 +302,152 @@ impl<'a> Builder<'a> {
             }
         };
 
-        let clonable = has_clone_impl(&struct_.impls, self.crate_);
-
-        // Shape is good. Commit slot before computing ctor (ctor may
-        // recurse back via Self).
         let sid = AsgId(self.asg.items.len());
         self.struct_intern.insert(id, Some(sid));
         self.asg.items.push(Item::Struct(StructDef {
             id: sid,
             path,
             span,
-            ctor: Ctor::Implicit,
-            clonable,
             shape,
+            impls: Vec::new(),
             docs: item.docs.clone(),
         }));
 
-        let ctor = self.find_ctor(&struct_.impls, id, item)?;
+        let impls = self.build_impls(id, sid, &impl_rids)?;
 
         if let Item::Struct(def) = &mut self.asg.items[sid.0] {
-            def.ctor = ctor;
+            def.impls = impls;
         }
         Ok(Some(sid))
+    }
+
+    fn build_impls(
+        &mut self,
+        struct_rid: RId,
+        struct_sid: AsgId,
+        impl_rids: &[RId],
+    ) -> Result<Vec<AsgId>, ProbeError> {
+        let mut out = Vec::new();
+        for &impl_rid in impl_rids {
+            let Some(impl_item) = self.crate_.index.get(&impl_rid) else {
+                continue;
+            };
+            let ItemEnum::Impl(impl_) = &impl_item.inner else {
+                continue;
+            };
+            if impl_.is_negative {
+                continue;
+            }
+
+            let trait_path = impl_.trait_.clone();
+            let assoc_ids = impl_.items.clone();
+
+            let trait_ = match trait_path {
+                None => None,
+                Some(tp) => {
+                    if let Some(wk) = recognize_well_known(self.crate_, &tp) {
+                        Some(TraitRef::WellKnown(wk))
+                    } else if self
+                        .crate_
+                        .index
+                        .get(&tp.id)
+                        .map(|i| matches!(i.inner, ItemEnum::Trait(_)))
+                        .unwrap_or(false)
+                    {
+                        match self.intern_trait(tp.id)? {
+                            Some(tid) => Some(TraitRef::Local(tid)),
+                            // Unsupported trait -> skip the whole impl.
+                            None => continue,
+                        }
+                    } else {
+                        // External, non-well-known trait -> skip the impl.
+                        continue;
+                    }
+                }
+            };
+
+            self.self_stack.push(struct_rid);
+            let mut fns = Vec::new();
+            for assoc_id in assoc_ids {
+                let Some(assoc) = self.crate_.index.get(&assoc_id) else {
+                    continue;
+                };
+                if !matches!(assoc.inner, ItemEnum::Function(_)) {
+                    continue;
+                }
+                if let Some(fid) = self.intern_fn(assoc_id)? {
+                    fns.push(fid);
+                }
+            }
+            self.self_stack.pop();
+
+            let impl_id = AsgId(self.asg.items.len());
+            self.asg.items.push(Item::Impl(ImplDef {
+                id: impl_id,
+                for_: struct_sid,
+                trait_: trait_.clone(),
+                fns,
+            }));
+
+            if let Some(TraitRef::Local(tid)) = &trait_ {
+                if let Item::Trait(t) = &mut self.asg.items[tid.0] {
+                    t.impls.push(impl_id);
+                }
+            }
+            out.push(impl_id);
+        }
+        Ok(out)
+    }
+
+    /// Intern a local trait as a [`TraitDef`]. Traits with type/const generic
+    /// params, associated consts, or associated types are unsupported and
+    /// return `None`. Required fns are not interned.
+    fn intern_trait(&mut self, id: RId) -> Result<Option<AsgId>, ProbeError> {
+        if let Some(slot) = self.trait_intern.get(&id) {
+            return Ok(*slot);
+        }
+        let item = self.get_item(id)?;
+        let ItemEnum::Trait(tr) = &item.inner else {
+            self.trait_intern.insert(id, None);
+            return Ok(None);
+        };
+
+        let has_ty_const_generics = tr.generics.params.iter().any(|p| {
+            matches!(
+                p.kind,
+                GenericParamDefKind::Type { .. } | GenericParamDefKind::Const { .. }
+            )
+        });
+        let has_assoc = tr.items.iter().any(|it| {
+            self.crate_
+                .index
+                .get(it)
+                .map(|i| {
+                    matches!(
+                        i.inner,
+                        ItemEnum::AssocConst { .. } | ItemEnum::AssocType { .. }
+                    )
+                })
+                .unwrap_or(false)
+        });
+        if has_ty_const_generics || has_assoc {
+            self.trait_intern.insert(id, None);
+            return Ok(None);
+        }
+
+        let span = item.span.as_ref().map(convert_span);
+        let path = path_of(item, id, self.crate_);
+        let tid = AsgId(self.asg.items.len());
+        self.trait_intern.insert(id, Some(tid));
+        self.asg.items.push(Item::Trait(TraitDef {
+            id: tid,
+            path,
+            span,
+            fns: Vec::new(),
+            impls: Vec::new(),
+            docs: item.docs.clone(),
+        }));
+        Ok(Some(tid))
     }
 
     fn build_struct_shape(&mut self, kind: &StructKind) -> Result<StructShape, ProbeError> {
@@ -377,74 +505,6 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn find_ctor(
-        &mut self,
-        impls: &[RId],
-        self_id: RId,
-        self_item: &RItem,
-    ) -> Result<Ctor, ProbeError> {
-        struct Candidate {
-            key: Vec<String>,
-            impl_id_ord: u32,
-            assoc_id: RId,
-        }
-        let mut candidates: Vec<Candidate> = Vec::new();
-
-        for impl_id in impls {
-            let Some(impl_item) = self.crate_.index.get(impl_id) else {
-                continue;
-            };
-            let ItemEnum::Impl(impl_) = &impl_item.inner else {
-                continue;
-            };
-            for assoc_id in &impl_.items {
-                let Some(assoc) = self.crate_.index.get(assoc_id) else {
-                    continue;
-                };
-                if assoc.name.as_deref() != Some("new") {
-                    continue;
-                }
-                let ItemEnum::Function(func) = &assoc.inner else {
-                    continue;
-                };
-                if func.sig.inputs.iter().any(|(n, _)| n == "self") {
-                    continue;
-                }
-                if !returns_self(func.sig.output.as_ref(), self_id) {
-                    continue;
-                }
-                let mut key: Vec<String> = match &impl_.trait_ {
-                    Some(trait_path) => match self.crate_.paths.get(&trait_path.id) {
-                        Some(summary) => summary.path.clone(),
-                        None => trait_path.path.split("::").map(str::to_string).collect(),
-                    },
-                    None => path_of(self_item, self_id, self.crate_).segments,
-                };
-                key.push("new".to_string());
-                candidates.push(Candidate {
-                    key,
-                    impl_id_ord: impl_id.0,
-                    assoc_id: *assoc_id,
-                });
-            }
-        }
-
-        candidates.sort_by(|a, b| a.key.cmp(&b.key).then(a.impl_id_ord.cmp(&b.impl_id_ord)));
-
-        let Some(chosen) = candidates.into_iter().next() else {
-            return Ok(Ctor::Implicit);
-        };
-
-        self.self_stack.push(self_id);
-        let res = self.intern_fn(chosen.assoc_id);
-        self.self_stack.pop();
-
-        match res? {
-            Some(fid) => Ok(Ctor::Explicit(fid)),
-            None => Ok(Ctor::Implicit),
-        }
-    }
-
     fn intern_fn(&mut self, id: RId) -> Result<Option<AsgId>, ProbeError> {
         if let Some(slot) = self.fn_intern.get(&id) {
             return Ok(*slot);
@@ -463,10 +523,12 @@ impl<'a> Builder<'a> {
         let path = path_of(item, id, self.crate_);
 
         // Dry-probe signature.
-        let probed: Result<(Vec<FnParam>, Type), ProbeError> = (|| {
+        let probed: Result<(Option<Receiver>, Vec<FnParam>, Type), ProbeError> = (|| {
+            let mut receiver = None;
             let mut params = Vec::new();
             for (pname, ty) in &func.sig.inputs {
                 if pname == "self" {
+                    receiver = Some(receiver_of(ty));
                     continue;
                 }
                 let (mode, underlying) = param_mode_and_type(ty);
@@ -480,10 +542,10 @@ impl<'a> Builder<'a> {
                 Some(ty) => self.resolve_type(ty)?,
                 None => Type::Primitive(Primitive::Unit),
             };
-            Ok((params, return_type))
+            Ok((receiver, params, return_type))
         })();
 
-        let (params, return_type) = match probed {
+        let (receiver, params, return_type) = match probed {
             Ok(p) => p,
             Err(ProbeError::MissingItem(rid)) => return Err(ProbeError::MissingItem(rid)),
             Err(ProbeError::Suppressed) => {
@@ -512,6 +574,7 @@ impl<'a> Builder<'a> {
             id: fid,
             path,
             span,
+            receiver,
             params,
             return_type,
             docs: item.docs.clone(),
@@ -667,30 +730,37 @@ fn param_mode_and_type(ty: &RType) -> (ParamMode, &RType) {
     }
 }
 
-fn returns_self(output: Option<&RType>, self_id: RId) -> bool {
-    let Some(ty) = output else { return false };
+/// Determine the `self` receiver mode from the type of a `self` input.
+fn receiver_of(ty: &RType) -> Receiver {
     match ty {
-        RType::Generic(name) if name == "Self" => true,
-        RType::ResolvedPath(p) if p.id == self_id => true,
-        RType::ResolvedPath(p) if is_result_path(p) => {
-            first_type_arg(p).is_some_and(|t| returns_self(Some(t), self_id))
-        }
-        _ => false,
+        RType::BorrowedRef {
+            is_mutable: true, ..
+        } => Receiver::ByMut,
+        RType::BorrowedRef {
+            is_mutable: false, ..
+        } => Receiver::ByRef,
+        _ => Receiver::ByValue,
     }
 }
 
-fn is_result_path(p: &RPath) -> bool {
-    p.path.rsplit("::").next() == Some("Result")
-}
-
-fn first_type_arg(p: &RPath) -> Option<&RType> {
-    let GenericArgs::AngleBracketed { args, .. } = p.args.as_deref()? else {
+/// Recognize a std/core/alloc marker trait by identity.
+fn recognize_well_known(crate_: &Crate, trait_path: &RPath) -> Option<WellKnownTrait> {
+    if let Some(summary) = crate_.paths.get(&trait_path.id) {
+        let crate_name = crate_
+            .external_crates
+            .get(&summary.crate_id)
+            .map(|ec| ec.name.as_str());
+        if matches!(crate_name, Some("std" | "core" | "alloc"))
+            && summary.path.last().map(String::as_str) == Some("Clone")
+        {
+            return Some(WellKnownTrait::Clone);
+        }
         return None;
-    };
-    args.iter().find_map(|a| match a {
-        GenericArg::Type(t) => Some(t),
-        _ => None,
-    })
+    }
+    if trait_path.path.rsplit("::").next() == Some("Clone") {
+        return Some(WellKnownTrait::Clone);
+    }
+    None
 }
 
 pub(crate) fn convert_span(s: &RSpan) -> Span {
@@ -707,32 +777,6 @@ fn path_of(item: &RItem, id: RId, crate_: &Crate) -> ItemPath {
     }
     let name = item.name.clone().unwrap_or_default();
     ItemPath::new(vec![name])
-}
-
-fn has_clone_impl(impls: &[RId], crate_: &Crate) -> bool {
-    impls.iter().any(|impl_id| {
-        let Some(impl_item) = crate_.index.get(impl_id) else {
-            return false;
-        };
-        let ItemEnum::Impl(impl_) = &impl_item.inner else {
-            return false;
-        };
-        if impl_.is_negative {
-            return false;
-        }
-        let Some(trait_path) = impl_.trait_.as_ref() else {
-            return false;
-        };
-        if let Some(summary) = crate_.paths.get(&trait_path.id) {
-            let crate_name = crate_
-                .external_crates
-                .get(&summary.crate_id)
-                .map(|ec| ec.name.as_str());
-            return matches!(crate_name, Some("std" | "core" | "alloc"))
-                && summary.path.last().map(String::as_str) == Some("Clone");
-        }
-        trait_path.path.rsplit("::").next() == Some("Clone")
-    })
 }
 
 #[derive(Debug)]

@@ -93,8 +93,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "add",
                         target: AsgId(
                             1,
@@ -127,6 +127,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [
                     FnParam {
                         name: "a",
@@ -167,6 +168,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -185,8 +189,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "add",
                         target: IrId(
                             1,
@@ -200,25 +204,17 @@ Ir {
                 id: IrId(
                     1,
                 ),
+                orig: AsgId(
+                    1,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
                         "add",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            1,
-                            1,
-                        ),
-                        end: (
-                            3,
-                            2,
-                        ),
-                    },
-                ),
+                js_name: "add",
+                mangled_name: "__cursed_rustdoc_test_crate__add",
                 params: [
                     FnParam {
                         name: "a",

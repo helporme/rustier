@@ -1,28 +1,18 @@
-//! Lowers an [`super::super::asg::Asg`] into the per-target [`Ir`].
-//!
-//! Today this is a direct clone -> at this point the IR and ASG are
-//! structurally identical. The seam exists so future passes (synthesising
-//! ctors, flattening impl blocks into class shapes, etc.) can live here
-//! without disturbing the ASG.
+//! Lowers an [`Asg`] into the [`Ir`].
+
+use std::collections::{HashMap, HashSet};
 
 use crate::codegen::asg::{
-    self as asg, Asg, Ctor as AsgCtor, Export as AsgExport, FnDef as AsgFnDef,
-    FnParam as AsgFnParam, Item as AsgItem, ModDef as AsgModDef, Primitive as AsgPrimitive,
-    Span as AsgSpan, StructDef as AsgStructDef, StructField as AsgStructField,
-    StructShape as AsgStructShape, Type as AsgType,
+    self as asg, Asg, Item as AsgItem, Span as AsgSpan, TraitRef, WellKnownTrait,
 };
-use crate::warns::Warns;
+use crate::codegen::mangle::mangle;
+use crate::warns::{Warn, WarnLabel, Warns};
 
-use super::{
-    Ctor, Export, FnDef, FnParam, Ir, IrId, Item, ItemPath, ModDef, ParamMode, Primitive, Span,
-    StructDef, StructField, StructShape, Type,
-};
+use super::{ClassDef, ClassField};
+use super::{Ctor, FnDef, FnParam, Ir, IrId, Item, ModDef, Type, Use};
 
 /// Errors that may be produced by [`Ir::from_asg`].
-///
-/// Lowering is currently total: every well-formed ASG produces a valid
-/// IR. The enum is reserved so future passes can surface failures without
-/// changing the function signature.
+
 #[derive(Debug, thiserror::Error)]
 pub enum FromAsgError {
     /// Reserved sentinel - never constructed by today's lowering.
@@ -31,146 +21,371 @@ pub enum FromAsgError {
 }
 
 impl Ir {
-    /// Lower an [`ASG`] into the per-target [`Ir`].
-    ///
-    /// `warns` is accepted so future lowering passes can record
-    /// non-fatal diagnostics; today no warnings are emitted.
+    /// Lower an [`Asg`] into the per-target [`Ir`].
     pub fn from_asg(warns: &mut Warns, asg: &Asg) -> Result<Ir, FromAsgError> {
-        let _ = warns;
+        Ok(Lowerer::new(warns, asg).run())
+    }
+}
 
-        let items = asg.items.iter().map(lower_item).collect::<Vec<_>>();
+struct Lowerer<'a> {
+    warns: &'a mut Warns,
+    asg: &'a Asg,
+    /// Fns that are associated (methods / ctors) -> never lowered as free fns.
+    method_fns: HashSet<asg::AsgId>,
+    /// Structs that survive lowering as JS classes.
+    emittable: HashSet<asg::AsgId>,
+    /// Maps a surviving ASG item id to its IR id.
+    asg_to_ir: HashMap<asg::AsgId, IrId>,
+}
 
-        Ok(Ir {
-            root: lower_id(asg.root),
-            crate_name: asg.crate_name.clone(),
+impl<'a> Lowerer<'a> {
+    fn new(warns: &'a mut Warns, asg: &'a Asg) -> Self {
+        Self {
+            warns,
+            asg,
+            method_fns: HashSet::new(),
+            emittable: HashSet::new(),
+            asg_to_ir: HashMap::new(),
+        }
+    }
+
+    fn run(mut self) -> Ir {
+        self.collect_method_fns();
+        self.select_classes();
+        self.assign_ids();
+
+        let items = self
+            .asg
+            .items
+            .iter()
+            .filter_map(|item| self.lower_item(item))
+            .collect();
+
+        Ir {
+            root: self.asg_to_ir[&self.asg.root],
+            crate_name: self.asg.crate_name.clone(),
             items,
+        }
+    }
+
+    fn collect_method_fns(&mut self) {
+        for item in &self.asg.items {
+            if let AsgItem::Impl(impl_) = item {
+                for fid in &impl_.fns {
+                    self.method_fns.insert(*fid);
+                }
+            }
+        }
+    }
+
+    fn select_classes(&mut self) {
+        for item in &self.asg.items {
+            let AsgItem::Struct(def) = item else { continue };
+            match &def.shape {
+                asg::StructShape::Struct(_) => {
+                    self.emittable.insert(def.id);
+                }
+                asg::StructShape::Tuple(_) => {
+                    self.warns.push(attach_span(
+                        warn_unsupported_type("tuple structs are not yet supported"),
+                        &def.span,
+                    ));
+                }
+                asg::StructShape::Unit => {
+                    self.warns.push(attach_span(
+                        warn_unsupported_type("unit structs are not yet supported"),
+                        &def.span,
+                    ));
+                }
+            }
+        }
+
+        loop {
+            let mut dropped: Option<(asg::AsgId, String, Option<AsgSpan>)> = None;
+            for &sid in &self.emittable {
+                let def = self.asg.get_struct_unchecked(sid);
+                let asg::StructShape::Struct(fields) = &def.shape else {
+                    continue;
+                };
+                for f in fields {
+                    let asg::Type::Struct(child) = f.ty else {
+                        continue;
+                    };
+                    if !self.emittable.contains(&child) {
+                        let child_name = self
+                            .asg
+                            .get_struct_unchecked(child)
+                            .path
+                            .name()
+                            .unwrap_or("?")
+                            .to_string();
+                        dropped = Some((sid, child_name, def.span.clone()));
+                        break;
+                    }
+                }
+                if dropped.is_some() {
+                    break;
+                }
+            }
+            let Some((sid, child_name, span)) = dropped else {
+                break;
+            };
+            self.emittable.remove(&sid);
+            self.warns
+                .push(attach_span(warn_skipped_struct_ref(child_name), &span));
+        }
+    }
+
+    fn assign_ids(&mut self) {
+        let mut next = 0usize;
+        for item in &self.asg.items {
+            let survives = match item {
+                AsgItem::Mod(_) => true,
+                AsgItem::Struct(def) => self.emittable.contains(&def.id),
+                AsgItem::Fn(def) => !self.method_fns.contains(&def.id) && self.fn_is_emittable(def),
+                AsgItem::Impl(_) | AsgItem::Trait(_) => false,
+            };
+            if !survives {
+                continue;
+            }
+            let asg_id = item_id(item);
+            self.asg_to_ir.insert(asg_id, IrId(next));
+            next += 1;
+        }
+    }
+
+    fn fn_is_emittable(&mut self, def: &asg::FnDef) -> bool {
+        let mut referenced = Vec::new();
+        for p in &def.params {
+            referenced.push(&p.ty);
+        }
+        referenced.push(&def.return_type);
+        for ty in referenced {
+            if let asg::Type::Struct(sid) = ty {
+                if !self.emittable.contains(sid) {
+                    let name = self
+                        .asg
+                        .get_struct_unchecked(*sid)
+                        .path
+                        .name()
+                        .unwrap_or("?")
+                        .to_string();
+                    self.warns
+                        .push(attach_span(warn_skipped_struct_ref(name), &def.span));
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    fn lower_item(&self, item: &AsgItem) -> Option<Item> {
+        match item {
+            AsgItem::Struct(def) if self.emittable.contains(&def.id) => {
+                Some(Item::Class(self.lower_class(def)))
+            }
+            AsgItem::Fn(def) if self.asg_to_ir.contains_key(&def.id) => {
+                Some(Item::Fn(self.lower_fn(def)))
+            }
+            AsgItem::Mod(def) => Some(Item::Mod(self.lower_mod(def))),
+            _ => None,
+        }
+    }
+
+    fn lower_class(&self, def: &asg::StructDef) -> ClassDef {
+        let asg::StructShape::Struct(asg_fields) = &def.shape else {
+            unreachable!("only named-field structs are emittable")
+        };
+
+        let path = def.path.clone();
+        let fields = asg_fields
+            .iter()
+            .map(|f| ClassField {
+                orig_name: f.name.clone(),
+                js_name: f.name.clone(),
+                ty: self.lower_type(&f.ty),
+                has_getter: true,
+                has_setter: true,
+                clone_on_get: !is_copy_primitive(&f.ty),
+                docs: f.docs.clone(),
+            })
+            .collect();
+
+        ClassDef {
+            id: self.asg_to_ir[&def.id],
+            orig: def.id,
+            js_name: path.name().unwrap_or_default().to_string(),
+            mangled_name: mangle(&path),
+            path,
+            fields,
+            ctor: self.resolve_ctor(def, asg_fields),
+            clonable: self.is_clonable(def),
+            docs: def.docs.clone(),
+        }
+    }
+
+    fn is_clonable(&self, def: &asg::StructDef) -> bool {
+        def.impls.iter().any(|impl_id| {
+            matches!(
+                self.asg.get_impl_unchecked(*impl_id).trait_,
+                Some(TraitRef::WellKnown(WellKnownTrait::Clone))
+            )
         })
     }
+
+    fn resolve_ctor(&self, def: &asg::StructDef, asg_fields: &[asg::StructField]) -> Ctor {
+        struct Candidate<'b> {
+            key: Vec<String>,
+            impl_ord: usize,
+            params: &'b [asg::FnParam],
+        }
+        let mut candidates: Vec<Candidate> = Vec::new();
+
+        for &impl_id in &def.impls {
+            let impl_ = self.asg.get_impl_unchecked(impl_id);
+            let key_path: Vec<String> = match &impl_.trait_ {
+                Some(TraitRef::Local(tid)) => {
+                    self.asg.get_trait_unchecked(*tid).path.segments.clone()
+                }
+                Some(TraitRef::WellKnown(_)) => continue,
+                None => def.path.segments.clone(),
+            };
+            for &fid in &impl_.fns {
+                let f = self.asg.get_fn_unchecked(fid);
+                if f.receiver.is_some() || f.path.name() != Some("new") {
+                    continue;
+                }
+                if f.return_type != asg::Type::Struct(def.id) {
+                    continue;
+                }
+                let mut key = key_path.clone();
+                key.push("new".to_string());
+                candidates.push(Candidate {
+                    key,
+                    impl_ord: impl_id.0,
+                    params: &f.params,
+                });
+            }
+        }
+
+        candidates.sort_by(|a, b| a.key.cmp(&b.key).then(a.impl_ord.cmp(&b.impl_ord)));
+
+        match candidates.first() {
+            Some(c) => Ctor::Explicit {
+                params: c.params.iter().map(|p| self.lower_param(p)).collect(),
+            },
+            None => Ctor::Implicit {
+                params: asg_fields
+                    .iter()
+                    .map(|f| FnParam {
+                        name: f.name.clone(),
+                        mode: asg::ParamMode::ByValue,
+                        ty: self.lower_type(&f.ty),
+                    })
+                    .collect(),
+            },
+        }
+    }
+
+    fn lower_fn(&self, def: &asg::FnDef) -> FnDef {
+        let path = def.path.clone();
+        FnDef {
+            id: self.asg_to_ir[&def.id],
+            orig: def.id,
+            js_name: path.name().unwrap_or_default().to_string(),
+            mangled_name: mangle(&path),
+            path,
+            params: def.params.iter().map(|p| self.lower_param(p)).collect(),
+            return_type: self.lower_type(&def.return_type),
+            docs: def.docs.clone(),
+        }
+    }
+
+    fn lower_mod(&self, def: &asg::ModDef) -> ModDef {
+        let uses = def
+            .uses
+            .iter()
+            .filter_map(|u| {
+                self.asg_to_ir.get(&u.target).map(|&target| Use {
+                    name: u.name.clone(),
+                    target,
+                })
+            })
+            .collect();
+        ModDef {
+            id: self.asg_to_ir[&def.id],
+            orig: def.id,
+            path: def.path.clone(),
+            span: def.span.clone(),
+            uses,
+        }
+    }
+
+    fn lower_param(&self, p: &asg::FnParam) -> FnParam {
+        FnParam {
+            name: p.name.clone(),
+            mode: p.mode.clone(),
+            ty: self.lower_type(&p.ty),
+        }
+    }
+
+    fn lower_type(&self, ty: &asg::Type) -> Type {
+        match ty {
+            asg::Type::Primitive(p) => Type::Primitive(p.clone()),
+            asg::Type::Struct(sid) => Type::Class(self.asg_to_ir[sid]),
+        }
+    }
 }
 
-fn lower_id(id: asg::AsgId) -> IrId {
-    IrId(id.0)
-}
-
-fn lower_item(item: &AsgItem) -> Item {
+fn item_id(item: &AsgItem) -> asg::AsgId {
     match item {
-        AsgItem::Struct(def) => Item::Struct(lower_struct(def)),
-        AsgItem::Fn(def) => Item::Fn(lower_fn(def)),
-        AsgItem::Mod(def) => Item::Mod(lower_mod(def)),
+        AsgItem::Struct(d) => d.id,
+        AsgItem::Fn(d) => d.id,
+        AsgItem::Mod(d) => d.id,
+        AsgItem::Impl(d) => d.id,
+        AsgItem::Trait(d) => d.id,
     }
 }
 
-fn lower_struct(def: &AsgStructDef) -> StructDef {
-    StructDef {
-        id: lower_id(def.id),
-        path: lower_path(&def.path),
-        span: def.span.as_ref().map(lower_span),
-        ctor: lower_ctor(&def.ctor),
-        clonable: def.clonable,
-        shape: lower_shape(&def.shape),
-        docs: def.docs.clone(),
-    }
+fn is_copy_primitive(ty: &asg::Type) -> bool {
+    matches!(
+        ty,
+        asg::Type::Primitive(
+            asg::Primitive::Boolean
+                | asg::Primitive::Char
+                | asg::Primitive::i8
+                | asg::Primitive::u8
+                | asg::Primitive::i16
+                | asg::Primitive::u16
+                | asg::Primitive::i32
+                | asg::Primitive::u32
+                | asg::Primitive::i64
+                | asg::Primitive::u64
+                | asg::Primitive::isize
+                | asg::Primitive::usize
+                | asg::Primitive::f32
+                | asg::Primitive::f64,
+        )
+    )
 }
 
-fn lower_fn(def: &AsgFnDef) -> FnDef {
-    FnDef {
-        id: lower_id(def.id),
-        path: lower_path(&def.path),
-        span: def.span.as_ref().map(lower_span),
-        params: def.params.iter().map(lower_param).collect(),
-        return_type: lower_type(&def.return_type),
-        docs: def.docs.clone(),
-    }
+fn warn_unsupported_type(reason: &str) -> Warn {
+    Warn::new("rust-curse::unsupported_type", reason.to_string())
 }
 
-fn lower_mod(def: &AsgModDef) -> ModDef {
-    ModDef {
-        id: lower_id(def.id),
-        path: lower_path(&def.path),
-        span: def.span.as_ref().map(lower_span),
-        exports: def.exports.iter().map(lower_export).collect(),
-    }
+fn warn_skipped_struct_ref(struct_name: String) -> Warn {
+    Warn::new(
+        "rust-curse::skipped_struct_ref",
+        format!("references a skipped struct \"{struct_name}\""),
+    )
+    .help("fix the warning emitted for this struct to expose it")
 }
 
-fn lower_path(p: &asg::ItemPath) -> ItemPath {
-    ItemPath::new(p.segments.clone())
-}
-
-fn lower_span(s: &AsgSpan) -> Span {
-    Span {
-        filename: s.filename.clone(),
-        begin: s.begin,
-        end: s.end,
-    }
-}
-
-fn lower_ctor(c: &AsgCtor) -> Ctor {
-    match c {
-        AsgCtor::Explicit(id) => Ctor::Explicit(lower_id(*id)),
-        AsgCtor::Implicit => Ctor::Implicit,
-    }
-}
-
-fn lower_shape(s: &AsgStructShape) -> StructShape {
-    match s {
-        AsgStructShape::Unit => StructShape::Unit,
-        AsgStructShape::Tuple(ts) => StructShape::Tuple(ts.iter().map(lower_type).collect()),
-        AsgStructShape::Struct(fs) => StructShape::Struct(fs.iter().map(lower_field).collect()),
-    }
-}
-
-fn lower_field(f: &AsgStructField) -> StructField {
-    StructField {
-        name: f.name.clone(),
-        ty: lower_type(&f.ty),
-        docs: f.docs.clone(),
-    }
-}
-
-fn lower_param(p: &AsgFnParam) -> FnParam {
-    FnParam {
-        name: p.name.clone(),
-        mode: match p.mode {
-            asg::ParamMode::ByValue => ParamMode::ByValue,
-            asg::ParamMode::ByRef => ParamMode::ByRef,
-            asg::ParamMode::ByMut => ParamMode::ByMut,
-        },
-        ty: lower_type(&p.ty),
-    }
-}
-
-fn lower_type(ty: &AsgType) -> Type {
-    match ty {
-        AsgType::Primitive(p) => Type::Primitive(lower_primitive(p)),
-        AsgType::Struct(id) => Type::Struct(lower_id(*id)),
-    }
-}
-
-fn lower_primitive(p: &AsgPrimitive) -> Primitive {
-    match p {
-        AsgPrimitive::Unit => Primitive::Unit,
-        AsgPrimitive::Boolean => Primitive::Boolean,
-        AsgPrimitive::Char => Primitive::Char,
-        AsgPrimitive::String => Primitive::String,
-        AsgPrimitive::Str => Primitive::Str,
-        AsgPrimitive::i8 => Primitive::i8,
-        AsgPrimitive::u8 => Primitive::u8,
-        AsgPrimitive::i16 => Primitive::i16,
-        AsgPrimitive::u16 => Primitive::u16,
-        AsgPrimitive::i32 => Primitive::i32,
-        AsgPrimitive::u32 => Primitive::u32,
-        AsgPrimitive::i64 => Primitive::i64,
-        AsgPrimitive::u64 => Primitive::u64,
-        AsgPrimitive::isize => Primitive::isize,
-        AsgPrimitive::usize => Primitive::usize,
-        AsgPrimitive::f32 => Primitive::f32,
-        AsgPrimitive::f64 => Primitive::f64,
-    }
-}
-
-fn lower_export(e: &AsgExport) -> Export {
-    Export {
-        name: e.name.clone(),
-        target: lower_id(e.target),
+fn attach_span(warn: Warn, span: &Option<AsgSpan>) -> Warn {
+    match span {
+        Some(span) => warn
+            .label(WarnLabel::new(None, span.begin, span.end))
+            .source_code(&span.filename),
+        None => warn,
     }
 }

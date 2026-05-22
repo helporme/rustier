@@ -117,8 +117,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "math",
                         target: AsgId(
                             1,
@@ -151,14 +151,14 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "square",
                         target: AsgId(
                             2,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "square2",
                         target: AsgId(
                             3,
@@ -192,6 +192,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [
                     FnParam {
                         name: "x",
@@ -232,6 +233,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [
                     FnParam {
                         name: "x",
@@ -265,6 +267,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -283,8 +288,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "math",
                         target: IrId(
                             1,
@@ -296,6 +301,9 @@ Ir {
         Mod(
             ModDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -317,14 +325,14 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "square",
                         target: IrId(
                             2,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "square2",
                         target: IrId(
                             3,
@@ -338,6 +346,9 @@ Ir {
                 id: IrId(
                     2,
                 ),
+                orig: AsgId(
+                    2,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -345,19 +356,8 @@ Ir {
                         "square",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            2,
-                            5,
-                        ),
-                        end: (
-                            4,
-                            6,
-                        ),
-                    },
-                ),
+                js_name: "square",
+                mangled_name: "__cursed_rustdoc_test_crate__math__square",
                 params: [
                     FnParam {
                         name: "x",
@@ -378,6 +378,9 @@ Ir {
                 id: IrId(
                     3,
                 ),
+                orig: AsgId(
+                    3,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -385,19 +388,8 @@ Ir {
                         "square2",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            5,
-                            5,
-                        ),
-                        end: (
-                            7,
-                            6,
-                        ),
-                    },
-                ),
+                js_name: "square2",
+                mangled_name: "__cursed_rustdoc_test_crate__math__square2",
                 params: [
                     FnParam {
                         name: "x",

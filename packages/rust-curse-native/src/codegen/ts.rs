@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
-use super::ir::{Ctor, Ir, IrId, Item, ItemPath, Primitive, StructShape, Type};
+use super::ir::{Ctor, Ir, IrId, Item, ItemPath, Primitive, Type, Use};
 use super::mangle::is_canonical_origin;
 
 const PREAMBLE: &str = "";
@@ -38,7 +38,7 @@ struct Printer<'a> {
     ir: &'a Ir,
     mod_id: IrId,
     rel_src_path: &'a Path,
-    local_structs: HashSet<IrId>,
+    local_classes: HashSet<IrId>,
     /// Map of relative import specifier (e.g. `"./types"`) to the set of
     /// type names imported from there.
     imports: BTreeMap<String, BTreeSet<String>>,
@@ -50,24 +50,24 @@ impl<'a> Printer<'a> {
             ir,
             mod_id,
             rel_src_path,
-            local_structs: HashSet::new(),
+            local_classes: HashSet::new(),
             imports: BTreeMap::new(),
         }
     }
 
     fn run(&mut self) -> String {
         let mod_segments = self.ir.get_mod_unchecked(self.mod_id).path.segments.clone();
-        let exports = self.ir.get_mod_unchecked(self.mod_id).exports.clone();
+        let uses = self.ir.get_mod_unchecked(self.mod_id).uses.clone();
 
-        for export in &exports {
-            if let Item::Struct(def) = self.ir.get_unchecked(export.target) {
+        for use_ in &uses {
+            if let Item::Class(def) = self.ir.get_unchecked(use_.target) {
                 if is_canonical_origin(&def.path, &mod_segments) {
-                    self.local_structs.insert(export.target);
+                    self.local_classes.insert(use_.target);
                 }
             }
         }
 
-        let body = self.print_exports(&mod_segments, &exports);
+        let body = self.print_uses(&mod_segments, &uses);
 
         let mut out = String::new();
         for (specifier, names) in &self.imports {
@@ -87,24 +87,24 @@ impl<'a> Printer<'a> {
         out
     }
 
-    fn print_exports(&mut self, mod_segments: &[String], exports: &[super::ir::Export]) -> String {
+    fn print_uses(&mut self, mod_segments: &[String], uses: &[Use]) -> String {
         let mut parts: Vec<String> = Vec::new();
-        for export in exports {
-            match self.ir.get_unchecked(export.target) {
-                Item::Struct(def) => {
+        for use_ in uses {
+            match self.ir.get_unchecked(use_.target) {
+                Item::Class(def) => {
                     let canonical = def.path.clone();
                     if is_canonical_origin(&canonical, mod_segments) {
-                        parts.push(self.print_struct(export.target));
+                        parts.push(self.print_class(use_.target));
                     } else {
-                        parts.push(self.print_reexport(&canonical, &export.name));
+                        parts.push(self.print_reexport(&canonical, &use_.name));
                     }
                 }
                 Item::Fn(def) => {
                     let canonical = def.path.clone();
                     if is_canonical_origin(&canonical, mod_segments) {
-                        parts.push(self.print_fn(export.target));
+                        parts.push(self.print_fn(use_.target));
                     } else {
-                        parts.push(self.print_reexport(&canonical, &export.name));
+                        parts.push(self.print_reexport(&canonical, &use_.name));
                     }
                 }
                 Item::Mod(_) => {}
@@ -133,10 +133,10 @@ impl<'a> Printer<'a> {
                 | Primitive::f32
                 | Primitive::f64,
             ) => "number".into(),
-            Type::Struct(sid) => {
-                let path = self.ir.get_struct_unchecked(*sid).path.clone();
+            Type::Class(cid) => {
+                let path = self.ir.get_class_unchecked(*cid).path.clone();
                 let name = path.name().unwrap_or("unknown").to_string();
-                if !self.local_structs.contains(sid) {
+                if !self.local_classes.contains(cid) {
                     self.record_import(&path);
                 }
                 name
@@ -144,54 +144,34 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn print_struct(&mut self, sid: IrId) -> String {
-        let def = self.ir.get_struct_unchecked(sid).clone();
-        let name = def.path.name().unwrap_or("unknown").to_string();
+    fn print_class(&mut self, cid: IrId) -> String {
+        let def = self.ir.get_class_unchecked(cid).clone();
+        let name = &def.js_name;
         let brand = def.path.segments.join("::");
 
         let mut members: Vec<String> = Vec::new();
 
         members.push(format!("    private [\" \"]: '{brand}';"));
 
-        if let StructShape::Struct(fields) = &def.shape {
-            for field in fields {
-                let ty = self.type_to_ts(&field.ty);
-                let mut member = String::new();
-                if let Some(docs) = &field.docs {
-                    member.push_str(&doc_comment(docs, "    "));
-                }
-                member.push_str(&format!("    {}: {ty};", field.name));
-                members.push(member);
+        for field in &def.fields {
+            let ty = self.type_to_ts(&field.ty);
+            let mut member = String::new();
+            if let Some(docs) = &field.docs {
+                member.push_str(&doc_comment(docs, "    "));
             }
-        } else if let StructShape::Tuple(types) = &def.shape {
-            for (i, ty) in types.iter().enumerate() {
-                let ty = self.type_to_ts(ty);
-                members.push(format!("    {i}: {ty};"));
-            }
+            member.push_str(&format!("    {}: {ty};", field.js_name));
+            members.push(member);
         }
 
-        let ctor = match &def.ctor {
-            Ctor::Explicit(fid) => {
-                let fid = *fid;
-                let params: Vec<String> = self
-                    .ir
-                    .get_fn_unchecked(fid)
-                    .params
-                    .clone()
-                    .iter()
-                    .map(|p| {
-                        let ty = self.type_to_ts(&p.ty);
-                        format!("{}: {ty}", p.name)
-                    })
-                    .collect();
-                format!("    constructor({});", params.join(", "))
-            }
-            Ctor::Implicit => {
-                let params = self.shape_ctor_params(&def.shape);
-                format!("    constructor({});", params.join(", "))
-            }
-        };
-        members.push(ctor);
+        let (Ctor::Explicit { params } | Ctor::Implicit { params }) = &def.ctor;
+        let ctor_params: Vec<String> = params
+            .iter()
+            .map(|p| {
+                let ty = self.type_to_ts(&p.ty);
+                format!("{}: {ty}", p.name)
+            })
+            .collect();
+        members.push(format!("    constructor({});", ctor_params.join(", ")));
 
         let mut out = String::new();
         if let Some(docs) = &def.docs {
@@ -204,30 +184,9 @@ impl<'a> Printer<'a> {
         out
     }
 
-    fn shape_ctor_params(&mut self, shape: &StructShape) -> Vec<String> {
-        match shape {
-            StructShape::Unit => vec![],
-            StructShape::Tuple(types) => types
-                .iter()
-                .enumerate()
-                .map(|(i, ty)| {
-                    let ty = self.type_to_ts(ty);
-                    format!("_{i}: {ty}")
-                })
-                .collect(),
-            StructShape::Struct(fields) => fields
-                .iter()
-                .map(|f| {
-                    let ty = self.type_to_ts(&f.ty);
-                    format!("{}: {ty}", f.name)
-                })
-                .collect(),
-        }
-    }
-
     fn print_fn(&mut self, fid: IrId) -> String {
         let def = self.ir.get_fn_unchecked(fid).clone();
-        let name = def.path.name().unwrap_or("unknown").to_string();
+        let name = &def.js_name;
         let mut out = String::new();
 
         if let Some(docs) = &def.docs {

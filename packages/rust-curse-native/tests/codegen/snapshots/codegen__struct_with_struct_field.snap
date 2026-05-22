@@ -280,14 +280,14 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Point",
                         target: AsgId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "Circle",
                         target: AsgId(
                             2,
@@ -320,8 +320,6 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Struct(
                     [
                         StructField {
@@ -344,6 +342,7 @@ Asg {
                         },
                     ],
                 ),
+                impls: [],
                 docs: Some(
                     "A point in 2D space.",
                 ),
@@ -373,8 +372,6 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Struct(
                     [
                         StructField {
@@ -399,6 +396,7 @@ Asg {
                         },
                     ],
                 ),
+                impls: [],
                 docs: Some(
                     "A circle defined by its center and radius.",
                 ),
@@ -422,6 +420,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -440,14 +441,14 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Point",
                         target: IrId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "Circle",
                         target: IrId(
                             2,
@@ -456,9 +457,12 @@ Ir {
                 ],
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -467,51 +471,66 @@ Ir {
                         "Point",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            2,
-                            1,
+                js_name: "Point",
+                mangled_name: "__cursed_rustdoc_test_crate__Point",
+                fields: [
+                    ClassField {
+                        orig_name: "x",
+                        js_name: "x",
+                        ty: Primitive(
+                            f64,
                         ),
-                        end: (
-                            7,
-                            2,
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: Some(
+                            "Horizontal position.",
                         ),
                     },
-                ),
-                ctor: Implicit,
-                clonable: false,
-                shape: Struct(
-                    [
-                        StructField {
+                    ClassField {
+                        orig_name: "y",
+                        js_name: "y",
+                        ty: Primitive(
+                            f64,
+                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: Some(
+                            "Vertical position.",
+                        ),
+                    },
+                ],
+                ctor: Implicit {
+                    params: [
+                        FnParam {
                             name: "x",
+                            mode: ByValue,
                             ty: Primitive(
                                 f64,
-                            ),
-                            docs: Some(
-                                "Horizontal position.",
                             ),
                         },
-                        StructField {
+                        FnParam {
                             name: "y",
+                            mode: ByValue,
                             ty: Primitive(
                                 f64,
-                            ),
-                            docs: Some(
-                                "Vertical position.",
                             ),
                         },
                     ],
-                ),
+                },
+                clonable: false,
                 docs: Some(
                     "A point in 2D space.",
                 ),
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    2,
+                ),
+                orig: AsgId(
                     2,
                 ),
                 path: ItemPath {
@@ -520,45 +539,59 @@ Ir {
                         "Circle",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            9,
-                            1,
+                js_name: "Circle",
+                mangled_name: "__cursed_rustdoc_test_crate__Circle",
+                fields: [
+                    ClassField {
+                        orig_name: "center",
+                        js_name: "center",
+                        ty: Class(
+                            IrId(
+                                1,
+                            ),
                         ),
-                        end: (
-                            14,
-                            2,
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: true,
+                        docs: Some(
+                            "The center point.",
                         ),
                     },
-                ),
-                ctor: Implicit,
-                clonable: false,
-                shape: Struct(
-                    [
-                        StructField {
+                    ClassField {
+                        orig_name: "radius",
+                        js_name: "radius",
+                        ty: Primitive(
+                            f64,
+                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: Some(
+                            "The radius in the same units as `center`.",
+                        ),
+                    },
+                ],
+                ctor: Implicit {
+                    params: [
+                        FnParam {
                             name: "center",
-                            ty: Struct(
+                            mode: ByValue,
+                            ty: Class(
                                 IrId(
                                     1,
                                 ),
                             ),
-                            docs: Some(
-                                "The center point.",
-                            ),
                         },
-                        StructField {
+                        FnParam {
                             name: "radius",
+                            mode: ByValue,
                             ty: Primitive(
                                 f64,
                             ),
-                            docs: Some(
-                                "The radius in the same units as `center`.",
-                            ),
                         },
                     ],
-                ),
+                },
+                clonable: false,
                 docs: Some(
                     "A circle defined by its center and radius.",
                 ),

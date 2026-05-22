@@ -154,8 +154,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Manual",
                         target: AsgId(
                             1,
@@ -188,8 +188,6 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: true,
                 shape: Struct(
                     [
                         StructField {
@@ -201,7 +199,67 @@ Asg {
                         },
                     ],
                 ),
+                impls: [
+                    AsgId(
+                        3,
+                    ),
+                ],
                 docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                id: AsgId(
+                    2,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "clone",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            5,
+                        ),
+                        end: (
+                            7,
+                            6,
+                        ),
+                    },
+                ),
+                receiver: Some(
+                    ByRef,
+                ),
+                params: [],
+                return_type: Struct(
+                    AsgId(
+                        1,
+                    ),
+                ),
+                docs: None,
+            },
+        ),
+        Impl(
+            ImplDef {
+                id: AsgId(
+                    3,
+                ),
+                for_: AsgId(
+                    1,
+                ),
+                trait_: Some(
+                    WellKnown(
+                        Clone,
+                    ),
+                ),
+                fns: [
+                    AsgId(
+                        2,
+                    ),
+                ],
             },
         ),
     ],
@@ -222,6 +280,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -240,8 +301,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Manual",
                         target: IrId(
                             1,
@@ -250,9 +311,12 @@ Ir {
                 ],
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -261,32 +325,33 @@ Ir {
                         "Manual",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            1,
-                            1,
+                js_name: "Manual",
+                mangled_name: "__cursed_rustdoc_test_crate__Manual",
+                fields: [
+                    ClassField {
+                        orig_name: "x",
+                        js_name: "x",
+                        ty: Primitive(
+                            i32,
                         ),
-                        end: (
-                            3,
-                            2,
-                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: None,
                     },
-                ),
-                ctor: Implicit,
-                clonable: true,
-                shape: Struct(
-                    [
-                        StructField {
+                ],
+                ctor: Implicit {
+                    params: [
+                        FnParam {
                             name: "x",
+                            mode: ByValue,
                             ty: Primitive(
                                 i32,
                             ),
-                            docs: None,
                         },
                     ],
-                ),
+                },
+                clonable: true,
                 docs: None,
             },
         ),

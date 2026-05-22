@@ -191,14 +191,14 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Point",
                         target: AsgId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "translate",
                         target: AsgId(
                             2,
@@ -231,8 +231,6 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Struct(
                     [
                         StructField {
@@ -251,6 +249,7 @@ Asg {
                         },
                     ],
                 ),
+                impls: [],
                 docs: None,
             },
         ),
@@ -278,6 +277,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [
                     FnParam {
                         name: "origin",
@@ -331,6 +331,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -349,14 +352,14 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Point",
                         target: IrId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "translate",
                         target: IrId(
                             2,
@@ -365,9 +368,12 @@ Ir {
                 ],
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -376,39 +382,51 @@ Ir {
                         "Point",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            1,
-                            1,
+                js_name: "Point",
+                mangled_name: "__cursed_rustdoc_test_crate__Point",
+                fields: [
+                    ClassField {
+                        orig_name: "x",
+                        js_name: "x",
+                        ty: Primitive(
+                            f64,
                         ),
-                        end: (
-                            4,
-                            2,
-                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: None,
                     },
-                ),
-                ctor: Implicit,
-                clonable: false,
-                shape: Struct(
-                    [
-                        StructField {
+                    ClassField {
+                        orig_name: "y",
+                        js_name: "y",
+                        ty: Primitive(
+                            f64,
+                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: None,
+                    },
+                ],
+                ctor: Implicit {
+                    params: [
+                        FnParam {
                             name: "x",
+                            mode: ByValue,
                             ty: Primitive(
                                 f64,
                             ),
-                            docs: None,
                         },
-                        StructField {
+                        FnParam {
                             name: "y",
+                            mode: ByValue,
                             ty: Primitive(
                                 f64,
                             ),
-                            docs: None,
                         },
                     ],
-                ),
+                },
+                clonable: false,
                 docs: None,
             },
         ),
@@ -417,30 +435,22 @@ Ir {
                 id: IrId(
                     2,
                 ),
+                orig: AsgId(
+                    2,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
                         "translate",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            5,
-                            1,
-                        ),
-                        end: (
-                            5,
-                            71,
-                        ),
-                    },
-                ),
+                js_name: "translate",
+                mangled_name: "__cursed_rustdoc_test_crate__translate",
                 params: [
                     FnParam {
                         name: "origin",
                         mode: ByRef,
-                        ty: Struct(
+                        ty: Class(
                             IrId(
                                 1,
                             ),
@@ -449,7 +459,7 @@ Ir {
                     FnParam {
                         name: "target",
                         mode: ByMut,
-                        ty: Struct(
+                        ty: Class(
                             IrId(
                                 1,
                             ),
@@ -458,7 +468,7 @@ Ir {
                     FnParam {
                         name: "offset",
                         mode: ByValue,
-                        ty: Struct(
+                        ty: Class(
                             IrId(
                                 1,
                             ),

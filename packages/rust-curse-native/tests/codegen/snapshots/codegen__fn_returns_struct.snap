@@ -197,14 +197,14 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Point",
                         target: AsgId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "make_origin",
                         target: AsgId(
                             2,
@@ -237,8 +237,6 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Struct(
                     [
                         StructField {
@@ -261,6 +259,7 @@ Asg {
                         },
                     ],
                 ),
+                impls: [],
                 docs: Some(
                     "A point in 2D space.",
                 ),
@@ -290,6 +289,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [],
                 return_type: Struct(
                     AsgId(
@@ -319,6 +319,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -337,14 +340,14 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Point",
                         target: IrId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "make_origin",
                         target: IrId(
                             2,
@@ -353,9 +356,12 @@ Ir {
                 ],
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -364,43 +370,55 @@ Ir {
                         "Point",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            2,
-                            1,
+                js_name: "Point",
+                mangled_name: "__cursed_rustdoc_test_crate__Point",
+                fields: [
+                    ClassField {
+                        orig_name: "x",
+                        js_name: "x",
+                        ty: Primitive(
+                            f64,
                         ),
-                        end: (
-                            7,
-                            2,
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: Some(
+                            "Horizontal position.",
                         ),
                     },
-                ),
-                ctor: Implicit,
-                clonable: false,
-                shape: Struct(
-                    [
-                        StructField {
+                    ClassField {
+                        orig_name: "y",
+                        js_name: "y",
+                        ty: Primitive(
+                            f64,
+                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: Some(
+                            "Vertical position.",
+                        ),
+                    },
+                ],
+                ctor: Implicit {
+                    params: [
+                        FnParam {
                             name: "x",
+                            mode: ByValue,
                             ty: Primitive(
                                 f64,
-                            ),
-                            docs: Some(
-                                "Horizontal position.",
                             ),
                         },
-                        StructField {
+                        FnParam {
                             name: "y",
+                            mode: ByValue,
                             ty: Primitive(
                                 f64,
-                            ),
-                            docs: Some(
-                                "Vertical position.",
                             ),
                         },
                     ],
-                ),
+                },
+                clonable: false,
                 docs: Some(
                     "A point in 2D space.",
                 ),
@@ -411,27 +429,19 @@ Ir {
                 id: IrId(
                     2,
                 ),
+                orig: AsgId(
+                    2,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
                         "make_origin",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            9,
-                            1,
-                        ),
-                        end: (
-                            11,
-                            2,
-                        ),
-                    },
-                ),
+                js_name: "make_origin",
+                mangled_name: "__cursed_rustdoc_test_crate__make_origin",
                 params: [],
-                return_type: Struct(
+                return_type: Class(
                     IrId(
                         1,
                     ),

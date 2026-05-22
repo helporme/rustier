@@ -91,8 +91,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "two_i32",
                         target: AsgId(
                             1,
@@ -125,6 +125,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [
                     FnParam {
                         name: "a",
@@ -165,6 +166,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -183,8 +187,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "two_i32",
                         target: IrId(
                             1,
@@ -198,25 +202,17 @@ Ir {
                 id: IrId(
                     1,
                 ),
+                orig: AsgId(
+                    1,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
                         "two_i32",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            1,
-                            1,
-                        ),
-                        end: (
-                            1,
-                            34,
-                        ),
-                    },
-                ),
+                js_name: "two_i32",
+                mangled_name: "__cursed_rustdoc_test_crate__two_i32",
                 params: [
                     FnParam {
                         name: "a",

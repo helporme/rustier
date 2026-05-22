@@ -8,7 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use rust_curse::codegen::asg::{
-    Asg, AsgId, Export, FnDef, Item, ItemPath, ModDef, Primitive, Span, Type,
+    Asg, AsgId, FnDef, Item, ItemPath, ModDef, Primitive, Span, Type, Use,
 };
 use rust_curse::orphans::OrphanModule;
 use rust_curse::sync::Syncer;
@@ -168,11 +168,11 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
         id: root_id,
         path: ItemPath::new(vec![crate_name.to_string()]),
         span: None,
-        exports: Vec::new(),
+        uses: Vec::new(),
     }));
     asg.root = root_id;
 
-    let mut root_exports: Vec<Export> = Vec::new();
+    let mut root_uses: Vec<Use> = Vec::new();
 
     for module in modules {
         let mod_segs: Vec<String> = std::iter::once(crate_name.to_string())
@@ -187,10 +187,10 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
                 begin: (1, 1),
                 end: (1, 1),
             }),
-            exports: Vec::new(),
+            uses: Vec::new(),
         }));
 
-        let mut mod_exports: Vec<Export> = Vec::new();
+        let mut mod_uses: Vec<Use> = Vec::new();
         for fn_fix in module.fns {
             let mut fn_segs = mod_segs.clone();
             fn_segs.push(fn_fix.name.to_string());
@@ -199,6 +199,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
                 id: fn_id,
                 path: ItemPath::new(fn_segs),
                 span: None,
+                receiver: None,
                 params: Vec::new(),
                 return_type: Type::Primitive(Primitive::Unit),
                 docs: None,
@@ -206,23 +207,23 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
             if fn_fix.exposed {
                 exposed.insert(fn_id);
             }
-            mod_exports.push(Export {
+            mod_uses.push(Use {
                 name: fn_fix.name.to_string(),
                 target: fn_id,
             });
         }
         if let Item::Mod(m) = &mut asg.items[mod_id.0] {
-            m.exports = mod_exports;
+            m.uses = mod_uses;
         }
 
-        root_exports.push(Export {
+        root_uses.push(Use {
             name: module.mod_name.to_string(),
             target: mod_id,
         });
     }
 
     if let Item::Mod(m) = &mut asg.items[root_id.0] {
-        m.exports = root_exports;
+        m.uses = root_uses;
     }
 
     (asg, exposed)

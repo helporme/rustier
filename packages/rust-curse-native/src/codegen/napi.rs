@@ -3,10 +3,9 @@
 use std::collections::HashSet;
 
 use super::ir::{
-    rust_path, Ctor, FnParam, Ir, IrId, Item, ParamMode, Primitive, StructDef, StructField,
-    StructShape, Type,
+    rust_path, ClassDef, ClassField, Ctor, FnParam, Ir, IrId, Item, ParamMode, Primitive, Type,
 };
-use super::mangle::{is_canonical_origin, mangle};
+use super::mangle::is_canonical_origin;
 
 impl Ir {
     /// Prints the IR as napi glue code, exposing items in the `exposed`
@@ -31,15 +30,14 @@ impl<'a> Printer<'a> {
         out.push_str("use napi_derive::napi;\n");
 
         for i in 0..self.ir.items.len() {
-            let Item::Struct(def) = &self.ir.items[i] else {
+            let Item::Class(def) = &self.ir.items[i] else {
                 continue;
             };
-            let id = def.id;
-            if !self.exposed.contains(&id) {
+            if !self.exposed.contains(&def.id) {
                 continue;
             }
             out.push('\n');
-            out.push_str(&self.print_struct_wrappers(id));
+            out.push_str(&self.print_class_wrappers(def.id));
         }
 
         for i in 0..self.ir.items.len() {
@@ -47,17 +45,17 @@ impl<'a> Printer<'a> {
                 continue;
             };
             let mod_segs = mod_def.path.segments.clone();
-            for export in mod_def.exports.clone() {
-                if !self.exposed.contains(&export.target) {
+            for use_ in mod_def.uses.clone() {
+                if !self.exposed.contains(&use_.target) {
                     continue;
                 }
-                let Item::Fn(fn_def) = self.ir.get_unchecked(export.target) else {
+                let Item::Fn(fn_def) = self.ir.get_unchecked(use_.target) else {
                     continue;
                 };
                 let canonical = fn_def.path.clone();
                 if is_canonical_origin(&canonical, &mod_segs) {
                     out.push('\n');
-                    out.push_str(&self.print_fn_glue(export.target));
+                    out.push_str(&self.print_fn_glue(use_.target));
                 }
             }
         }
@@ -65,10 +63,10 @@ impl<'a> Printer<'a> {
         out
     }
 
-    fn print_struct_wrappers(&mut self, sid: IrId) -> String {
-        let def = self.ir.get_struct_unchecked(sid).clone();
+    fn print_class_wrappers(&mut self, cid: IrId) -> String {
+        let def = self.ir.get_class_unchecked(cid).clone();
         let orig = rust_path(&def.path, &self.ir.crate_name);
-        let mangled = mangle(&def.path);
+        let mangled = &def.mangled_name;
 
         let mut out = String::new();
         if let Some(docs) = &def.docs {
@@ -80,11 +78,9 @@ impl<'a> Printer<'a> {
 
         out.push_str(&format!("#[napi]\nimpl {mangled} {{\n"));
         out.push_str(&self.print_ctor(&def, &orig));
-        if let StructShape::Struct(fields) = &def.shape {
-            for field in fields {
-                out.push('\n');
-                out.push_str(&self.print_getter_setter(field));
-            }
+        for field in &def.fields {
+            out.push('\n');
+            out.push_str(&self.print_getter_setter(field));
         }
         out.push_str("}\n\n");
 
@@ -98,89 +94,51 @@ impl<'a> Printer<'a> {
         out
     }
 
-    fn print_ctor(&mut self, def: &StructDef, orig: &str) -> String {
-        match &def.ctor {
-            Ctor::Explicit(fid) => {
-                let fn_def = self.ir.get_fn_unchecked(*fid).clone();
-                let params: Vec<String> = fn_def
-                    .params
-                    .iter()
-                    .map(|p| {
-                        let ty = self.type_to_rs(&p.ty);
-                        format!("{}: {ty}", p.name)
-                    })
-                    .collect();
-                let args: Vec<String> = fn_def.params.iter().map(|p| p.name.clone()).collect();
-                format!(
-                    "    #[napi(constructor)]\n    pub fn new({}) -> Self {{\n        Self {{ inner: {orig}::new({}) }}\n    }}\n",
-                    params.join(", "),
-                    args.join(", "),
-                )
+    fn print_ctor(&self, def: &ClassDef, orig: &str) -> String {
+        let (params, body) = match &def.ctor {
+            Ctor::Explicit { params } => {
+                let args: Vec<String> = params.iter().map(|p| p.name.clone()).collect();
+                (params, format!("{orig}::new({})", args.join(", ")))
             }
-            Ctor::Implicit => {
-                let (params, body) = match &def.shape {
-                    StructShape::Unit => (vec![], orig.to_string()),
-                    StructShape::Tuple(ts) => {
-                        let params: Vec<String> = ts
-                            .iter()
-                            .enumerate()
-                            .map(|(i, ty)| {
-                                let ty = self.type_to_rs(ty);
-                                format!("_{i}: {ty}")
-                            })
-                            .collect();
-                        let args: Vec<String> = (0..ts.len()).map(|i| format!("_{i}")).collect();
-                        (params, format!("{orig}({})", args.join(", ")))
-                    }
-                    StructShape::Struct(fs) => {
-                        let params: Vec<String> = fs
-                            .iter()
-                            .map(|f| {
-                                let ty = self.type_to_rs(&f.ty);
-                                format!("{}: {ty}", f.name)
-                            })
-                            .collect();
-                        let names: Vec<String> = fs.iter().map(|f| f.name.clone()).collect();
-                        (params, format!("{orig} {{ {} }}", names.join(", ")))
-                    }
-                };
-                format!(
-                    "    #[napi(constructor)]\n    pub fn new({}) -> Self {{\n        Self {{ inner: {body} }}\n    }}\n",
-                    params.join(", ")
-                )
+            Ctor::Implicit { params } => {
+                let names: Vec<String> = params.iter().map(|p| p.name.clone()).collect();
+                (params, format!("{orig} {{ {} }}", names.join(", ")))
             }
-        }
-    }
-
-    fn print_getter_setter(&mut self, field: &StructField) -> String {
-        let name = &field.name;
-        let ty = self.type_to_rs(&field.ty);
-        let needs_clone = !is_primitive_ty(&field.ty);
-        let getter_body = if needs_clone {
-            format!("self.inner.{name}.clone()")
-        } else {
-            format!("self.inner.{name}")
         };
         format!(
-            "    #[napi(getter, js_name = \"{name}\")]\n    pub fn {name}(&self) -> {ty} {{ {getter_body} }}\n    #[napi(setter, js_name = \"{name}\")]\n    pub fn set_{name}(&mut self, v: {ty}) {{ self.inner.{name} = v; }}\n"
+            "    #[napi(constructor)]\n    pub fn new({}) -> Self {{\n        Self {{ inner: {body} }}\n    }}\n",
+            self.render_params(params),
         )
+    }
+
+    fn print_getter_setter(&self, field: &ClassField) -> String {
+        let js = &field.js_name;
+        let orig = &field.orig_name;
+        let ty = self.type_to_rs(&field.ty);
+        let mut out = String::new();
+        if field.has_getter {
+            let getter_body = if field.clone_on_get {
+                format!("self.inner.{orig}.clone()")
+            } else {
+                format!("self.inner.{orig}")
+            };
+            out.push_str(&format!(
+                "    #[napi(getter, js_name = \"{js}\")]\n    pub fn {orig}(&self) -> {ty} {{ {getter_body} }}\n"
+            ));
+        }
+        if field.has_setter {
+            out.push_str(&format!(
+                "    #[napi(setter, js_name = \"{js}\")]\n    pub fn set_{orig}(&mut self, v: {ty}) {{ self.inner.{orig} = v; }}\n"
+            ));
+        }
+        out
     }
 
     fn print_fn_glue(&mut self, fid: IrId) -> String {
         let fn_def = self.ir.get_fn_unchecked(fid).clone();
-        let glue_name = mangle(&fn_def.path);
-        let js_name = glue_name.clone();
+        let glue_name = &fn_def.mangled_name;
 
         let orig_call_path = rust_path(&fn_def.path, &self.ir.crate_name);
-
-        let params: Vec<String> = fn_def
-            .params
-            .iter()
-            .map(|p| {
-                let ty = self.param_type_to_rs(p);
-                format!("{}: {ty}", p.name)
-            })
-            .collect();
 
         let call_args: Vec<String> = fn_def
             .params
@@ -195,25 +153,37 @@ impl<'a> Printer<'a> {
         if let Some(docs) = &fn_def.docs {
             out.push_str(&rust_doc(docs, ""));
         }
-        out.push_str(&format!("#[napi(js_name = \"{js_name}\")]\n"));
+        out.push_str(&format!("#[napi(js_name = \"{glue_name}\")]\n"));
+        let params = self.render_fn_params(&fn_def.params);
         if matches!(fn_def.return_type, Type::Primitive(Primitive::Unit)) {
-            out.push_str(&format!(
-                "pub fn {glue_name}({}) {{\n    {body}\n}}\n",
-                params.join(", ")
-            ));
+            out.push_str(&format!("pub fn {glue_name}({params}) {{\n    {body}\n}}\n"));
         } else {
             out.push_str(&format!(
-                "pub fn {glue_name}({}) -> {ret_ty} {{\n    {body}\n}}\n",
-                params.join(", ")
+                "pub fn {glue_name}({params}) -> {ret_ty} {{\n    {body}\n}}\n"
             ));
         }
         out
     }
 
-    fn param_type_to_rs(&mut self, p: &FnParam) -> String {
-        if let Type::Struct(sid) = &p.ty {
-            let def = self.ir.get_struct_unchecked(*sid).clone();
-            let handle = mangle(&def.path);
+    fn render_params(&self, params: &[FnParam]) -> String {
+        params
+            .iter()
+            .map(|p| format!("{}: {}", p.name, self.type_to_rs(&p.ty)))
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+
+    fn render_fn_params(&self, params: &[FnParam]) -> String {
+        params
+            .iter()
+            .map(|p| format!("{}: {}", p.name, self.param_type_to_rs(p)))
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+
+    fn param_type_to_rs(&self, p: &FnParam) -> String {
+        if let Type::Class(cid) = &p.ty {
+            let handle = self.ir.get_class_unchecked(*cid).mangled_name.clone();
             return match p.mode {
                 ParamMode::ByRef => format!("&{handle}"),
                 ParamMode::ByMut => format!("&mut {handle}"),
@@ -223,20 +193,20 @@ impl<'a> Printer<'a> {
         self.type_to_rs(&p.ty)
     }
 
-    fn param_call_expr(&mut self, p: &FnParam) -> String {
+    fn param_call_expr(&self, p: &FnParam) -> String {
         match (&p.ty, &p.mode) {
-            (Type::Struct(_), ParamMode::ByRef) => format!("&{}.inner", p.name),
-            (Type::Struct(_), ParamMode::ByMut) => format!("&mut {}.inner", p.name),
-            (Type::Struct(_), ParamMode::ByValue) => format!("{}.into()", p.name),
+            (Type::Class(_), ParamMode::ByRef) => format!("&{}.inner", p.name),
+            (Type::Class(_), ParamMode::ByMut) => format!("&mut {}.inner", p.name),
+            (Type::Class(_), ParamMode::ByValue) => format!("{}.into()", p.name),
             (Type::Primitive(Primitive::Str), _) => format!("&{}", p.name),
             _ => p.name.clone(),
         }
     }
 
-    fn return_expr(&mut self, ty: &Type, call: &str) -> (String, String) {
+    fn return_expr(&self, ty: &Type, call: &str) -> (String, String) {
         match ty {
             Type::Primitive(Primitive::Unit) => ("()".into(), format!("{call};")),
-            Type::Struct(_) => {
+            Type::Class(_) => {
                 let ty = self.type_to_rs(ty);
                 (ty, format!("{call}.into()"))
             }
@@ -247,10 +217,10 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn type_to_rs(&mut self, ty: &Type) -> String {
+    fn type_to_rs(&self, ty: &Type) -> String {
         match ty {
             Type::Primitive(p) => primitive_to_rs(p).to_string(),
-            Type::Struct(sid) => mangle(&self.ir.get_struct_unchecked(*sid).path.clone()),
+            Type::Class(cid) => self.ir.get_class_unchecked(*cid).mangled_name.clone(),
         }
     }
 }
@@ -274,28 +244,6 @@ fn primitive_to_rs(p: &Primitive) -> &'static str {
         Primitive::f32 => "f32",
         Primitive::f64 => "f64",
     }
-}
-
-fn is_primitive_ty(t: &Type) -> bool {
-    matches!(
-        t,
-        Type::Primitive(
-            Primitive::Boolean
-                | Primitive::Char
-                | Primitive::i8
-                | Primitive::u8
-                | Primitive::i16
-                | Primitive::u16
-                | Primitive::i32
-                | Primitive::u32
-                | Primitive::i64
-                | Primitive::u64
-                | Primitive::isize
-                | Primitive::usize
-                | Primitive::f32
-                | Primitive::f64,
-        )
-    )
 }
 
 fn rust_doc(docs: &str, indent: &str) -> String {

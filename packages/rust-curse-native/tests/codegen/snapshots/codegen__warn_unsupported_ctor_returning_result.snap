@@ -145,8 +145,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "S",
                         target: AsgId(
                             1,
@@ -179,12 +179,27 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Struct(
                     [],
                 ),
+                impls: [
+                    AsgId(
+                        2,
+                    ),
+                ],
                 docs: None,
+            },
+        ),
+        Impl(
+            ImplDef {
+                id: AsgId(
+                    2,
+                ),
+                for_: AsgId(
+                    1,
+                ),
+                trait_: None,
+                fns: [],
             },
         ),
     ],
@@ -205,6 +220,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -223,8 +241,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "S",
                         target: IrId(
                             1,
@@ -233,9 +251,12 @@ Ir {
                 ],
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -244,24 +265,13 @@ Ir {
                         "S",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            1,
-                            1,
-                        ),
-                        end: (
-                            3,
-                            2,
-                        ),
-                    },
-                ),
-                ctor: Implicit,
+                js_name: "S",
+                mangled_name: "__cursed_rustdoc_test_crate__S",
+                fields: [],
+                ctor: Implicit {
+                    params: [],
+                },
                 clonable: false,
-                shape: Struct(
-                    [],
-                ),
                 docs: None,
             },
         ),

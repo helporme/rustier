@@ -114,7 +114,7 @@ pub fn all_exposed_ids(ir: &rust_curse::codegen::ir::Ir) -> HashSet<rust_curse::
         .iter()
         .filter_map(|it| match it {
             rust_curse::codegen::ir::Item::Fn(def) => Some(def.id),
-            rust_curse::codegen::ir::Item::Struct(def) => Some(def.id),
+            rust_curse::codegen::ir::Item::Class(def) => Some(def.id),
             _ => None,
         })
         .collect()
@@ -135,7 +135,7 @@ pub fn exposed_by_name(
             .filter_map(|it| {
                 let (id, path) = match it {
                     rust_curse::codegen::ir::Item::Fn(def) => (def.id, &def.path),
-                    rust_curse::codegen::ir::Item::Struct(def) => (def.id, &def.path),
+                    rust_curse::codegen::ir::Item::Class(def) => (def.id, &def.path),
                     rust_curse::codegen::ir::Item::Mod(def) => (def.id, &def.path),
                 };
                 (path.name() == Some(*name)).then_some(id)
@@ -165,7 +165,7 @@ macro_rules! ir {
     ($($tt:tt)*) => {{
         let (_dir, _root, crate_) = $crate::common::gen_rustdoc(stringify!($($tt)*));
         let mut warns = rust_curse::warns::Warns::new();
-        let asg = rust_curse::codegen::asg::ASG::from_rustdoc(&crate_, &mut warns).unwrap();
+        let asg = rust_curse::codegen::asg::Asg::from_rustdoc(&crate_, &mut warns).unwrap();
         rust_curse::codegen::ir::Ir::from_asg(&mut warns, &asg).unwrap()
     }};
 }

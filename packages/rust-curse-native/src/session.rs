@@ -278,7 +278,7 @@ impl RustCurse {
         .context("sync: orphan_tree")?;
 
         let ir = Ir::from_asg(&mut warns, &asg).context("build ir")?;
-        let exposed: HashSet<ir::IrId> = asg_exposed.iter().map(|id| ir::IrId(id.0)).collect();
+        let exposed = ir.exposed_from_asg(&asg_exposed);
 
         let profiles = self.get_profiles(profile_names)?;
         for profile in &profiles {

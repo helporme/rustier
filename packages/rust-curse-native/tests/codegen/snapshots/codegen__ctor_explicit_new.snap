@@ -140,8 +140,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Opaque",
                         target: AsgId(
                             1,
@@ -174,15 +174,14 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Explicit(
-                    AsgId(
-                        2,
-                    ),
-                ),
-                clonable: false,
                 shape: Struct(
                     [],
                 ),
+                impls: [
+                    AsgId(
+                        3,
+                    ),
+                ],
                 docs: None,
             },
         ),
@@ -209,6 +208,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [
                     FnParam {
                         name: "x",
@@ -224,6 +224,22 @@ Asg {
                     ),
                 ),
                 docs: None,
+            },
+        ),
+        Impl(
+            ImplDef {
+                id: AsgId(
+                    3,
+                ),
+                for_: AsgId(
+                    1,
+                ),
+                trait_: None,
+                fns: [
+                    AsgId(
+                        2,
+                    ),
+                ],
             },
         ),
     ],
@@ -244,6 +260,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -262,8 +281,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Opaque",
                         target: IrId(
                             1,
@@ -272,9 +291,12 @@ Ir {
                 ],
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -283,68 +305,21 @@ Ir {
                         "Opaque",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            1,
-                            1,
-                        ),
-                        end: (
-                            3,
-                            2,
-                        ),
-                    },
-                ),
-                ctor: Explicit(
-                    IrId(
-                        2,
-                    ),
-                ),
-                clonable: false,
-                shape: Struct(
-                    [],
-                ),
-                docs: None,
-            },
-        ),
-        Fn(
-            FnDef {
-                id: IrId(
-                    2,
-                ),
-                path: ItemPath {
-                    segments: [
-                        "new",
+                js_name: "Opaque",
+                mangled_name: "__cursed_rustdoc_test_crate__Opaque",
+                fields: [],
+                ctor: Explicit {
+                    params: [
+                        FnParam {
+                            name: "x",
+                            mode: ByValue,
+                            ty: Primitive(
+                                i32,
+                            ),
+                        },
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            5,
-                            5,
-                        ),
-                        end: (
-                            7,
-                            6,
-                        ),
-                    },
-                ),
-                params: [
-                    FnParam {
-                        name: "x",
-                        mode: ByValue,
-                        ty: Primitive(
-                            i32,
-                        ),
-                    },
-                ],
-                return_type: Struct(
-                    IrId(
-                        1,
-                    ),
-                ),
+                clonable: false,
                 docs: None,
             },
         ),

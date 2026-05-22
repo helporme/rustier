@@ -79,9 +79,21 @@ pub struct FnDef {
     pub id: AsgId,
     pub path: ItemPath,
     pub span: Option<Span>,
+    pub receiver: Option<Receiver>,
     pub params: Vec<FnParam>,
     pub return_type: Type,
     pub docs: Option<String>,
+}
+
+/// The `self` receiver of an associated fn.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Receiver {
+    /// `self`
+    ByValue,
+    /// `&self`
+    ByRef,
+    /// `&mut self`
+    ByMut,
 }
 
 /// A function parameter.
@@ -106,10 +118,8 @@ pub struct StructDef {
     pub id: AsgId,
     pub path: ItemPath,
     pub span: Option<Span>,
-    pub ctor: Ctor,
-    /// `true` if the source crate exposes a `Clone` impl for this struct
-    pub clonable: bool,
     pub shape: StructShape,
+    pub impls: Vec<AsgId>,
     pub docs: Option<String>,
 }
 
@@ -121,22 +131,53 @@ pub enum StructShape {
     Struct(Vec<StructField>),
 }
 
-/// A "constructor" for a ref struct.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Ctor {
-    /// `new` function defined in an `impl` block is used to construct ref
-    /// struct.
-    Explicit(AsgId),
-    /// struct expression (e.g. `Foo { a, b, c }`) is used to construct the ref
-    /// struct.
-    Implicit,
-}
-
 /// A struct field.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StructField {
     pub name: String,
     pub ty: Type,
+    pub docs: Option<String>,
+}
+
+/// An `impl` block.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ImplDef {
+    pub id: AsgId,
+    /// Struct this impl is for.
+    pub for_: AsgId,
+    /// `None` for an inherent impl.
+    pub trait_: Option<TraitRef>,
+    /// Associated fns this impl defines.
+    pub fns: Vec<AsgId>,
+}
+
+/// How an impl names the trait it implements.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TraitRef {
+    /// A trait defined in the crate.
+    Local(AsgId),
+    /// A std/core trait we recognize for internal purposes (e.g. `Clone`).
+    WellKnown(WellKnownTrait),
+}
+
+/// A std/core trait recognized by identity during ASG build.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WellKnownTrait {
+    Clone,
+}
+
+/// A trait definition.
+///
+/// Traits with assoc consts, assoc types, or any generics are auto-skipped.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TraitDef {
+    pub id: AsgId,
+    pub path: ItemPath,
+    pub span: Option<Span>,
+    /// Required fns.
+    pub fns: Vec<AsgId>,
+    /// Impls of this trait.
+    pub impls: Vec<AsgId>,
     pub docs: Option<String>,
 }
 
@@ -147,7 +188,7 @@ pub struct ModDef {
     pub path: ItemPath,
     /// Source span where this module is declared.
     pub span: Option<Span>,
-    pub exports: Vec<Export>,
+    pub uses: Vec<Use>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -162,9 +203,9 @@ pub struct Span {
     pub end: (usize, usize),
 }
 
-/// An "export" from a module.
+/// A name brought into a module's public surface.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Export {
+pub struct Use {
     pub name: String,
     pub target: AsgId,
 }
@@ -175,6 +216,8 @@ pub enum Item {
     Struct(StructDef),
     Fn(FnDef),
     Mod(ModDef),
+    Impl(ImplDef),
+    Trait(TraitDef),
 }
 
 /// The rust curse ASG for a Rust crate.
@@ -212,6 +255,22 @@ impl Asg {
         match self.get_unchecked(id) {
             Item::Mod(m) => m,
             other => panic!("expected mod at {id:?}, got {other:?}"),
+        }
+    }
+
+    /// Gets an impl by its ID, panics if the item is not an impl.
+    pub fn get_impl_unchecked(&self, id: AsgId) -> &ImplDef {
+        match self.get_unchecked(id) {
+            Item::Impl(i) => i,
+            other => panic!("expected impl at {id:?}, got {other:?}"),
+        }
+    }
+
+    /// Gets a trait by its ID, panics if the item is not a trait.
+    pub fn get_trait_unchecked(&self, id: AsgId) -> &TraitDef {
+        match self.get_unchecked(id) {
+            Item::Trait(t) => t,
+            other => panic!("expected trait at {id:?}, got {other:?}"),
         }
     }
 }

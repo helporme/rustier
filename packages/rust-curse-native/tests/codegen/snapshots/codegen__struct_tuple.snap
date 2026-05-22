@@ -13,56 +13,12 @@ pub struct Pair(pub i32, pub String);
 
 ```rs
 use wasm_bindgen::prelude::*;
-/// A pair of values stored as a tuple struct.
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Pair")]
-pub struct __cursed_rustdoc_test_crate__Pair {
-    inner: crate::Pair,
-}
-#[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Pair {
-    #[wasm_bindgen(constructor)]
-    pub fn new(_0: i32, _1: String) -> Self {
-        Self { inner: crate::Pair(_0, _1) }
-    }
-}
-impl From<crate::Pair> for __cursed_rustdoc_test_crate__Pair {
-    fn from(v: crate::Pair) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__Pair> for crate::Pair {
-    fn from(v: __cursed_rustdoc_test_crate__Pair) -> Self {
-        v.inner
-    }
-}
 ```
 
 # napi
 
 ```rs
 use napi_derive::napi;
-/// A pair of values stored as a tuple struct.
-#[napi(js_name = "__cursed_rustdoc_test_crate__Pair")]
-pub struct __cursed_rustdoc_test_crate__Pair {
-    inner: crate::Pair,
-}
-#[napi]
-impl __cursed_rustdoc_test_crate__Pair {
-    #[napi(constructor)]
-    pub fn new(_0: i32, _1: String) -> Self {
-        Self { inner: crate::Pair(_0, _1) }
-    }
-}
-impl From<crate::Pair> for __cursed_rustdoc_test_crate__Pair {
-    fn from(v: crate::Pair) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__Pair> for crate::Pair {
-    fn from(v: __cursed_rustdoc_test_crate__Pair) -> Self {
-        v.inner
-    }
-}
 ```
 
 # ts
@@ -70,39 +26,34 @@ impl From<__cursed_rustdoc_test_crate__Pair> for crate::Pair {
 ```ts
 
 // src/lib.rs.d.ts
-/** A pair of values stored as a tuple struct. */
-export class Pair {
-    private [" "]: 'rustdoc_test_crate::Pair';
 
-    0: number;
-
-    1: string;
-
-    constructor(_0: number, _1: string);
-}
 ```
 
 # js-wasm
 
 ```js
 // $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Pair } from '$test';
-await __wbg_init();
-export { __cursed_rustdoc_test_crate__Pair as Pair };
+export {};
 ```
 
 # js-napi
 
 ```js
 // $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Pair } from '$test';
-export { __cursed_rustdoc_test_crate__Pair as Pair };
+export {};
 ```
 
 # warns
 
 ```text
-(no warnings)
+rust-curse::unsupported_type
+
+  ⚠ tuple structs are not yet supported
+   ╭─[src/lib.rs:2:1]
+ 1 │ /// A pair of values stored as a tuple struct.
+ 2 │ pub struct Pair(pub i32, pub String);
+   · ─────────────────────────────────────
+   ╰────
 ```
 
 # ASG
@@ -137,8 +88,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Pair",
                         target: AsgId(
                             1,
@@ -171,8 +122,6 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Tuple(
                     [
                         Primitive(
@@ -183,6 +132,7 @@ Asg {
                         ),
                     ],
                 ),
+                impls: [],
                 docs: Some(
                     "A pair of values stored as a tuple struct.",
                 ),
@@ -206,6 +156,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -224,55 +177,7 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
-                        name: "Pair",
-                        target: IrId(
-                            1,
-                        ),
-                    },
-                ],
-            },
-        ),
-        Struct(
-            StructDef {
-                id: IrId(
-                    1,
-                ),
-                path: ItemPath {
-                    segments: [
-                        "rustdoc_test_crate",
-                        "Pair",
-                    ],
-                },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            2,
-                            1,
-                        ),
-                        end: (
-                            2,
-                            38,
-                        ),
-                    },
-                ),
-                ctor: Implicit,
-                clonable: false,
-                shape: Tuple(
-                    [
-                        Primitive(
-                            i32,
-                        ),
-                        Primitive(
-                            String,
-                        ),
-                    ],
-                ),
-                docs: Some(
-                    "A pair of values stored as a tuple struct.",
-                ),
+                uses: [],
             },
         ),
     ],

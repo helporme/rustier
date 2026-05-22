@@ -269,26 +269,26 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Point",
                         target: AsgId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "Wrapper",
                         target: AsgId(
                             2,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "take",
                         target: AsgId(
                             3,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "produce",
                         target: AsgId(
                             4,
@@ -321,8 +321,6 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Struct(
                     [
                         StructField {
@@ -341,6 +339,7 @@ Asg {
                         },
                     ],
                 ),
+                impls: [],
                 docs: None,
             },
         ),
@@ -368,8 +367,6 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Struct(
                     [
                         StructField {
@@ -383,6 +380,7 @@ Asg {
                         },
                     ],
                 ),
+                impls: [],
                 docs: None,
             },
         ),
@@ -410,6 +408,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [
                     FnParam {
                         name: "p",
@@ -451,6 +450,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [],
                 return_type: Struct(
                     AsgId(
@@ -478,6 +478,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -496,26 +499,26 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Point",
                         target: IrId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "Wrapper",
                         target: IrId(
                             2,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "take",
                         target: IrId(
                             3,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "produce",
                         target: IrId(
                             4,
@@ -524,9 +527,12 @@ Ir {
                 ],
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -535,45 +541,60 @@ Ir {
                         "Point",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            1,
-                            1,
+                js_name: "Point",
+                mangled_name: "__cursed_rustdoc_test_crate__Point",
+                fields: [
+                    ClassField {
+                        orig_name: "x",
+                        js_name: "x",
+                        ty: Primitive(
+                            i32,
                         ),
-                        end: (
-                            4,
-                            2,
-                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: None,
                     },
-                ),
-                ctor: Implicit,
-                clonable: false,
-                shape: Struct(
-                    [
-                        StructField {
+                    ClassField {
+                        orig_name: "y",
+                        js_name: "y",
+                        ty: Primitive(
+                            i32,
+                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: None,
+                    },
+                ],
+                ctor: Implicit {
+                    params: [
+                        FnParam {
                             name: "x",
+                            mode: ByValue,
                             ty: Primitive(
                                 i32,
                             ),
-                            docs: None,
                         },
-                        StructField {
+                        FnParam {
                             name: "y",
+                            mode: ByValue,
                             ty: Primitive(
                                 i32,
                             ),
-                            docs: None,
                         },
                     ],
-                ),
+                },
+                clonable: false,
                 docs: None,
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    2,
+                ),
+                orig: AsgId(
                     2,
                 ),
                 path: ItemPath {
@@ -582,34 +603,37 @@ Ir {
                         "Wrapper",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            5,
-                            1,
+                js_name: "Wrapper",
+                mangled_name: "__cursed_rustdoc_test_crate__Wrapper",
+                fields: [
+                    ClassField {
+                        orig_name: "p",
+                        js_name: "p",
+                        ty: Class(
+                            IrId(
+                                1,
+                            ),
                         ),
-                        end: (
-                            7,
-                            2,
-                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: true,
+                        docs: None,
                     },
-                ),
-                ctor: Implicit,
-                clonable: false,
-                shape: Struct(
-                    [
-                        StructField {
+                ],
+                ctor: Implicit {
+                    params: [
+                        FnParam {
                             name: "p",
-                            ty: Struct(
+                            mode: ByValue,
+                            ty: Class(
                                 IrId(
                                     1,
                                 ),
                             ),
-                            docs: None,
                         },
                     ],
-                ),
+                },
+                clonable: false,
                 docs: None,
             },
         ),
@@ -618,30 +642,22 @@ Ir {
                 id: IrId(
                     3,
                 ),
+                orig: AsgId(
+                    3,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
                         "take",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            8,
-                            1,
-                        ),
-                        end: (
-                            8,
-                            25,
-                        ),
-                    },
-                ),
+                js_name: "take",
+                mangled_name: "__cursed_rustdoc_test_crate__take",
                 params: [
                     FnParam {
                         name: "p",
                         mode: ByValue,
-                        ty: Struct(
+                        ty: Class(
                             IrId(
                                 1,
                             ),
@@ -659,27 +675,19 @@ Ir {
                 id: IrId(
                     4,
                 ),
+                orig: AsgId(
+                    4,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
                         "produce",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            9,
-                            1,
-                        ),
-                        end: (
-                            11,
-                            2,
-                        ),
-                    },
-                ),
+                js_name: "produce",
+                mangled_name: "__cursed_rustdoc_test_crate__produce",
                 params: [],
-                return_type: Struct(
+                return_type: Class(
                     IrId(
                         1,
                     ),

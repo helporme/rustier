@@ -124,8 +124,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "a",
                         target: AsgId(
                             1,
@@ -158,8 +158,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "b",
                         target: AsgId(
                             2,
@@ -193,8 +193,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "c",
                         target: AsgId(
                             3,
@@ -229,8 +229,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "deep",
                         target: AsgId(
                             4,
@@ -266,6 +266,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [],
                 return_type: Primitive(
                     Unit,
@@ -291,6 +292,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -309,8 +313,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "a",
                         target: IrId(
                             1,
@@ -322,6 +326,9 @@ Ir {
         Mod(
             ModDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -343,8 +350,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "b",
                         target: IrId(
                             2,
@@ -356,6 +363,9 @@ Ir {
         Mod(
             ModDef {
                 id: IrId(
+                    2,
+                ),
+                orig: AsgId(
                     2,
                 ),
                 path: ItemPath {
@@ -378,8 +388,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "c",
                         target: IrId(
                             3,
@@ -391,6 +401,9 @@ Ir {
         Mod(
             ModDef {
                 id: IrId(
+                    3,
+                ),
+                orig: AsgId(
                     3,
                 ),
                 path: ItemPath {
@@ -414,8 +427,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "deep",
                         target: IrId(
                             4,
@@ -429,6 +442,9 @@ Ir {
                 id: IrId(
                     4,
                 ),
+                orig: AsgId(
+                    4,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -438,19 +454,8 @@ Ir {
                         "deep",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            4,
-                            13,
-                        ),
-                        end: (
-                            4,
-                            29,
-                        ),
-                    },
-                ),
+                js_name: "deep",
+                mangled_name: "__cursed_rustdoc_test_crate__a__b__c__deep",
                 params: [],
                 return_type: Primitive(
                     Unit,

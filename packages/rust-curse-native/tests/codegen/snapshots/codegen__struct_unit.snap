@@ -12,54 +12,12 @@ pub struct Marker;
 
 ```rs
 use wasm_bindgen::prelude::*;
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Marker")]
-pub struct __cursed_rustdoc_test_crate__Marker {
-    inner: crate::Marker,
-}
-#[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Marker {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        Self { inner: crate::Marker }
-    }
-}
-impl From<crate::Marker> for __cursed_rustdoc_test_crate__Marker {
-    fn from(v: crate::Marker) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__Marker> for crate::Marker {
-    fn from(v: __cursed_rustdoc_test_crate__Marker) -> Self {
-        v.inner
-    }
-}
 ```
 
 # napi
 
 ```rs
 use napi_derive::napi;
-#[napi(js_name = "__cursed_rustdoc_test_crate__Marker")]
-pub struct __cursed_rustdoc_test_crate__Marker {
-    inner: crate::Marker,
-}
-#[napi]
-impl __cursed_rustdoc_test_crate__Marker {
-    #[napi(constructor)]
-    pub fn new() -> Self {
-        Self { inner: crate::Marker }
-    }
-}
-impl From<crate::Marker> for __cursed_rustdoc_test_crate__Marker {
-    fn from(v: crate::Marker) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__Marker> for crate::Marker {
-    fn from(v: __cursed_rustdoc_test_crate__Marker) -> Self {
-        v.inner
-    }
-}
 ```
 
 # ts
@@ -67,34 +25,33 @@ impl From<__cursed_rustdoc_test_crate__Marker> for crate::Marker {
 ```ts
 
 // src/lib.rs.d.ts
-export class Marker {
-    private [" "]: 'rustdoc_test_crate::Marker';
 
-    constructor();
-}
 ```
 
 # js-wasm
 
 ```js
 // $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Marker } from '$test';
-await __wbg_init();
-export { __cursed_rustdoc_test_crate__Marker as Marker };
+export {};
 ```
 
 # js-napi
 
 ```js
 // $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Marker } from '$test';
-export { __cursed_rustdoc_test_crate__Marker as Marker };
+export {};
 ```
 
 # warns
 
 ```text
-(no warnings)
+rust-curse::unsupported_type
+
+  ⚠ unit structs are not yet supported
+   ╭─[src/lib.rs:1:1]
+ 1 │ pub struct Marker;
+   · ──────────────────
+   ╰────
 ```
 
 # ASG
@@ -129,8 +86,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Marker",
                         target: AsgId(
                             1,
@@ -163,9 +120,8 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Unit,
+                impls: [],
                 docs: None,
             },
         ),
@@ -187,6 +143,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -205,44 +164,7 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
-                        name: "Marker",
-                        target: IrId(
-                            1,
-                        ),
-                    },
-                ],
-            },
-        ),
-        Struct(
-            StructDef {
-                id: IrId(
-                    1,
-                ),
-                path: ItemPath {
-                    segments: [
-                        "rustdoc_test_crate",
-                        "Marker",
-                    ],
-                },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            1,
-                            1,
-                        ),
-                        end: (
-                            1,
-                            19,
-                        ),
-                    },
-                ),
-                ctor: Implicit,
-                clonable: false,
-                shape: Unit,
-                docs: None,
+                uses: [],
             },
         ),
     ],

@@ -145,8 +145,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Counter",
                         target: AsgId(
                             1,
@@ -179,15 +179,17 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Explicit(
-                    AsgId(
-                        2,
-                    ),
-                ),
-                clonable: false,
                 shape: Struct(
                     [],
                 ),
+                impls: [
+                    AsgId(
+                        3,
+                    ),
+                    AsgId(
+                        5,
+                    ),
+                ],
                 docs: None,
             },
         ),
@@ -195,6 +197,55 @@ Asg {
             FnDef {
                 id: AsgId(
                     2,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "increment",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            5,
+                        ),
+                        end: (
+                            7,
+                            6,
+                        ),
+                    },
+                ),
+                receiver: Some(
+                    ByMut,
+                ),
+                params: [],
+                return_type: Primitive(
+                    Unit,
+                ),
+                docs: None,
+            },
+        ),
+        Impl(
+            ImplDef {
+                id: AsgId(
+                    3,
+                ),
+                for_: AsgId(
+                    1,
+                ),
+                trait_: None,
+                fns: [
+                    AsgId(
+                        2,
+                    ),
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                id: AsgId(
+                    4,
                 ),
                 path: ItemPath {
                     segments: [
@@ -214,6 +265,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [
                     FnParam {
                         name: "seed",
@@ -229,6 +281,22 @@ Asg {
                     ),
                 ),
                 docs: None,
+            },
+        ),
+        Impl(
+            ImplDef {
+                id: AsgId(
+                    5,
+                ),
+                for_: AsgId(
+                    1,
+                ),
+                trait_: None,
+                fns: [
+                    AsgId(
+                        4,
+                    ),
+                ],
             },
         ),
     ],
@@ -249,6 +317,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -267,8 +338,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Counter",
                         target: IrId(
                             1,
@@ -277,9 +348,12 @@ Ir {
                 ],
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -288,68 +362,21 @@ Ir {
                         "Counter",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            1,
-                            1,
-                        ),
-                        end: (
-                            3,
-                            2,
-                        ),
-                    },
-                ),
-                ctor: Explicit(
-                    IrId(
-                        2,
-                    ),
-                ),
-                clonable: false,
-                shape: Struct(
-                    [],
-                ),
-                docs: None,
-            },
-        ),
-        Fn(
-            FnDef {
-                id: IrId(
-                    2,
-                ),
-                path: ItemPath {
-                    segments: [
-                        "new",
+                js_name: "Counter",
+                mangled_name: "__cursed_rustdoc_test_crate__Counter",
+                fields: [],
+                ctor: Explicit {
+                    params: [
+                        FnParam {
+                            name: "seed",
+                            mode: ByValue,
+                            ty: Primitive(
+                                u32,
+                            ),
+                        },
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            10,
-                            5,
-                        ),
-                        end: (
-                            12,
-                            6,
-                        ),
-                    },
-                ),
-                params: [
-                    FnParam {
-                        name: "seed",
-                        mode: ByValue,
-                        ty: Primitive(
-                            u32,
-                        ),
-                    },
-                ],
-                return_type: Struct(
-                    IrId(
-                        1,
-                    ),
-                ),
+                clonable: false,
                 docs: None,
             },
         ),

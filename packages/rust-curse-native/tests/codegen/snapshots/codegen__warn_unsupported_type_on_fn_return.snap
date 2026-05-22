@@ -89,7 +89,7 @@ Asg {
                         ),
                     },
                 ),
-                exports: [],
+                uses: [],
             },
         ),
     ],
@@ -110,6 +110,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -128,7 +131,7 @@ Ir {
                         ),
                     },
                 ),
-                exports: [],
+                uses: [],
             },
         ),
     ],

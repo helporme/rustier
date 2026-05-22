@@ -205,14 +205,14 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "types",
                         target: AsgId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "ops",
                         target: AsgId(
                             3,
@@ -245,8 +245,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Token",
                         target: AsgId(
                             2,
@@ -280,8 +280,6 @@ Asg {
                         ),
                     },
                 ),
-                ctor: Implicit,
-                clonable: false,
                 shape: Struct(
                     [
                         StructField {
@@ -295,6 +293,7 @@ Asg {
                         },
                     ],
                 ),
+                impls: [],
                 docs: Some(
                     "An authentication token.",
                 ),
@@ -324,8 +323,8 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "parse",
                         target: AsgId(
                             4,
@@ -359,6 +358,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [
                     FnParam {
                         name: "s",
@@ -396,6 +396,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -414,14 +417,14 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "types",
                         target: IrId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "ops",
                         target: IrId(
                             3,
@@ -433,6 +436,9 @@ Ir {
         Mod(
             ModDef {
                 id: IrId(
+                    1,
+                ),
+                orig: AsgId(
                     1,
                 ),
                 path: ItemPath {
@@ -454,8 +460,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "Token",
                         target: IrId(
                             2,
@@ -464,9 +470,12 @@ Ir {
                 ],
             },
         ),
-        Struct(
-            StructDef {
+        Class(
+            ClassDef {
                 id: IrId(
+                    2,
+                ),
+                orig: AsgId(
                     2,
                 ),
                 path: ItemPath {
@@ -476,34 +485,35 @@ Ir {
                         "Token",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            3,
-                            5,
+                js_name: "Token",
+                mangled_name: "__cursed_rustdoc_test_crate__types__Token",
+                fields: [
+                    ClassField {
+                        orig_name: "value",
+                        js_name: "value",
+                        ty: Primitive(
+                            String,
                         ),
-                        end: (
-                            6,
-                            6,
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: true,
+                        docs: Some(
+                            "The raw token string.",
                         ),
                     },
-                ),
-                ctor: Implicit,
-                clonable: false,
-                shape: Struct(
-                    [
-                        StructField {
+                ],
+                ctor: Implicit {
+                    params: [
+                        FnParam {
                             name: "value",
+                            mode: ByValue,
                             ty: Primitive(
                                 String,
                             ),
-                            docs: Some(
-                                "The raw token string.",
-                            ),
                         },
                     ],
-                ),
+                },
+                clonable: false,
                 docs: Some(
                     "An authentication token.",
                 ),
@@ -512,6 +522,9 @@ Ir {
         Mod(
             ModDef {
                 id: IrId(
+                    3,
+                ),
+                orig: AsgId(
                     3,
                 ),
                 path: ItemPath {
@@ -533,8 +546,8 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "parse",
                         target: IrId(
                             4,
@@ -548,6 +561,9 @@ Ir {
                 id: IrId(
                     4,
                 ),
+                orig: AsgId(
+                    4,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -555,19 +571,8 @@ Ir {
                         "parse",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            10,
-                            5,
-                        ),
-                        end: (
-                            12,
-                            6,
-                        ),
-                    },
-                ),
+                js_name: "parse",
+                mangled_name: "__cursed_rustdoc_test_crate__ops__parse",
                 params: [
                     FnParam {
                         name: "s",
@@ -577,7 +582,7 @@ Ir {
                         ),
                     },
                 ],
-                return_type: Struct(
+                return_type: Class(
                     IrId(
                         2,
                     ),

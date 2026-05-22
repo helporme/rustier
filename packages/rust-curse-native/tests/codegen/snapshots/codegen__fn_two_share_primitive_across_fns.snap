@@ -102,14 +102,14 @@ Asg {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "f",
                         target: AsgId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "g",
                         target: AsgId(
                             2,
@@ -142,6 +142,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [
                     FnParam {
                         name: "x",
@@ -181,6 +182,7 @@ Asg {
                         ),
                     },
                 ),
+                receiver: None,
                 params: [
                     FnParam {
                         name: "y",
@@ -214,6 +216,9 @@ Ir {
                 id: IrId(
                     0,
                 ),
+                orig: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -232,14 +237,14 @@ Ir {
                         ),
                     },
                 ),
-                exports: [
-                    Export {
+                uses: [
+                    Use {
                         name: "f",
                         target: IrId(
                             1,
                         ),
                     },
-                    Export {
+                    Use {
                         name: "g",
                         target: IrId(
                             2,
@@ -253,25 +258,17 @@ Ir {
                 id: IrId(
                     1,
                 ),
+                orig: AsgId(
+                    1,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
                         "f",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            1,
-                            1,
-                        ),
-                        end: (
-                            1,
-                            20,
-                        ),
-                    },
-                ),
+                js_name: "f",
+                mangled_name: "__cursed_rustdoc_test_crate__f",
                 params: [
                     FnParam {
                         name: "x",
@@ -292,25 +289,17 @@ Ir {
                 id: IrId(
                     2,
                 ),
+                orig: AsgId(
+                    2,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
                         "g",
                     ],
                 },
-                span: Some(
-                    Span {
-                        filename: "src/lib.rs",
-                        begin: (
-                            2,
-                            1,
-                        ),
-                        end: (
-                            2,
-                            20,
-                        ),
-                    },
-                ),
+                js_name: "g",
+                mangled_name: "__cursed_rustdoc_test_crate__g",
                 params: [
                     FnParam {
                         name: "y",

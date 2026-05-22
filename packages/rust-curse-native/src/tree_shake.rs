@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 use glob::glob;
 
-use crate::codegen::asg::{Asg, AsgId, Ctor, Item, StructShape, Type};
+use crate::codegen::asg::{Asg, AsgId, Item, StructShape, Type};
 use crate::common::{mangle_module_name, FileFilter};
 use crate::orphans;
 
@@ -91,17 +91,17 @@ pub fn shake(asg: &Asg, opts: TreeShakeOpts<'_>) -> Result<HashSet<AsgId>, TreeS
         let Some(mod_id) = find_module(asg, &mod_name) else {
             continue;
         };
-        let exports = &asg.get_mod_unchecked(mod_id).exports;
+        let uses = &asg.get_mod_unchecked(mod_id).uses;
         if bucket.star {
-            for export in exports {
-                seeds.push(export.target);
+            for use_ in uses {
+                seeds.push(use_.target);
             }
         } else {
             for name in &bucket.members {
-                let Some(export) = exports.iter().find(|e| &e.name == name) else {
+                let Some(use_) = uses.iter().find(|u| &u.name == name) else {
                     continue;
                 };
-                seeds.push(export.target);
+                seeds.push(use_.target);
             }
         }
     }
@@ -120,8 +120,14 @@ pub fn shake(asg: &Asg, opts: TreeShakeOpts<'_>) -> Result<HashSet<AsgId>, TreeS
                 walk_type(&def.return_type, &mut stack);
             }
             Item::Struct(def) => {
-                if let Ctor::Explicit(fid) = def.ctor {
-                    stack.push(fid);
+                // Seed associated fns without a receiver (ctors / static fns)
+                // so their param/return types get exposed too.
+                for impl_id in &def.impls {
+                    for fid in &asg.get_impl_unchecked(*impl_id).fns {
+                        if asg.get_fn_unchecked(*fid).receiver.is_none() {
+                            stack.push(*fid);
+                        }
+                    }
                 }
                 match &def.shape {
                     StructShape::Unit => {}
@@ -137,7 +143,7 @@ pub fn shake(asg: &Asg, opts: TreeShakeOpts<'_>) -> Result<HashSet<AsgId>, TreeS
                     }
                 }
             }
-            Item::Mod(_) => {}
+            Item::Mod(_) | Item::Impl(_) | Item::Trait(_) => {}
         }
     }
 
@@ -422,6 +428,8 @@ pub fn item_path(asg: &Asg, id: AsgId) -> String {
         Item::Fn(def) => &def.path.segments,
         Item::Struct(def) => &def.path.segments,
         Item::Mod(def) => &def.path.segments,
+        Item::Trait(def) => &def.path.segments,
+        Item::Impl(_) => return "<impl>".to_string(),
     };
     segs.join("::")
 }
