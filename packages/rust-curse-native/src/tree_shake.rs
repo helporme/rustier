@@ -153,11 +153,11 @@ fn walk_type(ty: &Type, stack: &mut Vec<AsgId>) {
 fn find_module(asg: &Asg, mod_name: &str) -> Option<AsgId> {
     let mangled = mangle_module_name(mod_name);
     let expected: Vec<&str> = vec![asg.crate_name.as_str(), mangled.as_str()];
-    for (i, item) in asg.items.iter().enumerate() {
+    for item in &asg.items {
         let Item::Mod(def) = item else { continue };
         let segments: Vec<&str> = def.path.segments.iter().map(String::as_str).collect();
         if segments == expected {
-            return Some(AsgId(i as u32));
+            return Some(def.id);
         }
     }
     None

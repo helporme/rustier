@@ -371,16 +371,20 @@ impl RustCurse {
             .ok_or_else(|| anyhow!("unknown profile '{profile_name}'"))?;
 
         let path_buf = PathBuf::from(path);
-        let mid = ir::IrId(build_output
+        let mid = build_output
             .ir
             .items
             .iter()
-            .enumerate()
-            .find(
-                |(_, i)| matches!(i, Item::Mod(def) if def.span.as_ref().map(|s| s.filename.as_path()) == Some(path_buf.as_path())),
-            )
-            .ok_or(anyhow!("cannot resolve the module '{}'", path))?
-            .0 as u32);
+            .find_map(|i| match i {
+                Item::Mod(def)
+                    if def.span.as_ref().map(|s| s.filename.as_path())
+                        == Some(path_buf.as_path()) =>
+                {
+                    Some(def.id)
+                }
+                _ => None,
+            })
+            .ok_or(anyhow!("cannot resolve the module '{}'", path))?;
 
         let js_glue = match artifact {
             ProfileBuildCache::Wasm(wasm) => {

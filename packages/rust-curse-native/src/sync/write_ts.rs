@@ -2,7 +2,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::codegen::ir::{Ir, IrId, Item};
+use crate::codegen::ir::{Ir, Item};
 use crate::codegen::ts::PrintTsModOpts;
 
 use super::Syncer;
@@ -46,12 +46,12 @@ impl Syncer {
             })?;
         }
 
-        for (i, item) in ir.items.iter().enumerate() {
-            if !matches!(item, Item::Mod(_)) {
+        for item in &ir.items {
+            let Item::Mod(m) = item else {
                 continue;
-            }
-            let mid = IrId(i as u32);
-            let segs = &ir.get_mod_unchecked(mid).path.segments;
+            };
+            let mid = m.id;
+            let segs = &m.path.segments;
             if segs.len() < 2 {
                 continue;
             }

@@ -137,7 +137,7 @@ impl<'a> Builder<'a> {
             return Ok(None);
         }
 
-        if let Item::Mod(m) = &mut self.asg.items[mid.0 as usize] {
+        if let Item::Mod(m) = &mut self.asg.items[mid.0] {
             m.exports = exports;
         }
         Ok(Some(mid))
@@ -246,8 +246,9 @@ impl<'a> Builder<'a> {
     }
 
     fn reserve_mod(&mut self, path: ItemPath, span: Option<Span>) -> AsgId {
-        let id = AsgId(self.asg.items.len() as u32);
+        let id = AsgId(self.asg.items.len());
         self.asg.items.push(Item::Mod(ModDef {
+            id,
             path,
             span,
             exports: Vec::new(),
@@ -301,9 +302,10 @@ impl<'a> Builder<'a> {
 
         // Shape is good. Commit slot before computing ctor (ctor may
         // recurse back via Self).
-        let sid = AsgId(self.asg.items.len() as u32);
+        let sid = AsgId(self.asg.items.len());
         self.struct_intern.insert(id, Some(sid));
         self.asg.items.push(Item::Struct(StructDef {
+            id: sid,
             path,
             span,
             ctor: Ctor::Implicit,
@@ -314,7 +316,7 @@ impl<'a> Builder<'a> {
 
         let ctor = self.find_ctor(&struct_.impls, id, item)?;
 
-        if let Item::Struct(def) = &mut self.asg.items[sid.0 as usize] {
+        if let Item::Struct(def) = &mut self.asg.items[sid.0] {
             def.ctor = ctor;
         }
         Ok(Some(sid))
@@ -504,9 +506,10 @@ impl<'a> Builder<'a> {
             }
         };
 
-        let fid = AsgId(self.asg.items.len() as u32);
+        let fid = AsgId(self.asg.items.len());
         self.fn_intern.insert(id, Some(fid));
         self.asg.items.push(Item::Fn(FnDef {
+            id: fid,
             path,
             span,
             params,

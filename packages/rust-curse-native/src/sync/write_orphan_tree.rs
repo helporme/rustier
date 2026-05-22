@@ -48,10 +48,9 @@ impl Syncer {
             .asg
             .items
             .iter()
-            .enumerate()
-            .filter_map(|(i, it)| {
+            .filter_map(|it| {
                 let Item::Mod(m) = it else { return None };
-                let id = AsgId(i as u32);
+                let id = m.id;
                 if id == opts.asg.root {
                     return None;
                 }

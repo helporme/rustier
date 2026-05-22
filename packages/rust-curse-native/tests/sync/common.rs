@@ -163,8 +163,9 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
     };
     let mut exposed: HashSet<AsgId> = HashSet::new();
 
-    let root_id = AsgId(asg.items.len() as u32);
+    let root_id = AsgId(asg.items.len());
     asg.items.push(Item::Mod(ModDef {
+        id: root_id,
         path: ItemPath::new(vec![crate_name.to_string()]),
         span: None,
         exports: Vec::new(),
@@ -177,8 +178,9 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
         let mod_segs: Vec<String> = std::iter::once(crate_name.to_string())
             .chain(module.mod_name.split("::").map(String::from))
             .collect();
-        let mod_id = AsgId(asg.items.len() as u32);
+        let mod_id = AsgId(asg.items.len());
         asg.items.push(Item::Mod(ModDef {
+            id: mod_id,
             path: ItemPath::new(mod_segs.clone()),
             span: Some(Span {
                 filename: PathBuf::from(module.rel_rs_path),
@@ -192,8 +194,9 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
         for fn_fix in module.fns {
             let mut fn_segs = mod_segs.clone();
             fn_segs.push(fn_fix.name.to_string());
-            let fn_id = AsgId(asg.items.len() as u32);
+            let fn_id = AsgId(asg.items.len());
             asg.items.push(Item::Fn(FnDef {
+                id: fn_id,
                 path: ItemPath::new(fn_segs),
                 span: None,
                 params: Vec::new(),
@@ -208,7 +211,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
                 target: fn_id,
             });
         }
-        if let Item::Mod(m) = &mut asg.items[mod_id.0 as usize] {
+        if let Item::Mod(m) = &mut asg.items[mod_id.0] {
             m.exports = mod_exports;
         }
 
@@ -218,7 +221,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
         });
     }
 
-    if let Item::Mod(m) = &mut asg.items[root_id.0 as usize] {
+    if let Item::Mod(m) = &mut asg.items[root_id.0] {
         m.exports = root_exports;
     }
 

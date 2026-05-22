@@ -57,12 +57,12 @@ pub fn print_ts_per_mod(
     rel_src_path: std::path::PathBuf,
 ) -> String {
     let mut out = ir.print_ts_ambient().to_string();
-    for (i, item) in ir.items.iter().enumerate() {
-        if !matches!(item, rust_curse::codegen::ir::Item::Mod(_)) {
+    for item in &ir.items {
+        let rust_curse::codegen::ir::Item::Mod(m) = item else {
             continue;
-        }
-        let mid = rust_curse::codegen::ir::IrId(i as u32);
-        let segs = &ir.get_mod_unchecked(mid).path.segments;
+        };
+        let mid = m.id;
+        let segs = &m.path.segments;
         if segs.is_empty() {
             continue;
         }
@@ -92,12 +92,12 @@ where
     F: FnMut(&rust_curse::codegen::ir::Ir, rust_curse::codegen::ir::IrId) -> String,
 {
     let mut out = String::new();
-    for (i, item) in ir.items.iter().enumerate() {
-        if !matches!(item, rust_curse::codegen::ir::Item::Mod(_)) {
+    for item in &ir.items {
+        let rust_curse::codegen::ir::Item::Mod(m) = item else {
             continue;
-        }
-        let mid = rust_curse::codegen::ir::IrId(i as u32);
-        let mod_path = ir.get_mod_unchecked(mid).path.segments.join("/");
+        };
+        let mid = m.id;
+        let mod_path = m.path.segments.join("/");
         if !out.is_empty() {
             out.push('\n');
         }
@@ -112,11 +112,9 @@ where
 pub fn all_exposed_ids(ir: &rust_curse::codegen::ir::Ir) -> HashSet<rust_curse::codegen::ir::IrId> {
     ir.items
         .iter()
-        .enumerate()
-        .filter_map(|(i, it)| match it {
-            rust_curse::codegen::ir::Item::Fn(_) | rust_curse::codegen::ir::Item::Struct(_) => {
-                Some(rust_curse::codegen::ir::IrId(i as u32))
-            }
+        .filter_map(|it| match it {
+            rust_curse::codegen::ir::Item::Fn(def) => Some(def.id),
+            rust_curse::codegen::ir::Item::Struct(def) => Some(def.id),
             _ => None,
         })
         .collect()
@@ -134,16 +132,14 @@ pub fn exposed_by_name(
         let matches: Vec<_> = ir
             .items
             .iter()
-            .enumerate()
-            .filter(|(_, it)| {
-                let path = match it {
-                    rust_curse::codegen::ir::Item::Fn(def) => &def.path,
-                    rust_curse::codegen::ir::Item::Struct(def) => &def.path,
-                    rust_curse::codegen::ir::Item::Mod(def) => &def.path,
+            .filter_map(|it| {
+                let (id, path) = match it {
+                    rust_curse::codegen::ir::Item::Fn(def) => (def.id, &def.path),
+                    rust_curse::codegen::ir::Item::Struct(def) => (def.id, &def.path),
+                    rust_curse::codegen::ir::Item::Mod(def) => (def.id, &def.path),
                 };
-                path.name() == Some(*name)
+                (path.name() == Some(*name)).then_some(id)
             })
-            .map(|(i, _)| rust_curse::codegen::ir::IrId(i as u32))
             .collect();
         match matches.as_slice() {
             [] => panic!("no item named `{name}` in IR"),

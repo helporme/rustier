@@ -82,6 +82,9 @@ Asg {
     items: [
         Mod(
             ModDef {
+                id: AsgId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -112,6 +115,9 @@ Asg {
         ),
         Mod(
             ModDef {
+                id: AsgId(
+                    1,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -143,6 +149,9 @@ Asg {
         ),
         Fn(
             FnDef {
+                id: AsgId(
+                    2,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -185,6 +194,9 @@ Ir {
     items: [
         Mod(
             ModDef {
+                id: IrId(
+                    0,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -215,6 +227,9 @@ Ir {
         ),
         Mod(
             ModDef {
+                id: IrId(
+                    1,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",
@@ -246,6 +261,9 @@ Ir {
         ),
         Fn(
             FnDef {
+                id: IrId(
+                    2,
+                ),
                 path: ItemPath {
                     segments: [
                         "rustdoc_test_crate",

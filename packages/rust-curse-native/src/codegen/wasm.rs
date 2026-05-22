@@ -31,19 +31,19 @@ impl<'a> Printer<'a> {
         out.push_str("use wasm_bindgen::prelude::*;\n");
 
         for i in 0..self.ir.items.len() {
-            let id = IrId(i as u32);
-            if let Item::Struct(_) = self.ir.get_unchecked(id) {
-                if !self.exposed.contains(&id) {
-                    continue;
-                }
-                out.push('\n');
-                out.push_str(&self.print_struct_wrappers(id));
+            let Item::Struct(def) = &self.ir.items[i] else {
+                continue;
+            };
+            let id = def.id;
+            if !self.exposed.contains(&id) {
+                continue;
             }
+            out.push('\n');
+            out.push_str(&self.print_struct_wrappers(id));
         }
 
         for i in 0..self.ir.items.len() {
-            let mid = IrId(i as u32);
-            let Item::Mod(mod_def) = self.ir.get_unchecked(mid) else {
+            let Item::Mod(mod_def) = &self.ir.items[i] else {
                 continue;
             };
             let mod_segs = mod_def.path.segments.clone();

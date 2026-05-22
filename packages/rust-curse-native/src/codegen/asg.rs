@@ -1,9 +1,4 @@
-//! ASG built directly from rustdoc. Closely mirrors rustdoc's shape and
-//! is the source the per-target IR is lowered from.
-//!
-//! Main difference from the rustdoc representation is that rust curse ASG
-//! distinguish between **"ref" struct** and **"copy" struct** in the same
-//! vein as C# distinguish between class and struct.
+//! ASG for rust.
 
 #![allow(non_camel_case_types)]
 
@@ -13,7 +8,7 @@ use std::path::PathBuf;
 
 /// A unique identifier for an item in the ASG.
 #[derive(Copy, Clone, Default, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AsgId(pub u32);
+pub struct AsgId(pub usize);
 
 /// Complete path to an item as it appears in the source crate,
 /// e.g. `crate::module::Type` is stored as `["crate", "module", "Type"]`.
@@ -81,6 +76,7 @@ pub enum Primitive {
 /// A function definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FnDef {
+    pub id: AsgId,
     pub path: ItemPath,
     pub span: Option<Span>,
     pub params: Vec<FnParam>,
@@ -107,6 +103,7 @@ pub enum ParamMode {
 /// A struct definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StructDef {
+    pub id: AsgId,
     pub path: ItemPath,
     pub span: Option<Span>,
     pub ctor: Ctor,
@@ -146,6 +143,7 @@ pub struct StructField {
 /// A module definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ModDef {
+    pub id: AsgId,
     pub path: ItemPath,
     /// Source span where this module is declared.
     pub span: Option<Span>,
@@ -190,7 +188,7 @@ pub struct Asg {
 impl Asg {
     /// Gets an item by its ID, panics if the item is not found.
     pub fn get_unchecked(&self, id: AsgId) -> &Item {
-        &self.items[id.0 as usize]
+        &self.items[id.0]
     }
 
     /// Gets a struct by its ID, panics if the item is not a struct.

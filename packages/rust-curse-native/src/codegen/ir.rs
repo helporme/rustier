@@ -1,9 +1,4 @@
-//! Per-target IR used to print the target representation (ts/wasm/napi).
-//!
-//! Lowered from the [`super::asg::ASG`] via [`from_asg::Ir::from_asg`].
-//! Whereas the ASG mirrors rustdoc, the IR is shaped for codegen: it
-//! will diverge from the ASG over time (e.g. flattened class shapes,
-//! synthesised ctors/getters/setters) so each printer can stay simple.
+//! IR used to print the target representation (ts/wasm/napi).
 
 #![allow(non_camel_case_types)]
 
@@ -13,7 +8,7 @@ use std::path::PathBuf;
 
 /// A unique identifier for an item in the IR.
 #[derive(Copy, Clone, Default, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct IrId(pub u32);
+pub struct IrId(pub usize);
 
 /// Complete path to an item as it appears in the source crate,
 /// e.g. `crate::module::Type` is stored as `["crate", "module", "Type"]`.
@@ -81,6 +76,7 @@ pub enum Primitive {
 /// A function definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FnDef {
+    pub id: IrId,
     pub path: ItemPath,
     pub span: Option<Span>,
     pub params: Vec<FnParam>,
@@ -107,6 +103,7 @@ pub enum ParamMode {
 /// A struct definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StructDef {
+    pub id: IrId,
     pub path: ItemPath,
     pub span: Option<Span>,
     pub ctor: Ctor,
@@ -146,6 +143,7 @@ pub struct StructField {
 /// A module definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ModDef {
+    pub id: IrId,
     pub path: ItemPath,
     /// Source span where this module is declared.
     pub span: Option<Span>,
@@ -190,7 +188,7 @@ pub struct Ir {
 impl Ir {
     /// Gets an item by its ID, panics if the item is not found.
     pub fn get_unchecked(&self, id: IrId) -> &Item {
-        &self.items[id.0 as usize]
+        &self.items[id.0]
     }
 
     /// Gets a struct by its ID, panics if the item is not a struct.

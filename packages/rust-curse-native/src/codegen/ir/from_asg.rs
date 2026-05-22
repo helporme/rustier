@@ -62,6 +62,7 @@ fn lower_item(item: &AsgItem) -> Item {
 
 fn lower_struct(def: &AsgStructDef) -> StructDef {
     StructDef {
+        id: lower_id(def.id),
         path: lower_path(&def.path),
         span: def.span.as_ref().map(lower_span),
         ctor: lower_ctor(&def.ctor),
@@ -73,6 +74,7 @@ fn lower_struct(def: &AsgStructDef) -> StructDef {
 
 fn lower_fn(def: &AsgFnDef) -> FnDef {
     FnDef {
+        id: lower_id(def.id),
         path: lower_path(&def.path),
         span: def.span.as_ref().map(lower_span),
         params: def.params.iter().map(lower_param).collect(),
@@ -83,6 +85,7 @@ fn lower_fn(def: &AsgFnDef) -> FnDef {
 
 fn lower_mod(def: &AsgModDef) -> ModDef {
     ModDef {
+        id: lower_id(def.id),
         path: lower_path(&def.path),
         span: def.span.as_ref().map(lower_span),
         exports: def.exports.iter().map(lower_export).collect(),
