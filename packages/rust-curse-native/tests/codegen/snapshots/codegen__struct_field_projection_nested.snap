@@ -899,26 +899,28 @@ Ir {
                         docs: None,
                     },
                 ],
-                ctor: Implicit {
-                    params: [
-                        FnParam {
-                            name: "x",
-                            mode: ByValue,
-                            ty: Primitive(
-                                f64,
-                            ),
-                            needs_stash: false,
-                        },
-                        FnParam {
-                            name: "y",
-                            mode: ByValue,
-                            ty: Primitive(
-                                f64,
-                            ),
-                            needs_stash: false,
-                        },
-                    ],
-                },
+                ctor: Some(
+                    Implicit {
+                        params: [
+                            FnParam {
+                                name: "x",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    f64,
+                                ),
+                                needs_stash: false,
+                            },
+                            FnParam {
+                                name: "y",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    f64,
+                                ),
+                                needs_stash: false,
+                            },
+                        ],
+                    },
+                ),
                 clonable: true,
                 docs: None,
             },
@@ -967,30 +969,32 @@ Ir {
                         docs: None,
                     },
                 ],
-                ctor: Implicit {
-                    params: [
-                        FnParam {
-                            name: "start",
-                            mode: ByValue,
-                            ty: Class(
-                                IrId(
-                                    1,
+                ctor: Some(
+                    Implicit {
+                        params: [
+                            FnParam {
+                                name: "start",
+                                mode: ByValue,
+                                ty: Class(
+                                    IrId(
+                                        1,
+                                    ),
                                 ),
-                            ),
-                            needs_stash: false,
-                        },
-                        FnParam {
-                            name: "end",
-                            mode: ByValue,
-                            ty: Class(
-                                IrId(
-                                    1,
+                                needs_stash: false,
+                            },
+                            FnParam {
+                                name: "end",
+                                mode: ByValue,
+                                ty: Class(
+                                    IrId(
+                                        1,
+                                    ),
                                 ),
-                            ),
-                            needs_stash: false,
-                        },
-                    ],
-                },
+                                needs_stash: false,
+                            },
+                        ],
+                    },
+                ),
                 clonable: true,
                 docs: None,
             },

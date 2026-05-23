@@ -36,6 +36,12 @@ struct Lowerer<'a> {
     emittable: HashSet<asg::AsgId>,
     /// Maps a surviving ASG item id to its IR id.
     asg_to_ir: HashMap<asg::AsgId, IrId>,
+    /// Per-struct field names whose setter is suppressed because the field's
+    /// child struct doesn't implement `Clone`.
+    suppressed_setters: HashMap<asg::AsgId, HashSet<String>>,
+    /// Structs whose implicit ctor is suppressed because at least one
+    /// struct-typed field's child isn't `Clone`.
+    suppressed_implicit_ctors: HashSet<asg::AsgId>,
 }
 
 impl<'a> Lowerer<'a> {
@@ -46,6 +52,8 @@ impl<'a> Lowerer<'a> {
             method_fns: HashSet::new(),
             emittable: HashSet::new(),
             asg_to_ir: HashMap::new(),
+            suppressed_setters: HashMap::new(),
+            suppressed_implicit_ctors: HashSet::new(),
         }
     }
 
@@ -103,6 +111,9 @@ impl<'a> Lowerer<'a> {
             }
         }
 
+        // Drop structs that reference an upstream-skipped struct (tuple, unit,
+        // etc.) — that's an unresolvable type. Repeat to fixpoint so chained
+        // references collapse correctly.
         loop {
             let mut dropped: Option<(asg::AsgId, Warn, Option<AsgSpan>)> = None;
             for &sid in &self.emittable {
@@ -114,22 +125,15 @@ impl<'a> Lowerer<'a> {
                     let asg::Type::Struct(child) = f.ty else {
                         continue;
                     };
-                    let child_name = self
-                        .asg
-                        .get_struct_unchecked(child)
-                        .path
-                        .name()
-                        .unwrap_or("?")
-                        .to_string();
-
                     if !self.emittable.contains(&child) {
+                        let child_name = self
+                            .asg
+                            .get_struct_unchecked(child)
+                            .path
+                            .name()
+                            .unwrap_or("?")
+                            .to_string();
                         let warn = warn_skipped_struct_ref(child_name);
-                        dropped = Some((sid, warn, def.span.clone()));
-                        break;
-                    }
-
-                    if !self.asg_clonable(child) {
-                        let warn = warn_non_clonable_struct_used(child_name, "struct field");
                         dropped = Some((sid, warn, def.span.clone()));
                         break;
                     }
@@ -143,6 +147,40 @@ impl<'a> Lowerer<'a> {
             };
             self.emittable.remove(&sid);
             self.warns.push(attach_span(warn, &span));
+        }
+
+        let emittable: Vec<asg::AsgId> = self.emittable.iter().copied().collect();
+        for sid in emittable {
+            let def = self.asg.get_struct_unchecked(sid);
+            let asg::StructShape::Struct(fields) = &def.shape else {
+                continue;
+            };
+            let parent_name = def.path.name().unwrap_or("?").to_string();
+            let span = def.span.clone();
+            for f in fields {
+                let asg::Type::Struct(child) = f.ty else {
+                    continue;
+                };
+                if self.asg_clonable(child) {
+                    continue;
+                }
+                let child_name = self
+                    .asg
+                    .get_struct_unchecked(child)
+                    .path
+                    .name()
+                    .unwrap_or("?")
+                    .to_string();
+                self.suppressed_setters
+                    .entry(sid)
+                    .or_default()
+                    .insert(f.name.clone());
+                self.suppressed_implicit_ctors.insert(sid);
+                self.warns.push(attach_span(
+                    warn_field_setter_unavailable(&parent_name, &f.name, &child_name),
+                    &span,
+                ));
+            }
         }
     }
 
@@ -196,15 +234,16 @@ impl<'a> Lowerer<'a> {
                 continue;
             };
             if !self.asg_clonable(*sid) {
-                let name = self
+                let struct_name = self
                     .asg
                     .get_struct_unchecked(*sid)
                     .path
                     .name()
                     .unwrap_or("?")
                     .to_string();
+                let fn_name = def.path.name().unwrap_or("?").to_string();
                 self.warns.push(attach_span(
-                    warn_non_clonable_struct_used(name, "by-value parameter"),
+                    warn_fn_byvalue_not_clonable(&fn_name, &p.name, &struct_name),
                     &def.span,
                 ));
                 return false;
@@ -231,6 +270,7 @@ impl<'a> Lowerer<'a> {
             unreachable!("only named-field structs are emittable")
         };
 
+        let suppressed_setters = self.suppressed_setters.get(&def.id);
         let path = def.path.clone();
         let fields = asg_fields
             .iter()
@@ -239,11 +279,19 @@ impl<'a> Lowerer<'a> {
                 js_name: f.name.clone(),
                 ty: self.lower_type(&f.ty),
                 has_getter: true,
-                has_setter: true,
+                has_setter: !suppressed_setters
+                    .map(|s| s.contains(&f.name))
+                    .unwrap_or(false),
                 clone_on_get: !is_copy_primitive(&f.ty),
                 docs: f.docs.clone(),
             })
             .collect();
+
+        let ctor = self.resolve_ctor(def, asg_fields);
+        let ctor = match ctor {
+            Some(Ctor::Implicit { .. }) if self.suppressed_implicit_ctors.contains(&def.id) => None,
+            other => other,
+        };
 
         ClassDef {
             id: self.asg_to_ir[&def.id],
@@ -252,7 +300,7 @@ impl<'a> Lowerer<'a> {
             mangled_name: mangle(&path),
             path,
             fields,
-            ctor: self.resolve_ctor(def, asg_fields),
+            ctor,
             clonable: self.is_clonable(def),
             docs: def.docs.clone(),
         }
@@ -277,7 +325,7 @@ impl<'a> Lowerer<'a> {
             })
     }
 
-    fn resolve_ctor(&self, def: &asg::StructDef, asg_fields: &[asg::StructField]) -> Ctor {
+    fn resolve_ctor(&self, def: &asg::StructDef, asg_fields: &[asg::StructField]) -> Option<Ctor> {
         struct Candidate<'b> {
             key: Vec<String>,
             impl_ord: usize,
@@ -314,7 +362,7 @@ impl<'a> Lowerer<'a> {
 
         candidates.sort_by(|a, b| a.key.cmp(&b.key).then(a.impl_ord.cmp(&b.impl_ord)));
 
-        match candidates.first() {
+        Some(match candidates.first() {
             Some(c) => Ctor::Explicit {
                 params: c.params.iter().map(|p| self.lower_param(p)).collect(),
             },
@@ -329,7 +377,7 @@ impl<'a> Lowerer<'a> {
                     })
                     .collect(),
             },
-        }
+        })
     }
 
     fn lower_fn(&self, def: &asg::FnDef) -> FnDef {
@@ -439,12 +487,28 @@ fn warn_unsupported_type(reason: &str) -> Warn {
     Warn::new("rust-curse::unsupported_type", reason.to_string())
 }
 
-fn warn_non_clonable_struct_used(struct_name: String, used_as: &str) -> Warn {
+fn warn_fn_byvalue_not_clonable(fn_name: &str, param_name: &str, struct_name: &str) -> Warn {
     Warn::new(
-        "rust-curse::non_clonable_struct_used",
-        format!("\"{struct_name}\" is used as a {used_as} but does not implement Clone"),
+        "rust-curse::fn_not_available",
+        format!(
+            "Function \"{fn_name}\" cannot be called from JS: parameter \"{param_name}\" of type \"{struct_name}\" is taken by value, but \"{struct_name}\" must implement Clone."
+        ),
     )
-    .help("add `#[derive(Clone)]` to the struct, or implement Clone manually; alternatively, pass it by `&` / `&mut` reference to avoid the clone")
+    .help(format!(
+        "Add `#[derive(Clone)]` to \"{struct_name}\", or change the parameter to `&{struct_name}` / `&mut {struct_name}` to pass it by reference instead."
+    ))
+}
+
+fn warn_field_setter_unavailable(parent: &str, field: &str, child: &str) -> Warn {
+    Warn::new(
+        "rust-curse::field_setter_unavailable",
+        format!(
+            "\"{parent}.{field}\" field of type \"{child}\" cannot be set from JS. \"{child}\" must implement Clone."
+        ),
+    )
+    .help(format!(
+        "Add `#[derive(Clone)]` to \"{child}\" to enable assigning this field from JS."
+    ))
 }
 
 fn warn_skipped_struct_ref(struct_name: String) -> Warn {

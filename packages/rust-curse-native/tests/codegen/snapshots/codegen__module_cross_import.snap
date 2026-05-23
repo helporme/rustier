@@ -596,18 +596,20 @@ Ir {
                         ),
                     },
                 ],
-                ctor: Implicit {
-                    params: [
-                        FnParam {
-                            name: "value",
-                            mode: ByValue,
-                            ty: Primitive(
-                                String,
-                            ),
-                            needs_stash: false,
-                        },
-                    ],
-                },
+                ctor: Some(
+                    Implicit {
+                        params: [
+                            FnParam {
+                                name: "value",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    String,
+                                ),
+                                needs_stash: false,
+                            },
+                        ],
+                    },
+                ),
                 clonable: false,
                 docs: Some(
                     "An authentication token.",

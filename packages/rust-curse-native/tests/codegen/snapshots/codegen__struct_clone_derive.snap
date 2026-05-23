@@ -550,18 +550,20 @@ Ir {
                         docs: None,
                     },
                 ],
-                ctor: Implicit {
-                    params: [
-                        FnParam {
-                            name: "x",
-                            mode: ByValue,
-                            ty: Primitive(
-                                i32,
-                            ),
-                            needs_stash: false,
-                        },
-                    ],
-                },
+                ctor: Some(
+                    Implicit {
+                        params: [
+                            FnParam {
+                                name: "x",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    i32,
+                                ),
+                                needs_stash: false,
+                            },
+                        ],
+                    },
+                ),
                 clonable: true,
                 docs: None,
             },
@@ -595,18 +597,20 @@ Ir {
                         docs: None,
                     },
                 ],
-                ctor: Implicit {
-                    params: [
-                        FnParam {
-                            name: "x",
-                            mode: ByValue,
-                            ty: Primitive(
-                                i32,
-                            ),
-                            needs_stash: false,
-                        },
-                    ],
-                },
+                ctor: Some(
+                    Implicit {
+                        params: [
+                            FnParam {
+                                name: "x",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    i32,
+                                ),
+                                needs_stash: false,
+                            },
+                        ],
+                    },
+                ),
                 clonable: false,
                 docs: None,
             },

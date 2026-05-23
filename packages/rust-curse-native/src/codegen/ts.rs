@@ -159,19 +159,25 @@ impl<'a> Printer<'a> {
             if let Some(docs) = &field.docs {
                 member.push_str(&doc_comment(docs, "    "));
             }
-            member.push_str(&format!("    {}: {ty};", field.js_name));
+            let readonly = if field.has_getter && !field.has_setter {
+                "readonly "
+            } else {
+                ""
+            };
+            member.push_str(&format!("    {readonly}{}: {ty};", field.js_name));
             members.push(member);
         }
 
-        let (Ctor::Explicit { params } | Ctor::Implicit { params }) = &def.ctor;
-        let ctor_params: Vec<String> = params
-            .iter()
-            .map(|p| {
-                let ty = self.type_to_ts(&p.ty);
-                format!("{}: {ty}", p.name)
-            })
-            .collect();
-        members.push(format!("    constructor({});", ctor_params.join(", ")));
+        if let Some(Ctor::Explicit { params } | Ctor::Implicit { params }) = &def.ctor {
+            let ctor_params: Vec<String> = params
+                .iter()
+                .map(|p| {
+                    let ty = self.type_to_ts(&p.ty);
+                    format!("{}: {ty}", p.name)
+                })
+                .collect();
+            members.push(format!("    constructor({});", ctor_params.join(", ")));
+        }
 
         let mut out = String::new();
         if let Some(docs) = &def.docs {

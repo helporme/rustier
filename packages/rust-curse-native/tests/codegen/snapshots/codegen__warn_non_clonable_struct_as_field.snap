@@ -103,6 +103,55 @@ impl __cursed_rustdoc_test_crate__Point {
             .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
 }
+/// class wrapper for `crate::Circle`
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Circle")]
+pub struct __cursed_rustdoc_test_crate__Circle {
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Circle>>>>,
+    __cursed_cache_center: Option<
+        Weak<RefCell<Rc<dyn __cursed_Projection<crate::Point>>>>,
+    >,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Circle {
+    #[wasm_bindgen(getter, js_name = "center")]
+    pub fn __cursed_get_center(&mut self) -> __cursed_rustdoc_test_crate__Point {
+        if let Some(__cursed_cell) = self
+            .__cursed_cache_center
+            .as_ref()
+            .and_then(Weak::upgrade)
+        {
+            return __cursed_rustdoc_test_crate__Point {
+                __cursed_root: __cursed_cell,
+            };
+        }
+        let __cursed_proj: Rc<dyn __cursed_Projection<crate::Point>> = Rc::new(__cursed_Projector {
+            parent: self.__cursed_root.clone(),
+            project: |__cursed_p| &__cursed_p.center,
+            project_mut: |__cursed_p| &mut __cursed_p.center,
+        });
+        let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
+        self.__cursed_cache_center = Some(Rc::downgrade(&__cursed_cell));
+        __cursed_rustdoc_test_crate__Point {
+            __cursed_root: __cursed_cell,
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "radius")]
+    pub fn __cursed_get_radius(&self) -> f64 {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<f64> = None;
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.radius));
+        __cursed_out.unwrap()
+    }
+    #[wasm_bindgen(setter, js_name = "radius")]
+    pub fn __cursed_set_radius(&self, __cursed_arg_radius: f64) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_radius);
+        __cursed_proj
+            .with_mut(
+                &mut |__cursed_p| __cursed_p.radius = __cursed_arg.take().unwrap(),
+            );
+    }
+}
 ```
 
 # napi
@@ -193,6 +242,55 @@ impl __cursed_rustdoc_test_crate__Point {
             .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
 }
+/// class wrapper for `crate::Circle`
+#[napi(js_name = "__cursed_rustdoc_test_crate__Circle")]
+pub struct __cursed_rustdoc_test_crate__Circle {
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Circle>>>>,
+    __cursed_cache_center: Option<
+        Weak<RefCell<Rc<dyn __cursed_Projection<crate::Point>>>>,
+    >,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Circle {
+    #[napi(getter, js_name = "center")]
+    pub fn __cursed_get_center(&mut self) -> __cursed_rustdoc_test_crate__Point {
+        if let Some(__cursed_cell) = self
+            .__cursed_cache_center
+            .as_ref()
+            .and_then(Weak::upgrade)
+        {
+            return __cursed_rustdoc_test_crate__Point {
+                __cursed_root: __cursed_cell,
+            };
+        }
+        let __cursed_proj: Rc<dyn __cursed_Projection<crate::Point>> = Rc::new(__cursed_Projector {
+            parent: self.__cursed_root.clone(),
+            project: |__cursed_p| &__cursed_p.center,
+            project_mut: |__cursed_p| &mut __cursed_p.center,
+        });
+        let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
+        self.__cursed_cache_center = Some(Rc::downgrade(&__cursed_cell));
+        __cursed_rustdoc_test_crate__Point {
+            __cursed_root: __cursed_cell,
+        }
+    }
+    #[napi(getter, js_name = "radius")]
+    pub fn __cursed_get_radius(&self) -> f64 {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<f64> = None;
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.radius));
+        __cursed_out.unwrap()
+    }
+    #[napi(setter, js_name = "radius")]
+    pub fn __cursed_set_radius(&self, __cursed_arg_radius: f64) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_radius);
+        __cursed_proj
+            .with_mut(
+                &mut |__cursed_p| __cursed_p.radius = __cursed_arg.take().unwrap(),
+            );
+    }
+}
 ```
 
 # ts
@@ -209,31 +307,39 @@ export class Point {
 
     constructor(x: number, y: number);
 }
+
+export class Circle {
+    private [" "]: 'rustdoc_test_crate::Circle';
+
+    readonly center: Point;
+
+    radius: number;
+}
 ```
 
 # js-wasm
 
 ```js
 // $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Point } from '$test';
+import __wbg_init, { __cursed_rustdoc_test_crate__Point, __cursed_rustdoc_test_crate__Circle } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Point as Point };
+export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crate__Circle as Circle };
 ```
 
 # js-napi
 
 ```js
 // $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Point } from '$test';
-export { __cursed_rustdoc_test_crate__Point as Point };
+import { __cursed_rustdoc_test_crate__Point, __cursed_rustdoc_test_crate__Circle } from '$test';
+export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crate__Circle as Circle };
 ```
 
 # warns
 
 ```text
-rust-curse::non_clonable_struct_used
+rust-curse::field_setter_unavailable
 
-  ⚠ "Point" is used as a struct field but does not implement Clone
+  ⚠ "Circle.center" field of type "Point" cannot be set from JS. "Point" must implement Clone.
    ╭─[src/lib.rs:5:1]
  4 │     }
  5 │ ╭─▶ pub struct Circle {
@@ -241,7 +347,7 @@ rust-curse::non_clonable_struct_used
  7 │ │       pub radius: f64,
  8 │ ╰─▶ }
    ╰────
-  help: add `#[derive(Clone)]` to the struct, or implement Clone manually; alternatively, pass it by `&` / `&mut` reference to avoid the clone
+  help: Add `#[derive(Clone)]` to "Point" to enable assigning this field from JS.
 ```
 
 # ASG
@@ -432,6 +538,12 @@ Ir {
                             1,
                         ),
                     },
+                    Use {
+                        name: "Circle",
+                        target: IrId(
+                            2,
+                        ),
+                    },
                 ],
             },
         ),
@@ -475,26 +587,75 @@ Ir {
                         docs: None,
                     },
                 ],
-                ctor: Implicit {
-                    params: [
-                        FnParam {
-                            name: "x",
-                            mode: ByValue,
-                            ty: Primitive(
-                                f64,
-                            ),
-                            needs_stash: false,
-                        },
-                        FnParam {
-                            name: "y",
-                            mode: ByValue,
-                            ty: Primitive(
-                                f64,
-                            ),
-                            needs_stash: false,
-                        },
+                ctor: Some(
+                    Implicit {
+                        params: [
+                            FnParam {
+                                name: "x",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    f64,
+                                ),
+                                needs_stash: false,
+                            },
+                            FnParam {
+                                name: "y",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    f64,
+                                ),
+                                needs_stash: false,
+                            },
+                        ],
+                    },
+                ),
+                clonable: false,
+                docs: None,
+            },
+        ),
+        Class(
+            ClassDef {
+                id: IrId(
+                    2,
+                ),
+                orig: AsgId(
+                    2,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Circle",
                     ],
                 },
+                js_name: "Circle",
+                mangled_name: "__cursed_rustdoc_test_crate__Circle",
+                fields: [
+                    ClassField {
+                        orig_name: "center",
+                        js_name: "center",
+                        ty: Class(
+                            IrId(
+                                1,
+                            ),
+                        ),
+                        has_getter: true,
+                        has_setter: false,
+                        clone_on_get: true,
+                        docs: None,
+                    },
+                    ClassField {
+                        orig_name: "radius",
+                        js_name: "radius",
+                        ty: Primitive(
+                            f64,
+                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: None,
+                    },
+                ],
+                ctor: None,
                 clonable: false,
                 docs: None,
             },

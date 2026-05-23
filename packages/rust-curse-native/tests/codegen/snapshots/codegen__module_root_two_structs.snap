@@ -581,26 +581,28 @@ Ir {
                         docs: None,
                     },
                 ],
-                ctor: Implicit {
-                    params: [
-                        FnParam {
-                            name: "x",
-                            mode: ByValue,
-                            ty: Primitive(
-                                f64,
-                            ),
-                            needs_stash: false,
-                        },
-                        FnParam {
-                            name: "y",
-                            mode: ByValue,
-                            ty: Primitive(
-                                f64,
-                            ),
-                            needs_stash: false,
-                        },
-                    ],
-                },
+                ctor: Some(
+                    Implicit {
+                        params: [
+                            FnParam {
+                                name: "x",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    f64,
+                                ),
+                                needs_stash: false,
+                            },
+                            FnParam {
+                                name: "y",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    f64,
+                                ),
+                                needs_stash: false,
+                            },
+                        ],
+                    },
+                ),
                 clonable: false,
                 docs: None,
             },
@@ -645,26 +647,28 @@ Ir {
                         docs: None,
                     },
                 ],
-                ctor: Implicit {
-                    params: [
-                        FnParam {
-                            name: "x",
-                            mode: ByValue,
-                            ty: Primitive(
-                                f64,
-                            ),
-                            needs_stash: false,
-                        },
-                        FnParam {
-                            name: "y",
-                            mode: ByValue,
-                            ty: Primitive(
-                                f64,
-                            ),
-                            needs_stash: false,
-                        },
-                    ],
-                },
+                ctor: Some(
+                    Implicit {
+                        params: [
+                            FnParam {
+                                name: "x",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    f64,
+                                ),
+                                needs_stash: false,
+                            },
+                            FnParam {
+                                name: "y",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    f64,
+                                ),
+                                needs_stash: false,
+                            },
+                        ],
+                    },
+                ),
                 clonable: false,
                 docs: None,
             },

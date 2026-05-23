@@ -98,7 +98,9 @@ impl<'a> Printer<'a> {
         out.push_str("}\n\n");
 
         out.push_str(&format!("#[wasm_bindgen]\nimpl {mangled} {{\n"));
-        out.push_str(&self.print_ctor(&def, &orig));
+        if let Some(ctor) = &def.ctor {
+            out.push_str(&self.print_ctor(&def, ctor, &orig));
+        }
         for field in &def.fields {
             out.push('\n');
             out.push_str(&self.print_getter_setter(field));
@@ -108,8 +110,8 @@ impl<'a> Printer<'a> {
         out
     }
 
-    fn print_ctor(&self, def: &ClassDef, orig: &str) -> String {
-        let params = match &def.ctor {
+    fn print_ctor(&self, def: &ClassDef, ctor: &Ctor, orig: &str) -> String {
+        let params = match ctor {
             Ctor::Explicit { params } | Ctor::Implicit { params } => params,
         };
 
@@ -122,7 +124,7 @@ impl<'a> Printer<'a> {
             }
         }
 
-        let built = match &def.ctor {
+        let built = match ctor {
             Ctor::Implicit { .. } => {
                 let inits: Vec<String> = params
                     .iter()

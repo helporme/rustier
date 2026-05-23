@@ -58,7 +58,7 @@ pub struct ClassDef {
     pub js_name: String,
     pub mangled_name: String,
     pub fields: Vec<ClassField>,
-    pub ctor: Ctor,
+    pub ctor: Option<Ctor>,
     pub clonable: bool,
     pub docs: Option<String>,
 }

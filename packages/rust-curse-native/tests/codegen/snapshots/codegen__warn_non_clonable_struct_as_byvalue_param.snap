@@ -228,15 +228,15 @@ export { __cursed_rustdoc_test_crate__Point as Point };
 # warns
 
 ```text
-rust-curse::non_clonable_struct_used
+rust-curse::fn_not_available
 
-  ⚠ "Point" is used as a by-value parameter but does not implement Clone
+  ⚠ Function "take" cannot be called from JS: parameter "p" of type "Point" is taken by value, but "Point" must implement Clone.
    ╭─[src/lib.rs:5:1]
  4 │ }
  5 │ pub fn take(p: Point) {}
    · ────────────────────────
    ╰────
-  help: add `#[derive(Clone)]` to the struct, or implement Clone manually; alternatively, pass it by `&` / `&mut` reference to avoid the clone
+  help: Add `#[derive(Clone)]` to "Point", or change the parameter to `&Point` / `&mut Point` to pass it by reference instead.
 ```
 
 # ASG
@@ -464,26 +464,28 @@ Ir {
                         docs: None,
                     },
                 ],
-                ctor: Implicit {
-                    params: [
-                        FnParam {
-                            name: "x",
-                            mode: ByValue,
-                            ty: Primitive(
-                                f64,
-                            ),
-                            needs_stash: false,
-                        },
-                        FnParam {
-                            name: "y",
-                            mode: ByValue,
-                            ty: Primitive(
-                                f64,
-                            ),
-                            needs_stash: false,
-                        },
-                    ],
-                },
+                ctor: Some(
+                    Implicit {
+                        params: [
+                            FnParam {
+                                name: "x",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    f64,
+                                ),
+                                needs_stash: false,
+                            },
+                            FnParam {
+                                name: "y",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    f64,
+                                ),
+                                needs_stash: false,
+                            },
+                        ],
+                    },
+                ),
                 clonable: false,
                 docs: None,
             },

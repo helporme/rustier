@@ -521,18 +521,20 @@ Ir {
                 js_name: "Foo",
                 mangled_name: "__cursed_rustdoc_test_crate__Foo",
                 fields: [],
-                ctor: Explicit {
-                    params: [
-                        FnParam {
-                            name: "from_alpha",
-                            mode: ByValue,
-                            ty: Primitive(
-                                u64,
-                            ),
-                            needs_stash: false,
-                        },
-                    ],
-                },
+                ctor: Some(
+                    Explicit {
+                        params: [
+                            FnParam {
+                                name: "from_alpha",
+                                mode: ByValue,
+                                ty: Primitive(
+                                    u64,
+                                ),
+                                needs_stash: false,
+                            },
+                        ],
+                    },
+                ),
                 clonable: false,
                 docs: None,
             },
