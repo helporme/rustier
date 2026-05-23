@@ -32,7 +32,8 @@ impl Syncer {
             &CargoTomlPatch::new()
                 .crate_type("cdylib")
                 .empty_feature(profile_name)
-                .dep(Dep::new("wasm-bindgen", "0.2").requires_feature(WASM_CARGO_FEATURE)),
+                .dep(Dep::new("wasm-bindgen", "0.2").requires_feature(WASM_CARGO_FEATURE))
+                .dep(Dep::new("js-sys", "0.3").requires_feature(WASM_CARGO_FEATURE)),
         )?;
 
         self.lib.set_branch(

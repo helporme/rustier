@@ -640,3 +640,82 @@ fn warn_mixed_some_items_skipped() {
         pub use std::mem::swap;
     };
 }
+
+#[test]
+fn of_object_only() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: i32,
+            pub y: i32,
+        }
+    };
+}
+
+#[test]
+fn of_and_new() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: i32,
+            pub y: i32,
+        }
+        impl Point {
+            pub fn new(x: i32, y: i32) -> Self { Self { x, y } }
+        }
+    };
+}
+
+#[test]
+fn of_unavailable_private_field() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Mixed {
+            pub x: i32,
+            y: i32,
+        }
+    };
+}
+
+#[test]
+fn of_nested_object() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: f64,
+            pub y: f64,
+        }
+        #[derive(Clone)]
+        pub struct Line {
+            pub start: Point,
+            pub end: Point,
+        }
+        #[derive(Clone)]
+        pub struct Triangle {
+            pub a: Line,
+            pub b: Point,
+        }
+    };
+}
+
+#[test]
+fn fn_accepts_object_literal() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: f64,
+            pub y: f64,
+        }
+        #[derive(Clone)]
+        pub struct Line {
+            pub start: Point,
+            pub end: Point,
+        }
+        #[derive(Clone)]
+        pub struct Triangle {
+            pub a: Line,
+            pub b: Point,
+        }
+        pub fn triangle_area(t: Triangle) -> f64 { 0.0 }
+    };
+}

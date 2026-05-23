@@ -21,57 +21,78 @@ use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
 #[allow(unused_imports)]
 use std::rc::{Rc, Weak};
-trait __cursed_Projection<T> {
-    fn with(&self, f: &mut dyn FnMut(&T));
-    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
-}
-impl<T> __cursed_Projection<T> for RefCell<T> {
-    fn with(&self, f: &mut dyn FnMut(&T)) {
-        f(&*self.borrow());
+#[allow(unused_imports)]
+use __cursed::Projection as _;
+#[allow(non_snake_case, dead_code)]
+mod __cursed {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    pub trait Projection<T> {
+        fn with(&self, f: &mut dyn FnMut(&T));
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
     }
-    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
-        f(&mut *self.borrow_mut());
+    impl<T> Projection<T> for RefCell<T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            f(&*self.borrow());
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            f(&mut *self.borrow_mut());
+        }
     }
-}
-#[allow(dead_code)]
-struct __cursed_Projector<Parent, T> {
-    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
-    project: fn(&Parent) -> &T,
-    project_mut: fn(&mut Parent) -> &mut T,
-}
-impl<Parent: 'static, T: 'static> __cursed_Projection<T>
-for __cursed_Projector<Parent, T> {
-    fn with(&self, f: &mut dyn FnMut(&T)) {
-        let parent = self.parent.borrow().clone();
-        parent.with(&mut |p| f((self.project)(p)));
+    pub struct Projector<Parent, T> {
+        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+        pub project: fn(&Parent) -> &T,
+        pub project_mut: fn(&mut Parent) -> &mut T,
     }
-    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
-        let parent = self.parent.borrow().clone();
-        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with(&mut |p| f((self.project)(p)));
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with_mut(&mut |p| f((self.project_mut)(p)));
+        }
+    }
+    pub enum Coerced<T> {
+        Projected(Rc<dyn Projection<T>>),
+        Owned(T),
+    }
+    impl<T: 'static> Coerced<T> {
+        pub fn with(&self, f: &mut dyn FnMut(&T)) {
+            match self {
+                Self::Projected(p) => p.with(f),
+                Self::Owned(v) => f(v),
+            }
+        }
+        pub fn with_mut(&mut self, f: &mut dyn FnMut(&mut T)) {
+            match self {
+                Self::Projected(p) => p.with_mut(f),
+                Self::Owned(v) => f(v),
+            }
+        }
+        pub fn into_owned(self) -> T
+        where
+            T: Clone,
+        {
+            match self {
+                Self::Projected(p) => {
+                    let mut out = None;
+                    p.with(&mut |v| out = Some(v.clone()));
+                    out.unwrap()
+                }
+                Self::Owned(v) => v,
+            }
+        }
     }
 }
 /// class wrapper for `crate::Point`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Point")]
 pub struct __cursed_rustdoc_test_crate__Point {
-    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Point>>>>,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
 }
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Point {
-    #[wasm_bindgen(constructor)]
-    pub fn new(__cursed_arg_x: f64, __cursed_arg_y: f64) -> Self {
-        Self {
-            __cursed_root: Rc::new(
-                RefCell::new(
-                    Rc::new(
-                        RefCell::new(crate::Point {
-                            x: __cursed_arg_x,
-                            y: __cursed_arg_y,
-                        }),
-                    ) as Rc<dyn __cursed_Projection<crate::Point>>,
-                ),
-            ),
-        }
-    }
     #[wasm_bindgen(getter, js_name = "x")]
     pub fn __cursed_get_x(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -101,16 +122,28 @@ impl __cursed_rustdoc_test_crate__Point {
             .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
 }
+#[allow(dead_code)]
+fn __cursed_coerce___cursed_rustdoc_test_crate__Point(
+    val: JsValue,
+) -> Result<__cursed::Coerced<crate::Point>, JsValue> {
+    let _ = val;
+    Err(
+        JsValue::from_str(
+            "`Point` cannot be constructed from JS: it has private fields or a non-clonable struct child",
+        ),
+    )
+}
 /// fn glue for `crate::inspect`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inspect")]
-pub fn __cursed_rustdoc_test_crate__inspect(p: &__cursed_rustdoc_test_crate__Point) {
-    let __cursed_proj_p = p.__cursed_root.borrow().clone();
-    __cursed_proj_p
+pub fn __cursed_rustdoc_test_crate__inspect(p: JsValue) -> Result<(), JsValue> {
+    let __cursed_co_p = __cursed_coerce___cursed_rustdoc_test_crate__Point(p)?;
+    __cursed_co_p
         .with(
             &mut |__cursed_p| {
                 crate::inspect(__cursed_p);
             },
         );
+    Ok(())
 }
 ```
 
@@ -118,62 +151,85 @@ pub fn __cursed_rustdoc_test_crate__inspect(p: &__cursed_rustdoc_test_crate__Poi
 
 ```rs
 #![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
+use napi::JsValue as _;
 use napi_derive::napi;
 #[allow(unused_imports)]
 use std::cell::RefCell;
 #[allow(unused_imports)]
 use std::rc::{Rc, Weak};
-trait __cursed_Projection<T> {
-    fn with(&self, f: &mut dyn FnMut(&T));
-    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
-}
-impl<T> __cursed_Projection<T> for RefCell<T> {
-    fn with(&self, f: &mut dyn FnMut(&T)) {
-        f(&*self.borrow());
+#[allow(unused_imports)]
+use __cursed::Projection as _;
+#[allow(non_snake_case, dead_code)]
+mod __cursed {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    pub trait Projection<T> {
+        fn with(&self, f: &mut dyn FnMut(&T));
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
     }
-    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
-        f(&mut *self.borrow_mut());
+    impl<T> Projection<T> for RefCell<T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            f(&*self.borrow());
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            f(&mut *self.borrow_mut());
+        }
     }
-}
-#[allow(dead_code)]
-struct __cursed_Projector<Parent, T> {
-    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
-    project: fn(&Parent) -> &T,
-    project_mut: fn(&mut Parent) -> &mut T,
-}
-impl<Parent: 'static, T: 'static> __cursed_Projection<T>
-for __cursed_Projector<Parent, T> {
-    fn with(&self, f: &mut dyn FnMut(&T)) {
-        let parent = self.parent.borrow().clone();
-        parent.with(&mut |p| f((self.project)(p)));
+    pub struct Projector<Parent, T> {
+        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+        pub project: fn(&Parent) -> &T,
+        pub project_mut: fn(&mut Parent) -> &mut T,
     }
-    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
-        let parent = self.parent.borrow().clone();
-        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with(&mut |p| f((self.project)(p)));
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with_mut(&mut |p| f((self.project_mut)(p)));
+        }
+    }
+    pub enum Coerced<T> {
+        Projected(Rc<dyn Projection<T>>),
+        Owned(T),
+    }
+    impl<T: 'static> Coerced<T> {
+        pub fn with(&self, f: &mut dyn FnMut(&T)) {
+            match self {
+                Self::Projected(p) => p.with(f),
+                Self::Owned(v) => f(v),
+            }
+        }
+        pub fn with_mut(&mut self, f: &mut dyn FnMut(&mut T)) {
+            match self {
+                Self::Projected(p) => p.with_mut(f),
+                Self::Owned(v) => f(v),
+            }
+        }
+        pub fn into_owned(self) -> T
+        where
+            T: Clone,
+        {
+            match self {
+                Self::Projected(p) => {
+                    let mut out = None;
+                    p.with(&mut |v| out = Some(v.clone()));
+                    out.unwrap()
+                }
+                Self::Owned(v) => v,
+            }
+        }
     }
 }
 /// class wrapper for `crate::Point`
 #[napi(js_name = "__cursed_rustdoc_test_crate__Point")]
 pub struct __cursed_rustdoc_test_crate__Point {
-    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Point>>>>,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
 }
 #[napi]
 impl __cursed_rustdoc_test_crate__Point {
-    #[napi(constructor)]
-    pub fn new(__cursed_arg_x: f64, __cursed_arg_y: f64) -> Self {
-        Self {
-            __cursed_root: Rc::new(
-                RefCell::new(
-                    Rc::new(
-                        RefCell::new(crate::Point {
-                            x: __cursed_arg_x,
-                            y: __cursed_arg_y,
-                        }),
-                    ) as Rc<dyn __cursed_Projection<crate::Point>>,
-                ),
-            ),
-        }
-    }
     #[napi(getter, js_name = "x")]
     pub fn __cursed_get_x(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -203,16 +259,42 @@ impl __cursed_rustdoc_test_crate__Point {
             .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
 }
+#[allow(dead_code)]
+fn __cursed_coerce___cursed_rustdoc_test_crate__Point<'a>(
+    val: napi::bindgen_prelude::Unknown<'a>,
+) -> napi::Result<__cursed::Coerced<crate::Point>> {
+    let __cursed_env_raw = napi::JsValue::value(&val).env;
+    let __cursed_raw = napi::JsValue::raw(&val);
+    if let Ok(__cursed_inst) = unsafe {
+        napi::bindgen_prelude::ClassInstance::<
+            __cursed_rustdoc_test_crate__Point,
+        >::from_napi_value(__cursed_env_raw, __cursed_raw)
+    } {
+        return Ok(
+            __cursed::Coerced::Projected(__cursed_inst.__cursed_root.borrow().clone()),
+        );
+    }
+    Err(
+        napi::Error::from_reason(
+            format!(
+                "expected an instance of class `Point`; got a plain object, but `Point` cannot be built from an object literal (private fields or non-clonable struct child)"
+            ),
+        ),
+    )
+}
 /// fn glue for `crate::inspect`
 #[napi(js_name = "__cursed_rustdoc_test_crate__inspect")]
-pub fn __cursed_rustdoc_test_crate__inspect(p: &__cursed_rustdoc_test_crate__Point) {
-    let __cursed_proj_p = p.__cursed_root.borrow().clone();
-    __cursed_proj_p
+pub fn __cursed_rustdoc_test_crate__inspect(
+    p: napi::bindgen_prelude::Unknown<'_>,
+) -> napi::Result<()> {
+    let __cursed_co_p = __cursed_coerce___cursed_rustdoc_test_crate__Point(p)?;
+    __cursed_co_p
         .with(
             &mut |__cursed_p| {
                 crate::inspect(__cursed_p);
             },
         );
+    Ok(())
 }
 ```
 
@@ -228,7 +310,7 @@ export class Point {
 
     y: number;
 
-    constructor(x: number, y: number);
+    private constructor();
 }
 
 export function inspect(p: Point): void;
@@ -349,6 +431,7 @@ Asg {
                 ),
                 impls: [],
                 docs: None,
+                has_private_fields: false,
             },
         ),
         Fn(
@@ -488,28 +571,8 @@ Ir {
                         docs: None,
                     },
                 ],
-                ctor: Some(
-                    Implicit {
-                        params: [
-                            FnParam {
-                                name: "x",
-                                mode: ByValue,
-                                ty: Primitive(
-                                    f64,
-                                ),
-                                needs_stash: false,
-                            },
-                            FnParam {
-                                name: "y",
-                                mode: ByValue,
-                                ty: Primitive(
-                                    f64,
-                                ),
-                                needs_stash: false,
-                            },
-                        ],
-                    },
-                ),
+                ctor: None,
+                struct_expr: None,
                 clonable: false,
                 docs: None,
             },

@@ -17,10 +17,11 @@ serde = { version = "1", features = ["derive"], optional = true }
 serde-wasm-bindgen = { version = "0.6", optional = true }
 napi = { version = "3", optional = true }
 napi-derive = { version = "3", optional = true }
+js-sys = { version = "0.3", optional = true }
 
 [features]
 default=["node"]
-wasm = ["dep:serde", "dep:serde-wasm-bindgen", "dep:wasm-bindgen"]
+wasm = ["dep:js-sys", "dep:serde", "dep:serde-wasm-bindgen", "dep:wasm-bindgen"]
 node = ["dep:napi", "dep:napi-build", "dep:napi-derive"]
 
 [build-dependencies]

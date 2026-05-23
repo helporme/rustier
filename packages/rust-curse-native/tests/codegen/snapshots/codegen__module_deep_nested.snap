@@ -21,8 +21,9 @@ pub mod a {
 use wasm_bindgen::prelude::*;
 /// fn glue for `crate::a::b::c::deep`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__a__b__c__deep")]
-pub fn __cursed_rustdoc_test_crate__a__b__c__deep() {
+pub fn __cursed_rustdoc_test_crate__a__b__c__deep() -> Result<(), JsValue> {
     crate::a::b::c::deep();
+    Ok(())
 }
 ```
 
@@ -30,11 +31,14 @@ pub fn __cursed_rustdoc_test_crate__a__b__c__deep() {
 
 ```rs
 #![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
+use napi::JsValue as _;
 use napi_derive::napi;
 /// fn glue for `crate::a::b::c::deep`
 #[napi(js_name = "__cursed_rustdoc_test_crate__a__b__c__deep")]
-pub fn __cursed_rustdoc_test_crate__a__b__c__deep() {
+pub fn __cursed_rustdoc_test_crate__a__b__c__deep() -> napi::Result<()> {
     crate::a::b::c::deep();
+    Ok(())
 }
 ```
 

@@ -18,8 +18,9 @@ pub mod pruned {}
 use wasm_bindgen::prelude::*;
 /// fn glue for `crate::kept::stays`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__kept__stays")]
-pub fn __cursed_rustdoc_test_crate__kept__stays() {
+pub fn __cursed_rustdoc_test_crate__kept__stays() -> Result<(), JsValue> {
     crate::kept::stays();
+    Ok(())
 }
 ```
 
@@ -27,11 +28,14 @@ pub fn __cursed_rustdoc_test_crate__kept__stays() {
 
 ```rs
 #![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
+use napi::JsValue as _;
 use napi_derive::napi;
 /// fn glue for `crate::kept::stays`
 #[napi(js_name = "__cursed_rustdoc_test_crate__kept__stays")]
-pub fn __cursed_rustdoc_test_crate__kept__stays() {
+pub fn __cursed_rustdoc_test_crate__kept__stays() -> napi::Result<()> {
     crate::kept::stays();
+    Ok(())
 }
 ```
 

@@ -276,6 +276,13 @@ impl<'a> Builder<'a> {
         let span = item.span.as_ref().map(convert_span);
         let path = path_of(item, id, self.crate_);
         let impl_rids = struct_.impls.clone();
+        let has_private_fields = match &struct_.kind {
+            StructKind::Plain {
+                has_stripped_fields,
+                ..
+            } => *has_stripped_fields,
+            _ => false,
+        };
 
         // Dry-probe: resolve the shape without committing the slot. If any
         // field type fails, emit a warning and mark the struct skipped.
@@ -311,6 +318,7 @@ impl<'a> Builder<'a> {
             shape,
             impls: Vec::new(),
             docs: item.docs.clone(),
+            has_private_fields,
         }));
 
         let impls = self.build_impls(id, sid, &impl_rids)?;

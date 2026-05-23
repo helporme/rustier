@@ -41,8 +41,9 @@ pub fn __cursed_rustdoc_test_crate__f(
     j: char,
     k: String,
     l: String,
-) {
+) -> Result<(), JsValue> {
     crate::f(a, b, c, d, e, f, g, h, i, j, k, &l);
+    Ok(())
 }
 ```
 
@@ -50,6 +51,8 @@ pub fn __cursed_rustdoc_test_crate__f(
 
 ```rs
 #![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
+use napi::JsValue as _;
 use napi_derive::napi;
 /// fn glue for `crate::f`
 #[napi(js_name = "__cursed_rustdoc_test_crate__f")]
@@ -66,8 +69,9 @@ pub fn __cursed_rustdoc_test_crate__f(
     j: char,
     k: String,
     l: String,
-) {
+) -> napi::Result<()> {
     crate::f(a, b, c, d, e, f, g, h, i, j, k, &l);
+    Ok(())
 }
 ```
 

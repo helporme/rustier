@@ -58,7 +58,8 @@ pub struct ClassDef {
     pub js_name: String,
     pub mangled_name: String,
     pub fields: Vec<ClassField>,
-    pub ctor: Option<Ctor>,
+    pub ctor: Option<CtorDef>,
+    pub struct_expr: Option<StructExpr>,
     pub clonable: bool,
     pub docs: Option<String>,
 }
@@ -75,10 +76,16 @@ pub struct ClassField {
     pub docs: Option<String>,
 }
 
+/// User-written constructor (`pub fn new(...) -> Self`).
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Ctor {
-    Explicit { params: Vec<FnParam> },
-    Implicit { params: Vec<FnParam> },
+pub struct CtorDef {
+    pub params: Vec<FnParam>,
+}
+
+/// Struct-expression init descriptor for `.of` function.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StructExpr {
+    pub fields: Vec<FnParam>,
 }
 
 /// A module definition.

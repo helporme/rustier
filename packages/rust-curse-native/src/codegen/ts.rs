@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
-use super::ir::{Ctor, Ir, IrId, Item, ItemPath, Primitive, Type, Use};
+use super::ir::{FnParam, Ir, IrId, Item, ItemPath, ParamMode, Primitive, Type, Use};
 use super::mangle::is_canonical_origin;
 
 const PREAMBLE: &str = "";
@@ -144,6 +144,19 @@ impl<'a> Printer<'a> {
         }
     }
 
+    fn param_type_to_ts(&mut self, p: &FnParam) -> String {
+        let base = self.type_to_ts(&p.ty);
+        if let Type::Class(cid) = &p.ty {
+            if matches!(p.mode, ParamMode::ByMut) {
+                return base;
+            }
+            if self.ir.get_class_unchecked(*cid).struct_expr.is_some() {
+                return format!("{base} | {base}.Init");
+            }
+        }
+        base
+    }
+
     fn print_class(&mut self, cid: IrId) -> String {
         let def = self.ir.get_class_unchecked(cid).clone();
         let name = &def.js_name;
@@ -168,15 +181,22 @@ impl<'a> Printer<'a> {
             members.push(member);
         }
 
-        if let Some(Ctor::Explicit { params } | Ctor::Implicit { params }) = &def.ctor {
-            let ctor_params: Vec<String> = params
+        if let Some(ctor) = &def.ctor {
+            let ctor_params: Vec<String> = ctor
+                .params
                 .iter()
                 .map(|p| {
-                    let ty = self.type_to_ts(&p.ty);
+                    let ty = self.param_type_to_ts(p);
                     format!("{}: {ty}", p.name)
                 })
                 .collect();
             members.push(format!("    constructor({});", ctor_params.join(", ")));
+        } else {
+            members.push("    private constructor();".to_string());
+        }
+
+        if def.struct_expr.is_some() {
+            members.push(format!("    static of(init: {name}.Init): {name};"));
         }
 
         let mut out = String::new();
@@ -187,7 +207,43 @@ impl<'a> Printer<'a> {
         out.push_str(&members.join("\n\n"));
         out.push('\n');
         out.push('}');
+
+        if let Some(se) = &def.struct_expr {
+            out.push_str("\n\n");
+            out.push_str(&format!("export namespace {name} {{\n"));
+            if let Some(docs) = &def.docs {
+                out.push_str(&doc_comment(docs, "    "));
+            }
+            out.push_str("    export type Init = {\n");
+            for f in &se.fields {
+                let ty = self.field_init_type(&f.ty);
+                // Pull docs from the matching ClassField (same orig_name).
+                let docs = def
+                    .fields
+                    .iter()
+                    .find(|cf| cf.orig_name == f.name)
+                    .and_then(|cf| cf.docs.clone());
+                if let Some(docs) = &docs {
+                    out.push_str(&doc_comment(docs, "        "));
+                }
+                out.push_str(&format!("        {}: {ty};\n", f.name));
+            }
+            out.push_str("    };\n");
+            out.push('}');
+        }
         out
+    }
+
+    /// Init-position field type: struct fields become `X | X.Init` (the same
+    /// relaxed shape we accept on params).
+    fn field_init_type(&mut self, ty: &Type) -> String {
+        let base = self.type_to_ts(ty);
+        if let Type::Class(cid) = ty {
+            if self.ir.get_class_unchecked(*cid).struct_expr.is_some() {
+                return format!("{base} | {base}.Init");
+            }
+        }
+        base
     }
 
     fn print_fn(&mut self, fid: IrId) -> String {
@@ -203,7 +259,7 @@ impl<'a> Printer<'a> {
             .params
             .iter()
             .map(|p| {
-                let ty = self.type_to_ts(&p.ty);
+                let ty = self.param_type_to_ts(p);
                 format!("{}: {ty}", p.name)
             })
             .collect();

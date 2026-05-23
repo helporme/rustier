@@ -8,8 +8,8 @@ use crate::codegen::asg::{
 use crate::codegen::mangle::mangle;
 use crate::warns::{Warn, WarnLabel, Warns};
 
-use super::{ClassDef, ClassField};
-use super::{Ctor, FnDef, FnParam, Ir, IrId, Item, ModDef, Type, Use};
+use super::{ClassDef, ClassField, CtorDef, StructExpr};
+use super::{FnDef, FnParam, Ir, IrId, Item, ModDef, Type, Use};
 
 /// Errors that may be produced by [`Ir::from_asg`].
 
@@ -39,9 +39,8 @@ struct Lowerer<'a> {
     /// Per-struct field names whose setter is suppressed because the field's
     /// child struct doesn't implement `Clone`.
     suppressed_setters: HashMap<asg::AsgId, HashSet<String>>,
-    /// Structs whose implicit ctor is suppressed because at least one
-    /// struct-typed field's child isn't `Clone`.
-    suppressed_implicit_ctors: HashSet<asg::AsgId>,
+    /// Structs that are struct-expressible (transitively)
+    struct_expressible: HashSet<asg::AsgId>,
 }
 
 impl<'a> Lowerer<'a> {
@@ -53,13 +52,14 @@ impl<'a> Lowerer<'a> {
             emittable: HashSet::new(),
             asg_to_ir: HashMap::new(),
             suppressed_setters: HashMap::new(),
-            suppressed_implicit_ctors: HashSet::new(),
+            struct_expressible: HashSet::new(),
         }
     }
 
     fn run(mut self) -> Ir {
         self.collect_method_fns();
         self.select_classes();
+        self.compute_struct_expressible();
         self.assign_ids();
 
         let items: Vec<Item> = self
@@ -175,12 +175,55 @@ impl<'a> Lowerer<'a> {
                     .entry(sid)
                     .or_default()
                     .insert(f.name.clone());
-                self.suppressed_implicit_ctors.insert(sid);
                 self.warns.push(attach_span(
                     warn_field_setter_unavailable(&parent_name, &f.name, &child_name),
                     &span,
                 ));
             }
+        }
+    }
+
+    /// Mark every struct as struct-expressible iff (1) rustdoc didn't strip
+    /// any field, (2) the struct itself implements `Clone` (the runtime
+    /// coercer's `into_owned` requires `T: Clone`), (3) every struct-typed
+    /// field's child is itself struct-expressible, and (4) every struct-typed
+    /// field's child implements `Clone`. Computed to fixpoint so transitive
+    /// cycles collapse.
+    fn compute_struct_expressible(&mut self) {
+        for &sid in &self.emittable {
+            let def = self.asg.get_struct_unchecked(sid);
+            if def.has_private_fields {
+                continue;
+            }
+            if !self.asg_clonable(sid) {
+                continue;
+            }
+            self.struct_expressible.insert(sid);
+        }
+        loop {
+            let mut dropped: Option<asg::AsgId> = None;
+            for &sid in &self.struct_expressible {
+                let def = self.asg.get_struct_unchecked(sid);
+                let asg::StructShape::Struct(fields) = &def.shape else {
+                    continue;
+                };
+                let mut ok = true;
+                for f in fields {
+                    let asg::Type::Struct(child) = f.ty else {
+                        continue;
+                    };
+                    if !self.struct_expressible.contains(&child) || !self.asg_clonable(child) {
+                        ok = false;
+                        break;
+                    }
+                }
+                if !ok {
+                    dropped = Some(sid);
+                    break;
+                }
+            }
+            let Some(sid) = dropped else { break };
+            self.struct_expressible.remove(&sid);
         }
     }
 
@@ -287,11 +330,8 @@ impl<'a> Lowerer<'a> {
             })
             .collect();
 
-        let ctor = self.resolve_ctor(def, asg_fields);
-        let ctor = match ctor {
-            Some(Ctor::Implicit { .. }) if self.suppressed_implicit_ctors.contains(&def.id) => None,
-            other => other,
-        };
+        let ctor = self.resolve_ctor(def);
+        let struct_expr = self.resolve_struct_expr(def, asg_fields);
 
         ClassDef {
             id: self.asg_to_ir[&def.id],
@@ -301,6 +341,7 @@ impl<'a> Lowerer<'a> {
             path,
             fields,
             ctor,
+            struct_expr,
             clonable: self.is_clonable(def),
             docs: def.docs.clone(),
         }
@@ -325,7 +366,7 @@ impl<'a> Lowerer<'a> {
             })
     }
 
-    fn resolve_ctor(&self, def: &asg::StructDef, asg_fields: &[asg::StructField]) -> Option<Ctor> {
+    fn resolve_ctor(&self, def: &asg::StructDef) -> Option<CtorDef> {
         struct Candidate<'b> {
             key: Vec<String>,
             impl_ord: usize,
@@ -362,21 +403,30 @@ impl<'a> Lowerer<'a> {
 
         candidates.sort_by(|a, b| a.key.cmp(&b.key).then(a.impl_ord.cmp(&b.impl_ord)));
 
-        Some(match candidates.first() {
-            Some(c) => Ctor::Explicit {
-                params: c.params.iter().map(|p| self.lower_param(p)).collect(),
-            },
-            None => Ctor::Implicit {
-                params: asg_fields
-                    .iter()
-                    .map(|f| FnParam {
-                        name: f.name.clone(),
-                        mode: asg::ParamMode::ByValue,
-                        ty: self.lower_type(&f.ty),
-                        needs_stash: false,
-                    })
-                    .collect(),
-            },
+        let c = candidates.first()?;
+        Some(CtorDef {
+            params: c.params.iter().map(|p| self.lower_param(p)).collect(),
+        })
+    }
+
+    fn resolve_struct_expr(
+        &self,
+        def: &asg::StructDef,
+        asg_fields: &[asg::StructField],
+    ) -> Option<StructExpr> {
+        if !self.struct_expressible.contains(&def.id) {
+            return None;
+        }
+        Some(StructExpr {
+            fields: asg_fields
+                .iter()
+                .map(|f| FnParam {
+                    name: f.name.clone(),
+                    mode: asg::ParamMode::ByValue,
+                    ty: self.lower_type(&f.ty),
+                    needs_stash: false,
+                })
+                .collect(),
         })
     }
 

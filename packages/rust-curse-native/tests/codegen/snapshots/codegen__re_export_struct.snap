@@ -22,56 +22,78 @@ use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
 #[allow(unused_imports)]
 use std::rc::{Rc, Weak};
-trait __cursed_Projection<T> {
-    fn with(&self, f: &mut dyn FnMut(&T));
-    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
-}
-impl<T> __cursed_Projection<T> for RefCell<T> {
-    fn with(&self, f: &mut dyn FnMut(&T)) {
-        f(&*self.borrow());
+#[allow(unused_imports)]
+use __cursed::Projection as _;
+#[allow(non_snake_case, dead_code)]
+mod __cursed {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    pub trait Projection<T> {
+        fn with(&self, f: &mut dyn FnMut(&T));
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
     }
-    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
-        f(&mut *self.borrow_mut());
+    impl<T> Projection<T> for RefCell<T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            f(&*self.borrow());
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            f(&mut *self.borrow_mut());
+        }
     }
-}
-#[allow(dead_code)]
-struct __cursed_Projector<Parent, T> {
-    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
-    project: fn(&Parent) -> &T,
-    project_mut: fn(&mut Parent) -> &mut T,
-}
-impl<Parent: 'static, T: 'static> __cursed_Projection<T>
-for __cursed_Projector<Parent, T> {
-    fn with(&self, f: &mut dyn FnMut(&T)) {
-        let parent = self.parent.borrow().clone();
-        parent.with(&mut |p| f((self.project)(p)));
+    pub struct Projector<Parent, T> {
+        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+        pub project: fn(&Parent) -> &T,
+        pub project_mut: fn(&mut Parent) -> &mut T,
     }
-    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
-        let parent = self.parent.borrow().clone();
-        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with(&mut |p| f((self.project)(p)));
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with_mut(&mut |p| f((self.project_mut)(p)));
+        }
+    }
+    pub enum Coerced<T> {
+        Projected(Rc<dyn Projection<T>>),
+        Owned(T),
+    }
+    impl<T: 'static> Coerced<T> {
+        pub fn with(&self, f: &mut dyn FnMut(&T)) {
+            match self {
+                Self::Projected(p) => p.with(f),
+                Self::Owned(v) => f(v),
+            }
+        }
+        pub fn with_mut(&mut self, f: &mut dyn FnMut(&mut T)) {
+            match self {
+                Self::Projected(p) => p.with_mut(f),
+                Self::Owned(v) => f(v),
+            }
+        }
+        pub fn into_owned(self) -> T
+        where
+            T: Clone,
+        {
+            match self {
+                Self::Projected(p) => {
+                    let mut out = None;
+                    p.with(&mut |v| out = Some(v.clone()));
+                    out.unwrap()
+                }
+                Self::Owned(v) => v,
+            }
+        }
     }
 }
 /// class wrapper for `crate::inner::Inner`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__Inner")]
 pub struct __cursed_rustdoc_test_crate__inner__Inner {
-    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::inner::Inner>>>>,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::inner::Inner>>>>,
 }
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__inner__Inner {
-    #[wasm_bindgen(constructor)]
-    pub fn new(__cursed_arg_x: i32) -> Self {
-        Self {
-            __cursed_root: Rc::new(
-                RefCell::new(
-                    Rc::new(
-                        RefCell::new(crate::inner::Inner {
-                            x: __cursed_arg_x,
-                        }),
-                    ) as Rc<dyn __cursed_Projection<crate::inner::Inner>>,
-                ),
-            ),
-        }
-    }
     #[wasm_bindgen(getter, js_name = "x")]
     pub fn __cursed_get_x(&self) -> i32 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -87,67 +109,102 @@ impl __cursed_rustdoc_test_crate__inner__Inner {
             .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
 }
+#[allow(dead_code)]
+fn __cursed_coerce___cursed_rustdoc_test_crate__inner__Inner(
+    val: JsValue,
+) -> Result<__cursed::Coerced<crate::inner::Inner>, JsValue> {
+    let _ = val;
+    Err(
+        JsValue::from_str(
+            "`Inner` cannot be constructed from JS: it has private fields or a non-clonable struct child",
+        ),
+    )
+}
 ```
 
 # napi
 
 ```rs
 #![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
+use napi::JsValue as _;
 use napi_derive::napi;
 #[allow(unused_imports)]
 use std::cell::RefCell;
 #[allow(unused_imports)]
 use std::rc::{Rc, Weak};
-trait __cursed_Projection<T> {
-    fn with(&self, f: &mut dyn FnMut(&T));
-    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
-}
-impl<T> __cursed_Projection<T> for RefCell<T> {
-    fn with(&self, f: &mut dyn FnMut(&T)) {
-        f(&*self.borrow());
+#[allow(unused_imports)]
+use __cursed::Projection as _;
+#[allow(non_snake_case, dead_code)]
+mod __cursed {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    pub trait Projection<T> {
+        fn with(&self, f: &mut dyn FnMut(&T));
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
     }
-    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
-        f(&mut *self.borrow_mut());
+    impl<T> Projection<T> for RefCell<T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            f(&*self.borrow());
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            f(&mut *self.borrow_mut());
+        }
     }
-}
-#[allow(dead_code)]
-struct __cursed_Projector<Parent, T> {
-    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
-    project: fn(&Parent) -> &T,
-    project_mut: fn(&mut Parent) -> &mut T,
-}
-impl<Parent: 'static, T: 'static> __cursed_Projection<T>
-for __cursed_Projector<Parent, T> {
-    fn with(&self, f: &mut dyn FnMut(&T)) {
-        let parent = self.parent.borrow().clone();
-        parent.with(&mut |p| f((self.project)(p)));
+    pub struct Projector<Parent, T> {
+        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+        pub project: fn(&Parent) -> &T,
+        pub project_mut: fn(&mut Parent) -> &mut T,
     }
-    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
-        let parent = self.parent.borrow().clone();
-        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with(&mut |p| f((self.project)(p)));
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with_mut(&mut |p| f((self.project_mut)(p)));
+        }
+    }
+    pub enum Coerced<T> {
+        Projected(Rc<dyn Projection<T>>),
+        Owned(T),
+    }
+    impl<T: 'static> Coerced<T> {
+        pub fn with(&self, f: &mut dyn FnMut(&T)) {
+            match self {
+                Self::Projected(p) => p.with(f),
+                Self::Owned(v) => f(v),
+            }
+        }
+        pub fn with_mut(&mut self, f: &mut dyn FnMut(&mut T)) {
+            match self {
+                Self::Projected(p) => p.with_mut(f),
+                Self::Owned(v) => f(v),
+            }
+        }
+        pub fn into_owned(self) -> T
+        where
+            T: Clone,
+        {
+            match self {
+                Self::Projected(p) => {
+                    let mut out = None;
+                    p.with(&mut |v| out = Some(v.clone()));
+                    out.unwrap()
+                }
+                Self::Owned(v) => v,
+            }
+        }
     }
 }
 /// class wrapper for `crate::inner::Inner`
 #[napi(js_name = "__cursed_rustdoc_test_crate__inner__Inner")]
 pub struct __cursed_rustdoc_test_crate__inner__Inner {
-    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::inner::Inner>>>>,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::inner::Inner>>>>,
 }
 #[napi]
 impl __cursed_rustdoc_test_crate__inner__Inner {
-    #[napi(constructor)]
-    pub fn new(__cursed_arg_x: i32) -> Self {
-        Self {
-            __cursed_root: Rc::new(
-                RefCell::new(
-                    Rc::new(
-                        RefCell::new(crate::inner::Inner {
-                            x: __cursed_arg_x,
-                        }),
-                    ) as Rc<dyn __cursed_Projection<crate::inner::Inner>>,
-                ),
-            ),
-        }
-    }
     #[napi(getter, js_name = "x")]
     pub fn __cursed_get_x(&self) -> i32 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -162,6 +219,29 @@ impl __cursed_rustdoc_test_crate__inner__Inner {
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
+}
+#[allow(dead_code)]
+fn __cursed_coerce___cursed_rustdoc_test_crate__inner__Inner<'a>(
+    val: napi::bindgen_prelude::Unknown<'a>,
+) -> napi::Result<__cursed::Coerced<crate::inner::Inner>> {
+    let __cursed_env_raw = napi::JsValue::value(&val).env;
+    let __cursed_raw = napi::JsValue::raw(&val);
+    if let Ok(__cursed_inst) = unsafe {
+        napi::bindgen_prelude::ClassInstance::<
+            __cursed_rustdoc_test_crate__inner__Inner,
+        >::from_napi_value(__cursed_env_raw, __cursed_raw)
+    } {
+        return Ok(
+            __cursed::Coerced::Projected(__cursed_inst.__cursed_root.borrow().clone()),
+        );
+    }
+    Err(
+        napi::Error::from_reason(
+            format!(
+                "expected an instance of class `Inner`; got a plain object, but `Inner` cannot be built from an object literal (private fields or non-clonable struct child)"
+            ),
+        ),
+    )
 }
 ```
 
@@ -178,7 +258,7 @@ export class Inner {
 
     x: number;
 
-    constructor(x: number);
+    private constructor();
 }
 ```
 
@@ -334,6 +414,7 @@ Asg {
                 ),
                 impls: [],
                 docs: None,
+                has_private_fields: false,
             },
         ),
     ],
@@ -458,20 +539,8 @@ Ir {
                         docs: None,
                     },
                 ],
-                ctor: Some(
-                    Implicit {
-                        params: [
-                            FnParam {
-                                name: "x",
-                                mode: ByValue,
-                                ty: Primitive(
-                                    i32,
-                                ),
-                                needs_stash: false,
-                            },
-                        ],
-                    },
-                ),
+                ctor: None,
+                struct_expr: None,
                 clonable: false,
                 docs: None,
             },

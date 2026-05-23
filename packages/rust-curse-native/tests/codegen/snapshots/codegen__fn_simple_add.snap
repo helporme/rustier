@@ -17,8 +17,8 @@ pub fn add(a: i32, b: i32) -> i32 {
 use wasm_bindgen::prelude::*;
 /// fn glue for `crate::add`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__add")]
-pub fn __cursed_rustdoc_test_crate__add(a: i32, b: i32) -> i32 {
-    crate::add(a, b)
+pub fn __cursed_rustdoc_test_crate__add(a: i32, b: i32) -> Result<i32, JsValue> {
+    Ok(crate::add(a, b))
 }
 ```
 
@@ -26,11 +26,13 @@ pub fn __cursed_rustdoc_test_crate__add(a: i32, b: i32) -> i32 {
 
 ```rs
 #![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
+use napi::JsValue as _;
 use napi_derive::napi;
 /// fn glue for `crate::add`
 #[napi(js_name = "__cursed_rustdoc_test_crate__add")]
-pub fn __cursed_rustdoc_test_crate__add(a: i32, b: i32) -> i32 {
-    crate::add(a, b)
+pub fn __cursed_rustdoc_test_crate__add(a: i32, b: i32) -> napi::Result<i32> {
+    Ok(crate::add(a, b))
 }
 ```
 

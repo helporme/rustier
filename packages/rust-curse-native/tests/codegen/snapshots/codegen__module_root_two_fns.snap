@@ -20,13 +20,13 @@ pub fn square2(x: f64) -> f64 {
 use wasm_bindgen::prelude::*;
 /// fn glue for `crate::square`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__square")]
-pub fn __cursed_rustdoc_test_crate__square(x: f64) -> f64 {
-    crate::square(x)
+pub fn __cursed_rustdoc_test_crate__square(x: f64) -> Result<f64, JsValue> {
+    Ok(crate::square(x))
 }
 /// fn glue for `crate::square2`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__square2")]
-pub fn __cursed_rustdoc_test_crate__square2(x: f64) -> f64 {
-    crate::square2(x)
+pub fn __cursed_rustdoc_test_crate__square2(x: f64) -> Result<f64, JsValue> {
+    Ok(crate::square2(x))
 }
 ```
 
@@ -34,16 +34,18 @@ pub fn __cursed_rustdoc_test_crate__square2(x: f64) -> f64 {
 
 ```rs
 #![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
+use napi::JsValue as _;
 use napi_derive::napi;
 /// fn glue for `crate::square`
 #[napi(js_name = "__cursed_rustdoc_test_crate__square")]
-pub fn __cursed_rustdoc_test_crate__square(x: f64) -> f64 {
-    crate::square(x)
+pub fn __cursed_rustdoc_test_crate__square(x: f64) -> napi::Result<f64> {
+    Ok(crate::square(x))
 }
 /// fn glue for `crate::square2`
 #[napi(js_name = "__cursed_rustdoc_test_crate__square2")]
-pub fn __cursed_rustdoc_test_crate__square2(x: f64) -> f64 {
-    crate::square2(x)
+pub fn __cursed_rustdoc_test_crate__square2(x: f64) -> napi::Result<f64> {
+    Ok(crate::square2(x))
 }
 ```
 

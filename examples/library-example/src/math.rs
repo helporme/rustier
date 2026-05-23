@@ -10,7 +10,7 @@ pub struct Point {
     pub y: f64,
 }
 
-pub fn is_inside(circle: &mut Circle, point: &Point) -> bool {
+pub fn is_inside(circle: &Circle, point: &Point) -> bool {
     is_inside_move(circle.clone(), point.clone())
 }
 

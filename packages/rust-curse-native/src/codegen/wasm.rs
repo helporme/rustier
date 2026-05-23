@@ -3,7 +3,8 @@
 use std::collections::HashSet;
 
 use super::ir::{
-    rust_path, ClassDef, ClassField, Ctor, FnParam, Ir, IrId, Item, ParamMode, Primitive, Type,
+    rust_path, ClassDef, ClassField, CtorDef, FnParam, Ir, IrId, Item, ParamMode, Primitive,
+    StructExpr, Type,
 };
 use super::mangle::{self, is_canonical_origin};
 use super::projection::PROJECTION_PREAMBLE;
@@ -44,6 +45,8 @@ impl<'a> Printer<'a> {
             }
             out.push('\n');
             out.push_str(&self.print_class_wrappers(def.id));
+            out.push('\n');
+            out.push_str(&self.print_coercer(def.id));
         }
 
         for i in 0..self.ir.items.len() {
@@ -85,13 +88,13 @@ impl<'a> Printer<'a> {
             "#[wasm_bindgen(js_name = \"{mangled}\")]\npub struct {mangled} {{\n"
         ));
         out.push_str(&format!(
-            "    {root}: Rc<RefCell<Rc<dyn __cursed_Projection<{orig}>>>>,\n"
+            "    {root}: Rc<RefCell<Rc<dyn __cursed::Projection<{orig}>>>>,\n"
         ));
         for field in &def.fields {
             if let Type::Class(child) = &field.ty {
                 let child_orig = self.class_orig(*child);
                 out.push_str(&format!(
-                    "    {}: Option<Weak<RefCell<Rc<dyn __cursed_Projection<{child_orig}>>>>>,\n",
+                    "    {}: Option<Weak<RefCell<Rc<dyn __cursed::Projection<{child_orig}>>>>>,\n",
                     mangle::cache_field(&field.orig_name),
                 ));
             }
@@ -102,6 +105,12 @@ impl<'a> Printer<'a> {
         if let Some(ctor) = &def.ctor {
             out.push_str(&self.print_ctor(&def, ctor, &orig));
         }
+        if let Some(se) = &def.struct_expr {
+            if def.ctor.is_some() {
+                out.push('\n');
+            }
+            out.push_str(&self.print_of(&def, se, &orig));
+        }
         for field in &def.fields {
             out.push('\n');
             out.push_str(&self.print_getter_setter(field));
@@ -111,49 +120,94 @@ impl<'a> Printer<'a> {
         out
     }
 
-    fn print_ctor(&self, def: &ClassDef, ctor: &Ctor, orig: &str) -> String {
-        let params = match ctor {
-            Ctor::Explicit { params } | Ctor::Implicit { params } => params,
-        };
+    fn print_coercer(&self, cid: IrId) -> String {
+        let def = self.ir.get_class_unchecked(cid).clone();
+        let orig = rust_path(&def.path, &self.ir.crate_name);
+        let mangled = &def.mangled_name;
+        let coerce = format!("__cursed_coerce_{mangled}");
 
-        // Snapshot every struct-typed arg into an owned value (the single
-        // permitted move-in clone). Primitive args are consumed directly.
+        let mut out = String::new();
+        out.push_str(&format!(
+            "#[allow(dead_code)]\nfn {coerce}(val: JsValue) -> Result<__cursed::Coerced<{orig}>, JsValue> {{\n"
+        ));
+
+        // wasm-bindgen does not auto-impl `JsCast` for exported `pub struct`s
+        // (only for `extern \"C\"` imports), so we can't `dyn_ref::<Self>()` to
+        // peek inside an instance non-destructively. We rely on the fact that
+        // `js_sys::Reflect::get` on a wasm-bindgen class instance dispatches
+        // through the getter methods we emit, so it returns the same shape as
+        // a plain object literal would. A class instance round-tripping
+        // through `.of` thus produces an owned copy via the getters.
+        if let Some(se) = &def.struct_expr {
+            for f in &se.fields {
+                let name = &f.name;
+                match &f.ty {
+                    Type::Primitive(prim) => {
+                        out.push_str(&format!(
+                            "    let __cursed_raw_{name} = js_sys::Reflect::get(&val, &JsValue::from_str(\"{name}\"))?;\n",
+                        ));
+                        out.push_str(&format!(
+                            "    let __cursed_field_{name}: {ty} = {expr};\n",
+                            ty = primitive_to_rs(prim),
+                            expr =
+                                primitive_from_jsvalue(prim, &format!("__cursed_raw_{name}"), name),
+                        ));
+                    }
+                    Type::Class(child) => {
+                        let child_coerce = format!(
+                            "__cursed_coerce_{}",
+                            self.ir.get_class_unchecked(*child).mangled_name
+                        );
+                        let child_orig = self.class_orig(*child);
+                        out.push_str(&format!(
+                            "    let __cursed_raw_{name} = js_sys::Reflect::get(&val, &JsValue::from_str(\"{name}\"))?;\n",
+                        ));
+                        out.push_str(&format!(
+                            "    let __cursed_field_{name}: {child_orig} = {child_coerce}(__cursed_raw_{name})?.into_owned();\n",
+                        ));
+                    }
+                }
+            }
+            let inits: Vec<String> = se
+                .fields
+                .iter()
+                .map(|f| format!("{name}: __cursed_field_{name}", name = f.name))
+                .collect();
+            out.push_str(&format!(
+                "    Ok(__cursed::Coerced::Owned({orig} {{ {} }}))\n",
+                inits.join(", ")
+            ));
+        } else {
+            out.push_str(&format!(
+                "    let _ = val;\n    Err(JsValue::from_str(\"`{js}` cannot be constructed from JS: it has private fields or a non-clonable struct child\"))\n",
+                js = def.js_name,
+            ));
+        }
+        out.push_str("}\n");
+        out
+    }
+
+    fn print_ctor(&self, def: &ClassDef, ctor: &CtorDef, orig: &str) -> String {
+        let params = &ctor.params;
+
         let mut body = String::new();
         for p in params {
             if matches!(p.ty, Type::Class(_)) {
-                body.push_str(&self.unwrap_struct_arg(p));
+                body.push_str(&self.coerce_struct_arg(p));
             }
         }
 
-        let built = match ctor {
-            Ctor::Implicit { .. } => {
-                let inits: Vec<String> = params
-                    .iter()
-                    .map(|p| {
-                        let f = &p.name;
-                        if matches!(p.ty, Type::Class(_)) {
-                            format!("{f}: {}.take().unwrap()", val_local(f))
-                        } else {
-                            format!("{f}: {}", mangle::arg_name(f))
-                        }
-                    })
-                    .collect();
-                format!("{orig} {{ {} }}", inits.join(", "))
-            }
-            Ctor::Explicit { .. } => {
-                let args: Vec<String> = params
-                    .iter()
-                    .map(|p| {
-                        if matches!(p.ty, Type::Class(_)) {
-                            format!("{}.take().unwrap()", val_local(&p.name))
-                        } else {
-                            mangle::arg_name(&p.name)
-                        }
-                    })
-                    .collect();
-                format!("{orig}::new({})", args.join(", "))
-            }
-        };
+        let args: Vec<String> = params
+            .iter()
+            .map(|p| {
+                if matches!(p.ty, Type::Class(_)) {
+                    format!("{}.into_owned()", co_local(&p.name))
+                } else {
+                    mangle::arg_name(&p.name)
+                }
+            })
+            .collect();
+        let built = format!("{orig}::new({})", args.join(", "));
 
         let root_init = self.wrap_into_base_projection(orig, &built);
 
@@ -168,9 +222,30 @@ impl<'a> Printer<'a> {
         }
 
         format!(
-            "    #[wasm_bindgen(constructor)]\n    pub fn new({}) -> Self {{\n{body}        Self {{\n            {}: {root_init},\n{cache_inits}        }}\n    }}\n",
+            "    #[wasm_bindgen(constructor)]\n    pub fn new({}) -> Result<Self, JsValue> {{\n{body}        Ok(Self {{\n            {}: {root_init},\n{cache_inits}        }})\n    }}\n",
             self.render_ctor_params(params),
             mangle::ROOT_FIELD,
+        )
+    }
+
+    fn print_of(&self, def: &ClassDef, _se: &StructExpr, orig: &str) -> String {
+        let coerce = format!("__cursed_coerce_{}", def.mangled_name);
+        let root_init = self.wrap_into_base_projection(orig, "__cursed_owned");
+
+        let mut cache_inits = String::new();
+        for field in &def.fields {
+            if matches!(field.ty, Type::Class(_)) {
+                cache_inits.push_str(&format!(
+                    "            {}: None,\n",
+                    mangle::cache_field(&field.orig_name)
+                ));
+            }
+        }
+
+        format!(
+            "    #[wasm_bindgen(js_name = of)]\n    pub fn of(init: JsValue) -> Result<{cls}, JsValue> {{\n        let __cursed_owned: {orig} = {coerce}(init)?.into_owned();\n        Ok({cls} {{\n            {}: {root_init},\n{cache_inits}        }})\n    }}\n",
+            mangle::ROOT_FIELD,
+            cls = def.mangled_name,
         )
     }
 
@@ -197,9 +272,6 @@ impl<'a> Printer<'a> {
             ));
         }
         if field.has_setter {
-            // The assignment runs inside an `FnMut`, which can't move a
-            // captured non-`Copy` value (e.g. `String`) out; `Option::take`
-            // lifts it without re-cloning and stays uniform for `Copy` types.
             out.push_str(&format!(
                 "    #[wasm_bindgen(setter, js_name = \"{js}\")]\n    pub fn {setter}(&self, {arg}: {ty}) {{\n        let __cursed_proj = self.{root}.borrow().clone();\n        let mut __cursed_arg = Some({arg});\n        __cursed_proj.with_mut(&mut |__cursed_p| __cursed_p.{orig} = __cursed_arg.take().unwrap());\n    }}\n",
                 setter = mangle::setter_fn(orig),
@@ -221,14 +293,14 @@ impl<'a> Printer<'a> {
         let mut out = String::new();
         if field.has_getter {
             out.push_str(&format!(
-                "    #[wasm_bindgen(getter, js_name = \"{js}\")]\n    pub fn {getter}(&mut self) -> {child_mangled} {{\n        if let Some(__cursed_cell) = self.{cache}.as_ref().and_then(Weak::upgrade) {{\n            return {child_lit};\n        }}\n        let __cursed_proj: Rc<dyn __cursed_Projection<{child_orig}>> = Rc::new(__cursed_Projector {{\n            parent: self.{root}.clone(),\n            project: |__cursed_p| &__cursed_p.{orig},\n            project_mut: |__cursed_p| &mut __cursed_p.{orig},\n        }});\n        let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));\n        self.{cache} = Some(Rc::downgrade(&__cursed_cell));\n        {child_lit}\n    }}\n",
+                "    #[wasm_bindgen(getter, js_name = \"{js}\")]\n    pub fn {getter}(&mut self) -> {child_mangled} {{\n        if let Some(__cursed_cell) = self.{cache}.as_ref().and_then(Weak::upgrade) {{\n            return {child_lit};\n        }}\n        let __cursed_proj: Rc<dyn __cursed::Projection<{child_orig}>> = Rc::new(__cursed::Projector {{\n            parent: self.{root}.clone(),\n            project: |__cursed_p| &__cursed_p.{orig},\n            project_mut: |__cursed_p| &mut __cursed_p.{orig},\n        }});\n        let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));\n        self.{cache} = Some(Rc::downgrade(&__cursed_cell));\n        {child_lit}\n    }}\n",
                 getter = mangle::getter_fn(orig),
             ));
         }
         if field.has_setter {
             let arg = mangle::arg_name(orig);
             out.push_str(&format!(
-                "    #[wasm_bindgen(setter, js_name = \"{js}\")]\n    pub fn {setter}(&mut self, {arg}: &{child_mangled}) {{\n        let mut __cursed_new_val: Option<{child_orig}> = None;\n        {arg}.{root}.borrow().with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));\n        if let Some(__cursed_cell) = self.{cache}.as_ref().and_then(Weak::upgrade) {{\n            let __cursed_proj = __cursed_cell.borrow().clone();\n            let mut __cursed_snap: Option<{child_orig}> = None;\n            __cursed_proj.with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));\n            *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap())) as Rc<dyn __cursed_Projection<{child_orig}>>;\n            self.{cache} = None;\n        }}\n        let __cursed_parent = self.{root}.borrow().clone();\n        __cursed_parent.with_mut(&mut |__cursed_p| {{\n            __cursed_p.{orig} = __cursed_new_val.take().unwrap();\n        }});\n    }}\n",
+                "    #[wasm_bindgen(setter, js_name = \"{js}\")]\n    pub fn {setter}(&mut self, {arg}: &{child_mangled}) {{\n        let mut __cursed_new_val: Option<{child_orig}> = None;\n        {arg}.{root}.borrow().with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));\n        if let Some(__cursed_cell) = self.{cache}.as_ref().and_then(Weak::upgrade) {{\n            let __cursed_proj = __cursed_cell.borrow().clone();\n            let mut __cursed_snap: Option<{child_orig}> = None;\n            __cursed_proj.with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));\n            *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap())) as Rc<dyn __cursed::Projection<{child_orig}>>;\n            self.{cache} = None;\n        }}\n        let __cursed_parent = self.{root}.borrow().clone();\n        __cursed_parent.with_mut(&mut |__cursed_p| {{\n            __cursed_p.{orig} = __cursed_new_val.take().unwrap();\n        }});\n    }}\n",
                 setter = mangle::setter_fn(orig),
             ));
         }
@@ -241,25 +313,23 @@ impl<'a> Printer<'a> {
         let orig_path = rust_path(&fn_def.path, &self.ir.crate_name);
         let is_unit = matches!(fn_def.return_type, Type::Primitive(Primitive::Unit));
 
-        // Outer-scope statements: by-value struct snapshots, by-ref/by-mut
-        // projection handles (pointer clones only), and owned-string stashes.
         let mut pre = String::new();
         for p in &fn_def.params {
             match (&p.ty, &p.mode) {
-                (Type::Class(child), ParamMode::ByValue) => {
-                    let orig_ty = self.class_orig(*child);
+                (Type::Class(child), _) => {
+                    let coerce = format!(
+                        "__cursed_coerce_{}",
+                        self.ir.get_class_unchecked(*child).mangled_name
+                    );
+                    let mut_ = if matches!(p.mode, ParamMode::ByMut) {
+                        "mut "
+                    } else {
+                        ""
+                    };
                     pre.push_str(&format!(
-                        "    let mut {val}: Option<{orig_ty}> = None;\n    {name}.{root}.borrow().with(&mut |__cursed_p| {val} = Some(__cursed_p.clone()));\n",
-                        val = val_local(&p.name),
+                        "    let {mut_}{co} = {coerce}({name})?;\n",
+                        co = co_local(&p.name),
                         name = p.name,
-                        root = mangle::ROOT_FIELD,
-                    ));
-                }
-                (Type::Class(_), ParamMode::ByRef | ParamMode::ByMut) => {
-                    pre.push_str(&format!(
-                        "    let __cursed_proj_{name} = {name}.{root}.borrow().clone();\n",
-                        name = p.name,
-                        root = mangle::ROOT_FIELD,
                     ));
                 }
                 _ if p.needs_stash => {
@@ -277,6 +347,16 @@ impl<'a> Printer<'a> {
             }
         }
 
+        for p in &fn_def.params {
+            if matches!(p.ty, Type::Class(_)) && matches!(p.mode, ParamMode::ByValue) {
+                pre.push_str(&format!(
+                    "    let {val} = {co}.into_owned();\n",
+                    val = val_local(&p.name),
+                    co = co_local(&p.name),
+                ));
+            }
+        }
+
         let call_args: Vec<String> = fn_def
             .params
             .iter()
@@ -287,10 +367,10 @@ impl<'a> Printer<'a> {
         let mut body = pre;
         if !fn_def.needs_closure_scope {
             if is_unit {
-                body.push_str(&format!("    {call};\n"));
+                body.push_str(&format!("    {call};\n    Ok(())\n"));
             } else {
                 body.push_str(&format!(
-                    "    {}\n",
+                    "    Ok({})\n",
                     self.wrap_return_tail(&fn_def.return_type, &call)
                 ));
             }
@@ -314,16 +394,19 @@ impl<'a> Printer<'a> {
                 };
                 let name = &p.name;
                 nested = format!(
-                    "__cursed_proj_{name}.{method}(&mut |__cursed_{name}| {{\n{nested}\n}});"
+                    "{co}.{method}(&mut |__cursed_{name}| {{\n{nested}\n}});",
+                    co = co_local(name),
                 );
             }
             body.push_str(&format!("    {nested}\n"));
             if !is_unit {
                 body.push_str("    let __cursed_ret_val = __cursed_ret.unwrap();\n");
                 body.push_str(&format!(
-                    "    {}\n",
+                    "    Ok({})\n",
                     self.wrap_return_tail(&fn_def.return_type, "__cursed_ret_val"),
                 ));
+            } else {
+                body.push_str("    Ok(())\n");
             }
         }
 
@@ -335,25 +418,24 @@ impl<'a> Printer<'a> {
         out.push_str(&format!("#[wasm_bindgen(js_name = \"{glue}\")]\n"));
         let params_sig = self.render_fn_params(&fn_def.params);
         if is_unit {
-            out.push_str(&format!("pub fn {glue}({params_sig}) {{\n{body}}}\n"));
+            out.push_str(&format!(
+                "pub fn {glue}({params_sig}) -> Result<(), JsValue> {{\n{body}}}\n"
+            ));
         } else {
             let ret_ty = self.type_to_rs(&fn_def.return_type);
             out.push_str(&format!(
-                "pub fn {glue}({params_sig}) -> {ret_ty} {{\n{body}}}\n"
+                "pub fn {glue}({params_sig}) -> Result<{ret_ty}, JsValue> {{\n{body}}}\n"
             ));
         }
         out
     }
 
-    /// `Rc::new(RefCell::new(Rc::new(RefCell::new(<value>)) as Rc<dyn ...>))`.
     fn wrap_into_base_projection(&self, orig_ty: &str, value_expr: &str) -> String {
         format!(
-            "Rc::new(RefCell::new(Rc::new(RefCell::new({value_expr})) as Rc<dyn __cursed_Projection<{orig_ty}>>))"
+            "Rc::new(RefCell::new(Rc::new(RefCell::new({value_expr})) as Rc<dyn __cursed::Projection<{orig_ty}>>))"
         )
     }
 
-    /// A wrapper struct literal with `__cursed_root` set to `root_expr` and
-    /// every cache slot initialized to `None`.
     fn empty_wrapper_literal(&self, cid: IrId, root_expr: &str) -> String {
         let def = self.ir.get_class_unchecked(cid);
         let mut s = format!(
@@ -373,23 +455,21 @@ impl<'a> Printer<'a> {
         s
     }
 
-    /// Snapshot a struct-typed arg into `Option<<orig>>` so step 2 can
-    /// `.take()` it without re-cloning.
-    fn unwrap_struct_arg(&self, p: &FnParam) -> String {
+    fn coerce_struct_arg(&self, p: &FnParam) -> String {
         let Type::Class(child) = &p.ty else {
-            unreachable!("unwrap_struct_arg called on non-struct param")
+            unreachable!("coerce_struct_arg called on non-struct param")
         };
-        let orig_ty = self.class_orig(*child);
+        let coerce = format!(
+            "__cursed_coerce_{}",
+            self.ir.get_class_unchecked(*child).mangled_name
+        );
         format!(
-            "        let mut {val}: Option<{orig_ty}> = None;\n        {arg}.{root}.borrow().with(&mut |__cursed_p| {val} = Some(__cursed_p.clone()));\n",
-            val = val_local(&p.name),
+            "        let {co} = {coerce}({arg})?;\n",
+            co = co_local(&p.name),
             arg = mangle::arg_name(&p.name),
-            root = mangle::ROOT_FIELD,
         )
     }
 
-    /// Return-position tail expression: a struct return is moved (not cloned)
-    /// into a fresh base projection; a primitive return is bare.
     fn wrap_return_tail(&self, ty: &Type, value_expr: &str) -> String {
         match ty {
             Type::Class(cid) => {
@@ -405,7 +485,7 @@ impl<'a> Printer<'a> {
         match (&p.ty, &p.mode) {
             (Type::Class(_), ParamMode::ByRef | ParamMode::ByMut) => format!("__cursed_{}", p.name),
             (Type::Class(_), ParamMode::ByValue) => {
-                format!("{}.take().unwrap()", val_local(&p.name))
+                format!("{}.clone()", val_local(&p.name))
             }
             (Type::Primitive(Primitive::Str), _) => format!("&{}", p.name),
             _ if p.needs_stash => format!("{}.take().unwrap()", owned_local(&p.name)),
@@ -420,7 +500,7 @@ impl<'a> Printer<'a> {
                 format!(
                     "{}: {}",
                     mangle::arg_name(&p.name),
-                    self.param_type_to_rs(p)
+                    self.ctor_param_type_to_rs(p)
                 )
             })
             .collect::<Vec<_>>()
@@ -430,26 +510,25 @@ impl<'a> Printer<'a> {
     fn render_fn_params(&self, params: &[FnParam]) -> String {
         params
             .iter()
-            .map(|p| format!("{}: {}", p.name, self.param_type_to_rs(p)))
+            .map(|p| format!("{}: {}", p.name, self.fn_param_type_to_rs(p)))
             .collect::<Vec<_>>()
             .join(", ")
     }
 
-    fn param_type_to_rs(&self, p: &FnParam) -> String {
-        if let Type::Class(cid) = &p.ty {
-            let handle = self.ir.get_class_unchecked(*cid).mangled_name.clone();
-            // napi/wasm-bindgen classes can't cross the FFI boundary by value,
-            // only by reference. A by-value param is borrowed here and its
-            // underlying value is snapshotted (cloned) in the body.
-            return match p.mode {
-                ParamMode::ByMut => format!("&mut {handle}"),
-                ParamMode::ByRef | ParamMode::ByValue => format!("&{handle}"),
-            };
+    fn ctor_param_type_to_rs(&self, p: &FnParam) -> String {
+        if matches!(p.ty, Type::Class(_)) {
+            return "JsValue".to_string();
         }
         self.type_to_rs(&p.ty)
     }
 
-    /// Wrapper / primitive type as it appears on the FFI signature.
+    fn fn_param_type_to_rs(&self, p: &FnParam) -> String {
+        if matches!(p.ty, Type::Class(_)) {
+            return "JsValue".to_string();
+        }
+        self.type_to_rs(&p.ty)
+    }
+
     fn type_to_rs(&self, ty: &Type) -> String {
         match ty {
             Type::Primitive(p) => primitive_to_rs(p).to_string(),
@@ -457,8 +536,6 @@ impl<'a> Printer<'a> {
         }
     }
 
-    /// Owned underlying type used for the `__cursed_ret` capture slot: the
-    /// original struct path for a class, the primitive otherwise.
     fn type_to_rs_owned(&self, ty: &Type) -> String {
         match ty {
             Type::Class(cid) => self.class_orig(*cid),
@@ -473,6 +550,10 @@ impl<'a> Printer<'a> {
 
 fn val_local(name: &str) -> String {
     format!("__cursed_{name}_val")
+}
+
+fn co_local(name: &str) -> String {
+    format!("__cursed_co_{name}")
 }
 
 fn owned_local(name: &str) -> String {
@@ -497,6 +578,37 @@ fn primitive_to_rs(p: &Primitive) -> &'static str {
         Primitive::usize => "usize",
         Primitive::f32 => "f32",
         Primitive::f64 => "f64",
+    }
+}
+
+/// Build an expression that converts `raw` (a `JsValue`) into the given
+/// primitive Rust type, or produces an error tagged with the field name.
+fn primitive_from_jsvalue(p: &Primitive, raw: &str, field: &str) -> String {
+    let err = |what: &str| {
+        format!(
+            "JsValue::from_str(\"field `{field}`: expected {what}\")",
+            field = field,
+            what = what,
+        )
+    };
+    match p {
+        Primitive::Boolean => format!("{raw}.as_bool().ok_or_else(|| {})?", err("boolean")),
+        Primitive::String | Primitive::Str | Primitive::Char => {
+            format!("{raw}.as_string().ok_or_else(|| {})?", err("string"))
+        }
+        Primitive::f64 => format!("{raw}.as_f64().ok_or_else(|| {})?", err("number")),
+        Primitive::f32 => format!("{raw}.as_f64().ok_or_else(|| {})? as f32", err("number")),
+        Primitive::i8 => format!("{raw}.as_f64().ok_or_else(|| {})? as i8", err("number")),
+        Primitive::u8 => format!("{raw}.as_f64().ok_or_else(|| {})? as u8", err("number")),
+        Primitive::i16 => format!("{raw}.as_f64().ok_or_else(|| {})? as i16", err("number")),
+        Primitive::u16 => format!("{raw}.as_f64().ok_or_else(|| {})? as u16", err("number")),
+        Primitive::i32 => format!("{raw}.as_f64().ok_or_else(|| {})? as i32", err("number")),
+        Primitive::u32 => format!("{raw}.as_f64().ok_or_else(|| {})? as u32", err("number")),
+        Primitive::i64 => format!("{raw}.try_into().map_err(|_| {})?", err("bigint")),
+        Primitive::u64 => format!("{raw}.try_into().map_err(|_| {})?", err("bigint")),
+        Primitive::isize => format!("{raw}.as_f64().ok_or_else(|| {})? as isize", err("number")),
+        Primitive::usize => format!("{raw}.as_f64().ok_or_else(|| {})? as usize", err("number")),
+        Primitive::Unit => "()".to_string(),
     }
 }
 

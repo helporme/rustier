@@ -121,6 +121,7 @@ pub struct StructDef {
     pub shape: StructShape,
     pub impls: Vec<AsgId>,
     pub docs: Option<String>,
+    pub has_private_fields: bool,
 }
 
 /// Shape of a struct or enum variant payload.
