@@ -97,11 +97,11 @@ pub struct __cursed_rustdoc_test_crate__Token {
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Token {
     #[wasm_bindgen(constructor)]
-    pub fn new(__cursed_arg_raw: String) -> Result<Self, JsValue> {
+    pub fn new(__cursed_arg__raw: String) -> Result<Self, JsValue> {
         Ok(Self {
             __cursed_root: Rc::new(
                 RefCell::new(
-                    Rc::new(RefCell::new(crate::Token::new(__cursed_arg_raw)))
+                    Rc::new(RefCell::new(crate::Token::new(__cursed_arg__raw)))
                         as Rc<dyn __cursed::Projection<crate::Token>>,
                 ),
             ),
@@ -205,11 +205,11 @@ pub struct __cursed_rustdoc_test_crate__Token {
 #[napi]
 impl __cursed_rustdoc_test_crate__Token {
     #[napi(constructor)]
-    pub fn new(__cursed_arg_raw: String) -> napi::Result<Self> {
+    pub fn new(__cursed_arg__raw: String) -> napi::Result<Self> {
         Ok(Self {
             __cursed_root: Rc::new(
                 RefCell::new(
-                    Rc::new(RefCell::new(crate::Token::new(__cursed_arg_raw)))
+                    Rc::new(RefCell::new(crate::Token::new(__cursed_arg__raw)))
                         as Rc<dyn __cursed::Projection<crate::Token>>,
                 ),
             ),
@@ -492,6 +492,8 @@ Ir {
                     },
                 ),
                 struct_expr: None,
+                methods: [],
+                of_escaped: false,
                 clonable: false,
                 docs: None,
             },

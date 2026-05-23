@@ -3,8 +3,8 @@
 use std::collections::HashSet;
 
 use super::ir::{
-    rust_path, ClassDef, ClassField, CtorDef, FnParam, Ir, IrId, Item, ParamMode, Primitive,
-    StructExpr, Type,
+    rust_path, ClassDef, ClassField, CtorDef, FnDef, FnParam, Ir, IrId, Item, ParamMode, Primitive,
+    Receiver, StructExpr, Type,
 };
 use super::mangle::{self, is_canonical_origin};
 use super::projection::PROJECTION_PREAMBLE;
@@ -114,6 +114,11 @@ impl<'a> Printer<'a> {
         for field in &def.fields {
             out.push('\n');
             out.push_str(&self.print_getter_setter(field));
+        }
+        for &mid in &def.methods {
+            let fn_def = self.ir.get_fn_unchecked(mid).clone();
+            out.push('\n');
+            out.push_str(&self.print_method(&fn_def, &orig));
         }
         out.push_str("}\n");
 
@@ -231,6 +236,8 @@ impl<'a> Printer<'a> {
     fn print_of(&self, def: &ClassDef, _se: &StructExpr, orig: &str) -> String {
         let coerce = format!("__cursed_coerce_{}", def.mangled_name);
         let root_init = self.wrap_into_base_projection(orig, "__cursed_owned");
+        let js_name = if def.of_escaped { "of$" } else { "of" };
+        let rust_ident = "of";
 
         let mut cache_inits = String::new();
         for field in &def.fields {
@@ -243,7 +250,7 @@ impl<'a> Printer<'a> {
         }
 
         format!(
-            "    #[wasm_bindgen(js_name = of)]\n    pub fn of(init: JsValue) -> Result<{cls}, JsValue> {{\n        let __cursed_owned: {orig} = {coerce}(init)?.into_owned();\n        Ok({cls} {{\n            {}: {root_init},\n{cache_inits}        }})\n    }}\n",
+            "    #[wasm_bindgen(js_name = \"{js_name}\")]\n    pub fn {rust_ident}(init: JsValue) -> Result<{cls}, JsValue> {{\n        let __cursed_owned: {orig} = {coerce}(init)?.into_owned();\n        Ok({cls} {{\n            {}: {root_init},\n{cache_inits}        }})\n    }}\n",
             mangle::ROOT_FIELD,
             cls = def.mangled_name,
         )
@@ -425,6 +432,182 @@ impl<'a> Printer<'a> {
             let ret_ty = self.type_to_rs(&fn_def.return_type);
             out.push_str(&format!(
                 "pub fn {glue}({params_sig}) -> Result<{ret_ty}, JsValue> {{\n{body}}}\n"
+            ));
+        }
+        out
+    }
+
+    /// Emit a method (instance or static) inside a class wrapper's
+    /// `#[wasm_bindgen] impl` block.
+    fn print_method(&self, fn_def: &FnDef, class_orig: &str) -> String {
+        let receiver = fn_def.receiver;
+        let js_name = &fn_def.js_name;
+        let method_name = fn_def.path.name().unwrap_or("anon");
+        let method_ident = mangle::method_fn(method_name);
+        // UFCS: rustdoc loses the impl context in `path`, so it would render
+        // as just the method name. Reach back to the class's canonical path
+        // so the user fn resolves unambiguously across modules and impls.
+        let user_path = format!("{class_orig}::{method_name}");
+        let is_unit = matches!(fn_def.return_type, Type::Primitive(Primitive::Unit));
+
+        let self_sig = match receiver {
+            None => "".to_string(),
+            Some(Receiver::ByRef) | Some(Receiver::ByValue) => "&self".to_string(),
+            Some(Receiver::ByMut) => "&mut self".to_string(),
+        };
+
+        let mut pre = String::new();
+        match receiver {
+            None => {}
+            Some(Receiver::ByRef) | Some(Receiver::ByMut) => {
+                pre.push_str(&format!(
+                    "        let __cursed_proj_self = self.{root}.borrow().clone();\n",
+                    root = mangle::ROOT_FIELD,
+                ));
+            }
+            Some(Receiver::ByValue) => {
+                pre.push_str(&format!(
+                    "        let __cursed_self_val: {class_orig} = {{\n            let __cursed_proj = self.{root}.borrow().clone();\n            let mut __cursed_out: Option<{class_orig}> = None;\n            __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.clone()));\n            __cursed_out.unwrap()\n        }};\n",
+                    root = mangle::ROOT_FIELD,
+                ));
+            }
+        }
+
+        for p in &fn_def.params {
+            match (&p.ty, &p.mode) {
+                (Type::Class(child), _) => {
+                    let coerce = format!(
+                        "__cursed_coerce_{}",
+                        self.ir.get_class_unchecked(*child).mangled_name
+                    );
+                    let mut_ = if matches!(p.mode, ParamMode::ByMut) {
+                        "mut "
+                    } else {
+                        ""
+                    };
+                    pre.push_str(&format!(
+                        "        let {mut_}{co} = {coerce}({name})?;\n",
+                        co = co_local(&p.name),
+                        name = p.name,
+                    ));
+                }
+                _ if p.needs_stash => {
+                    pre.push_str(&format!(
+                        "        let mut {owned}: Option<{ty}> = Some({name});\n",
+                        owned = owned_local(&p.name),
+                        ty = primitive_to_rs(match &p.ty {
+                            Type::Primitive(prim) => prim,
+                            _ => unreachable!("needs_stash is only set on primitive params"),
+                        }),
+                        name = p.name,
+                    ));
+                }
+                _ => {}
+            }
+        }
+        for p in &fn_def.params {
+            if matches!(p.ty, Type::Class(_)) && matches!(p.mode, ParamMode::ByValue) {
+                pre.push_str(&format!(
+                    "        let {val} = {co}.into_owned();\n",
+                    val = val_local(&p.name),
+                    co = co_local(&p.name),
+                ));
+            }
+        }
+
+        let mut call_args: Vec<String> = Vec::new();
+        match receiver {
+            None => {}
+            Some(Receiver::ByRef) | Some(Receiver::ByMut) => {
+                call_args.push("__cursed_self".to_string());
+            }
+            Some(Receiver::ByValue) => {
+                call_args.push("__cursed_self_val".to_string());
+            }
+        }
+        for p in &fn_def.params {
+            call_args.push(self.param_call_expr(p));
+        }
+        let call = format!("{user_path}({})", call_args.join(", "));
+
+        let mut body = pre;
+        if !fn_def.needs_closure_scope {
+            if is_unit {
+                body.push_str(&format!("        {call};\n        Ok(())\n"));
+            } else {
+                body.push_str(&format!(
+                    "        Ok({})\n",
+                    self.wrap_return_tail(&fn_def.return_type, &call)
+                ));
+            }
+        } else {
+            if !is_unit {
+                body.push_str(&format!(
+                    "        let mut __cursed_ret: Option<{}> = None;\n",
+                    self.type_to_rs_owned(&fn_def.return_type),
+                ));
+            }
+            let mut nested = if is_unit {
+                format!("{call};")
+            } else {
+                format!("__cursed_ret = Some({call});")
+            };
+            for p in fn_def.params.iter().rev() {
+                let method = match (&p.ty, &p.mode) {
+                    (Type::Class(_), ParamMode::ByRef) => "with",
+                    (Type::Class(_), ParamMode::ByMut) => "with_mut",
+                    _ => continue,
+                };
+                let name = &p.name;
+                nested = format!(
+                    "{co}.{method}(&mut |__cursed_{name}| {{\n{nested}\n}});",
+                    co = co_local(name),
+                );
+            }
+            match receiver {
+                Some(Receiver::ByRef) => {
+                    nested =
+                        format!("__cursed_proj_self.with(&mut |__cursed_self| {{\n{nested}\n}});");
+                }
+                Some(Receiver::ByMut) => {
+                    nested = format!(
+                        "__cursed_proj_self.with_mut(&mut |__cursed_self| {{\n{nested}\n}});"
+                    );
+                }
+                _ => {}
+            }
+            body.push_str(&format!("        {nested}\n"));
+            if !is_unit {
+                body.push_str("        let __cursed_ret_val = __cursed_ret.unwrap();\n");
+                body.push_str(&format!(
+                    "        Ok({})\n",
+                    self.wrap_return_tail(&fn_def.return_type, "__cursed_ret_val"),
+                ));
+            } else {
+                body.push_str("        Ok(())\n");
+            }
+        }
+
+        let params_sig = self.render_fn_params(&fn_def.params);
+        let head = match (self_sig.is_empty(), params_sig.is_empty()) {
+            (true, _) => params_sig,
+            (false, true) => self_sig,
+            (false, false) => format!("{self_sig}, {params_sig}"),
+        };
+
+        let mut out = String::new();
+        if let Some(docs) = &fn_def.docs {
+            out.push_str(&rust_doc(docs, "    "));
+        }
+        out.push_str(&format!("    #[wasm_bindgen(js_name = \"{js_name}\")]\n"));
+        if is_unit {
+            out.push_str(&format!(
+                "    pub fn {method_ident}({head}) -> Result<(), JsValue> {{\n{body}    }}\n"
+            ));
+        } else {
+            let ret_ty = self.type_to_rs(&fn_def.return_type);
+            out.push_str(&format!(
+                "    pub fn {method_ident}({head}) -> Result<{ret_ty}, JsValue> {{\n{body}    }}\n"
             ));
         }
         out

@@ -395,6 +395,8 @@ Ir {
                 fields: [],
                 ctor: None,
                 struct_expr: None,
+                methods: [],
+                of_escaped: false,
                 clonable: false,
                 docs: Some(
                     "A handle with a hidden internal state.",

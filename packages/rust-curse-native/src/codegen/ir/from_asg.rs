@@ -9,7 +9,7 @@ use crate::codegen::mangle::mangle;
 use crate::warns::{Warn, WarnLabel, Warns};
 
 use super::{ClassDef, ClassField, CtorDef, StructExpr};
-use super::{FnDef, FnParam, Ir, IrId, Item, ModDef, Type, Use};
+use super::{FnDef, FnParam, Ir, IrId, Item, ModDef, Receiver, Type, Use};
 
 /// Errors that may be produced by [`Ir::from_asg`].
 
@@ -41,6 +41,17 @@ struct Lowerer<'a> {
     suppressed_setters: HashMap<asg::AsgId, HashSet<String>>,
     /// Structs that are struct-expressible (transitively)
     struct_expressible: HashSet<asg::AsgId>,
+    /// Per emittable struct, the chosen `pub fn new -> Self` fn id (if any).
+    ctor_fn: HashMap<asg::AsgId, asg::AsgId>,
+    /// Per emittable struct, the method fn ids selected for JS exposure, in
+    /// declaration order across the struct's inherent impls.
+    class_methods: HashMap<asg::AsgId, Vec<asg::AsgId>>,
+    /// Flat set of every fn id stored in `class_methods` values, used by
+    /// `assign_ids` to keep them in the IR even though they are method fns.
+    selected_method_fns: HashSet<asg::AsgId>,
+    /// Set of emittable structs whose struct-expression `.of` factory must
+    /// be emitted as `.of$` because a user method named `of` exists.
+    of_escaped: HashSet<asg::AsgId>,
 }
 
 impl<'a> Lowerer<'a> {
@@ -53,6 +64,10 @@ impl<'a> Lowerer<'a> {
             asg_to_ir: HashMap::new(),
             suppressed_setters: HashMap::new(),
             struct_expressible: HashSet::new(),
+            ctor_fn: HashMap::new(),
+            class_methods: HashMap::new(),
+            selected_method_fns: HashSet::new(),
+            of_escaped: HashSet::new(),
         }
     }
 
@@ -60,6 +75,7 @@ impl<'a> Lowerer<'a> {
         self.collect_method_fns();
         self.select_classes();
         self.compute_struct_expressible();
+        self.select_class_members();
         self.assign_ids();
 
         let items: Vec<Item> = self
@@ -134,7 +150,7 @@ impl<'a> Lowerer<'a> {
                             .unwrap_or("?")
                             .to_string();
                         let warn = warn_skipped_struct_ref(child_name);
-                        dropped = Some((sid, warn, def.span.clone()));
+                        dropped = Some((sid, warn, f.span.clone()));
                         break;
                     }
                 }
@@ -156,7 +172,6 @@ impl<'a> Lowerer<'a> {
                 continue;
             };
             let parent_name = def.path.name().unwrap_or("?").to_string();
-            let span = def.span.clone();
             for f in fields {
                 let asg::Type::Struct(child) = f.ty else {
                     continue;
@@ -177,7 +192,7 @@ impl<'a> Lowerer<'a> {
                     .insert(f.name.clone());
                 self.warns.push(attach_span(
                     warn_field_setter_unavailable(&parent_name, &f.name, &child_name),
-                    &span,
+                    &f.span,
                 ));
             }
         }
@@ -233,7 +248,15 @@ impl<'a> Lowerer<'a> {
             let survives = match item {
                 AsgItem::Mod(_) => true,
                 AsgItem::Struct(def) => self.emittable.contains(&def.id),
-                AsgItem::Fn(def) => !self.method_fns.contains(&def.id) && self.fn_is_emittable(def),
+                AsgItem::Fn(def) => {
+                    if self.selected_method_fns.contains(&def.id) {
+                        true
+                    } else if self.method_fns.contains(&def.id) {
+                        false
+                    } else {
+                        self.fn_is_emittable(def)
+                    }
+                }
                 AsgItem::Impl(_) | AsgItem::Trait(_) => false,
             };
             if !survives {
@@ -243,6 +266,136 @@ impl<'a> Lowerer<'a> {
             self.asg_to_ir.insert(asg_id, IrId(next));
             next += 1;
         }
+    }
+
+    /// Per emittable struct: pick the ctor fn id (if any) and select
+    /// inherent-impl methods for JS exposure. Populates `ctor_fn`,
+    /// `class_methods`, `selected_method_fns`, and `of_escaped`.
+    fn select_class_members(&mut self) {
+        let class_ids: Vec<asg::AsgId> = self
+            .asg
+            .items
+            .iter()
+            .filter_map(|it| match it {
+                AsgItem::Struct(def) if self.emittable.contains(&def.id) => Some(def.id),
+                _ => None,
+            })
+            .collect();
+        for sid in class_ids {
+            let def = self.asg.get_struct_unchecked(sid).clone();
+            let ctor_fid = self.resolve_ctor_fn_id(&def);
+            if let Some(fid) = ctor_fid {
+                self.ctor_fn.insert(sid, fid);
+            }
+
+            let field_names: HashSet<String> = match &def.shape {
+                asg::StructShape::Struct(fs) => fs.iter().map(|f| f.name.clone()).collect(),
+                _ => HashSet::new(),
+            };
+
+            let mut selected: Vec<asg::AsgId> = Vec::new();
+            for &impl_id in &def.impls {
+                let impl_ = self.asg.get_impl_unchecked(impl_id);
+                // RFC scope: only inherent impls. Skip trait impls (including
+                // well-known traits like Clone).
+                if impl_.trait_.is_some() {
+                    continue;
+                }
+                let fn_ids: Vec<asg::AsgId> = impl_.fns.clone();
+                for fid in fn_ids {
+                    if Some(fid) == ctor_fid {
+                        continue;
+                    }
+                    let fn_def = self.asg.get_fn_unchecked(fid).clone();
+
+                    // Field shadow -> warn + drop.
+                    if let Some(name) = fn_def.path.name() {
+                        if field_names.contains(name) {
+                            let parent = def.path.name().unwrap_or("?").to_string();
+                            self.warns.push(attach_span(
+                                warn_method_shadows_field(&parent, name),
+                                &fn_def.span,
+                            ));
+                            continue;
+                        }
+                    }
+
+                    if !self.method_is_emittable(&def, &fn_def) {
+                        continue;
+                    }
+                    selected.push(fid);
+                }
+            }
+
+            let of_escaped_here = self.struct_expressible.contains(&sid)
+                && selected
+                    .iter()
+                    .any(|fid| self.asg.get_fn_unchecked(*fid).path.name() == Some("of"));
+            if of_escaped_here {
+                self.of_escaped.insert(sid);
+            }
+
+            for &fid in &selected {
+                self.selected_method_fns.insert(fid);
+            }
+            self.class_methods.insert(sid, selected);
+        }
+    }
+
+    /// Pick the canonical `pub fn new -> Self` fn id for a struct. Mirrors
+    /// `resolve_ctor`'s candidate-sort logic so the picked id matches the
+    /// `CtorDef` the printer emits.
+    fn resolve_ctor_fn_id(&self, def: &asg::StructDef) -> Option<asg::AsgId> {
+        struct Candidate {
+            key: Vec<String>,
+            impl_ord: usize,
+            fid: asg::AsgId,
+        }
+        let mut candidates: Vec<Candidate> = Vec::new();
+        for &impl_id in &def.impls {
+            let impl_ = self.asg.get_impl_unchecked(impl_id);
+            let key_path: Vec<String> = match &impl_.trait_ {
+                Some(asg::TraitRef::Local(tid)) => {
+                    self.asg.get_trait_unchecked(*tid).path.segments.clone()
+                }
+                Some(asg::TraitRef::WellKnown(_)) => continue,
+                None => def.path.segments.clone(),
+            };
+            for &fid in &impl_.fns {
+                let f = self.asg.get_fn_unchecked(fid);
+                if f.receiver.is_some() || f.path.name() != Some("new") {
+                    continue;
+                }
+                if f.return_type != asg::Type::Struct(def.id) {
+                    continue;
+                }
+                let mut key = key_path.clone();
+                key.push("new".to_string());
+                candidates.push(Candidate {
+                    key,
+                    impl_ord: impl_id.0,
+                    fid,
+                });
+            }
+        }
+        candidates.sort_by(|a, b| a.key.cmp(&b.key).then(a.impl_ord.cmp(&b.impl_ord)));
+        candidates.first().map(|c| c.fid)
+    }
+
+    /// Whether an inherent-impl fn is exposable as a JS method. Reuses
+    /// `fn_is_emittable` for param/return gates and adds the self-by-value
+    /// `Clone` check.
+    fn method_is_emittable(&mut self, class_def: &asg::StructDef, def: &asg::FnDef) -> bool {
+        if matches!(def.receiver, Some(Receiver::ByValue)) && !self.asg_clonable(class_def.id) {
+            let class_name = class_def.path.name().unwrap_or("?").to_string();
+            let fn_name = def.path.name().unwrap_or("?").to_string();
+            self.warns.push(attach_span(
+                warn_method_self_by_value_requires_clone(&class_name, &fn_name),
+                &def.span,
+            ));
+            return false;
+        }
+        self.fn_is_emittable(def)
     }
 
     fn fn_is_emittable(&mut self, def: &asg::FnDef) -> bool {
@@ -332,6 +485,12 @@ impl<'a> Lowerer<'a> {
 
         let ctor = self.resolve_ctor(def);
         let struct_expr = self.resolve_struct_expr(def, asg_fields);
+        let methods: Vec<IrId> = self
+            .class_methods
+            .get(&def.id)
+            .map(|v| v.iter().map(|fid| self.asg_to_ir[fid]).collect())
+            .unwrap_or_default();
+        let of_escaped = self.of_escaped.contains(&def.id);
 
         ClassDef {
             id: self.asg_to_ir[&def.id],
@@ -342,6 +501,8 @@ impl<'a> Lowerer<'a> {
             fields,
             ctor,
             struct_expr,
+            methods,
+            of_escaped,
             clonable: self.is_clonable(def),
             docs: def.docs.clone(),
         }
@@ -434,13 +595,16 @@ impl<'a> Lowerer<'a> {
         let path = def.path.clone();
         let mut params: Vec<FnParam> = def.params.iter().map(|p| self.lower_param(p)).collect();
 
-        // Any struct passed by `&` / `&mut` forces the user call inside a
-        // `with` / `with_mut` closure; once that scope exists, owned non-`Copy`
-        // primitives (String) need stashing to escape `FnMut`.
-        let needs_closure_scope = params.iter().any(|p| {
-            matches!(p.ty, Type::Class(_))
-                && matches!(p.mode, asg::ParamMode::ByRef | asg::ParamMode::ByMut)
-        });
+        // Any struct passed by `&` / `&mut`, or an instance method receiver
+        // by reference, forces the user call inside a `with` / `with_mut`
+        // closure; once that scope exists, owned non-`Copy` primitives
+        // (String) need stashing to escape `FnMut`.
+        let has_ref_self = matches!(def.receiver, Some(Receiver::ByRef) | Some(Receiver::ByMut));
+        let needs_closure_scope = has_ref_self
+            || params.iter().any(|p| {
+                matches!(p.ty, Type::Class(_))
+                    && matches!(p.mode, asg::ParamMode::ByRef | asg::ParamMode::ByMut)
+            });
         if needs_closure_scope {
             for p in &mut params {
                 if matches!(p.ty, Type::Primitive(asg::Primitive::String)) {
@@ -458,6 +622,7 @@ impl<'a> Lowerer<'a> {
             params,
             return_type: self.lower_type(&def.return_type),
             needs_closure_scope,
+            receiver: def.receiver,
             docs: def.docs.clone(),
         }
     }
@@ -558,6 +723,26 @@ fn warn_field_setter_unavailable(parent: &str, field: &str, child: &str) -> Warn
     )
     .help(format!(
         "Add `#[derive(Clone)]` to \"{child}\" to enable assigning this field from JS."
+    ))
+}
+
+fn warn_method_shadows_field(parent: &str, name: &str) -> Warn {
+    Warn::new(
+        "rust-curse::method_shadows_field",
+        format!("method \"{parent}::{name}\" shadows the field \"{name}\"; skipping the method."),
+    )
+    .help("rename the method or the field to avoid the collision.")
+}
+
+fn warn_method_self_by_value_requires_clone(parent: &str, name: &str) -> Warn {
+    Warn::new(
+        "rust-curse::method_self_by_value_requires_clone",
+        format!(
+            "method \"{parent}::{name}\" takes `self` by value but \"{parent}\" does not implement Clone; skipping the method."
+        ),
+    )
+    .help(format!(
+        "add `#[derive(Clone)]` to \"{parent}\", or change the receiver to `&self` / `&mut self`."
     ))
 }
 

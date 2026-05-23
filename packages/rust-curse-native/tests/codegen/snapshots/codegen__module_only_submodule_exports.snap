@@ -295,6 +295,7 @@ Ir {
                     Unit,
                 ),
                 needs_closure_scope: false,
+                receiver: None,
                 docs: None,
             },
         ),

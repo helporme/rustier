@@ -95,7 +95,30 @@ pub struct __cursed_rustdoc_test_crate__Builder {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Builder>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Builder {}
+impl __cursed_rustdoc_test_crate__Builder {
+    #[wasm_bindgen(js_name = "new")]
+    pub fn __cursed_method__new(
+        &self,
+    ) -> Result<__cursed_rustdoc_test_crate__Builder, JsValue> {
+        let __cursed_proj_self = self.__cursed_root.borrow().clone();
+        let mut __cursed_ret: Option<crate::Builder> = None;
+        __cursed_proj_self
+            .with(
+                &mut |__cursed_self| {
+                    __cursed_ret = Some(crate::Builder::new(__cursed_self));
+                },
+            );
+        let __cursed_ret_val = __cursed_ret.unwrap();
+        Ok(__cursed_rustdoc_test_crate__Builder {
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(RefCell::new(__cursed_ret_val))
+                        as Rc<dyn __cursed::Projection<crate::Builder>>,
+                ),
+            ),
+        })
+    }
+}
 #[allow(dead_code)]
 fn __cursed_coerce___cursed_rustdoc_test_crate__Builder(
     val: JsValue,
@@ -191,7 +214,30 @@ pub struct __cursed_rustdoc_test_crate__Builder {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Builder>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Builder {}
+impl __cursed_rustdoc_test_crate__Builder {
+    #[napi(js_name = "new")]
+    pub fn __cursed_method__new(
+        &self,
+    ) -> napi::Result<__cursed_rustdoc_test_crate__Builder> {
+        let __cursed_proj_self = self.__cursed_root.borrow().clone();
+        let mut __cursed_ret: Option<crate::Builder> = None;
+        __cursed_proj_self
+            .with(
+                &mut |__cursed_self| {
+                    __cursed_ret = Some(crate::Builder::new(__cursed_self));
+                },
+            );
+        let __cursed_ret_val = __cursed_ret.unwrap();
+        Ok(__cursed_rustdoc_test_crate__Builder {
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(RefCell::new(__cursed_ret_val))
+                        as Rc<dyn __cursed::Projection<crate::Builder>>,
+                ),
+            ),
+        })
+    }
+}
 #[allow(dead_code)]
 fn __cursed_coerce___cursed_rustdoc_test_crate__Builder<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
@@ -226,6 +272,8 @@ export class Builder {
     private [" "]: 'rustdoc_test_crate::Builder';
 
     private constructor();
+
+    new(): Builder;
 }
 ```
 
@@ -449,7 +497,41 @@ Ir {
                 fields: [],
                 ctor: None,
                 struct_expr: None,
+                methods: [
+                    IrId(
+                        2,
+                    ),
+                ],
+                of_escaped: false,
                 clonable: false,
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                id: IrId(
+                    2,
+                ),
+                orig: AsgId(
+                    2,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "new",
+                    ],
+                },
+                js_name: "new",
+                mangled_name: "__cursed_new",
+                params: [],
+                return_type: Class(
+                    IrId(
+                        1,
+                    ),
+                ),
+                needs_closure_scope: true,
+                receiver: Some(
+                    ByRef,
+                ),
                 docs: None,
             },
         ),

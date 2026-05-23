@@ -103,7 +103,7 @@ pub struct __cursed_rustdoc_test_crate__Point {
 }
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Point {
-    #[wasm_bindgen(js_name = of)]
+    #[wasm_bindgen(js_name = "of")]
     pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Point, JsValue> {
         let __cursed_owned: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
                 init,
@@ -119,30 +119,30 @@ impl __cursed_rustdoc_test_crate__Point {
         })
     }
     #[wasm_bindgen(getter, js_name = "x")]
-    pub fn __cursed_get_x(&self) -> f64 {
+    pub fn __cursed_get__x(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
         __cursed_out.unwrap()
     }
     #[wasm_bindgen(setter, js_name = "x")]
-    pub fn __cursed_set_x(&self, __cursed_arg_x: f64) {
+    pub fn __cursed_set__x(&self, __cursed_arg__x: f64) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_x);
+        let mut __cursed_arg = Some(__cursed_arg__x);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
     #[wasm_bindgen(getter, js_name = "y")]
-    pub fn __cursed_get_y(&self) -> f64 {
+    pub fn __cursed_get__y(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y));
         __cursed_out.unwrap()
     }
     #[wasm_bindgen(setter, js_name = "y")]
-    pub fn __cursed_set_y(&self, __cursed_arg_y: f64) {
+    pub fn __cursed_set__y(&self, __cursed_arg__y: f64) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_y);
+        let mut __cursed_arg = Some(__cursed_arg__y);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
@@ -170,16 +170,16 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Point(
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Line")]
 pub struct __cursed_rustdoc_test_crate__Line {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Line>>>>,
-    __cursed_cache_start: Option<
+    __cursed_cache__start: Option<
         Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
     >,
-    __cursed_cache_end: Option<
+    __cursed_cache__end: Option<
         Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
     >,
 }
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Line {
-    #[wasm_bindgen(js_name = of)]
+    #[wasm_bindgen(js_name = "of")]
     pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Line, JsValue> {
         let __cursed_owned: crate::Line = __cursed_coerce___cursed_rustdoc_test_crate__Line(
                 init,
@@ -192,14 +192,14 @@ impl __cursed_rustdoc_test_crate__Line {
                         as Rc<dyn __cursed::Projection<crate::Line>>,
                 ),
             ),
-            __cursed_cache_start: None,
-            __cursed_cache_end: None,
+            __cursed_cache__start: None,
+            __cursed_cache__end: None,
         })
     }
     #[wasm_bindgen(getter, js_name = "start")]
-    pub fn __cursed_get_start(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__start(&mut self) -> __cursed_rustdoc_test_crate__Point {
         if let Some(__cursed_cell) = self
-            .__cursed_cache_start
+            .__cursed_cache__start
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -213,23 +213,23 @@ impl __cursed_rustdoc_test_crate__Line {
             project_mut: |__cursed_p| &mut __cursed_p.start,
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
-        self.__cursed_cache_start = Some(Rc::downgrade(&__cursed_cell));
+        self.__cursed_cache__start = Some(Rc::downgrade(&__cursed_cell));
         __cursed_rustdoc_test_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
     #[wasm_bindgen(setter, js_name = "start")]
-    pub fn __cursed_set_start(
+    pub fn __cursed_set__start(
         &mut self,
-        __cursed_arg_start: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__start: &__cursed_rustdoc_test_crate__Point,
     ) {
         let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg_start
+        __cursed_arg__start
             .__cursed_root
             .borrow()
             .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
         if let Some(__cursed_cell) = self
-            .__cursed_cache_start
+            .__cursed_cache__start
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -239,7 +239,7 @@ impl __cursed_rustdoc_test_crate__Line {
                 .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Point>>;
-            self.__cursed_cache_start = None;
+            self.__cursed_cache__start = None;
         }
         let __cursed_parent = self.__cursed_root.borrow().clone();
         __cursed_parent
@@ -250,9 +250,9 @@ impl __cursed_rustdoc_test_crate__Line {
             );
     }
     #[wasm_bindgen(getter, js_name = "end")]
-    pub fn __cursed_get_end(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__end(&mut self) -> __cursed_rustdoc_test_crate__Point {
         if let Some(__cursed_cell) = self
-            .__cursed_cache_end
+            .__cursed_cache__end
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -266,23 +266,23 @@ impl __cursed_rustdoc_test_crate__Line {
             project_mut: |__cursed_p| &mut __cursed_p.end,
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
-        self.__cursed_cache_end = Some(Rc::downgrade(&__cursed_cell));
+        self.__cursed_cache__end = Some(Rc::downgrade(&__cursed_cell));
         __cursed_rustdoc_test_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
     #[wasm_bindgen(setter, js_name = "end")]
-    pub fn __cursed_set_end(
+    pub fn __cursed_set__end(
         &mut self,
-        __cursed_arg_end: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__end: &__cursed_rustdoc_test_crate__Point,
     ) {
         let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg_end
+        __cursed_arg__end
             .__cursed_root
             .borrow()
             .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
         if let Some(__cursed_cell) = self
-            .__cursed_cache_end
+            .__cursed_cache__end
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -292,7 +292,7 @@ impl __cursed_rustdoc_test_crate__Line {
                 .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Point>>;
-            self.__cursed_cache_end = None;
+            self.__cursed_cache__end = None;
         }
         let __cursed_parent = self.__cursed_root.borrow().clone();
         __cursed_parent
@@ -328,12 +328,12 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Line(
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Triangle")]
 pub struct __cursed_rustdoc_test_crate__Triangle {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Triangle>>>>,
-    __cursed_cache_a: Option<Weak<RefCell<Rc<dyn __cursed::Projection<crate::Line>>>>>,
-    __cursed_cache_b: Option<Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>>,
+    __cursed_cache__a: Option<Weak<RefCell<Rc<dyn __cursed::Projection<crate::Line>>>>>,
+    __cursed_cache__b: Option<Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>>,
 }
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Triangle {
-    #[wasm_bindgen(js_name = of)]
+    #[wasm_bindgen(js_name = "of")]
     pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Triangle, JsValue> {
         let __cursed_owned: crate::Triangle = __cursed_coerce___cursed_rustdoc_test_crate__Triangle(
                 init,
@@ -346,21 +346,21 @@ impl __cursed_rustdoc_test_crate__Triangle {
                         as Rc<dyn __cursed::Projection<crate::Triangle>>,
                 ),
             ),
-            __cursed_cache_a: None,
-            __cursed_cache_b: None,
+            __cursed_cache__a: None,
+            __cursed_cache__b: None,
         })
     }
     #[wasm_bindgen(getter, js_name = "a")]
-    pub fn __cursed_get_a(&mut self) -> __cursed_rustdoc_test_crate__Line {
+    pub fn __cursed_get__a(&mut self) -> __cursed_rustdoc_test_crate__Line {
         if let Some(__cursed_cell) = self
-            .__cursed_cache_a
+            .__cursed_cache__a
             .as_ref()
             .and_then(Weak::upgrade)
         {
             return __cursed_rustdoc_test_crate__Line {
                 __cursed_root: __cursed_cell,
-                __cursed_cache_start: None,
-                __cursed_cache_end: None,
+                __cursed_cache__start: None,
+                __cursed_cache__end: None,
             };
         }
         let __cursed_proj: Rc<dyn __cursed::Projection<crate::Line>> = Rc::new(__cursed::Projector {
@@ -369,25 +369,25 @@ impl __cursed_rustdoc_test_crate__Triangle {
             project_mut: |__cursed_p| &mut __cursed_p.a,
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
-        self.__cursed_cache_a = Some(Rc::downgrade(&__cursed_cell));
+        self.__cursed_cache__a = Some(Rc::downgrade(&__cursed_cell));
         __cursed_rustdoc_test_crate__Line {
             __cursed_root: __cursed_cell,
-            __cursed_cache_start: None,
-            __cursed_cache_end: None,
+            __cursed_cache__start: None,
+            __cursed_cache__end: None,
         }
     }
     #[wasm_bindgen(setter, js_name = "a")]
-    pub fn __cursed_set_a(
+    pub fn __cursed_set__a(
         &mut self,
-        __cursed_arg_a: &__cursed_rustdoc_test_crate__Line,
+        __cursed_arg__a: &__cursed_rustdoc_test_crate__Line,
     ) {
         let mut __cursed_new_val: Option<crate::Line> = None;
-        __cursed_arg_a
+        __cursed_arg__a
             .__cursed_root
             .borrow()
             .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
         if let Some(__cursed_cell) = self
-            .__cursed_cache_a
+            .__cursed_cache__a
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -397,7 +397,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
                 .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Line>>;
-            self.__cursed_cache_a = None;
+            self.__cursed_cache__a = None;
         }
         let __cursed_parent = self.__cursed_root.borrow().clone();
         __cursed_parent
@@ -408,9 +408,9 @@ impl __cursed_rustdoc_test_crate__Triangle {
             );
     }
     #[wasm_bindgen(getter, js_name = "b")]
-    pub fn __cursed_get_b(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__b(&mut self) -> __cursed_rustdoc_test_crate__Point {
         if let Some(__cursed_cell) = self
-            .__cursed_cache_b
+            .__cursed_cache__b
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -424,23 +424,23 @@ impl __cursed_rustdoc_test_crate__Triangle {
             project_mut: |__cursed_p| &mut __cursed_p.b,
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
-        self.__cursed_cache_b = Some(Rc::downgrade(&__cursed_cell));
+        self.__cursed_cache__b = Some(Rc::downgrade(&__cursed_cell));
         __cursed_rustdoc_test_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
     #[wasm_bindgen(setter, js_name = "b")]
-    pub fn __cursed_set_b(
+    pub fn __cursed_set__b(
         &mut self,
-        __cursed_arg_b: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__b: &__cursed_rustdoc_test_crate__Point,
     ) {
         let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg_b
+        __cursed_arg__b
             .__cursed_root
             .borrow()
             .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
         if let Some(__cursed_cell) = self
-            .__cursed_cache_b
+            .__cursed_cache__b
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -450,7 +450,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
                 .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Point>>;
-            self.__cursed_cache_b = None;
+            self.__cursed_cache__b = None;
         }
         let __cursed_parent = self.__cursed_root.borrow().clone();
         __cursed_parent
@@ -567,7 +567,7 @@ pub struct __cursed_rustdoc_test_crate__Point {
 }
 #[napi]
 impl __cursed_rustdoc_test_crate__Point {
-    #[napi(factory)]
+    #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
         let __cursed_owned: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
                 init,
@@ -583,30 +583,30 @@ impl __cursed_rustdoc_test_crate__Point {
         })
     }
     #[napi(getter, js_name = "x")]
-    pub fn __cursed_get_x(&self) -> f64 {
+    pub fn __cursed_get__x(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
         __cursed_out.unwrap()
     }
     #[napi(setter, js_name = "x")]
-    pub fn __cursed_set_x(&self, __cursed_arg_x: f64) {
+    pub fn __cursed_set__x(&self, __cursed_arg__x: f64) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_x);
+        let mut __cursed_arg = Some(__cursed_arg__x);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
     #[napi(getter, js_name = "y")]
-    pub fn __cursed_get_y(&self) -> f64 {
+    pub fn __cursed_get__y(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y));
         __cursed_out.unwrap()
     }
     #[napi(setter, js_name = "y")]
-    pub fn __cursed_set_y(&self, __cursed_arg_y: f64) {
+    pub fn __cursed_set__y(&self, __cursed_arg__y: f64) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_y);
+        let mut __cursed_arg = Some(__cursed_arg__y);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
@@ -640,16 +640,16 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Point<'a>(
 #[napi(js_name = "__cursed_rustdoc_test_crate__Line")]
 pub struct __cursed_rustdoc_test_crate__Line {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Line>>>>,
-    __cursed_cache_start: Option<
+    __cursed_cache__start: Option<
         Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
     >,
-    __cursed_cache_end: Option<
+    __cursed_cache__end: Option<
         Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
     >,
 }
 #[napi]
 impl __cursed_rustdoc_test_crate__Line {
-    #[napi(factory)]
+    #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
         let __cursed_owned: crate::Line = __cursed_coerce___cursed_rustdoc_test_crate__Line(
                 init,
@@ -662,14 +662,14 @@ impl __cursed_rustdoc_test_crate__Line {
                         as Rc<dyn __cursed::Projection<crate::Line>>,
                 ),
             ),
-            __cursed_cache_start: None,
-            __cursed_cache_end: None,
+            __cursed_cache__start: None,
+            __cursed_cache__end: None,
         })
     }
     #[napi(getter, js_name = "start")]
-    pub fn __cursed_get_start(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__start(&mut self) -> __cursed_rustdoc_test_crate__Point {
         if let Some(__cursed_cell) = self
-            .__cursed_cache_start
+            .__cursed_cache__start
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -683,23 +683,23 @@ impl __cursed_rustdoc_test_crate__Line {
             project_mut: |__cursed_p| &mut __cursed_p.start,
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
-        self.__cursed_cache_start = Some(Rc::downgrade(&__cursed_cell));
+        self.__cursed_cache__start = Some(Rc::downgrade(&__cursed_cell));
         __cursed_rustdoc_test_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
     #[napi(setter, js_name = "start")]
-    pub fn __cursed_set_start(
+    pub fn __cursed_set__start(
         &mut self,
-        __cursed_arg_start: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__start: &__cursed_rustdoc_test_crate__Point,
     ) {
         let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg_start
+        __cursed_arg__start
             .__cursed_root
             .borrow()
             .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
         if let Some(__cursed_cell) = self
-            .__cursed_cache_start
+            .__cursed_cache__start
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -709,7 +709,7 @@ impl __cursed_rustdoc_test_crate__Line {
                 .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Point>>;
-            self.__cursed_cache_start = None;
+            self.__cursed_cache__start = None;
         }
         let __cursed_parent = self.__cursed_root.borrow().clone();
         __cursed_parent
@@ -720,9 +720,9 @@ impl __cursed_rustdoc_test_crate__Line {
             );
     }
     #[napi(getter, js_name = "end")]
-    pub fn __cursed_get_end(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__end(&mut self) -> __cursed_rustdoc_test_crate__Point {
         if let Some(__cursed_cell) = self
-            .__cursed_cache_end
+            .__cursed_cache__end
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -736,23 +736,23 @@ impl __cursed_rustdoc_test_crate__Line {
             project_mut: |__cursed_p| &mut __cursed_p.end,
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
-        self.__cursed_cache_end = Some(Rc::downgrade(&__cursed_cell));
+        self.__cursed_cache__end = Some(Rc::downgrade(&__cursed_cell));
         __cursed_rustdoc_test_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
     #[napi(setter, js_name = "end")]
-    pub fn __cursed_set_end(
+    pub fn __cursed_set__end(
         &mut self,
-        __cursed_arg_end: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__end: &__cursed_rustdoc_test_crate__Point,
     ) {
         let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg_end
+        __cursed_arg__end
             .__cursed_root
             .borrow()
             .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
         if let Some(__cursed_cell) = self
-            .__cursed_cache_end
+            .__cursed_cache__end
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -762,7 +762,7 @@ impl __cursed_rustdoc_test_crate__Line {
                 .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Point>>;
-            self.__cursed_cache_end = None;
+            self.__cursed_cache__end = None;
         }
         let __cursed_parent = self.__cursed_root.borrow().clone();
         __cursed_parent
@@ -808,12 +808,12 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Line<'a>(
 #[napi(js_name = "__cursed_rustdoc_test_crate__Triangle")]
 pub struct __cursed_rustdoc_test_crate__Triangle {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Triangle>>>>,
-    __cursed_cache_a: Option<Weak<RefCell<Rc<dyn __cursed::Projection<crate::Line>>>>>,
-    __cursed_cache_b: Option<Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>>,
+    __cursed_cache__a: Option<Weak<RefCell<Rc<dyn __cursed::Projection<crate::Line>>>>>,
+    __cursed_cache__b: Option<Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>>,
 }
 #[napi]
 impl __cursed_rustdoc_test_crate__Triangle {
-    #[napi(factory)]
+    #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
         let __cursed_owned: crate::Triangle = __cursed_coerce___cursed_rustdoc_test_crate__Triangle(
                 init,
@@ -826,21 +826,21 @@ impl __cursed_rustdoc_test_crate__Triangle {
                         as Rc<dyn __cursed::Projection<crate::Triangle>>,
                 ),
             ),
-            __cursed_cache_a: None,
-            __cursed_cache_b: None,
+            __cursed_cache__a: None,
+            __cursed_cache__b: None,
         })
     }
     #[napi(getter, js_name = "a")]
-    pub fn __cursed_get_a(&mut self) -> __cursed_rustdoc_test_crate__Line {
+    pub fn __cursed_get__a(&mut self) -> __cursed_rustdoc_test_crate__Line {
         if let Some(__cursed_cell) = self
-            .__cursed_cache_a
+            .__cursed_cache__a
             .as_ref()
             .and_then(Weak::upgrade)
         {
             return __cursed_rustdoc_test_crate__Line {
                 __cursed_root: __cursed_cell,
-                __cursed_cache_start: None,
-                __cursed_cache_end: None,
+                __cursed_cache__start: None,
+                __cursed_cache__end: None,
             };
         }
         let __cursed_proj: Rc<dyn __cursed::Projection<crate::Line>> = Rc::new(__cursed::Projector {
@@ -849,25 +849,25 @@ impl __cursed_rustdoc_test_crate__Triangle {
             project_mut: |__cursed_p| &mut __cursed_p.a,
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
-        self.__cursed_cache_a = Some(Rc::downgrade(&__cursed_cell));
+        self.__cursed_cache__a = Some(Rc::downgrade(&__cursed_cell));
         __cursed_rustdoc_test_crate__Line {
             __cursed_root: __cursed_cell,
-            __cursed_cache_start: None,
-            __cursed_cache_end: None,
+            __cursed_cache__start: None,
+            __cursed_cache__end: None,
         }
     }
     #[napi(setter, js_name = "a")]
-    pub fn __cursed_set_a(
+    pub fn __cursed_set__a(
         &mut self,
-        __cursed_arg_a: &__cursed_rustdoc_test_crate__Line,
+        __cursed_arg__a: &__cursed_rustdoc_test_crate__Line,
     ) {
         let mut __cursed_new_val: Option<crate::Line> = None;
-        __cursed_arg_a
+        __cursed_arg__a
             .__cursed_root
             .borrow()
             .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
         if let Some(__cursed_cell) = self
-            .__cursed_cache_a
+            .__cursed_cache__a
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -877,7 +877,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
                 .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Line>>;
-            self.__cursed_cache_a = None;
+            self.__cursed_cache__a = None;
         }
         let __cursed_parent = self.__cursed_root.borrow().clone();
         __cursed_parent
@@ -888,9 +888,9 @@ impl __cursed_rustdoc_test_crate__Triangle {
             );
     }
     #[napi(getter, js_name = "b")]
-    pub fn __cursed_get_b(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__b(&mut self) -> __cursed_rustdoc_test_crate__Point {
         if let Some(__cursed_cell) = self
-            .__cursed_cache_b
+            .__cursed_cache__b
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -904,23 +904,23 @@ impl __cursed_rustdoc_test_crate__Triangle {
             project_mut: |__cursed_p| &mut __cursed_p.b,
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
-        self.__cursed_cache_b = Some(Rc::downgrade(&__cursed_cell));
+        self.__cursed_cache__b = Some(Rc::downgrade(&__cursed_cell));
         __cursed_rustdoc_test_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
     #[napi(setter, js_name = "b")]
-    pub fn __cursed_set_b(
+    pub fn __cursed_set__b(
         &mut self,
-        __cursed_arg_b: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__b: &__cursed_rustdoc_test_crate__Point,
     ) {
         let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg_b
+        __cursed_arg__b
             .__cursed_root
             .borrow()
             .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
         if let Some(__cursed_cell) = self
-            .__cursed_cache_b
+            .__cursed_cache__b
             .as_ref()
             .and_then(Weak::upgrade)
         {
@@ -930,7 +930,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
                 .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Point>>;
-            self.__cursed_cache_b = None;
+            self.__cursed_cache__b = None;
         }
         let __cursed_parent = self.__cursed_root.borrow().clone();
         __cursed_parent
@@ -1145,12 +1145,38 @@ Asg {
                             ty: Primitive(
                                 f64,
                             ),
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        3,
+                                        5,
+                                    ),
+                                    end: (
+                                        3,
+                                        15,
+                                    ),
+                                },
+                            ),
                             docs: None,
                         },
                         StructField {
                             name: "y",
                             ty: Primitive(
                                 f64,
+                            ),
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        4,
+                                        5,
+                                    ),
+                                    end: (
+                                        4,
+                                        15,
+                                    ),
+                                },
                             ),
                             docs: None,
                         },
@@ -1253,6 +1279,19 @@ Asg {
                                     1,
                                 ),
                             ),
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        8,
+                                        5,
+                                    ),
+                                    end: (
+                                        8,
+                                        21,
+                                    ),
+                                },
+                            ),
                             docs: None,
                         },
                         StructField {
@@ -1261,6 +1300,19 @@ Asg {
                                 AsgId(
                                     1,
                                 ),
+                            ),
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        9,
+                                        5,
+                                    ),
+                                    end: (
+                                        9,
+                                        19,
+                                    ),
+                                },
                             ),
                             docs: None,
                         },
@@ -1363,6 +1415,19 @@ Asg {
                                     4,
                                 ),
                             ),
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        13,
+                                        5,
+                                    ),
+                                    end: (
+                                        13,
+                                        16,
+                                    ),
+                                },
+                            ),
                             docs: None,
                         },
                         StructField {
@@ -1371,6 +1436,19 @@ Asg {
                                 AsgId(
                                     1,
                                 ),
+                            ),
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        14,
+                                        5,
+                                    ),
+                                    end: (
+                                        14,
+                                        17,
+                                    ),
+                                },
                             ),
                             docs: None,
                         },
@@ -1564,6 +1642,8 @@ Ir {
                         ],
                     },
                 ),
+                methods: [],
+                of_escaped: false,
                 clonable: true,
                 docs: None,
             },
@@ -1639,6 +1719,8 @@ Ir {
                         ],
                     },
                 ),
+                methods: [],
+                of_escaped: false,
                 clonable: true,
                 docs: None,
             },
@@ -1714,6 +1796,8 @@ Ir {
                         ],
                     },
                 ),
+                methods: [],
+                of_escaped: false,
                 clonable: true,
                 docs: None,
             },

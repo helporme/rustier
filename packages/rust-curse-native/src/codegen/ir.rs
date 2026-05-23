@@ -5,7 +5,7 @@ pub mod from_asg;
 use std::collections::HashSet;
 
 use crate::codegen::asg::AsgId;
-pub use crate::codegen::asg::{rust_path, ItemPath, ParamMode, Primitive, Span};
+pub use crate::codegen::asg::{rust_path, ItemPath, ParamMode, Primitive, Receiver, Span};
 
 /// A unique identifier for an item in the IR.
 #[derive(Copy, Clone, Default, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -33,6 +33,7 @@ pub struct FnDef {
     /// that closure scope changes how other params are bound (see
     /// `FnParam::needs_stash`).
     pub needs_closure_scope: bool,
+    pub receiver: Option<Receiver>,
     pub docs: Option<String>,
 }
 
@@ -60,6 +61,8 @@ pub struct ClassDef {
     pub fields: Vec<ClassField>,
     pub ctor: Option<CtorDef>,
     pub struct_expr: Option<StructExpr>,
+    pub methods: Vec<IrId>,
+    pub of_escaped: bool,
     pub clonable: bool,
     pub docs: Option<String>,
 }

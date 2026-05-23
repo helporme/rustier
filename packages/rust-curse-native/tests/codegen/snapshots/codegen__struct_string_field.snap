@@ -92,7 +92,7 @@ pub struct __cursed_rustdoc_test_crate__Token {
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Token {
     #[wasm_bindgen(getter, js_name = "value")]
-    pub fn __cursed_get_value(&self) -> String {
+    pub fn __cursed_get__value(&self) -> String {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<String> = None;
         __cursed_proj
@@ -100,9 +100,9 @@ impl __cursed_rustdoc_test_crate__Token {
         __cursed_out.unwrap()
     }
     #[wasm_bindgen(setter, js_name = "value")]
-    pub fn __cursed_set_value(&self, __cursed_arg_value: String) {
+    pub fn __cursed_set__value(&self, __cursed_arg__value: String) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_value);
+        let mut __cursed_arg = Some(__cursed_arg__value);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.value = __cursed_arg.take().unwrap());
     }
@@ -204,7 +204,7 @@ pub struct __cursed_rustdoc_test_crate__Token {
 #[napi]
 impl __cursed_rustdoc_test_crate__Token {
     #[napi(getter, js_name = "value")]
-    pub fn __cursed_get_value(&self) -> String {
+    pub fn __cursed_get__value(&self) -> String {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<String> = None;
         __cursed_proj
@@ -212,9 +212,9 @@ impl __cursed_rustdoc_test_crate__Token {
         __cursed_out.unwrap()
     }
     #[napi(setter, js_name = "value")]
-    pub fn __cursed_set_value(&self, __cursed_arg_value: String) {
+    pub fn __cursed_set__value(&self, __cursed_arg__value: String) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_value);
+        let mut __cursed_arg = Some(__cursed_arg__value);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.value = __cursed_arg.take().unwrap());
     }
@@ -354,6 +354,19 @@ Asg {
                             ty: Primitive(
                                 String,
                             ),
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        2,
+                                        5,
+                                    ),
+                                    end: (
+                                        2,
+                                        22,
+                                    ),
+                                },
+                            ),
                             docs: None,
                         },
                     ],
@@ -443,6 +456,8 @@ Ir {
                 ],
                 ctor: None,
                 struct_expr: None,
+                methods: [],
+                of_escaped: false,
                 clonable: false,
                 docs: None,
             },

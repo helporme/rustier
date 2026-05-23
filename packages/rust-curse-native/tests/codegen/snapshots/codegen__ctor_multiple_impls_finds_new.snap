@@ -102,15 +102,26 @@ pub struct __cursed_rustdoc_test_crate__Counter {
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Counter {
     #[wasm_bindgen(constructor)]
-    pub fn new(__cursed_arg_seed: u32) -> Result<Self, JsValue> {
+    pub fn new(__cursed_arg__seed: u32) -> Result<Self, JsValue> {
         Ok(Self {
             __cursed_root: Rc::new(
                 RefCell::new(
-                    Rc::new(RefCell::new(crate::Counter::new(__cursed_arg_seed)))
+                    Rc::new(RefCell::new(crate::Counter::new(__cursed_arg__seed)))
                         as Rc<dyn __cursed::Projection<crate::Counter>>,
                 ),
             ),
         })
+    }
+    #[wasm_bindgen(js_name = "increment")]
+    pub fn __cursed_method__increment(&mut self) -> Result<(), JsValue> {
+        let __cursed_proj_self = self.__cursed_root.borrow().clone();
+        __cursed_proj_self
+            .with_mut(
+                &mut |__cursed_self| {
+                    crate::Counter::increment(__cursed_self);
+                },
+            );
+        Ok(())
     }
 }
 #[allow(dead_code)]
@@ -210,15 +221,26 @@ pub struct __cursed_rustdoc_test_crate__Counter {
 #[napi]
 impl __cursed_rustdoc_test_crate__Counter {
     #[napi(constructor)]
-    pub fn new(__cursed_arg_seed: u32) -> napi::Result<Self> {
+    pub fn new(__cursed_arg__seed: u32) -> napi::Result<Self> {
         Ok(Self {
             __cursed_root: Rc::new(
                 RefCell::new(
-                    Rc::new(RefCell::new(crate::Counter::new(__cursed_arg_seed)))
+                    Rc::new(RefCell::new(crate::Counter::new(__cursed_arg__seed)))
                         as Rc<dyn __cursed::Projection<crate::Counter>>,
                 ),
             ),
         })
+    }
+    #[napi(js_name = "increment")]
+    pub fn __cursed_method__increment(&mut self) -> napi::Result<()> {
+        let __cursed_proj_self = self.__cursed_root.borrow().clone();
+        __cursed_proj_self
+            .with_mut(
+                &mut |__cursed_self| {
+                    crate::Counter::increment(__cursed_self);
+                },
+            );
+        Ok(())
     }
 }
 #[allow(dead_code)]
@@ -255,6 +277,8 @@ export class Counter {
     private [" "]: 'rustdoc_test_crate::Counter';
 
     constructor(seed: number);
+
+    increment(): void;
 }
 ```
 
@@ -549,7 +573,39 @@ Ir {
                     },
                 ),
                 struct_expr: None,
+                methods: [
+                    IrId(
+                        2,
+                    ),
+                ],
+                of_escaped: false,
                 clonable: false,
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                id: IrId(
+                    2,
+                ),
+                orig: AsgId(
+                    2,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "increment",
+                    ],
+                },
+                js_name: "increment",
+                mangled_name: "__cursed_increment",
+                params: [],
+                return_type: Primitive(
+                    Unit,
+                ),
+                needs_closure_scope: true,
+                receiver: Some(
+                    ByMut,
+                ),
                 docs: None,
             },
         ),

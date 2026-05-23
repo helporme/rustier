@@ -97,11 +97,11 @@ pub struct __cursed_rustdoc_test_crate__Opaque {
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Opaque {
     #[wasm_bindgen(constructor)]
-    pub fn new(__cursed_arg_x: i32) -> Result<Self, JsValue> {
+    pub fn new(__cursed_arg__x: i32) -> Result<Self, JsValue> {
         Ok(Self {
             __cursed_root: Rc::new(
                 RefCell::new(
-                    Rc::new(RefCell::new(crate::Opaque::new(__cursed_arg_x)))
+                    Rc::new(RefCell::new(crate::Opaque::new(__cursed_arg__x)))
                         as Rc<dyn __cursed::Projection<crate::Opaque>>,
                 ),
             ),
@@ -205,11 +205,11 @@ pub struct __cursed_rustdoc_test_crate__Opaque {
 #[napi]
 impl __cursed_rustdoc_test_crate__Opaque {
     #[napi(constructor)]
-    pub fn new(__cursed_arg_x: i32) -> napi::Result<Self> {
+    pub fn new(__cursed_arg__x: i32) -> napi::Result<Self> {
         Ok(Self {
             __cursed_root: Rc::new(
                 RefCell::new(
-                    Rc::new(RefCell::new(crate::Opaque::new(__cursed_arg_x)))
+                    Rc::new(RefCell::new(crate::Opaque::new(__cursed_arg__x)))
                         as Rc<dyn __cursed::Projection<crate::Opaque>>,
                 ),
             ),
@@ -492,6 +492,8 @@ Ir {
                     },
                 ),
                 struct_expr: None,
+                methods: [],
+                of_escaped: false,
                 clonable: false,
                 docs: None,
             },

@@ -1,0 +1,603 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+#[derive(Clone)]
+pub struct Mat2x2 {
+    _00: i32,
+    _01: i32,
+    _10: i32,
+    _11: i32,
+}
+impl Mat2x2 {
+    pub fn of(diag: i32) -> Self {
+        Self {
+            _00: diag,
+            _01: 0,
+            _10: 0,
+            _11: diag,
+        }
+    }
+}
+```
+
+# wasm
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+#[allow(unused_imports)]
+use __cursed::Projection as _;
+#[allow(non_snake_case, dead_code)]
+mod __cursed {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    pub trait Projection<T> {
+        fn with(&self, f: &mut dyn FnMut(&T));
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+    }
+    impl<T> Projection<T> for RefCell<T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            f(&*self.borrow());
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            f(&mut *self.borrow_mut());
+        }
+    }
+    pub struct Projector<Parent, T> {
+        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+        pub project: fn(&Parent) -> &T,
+        pub project_mut: fn(&mut Parent) -> &mut T,
+    }
+    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with(&mut |p| f((self.project)(p)));
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with_mut(&mut |p| f((self.project_mut)(p)));
+        }
+    }
+    pub enum Coerced<T> {
+        Projected(Rc<dyn Projection<T>>),
+        Owned(T),
+    }
+    impl<T: 'static> Coerced<T> {
+        pub fn with(&self, f: &mut dyn FnMut(&T)) {
+            match self {
+                Self::Projected(p) => p.with(f),
+                Self::Owned(v) => f(v),
+            }
+        }
+        pub fn with_mut(&mut self, f: &mut dyn FnMut(&mut T)) {
+            match self {
+                Self::Projected(p) => p.with_mut(f),
+                Self::Owned(v) => f(v),
+            }
+        }
+        pub fn into_owned(self) -> T
+        where
+            T: Clone,
+        {
+            match self {
+                Self::Projected(p) => {
+                    let mut out = None;
+                    p.with(&mut |v| out = Some(v.clone()));
+                    out.unwrap()
+                }
+                Self::Owned(v) => v,
+            }
+        }
+    }
+}
+/// class wrapper for `crate::Mat2x2`
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Mat2x2")]
+pub struct __cursed_rustdoc_test_crate__Mat2x2 {
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Mat2x2>>>>,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Mat2x2 {
+    #[wasm_bindgen(js_name = "of")]
+    pub fn __cursed_method__of(
+        diag: i32,
+    ) -> Result<__cursed_rustdoc_test_crate__Mat2x2, JsValue> {
+        Ok(__cursed_rustdoc_test_crate__Mat2x2 {
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(RefCell::new(crate::Mat2x2::of(diag)))
+                        as Rc<dyn __cursed::Projection<crate::Mat2x2>>,
+                ),
+            ),
+        })
+    }
+}
+#[allow(dead_code)]
+fn __cursed_coerce___cursed_rustdoc_test_crate__Mat2x2(
+    val: JsValue,
+) -> Result<__cursed::Coerced<crate::Mat2x2>, JsValue> {
+    let _ = val;
+    Err(
+        JsValue::from_str(
+            "`Mat2x2` cannot be constructed from JS: it has private fields or a non-clonable struct child",
+        ),
+    )
+}
+```
+
+# napi
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
+use napi::JsValue as _;
+use napi_derive::napi;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+#[allow(unused_imports)]
+use __cursed::Projection as _;
+#[allow(non_snake_case, dead_code)]
+mod __cursed {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    pub trait Projection<T> {
+        fn with(&self, f: &mut dyn FnMut(&T));
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+    }
+    impl<T> Projection<T> for RefCell<T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            f(&*self.borrow());
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            f(&mut *self.borrow_mut());
+        }
+    }
+    pub struct Projector<Parent, T> {
+        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+        pub project: fn(&Parent) -> &T,
+        pub project_mut: fn(&mut Parent) -> &mut T,
+    }
+    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with(&mut |p| f((self.project)(p)));
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with_mut(&mut |p| f((self.project_mut)(p)));
+        }
+    }
+    pub enum Coerced<T> {
+        Projected(Rc<dyn Projection<T>>),
+        Owned(T),
+    }
+    impl<T: 'static> Coerced<T> {
+        pub fn with(&self, f: &mut dyn FnMut(&T)) {
+            match self {
+                Self::Projected(p) => p.with(f),
+                Self::Owned(v) => f(v),
+            }
+        }
+        pub fn with_mut(&mut self, f: &mut dyn FnMut(&mut T)) {
+            match self {
+                Self::Projected(p) => p.with_mut(f),
+                Self::Owned(v) => f(v),
+            }
+        }
+        pub fn into_owned(self) -> T
+        where
+            T: Clone,
+        {
+            match self {
+                Self::Projected(p) => {
+                    let mut out = None;
+                    p.with(&mut |v| out = Some(v.clone()));
+                    out.unwrap()
+                }
+                Self::Owned(v) => v,
+            }
+        }
+    }
+}
+/// class wrapper for `crate::Mat2x2`
+#[napi(js_name = "__cursed_rustdoc_test_crate__Mat2x2")]
+pub struct __cursed_rustdoc_test_crate__Mat2x2 {
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Mat2x2>>>>,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Mat2x2 {
+    #[napi(factory, js_name = "of")]
+    pub fn __cursed_method__of(
+        diag: i32,
+    ) -> napi::Result<__cursed_rustdoc_test_crate__Mat2x2> {
+        Ok(__cursed_rustdoc_test_crate__Mat2x2 {
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(RefCell::new(crate::Mat2x2::of(diag)))
+                        as Rc<dyn __cursed::Projection<crate::Mat2x2>>,
+                ),
+            ),
+        })
+    }
+}
+#[allow(dead_code)]
+fn __cursed_coerce___cursed_rustdoc_test_crate__Mat2x2<'a>(
+    val: napi::bindgen_prelude::Unknown<'a>,
+) -> napi::Result<__cursed::Coerced<crate::Mat2x2>> {
+    let __cursed_env_raw = napi::JsValue::value(&val).env;
+    let __cursed_raw = napi::JsValue::raw(&val);
+    if let Ok(__cursed_inst) = unsafe {
+        napi::bindgen_prelude::ClassInstance::<
+            __cursed_rustdoc_test_crate__Mat2x2,
+        >::from_napi_value(__cursed_env_raw, __cursed_raw)
+    } {
+        return Ok(
+            __cursed::Coerced::Projected(__cursed_inst.__cursed_root.borrow().clone()),
+        );
+    }
+    Err(
+        napi::Error::from_reason(
+            format!(
+                "expected an instance of class `Mat2x2`; got a plain object, but `Mat2x2` cannot be built from an object literal (private fields or non-clonable struct child)"
+            ),
+        ),
+    )
+}
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+export class Mat2x2 {
+    private [" "]: 'rustdoc_test_crate::Mat2x2';
+
+    private constructor();
+
+    static of(diag: number): Mat2x2;
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Mat2x2 } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Mat2x2 as Mat2x2 };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Mat2x2 } from '$test';
+export { __cursed_rustdoc_test_crate__Mat2x2 as Mat2x2 };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+Asg {
+    root: AsgId(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                id: AsgId(
+                    0,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            17,
+                            2,
+                        ),
+                    },
+                ),
+                uses: [
+                    Use {
+                        name: "Mat2x2",
+                        target: AsgId(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                id: AsgId(
+                    1,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Mat2x2",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
+                ),
+                shape: Struct(
+                    [],
+                ),
+                impls: [
+                    AsgId(
+                        3,
+                    ),
+                    AsgId(
+                        5,
+                    ),
+                ],
+                docs: None,
+                has_private_fields: true,
+            },
+        ),
+        Fn(
+            FnDef {
+                id: AsgId(
+                    2,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "of",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            9,
+                            5,
+                        ),
+                        end: (
+                            16,
+                            6,
+                        ),
+                    },
+                ),
+                receiver: None,
+                params: [
+                    FnParam {
+                        name: "diag",
+                        mode: ByValue,
+                        ty: Primitive(
+                            i32,
+                        ),
+                    },
+                ],
+                return_type: Struct(
+                    AsgId(
+                        1,
+                    ),
+                ),
+                docs: None,
+            },
+        ),
+        Impl(
+            ImplDef {
+                id: AsgId(
+                    3,
+                ),
+                for_: AsgId(
+                    1,
+                ),
+                trait_: None,
+                fns: [
+                    AsgId(
+                        2,
+                    ),
+                ],
+            },
+        ),
+        Fn(
+            FnDef {
+                id: AsgId(
+                    4,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "clone",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            10,
+                        ),
+                        end: (
+                            1,
+                            15,
+                        ),
+                    },
+                ),
+                receiver: Some(
+                    ByRef,
+                ),
+                params: [],
+                return_type: Struct(
+                    AsgId(
+                        1,
+                    ),
+                ),
+                docs: None,
+            },
+        ),
+        Impl(
+            ImplDef {
+                id: AsgId(
+                    5,
+                ),
+                for_: AsgId(
+                    1,
+                ),
+                trait_: Some(
+                    WellKnown(
+                        Clone,
+                    ),
+                ),
+                fns: [
+                    AsgId(
+                        4,
+                    ),
+                ],
+            },
+        ),
+    ],
+}
+```
+
+# IR
+
+```rs
+Ir {
+    root: IrId(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                id: IrId(
+                    0,
+                ),
+                orig: AsgId(
+                    0,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            17,
+                            2,
+                        ),
+                    },
+                ),
+                uses: [
+                    Use {
+                        name: "Mat2x2",
+                        target: IrId(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Class(
+            ClassDef {
+                id: IrId(
+                    1,
+                ),
+                orig: AsgId(
+                    1,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Mat2x2",
+                    ],
+                },
+                js_name: "Mat2x2",
+                mangled_name: "__cursed_rustdoc_test_crate__Mat2x2",
+                fields: [],
+                ctor: None,
+                struct_expr: None,
+                methods: [
+                    IrId(
+                        2,
+                    ),
+                ],
+                of_escaped: false,
+                clonable: true,
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                id: IrId(
+                    2,
+                ),
+                orig: AsgId(
+                    2,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "of",
+                    ],
+                },
+                js_name: "of",
+                mangled_name: "__cursed_of",
+                params: [
+                    FnParam {
+                        name: "diag",
+                        mode: ByValue,
+                        ty: Primitive(
+                            i32,
+                        ),
+                        needs_stash: false,
+                    },
+                ],
+                return_type: Class(
+                    IrId(
+                        1,
+                    ),
+                ),
+                needs_closure_scope: false,
+                receiver: None,
+                docs: None,
+            },
+        ),
+    ],
+    uses_projections: true,
+}
+```

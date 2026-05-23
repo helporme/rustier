@@ -261,6 +261,7 @@ Ir {
                     i32,
                 ),
                 needs_closure_scope: false,
+                receiver: None,
                 docs: None,
             },
         ),

@@ -483,6 +483,7 @@ impl<'a> Builder<'a> {
                     out.push(StructField {
                         name: field_item.name.clone().unwrap_or_default(),
                         ty: self.resolve_field_type(ty, field_item)?,
+                        span: field_item.span.as_ref().map(convert_span),
                         docs: field_item.docs.clone(),
                     });
                 }

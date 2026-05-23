@@ -137,6 +137,7 @@ pub enum StructShape {
 pub struct StructField {
     pub name: String,
     pub ty: Type,
+    pub span: Option<Span>,
     pub docs: Option<String>,
 }
 

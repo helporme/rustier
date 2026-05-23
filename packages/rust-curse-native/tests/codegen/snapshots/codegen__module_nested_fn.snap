@@ -318,6 +318,7 @@ Ir {
                     f64,
                 ),
                 needs_closure_scope: false,
+                receiver: None,
                 docs: Some(
                     "Returns the square of `x`.",
                 ),

@@ -387,6 +387,8 @@ Ir {
                 fields: [],
                 ctor: None,
                 struct_expr: None,
+                methods: [],
+                of_escaped: false,
                 clonable: false,
                 docs: None,
             },

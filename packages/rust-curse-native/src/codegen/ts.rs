@@ -3,7 +3,9 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
-use super::ir::{FnParam, Ir, IrId, Item, ItemPath, ParamMode, Primitive, Type, Use};
+use super::ir::{
+    FnDef, FnParam, Ir, IrId, Item, ItemPath, ParamMode, Primitive, Receiver, Type, Use,
+};
 use super::mangle::is_canonical_origin;
 
 const PREAMBLE: &str = "";
@@ -196,7 +198,13 @@ impl<'a> Printer<'a> {
         }
 
         if def.struct_expr.is_some() {
-            members.push(format!("    static of(init: {name}.Init): {name};"));
+            let of_name = if def.of_escaped { "of$" } else { "of" };
+            members.push(format!("    static {of_name}(init: {name}.Init): {name};"));
+        }
+
+        for mid in &def.methods {
+            let m = self.ir.get_fn_unchecked(*mid).clone();
+            members.push(self.print_method(&m));
         }
 
         let mut out = String::new();
@@ -231,6 +239,32 @@ impl<'a> Printer<'a> {
             out.push_str("    };\n");
             out.push('}');
         }
+        out
+    }
+
+    fn print_method(&mut self, def: &FnDef) -> String {
+        let name = &def.js_name;
+        let params: Vec<String> = def
+            .params
+            .iter()
+            .map(|p| {
+                let ty = self.param_type_to_ts(p);
+                format!("{}: {ty}", p.name)
+            })
+            .collect();
+        let ret = self.type_to_ts(&def.return_type);
+        let prefix = match def.receiver {
+            None => "static ",
+            Some(Receiver::ByRef | Receiver::ByMut | Receiver::ByValue) => "",
+        };
+        let mut out = String::new();
+        if let Some(docs) = &def.docs {
+            out.push_str(&doc_comment(docs, "    "));
+        }
+        out.push_str(&format!(
+            "    {prefix}{name}({}): {ret};",
+            params.join(", ")
+        ));
         out
     }
 

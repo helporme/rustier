@@ -120,13 +120,13 @@ pub fn shake(asg: &Asg, opts: TreeShakeOpts<'_>) -> Result<HashSet<AsgId>, TreeS
                 walk_type(&def.return_type, &mut stack);
             }
             Item::Struct(def) => {
-                // Seed associated fns without a receiver (ctors / static fns)
-                // so their param/return types get exposed too.
                 for impl_id in &def.impls {
-                    for fid in &asg.get_impl_unchecked(*impl_id).fns {
-                        if asg.get_fn_unchecked(*fid).receiver.is_none() {
-                            stack.push(*fid);
-                        }
+                    let impl_ = asg.get_impl_unchecked(*impl_id);
+                    if impl_.trait_.is_some() {
+                        continue;
+                    }
+                    for fid in &impl_.fns {
+                        stack.push(*fid);
                     }
                 }
                 match &def.shape {

@@ -719,3 +719,247 @@ fn fn_accepts_object_literal() {
         pub fn triangle_area(t: Triangle) -> f64 { 0.0 }
     };
 }
+
+#[test]
+fn impl_static_method() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: i32,
+            pub y: i32,
+        }
+        impl Point {
+            pub fn make_default() -> i32 { 42 }
+        }
+    };
+}
+
+#[test]
+fn impl_static_returns_self() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: f64,
+            pub y: f64,
+        }
+        impl Point {
+            pub fn make(x: f64, y: f64) -> Self {
+                Self { x, y }
+            }
+        }
+    };
+}
+
+#[test]
+fn impl_static_method_named_new() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Box {
+            pub width: i32,
+        }
+        impl Box {
+            pub fn new(width: i32) -> i32 { width * 2 }
+        }
+    };
+}
+
+#[test]
+fn impl_instance_method_ref() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: i32,
+            pub y: i32,
+        }
+        impl Point {
+            pub fn distance(&self, other: &Self) -> i32 {
+                let dx = self.x - other.x;
+                let dy = self.y - other.y;
+                dx * dx + dy * dy
+            }
+        }
+    };
+}
+
+#[test]
+fn impl_instance_method_mut() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Counter {
+            pub count: i32,
+        }
+        impl Counter {
+            pub fn add(&mut self, by: i32) {
+                self.count += by;
+            }
+        }
+    };
+}
+
+#[test]
+fn impl_instance_returns_self() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: f64,
+            pub y: f64,
+        }
+        impl Point {
+            pub fn move_towards(&self, t: &Self, s: f64) -> Self {
+                Self { x: self.x + (t.x - self.x) * s, y: self.y + (t.y - self.y) * s }
+            }
+        }
+    };
+}
+
+#[test]
+fn impl_self_by_value() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Counter {
+            pub count: i32,
+        }
+        impl Counter {
+            pub fn consume(self) -> i32 { self.count }
+        }
+    };
+}
+
+#[test]
+fn impl_self_by_value_non_clone() {
+    assert_snap! {
+        pub struct Counter {
+            pub count: i32,
+        }
+        impl Counter {
+            pub fn consume(self) -> i32 { self.count }
+        }
+    };
+}
+
+#[test]
+fn impl_multiple_blocks() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: i32,
+            pub y: i32,
+        }
+        impl Point {
+            pub fn dot(&self, other: &Self) -> i32 { self.x * other.x + self.y * other.y }
+        }
+        impl Point {
+            pub fn negate(&self) -> Self { Self { x: -self.x, y: -self.y } }
+        }
+    };
+}
+
+#[test]
+fn impl_of_collision() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: i32,
+            pub y: i32,
+        }
+        impl Point {
+            pub fn of(x: i32) -> Self {
+                Self { x, y: x }
+            }
+        }
+    };
+}
+
+#[test]
+fn impl_of_no_collision_when_no_struct_expr() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Mat2x2 {
+            _00: i32,
+            _01: i32,
+            _10: i32,
+            _11: i32,
+        }
+        impl Mat2x2 {
+            pub fn of(diag: i32) -> Self {
+                Self { _00: diag, _01: 0, _10: 0, _11: diag }
+            }
+        }
+    };
+}
+
+#[test]
+fn impl_method_shadows_field() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: i32,
+            pub y: i32,
+        }
+        impl Point {
+            pub fn x(&self) -> i32 { self.x }
+        }
+    };
+}
+
+#[test]
+fn impl_trait_method_ignored() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: i32,
+        }
+        pub trait Visible {
+            fn render(&self) -> i32;
+        }
+        impl Visible for Point {
+            fn render(&self) -> i32 { self.x }
+        }
+    };
+}
+
+#[test]
+fn impl_method_on_struct_with_private_field() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Mixed {
+            pub x: i32,
+            y: i32,
+        }
+        impl Mixed {
+            pub fn sum(&self) -> i32 { self.x + self.y }
+        }
+    };
+}
+
+#[test]
+fn impl_method_mut_self_and_mut_param() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Counter {
+            pub count: i32,
+        }
+        impl Counter {
+            pub fn merge(&mut self, other: &mut Self) {
+                self.count += other.count;
+                other.count = 0;
+            }
+        }
+    };
+}
+
+#[test]
+fn impl_static_returns_self_taking_ref_self() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: i32,
+            pub y: i32,
+        }
+        impl Point {
+            pub fn make_relative_to(p: &Self) -> Self {
+                Self { x: p.x + 1, y: p.y + 1 }
+            }
+        }
+    };
+}

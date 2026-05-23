@@ -12,22 +12,27 @@ pub const ROOT_FIELD: &str = "__cursed_root";
 
 /// Cache slot for a struct-typed field: `__cursed_cache_<userfield>`.
 pub fn cache_field(user_field: &str) -> String {
-    format!("__cursed_cache_{user_field}")
+    format!("__cursed_cache__{user_field}")
 }
 
 /// Generated fn arg (ctor / setter value): `__cursed_arg_<userfield>`.
 pub fn arg_name(user_field: &str) -> String {
-    format!("__cursed_arg_{user_field}")
+    format!("__cursed_arg__{user_field}")
 }
 
 /// Field getter fn: `__cursed_get_<userfield>`.
 pub fn getter_fn(user_field: &str) -> String {
-    format!("__cursed_get_{user_field}")
+    format!("__cursed_get__{user_field}")
 }
 
 /// Field setter fn: `__cursed_set_<userfield>`.
 pub fn setter_fn(user_field: &str) -> String {
-    format!("__cursed_set_{user_field}")
+    format!("__cursed_set__{user_field}")
+}
+
+/// Method dispatch fn: `__cursed_method_<methodname>`.
+pub fn method_fn(method_name: &str) -> String {
+    format!("__cursed_method__{method_name}")
 }
 
 /// True when `item_path` lives directly inside `mod_segments` (i.e. the

@@ -98,16 +98,16 @@ pub struct __cursed_rustdoc_test_crate__inner__S {
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__inner__S {
     #[wasm_bindgen(getter, js_name = "x")]
-    pub fn __cursed_get_x(&self) -> i32 {
+    pub fn __cursed_get__x(&self) -> i32 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<i32> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
         __cursed_out.unwrap()
     }
     #[wasm_bindgen(setter, js_name = "x")]
-    pub fn __cursed_set_x(&self, __cursed_arg_x: i32) {
+    pub fn __cursed_set__x(&self, __cursed_arg__x: i32) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_x);
+        let mut __cursed_arg = Some(__cursed_arg__x);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
@@ -214,16 +214,16 @@ pub struct __cursed_rustdoc_test_crate__inner__S {
 #[napi]
 impl __cursed_rustdoc_test_crate__inner__S {
     #[napi(getter, js_name = "x")]
-    pub fn __cursed_get_x(&self) -> i32 {
+    pub fn __cursed_get__x(&self) -> i32 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<i32> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
         __cursed_out.unwrap()
     }
     #[napi(setter, js_name = "x")]
-    pub fn __cursed_set_x(&self, __cursed_arg_x: i32) {
+    pub fn __cursed_set__x(&self, __cursed_arg__x: i32) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_x);
+        let mut __cursed_arg = Some(__cursed_arg__x);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
@@ -437,6 +437,19 @@ Asg {
                             ty: Primitive(
                                 i32,
                             ),
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        3,
+                                        9,
+                                    ),
+                                    end: (
+                                        3,
+                                        19,
+                                    ),
+                                },
+                            ),
                             docs: None,
                         },
                     ],
@@ -615,6 +628,8 @@ Ir {
                 ],
                 ctor: None,
                 struct_expr: None,
+                methods: [],
+                of_escaped: false,
                 clonable: false,
                 docs: None,
             },
@@ -641,6 +656,7 @@ Ir {
                     i32,
                 ),
                 needs_closure_scope: false,
+                receiver: None,
                 docs: None,
             },
         ),

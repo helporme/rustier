@@ -97,30 +97,30 @@ pub struct __cursed_rustdoc_test_crate__Point {
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Point {
     #[wasm_bindgen(getter, js_name = "x")]
-    pub fn __cursed_get_x(&self) -> f64 {
+    pub fn __cursed_get__x(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
         __cursed_out.unwrap()
     }
     #[wasm_bindgen(setter, js_name = "x")]
-    pub fn __cursed_set_x(&self, __cursed_arg_x: f64) {
+    pub fn __cursed_set__x(&self, __cursed_arg__x: f64) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_x);
+        let mut __cursed_arg = Some(__cursed_arg__x);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
     #[wasm_bindgen(getter, js_name = "y")]
-    pub fn __cursed_get_y(&self) -> f64 {
+    pub fn __cursed_get__y(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y));
         __cursed_out.unwrap()
     }
     #[wasm_bindgen(setter, js_name = "y")]
-    pub fn __cursed_set_y(&self, __cursed_arg_y: f64) {
+    pub fn __cursed_set__y(&self, __cursed_arg__y: f64) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_y);
+        let mut __cursed_arg = Some(__cursed_arg__y);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
@@ -144,30 +144,30 @@ pub struct __cursed_rustdoc_test_crate__Point2 {
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Point2 {
     #[wasm_bindgen(getter, js_name = "x")]
-    pub fn __cursed_get_x(&self) -> f64 {
+    pub fn __cursed_get__x(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
         __cursed_out.unwrap()
     }
     #[wasm_bindgen(setter, js_name = "x")]
-    pub fn __cursed_set_x(&self, __cursed_arg_x: f64) {
+    pub fn __cursed_set__x(&self, __cursed_arg__x: f64) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_x);
+        let mut __cursed_arg = Some(__cursed_arg__x);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
     #[wasm_bindgen(getter, js_name = "y")]
-    pub fn __cursed_get_y(&self) -> f64 {
+    pub fn __cursed_get__y(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y));
         __cursed_out.unwrap()
     }
     #[wasm_bindgen(setter, js_name = "y")]
-    pub fn __cursed_set_y(&self, __cursed_arg_y: f64) {
+    pub fn __cursed_set__y(&self, __cursed_arg__y: f64) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_y);
+        let mut __cursed_arg = Some(__cursed_arg__y);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
@@ -269,30 +269,30 @@ pub struct __cursed_rustdoc_test_crate__Point {
 #[napi]
 impl __cursed_rustdoc_test_crate__Point {
     #[napi(getter, js_name = "x")]
-    pub fn __cursed_get_x(&self) -> f64 {
+    pub fn __cursed_get__x(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
         __cursed_out.unwrap()
     }
     #[napi(setter, js_name = "x")]
-    pub fn __cursed_set_x(&self, __cursed_arg_x: f64) {
+    pub fn __cursed_set__x(&self, __cursed_arg__x: f64) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_x);
+        let mut __cursed_arg = Some(__cursed_arg__x);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
     #[napi(getter, js_name = "y")]
-    pub fn __cursed_get_y(&self) -> f64 {
+    pub fn __cursed_get__y(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y));
         __cursed_out.unwrap()
     }
     #[napi(setter, js_name = "y")]
-    pub fn __cursed_set_y(&self, __cursed_arg_y: f64) {
+    pub fn __cursed_set__y(&self, __cursed_arg__y: f64) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_y);
+        let mut __cursed_arg = Some(__cursed_arg__y);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
@@ -328,30 +328,30 @@ pub struct __cursed_rustdoc_test_crate__Point2 {
 #[napi]
 impl __cursed_rustdoc_test_crate__Point2 {
     #[napi(getter, js_name = "x")]
-    pub fn __cursed_get_x(&self) -> f64 {
+    pub fn __cursed_get__x(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
         __cursed_out.unwrap()
     }
     #[napi(setter, js_name = "x")]
-    pub fn __cursed_set_x(&self, __cursed_arg_x: f64) {
+    pub fn __cursed_set__x(&self, __cursed_arg__x: f64) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_x);
+        let mut __cursed_arg = Some(__cursed_arg__x);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
     #[napi(getter, js_name = "y")]
-    pub fn __cursed_get_y(&self) -> f64 {
+    pub fn __cursed_get__y(&self) -> f64 {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
         __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y));
         __cursed_out.unwrap()
     }
     #[napi(setter, js_name = "y")]
-    pub fn __cursed_set_y(&self, __cursed_arg_y: f64) {
+    pub fn __cursed_set__y(&self, __cursed_arg__y: f64) {
         let __cursed_proj = self.__cursed_root.borrow().clone();
-        let mut __cursed_arg = Some(__cursed_arg_y);
+        let mut __cursed_arg = Some(__cursed_arg__y);
         __cursed_proj
             .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
@@ -509,12 +509,38 @@ Asg {
                             ty: Primitive(
                                 f64,
                             ),
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        2,
+                                        5,
+                                    ),
+                                    end: (
+                                        2,
+                                        15,
+                                    ),
+                                },
+                            ),
                             docs: None,
                         },
                         StructField {
                             name: "y",
                             ty: Primitive(
                                 f64,
+                            ),
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        3,
+                                        5,
+                                    ),
+                                    end: (
+                                        3,
+                                        15,
+                                    ),
+                                },
                             ),
                             docs: None,
                         },
@@ -556,12 +582,38 @@ Asg {
                             ty: Primitive(
                                 f64,
                             ),
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        6,
+                                        5,
+                                    ),
+                                    end: (
+                                        6,
+                                        15,
+                                    ),
+                                },
+                            ),
                             docs: None,
                         },
                         StructField {
                             name: "y",
                             ty: Primitive(
                                 f64,
+                            ),
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        7,
+                                        5,
+                                    ),
+                                    end: (
+                                        7,
+                                        15,
+                                    ),
+                                },
                             ),
                             docs: None,
                         },
@@ -669,6 +721,8 @@ Ir {
                 ],
                 ctor: None,
                 struct_expr: None,
+                methods: [],
+                of_escaped: false,
                 clonable: false,
                 docs: None,
             },
@@ -715,6 +769,8 @@ Ir {
                 ],
                 ctor: None,
                 struct_expr: None,
+                methods: [],
+                of_escaped: false,
                 clonable: false,
                 docs: None,
             },
