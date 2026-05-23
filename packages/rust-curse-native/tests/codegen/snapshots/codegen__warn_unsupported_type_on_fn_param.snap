@@ -11,12 +11,14 @@ pub fn f(v: Vec<i32>) {}
 # wasm
 
 ```rs
+#![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 ```
 
 # napi
 
 ```rs
+#![allow(non_camel_case_types, non_snake_case)]
 use napi_derive::napi;
 ```
 

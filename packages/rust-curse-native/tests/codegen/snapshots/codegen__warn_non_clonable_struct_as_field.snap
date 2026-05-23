@@ -18,6 +18,7 @@ pub struct Circle {
 # wasm
 
 ```rs
+#![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 #[allow(unused_imports)]
 use std::cell::RefCell;
@@ -157,6 +158,7 @@ impl __cursed_rustdoc_test_crate__Circle {
 # napi
 
 ```rs
+#![allow(non_camel_case_types, non_snake_case)]
 use napi_derive::napi;
 #[allow(unused_imports)]
 use std::cell::RefCell;

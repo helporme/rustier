@@ -11,6 +11,7 @@ pub fn f(by_ref: &i32, by_mut_ref: &mut i32, by_value: i32) {}
 # wasm
 
 ```rs
+#![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 /// fn glue for `crate::f`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__f")]
@@ -22,6 +23,7 @@ pub fn __cursed_rustdoc_test_crate__f(by_ref: i32, by_mut_ref: i32, by_value: i3
 # napi
 
 ```rs
+#![allow(non_camel_case_types, non_snake_case)]
 use napi_derive::napi;
 /// fn glue for `crate::f`
 #[napi(js_name = "__cursed_rustdoc_test_crate__f")]

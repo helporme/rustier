@@ -16,6 +16,7 @@ pub fn square2(x: f64) -> f64 {
 # wasm
 
 ```rs
+#![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 /// fn glue for `crate::square`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__square")]
@@ -32,6 +33,7 @@ pub fn __cursed_rustdoc_test_crate__square2(x: f64) -> f64 {
 # napi
 
 ```rs
+#![allow(non_camel_case_types, non_snake_case)]
 use napi_derive::napi;
 /// fn glue for `crate::square`
 #[napi(js_name = "__cursed_rustdoc_test_crate__square")]

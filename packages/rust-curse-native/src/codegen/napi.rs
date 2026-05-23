@@ -28,6 +28,7 @@ impl<'a> Printer<'a> {
 
     fn run(&self) -> String {
         let mut out = String::new();
+        out.push_str("#![allow(non_camel_case_types, non_snake_case)]\n");
         out.push_str("use napi_derive::napi;\n");
         if self.ir.uses_projections {
             out.push_str(PROJECTION_PREAMBLE);

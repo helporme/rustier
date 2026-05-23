@@ -15,6 +15,7 @@ pub fn label(p: &Point, name: String) {}
 # wasm
 
 ```rs
+#![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 #[allow(unused_imports)]
 use std::cell::RefCell;
@@ -120,6 +121,7 @@ pub fn __cursed_rustdoc_test_crate__label(
 # napi
 
 ```rs
+#![allow(non_camel_case_types, non_snake_case)]
 use napi_derive::napi;
 #[allow(unused_imports)]
 use std::cell::RefCell;
