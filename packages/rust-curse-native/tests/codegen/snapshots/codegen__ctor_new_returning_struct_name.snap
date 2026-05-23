@@ -19,27 +19,56 @@ impl Token {
 
 ```rs
 use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::Token`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Token")]
 pub struct __cursed_rustdoc_test_crate__Token {
-    inner: crate::Token,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Token>>>>,
 }
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Token {
     #[wasm_bindgen(constructor)]
-    pub fn new(raw: String) -> Self {
+    pub fn new(__cursed_arg_raw: String) -> Self {
         Self {
-            inner: crate::Token::new(raw),
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(RefCell::new(crate::Token::new(__cursed_arg_raw)))
+                        as Rc<dyn __cursed_Projection<crate::Token>>,
+                ),
+            ),
         }
-    }
-}
-impl From<crate::Token> for __cursed_rustdoc_test_crate__Token {
-    fn from(v: crate::Token) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__Token> for crate::Token {
-    fn from(v: __cursed_rustdoc_test_crate__Token) -> Self {
-        v.inner
     }
 }
 ```
@@ -48,27 +77,56 @@ impl From<__cursed_rustdoc_test_crate__Token> for crate::Token {
 
 ```rs
 use napi_derive::napi;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::Token`
 #[napi(js_name = "__cursed_rustdoc_test_crate__Token")]
 pub struct __cursed_rustdoc_test_crate__Token {
-    inner: crate::Token,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Token>>>>,
 }
 #[napi]
 impl __cursed_rustdoc_test_crate__Token {
     #[napi(constructor)]
-    pub fn new(raw: String) -> Self {
+    pub fn new(__cursed_arg_raw: String) -> Self {
         Self {
-            inner: crate::Token::new(raw),
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(RefCell::new(crate::Token::new(__cursed_arg_raw)))
+                        as Rc<dyn __cursed_Projection<crate::Token>>,
+                ),
+            ),
         }
-    }
-}
-impl From<crate::Token> for __cursed_rustdoc_test_crate__Token {
-    fn from(v: crate::Token) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__Token> for crate::Token {
-    fn from(v: __cursed_rustdoc_test_crate__Token) -> Self {
-        v.inner
     }
 }
 ```
@@ -316,6 +374,7 @@ Ir {
                             ty: Primitive(
                                 String,
                             ),
+                            needs_stash: false,
                         },
                     ],
                 },
@@ -324,5 +383,6 @@ Ir {
             },
         ),
     ],
+    uses_projections: true,
 }
 ```

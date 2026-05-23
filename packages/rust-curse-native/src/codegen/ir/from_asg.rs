@@ -54,17 +54,20 @@ impl<'a> Lowerer<'a> {
         self.select_classes();
         self.assign_ids();
 
-        let items = self
+        let items: Vec<Item> = self
             .asg
             .items
             .iter()
             .filter_map(|item| self.lower_item(item))
             .collect();
 
+        let uses_projections = items.iter().any(|i| matches!(i, Item::Class(_)));
+
         Ir {
             root: self.asg_to_ir[&self.asg.root],
             crate_name: self.asg.crate_name.clone(),
             items,
+            uses_projections,
         }
     }
 
@@ -101,7 +104,7 @@ impl<'a> Lowerer<'a> {
         }
 
         loop {
-            let mut dropped: Option<(asg::AsgId, String, Option<AsgSpan>)> = None;
+            let mut dropped: Option<(asg::AsgId, Warn, Option<AsgSpan>)> = None;
             for &sid in &self.emittable {
                 let def = self.asg.get_struct_unchecked(sid);
                 let asg::StructShape::Struct(fields) = &def.shape else {
@@ -111,15 +114,23 @@ impl<'a> Lowerer<'a> {
                     let asg::Type::Struct(child) = f.ty else {
                         continue;
                     };
+                    let child_name = self
+                        .asg
+                        .get_struct_unchecked(child)
+                        .path
+                        .name()
+                        .unwrap_or("?")
+                        .to_string();
+
                     if !self.emittable.contains(&child) {
-                        let child_name = self
-                            .asg
-                            .get_struct_unchecked(child)
-                            .path
-                            .name()
-                            .unwrap_or("?")
-                            .to_string();
-                        dropped = Some((sid, child_name, def.span.clone()));
+                        let warn = warn_skipped_struct_ref(child_name);
+                        dropped = Some((sid, warn, def.span.clone()));
+                        break;
+                    }
+
+                    if !self.asg_clonable(child) {
+                        let warn = warn_non_clonable_struct_used(child_name, "struct field");
+                        dropped = Some((sid, warn, def.span.clone()));
                         break;
                     }
                 }
@@ -127,12 +138,11 @@ impl<'a> Lowerer<'a> {
                     break;
                 }
             }
-            let Some((sid, child_name, span)) = dropped else {
+            let Some((sid, warn, span)) = dropped else {
                 break;
             };
             self.emittable.remove(&sid);
-            self.warns
-                .push(attach_span(warn_skipped_struct_ref(child_name), &span));
+            self.warns.push(attach_span(warn, &span));
         }
     }
 
@@ -174,6 +184,30 @@ impl<'a> Lowerer<'a> {
                         .push(attach_span(warn_skipped_struct_ref(name), &def.span));
                     return false;
                 }
+            }
+        }
+        // A by-value struct param is cloned into an owned value
+        // before the user fn runs, so its type must be `Clone`.
+        for p in &def.params {
+            if p.mode != asg::ParamMode::ByValue {
+                continue;
+            }
+            let asg::Type::Struct(sid) = &p.ty else {
+                continue;
+            };
+            if !self.asg_clonable(*sid) {
+                let name = self
+                    .asg
+                    .get_struct_unchecked(*sid)
+                    .path
+                    .name()
+                    .unwrap_or("?")
+                    .to_string();
+                self.warns.push(attach_span(
+                    warn_non_clonable_struct_used(name, "by-value parameter"),
+                    &def.span,
+                ));
+                return false;
             }
         }
         true
@@ -225,12 +259,22 @@ impl<'a> Lowerer<'a> {
     }
 
     fn is_clonable(&self, def: &asg::StructDef) -> bool {
-        def.impls.iter().any(|impl_id| {
-            matches!(
-                self.asg.get_impl_unchecked(*impl_id).trait_,
-                Some(TraitRef::WellKnown(WellKnownTrait::Clone))
-            )
-        })
+        self.asg_clonable(def.id)
+    }
+
+    /// True when the ASG struct `sid` carries a `Clone` impl (derived or
+    /// hand-written).
+    fn asg_clonable(&self, sid: asg::AsgId) -> bool {
+        self.asg
+            .get_struct_unchecked(sid)
+            .impls
+            .iter()
+            .any(|impl_id| {
+                matches!(
+                    self.asg.get_impl_unchecked(*impl_id).trait_,
+                    Some(TraitRef::WellKnown(WellKnownTrait::Clone))
+                )
+            })
     }
 
     fn resolve_ctor(&self, def: &asg::StructDef, asg_fields: &[asg::StructField]) -> Ctor {
@@ -281,6 +325,7 @@ impl<'a> Lowerer<'a> {
                         name: f.name.clone(),
                         mode: asg::ParamMode::ByValue,
                         ty: self.lower_type(&f.ty),
+                        needs_stash: false,
                     })
                     .collect(),
             },
@@ -289,14 +334,32 @@ impl<'a> Lowerer<'a> {
 
     fn lower_fn(&self, def: &asg::FnDef) -> FnDef {
         let path = def.path.clone();
+        let mut params: Vec<FnParam> = def.params.iter().map(|p| self.lower_param(p)).collect();
+
+        // Any struct passed by `&` / `&mut` forces the user call inside a
+        // `with` / `with_mut` closure; once that scope exists, owned non-`Copy`
+        // primitives (String) need stashing to escape `FnMut`.
+        let needs_closure_scope = params.iter().any(|p| {
+            matches!(p.ty, Type::Class(_))
+                && matches!(p.mode, asg::ParamMode::ByRef | asg::ParamMode::ByMut)
+        });
+        if needs_closure_scope {
+            for p in &mut params {
+                if matches!(p.ty, Type::Primitive(asg::Primitive::String)) {
+                    p.needs_stash = true;
+                }
+            }
+        }
+
         FnDef {
             id: self.asg_to_ir[&def.id],
             orig: def.id,
             js_name: path.name().unwrap_or_default().to_string(),
             mangled_name: mangle(&path),
             path,
-            params: def.params.iter().map(|p| self.lower_param(p)).collect(),
+            params,
             return_type: self.lower_type(&def.return_type),
+            needs_closure_scope,
             docs: def.docs.clone(),
         }
     }
@@ -326,6 +389,9 @@ impl<'a> Lowerer<'a> {
             name: p.name.clone(),
             mode: p.mode.clone(),
             ty: self.lower_type(&p.ty),
+            // Set in `lower_fn` once `needs_closure_scope` is known. Ctors
+            // never have closures, so the default is the final value there.
+            needs_stash: false,
         }
     }
 
@@ -371,6 +437,14 @@ fn is_copy_primitive(ty: &asg::Type) -> bool {
 
 fn warn_unsupported_type(reason: &str) -> Warn {
     Warn::new("rust-curse::unsupported_type", reason.to_string())
+}
+
+fn warn_non_clonable_struct_used(struct_name: String, used_as: &str) -> Warn {
+    Warn::new(
+        "rust-curse::non_clonable_struct_used",
+        format!("\"{struct_name}\" is used as a {used_as} but does not implement Clone"),
+    )
+    .help("add `#[derive(Clone)]` to the struct, or implement Clone manually; alternatively, pass it by `&` / `&mut` reference to avoid the clone")
 }
 
 fn warn_skipped_struct_ref(struct_name: String) -> Warn {

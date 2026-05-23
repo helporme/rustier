@@ -13,10 +13,12 @@ pub fn g(y: i32) {}
 
 ```rs
 use wasm_bindgen::prelude::*;
+/// fn glue for `crate::f`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__f")]
 pub fn __cursed_rustdoc_test_crate__f(x: i32) {
     crate::f(x);
 }
+/// fn glue for `crate::g`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__g")]
 pub fn __cursed_rustdoc_test_crate__g(y: i32) {
     crate::g(y);
@@ -27,10 +29,12 @@ pub fn __cursed_rustdoc_test_crate__g(y: i32) {
 
 ```rs
 use napi_derive::napi;
+/// fn glue for `crate::f`
 #[napi(js_name = "__cursed_rustdoc_test_crate__f")]
 pub fn __cursed_rustdoc_test_crate__f(x: i32) {
     crate::f(x);
 }
+/// fn glue for `crate::g`
 #[napi(js_name = "__cursed_rustdoc_test_crate__g")]
 pub fn __cursed_rustdoc_test_crate__g(y: i32) {
     crate::g(y);
@@ -276,11 +280,13 @@ Ir {
                         ty: Primitive(
                             i32,
                         ),
+                        needs_stash: false,
                     },
                 ],
                 return_type: Primitive(
                     Unit,
                 ),
+                needs_closure_scope: false,
                 docs: None,
             },
         ),
@@ -307,14 +313,17 @@ Ir {
                         ty: Primitive(
                             i32,
                         ),
+                        needs_stash: false,
                     },
                 ],
                 return_type: Primitive(
                     Unit,
                 ),
+                needs_closure_scope: false,
                 docs: None,
             },
         ),
     ],
+    uses_projections: false,
 }
 ```

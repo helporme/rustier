@@ -430,8 +430,14 @@ fn partial_module_reduction_regenerates_parent_subtree_file() {
             .unwrap();
     }
     let second = fs::read_to_string(&abs_a_rs).unwrap();
-    assert!(second.contains("pub(crate) mod b;"), "second a.rs: {second:?}");
-    assert!(!second.contains("pub(crate) mod c;"), "second a.rs: {second:?}");
+    assert!(
+        second.contains("pub(crate) mod b;"),
+        "second a.rs: {second:?}"
+    );
+    assert!(
+        !second.contains("pub(crate) mod c;"),
+        "second a.rs: {second:?}"
+    );
 }
 
 #[test]
@@ -566,10 +572,7 @@ fn module_without_filename_is_skipped() {
         })
         .unwrap();
 
-    let abs_orphan_tree_rs = project
-        .abs_root_path
-        .join(OUT_DIR)
-        .join("orphan_tree.rs");
+    let abs_orphan_tree_rs = project.abs_root_path.join(OUT_DIR).join("orphan_tree.rs");
     assert!(
         !abs_orphan_tree_rs.exists(),
         "orphan_tree.rs must not be written when no module has a filename: {}",

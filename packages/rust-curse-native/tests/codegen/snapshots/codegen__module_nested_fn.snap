@@ -17,6 +17,7 @@ pub mod math {
 
 ```rs
 use wasm_bindgen::prelude::*;
+/// fn glue for `crate::math::square`
 /// Returns the square of `x`.
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__math__square")]
 pub fn __cursed_rustdoc_test_crate__math__square(x: f64) -> f64 {
@@ -28,6 +29,7 @@ pub fn __cursed_rustdoc_test_crate__math__square(x: f64) -> f64 {
 
 ```rs
 use napi_derive::napi;
+/// fn glue for `crate::math::square`
 /// Returns the square of `x`.
 #[napi(js_name = "__cursed_rustdoc_test_crate__math__square")]
 pub fn __cursed_rustdoc_test_crate__math__square(x: f64) -> f64 {
@@ -305,16 +307,19 @@ Ir {
                         ty: Primitive(
                             f64,
                         ),
+                        needs_stash: false,
                     },
                 ],
                 return_type: Primitive(
                     f64,
                 ),
+                needs_closure_scope: false,
                 docs: Some(
                     "Returns the square of `x`.",
                 ),
             },
         ),
     ],
+    uses_projections: false,
 }
 ```

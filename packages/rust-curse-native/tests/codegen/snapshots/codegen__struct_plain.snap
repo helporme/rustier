@@ -18,44 +18,89 @@ pub struct Point {
 
 ```rs
 use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::Point`
 /// A point in 2D space.
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Point")]
 pub struct __cursed_rustdoc_test_crate__Point {
-    inner: crate::Point,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Point>>>>,
 }
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Point {
     #[wasm_bindgen(constructor)]
-    pub fn new(x: f64, y: f64) -> Self {
+    pub fn new(__cursed_arg_x: f64, __cursed_arg_y: f64) -> Self {
         Self {
-            inner: crate::Point { x, y },
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(
+                        RefCell::new(crate::Point {
+                            x: __cursed_arg_x,
+                            y: __cursed_arg_y,
+                        }),
+                    ) as Rc<dyn __cursed_Projection<crate::Point>>,
+                ),
+            ),
         }
     }
     #[wasm_bindgen(getter, js_name = "x")]
-    pub fn x(&self) -> f64 {
-        self.inner.x
+    pub fn __cursed_get_x(&self) -> f64 {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<f64> = None;
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
+        __cursed_out.unwrap()
     }
     #[wasm_bindgen(setter, js_name = "x")]
-    pub fn set_x(&mut self, v: f64) {
-        self.inner.x = v;
+    pub fn __cursed_set_x(&self, __cursed_arg_x: f64) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_x);
+        __cursed_proj
+            .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
     #[wasm_bindgen(getter, js_name = "y")]
-    pub fn y(&self) -> f64 {
-        self.inner.y
+    pub fn __cursed_get_y(&self) -> f64 {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<f64> = None;
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y));
+        __cursed_out.unwrap()
     }
     #[wasm_bindgen(setter, js_name = "y")]
-    pub fn set_y(&mut self, v: f64) {
-        self.inner.y = v;
-    }
-}
-impl From<crate::Point> for __cursed_rustdoc_test_crate__Point {
-    fn from(v: crate::Point) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__Point> for crate::Point {
-    fn from(v: __cursed_rustdoc_test_crate__Point) -> Self {
-        v.inner
+    pub fn __cursed_set_y(&self, __cursed_arg_y: f64) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_y);
+        __cursed_proj
+            .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
 }
 ```
@@ -64,44 +109,89 @@ impl From<__cursed_rustdoc_test_crate__Point> for crate::Point {
 
 ```rs
 use napi_derive::napi;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::Point`
 /// A point in 2D space.
 #[napi(js_name = "__cursed_rustdoc_test_crate__Point")]
 pub struct __cursed_rustdoc_test_crate__Point {
-    inner: crate::Point,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Point>>>>,
 }
 #[napi]
 impl __cursed_rustdoc_test_crate__Point {
     #[napi(constructor)]
-    pub fn new(x: f64, y: f64) -> Self {
+    pub fn new(__cursed_arg_x: f64, __cursed_arg_y: f64) -> Self {
         Self {
-            inner: crate::Point { x, y },
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(
+                        RefCell::new(crate::Point {
+                            x: __cursed_arg_x,
+                            y: __cursed_arg_y,
+                        }),
+                    ) as Rc<dyn __cursed_Projection<crate::Point>>,
+                ),
+            ),
         }
     }
     #[napi(getter, js_name = "x")]
-    pub fn x(&self) -> f64 {
-        self.inner.x
+    pub fn __cursed_get_x(&self) -> f64 {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<f64> = None;
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
+        __cursed_out.unwrap()
     }
     #[napi(setter, js_name = "x")]
-    pub fn set_x(&mut self, v: f64) {
-        self.inner.x = v;
+    pub fn __cursed_set_x(&self, __cursed_arg_x: f64) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_x);
+        __cursed_proj
+            .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
     #[napi(getter, js_name = "y")]
-    pub fn y(&self) -> f64 {
-        self.inner.y
+    pub fn __cursed_get_y(&self) -> f64 {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<f64> = None;
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y));
+        __cursed_out.unwrap()
     }
     #[napi(setter, js_name = "y")]
-    pub fn set_y(&mut self, v: f64) {
-        self.inner.y = v;
-    }
-}
-impl From<crate::Point> for __cursed_rustdoc_test_crate__Point {
-    fn from(v: crate::Point) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__Point> for crate::Point {
-    fn from(v: __cursed_rustdoc_test_crate__Point) -> Self {
-        v.inner
+    pub fn __cursed_set_y(&self, __cursed_arg_y: f64) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_y);
+        __cursed_proj
+            .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
 }
 ```
@@ -343,6 +433,7 @@ Ir {
                             ty: Primitive(
                                 f64,
                             ),
+                            needs_stash: false,
                         },
                         FnParam {
                             name: "y",
@@ -350,6 +441,7 @@ Ir {
                             ty: Primitive(
                                 f64,
                             ),
+                            needs_stash: false,
                         },
                     ],
                 },
@@ -360,5 +452,6 @@ Ir {
             },
         ),
     ],
+    uses_projections: true,
 }
 ```

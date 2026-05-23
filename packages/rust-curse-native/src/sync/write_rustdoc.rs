@@ -46,7 +46,13 @@ impl Syncer {
         )?;
 
         let mut content = String::new();
-        tree::render_root_decls(&mut content, &root, &abs_project_root, &abs_mod_out_dir, "pub");
+        tree::render_root_decls(
+            &mut content,
+            &root,
+            &abs_project_root,
+            &abs_mod_out_dir,
+            "pub",
+        );
 
         self.lib.set_xor_branch(
             "rustdoc",

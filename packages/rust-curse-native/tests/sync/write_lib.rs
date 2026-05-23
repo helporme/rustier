@@ -233,10 +233,7 @@ fn docstring_example_matches_byte_for_byte() {
 #[test]
 fn include_branch_emits_include_macro() {
     let mut switch = LibSwitch::new();
-    switch.set_branch(
-        "orphan_tree",
-        LibBranch::new("pub mod greet;\n").include(),
-    );
+    switch.set_branch("orphan_tree", LibBranch::new("pub mod greet;\n").include());
     let files = render_lib(&switch).unwrap().unwrap();
     let lib = files.iter().find(|f| f.name == "lib").unwrap();
     assert_eq!(lib.content, "include!(\"orphan_tree.rs\");\n");

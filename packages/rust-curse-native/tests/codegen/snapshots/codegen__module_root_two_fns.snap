@@ -17,10 +17,12 @@ pub fn square2(x: f64) -> f64 {
 
 ```rs
 use wasm_bindgen::prelude::*;
+/// fn glue for `crate::square`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__square")]
 pub fn __cursed_rustdoc_test_crate__square(x: f64) -> f64 {
     crate::square(x)
 }
+/// fn glue for `crate::square2`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__square2")]
 pub fn __cursed_rustdoc_test_crate__square2(x: f64) -> f64 {
     crate::square2(x)
@@ -31,10 +33,12 @@ pub fn __cursed_rustdoc_test_crate__square2(x: f64) -> f64 {
 
 ```rs
 use napi_derive::napi;
+/// fn glue for `crate::square`
 #[napi(js_name = "__cursed_rustdoc_test_crate__square")]
 pub fn __cursed_rustdoc_test_crate__square(x: f64) -> f64 {
     crate::square(x)
 }
+/// fn glue for `crate::square2`
 #[napi(js_name = "__cursed_rustdoc_test_crate__square2")]
 pub fn __cursed_rustdoc_test_crate__square2(x: f64) -> f64 {
     crate::square2(x)
@@ -280,11 +284,13 @@ Ir {
                         ty: Primitive(
                             f64,
                         ),
+                        needs_stash: false,
                     },
                 ],
                 return_type: Primitive(
                     f64,
                 ),
+                needs_closure_scope: false,
                 docs: None,
             },
         ),
@@ -311,14 +317,17 @@ Ir {
                         ty: Primitive(
                             f64,
                         ),
+                        needs_stash: false,
                     },
                 ],
                 return_type: Primitive(
                     f64,
                 ),
+                needs_closure_scope: false,
                 docs: None,
             },
         ),
     ],
+    uses_projections: false,
 }
 ```

@@ -1,5 +1,5 @@
-pub mod common; // todo: should be private
 pub mod codegen;
+pub mod common; // todo: should be private
 pub mod orphans;
 pub mod rustdoc;
 pub mod sync;

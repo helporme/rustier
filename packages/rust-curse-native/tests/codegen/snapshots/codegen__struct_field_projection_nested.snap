@@ -1,0 +1,1001 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+#[derive(Clone)]
+pub struct Point {
+    pub x: f64,
+    pub y: f64,
+}
+#[derive(Clone)]
+pub struct Line {
+    pub start: Point,
+    pub end: Point,
+}
+```
+
+# wasm
+
+```rs
+use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::Point`
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Point")]
+pub struct __cursed_rustdoc_test_crate__Point {
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Point>>>>,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Point {
+    #[wasm_bindgen(constructor)]
+    pub fn new(__cursed_arg_x: f64, __cursed_arg_y: f64) -> Self {
+        Self {
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(
+                        RefCell::new(crate::Point {
+                            x: __cursed_arg_x,
+                            y: __cursed_arg_y,
+                        }),
+                    ) as Rc<dyn __cursed_Projection<crate::Point>>,
+                ),
+            ),
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "x")]
+    pub fn __cursed_get_x(&self) -> f64 {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<f64> = None;
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
+        __cursed_out.unwrap()
+    }
+    #[wasm_bindgen(setter, js_name = "x")]
+    pub fn __cursed_set_x(&self, __cursed_arg_x: f64) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_x);
+        __cursed_proj
+            .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
+    }
+    #[wasm_bindgen(getter, js_name = "y")]
+    pub fn __cursed_get_y(&self) -> f64 {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<f64> = None;
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y));
+        __cursed_out.unwrap()
+    }
+    #[wasm_bindgen(setter, js_name = "y")]
+    pub fn __cursed_set_y(&self, __cursed_arg_y: f64) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_y);
+        __cursed_proj
+            .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
+    }
+}
+/// class wrapper for `crate::Line`
+#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Line")]
+pub struct __cursed_rustdoc_test_crate__Line {
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Line>>>>,
+    __cursed_cache_start: Option<
+        Weak<RefCell<Rc<dyn __cursed_Projection<crate::Point>>>>,
+    >,
+    __cursed_cache_end: Option<Weak<RefCell<Rc<dyn __cursed_Projection<crate::Point>>>>>,
+}
+#[wasm_bindgen]
+impl __cursed_rustdoc_test_crate__Line {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        __cursed_arg_start: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg_end: &__cursed_rustdoc_test_crate__Point,
+    ) -> Self {
+        let mut __cursed_start_val: Option<crate::Point> = None;
+        __cursed_arg_start
+            .__cursed_root
+            .borrow()
+            .with(&mut |__cursed_p| __cursed_start_val = Some(__cursed_p.clone()));
+        let mut __cursed_end_val: Option<crate::Point> = None;
+        __cursed_arg_end
+            .__cursed_root
+            .borrow()
+            .with(&mut |__cursed_p| __cursed_end_val = Some(__cursed_p.clone()));
+        Self {
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(
+                        RefCell::new(crate::Line {
+                            start: __cursed_start_val.take().unwrap(),
+                            end: __cursed_end_val.take().unwrap(),
+                        }),
+                    ) as Rc<dyn __cursed_Projection<crate::Line>>,
+                ),
+            ),
+            __cursed_cache_start: None,
+            __cursed_cache_end: None,
+        }
+    }
+    #[wasm_bindgen(getter, js_name = "start")]
+    pub fn __cursed_get_start(&mut self) -> __cursed_rustdoc_test_crate__Point {
+        if let Some(__cursed_cell) = self
+            .__cursed_cache_start
+            .as_ref()
+            .and_then(Weak::upgrade)
+        {
+            return __cursed_rustdoc_test_crate__Point {
+                __cursed_root: __cursed_cell,
+            };
+        }
+        let __cursed_proj: Rc<dyn __cursed_Projection<crate::Point>> = Rc::new(__cursed_Projector {
+            parent: self.__cursed_root.clone(),
+            project: |__cursed_p| &__cursed_p.start,
+            project_mut: |__cursed_p| &mut __cursed_p.start,
+        });
+        let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
+        self.__cursed_cache_start = Some(Rc::downgrade(&__cursed_cell));
+        __cursed_rustdoc_test_crate__Point {
+            __cursed_root: __cursed_cell,
+        }
+    }
+    #[wasm_bindgen(setter, js_name = "start")]
+    pub fn __cursed_set_start(
+        &mut self,
+        __cursed_arg_start: &__cursed_rustdoc_test_crate__Point,
+    ) {
+        let mut __cursed_new_val: Option<crate::Point> = None;
+        __cursed_arg_start
+            .__cursed_root
+            .borrow()
+            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
+        if let Some(__cursed_cell) = self
+            .__cursed_cache_start
+            .as_ref()
+            .and_then(Weak::upgrade)
+        {
+            let __cursed_proj = __cursed_cell.borrow().clone();
+            let mut __cursed_snap: Option<crate::Point> = None;
+            __cursed_proj
+                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
+            *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
+                as Rc<dyn __cursed_Projection<crate::Point>>;
+            self.__cursed_cache_start = None;
+        }
+        let __cursed_parent = self.__cursed_root.borrow().clone();
+        __cursed_parent
+            .with_mut(
+                &mut |__cursed_p| {
+                    __cursed_p.start = __cursed_new_val.take().unwrap();
+                },
+            );
+    }
+    #[wasm_bindgen(getter, js_name = "end")]
+    pub fn __cursed_get_end(&mut self) -> __cursed_rustdoc_test_crate__Point {
+        if let Some(__cursed_cell) = self
+            .__cursed_cache_end
+            .as_ref()
+            .and_then(Weak::upgrade)
+        {
+            return __cursed_rustdoc_test_crate__Point {
+                __cursed_root: __cursed_cell,
+            };
+        }
+        let __cursed_proj: Rc<dyn __cursed_Projection<crate::Point>> = Rc::new(__cursed_Projector {
+            parent: self.__cursed_root.clone(),
+            project: |__cursed_p| &__cursed_p.end,
+            project_mut: |__cursed_p| &mut __cursed_p.end,
+        });
+        let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
+        self.__cursed_cache_end = Some(Rc::downgrade(&__cursed_cell));
+        __cursed_rustdoc_test_crate__Point {
+            __cursed_root: __cursed_cell,
+        }
+    }
+    #[wasm_bindgen(setter, js_name = "end")]
+    pub fn __cursed_set_end(
+        &mut self,
+        __cursed_arg_end: &__cursed_rustdoc_test_crate__Point,
+    ) {
+        let mut __cursed_new_val: Option<crate::Point> = None;
+        __cursed_arg_end
+            .__cursed_root
+            .borrow()
+            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
+        if let Some(__cursed_cell) = self
+            .__cursed_cache_end
+            .as_ref()
+            .and_then(Weak::upgrade)
+        {
+            let __cursed_proj = __cursed_cell.borrow().clone();
+            let mut __cursed_snap: Option<crate::Point> = None;
+            __cursed_proj
+                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
+            *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
+                as Rc<dyn __cursed_Projection<crate::Point>>;
+            self.__cursed_cache_end = None;
+        }
+        let __cursed_parent = self.__cursed_root.borrow().clone();
+        __cursed_parent
+            .with_mut(
+                &mut |__cursed_p| {
+                    __cursed_p.end = __cursed_new_val.take().unwrap();
+                },
+            );
+    }
+}
+```
+
+# napi
+
+```rs
+use napi_derive::napi;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::Point`
+#[napi(js_name = "__cursed_rustdoc_test_crate__Point")]
+pub struct __cursed_rustdoc_test_crate__Point {
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Point>>>>,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Point {
+    #[napi(constructor)]
+    pub fn new(__cursed_arg_x: f64, __cursed_arg_y: f64) -> Self {
+        Self {
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(
+                        RefCell::new(crate::Point {
+                            x: __cursed_arg_x,
+                            y: __cursed_arg_y,
+                        }),
+                    ) as Rc<dyn __cursed_Projection<crate::Point>>,
+                ),
+            ),
+        }
+    }
+    #[napi(getter, js_name = "x")]
+    pub fn __cursed_get_x(&self) -> f64 {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<f64> = None;
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
+        __cursed_out.unwrap()
+    }
+    #[napi(setter, js_name = "x")]
+    pub fn __cursed_set_x(&self, __cursed_arg_x: f64) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_x);
+        __cursed_proj
+            .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
+    }
+    #[napi(getter, js_name = "y")]
+    pub fn __cursed_get_y(&self) -> f64 {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<f64> = None;
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y));
+        __cursed_out.unwrap()
+    }
+    #[napi(setter, js_name = "y")]
+    pub fn __cursed_set_y(&self, __cursed_arg_y: f64) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_y);
+        __cursed_proj
+            .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
+    }
+}
+/// class wrapper for `crate::Line`
+#[napi(js_name = "__cursed_rustdoc_test_crate__Line")]
+pub struct __cursed_rustdoc_test_crate__Line {
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Line>>>>,
+    __cursed_cache_start: Option<
+        Weak<RefCell<Rc<dyn __cursed_Projection<crate::Point>>>>,
+    >,
+    __cursed_cache_end: Option<Weak<RefCell<Rc<dyn __cursed_Projection<crate::Point>>>>>,
+}
+#[napi]
+impl __cursed_rustdoc_test_crate__Line {
+    #[napi(constructor)]
+    pub fn new(
+        __cursed_arg_start: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg_end: &__cursed_rustdoc_test_crate__Point,
+    ) -> Self {
+        let mut __cursed_start_val: Option<crate::Point> = None;
+        __cursed_arg_start
+            .__cursed_root
+            .borrow()
+            .with(&mut |__cursed_p| __cursed_start_val = Some(__cursed_p.clone()));
+        let mut __cursed_end_val: Option<crate::Point> = None;
+        __cursed_arg_end
+            .__cursed_root
+            .borrow()
+            .with(&mut |__cursed_p| __cursed_end_val = Some(__cursed_p.clone()));
+        Self {
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(
+                        RefCell::new(crate::Line {
+                            start: __cursed_start_val.take().unwrap(),
+                            end: __cursed_end_val.take().unwrap(),
+                        }),
+                    ) as Rc<dyn __cursed_Projection<crate::Line>>,
+                ),
+            ),
+            __cursed_cache_start: None,
+            __cursed_cache_end: None,
+        }
+    }
+    #[napi(getter, js_name = "start")]
+    pub fn __cursed_get_start(&mut self) -> __cursed_rustdoc_test_crate__Point {
+        if let Some(__cursed_cell) = self
+            .__cursed_cache_start
+            .as_ref()
+            .and_then(Weak::upgrade)
+        {
+            return __cursed_rustdoc_test_crate__Point {
+                __cursed_root: __cursed_cell,
+            };
+        }
+        let __cursed_proj: Rc<dyn __cursed_Projection<crate::Point>> = Rc::new(__cursed_Projector {
+            parent: self.__cursed_root.clone(),
+            project: |__cursed_p| &__cursed_p.start,
+            project_mut: |__cursed_p| &mut __cursed_p.start,
+        });
+        let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
+        self.__cursed_cache_start = Some(Rc::downgrade(&__cursed_cell));
+        __cursed_rustdoc_test_crate__Point {
+            __cursed_root: __cursed_cell,
+        }
+    }
+    #[napi(setter, js_name = "start")]
+    pub fn __cursed_set_start(
+        &mut self,
+        __cursed_arg_start: &__cursed_rustdoc_test_crate__Point,
+    ) {
+        let mut __cursed_new_val: Option<crate::Point> = None;
+        __cursed_arg_start
+            .__cursed_root
+            .borrow()
+            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
+        if let Some(__cursed_cell) = self
+            .__cursed_cache_start
+            .as_ref()
+            .and_then(Weak::upgrade)
+        {
+            let __cursed_proj = __cursed_cell.borrow().clone();
+            let mut __cursed_snap: Option<crate::Point> = None;
+            __cursed_proj
+                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
+            *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
+                as Rc<dyn __cursed_Projection<crate::Point>>;
+            self.__cursed_cache_start = None;
+        }
+        let __cursed_parent = self.__cursed_root.borrow().clone();
+        __cursed_parent
+            .with_mut(
+                &mut |__cursed_p| {
+                    __cursed_p.start = __cursed_new_val.take().unwrap();
+                },
+            );
+    }
+    #[napi(getter, js_name = "end")]
+    pub fn __cursed_get_end(&mut self) -> __cursed_rustdoc_test_crate__Point {
+        if let Some(__cursed_cell) = self
+            .__cursed_cache_end
+            .as_ref()
+            .and_then(Weak::upgrade)
+        {
+            return __cursed_rustdoc_test_crate__Point {
+                __cursed_root: __cursed_cell,
+            };
+        }
+        let __cursed_proj: Rc<dyn __cursed_Projection<crate::Point>> = Rc::new(__cursed_Projector {
+            parent: self.__cursed_root.clone(),
+            project: |__cursed_p| &__cursed_p.end,
+            project_mut: |__cursed_p| &mut __cursed_p.end,
+        });
+        let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
+        self.__cursed_cache_end = Some(Rc::downgrade(&__cursed_cell));
+        __cursed_rustdoc_test_crate__Point {
+            __cursed_root: __cursed_cell,
+        }
+    }
+    #[napi(setter, js_name = "end")]
+    pub fn __cursed_set_end(
+        &mut self,
+        __cursed_arg_end: &__cursed_rustdoc_test_crate__Point,
+    ) {
+        let mut __cursed_new_val: Option<crate::Point> = None;
+        __cursed_arg_end
+            .__cursed_root
+            .borrow()
+            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
+        if let Some(__cursed_cell) = self
+            .__cursed_cache_end
+            .as_ref()
+            .and_then(Weak::upgrade)
+        {
+            let __cursed_proj = __cursed_cell.borrow().clone();
+            let mut __cursed_snap: Option<crate::Point> = None;
+            __cursed_proj
+                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
+            *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
+                as Rc<dyn __cursed_Projection<crate::Point>>;
+            self.__cursed_cache_end = None;
+        }
+        let __cursed_parent = self.__cursed_root.borrow().clone();
+        __cursed_parent
+            .with_mut(
+                &mut |__cursed_p| {
+                    __cursed_p.end = __cursed_new_val.take().unwrap();
+                },
+            );
+    }
+}
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+export class Point {
+    private [" "]: 'rustdoc_test_crate::Point';
+
+    x: number;
+
+    y: number;
+
+    constructor(x: number, y: number);
+}
+
+export class Line {
+    private [" "]: 'rustdoc_test_crate::Line';
+
+    start: Point;
+
+    end: Point;
+
+    constructor(start: Point, end: Point);
+}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+import __wbg_init, { __cursed_rustdoc_test_crate__Point, __cursed_rustdoc_test_crate__Line } from '$test';
+await __wbg_init();
+export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crate__Line as Line };
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+import { __cursed_rustdoc_test_crate__Point, __cursed_rustdoc_test_crate__Line } from '$test';
+export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crate__Line as Line };
+```
+
+# warns
+
+```text
+(no warnings)
+```
+
+# ASG
+
+```rs
+Asg {
+    root: AsgId(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                id: AsgId(
+                    0,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            10,
+                            2,
+                        ),
+                    },
+                ),
+                uses: [
+                    Use {
+                        name: "Point",
+                        target: AsgId(
+                            1,
+                        ),
+                    },
+                    Use {
+                        name: "Line",
+                        target: AsgId(
+                            4,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                id: AsgId(
+                    1,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Point",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            5,
+                            2,
+                        ),
+                    },
+                ),
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "x",
+                            ty: Primitive(
+                                f64,
+                            ),
+                            docs: None,
+                        },
+                        StructField {
+                            name: "y",
+                            ty: Primitive(
+                                f64,
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                impls: [
+                    AsgId(
+                        3,
+                    ),
+                ],
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                id: AsgId(
+                    2,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "clone",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            10,
+                        ),
+                        end: (
+                            1,
+                            15,
+                        ),
+                    },
+                ),
+                receiver: Some(
+                    ByRef,
+                ),
+                params: [],
+                return_type: Struct(
+                    AsgId(
+                        1,
+                    ),
+                ),
+                docs: None,
+            },
+        ),
+        Impl(
+            ImplDef {
+                id: AsgId(
+                    3,
+                ),
+                for_: AsgId(
+                    1,
+                ),
+                trait_: Some(
+                    WellKnown(
+                        Clone,
+                    ),
+                ),
+                fns: [
+                    AsgId(
+                        2,
+                    ),
+                ],
+            },
+        ),
+        Struct(
+            StructDef {
+                id: AsgId(
+                    4,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Line",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            7,
+                            1,
+                        ),
+                        end: (
+                            10,
+                            2,
+                        ),
+                    },
+                ),
+                shape: Struct(
+                    [
+                        StructField {
+                            name: "start",
+                            ty: Struct(
+                                AsgId(
+                                    1,
+                                ),
+                            ),
+                            docs: None,
+                        },
+                        StructField {
+                            name: "end",
+                            ty: Struct(
+                                AsgId(
+                                    1,
+                                ),
+                            ),
+                            docs: None,
+                        },
+                    ],
+                ),
+                impls: [
+                    AsgId(
+                        6,
+                    ),
+                ],
+                docs: None,
+            },
+        ),
+        Fn(
+            FnDef {
+                id: AsgId(
+                    5,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "clone",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            6,
+                            10,
+                        ),
+                        end: (
+                            6,
+                            15,
+                        ),
+                    },
+                ),
+                receiver: Some(
+                    ByRef,
+                ),
+                params: [],
+                return_type: Struct(
+                    AsgId(
+                        4,
+                    ),
+                ),
+                docs: None,
+            },
+        ),
+        Impl(
+            ImplDef {
+                id: AsgId(
+                    6,
+                ),
+                for_: AsgId(
+                    4,
+                ),
+                trait_: Some(
+                    WellKnown(
+                        Clone,
+                    ),
+                ),
+                fns: [
+                    AsgId(
+                        5,
+                    ),
+                ],
+            },
+        ),
+    ],
+}
+```
+
+# IR
+
+```rs
+Ir {
+    root: IrId(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                id: IrId(
+                    0,
+                ),
+                orig: AsgId(
+                    0,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            10,
+                            2,
+                        ),
+                    },
+                ),
+                uses: [
+                    Use {
+                        name: "Point",
+                        target: IrId(
+                            1,
+                        ),
+                    },
+                    Use {
+                        name: "Line",
+                        target: IrId(
+                            2,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Class(
+            ClassDef {
+                id: IrId(
+                    1,
+                ),
+                orig: AsgId(
+                    1,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Point",
+                    ],
+                },
+                js_name: "Point",
+                mangled_name: "__cursed_rustdoc_test_crate__Point",
+                fields: [
+                    ClassField {
+                        orig_name: "x",
+                        js_name: "x",
+                        ty: Primitive(
+                            f64,
+                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: None,
+                    },
+                    ClassField {
+                        orig_name: "y",
+                        js_name: "y",
+                        ty: Primitive(
+                            f64,
+                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: false,
+                        docs: None,
+                    },
+                ],
+                ctor: Implicit {
+                    params: [
+                        FnParam {
+                            name: "x",
+                            mode: ByValue,
+                            ty: Primitive(
+                                f64,
+                            ),
+                            needs_stash: false,
+                        },
+                        FnParam {
+                            name: "y",
+                            mode: ByValue,
+                            ty: Primitive(
+                                f64,
+                            ),
+                            needs_stash: false,
+                        },
+                    ],
+                },
+                clonable: true,
+                docs: None,
+            },
+        ),
+        Class(
+            ClassDef {
+                id: IrId(
+                    2,
+                ),
+                orig: AsgId(
+                    4,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "Line",
+                    ],
+                },
+                js_name: "Line",
+                mangled_name: "__cursed_rustdoc_test_crate__Line",
+                fields: [
+                    ClassField {
+                        orig_name: "start",
+                        js_name: "start",
+                        ty: Class(
+                            IrId(
+                                1,
+                            ),
+                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: true,
+                        docs: None,
+                    },
+                    ClassField {
+                        orig_name: "end",
+                        js_name: "end",
+                        ty: Class(
+                            IrId(
+                                1,
+                            ),
+                        ),
+                        has_getter: true,
+                        has_setter: true,
+                        clone_on_get: true,
+                        docs: None,
+                    },
+                ],
+                ctor: Implicit {
+                    params: [
+                        FnParam {
+                            name: "start",
+                            mode: ByValue,
+                            ty: Class(
+                                IrId(
+                                    1,
+                                ),
+                            ),
+                            needs_stash: false,
+                        },
+                        FnParam {
+                            name: "end",
+                            mode: ByValue,
+                            ty: Class(
+                                IrId(
+                                    1,
+                                ),
+                            ),
+                            needs_stash: false,
+                        },
+                    ],
+                },
+                clonable: true,
+                docs: None,
+            },
+        ),
+    ],
+    uses_projections: true,
+}
+```

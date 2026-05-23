@@ -28,6 +28,11 @@ pub struct FnDef {
     pub mangled_name: String,
     pub params: Vec<FnParam>,
     pub return_type: Type,
+    /// True when at least one param is a struct passed by `&` / `&mut`. Such
+    /// params force the user call inside a `with` / `with_mut` closure, and
+    /// that closure scope changes how other params are bound (see
+    /// `FnParam::needs_stash`).
+    pub needs_closure_scope: bool,
     pub docs: Option<String>,
 }
 
@@ -37,6 +42,11 @@ pub struct FnParam {
     pub name: String,
     pub mode: ParamMode,
     pub ty: Type,
+    /// True when the param is an owned non-`Copy` primitive (today only
+    /// `String`) and its parent fn has `needs_closure_scope`. Such a
+    /// value can't be moved out of the surrounding `FnMut`, so it must be
+    /// stashed in an `Option` outside the closure and `take`-n at the call.
+    pub needs_stash: bool,
 }
 
 /// A struct definition.
@@ -102,6 +112,9 @@ pub struct Ir {
     pub root: IrId,
     pub crate_name: String,
     pub items: Vec<Item>,
+    /// If printer code needs to emit shared code supporting class field
+    /// projection. True when the IR contains at least one class wrapper.
+    pub uses_projections: bool,
 }
 
 impl Ir {

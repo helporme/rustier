@@ -135,5 +135,6 @@ Ir {
             },
         ),
     ],
+    uses_projections: false,
 }
 ```

@@ -15,6 +15,7 @@ pub mod empty {}
 
 ```rs
 use wasm_bindgen::prelude::*;
+/// fn glue for `crate::child::leaf`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__child__leaf")]
 pub fn __cursed_rustdoc_test_crate__child__leaf() {
     crate::child::leaf();
@@ -25,6 +26,7 @@ pub fn __cursed_rustdoc_test_crate__child__leaf() {
 
 ```rs
 use napi_derive::napi;
+/// fn glue for `crate::child::leaf`
 #[napi(js_name = "__cursed_rustdoc_test_crate__child__leaf")]
 pub fn __cursed_rustdoc_test_crate__child__leaf() {
     crate::child::leaf();
@@ -287,9 +289,11 @@ Ir {
                 return_type: Primitive(
                     Unit,
                 ),
+                needs_closure_scope: false,
                 docs: None,
             },
         ),
     ],
+    uses_projections: false,
 }
 ```

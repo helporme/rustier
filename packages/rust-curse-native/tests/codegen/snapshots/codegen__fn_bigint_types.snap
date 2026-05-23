@@ -12,6 +12,7 @@ pub fn f(a: i64, b: u64, c: isize, d: usize) {}
 
 ```rs
 use wasm_bindgen::prelude::*;
+/// fn glue for `crate::f`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__f")]
 pub fn __cursed_rustdoc_test_crate__f(a: i64, b: u64, c: isize, d: usize) {
     crate::f(a, b, c, d);
@@ -22,6 +23,7 @@ pub fn __cursed_rustdoc_test_crate__f(a: i64, b: u64, c: isize, d: usize) {
 
 ```rs
 use napi_derive::napi;
+/// fn glue for `crate::f`
 #[napi(js_name = "__cursed_rustdoc_test_crate__f")]
 pub fn __cursed_rustdoc_test_crate__f(a: i64, b: u64, c: isize, d: usize) {
     crate::f(a, b, c, d);
@@ -234,6 +236,7 @@ Ir {
                         ty: Primitive(
                             i64,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "b",
@@ -241,6 +244,7 @@ Ir {
                         ty: Primitive(
                             u64,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "c",
@@ -248,6 +252,7 @@ Ir {
                         ty: Primitive(
                             isize,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "d",
@@ -255,14 +260,17 @@ Ir {
                         ty: Primitive(
                             usize,
                         ),
+                        needs_stash: false,
                     },
                 ],
                 return_type: Primitive(
                     Unit,
                 ),
+                needs_closure_scope: false,
                 docs: None,
             },
         ),
     ],
+    uses_projections: false,
 }
 ```

@@ -64,6 +64,7 @@ fn fn_borrow_modes_primitive() {
 #[test]
 fn fn_borrow_modes_struct() {
     assert_snap! {
+        #[derive(Clone)]
         pub struct Point {
             pub x: f64,
             pub y: f64,
@@ -153,6 +154,7 @@ fn struct_mixed_pub_priv_fields() {
 fn struct_with_struct_field() {
     assert_snap! {
         /// A point in 2D space.
+        #[derive(Clone)]
         pub struct Point {
             /// Horizontal position.
             pub x: f64,
@@ -160,6 +162,7 @@ fn struct_with_struct_field() {
             pub y: f64,
         }
         /// A circle defined by its center and radius.
+        #[derive(Clone)]
         pub struct Circle {
             /// The center point.
             pub center: Point,
@@ -197,6 +200,7 @@ fn struct_clone_manual_impl() {
 #[test]
 fn struct_intern_across_uses() {
     assert_snap! {
+        #[derive(Clone)]
         pub struct Point {
             pub x: i32,
             pub y: i32,
@@ -206,6 +210,96 @@ fn struct_intern_across_uses() {
         }
         pub fn take(p: Point) {}
         pub fn produce() -> Point { Point { x: 0, y: 0 } }
+    };
+}
+
+#[test]
+fn struct_field_projection_nested() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: f64,
+            pub y: f64,
+        }
+        #[derive(Clone)]
+        pub struct Line {
+            pub start: Point,
+            pub end: Point,
+        }
+    };
+}
+
+#[test]
+fn struct_field_projection_deep() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct C {
+            pub x: u32,
+        }
+        #[derive(Clone)]
+        pub struct B {
+            pub c: C,
+        }
+        #[derive(Clone)]
+        pub struct A {
+            pub b: B,
+        }
+    };
+}
+
+#[test]
+fn warn_non_clonable_struct_as_field() {
+    assert_snap! {
+        pub struct Point {
+            pub x: f64,
+            pub y: f64,
+        }
+        pub struct Circle {
+            pub center: Point,
+            pub radius: f64,
+        }
+    };
+}
+
+#[test]
+fn warn_non_clonable_struct_as_byvalue_param() {
+    assert_snap! {
+        pub struct Point {
+            pub x: f64,
+            pub y: f64,
+        }
+        pub fn take(p: Point) {}
+    };
+}
+
+#[test]
+fn nonclonable_byref_no_warn() {
+    assert_snap! {
+        pub struct Point {
+            pub x: f64,
+            pub y: f64,
+        }
+        pub fn inspect(p: &Point) {}
+    };
+}
+
+#[test]
+fn struct_string_field() {
+    assert_snap! {
+        pub struct Token {
+            pub value: String,
+        }
+    };
+}
+
+#[test]
+fn fn_struct_ref_with_string_param() {
+    assert_snap! {
+        pub struct Point {
+            pub x: f64,
+            pub y: f64,
+        }
+        pub fn label(p: &Point, name: String) {}
     };
 }
 

@@ -135,9 +135,9 @@ fn cargo_metadata(abs_cargo_dir: &Path) -> Result<CrateMetadata, RustdocError> {
         .and_then(|targets| {
             targets.iter().find(|t| {
                 t["kind"].as_array().is_some_and(|kinds| {
-                    kinds.iter().any(|k| {
-                        matches!(k.as_str(), Some("lib") | Some("rlib") | Some("cdylib"))
-                    })
+                    kinds
+                        .iter()
+                        .any(|k| matches!(k.as_str(), Some("lib") | Some("rlib") | Some("cdylib")))
                 })
             })
         })

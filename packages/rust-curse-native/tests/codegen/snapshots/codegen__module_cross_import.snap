@@ -24,44 +24,91 @@ pub mod ops {
 
 ```rs
 use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::types::Token`
 /// An authentication token.
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__types__Token")]
 pub struct __cursed_rustdoc_test_crate__types__Token {
-    inner: crate::types::Token,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::types::Token>>>>,
 }
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__types__Token {
     #[wasm_bindgen(constructor)]
-    pub fn new(value: String) -> Self {
+    pub fn new(__cursed_arg_value: String) -> Self {
         Self {
-            inner: crate::types::Token { value },
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(
+                        RefCell::new(crate::types::Token {
+                            value: __cursed_arg_value,
+                        }),
+                    ) as Rc<dyn __cursed_Projection<crate::types::Token>>,
+                ),
+            ),
         }
     }
     #[wasm_bindgen(getter, js_name = "value")]
-    pub fn value(&self) -> String {
-        self.inner.value.clone()
+    pub fn __cursed_get_value(&self) -> String {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<String> = None;
+        __cursed_proj
+            .with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.value.clone()));
+        __cursed_out.unwrap()
     }
     #[wasm_bindgen(setter, js_name = "value")]
-    pub fn set_value(&mut self, v: String) {
-        self.inner.value = v;
+    pub fn __cursed_set_value(&self, __cursed_arg_value: String) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_value);
+        __cursed_proj
+            .with_mut(&mut |__cursed_p| __cursed_p.value = __cursed_arg.take().unwrap());
     }
 }
-impl From<crate::types::Token> for __cursed_rustdoc_test_crate__types__Token {
-    fn from(v: crate::types::Token) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__types__Token> for crate::types::Token {
-    fn from(v: __cursed_rustdoc_test_crate__types__Token) -> Self {
-        v.inner
-    }
-}
+/// fn glue for `crate::ops::parse`
 /// Parses a raw string into a Token.
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__ops__parse")]
 pub fn __cursed_rustdoc_test_crate__ops__parse(
     s: String,
 ) -> __cursed_rustdoc_test_crate__types__Token {
-    crate::ops::parse(s).into()
+    __cursed_rustdoc_test_crate__types__Token {
+        __cursed_root: Rc::new(
+            RefCell::new(
+                Rc::new(RefCell::new(crate::ops::parse(s)))
+                    as Rc<dyn __cursed_Projection<crate::types::Token>>,
+            ),
+        ),
+    }
 }
 ```
 
@@ -69,44 +116,91 @@ pub fn __cursed_rustdoc_test_crate__ops__parse(
 
 ```rs
 use napi_derive::napi;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::types::Token`
 /// An authentication token.
 #[napi(js_name = "__cursed_rustdoc_test_crate__types__Token")]
 pub struct __cursed_rustdoc_test_crate__types__Token {
-    inner: crate::types::Token,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::types::Token>>>>,
 }
 #[napi]
 impl __cursed_rustdoc_test_crate__types__Token {
     #[napi(constructor)]
-    pub fn new(value: String) -> Self {
+    pub fn new(__cursed_arg_value: String) -> Self {
         Self {
-            inner: crate::types::Token { value },
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(
+                        RefCell::new(crate::types::Token {
+                            value: __cursed_arg_value,
+                        }),
+                    ) as Rc<dyn __cursed_Projection<crate::types::Token>>,
+                ),
+            ),
         }
     }
     #[napi(getter, js_name = "value")]
-    pub fn value(&self) -> String {
-        self.inner.value.clone()
+    pub fn __cursed_get_value(&self) -> String {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<String> = None;
+        __cursed_proj
+            .with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.value.clone()));
+        __cursed_out.unwrap()
     }
     #[napi(setter, js_name = "value")]
-    pub fn set_value(&mut self, v: String) {
-        self.inner.value = v;
+    pub fn __cursed_set_value(&self, __cursed_arg_value: String) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_value);
+        __cursed_proj
+            .with_mut(&mut |__cursed_p| __cursed_p.value = __cursed_arg.take().unwrap());
     }
 }
-impl From<crate::types::Token> for __cursed_rustdoc_test_crate__types__Token {
-    fn from(v: crate::types::Token) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__types__Token> for crate::types::Token {
-    fn from(v: __cursed_rustdoc_test_crate__types__Token) -> Self {
-        v.inner
-    }
-}
+/// fn glue for `crate::ops::parse`
 /// Parses a raw string into a Token.
 #[napi(js_name = "__cursed_rustdoc_test_crate__ops__parse")]
 pub fn __cursed_rustdoc_test_crate__ops__parse(
     s: String,
 ) -> __cursed_rustdoc_test_crate__types__Token {
-    crate::ops::parse(s).into()
+    __cursed_rustdoc_test_crate__types__Token {
+        __cursed_root: Rc::new(
+            RefCell::new(
+                Rc::new(RefCell::new(crate::ops::parse(s)))
+                    as Rc<dyn __cursed_Projection<crate::types::Token>>,
+            ),
+        ),
+    }
 }
 ```
 
@@ -510,6 +604,7 @@ Ir {
                             ty: Primitive(
                                 String,
                             ),
+                            needs_stash: false,
                         },
                     ],
                 },
@@ -580,6 +675,7 @@ Ir {
                         ty: Primitive(
                             String,
                         ),
+                        needs_stash: false,
                     },
                 ],
                 return_type: Class(
@@ -587,11 +683,13 @@ Ir {
                         2,
                     ),
                 ),
+                needs_closure_scope: false,
                 docs: Some(
                     "Parses a raw string into a Token.",
                 ),
             },
         ),
     ],
+    uses_projections: true,
 }
 ```

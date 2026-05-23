@@ -149,4 +149,3 @@ fn idempotent_when_called_twice_with_same_inputs() {
 
     assert_eq!(first, second, "second call must be byte-identical");
 }
-

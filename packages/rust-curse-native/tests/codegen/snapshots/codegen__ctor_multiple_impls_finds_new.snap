@@ -24,27 +24,56 @@ impl Counter {
 
 ```rs
 use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::Counter`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Counter")]
 pub struct __cursed_rustdoc_test_crate__Counter {
-    inner: crate::Counter,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Counter>>>>,
 }
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__Counter {
     #[wasm_bindgen(constructor)]
-    pub fn new(seed: u32) -> Self {
+    pub fn new(__cursed_arg_seed: u32) -> Self {
         Self {
-            inner: crate::Counter::new(seed),
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(RefCell::new(crate::Counter::new(__cursed_arg_seed)))
+                        as Rc<dyn __cursed_Projection<crate::Counter>>,
+                ),
+            ),
         }
-    }
-}
-impl From<crate::Counter> for __cursed_rustdoc_test_crate__Counter {
-    fn from(v: crate::Counter) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__Counter> for crate::Counter {
-    fn from(v: __cursed_rustdoc_test_crate__Counter) -> Self {
-        v.inner
     }
 }
 ```
@@ -53,27 +82,56 @@ impl From<__cursed_rustdoc_test_crate__Counter> for crate::Counter {
 
 ```rs
 use napi_derive::napi;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::Counter`
 #[napi(js_name = "__cursed_rustdoc_test_crate__Counter")]
 pub struct __cursed_rustdoc_test_crate__Counter {
-    inner: crate::Counter,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::Counter>>>>,
 }
 #[napi]
 impl __cursed_rustdoc_test_crate__Counter {
     #[napi(constructor)]
-    pub fn new(seed: u32) -> Self {
+    pub fn new(__cursed_arg_seed: u32) -> Self {
         Self {
-            inner: crate::Counter::new(seed),
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(RefCell::new(crate::Counter::new(__cursed_arg_seed)))
+                        as Rc<dyn __cursed_Projection<crate::Counter>>,
+                ),
+            ),
         }
-    }
-}
-impl From<crate::Counter> for __cursed_rustdoc_test_crate__Counter {
-    fn from(v: crate::Counter) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__Counter> for crate::Counter {
-    fn from(v: __cursed_rustdoc_test_crate__Counter) -> Self {
-        v.inner
     }
 }
 ```
@@ -373,6 +431,7 @@ Ir {
                             ty: Primitive(
                                 u32,
                             ),
+                            needs_stash: false,
                         },
                     ],
                 },
@@ -381,5 +440,6 @@ Ir {
             },
         ),
     ],
+    uses_projections: true,
 }
 ```

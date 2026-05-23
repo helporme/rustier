@@ -57,8 +57,7 @@ fn single_branch_with_use_and_call() {
     let mut switch = BuildSwitch::new();
     switch.set_branch(
         "napi",
-        BuildBranch::new("use napi_build;\nnapi_build::setup();\n")
-            .requires_cargo_feature("node"),
+        BuildBranch::new("use napi_build;\nnapi_build::setup();\n").requires_cargo_feature("node"),
     );
     insta::assert_snapshot!(apply(&switch));
 }

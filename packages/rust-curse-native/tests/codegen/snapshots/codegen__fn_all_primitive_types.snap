@@ -25,6 +25,7 @@ pub fn f(
 
 ```rs
 use wasm_bindgen::prelude::*;
+/// fn glue for `crate::f`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__f")]
 pub fn __cursed_rustdoc_test_crate__f(
     a: i8,
@@ -48,6 +49,7 @@ pub fn __cursed_rustdoc_test_crate__f(
 
 ```rs
 use napi_derive::napi;
+/// fn glue for `crate::f`
 #[napi(js_name = "__cursed_rustdoc_test_crate__f")]
 pub fn __cursed_rustdoc_test_crate__f(
     a: i8,
@@ -329,6 +331,7 @@ Ir {
                         ty: Primitive(
                             i8,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "b",
@@ -336,6 +339,7 @@ Ir {
                         ty: Primitive(
                             i16,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "c",
@@ -343,6 +347,7 @@ Ir {
                         ty: Primitive(
                             i32,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "d",
@@ -350,6 +355,7 @@ Ir {
                         ty: Primitive(
                             u8,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "e",
@@ -357,6 +363,7 @@ Ir {
                         ty: Primitive(
                             u16,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "f",
@@ -364,6 +371,7 @@ Ir {
                         ty: Primitive(
                             u32,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "g",
@@ -371,6 +379,7 @@ Ir {
                         ty: Primitive(
                             f32,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "h",
@@ -378,6 +387,7 @@ Ir {
                         ty: Primitive(
                             f64,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "i",
@@ -385,6 +395,7 @@ Ir {
                         ty: Primitive(
                             Boolean,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "j",
@@ -392,6 +403,7 @@ Ir {
                         ty: Primitive(
                             Char,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "k",
@@ -399,6 +411,7 @@ Ir {
                         ty: Primitive(
                             String,
                         ),
+                        needs_stash: false,
                     },
                     FnParam {
                         name: "l",
@@ -406,14 +419,17 @@ Ir {
                         ty: Primitive(
                             Str,
                         ),
+                        needs_stash: false,
                     },
                 ],
                 return_type: Primitive(
                     Unit,
                 ),
+                needs_closure_scope: false,
                 docs: None,
             },
         ),
     ],
+    uses_projections: false,
 }
 ```

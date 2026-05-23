@@ -19,25 +19,56 @@ impl S {
 
 ```rs
 use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::S`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__S")]
 pub struct __cursed_rustdoc_test_crate__S {
-    inner: crate::S,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::S>>>>,
 }
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__S {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Self { inner: crate::S {} }
-    }
-}
-impl From<crate::S> for __cursed_rustdoc_test_crate__S {
-    fn from(v: crate::S) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__S> for crate::S {
-    fn from(v: __cursed_rustdoc_test_crate__S) -> Self {
-        v.inner
+        Self {
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(RefCell::new(crate::S {}))
+                        as Rc<dyn __cursed_Projection<crate::S>>,
+                ),
+            ),
+        }
     }
 }
 ```
@@ -46,25 +77,56 @@ impl From<__cursed_rustdoc_test_crate__S> for crate::S {
 
 ```rs
 use napi_derive::napi;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::S`
 #[napi(js_name = "__cursed_rustdoc_test_crate__S")]
 pub struct __cursed_rustdoc_test_crate__S {
-    inner: crate::S,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::S>>>>,
 }
 #[napi]
 impl __cursed_rustdoc_test_crate__S {
     #[napi(constructor)]
     pub fn new() -> Self {
-        Self { inner: crate::S {} }
-    }
-}
-impl From<crate::S> for __cursed_rustdoc_test_crate__S {
-    fn from(v: crate::S) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__S> for crate::S {
-    fn from(v: __cursed_rustdoc_test_crate__S) -> Self {
-        v.inner
+        Self {
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(RefCell::new(crate::S {}))
+                        as Rc<dyn __cursed_Projection<crate::S>>,
+                ),
+            ),
+        }
     }
 }
 ```
@@ -276,5 +338,6 @@ Ir {
             },
         ),
     ],
+    uses_projections: true,
 }
 ```

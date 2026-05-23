@@ -14,6 +14,7 @@ pub mod inner {
 
 ```rs
 use wasm_bindgen::prelude::*;
+/// fn glue for `crate::inner::f`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__f")]
 pub fn __cursed_rustdoc_test_crate__inner__f() {
     crate::inner::f();
@@ -24,6 +25,7 @@ pub fn __cursed_rustdoc_test_crate__inner__f() {
 
 ```rs
 use napi_derive::napi;
+/// fn glue for `crate::inner::f`
 #[napi(js_name = "__cursed_rustdoc_test_crate__inner__f")]
 pub fn __cursed_rustdoc_test_crate__inner__f() {
     crate::inner::f();
@@ -286,9 +288,11 @@ Ir {
                 return_type: Primitive(
                     Unit,
                 ),
+                needs_closure_scope: false,
                 docs: None,
             },
         ),
     ],
+    uses_projections: false,
 }
 ```

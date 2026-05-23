@@ -20,35 +20,73 @@ pub use inner::*;
 
 ```rs
 use wasm_bindgen::prelude::*;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::deeper::X`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__deeper__X")]
 pub struct __cursed_rustdoc_test_crate__deeper__X {
-    inner: crate::deeper::X,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::deeper::X>>>>,
 }
 #[wasm_bindgen]
 impl __cursed_rustdoc_test_crate__deeper__X {
     #[wasm_bindgen(constructor)]
-    pub fn new(x: i32) -> Self {
+    pub fn new(__cursed_arg_x: i32) -> Self {
         Self {
-            inner: crate::deeper::X { x },
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(
+                        RefCell::new(crate::deeper::X {
+                            x: __cursed_arg_x,
+                        }),
+                    ) as Rc<dyn __cursed_Projection<crate::deeper::X>>,
+                ),
+            ),
         }
     }
     #[wasm_bindgen(getter, js_name = "x")]
-    pub fn x(&self) -> i32 {
-        self.inner.x
+    pub fn __cursed_get_x(&self) -> i32 {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<i32> = None;
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
+        __cursed_out.unwrap()
     }
     #[wasm_bindgen(setter, js_name = "x")]
-    pub fn set_x(&mut self, v: i32) {
-        self.inner.x = v;
-    }
-}
-impl From<crate::deeper::X> for __cursed_rustdoc_test_crate__deeper__X {
-    fn from(v: crate::deeper::X) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__deeper__X> for crate::deeper::X {
-    fn from(v: __cursed_rustdoc_test_crate__deeper__X) -> Self {
-        v.inner
+    pub fn __cursed_set_x(&self, __cursed_arg_x: i32) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_x);
+        __cursed_proj
+            .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
 }
 ```
@@ -57,35 +95,73 @@ impl From<__cursed_rustdoc_test_crate__deeper__X> for crate::deeper::X {
 
 ```rs
 use napi_derive::napi;
+#[allow(unused_imports)]
+use std::cell::RefCell;
+#[allow(unused_imports)]
+use std::rc::{Rc, Weak};
+trait __cursed_Projection<T> {
+    fn with(&self, f: &mut dyn FnMut(&T));
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+}
+impl<T> __cursed_Projection<T> for RefCell<T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        f(&*self.borrow());
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        f(&mut *self.borrow_mut());
+    }
+}
+#[allow(dead_code)]
+struct __cursed_Projector<Parent, T> {
+    parent: Rc<RefCell<Rc<dyn __cursed_Projection<Parent>>>>,
+    project: fn(&Parent) -> &T,
+    project_mut: fn(&mut Parent) -> &mut T,
+}
+impl<Parent: 'static, T: 'static> __cursed_Projection<T>
+for __cursed_Projector<Parent, T> {
+    fn with(&self, f: &mut dyn FnMut(&T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with(&mut |p| f((self.project)(p)));
+    }
+    fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        let parent = self.parent.borrow().clone();
+        parent.with_mut(&mut |p| f((self.project_mut)(p)));
+    }
+}
+/// class wrapper for `crate::deeper::X`
 #[napi(js_name = "__cursed_rustdoc_test_crate__deeper__X")]
 pub struct __cursed_rustdoc_test_crate__deeper__X {
-    inner: crate::deeper::X,
+    __cursed_root: Rc<RefCell<Rc<dyn __cursed_Projection<crate::deeper::X>>>>,
 }
 #[napi]
 impl __cursed_rustdoc_test_crate__deeper__X {
     #[napi(constructor)]
-    pub fn new(x: i32) -> Self {
+    pub fn new(__cursed_arg_x: i32) -> Self {
         Self {
-            inner: crate::deeper::X { x },
+            __cursed_root: Rc::new(
+                RefCell::new(
+                    Rc::new(
+                        RefCell::new(crate::deeper::X {
+                            x: __cursed_arg_x,
+                        }),
+                    ) as Rc<dyn __cursed_Projection<crate::deeper::X>>,
+                ),
+            ),
         }
     }
     #[napi(getter, js_name = "x")]
-    pub fn x(&self) -> i32 {
-        self.inner.x
+    pub fn __cursed_get_x(&self) -> i32 {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_out: Option<i32> = None;
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
+        __cursed_out.unwrap()
     }
     #[napi(setter, js_name = "x")]
-    pub fn set_x(&mut self, v: i32) {
-        self.inner.x = v;
-    }
-}
-impl From<crate::deeper::X> for __cursed_rustdoc_test_crate__deeper__X {
-    fn from(v: crate::deeper::X) -> Self {
-        Self { inner: v }
-    }
-}
-impl From<__cursed_rustdoc_test_crate__deeper__X> for crate::deeper::X {
-    fn from(v: __cursed_rustdoc_test_crate__deeper__X) -> Self {
-        v.inner
+    pub fn __cursed_set_x(&self, __cursed_arg_x: i32) {
+        let __cursed_proj = self.__cursed_root.borrow().clone();
+        let mut __cursed_arg = Some(__cursed_arg_x);
+        __cursed_proj
+            .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
     }
 }
 ```
@@ -449,6 +525,7 @@ Ir {
                             ty: Primitive(
                                 i32,
                             ),
+                            needs_stash: false,
                         },
                     ],
                 },
@@ -494,5 +571,6 @@ Ir {
             },
         ),
     ],
+    uses_projections: true,
 }
 ```
