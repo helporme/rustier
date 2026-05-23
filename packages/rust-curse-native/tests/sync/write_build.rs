@@ -115,6 +115,7 @@ fn env_flag_build_content_uppercase_lowercase() {
     assert_eq!(
         body,
         "println!(\"cargo:rerun-if-env-changed=RUST_CURSE_RUSTDOC\");\n\
+         println!(\"cargo:rustc-check-cfg=cfg(rust_curse_rustdoc)\");\n\
          if std::env::var(\"RUST_CURSE_RUSTDOC\").is_ok() {\n\
          \x20   println!(\"cargo:rustc-cfg=rust_curse_rustdoc\");\n\
          }\n",

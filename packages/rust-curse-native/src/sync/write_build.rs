@@ -104,12 +104,12 @@ impl fmt::Display for BuildSwitch {
 /// Returns the body of a build branch that translates an env-var presence
 /// check into a `cargo:rustc-cfg` directive. The cfg flag mirrors the env
 /// var name in lowercase. Also emits `cargo:rerun-if-env-changed` so cargo
-/// reruns `build.rs` when the flag flips.
 pub fn env_flag_build_content(env_flag: impl Into<String>) -> String {
     let env_flag = env_flag.into();
     let cfg_flag = env_flag.to_lowercase();
     format!(
         "println!(\"cargo:rerun-if-env-changed={env_flag}\");\n\
+         println!(\"cargo:rustc-check-cfg=cfg({cfg_flag})\");\n\
          if std::env::var(\"{env_flag}\").is_ok() {{\n    println!(\"cargo:rustc-cfg={cfg_flag}\");\n}}\n"
     )
 }
