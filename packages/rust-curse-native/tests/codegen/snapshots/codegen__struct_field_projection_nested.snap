@@ -687,6 +687,13 @@ export namespace Line {
 }
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IACA;;;;WAFJ;;;iBAAA;;QACI;QACA;;;;aAGJ;;;IACI;;IACA;;;;WAFJ;;;iBAAA;;QACI;QACA"}
+```
+
 # js-wasm
 
 ```js
@@ -1108,6 +1115,19 @@ Ir {
                         has_setter: true,
                         clone_on_get: false,
                         docs: None,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    3,
+                                    5,
+                                ),
+                                end: (
+                                    3,
+                                    15,
+                                ),
+                            },
+                        ),
                     },
                     ClassField {
                         orig_name: "y",
@@ -1119,6 +1139,19 @@ Ir {
                         has_setter: true,
                         clone_on_get: false,
                         docs: None,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    4,
+                                    5,
+                                ),
+                                end: (
+                                    4,
+                                    15,
+                                ),
+                            },
+                        ),
                     },
                 ],
                 ctor: None,
@@ -1148,6 +1181,19 @@ Ir {
                 of_escaped: false,
                 clonable: true,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            5,
+                            2,
+                        ),
+                    },
+                ),
             },
         ),
         Class(
@@ -1179,6 +1225,19 @@ Ir {
                         has_setter: true,
                         clone_on_get: true,
                         docs: None,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    8,
+                                    5,
+                                ),
+                                end: (
+                                    8,
+                                    21,
+                                ),
+                            },
+                        ),
                     },
                     ClassField {
                         orig_name: "end",
@@ -1192,6 +1251,19 @@ Ir {
                         has_setter: true,
                         clone_on_get: true,
                         docs: None,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    9,
+                                    5,
+                                ),
+                                end: (
+                                    9,
+                                    19,
+                                ),
+                            },
+                        ),
                     },
                 ],
                 ctor: None,
@@ -1225,6 +1297,19 @@ Ir {
                 of_escaped: false,
                 clonable: true,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            7,
+                            1,
+                        ),
+                        end: (
+                            10,
+                            2,
+                        ),
+                    },
+                ),
             },
         ),
     ],

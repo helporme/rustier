@@ -268,6 +268,19 @@ export class X {
 export { X } from "./deeper.rs";
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
+
+// src/deeper.rs.d.ts.map
+{"version":3,"file":"deeper.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACI;;;IACI"}
+
+// src/inner.rs.d.ts.map
+{"version":3,"file":"inner.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
+```
+
 # js-wasm
 
 ```js
@@ -611,6 +624,19 @@ Ir {
                         has_setter: true,
                         clone_on_get: false,
                         docs: None,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    3,
+                                    9,
+                                ),
+                                end: (
+                                    3,
+                                    19,
+                                ),
+                            },
+                        ),
                     },
                 ],
                 ctor: None,
@@ -619,6 +645,19 @@ Ir {
                 of_escaped: false,
                 clonable: false,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
             },
         ),
         Mod(

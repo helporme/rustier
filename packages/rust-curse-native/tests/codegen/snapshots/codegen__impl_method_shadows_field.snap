@@ -342,6 +342,13 @@ export namespace Point {
 }
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IACA;;;;WAFJ;;;iBAAA;;QACI;QACA"}
+```
+
 # js-wasm
 
 ```js
@@ -677,6 +684,19 @@ Ir {
                         has_setter: true,
                         clone_on_get: false,
                         docs: None,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    3,
+                                    5,
+                                ),
+                                end: (
+                                    3,
+                                    15,
+                                ),
+                            },
+                        ),
                     },
                     ClassField {
                         orig_name: "y",
@@ -688,6 +708,19 @@ Ir {
                         has_setter: true,
                         clone_on_get: false,
                         docs: None,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    4,
+                                    5,
+                                ),
+                                end: (
+                                    4,
+                                    15,
+                                ),
+                            },
+                        ),
                     },
                 ],
                 ctor: None,
@@ -717,6 +750,19 @@ Ir {
                 of_escaped: false,
                 clonable: true,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            5,
+                            2,
+                        ),
+                    },
+                ),
             },
         ),
     ],

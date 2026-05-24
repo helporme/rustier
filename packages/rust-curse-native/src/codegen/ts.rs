@@ -4,9 +4,10 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
 use super::ir::{
-    FnDef, FnParam, Ir, IrId, Item, ItemPath, ParamMode, Primitive, Receiver, Type, Use,
+    FnDef, FnParam, Ir, IrId, Item, ItemPath, ParamMode, Primitive, Receiver, Span, Type, Use,
 };
 use super::mangle::is_canonical_origin;
+use super::source_map::Mapping;
 
 const PREAMBLE: &str = "";
 
@@ -20,6 +21,13 @@ pub struct PrintTsModOpts<'a> {
     pub rel_src_path: &'a Path,
 }
 
+/// A printed `.d.ts` body together with the source-map data.
+pub struct PrintedTsMod {
+    pub body: String,
+    pub mappings: Vec<Mapping>,
+    pub source_rel_path: Option<PathBuf>,
+}
+
 impl Ir {
     /// Prints the ambient declarations shared across the build (the
     /// `$rust-curse` module with the `Copy<T>` utility). Per-module bodies
@@ -30,9 +38,52 @@ impl Ir {
 
     /// Prints the body of a single module's `.d.ts` file (no `declare
     /// module` wrapper). Cross-module imports are emitted as relative
-    /// specifiers based on `opts.rel_src_path`.
-    pub fn print_ts_mod(&self, opts: PrintTsModOpts<'_>) -> String {
+    /// specifiers based on `opts.rel_src_path`. Returns the body plus
+    /// source-map mappings anchored at user-visible JS identifiers.
+    pub fn print_ts_mod(&self, opts: PrintTsModOpts<'_>) -> PrintedTsMod {
         Printer::new(self, opts.mod_id, opts.rel_src_path).run()
+    }
+}
+
+struct Writer {
+    buf: String,
+    line: u32,
+    col: u32,
+}
+
+impl Writer {
+    fn new() -> Self {
+        Self {
+            buf: String::new(),
+            line: 0,
+            col: 0,
+        }
+    }
+
+    fn push_str(&mut self, s: &str) {
+        for ch in s.chars() {
+            if ch == '\n' {
+                self.line += 1;
+                self.col = 0;
+            } else {
+                self.col += 1;
+            }
+        }
+        self.buf.push_str(s);
+    }
+
+    fn push(&mut self, ch: char) {
+        if ch == '\n' {
+            self.line += 1;
+            self.col = 0;
+        } else {
+            self.col += 1;
+        }
+        self.buf.push(ch);
+    }
+
+    fn here(&self) -> (u32, u32) {
+        (self.line, self.col)
     }
 }
 
@@ -44,6 +95,8 @@ struct Printer<'a> {
     /// Map of relative import specifier (e.g. `"./types"`) to the set of
     /// type names imported from there.
     imports: BTreeMap<String, BTreeSet<String>>,
+    mappings: Vec<Mapping>,
+    body: Writer,
 }
 
 impl<'a> Printer<'a> {
@@ -54,12 +107,15 @@ impl<'a> Printer<'a> {
             rel_src_path,
             local_classes: HashSet::new(),
             imports: BTreeMap::new(),
+            mappings: Vec::new(),
+            body: Writer::new(),
         }
     }
 
-    fn run(&mut self) -> String {
-        let mod_segments = self.ir.get_mod_unchecked(self.mod_id).path.segments.clone();
-        let uses = self.ir.get_mod_unchecked(self.mod_id).uses.clone();
+    fn run(mut self) -> PrintedTsMod {
+        let mod_def = self.ir.get_mod_unchecked(self.mod_id).clone();
+        let mod_segments = mod_def.path.segments.clone();
+        let uses = mod_def.uses.clone();
 
         for use_ in &uses {
             if let Item::Class(def) = self.ir.get_unchecked(use_.target) {
@@ -69,50 +125,72 @@ impl<'a> Printer<'a> {
             }
         }
 
-        let body = self.print_uses(&mod_segments, &uses);
+        self.print_uses(&mod_segments, &uses);
 
-        let mut out = String::new();
+        let mut prologue = String::new();
         for (specifier, names) in &self.imports {
             let names_str: Vec<&str> = names.iter().map(String::as_str).collect();
-            out.push_str(&format!(
+            prologue.push_str(&format!(
                 "import type {{ {} }} from \"{specifier}\";\n",
                 names_str.join(", ")
             ));
         }
         if !self.imports.is_empty() {
-            out.push('\n');
+            prologue.push('\n');
         }
-        out.push_str(&body);
+        let prologue_lines = prologue.matches('\n').count() as u32;
+        for m in &mut self.mappings {
+            m.gen_line += prologue_lines;
+        }
+
+        let mut out = prologue;
+        out.push_str(&self.body.buf);
         if !out.ends_with('\n') {
             out.push('\n');
         }
-        out
+
+        PrintedTsMod {
+            body: out,
+            mappings: self.mappings,
+            source_rel_path: mod_def.span.as_ref().map(|s| s.filename.clone()),
+        }
     }
 
-    fn print_uses(&mut self, mod_segments: &[String], uses: &[Use]) -> String {
-        let mut parts: Vec<String> = Vec::new();
+    fn print_uses(&mut self, mod_segments: &[String], uses: &[Use]) {
+        let mut first = true;
         for use_ in uses {
             match self.ir.get_unchecked(use_.target) {
                 Item::Class(def) => {
                     let canonical = def.path.clone();
                     if is_canonical_origin(&canonical, mod_segments) {
-                        parts.push(self.print_class(use_.target));
+                        self.gap(&mut first);
+                        self.print_class(use_.target);
                     } else {
-                        parts.push(self.print_reexport(&canonical, &use_.name));
+                        self.gap(&mut first);
+                        self.print_reexport(&canonical, &use_.name);
                     }
                 }
                 Item::Fn(def) => {
                     let canonical = def.path.clone();
                     if is_canonical_origin(&canonical, mod_segments) {
-                        parts.push(self.print_fn(use_.target));
+                        self.gap(&mut first);
+                        self.print_fn(use_.target);
                     } else {
-                        parts.push(self.print_reexport(&canonical, &use_.name));
+                        self.gap(&mut first);
+                        self.print_reexport(&canonical, &use_.name);
                     }
                 }
                 Item::Mod(_) => {}
             }
         }
-        parts.join("\n\n")
+    }
+
+    fn gap(&mut self, first: &mut bool) {
+        if *first {
+            *first = false;
+        } else {
+            self.body.push_str("\n\n");
+        }
     }
 
     fn type_to_ts(&mut self, ty: &Type) -> String {
@@ -159,90 +237,124 @@ impl<'a> Printer<'a> {
         base
     }
 
-    fn print_class(&mut self, cid: IrId) -> String {
+    fn print_class(&mut self, cid: IrId) {
         let def = self.ir.get_class_unchecked(cid).clone();
-        let name = &def.js_name;
+        let name = def.js_name.clone();
         let brand = def.path.segments.join("::");
 
-        let mut members: Vec<String> = Vec::new();
+        if let Some(docs) = &def.docs {
+            self.body.push_str(&doc_comment(docs, ""));
+        }
+        self.body.push_str("export class ");
+        self.anchor(def.span.as_ref(), 0);
+        self.body.push_str(&name);
+        self.body.push_str(" {\n");
 
-        members.push(format!("    private [\" \"]: '{brand}';"));
+        self.body
+            .push_str(&format!("    private [\" \"]: '{brand}';"));
+
+        let mut first_member = false; // brand line already emitted
 
         for field in &def.fields {
-            let ty = self.type_to_ts(&field.ty);
-            let mut member = String::new();
-            if let Some(docs) = &field.docs {
-                member.push_str(&doc_comment(docs, "    "));
-            }
-            let readonly = if field.has_getter && !field.has_setter {
-                "readonly "
-            } else {
-                ""
-            };
-            member.push_str(&format!("    {readonly}{}: {ty};", field.js_name));
-            members.push(member);
+            self.member_gap(&mut first_member);
+            self.print_field(field);
         }
 
         if let Some(ctor) = &def.ctor {
-            let ctor_params: Vec<String> = ctor
-                .params
-                .iter()
-                .map(|p| {
-                    let ty = self.param_type_to_ts(p);
-                    format!("{}: {ty}", p.name)
-                })
-                .collect();
-            members.push(format!("    constructor({});", ctor_params.join(", ")));
+            self.member_gap(&mut first_member);
+            self.print_ctor(ctor, &def);
         } else {
-            members.push("    private constructor();".to_string());
+            self.member_gap(&mut first_member);
+            self.body.push_str("    private constructor();");
         }
 
         if def.struct_expr.is_some() {
+            self.member_gap(&mut first_member);
+            self.body.push_str("    static ");
+            // The auto-`of` factory has no better source anchor than the
+            // struct itself.
+            self.anchor(def.span.as_ref(), 0);
             let of_name = if def.of_escaped { "of$" } else { "of" };
-            members.push(format!("    static {of_name}(init: {name}.Init): {name};"));
+            self.body
+                .push_str(&format!("{of_name}(init: {name}.Init): {name};"));
         }
 
         for mid in &def.methods {
             let m = self.ir.get_fn_unchecked(*mid).clone();
-            members.push(self.print_method(&m));
+            self.member_gap(&mut first_member);
+            self.print_method(&m);
         }
 
-        let mut out = String::new();
-        if let Some(docs) = &def.docs {
-            out.push_str(&doc_comment(docs, ""));
-        }
-        out.push_str(&format!("export class {name} {{\n"));
-        out.push_str(&members.join("\n\n"));
-        out.push('\n');
-        out.push('}');
+        self.body.push('\n');
+        self.body.push('}');
 
-        if let Some(se) = &def.struct_expr {
-            out.push_str("\n\n");
-            out.push_str(&format!("export namespace {name} {{\n"));
+        if let Some(se) = def.struct_expr.clone() {
+            self.body.push_str("\n\n");
             if let Some(docs) = &def.docs {
-                out.push_str(&doc_comment(docs, "    "));
+                self.body.push_str(&doc_comment(docs, ""));
             }
-            out.push_str("    export type Init = {\n");
+            self.body.push_str("export namespace ");
+            self.anchor(def.span.as_ref(), 0);
+            self.body.push_str(&name);
+            self.body.push_str(" {\n");
+            self.body.push_str("    export type Init = {\n");
             for f in &se.fields {
                 let ty = self.field_init_type(&f.ty);
-                // Pull docs from the matching ClassField (same orig_name).
-                let docs = def
-                    .fields
-                    .iter()
-                    .find(|cf| cf.orig_name == f.name)
-                    .and_then(|cf| cf.docs.clone());
+                let class_field = def.fields.iter().find(|cf| cf.orig_name == f.name);
+                let docs = class_field.and_then(|cf| cf.docs.clone());
                 if let Some(docs) = &docs {
-                    out.push_str(&doc_comment(docs, "        "));
+                    self.body.push_str(&doc_comment(docs, "        "));
                 }
-                out.push_str(&format!("        {}: {ty};\n", f.name));
+                self.body.push_str("        ");
+                let span = class_field.and_then(|cf| cf.span.as_ref());
+                self.anchor(span, 0);
+                self.body.push_str(&format!("{}: {ty};\n", f.name));
             }
-            out.push_str("    };\n");
-            out.push('}');
+            self.body.push_str("    };\n");
+            self.body.push('}');
         }
-        out
     }
 
-    fn print_method(&mut self, def: &FnDef) -> String {
+    fn member_gap(&mut self, first: &mut bool) {
+        if *first {
+            *first = false;
+        } else {
+            self.body.push_str("\n\n");
+        }
+    }
+
+    fn print_field(&mut self, field: &super::ir::ClassField) {
+        let ty = self.type_to_ts(&field.ty);
+        if let Some(docs) = &field.docs {
+            self.body.push_str(&doc_comment(docs, "    "));
+        }
+        let readonly = if field.has_getter && !field.has_setter {
+            "readonly "
+        } else {
+            ""
+        };
+        self.body.push_str("    ");
+        self.body.push_str(readonly);
+        self.anchor(field.span.as_ref(), 0);
+        self.body.push_str(&format!("{}: {ty};", field.js_name));
+    }
+
+    fn print_ctor(&mut self, ctor: &super::ir::CtorDef, _def: &super::ir::ClassDef) {
+        let ctor_params: Vec<String> = ctor
+            .params
+            .iter()
+            .map(|p| {
+                let ty = self.param_type_to_ts(p);
+                format!("{}: {ty}", p.name)
+            })
+            .collect();
+        self.body.push_str("    ");
+        self.anchor(ctor.span.as_ref(), 0);
+        self.body
+            .push_str(&format!("constructor({});", ctor_params.join(", ")));
+    }
+
+    fn print_method(&mut self, def: &FnDef) {
         let name = &def.js_name;
         let params: Vec<String> = def
             .params
@@ -257,15 +369,14 @@ impl<'a> Printer<'a> {
             None => "static ",
             Some(Receiver::ByRef | Receiver::ByMut | Receiver::ByValue) => "",
         };
-        let mut out = String::new();
         if let Some(docs) = &def.docs {
-            out.push_str(&doc_comment(docs, "    "));
+            self.body.push_str(&doc_comment(docs, "    "));
         }
-        out.push_str(&format!(
-            "    {prefix}{name}({}): {ret};",
-            params.join(", ")
-        ));
-        out
+        self.body.push_str("    ");
+        self.body.push_str(prefix);
+        self.anchor(def.span.as_ref(), 0);
+        self.body
+            .push_str(&format!("{name}({}): {ret};", params.join(", ")));
     }
 
     /// Init-position field type: struct fields become `X | X.Init` (the same
@@ -280,13 +391,12 @@ impl<'a> Printer<'a> {
         base
     }
 
-    fn print_fn(&mut self, fid: IrId) -> String {
+    fn print_fn(&mut self, fid: IrId) {
         let def = self.ir.get_fn_unchecked(fid).clone();
         let name = &def.js_name;
-        let mut out = String::new();
 
         if let Some(docs) = &def.docs {
-            out.push_str(&doc_comment(docs, ""));
+            self.body.push_str(&doc_comment(docs, ""));
         }
 
         let params: Vec<String> = def
@@ -299,22 +409,43 @@ impl<'a> Printer<'a> {
             .collect();
 
         let ret = self.type_to_ts(&def.return_type);
-        out.push_str(&format!(
-            "export function {name}({}): {ret};",
-            params.join(", ")
-        ));
-        out
+        self.body.push_str("export function ");
+        self.anchor(def.span.as_ref(), 0);
+        self.body
+            .push_str(&format!("{name}({}): {ret};", params.join(", ")));
     }
 
-    fn print_reexport(&mut self, canonical: &ItemPath, local_name: &str) -> String {
+    fn print_reexport(&mut self, canonical: &ItemPath, local_name: &str) {
         let canonical_name = canonical.name().unwrap_or(local_name).to_string();
         let target_mod_segments = &canonical.segments[..canonical.segments.len() - 1];
         let specifier = self.specifier_to_module(target_mod_segments);
         if canonical_name == local_name {
-            format!("export {{ {local_name} }} from \"{specifier}\";")
+            self.body
+                .push_str(&format!("export {{ {local_name} }} from \"{specifier}\";"));
         } else {
-            format!("export {{ {canonical_name} as {local_name} }} from \"{specifier}\";")
+            self.body.push_str(&format!(
+                "export {{ {canonical_name} as {local_name} }} from \"{specifier}\";"
+            ));
         }
+    }
+
+    /// Record a mapping at the current writer position pointing to `span`.
+    /// `src_idx` is fixed at 0 today -> a module always has exactly one
+    /// source. `span.begin` is 1-indexed; we convert to 0-indexed here.
+    /// The anchor lands at the span's start (which rustdoc places at the
+    /// item keyword, e.g. `pub`). Refining to the identifier itself is a
+    /// follow-up -> would need source-file access, kept out of the printer.
+    fn anchor(&mut self, span: Option<&Span>, src_idx: u32) {
+        let Some(span) = span else { return };
+        let (gen_line, gen_col) = self.body.here();
+        let (src_line_1, src_col_1) = span.begin;
+        self.mappings.push(Mapping {
+            gen_line,
+            gen_col,
+            src_idx,
+            src_line: src_line_1.saturating_sub(1) as u32,
+            src_col: src_col_1.saturating_sub(1) as u32,
+        });
     }
 
     fn record_import(&mut self, path: &ItemPath) {

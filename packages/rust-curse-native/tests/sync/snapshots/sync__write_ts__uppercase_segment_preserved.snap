@@ -10,4 +10,10 @@ expression: project_to_md(&project)
 `.rust-curse/types/MyMod/sub.rs.d.ts`
 ```ts
 export function do_it(): void;
+//# sourceMappingURL=sub.rs.d.ts.map
+```
+
+`.rust-curse/types/MyMod/sub.rs.d.ts.map`
+```text
+{"version":3,"file":"sub.rs.d.ts","sources":["../../../src/MyMod/sub.rs"],"names":[],"mappings":""}
 ```

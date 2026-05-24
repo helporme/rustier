@@ -1,25 +1,33 @@
-#[derive(Clone)]
+#[derive(Clone, Debug, Default)]
 pub struct Circle {
     pub radius: f64,
     pub center: Point,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Default)]
 pub struct Point {
     pub x: f64,
     pub y: f64,
 }
 
-pub fn is_inside(circle: &Circle, point: &Point) -> bool {
-    is_inside_move(circle.clone(), point.clone())
-}
+impl Point {
+    pub fn new(x: f64, y: f64) -> Self {
+        Self { x, y }
+    }
 
-pub fn is_inside_move(circle: Circle, point: Point) -> bool {
-    let Circle { radius, center } = circle;
-    let Point { x, y } = point;
+    pub fn distance(&self, other: &Point) -> f64 {
+        let dx = self.x - other.x;
+        let dy = self.y - other.y;
+        (dx * dx + dy * dy).sqrt()
+    }
 
-    let dx = x - center.x;
-    let dy = y - center.y;
-    let distance = (dx * dx + dy * dy).sqrt();
-    distance < radius
+    pub fn translate(&mut self, dx: f64, dy: f64) {
+        self.x += dx;
+        self.y += dy;
+    }
+
+    pub fn scale(&mut self, factor: f64) {
+        self.x *= factor;
+        self.y *= factor;
+    }
 }

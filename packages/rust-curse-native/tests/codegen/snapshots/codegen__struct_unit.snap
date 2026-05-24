@@ -32,6 +32,13 @@ use napi_derive::napi;
 
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
+```
+
 # js-wasm
 
 ```js

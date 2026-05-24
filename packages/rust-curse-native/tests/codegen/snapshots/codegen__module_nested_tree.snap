@@ -50,6 +50,16 @@ pub fn __cursed_rustdoc_test_crate__child__leaf() -> napi::Result<()> {
 export function leaf(): void;
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
+
+// src/child.rs.d.ts.map
+{"version":3,"file":"child.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"gBACI"}
+```
+
 # js-wasm
 
 ```js
@@ -298,6 +308,19 @@ Ir {
                 needs_closure_scope: false,
                 receiver: None,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            2,
+                            21,
+                        ),
+                    },
+                ),
             },
         ),
     ],

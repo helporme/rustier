@@ -279,6 +279,16 @@ export class S {
 export function f(): number;
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
+
+// src/inner.rs.d.ts.map
+{"version":3,"file":"inner.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACI;;;IACI;;;;;gBAEJ"}
+```
+
 # js-wasm
 
 ```js
@@ -624,6 +634,19 @@ Ir {
                         has_setter: true,
                         clone_on_get: false,
                         docs: None,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    3,
+                                    9,
+                                ),
+                                end: (
+                                    3,
+                                    19,
+                                ),
+                            },
+                        ),
                     },
                 ],
                 ctor: None,
@@ -632,6 +655,19 @@ Ir {
                 of_escaped: false,
                 clonable: false,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
             },
         ),
         Fn(
@@ -658,6 +694,19 @@ Ir {
                 needs_closure_scope: false,
                 receiver: None,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            5,
+                        ),
+                        end: (
+                            7,
+                            6,
+                        ),
+                    },
+                ),
             },
         ),
     ],

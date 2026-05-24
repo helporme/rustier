@@ -1,9 +1,11 @@
 import { Circle, Point } from "./math.rs";
 
-let circle = Circle.of({
-  radius: 1,
-  center: {
-    x: 0,
-    y: 1,
-  },
-});
+const a = new Point(0, 0);
+const b = Point.of(a);
+
+a.translate(10, 10);
+a.scale(2);
+
+const c = Circle.of({ radius: 3, center: a });
+
+console.log(a.distance(b), c.center.toString());

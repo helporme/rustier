@@ -302,6 +302,13 @@ export namespace Manual {
 }
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA;;;IACI;;;;WADJ;;;iBAAA;;QACI"}
+```
+
 # js-wasm
 
 ```js
@@ -555,6 +562,19 @@ Ir {
                         has_setter: true,
                         clone_on_get: false,
                         docs: None,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    2,
+                                    5,
+                                ),
+                                end: (
+                                    2,
+                                    15,
+                                ),
+                            },
+                        ),
                     },
                 ],
                 ctor: None,
@@ -576,6 +596,19 @@ Ir {
                 of_escaped: false,
                 clonable: true,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
             },
         ),
     ],

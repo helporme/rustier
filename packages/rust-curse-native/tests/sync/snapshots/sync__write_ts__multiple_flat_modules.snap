@@ -10,9 +10,21 @@ expression: project_to_md(&project)
 `.rust-curse/types/bar.rs.d.ts`
 ```ts
 export function g(): void;
+//# sourceMappingURL=bar.rs.d.ts.map
+```
+
+`.rust-curse/types/bar.rs.d.ts.map`
+```text
+{"version":3,"file":"bar.rs.d.ts","sources":["../../src/bar.rs"],"names":[],"mappings":""}
 ```
 
 `.rust-curse/types/foo.rs.d.ts`
 ```ts
 export function f(): void;
+//# sourceMappingURL=foo.rs.d.ts.map
+```
+
+`.rust-curse/types/foo.rs.d.ts.map`
+```text
+{"version":3,"file":"foo.rs.d.ts","sources":["../../src/foo.rs"],"names":[],"mappings":""}
 ```

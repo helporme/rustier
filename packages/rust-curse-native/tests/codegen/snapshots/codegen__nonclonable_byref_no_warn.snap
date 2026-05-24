@@ -316,6 +316,13 @@ export class Point {
 export function inspect(p: Point): void;
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA;;;IACI;;IACA;;;;;gBAEJ"}
+```
+
 # js-wasm
 
 ```js
@@ -584,6 +591,19 @@ Ir {
                         has_setter: true,
                         clone_on_get: false,
                         docs: None,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    2,
+                                    5,
+                                ),
+                                end: (
+                                    2,
+                                    15,
+                                ),
+                            },
+                        ),
                     },
                     ClassField {
                         orig_name: "y",
@@ -595,6 +615,19 @@ Ir {
                         has_setter: true,
                         clone_on_get: false,
                         docs: None,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    3,
+                                    5,
+                                ),
+                                end: (
+                                    3,
+                                    15,
+                                ),
+                            },
+                        ),
                     },
                 ],
                 ctor: None,
@@ -603,6 +636,19 @@ Ir {
                 of_escaped: false,
                 clonable: false,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            4,
+                            2,
+                        ),
+                    },
+                ),
             },
         ),
         Fn(
@@ -639,6 +685,19 @@ Ir {
                 needs_closure_scope: true,
                 receiver: None,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            1,
+                        ),
+                        end: (
+                            5,
+                            29,
+                        ),
+                    },
+                ),
             },
         ),
     ],

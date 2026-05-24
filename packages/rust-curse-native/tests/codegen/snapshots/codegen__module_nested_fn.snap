@@ -53,6 +53,16 @@ pub fn __cursed_rustdoc_test_crate__math__square(x: f64) -> napi::Result<f64> {
 export function square(x: number): number;
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
+
+// src/math.rs.d.ts.map
+{"version":3,"file":"math.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":";gBAEI"}
+```
+
 # js-wasm
 
 ```js
@@ -321,6 +331,19 @@ Ir {
                 receiver: None,
                 docs: Some(
                     "Returns the square of `x`.",
+                ),
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            3,
+                            5,
+                        ),
+                        end: (
+                            5,
+                            6,
+                        ),
+                    },
                 ),
             },
         ),

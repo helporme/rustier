@@ -46,6 +46,13 @@ pub fn __cursed_rustdoc_test_crate__good(a: i32, b: i32) -> napi::Result<i32> {
 export function good(a: number, b: number): number;
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"gBAAA"}
+```
+
 # js-wasm
 
 ```js
@@ -263,6 +270,19 @@ Ir {
                 needs_closure_scope: false,
                 receiver: None,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
             },
         ),
     ],

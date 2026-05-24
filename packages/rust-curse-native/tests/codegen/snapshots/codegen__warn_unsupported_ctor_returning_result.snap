@@ -229,6 +229,13 @@ export class S {
 }
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA"}
+```
+
 # js-wasm
 
 ```js
@@ -423,6 +430,19 @@ Ir {
                 of_escaped: false,
                 clonable: false,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            3,
+                            2,
+                        ),
+                    },
+                ),
             },
         ),
     ],

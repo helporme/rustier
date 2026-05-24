@@ -10,9 +10,21 @@ expression: project_to_md(&project)
 `.rust-curse/types/nested/deep.rs.d.ts`
 ```ts
 export function run(): void;
+//# sourceMappingURL=deep.rs.d.ts.map
+```
+
+`.rust-curse/types/nested/deep.rs.d.ts.map`
+```text
+{"version":3,"file":"deep.rs.d.ts","sources":["../../../src/nested/deep.rs"],"names":[],"mappings":""}
 ```
 
 `.rust-curse/types/nested/shallow.rs.d.ts`
 ```ts
 export function skim(): void;
+//# sourceMappingURL=shallow.rs.d.ts.map
+```
+
+`.rust-curse/types/nested/shallow.rs.d.ts.map`
+```text
+{"version":3,"file":"shallow.rs.d.ts","sources":["../../../src/nested/shallow.rs"],"names":[],"mappings":""}
 ```

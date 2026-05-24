@@ -64,6 +64,16 @@ export function square(x: number): number;
 export function square2(x: number): number;
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
+
+// src/math.rs.d.ts.map
+{"version":3,"file":"math.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"gBACI;;gBAGA"}
+```
+
 # js-wasm
 
 ```js
@@ -382,6 +392,19 @@ Ir {
                 needs_closure_scope: false,
                 receiver: None,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            5,
+                        ),
+                        end: (
+                            4,
+                            6,
+                        ),
+                    },
+                ),
             },
         ),
         Fn(
@@ -417,6 +440,19 @@ Ir {
                 needs_closure_scope: false,
                 receiver: None,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            5,
+                            5,
+                        ),
+                        end: (
+                            7,
+                            6,
+                        ),
+                    },
+                ),
             },
         ),
     ],

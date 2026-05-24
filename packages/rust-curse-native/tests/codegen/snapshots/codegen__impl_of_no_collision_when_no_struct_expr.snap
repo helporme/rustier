@@ -268,6 +268,13 @@ export class Mat2x2 {
 }
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;;;WAOI"}
+```
+
 # js-wasm
 
 ```js
@@ -560,6 +567,19 @@ Ir {
                 of_escaped: false,
                 clonable: true,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
+                ),
             },
         ),
         Fn(
@@ -595,6 +615,19 @@ Ir {
                 needs_closure_scope: false,
                 receiver: None,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            9,
+                            5,
+                        ),
+                        end: (
+                            16,
+                            6,
+                        ),
+                    },
+                ),
             },
         ),
     ],

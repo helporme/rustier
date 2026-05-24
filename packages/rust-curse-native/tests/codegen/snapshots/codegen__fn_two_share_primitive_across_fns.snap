@@ -59,6 +59,13 @@ export function f(x: number): void;
 export function g(y: number): void;
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"gBAAA;;gBACA"}
+```
+
 # js-wasm
 
 ```js
@@ -297,6 +304,19 @@ Ir {
                 needs_closure_scope: false,
                 receiver: None,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            1,
+                            20,
+                        ),
+                    },
+                ),
             },
         ),
         Fn(
@@ -331,6 +351,19 @@ Ir {
                 needs_closure_scope: false,
                 receiver: None,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            2,
+                            20,
+                        ),
+                    },
+                ),
             },
         ),
     ],

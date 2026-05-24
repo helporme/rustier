@@ -35,6 +35,7 @@ pub struct FnDef {
     pub needs_closure_scope: bool,
     pub receiver: Option<Receiver>,
     pub docs: Option<String>,
+    pub span: Option<Span>,
 }
 
 /// A function parameter.
@@ -65,6 +66,7 @@ pub struct ClassDef {
     pub of_escaped: bool,
     pub clonable: bool,
     pub docs: Option<String>,
+    pub span: Option<Span>,
 }
 
 /// A field of a JS class.
@@ -77,12 +79,14 @@ pub struct ClassField {
     pub has_setter: bool,
     pub clone_on_get: bool,
     pub docs: Option<String>,
+    pub span: Option<Span>,
 }
 
 /// User-written constructor (`pub fn new(...) -> Self`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CtorDef {
     pub params: Vec<FnParam>,
+    pub span: Option<Span>,
 }
 
 /// Struct-expression init descriptor for `.of` function.

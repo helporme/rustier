@@ -295,6 +295,13 @@ export class Point {
 }
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":";aACA;;;;IAEI;;;IAEA"}
+```
+
 # js-wasm
 
 ```js
@@ -517,6 +524,19 @@ Ir {
                         docs: Some(
                             "Horizontal position.",
                         ),
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    4,
+                                    5,
+                                ),
+                                end: (
+                                    4,
+                                    15,
+                                ),
+                            },
+                        ),
                     },
                     ClassField {
                         orig_name: "y",
@@ -530,6 +550,19 @@ Ir {
                         docs: Some(
                             "Vertical position.",
                         ),
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    6,
+                                    5,
+                                ),
+                                end: (
+                                    6,
+                                    15,
+                                ),
+                            },
+                        ),
                     },
                 ],
                 ctor: None,
@@ -539,6 +572,19 @@ Ir {
                 clonable: false,
                 docs: Some(
                     "A point in 2D space.",
+                ),
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            7,
+                            2,
+                        ),
+                    },
                 ),
             },
         ),

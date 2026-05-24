@@ -76,15 +76,94 @@ pub fn print_ts_per_mod(
             dts.push(format!("{}.rs.d.ts", segs.last().unwrap()));
         }
 
-        let body = ir.print_ts_mod(rust_curse::codegen::ts::PrintTsModOpts {
+        let printed = ir.print_ts_mod(rust_curse::codegen::ts::PrintTsModOpts {
             mod_id: mid,
             rel_src_path: &rel_src_path,
         });
         out.push('\n');
         out.push_str(&format!("// {}\n", dts.display()));
-        out.push_str(&body);
+        out.push_str(&printed.body);
     }
     out
+}
+
+/// Like [`print_ts_per_mod`], but renders the source-map JSON (as written
+/// to disk) for every module that has a `source_rel_path`.
+pub fn print_ts_map_per_mod(
+    ir: &rust_curse::codegen::ir::Ir,
+    rel_src_path: std::path::PathBuf,
+) -> String {
+    use rust_curse::codegen::source_map::write_source_map;
+
+    let mut out = String::new();
+    for item in &ir.items {
+        let rust_curse::codegen::ir::Item::Mod(m) = item else {
+            continue;
+        };
+        let mid = m.id;
+        let segs = &m.path.segments;
+        if segs.is_empty() {
+            continue;
+        }
+        let mut dts = rel_src_path.clone();
+        if segs.len() == 1 {
+            dts.push("lib.rs.d.ts");
+        } else {
+            for seg in &segs[1..segs.len() - 1] {
+                dts.push(seg);
+            }
+            dts.push(format!("{}.rs.d.ts", segs.last().unwrap()));
+        }
+
+        let printed = ir.print_ts_mod(rust_curse::codegen::ts::PrintTsModOpts {
+            mod_id: mid,
+            rel_src_path: &rel_src_path,
+        });
+        let Some(rel_src) = printed.source_rel_path.as_ref() else {
+            continue;
+        };
+
+        let dts_basename = dts.file_name().unwrap().to_string_lossy().into_owned();
+        let dts_dir = dts.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+        let rel_src_from_map = relative_path_for_test(&dts_dir, rel_src);
+        let sources = vec![rel_src_from_map
+            .iter()
+            .map(|s| s.to_string_lossy().into_owned())
+            .collect::<Vec<_>>()
+            .join("/")];
+
+        let json = write_source_map(&dts_basename, &sources, &printed.mappings);
+        if !out.is_empty() {
+            out.push('\n');
+        }
+        out.push_str(&format!("// {}.map\n", dts.display()));
+        out.push_str(&json);
+        out.push('\n');
+    }
+    out
+}
+
+/// Test mirror of `path_relative` from `sync/write_ts.rs` -> kept here so
+/// snapshots stay deterministic without dragging in the syncer.
+fn relative_path_for_test(
+    from_dir: &std::path::Path,
+    to_file: &std::path::Path,
+) -> std::path::PathBuf {
+    let from: Vec<&std::ffi::OsStr> = from_dir.iter().collect();
+    let to: Vec<&std::ffi::OsStr> = to_file.iter().collect();
+    let common = from
+        .iter()
+        .zip(to.iter())
+        .take_while(|(a, b)| a == b)
+        .count();
+    let mut result = std::path::PathBuf::new();
+    for _ in 0..(from.len() - common) {
+        result.push("..");
+    }
+    for c in &to[common..] {
+        result.push(c);
+    }
+    result
 }
 
 pub fn print_wasm_js_per_mod<F>(ir: &rust_curse::codegen::ir::Ir, mut printer: F) -> String
@@ -186,6 +265,7 @@ pub fn build_unified_snap(raw_src: &str) -> String {
     let wasm_rs = fmt_src(&ir.print_wasm(&exposed));
     let napi_rs = fmt_src(&ir.print_napi(&exposed));
     let ts_out = print_ts_per_mod(&ir, PathBuf::from("src"));
+    let ts_map_out = print_ts_map_per_mod(&ir, PathBuf::from("src"));
     let wasm_js = print_wasm_js_per_mod(&ir, |ir, mid| {
         ir.print_wasm_js(mid, "$test".to_owned(), &exposed)
     });
@@ -217,6 +297,7 @@ pub fn build_unified_snap(raw_src: &str) -> String {
     push_section(&mut body, "wasm", "rs", &wasm_rs);
     push_section(&mut body, "napi", "rs", &napi_rs);
     push_section(&mut body, "ts", "ts", &ts_out);
+    push_section(&mut body, "ts-map", "text", &ts_map_out);
     push_section(&mut body, "js-wasm", "js", &wasm_js);
     push_section(&mut body, "js-napi", "js", &napi_js);
     push_section(&mut body, "warns", "text", &warns_text);

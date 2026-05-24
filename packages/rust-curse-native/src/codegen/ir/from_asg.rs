@@ -480,6 +480,7 @@ impl<'a> Lowerer<'a> {
                     .unwrap_or(false),
                 clone_on_get: !is_copy_primitive(&f.ty),
                 docs: f.docs.clone(),
+                span: f.span.clone(),
             })
             .collect();
 
@@ -505,6 +506,7 @@ impl<'a> Lowerer<'a> {
             of_escaped,
             clonable: self.is_clonable(def),
             docs: def.docs.clone(),
+            span: def.span.clone(),
         }
     }
 
@@ -532,6 +534,7 @@ impl<'a> Lowerer<'a> {
             key: Vec<String>,
             impl_ord: usize,
             params: &'b [asg::FnParam],
+            span: Option<asg::Span>,
         }
         let mut candidates: Vec<Candidate> = Vec::new();
 
@@ -558,6 +561,7 @@ impl<'a> Lowerer<'a> {
                     key,
                     impl_ord: impl_id.0,
                     params: &f.params,
+                    span: f.span.clone(),
                 });
             }
         }
@@ -567,6 +571,7 @@ impl<'a> Lowerer<'a> {
         let c = candidates.first()?;
         Some(CtorDef {
             params: c.params.iter().map(|p| self.lower_param(p)).collect(),
+            span: c.span.clone(),
         })
     }
 
@@ -624,6 +629,7 @@ impl<'a> Lowerer<'a> {
             needs_closure_scope,
             receiver: def.receiver,
             docs: def.docs.clone(),
+            span: def.span.clone(),
         }
     }
 

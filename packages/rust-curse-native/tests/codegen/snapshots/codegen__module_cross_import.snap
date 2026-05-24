@@ -311,6 +311,19 @@ import type { Token } from "./types.rs";
 export function parse(s: string): Token;
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
+
+// src/types.rs.d.ts.map
+{"version":3,"file":"types.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":";aAEI;;;;IAEI"}
+
+// src/ops.rs.d.ts.map
+{"version":3,"file":"ops.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":";;;gBASI"}
+```
+
 # js-wasm
 
 ```js
@@ -690,6 +703,19 @@ Ir {
                         docs: Some(
                             "The raw token string.",
                         ),
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    5,
+                                    9,
+                                ),
+                                end: (
+                                    5,
+                                    26,
+                                ),
+                            },
+                        ),
                     },
                 ],
                 ctor: None,
@@ -699,6 +725,19 @@ Ir {
                 clonable: false,
                 docs: Some(
                     "An authentication token.",
+                ),
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            3,
+                            5,
+                        ),
+                        end: (
+                            6,
+                            6,
+                        ),
+                    },
                 ),
             },
         ),
@@ -775,6 +814,19 @@ Ir {
                 receiver: None,
                 docs: Some(
                     "Parses a raw string into a Token.",
+                ),
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            10,
+                            5,
+                        ),
+                        end: (
+                            12,
+                            6,
+                        ),
+                    },
                 ),
             },
         ),

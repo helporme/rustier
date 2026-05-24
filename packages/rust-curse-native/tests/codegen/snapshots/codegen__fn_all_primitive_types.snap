@@ -83,6 +83,13 @@ pub fn __cursed_rustdoc_test_crate__f(
 export function f(a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: boolean, j: string, k: string, l: string): void;
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"gBAAA"}
+```
+
 # js-wasm
 
 ```js
@@ -434,6 +441,19 @@ Ir {
                 needs_closure_scope: false,
                 receiver: None,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            14,
+                            5,
+                        ),
+                    },
+                ),
             },
         ),
     ],

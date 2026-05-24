@@ -313,6 +313,13 @@ export namespace Box {
 }
 ```
 
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;;;WADJ;;WAII;;;iBAJJ;;QACI"}
+```
+
 # js-wasm
 
 ```js
@@ -624,6 +631,19 @@ Ir {
                         has_setter: true,
                         clone_on_get: false,
                         docs: None,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    3,
+                                    5,
+                                ),
+                                end: (
+                                    3,
+                                    19,
+                                ),
+                            },
+                        ),
                     },
                 ],
                 ctor: None,
@@ -649,6 +669,19 @@ Ir {
                 of_escaped: false,
                 clonable: true,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            2,
+                            1,
+                        ),
+                        end: (
+                            4,
+                            2,
+                        ),
+                    },
+                ),
             },
         ),
         Fn(
@@ -682,6 +715,19 @@ Ir {
                 needs_closure_scope: false,
                 receiver: None,
                 docs: None,
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            6,
+                            5,
+                        ),
+                        end: (
+                            8,
+                            6,
+                        ),
+                    },
+                ),
             },
         ),
     ],

@@ -587,8 +587,8 @@ export class Point {
     static of(init: Point.Init): Point;
 }
 
+/** A point in 2D space. */
 export namespace Point {
-    /** A point in 2D space. */
     export type Init = {
         /** Horizontal position. */
         x: number;
@@ -612,8 +612,8 @@ export class Circle {
     static of(init: Circle.Init): Circle;
 }
 
+/** A circle defined by its center and radius. */
 export namespace Circle {
-    /** A circle defined by its center and radius. */
     export type Init = {
         /** The center point. */
         center: Point | Point.Init;
@@ -621,6 +621,13 @@ export namespace Circle {
         radius: number;
     };
 }
+```
+
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":";aAEA;;;;IAEI;;;IAEA;;;;WAJJ;;;;iBAAA;;;QAEI;;QAEA;;;;;aAIJ;;;;IAEI;;;IAEA;;;;WAJJ;;;;iBAAA;;;QAEI;;QAEA"}
 ```
 
 # js-wasm
@@ -1056,6 +1063,19 @@ Ir {
                         docs: Some(
                             "Horizontal position.",
                         ),
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    5,
+                                    5,
+                                ),
+                                end: (
+                                    5,
+                                    15,
+                                ),
+                            },
+                        ),
                     },
                     ClassField {
                         orig_name: "y",
@@ -1068,6 +1088,19 @@ Ir {
                         clone_on_get: false,
                         docs: Some(
                             "Vertical position.",
+                        ),
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    7,
+                                    5,
+                                ),
+                                end: (
+                                    7,
+                                    15,
+                                ),
+                            },
                         ),
                     },
                 ],
@@ -1099,6 +1132,19 @@ Ir {
                 clonable: true,
                 docs: Some(
                     "A point in 2D space.",
+                ),
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            3,
+                            1,
+                        ),
+                        end: (
+                            8,
+                            2,
+                        ),
+                    },
                 ),
             },
         ),
@@ -1133,6 +1179,19 @@ Ir {
                         docs: Some(
                             "The center point.",
                         ),
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    13,
+                                    5,
+                                ),
+                                end: (
+                                    13,
+                                    22,
+                                ),
+                            },
+                        ),
                     },
                     ClassField {
                         orig_name: "radius",
@@ -1145,6 +1204,19 @@ Ir {
                         clone_on_get: false,
                         docs: Some(
                             "The radius in the same units as `center`.",
+                        ),
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    15,
+                                    5,
+                                ),
+                                end: (
+                                    15,
+                                    20,
+                                ),
+                            },
                         ),
                     },
                 ],
@@ -1178,6 +1250,19 @@ Ir {
                 clonable: true,
                 docs: Some(
                     "A circle defined by its center and radius.",
+                ),
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            11,
+                            1,
+                        ),
+                        end: (
+                            16,
+                            2,
+                        ),
+                    },
                 ),
             },
         ),
