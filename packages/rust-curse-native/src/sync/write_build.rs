@@ -1,4 +1,6 @@
-use std::{collections::HashMap, fmt, fs, io, path::Path};
+use std::{collections::HashMap, fmt, io, path::Path};
+
+use super::write::write_if_changed;
 
 /// A representation of a crate build.rs where it's content conditionally
 /// compiled in based on the presence of cargo features, hence "switch" in
@@ -125,7 +127,7 @@ pub enum WriteBuildError {
 /// [`render_build`] has nothing to emit.
 pub fn write_build(dir_path: &Path, switch: &BuildSwitch) -> Result<(), WriteBuildError> {
     if let Some(content) = render_build(switch) {
-        fs::write(dir_path.join("build.rs"), content)?;
+        write_if_changed(&dir_path.join("build.rs"), content.as_bytes())?;
     }
     Ok(())
 }

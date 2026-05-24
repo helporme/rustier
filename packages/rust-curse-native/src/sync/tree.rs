@@ -2,9 +2,10 @@
 //! writers.
 
 use std::collections::BTreeMap;
-use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+
+use super::write::sync_dir;
 
 #[derive(Default, Debug)]
 pub(super) struct Node {
@@ -81,7 +82,7 @@ pub(super) fn render_root_decls(
     }
 }
 
-/// Wipe `abs_external_dir` if it exists, then write a `.rs` file for
+/// Sync `abs_external_dir` so it contains exactly one `.rs` file for
 /// every non-leaf node beneath `root`. Each file contains `<vis> mod`
 /// declarations for that node's children.
 pub(super) fn write_subtree(
@@ -90,23 +91,30 @@ pub(super) fn write_subtree(
     abs_external_dir: &Path,
     vis: &str,
 ) -> Result<(), TreeError> {
-    if abs_external_dir.exists() {
-        fs::remove_dir_all(abs_external_dir).map_err(|e| TreeError::Io {
-            path: abs_external_dir.to_path_buf(),
-            source: e,
-        })?;
-    }
+    let mut targets: Vec<(PathBuf, Vec<u8>)> = Vec::new();
     let mut segs: Vec<String> = Vec::new();
-    write_subtree_inner(root, &mut segs, abs_project_root, abs_external_dir, vis)
+    collect_subtree_targets(
+        root,
+        &mut segs,
+        abs_project_root,
+        abs_external_dir,
+        vis,
+        &mut targets,
+    );
+    sync_dir(abs_external_dir, &targets).map_err(|e| TreeError::Io {
+        path: abs_external_dir.to_path_buf(),
+        source: e,
+    })
 }
 
-fn write_subtree_inner(
+fn collect_subtree_targets(
     node: &Node,
     segs: &mut Vec<String>,
     abs_project_root: &Path,
     abs_external_dir: &Path,
     vis: &str,
-) -> Result<(), TreeError> {
+    out: &mut Vec<(PathBuf, Vec<u8>)>,
+) {
     for (seg, child) in &node.children {
         segs.push(seg.clone());
         if !child.children.is_empty() {
@@ -124,23 +132,13 @@ fn write_subtree_inner(
                 segs.pop();
             }
 
-            let abs_file = abs_external_dir.join(format!("{}.rs", segs.join("/")));
-            if let Some(parent) = abs_file.parent() {
-                fs::create_dir_all(parent).map_err(|e| TreeError::Io {
-                    path: parent.to_path_buf(),
-                    source: e,
-                })?;
-            }
-            fs::write(&abs_file, body).map_err(|e| TreeError::Io {
-                path: abs_file,
-                source: e,
-            })?;
+            let rel = PathBuf::from(format!("{}.rs", segs.join("/")));
+            out.push((rel, body.into_bytes()));
 
-            write_subtree_inner(child, segs, abs_project_root, abs_external_dir, vis)?;
+            collect_subtree_targets(child, segs, abs_project_root, abs_external_dir, vis, out);
         }
         segs.pop();
     }
-    Ok(())
 }
 
 fn render_decl(

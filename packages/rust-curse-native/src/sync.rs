@@ -5,6 +5,7 @@ use crate::sync::{write_build::BuildSwitch, write_lib::LibSwitch};
 // todo: check how to remove pub and have tests
 pub mod patch_cargo_toml;
 pub mod tree;
+pub mod write;
 pub mod write_build;
 pub mod write_lib;
 

@@ -6,6 +6,7 @@ use crate::codegen::ir::{Ir, Item};
 use crate::codegen::source_map::write_source_map;
 use crate::codegen::ts::{PrintTsModOpts, PrintedTsMod};
 
+use super::write::{sync_dir, write_if_changed};
 use super::Syncer;
 
 pub const TS_AMBIENT_FILE: &str = "ambient.d.ts";
@@ -34,18 +35,15 @@ impl Syncer {
         fs::create_dir_all(&abs_out_dir).map_err(WriteTsError::CreateOutDir)?;
 
         let abs_ambient = abs_out_dir.join(TS_AMBIENT_FILE);
-        fs::write(&abs_ambient, ir.print_ts_ambient()).map_err(|e| WriteTsError::Io {
-            path: abs_ambient,
-            source: e,
+        write_if_changed(&abs_ambient, ir.print_ts_ambient().as_bytes()).map_err(|e| {
+            WriteTsError::Io {
+                path: abs_ambient,
+                source: e,
+            }
         })?;
 
         let abs_types_dir = abs_out_dir.join(TS_TYPES_DIR);
-        if abs_types_dir.exists() {
-            fs::remove_dir_all(&abs_types_dir).map_err(|e| WriteTsError::Io {
-                path: abs_types_dir.clone(),
-                source: e,
-            })?;
-        }
+        let mut targets: Vec<(PathBuf, Vec<u8>)> = Vec::new();
 
         for item in &ir.items {
             let Item::Mod(m) = item else {
@@ -72,39 +70,30 @@ impl Syncer {
                 rel_src_path: modules_root_rel_path,
             });
 
-            let abs_dts = abs_types_dir.join(&rel_dts);
-            let abs_dts_map = {
-                let mut p = abs_dts.clone();
+            let rel_dts_map = {
+                let mut p = rel_dts.clone();
                 let file = p.file_name().unwrap().to_owned();
                 p.set_file_name(format!("{}.map", file.to_string_lossy()));
                 p
             };
-            let map_basename = abs_dts_map
+            let map_basename = rel_dts_map
                 .file_name()
                 .unwrap()
                 .to_string_lossy()
                 .into_owned();
-            let dts_basename = abs_dts.file_name().unwrap().to_string_lossy().into_owned();
+            let dts_basename = rel_dts.file_name().unwrap().to_string_lossy().into_owned();
 
             if let Some(rel_src) = source_rel_path.as_ref() {
                 // The source map's `sources` entries are resolved relative to
                 // the `.d.ts.map` file itself, not the project root.
                 let abs_src = self.project_root_abs_path.join(rel_src);
+                let abs_dts = abs_types_dir.join(&rel_dts);
                 let dts_dir = abs_dts.parent().unwrap_or_else(|| Path::new(""));
                 let rel_src_from_map = path_relative(dts_dir, &abs_src);
                 let sources = vec![to_forward_slash(&rel_src_from_map)];
                 let map_json = write_source_map(&dts_basename, &sources, &mappings);
 
-                if let Some(parent) = abs_dts_map.parent() {
-                    fs::create_dir_all(parent).map_err(|e| WriteTsError::Io {
-                        path: parent.to_path_buf(),
-                        source: e,
-                    })?;
-                }
-                fs::write(&abs_dts_map, map_json).map_err(|e| WriteTsError::Io {
-                    path: abs_dts_map.clone(),
-                    source: e,
-                })?;
+                targets.push((rel_dts_map, map_json.into_bytes()));
 
                 if !body.ends_with('\n') {
                     body.push('\n');
@@ -112,17 +101,13 @@ impl Syncer {
                 body.push_str(&format!("//# sourceMappingURL={map_basename}\n"));
             }
 
-            if let Some(parent) = abs_dts.parent() {
-                fs::create_dir_all(parent).map_err(|e| WriteTsError::Io {
-                    path: parent.to_path_buf(),
-                    source: e,
-                })?;
-            }
-            fs::write(&abs_dts, body).map_err(|e| WriteTsError::Io {
-                path: abs_dts,
-                source: e,
-            })?;
+            targets.push((rel_dts, body.into_bytes()));
         }
+
+        sync_dir(&abs_types_dir, &targets).map_err(|e| WriteTsError::Io {
+            path: abs_types_dir,
+            source: e,
+        })?;
 
         Ok(())
     }

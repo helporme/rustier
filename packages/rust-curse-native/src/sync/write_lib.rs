@@ -1,4 +1,6 @@
-use std::{collections::HashMap, fmt, fs, io, path::Path};
+use std::{collections::HashMap, fmt, io, path::Path};
+
+use super::write::write_if_changed;
 
 /// A representation of a crate entry (lib.rs) where it's content conditionally
 /// included at build time based on the presence of cargo features, hence
@@ -202,7 +204,7 @@ pub fn write_lib(dir_path: &Path, switch: &LibSwitch) -> Result<(), WriteLibErro
     };
     for file in &files {
         let path = dir_path.join(format!("{}.rs", file.name));
-        fs::write(path, &file.content)?;
+        write_if_changed(&path, file.content.as_bytes())?;
     }
     Ok(())
 }

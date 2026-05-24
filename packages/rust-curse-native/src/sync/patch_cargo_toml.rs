@@ -8,6 +8,8 @@ use std::{
 
 use toml_edit::{Array, DocumentMut, InlineTable, Item, Table};
 
+use super::write::write_if_changed;
+
 /// Error returned when reading, parsing, or writing a `Cargo.toml`.
 #[derive(Debug, thiserror::Error)]
 pub enum PatchCargoTomlError {
@@ -204,7 +206,7 @@ pub fn patch_cargo_toml_file(
 ) -> Result<(), PatchCargoTomlError> {
     let content = fs::read_to_string(path)?;
     let patched = patch_cargo_toml(&content, patch)?;
-    fs::write(path, patched)?;
+    write_if_changed(path, patched.as_bytes())?;
     Ok(())
 }
 
