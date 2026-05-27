@@ -170,7 +170,7 @@ pub enum WellKnownTrait {
 
 /// A trait definition.
 ///
-/// Traits with assoc consts, assoc types, or any generics are auto-skipped.
+/// Traits with assoc consts, assoc types, or any generics are not represented.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TraitDef {
     pub id: AsgId,
