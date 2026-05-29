@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs'
 import { basename, join, resolve as resolvePath } from 'node:path'
 import { type Rolldown } from 'tsdown'
 import { defaultOptions, RustCurseOptions } from './options'
-import { ProfileOpts, RustCurse, WasmProfileArtifact } from 'rust-curse-native'
+import {
+  BuildOutput,
+  ProfileOpts,
+  RustCurse,
+  WasmProfileArtifact,
+} from 'rust-curse-native'
 import { deepMerge, DeepRequired, normalizeFilter } from '../utils'
 import { buildNapi } from '../napi'
 
@@ -18,7 +23,7 @@ export default function rustCurse(options?: RustCurseOptions): Plugin {
 }
 
 function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
-  let curse: RustCurse | null = null
+  let build: BuildOutput | null = null
 
   return {
     name: 'rust-curse',
@@ -33,7 +38,7 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
         },
       }
 
-      curse = new RustCurse(
+      const curse = new RustCurse(
         {
           projectRoot: resolvePath(options.rootDir),
           outDir: options.outDir,
@@ -47,14 +52,14 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
         buildNapi,
       )
 
-      const output = await curse.build([profile.name])
-      for (const warn of output.warns) {
+      build = await curse.build([profile.name])
+      for (const warn of build.warns) {
         this.warn({
           code: warn.code,
           message: warn.rendered ?? warn.message,
         })
       }
-      const artifact = output.artifacts[profile.name]
+      const artifact = build.artifacts[profile.name]
 
       if (artifact.type === 'wasm') {
         // wasm-bindgen is called from rust
@@ -76,8 +81,8 @@ function _rustCurse(options: DeepRequired<RustCurseOptions>): Plugin {
 
     load(id) {
       if (!id.endsWith('.rs')) return null
-      if (!curse) return null
-      return curse.resolve(options.platform, id)
+      if (!build) return null
+      return build.resolve(options.platform, id)
     },
   }
 }

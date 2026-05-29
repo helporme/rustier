@@ -1,7 +1,6 @@
 use core::str;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::sync::Mutex;
 
 use anyhow::{anyhow, bail, Context};
 #[cfg(feature = "napi-binding")]
@@ -11,6 +10,7 @@ use napi_derive::napi;
 use crate::builder::napi::{NapiBuildFn, NapiBuildOpts, NapiBuilder};
 use crate::codegen::asg::Asg;
 use crate::codegen::ir::{self, Ir, Item};
+use crate::codegen::wasm_js::WasmJsOpts;
 use crate::orphans::OrphanScanOpts;
 use crate::sync::write_orphan_tree::WriteOrphanTreeOpts;
 use crate::sync::Syncer;
@@ -18,9 +18,16 @@ use crate::tree_shake::{self, TreeShakeOpts};
 use crate::warns::{Theme, WarnRendered, Warns, WarnsRenderer};
 use crate::{builder, common, orphans, rustdoc};
 
+#[cfg_attr(feature = "napi-binding", napi(string_enum))]
+#[derive(Debug, Clone, Copy)]
+pub enum WasmDeployTarget {
+    Web,
+    NodeJs,
+}
+
 #[cfg_attr(feature = "napi-binding", napi(discriminant_case = "kebab-case"))]
 pub enum ProfileBuildTarget {
-    Wasm {},
+    Wasm { deploy_to: Option<WasmDeployTarget> },
     Node {},
 }
 
@@ -112,51 +119,113 @@ impl RustCurseOpts {
 }
 
 #[derive(Debug, Clone)]
-pub struct BuildCache {
-    ir: Ir,
-    exposed: HashSet<ir::IrId>,
-    artifacts: HashMap<String, ProfileBuildCache>,
-}
-
-#[derive(Debug, Clone)]
 pub enum ProfileBuildCache {
-    Wasm(builder::wasm::WasmBuildOutput),
+    /// Wasm artifacts plus the deploy target the profile was built for, which
+    /// selects the js glue printer at resolve time.
+    Wasm(builder::wasm::WasmBuildOutput, WasmDeployTarget),
     Node(builder::napi::NapiBuildOutput),
 }
 
-impl BuildCache {
-    pub fn mint_build_output(&self, warns: Vec<WarnRendered>) -> BuildOutput {
-        BuildOutput {
-            artifacts: self
-                .artifacts
-                .iter()
-                .map(|(name, cache)| {
-                    (
-                        name.clone(),
-                        match cache {
-                            ProfileBuildCache::Wasm(wasm_output) => ProfileBuildOutput::Wasm {
-                                wasm_abs_path: wasm_output
-                                    .wasm_output_abs_path
-                                    .to_string_lossy()
-                                    .into_owned(),
-                            },
-                            ProfileBuildCache::Node(node_output) => ProfileBuildOutput::Node {
-                                node_paths: node_output.node_output_abs_paths.clone(),
-                            },
-                        },
-                    )
-                })
-                .collect(),
-            warns,
+impl ProfileBuildCache {
+    fn to_profile_output(&self) -> ProfileBuildOutput {
+        match self {
+            ProfileBuildCache::Wasm(wasm_output, _) => ProfileBuildOutput::Wasm {
+                wasm_abs_path: wasm_output
+                    .wasm_output_abs_path
+                    .to_string_lossy()
+                    .into_owned(),
+            },
+            ProfileBuildCache::Node(node_output) => ProfileBuildOutput::Node {
+                node_paths: node_output.node_output_abs_paths.clone(),
+            },
         }
     }
 }
 
-#[cfg_attr(feature = "napi-binding", napi(object))]
+/// Result of a build. Carries everything needed to resolve rust modules into
+/// js glue, so [`BuildOutput::resolve`] needs no external cache.
+#[cfg_attr(feature = "napi-binding", napi)]
 pub struct BuildOutput {
-    pub artifacts: HashMap<String, ProfileBuildOutput>,
+    ir: Ir,
+    exposed: HashSet<ir::IrId>,
+    artifacts: HashMap<String, ProfileBuildCache>,
+    warns: Vec<WarnRendered>,
+}
+
+#[cfg_attr(feature = "napi-binding", napi)]
+impl BuildOutput {
+    /// Per-profile artifact paths produced by the build.
+    #[cfg(feature = "napi-binding")]
+    #[napi(getter)]
+    pub fn artifacts(&self) -> HashMap<String, ProfileBuildOutput> {
+        self.artifacts
+            .iter()
+            .map(|(name, cache)| (name.clone(), cache.to_profile_output()))
+            .collect()
+    }
+
     /// Non-fatal diagnostics emitted during the build.
-    pub warns: Vec<WarnRendered>,
+    #[cfg(feature = "napi-binding")]
+    #[napi(getter)]
+    pub fn warns(&self) -> Vec<WarnRendered> {
+        self.warns.clone()
+    }
+
+    #[cfg(feature = "napi-binding")]
+    #[napi]
+    pub fn resolve(&self, profile_name: String, rs_rel_path: String) -> napi::Result<String> {
+        self._resolve(&profile_name, &rs_rel_path)
+            .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{:#}", e)))
+    }
+
+    fn _resolve(&self, profile_name: &str, rs_rel_path: &str) -> anyhow::Result<String> {
+        let artifact = self
+            .artifacts
+            .get(profile_name)
+            .ok_or_else(|| anyhow!("unknown profile '{profile_name}'"))?;
+
+        let rs_rel_path_buf = PathBuf::from(rs_rel_path);
+        let mid = self
+            .ir
+            .items
+            .iter()
+            .find_map(|i| match i {
+                Item::Mod(def)
+                    if def.span.as_ref().map(|s| s.filename.as_path())
+                        == Some(rs_rel_path_buf.as_path()) =>
+                {
+                    Some(def.id)
+                }
+                _ => None,
+            })
+            .ok_or(anyhow!("cannot resolve the module '{}'", rs_rel_path))?;
+
+        let js_glue = match artifact {
+            ProfileBuildCache::Wasm(wasm, deploy_to) => {
+                let js_output_abs_path = wasm.js_output_abs_path.to_string_lossy().to_string();
+                self.ir.print_wasm_js(
+                    mid,
+                    &self.exposed,
+                    WasmJsOpts {
+                        source_js: js_output_abs_path,
+                        init: matches!(deploy_to, WasmDeployTarget::Web),
+                    },
+                )
+            }
+            ProfileBuildCache::Node(node) => {
+                let js_output_abs_path = node
+                    .js_output_abs_path
+                    .as_ref()
+                    .ok_or(anyhow!("no JS artifact found in napi build output"))?
+                    .clone();
+
+                self.ir
+                    .print_napi_js(mid, js_output_abs_path, &self.exposed)
+            }
+        };
+
+        Ok(js_glue)
+    }
 }
 
 #[cfg_attr(feature = "napi-binding", napi(discriminant_case = "kebab-case"))]
@@ -189,8 +258,6 @@ pub struct RustCurse {
     build_out_dir_abs_path: PathBuf,
     /// Passed options
     options: RustCurseOpts,
-    /// Last successful build artifacts
-    last_build: Mutex<Option<BuildCache>>,
     /// Napi builder
     napi_builder: NapiBuilder,
 }
@@ -216,7 +283,6 @@ impl RustCurse {
             build_out_dir_abs_path,
             options,
             napi_builder: napi_build_fn.into(),
-            last_build: Mutex::new(None),
         })
     }
 
@@ -225,13 +291,6 @@ impl RustCurse {
     pub async fn build(&self, profile_names: Vec<String>) -> napi::Result<BuildOutput> {
         self._build(&profile_names)
             .await
-            .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{:#}", e)))
-    }
-
-    #[cfg(feature = "napi-binding")]
-    #[napi]
-    pub fn resolve(&self, profile_name: String, rs_rel_path: String) -> napi::Result<String> {
-        self._resolve(&profile_name, &rs_rel_path)
             .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{:#}", e)))
     }
 
@@ -286,7 +345,7 @@ impl RustCurse {
                 ProfileBuildTarget::Node {} => sync
                     .write_napi(&profile.name, ir.print_napi(&exposed))
                     .with_context(|| format!("sync: napi profile '{}'", profile.name))?,
-                ProfileBuildTarget::Wasm {} => sync
+                ProfileBuildTarget::Wasm { .. } => sync
                     .write_wasm(&profile.name, ir.print_wasm(&exposed))
                     .with_context(|| format!("sync: wasm profile '{}'", profile.name))?,
             }
@@ -299,7 +358,7 @@ impl RustCurse {
 
         let wasm_bindgen_tool_bin_abs_path: Option<PathBuf> = profiles
             .iter()
-            .any(|p| matches!(p.rust.target, ProfileBuildTarget::Wasm {}))
+            .any(|p| matches!(p.rust.target, ProfileBuildTarget::Wasm { .. }))
             .then(|| {
                 builder::wasm::ensure_wasm_target_installed()?;
                 builder::wasm::ensure_bindgen_tool_installed(
@@ -311,8 +370,8 @@ impl RustCurse {
         let mut artifacts: HashMap<String, ProfileBuildCache> = HashMap::new();
 
         for profile in &profiles {
-            match profile.rust.target {
-                ProfileBuildTarget::Wasm {} => {
+            match &profile.rust.target {
+                ProfileBuildTarget::Wasm { deploy_to } => {
                     let bin = wasm_bindgen_tool_bin_abs_path.as_deref().expect(
                         "wasm-bindgen bin path was provisioned above for any wasm-targeting profile",
                     );
@@ -321,11 +380,19 @@ impl RustCurse {
                         out_dir_abs_path: &self.build_out_dir_abs_path,
                         wasm_bindgen_tool_bin_abs_path: bin,
                         profile_name: &profile.name,
+                        deploy_to: match deploy_to {
+                            Some(WasmDeployTarget::NodeJs) => "nodejs",
+                            _ => "web",
+                        },
                         release: false,
                     })
                     .with_context(|| format!("builder: wasm profile '{}'", profile.name))?;
 
-                    artifacts.insert(profile.name.clone(), ProfileBuildCache::Wasm(output));
+                    let deploy_to = deploy_to.unwrap_or(WasmDeployTarget::Web);
+                    artifacts.insert(
+                        profile.name.clone(),
+                        ProfileBuildCache::Wasm(output, deploy_to),
+                    );
                 }
                 ProfileBuildTarget::Node {} => {
                     let output = self
@@ -342,71 +409,16 @@ impl RustCurse {
             }
         }
 
-        let build_cache = BuildCache {
-            ir,
-            exposed,
-            artifacts,
-        };
-
         let rendered_warns = warns
             .render(&self.project_root_abs_path, Theme::Unicode)
             .context("warn render failed")?;
 
-        let build_output = build_cache.mint_build_output(rendered_warns);
-
-        *self.last_build.lock().unwrap() = Some(build_cache);
-
-        Ok(build_output)
-    }
-
-    fn _resolve(&self, profile_name: &str, path: &str) -> anyhow::Result<String> {
-        let last_build = self.last_build.lock().unwrap();
-        let build_output = last_build.as_ref().ok_or(anyhow!(
-            "resolve cannot be called before build, please call build first."
-        ))?;
-
-        let artifact = build_output
-            .artifacts
-            .get(profile_name)
-            .ok_or_else(|| anyhow!("unknown profile '{profile_name}'"))?;
-
-        let path_buf = PathBuf::from(path);
-        let mid = build_output
-            .ir
-            .items
-            .iter()
-            .find_map(|i| match i {
-                Item::Mod(def)
-                    if def.span.as_ref().map(|s| s.filename.as_path())
-                        == Some(path_buf.as_path()) =>
-                {
-                    Some(def.id)
-                }
-                _ => None,
-            })
-            .ok_or(anyhow!("cannot resolve the module '{}'", path))?;
-
-        let js_glue = match artifact {
-            ProfileBuildCache::Wasm(wasm) => {
-                let js_output_abs_path = wasm.js_output_abs_path.to_string_lossy().to_string();
-                build_output
-                    .ir
-                    .print_wasm_js(mid, js_output_abs_path, &build_output.exposed)
-            }
-            ProfileBuildCache::Node(node) => {
-                let js_output_abs_path = node
-                    .js_output_abs_path
-                    .as_ref()
-                    .ok_or(anyhow!("no JS artifact found in napi build output"))?
-                    .clone();
-
-                build_output
-                    .ir
-                    .print_napi_js(mid, js_output_abs_path, &build_output.exposed)
-            }
-        };
-
-        Ok(js_glue)
+        Ok(BuildOutput {
+            ir,
+            exposed,
+            artifacts,
+            warns: rendered_warns,
+        })
     }
 
     fn get_profiles(&self, names: &[String]) -> Result<Vec<&ProfileOpts>, anyhow::Error> {

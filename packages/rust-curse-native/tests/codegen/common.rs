@@ -267,7 +267,14 @@ pub fn build_unified_snap(raw_src: &str) -> String {
     let ts_out = print_ts_per_mod(&ir, PathBuf::from("src"));
     let ts_map_out = print_ts_map_per_mod(&ir, PathBuf::from("src"));
     let wasm_js = print_wasm_js_per_mod(&ir, |ir, mid| {
-        ir.print_wasm_js(mid, "$test".to_owned(), &exposed)
+        ir.print_wasm_js(
+            mid,
+            &exposed,
+            rust_curse::codegen::wasm_js::WasmJsOpts {
+                source_js: "$test".to_owned(),
+                init: true,
+            },
+        )
     });
     let napi_js = print_wasm_js_per_mod(&ir, |ir, mid| {
         ir.print_napi_js(mid, "$test".to_owned(), &exposed)

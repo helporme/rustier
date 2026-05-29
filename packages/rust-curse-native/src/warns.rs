@@ -153,6 +153,7 @@ struct WarnDiagnostic {
 
 /// Rendered warning message with nice rendered string.
 #[cfg_attr(feature = "napi-binding", napi(object))]
+#[derive(Clone)]
 pub struct WarnRendered {
     /// Code of the error, like `rust-curse::unresolved_import`.
     pub code: String,

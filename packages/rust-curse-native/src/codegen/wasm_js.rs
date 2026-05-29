@@ -4,18 +4,25 @@ use std::collections::HashSet;
 
 use super::ir::{Ir, IrId, Item};
 
+/// Options for [`Ir::print_wasm_js`].
+pub struct WasmJsOpts {
+    /// Path the bundler will resolve to the wasm-bindgen-generated
+    /// `package.js`.
+    pub source_js: String,
+    /// Eagerly import and await the default `__wbg_init` export. Web deploys
+    /// need it; node deploys self-initialize on import, so they omit it.
+    pub init: bool,
+}
+
 impl Ir {
     /// Prints the wasm-bindgen JS glue for a single rust orphan module.
-    ///
-    /// `source_js` is the path the bundler will resolve to the
-    /// wasm-bindgen-generated `package.js`.
     pub fn print_wasm_js(
         &self,
         module_id: IrId,
-        source_js: String,
         exposed: &HashSet<IrId>,
+        opts: WasmJsOpts,
     ) -> String {
-        Printer::new(self, source_js, exposed).run(module_id)
+        Printer::new(self, opts.source_js, exposed).run(module_id, opts.init)
     }
 }
 
@@ -39,7 +46,9 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn run(&self, mid: IrId) -> String {
+    /// `init` selects whether the default `__wbg_init` export is imported and
+    /// awaited (web) or omitted entirely (node).
+    fn run(&self, mid: IrId, init: bool) -> String {
         let uses = &self.ir.get_mod_unchecked(mid).uses;
         let mut bindings: Vec<Binding> = Vec::new();
         for use_ in uses {
@@ -81,11 +90,18 @@ impl<'a> Printer<'a> {
             .join(", ");
 
         let mut out = String::new();
-        out.push_str(&format!(
-            "import __wbg_init, {{ {import_list} }} from '{}';\n",
-            self.source
-        ));
-        out.push_str("await __wbg_init();\n");
+        if init {
+            out.push_str(&format!(
+                "import __wbg_init, {{ {import_list} }} from '{}';\n",
+                self.source
+            ));
+            out.push_str("await __wbg_init();\n");
+        } else {
+            out.push_str(&format!(
+                "import {{ {import_list} }} from '{}';\n",
+                self.source
+            ));
+        }
         out.push_str(&format!("export {{ {export_list} }};\n"));
         out
     }

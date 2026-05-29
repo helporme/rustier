@@ -1,11 +1,9 @@
-import { Sphere, Point } from "./math.rs";
+import { Circle, Point } from "./math.rs";
 
-const a = new Point(0, 0, 0);
-const b = Point.of(a);
+const point = new Point(5, 3);
+const circle = new Circle(10, { x: 0, y: 0 });
 
-a.translate(10, 10, 10);
-a.scale(2);
-
-const c = Sphere.of({ radius: 3, center: a });
-
-console.log(a.distance(b), c.center.toString());
+console.log({
+  "point in circle": circle.contains(point),
+  distance: circle.center.distance(point),
+});

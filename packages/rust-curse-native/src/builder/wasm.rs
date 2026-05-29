@@ -152,6 +152,8 @@ pub struct WasmBuildOpts<'a> {
     pub wasm_bindgen_tool_bin_abs_path: &'a Path,
     /// Profile name used as the output subdirectory and as a cargo feature.
     pub profile_name: &'a str,
+    /// Where to deploy the wasm output.
+    pub deploy_to: &'a str,
     /// Do we release?
     pub release: bool,
 }
@@ -209,7 +211,7 @@ pub fn build(opts: WasmBuildOpts<'_>) -> Result<WasmBuildOutput, WasmBuildError>
         .arg("--out-name")
         .arg(WASM_BINDGEN_OUT_NAME)
         .arg("--target")
-        .arg("web")
+        .arg(opts.deploy_to)
         .output()
         .map_err(|e| WasmBuildError::Io {
             path: opts.wasm_bindgen_tool_bin_abs_path.to_path_buf(),

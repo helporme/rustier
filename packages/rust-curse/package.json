@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "build:ts": "tsdown",
-    "build:native": "cd ../rust-curse-native && npm run build",
-    "build": "npm run build:native && npm run build:ts",
+    "build:native": "cd ../rust-curse-native && pnpm run build",
+    "build": "pnpm run build:native && pnpm run build:ts",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "e2e": "cd tests/e2e && pnpm run test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -25,6 +26,7 @@
   },
   "exports": {
     "./tsdown": "./dist/tsdown.mjs",
+    "./unstable": "./dist/unstable.mjs",
     "./utils": "./dist/utils.mjs"
   },
   "peerDependencies": {

@@ -1,3 +1,4 @@
 packages:
   - packages/*
+  - packages/rust-curse/tests/e2e
   - examples/*

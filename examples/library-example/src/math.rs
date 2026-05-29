@@ -1,5 +1,5 @@
 #[derive(Clone, Debug, Default)]
-pub struct Sphere {
+pub struct Circle {
     pub radius: f64,
     pub center: Point,
 }
@@ -8,30 +8,26 @@ pub struct Sphere {
 pub struct Point {
     pub x: f64,
     pub y: f64,
-    pub z: f64,
 }
 
 impl Point {
-    pub fn new(x: f64, y: f64, z: f64) -> Self {
-        Self { x, y, z }
+    pub fn new(x: f64, y: f64) -> Self {
+        Self { x, y }
     }
 
     pub fn distance(&self, other: &Point) -> f64 {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
-        let dz = self.z - other.z;
-        (dx * dx + dy * dy + dz * dz).sqrt()
+        (dx * dx + dy * dy).sqrt()
+    }
+}
+
+impl Circle {
+    pub fn new(radius: f64, center: Point) -> Self {
+        Self { radius, center }
     }
 
-    pub fn translate(&mut self, dx: f64, dy: f64, dz: f64) {
-        self.x += dx;
-        self.y += dy;
-        self.z += dz;
-    }
-
-    pub fn scale(&mut self, factor: f64) {
-        self.x *= factor;
-        self.y *= factor;
-        self.z *= factor;
+    pub fn contains(&self, point: &Point) -> bool {
+        self.center.distance(point) <= self.radius
     }
 }
