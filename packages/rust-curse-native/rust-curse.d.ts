@@ -100,6 +100,20 @@ export interface RustOpts {
   modulesRootDir: string
 }
 
+/** Source code location a rendered warning is anchored to. */
+export interface WarnLabelRendered {
+  /** Message describing the labeled span, if any. */
+  message?: string
+  /** 1-indexed line of the span start. */
+  beginLine: number
+  /** 1-indexed column of the span start. */
+  beginCol: number
+  /** 1-indexed line of the span end. */
+  endLine: number
+  /** 1-indexed column of the span end. */
+  endCol: number
+}
+
 /** Rendered warning message with nice rendered string. */
 export interface WarnRendered {
   /** Code of the error, like `rust-curse::unresolved_import`. */
@@ -109,6 +123,12 @@ export interface WarnRendered {
    * attached to it.
    */
   message: string
+  /** Path to the source code file the warning refers to, if any. */
+  sourceCodePath?: string
+  /** Source code location the warning is anchored to, if any. */
+  label?: WarnLabelRendered
+  /** Help text to display to the user. */
+  help?: string
   /**
    * Rendered warning message with syntax highlighting and source code
    * context.

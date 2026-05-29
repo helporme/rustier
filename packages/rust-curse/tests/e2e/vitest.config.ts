@@ -29,6 +29,11 @@ const curse = new RustCurse(
   buildNapi,
 )
 
+const VIRTUAL_MODULES = {
+  warns: `$build/warns`,
+}
+const RESOLVED_MOD_PREFIX = '\0'
+
 const rustCurse = (target: 'wasm' | 'node'): Plugin => {
   let output: BuildOutput | undefined
 
@@ -48,7 +53,33 @@ const rustCurse = (target: 'wasm' | 'node'): Plugin => {
       }
     },
 
+    resolveId(id) {
+      if (Object.values(VIRTUAL_MODULES).includes(id))
+        return RESOLVED_MOD_PREFIX + id
+    },
+
+    async handleHotUpdate({ file, server, modules }) {
+      if (!/\.(rs|toml|lock)$/.test(file)) return
+      await curse?.build(['wasm', 'node'])
+      server.moduleGraph.invalidateAll()
+      return []
+    },
+
     load(id) {
+      // Resolve warnigs module
+      if (id.substring(1) === VIRTUAL_MODULES.warns) {
+        const warns = (output?.warns ?? []).map((w) => ({
+          code: w.code,
+          message: w.message,
+          sourceCodePath: w.sourceCodePath,
+          label: w.label,
+          help: w.help,
+          rendered: w.rendered,
+        }))
+        return `export const rustCurseWarns = ${JSON.stringify(warns)};`
+      }
+
+      // Resolve .rs files
       if (!id.endsWith('.rs') || !output) return null
       return output.resolve(target, id)
     },
@@ -62,12 +93,22 @@ export default defineConfig({
         plugins: [rustCurse('node')],
         test: {
           name: 'node',
+          typecheck: {
+            enabled: true,
+            include: ['src/**/*.type-test.ts'],
+            tsconfig: './tsconfig.json',
+          },
         },
       },
       {
         plugins: [rustCurse('wasm')],
         test: {
           name: 'wasm',
+          typecheck: {
+            enabled: true,
+            include: ['src/**/*.type-test.ts'],
+            tsconfig: './tsconfig.json',
+          },
         },
       },
     ],

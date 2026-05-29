@@ -151,6 +151,22 @@ struct WarnDiagnostic {
     pub help: Option<String>,
 }
 
+/// Source code location a rendered warning is anchored to.
+#[cfg_attr(feature = "napi-binding", napi(object))]
+#[derive(Clone)]
+pub struct WarnLabelRendered {
+    /// Message describing the labeled span, if any.
+    pub message: Option<String>,
+    /// 1-indexed line of the span start.
+    pub begin_line: u32,
+    /// 1-indexed column of the span start.
+    pub begin_col: u32,
+    /// 1-indexed line of the span end.
+    pub end_line: u32,
+    /// 1-indexed column of the span end.
+    pub end_col: u32,
+}
+
 /// Rendered warning message with nice rendered string.
 #[cfg_attr(feature = "napi-binding", napi(object))]
 #[derive(Clone)]
@@ -160,6 +176,12 @@ pub struct WarnRendered {
     /// Primary leading message. Should explain the warning as if no context was
     /// attached to it.
     pub message: String,
+    /// Path to the source code file the warning refers to, if any.
+    pub source_code_path: Option<String>,
+    /// Source code location the warning is anchored to, if any.
+    pub label: Option<WarnLabelRendered>,
+    /// Help text to display to the user.
+    pub help: Option<String>,
     /// Rendered warning message with syntax highlighting and source code
     /// context.
     pub rendered: Option<String>,
@@ -222,15 +244,10 @@ impl Diagnostic for WarnDiagnostic {
 }
 
 impl WarnDiagnostic {
-    pub fn render(&self, handler: &GraphicalReportHandler) -> Result<WarnRendered, fmt::Error> {
+    pub fn render(&self, handler: &GraphicalReportHandler) -> Result<String, fmt::Error> {
         let mut rendered = String::new();
         handler.render_report(&mut rendered, self)?;
-
-        Ok(WarnRendered {
-            code: self.code.to_string(),
-            message: self.message.to_string(),
-            rendered: Some(rendered),
-        })
+        Ok(rendered)
     }
 }
 
@@ -253,7 +270,31 @@ impl WarnsRenderer for Warns {
 
         let mut rendered = Vec::new();
         for warn in self {
-            rendered.push(warn.into_diagnostic(root_abs_path).render(&handler)?);
+            let code = warn.code.clone();
+            let message = warn.message.clone();
+            let source_code_path = warn
+                .source_code_path
+                .as_ref()
+                .map(|p| p.to_string_lossy().into_owned());
+            let label = warn.label.as_ref().map(|l| WarnLabelRendered {
+                message: l.message.map(|s| s.to_string()),
+                begin_line: l.begin.0 as u32,
+                begin_col: l.begin.1 as u32,
+                end_line: l.end.0 as u32,
+                end_col: l.end.1 as u32,
+            });
+            let help = warn.help.clone();
+
+            let report = warn.into_diagnostic(root_abs_path).render(&handler)?;
+
+            rendered.push(WarnRendered {
+                code,
+                message,
+                source_code_path,
+                label,
+                help,
+                rendered: Some(report),
+            });
         }
 
         Ok(rendered)
