@@ -323,18 +323,26 @@ impl<'a> Printer<'a> {
         let mut pre = String::new();
         for p in &fn_def.params {
             match (&p.ty, &p.mode) {
-                (Type::Class(child), _) => {
-                    let coerce = format!(
-                        "__cursed_coerce_{}",
-                        self.ir.get_class_unchecked(*child).mangled_name
-                    );
+                (Type::Class(_), ParamMode::ByRef | ParamMode::ByMut) => {
                     let mut_ = if matches!(p.mode, ParamMode::ByMut) {
                         "mut "
                     } else {
                         ""
                     };
                     pre.push_str(&format!(
-                        "    let {mut_}{co} = {coerce}({name})?;\n",
+                        "    let {mut_}{co} = __cursed::Coerced::Projected({name}.{root}.borrow().clone());\n",
+                        co = co_local(&p.name),
+                        name = p.name,
+                        root = mangle::ROOT_FIELD,
+                    ));
+                }
+                (Type::Class(child), ParamMode::ByValue) => {
+                    let coerce = format!(
+                        "__cursed_coerce_{}",
+                        self.ir.get_class_unchecked(*child).mangled_name
+                    );
+                    pre.push_str(&format!(
+                        "    let {co} = {coerce}({name})?;\n",
                         co = co_local(&p.name),
                         name = p.name,
                     ));
@@ -347,6 +355,13 @@ impl<'a> Printer<'a> {
                             Type::Primitive(prim) => prim,
                             _ => unreachable!("needs_stash is only set on primitive params"),
                         }),
+                        name = p.name,
+                    ));
+                }
+                (Type::Primitive(prim), ParamMode::ByMut) if !matches!(prim, Primitive::Str) => {
+                    pre.push_str(&format!(
+                        "    let mut {mref} = {name};\n",
+                        mref = mref_local(&p.name),
                         name = p.name,
                     ));
                 }
@@ -475,18 +490,28 @@ impl<'a> Printer<'a> {
 
         for p in &fn_def.params {
             match (&p.ty, &p.mode) {
-                (Type::Class(child), _) => {
-                    let coerce = format!(
-                        "__cursed_coerce_{}",
-                        self.ir.get_class_unchecked(*child).mangled_name
-                    );
+                (Type::Class(_), ParamMode::ByRef | ParamMode::ByMut) => {
                     let mut_ = if matches!(p.mode, ParamMode::ByMut) {
                         "mut "
                     } else {
                         ""
                     };
+                    // Share the live wrapper's projection so writes reach the
+                    // original; rebuilding via the coercer would clone it.
                     pre.push_str(&format!(
-                        "        let {mut_}{co} = {coerce}({name})?;\n",
+                        "        let {mut_}{co} = __cursed::Coerced::Projected({name}.{root}.borrow().clone());\n",
+                        co = co_local(&p.name),
+                        name = p.name,
+                        root = mangle::ROOT_FIELD,
+                    ));
+                }
+                (Type::Class(child), ParamMode::ByValue) => {
+                    let coerce = format!(
+                        "__cursed_coerce_{}",
+                        self.ir.get_class_unchecked(*child).mangled_name
+                    );
+                    pre.push_str(&format!(
+                        "        let {co} = {coerce}({name})?;\n",
                         co = co_local(&p.name),
                         name = p.name,
                     ));
@@ -499,6 +524,13 @@ impl<'a> Printer<'a> {
                             Type::Primitive(prim) => prim,
                             _ => unreachable!("needs_stash is only set on primitive params"),
                         }),
+                        name = p.name,
+                    ));
+                }
+                (Type::Primitive(prim), ParamMode::ByMut) if !matches!(prim, Primitive::Str) => {
+                    pre.push_str(&format!(
+                        "        let mut {mref} = {name};\n",
+                        mref = mref_local(&p.name),
                         name = p.name,
                     ));
                 }
@@ -671,6 +703,14 @@ impl<'a> Printer<'a> {
                 format!("{}.clone()", val_local(&p.name))
             }
             (Type::Primitive(Primitive::Str), _) => format!("&{}", p.name),
+            (Type::Primitive(_), ParamMode::ByMut) if p.needs_stash => {
+                format!("&mut {}.take().unwrap()", owned_local(&p.name))
+            }
+            (Type::Primitive(_), ParamMode::ByMut) => format!("&mut {}", mref_local(&p.name)),
+            (Type::Primitive(_), ParamMode::ByRef) if p.needs_stash => {
+                format!("&{}.take().unwrap()", owned_local(&p.name))
+            }
+            (Type::Primitive(_), ParamMode::ByRef) => format!("&{}", p.name),
             _ if p.needs_stash => format!("{}.take().unwrap()", owned_local(&p.name)),
             _ => p.name.clone(),
         }
@@ -706,8 +746,17 @@ impl<'a> Printer<'a> {
     }
 
     fn fn_param_type_to_rs(&self, p: &FnParam) -> String {
-        if matches!(p.ty, Type::Class(_)) {
-            return "JsValue".to_string();
+        if let Type::Class(cid) = &p.ty {
+            // A by-ref/by-mut struct arg must alias the live instance, so it
+            // arrives as `&Wrapper` (wasm-bindgen `RefFromWasmAbi`). A by-value
+            // arg also accepts an object literal, so it stays a `JsValue` that
+            // the coercer rebuilds.
+            return match p.mode {
+                ParamMode::ByRef | ParamMode::ByMut => {
+                    format!("&{}", self.ir.get_class_unchecked(*cid).mangled_name)
+                }
+                ParamMode::ByValue => "JsValue".to_string(),
+            };
         }
         self.type_to_rs(&p.ty)
     }
@@ -733,6 +782,10 @@ impl<'a> Printer<'a> {
 
 fn val_local(name: &str) -> String {
     format!("__cursed_{name}_val")
+}
+
+fn mref_local(name: &str) -> String {
+    format!("__cursed_{name}_mref")
 }
 
 fn co_local(name: &str) -> String {

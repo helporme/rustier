@@ -136,10 +136,10 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Point(
 /// fn glue for `crate::label`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__label")]
 pub fn __cursed_rustdoc_test_crate__label(
-    p: JsValue,
+    p: &__cursed_rustdoc_test_crate__Point,
     name: String,
 ) -> Result<(), JsValue> {
-    let __cursed_co_p = __cursed_coerce___cursed_rustdoc_test_crate__Point(p)?;
+    let __cursed_co_p = __cursed::Coerced::Projected(p.__cursed_root.borrow().clone());
     let mut __cursed_name_owned: Option<String> = Some(name);
     __cursed_co_p
         .with(

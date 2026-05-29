@@ -147,11 +147,13 @@ impl __cursed_rustdoc_test_crate__Point {
     #[wasm_bindgen(js_name = "move_towards")]
     pub fn __cursed_method__move_towards(
         &self,
-        t: JsValue,
+        t: &__cursed_rustdoc_test_crate__Point,
         s: f64,
     ) -> Result<__cursed_rustdoc_test_crate__Point, JsValue> {
         let __cursed_proj_self = self.__cursed_root.borrow().clone();
-        let __cursed_co_t = __cursed_coerce___cursed_rustdoc_test_crate__Point(t)?;
+        let __cursed_co_t = __cursed::Coerced::Projected(
+            t.__cursed_root.borrow().clone(),
+        );
         let mut __cursed_ret: Option<crate::Point> = None;
         __cursed_proj_self
             .with(

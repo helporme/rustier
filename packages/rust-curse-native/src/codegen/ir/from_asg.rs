@@ -445,6 +445,22 @@ impl<'a> Lowerer<'a> {
                 return false;
             }
         }
+        // A primitive `&mut` arrives by value (JS has no out-params), so writes
+        // through it never reach the caller's value. The fn still works; warn so
+        // the silent no-op isn't a surprise. A plain `&` is fine and silent.
+        for p in &def.params {
+            if p.mode != asg::ParamMode::ByMut {
+                continue;
+            }
+            if !matches!(p.ty, asg::Type::Primitive(_)) {
+                continue;
+            }
+            let fn_name = def.path.name().unwrap_or("?").to_string();
+            self.warns.push(attach_span(
+                warn_fn_primitive_by_mut(&fn_name, &p.name),
+                &def.span,
+            ));
+        }
         true
     }
 
@@ -718,6 +734,16 @@ fn warn_fn_byvalue_not_clonable(fn_name: &str, param_name: &str, struct_name: &s
     .help(format!(
         "Add `#[derive(Clone)]` to \"{struct_name}\", or change the parameter to `&{struct_name}` / `&mut {struct_name}` to pass it by reference instead."
     ))
+}
+
+fn warn_fn_primitive_by_mut(fn_name: &str, param_name: &str) -> Warn {
+    Warn::new(
+        "rust-curse::primitive_mut_ref_ignored",
+        format!(
+            "Parameter \"{param_name}\" of \"{fn_name}\" is a primitive taken by `&mut`; writes through it won't mutate the JS value, since JS passes primitives by value."
+        ),
+    )
+    .help("return the new value instead of mutating through `&mut`.")
 }
 
 fn warn_field_setter_unavailable(parent: &str, field: &str, child: &str) -> Warn {

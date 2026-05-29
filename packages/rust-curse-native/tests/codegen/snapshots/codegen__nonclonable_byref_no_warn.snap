@@ -135,8 +135,10 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Point(
 }
 /// fn glue for `crate::inspect`
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inspect")]
-pub fn __cursed_rustdoc_test_crate__inspect(p: JsValue) -> Result<(), JsValue> {
-    let __cursed_co_p = __cursed_coerce___cursed_rustdoc_test_crate__Point(p)?;
+pub fn __cursed_rustdoc_test_crate__inspect(
+    p: &__cursed_rustdoc_test_crate__Point,
+) -> Result<(), JsValue> {
+    let __cursed_co_p = __cursed::Coerced::Projected(p.__cursed_root.borrow().clone());
     __cursed_co_p
         .with(
             &mut |__cursed_p| {

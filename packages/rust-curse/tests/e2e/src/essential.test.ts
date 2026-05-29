@@ -1,22 +1,79 @@
 import { describe, expect, it } from 'vitest'
-import { Line, Point, Triangle } from './essential.rs'
+import * as essential from './essential.rs'
+import {
+  Line,
+  MutSelfNew,
+  Point,
+  Primitives,
+  SelfNew,
+  StaticNew,
+  Triangle,
+  Wrapper,
+  add,
+  inc,
+  nudge,
+  origin,
+  read_ref,
+  shift_copy,
+  shout,
+} from './essential.rs'
+import { hasWarn } from './utils'
 
 describe('struct fields', () => {
-  it('reads primitive fields', () => {
-    const p = new Point(3, 4)
-    expect(p.x).toBe(3)
-    expect(p.y).toBe(4)
+  it('reads every primitive field', () => {
+    const p = Primitives.of({
+      flag: true,
+      text: 'hi',
+      sbyte: -5,
+      byte: 200,
+      short: -1000,
+      ushort: 60000,
+      int: -100000,
+      uint: 100000,
+      big: 2.5,
+    })
+    expect(p.flag).toBe(true)
+    expect(p.text).toBe('hi')
+    expect(p.sbyte).toBe(-5)
+    expect(p.byte).toBe(200)
+    expect(p.short).toBe(-1000)
+    expect(p.ushort).toBe(60000)
+    expect(p.int).toBe(-100000)
+    expect(p.uint).toBe(100000)
+    expect(p.big).toBe(2.5)
   })
 
-  it('writes primitive fields', () => {
-    const p = new Point(0, 0)
-    p.x = 10
-    p.y = -2
-    expect(p.x).toBe(10)
-    expect(p.y).toBe(-2)
+  it('writes every primitive field', () => {
+    const p = Primitives.of({
+      flag: false,
+      text: '',
+      sbyte: 0,
+      byte: 0,
+      short: 0,
+      ushort: 0,
+      int: 0,
+      uint: 0,
+      big: 0,
+    })
+    p.flag = true
+    p.text = 'world'
+    p.sbyte = -1
+    p.byte = 255
+    p.short = 1234
+    p.ushort = 4321
+    p.int = -9
+    p.uint = 9
+    p.big = 123.25
+    expect(p.flag).toBe(true)
+    expect(p.text).toBe('world')
+    expect(p.sbyte).toBe(-1)
+    expect(p.byte).toBe(255)
+    expect(p.short).toBe(1234)
+    expect(p.ushort).toBe(4321)
+    expect(p.int).toBe(-9)
+    expect(p.uint).toBe(9)
+    expect(p.big).toBe(123.25)
   })
-
-  // todo: check struct with all possible primitive fields including string
 })
 
 describe('constructors', () => {
@@ -31,9 +88,30 @@ describe('constructors', () => {
     expect(p.y).toBe(4)
   })
 
-  // todo: do not mapped to a method that accepts &self (it exists as static method)
-  // todo: do not mapped to a method that accept &mut self (it exists as static method)
-  // todo: do not mapped to a method that do not return Self (it exists as static method)
+  it('keeps a `new` that takes `&self` as an instance method', () => {
+    // `new(&self)` has a receiver, so it can't be the JS constructor.
+    expect('new' in SelfNew.prototype).toBe(true)
+    const a = SelfNew.of({ v: 7 })
+    const b = a.new()
+    expect(b.v).toBe(7)
+    expect(b).not.toBe(a)
+  })
+
+  it('keeps a `new` that takes `&mut self` as an instance method', () => {
+    expect('new' in MutSelfNew.prototype).toBe(true)
+    const a = MutSelfNew.of({ v: 1 })
+    const b = a.new()
+    expect(a.v).toBe(2)
+    expect(b.v).toBe(2)
+  })
+
+  it('keeps a `new` that does not return Self as a static method', () => {
+    // Returns a number, so it stays static rather than becoming the ctor.
+    expect('new' in StaticNew.prototype).toBe(false)
+    expect(StaticNew.new(3)).toBe(6)
+    // It's still constructible through the generated factory.
+    expect(StaticNew.of({ v: 5 }).v).toBe(5)
+  })
 })
 
 describe('inherent methods', () => {
@@ -92,11 +170,25 @@ describe('struct fields holding structs', () => {
     expect(t.point.y).toBe(9)
   })
 
-  // todo: setter isn't generated when field is not clonable, warning is emitted
-  // todo: field isn't generated when field is not compatible, warning is emitted
-})
+  it('suppresses the setter when the field is not clonable, with a warning', () => {
+    const w = new Wrapper(5)
+    expect(w.inner.v).toBe(5)
+    // `NoClone` has no `Clone`, so the field is read-only.
+    expect(() => {
+      // @ts-expect-error inner is readonly (no setter generated)
+      w.inner = new (essential as any).NoClone(9)
+    }).toThrow()
+    expect(
+      hasWarn('rust-curse::field_setter_unavailable', 'Wrapper.inner'),
+    ).toBe(true)
+  })
 
-describe('projection', () => {
+  it('skips a struct with an incompatible field, with a warning', () => {
+    // `BadField { items: Vec<f64> }` -> unsupported type -> not generated.
+    expect((essential as any).BadField).toBeUndefined()
+    expect(hasWarn('rust-curse::unsupported_type', 'Vec')).toBe(true)
+  })
+
   it('propagates a mutation on a nested field back to the parent', () => {
     const line = Line.from(new Point(1, 1), new Point(2, 2))
     line.start.x = 42
@@ -129,7 +221,21 @@ describe('projection', () => {
     expect(line.end.x).toBe(2)
   })
 
-  // todo: throws on mut aliasing
+  // todo: currently panics on node
+  it.skip('throws on a mutably-aliased method call', () => {
+    // Both children project from the same parent; a `&mut self` call that also
+    // borrows the parent through `other` double-borrows the shared cell.
+    const line = Line.from(new Point(1, 1), new Point(2, 2))
+    expect(() => line.start.add_assign(line.end)).toThrow()
+  })
+
+  it('does not throw when the receiver and arg are independent', () => {
+    const a = new Point(1, 1)
+    const b = new Point(2, 3)
+    a.add_assign(b)
+    expect(a.x).toBe(3)
+    expect(a.y).toBe(4)
+  })
 })
 
 describe('coercion', () => {
@@ -155,18 +261,90 @@ describe('coercion', () => {
   })
 })
 
-// todo: unit stucts emit warning and not generated
-// todo: tuple stucts emit warning and not generated
+describe('skipped structs', () => {
+  it('skips unit structs, with a warning', () => {
+    expect((essential as any).Marker).toBeUndefined()
+    expect(
+      hasWarn(
+        'rust-curse::unsupported_type',
+        'unit structs are not yet supported',
+      ),
+    ).toBe(true)
+  })
 
-// todo: struct that have a pub field of another SKIPPED struct is SKIPPED
-// todo: function that accepts as a argument another SKIPPEd struct is SKIPPED
+  it('skips tuple structs, with a warning', () => {
+    expect((essential as any).Pair).toBeUndefined()
+    expect(
+      hasWarn(
+        'rust-curse::unsupported_type',
+        'tuple structs are not yet supported',
+      ),
+    ).toBe(true)
+  })
 
-// todo: function: non-public fns are not accessable
-// todo: function can accept any primitive by value
-// todo: function can return any primitive by value
-// todo: function cannot accept any primitive by ref / mut ref and it emits warn and function is skipped
-// todo: function passing a struct by ref doesn't clone it
-// todo: function passing a struct by value does clone it
-// todo: function can return any struct and it is passed by ref
+  it('skips a struct with a pub field of a skipped struct', () => {
+    // `Holder { mark: Marker }` references the skipped unit struct.
+    expect((essential as any).Holder).toBeUndefined()
+    expect(hasWarn('rust-curse::skipped_struct_ref', 'Marker')).toBe(true)
+  })
 
-// next: analyze what values can clash
+  it('skips a function that accepts a skipped struct', () => {
+    // `use_pair(p: Pair)` references the skipped tuple struct.
+    expect((essential as any).use_pair).toBeUndefined()
+    expect(hasWarn('rust-curse::skipped_struct_ref', 'Pair')).toBe(true)
+  })
+})
+
+describe('functions', () => {
+  it('does not expose non-pub functions', () => {
+    expect((essential as any).private_fn).toBeUndefined()
+  })
+
+  it('accepts and returns primitives by value', () => {
+    expect(add(2, 3)).toBe(5)
+    expect(shout('hi')).toBe('HI')
+  })
+
+  it('accepts a primitive by ref, with no warning', () => {
+    expect(read_ref(5)).toBe(5)
+    expect(hasWarn('rust-curse::primitive_mut_ref_ignored', '"read_ref"')).toBe(
+      false,
+    )
+  })
+
+  it('accepts a primitive by mut ref, but warns the write is dropped', () => {
+    // The call works, but JS passed the number by value so the `&mut` write
+    // can't propagate back — there's nothing to observe, only the warning.
+    expect(() => inc(5)).not.toThrow()
+    expect(hasWarn('rust-curse::primitive_mut_ref_ignored', '"inc"')).toBe(true)
+  })
+
+  it('passes a struct by mut ref without cloning it', () => {
+    const p = new Point(1, 2)
+    nudge(p, 5)
+    expect(p.x).toBe(6)
+    expect(p.y).toBe(7)
+  })
+
+  it('clones a struct passed by value', () => {
+    const a = new Point(1, 2)
+    const b = shift_copy(a, 10)
+    expect(b.x).toBe(11)
+    expect(b.y).toBe(2)
+    // The original is untouched because it was cloned at the boundary.
+    expect(a.x).toBe(1)
+  })
+
+  it('returns a struct as a live handle', () => {
+    const o = origin()
+    expect(o).toBeInstanceOf(Point)
+    expect(o.x).toBe(0)
+    o.x = 5
+    expect(o.x).toBe(5)
+  })
+})
+
+// todo: test {...point} and JSON.stringify(point)
+// next: analyze implementation to find what args/field names can potentially clash with internal codegen values, test it
+// next: use all possible js keywords as struct field names to find how it can break things
+// next: exercise nested module, pub use my::* as X and simillar.

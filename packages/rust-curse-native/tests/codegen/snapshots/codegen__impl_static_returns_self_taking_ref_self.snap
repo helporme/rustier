@@ -143,9 +143,11 @@ impl __cursed_rustdoc_test_crate__Point {
     }
     #[wasm_bindgen(js_name = "make_relative_to")]
     pub fn __cursed_method__make_relative_to(
-        p: JsValue,
+        p: &__cursed_rustdoc_test_crate__Point,
     ) -> Result<__cursed_rustdoc_test_crate__Point, JsValue> {
-        let __cursed_co_p = __cursed_coerce___cursed_rustdoc_test_crate__Point(p)?;
+        let __cursed_co_p = __cursed::Coerced::Projected(
+            p.__cursed_root.borrow().clone(),
+        );
         let mut __cursed_ret: Option<crate::Point> = None;
         __cursed_co_p
             .with(

@@ -128,11 +128,14 @@ impl __cursed_rustdoc_test_crate__Counter {
             .with_mut(&mut |__cursed_p| __cursed_p.count = __cursed_arg.take().unwrap());
     }
     #[wasm_bindgen(js_name = "merge")]
-    pub fn __cursed_method__merge(&mut self, other: JsValue) -> Result<(), JsValue> {
+    pub fn __cursed_method__merge(
+        &mut self,
+        other: &__cursed_rustdoc_test_crate__Counter,
+    ) -> Result<(), JsValue> {
         let __cursed_proj_self = self.__cursed_root.borrow().clone();
-        let mut __cursed_co_other = __cursed_coerce___cursed_rustdoc_test_crate__Counter(
-            other,
-        )?;
+        let mut __cursed_co_other = __cursed::Coerced::Projected(
+            other.__cursed_root.borrow().clone(),
+        );
         __cursed_proj_self
             .with_mut(
                 &mut |__cursed_self| {

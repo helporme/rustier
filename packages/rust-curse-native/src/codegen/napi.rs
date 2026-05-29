@@ -356,6 +356,13 @@ impl<'a> Printer<'a> {
                         name = p.name,
                     ));
                 }
+                (Type::Primitive(prim), ParamMode::ByMut) if !matches!(prim, Primitive::Str) => {
+                    pre.push_str(&format!(
+                        "    let mut {mref} = {name};\n",
+                        mref = mref_local(&p.name),
+                        name = p.name,
+                    ));
+                }
                 _ => {}
             }
         }
@@ -507,6 +514,13 @@ impl<'a> Printer<'a> {
                             Type::Primitive(prim) => prim,
                             _ => unreachable!("needs_stash is only set on primitive params"),
                         }),
+                        name = p.name,
+                    ));
+                }
+                (Type::Primitive(prim), ParamMode::ByMut) if !matches!(prim, Primitive::Str) => {
+                    pre.push_str(&format!(
+                        "        let mut {mref} = {name};\n",
+                        mref = mref_local(&p.name),
                         name = p.name,
                     ));
                 }
@@ -695,6 +709,14 @@ impl<'a> Printer<'a> {
                 format!("{}.clone()", val_local(&p.name))
             }
             (Type::Primitive(Primitive::Str), _) => format!("&{}", p.name),
+            (Type::Primitive(_), ParamMode::ByMut) if p.needs_stash => {
+                format!("&mut {}.take().unwrap()", owned_local(&p.name))
+            }
+            (Type::Primitive(_), ParamMode::ByMut) => format!("&mut {}", mref_local(&p.name)),
+            (Type::Primitive(_), ParamMode::ByRef) if p.needs_stash => {
+                format!("&{}.take().unwrap()", owned_local(&p.name))
+            }
+            (Type::Primitive(_), ParamMode::ByRef) => format!("&{}", p.name),
             _ if p.needs_stash => format!("{}.take().unwrap()", owned_local(&p.name)),
             _ => p.name.clone(),
         }
@@ -764,6 +786,10 @@ impl<'a> Printer<'a> {
 
 fn val_local(name: &str) -> String {
     format!("__cursed_{name}_val")
+}
+
+fn mref_local(name: &str) -> String {
+    format!("__cursed_{name}_mref")
 }
 
 fn co_local(name: &str) -> String {

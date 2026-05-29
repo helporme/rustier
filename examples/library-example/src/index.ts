@@ -1,9 +1,5 @@
-import { Circle, Point } from "./math.rs";
+import { Line } from "./math.rs";
 
-const point = new Point(5, 3);
-const circle = new Circle(10, { x: 0, y: 0 });
-
-console.log({
-  "point in circle": circle.contains(point),
-  distance: circle.center.distance(point),
-});
+const line = Line.of({ start: { x: 0, y: 0 }, end: { x: 1, y: 1 } });
+line.start.x = 10;
+console.log(line.start.x);

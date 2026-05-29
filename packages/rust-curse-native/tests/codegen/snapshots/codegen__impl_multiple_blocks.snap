@@ -147,11 +147,14 @@ impl __cursed_rustdoc_test_crate__Point {
             .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
     }
     #[wasm_bindgen(js_name = "dot")]
-    pub fn __cursed_method__dot(&self, other: JsValue) -> Result<i32, JsValue> {
+    pub fn __cursed_method__dot(
+        &self,
+        other: &__cursed_rustdoc_test_crate__Point,
+    ) -> Result<i32, JsValue> {
         let __cursed_proj_self = self.__cursed_root.borrow().clone();
-        let __cursed_co_other = __cursed_coerce___cursed_rustdoc_test_crate__Point(
-            other,
-        )?;
+        let __cursed_co_other = __cursed::Coerced::Projected(
+            other.__cursed_root.borrow().clone(),
+        );
         let mut __cursed_ret: Option<i32> = None;
         __cursed_proj_self
             .with(

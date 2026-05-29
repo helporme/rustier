@@ -93,6 +93,7 @@ export default defineConfig({
         plugins: [rustCurse('node')],
         test: {
           name: 'node',
+          provide: { target: 'node' },
           typecheck: {
             enabled: true,
             include: ['src/**/*.type-test.ts'],
@@ -104,6 +105,7 @@ export default defineConfig({
         plugins: [rustCurse('wasm')],
         test: {
           name: 'wasm',
+          provide: { target: 'wasm' },
           typecheck: {
             enabled: true,
             include: ['src/**/*.type-test.ts'],
