@@ -213,6 +213,7 @@ fn walk_type(ty: &Type, stack: &mut Vec<AsgId>) {
 fn item_desc(item: &Item) -> (&'static str, String) {
     match item {
         Item::Struct(def) => ("struct", def.path.segments.join("::")),
+        Item::Enum(def) => ("enum", def.path.segments.join("::")),
         Item::Fn(def) => ("fn", def.path.segments.join("::")),
         Item::Mod(def) => ("mod", def.path.segments.join("::")),
         Item::Trait(def) => ("trait", def.path.segments.join("::")),
