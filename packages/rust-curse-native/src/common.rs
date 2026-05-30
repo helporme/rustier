@@ -2,6 +2,89 @@
 
 use std::path::{Component, Path, PathBuf};
 
+use crate::codegen::ir::{EnumVariantDef, Type};
+
+/// One carrier (variant) of a coalesced enum field.
+pub struct Carrier {
+    pub rust_name: String,
+    pub tag: String,
+    pub orig_name: String,
+    pub clone_on_get: bool,
+}
+
+/// One JS property of a data enum, dispatching across every variant that
+/// carries a field of that JS name.
+pub struct CoalescedField {
+    pub js_name: String,
+    pub ty: Type,
+    pub has_setter: bool,
+    pub carriers: Vec<Carrier>,
+}
+
+/// Collapse per-variant fields into one accessor per JS field name, in first
+/// appearance order. Shared JS names must already have homogeneous Rust types;
+/// IR lowering rejects mismatches before codegen reaches this helper.
+pub fn coalesce_enum_fields(variants: &[EnumVariantDef]) -> Vec<CoalescedField> {
+    let mut out: Vec<CoalescedField> = Vec::new();
+    for v in variants {
+        for f in &v.fields {
+            let carrier = Carrier {
+                rust_name: v.rust_name.clone(),
+                tag: v.tag.clone(),
+                orig_name: f.orig_name.clone(),
+                clone_on_get: f.clone_on_get,
+            };
+            if let Some(existing) = out.iter_mut().find(|c| c.js_name == f.js_name) {
+                assert_eq!(
+                    existing.ty, f.ty,
+                    "shared enum field `{}` reached codegen with mismatched Rust types",
+                    f.js_name
+                );
+                existing.has_setter = existing.has_setter && f.has_setter;
+                existing.carriers.push(carrier);
+            } else {
+                out.push(CoalescedField {
+                    js_name: f.js_name.clone(),
+                    ty: f.ty.clone(),
+                    has_setter: f.has_setter,
+                    carriers: vec![carrier],
+                });
+            }
+        }
+    }
+    out
+}
+
+/// Raw-escape a field name that collides with a Rust keyword (e.g. `type` ->
+/// `r#type`) so it can be used as a binding / struct-field identifier. rustdoc
+/// normalizes `r#type` to `"type"`, so the keyword form is what reaches us.
+pub fn raw_ident(name: &str) -> String {
+    const KEYWORDS: &[&str] = &[
+        "as", "break", "const", "continue", "crate", "dyn", "else", "enum", "extern", "false",
+        "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub",
+        "ref", "return", "static", "struct", "super", "trait", "true", "type", "unsafe", "use",
+        "where", "while", "async", "await", "abstract", "become", "box", "do", "final", "macro",
+        "override", "priv", "typeof", "unsized", "virtual", "yield", "try",
+    ];
+    if KEYWORDS.contains(&name) {
+        format!("r#{name}")
+    } else {
+        name.to_string()
+    }
+}
+
+/// `"a"`, `"a" or "b"`, `"a", "b" or "c"` (no Oxford comma), each tag escaped
+/// for embedding in a Rust string literal.
+pub fn oxford_join(tags: &[String]) -> String {
+    let quoted: Vec<String> = tags.iter().map(|t| format!("\\\"{t}\\\"")).collect();
+    match quoted.as_slice() {
+        [] => String::new(),
+        [a] => a.clone(),
+        [a, b] => format!("{a} or {b}"),
+        [rest @ .., last] => format!("{} or {last}", rest.join(", ")),
+    }
+}
+
 #[derive(Debug)]
 pub struct FileFilter {
     /// Glob patterns to include.

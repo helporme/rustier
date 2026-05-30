@@ -362,3 +362,25 @@ macro_rules! assert_warns {
         );
     }};
 }
+
+/// Like [`assert_warns`], but runs the full ASG -> IR lowering so warnings
+/// emitted during lowering (e.g. enum data-shape rejections) are observed.
+#[macro_export]
+macro_rules! assert_ir_warns {
+    ({ $($tt:tt)* }, $code:expr) => {{
+        let src = $crate::common::fmt_src(stringify!($($tt)*));
+        let (_dir, _root, crate_) = $crate::common::gen_rustdoc(&src);
+        let mut warns = rust_curse::warns::Warns::new();
+        let asg = rust_curse::codegen::asg::Asg::from_rustdoc(&crate_, &mut warns)
+            .expect("build asg");
+        rust_curse::codegen::ir::Ir::from_asg(&mut warns, &asg).expect("lower ir");
+        let expected: &str = $code;
+        let found = warns.iter().any(|w| w.code == expected);
+        assert!(
+            found,
+            "expected warning with code `{}`, got codes: {:?}",
+            expected,
+            warns.iter().map(|w| w.code.as_str()).collect::<Vec<_>>()
+        );
+    }};
+}

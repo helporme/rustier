@@ -5,12 +5,13 @@ use std::collections::HashSet;
 
 use rustdoc_types::{
     Crate, GenericParamDefKind, Id as RId, Item as RItem, ItemEnum, Path as RPath, Span as RSpan,
-    StructKind, Type as RType, Use as RUse, Visibility,
+    StructKind, Type as RType, Use as RUse, VariantKind, Visibility,
 };
 
 use super::{
-    Asg, AsgId, FnDef, FnParam, ImplDef, Item, ItemPath, ModDef, ParamMode, Primitive, Receiver,
-    Span, StructDef, StructField, StructShape, TraitDef, TraitRef, Type, Use, WellKnownTrait,
+    Asg, AsgId, EnumDef, EnumVariant, FnDef, FnParam, ImplDef, Item, ItemPath, ModDef, ParamMode,
+    Primitive, Receiver, Span, StructDef, StructField, StructShape, TraitDef, TraitRef, Type, Use,
+    WellKnownTrait,
 };
 use crate::warns::Warn;
 use crate::warns::WarnLabel;
@@ -32,6 +33,7 @@ impl Asg {
             warns,
             asg: Asg::default(),
             struct_intern: HashMap::new(),
+            enum_intern: HashMap::new(),
             fn_intern: HashMap::new(),
             mod_intern: HashMap::new(),
             trait_intern: HashMap::new(),
@@ -65,6 +67,8 @@ struct Builder<'a> {
     asg: Asg,
     /// `None` means the struct was probed and skipped.
     struct_intern: HashMap<RId, Option<AsgId>>,
+    /// `None` means the enum was probed and skipped.
+    enum_intern: HashMap<RId, Option<AsgId>>,
     /// `None` means the fn was probed and skipped.
     fn_intern: HashMap<RId, Option<AsgId>>,
     mod_intern: HashMap<RId, AsgId>,
@@ -115,8 +119,12 @@ impl<'a> Builder<'a> {
                     }
                 }
                 ItemEnum::Enum(_) => {
-                    self.warns
-                        .push(warn_unsupported_enum().attach_span(&child.span));
+                    if let Some(eid) = self.intern_enum(*child_id)? {
+                        uses.push(Use {
+                            name: child_name,
+                            target: eid,
+                        });
+                    }
                 }
                 ItemEnum::Function(_) => {
                     if let Some(fid) = self.intern_fn(*child_id)? {
@@ -188,8 +196,12 @@ impl<'a> Builder<'a> {
                         }
                     }
                     ItemEnum::Enum(_) => {
-                        self.warns
-                            .push(warn_unsupported_enum().attach_span(&child.span));
+                        if let Some(eid) = self.intern_enum(child_id)? {
+                            uses.push(Use {
+                                name: child_name,
+                                target: eid,
+                            });
+                        }
                     }
                     ItemEnum::Function(_) => {
                         if let Some(fid) = self.intern_fn(child_id)? {
@@ -224,8 +236,9 @@ impl<'a> Builder<'a> {
                 }
             }
             ItemEnum::Enum(_) if is_public(target) => {
-                self.warns
-                    .push(warn_unsupported_enum().attach_span(&target.span));
+                if let Some(eid) = self.intern_enum(tid)? {
+                    uses.push(Use { name, target: eid });
+                }
             }
             ItemEnum::Function(_) if is_public(target) => {
                 if let Some(fid) = self.intern_fn(tid)? {
@@ -300,6 +313,12 @@ impl<'a> Builder<'a> {
                 self.struct_intern.insert(id, None);
                 return Ok(None);
             }
+            Err(ProbeError::SkippedEnumRef { enum_name }) => {
+                self.warns
+                    .push(warn_skipped_enum_ref(enum_name).attach_span(&item.span));
+                self.struct_intern.insert(id, None);
+                return Ok(None);
+            }
             Err(ProbeError::UnsupportedType { reason, .. })
             | Err(ProbeError::UnsupportedImport { path: reason, .. }) => {
                 self.warns
@@ -327,6 +346,128 @@ impl<'a> Builder<'a> {
             def.impls = impls;
         }
         Ok(Some(sid))
+    }
+
+    fn intern_enum(&mut self, id: RId) -> Result<Option<AsgId>, ProbeError> {
+        if let Some(slot) = self.enum_intern.get(&id) {
+            return Ok(*slot);
+        }
+        let item = self.get_item(id)?;
+        let enum_ = match &item.inner {
+            ItemEnum::Enum(e) => e,
+            _ => {
+                return Err(ProbeError::UnsupportedType {
+                    reason: "expected enum".into(),
+                });
+            }
+        };
+
+        let span = item.span.as_ref().map(convert_span);
+        let path = path_of(item, id, self.crate_);
+        let impl_rids = enum_.impls.clone();
+        let variant_rids = enum_.variants.clone();
+
+        // Dry-probe every variant shape without committing the slot. A
+        // field-level failure emits a precise warning and skips the enum.
+        let variants = match self.build_variants(&variant_rids) {
+            Ok(v) => v,
+            Err(ProbeError::MissingItem(rid)) => return Err(ProbeError::MissingItem(rid)),
+            Err(ProbeError::Suppressed) => {
+                self.enum_intern.insert(id, None);
+                return Ok(None);
+            }
+            Err(ProbeError::SkippedStructRef { struct_name }) => {
+                self.warns
+                    .push(warn_skipped_struct_ref(struct_name).attach_span(&item.span));
+                self.enum_intern.insert(id, None);
+                return Ok(None);
+            }
+            Err(ProbeError::SkippedEnumRef { enum_name }) => {
+                self.warns
+                    .push(warn_skipped_enum_ref(enum_name).attach_span(&item.span));
+                self.enum_intern.insert(id, None);
+                return Ok(None);
+            }
+            Err(ProbeError::UnsupportedType { reason, .. })
+            | Err(ProbeError::UnsupportedImport { path: reason, .. }) => {
+                self.warns
+                    .push(warn_unsupported_type(reason).attach_span(&item.span));
+                self.enum_intern.insert(id, None);
+                return Ok(None);
+            }
+        };
+
+        let eid = AsgId(self.asg.items.len());
+        self.enum_intern.insert(id, Some(eid));
+        self.asg.items.push(Item::Enum(EnumDef {
+            id: eid,
+            path,
+            span,
+            variants,
+            impls: Vec::new(),
+            docs: item.docs.clone(),
+        }));
+
+        let impls = self.build_impls(id, eid, &impl_rids)?;
+
+        if let Item::Enum(def) = &mut self.asg.items[eid.0] {
+            def.impls = impls;
+        }
+        Ok(Some(eid))
+    }
+
+    fn build_variants(&mut self, variant_rids: &[RId]) -> Result<Vec<EnumVariant>, ProbeError> {
+        let mut out = Vec::new();
+        for &vid in variant_rids {
+            let Some(variant_item) = self.crate_.index.get(&vid) else {
+                continue;
+            };
+            let ItemEnum::Variant(variant) = &variant_item.inner else {
+                continue;
+            };
+            let shape = self.build_variant_shape(&variant.kind)?;
+            out.push(EnumVariant {
+                name: variant_item.name.clone().unwrap_or_default(),
+                shape,
+                span: variant_item.span.as_ref().map(convert_span),
+                docs: variant_item.docs.clone(),
+            });
+        }
+        Ok(out)
+    }
+
+    fn build_variant_shape(&mut self, kind: &VariantKind) -> Result<StructShape, ProbeError> {
+        match kind {
+            VariantKind::Plain => Ok(StructShape::Unit),
+            VariantKind::Tuple(fields) => {
+                let mut out = Vec::new();
+                for opt_id in fields {
+                    let Some(fid) = opt_id else { continue };
+                    let field_item = self.get_item(*fid)?;
+                    let ItemEnum::StructField(ty) = &field_item.inner else {
+                        continue;
+                    };
+                    out.push(self.resolve_field_type(ty, field_item)?);
+                }
+                Ok(StructShape::Tuple(out))
+            }
+            VariantKind::Struct { fields, .. } => {
+                let mut out = Vec::new();
+                for fid in fields {
+                    let field_item = self.get_item(*fid)?;
+                    let ItemEnum::StructField(ty) = &field_item.inner else {
+                        continue;
+                    };
+                    out.push(StructField {
+                        name: field_item.name.clone().unwrap_or_default(),
+                        ty: self.resolve_field_type(ty, field_item)?,
+                        span: field_item.span.as_ref().map(convert_span),
+                        docs: field_item.docs.clone(),
+                    });
+                }
+                Ok(StructShape::Struct(out))
+            }
+        }
     }
 
     fn build_impls(
@@ -505,6 +646,11 @@ impl<'a> Builder<'a> {
                     .push(warn_skipped_struct_ref(struct_name).attach_span(&field_item.span));
                 Err(ProbeError::Suppressed)
             }
+            Err(ProbeError::SkippedEnumRef { enum_name }) => {
+                self.warns
+                    .push(warn_skipped_enum_ref(enum_name).attach_span(&field_item.span));
+                Err(ProbeError::Suppressed)
+            }
             Err(ProbeError::UnsupportedType { reason, .. })
             | Err(ProbeError::UnsupportedImport { path: reason, .. }) => {
                 self.warns
@@ -567,6 +713,12 @@ impl<'a> Builder<'a> {
                 self.fn_intern.insert(id, None);
                 return Ok(None);
             }
+            Err(ProbeError::SkippedEnumRef { enum_name }) => {
+                self.warns
+                    .push(warn_skipped_enum_ref(enum_name).attach_span(&item.span));
+                self.fn_intern.insert(id, None);
+                return Ok(None);
+            }
             Err(ProbeError::UnsupportedType { reason, .. })
             | Err(ProbeError::UnsupportedImport { path: reason, .. }) => {
                 self.warns
@@ -616,18 +768,13 @@ impl<'a> Builder<'a> {
                         reason: "Self outside of impl context".into(),
                     });
                 };
-                match self.intern_struct(self_id)? {
-                    Some(sid) => Ok(Type::Struct(sid)),
-                    None => {
-                        let struct_name = self
-                            .crate_
-                            .index
-                            .get(&self_id)
-                            .and_then(|it| it.name.clone())
-                            .unwrap_or_else(|| "Self".to_string());
-                        Err(ProbeError::SkippedStructRef { struct_name })
-                    }
-                }
+                let name = self
+                    .crate_
+                    .index
+                    .get(&self_id)
+                    .and_then(|it| it.name.clone())
+                    .unwrap_or_else(|| "Self".to_string());
+                self.intern_nominal(self_id, name)
             }
             other => Err(ProbeError::UnsupportedType {
                 reason: format!("unsupported type variant: {other:?}"),
@@ -646,15 +793,29 @@ impl<'a> Builder<'a> {
             return Err(ProbeError::MissingItem(path.id));
         };
         match &item.inner {
-            ItemEnum::Struct(_) => match self.intern_struct(path.id)? {
-                Some(sid) => Ok(Type::Struct(sid)),
-                None => Err(ProbeError::SkippedStructRef {
-                    struct_name: path.path.clone(),
-                }),
-            },
+            ItemEnum::Struct(_) | ItemEnum::Enum(_) => {
+                self.intern_nominal(path.id, path.path.clone())
+            }
             _ => Err(ProbeError::UnsupportedType {
-                reason: format!("resolved path \"{}\" is not a struct", path.path),
+                reason: format!("resolved path \"{}\" is not a struct or enum", path.path),
             }),
+        }
+    }
+
+    /// Intern a struct or enum `id` into its [`Type`], dispatching on the
+    /// rustdoc item kind. A skipped target surfaces the cascade error keyed
+    /// on the target's own kind (`SkippedStructRef` / `SkippedEnumRef`), so
+    /// the referrer-anchored warning names the right diagnostic.
+    fn intern_nominal(&mut self, id: RId, name: String) -> Result<Type, ProbeError> {
+        match self.crate_.index.get(&id).map(|it| &it.inner) {
+            Some(ItemEnum::Enum(_)) => match self.intern_enum(id)? {
+                Some(eid) => Ok(Type::Enum(eid)),
+                None => Err(ProbeError::SkippedEnumRef { enum_name: name }),
+            },
+            _ => match self.intern_struct(id)? {
+                Some(sid) => Ok(Type::Struct(sid)),
+                None => Err(ProbeError::SkippedStructRef { struct_name: name }),
+            },
         }
     }
 
@@ -794,11 +955,8 @@ enum ProbeError {
     UnsupportedType { reason: String },
     UnsupportedImport { path: String },
     SkippedStructRef { struct_name: String },
+    SkippedEnumRef { enum_name: String },
     Suppressed,
-}
-
-fn warn_unsupported_enum() -> Warn {
-    warn_unsupported_type("enums are not supported".into())
 }
 
 fn warn_unsupported_type(reason: String) -> Warn {
@@ -811,6 +969,14 @@ fn warn_skipped_struct_ref(struct_name: String) -> Warn {
         format!("references a skipped struct \"{struct_name}\""),
     )
     .help("fix the warning emitted for this struct to expose it")
+}
+
+fn warn_skipped_enum_ref(enum_name: String) -> Warn {
+    Warn::new(
+        "rust-curse::skipped_enum_ref",
+        format!("references a skipped enum \"{enum_name}\""),
+    )
+    .help("fix the warning emitted for this enum to expose it")
 }
 
 fn warn_unsupported_import(crate_name: String, path: String) -> Warn {

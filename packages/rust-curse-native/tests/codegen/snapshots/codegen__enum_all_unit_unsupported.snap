@@ -1,0 +1,246 @@
+---
+source: tests/codegen.rs
+expression: body
+---
+# Source
+
+```rs
+pub enum E {
+    A,
+    B,
+    C,
+}
+```
+
+# wasm
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+```
+
+# napi
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
+use napi::JsValue as _;
+use napi_derive::napi;
+```
+
+# ts
+
+```ts
+
+// src/lib.rs.d.ts
+
+```
+
+# ts-map
+
+```text
+// src/lib.rs.d.ts.map
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
+```
+
+# js-wasm
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+```
+
+# js-napi
+
+```js
+// $rust/rustdoc_test_crate
+export {};
+```
+
+# warns
+
+```text
+rust-curse::enum_all_unit_unsupported
+
+  ⚠ all-unit (C-like) enums are not yet supported
+   ╭─[src/lib.rs:1:1]
+ 1 │ ╭─▶ pub enum E {
+ 2 │ │       A,
+ 3 │ │       B,
+ 4 │ │       C,
+ 5 │ ╰─▶ }
+   ╰────
+```
+
+# ASG
+
+```rs
+Asg {
+    root: AsgId(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                id: AsgId(
+                    0,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            5,
+                            2,
+                        ),
+                    },
+                ),
+                uses: [
+                    Use {
+                        name: "E",
+                        target: AsgId(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ),
+        Enum(
+            EnumDef {
+                id: AsgId(
+                    1,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                        "E",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            5,
+                            2,
+                        ),
+                    },
+                ),
+                variants: [
+                    EnumVariant {
+                        name: "A",
+                        shape: Unit,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    2,
+                                    5,
+                                ),
+                                end: (
+                                    2,
+                                    6,
+                                ),
+                            },
+                        ),
+                        docs: None,
+                    },
+                    EnumVariant {
+                        name: "B",
+                        shape: Unit,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    3,
+                                    5,
+                                ),
+                                end: (
+                                    3,
+                                    6,
+                                ),
+                            },
+                        ),
+                        docs: None,
+                    },
+                    EnumVariant {
+                        name: "C",
+                        shape: Unit,
+                        span: Some(
+                            Span {
+                                filename: "src/lib.rs",
+                                begin: (
+                                    4,
+                                    5,
+                                ),
+                                end: (
+                                    4,
+                                    6,
+                                ),
+                            },
+                        ),
+                        docs: None,
+                    },
+                ],
+                impls: [],
+                docs: None,
+            },
+        ),
+    ],
+}
+```
+
+# IR
+
+```rs
+Ir {
+    root: IrId(
+        0,
+    ),
+    crate_name: "rustdoc_test_crate",
+    items: [
+        Mod(
+            ModDef {
+                id: IrId(
+                    0,
+                ),
+                orig: AsgId(
+                    0,
+                ),
+                path: ItemPath {
+                    segments: [
+                        "rustdoc_test_crate",
+                    ],
+                },
+                span: Some(
+                    Span {
+                        filename: "src/lib.rs",
+                        begin: (
+                            1,
+                            1,
+                        ),
+                        end: (
+                            5,
+                            2,
+                        ),
+                    },
+                ),
+                uses: [],
+            },
+        ),
+    ],
+    uses_projections: false,
+}
+```

@@ -15,6 +15,13 @@ pub fn cache_field(user_field: &str) -> String {
     format!("__cursed_cache__{user_field}")
 }
 
+/// Cache slot for a class-typed enum variant field, mangled by `(variant,
+/// field)` so different per-variant child types never share storage:
+/// `__cursed_cache_<Variant>__<field>`.
+pub fn variant_cache_field(variant: &str, user_field: &str) -> String {
+    format!("__cursed_cache_{variant}__{user_field}")
+}
+
 /// Generated fn arg (ctor / setter value): `__cursed_arg_<userfield>`.
 pub fn arg_name(user_field: &str) -> String {
     format!("__cursed_arg__{user_field}")

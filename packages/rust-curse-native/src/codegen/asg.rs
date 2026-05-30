@@ -49,6 +49,7 @@ pub fn rust_path(path: &ItemPath, local_crate: &str) -> String {
 pub enum Type {
     Primitive(Primitive),
     Struct(AsgId),
+    Enum(AsgId),
 }
 
 /// A primitive type (everything that isn't a nominal struct).
@@ -141,11 +142,31 @@ pub struct StructField {
     pub docs: Option<String>,
 }
 
+/// An enum definition (at least one struct-shaped variant -> data enum).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EnumDef {
+    pub id: AsgId,
+    pub path: ItemPath,
+    pub span: Option<Span>,
+    pub variants: Vec<EnumVariant>,
+    pub impls: Vec<AsgId>,
+    pub docs: Option<String>,
+}
+
+/// A variant of an enum.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EnumVariant {
+    pub name: String,
+    pub shape: StructShape,
+    pub span: Option<Span>,
+    pub docs: Option<String>,
+}
+
 /// An `impl` block.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ImplDef {
     pub id: AsgId,
-    /// Struct this impl is for.
+    /// Struct or enum this impl is for.
     pub for_: AsgId,
     /// `None` for an inherent impl.
     pub trait_: Option<TraitRef>,
@@ -216,6 +237,7 @@ pub struct Use {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Item {
     Struct(StructDef),
+    Enum(EnumDef),
     Fn(FnDef),
     Mod(ModDef),
     Impl(ImplDef),
@@ -241,6 +263,14 @@ impl Asg {
         match self.get_unchecked(id) {
             Item::Struct(s) => s,
             other => panic!("expected struct at {id:?}, got {other:?}"),
+        }
+    }
+
+    /// Gets an enum by its ID, panics if the item is not an enum.
+    pub fn get_enum_unchecked(&self, id: AsgId) -> &EnumDef {
+        match self.get_unchecked(id) {
+            Item::Enum(e) => e,
+            other => panic!("expected enum at {id:?}, got {other:?}"),
         }
     }
 

@@ -4,7 +4,8 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 
 use super::ir::{
-    FnDef, FnParam, Ir, IrId, Item, ItemPath, ParamMode, Primitive, Receiver, Span, Type, Use,
+    ClassShape, EnumVariantDef, FnDef, FnParam, Ir, IrId, Item, ItemPath, ParamMode, Primitive,
+    Receiver, Span, Type, Use,
 };
 use super::mangle::is_canonical_origin;
 use super::source_map::Mapping;
@@ -238,9 +239,19 @@ impl<'a> Printer<'a> {
     }
 
     fn print_class(&mut self, cid: IrId) {
+        if matches!(
+            self.ir.get_class_unchecked(cid).shape,
+            ClassShape::Enum { .. }
+        ) {
+            self.print_enum_class(cid);
+            return;
+        }
         let def = self.ir.get_class_unchecked(cid).clone();
         let name = def.js_name.clone();
         let brand = def.path.segments.join("::");
+        let ClassShape::Struct { fields } = &def.shape else {
+            unreachable!("enum shape handled by print_enum_class")
+        };
 
         if let Some(docs) = &def.docs {
             self.body.push_str(&doc_comment(docs, ""));
@@ -255,7 +266,7 @@ impl<'a> Printer<'a> {
 
         let mut first_member = false; // brand line already emitted
 
-        for field in &def.fields {
+        for field in fields {
             self.member_gap(&mut first_member);
             self.print_field(field);
         }
@@ -300,7 +311,7 @@ impl<'a> Printer<'a> {
             self.body.push_str("    export type Init = {\n");
             for f in &se.fields {
                 let ty = self.field_init_type(&f.ty);
-                let class_field = def.fields.iter().find(|cf| cf.orig_name == f.name);
+                let class_field = fields.iter().find(|cf| cf.orig_name == f.name);
                 let docs = class_field.and_then(|cf| cf.docs.clone());
                 if let Some(docs) = &docs {
                     self.body.push_str(&doc_comment(docs, "        "));
@@ -312,6 +323,143 @@ impl<'a> Printer<'a> {
             }
             self.body.push_str("    };\n");
             self.body.push('}');
+        }
+    }
+
+    /// Emit the constructor-signature surface for a data enum:
+    /// `export type E = E.Instance & E.Init;`, `export declare const E`,
+    /// and `export declare namespace E { interface Instance; type Init }`.
+    fn print_enum_class(&mut self, cid: IrId) {
+        let def = self.ir.get_class_unchecked(cid).clone();
+        let name = def.js_name.clone();
+        let brand = def.path.segments.join("::");
+        let ClassShape::Enum {
+            variants,
+            discriminator,
+        } = &def.shape
+        else {
+            unreachable!("print_enum_class on non-enum")
+        };
+
+        // export type E = E.Instance & E.Init;
+        if let Some(docs) = &def.docs {
+            self.body.push_str(&doc_comment(docs, ""));
+        }
+        self.body.push_str("export type ");
+        self.anchor(def.span.as_ref(), 0);
+        self.body
+            .push_str(&format!("{name} = {name}.Instance & {name}.Init;\n\n"));
+
+        // export declare const E: { ... };
+        self.body.push_str("export declare const ");
+        self.anchor(def.span.as_ref(), 0);
+        self.body.push_str(&name);
+        self.body.push_str(": {\n");
+        self.body
+            .push_str(&format!("    readonly prototype: {name};\n"));
+        if let Some(ctor) = &def.ctor {
+            let params: Vec<String> = ctor
+                .params
+                .iter()
+                .map(|p| format!("{}: {}", p.name, self.param_type_to_ts(p)))
+                .collect();
+            self.body.push_str("    ");
+            self.anchor(ctor.span.as_ref(), 0);
+            self.body
+                .push_str(&format!("new ({}): {name};\n", params.join(", ")));
+        }
+        if def.struct_expr.is_some() {
+            let of_name = if def.of_escaped { "of$" } else { "of" };
+            self.body.push_str("    ");
+            self.anchor(def.span.as_ref(), 0);
+            self.body
+                .push_str(&format!("{of_name}(init: {name}.Init): {name};\n"));
+        }
+        for mid in &def.methods {
+            let m = self.ir.get_fn_unchecked(*mid).clone();
+            if m.receiver.is_some() {
+                continue;
+            }
+            self.print_enum_value_method(&m, &name);
+        }
+        self.body.push_str("};\n\n");
+
+        // export declare namespace E { interface Instance; type Init }
+        self.body.push_str("export declare namespace ");
+        self.anchor(def.span.as_ref(), 0);
+        self.body.push_str(&name);
+        self.body.push_str(" {\n");
+        self.body.push_str("    export interface Instance {\n");
+        self.body
+            .push_str(&format!("        readonly [\" \"]: '{brand}';\n"));
+        for mid in &def.methods {
+            let m = self.ir.get_fn_unchecked(*mid).clone();
+            if m.receiver.is_none() {
+                continue;
+            }
+            let params: Vec<String> = m
+                .params
+                .iter()
+                .map(|p| format!("{}: {}", p.name, self.param_type_to_ts(p)))
+                .collect();
+            let ret = self.type_to_ts(&m.return_type);
+            if let Some(docs) = &m.docs {
+                self.body.push_str(&doc_comment(docs, "        "));
+            }
+            self.body.push_str("        ");
+            self.anchor(m.span.as_ref(), 0);
+            self.body
+                .push_str(&format!("{}({}): {ret};\n", m.js_name, params.join(", ")));
+        }
+        self.body.push_str("    }\n\n");
+
+        self.body.push_str("    export type Init =\n");
+        for (i, v) in variants.iter().enumerate() {
+            let last = i + 1 == variants.len();
+            self.print_enum_init_arm(v, discriminator, last);
+        }
+        self.body.push_str("}");
+    }
+
+    fn print_enum_value_method(&mut self, m: &FnDef, _name: &str) {
+        let params: Vec<String> = m
+            .params
+            .iter()
+            .map(|p| format!("{}: {}", p.name, self.param_type_to_ts(p)))
+            .collect();
+        let ret = self.type_to_ts(&m.return_type);
+        if let Some(docs) = &m.docs {
+            self.body.push_str(&doc_comment(docs, "    "));
+        }
+        self.body.push_str("    ");
+        self.anchor(m.span.as_ref(), 0);
+        self.body
+            .push_str(&format!("{}({}): {ret};\n", m.js_name, params.join(", ")));
+    }
+
+    fn print_enum_init_arm(&mut self, v: &EnumVariantDef, discriminator: &str, last: bool) {
+        self.body.push_str("        | {\n");
+        // The variant docs anchor on the discriminator literal of this arm.
+        if let Some(docs) = &v.docs {
+            self.body.push_str(&doc_comment(docs, "              "));
+        }
+        self.body.push_str("              ");
+        self.anchor(v.span.as_ref(), 0);
+        self.body
+            .push_str(&format!("readonly {discriminator}: '{}';\n", v.tag));
+        for f in &v.fields {
+            let ty = self.field_init_type(&f.ty);
+            if let Some(docs) = &f.docs {
+                self.body.push_str(&doc_comment(docs, "              "));
+            }
+            self.body.push_str("              ");
+            self.anchor(f.span.as_ref(), 0);
+            self.body.push_str(&format!("{}: {ty};\n", f.js_name));
+        }
+        if last {
+            self.body.push_str("          };\n");
+        } else {
+            self.body.push_str("          }\n");
         }
     }
 

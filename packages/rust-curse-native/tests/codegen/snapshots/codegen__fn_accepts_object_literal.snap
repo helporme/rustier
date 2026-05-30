@@ -40,16 +40,39 @@ use __cursed::Projection as _;
 mod __cursed {
     use std::cell::RefCell;
     use std::rc::Rc;
+    pub struct StaleRef {
+        pub enum_path: &'static str,
+        pub expected_variant: &'static str,
+        pub current_variant: &'static str,
+        pub field_name: &'static str,
+    }
+    impl StaleRef {
+        pub fn message(&self) -> String {
+            format!(
+                "stale reference: this \"{enum_path}.{field}\" was obtained while the active \
+variant of \"{enum_path}\" was \"{expected}\", but the variant has since changed to \
+\"{current}\", so the \"{field}\" field no longer exists.\n\nThis usually happens when an \
+\"&mut\" method on the enum, an \"&mut {enum_path}\" function parameter, or an assignment \
+that replaced the enum, ran between when this reference was obtained and when it was \
+accessed.\n\nTo fix:\n  - Store the original \"{enum_path}\" and access fields of it.\n  - \
+Store the copied value of the \"{enum_path}.{field}\".",
+                enum_path = self.enum_path, field = self.field_name, expected = self
+                .expected_variant, current = self.current_variant,
+            )
+        }
+    }
     pub trait Projection<T> {
-        fn with(&self, f: &mut dyn FnMut(&T));
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+        fn with(&self, f: &mut dyn FnMut(&T)) -> Result<(), StaleRef>;
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) -> Result<(), StaleRef>;
     }
     impl<T> Projection<T> for RefCell<T> {
-        fn with(&self, f: &mut dyn FnMut(&T)) {
+        fn with(&self, f: &mut dyn FnMut(&T)) -> Result<(), StaleRef> {
             f(&*self.borrow());
+            Ok(())
         }
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) -> Result<(), StaleRef> {
             f(&mut *self.borrow_mut());
+            Ok(())
         }
     }
     pub struct Projector<Parent, T> {
@@ -58,13 +81,74 @@ mod __cursed {
         pub project_mut: fn(&mut Parent) -> &mut T,
     }
     impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
-        fn with(&self, f: &mut dyn FnMut(&T)) {
+        fn with(&self, f: &mut dyn FnMut(&T)) -> Result<(), StaleRef> {
             let parent = self.parent.borrow().clone();
-            parent.with(&mut |p| f((self.project)(p)));
+            parent.with(&mut |p| f((self.project)(p)))
         }
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) -> Result<(), StaleRef> {
             let parent = self.parent.borrow().clone();
-            parent.with_mut(&mut |p| f((self.project_mut)(p)));
+            parent.with_mut(&mut |p| f((self.project_mut)(p)))
+        }
+    }
+    pub struct VariantProjector<Parent, T> {
+        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+        pub project: fn(&Parent) -> Option<&T>,
+        pub project_mut: fn(&mut Parent) -> Option<&mut T>,
+        pub current_tag: fn(&Parent) -> &'static str,
+        pub expected_tag: &'static str,
+        pub enum_path: &'static str,
+        pub field_name: &'static str,
+    }
+    impl<Parent: 'static, T: 'static> Projection<T> for VariantProjector<Parent, T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) -> Result<(), StaleRef> {
+            let parent = self.parent.borrow().clone();
+            let mut staled: Option<&'static str> = None;
+            parent
+                .with(
+                    &mut |p| {
+                        let tag = (self.current_tag)(p);
+                        match (self.project)(p) {
+                            Some(t) => f(t),
+                            None => staled = Some(tag),
+                        }
+                    },
+                )?;
+            match staled {
+                None => Ok(()),
+                Some(current_variant) => {
+                    Err(StaleRef {
+                        enum_path: self.enum_path,
+                        expected_variant: self.expected_tag,
+                        current_variant,
+                        field_name: self.field_name,
+                    })
+                }
+            }
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) -> Result<(), StaleRef> {
+            let parent = self.parent.borrow().clone();
+            let mut staled: Option<&'static str> = None;
+            parent
+                .with_mut(
+                    &mut |p| {
+                        let tag = (self.current_tag)(p);
+                        match (self.project_mut)(p) {
+                            Some(t) => f(t),
+                            None => staled = Some(tag),
+                        }
+                    },
+                )?;
+            match staled {
+                None => Ok(()),
+                Some(current_variant) => {
+                    Err(StaleRef {
+                        enum_path: self.enum_path,
+                        expected_variant: self.expected_tag,
+                        current_variant,
+                        field_name: self.field_name,
+                    })
+                }
+            }
         }
     }
     pub enum Coerced<T> {
@@ -72,31 +156,42 @@ mod __cursed {
         Owned(T),
     }
     impl<T: 'static> Coerced<T> {
-        pub fn with(&self, f: &mut dyn FnMut(&T)) {
+        pub fn with(&self, f: &mut dyn FnMut(&T)) -> Result<(), StaleRef> {
             match self {
                 Self::Projected(p) => p.with(f),
-                Self::Owned(v) => f(v),
+                Self::Owned(v) => {
+                    f(v);
+                    Ok(())
+                }
             }
         }
-        pub fn with_mut(&mut self, f: &mut dyn FnMut(&mut T)) {
+        pub fn with_mut(&mut self, f: &mut dyn FnMut(&mut T)) -> Result<(), StaleRef> {
             match self {
                 Self::Projected(p) => p.with_mut(f),
-                Self::Owned(v) => f(v),
+                Self::Owned(v) => {
+                    f(v);
+                    Ok(())
+                }
             }
         }
-        pub fn into_owned(self) -> T
+        pub fn into_owned(self) -> Result<T, StaleRef>
         where
             T: Clone,
         {
             match self {
                 Self::Projected(p) => {
                     let mut out = None;
-                    p.with(&mut |v| out = Some(v.clone()));
-                    out.unwrap()
+                    p.with(&mut |v| out = Some(v.clone()))?;
+                    Ok(out.expect("non-stale projection ran the closure"))
                 }
-                Self::Owned(v) => v,
+                Self::Owned(v) => Ok(v),
             }
         }
+    }
+}
+impl From<__cursed::StaleRef> for JsValue {
+    fn from(__cursed_e: __cursed::StaleRef) -> Self {
+        JsValue::from_str(&__cursed_e.message())
     }
 }
 /// class wrapper for `crate::Point`
@@ -111,7 +206,7 @@ impl __cursed_rustdoc_test_crate__Point {
         let __cursed_owned: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
                 init,
             )?
-            .into_owned();
+            .into_owned()?;
         Ok(__cursed_rustdoc_test_crate__Point {
             __cursed_root: Rc::new(
                 RefCell::new(
@@ -122,32 +217,34 @@ impl __cursed_rustdoc_test_crate__Point {
         })
     }
     #[wasm_bindgen(getter, js_name = "x")]
-    pub fn __cursed_get__x(&self) -> f64 {
+    pub fn __cursed_get__x(&self) -> Result<f64, JsValue> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
-        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
-        __cursed_out.unwrap()
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x))?;
+        Ok(__cursed_out.unwrap())
     }
     #[wasm_bindgen(setter, js_name = "x")]
-    pub fn __cursed_set__x(&self, __cursed_arg__x: f64) {
+    pub fn __cursed_set__x(&self, __cursed_arg__x: f64) -> Result<(), JsValue> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_arg = Some(__cursed_arg__x);
         __cursed_proj
-            .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
+            .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap())?;
+        Ok(())
     }
     #[wasm_bindgen(getter, js_name = "y")]
-    pub fn __cursed_get__y(&self) -> f64 {
+    pub fn __cursed_get__y(&self) -> Result<f64, JsValue> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
-        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y));
-        __cursed_out.unwrap()
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y))?;
+        Ok(__cursed_out.unwrap())
     }
     #[wasm_bindgen(setter, js_name = "y")]
-    pub fn __cursed_set__y(&self, __cursed_arg__y: f64) {
+    pub fn __cursed_set__y(&self, __cursed_arg__y: f64) -> Result<(), JsValue> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_arg = Some(__cursed_arg__y);
         __cursed_proj
-            .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
+            .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap())?;
+        Ok(())
     }
 }
 #[allow(dead_code)]
@@ -187,7 +284,7 @@ impl __cursed_rustdoc_test_crate__Line {
         let __cursed_owned: crate::Line = __cursed_coerce___cursed_rustdoc_test_crate__Line(
                 init,
             )?
-            .into_owned();
+            .into_owned()?;
         Ok(__cursed_rustdoc_test_crate__Line {
             __cursed_root: Rc::new(
                 RefCell::new(
@@ -225,12 +322,12 @@ impl __cursed_rustdoc_test_crate__Line {
     pub fn __cursed_set__start(
         &mut self,
         __cursed_arg__start: &__cursed_rustdoc_test_crate__Point,
-    ) {
+    ) -> Result<(), JsValue> {
         let mut __cursed_new_val: Option<crate::Point> = None;
         __cursed_arg__start
             .__cursed_root
             .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
+            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
         if let Some(__cursed_cell) = self
             .__cursed_cache__start
             .as_ref()
@@ -239,7 +336,7 @@ impl __cursed_rustdoc_test_crate__Line {
             let __cursed_proj = __cursed_cell.borrow().clone();
             let mut __cursed_snap: Option<crate::Point> = None;
             __cursed_proj
-                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
+                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()))?;
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Point>>;
             self.__cursed_cache__start = None;
@@ -250,7 +347,8 @@ impl __cursed_rustdoc_test_crate__Line {
                 &mut |__cursed_p| {
                     __cursed_p.start = __cursed_new_val.take().unwrap();
                 },
-            );
+            )?;
+        Ok(())
     }
     #[wasm_bindgen(getter, js_name = "end")]
     pub fn __cursed_get__end(&mut self) -> __cursed_rustdoc_test_crate__Point {
@@ -278,12 +376,12 @@ impl __cursed_rustdoc_test_crate__Line {
     pub fn __cursed_set__end(
         &mut self,
         __cursed_arg__end: &__cursed_rustdoc_test_crate__Point,
-    ) {
+    ) -> Result<(), JsValue> {
         let mut __cursed_new_val: Option<crate::Point> = None;
         __cursed_arg__end
             .__cursed_root
             .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
+            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
         if let Some(__cursed_cell) = self
             .__cursed_cache__end
             .as_ref()
@@ -292,7 +390,7 @@ impl __cursed_rustdoc_test_crate__Line {
             let __cursed_proj = __cursed_cell.borrow().clone();
             let mut __cursed_snap: Option<crate::Point> = None;
             __cursed_proj
-                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
+                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()))?;
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Point>>;
             self.__cursed_cache__end = None;
@@ -303,7 +401,8 @@ impl __cursed_rustdoc_test_crate__Line {
                 &mut |__cursed_p| {
                     __cursed_p.end = __cursed_new_val.take().unwrap();
                 },
-            );
+            )?;
+        Ok(())
     }
 }
 #[allow(dead_code)]
@@ -314,12 +413,12 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Line(
     let __cursed_field_start: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
             __cursed_raw_start,
         )?
-        .into_owned();
+        .into_owned()?;
     let __cursed_raw_end = js_sys::Reflect::get(&val, &JsValue::from_str("end"))?;
     let __cursed_field_end: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
             __cursed_raw_end,
         )?
-        .into_owned();
+        .into_owned()?;
     Ok(
         __cursed::Coerced::Owned(crate::Line {
             start: __cursed_field_start,
@@ -341,7 +440,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
         let __cursed_owned: crate::Triangle = __cursed_coerce___cursed_rustdoc_test_crate__Triangle(
                 init,
             )?
-            .into_owned();
+            .into_owned()?;
         Ok(__cursed_rustdoc_test_crate__Triangle {
             __cursed_root: Rc::new(
                 RefCell::new(
@@ -383,12 +482,12 @@ impl __cursed_rustdoc_test_crate__Triangle {
     pub fn __cursed_set__a(
         &mut self,
         __cursed_arg__a: &__cursed_rustdoc_test_crate__Line,
-    ) {
+    ) -> Result<(), JsValue> {
         let mut __cursed_new_val: Option<crate::Line> = None;
         __cursed_arg__a
             .__cursed_root
             .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
+            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
         if let Some(__cursed_cell) = self
             .__cursed_cache__a
             .as_ref()
@@ -397,7 +496,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
             let __cursed_proj = __cursed_cell.borrow().clone();
             let mut __cursed_snap: Option<crate::Line> = None;
             __cursed_proj
-                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
+                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()))?;
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Line>>;
             self.__cursed_cache__a = None;
@@ -408,7 +507,8 @@ impl __cursed_rustdoc_test_crate__Triangle {
                 &mut |__cursed_p| {
                     __cursed_p.a = __cursed_new_val.take().unwrap();
                 },
-            );
+            )?;
+        Ok(())
     }
     #[wasm_bindgen(getter, js_name = "b")]
     pub fn __cursed_get__b(&mut self) -> __cursed_rustdoc_test_crate__Point {
@@ -436,12 +536,12 @@ impl __cursed_rustdoc_test_crate__Triangle {
     pub fn __cursed_set__b(
         &mut self,
         __cursed_arg__b: &__cursed_rustdoc_test_crate__Point,
-    ) {
+    ) -> Result<(), JsValue> {
         let mut __cursed_new_val: Option<crate::Point> = None;
         __cursed_arg__b
             .__cursed_root
             .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
+            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
         if let Some(__cursed_cell) = self
             .__cursed_cache__b
             .as_ref()
@@ -450,7 +550,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
             let __cursed_proj = __cursed_cell.borrow().clone();
             let mut __cursed_snap: Option<crate::Point> = None;
             __cursed_proj
-                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
+                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()))?;
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Point>>;
             self.__cursed_cache__b = None;
@@ -461,7 +561,8 @@ impl __cursed_rustdoc_test_crate__Triangle {
                 &mut |__cursed_p| {
                     __cursed_p.b = __cursed_new_val.take().unwrap();
                 },
-            );
+            )?;
+        Ok(())
     }
 }
 #[allow(dead_code)]
@@ -472,12 +573,12 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Triangle(
     let __cursed_field_a: crate::Line = __cursed_coerce___cursed_rustdoc_test_crate__Line(
             __cursed_raw_a,
         )?
-        .into_owned();
+        .into_owned()?;
     let __cursed_raw_b = js_sys::Reflect::get(&val, &JsValue::from_str("b"))?;
     let __cursed_field_b: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
             __cursed_raw_b,
         )?
-        .into_owned();
+        .into_owned()?;
     Ok(
         __cursed::Coerced::Owned(crate::Triangle {
             a: __cursed_field_a,
@@ -489,7 +590,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Triangle(
 #[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__triangle_area")]
 pub fn __cursed_rustdoc_test_crate__triangle_area(t: JsValue) -> Result<f64, JsValue> {
     let __cursed_co_t = __cursed_coerce___cursed_rustdoc_test_crate__Triangle(t)?;
-    let __cursed_t_val = __cursed_co_t.into_owned();
+    let __cursed_t_val = __cursed_co_t.into_owned()?;
     Ok(crate::triangle_area(__cursed_t_val.clone()))
 }
 ```
@@ -511,16 +612,39 @@ use __cursed::Projection as _;
 mod __cursed {
     use std::cell::RefCell;
     use std::rc::Rc;
+    pub struct StaleRef {
+        pub enum_path: &'static str,
+        pub expected_variant: &'static str,
+        pub current_variant: &'static str,
+        pub field_name: &'static str,
+    }
+    impl StaleRef {
+        pub fn message(&self) -> String {
+            format!(
+                "stale reference: this \"{enum_path}.{field}\" was obtained while the active \
+variant of \"{enum_path}\" was \"{expected}\", but the variant has since changed to \
+\"{current}\", so the \"{field}\" field no longer exists.\n\nThis usually happens when an \
+\"&mut\" method on the enum, an \"&mut {enum_path}\" function parameter, or an assignment \
+that replaced the enum, ran between when this reference was obtained and when it was \
+accessed.\n\nTo fix:\n  - Store the original \"{enum_path}\" and access fields of it.\n  - \
+Store the copied value of the \"{enum_path}.{field}\".",
+                enum_path = self.enum_path, field = self.field_name, expected = self
+                .expected_variant, current = self.current_variant,
+            )
+        }
+    }
     pub trait Projection<T> {
-        fn with(&self, f: &mut dyn FnMut(&T));
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+        fn with(&self, f: &mut dyn FnMut(&T)) -> Result<(), StaleRef>;
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) -> Result<(), StaleRef>;
     }
     impl<T> Projection<T> for RefCell<T> {
-        fn with(&self, f: &mut dyn FnMut(&T)) {
+        fn with(&self, f: &mut dyn FnMut(&T)) -> Result<(), StaleRef> {
             f(&*self.borrow());
+            Ok(())
         }
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) -> Result<(), StaleRef> {
             f(&mut *self.borrow_mut());
+            Ok(())
         }
     }
     pub struct Projector<Parent, T> {
@@ -529,13 +653,74 @@ mod __cursed {
         pub project_mut: fn(&mut Parent) -> &mut T,
     }
     impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
-        fn with(&self, f: &mut dyn FnMut(&T)) {
+        fn with(&self, f: &mut dyn FnMut(&T)) -> Result<(), StaleRef> {
             let parent = self.parent.borrow().clone();
-            parent.with(&mut |p| f((self.project)(p)));
+            parent.with(&mut |p| f((self.project)(p)))
         }
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) -> Result<(), StaleRef> {
             let parent = self.parent.borrow().clone();
-            parent.with_mut(&mut |p| f((self.project_mut)(p)));
+            parent.with_mut(&mut |p| f((self.project_mut)(p)))
+        }
+    }
+    pub struct VariantProjector<Parent, T> {
+        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+        pub project: fn(&Parent) -> Option<&T>,
+        pub project_mut: fn(&mut Parent) -> Option<&mut T>,
+        pub current_tag: fn(&Parent) -> &'static str,
+        pub expected_tag: &'static str,
+        pub enum_path: &'static str,
+        pub field_name: &'static str,
+    }
+    impl<Parent: 'static, T: 'static> Projection<T> for VariantProjector<Parent, T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) -> Result<(), StaleRef> {
+            let parent = self.parent.borrow().clone();
+            let mut staled: Option<&'static str> = None;
+            parent
+                .with(
+                    &mut |p| {
+                        let tag = (self.current_tag)(p);
+                        match (self.project)(p) {
+                            Some(t) => f(t),
+                            None => staled = Some(tag),
+                        }
+                    },
+                )?;
+            match staled {
+                None => Ok(()),
+                Some(current_variant) => {
+                    Err(StaleRef {
+                        enum_path: self.enum_path,
+                        expected_variant: self.expected_tag,
+                        current_variant,
+                        field_name: self.field_name,
+                    })
+                }
+            }
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) -> Result<(), StaleRef> {
+            let parent = self.parent.borrow().clone();
+            let mut staled: Option<&'static str> = None;
+            parent
+                .with_mut(
+                    &mut |p| {
+                        let tag = (self.current_tag)(p);
+                        match (self.project_mut)(p) {
+                            Some(t) => f(t),
+                            None => staled = Some(tag),
+                        }
+                    },
+                )?;
+            match staled {
+                None => Ok(()),
+                Some(current_variant) => {
+                    Err(StaleRef {
+                        enum_path: self.enum_path,
+                        expected_variant: self.expected_tag,
+                        current_variant,
+                        field_name: self.field_name,
+                    })
+                }
+            }
         }
     }
     pub enum Coerced<T> {
@@ -543,31 +728,42 @@ mod __cursed {
         Owned(T),
     }
     impl<T: 'static> Coerced<T> {
-        pub fn with(&self, f: &mut dyn FnMut(&T)) {
+        pub fn with(&self, f: &mut dyn FnMut(&T)) -> Result<(), StaleRef> {
             match self {
                 Self::Projected(p) => p.with(f),
-                Self::Owned(v) => f(v),
+                Self::Owned(v) => {
+                    f(v);
+                    Ok(())
+                }
             }
         }
-        pub fn with_mut(&mut self, f: &mut dyn FnMut(&mut T)) {
+        pub fn with_mut(&mut self, f: &mut dyn FnMut(&mut T)) -> Result<(), StaleRef> {
             match self {
                 Self::Projected(p) => p.with_mut(f),
-                Self::Owned(v) => f(v),
+                Self::Owned(v) => {
+                    f(v);
+                    Ok(())
+                }
             }
         }
-        pub fn into_owned(self) -> T
+        pub fn into_owned(self) -> Result<T, StaleRef>
         where
             T: Clone,
         {
             match self {
                 Self::Projected(p) => {
                     let mut out = None;
-                    p.with(&mut |v| out = Some(v.clone()));
-                    out.unwrap()
+                    p.with(&mut |v| out = Some(v.clone()))?;
+                    Ok(out.expect("non-stale projection ran the closure"))
                 }
-                Self::Owned(v) => v,
+                Self::Owned(v) => Ok(v),
             }
         }
+    }
+}
+impl From<__cursed::StaleRef> for napi::Error {
+    fn from(__cursed_e: __cursed::StaleRef) -> Self {
+        napi::Error::from_reason(__cursed_e.message())
     }
 }
 /// class wrapper for `crate::Point`
@@ -582,7 +778,7 @@ impl __cursed_rustdoc_test_crate__Point {
         let __cursed_owned: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
                 init,
             )?
-            .into_owned();
+            .into_owned()?;
         Ok(Self {
             __cursed_root: Rc::new(
                 RefCell::new(
@@ -593,32 +789,34 @@ impl __cursed_rustdoc_test_crate__Point {
         })
     }
     #[napi(getter, js_name = "x")]
-    pub fn __cursed_get__x(&self) -> f64 {
+    pub fn __cursed_get__x(&self) -> napi::Result<f64> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
-        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x));
-        __cursed_out.unwrap()
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.x))?;
+        Ok(__cursed_out.unwrap())
     }
     #[napi(setter, js_name = "x")]
-    pub fn __cursed_set__x(&self, __cursed_arg__x: f64) {
+    pub fn __cursed_set__x(&self, __cursed_arg__x: f64) -> napi::Result<()> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_arg = Some(__cursed_arg__x);
         __cursed_proj
-            .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap());
+            .with_mut(&mut |__cursed_p| __cursed_p.x = __cursed_arg.take().unwrap())?;
+        Ok(())
     }
     #[napi(getter, js_name = "y")]
-    pub fn __cursed_get__y(&self) -> f64 {
+    pub fn __cursed_get__y(&self) -> napi::Result<f64> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_out: Option<f64> = None;
-        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y));
-        __cursed_out.unwrap()
+        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.y))?;
+        Ok(__cursed_out.unwrap())
     }
     #[napi(setter, js_name = "y")]
-    pub fn __cursed_set__y(&self, __cursed_arg__y: f64) {
+    pub fn __cursed_set__y(&self, __cursed_arg__y: f64) -> napi::Result<()> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
         let mut __cursed_arg = Some(__cursed_arg__y);
         __cursed_proj
-            .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap());
+            .with_mut(&mut |__cursed_p| __cursed_p.y = __cursed_arg.take().unwrap())?;
+        Ok(())
     }
 }
 #[allow(dead_code)]
@@ -664,7 +862,7 @@ impl __cursed_rustdoc_test_crate__Line {
         let __cursed_owned: crate::Line = __cursed_coerce___cursed_rustdoc_test_crate__Line(
                 init,
             )?
-            .into_owned();
+            .into_owned()?;
         Ok(Self {
             __cursed_root: Rc::new(
                 RefCell::new(
@@ -702,12 +900,12 @@ impl __cursed_rustdoc_test_crate__Line {
     pub fn __cursed_set__start(
         &mut self,
         __cursed_arg__start: &__cursed_rustdoc_test_crate__Point,
-    ) {
+    ) -> napi::Result<()> {
         let mut __cursed_new_val: Option<crate::Point> = None;
         __cursed_arg__start
             .__cursed_root
             .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
+            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
         if let Some(__cursed_cell) = self
             .__cursed_cache__start
             .as_ref()
@@ -716,7 +914,7 @@ impl __cursed_rustdoc_test_crate__Line {
             let __cursed_proj = __cursed_cell.borrow().clone();
             let mut __cursed_snap: Option<crate::Point> = None;
             __cursed_proj
-                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
+                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()))?;
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Point>>;
             self.__cursed_cache__start = None;
@@ -727,7 +925,8 @@ impl __cursed_rustdoc_test_crate__Line {
                 &mut |__cursed_p| {
                     __cursed_p.start = __cursed_new_val.take().unwrap();
                 },
-            );
+            )?;
+        Ok(())
     }
     #[napi(getter, js_name = "end")]
     pub fn __cursed_get__end(&mut self) -> __cursed_rustdoc_test_crate__Point {
@@ -755,12 +954,12 @@ impl __cursed_rustdoc_test_crate__Line {
     pub fn __cursed_set__end(
         &mut self,
         __cursed_arg__end: &__cursed_rustdoc_test_crate__Point,
-    ) {
+    ) -> napi::Result<()> {
         let mut __cursed_new_val: Option<crate::Point> = None;
         __cursed_arg__end
             .__cursed_root
             .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
+            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
         if let Some(__cursed_cell) = self
             .__cursed_cache__end
             .as_ref()
@@ -769,7 +968,7 @@ impl __cursed_rustdoc_test_crate__Line {
             let __cursed_proj = __cursed_cell.borrow().clone();
             let mut __cursed_snap: Option<crate::Point> = None;
             __cursed_proj
-                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
+                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()))?;
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Point>>;
             self.__cursed_cache__end = None;
@@ -780,7 +979,8 @@ impl __cursed_rustdoc_test_crate__Line {
                 &mut |__cursed_p| {
                     __cursed_p.end = __cursed_new_val.take().unwrap();
                 },
-            );
+            )?;
+        Ok(())
     }
 }
 #[allow(dead_code)]
@@ -802,11 +1002,11 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Line<'a>(
     let __cursed_field_start: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
             __cursed_obj.get_named_property::<napi::bindgen_prelude::Unknown>("start")?,
         )?
-        .into_owned();
+        .into_owned()?;
     let __cursed_field_end: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
             __cursed_obj.get_named_property::<napi::bindgen_prelude::Unknown>("end")?,
         )?
-        .into_owned();
+        .into_owned()?;
     Ok(
         __cursed::Coerced::Owned(crate::Line {
             start: __cursed_field_start,
@@ -828,7 +1028,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
         let __cursed_owned: crate::Triangle = __cursed_coerce___cursed_rustdoc_test_crate__Triangle(
                 init,
             )?
-            .into_owned();
+            .into_owned()?;
         Ok(Self {
             __cursed_root: Rc::new(
                 RefCell::new(
@@ -870,12 +1070,12 @@ impl __cursed_rustdoc_test_crate__Triangle {
     pub fn __cursed_set__a(
         &mut self,
         __cursed_arg__a: &__cursed_rustdoc_test_crate__Line,
-    ) {
+    ) -> napi::Result<()> {
         let mut __cursed_new_val: Option<crate::Line> = None;
         __cursed_arg__a
             .__cursed_root
             .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
+            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
         if let Some(__cursed_cell) = self
             .__cursed_cache__a
             .as_ref()
@@ -884,7 +1084,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
             let __cursed_proj = __cursed_cell.borrow().clone();
             let mut __cursed_snap: Option<crate::Line> = None;
             __cursed_proj
-                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
+                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()))?;
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Line>>;
             self.__cursed_cache__a = None;
@@ -895,7 +1095,8 @@ impl __cursed_rustdoc_test_crate__Triangle {
                 &mut |__cursed_p| {
                     __cursed_p.a = __cursed_new_val.take().unwrap();
                 },
-            );
+            )?;
+        Ok(())
     }
     #[napi(getter, js_name = "b")]
     pub fn __cursed_get__b(&mut self) -> __cursed_rustdoc_test_crate__Point {
@@ -923,12 +1124,12 @@ impl __cursed_rustdoc_test_crate__Triangle {
     pub fn __cursed_set__b(
         &mut self,
         __cursed_arg__b: &__cursed_rustdoc_test_crate__Point,
-    ) {
+    ) -> napi::Result<()> {
         let mut __cursed_new_val: Option<crate::Point> = None;
         __cursed_arg__b
             .__cursed_root
             .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));
+            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
         if let Some(__cursed_cell) = self
             .__cursed_cache__b
             .as_ref()
@@ -937,7 +1138,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
             let __cursed_proj = __cursed_cell.borrow().clone();
             let mut __cursed_snap: Option<crate::Point> = None;
             __cursed_proj
-                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));
+                .with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()))?;
             *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap()))
                 as Rc<dyn __cursed::Projection<crate::Point>>;
             self.__cursed_cache__b = None;
@@ -948,7 +1149,8 @@ impl __cursed_rustdoc_test_crate__Triangle {
                 &mut |__cursed_p| {
                     __cursed_p.b = __cursed_new_val.take().unwrap();
                 },
-            );
+            )?;
+        Ok(())
     }
 }
 #[allow(dead_code)]
@@ -970,11 +1172,11 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Triangle<'a>(
     let __cursed_field_a: crate::Line = __cursed_coerce___cursed_rustdoc_test_crate__Line(
             __cursed_obj.get_named_property::<napi::bindgen_prelude::Unknown>("a")?,
         )?
-        .into_owned();
+        .into_owned()?;
     let __cursed_field_b: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
             __cursed_obj.get_named_property::<napi::bindgen_prelude::Unknown>("b")?,
         )?
-        .into_owned();
+        .into_owned()?;
     Ok(
         __cursed::Coerced::Owned(crate::Triangle {
             a: __cursed_field_a,
@@ -988,7 +1190,7 @@ pub fn __cursed_rustdoc_test_crate__triangle_area(
     t: napi::bindgen_prelude::Unknown<'_>,
 ) -> napi::Result<f64> {
     let __cursed_co_t = __cursed_coerce___cursed_rustdoc_test_crate__Triangle(t)?;
-    let __cursed_t_val = __cursed_co_t.into_owned();
+    let __cursed_t_val = __cursed_co_t.into_owned()?;
     Ok(crate::triangle_area(__cursed_t_val.clone()))
 }
 ```
@@ -1677,56 +1879,6 @@ Ir {
                 },
                 js_name: "Point",
                 mangled_name: "__cursed_rustdoc_test_crate__Point",
-                fields: [
-                    ClassField {
-                        orig_name: "x",
-                        js_name: "x",
-                        ty: Primitive(
-                            f64,
-                        ),
-                        has_getter: true,
-                        has_setter: true,
-                        clone_on_get: false,
-                        docs: None,
-                        span: Some(
-                            Span {
-                                filename: "src/lib.rs",
-                                begin: (
-                                    3,
-                                    5,
-                                ),
-                                end: (
-                                    3,
-                                    15,
-                                ),
-                            },
-                        ),
-                    },
-                    ClassField {
-                        orig_name: "y",
-                        js_name: "y",
-                        ty: Primitive(
-                            f64,
-                        ),
-                        has_getter: true,
-                        has_setter: true,
-                        clone_on_get: false,
-                        docs: None,
-                        span: Some(
-                            Span {
-                                filename: "src/lib.rs",
-                                begin: (
-                                    4,
-                                    5,
-                                ),
-                                end: (
-                                    4,
-                                    15,
-                                ),
-                            },
-                        ),
-                    },
-                ],
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {
@@ -1753,6 +1905,58 @@ Ir {
                 methods: [],
                 of_escaped: false,
                 clonable: true,
+                shape: Struct {
+                    fields: [
+                        ClassField {
+                            orig_name: "x",
+                            js_name: "x",
+                            ty: Primitive(
+                                f64,
+                            ),
+                            has_getter: true,
+                            has_setter: true,
+                            clone_on_get: false,
+                            docs: None,
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        3,
+                                        5,
+                                    ),
+                                    end: (
+                                        3,
+                                        15,
+                                    ),
+                                },
+                            ),
+                        },
+                        ClassField {
+                            orig_name: "y",
+                            js_name: "y",
+                            ty: Primitive(
+                                f64,
+                            ),
+                            has_getter: true,
+                            has_setter: true,
+                            clone_on_get: false,
+                            docs: None,
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        4,
+                                        5,
+                                    ),
+                                    end: (
+                                        4,
+                                        15,
+                                    ),
+                                },
+                            ),
+                        },
+                    ],
+                },
                 docs: None,
                 span: Some(
                     Span {
@@ -1785,60 +1989,6 @@ Ir {
                 },
                 js_name: "Line",
                 mangled_name: "__cursed_rustdoc_test_crate__Line",
-                fields: [
-                    ClassField {
-                        orig_name: "start",
-                        js_name: "start",
-                        ty: Class(
-                            IrId(
-                                1,
-                            ),
-                        ),
-                        has_getter: true,
-                        has_setter: true,
-                        clone_on_get: true,
-                        docs: None,
-                        span: Some(
-                            Span {
-                                filename: "src/lib.rs",
-                                begin: (
-                                    8,
-                                    5,
-                                ),
-                                end: (
-                                    8,
-                                    21,
-                                ),
-                            },
-                        ),
-                    },
-                    ClassField {
-                        orig_name: "end",
-                        js_name: "end",
-                        ty: Class(
-                            IrId(
-                                1,
-                            ),
-                        ),
-                        has_getter: true,
-                        has_setter: true,
-                        clone_on_get: true,
-                        docs: None,
-                        span: Some(
-                            Span {
-                                filename: "src/lib.rs",
-                                begin: (
-                                    9,
-                                    5,
-                                ),
-                                end: (
-                                    9,
-                                    19,
-                                ),
-                            },
-                        ),
-                    },
-                ],
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {
@@ -1869,6 +2019,62 @@ Ir {
                 methods: [],
                 of_escaped: false,
                 clonable: true,
+                shape: Struct {
+                    fields: [
+                        ClassField {
+                            orig_name: "start",
+                            js_name: "start",
+                            ty: Class(
+                                IrId(
+                                    1,
+                                ),
+                            ),
+                            has_getter: true,
+                            has_setter: true,
+                            clone_on_get: true,
+                            docs: None,
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        8,
+                                        5,
+                                    ),
+                                    end: (
+                                        8,
+                                        21,
+                                    ),
+                                },
+                            ),
+                        },
+                        ClassField {
+                            orig_name: "end",
+                            js_name: "end",
+                            ty: Class(
+                                IrId(
+                                    1,
+                                ),
+                            ),
+                            has_getter: true,
+                            has_setter: true,
+                            clone_on_get: true,
+                            docs: None,
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        9,
+                                        5,
+                                    ),
+                                    end: (
+                                        9,
+                                        19,
+                                    ),
+                                },
+                            ),
+                        },
+                    ],
+                },
                 docs: None,
                 span: Some(
                     Span {
@@ -1901,60 +2107,6 @@ Ir {
                 },
                 js_name: "Triangle",
                 mangled_name: "__cursed_rustdoc_test_crate__Triangle",
-                fields: [
-                    ClassField {
-                        orig_name: "a",
-                        js_name: "a",
-                        ty: Class(
-                            IrId(
-                                2,
-                            ),
-                        ),
-                        has_getter: true,
-                        has_setter: true,
-                        clone_on_get: true,
-                        docs: None,
-                        span: Some(
-                            Span {
-                                filename: "src/lib.rs",
-                                begin: (
-                                    13,
-                                    5,
-                                ),
-                                end: (
-                                    13,
-                                    16,
-                                ),
-                            },
-                        ),
-                    },
-                    ClassField {
-                        orig_name: "b",
-                        js_name: "b",
-                        ty: Class(
-                            IrId(
-                                1,
-                            ),
-                        ),
-                        has_getter: true,
-                        has_setter: true,
-                        clone_on_get: true,
-                        docs: None,
-                        span: Some(
-                            Span {
-                                filename: "src/lib.rs",
-                                begin: (
-                                    14,
-                                    5,
-                                ),
-                                end: (
-                                    14,
-                                    17,
-                                ),
-                            },
-                        ),
-                    },
-                ],
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {
@@ -1985,6 +2137,62 @@ Ir {
                 methods: [],
                 of_escaped: false,
                 clonable: true,
+                shape: Struct {
+                    fields: [
+                        ClassField {
+                            orig_name: "a",
+                            js_name: "a",
+                            ty: Class(
+                                IrId(
+                                    2,
+                                ),
+                            ),
+                            has_getter: true,
+                            has_setter: true,
+                            clone_on_get: true,
+                            docs: None,
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        13,
+                                        5,
+                                    ),
+                                    end: (
+                                        13,
+                                        16,
+                                    ),
+                                },
+                            ),
+                        },
+                        ClassField {
+                            orig_name: "b",
+                            js_name: "b",
+                            ty: Class(
+                                IrId(
+                                    1,
+                                ),
+                            ),
+                            has_getter: true,
+                            has_setter: true,
+                            clone_on_get: true,
+                            docs: None,
+                            span: Some(
+                                Span {
+                                    filename: "src/lib.rs",
+                                    begin: (
+                                        14,
+                                        5,
+                                    ),
+                                    end: (
+                                        14,
+                                        17,
+                                    ),
+                                },
+                            ),
+                        },
+                    ],
+                },
                 docs: None,
                 span: Some(
                     Span {
