@@ -8,6 +8,7 @@ use crate::codegen::ts::{PrintTsModOpts, PrintedTsMod};
 
 use super::write::{sync_dir, write_if_changed};
 use super::Syncer;
+use tracing::*;
 
 pub const TS_AMBIENT_FILE: &str = "ambient.d.ts";
 pub const TS_TYPES_DIR: &str = "types";
@@ -44,6 +45,7 @@ impl Syncer {
 
         let abs_types_dir = abs_out_dir.join(TS_TYPES_DIR);
         let mut targets: Vec<(PathBuf, Vec<u8>)> = Vec::new();
+        let mut module_count = 0usize;
 
         for item in &ir.items {
             let Item::Mod(m) = item else {
@@ -102,6 +104,7 @@ impl Syncer {
             }
 
             targets.push((rel_dts, body.into_bytes()));
+            module_count += 1;
         }
 
         sync_dir(&abs_types_dir, &targets).map_err(|e| WriteTsError::Io {
@@ -109,6 +112,7 @@ impl Syncer {
             source: e,
         })?;
 
+        debug!(modules = module_count, "wrote ts type files");
         Ok(())
     }
 }

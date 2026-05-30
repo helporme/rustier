@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use anyhow::{anyhow, bail, Context};
 #[cfg(feature = "napi-binding")]
 use napi_derive::napi;
+use tracing::*;
 
 #[cfg(feature = "napi-binding")]
 use crate::builder::napi::{NapiBuildFn, NapiBuildOpts, NapiBuilder};
@@ -178,7 +179,10 @@ impl BuildOutput {
             .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{:#}", e)))
     }
 
+    #[instrument(name = "resolve", level = "debug", skip_all)]
     fn _resolve(&self, profile_name: &str, rs_rel_path: &str) -> anyhow::Result<String> {
+        trace!(profile = profile_name, rs = rs_rel_path, "resolving module");
+
         let artifact = self
             .artifacts
             .get(profile_name)
@@ -224,6 +228,12 @@ impl BuildOutput {
             }
         };
 
+        debug!(
+            profile = profile_name,
+            rs = rs_rel_path,
+            bytes = js_glue.len(),
+            "resolved module to js glue",
+        );
         Ok(js_glue)
     }
 }
@@ -267,6 +277,8 @@ impl RustCurse {
     #[cfg(feature = "napi-binding")]
     #[cfg_attr(feature = "napi-binding", napi(constructor))]
     pub fn new(options: RustCurseOpts, napi_build_fn: NapiBuildFn) -> Result<Self, napi::JsError> {
+        crate::logging::ensure();
+
         options
             .validate()
             .map_err(|e| napi::Error::new(napi::Status::InvalidArg, format!("{:#}", e)))?;
@@ -294,12 +306,16 @@ impl RustCurse {
             .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{:#}", e)))
     }
 
+    #[instrument(name = "build", level = "info", skip_all, err)]
     async fn _build(&self, profile_names: &[String]) -> anyhow::Result<BuildOutput> {
+        info!(profiles = profile_names.len(), "building profiles");
+
         let orphan_modules = orphans::scan(OrphanScanOpts {
             project_root_abs_path: &self.project_root_abs_path,
             src_rel_path: &self.modules_root_rel_path,
             rs_filter: None,
         })?;
+        info!(modules = orphan_modules.len(), "scanned orphan modules");
 
         let mut sync = Syncer::new(
             self.project_root_abs_path.clone(),
@@ -312,6 +328,8 @@ impl RustCurse {
             .context("sync: rustdoc")?;
 
         let rustdoc = rustdoc::gen(&self.project_root_abs_path)?;
+        info!(items = rustdoc.index.len(), "generated rustdoc");
+
         let mut warns = Warns::new();
         let asg = Asg::from_rustdoc(&rustdoc, &mut warns).context("build asg")?;
 
@@ -329,6 +347,11 @@ impl RustCurse {
             },
         )
         .with_context(|| "tree_shake")?;
+        info!(
+            kept = asg_exposed.len(),
+            total = asg.items.len(),
+            "tree-shake complete",
+        );
 
         sync.write_orphan_tree(WriteOrphanTreeOpts {
             asg: &asg,
@@ -370,6 +393,7 @@ impl RustCurse {
         let mut artifacts: HashMap<String, ProfileBuildCache> = HashMap::new();
 
         for profile in &profiles {
+            info!(name = %profile.name, "building profile");
             match &profile.rust.target {
                 ProfileBuildTarget::Wasm { deploy_to } => {
                     let bin = wasm_bindgen_tool_bin_abs_path.as_deref().expect(
@@ -389,6 +413,12 @@ impl RustCurse {
                     .with_context(|| format!("builder: wasm profile '{}'", profile.name))?;
 
                     let deploy_to = deploy_to.unwrap_or(WasmDeployTarget::Web);
+                    info!(
+                        name = %profile.name,
+                        wasm = %output.wasm_output_abs_path.display(),
+                        js = %output.js_output_abs_path.display(),
+                        "built profile",
+                    );
                     artifacts.insert(
                         profile.name.clone(),
                         ProfileBuildCache::Wasm(output, deploy_to),
@@ -404,6 +434,12 @@ impl RustCurse {
                             project_root_abs_path: &self.project_root_abs_path,
                         })
                         .await?;
+                    info!(
+                        name = %profile.name,
+                        nodes = ?output.node_output_abs_paths,
+                        js = ?output.js_output_abs_path,
+                        "built profile",
+                    );
                     artifacts.insert(profile.name.clone(), ProfileBuildCache::Node(output));
                 }
             }
@@ -412,6 +448,7 @@ impl RustCurse {
         let rendered_warns = warns
             .render(&self.project_root_abs_path, Theme::Unicode)
             .context("warn render failed")?;
+        info!(warns = rendered_warns.len(), "build complete");
 
         Ok(BuildOutput {
             ir,

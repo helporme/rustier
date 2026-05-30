@@ -7,6 +7,7 @@ use super::tree::{self, TreeError};
 use super::write_build::{env_flag_build_content, write_build, BuildBranch, WriteBuildError};
 use super::write_lib::{write_lib, LibBranch, WriteLibError};
 use super::Syncer;
+use tracing::*;
 
 pub const RUSTDOC_ENV_VAR: &str = "RUST_CURSE_RUSTDOC";
 pub const RUSTDOC_CFG_FLAG: &str = "rust_curse_rustdoc";
@@ -70,6 +71,7 @@ impl Syncer {
 
         tree::write_subtree(&root, &abs_project_root, &abs_mod_out_dir, "pub")?;
 
+        debug!(modules = modules.len(), "wrote rustdoc module tree");
         Ok(())
     }
 }

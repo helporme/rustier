@@ -3,6 +3,8 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use tracing::*;
+
 /// Writes `bytes` to `abs_path` only when the file does not already contain
 /// the exact same bytes. Returns `true` when a write actually happened.
 ///
@@ -14,10 +16,12 @@ use std::path::{Path, PathBuf};
 pub fn write_if_changed(abs_path: &Path, bytes: &[u8]) -> io::Result<bool> {
     if let Ok(existing) = fs::read(abs_path) {
         if existing == bytes {
+            trace!(path = %abs_path.display(), "file unchanged");
             return Ok(false);
         }
     }
     fs::write(abs_path, bytes)?;
+    debug!(path = %abs_path.display(), bytes = bytes.len(), "wrote file");
     Ok(true)
 }
 
@@ -38,7 +42,9 @@ pub fn sync_dir(abs_dir: &Path, targets: &[(PathBuf, Vec<u8>)]) -> io::Result<()
         collect_files(abs_dir, abs_dir, &mut existing)?;
         for rel in &existing {
             if !target_set.contains(rel.as_path()) {
-                fs::remove_file(abs_dir.join(rel))?;
+                let abs_path = abs_dir.join(rel);
+                fs::remove_file(&abs_path)?;
+                debug!(path = %abs_path.display(), "removed stale file");
             }
         }
     }

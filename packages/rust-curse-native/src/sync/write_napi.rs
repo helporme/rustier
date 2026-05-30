@@ -4,6 +4,7 @@ use super::patch_cargo_toml::{patch_cargo_toml_file, Dep, PatchCargoTomlError};
 use super::write_build::{write_build, BuildBranch, WriteBuildError};
 use super::write_lib::{write_lib, LibBranch, WriteLibError};
 use super::Syncer;
+use tracing::*;
 
 pub const NAPI_CARGO_FEATURE: &str = "node";
 
@@ -57,6 +58,7 @@ impl Syncer {
         );
         write_build(&abs_out_dir, &self.build)?;
 
+        debug!(profile = profile_name, "wrote napi glue");
         Ok(())
     }
 }

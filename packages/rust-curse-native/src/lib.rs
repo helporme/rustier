@@ -10,6 +10,9 @@ pub mod warns;
 pub mod builder;
 
 #[cfg(feature = "napi-binding")]
+pub mod logging;
+
+#[cfg(feature = "napi-binding")]
 pub mod session;
 
 #[cfg(feature = "napi-binding")]

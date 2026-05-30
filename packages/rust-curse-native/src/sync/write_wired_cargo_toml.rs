@@ -1,5 +1,6 @@
 use super::patch_cargo_toml::{patch_cargo_toml_file, CargoTomlPatch, PatchCargoTomlError};
 use super::Syncer;
+use tracing::*;
 
 /// Error returned by [`Syncer::write_wired_cargo_toml`] when patching
 /// `Cargo.toml` fails.
@@ -23,6 +24,7 @@ impl Syncer {
                 .build_path(build_path)
                 .crate_type("rlib"),
         )?;
+        debug!("wired Cargo.toml");
         Ok(())
     }
 }

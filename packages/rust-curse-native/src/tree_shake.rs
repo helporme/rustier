@@ -11,6 +11,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use glob::glob;
+use tracing::*;
 
 use crate::codegen::asg::{Asg, AsgId, Item, StructShape, Type};
 use crate::common::{mangle_module_name, FileFilter};
@@ -51,7 +52,7 @@ pub enum TreeShakeError {
 
 /// Compute the set of ASG ids reachable from JS/TS imports. JS imports that
 /// reference a non-existent `.rs` module, a name not exported by the
-/// targeted module, or use a default-import syntax are silently skipped.
+/// targeted module, or use a default-import syntax are skipped with debug logs.
 pub fn shake(asg: &Asg, opts: TreeShakeOpts<'_>) -> Result<HashSet<AsgId>, TreeShakeError> {
     let abs_project_root = fs::canonicalize(opts.project_root_abs_path).map_err(|source| {
         TreeShakeError::RootNotFound {
@@ -70,17 +71,29 @@ pub fn shake(asg: &Asg, opts: TreeShakeOpts<'_>) -> Result<HashSet<AsgId>, TreeS
     let mut buckets: BTreeMap<PathBuf, Bucket> = BTreeMap::new();
     for import in scan_js_imports(&abs_src_root, opts.js_filter)? {
         // Default imports are unsupported (rust modules have no default
-        // export). Silently skip — the user will notice their JS doesn't
-        // see anything and switch to named imports.
+        // export), so the import cannot contribute tree-shake seeds.
         if import.members.iter().any(|m| m == "default") {
+            debug!(
+                js = %import.source_abs_path.display(),
+                rust = %import.rel_rs_path.display(),
+                member = "default",
+                "ignored default import while collecting reachability seeds"
+            );
             continue;
         }
         let entry = buckets.entry(import.rel_rs_path).or_default();
+        entry
+            .source_abs_paths
+            .insert(import.source_abs_path.clone());
         for m in import.members {
             if m == "*" {
                 entry.star = true;
             } else {
-                entry.members.insert(m);
+                entry
+                    .members
+                    .entry(m)
+                    .or_default()
+                    .insert(import.source_abs_path.clone());
             }
         }
     }
@@ -89,6 +102,15 @@ pub fn shake(asg: &Asg, opts: TreeShakeOpts<'_>) -> Result<HashSet<AsgId>, TreeS
     for (rel_within_src_root, bucket) in buckets {
         let mod_name = orphans::gen_module_name(&rel_within_src_root);
         let Some(mod_id) = find_module(asg, &mod_name) else {
+            let members: Vec<&str> = bucket.members.keys().map(String::as_str).collect();
+            debug!(
+                rust = %rel_within_src_root.display(),
+                module = %mod_name,
+                star = bucket.star,
+                members = ?members,
+                js = ?bucket.source_abs_paths,
+                "ignored import for rust module missing from ASG"
+            );
             continue;
         };
         let uses = &asg.get_mod_unchecked(mod_id).uses;
@@ -97,8 +119,15 @@ pub fn shake(asg: &Asg, opts: TreeShakeOpts<'_>) -> Result<HashSet<AsgId>, TreeS
                 seeds.push(use_.target);
             }
         } else {
-            for name in &bucket.members {
+            for (name, source_abs_paths) in &bucket.members {
                 let Some(use_) = uses.iter().find(|u| &u.name == name) else {
+                    debug!(
+                        rust = %rel_within_src_root.display(),
+                        module = %mod_name,
+                        member = %name,
+                        js = ?source_abs_paths,
+                        "ignored import for missing named export"
+                    );
                     continue;
                 };
                 seeds.push(use_.target);
@@ -106,13 +135,18 @@ pub fn shake(asg: &Asg, opts: TreeShakeOpts<'_>) -> Result<HashSet<AsgId>, TreeS
         }
     }
 
+    debug!(seeds = seeds.len(), "collected reachability seeds");
+
     let mut visited: HashSet<AsgId> = HashSet::new();
     let mut stack = seeds;
     while let Some(id) = stack.pop() {
         if !visited.insert(id) {
             continue;
         }
-        match asg.get_unchecked(id) {
+        let item = asg.get_unchecked(id);
+        let (kind, path) = item_desc(item);
+        trace!(asg_id = id.0, kind, %path, "visiting reachable item");
+        match item {
             Item::Fn(def) => {
                 for param in &def.params {
                     walk_type(&param.ty, &mut stack);
@@ -156,6 +190,18 @@ fn walk_type(ty: &Type, stack: &mut Vec<AsgId>) {
     }
 }
 
+/// A short `(kind, path)` label for an item, used in trace logging. Impls have
+/// no path of their own, so they are described by the struct they are for.
+fn item_desc(item: &Item) -> (&'static str, String) {
+    match item {
+        Item::Struct(def) => ("struct", def.path.segments.join("::")),
+        Item::Fn(def) => ("fn", def.path.segments.join("::")),
+        Item::Mod(def) => ("mod", def.path.segments.join("::")),
+        Item::Trait(def) => ("trait", def.path.segments.join("::")),
+        Item::Impl(def) => ("impl", format!("for #{}", def.for_.0)),
+    }
+}
+
 fn find_module(asg: &Asg, mod_name: &str) -> Option<AsgId> {
     let mangled = mangle_module_name(mod_name);
     let expected: Vec<&str> = vec![asg.crate_name.as_str(), mangled.as_str()];
@@ -172,11 +218,14 @@ fn find_module(asg: &Asg, mod_name: &str) -> Option<AsgId> {
 #[derive(Default)]
 struct Bucket {
     star: bool,
-    members: BTreeSet<String>,
+    members: BTreeMap<String, BTreeSet<PathBuf>>,
+    source_abs_paths: BTreeSet<PathBuf>,
 }
 
 /// One ESM import of an `.rs` module found in a single JS/TS file.
 struct RawImport {
+    /// Absolute path of the JS/TS file containing this import.
+    source_abs_path: PathBuf,
     /// Path of the imported `.rs` file relative to `abs_module_dir`.
     rel_rs_path: PathBuf,
     /// Imported member names. May contain `"*"` for star imports and
@@ -217,7 +266,12 @@ fn scan_js_imports(
                 })?;
 
             let file_dir = abs_path.parent().unwrap_or(Path::new("."));
-            result.extend(extract_imports(&source, file_dir, abs_module_dir));
+            result.extend(extract_imports(
+                &source,
+                &abs_path,
+                file_dir,
+                abs_module_dir,
+            ));
         }
     }
 
@@ -240,12 +294,19 @@ fn expand_paths(patterns: &[String]) -> Result<HashSet<PathBuf>, TreeShakeError>
     Ok(paths)
 }
 
-fn extract_imports(source: &str, file_dir: &Path, abs_module_dir: &Path) -> Vec<RawImport> {
+fn extract_imports(
+    source: &str,
+    source_abs_path: &Path,
+    file_dir: &Path,
+    abs_module_dir: &Path,
+) -> Vec<RawImport> {
     let cleaned = strip_comments(source);
     let mut results = Vec::new();
 
     for stmt in collect_import_statements(&cleaned) {
-        if let Some(import) = parse_import_statement(&stmt, file_dir, abs_module_dir) {
+        if let Some(import) =
+            parse_import_statement(&stmt, source_abs_path, file_dir, abs_module_dir)
+        {
             results.push(import);
         }
     }
@@ -311,7 +372,12 @@ fn has_string_literal(s: &str) -> bool {
         || (s.contains('\'') && s.chars().filter(|&c| c == '\'').count() >= 2)
 }
 
-fn parse_import_statement(stmt: &str, file_dir: &Path, abs_module_dir: &Path) -> Option<RawImport> {
+fn parse_import_statement(
+    stmt: &str,
+    source_abs_path: &Path,
+    file_dir: &Path,
+    abs_module_dir: &Path,
+) -> Option<RawImport> {
     let from_idx = stmt.rfind(" from ")?;
     let keyword_end = 6;
     let members_part = &stmt[keyword_end..from_idx];
@@ -335,6 +401,7 @@ fn parse_import_statement(stmt: &str, file_dir: &Path, abs_module_dir: &Path) ->
     }
 
     Some(RawImport {
+        source_abs_path: source_abs_path.to_path_buf(),
         rel_rs_path,
         members,
     })

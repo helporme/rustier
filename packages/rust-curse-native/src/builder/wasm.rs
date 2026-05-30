@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use thiserror::Error;
+use tracing::*;
 
 use crate::builder::{self, BuildError, BuildOpts};
 use crate::sync::write_wasm::WASM_CARGO_FEATURE;
@@ -85,6 +86,12 @@ pub fn ensure_bindgen_tool_installed(
         return Ok(bin_abs_path);
     }
 
+    warn!(
+        tool = "wasm-bindgen-cli",
+        dir = %installation_abs_path.display(),
+        "couldn't find tool, installing it",
+    );
+
     fs::create_dir_all(installation_abs_path).map_err(|e| WasmBuildError::Io {
         path: installation_abs_path.into(),
         source: e,
@@ -125,8 +132,14 @@ pub fn ensure_wasm_target_installed() -> Result<(), WasmBuildError> {
         .lines()
         .any(|line| line.trim() == WASM_TARGET_TRIPLE)
     {
+        debug!(triple = WASM_TARGET_TRIPLE, "wasm target already installed");
         return Ok(());
     }
+
+    warn!(
+        triple = WASM_TARGET_TRIPLE,
+        "couldn't find target, installing it"
+    );
 
     let output = Command::new("rustup")
         .args(["target", "add", WASM_TARGET_TRIPLE])

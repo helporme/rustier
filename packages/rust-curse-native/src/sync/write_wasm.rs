@@ -3,6 +3,7 @@ use crate::sync::patch_cargo_toml::CargoTomlPatch;
 use super::patch_cargo_toml::{patch_cargo_toml_file, Dep, PatchCargoTomlError};
 use super::write_lib::{write_lib, LibBranch, WriteLibError};
 use super::Syncer;
+use tracing::*;
 
 pub const WASM_CARGO_FEATURE: &str = "wasm";
 
@@ -44,6 +45,7 @@ impl Syncer {
         );
         write_lib(&self.abs_out_dir(), &self.lib)?;
 
+        debug!(profile = profile_name, "wrote wasm glue");
         Ok(())
     }
 }

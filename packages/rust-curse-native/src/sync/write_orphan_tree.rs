@@ -8,6 +8,7 @@ use crate::codegen::asg::{Asg, AsgId, Item};
 use super::tree::{self, TreeError};
 use super::write_lib::{write_lib, LibBranch, WriteLibError};
 use super::Syncer;
+use tracing::*;
 
 pub const ORPHAN_TREE_DIR: &str = "orphan-tree";
 
@@ -97,6 +98,7 @@ impl Syncer {
 
         tree::write_subtree(&root, &abs_project_root, &abs_mod_out_dir, "pub(crate)")?;
 
+        debug!(modules = local_modules.len(), "wrote orphan module tree");
         Ok(())
     }
 }
