@@ -21,3 +21,8 @@ declare module '$build/warns' {
 
   export const rustCurseWarns: RustCurseWarn[]
 }
+
+declare module '*?raw' {
+  const text: string
+  export default text
+}
