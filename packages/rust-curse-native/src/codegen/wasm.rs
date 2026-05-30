@@ -3,11 +3,12 @@
 use std::collections::HashSet;
 
 use super::ir::{
-    rust_path, ClassDef, ClassField, CtorDef, FnDef, FnParam, Ir, IrId, Item, ParamMode, Primitive,
-    Receiver, StructExpr, Type,
+    rust_path, ClassDef, ClassField, ClassShape, CtorDef, EnumVariantDef, FnDef, FnParam, Ir, IrId,
+    Item, ParamMode, Primitive, Receiver, StructExpr, Type,
 };
 use super::mangle::{self, is_canonical_origin};
 use super::projection::PROJECTION_PREAMBLE;
+use crate::common::{coalesce_enum_fields, oxford_join, raw_ident, CoalescedField};
 
 impl Ir {
     /// Prints the IR as wasm-bindgen glue code, exposing items in the `exposed`
@@ -33,6 +34,11 @@ impl<'a> Printer<'a> {
         out.push_str("use wasm_bindgen::prelude::*;\n");
         if self.ir.uses_projections {
             out.push_str(PROJECTION_PREAMBLE);
+            out.push('\n');
+            // Lets generated accessors propagate `StaleRef` with a bare `?`.
+            out.push_str(
+                "impl From<__cursed::StaleRef> for JsValue {\n    fn from(__cursed_e: __cursed::StaleRef) -> Self {\n        JsValue::from_str(&__cursed_e.message())\n    }\n}\n",
+            );
             out.push('\n');
         }
 
@@ -73,6 +79,12 @@ impl<'a> Printer<'a> {
     }
 
     fn print_class_wrappers(&self, cid: IrId) -> String {
+        if matches!(
+            self.ir.get_class_unchecked(cid).shape,
+            ClassShape::Enum { .. }
+        ) {
+            return self.print_enum_wrappers(cid);
+        }
         let def = self.ir.get_class_unchecked(cid).clone();
         let orig = rust_path(&def.path, &self.ir.crate_name);
         let mangled = &def.mangled_name;
@@ -90,14 +102,10 @@ impl<'a> Printer<'a> {
         out.push_str(&format!(
             "    {root}: Rc<RefCell<Rc<dyn __cursed::Projection<{orig}>>>>,\n"
         ));
-        for field in &def.fields {
-            if let Type::Class(child) = &field.ty {
-                let child_orig = self.class_orig(*child);
-                out.push_str(&format!(
-                    "    {}: Option<Weak<RefCell<Rc<dyn __cursed::Projection<{child_orig}>>>>>,\n",
-                    mangle::cache_field(&field.orig_name),
-                ));
-            }
+        for (slot, child_orig) in self.class_cache_slots(&def) {
+            out.push_str(&format!(
+                "    {slot}: Option<Weak<RefCell<Rc<dyn __cursed::Projection<{child_orig}>>>>>,\n",
+            ));
         }
         out.push_str("}\n\n");
 
@@ -111,7 +119,10 @@ impl<'a> Printer<'a> {
             }
             out.push_str(&self.print_of(&def, se, &orig));
         }
-        for field in &def.fields {
+        let ClassShape::Struct { fields } = &def.shape else {
+            unreachable!("enum shape handled by print_enum_wrappers")
+        };
+        for field in fields {
             out.push('\n');
             out.push_str(&self.print_getter_setter(field));
         }
@@ -126,6 +137,12 @@ impl<'a> Printer<'a> {
     }
 
     fn print_coercer(&self, cid: IrId) -> String {
+        if matches!(
+            self.ir.get_class_unchecked(cid).shape,
+            ClassShape::Enum { .. }
+        ) {
+            return self.print_enum_coercer(cid);
+        }
         let def = self.ir.get_class_unchecked(cid).clone();
         let orig = rust_path(&def.path, &self.ir.crate_name);
         let mangled = &def.mangled_name;
@@ -168,7 +185,7 @@ impl<'a> Printer<'a> {
                             "    let __cursed_raw_{name} = js_sys::Reflect::get(&val, &JsValue::from_str(\"{name}\"))?;\n",
                         ));
                         out.push_str(&format!(
-                            "    let __cursed_field_{name}: {child_orig} = {child_coerce}(__cursed_raw_{name})?.into_owned();\n",
+                            "    let __cursed_field_{name}: {child_orig} = {child_coerce}(__cursed_raw_{name})?.into_owned()?;\n",
                         ));
                     }
                 }
@@ -192,6 +209,320 @@ impl<'a> Printer<'a> {
         out
     }
 
+    // --- data enum wrappers ---
+
+    fn print_enum_wrappers(&self, cid: IrId) -> String {
+        let def = self.ir.get_class_unchecked(cid).clone();
+        let orig = rust_path(&def.path, &self.ir.crate_name);
+        let mangled = &def.mangled_name;
+        let root = mangle::ROOT_FIELD;
+        let ClassShape::Enum {
+            variants,
+            discriminator,
+        } = &def.shape
+        else {
+            unreachable!("print_enum_wrappers on non-enum")
+        };
+
+        let mut out = String::new();
+        out.push_str(&rust_doc(
+            &format!("data-enum class wrapper for `{orig}`"),
+            "",
+        ));
+        if let Some(docs) = &def.docs {
+            out.push_str(&rust_doc(docs, ""));
+        }
+        let brand = def.path.segments.join("::");
+        out.push_str(&format!(
+            "#[wasm_bindgen(js_name = \"{mangled}\")]\npub struct {mangled} {{\n"
+        ));
+        out.push_str(&format!(
+            "    {root}: Rc<RefCell<Rc<dyn __cursed::Projection<{orig}>>>>,\n"
+        ));
+        for (slot, child_orig) in self.class_cache_slots(&def) {
+            out.push_str(&format!(
+                "    {slot}: Option<Weak<RefCell<Rc<dyn __cursed::Projection<{child_orig}>>>>>,\n",
+            ));
+        }
+        out.push_str("}\n\n");
+
+        out.push_str(&format!("#[wasm_bindgen]\nimpl {mangled} {{\n"));
+        if let Some(ctor) = &def.ctor {
+            out.push_str(&self.print_ctor(&def, ctor, &orig));
+        }
+        if let Some(se) = &def.struct_expr {
+            if def.ctor.is_some() {
+                out.push('\n');
+            }
+            out.push_str(&self.print_of(&def, se, &orig));
+        }
+        out.push('\n');
+        out.push_str(&self.print_enum_discriminator_getter(&orig, variants, discriminator));
+        for cf in coalesce_enum_fields(variants) {
+            out.push('\n');
+            out.push_str(&self.print_enum_field_getset(&orig, &def.js_name, &brand, variants, &cf));
+        }
+        for &mid in &def.methods {
+            let fn_def = self.ir.get_fn_unchecked(mid).clone();
+            out.push('\n');
+            out.push_str(&self.print_method(&fn_def, &orig));
+        }
+        out.push_str("}\n");
+        out
+    }
+
+    fn enum_tag_match(&self, orig: &str, variants: &[EnumVariantDef], ident: &str) -> String {
+        let mut arms = String::new();
+        for v in variants {
+            let pat = if v.is_unit {
+                format!("{orig}::{}", v.rust_name)
+            } else {
+                format!("{orig}::{} {{ .. }}", v.rust_name)
+            };
+            arms.push_str(&format!("                {pat} => \"{}\",\n", v.tag));
+        }
+        format!("match {ident} {{\n{arms}            }}")
+    }
+
+    fn print_enum_discriminator_getter(
+        &self,
+        orig: &str,
+        variants: &[EnumVariantDef],
+        discriminator: &str,
+    ) -> String {
+        let match_expr = self.enum_tag_match(orig, variants, "__cursed_v");
+        format!(
+            "    #[wasm_bindgen(getter, js_name = \"{discriminator}\")]\n    pub fn __cursed_discriminator(&self) -> Result<String, JsValue> {{\n        let __cursed_proj = self.{root}.borrow().clone();\n        let mut __cursed_out: &'static str = \"\";\n        __cursed_proj.with(&mut |__cursed_v| {{\n            __cursed_out = {match_expr};\n        }})?;\n        Ok(__cursed_out.to_string())\n    }}\n",
+            root = mangle::ROOT_FIELD,
+        )
+    }
+
+    fn print_enum_field_getset(
+        &self,
+        orig: &str,
+        enum_js: &str,
+        brand: &str,
+        variants: &[EnumVariantDef],
+        cf: &CoalescedField,
+    ) -> String {
+        if let Type::Class(child) = &cf.ty {
+            return self.print_enum_class_field_getset(orig, enum_js, brand, variants, cf, *child);
+        }
+        let js = &cf.js_name;
+        let ty = self.type_to_rs(&cf.ty);
+        let root = mangle::ROOT_FIELD;
+
+        let mut read_arms = String::new();
+        for c in &cf.carriers {
+            let bind = raw_ident(&c.orig_name);
+            let value = if c.clone_on_get {
+                format!("{bind}.clone()")
+            } else {
+                format!("*{bind}")
+            };
+            read_arms.push_str(&format!(
+                "            if let {orig}::{rust} {{ {bind}, .. }} = __cursed_v {{\n                __cursed_out = Some({value});\n            }}\n",
+                rust = c.rust_name,
+            ));
+        }
+        let mut out = String::new();
+        out.push_str(&format!(
+            "    #[wasm_bindgen(getter, js_name = \"{js}\")]\n    pub fn {getter}(&self) -> Result<JsValue, JsValue> {{\n        let __cursed_proj = self.{root}.borrow().clone();\n        let mut __cursed_out: Option<{ty}> = None;\n        __cursed_proj.with(&mut |__cursed_v| {{\n{read_arms}        }})?;\n        Ok(match __cursed_out {{\n            Some(__cursed_val) => JsValue::from(__cursed_val),\n            None => JsValue::UNDEFINED,\n        }})\n    }}\n",
+            getter = mangle::getter_fn(js),
+        ));
+
+        if cf.has_setter {
+            let arg = mangle::arg_name(js);
+            let mut write_arms = String::new();
+            for c in &cf.carriers {
+                let bind = raw_ident(&c.orig_name);
+                write_arms.push_str(&format!(
+                    "                {orig}::{rust} {{ {bind}, .. }} => {{\n                    *{bind} = __cursed_new.take().unwrap();\n                }}\n",
+                    rust = c.rust_name,
+                ));
+            }
+            let needs_catch_all = cf.carriers.len() < variants.len();
+            let catch_all = if needs_catch_all {
+                let tag_match = self.enum_tag_match(orig, variants, "__cursed_other");
+                format!(
+                    "                __cursed_other => {{\n                    __cursed_active = Some({tag_match});\n                }}\n"
+                )
+            } else {
+                String::new()
+            };
+            let expected = oxford_join(
+                &cf.carriers
+                    .iter()
+                    .map(|c| c.tag.clone())
+                    .collect::<Vec<_>>(),
+            );
+            out.push_str(&format!(
+                "    #[wasm_bindgen(setter, js_name = \"{js}\")]\n    pub fn {setter}(&self, {arg}: {ty}) -> Result<(), JsValue> {{\n        let mut __cursed_new = Some({arg});\n        let mut __cursed_active: Option<&'static str> = None;\n        let __cursed_proj = self.{root}.borrow().clone();\n        __cursed_proj.with_mut(&mut |__cursed_v| {{\n            match __cursed_v {{\n{write_arms}{catch_all}            }}\n        }})?;\n        if let Some(__cursed_active) = __cursed_active {{\n            return Err(JsValue::from_str(&format!(\n                \"cannot set \\\"{js}\\\" on \\\"{enum_js}\\\": active variant is \\\"{{__cursed_active}}\\\", expected {expected}\"\n            )));\n        }}\n        Ok(())\n    }}\n",
+                setter = mangle::setter_fn(js),
+            ));
+        }
+        out
+    }
+
+    /// wasm analog of the napi class-typed variant-field getter/setter. The
+    /// getter returns the live child wrapper (`.into()` -> `JsValue`) rooted
+    /// at a `VariantProjector`, or `undefined` for the wrong variant; the
+    /// setter coerces a `JsValue` and assigns it, throwing on the wrong
+    /// variant.
+    fn print_enum_class_field_getset(
+        &self,
+        orig: &str,
+        enum_js: &str,
+        brand: &str,
+        variants: &[EnumVariantDef],
+        cf: &CoalescedField,
+        child: IrId,
+    ) -> String {
+        let js = &cf.js_name;
+        let root = mangle::ROOT_FIELD;
+        let child_mangled = self.ir.get_class_unchecked(child).mangled_name.clone();
+        let child_orig = self.class_orig(child);
+        let tag_match = self.enum_tag_match(orig, variants, "__cursed_v");
+        let proj_tag_match = self.enum_tag_match(orig, variants, "__cursed_p");
+        let child_lit = self.empty_wrapper_literal(child, "__cursed_cell");
+
+        let mut arms = String::new();
+        for c in &cf.carriers {
+            let slot = mangle::variant_cache_field(&c.rust_name, &c.orig_name);
+            let bind = raw_ident(&c.orig_name);
+            arms.push_str(&format!(
+                "            \"{tag}\" => {{\n                if let Some(__cursed_cell) = self.{slot}.as_ref().and_then(Weak::upgrade) {{\n                    return Ok(JsValue::from({child_lit}));\n                }}\n                let __cursed_proj: Rc<dyn __cursed::Projection<{child_orig}>> = Rc::new(__cursed::VariantProjector {{\n                    parent: self.{root}.clone(),\n                    project: |__cursed_p| match __cursed_p {{ {orig}::{rust} {{ {bind}, .. }} => Some({bind}), _ => None }},\n                    project_mut: |__cursed_p| match __cursed_p {{ {orig}::{rust} {{ {bind}, .. }} => Some({bind}), _ => None }},\n                    current_tag: |__cursed_p| {proj_tag_match},\n                    expected_tag: \"{tag}\",\n                    enum_path: \"{brand}\",\n                    field_name: \"{js}\",\n                }});\n                let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));\n                self.{slot} = Some(Rc::downgrade(&__cursed_cell));\n                Ok(JsValue::from({child_lit}))\n            }}\n",
+                tag = c.tag,
+                rust = c.rust_name,
+            ));
+        }
+
+        let mut out = String::new();
+        out.push_str(&format!(
+            "    #[wasm_bindgen(getter, js_name = \"{js}\")]\n    pub fn {getter}(&mut self) -> Result<JsValue, JsValue> {{\n        let mut __cursed_active: &'static str = \"\";\n        self.{root}.borrow().with(&mut |__cursed_v| {{ __cursed_active = {tag_match}; }})?;\n        match __cursed_active {{\n{arms}            _ => Ok(JsValue::UNDEFINED),\n        }}\n    }}\n",
+            getter = mangle::getter_fn(js),
+        ));
+
+        if cf.has_setter {
+            let arg = mangle::arg_name(js);
+            let child_coerce = format!("__cursed_coerce_{child_mangled}");
+            let tags = cf
+                .carriers
+                .iter()
+                .map(|c| format!("\"{}\"", c.tag))
+                .collect::<Vec<_>>()
+                .join(" | ");
+            let mut assign_arms = String::new();
+            for c in &cf.carriers {
+                let bind = raw_ident(&c.orig_name);
+                assign_arms.push_str(&format!(
+                    "                        {orig}::{rust} {{ {bind}, .. }} => *{bind} = __cursed_new.take().unwrap(),\n",
+                    rust = c.rust_name,
+                ));
+            }
+            let expected = oxford_join(
+                &cf.carriers
+                    .iter()
+                    .map(|c| c.tag.clone())
+                    .collect::<Vec<_>>(),
+            );
+            out.push_str(&format!(
+                "    #[wasm_bindgen(setter, js_name = \"{js}\")]\n    pub fn {setter}(&mut self, {arg}: JsValue) -> Result<(), JsValue> {{\n        let mut __cursed_active: &'static str = \"\";\n        self.{root}.borrow().with(&mut |__cursed_v| {{ __cursed_active = {tag_match}; }})?;\n        match __cursed_active {{\n            {tags} => {{\n                let __cursed_val: {child_orig} = {child_coerce}({arg})?.into_owned()?;\n                let mut __cursed_new = Some(__cursed_val);\n                self.{root}.borrow().with_mut(&mut |__cursed_v| {{\n                    match __cursed_v {{\n{assign_arms}                        _ => {{}}\n                    }}\n                }})?;\n                Ok(())\n            }}\n            __cursed_other => Err(JsValue::from_str(&format!(\n                \"cannot set \\\"{js}\\\" on \\\"{enum_js}\\\": active variant is \\\"{{__cursed_other}}\\\", expected {expected}\"\n            ))),\n        }}\n    }}\n",
+                setter = mangle::setter_fn(js),
+            ));
+        }
+        out
+    }
+
+    fn print_enum_coercer(&self, cid: IrId) -> String {
+        let def = self.ir.get_class_unchecked(cid).clone();
+        let orig = rust_path(&def.path, &self.ir.crate_name);
+        let mangled = &def.mangled_name;
+        let coerce = format!("__cursed_coerce_{mangled}");
+        let ClassShape::Enum {
+            variants,
+            discriminator,
+        } = &def.shape
+        else {
+            unreachable!("print_enum_coercer on non-enum")
+        };
+
+        let mut out = String::new();
+        out.push_str(&format!(
+            "#[allow(dead_code)]\nfn {coerce}(val: JsValue) -> Result<__cursed::Coerced<{orig}>, JsValue> {{\n"
+        ));
+        if def.struct_expr.is_some() {
+            // No JsCast fast path: wasm-bindgen does not impl JsCast for
+            // exported structs, so `Reflect::get` dispatches through the
+            // wrapper's getters for a live instance, matching the struct
+            // coercer's round-trip-through-getters approach.
+            out.push_str(&format!(
+                "    let __cursed_tag_raw = js_sys::Reflect::get(&val, &JsValue::from_str(\"{discriminator}\"))?;\n    let __cursed_tag = __cursed_tag_raw.as_string().ok_or_else(|| JsValue::from_str(\"expected a \\\"{discriminator}\\\" discriminator string\"))?;\n"
+            ));
+            out.push_str("    match __cursed_tag.as_str() {\n");
+            for v in variants {
+                if v.is_unit {
+                    out.push_str(&format!(
+                        "        \"{tag}\" => Ok(__cursed::Coerced::Owned({orig}::{rust})),\n",
+                        tag = v.tag,
+                        rust = v.rust_name,
+                    ));
+                    continue;
+                }
+                let mut reads = String::new();
+                let mut inits = Vec::new();
+                for f in &v.fields {
+                    let bind = raw_ident(&f.orig_name);
+                    let raw_local = format!("__cursed_raw_{}", f.js_name);
+                    match &f.ty {
+                        Type::Primitive(prim) => {
+                            reads.push_str(&format!(
+                                "            let {raw_local} = js_sys::Reflect::get(&val, &JsValue::from_str(\"{js}\"))?;\n            let {bind}: {ty} = {expr};\n",
+                                js = f.js_name,
+                                ty = primitive_to_rs(prim),
+                                expr = primitive_from_jsvalue(prim, &raw_local, &f.js_name),
+                            ));
+                        }
+                        Type::Class(child) => {
+                            let child_coerce = format!(
+                                "__cursed_coerce_{}",
+                                self.ir.get_class_unchecked(*child).mangled_name
+                            );
+                            let child_orig = self.class_orig(*child);
+                            reads.push_str(&format!(
+                                "            let {raw_local} = js_sys::Reflect::get(&val, &JsValue::from_str(\"{js}\"))?;\n            let {bind}: {child_orig} = {child_coerce}({raw_local})?.into_owned()?;\n",
+                                js = f.js_name,
+                            ));
+                        }
+                    }
+                    inits.push(bind);
+                }
+                out.push_str(&format!(
+                    "        \"{tag}\" => {{\n{reads}            Ok(__cursed::Coerced::Owned({orig}::{rust} {{ {inits} }}))\n        }}\n",
+                    tag = v.tag,
+                    rust = v.rust_name,
+                    inits = inits.join(", "),
+                ));
+            }
+            let taglist = variants
+                .iter()
+                .map(|v| format!("\\\"{}\\\"", v.tag))
+                .collect::<Vec<_>>()
+                .join(" | ");
+            out.push_str(&format!(
+                "        __cursed_other => Err(JsValue::from_str(&format!(\n            \"expected \\\"{discriminator}\\\" to be one of {taglist}; got {{__cursed_other}}\"\n        ))),\n"
+            ));
+            out.push_str("    }\n");
+        } else {
+            out.push_str(&format!(
+                "    let _ = val;\n    Err(JsValue::from_str(\"`{js}` cannot be constructed from JS: it is not Clone\"))\n",
+                js = def.js_name,
+            ));
+        }
+        out.push_str("}\n");
+        out
+    }
+
     fn print_ctor(&self, def: &ClassDef, ctor: &CtorDef, orig: &str) -> String {
         let params = &ctor.params;
 
@@ -206,7 +537,7 @@ impl<'a> Printer<'a> {
             .iter()
             .map(|p| {
                 if matches!(p.ty, Type::Class(_)) {
-                    format!("{}.into_owned()", co_local(&p.name))
+                    format!("{}.into_owned()?", co_local(&p.name))
                 } else {
                     mangle::arg_name(&p.name)
                 }
@@ -216,15 +547,7 @@ impl<'a> Printer<'a> {
 
         let root_init = self.wrap_into_base_projection(orig, &built);
 
-        let mut cache_inits = String::new();
-        for field in &def.fields {
-            if matches!(field.ty, Type::Class(_)) {
-                cache_inits.push_str(&format!(
-                    "            {}: None,\n",
-                    mangle::cache_field(&field.orig_name)
-                ));
-            }
-        }
+        let cache_inits = self.cache_init_lines(def);
 
         format!(
             "    #[wasm_bindgen(constructor)]\n    pub fn new({}) -> Result<Self, JsValue> {{\n{body}        Ok(Self {{\n            {}: {root_init},\n{cache_inits}        }})\n    }}\n",
@@ -239,18 +562,10 @@ impl<'a> Printer<'a> {
         let js_name = if def.of_escaped { "of$" } else { "of" };
         let rust_ident = "of";
 
-        let mut cache_inits = String::new();
-        for field in &def.fields {
-            if matches!(field.ty, Type::Class(_)) {
-                cache_inits.push_str(&format!(
-                    "            {}: None,\n",
-                    mangle::cache_field(&field.orig_name)
-                ));
-            }
-        }
+        let cache_inits = self.cache_init_lines(def);
 
         format!(
-            "    #[wasm_bindgen(js_name = \"{js_name}\")]\n    pub fn {rust_ident}(init: JsValue) -> Result<{cls}, JsValue> {{\n        let __cursed_owned: {orig} = {coerce}(init)?.into_owned();\n        Ok({cls} {{\n            {}: {root_init},\n{cache_inits}        }})\n    }}\n",
+            "    #[wasm_bindgen(js_name = \"{js_name}\")]\n    pub fn {rust_ident}(init: JsValue) -> Result<{cls}, JsValue> {{\n        let __cursed_owned: {orig} = {coerce}(init)?.into_owned()?;\n        Ok({cls} {{\n            {}: {root_init},\n{cache_inits}        }})\n    }}\n",
             mangle::ROOT_FIELD,
             cls = def.mangled_name,
         )
@@ -273,14 +588,14 @@ impl<'a> Printer<'a> {
         let mut out = String::new();
         if field.has_getter {
             out.push_str(&format!(
-                "    #[wasm_bindgen(getter, js_name = \"{js}\")]\n    pub fn {getter}(&self) -> {ty} {{\n        let __cursed_proj = self.{root}.borrow().clone();\n        let mut __cursed_out: Option<{ty}> = None;\n        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.{orig}{clone}));\n        __cursed_out.unwrap()\n    }}\n",
+                "    #[wasm_bindgen(getter, js_name = \"{js}\")]\n    pub fn {getter}(&self) -> Result<{ty}, JsValue> {{\n        let __cursed_proj = self.{root}.borrow().clone();\n        let mut __cursed_out: Option<{ty}> = None;\n        __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.{orig}{clone}))?;\n        Ok(__cursed_out.unwrap())\n    }}\n",
                 getter = mangle::getter_fn(orig),
                 root = mangle::ROOT_FIELD,
             ));
         }
         if field.has_setter {
             out.push_str(&format!(
-                "    #[wasm_bindgen(setter, js_name = \"{js}\")]\n    pub fn {setter}(&self, {arg}: {ty}) {{\n        let __cursed_proj = self.{root}.borrow().clone();\n        let mut __cursed_arg = Some({arg});\n        __cursed_proj.with_mut(&mut |__cursed_p| __cursed_p.{orig} = __cursed_arg.take().unwrap());\n    }}\n",
+                "    #[wasm_bindgen(setter, js_name = \"{js}\")]\n    pub fn {setter}(&self, {arg}: {ty}) -> Result<(), JsValue> {{\n        let __cursed_proj = self.{root}.borrow().clone();\n        let mut __cursed_arg = Some({arg});\n        __cursed_proj.with_mut(&mut |__cursed_p| __cursed_p.{orig} = __cursed_arg.take().unwrap())?;\n        Ok(())\n    }}\n",
                 setter = mangle::setter_fn(orig),
                 root = mangle::ROOT_FIELD,
             ));
@@ -307,7 +622,7 @@ impl<'a> Printer<'a> {
         if field.has_setter {
             let arg = mangle::arg_name(orig);
             out.push_str(&format!(
-                "    #[wasm_bindgen(setter, js_name = \"{js}\")]\n    pub fn {setter}(&mut self, {arg}: &{child_mangled}) {{\n        let mut __cursed_new_val: Option<{child_orig}> = None;\n        {arg}.{root}.borrow().with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()));\n        if let Some(__cursed_cell) = self.{cache}.as_ref().and_then(Weak::upgrade) {{\n            let __cursed_proj = __cursed_cell.borrow().clone();\n            let mut __cursed_snap: Option<{child_orig}> = None;\n            __cursed_proj.with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()));\n            *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap())) as Rc<dyn __cursed::Projection<{child_orig}>>;\n            self.{cache} = None;\n        }}\n        let __cursed_parent = self.{root}.borrow().clone();\n        __cursed_parent.with_mut(&mut |__cursed_p| {{\n            __cursed_p.{orig} = __cursed_new_val.take().unwrap();\n        }});\n    }}\n",
+                "    #[wasm_bindgen(setter, js_name = \"{js}\")]\n    pub fn {setter}(&mut self, {arg}: &{child_mangled}) -> Result<(), JsValue> {{\n        let mut __cursed_new_val: Option<{child_orig}> = None;\n        {arg}.{root}.borrow().with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;\n        if let Some(__cursed_cell) = self.{cache}.as_ref().and_then(Weak::upgrade) {{\n            let __cursed_proj = __cursed_cell.borrow().clone();\n            let mut __cursed_snap: Option<{child_orig}> = None;\n            __cursed_proj.with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()))?;\n            *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap())) as Rc<dyn __cursed::Projection<{child_orig}>>;\n            self.{cache} = None;\n        }}\n        let __cursed_parent = self.{root}.borrow().clone();\n        __cursed_parent.with_mut(&mut |__cursed_p| {{\n            __cursed_p.{orig} = __cursed_new_val.take().unwrap();\n        }})?;\n        Ok(())\n    }}\n",
                 setter = mangle::setter_fn(orig),
             ));
         }
@@ -372,7 +687,7 @@ impl<'a> Printer<'a> {
         for p in &fn_def.params {
             if matches!(p.ty, Type::Class(_)) && matches!(p.mode, ParamMode::ByValue) {
                 pre.push_str(&format!(
-                    "    let {val} = {co}.into_owned();\n",
+                    "    let {val} = {co}.into_owned()?;\n",
                     val = val_local(&p.name),
                     co = co_local(&p.name),
                 ));
@@ -403,24 +718,21 @@ impl<'a> Printer<'a> {
                     self.type_to_rs_owned(&fn_def.return_type),
                 ));
             }
-            let mut nested = if is_unit {
+            let inner = if is_unit {
                 format!("{call};")
             } else {
                 format!("__cursed_ret = Some({call});")
             };
-            for p in fn_def.params.iter().rev() {
+            let mut wraps: Vec<(String, &str, String)> = Vec::new();
+            for p in &fn_def.params {
                 let method = match (&p.ty, &p.mode) {
                     (Type::Class(_), ParamMode::ByRef) => "with",
                     (Type::Class(_), ParamMode::ByMut) => "with_mut",
                     _ => continue,
                 };
-                let name = &p.name;
-                nested = format!(
-                    "{co}.{method}(&mut |__cursed_{name}| {{\n{nested}\n}});",
-                    co = co_local(name),
-                );
+                wraps.push((co_local(&p.name), method, format!("__cursed_{}", p.name)));
             }
-            body.push_str(&format!("    {nested}\n"));
+            body.push_str(&self.build_with_chain(&wraps, &inner));
             if !is_unit {
                 body.push_str("    let __cursed_ret_val = __cursed_ret.unwrap();\n");
                 body.push_str(&format!(
@@ -482,7 +794,7 @@ impl<'a> Printer<'a> {
             }
             Some(Receiver::ByValue) => {
                 pre.push_str(&format!(
-                    "        let __cursed_self_val: {class_orig} = {{\n            let __cursed_proj = self.{root}.borrow().clone();\n            let mut __cursed_out: Option<{class_orig}> = None;\n            __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.clone()));\n            __cursed_out.unwrap()\n        }};\n",
+                    "        let __cursed_self_val: {class_orig} = {{\n            let __cursed_proj = self.{root}.borrow().clone();\n            let mut __cursed_out: Option<{class_orig}> = None;\n            __cursed_proj.with(&mut |__cursed_p| __cursed_out = Some(__cursed_p.clone()))?;\n            __cursed_out.unwrap()\n        }};\n",
                     root = mangle::ROOT_FIELD,
                 ));
             }
@@ -540,7 +852,7 @@ impl<'a> Printer<'a> {
         for p in &fn_def.params {
             if matches!(p.ty, Type::Class(_)) && matches!(p.mode, ParamMode::ByValue) {
                 pre.push_str(&format!(
-                    "        let {val} = {co}.into_owned();\n",
+                    "        let {val} = {co}.into_owned()?;\n",
                     val = val_local(&p.name),
                     co = co_local(&p.name),
                 ));
@@ -579,36 +891,34 @@ impl<'a> Printer<'a> {
                     self.type_to_rs_owned(&fn_def.return_type),
                 ));
             }
-            let mut nested = if is_unit {
+            let inner = if is_unit {
                 format!("{call};")
             } else {
                 format!("__cursed_ret = Some({call});")
             };
-            for p in fn_def.params.iter().rev() {
+            let mut wraps: Vec<(String, &str, String)> = Vec::new();
+            match receiver {
+                Some(Receiver::ByRef) => wraps.push((
+                    "__cursed_proj_self".to_string(),
+                    "with",
+                    "__cursed_self".to_string(),
+                )),
+                Some(Receiver::ByMut) => wraps.push((
+                    "__cursed_proj_self".to_string(),
+                    "with_mut",
+                    "__cursed_self".to_string(),
+                )),
+                _ => {}
+            }
+            for p in &fn_def.params {
                 let method = match (&p.ty, &p.mode) {
                     (Type::Class(_), ParamMode::ByRef) => "with",
                     (Type::Class(_), ParamMode::ByMut) => "with_mut",
                     _ => continue,
                 };
-                let name = &p.name;
-                nested = format!(
-                    "{co}.{method}(&mut |__cursed_{name}| {{\n{nested}\n}});",
-                    co = co_local(name),
-                );
+                wraps.push((co_local(&p.name), method, format!("__cursed_{}", p.name)));
             }
-            match receiver {
-                Some(Receiver::ByRef) => {
-                    nested =
-                        format!("__cursed_proj_self.with(&mut |__cursed_self| {{\n{nested}\n}});");
-                }
-                Some(Receiver::ByMut) => {
-                    nested = format!(
-                        "__cursed_proj_self.with_mut(&mut |__cursed_self| {{\n{nested}\n}});"
-                    );
-                }
-                _ => {}
-            }
-            body.push_str(&format!("        {nested}\n"));
+            body.push_str(&self.build_with_chain(&wraps, &inner));
             if !is_unit {
                 body.push_str("        let __cursed_ret_val = __cursed_ret.unwrap();\n");
                 body.push_str(&format!(
@@ -645,6 +955,33 @@ impl<'a> Printer<'a> {
         out
     }
 
+    /// See `napi.rs::build_with_chain`. Closures returned by `with` yield
+    /// `()`, so only the outermost can `?`; inner levels capture into
+    /// `__cursed_stale_<k>` vars re-checked after the chain unwinds. `wraps`
+    /// is ordered outermost-first as `(co_expr, method, bind_ident)`.
+    fn build_with_chain(&self, wraps: &[(String, &str, String)], inner: &str) -> String {
+        if wraps.is_empty() {
+            return format!("    {inner}\n");
+        }
+        let mut decls = String::new();
+        for k in 1..wraps.len() {
+            decls.push_str(&format!(
+                "    let mut __cursed_stale_{k}: Result<(), __cursed::StaleRef> = Ok(());\n"
+            ));
+        }
+        let mut body = inner.to_string();
+        let mut post = String::new();
+        for (k, (co, method, bind)) in wraps.iter().enumerate().rev() {
+            if k == 0 {
+                body = format!("{co}.{method}(&mut |{bind}| {{\n{body}\n}})?;");
+            } else {
+                body = format!("__cursed_stale_{k} = {co}.{method}(&mut |{bind}| {{\n{body}\n}});");
+                post = format!("    __cursed_stale_{k}?;\n{post}");
+            }
+        }
+        format!("{decls}    {body}\n{post}")
+    }
+
     fn wrap_into_base_projection(&self, orig_ty: &str, value_expr: &str) -> String {
         format!(
             "Rc::new(RefCell::new(Rc::new(RefCell::new({value_expr})) as Rc<dyn __cursed::Projection<{orig_ty}>>))"
@@ -658,15 +995,50 @@ impl<'a> Printer<'a> {
             def.mangled_name,
             mangle::ROOT_FIELD
         );
-        for field in &def.fields {
-            if matches!(field.ty, Type::Class(_)) {
-                s.push_str(&format!(
-                    ", {}: None",
-                    mangle::cache_field(&field.orig_name)
-                ));
-            }
+        for (slot, _) in self.class_cache_slots(def) {
+            s.push_str(&format!(", {slot}: None"));
         }
         s.push_str(" }");
+        s
+    }
+
+    /// See `napi.rs::class_cache_slots`. `(slot_name, child_orig)` for every
+    /// class-typed cache slot (struct field, or class-typed enum `(variant,
+    /// field)`).
+    fn class_cache_slots(&self, def: &ClassDef) -> Vec<(String, String)> {
+        let mut out = Vec::new();
+        match &def.shape {
+            ClassShape::Struct { fields } => {
+                for field in fields {
+                    if let Type::Class(child) = &field.ty {
+                        out.push((
+                            mangle::cache_field(&field.orig_name),
+                            self.class_orig(*child),
+                        ));
+                    }
+                }
+            }
+            ClassShape::Enum { variants, .. } => {
+                for v in variants {
+                    for f in &v.fields {
+                        if let Type::Class(child) = &f.ty {
+                            out.push((
+                                mangle::variant_cache_field(&v.rust_name, &f.orig_name),
+                                self.class_orig(*child),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    fn cache_init_lines(&self, def: &ClassDef) -> String {
+        let mut s = String::new();
+        for (slot, _) in self.class_cache_slots(def) {
+            s.push_str(&format!("            {slot}: None,\n"));
+        }
         s
     }
 

@@ -158,7 +158,8 @@ fn type_alias_unsupported() {
 
 #[test]
 fn unit_enum_unsupported() {
-    assert_warns!(
+    // All-unit (C-like) enums are deferred to a follow-up RFC.
+    assert_ir_warns!(
         {
             pub enum E {
                 A,
@@ -166,52 +167,46 @@ fn unit_enum_unsupported() {
                 C,
             }
         },
-        UNSUPPORTED_TYPE
+        "rust-curse::enum_all_unit_unsupported"
     );
 }
 
 #[test]
 fn tuple_variant_enum_unsupported() {
-    assert_warns!(
+    assert_ir_warns!(
         {
             pub enum E {
                 A(i32),
                 B(String),
             }
         },
-        UNSUPPORTED_TYPE
+        "rust-curse::enum_tuple_variant_unsupported"
     );
 }
 
-#[test]
-fn struct_variant_enum_unsupported() {
-    assert_warns!(
-        {
-            pub enum E {
-                A { x: i32 },
-                B { y: String },
-            }
-        },
-        UNSUPPORTED_TYPE
-    );
-}
+// A struct-variant enum is now a supported data enum (see the positive
+// `enum_data_*` codegen snapshots), so there is no longer an
+// "unsupported struct-variant enum" negative case.
 
 #[test]
 fn enum_with_discriminants_unsupported() {
-    assert_warns!(
+    // Explicit discriminants imply a C-like all-unit enum -> still deferred.
+    assert_ir_warns!(
         {
             pub enum E {
                 A = 1,
                 B = 2,
             }
         },
-        UNSUPPORTED_TYPE
+        "rust-curse::enum_all_unit_unsupported"
     );
 }
 
 #[test]
-fn enum_in_fn_signature_unsupported() {
-    assert_warns!(
+fn enum_in_fn_signature_skips_when_enum_unsupported() {
+    // The enum is all-unit (unsupported), so a fn referencing it is dropped
+    // with the enum-targeted cascade warning.
+    assert_ir_warns!(
         {
             pub enum E {
                 A,
@@ -219,7 +214,20 @@ fn enum_in_fn_signature_unsupported() {
             }
             pub fn f(e: E) {}
         },
-        UNSUPPORTED_TYPE
+        "rust-curse::skipped_enum_ref"
+    );
+}
+
+#[test]
+fn enum_shared_field_type_mismatch_unsupported() {
+    assert_ir_warns!(
+        {
+            pub enum E {
+                A { data: f64 },
+                B { data: String },
+            }
+        },
+        "rust-curse::enum_shared_field_type_mismatch"
     );
 }
 

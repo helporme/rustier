@@ -28,10 +28,6 @@ pub struct FnDef {
     pub mangled_name: String,
     pub params: Vec<FnParam>,
     pub return_type: Type,
-    /// True when at least one param is a struct passed by `&` / `&mut`. Such
-    /// params force the user call inside a `with` / `with_mut` closure, and
-    /// that closure scope changes how other params are bound (see
-    /// `FnParam::needs_stash`).
     pub needs_closure_scope: bool,
     pub receiver: Option<Receiver>,
     pub docs: Option<String>,
@@ -44,14 +40,10 @@ pub struct FnParam {
     pub name: String,
     pub mode: ParamMode,
     pub ty: Type,
-    /// True when the param is an owned non-`Copy` primitive (today only
-    /// `String`) and its parent fn has `needs_closure_scope`. Such a
-    /// value can't be moved out of the surrounding `FnMut`, so it must be
-    /// stashed in an `Option` outside the closure and `take`-n at the call.
     pub needs_stash: bool,
 }
 
-/// A struct definition.
+/// A struct or data-enum definition lowered to a JS class wrapper.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClassDef {
     pub id: IrId,
@@ -59,12 +51,35 @@ pub struct ClassDef {
     pub path: ItemPath,
     pub js_name: String,
     pub mangled_name: String,
-    pub fields: Vec<ClassField>,
     pub ctor: Option<CtorDef>,
     pub struct_expr: Option<StructExpr>,
     pub methods: Vec<IrId>,
     pub of_escaped: bool,
     pub clonable: bool,
+    pub shape: ClassShape,
+    pub docs: Option<String>,
+    pub span: Option<Span>,
+}
+
+/// Whether a [`ClassDef`] is backed by a Rust struct or a data enum.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ClassShape {
+    Struct {
+        fields: Vec<ClassField>,
+    },
+    Enum {
+        variants: Vec<EnumVariantDef>,
+        discriminator: String,
+    },
+}
+
+/// A lowered data-enum variant.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EnumVariantDef {
+    pub rust_name: String,
+    pub tag: String,
+    pub is_unit: bool,
+    pub fields: Vec<ClassField>,
     pub docs: Option<String>,
     pub span: Option<Span>,
 }

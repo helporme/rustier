@@ -591,9 +591,79 @@ fn warn_unsupported_type_on_fn_return() {
 }
 
 #[test]
-fn warn_unsupported_type_on_enum() {
+fn enum_all_unit_unsupported() {
     assert_snap! {
         pub enum E { A, B, C }
+    };
+}
+
+#[test]
+fn enum_data_two_struct_variants() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub enum ProfileBuildOutput {
+            Wasm { wasm_abs_path: String },
+            Node { node_path: String },
+            Skipped,
+        }
+    };
+}
+
+#[test]
+fn enum_data_with_methods_and_ctor() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub enum E {
+            On { level: f64 },
+            Off,
+        }
+
+        impl E {
+            pub fn new(level: f64) -> Self { Self::On { level } }
+            pub fn describe(&self) -> String { String::new() }
+        }
+    };
+}
+
+#[test]
+fn enum_data_type_escape() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub enum Event {
+            Click { r#type: String, x: i32 },
+        }
+    };
+}
+
+#[test]
+fn enum_data_shared_field_name() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub enum Value {
+            A { data: f64 },
+            B { data: f64 },
+            C,
+        }
+    };
+}
+
+#[test]
+fn enum_tuple_variant_unsupported() {
+    assert_snap! {
+        pub enum E {
+            A(f64),
+            B { x: f64 },
+        }
+    };
+}
+
+#[test]
+fn enum_data_non_clonable_ref_only() {
+    assert_snap! {
+        pub enum E {
+            On { level: f64 },
+            Off,
+        }
     };
 }
 
@@ -960,6 +1030,35 @@ fn impl_static_returns_self_taking_ref_self() {
             pub fn make_relative_to(p: &Self) -> Self {
                 Self { x: p.x + 1, y: p.y + 1 }
             }
+        }
+    };
+}
+
+#[test]
+fn enum_data_class_typed_variant_field() {
+    assert_snap! {
+        #[derive(Clone)]
+        pub struct Mesh { pub x: f64 }
+
+        #[derive(Clone)]
+        pub enum Hitbox {
+            Active { mesh: Mesh },
+            Disabled,
+        }
+    };
+}
+
+#[test]
+fn enum_data_zero_field_struct_variant() {
+    // `Empty {}` is struct-shaped (NOT a unit), so it surfaces as
+    // `{ type: 'empty' }` and its match arm is spelled `E::Empty { .. }`,
+    // while the true unit `Unit` is spelled `E::Unit`.
+    assert_snap! {
+        #[derive(Clone)]
+        pub enum E {
+            Full { x: f64 },
+            Empty {},
+            Unit,
         }
     };
 }

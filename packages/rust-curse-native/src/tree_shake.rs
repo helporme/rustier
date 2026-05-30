@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 use glob::glob;
 
 use crate::codegen::asg::{Asg, AsgId, Item, StructShape, Type};
-use crate::common::{mangle_module_name, FileFilter};
+use crate::common::FileFilter;
 use crate::orphans;
 
 #[derive(Debug)]
@@ -129,18 +129,20 @@ pub fn shake(asg: &Asg, opts: TreeShakeOpts<'_>) -> Result<HashSet<AsgId>, TreeS
                         stack.push(*fid);
                     }
                 }
-                match &def.shape {
-                    StructShape::Unit => {}
-                    StructShape::Tuple(ts) => {
-                        for ty in ts {
-                            walk_type(ty, &mut stack);
-                        }
+                walk_shape(&def.shape, &mut stack);
+            }
+            Item::Enum(def) => {
+                for impl_id in &def.impls {
+                    let impl_ = asg.get_impl_unchecked(*impl_id);
+                    if impl_.trait_.is_some() {
+                        continue;
                     }
-                    StructShape::Struct(fs) => {
-                        for f in fs {
-                            walk_type(&f.ty, &mut stack);
-                        }
+                    for fid in &impl_.fns {
+                        stack.push(*fid);
                     }
+                }
+                for variant in &def.variants {
+                    walk_shape(&variant.shape, &mut stack);
                 }
             }
             Item::Mod(_) | Item::Impl(_) | Item::Trait(_) => {}
@@ -150,15 +152,37 @@ pub fn shake(asg: &Asg, opts: TreeShakeOpts<'_>) -> Result<HashSet<AsgId>, TreeS
     Ok(visited)
 }
 
+fn walk_shape(shape: &StructShape, stack: &mut Vec<AsgId>) {
+    match shape {
+        StructShape::Unit => {}
+        StructShape::Tuple(ts) => {
+            for ty in ts {
+                walk_type(ty, stack);
+            }
+        }
+        StructShape::Struct(fs) => {
+            for f in fs {
+                walk_type(&f.ty, stack);
+            }
+        }
+    }
+}
+
 fn walk_type(ty: &Type, stack: &mut Vec<AsgId>) {
-    if let Type::Struct(sid) = ty {
+    if let Type::Struct(sid) | Type::Enum(sid) = ty {
         stack.push(*sid);
     }
 }
 
 fn find_module(asg: &Asg, mod_name: &str) -> Option<AsgId> {
-    let mangled = mangle_module_name(mod_name);
-    let expected: Vec<&str> = vec![asg.crate_name.as_str(), mangled.as_str()];
+    // Orphan modules are flattened into one ident by replacing `::` with
+    // `__` (see the generated `pub mod nested__deep;`). Underscores in the
+    // source name are preserved. Using `mangle_module_name` here was a bug:
+    // it additionally rewrites `_` -> `0_`, so a module whose name contains
+    // an underscore (e.g. `data_enums`) never matched and was silently
+    // dropped from tree-shaking, leaving its napi/wasm glue unexposed.
+    let flattened = mod_name.replace("::", "__");
+    let expected: Vec<&str> = vec![asg.crate_name.as_str(), flattened.as_str()];
     for item in &asg.items {
         let Item::Mod(def) = item else { continue };
         let segments: Vec<&str> = def.path.segments.iter().map(String::as_str).collect();
@@ -427,6 +451,7 @@ pub fn item_path(asg: &Asg, id: AsgId) -> String {
     let segs = match asg.get_unchecked(id) {
         Item::Fn(def) => &def.path.segments,
         Item::Struct(def) => &def.path.segments,
+        Item::Enum(def) => &def.path.segments,
         Item::Mod(def) => &def.path.segments,
         Item::Trait(def) => &def.path.segments,
         Item::Impl(_) => return "<impl>".to_string(),
