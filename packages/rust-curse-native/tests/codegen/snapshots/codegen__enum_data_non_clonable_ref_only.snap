@@ -552,6 +552,8 @@ export declare const E: {
 export declare namespace E {
     export interface Instance {
         readonly [" "]: 'rustdoc_test_crate::E';
+        get level(): number | undefined;
+        set level(value: number);
     }
 
     export type Init =
@@ -569,7 +571,7 @@ export declare namespace E {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"YAAA;;qBAAA;;;;yBAAA;;;;;;;cACI;cAAK;;;cACL"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"YAAA;;qBAAA;;;;yBAAA;;;;;;;;;cACI;cAAK;;;cACL"}
 ```
 
 # js-wasm

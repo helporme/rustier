@@ -9,6 +9,7 @@ use super::ir::{
 };
 use super::mangle::is_canonical_origin;
 use super::source_map::Mapping;
+use crate::common::coalesce_enum_fields;
 
 const PREAMBLE: &str = "";
 
@@ -267,8 +268,7 @@ impl<'a> Printer<'a> {
         let mut first_member = false; // brand line already emitted
 
         for field in fields {
-            self.member_gap(&mut first_member);
-            self.print_field(field);
+            self.print_field(field, &mut first_member);
         }
 
         if let Some(ctor) = &def.ctor {
@@ -392,6 +392,22 @@ impl<'a> Printer<'a> {
         self.body.push_str("    export interface Instance {\n");
         self.body
             .push_str(&format!("        readonly [\" \"]: '{brand}';\n"));
+        let num_variants = variants.len();
+        for cf in coalesce_enum_fields(variants) {
+            let mut getter_ty = self.type_to_ts(&cf.ty);
+            if cf.carriers.len() < num_variants {
+                getter_ty.push_str(" | undefined");
+            }
+            self.body
+                .push_str(&format!("        get {}(): {getter_ty};\n", cf.js_name));
+            if cf.has_setter {
+                let setter_ty = self.field_init_type(&cf.ty);
+                self.body.push_str(&format!(
+                    "        set {}(value: {setter_ty});\n",
+                    cf.js_name
+                ));
+            }
+        }
         for mid in &def.methods {
             let m = self.ir.get_fn_unchecked(*mid).clone();
             if m.receiver.is_none() {
@@ -471,20 +487,32 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn print_field(&mut self, field: &super::ir::ClassField) {
-        let ty = self.type_to_ts(&field.ty);
-        if let Some(docs) = &field.docs {
-            self.body.push_str(&doc_comment(docs, "    "));
+    fn print_field(&mut self, field: &super::ir::ClassField, first: &mut bool) {
+        let docs = field.docs.clone();
+        if field.has_getter {
+            self.member_gap(first);
+            if let Some(docs) = &docs {
+                self.body.push_str(&doc_comment(docs, "    "));
+            }
+            let ty = self.type_to_ts(&field.ty);
+            self.body.push_str("    ");
+            self.anchor(field.span.as_ref(), 0);
+            self.body
+                .push_str(&format!("get {}(): {ty};", field.js_name));
         }
-        let readonly = if field.has_getter && !field.has_setter {
-            "readonly "
-        } else {
-            ""
-        };
-        self.body.push_str("    ");
-        self.body.push_str(readonly);
-        self.anchor(field.span.as_ref(), 0);
-        self.body.push_str(&format!("{}: {ty};", field.js_name));
+        if field.has_setter {
+            self.member_gap(first);
+            if !field.has_getter {
+                if let Some(docs) = &docs {
+                    self.body.push_str(&doc_comment(docs, "    "));
+                }
+            }
+            let ty = self.field_init_type(&field.ty);
+            self.body.push_str("    ");
+            self.anchor(field.span.as_ref(), 0);
+            self.body
+                .push_str(&format!("set {}(value: {ty});", field.js_name));
+        }
     }
 
     fn print_ctor(&mut self, ctor: &super::ir::CtorDef, _def: &super::ir::ClassDef) {

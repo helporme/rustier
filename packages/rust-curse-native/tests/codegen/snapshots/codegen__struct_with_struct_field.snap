@@ -317,13 +317,12 @@ impl __cursed_rustdoc_test_crate__Circle {
     #[wasm_bindgen(setter, js_name = "center")]
     pub fn __cursed_set__center(
         &mut self,
-        __cursed_arg__center: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__center: JsValue,
     ) -> Result<(), JsValue> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__center
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__center)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__center
             .as_ref()
@@ -691,13 +690,12 @@ impl __cursed_rustdoc_test_crate__Circle {
     #[napi(setter, js_name = "center")]
     pub fn __cursed_set__center(
         &mut self,
-        __cursed_arg__center: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__center: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__center
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__center)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__center
             .as_ref()
@@ -778,10 +776,14 @@ export class Point {
     private [" "]: 'rustdoc_test_crate::Point';
 
     /** Horizontal position. */
-    x: number;
+    get x(): number;
+
+    set x(value: number);
 
     /** Vertical position. */
-    y: number;
+    get y(): number;
+
+    set y(value: number);
 
     private constructor();
 
@@ -803,10 +805,14 @@ export class Circle {
     private [" "]: 'rustdoc_test_crate::Circle';
 
     /** The center point. */
-    center: Point;
+    get center(): Point;
+
+    set center(value: Point | Point.Init);
 
     /** The radius in the same units as `center`. */
-    radius: number;
+    get radius(): number;
+
+    set radius(value: number);
 
     private constructor();
 
@@ -828,7 +834,7 @@ export namespace Circle {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":";aAEA;;;;IAEI;;;IAEA;;;;WAJJ;;;;iBAAA;;;QAEI;;QAEA;;;;;aAIJ;;;;IAEI;;;IAEA;;;;WAJJ;;;;iBAAA;;;QAEI;;QAEA"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":";aAEA;;;;IAEI;;IAAA;;;IAEA;;IAAA;;;;WAJJ;;;;iBAAA;;;QAEI;;QAEA;;;;;aAIJ;;;;IAEI;;IAAA;;;IAEA;;IAAA;;;;WAJJ;;;;iBAAA;;;QAEI;;QAEA"}
 ```
 
 # js-wasm

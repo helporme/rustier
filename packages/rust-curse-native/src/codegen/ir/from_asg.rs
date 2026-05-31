@@ -374,15 +374,28 @@ impl<'a> Lowerer<'a> {
                     }
                     let fn_def = self.asg.get_fn_unchecked(fid).clone();
 
-                    // Field shadow -> warn + drop.
                     if let Some(name) = fn_def.path.name() {
+                        let parent = path.name().unwrap_or("?").to_string();
                         if field_names.contains(name) {
-                            let parent = path.name().unwrap_or("?").to_string();
                             self.warns.push(attach_span(
                                 warn_method_shadows_field(&parent, name),
                                 &fn_def.span,
                             ));
                             continue;
+                        }
+                        if let Some(field) = name.strip_prefix("set_") {
+                            let setter_suppressed = self
+                                .suppressed_setters
+                                .get(&sid)
+                                .map(|s| s.contains(field))
+                                .unwrap_or(false);
+                            if field_names.contains(field) && !setter_suppressed {
+                                self.warns.push(attach_span(
+                                    warn_method_shadows_setter(&parent, name, field),
+                                    &fn_def.span,
+                                ));
+                                continue;
+                            }
                         }
                     }
 
@@ -1044,6 +1057,16 @@ fn warn_method_shadows_field(parent: &str, name: &str) -> Warn {
     Warn::new(
         "rust-curse::method_shadows_field",
         format!("method \"{parent}::{name}\" shadows the field \"{name}\"; skipping the method."),
+    )
+    .help("rename the method or the field to avoid the collision.")
+}
+
+fn warn_method_shadows_setter(parent: &str, name: &str, field: &str) -> Warn {
+    Warn::new(
+        "rust-curse::method_shadows_field_setter",
+        format!(
+            "method \"{parent}::{name}\" collides with the generated setter for field \"{field}\"; skipping the method."
+        ),
     )
     .help("rename the method or the field to avoid the collision.")
 }

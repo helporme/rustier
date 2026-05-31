@@ -498,7 +498,9 @@ export class Token {
     private [" "]: 'rustdoc_test_crate::types::Token';
 
     /** The raw token string. */
-    value: string;
+    get value(): string;
+
+    set value(value: string);
 
     private constructor();
 }
@@ -517,7 +519,7 @@ export function parse(s: string): Token;
 {"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
 
 // src/types.rs.d.ts.map
-{"version":3,"file":"types.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":";aAEI;;;;IAEI"}
+{"version":3,"file":"types.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":";aAEI;;;;IAEI;;IAAA"}
 
 // src/ops.rs.d.ts.map
 {"version":3,"file":"ops.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":";;;gBASI"}

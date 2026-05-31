@@ -474,9 +474,13 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Point<'a>(
 export class Point {
     private [" "]: 'rustdoc_test_crate::Point';
 
-    x: number;
+    get x(): number;
 
-    y: number;
+    set x(value: number);
+
+    get y(): number;
+
+    set y(value: number);
 
     private constructor();
 }
@@ -486,7 +490,7 @@ export class Point {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA;;;IACI;;IACA"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA;;;IACI;;IAAA;;IACA;;IAAA"}
 ```
 
 # js-wasm

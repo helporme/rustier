@@ -614,9 +614,13 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Circle<'a>(
 export class Point {
     private [" "]: 'rustdoc_test_crate::Point';
 
-    x: number;
+    get x(): number;
 
-    y: number;
+    set x(value: number);
+
+    get y(): number;
+
+    set y(value: number);
 
     private constructor();
 }
@@ -624,9 +628,11 @@ export class Point {
 export class Circle {
     private [" "]: 'rustdoc_test_crate::Circle';
 
-    readonly center: Point;
+    get center(): Point;
 
-    radius: number;
+    get radius(): number;
+
+    set radius(value: number);
 
     private constructor();
 }
@@ -636,7 +642,7 @@ export class Circle {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA;;;IACI;;IACA;;;;;aAEJ;;;aACI;;IACA"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA;;;IACI;;IAAA;;IACA;;IAAA;;;;;aAEJ;;;IACI;;IACA;;IAAA"}
 ```
 
 # js-wasm

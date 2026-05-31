@@ -651,6 +651,8 @@ export declare const Value: {
 export declare namespace Value {
     export interface Instance {
         readonly [" "]: 'rustdoc_test_crate::Value';
+        get data(): number | undefined;
+        set data(value: number);
     }
 
     export type Init =
@@ -672,7 +674,7 @@ export declare namespace Value {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"YACA;;qBAAA;;IAAA;;;yBAAA;;;;;;;cACI;cAAI;;;cACJ;cAAI;;;cACJ"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"YACA;;qBAAA;;IAAA;;;yBAAA;;;;;;;;;cACI;cAAI;;;cACJ;cAAI;;;cACJ"}
 ```
 
 # js-wasm

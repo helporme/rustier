@@ -696,6 +696,10 @@ export declare const Event: {
 export declare namespace Event {
     export interface Instance {
         readonly [" "]: 'rustdoc_test_crate::Event';
+        get type(): string;
+        set type(value: string);
+        get x(): number;
+        set x(value: number);
     }
 
     export type Init =
@@ -711,7 +715,7 @@ export declare namespace Event {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"YACA;;qBAAA;;IAAA;;;yBAAA;;;;;;;cACI;cAAQ;cAAgB"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"YACA;;qBAAA;;IAAA;;;yBAAA;;;;;;;;;;;cACI;cAAQ;cAAgB"}
 ```
 
 # js-wasm

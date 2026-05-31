@@ -493,7 +493,9 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Box<'a>(
 export class Box {
     private [" "]: 'rustdoc_test_crate::Box';
 
-    width: number;
+    get width(): number;
+
+    set width(value: number);
 
     private constructor();
 
@@ -513,7 +515,7 @@ export namespace Box {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;;;WADJ;;WAII;;;iBAJJ;;QACI"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IAAA;;;;WADJ;;WAII;;;iBAJJ;;QACI"}
 ```
 
 # js-wasm

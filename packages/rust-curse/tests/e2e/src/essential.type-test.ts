@@ -1,25 +1,36 @@
 import { describe, expectTypeOf, it } from 'vitest'
+import dtsText from '../.rust-curse/types/src/essential.rs.d.ts?raw'
 import * as essential from './essential.rs'
 import {
   Bigs,
   Builder,
+  Element,
+  EnumWithNew,
+  EnumWithOf,
+  Event,
+  Hitbox,
+  Inner,
   Line,
   MutSelfNew,
   NewAndOf,
   NoClone,
+  Outer,
   Other,
   Point,
   Primitives,
   SelfNew,
   StaticNew,
   Triangle,
+  UnitMix,
   Wrapper,
   add,
+  bump_cc,
   nudge,
   origin,
   shift_copy,
   shout,
   tick,
+  use_inner,
 } from './essential.rs'
 
 describe('Point', () => {
@@ -83,6 +94,25 @@ describe('Line', () => {
   it('user of() keeps its signature', () => {
     expectTypeOf(Line.of).parameter(0).toEqualTypeOf<Point | Point.Init>()
     expectTypeOf(Line.of).returns.toEqualTypeOf<Line>()
+  })
+
+  it('class field setter accepts a class instance or a nested Init literal', () => {
+    const line = Line.from(new Point(1, 1), new Point(2, 2))
+    line.start = { x: 7, y: 8 }
+    line.start = Point.of({ x: 9, y: 10 })
+    line.end = new Point(0, 0)
+  })
+
+  it('class field read stays the precise class type', () => {
+    const line = Line.from(new Point(1, 1), new Point(2, 2))
+    expectTypeOf(line.start).toEqualTypeOf<Point>()
+    line.start.scale(2)
+  })
+
+  it('class field setter rejects an unrelated value', () => {
+    const line = Line.from(new Point(1, 1), new Point(2, 2))
+    // @ts-expect-error start expects a Point or Point.Init
+    line.start = 'nope'
   })
 })
 
@@ -229,5 +259,103 @@ describe('negative contracts', () => {
     expectTypeOf(NoClone).toBeConstructibleWith(1)
     // @ts-expect-error NoClone is not struct-expressible
     NoClone.of
+  })
+})
+
+describe('data enums', () => {
+  it('Init is a discriminated union on type', () => {
+    expectTypeOf<Inner.Init>().toEqualTypeOf<
+      { readonly type: 'on'; level: number } | { readonly type: 'off' }
+    >()
+  })
+
+  it('generated enum wrapper shape is pinned', () => {
+    expectTypeOf(dtsText).toBeString()
+  })
+
+  it('.of accepts Init and returns the class', () => {
+    expectTypeOf(Inner.of).parameter(0).toEqualTypeOf<Inner.Init>()
+    expectTypeOf(Inner.of).returns.toEqualTypeOf<Inner>()
+  })
+
+  it('non-Clone enum has no generated of', () => {
+    expectTypeOf<typeof essential.NonCloneState>().not.toHaveProperty('of')
+  })
+
+  it('new constructor is typed', () => {
+    expectTypeOf(EnumWithNew).toBeConstructibleWith(1)
+    expectTypeOf(EnumWithNew).constructorParameters.toEqualTypeOf<[number]>()
+  })
+
+  it('an enum without new is not constructible', () => {
+    // @ts-expect-error Inner has no public constructor
+    new Inner({ type: 'on', level: 1 })
+  })
+
+  it('inherent method types', () => {
+    expectTypeOf(Inner.prototype.level_or_zero).returns.toBeNumber()
+    expectTypeOf(Inner.prototype.switch_off).parameters.toEqualTypeOf<[]>()
+    expectTypeOf(Inner.on).returns.toEqualTypeOf<Inner>()
+    // @ts-expect-error set_level collides with the level setter and is dropped
+    Inner.prototype.set_level
+  })
+
+  it('struct field init type', () => {
+    const init: Hitbox.Init = { type: 'active', mesh: { x: 1 } }
+    expectTypeOf(init).toMatchTypeOf<Hitbox.Init>()
+    const h = Hitbox.of({ type: 'active', mesh: { x: 1 } })
+    if (h.type === 'active') {
+      // The narrowed read type is `Mesh | (Mesh & Mesh.Init)` because `Mesh` is
+      // a nominal class (unlike an enum child, it does not collapse). Pin that
+      // it is exactly a `Mesh` and carries no `undefined` via assignment.
+      const mesh: essential.Mesh = h.mesh
+      expectTypeOf(mesh).toEqualTypeOf<essential.Mesh>()
+    }
+  })
+
+  it('enum field init type', () => {
+    const init: Outer.Init = { type: 'has', inner: { type: 'on', level: 1 } }
+    expectTypeOf(init).toMatchTypeOf<Outer.Init>()
+    const o = Outer.of({ type: 'has', inner: { type: 'on', level: 1 } })
+    if (o.type === 'has') {
+      expectTypeOf(o.inner).toEqualTypeOf<Inner>()
+    }
+  })
+
+  it('unit and empty variant types', () => {
+    expectTypeOf<Extract<UnitMix.Init, { type: 'empty' }>>().toEqualTypeOf<{
+      readonly type: 'empty'
+    }>()
+    expectTypeOf<Extract<UnitMix.Init, { type: 'unit' }>>().toEqualTypeOf<{
+      readonly type: 'unit'
+    }>()
+  })
+
+  it('discriminator escaping for a field named type', () => {
+    const init: Event.Init = { $type: 'click', type: 'mouse', x: 1 }
+    expectTypeOf(init).toMatchTypeOf<Event.Init>()
+    expectTypeOf<
+      Extract<Event.Init, { $type: 'click' }>['type']
+    >().toBeString()
+  })
+
+  it('discriminator escaping for a method named type', () => {
+    const init: Element.Init = { $type: 'tag', id: 1 }
+    expectTypeOf(init).toMatchTypeOf<Element.Init>()
+    expectTypeOf(Element.prototype.type).returns.toBeNumber()
+  })
+
+  it('user of collision keeps the escaped generated factory', () => {
+    expectTypeOf(EnumWithOf.of).parameter(0).toBeNumber()
+    expectTypeOf(EnumWithOf.of).returns.toBeNumber()
+    expectTypeOf(EnumWithOf.of$).parameter(0).toEqualTypeOf<EnumWithOf.Init>()
+    expectTypeOf(EnumWithOf.of$).returns.toEqualTypeOf<EnumWithOf>()
+  })
+
+  it('by-ref versus by-value parameter types', () => {
+    expectTypeOf(bump_cc).parameter(0).toEqualTypeOf<essential.CloneCounted>()
+    expectTypeOf(use_inner).parameter(0).toEqualTypeOf<Inner | Inner.Init>()
+    // @ts-expect-error take_state is dropped for the non-Clone enum
+    essential.take_state
   })
 })

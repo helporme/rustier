@@ -534,7 +534,9 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Counter<'a>(
 export class Counter {
     private [" "]: 'rustdoc_test_crate::Counter';
 
-    count: number;
+    get count(): number;
+
+    set count(value: number);
 
     private constructor();
 
@@ -554,7 +556,7 @@ export namespace Counter {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;;;WADJ;;IAII;;;iBAJJ;;QACI"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IAAA;;;;WADJ;;IAII;;;iBAJJ;;QACI"}
 ```
 
 # js-wasm

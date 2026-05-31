@@ -677,6 +677,8 @@ export declare const E: {
 export declare namespace E {
     export interface Instance {
         readonly [" "]: 'rustdoc_test_crate::E';
+        get level(): number | undefined;
+        set level(value: number);
         describe(): string;
     }
 
@@ -695,7 +697,7 @@ export declare namespace E {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"YACA;;qBAAA;;IAKI;IALJ;;;yBAAA;;;QAQI;;;;;cAPA;cAAK;;;cACL"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"YACA;;qBAAA;;IAKI;IALJ;;;yBAAA;;;;;QAQI;;;;;cAPA;cAAK;;;cACL"}
 ```
 
 # js-wasm

@@ -451,7 +451,9 @@ export { Inner } from "./inner.rs";
 export class Inner {
     private [" "]: 'rustdoc_test_crate::inner::Inner';
 
-    x: number;
+    get x(): number;
+
+    set x(value: number);
 
     private constructor();
 }
@@ -467,7 +469,7 @@ export { Inner } from "./inner.rs";
 {"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
 
 // src/inner.rs.d.ts.map
-{"version":3,"file":"inner.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACI;;;IACI"}
+{"version":3,"file":"inner.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACI;;;IACI;;IAAA"}
 
 // src/middle.rs.d.ts.map
 {"version":3,"file":"middle.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}

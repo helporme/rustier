@@ -559,7 +559,9 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__NotCloneable<'a>(
 export class Cloneable {
     private [" "]: 'rustdoc_test_crate::Cloneable';
 
-    x: number;
+    get x(): number;
+
+    set x(value: number);
 
     private constructor();
 
@@ -575,7 +577,9 @@ export namespace Cloneable {
 export class NotCloneable {
     private [" "]: 'rustdoc_test_crate::NotCloneable';
 
-    x: number;
+    get x(): number;
+
+    set x(value: number);
 
     private constructor();
 }
@@ -585,7 +589,7 @@ export class NotCloneable {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;;;WADJ;;;iBAAA;;QACI;;;;aAEJ;;;IACI"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IAAA;;;;WADJ;;;iBAAA;;QACI;;;;aAEJ;;;IACI;;IAAA"}
 ```
 
 # js-wasm

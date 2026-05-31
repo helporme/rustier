@@ -318,13 +318,12 @@ impl __cursed_rustdoc_test_crate__Line {
     #[wasm_bindgen(setter, js_name = "start")]
     pub fn __cursed_set__start(
         &mut self,
-        __cursed_arg__start: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__start: JsValue,
     ) -> Result<(), JsValue> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__start
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__start)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__start
             .as_ref()
@@ -372,13 +371,12 @@ impl __cursed_rustdoc_test_crate__Line {
     #[wasm_bindgen(setter, js_name = "end")]
     pub fn __cursed_set__end(
         &mut self,
-        __cursed_arg__end: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__end: JsValue,
     ) -> Result<(), JsValue> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__end
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__end)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__end
             .as_ref()
@@ -476,15 +474,11 @@ impl __cursed_rustdoc_test_crate__Triangle {
         }
     }
     #[wasm_bindgen(setter, js_name = "a")]
-    pub fn __cursed_set__a(
-        &mut self,
-        __cursed_arg__a: &__cursed_rustdoc_test_crate__Line,
-    ) -> Result<(), JsValue> {
-        let mut __cursed_new_val: Option<crate::Line> = None;
-        __cursed_arg__a
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+    pub fn __cursed_set__a(&mut self, __cursed_arg__a: JsValue) -> Result<(), JsValue> {
+        let mut __cursed_new_val: Option<crate::Line> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Line(__cursed_arg__a)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__a
             .as_ref()
@@ -530,15 +524,11 @@ impl __cursed_rustdoc_test_crate__Triangle {
         }
     }
     #[wasm_bindgen(setter, js_name = "b")]
-    pub fn __cursed_set__b(
-        &mut self,
-        __cursed_arg__b: &__cursed_rustdoc_test_crate__Point,
-    ) -> Result<(), JsValue> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__b
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+    pub fn __cursed_set__b(&mut self, __cursed_arg__b: JsValue) -> Result<(), JsValue> {
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__b)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__b
             .as_ref()
@@ -889,13 +879,12 @@ impl __cursed_rustdoc_test_crate__Line {
     #[napi(setter, js_name = "start")]
     pub fn __cursed_set__start(
         &mut self,
-        __cursed_arg__start: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__start: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__start
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__start)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__start
             .as_ref()
@@ -943,13 +932,12 @@ impl __cursed_rustdoc_test_crate__Line {
     #[napi(setter, js_name = "end")]
     pub fn __cursed_set__end(
         &mut self,
-        __cursed_arg__end: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__end: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__end
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__end)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__end
             .as_ref()
@@ -1059,13 +1047,12 @@ impl __cursed_rustdoc_test_crate__Triangle {
     #[napi(setter, js_name = "a")]
     pub fn __cursed_set__a(
         &mut self,
-        __cursed_arg__a: &__cursed_rustdoc_test_crate__Line,
+        __cursed_arg__a: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
-        let mut __cursed_new_val: Option<crate::Line> = None;
-        __cursed_arg__a
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Line> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Line(__cursed_arg__a)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__a
             .as_ref()
@@ -1113,13 +1100,12 @@ impl __cursed_rustdoc_test_crate__Triangle {
     #[napi(setter, js_name = "b")]
     pub fn __cursed_set__b(
         &mut self,
-        __cursed_arg__b: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__b: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__b
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__b)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__b
             .as_ref()
@@ -1184,9 +1170,13 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Triangle<'a>(
 export class Point {
     private [" "]: 'rustdoc_test_crate::Point';
 
-    x: number;
+    get x(): number;
 
-    y: number;
+    set x(value: number);
+
+    get y(): number;
+
+    set y(value: number);
 
     private constructor();
 
@@ -1203,9 +1193,13 @@ export namespace Point {
 export class Line {
     private [" "]: 'rustdoc_test_crate::Line';
 
-    start: Point;
+    get start(): Point;
 
-    end: Point;
+    set start(value: Point | Point.Init);
+
+    get end(): Point;
+
+    set end(value: Point | Point.Init);
 
     private constructor();
 
@@ -1222,9 +1216,13 @@ export namespace Line {
 export class Triangle {
     private [" "]: 'rustdoc_test_crate::Triangle';
 
-    a: Line;
+    get a(): Line;
 
-    b: Point;
+    set a(value: Line | Line.Init);
+
+    get b(): Point;
+
+    set b(value: Point | Point.Init);
 
     private constructor();
 
@@ -1243,7 +1241,7 @@ export namespace Triangle {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IACA;;;;WAFJ;;;iBAAA;;QACI;QACA;;;;aAGJ;;;IACI;;IACA;;;;WAFJ;;;iBAAA;;QACI;QACA;;;;aAGJ;;;IACI;;IACA;;;;WAFJ;;;iBAAA;;QACI;QACA"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IAAA;;IACA;;IAAA;;;;WAFJ;;;iBAAA;;QACI;QACA;;;;aAGJ;;;IACI;;IAAA;;IACA;;IAAA;;;;WAFJ;;;iBAAA;;QACI;QACA;;;;aAGJ;;;IACI;;IAAA;;IACA;;IAAA;;;;WAFJ;;;iBAAA;;QACI;QACA"}
 ```
 
 # js-wasm

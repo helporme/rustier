@@ -515,10 +515,14 @@ export class Point {
     private [" "]: 'rustdoc_test_crate::Point';
 
     /** Horizontal position. */
-    x: number;
+    get x(): number;
+
+    set x(value: number);
 
     /** Vertical position. */
-    y: number;
+    get y(): number;
+
+    set y(value: number);
 
     private constructor();
 }
@@ -531,7 +535,7 @@ export function make_origin(): Point;
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":";aACA;;;;IAEI;;;IAEA;;;;;;gBAGJ"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":";aACA;;;;IAEI;;IAAA;;;IAEA;;IAAA;;;;;;gBAGJ"}
 ```
 
 # js-wasm

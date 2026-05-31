@@ -432,8 +432,18 @@ impl<'a> Printer<'a> {
                     .map(|c| c.tag.clone())
                     .collect::<Vec<_>>(),
             );
+            // Snapshot any live child projection into a standalone cell before
+            // overwriting the parent's field, so handles taken before the
+            // reassignment keep observing the old value (detach-on-reassign).
+            let mut detach_arms = String::new();
+            for c in &cf.carriers {
+                let slot = mangle::variant_cache_field(&c.rust_name, &c.orig_name);
+                detach_arms.push_str(&format!(
+                    "                if let Some(__cursed_cell) = self.{slot}.as_ref().and_then(Weak::upgrade) {{\n                    let __cursed_proj = __cursed_cell.borrow().clone();\n                    let mut __cursed_snap: Option<{child_orig}> = None;\n                    __cursed_proj.with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()))?;\n                    *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap())) as Rc<dyn __cursed::Projection<{child_orig}>>;\n                    self.{slot} = None;\n                }}\n",
+                ));
+            }
             out.push_str(&format!(
-                "    #[napi(setter, js_name = \"{js}\")]\n    pub fn {setter}(&mut self, {arg}: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<()> {{\n        let mut __cursed_active: &'static str = \"\";\n        self.{root}.borrow().with(&mut |__cursed_v| {{ __cursed_active = {tag_match}; }})?;\n        match __cursed_active {{\n            {tags} => {{\n                let __cursed_val: {child_orig} = {child_coerce}({arg})?.into_owned()?;\n                let mut __cursed_new = Some(__cursed_val);\n                self.{root}.borrow().with_mut(&mut |__cursed_v| {{\n                    match __cursed_v {{\n{assign_arms}                        _ => {{}}\n                    }}\n                }})?;\n                Ok(())\n            }}\n            __cursed_other => Err(napi::Error::from_reason(format!(\n                \"cannot set \\\"{js}\\\" on \\\"{enum_js}\\\": active variant is \\\"{{__cursed_other}}\\\", expected {expected}\"\n            ))),\n        }}\n    }}\n",
+                "    #[napi(setter, js_name = \"{js}\")]\n    pub fn {setter}(&mut self, {arg}: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<()> {{\n        let mut __cursed_active: &'static str = \"\";\n        self.{root}.borrow().with(&mut |__cursed_v| {{ __cursed_active = {tag_match}; }})?;\n        match __cursed_active {{\n            {tags} => {{\n                let __cursed_val: {child_orig} = {child_coerce}({arg})?.into_owned()?;\n                let mut __cursed_new = Some(__cursed_val);\n{detach_arms}                self.{root}.borrow().with_mut(&mut |__cursed_v| {{\n                    match __cursed_v {{\n{assign_arms}                        _ => {{}}\n                    }}\n                }})?;\n                Ok(())\n            }}\n            __cursed_other => Err(napi::Error::from_reason(format!(\n                \"cannot set \\\"{js}\\\" on \\\"{enum_js}\\\": active variant is \\\"{{__cursed_other}}\\\", expected {expected}\"\n            ))),\n        }}\n    }}\n",
                 setter = mangle::setter_fn(js),
             ));
         }
@@ -634,8 +644,20 @@ impl<'a> Printer<'a> {
         }
         if field.has_setter {
             let arg = mangle::arg_name(orig);
+            let (param_ty, acquire) = if self.ir.get_class_unchecked(child).struct_expr.is_some() {
+                let child_coerce = format!("__cursed_coerce_{child_mangled}");
+                (
+                        "napi::bindgen_prelude::Unknown<'_>".to_string(),
+                        format!("let mut __cursed_new_val: Option<{child_orig}> = Some({child_coerce}({arg})?.into_owned()?);"),
+                    )
+            } else {
+                (
+                        format!("&{child_mangled}"),
+                        format!("let mut __cursed_new_val: Option<{child_orig}> = None;\n        {arg}.{root}.borrow().with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;"),
+                    )
+            };
             out.push_str(&format!(
-                "    #[napi(setter, js_name = \"{js}\")]\n    pub fn {setter}(&mut self, {arg}: &{child_mangled}) -> napi::Result<()> {{\n        let mut __cursed_new_val: Option<{child_orig}> = None;\n        {arg}.{root}.borrow().with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;\n        if let Some(__cursed_cell) = self.{cache}.as_ref().and_then(Weak::upgrade) {{\n            let __cursed_proj = __cursed_cell.borrow().clone();\n            let mut __cursed_snap: Option<{child_orig}> = None;\n            __cursed_proj.with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()))?;\n            *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap())) as Rc<dyn __cursed::Projection<{child_orig}>>;\n            self.{cache} = None;\n        }}\n        let __cursed_parent = self.{root}.borrow().clone();\n        __cursed_parent.with_mut(&mut |__cursed_p| {{\n            __cursed_p.{orig} = __cursed_new_val.take().unwrap();\n        }})?;\n        Ok(())\n    }}\n",
+                "    #[napi(setter, js_name = \"{js}\")]\n    pub fn {setter}(&mut self, {arg}: {param_ty}) -> napi::Result<()> {{\n        {acquire}\n        if let Some(__cursed_cell) = self.{cache}.as_ref().and_then(Weak::upgrade) {{\n            let __cursed_proj = __cursed_cell.borrow().clone();\n            let mut __cursed_snap: Option<{child_orig}> = None;\n            __cursed_proj.with(&mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()))?;\n            *__cursed_cell.borrow_mut() = Rc::new(RefCell::new(__cursed_snap.unwrap())) as Rc<dyn __cursed::Projection<{child_orig}>>;\n            self.{cache} = None;\n        }}\n        let __cursed_parent = self.{root}.borrow().clone();\n        __cursed_parent.with_mut(&mut |__cursed_p| {{\n            __cursed_p.{orig} = __cursed_new_val.take().unwrap();\n        }})?;\n        Ok(())\n    }}\n",
                 setter = mangle::setter_fn(orig),
             ));
         }
@@ -1090,9 +1112,7 @@ impl<'a> Printer<'a> {
     fn param_call_expr(&self, p: &FnParam) -> String {
         match (&p.ty, &p.mode) {
             (Type::Class(_), ParamMode::ByRef | ParamMode::ByMut) => format!("__cursed_{}", p.name),
-            (Type::Class(_), ParamMode::ByValue) => {
-                format!("{}.clone()", val_local(&p.name))
-            }
+            (Type::Class(_), ParamMode::ByValue) => val_local(&p.name),
             (Type::Primitive(Primitive::Str), _) => format!("&{}", p.name),
             (Type::Primitive(_), ParamMode::ByMut) if p.needs_stash => {
                 format!("&mut {}.take().unwrap()", owned_local(&p.name))

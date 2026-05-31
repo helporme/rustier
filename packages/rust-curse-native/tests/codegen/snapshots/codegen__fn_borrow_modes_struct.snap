@@ -279,7 +279,7 @@ pub fn __cursed_rustdoc_test_crate__translate(
                             crate::translate(
                                 __cursed_origin,
                                 __cursed_target,
-                                __cursed_offset_val.clone(),
+                                __cursed_offset_val,
                             );
                         },
                     );
@@ -562,7 +562,7 @@ pub fn __cursed_rustdoc_test_crate__translate(
                             crate::translate(
                                 __cursed_origin,
                                 __cursed_target,
-                                __cursed_offset_val.clone(),
+                                __cursed_offset_val,
                             );
                         },
                     );
@@ -581,9 +581,13 @@ pub fn __cursed_rustdoc_test_crate__translate(
 export class Point {
     private [" "]: 'rustdoc_test_crate::Point';
 
-    x: number;
+    get x(): number;
 
-    y: number;
+    set x(value: number);
+
+    get y(): number;
+
+    set y(value: number);
 
     private constructor();
 
@@ -604,7 +608,7 @@ export function translate(origin: Point | Point.Init, target: Point, offset: Poi
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IACA;;;;WAFJ;;;iBAAA;;QACI;QACA;;;;gBAEJ"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IAAA;;IACA;;IAAA;;;;WAFJ;;;iBAAA;;QACI;QACA;;;;gBAEJ"}
 ```
 
 # js-wasm

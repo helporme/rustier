@@ -782,6 +782,10 @@ export declare const ProfileBuildOutput: {
 export declare namespace ProfileBuildOutput {
     export interface Instance {
         readonly [" "]: 'rustdoc_test_crate::ProfileBuildOutput';
+        get wasm_abs_path(): string | undefined;
+        set wasm_abs_path(value: string);
+        get node_path(): string | undefined;
+        set node_path(value: string);
     }
 
     export type Init =
@@ -803,7 +807,7 @@ export declare namespace ProfileBuildOutput {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"YACA;;qBAAA;;IAAA;;;yBAAA;;;;;;;cACI;cAAO;;;cACP;cAAO;;;cACP"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"YACA;;qBAAA;;IAAA;;;yBAAA;;;;;;;;;;;cACI;cAAO;;;cACP;cAAO;;;cACP"}
 ```
 
 # js-wasm

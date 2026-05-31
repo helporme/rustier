@@ -443,7 +443,9 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Mixed<'a>(
 export class Mixed {
     private [" "]: 'rustdoc_test_crate::Mixed';
 
-    x: number;
+    get x(): number;
+
+    set x(value: number);
 
     private constructor();
 }
@@ -453,7 +455,7 @@ export class Mixed {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA;;;IACI"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA;;;IACI;;IAAA"}
 ```
 
 # js-wasm

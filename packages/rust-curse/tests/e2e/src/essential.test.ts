@@ -391,11 +391,14 @@ describe('struct projection', () => {
     expect(line.start.x).toBe(9)
   })
 
-  it('reassign field from object literal is rejected', () => {
+  it('reassign field from object literal coerces and reads back', () => {
     const line = Line.from(new Point(1, 1), new Point(2, 2))
-    expect(() => {
-      line.start = { x: 7, y: 8 } as Point
-    }).toThrow()
+    line.start = { x: 7, y: 8 }
+    expect(line.start.x).toBe(7)
+    expect(line.start.y).toBe(8)
+    line.start = Point.of({ x: 9, y: 10 })
+    expect(line.start.x).toBe(9)
+    expect(line.start.y).toBe(10)
   })
 
   it('aliased write does not panic', () => {
@@ -518,7 +521,6 @@ describe('coercion', () => {
     expect(xReads).toBe(1)
     expect(yReads).toBe(1)
   })
-
 })
 
 describe('functions', () => {
@@ -655,9 +657,9 @@ describe('skipped and unsupported', () => {
 
   it('all-unit enum skipped', () => {
     expect((essential as Record<string, unknown>).Color).toBeUndefined()
-    expect(
-      hasWarn('rust-curse::enum_all_unit_unsupported', 'all-unit'),
-    ).toBe(true)
+    expect(hasWarn('rust-curse::enum_all_unit_unsupported', 'all-unit')).toBe(
+      true,
+    )
   })
 
   it('fn returning unsupported type is absent', () => {
@@ -931,6 +933,18 @@ describe('target differences', () => {
       target === 'wasm' ? ['__wbg_ptr'] : [],
     )
   })
+
+  it('by-value enum coercion clones on node but rebuilds on wasm', () => {
+    const cc = new CloneCounted(3)
+    reset_enum_clones()
+    expect(take_cc(cc)).toBe(3)
+    // node coerces a live instance through a fast path that clones the value
+    // once; wasm-bindgen exposes no instance cast, so the coercer rebuilds the
+    // value from its JS fields and never invokes Clone. Either way the original
+    // stays an independent, unchanged handle.
+    expect(enum_clone_count()).toBe(target === 'wasm' ? 0 : 1)
+    expect(cc.value()).toBe(3)
+  })
 })
 
 describe('warnings', () => {
@@ -1055,9 +1069,9 @@ describe('data enums', () => {
 
   it('shared field name with mismatched types is unsupported', () => {
     expect((essential as Record<string, unknown>).SharedBad).toBeUndefined()
-    expect(
-      hasWarn('rust-curse::enum_shared_field_type_mismatch', 'data'),
-    ).toBe(true)
+    expect(hasWarn('rust-curse::enum_shared_field_type_mismatch', 'data')).toBe(
+      true,
+    )
   })
 
   it('variant tag collision is unsupported', () => {
@@ -1107,62 +1121,59 @@ describe('data enums', () => {
     const fromInstance = Hitbox.of({ type: 'active', mesh: Mesh.of({ x: 1 }) })
     expect(fromInstance.type).toBe('active')
     expect(fromInstance.mesh).toBeInstanceOf(Mesh)
-    expect(fromInstance.mesh.x).toBe(1)
+    expect(fromInstance.mesh!.x).toBe(1)
     const fromLiteral = Hitbox.of({ type: 'active', mesh: { x: 1 } })
     expect(fromLiteral.mesh).toBeInstanceOf(Mesh)
-    expect(fromLiteral.mesh.x).toBe(1)
+    expect(fromLiteral.mesh!.x).toBe(1)
   })
 
   it('mutates a projected struct field through the enum', () => {
     const hitbox = Hitbox.of({ type: 'active', mesh: { x: 1 } })
-    hitbox.mesh.x = 9
-    expect(hitbox.mesh.x).toBe(9)
+    hitbox.mesh!.x = 9
+    expect(hitbox.mesh!.x).toBe(9)
   })
 
   it('detaches a struct field on reassignment', () => {
     const hitbox = Hitbox.of({ type: 'active', mesh: { x: 1 } })
-    const old = hitbox.mesh
+    const old = hitbox.mesh!
     hitbox.mesh = Mesh.of({ x: 2 })
     old.x = 5
-    expect(hitbox.mesh.x).toBe(2)
+    expect(hitbox.mesh!.x).toBe(2)
   })
 
-  it('assigning a struct field from an object literal is target-specific', () => {
+  it('assigns a struct field from an object literal on every backend', () => {
     const hitbox = Hitbox.of({ type: 'active', mesh: { x: 1 } })
-    const assign = () => {
-      hitbox.mesh = { x: 2 } as Mesh
-    }
-    if (target === 'wasm') {
-      expect(assign).toThrow()
-    } else {
-      expect(assign).not.toThrow()
-    }
+    hitbox.mesh = { x: 2 }
+    expect(hitbox.mesh).toBeInstanceOf(Mesh)
+    expect(hitbox.mesh!.x).toBe(2)
+    hitbox.mesh = Mesh.of({ x: 3 })
+    expect(hitbox.mesh!.x).toBe(3)
   })
 
   it('constructs an enum with an enum field', () => {
     const fromInstance = Outer.of({ type: 'has', inner: Inner.on(1) })
-    expect(fromInstance.inner.type).toBe('on')
-    expect(fromInstance.inner.level_or_zero()).toBe(1)
+    expect(fromInstance.inner!.type).toBe('on')
+    expect(fromInstance.inner!.level_or_zero()).toBe(1)
     const fromLiteral = Outer.of({
       type: 'has',
       inner: { type: 'on', level: 1 },
     })
-    expect(fromLiteral.inner.type).toBe('on')
-    expect(fromLiteral.inner.level_or_zero()).toBe(1)
+    expect(fromLiteral.inner!.type).toBe('on')
+    expect(fromLiteral.inner!.level_or_zero()).toBe(1)
   })
 
   it('mutates a projected enum field through the enum', () => {
     const outer = Outer.of({ type: 'has', inner: { type: 'on', level: 1 } })
-    outer.inner.set_level(5)
-    expect(outer.inner.level_or_zero()).toBe(5)
+    ;(outer.inner as unknown as { level: number }).level = 5
+    expect(outer.inner!.level_or_zero()).toBe(5)
   })
 
   it('detaches an enum field on reassignment', () => {
     const outer = Outer.of({ type: 'has', inner: { type: 'on', level: 1 } })
-    const oldInner = outer.inner
+    const oldInner = outer.inner!
     outer.inner = Inner.of({ type: 'on', level: 9 })
-    oldInner.set_level(3)
-    expect(outer.inner.level_or_zero()).toBe(9)
+    ;(oldInner as unknown as { level: number }).level = 3
+    expect(outer.inner!.level_or_zero()).toBe(9)
   })
 
   it('replaces the active variant from a &mut self method', () => {
@@ -1183,21 +1194,24 @@ describe('data enums', () => {
   it('exposes inherent functions on enums', () => {
     const on = Inner.on(2)
     expect(on.level_or_zero()).toBe(2)
-    on.set_level(7)
+    ;(on as unknown as { level: number }).level = 7
     expect(on.level_or_zero()).toBe(7)
     on.switch_off()
     expect(on.type).toBe('off')
   })
 
+  it('drops a method that collides with a generated field setter', () => {
+    expect('set_level' in Inner.prototype).toBe(false)
+    expect(
+      hasWarn('rust-curse::method_shadows_field_setter', 'Inner::set_level'),
+    ).toBe(true)
+  })
+
   it('validates .of discriminators', () => {
     expect(Inner.of({ type: 'on', level: 1 }).type).toBe('on')
     expect(() => Inner.of({} as Inner.Init)).toThrow()
-    expect(() =>
-      Inner.of({ type: 'nope' } as unknown as Inner.Init),
-    ).toThrow()
-    expect(() =>
-      Inner.of({ type: 'on' } as unknown as Inner.Init),
-    ).toThrow()
+    expect(() => Inner.of({ type: 'nope' } as unknown as Inner.Init)).toThrow()
+    expect(() => Inner.of({ type: 'on' } as unknown as Inner.Init)).toThrow()
     const extra = Inner.of({ type: 'on', level: 1, z: 9 } as Inner.Init)
     expect(extra.level_or_zero()).toBe(1)
   })
@@ -1247,9 +1261,7 @@ describe('data enums', () => {
     }).toThrow()
 
     const disabled = Hitbox.of({ type: 'disabled' })
-    expect(
-      (disabled as unknown as { mesh: unknown }).mesh,
-    ).toBeUndefined()
+    expect((disabled as unknown as { mesh: unknown }).mesh).toBeUndefined()
     expect(() => {
       ;(disabled as unknown as { mesh: Mesh }).mesh = Mesh.of({ x: 1 })
     }).toThrow()
@@ -1277,14 +1289,14 @@ describe('data enums', () => {
   })
 
   it('passing a Clone enum by reference does not clone', () => {
-    const cc = CloneCounted.new(1)
+    const cc = new CloneCounted(1)
     reset_enum_clones()
     expect(read_cc(cc)).toBe(1)
     expect(enum_clone_count()).toBe(0)
   })
 
   it('passing a Clone enum by mutable reference does not clone', () => {
-    const cc = CloneCounted.new(1)
+    const cc = new CloneCounted(1)
     reset_enum_clones()
     bump_cc(cc, 1)
     expect(enum_clone_count()).toBe(0)
@@ -1298,14 +1310,6 @@ describe('data enums', () => {
     expect(out.value()).toBe(5)
   })
 
-  it('passing a Clone enum by value clones', () => {
-    const cc = CloneCounted.new(3)
-    reset_enum_clones()
-    expect(take_cc(cc)).toBe(3)
-    expect(enum_clone_count()).toBe(1)
-    expect(cc.value()).toBe(3)
-  })
-
   it('passes a Clone enum init literal by value', () => {
     expect(use_inner({ type: 'on', level: 1 })).toBe(1)
   })
@@ -1316,7 +1320,7 @@ describe('data enums', () => {
   })
 })
 
-describe('edge cases', () => {
+describe('edge cases (unsorted)', () => {
   it('named empty struct builds through .of({})', () => {
     expect(Empty.of({})).toBeInstanceOf(Empty)
   })

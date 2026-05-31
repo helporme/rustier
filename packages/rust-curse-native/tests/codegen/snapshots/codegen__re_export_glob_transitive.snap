@@ -451,7 +451,9 @@ export { X } from "./deeper.rs";
 export class X {
     private [" "]: 'rustdoc_test_crate::deeper::X';
 
-    x: number;
+    get x(): number;
+
+    set x(value: number);
 
     private constructor();
 }
@@ -467,7 +469,7 @@ export { X } from "./deeper.rs";
 {"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
 
 // src/deeper.rs.d.ts.map
-{"version":3,"file":"deeper.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACI;;;IACI"}
+{"version":3,"file":"deeper.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACI;;;IACI;;IAAA"}
 
 // src/inner.rs.d.ts.map
 {"version":3,"file":"inner.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}

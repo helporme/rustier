@@ -1049,6 +1049,20 @@ fn enum_data_class_typed_variant_field() {
 }
 
 #[test]
+fn enum_data_class_field_getter_only() {
+    // `Mesh` is not `Clone`, so the class-typed variant field's setter is
+    // suppressed and only the getter is declared.
+    assert_snap! {
+        pub struct Mesh { pub x: f64 }
+
+        pub enum Hitbox {
+            Active { mesh: Mesh },
+            Disabled,
+        }
+    };
+}
+
+#[test]
 fn enum_data_zero_field_struct_variant() {
     // `Empty {}` is struct-shaped (NOT a unit), so it surfaces as
     // `{ type: 'empty' }` and its match arm is spelled `E::Empty { .. }`,

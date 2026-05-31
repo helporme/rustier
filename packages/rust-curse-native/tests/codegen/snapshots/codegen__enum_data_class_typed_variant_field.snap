@@ -352,6 +352,22 @@ impl __cursed_rustdoc_test_crate__Hitbox {
                     )?
                     .into_owned()?;
                 let mut __cursed_new = Some(__cursed_val);
+                if let Some(__cursed_cell) = self
+                    .__cursed_cache_Active__mesh
+                    .as_ref()
+                    .and_then(Weak::upgrade)
+                {
+                    let __cursed_proj = __cursed_cell.borrow().clone();
+                    let mut __cursed_snap: Option<crate::Mesh> = None;
+                    __cursed_proj
+                        .with(
+                            &mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()),
+                        )?;
+                    *__cursed_cell.borrow_mut() = Rc::new(
+                        RefCell::new(__cursed_snap.unwrap()),
+                    ) as Rc<dyn __cursed::Projection<crate::Mesh>>;
+                    self.__cursed_cache_Active__mesh = None;
+                }
                 self.__cursed_root
                     .borrow()
                     .with_mut(
@@ -763,6 +779,22 @@ impl __cursed_rustdoc_test_crate__Hitbox {
                     )?
                     .into_owned()?;
                 let mut __cursed_new = Some(__cursed_val);
+                if let Some(__cursed_cell) = self
+                    .__cursed_cache_Active__mesh
+                    .as_ref()
+                    .and_then(Weak::upgrade)
+                {
+                    let __cursed_proj = __cursed_cell.borrow().clone();
+                    let mut __cursed_snap: Option<crate::Mesh> = None;
+                    __cursed_proj
+                        .with(
+                            &mut |__cursed_p| __cursed_snap = Some(__cursed_p.clone()),
+                        )?;
+                    *__cursed_cell.borrow_mut() = Rc::new(
+                        RefCell::new(__cursed_snap.unwrap()),
+                    ) as Rc<dyn __cursed::Projection<crate::Mesh>>;
+                    self.__cursed_cache_Active__mesh = None;
+                }
                 self.__cursed_root
                     .borrow()
                     .with_mut(
@@ -837,7 +869,9 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Hitbox<'a>(
 export class Mesh {
     private [" "]: 'rustdoc_test_crate::Mesh';
 
-    x: number;
+    get x(): number;
+
+    set x(value: number);
 
     private constructor();
 
@@ -860,6 +894,8 @@ export declare const Hitbox: {
 export declare namespace Hitbox {
     export interface Instance {
         readonly [" "]: 'rustdoc_test_crate::Hitbox';
+        get mesh(): Mesh | undefined;
+        set mesh(value: Mesh | Mesh.Init);
     }
 
     export type Init =
@@ -877,7 +913,7 @@ export declare namespace Hitbox {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;;;WADJ;;;iBAAA;;QACI;;;;YAGJ;;qBAAA;;IAAA;;;yBAAA;;;;;;;cACI;cAAS;;;cACT"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IAAA;;;;WADJ;;;iBAAA;;QACI;;;;YAGJ;;qBAAA;;IAAA;;;yBAAA;;;;;;;;;cACI;cAAS;;;cACT"}
 ```
 
 # js-wasm

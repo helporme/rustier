@@ -291,15 +291,11 @@ impl __cursed_rustdoc_test_crate__Wrapper {
         }
     }
     #[wasm_bindgen(setter, js_name = "p")]
-    pub fn __cursed_set__p(
-        &mut self,
-        __cursed_arg__p: &__cursed_rustdoc_test_crate__Point,
-    ) -> Result<(), JsValue> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__p
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+    pub fn __cursed_set__p(&mut self, __cursed_arg__p: JsValue) -> Result<(), JsValue> {
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__p)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__p
             .as_ref()
@@ -339,7 +335,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Wrapper(
 pub fn __cursed_rustdoc_test_crate__take(p: JsValue) -> Result<(), JsValue> {
     let __cursed_co_p = __cursed_coerce___cursed_rustdoc_test_crate__Point(p)?;
     let __cursed_p_val = __cursed_co_p.into_owned()?;
-    crate::take(__cursed_p_val.clone());
+    crate::take(__cursed_p_val);
     Ok(())
 }
 /// fn glue for `crate::produce`
@@ -641,13 +637,12 @@ impl __cursed_rustdoc_test_crate__Wrapper {
     #[napi(setter, js_name = "p")]
     pub fn __cursed_set__p(
         &mut self,
-        __cursed_arg__p: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__p: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__p
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__p)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__p
             .as_ref()
@@ -701,7 +696,7 @@ pub fn __cursed_rustdoc_test_crate__take(
 ) -> napi::Result<()> {
     let __cursed_co_p = __cursed_coerce___cursed_rustdoc_test_crate__Point(p)?;
     let __cursed_p_val = __cursed_co_p.into_owned()?;
-    crate::take(__cursed_p_val.clone());
+    crate::take(__cursed_p_val);
     Ok(())
 }
 /// fn glue for `crate::produce`
@@ -728,9 +723,13 @@ pub fn __cursed_rustdoc_test_crate__produce() -> napi::Result<
 export class Point {
     private [" "]: 'rustdoc_test_crate::Point';
 
-    x: number;
+    get x(): number;
 
-    y: number;
+    set x(value: number);
+
+    get y(): number;
+
+    set y(value: number);
 
     private constructor();
 
@@ -747,7 +746,9 @@ export namespace Point {
 export class Wrapper {
     private [" "]: 'rustdoc_test_crate::Wrapper';
 
-    p: Point;
+    get p(): Point;
+
+    set p(value: Point | Point.Init);
 
     private constructor();
 }
@@ -761,7 +762,7 @@ export function produce(): Point;
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IACA;;;;WAFJ;;;iBAAA;;QACI;QACA;;;;aAEJ;;;IACI;;;;;gBAEJ;;gBACA"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IAAA;;IACA;;IAAA;;;;WAFJ;;;iBAAA;;QACI;QACA;;;;aAEJ;;;IACI;;IAAA;;;;;gBAEJ;;gBACA"}
 ```
 
 # js-wasm

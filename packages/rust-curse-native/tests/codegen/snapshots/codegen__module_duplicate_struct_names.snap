@@ -532,7 +532,9 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__b__Thing<'a>(
 export class Thing {
     private [" "]: 'rustdoc_test_crate::a::Thing';
 
-    x: number;
+    get x(): number;
+
+    set x(value: number);
 
     private constructor();
 }
@@ -541,7 +543,9 @@ export class Thing {
 export class Thing {
     private [" "]: 'rustdoc_test_crate::b::Thing';
 
-    y: number;
+    get y(): number;
+
+    set y(value: number);
 
     private constructor();
 }
@@ -554,10 +558,10 @@ export class Thing {
 {"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
 
 // src/a.rs.d.ts.map
-{"version":3,"file":"a.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACI;;;IACI"}
+{"version":3,"file":"a.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACI;;;IACI;;IAAA"}
 
 // src/b.rs.d.ts.map
-{"version":3,"file":"b.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAMI;;;IACI"}
+{"version":3,"file":"b.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAMI;;;IACI;;IAAA"}
 ```
 
 # js-wasm

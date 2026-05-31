@@ -313,13 +313,12 @@ impl __cursed_rustdoc_test_crate__Line {
     #[wasm_bindgen(setter, js_name = "start")]
     pub fn __cursed_set__start(
         &mut self,
-        __cursed_arg__start: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__start: JsValue,
     ) -> Result<(), JsValue> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__start
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__start)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__start
             .as_ref()
@@ -367,13 +366,12 @@ impl __cursed_rustdoc_test_crate__Line {
     #[wasm_bindgen(setter, js_name = "end")]
     pub fn __cursed_set__end(
         &mut self,
-        __cursed_arg__end: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__end: JsValue,
     ) -> Result<(), JsValue> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__end
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__end)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__end
             .as_ref()
@@ -724,13 +722,12 @@ impl __cursed_rustdoc_test_crate__Line {
     #[napi(setter, js_name = "start")]
     pub fn __cursed_set__start(
         &mut self,
-        __cursed_arg__start: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__start: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__start
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__start)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__start
             .as_ref()
@@ -778,13 +775,12 @@ impl __cursed_rustdoc_test_crate__Line {
     #[napi(setter, js_name = "end")]
     pub fn __cursed_set__end(
         &mut self,
-        __cursed_arg__end: &__cursed_rustdoc_test_crate__Point,
+        __cursed_arg__end: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
-        let mut __cursed_new_val: Option<crate::Point> = None;
-        __cursed_arg__end
-            .__cursed_root
-            .borrow()
-            .with(&mut |__cursed_p| __cursed_new_val = Some(__cursed_p.clone()))?;
+        let mut __cursed_new_val: Option<crate::Point> = Some(
+            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__end)?
+                .into_owned()?,
+        );
         if let Some(__cursed_cell) = self
             .__cursed_cache__end
             .as_ref()
@@ -849,9 +845,13 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Line<'a>(
 export class Point {
     private [" "]: 'rustdoc_test_crate::Point';
 
-    x: number;
+    get x(): number;
 
-    y: number;
+    set x(value: number);
+
+    get y(): number;
+
+    set y(value: number);
 
     private constructor();
 
@@ -868,9 +868,13 @@ export namespace Point {
 export class Line {
     private [" "]: 'rustdoc_test_crate::Line';
 
-    start: Point;
+    get start(): Point;
 
-    end: Point;
+    set start(value: Point | Point.Init);
+
+    get end(): Point;
+
+    set end(value: Point | Point.Init);
 
     private constructor();
 
@@ -889,7 +893,7 @@ export namespace Line {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IACA;;;;WAFJ;;;iBAAA;;QACI;QACA;;;;aAGJ;;;IACI;;IACA;;;;WAFJ;;;iBAAA;;QACI;QACA"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACA;;;IACI;;IAAA;;IACA;;IAAA;;;;WAFJ;;;iBAAA;;QACI;QACA;;;;aAGJ;;;IACI;;IAAA;;IACA;;IAAA;;;;WAFJ;;;iBAAA;;QACI;QACA"}
 ```
 
 # js-wasm

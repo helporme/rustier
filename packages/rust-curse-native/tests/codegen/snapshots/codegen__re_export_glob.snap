@@ -463,7 +463,9 @@ export { f } from "./inner.rs";
 export class S {
     private [" "]: 'rustdoc_test_crate::inner::S';
 
-    x: number;
+    get x(): number;
+
+    set x(value: number);
 
     private constructor();
 }
@@ -478,7 +480,7 @@ export function f(): number;
 {"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":""}
 
 // src/inner.rs.d.ts.map
-{"version":3,"file":"inner.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACI;;;IACI;;;;;gBAEJ"}
+{"version":3,"file":"inner.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aACI;;;IACI;;IAAA;;;;;gBAEJ"}
 ```
 
 # js-wasm

@@ -451,7 +451,9 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Token<'a>(
 export class Token {
     private [" "]: 'rustdoc_test_crate::Token';
 
-    value: string;
+    get value(): string;
+
+    set value(value: string);
 
     private constructor();
 }
@@ -461,7 +463,7 @@ export class Token {
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA;;;IACI"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA;;;IACI;;IAAA"}
 ```
 
 # js-wasm

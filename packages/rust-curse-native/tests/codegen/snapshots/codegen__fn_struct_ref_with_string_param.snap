@@ -506,9 +506,13 @@ pub fn __cursed_rustdoc_test_crate__label(
 export class Point {
     private [" "]: 'rustdoc_test_crate::Point';
 
-    x: number;
+    get x(): number;
 
-    y: number;
+    set x(value: number);
+
+    get y(): number;
+
+    set y(value: number);
 
     private constructor();
 }
@@ -520,7 +524,7 @@ export function label(p: Point, name: string): void;
 
 ```text
 // src/lib.rs.d.ts.map
-{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA;;;IACI;;IACA;;;;;gBAEJ"}
+{"version":3,"file":"lib.rs.d.ts","sources":["lib.rs"],"names":[],"mappings":"aAAA;;;IACI;;IAAA;;IACA;;IAAA;;;;;gBAEJ"}
 ```
 
 # js-wasm
