@@ -170,7 +170,11 @@ impl<'a> Lowerer<'a> {
                     .or_default()
                     .insert(child.field_name.clone());
                 self.warns.push(attach_span(
-                    warn_field_setter_unavailable(&parent_name, &child.field_name, &child.child_name),
+                    warn_field_setter_unavailable(
+                        &parent_name,
+                        &child.field_name,
+                        &child.child_name,
+                    ),
                     &child.span,
                 ));
             }
@@ -353,10 +357,7 @@ impl<'a> Lowerer<'a> {
             }
 
             // Union of every variant field name (structs: their fields).
-            let field_names: HashSet<String> = self
-                .child_field_names(sid)
-                .into_iter()
-                .collect();
+            let field_names: HashSet<String> = self.child_field_names(sid).into_iter().collect();
 
             let mut selected: Vec<asg::AsgId> = Vec::new();
             for impl_id in impls {
@@ -454,7 +455,11 @@ impl<'a> Lowerer<'a> {
     /// `Clone` check.
     fn method_is_emittable(&mut self, class_id: asg::AsgId, def: &asg::FnDef) -> bool {
         if matches!(def.receiver, Some(Receiver::ByValue)) && !self.asg_clonable(class_id) {
-            let class_name = self.nominal_path(class_id).name().unwrap_or("?").to_string();
+            let class_name = self
+                .nominal_path(class_id)
+                .name()
+                .unwrap_or("?")
+                .to_string();
             let fn_name = def.path.name().unwrap_or("?").to_string();
             self.warns.push(attach_span(
                 warn_method_self_by_value_requires_clone(&class_name, &fn_name),

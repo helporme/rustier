@@ -1,7 +1,11 @@
 import { defineConfig, Plugin } from 'vitest/config'
-import { buildNapi, BuildOutput, RustCurse } from 'rust-curse/unstable'
+import {
+  buildNapi,
+  BuildOutput,
+  RustCurse,
+  WasmDeployTarget,
+} from 'rust-curse/unstable'
 import { resolve as resolvePath } from 'node:path'
-import { WasmDeployTarget } from 'rust-curse-native'
 
 // temporary setup
 const curse = new RustCurse(

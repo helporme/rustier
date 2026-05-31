@@ -56,7 +56,9 @@ impl Point {
     }
 
     pub fn to_origin(&self) -> Other {
-        Other { value: self.length() }
+        Other {
+            value: self.length(),
+        }
     }
 
     pub fn combine(&self, a: &Point, b: &Point) -> Self {
@@ -461,9 +463,7 @@ impl Add for Adder {
     type Output = Adder;
 
     fn add(self, rhs: Adder) -> Self::Output {
-        Adder {
-            v: self.v + rhs.v,
-        }
+        Adder { v: self.v + rhs.v }
     }
 }
 
@@ -531,4 +531,241 @@ pub fn point() -> f64 {
 #[deprecated(note = "use add instead")]
 pub fn old() -> f64 {
     0.0
+}
+
+#[derive(Clone)]
+pub enum BuildOutput {
+    Wasm { wasm_abs_path: String },
+    Node { node_abs_path: String },
+    Skipped,
+}
+
+#[derive(Clone)]
+pub enum UnitMix {
+    Full { x: f64 },
+    Empty {},
+    Unit,
+}
+
+#[derive(Clone)]
+pub enum CamelTags {
+    HttpGet { code: f64 },
+    Done,
+}
+
+#[derive(Clone)]
+pub enum SharedOk {
+    A { data: f64 },
+    B { data: f64 },
+    C,
+}
+
+#[derive(Clone)]
+pub enum SharedBad {
+    A { data: f64 },
+    B { data: String },
+}
+
+#[derive(Clone)]
+pub enum BadTuple {
+    A(f64),
+    B { x: f64 },
+}
+
+pub enum Uninhabited {}
+
+#[derive(Clone)]
+#[allow(non_camel_case_types)]
+pub enum TagCollision {
+    URL { a: f64 },
+    uRL { b: f64 },
+}
+
+#[derive(Clone)]
+pub enum Event {
+    Click { r#type: String, x: f64 },
+    Key { code: f64 },
+}
+
+#[derive(Clone)]
+pub enum Element {
+    Tag { id: f64 },
+    Plain,
+}
+
+impl Element {
+    pub fn r#type(&self) -> f64 {
+        match self {
+            Element::Tag { id } => *id,
+            Element::Plain => 0.0,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Mesh {
+    pub x: f64,
+}
+
+#[derive(Clone)]
+pub enum Hitbox {
+    Active { mesh: Mesh },
+    Disabled,
+}
+
+#[derive(Clone)]
+pub enum Inner {
+    On { level: f64 },
+    Off,
+}
+
+impl Inner {
+    pub fn on(level: f64) -> Self {
+        Inner::On { level }
+    }
+
+    pub fn level_or_zero(&self) -> f64 {
+        match self {
+            Inner::On { level } => *level,
+            Inner::Off => 0.0,
+        }
+    }
+
+    pub fn set_level(&mut self, v: f64) {
+        if let Inner::On { level } = self {
+            *level = v;
+        }
+    }
+
+    pub fn switch_off(&mut self) {
+        *self = Inner::Off;
+    }
+}
+
+pub fn force_off(i: &mut Inner) {
+    *i = Inner::Off;
+}
+
+pub fn use_inner(i: Inner) -> f64 {
+    i.level_or_zero()
+}
+
+#[derive(Clone)]
+pub enum Outer {
+    Has { inner: Inner },
+    None,
+}
+
+#[derive(Clone)]
+pub enum EnumWithOf {
+    A { v: f64 },
+    B,
+}
+
+impl EnumWithOf {
+    pub fn of(v: f64) -> f64 {
+        v + 1.0
+    }
+}
+
+#[derive(Clone)]
+pub enum EnumWithNew {
+    Active { level: f64 },
+    Idle,
+}
+
+impl EnumWithNew {
+    pub fn new(level: f64) -> Self {
+        EnumWithNew::Active { level }
+    }
+}
+
+pub static ENUM_CLONES: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+pub enum CloneCounted {
+    Some { v: f64 },
+    Nil,
+}
+
+impl Clone for CloneCounted {
+    fn clone(&self) -> Self {
+        ENUM_CLONES.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        match self {
+            CloneCounted::Some { v } => CloneCounted::Some { v: *v },
+            CloneCounted::Nil => CloneCounted::Nil,
+        }
+    }
+}
+
+impl CloneCounted {
+    pub fn new(v: f64) -> Self {
+        CloneCounted::Some { v }
+    }
+
+    pub fn value(&self) -> f64 {
+        match self {
+            CloneCounted::Some { v } => *v,
+            CloneCounted::Nil => 0.0,
+        }
+    }
+
+    pub fn bump(&mut self, by: f64) {
+        if let CloneCounted::Some { v } = self {
+            *v += by;
+        }
+    }
+}
+
+pub fn reset_enum_clones() {
+    ENUM_CLONES.store(0, std::sync::atomic::Ordering::SeqCst);
+}
+
+pub fn enum_clone_count() -> f64 {
+    ENUM_CLONES.load(std::sync::atomic::Ordering::SeqCst) as f64
+}
+
+pub fn read_cc(c: &CloneCounted) -> f64 {
+    c.value()
+}
+
+pub fn bump_cc(c: &mut CloneCounted, by: f64) {
+    c.bump(by);
+}
+
+pub fn take_cc(c: CloneCounted) -> f64 {
+    c.value()
+}
+
+pub fn make_cc(v: f64) -> CloneCounted {
+    CloneCounted::Some { v }
+}
+
+pub enum NonCloneState {
+    A { v: f64 },
+    B,
+}
+
+impl NonCloneState {
+    pub fn new(v: f64) -> Self {
+        NonCloneState::A { v }
+    }
+
+    pub fn value(&self) -> f64 {
+        match self {
+            NonCloneState::A { v } => *v,
+            NonCloneState::B => 0.0,
+        }
+    }
+
+    pub fn into_value(self) -> f64 {
+        self.value()
+    }
+}
+
+pub fn take_state(s: NonCloneState) -> f64 {
+    s.value()
+}
+
+pub struct UsesColor {
+    pub c: Color,
 }

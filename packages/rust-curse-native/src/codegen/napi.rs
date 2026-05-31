@@ -783,7 +783,7 @@ impl<'a> Printer<'a> {
         // UFCS: rustdoc loses the impl context in `path`, so it would render
         // as just the method name. Reach back to the class's canonical path
         // so the user fn resolves unambiguously across modules and impls.
-        let user_path = format!("{class_orig}::{method_name}");
+        let user_path = format!("{class_orig}::{}", raw_ident(method_name));
         let is_unit = matches!(fn_def.return_type, Type::Primitive(Primitive::Unit));
 
         let self_sig = match receiver {

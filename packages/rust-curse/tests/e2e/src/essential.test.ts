@@ -5,49 +5,71 @@ import {
   Adder,
   Bigs,
   Both,
+  BuildOutput,
   Builder,
+  CamelTags,
+  CloneCounted,
   Config,
   DerivedExtras,
+  Element,
   Empty,
+  EnumWithNew,
+  EnumWithOf,
+  Event,
   Hazard,
+  Hitbox,
+  Inner,
   Keywords,
   Line,
   Maker,
   ManualClone,
+  Mesh,
   Mixed,
   MutSelfNew,
   Named,
   NewAndOf,
   NoClone,
+  NonCloneState,
   One,
   Opaque,
+  Outer,
   Point,
   Primitives,
   Quad,
   Reenter,
   SelfNew,
   Shadow,
+  SharedOk,
   SnakeCase,
   Span,
   StaticNew,
   Triangle,
   TwoNew,
+  UnitMix,
   Wrapper,
   Zero,
   add,
   append,
   boom,
+  bump_cc,
+  enum_clone_count,
+  force_off,
   inc,
   label,
+  make_cc,
   many,
   nudge,
   old,
   origin,
   point,
+  read_cc,
   read_ref,
+  reset_enum_clones,
   shift_copy,
   shout,
+  take_cc,
   tick,
+  use_inner,
 } from './essential.rs'
 import { hasWarn, makeBigInt, target } from './utils'
 
@@ -631,9 +653,11 @@ describe('skipped and unsupported', () => {
     expect(hasWarn('rust-curse::unsupported_type', 'Vec')).toBe(true)
   })
 
-  it('enum skipped', () => {
+  it('all-unit enum skipped', () => {
     expect((essential as Record<string, unknown>).Color).toBeUndefined()
-    expect(hasWarn('rust-curse::unsupported_type', 'enums')).toBe(true)
+    expect(
+      hasWarn('rust-curse::enum_all_unit_unsupported', 'all-unit'),
+    ).toBe(true)
   })
 
   it('fn returning unsupported type is absent', () => {
@@ -691,10 +715,6 @@ describe('traits and derives', () => {
   it('derive Default has no default static method', () => {
     expect('default' in Config).toBe(false)
     expect(Config.of({ enabled: true }).enabled).toBe(true)
-  })
-
-  it('enum remains absent', () => {
-    expect((essential as Record<string, unknown>).Color).toBeUndefined()
   })
 })
 
@@ -917,7 +937,6 @@ describe('warnings', () => {
   it('unsupported_type fires for each bad type class', () => {
     for (const text of [
       'Vec',
-      'enums',
       'Generic("T")',
       'slices',
       'fixed-size arrays',
@@ -973,6 +992,327 @@ describe('warnings', () => {
     expect(
       hasWarn('rust-curse::field_setter_unavailable', 'Wrapper.inner'),
     ).toBe(true)
+  })
+})
+
+describe('data enums', () => {
+  it('constructs each variant via .of', () => {
+    const wasm = BuildOutput.of({ type: 'wasm', wasm_abs_path: 'a' })
+    expect(wasm.type).toBe('wasm')
+    expect(wasm.wasm_abs_path).toBe('a')
+    const node = BuildOutput.of({ type: 'node', node_abs_path: 'b' })
+    expect(node.type).toBe('node')
+    expect(node.node_abs_path).toBe('b')
+    const skipped = BuildOutput.of({ type: 'skipped' })
+    expect(skipped.type).toBe('skipped')
+  })
+
+  it('constructs unit and empty variants', () => {
+    const full = UnitMix.of({ type: 'full', x: 1 })
+    expect(full.type).toBe('full')
+    expect(full.x).toBe(1)
+    const empty = UnitMix.of({ type: 'empty' })
+    expect(empty.type).toBe('empty')
+    const unit = UnitMix.of({ type: 'unit' })
+    expect(unit.type).toBe('unit')
+    for (const value of [empty, unit]) {
+      expect(Object.keys(value)).toEqual(target === 'wasm' ? ['__wbg_ptr'] : [])
+    }
+  })
+
+  it('derives variant tags lower-first', () => {
+    const value = CamelTags.of({ type: 'httpGet', code: 1 })
+    expect(value.type).toBe('httpGet')
+  })
+
+  it('tuple variant enum is unsupported', () => {
+    expect((essential as Record<string, unknown>).BadTuple).toBeUndefined()
+    expect(
+      hasWarn('rust-curse::enum_tuple_variant_unsupported', 'tuple variants'),
+    ).toBe(true)
+  })
+
+  it('uninhabited enum is unsupported', () => {
+    expect((essential as Record<string, unknown>).Uninhabited).toBeUndefined()
+    expect(hasWarn('rust-curse::enum_uninhabited', 'no variants')).toBe(true)
+  })
+
+  it('shared field name with matching types coalesces', () => {
+    const a = SharedOk.of({ type: 'a', data: 1 })
+    expect(a.data).toBe(1)
+    a.data = 2
+    expect(a.data).toBe(2)
+    const b = SharedOk.of({ type: 'b', data: 3 })
+    expect(b.data).toBe(3)
+    b.data = 4
+    expect(b.data).toBe(4)
+    const c = SharedOk.of({ type: 'c' })
+    expect((c as unknown as { data: unknown }).data).toBeUndefined()
+    expect(() => {
+      ;(c as unknown as { data: number }).data = 5
+    }).toThrow()
+  })
+
+  it('shared field name with mismatched types is unsupported', () => {
+    expect((essential as Record<string, unknown>).SharedBad).toBeUndefined()
+    expect(
+      hasWarn('rust-curse::enum_shared_field_type_mismatch', 'data'),
+    ).toBe(true)
+  })
+
+  it('variant tag collision is unsupported', () => {
+    expect((essential as Record<string, unknown>).TagCollision).toBeUndefined()
+    expect(hasWarn('rust-curse::enum_variant_tag_collision', 'uRL')).toBe(true)
+  })
+
+  it('skipped enum reference cascades', () => {
+    expect((essential as Record<string, unknown>).UsesColor).toBeUndefined()
+    expect(hasWarn('rust-curse::skipped_enum_ref', 'Color')).toBe(true)
+  })
+
+  it('active variant field getters', () => {
+    const wasm = BuildOutput.of({ type: 'wasm', wasm_abs_path: 'a' })
+    expect(wasm.wasm_abs_path).toBe('a')
+    expect(
+      (wasm as unknown as { node_abs_path: unknown }).node_abs_path,
+    ).toBeUndefined()
+  })
+
+  it('active variant field setters', () => {
+    const wasm = BuildOutput.of({ type: 'wasm', wasm_abs_path: 'a' })
+    wasm.wasm_abs_path = 'z'
+    expect(wasm.wasm_abs_path).toBe('z')
+    expect(() => {
+      ;(wasm as unknown as { node_abs_path: string }).node_abs_path = 'q'
+    }).toThrow()
+  })
+
+  it('escapes the discriminator for a field named type', () => {
+    const event = Event.of({ $type: 'click', type: 'mouse', x: 1 })
+    expect(event.$type).toBe('click')
+    expect(event.type).toBe('mouse')
+    expect(event.x).toBe(1)
+  })
+
+  it('escapes the discriminator for a method named type and keeps the method callable', () => {
+    const tag = Element.of({ $type: 'tag', id: 7 })
+    expect(tag.$type).toBe('tag')
+    expect(tag.type()).toBe(7)
+    const plain = Element.of({ $type: 'plain' })
+    expect(plain.$type).toBe('plain')
+    expect(plain.type()).toBe(0)
+  })
+
+  it('constructs an enum with a struct field', () => {
+    const fromInstance = Hitbox.of({ type: 'active', mesh: Mesh.of({ x: 1 }) })
+    expect(fromInstance.type).toBe('active')
+    expect(fromInstance.mesh).toBeInstanceOf(Mesh)
+    expect(fromInstance.mesh.x).toBe(1)
+    const fromLiteral = Hitbox.of({ type: 'active', mesh: { x: 1 } })
+    expect(fromLiteral.mesh).toBeInstanceOf(Mesh)
+    expect(fromLiteral.mesh.x).toBe(1)
+  })
+
+  it('mutates a projected struct field through the enum', () => {
+    const hitbox = Hitbox.of({ type: 'active', mesh: { x: 1 } })
+    hitbox.mesh.x = 9
+    expect(hitbox.mesh.x).toBe(9)
+  })
+
+  it('detaches a struct field on reassignment', () => {
+    const hitbox = Hitbox.of({ type: 'active', mesh: { x: 1 } })
+    const old = hitbox.mesh
+    hitbox.mesh = Mesh.of({ x: 2 })
+    old.x = 5
+    expect(hitbox.mesh.x).toBe(2)
+  })
+
+  it('assigning a struct field from an object literal is target-specific', () => {
+    const hitbox = Hitbox.of({ type: 'active', mesh: { x: 1 } })
+    const assign = () => {
+      hitbox.mesh = { x: 2 } as Mesh
+    }
+    if (target === 'wasm') {
+      expect(assign).toThrow()
+    } else {
+      expect(assign).not.toThrow()
+    }
+  })
+
+  it('constructs an enum with an enum field', () => {
+    const fromInstance = Outer.of({ type: 'has', inner: Inner.on(1) })
+    expect(fromInstance.inner.type).toBe('on')
+    expect(fromInstance.inner.level_or_zero()).toBe(1)
+    const fromLiteral = Outer.of({
+      type: 'has',
+      inner: { type: 'on', level: 1 },
+    })
+    expect(fromLiteral.inner.type).toBe('on')
+    expect(fromLiteral.inner.level_or_zero()).toBe(1)
+  })
+
+  it('mutates a projected enum field through the enum', () => {
+    const outer = Outer.of({ type: 'has', inner: { type: 'on', level: 1 } })
+    outer.inner.set_level(5)
+    expect(outer.inner.level_or_zero()).toBe(5)
+  })
+
+  it('detaches an enum field on reassignment', () => {
+    const outer = Outer.of({ type: 'has', inner: { type: 'on', level: 1 } })
+    const oldInner = outer.inner
+    outer.inner = Inner.of({ type: 'on', level: 9 })
+    oldInner.set_level(3)
+    expect(outer.inner.level_or_zero()).toBe(9)
+  })
+
+  it('replaces the active variant from a &mut self method', () => {
+    const inner = Inner.of({ type: 'on', level: 1 })
+    expect(inner.level_or_zero()).toBe(1)
+    inner.switch_off()
+    expect(inner.type).toBe('off')
+    expect(inner.level_or_zero()).toBe(0)
+  })
+
+  it('replaces the active variant through a free &mut Enum function', () => {
+    const inner = Inner.of({ type: 'on', level: 1 })
+    force_off(inner)
+    expect(inner.type).toBe('off')
+    expect(inner.level_or_zero()).toBe(0)
+  })
+
+  it('exposes inherent functions on enums', () => {
+    const on = Inner.on(2)
+    expect(on.level_or_zero()).toBe(2)
+    on.set_level(7)
+    expect(on.level_or_zero()).toBe(7)
+    on.switch_off()
+    expect(on.type).toBe('off')
+  })
+
+  it('validates .of discriminators', () => {
+    expect(Inner.of({ type: 'on', level: 1 }).type).toBe('on')
+    expect(() => Inner.of({} as Inner.Init)).toThrow()
+    expect(() =>
+      Inner.of({ type: 'nope' } as unknown as Inner.Init),
+    ).toThrow()
+    expect(() =>
+      Inner.of({ type: 'on' } as unknown as Inner.Init),
+    ).toThrow()
+    const extra = Inner.of({ type: 'on', level: 1, z: 9 } as Inner.Init)
+    expect(extra.level_or_zero()).toBe(1)
+  })
+
+  it('keeps a user-defined of and escapes the generated factory', () => {
+    expect(EnumWithOf.of(1)).toBe(2)
+    const built = EnumWithOf.of$({ type: 'a', v: 1 })
+    expect(built.type).toBe('a')
+    expect(built.v).toBe(1)
+  })
+
+  it('constructs through a new constructor', () => {
+    const value = new EnumWithNew(3)
+    expect(value.type).toBe('active')
+    expect(value.level).toBe(3)
+  })
+
+  it('pins generated object behavior', () => {
+    const value = BuildOutput.of({ type: 'wasm', wasm_abs_path: 'a' })
+    expect(value).toBeInstanceOf(BuildOutput)
+    const spread = { ...value } as Record<string, unknown>
+    if (target === 'wasm') {
+      expect(Object.keys(value)).toEqual(['__wbg_ptr'])
+      expect(spread).toEqual(
+        expect.objectContaining({ __wbg_ptr: expect.any(Number) }),
+      )
+      expect(JSON.stringify(value)).toMatch(/"__wbg_ptr":/)
+      expect(structuredClone(value)).toEqual(
+        expect.objectContaining({ __wbg_ptr: expect.any(Number) }),
+      )
+    } else {
+      expect(Object.keys(value)).toEqual([])
+      expect(spread).toEqual({})
+      expect(JSON.stringify(value)).toBe('{}')
+      expect(structuredClone(value)).toEqual({})
+    }
+    expect(Object.keys(spread).includes('type')).toBe(false)
+  })
+
+  it('pins inactive field behavior for each field kind', () => {
+    const wasm = BuildOutput.of({ type: 'wasm', wasm_abs_path: 'a' })
+    expect(
+      (wasm as unknown as { node_abs_path: unknown }).node_abs_path,
+    ).toBeUndefined()
+    expect(() => {
+      ;(wasm as unknown as { node_abs_path: string }).node_abs_path = 'q'
+    }).toThrow()
+
+    const disabled = Hitbox.of({ type: 'disabled' })
+    expect(
+      (disabled as unknown as { mesh: unknown }).mesh,
+    ).toBeUndefined()
+    expect(() => {
+      ;(disabled as unknown as { mesh: Mesh }).mesh = Mesh.of({ x: 1 })
+    }).toThrow()
+
+    const none = Outer.of({ type: 'none' })
+    expect((none as unknown as { inner: unknown }).inner).toBeUndefined()
+    expect(() => {
+      ;(none as unknown as { inner: Inner }).inner = Inner.on(1)
+    }).toThrow()
+  })
+
+  it('drops the non-Clone enum surface', () => {
+    expect(typeof NonCloneState).toBe('function')
+    expect(new NonCloneState(1).value()).toBe(1)
+    expect('of' in NonCloneState).toBe(false)
+    expect((essential as Record<string, unknown>).take_state).toBeUndefined()
+    expect(hasWarn('rust-curse::fn_not_available', 'take_state')).toBe(true)
+    expect('into_value' in NonCloneState.prototype).toBe(false)
+    expect(
+      hasWarn(
+        'rust-curse::method_self_by_value_requires_clone',
+        'NonCloneState::into_value',
+      ),
+    ).toBe(true)
+  })
+
+  it('passing a Clone enum by reference does not clone', () => {
+    const cc = CloneCounted.new(1)
+    reset_enum_clones()
+    expect(read_cc(cc)).toBe(1)
+    expect(enum_clone_count()).toBe(0)
+  })
+
+  it('passing a Clone enum by mutable reference does not clone', () => {
+    const cc = CloneCounted.new(1)
+    reset_enum_clones()
+    bump_cc(cc, 1)
+    expect(enum_clone_count()).toBe(0)
+    expect(cc.value()).toBe(2)
+  })
+
+  it('returning a Clone enum does not clone', () => {
+    reset_enum_clones()
+    const out = make_cc(5)
+    expect(enum_clone_count()).toBe(0)
+    expect(out.value()).toBe(5)
+  })
+
+  it('passing a Clone enum by value clones', () => {
+    const cc = CloneCounted.new(3)
+    reset_enum_clones()
+    expect(take_cc(cc)).toBe(3)
+    expect(enum_clone_count()).toBe(1)
+    expect(cc.value()).toBe(3)
+  })
+
+  it('passes a Clone enum init literal by value', () => {
+    expect(use_inner({ type: 'on', level: 1 })).toBe(1)
+  })
+
+  it('.of requires Clone', () => {
+    expect('of' in Inner).toBe(true)
+    expect('of' in NonCloneState).toBe(false)
   })
 })
 
