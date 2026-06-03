@@ -190,12 +190,12 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// data-enum class wrapper for `crate::E`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__E")]
-pub struct __cursed_rustdoc_test_crate__E {
+#[wasm_bindgen(js_name = "__cursed_crate__E")]
+pub struct __cursed_crate__E {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::E>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__E {
+impl __cursed_crate__E {
     #[wasm_bindgen(constructor)]
     pub fn new(__cursed_arg__level: f64) -> Result<Self, JsValue> {
         Ok(Self {
@@ -208,12 +208,10 @@ impl __cursed_rustdoc_test_crate__E {
         })
     }
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__E, JsValue> {
-        let __cursed_owned: crate::E = __cursed_coerce___cursed_rustdoc_test_crate__E(
-                init,
-            )?
+    pub fn of(init: JsValue) -> Result<__cursed_crate__E, JsValue> {
+        let __cursed_owned: crate::E = __cursed_coerce___cursed_crate__E(init)?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__E {
+        Ok(__cursed_crate__E {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -305,7 +303,7 @@ impl __cursed_rustdoc_test_crate__E {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__E(
+fn __cursed_coerce___cursed_crate__E(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::E>, JsValue> {
     let __cursed_tag_raw = js_sys::Reflect::get(&val, &JsValue::from_str("type"))?;
@@ -509,12 +507,12 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// data-enum class wrapper for `crate::E`
-#[napi(js_name = "__cursed_rustdoc_test_crate__E")]
-pub struct __cursed_rustdoc_test_crate__E {
+#[napi(js_name = "__cursed_crate__E")]
+pub struct __cursed_crate__E {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::E>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__E {
+impl __cursed_crate__E {
     #[napi(constructor)]
     pub fn new(__cursed_arg__level: f64) -> napi::Result<Self> {
         Ok(Self {
@@ -528,9 +526,7 @@ impl __cursed_rustdoc_test_crate__E {
     }
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::E = __cursed_coerce___cursed_rustdoc_test_crate__E(
-                init,
-            )?
+        let __cursed_owned: crate::E = __cursed_coerce___cursed_crate__E(init)?
             .into_owned()?;
         Ok(Self {
             __cursed_root: Rc::new(
@@ -626,14 +622,14 @@ impl __cursed_rustdoc_test_crate__E {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__E<'a>(
+fn __cursed_coerce___cursed_crate__E<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::E>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__E,
+            __cursed_crate__E,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -676,7 +672,7 @@ export declare const E: {
 
 export declare namespace E {
     export interface Instance {
-        readonly [" "]: 'rustdoc_test_crate::E';
+        readonly [" "]: 'crate::E';
         get level(): number | undefined;
         set level(value: number);
         describe(): string;
@@ -703,18 +699,18 @@ export declare namespace E {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__E } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__E } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__E as E };
+export { __cursed_crate__E as E };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__E } from '$test';
-export { __cursed_rustdoc_test_crate__E as E };
+// $rust/crate
+import { __cursed_crate__E } from '$test';
+export { __cursed_crate__E as E };
 ```
 
 # warns
@@ -727,19 +723,21 @@ export { __cursed_rustdoc_test_crate__E as E };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -758,21 +756,23 @@ Asg {
                 uses: [
                     Use {
                         name: "E",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 15835125292413079963,
+                        },
                     },
                 ],
             },
         ),
         Enum(
             EnumDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 15835125292413079963,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "E",
                     ],
                 },
@@ -851,23 +851,28 @@ Asg {
                     },
                 ],
                 impls: [
-                    AsgId(
-                        4,
-                    ),
-                    AsgId(
-                        6,
-                    ),
+                    AsgId {
+                        index: 4,
+                        stable: 8021926475705342726,
+                    },
+                    AsgId {
+                        index: 6,
+                        stable: 6650723146267059105,
+                    },
                 ],
                 docs: None,
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 8568925627592684027,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "E",
                         "new",
                     ],
                 },
@@ -895,20 +900,24 @@ Asg {
                     },
                 ],
                 return_type: Enum(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 15835125292413079963,
+                    },
                 ),
                 docs: None,
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    3,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 8432103921593224214,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "E",
                         "describe",
                     ],
                 },
@@ -937,30 +946,37 @@ Asg {
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    4,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 4,
+                    stable: 8021926475705342726,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 15835125292413079963,
+                },
                 trait_: None,
                 fns: [
-                    AsgId(
-                        2,
-                    ),
-                    AsgId(
-                        3,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 8568925627592684027,
+                    },
+                    AsgId {
+                        index: 3,
+                        stable: 8432103921593224214,
+                    },
                 ],
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    5,
-                ),
+                id: AsgId {
+                    index: 5,
+                    stable: 4071715750949813184,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "E",
                         "clone",
                     ],
                 },
@@ -982,30 +998,34 @@ Asg {
                 ),
                 params: [],
                 return_type: Enum(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 15835125292413079963,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    6,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 6,
+                    stable: 6650723146267059105,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 15835125292413079963,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        5,
-                    ),
+                    AsgId {
+                        index: 5,
+                        stable: 4071715750949813184,
+                    },
                 ],
             },
         ),
@@ -1027,12 +1047,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -1063,17 +1084,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 15835125292413079963,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "E",
                     ],
                 },
                 js_name: "E",
-                mangled_name: "__cursed_rustdoc_test_crate__E",
+                mangled_name: "__cursed_crate__E",
                 ctor: Some(
                     CtorDef {
                         params: [
@@ -1204,16 +1226,19 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    3,
-                ),
+                orig: AsgId {
+                    index: 3,
+                    stable: 8432103921593224214,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "E",
                         "describe",
                     ],
                 },
                 js_name: "describe",
-                mangled_name: "__cursed_describe",
+                mangled_name: "__cursed_crate__E__describe",
                 params: [],
                 return_type: Primitive(
                     String,

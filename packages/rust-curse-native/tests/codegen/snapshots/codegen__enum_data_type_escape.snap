@@ -181,19 +181,17 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// data-enum class wrapper for `crate::Event`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Event")]
-pub struct __cursed_rustdoc_test_crate__Event {
+#[wasm_bindgen(js_name = "__cursed_crate__Event")]
+pub struct __cursed_crate__Event {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Event>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Event {
+impl __cursed_crate__Event {
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Event, JsValue> {
-        let __cursed_owned: crate::Event = __cursed_coerce___cursed_rustdoc_test_crate__Event(
-                init,
-            )?
+    pub fn of(init: JsValue) -> Result<__cursed_crate__Event, JsValue> {
+        let __cursed_owned: crate::Event = __cursed_coerce___cursed_crate__Event(init)?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__Event {
+        Ok(__cursed_crate__Event {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -308,7 +306,7 @@ impl __cursed_rustdoc_test_crate__Event {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Event(
+fn __cursed_coerce___cursed_crate__Event(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Event>, JsValue> {
     let __cursed_tag_raw = js_sys::Reflect::get(&val, &JsValue::from_str("$type"))?;
@@ -515,17 +513,15 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// data-enum class wrapper for `crate::Event`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Event")]
-pub struct __cursed_rustdoc_test_crate__Event {
+#[napi(js_name = "__cursed_crate__Event")]
+pub struct __cursed_crate__Event {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Event>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Event {
+impl __cursed_crate__Event {
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::Event = __cursed_coerce___cursed_rustdoc_test_crate__Event(
-                init,
-            )?
+        let __cursed_owned: crate::Event = __cursed_coerce___cursed_crate__Event(init)?
             .into_owned()?;
         Ok(Self {
             __cursed_root: Rc::new(
@@ -646,14 +642,14 @@ impl __cursed_rustdoc_test_crate__Event {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Event<'a>(
+fn __cursed_coerce___cursed_crate__Event<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Event>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Event,
+            __cursed_crate__Event,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -695,7 +691,7 @@ export declare const Event: {
 
 export declare namespace Event {
     export interface Instance {
-        readonly [" "]: 'rustdoc_test_crate::Event';
+        readonly [" "]: 'crate::Event';
         get type(): string;
         set type(value: string);
         get x(): number;
@@ -721,18 +717,18 @@ export declare namespace Event {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Event } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Event } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Event as Event };
+export { __cursed_crate__Event as Event };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Event } from '$test';
-export { __cursed_rustdoc_test_crate__Event as Event };
+// $rust/crate
+import { __cursed_crate__Event } from '$test';
+export { __cursed_crate__Event as Event };
 ```
 
 # warns
@@ -745,19 +741,21 @@ export { __cursed_rustdoc_test_crate__Event as Event };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -776,21 +774,23 @@ Asg {
                 uses: [
                     Use {
                         name: "Event",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 16993906968151754964,
+                        },
                     },
                 ],
             },
         ),
         Enum(
             EnumDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 16993906968151754964,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Event",
                     ],
                 },
@@ -871,20 +871,24 @@ Asg {
                     },
                 ],
                 impls: [
-                    AsgId(
-                        3,
-                    ),
+                    AsgId {
+                        index: 3,
+                        stable: 7818131547193538478,
+                    },
                 ],
                 docs: None,
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 6687675257576921421,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Event",
                         "clone",
                     ],
                 },
@@ -906,30 +910,34 @@ Asg {
                 ),
                 params: [],
                 return_type: Enum(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 16993906968151754964,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    3,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 7818131547193538478,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 16993906968151754964,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        2,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 6687675257576921421,
+                    },
                 ],
             },
         ),
@@ -951,12 +959,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -987,17 +996,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 16993906968151754964,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Event",
                     ],
                 },
                 js_name: "Event",
-                mangled_name: "__cursed_rustdoc_test_crate__Event",
+                mangled_name: "__cursed_crate__Event",
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {

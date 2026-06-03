@@ -4,6 +4,6 @@ description: "`Cargo.toml`\n```toml\n[package]\nname = \"rustdoc_tree_shake_test
 expression: names
 ---
 [
-    "rustdoc_tree_shake_test::shapes::Point",
-    "rustdoc_tree_shake_test::shapes::make_origin",
+    "crate::shapes::Point",
+    "crate::shapes::make_origin",
 ]

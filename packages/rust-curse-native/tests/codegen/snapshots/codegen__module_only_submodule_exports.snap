@@ -16,8 +16,8 @@ pub mod inner {
 #![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 /// fn glue for `crate::inner::f`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__f")]
-pub fn __cursed_rustdoc_test_crate__inner__f() -> Result<(), JsValue> {
+#[wasm_bindgen(js_name = "__cursed_crate__inner__f")]
+pub fn __cursed_crate__inner__f() -> Result<(), JsValue> {
     crate::inner::f();
     Ok(())
 }
@@ -31,8 +31,8 @@ use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
 use napi::JsValue as _;
 use napi_derive::napi;
 /// fn glue for `crate::inner::f`
-#[napi(js_name = "__cursed_rustdoc_test_crate__inner__f")]
-pub fn __cursed_rustdoc_test_crate__inner__f() -> napi::Result<()> {
+#[napi(js_name = "__cursed_crate__inner__f")]
+pub fn __cursed_crate__inner__f() -> napi::Result<()> {
     crate::inner::f();
     Ok(())
 }
@@ -62,24 +62,24 @@ export function f(): void;
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
+// $rust/crate
 export {};
 
-// $rust/rustdoc_test_crate/inner
-import __wbg_init, { __cursed_rustdoc_test_crate__inner__f } from '$test';
+// $rust/crate/inner
+import __wbg_init, { __cursed_crate__inner__f } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__inner__f as f };
+export { __cursed_crate__inner__f as f };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
+// $rust/crate
 export {};
 
-// $rust/rustdoc_test_crate/inner
-import { __cursed_rustdoc_test_crate__inner__f } from '$test';
-export { __cursed_rustdoc_test_crate__inner__f as f };
+// $rust/crate/inner
+import { __cursed_crate__inner__f } from '$test';
+export { __cursed_crate__inner__f as f };
 ```
 
 # warns
@@ -92,19 +92,21 @@ export { __cursed_rustdoc_test_crate__inner__f as f };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -123,21 +125,23 @@ Asg {
                 uses: [
                     Use {
                         name: "inner",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 12305849722521113372,
+                        },
                     },
                 ],
             },
         ),
         Mod(
             ModDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 12305849722521113372,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "inner",
                     ],
                 },
@@ -157,21 +161,23 @@ Asg {
                 uses: [
                     Use {
                         name: "f",
-                        target: AsgId(
-                            2,
-                        ),
+                        target: AsgId {
+                            index: 2,
+                            stable: 13300955969262234362,
+                        },
                     },
                 ],
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 13300955969262234362,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "inner",
                         "f",
                     ],
@@ -215,12 +221,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -251,12 +258,13 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 12305849722521113372,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "inner",
                     ],
                 },
@@ -288,18 +296,19 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    2,
-                ),
+                orig: AsgId {
+                    index: 2,
+                    stable: 13300955969262234362,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "inner",
                         "f",
                     ],
                 },
                 js_name: "f",
-                mangled_name: "__cursed_rustdoc_test_crate__inner__f",
+                mangled_name: "__cursed_crate__inner__f",
                 params: [],
                 return_type: Primitive(
                     Unit,

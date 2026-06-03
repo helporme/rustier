@@ -183,21 +183,19 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// data-enum class wrapper for `crate::ProfileBuildOutput`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__ProfileBuildOutput")]
-pub struct __cursed_rustdoc_test_crate__ProfileBuildOutput {
+#[wasm_bindgen(js_name = "__cursed_crate__ProfileBuildOutput")]
+pub struct __cursed_crate__ProfileBuildOutput {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::ProfileBuildOutput>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__ProfileBuildOutput {
+impl __cursed_crate__ProfileBuildOutput {
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(
-        init: JsValue,
-    ) -> Result<__cursed_rustdoc_test_crate__ProfileBuildOutput, JsValue> {
-        let __cursed_owned: crate::ProfileBuildOutput = __cursed_coerce___cursed_rustdoc_test_crate__ProfileBuildOutput(
+    pub fn of(init: JsValue) -> Result<__cursed_crate__ProfileBuildOutput, JsValue> {
+        let __cursed_owned: crate::ProfileBuildOutput = __cursed_coerce___cursed_crate__ProfileBuildOutput(
                 init,
             )?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__ProfileBuildOutput {
+        Ok(__cursed_crate__ProfileBuildOutput {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -338,7 +336,7 @@ impl __cursed_rustdoc_test_crate__ProfileBuildOutput {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__ProfileBuildOutput(
+fn __cursed_coerce___cursed_crate__ProfileBuildOutput(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::ProfileBuildOutput>, JsValue> {
     let __cursed_tag_raw = js_sys::Reflect::get(&val, &JsValue::from_str("type"))?;
@@ -562,15 +560,15 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// data-enum class wrapper for `crate::ProfileBuildOutput`
-#[napi(js_name = "__cursed_rustdoc_test_crate__ProfileBuildOutput")]
-pub struct __cursed_rustdoc_test_crate__ProfileBuildOutput {
+#[napi(js_name = "__cursed_crate__ProfileBuildOutput")]
+pub struct __cursed_crate__ProfileBuildOutput {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::ProfileBuildOutput>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__ProfileBuildOutput {
+impl __cursed_crate__ProfileBuildOutput {
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::ProfileBuildOutput = __cursed_coerce___cursed_rustdoc_test_crate__ProfileBuildOutput(
+        let __cursed_owned: crate::ProfileBuildOutput = __cursed_coerce___cursed_crate__ProfileBuildOutput(
                 init,
             )?
             .into_owned()?;
@@ -719,14 +717,14 @@ impl __cursed_rustdoc_test_crate__ProfileBuildOutput {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__ProfileBuildOutput<'a>(
+fn __cursed_coerce___cursed_crate__ProfileBuildOutput<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::ProfileBuildOutput>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__ProfileBuildOutput,
+            __cursed_crate__ProfileBuildOutput,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -781,7 +779,7 @@ export declare const ProfileBuildOutput: {
 
 export declare namespace ProfileBuildOutput {
     export interface Instance {
-        readonly [" "]: 'rustdoc_test_crate::ProfileBuildOutput';
+        readonly [" "]: 'crate::ProfileBuildOutput';
         get wasm_abs_path(): string | undefined;
         set wasm_abs_path(value: string);
         get node_path(): string | undefined;
@@ -813,18 +811,18 @@ export declare namespace ProfileBuildOutput {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__ProfileBuildOutput } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__ProfileBuildOutput } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__ProfileBuildOutput as ProfileBuildOutput };
+export { __cursed_crate__ProfileBuildOutput as ProfileBuildOutput };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__ProfileBuildOutput } from '$test';
-export { __cursed_rustdoc_test_crate__ProfileBuildOutput as ProfileBuildOutput };
+// $rust/crate
+import { __cursed_crate__ProfileBuildOutput } from '$test';
+export { __cursed_crate__ProfileBuildOutput as ProfileBuildOutput };
 ```
 
 # warns
@@ -837,19 +835,21 @@ export { __cursed_rustdoc_test_crate__ProfileBuildOutput as ProfileBuildOutput }
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -868,21 +868,23 @@ Asg {
                 uses: [
                     Use {
                         name: "ProfileBuildOutput",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 11411964980803146138,
+                        },
                     },
                 ],
             },
         ),
         Enum(
             EnumDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 11411964980803146138,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "ProfileBuildOutput",
                     ],
                 },
@@ -1002,20 +1004,24 @@ Asg {
                     },
                 ],
                 impls: [
-                    AsgId(
-                        3,
-                    ),
+                    AsgId {
+                        index: 3,
+                        stable: 4181614024617609987,
+                    },
                 ],
                 docs: None,
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 11378932922295302315,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "ProfileBuildOutput",
                         "clone",
                     ],
                 },
@@ -1037,30 +1043,34 @@ Asg {
                 ),
                 params: [],
                 return_type: Enum(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 11411964980803146138,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    3,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 4181614024617609987,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 11411964980803146138,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        2,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 11378932922295302315,
+                    },
                 ],
             },
         ),
@@ -1082,12 +1092,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -1118,17 +1129,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 11411964980803146138,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "ProfileBuildOutput",
                     ],
                 },
                 js_name: "ProfileBuildOutput",
-                mangled_name: "__cursed_rustdoc_test_crate__ProfileBuildOutput",
+                mangled_name: "__cursed_crate__ProfileBuildOutput",
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {

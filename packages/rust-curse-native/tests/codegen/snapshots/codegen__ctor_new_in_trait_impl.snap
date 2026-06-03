@@ -188,12 +188,12 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// class wrapper for `crate::Foo`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Foo")]
-pub struct __cursed_rustdoc_test_crate__Foo {
+#[wasm_bindgen(js_name = "__cursed_crate__Foo")]
+pub struct __cursed_crate__Foo {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Foo>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Foo {
+impl __cursed_crate__Foo {
     #[wasm_bindgen(constructor)]
     pub fn new(__cursed_arg__seed: u32) -> Result<Self, JsValue> {
         Ok(Self {
@@ -207,7 +207,7 @@ impl __cursed_rustdoc_test_crate__Foo {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Foo(
+fn __cursed_coerce___cursed_crate__Foo(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Foo>, JsValue> {
     let _ = val;
@@ -391,12 +391,12 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// class wrapper for `crate::Foo`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Foo")]
-pub struct __cursed_rustdoc_test_crate__Foo {
+#[napi(js_name = "__cursed_crate__Foo")]
+pub struct __cursed_crate__Foo {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Foo>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Foo {
+impl __cursed_crate__Foo {
     #[napi(constructor)]
     pub fn new(__cursed_arg__seed: u32) -> napi::Result<Self> {
         Ok(Self {
@@ -410,14 +410,14 @@ impl __cursed_rustdoc_test_crate__Foo {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Foo<'a>(
+fn __cursed_coerce___cursed_crate__Foo<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Foo>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Foo,
+            __cursed_crate__Foo,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -440,7 +440,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Foo<'a>(
 
 // src/lib.rs.d.ts
 export class Foo {
-    private [" "]: 'rustdoc_test_crate::Foo';
+    private [" "]: 'crate::Foo';
 
     constructor(seed: number);
 }
@@ -456,18 +456,18 @@ export class Foo {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Foo } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Foo } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Foo as Foo };
+export { __cursed_crate__Foo as Foo };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Foo } from '$test';
-export { __cursed_rustdoc_test_crate__Foo as Foo };
+// $rust/crate
+import { __cursed_crate__Foo } from '$test';
+export { __cursed_crate__Foo as Foo };
 ```
 
 # warns
@@ -480,19 +480,21 @@ export { __cursed_rustdoc_test_crate__Foo as Foo };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -511,21 +513,23 @@ Asg {
                 uses: [
                     Use {
                         name: "Foo",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 8053124462645069236,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 8053124462645069236,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Foo",
                     ],
                 },
@@ -546,9 +550,10 @@ Asg {
                     [],
                 ),
                 impls: [
-                    AsgId(
-                        4,
-                    ),
+                    AsgId {
+                        index: 4,
+                        stable: 2454556642924594787,
+                    },
                 ],
                 docs: None,
                 has_private_fields: true,
@@ -556,12 +561,13 @@ Asg {
         ),
         Trait(
             TraitDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 18342819787471001386,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Factory",
                     ],
                 },
@@ -580,20 +586,24 @@ Asg {
                 ),
                 fns: [],
                 impls: [
-                    AsgId(
-                        4,
-                    ),
+                    AsgId {
+                        index: 4,
+                        stable: 2454556642924594787,
+                    },
                 ],
                 docs: None,
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    3,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 4609779669356317518,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Foo",
                         "new",
                     ],
                 },
@@ -621,32 +631,37 @@ Asg {
                     },
                 ],
                 return_type: Struct(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 8053124462645069236,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    4,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 4,
+                    stable: 2454556642924594787,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 8053124462645069236,
+                },
                 trait_: Some(
                     Local(
-                        AsgId(
-                            2,
-                        ),
+                        AsgId {
+                            index: 2,
+                            stable: 18342819787471001386,
+                        },
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        3,
-                    ),
+                    AsgId {
+                        index: 3,
+                        stable: 4609779669356317518,
+                    },
                 ],
             },
         ),
@@ -668,12 +683,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -704,17 +720,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 8053124462645069236,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Foo",
                     ],
                 },
                 js_name: "Foo",
-                mangled_name: "__cursed_rustdoc_test_crate__Foo",
+                mangled_name: "__cursed_crate__Foo",
                 ctor: Some(
                     CtorDef {
                         params: [

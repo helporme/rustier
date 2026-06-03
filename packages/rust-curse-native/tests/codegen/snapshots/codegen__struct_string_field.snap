@@ -180,12 +180,12 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// class wrapper for `crate::Token`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Token")]
-pub struct __cursed_rustdoc_test_crate__Token {
+#[wasm_bindgen(js_name = "__cursed_crate__Token")]
+pub struct __cursed_crate__Token {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Token>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Token {
+impl __cursed_crate__Token {
     #[wasm_bindgen(getter, js_name = "value")]
     pub fn __cursed_get__value(&self) -> Result<String, JsValue> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -209,7 +209,7 @@ impl __cursed_rustdoc_test_crate__Token {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Token(
+fn __cursed_coerce___cursed_crate__Token(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Token>, JsValue> {
     let _ = val;
@@ -393,12 +393,12 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// class wrapper for `crate::Token`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Token")]
-pub struct __cursed_rustdoc_test_crate__Token {
+#[napi(js_name = "__cursed_crate__Token")]
+pub struct __cursed_crate__Token {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Token>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Token {
+impl __cursed_crate__Token {
     #[napi(getter, js_name = "value")]
     pub fn __cursed_get__value(&self) -> napi::Result<String> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -419,14 +419,14 @@ impl __cursed_rustdoc_test_crate__Token {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Token<'a>(
+fn __cursed_coerce___cursed_crate__Token<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Token>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Token,
+            __cursed_crate__Token,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -449,7 +449,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Token<'a>(
 
 // src/lib.rs.d.ts
 export class Token {
-    private [" "]: 'rustdoc_test_crate::Token';
+    private [" "]: 'crate::Token';
 
     get value(): string;
 
@@ -469,18 +469,18 @@ export class Token {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Token } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Token } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Token as Token };
+export { __cursed_crate__Token as Token };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Token } from '$test';
-export { __cursed_rustdoc_test_crate__Token as Token };
+// $rust/crate
+import { __cursed_crate__Token } from '$test';
+export { __cursed_crate__Token as Token };
 ```
 
 # warns
@@ -493,19 +493,21 @@ export { __cursed_rustdoc_test_crate__Token as Token };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -524,21 +526,23 @@ Asg {
                 uses: [
                     Use {
                         name: "Token",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 9527768382724050233,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 9527768382724050233,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Token",
                     ],
                 },
@@ -602,12 +606,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -638,17 +643,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 9527768382724050233,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Token",
                     ],
                 },
                 js_name: "Token",
-                mangled_name: "__cursed_rustdoc_test_crate__Token",
+                mangled_name: "__cursed_crate__Token",
                 ctor: None,
                 struct_expr: None,
                 methods: [],

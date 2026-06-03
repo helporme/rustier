@@ -156,17 +156,15 @@ pub struct ModFixture<'a> {
 /// `Item::Fn` per declared function. A fn marked `exposed: true` is
 /// included in the returned `HashSet<Id>`.
 pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId>) {
-    let mut asg = Asg {
-        crate_name: crate_name.to_string(),
-        root: AsgId(0),
-        items: Vec::new(),
-    };
+    let mut asg = Asg::default();
+    asg.crate_name = crate_name.to_string();
     let mut exposed: HashSet<AsgId> = HashSet::new();
 
-    let root_id = AsgId(asg.items.len());
+    let root_path = ItemPath::new(vec![crate_name.to_string()]);
+    let root_id = AsgId::new(asg.items.len(), &root_path);
     asg.items.push(Item::Mod(ModDef {
         id: root_id,
-        path: ItemPath::new(vec![crate_name.to_string()]),
+        path: root_path,
         span: None,
         uses: Vec::new(),
     }));
@@ -178,10 +176,11 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
         let mod_segs: Vec<String> = std::iter::once(crate_name.to_string())
             .chain(module.mod_name.split("::").map(String::from))
             .collect();
-        let mod_id = AsgId(asg.items.len());
+        let mod_path = ItemPath::new(mod_segs.clone());
+        let mod_id = AsgId::new(asg.items.len(), &mod_path);
         asg.items.push(Item::Mod(ModDef {
             id: mod_id,
-            path: ItemPath::new(mod_segs.clone()),
+            path: mod_path,
             span: Some(Span {
                 filename: PathBuf::from(module.rel_rs_path),
                 begin: (1, 1),
@@ -194,10 +193,11 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
         for fn_fix in module.fns {
             let mut fn_segs = mod_segs.clone();
             fn_segs.push(fn_fix.name.to_string());
-            let fn_id = AsgId(asg.items.len());
+            let fn_path = ItemPath::new(fn_segs);
+            let fn_id = AsgId::new(asg.items.len(), &fn_path);
             asg.items.push(Item::Fn(FnDef {
                 id: fn_id,
-                path: ItemPath::new(fn_segs),
+                path: fn_path,
                 span: None,
                 receiver: None,
                 params: Vec::new(),
@@ -212,7 +212,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
                 target: fn_id,
             });
         }
-        if let Item::Mod(m) = &mut asg.items[mod_id.0] {
+        if let Item::Mod(m) = asg.get_mut_unchecked(mod_id) {
             m.uses = mod_uses;
         }
 
@@ -222,7 +222,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
         });
     }
 
-    if let Item::Mod(m) = &mut asg.items[root_id.0] {
+    if let Item::Mod(m) = asg.get_mut_unchecked(root_id) {
         m.uses = root_uses;
     }
 
@@ -236,8 +236,8 @@ pub fn empty_asg(crate_name: &str) -> (Asg, HashSet<AsgId>) {
 }
 
 /// Build a synthetic IR + exposed-id set by lowering the synthetic ASG
-/// produced by [`make_asg`]. The IR ids match the ASG ids one-to-one
-/// because today's lowering is a direct clone.
+/// produced by [`make_asg`]. The exposed ASG ids are translated to IR ids
+/// through [`Ir::exposed_from_asg`], which maps by item provenance.
 pub fn make_ir(
     crate_name: &str,
     modules: &[ModFixture],
@@ -248,10 +248,7 @@ pub fn make_ir(
     let (asg, exposed) = make_asg(crate_name, modules);
     let mut warns = rust_curse::warns::Warns::new();
     let ir = rust_curse::codegen::ir::Ir::from_asg(&mut warns, &asg).unwrap();
-    let exposed = exposed
-        .into_iter()
-        .map(|id| rust_curse::codegen::ir::IrId(id.0))
-        .collect();
+    let exposed = ir.exposed_from_asg(&exposed);
     (ir, exposed)
 }
 

@@ -190,12 +190,12 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// class wrapper for `crate::Counter`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Counter")]
-pub struct __cursed_rustdoc_test_crate__Counter {
+#[wasm_bindgen(js_name = "__cursed_crate__Counter")]
+pub struct __cursed_crate__Counter {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Counter>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Counter {
+impl __cursed_crate__Counter {
     #[wasm_bindgen(constructor)]
     pub fn new(__cursed_arg__seed: u32) -> Result<Self, JsValue> {
         Ok(Self {
@@ -220,7 +220,7 @@ impl __cursed_rustdoc_test_crate__Counter {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Counter(
+fn __cursed_coerce___cursed_crate__Counter(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Counter>, JsValue> {
     let _ = val;
@@ -404,12 +404,12 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// class wrapper for `crate::Counter`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Counter")]
-pub struct __cursed_rustdoc_test_crate__Counter {
+#[napi(js_name = "__cursed_crate__Counter")]
+pub struct __cursed_crate__Counter {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Counter>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Counter {
+impl __cursed_crate__Counter {
     #[napi(constructor)]
     pub fn new(__cursed_arg__seed: u32) -> napi::Result<Self> {
         Ok(Self {
@@ -434,14 +434,14 @@ impl __cursed_rustdoc_test_crate__Counter {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Counter<'a>(
+fn __cursed_coerce___cursed_crate__Counter<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Counter>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Counter,
+            __cursed_crate__Counter,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -464,7 +464,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Counter<'a>(
 
 // src/lib.rs.d.ts
 export class Counter {
-    private [" "]: 'rustdoc_test_crate::Counter';
+    private [" "]: 'crate::Counter';
 
     constructor(seed: number);
 
@@ -482,18 +482,18 @@ export class Counter {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Counter } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Counter } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Counter as Counter };
+export { __cursed_crate__Counter as Counter };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Counter } from '$test';
-export { __cursed_rustdoc_test_crate__Counter as Counter };
+// $rust/crate
+import { __cursed_crate__Counter } from '$test';
+export { __cursed_crate__Counter as Counter };
 ```
 
 # warns
@@ -506,19 +506,21 @@ export { __cursed_rustdoc_test_crate__Counter as Counter };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -537,21 +539,23 @@ Asg {
                 uses: [
                     Use {
                         name: "Counter",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 17027865142197123328,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 17027865142197123328,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Counter",
                     ],
                 },
@@ -572,12 +576,14 @@ Asg {
                     [],
                 ),
                 impls: [
-                    AsgId(
-                        3,
-                    ),
-                    AsgId(
-                        5,
-                    ),
+                    AsgId {
+                        index: 3,
+                        stable: 2532347982470518514,
+                    },
+                    AsgId {
+                        index: 5,
+                        stable: 2532347982470518514,
+                    },
                 ],
                 docs: None,
                 has_private_fields: true,
@@ -585,11 +591,14 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 16430163644003258977,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Counter",
                         "increment",
                     ],
                 },
@@ -618,27 +627,33 @@ Asg {
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    3,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 2532347982470518514,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 17027865142197123328,
+                },
                 trait_: None,
                 fns: [
-                    AsgId(
-                        2,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 16430163644003258977,
+                    },
                 ],
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 4,
+                    stable: 8620962439050112858,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Counter",
                         "new",
                     ],
                 },
@@ -666,26 +681,30 @@ Asg {
                     },
                 ],
                 return_type: Struct(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 17027865142197123328,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    5,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 5,
+                    stable: 2532347982470518514,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 17027865142197123328,
+                },
                 trait_: None,
                 fns: [
-                    AsgId(
-                        4,
-                    ),
+                    AsgId {
+                        index: 4,
+                        stable: 8620962439050112858,
+                    },
                 ],
             },
         ),
@@ -707,12 +726,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -743,17 +763,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 17027865142197123328,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Counter",
                     ],
                 },
                 js_name: "Counter",
-                mangled_name: "__cursed_rustdoc_test_crate__Counter",
+                mangled_name: "__cursed_crate__Counter",
                 ctor: Some(
                     CtorDef {
                         params: [
@@ -813,16 +834,19 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    2,
-                ),
+                orig: AsgId {
+                    index: 2,
+                    stable: 16430163644003258977,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Counter",
                         "increment",
                     ],
                 },
                 js_name: "increment",
-                mangled_name: "__cursed_increment",
+                mangled_name: "__cursed_crate__Counter__increment",
                 params: [],
                 return_type: Primitive(
                     Unit,

@@ -184,19 +184,19 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// class wrapper for `crate::Cloneable`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Cloneable")]
-pub struct __cursed_rustdoc_test_crate__Cloneable {
+#[wasm_bindgen(js_name = "__cursed_crate__Cloneable")]
+pub struct __cursed_crate__Cloneable {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Cloneable>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Cloneable {
+impl __cursed_crate__Cloneable {
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Cloneable, JsValue> {
-        let __cursed_owned: crate::Cloneable = __cursed_coerce___cursed_rustdoc_test_crate__Cloneable(
+    pub fn of(init: JsValue) -> Result<__cursed_crate__Cloneable, JsValue> {
+        let __cursed_owned: crate::Cloneable = __cursed_coerce___cursed_crate__Cloneable(
                 init,
             )?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__Cloneable {
+        Ok(__cursed_crate__Cloneable {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -222,7 +222,7 @@ impl __cursed_rustdoc_test_crate__Cloneable {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Cloneable(
+fn __cursed_coerce___cursed_crate__Cloneable(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Cloneable>, JsValue> {
     let __cursed_raw_x = js_sys::Reflect::get(&val, &JsValue::from_str("x"))?;
@@ -236,12 +236,12 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Cloneable(
     )
 }
 /// class wrapper for `crate::NotCloneable`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__NotCloneable")]
-pub struct __cursed_rustdoc_test_crate__NotCloneable {
+#[wasm_bindgen(js_name = "__cursed_crate__NotCloneable")]
+pub struct __cursed_crate__NotCloneable {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::NotCloneable>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__NotCloneable {
+impl __cursed_crate__NotCloneable {
     #[wasm_bindgen(getter, js_name = "x")]
     pub fn __cursed_get__x(&self) -> Result<i32, JsValue> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -259,7 +259,7 @@ impl __cursed_rustdoc_test_crate__NotCloneable {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__NotCloneable(
+fn __cursed_coerce___cursed_crate__NotCloneable(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::NotCloneable>, JsValue> {
     let _ = val;
@@ -443,15 +443,15 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// class wrapper for `crate::Cloneable`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Cloneable")]
-pub struct __cursed_rustdoc_test_crate__Cloneable {
+#[napi(js_name = "__cursed_crate__Cloneable")]
+pub struct __cursed_crate__Cloneable {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Cloneable>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Cloneable {
+impl __cursed_crate__Cloneable {
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::Cloneable = __cursed_coerce___cursed_rustdoc_test_crate__Cloneable(
+        let __cursed_owned: crate::Cloneable = __cursed_coerce___cursed_crate__Cloneable(
                 init,
             )?
             .into_owned()?;
@@ -481,14 +481,14 @@ impl __cursed_rustdoc_test_crate__Cloneable {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Cloneable<'a>(
+fn __cursed_coerce___cursed_crate__Cloneable<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Cloneable>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Cloneable,
+            __cursed_crate__Cloneable,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -504,12 +504,12 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Cloneable<'a>(
     )
 }
 /// class wrapper for `crate::NotCloneable`
-#[napi(js_name = "__cursed_rustdoc_test_crate__NotCloneable")]
-pub struct __cursed_rustdoc_test_crate__NotCloneable {
+#[napi(js_name = "__cursed_crate__NotCloneable")]
+pub struct __cursed_crate__NotCloneable {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::NotCloneable>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__NotCloneable {
+impl __cursed_crate__NotCloneable {
     #[napi(getter, js_name = "x")]
     pub fn __cursed_get__x(&self) -> napi::Result<i32> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -527,14 +527,14 @@ impl __cursed_rustdoc_test_crate__NotCloneable {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__NotCloneable<'a>(
+fn __cursed_coerce___cursed_crate__NotCloneable<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::NotCloneable>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__NotCloneable,
+            __cursed_crate__NotCloneable,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -557,7 +557,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__NotCloneable<'a>(
 
 // src/lib.rs.d.ts
 export class Cloneable {
-    private [" "]: 'rustdoc_test_crate::Cloneable';
+    private [" "]: 'crate::Cloneable';
 
     get x(): number;
 
@@ -575,7 +575,7 @@ export namespace Cloneable {
 }
 
 export class NotCloneable {
-    private [" "]: 'rustdoc_test_crate::NotCloneable';
+    private [" "]: 'crate::NotCloneable';
 
     get x(): number;
 
@@ -595,18 +595,18 @@ export class NotCloneable {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Cloneable, __cursed_rustdoc_test_crate__NotCloneable } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Cloneable, __cursed_crate__NotCloneable } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Cloneable as Cloneable, __cursed_rustdoc_test_crate__NotCloneable as NotCloneable };
+export { __cursed_crate__Cloneable as Cloneable, __cursed_crate__NotCloneable as NotCloneable };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Cloneable, __cursed_rustdoc_test_crate__NotCloneable } from '$test';
-export { __cursed_rustdoc_test_crate__Cloneable as Cloneable, __cursed_rustdoc_test_crate__NotCloneable as NotCloneable };
+// $rust/crate
+import { __cursed_crate__Cloneable, __cursed_crate__NotCloneable } from '$test';
+export { __cursed_crate__Cloneable as Cloneable, __cursed_crate__NotCloneable as NotCloneable };
 ```
 
 # warns
@@ -619,19 +619,21 @@ export { __cursed_rustdoc_test_crate__Cloneable as Cloneable, __cursed_rustdoc_t
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -650,27 +652,30 @@ Asg {
                 uses: [
                     Use {
                         name: "Cloneable",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 10315160232814080273,
+                        },
                     },
                     Use {
                         name: "NotCloneable",
-                        target: AsgId(
-                            4,
-                        ),
+                        target: AsgId {
+                            index: 4,
+                            stable: 16796432665333729694,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 10315160232814080273,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Cloneable",
                     ],
                 },
@@ -712,9 +717,10 @@ Asg {
                     ],
                 ),
                 impls: [
-                    AsgId(
-                        3,
-                    ),
+                    AsgId {
+                        index: 3,
+                        stable: 10144123390622128362,
+                    },
                 ],
                 docs: None,
                 has_private_fields: false,
@@ -722,11 +728,14 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 6978873237626649606,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Cloneable",
                         "clone",
                     ],
                 },
@@ -748,41 +757,46 @@ Asg {
                 ),
                 params: [],
                 return_type: Struct(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 10315160232814080273,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    3,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 10144123390622128362,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 10315160232814080273,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        2,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 6978873237626649606,
+                    },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 4,
+                    stable: 16796432665333729694,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "NotCloneable",
                     ],
                 },
@@ -846,12 +860,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -888,17 +903,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 10315160232814080273,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Cloneable",
                     ],
                 },
                 js_name: "Cloneable",
-                mangled_name: "__cursed_rustdoc_test_crate__Cloneable",
+                mangled_name: "__cursed_crate__Cloneable",
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {
@@ -966,17 +982,18 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    4,
-                ),
+                orig: AsgId {
+                    index: 4,
+                    stable: 16796432665333729694,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "NotCloneable",
                     ],
                 },
                 js_name: "NotCloneable",
-                mangled_name: "__cursed_rustdoc_test_crate__NotCloneable",
+                mangled_name: "__cursed_crate__NotCloneable",
                 ctor: None,
                 struct_expr: None,
                 methods: [],

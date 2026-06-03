@@ -145,7 +145,7 @@ pub fn shake(asg: &Asg, opts: TreeShakeOpts<'_>) -> Result<HashSet<AsgId>, TreeS
         }
         let item = asg.get_unchecked(id);
         let (kind, path) = item_desc(item);
-        trace!(asg_id = id.0, kind, %path, "visiting reachable item");
+        trace!(asg_id = id.stable, kind, %path, "visiting reachable item");
         match item {
             Item::Fn(def) => {
                 for param in &def.params {
@@ -217,7 +217,7 @@ fn item_desc(item: &Item) -> (&'static str, String) {
         Item::Fn(def) => ("fn", def.path.segments.join("::")),
         Item::Mod(def) => ("mod", def.path.segments.join("::")),
         Item::Trait(def) => ("trait", def.path.segments.join("::")),
-        Item::Impl(def) => ("impl", format!("for #{}", def.for_.0)),
+        Item::Impl(def) => ("impl", format!("for #{}", def.for_.index)),
     }
 }
 
@@ -229,7 +229,7 @@ fn find_module(asg: &Asg, mod_name: &str) -> Option<AsgId> {
     // an underscore (e.g. `data_enums`) never matched and was silently
     // dropped from tree-shaking, leaving its napi/wasm glue unexposed.
     let flattened = mod_name.replace("::", "__");
-    let expected: Vec<&str> = vec![asg.crate_name.as_str(), flattened.as_str()];
+    let expected: Vec<&str> = vec!["crate", flattened.as_str()];
     for item in &asg.items {
         let Item::Mod(def) = item else { continue };
         let segments: Vec<&str> = def.path.segments.iter().map(String::as_str).collect();

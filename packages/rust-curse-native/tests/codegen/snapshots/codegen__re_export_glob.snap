@@ -186,12 +186,12 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// class wrapper for `crate::inner::S`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__S")]
-pub struct __cursed_rustdoc_test_crate__inner__S {
+#[wasm_bindgen(js_name = "__cursed_crate__inner__S")]
+pub struct __cursed_crate__inner__S {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::inner::S>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__inner__S {
+impl __cursed_crate__inner__S {
     #[wasm_bindgen(getter, js_name = "x")]
     pub fn __cursed_get__x(&self) -> Result<i32, JsValue> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -209,7 +209,7 @@ impl __cursed_rustdoc_test_crate__inner__S {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__inner__S(
+fn __cursed_coerce___cursed_crate__inner__S(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::inner::S>, JsValue> {
     let _ = val;
@@ -220,8 +220,8 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__inner__S(
     )
 }
 /// fn glue for `crate::inner::f`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__inner__f")]
-pub fn __cursed_rustdoc_test_crate__inner__f() -> Result<i32, JsValue> {
+#[wasm_bindgen(js_name = "__cursed_crate__inner__f")]
+pub fn __cursed_crate__inner__f() -> Result<i32, JsValue> {
     Ok(crate::inner::f())
 }
 ```
@@ -398,12 +398,12 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// class wrapper for `crate::inner::S`
-#[napi(js_name = "__cursed_rustdoc_test_crate__inner__S")]
-pub struct __cursed_rustdoc_test_crate__inner__S {
+#[napi(js_name = "__cursed_crate__inner__S")]
+pub struct __cursed_crate__inner__S {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::inner::S>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__inner__S {
+impl __cursed_crate__inner__S {
     #[napi(getter, js_name = "x")]
     pub fn __cursed_get__x(&self) -> napi::Result<i32> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -421,14 +421,14 @@ impl __cursed_rustdoc_test_crate__inner__S {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__inner__S<'a>(
+fn __cursed_coerce___cursed_crate__inner__S<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::inner::S>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__inner__S,
+            __cursed_crate__inner__S,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -444,8 +444,8 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__inner__S<'a>(
     )
 }
 /// fn glue for `crate::inner::f`
-#[napi(js_name = "__cursed_rustdoc_test_crate__inner__f")]
-pub fn __cursed_rustdoc_test_crate__inner__f() -> napi::Result<i32> {
+#[napi(js_name = "__cursed_crate__inner__f")]
+pub fn __cursed_crate__inner__f() -> napi::Result<i32> {
     Ok(crate::inner::f())
 }
 ```
@@ -461,7 +461,7 @@ export { f } from "./inner.rs";
 
 // src/inner.rs.d.ts
 export class S {
-    private [" "]: 'rustdoc_test_crate::inner::S';
+    private [" "]: 'crate::inner::S';
 
     get x(): number;
 
@@ -486,27 +486,27 @@ export function f(): number;
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__inner__S, __cursed_rustdoc_test_crate__inner__f } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__inner__S, __cursed_crate__inner__f } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate__inner__f as f };
+export { __cursed_crate__inner__S as S, __cursed_crate__inner__f as f };
 
-// $rust/rustdoc_test_crate/inner
-import __wbg_init, { __cursed_rustdoc_test_crate__inner__S, __cursed_rustdoc_test_crate__inner__f } from '$test';
+// $rust/crate/inner
+import __wbg_init, { __cursed_crate__inner__S, __cursed_crate__inner__f } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate__inner__f as f };
+export { __cursed_crate__inner__S as S, __cursed_crate__inner__f as f };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__inner__S, __cursed_rustdoc_test_crate__inner__f } from '$test';
-export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate__inner__f as f };
+// $rust/crate
+import { __cursed_crate__inner__S, __cursed_crate__inner__f } from '$test';
+export { __cursed_crate__inner__S as S, __cursed_crate__inner__f as f };
 
-// $rust/rustdoc_test_crate/inner
-import { __cursed_rustdoc_test_crate__inner__S, __cursed_rustdoc_test_crate__inner__f } from '$test';
-export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate__inner__f as f };
+// $rust/crate/inner
+import { __cursed_crate__inner__S, __cursed_crate__inner__f } from '$test';
+export { __cursed_crate__inner__S as S, __cursed_crate__inner__f as f };
 ```
 
 # warns
@@ -519,19 +519,21 @@ export { __cursed_rustdoc_test_crate__inner__S as S, __cursed_rustdoc_test_crate
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -550,33 +552,37 @@ Asg {
                 uses: [
                     Use {
                         name: "inner",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 12305849722521113372,
+                        },
                     },
                     Use {
                         name: "S",
-                        target: AsgId(
-                            2,
-                        ),
+                        target: AsgId {
+                            index: 2,
+                            stable: 13300970262913401105,
+                        },
                     },
                     Use {
                         name: "f",
-                        target: AsgId(
-                            3,
-                        ),
+                        target: AsgId {
+                            index: 3,
+                            stable: 13300955969262234362,
+                        },
                     },
                 ],
             },
         ),
         Mod(
             ModDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 12305849722521113372,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "inner",
                     ],
                 },
@@ -596,27 +602,30 @@ Asg {
                 uses: [
                     Use {
                         name: "S",
-                        target: AsgId(
-                            2,
-                        ),
+                        target: AsgId {
+                            index: 2,
+                            stable: 13300970262913401105,
+                        },
                     },
                     Use {
                         name: "f",
-                        target: AsgId(
-                            3,
-                        ),
+                        target: AsgId {
+                            index: 3,
+                            stable: 13300955969262234362,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 13300970262913401105,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "inner",
                         "S",
                     ],
@@ -665,12 +674,13 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    3,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 13300955969262234362,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "inner",
                         "f",
                     ],
@@ -714,12 +724,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -762,12 +773,13 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 12305849722521113372,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "inner",
                     ],
                 },
@@ -805,18 +817,19 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    2,
-                ),
+                orig: AsgId {
+                    index: 2,
+                    stable: 13300970262913401105,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "inner",
                         "S",
                     ],
                 },
                 js_name: "S",
-                mangled_name: "__cursed_rustdoc_test_crate__inner__S",
+                mangled_name: "__cursed_crate__inner__S",
                 ctor: None,
                 struct_expr: None,
                 methods: [],
@@ -871,18 +884,19 @@ Ir {
                 id: IrId(
                     3,
                 ),
-                orig: AsgId(
-                    3,
-                ),
+                orig: AsgId {
+                    index: 3,
+                    stable: 13300955969262234362,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "inner",
                         "f",
                     ],
                 },
                 js_name: "f",
-                mangled_name: "__cursed_rustdoc_test_crate__inner__f",
+                mangled_name: "__cursed_crate__inner__f",
                 params: [],
                 return_type: Primitive(
                     i32,

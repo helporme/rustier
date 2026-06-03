@@ -186,19 +186,17 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// class wrapper for `crate::Mesh`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Mesh")]
-pub struct __cursed_rustdoc_test_crate__Mesh {
+#[wasm_bindgen(js_name = "__cursed_crate__Mesh")]
+pub struct __cursed_crate__Mesh {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Mesh>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Mesh {
+impl __cursed_crate__Mesh {
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Mesh, JsValue> {
-        let __cursed_owned: crate::Mesh = __cursed_coerce___cursed_rustdoc_test_crate__Mesh(
-                init,
-            )?
+    pub fn of(init: JsValue) -> Result<__cursed_crate__Mesh, JsValue> {
+        let __cursed_owned: crate::Mesh = __cursed_coerce___cursed_crate__Mesh(init)?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__Mesh {
+        Ok(__cursed_crate__Mesh {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -224,7 +222,7 @@ impl __cursed_rustdoc_test_crate__Mesh {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Mesh(
+fn __cursed_coerce___cursed_crate__Mesh(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Mesh>, JsValue> {
     let __cursed_raw_x = js_sys::Reflect::get(&val, &JsValue::from_str("x"))?;
@@ -234,22 +232,20 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Mesh(
     Ok(__cursed::Coerced::Owned(crate::Mesh { x: __cursed_field_x }))
 }
 /// data-enum class wrapper for `crate::Hitbox`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Hitbox")]
-pub struct __cursed_rustdoc_test_crate__Hitbox {
+#[wasm_bindgen(js_name = "__cursed_crate__Hitbox")]
+pub struct __cursed_crate__Hitbox {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Hitbox>>>>,
     __cursed_cache_Active__mesh: Option<
         Weak<RefCell<Rc<dyn __cursed::Projection<crate::Mesh>>>>,
     >,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Hitbox {
+impl __cursed_crate__Hitbox {
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Hitbox, JsValue> {
-        let __cursed_owned: crate::Hitbox = __cursed_coerce___cursed_rustdoc_test_crate__Hitbox(
-                init,
-            )?
+    pub fn of(init: JsValue) -> Result<__cursed_crate__Hitbox, JsValue> {
+        let __cursed_owned: crate::Hitbox = __cursed_coerce___cursed_crate__Hitbox(init)?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__Hitbox {
+        Ok(__cursed_crate__Hitbox {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -295,7 +291,7 @@ impl __cursed_rustdoc_test_crate__Hitbox {
                     .and_then(Weak::upgrade)
                 {
                     return Ok(
-                        JsValue::from(__cursed_rustdoc_test_crate__Mesh {
+                        JsValue::from(__cursed_crate__Mesh {
                             __cursed_root: __cursed_cell,
                         }),
                     );
@@ -315,13 +311,13 @@ impl __cursed_rustdoc_test_crate__Hitbox {
                         crate::Hitbox::Disabled => "disabled",
                     },
                     expected_tag: "active",
-                    enum_path: "rustdoc_test_crate::Hitbox",
+                    enum_path: "crate::Hitbox",
                     field_name: "mesh",
                 });
                 let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
                 self.__cursed_cache_Active__mesh = Some(Rc::downgrade(&__cursed_cell));
                 Ok(
-                    JsValue::from(__cursed_rustdoc_test_crate__Mesh {
+                    JsValue::from(__cursed_crate__Mesh {
                         __cursed_root: __cursed_cell,
                     }),
                 )
@@ -347,7 +343,7 @@ impl __cursed_rustdoc_test_crate__Hitbox {
             )?;
         match __cursed_active {
             "active" => {
-                let __cursed_val: crate::Mesh = __cursed_coerce___cursed_rustdoc_test_crate__Mesh(
+                let __cursed_val: crate::Mesh = __cursed_coerce___cursed_crate__Mesh(
                         __cursed_arg__mesh,
                     )?
                     .into_owned()?;
@@ -395,7 +391,7 @@ impl __cursed_rustdoc_test_crate__Hitbox {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Hitbox(
+fn __cursed_coerce___cursed_crate__Hitbox(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Hitbox>, JsValue> {
     let __cursed_tag_raw = js_sys::Reflect::get(&val, &JsValue::from_str("type"))?;
@@ -408,7 +404,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Hitbox(
                 &val,
                 &JsValue::from_str("mesh"),
             )?;
-            let mesh: crate::Mesh = __cursed_coerce___cursed_rustdoc_test_crate__Mesh(
+            let mesh: crate::Mesh = __cursed_coerce___cursed_crate__Mesh(
                     __cursed_raw_mesh,
                 )?
                 .into_owned()?;
@@ -600,17 +596,15 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// class wrapper for `crate::Mesh`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Mesh")]
-pub struct __cursed_rustdoc_test_crate__Mesh {
+#[napi(js_name = "__cursed_crate__Mesh")]
+pub struct __cursed_crate__Mesh {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Mesh>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Mesh {
+impl __cursed_crate__Mesh {
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::Mesh = __cursed_coerce___cursed_rustdoc_test_crate__Mesh(
-                init,
-            )?
+        let __cursed_owned: crate::Mesh = __cursed_coerce___cursed_crate__Mesh(init)?
             .into_owned()?;
         Ok(Self {
             __cursed_root: Rc::new(
@@ -638,14 +632,14 @@ impl __cursed_rustdoc_test_crate__Mesh {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Mesh<'a>(
+fn __cursed_coerce___cursed_crate__Mesh<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Mesh>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Mesh,
+            __cursed_crate__Mesh,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -657,20 +651,18 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Mesh<'a>(
     Ok(__cursed::Coerced::Owned(crate::Mesh { x: __cursed_field_x }))
 }
 /// data-enum class wrapper for `crate::Hitbox`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Hitbox")]
-pub struct __cursed_rustdoc_test_crate__Hitbox {
+#[napi(js_name = "__cursed_crate__Hitbox")]
+pub struct __cursed_crate__Hitbox {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Hitbox>>>>,
     __cursed_cache_Active__mesh: Option<
         Weak<RefCell<Rc<dyn __cursed::Projection<crate::Mesh>>>>,
     >,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Hitbox {
+impl __cursed_crate__Hitbox {
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::Hitbox = __cursed_coerce___cursed_rustdoc_test_crate__Hitbox(
-                init,
-            )?
+        let __cursed_owned: crate::Hitbox = __cursed_coerce___cursed_crate__Hitbox(init)?
             .into_owned()?;
         Ok(Self {
             __cursed_root: Rc::new(
@@ -700,9 +692,7 @@ impl __cursed_rustdoc_test_crate__Hitbox {
     #[napi(getter, js_name = "mesh")]
     pub fn __cursed_get__mesh(
         &mut self,
-    ) -> napi::Result<
-        napi::bindgen_prelude::Either<__cursed_rustdoc_test_crate__Mesh, ()>,
-    > {
+    ) -> napi::Result<napi::bindgen_prelude::Either<__cursed_crate__Mesh, ()>> {
         let mut __cursed_active: &'static str = "";
         self.__cursed_root
             .borrow()
@@ -722,7 +712,7 @@ impl __cursed_rustdoc_test_crate__Hitbox {
                     .and_then(Weak::upgrade)
                 {
                     return Ok(
-                        napi::bindgen_prelude::Either::A(__cursed_rustdoc_test_crate__Mesh {
+                        napi::bindgen_prelude::Either::A(__cursed_crate__Mesh {
                             __cursed_root: __cursed_cell,
                         }),
                     );
@@ -742,13 +732,13 @@ impl __cursed_rustdoc_test_crate__Hitbox {
                         crate::Hitbox::Disabled => "disabled",
                     },
                     expected_tag: "active",
-                    enum_path: "rustdoc_test_crate::Hitbox",
+                    enum_path: "crate::Hitbox",
                     field_name: "mesh",
                 });
                 let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
                 self.__cursed_cache_Active__mesh = Some(Rc::downgrade(&__cursed_cell));
                 Ok(
-                    napi::bindgen_prelude::Either::A(__cursed_rustdoc_test_crate__Mesh {
+                    napi::bindgen_prelude::Either::A(__cursed_crate__Mesh {
                         __cursed_root: __cursed_cell,
                     }),
                 )
@@ -774,7 +764,7 @@ impl __cursed_rustdoc_test_crate__Hitbox {
             )?;
         match __cursed_active {
             "active" => {
-                let __cursed_val: crate::Mesh = __cursed_coerce___cursed_rustdoc_test_crate__Mesh(
+                let __cursed_val: crate::Mesh = __cursed_coerce___cursed_crate__Mesh(
                         __cursed_arg__mesh,
                     )?
                     .into_owned()?;
@@ -822,14 +812,14 @@ impl __cursed_rustdoc_test_crate__Hitbox {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Hitbox<'a>(
+fn __cursed_coerce___cursed_crate__Hitbox<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Hitbox>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Hitbox,
+            __cursed_crate__Hitbox,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -840,7 +830,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Hitbox<'a>(
     let __cursed_tag: String = __cursed_obj.get_named_property("type")?;
     match __cursed_tag.as_str() {
         "active" => {
-            let mesh: crate::Mesh = __cursed_coerce___cursed_rustdoc_test_crate__Mesh(
+            let mesh: crate::Mesh = __cursed_coerce___cursed_crate__Mesh(
                     __cursed_obj
                         .get_named_property::<napi::bindgen_prelude::Unknown>("mesh")?,
                 )?
@@ -867,7 +857,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Hitbox<'a>(
 
 // src/lib.rs.d.ts
 export class Mesh {
-    private [" "]: 'rustdoc_test_crate::Mesh';
+    private [" "]: 'crate::Mesh';
 
     get x(): number;
 
@@ -893,7 +883,7 @@ export declare const Hitbox: {
 
 export declare namespace Hitbox {
     export interface Instance {
-        readonly [" "]: 'rustdoc_test_crate::Hitbox';
+        readonly [" "]: 'crate::Hitbox';
         get mesh(): Mesh | undefined;
         set mesh(value: Mesh | Mesh.Init);
     }
@@ -919,18 +909,18 @@ export declare namespace Hitbox {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Mesh, __cursed_rustdoc_test_crate__Hitbox } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Mesh, __cursed_crate__Hitbox } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Mesh as Mesh, __cursed_rustdoc_test_crate__Hitbox as Hitbox };
+export { __cursed_crate__Mesh as Mesh, __cursed_crate__Hitbox as Hitbox };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Mesh, __cursed_rustdoc_test_crate__Hitbox } from '$test';
-export { __cursed_rustdoc_test_crate__Mesh as Mesh, __cursed_rustdoc_test_crate__Hitbox as Hitbox };
+// $rust/crate
+import { __cursed_crate__Mesh, __cursed_crate__Hitbox } from '$test';
+export { __cursed_crate__Mesh as Mesh, __cursed_crate__Hitbox as Hitbox };
 ```
 
 # warns
@@ -943,19 +933,21 @@ export { __cursed_rustdoc_test_crate__Mesh as Mesh, __cursed_rustdoc_test_crate_
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -974,27 +966,30 @@ Asg {
                 uses: [
                     Use {
                         name: "Mesh",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 2064803031553448449,
+                        },
                     },
                     Use {
                         name: "Hitbox",
-                        target: AsgId(
-                            4,
-                        ),
+                        target: AsgId {
+                            index: 4,
+                            stable: 2220091951560094638,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 2064803031553448449,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Mesh",
                     ],
                 },
@@ -1036,9 +1031,10 @@ Asg {
                     ],
                 ),
                 impls: [
-                    AsgId(
-                        3,
-                    ),
+                    AsgId {
+                        index: 3,
+                        stable: 16480524374427077285,
+                    },
                 ],
                 docs: None,
                 has_private_fields: false,
@@ -1046,11 +1042,14 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 10443651707827848662,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Mesh",
                         "clone",
                     ],
                 },
@@ -1072,41 +1071,46 @@ Asg {
                 ),
                 params: [],
                 return_type: Struct(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 2064803031553448449,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    3,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 16480524374427077285,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 2064803031553448449,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        2,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 10443651707827848662,
+                    },
                 ],
             },
         ),
         Enum(
             EnumDef {
-                id: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 4,
+                    stable: 2220091951560094638,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Hitbox",
                     ],
                 },
@@ -1131,9 +1135,10 @@ Asg {
                                 StructField {
                                     name: "mesh",
                                     ty: Struct(
-                                        AsgId(
-                                            1,
-                                        ),
+                                        AsgId {
+                                            index: 1,
+                                            stable: 2064803031553448449,
+                                        },
                                     ),
                                     span: Some(
                                         Span {
@@ -1187,20 +1192,24 @@ Asg {
                     },
                 ],
                 impls: [
-                    AsgId(
-                        6,
-                    ),
+                    AsgId {
+                        index: 6,
+                        stable: 17489278571784053113,
+                    },
                 ],
                 docs: None,
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    5,
-                ),
+                id: AsgId {
+                    index: 5,
+                    stable: 49833451762954775,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Hitbox",
                         "clone",
                     ],
                 },
@@ -1222,30 +1231,34 @@ Asg {
                 ),
                 params: [],
                 return_type: Enum(
-                    AsgId(
-                        4,
-                    ),
+                    AsgId {
+                        index: 4,
+                        stable: 2220091951560094638,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    6,
-                ),
-                for_: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 6,
+                    stable: 17489278571784053113,
+                },
+                for_: AsgId {
+                    index: 4,
+                    stable: 2220091951560094638,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        5,
-                    ),
+                    AsgId {
+                        index: 5,
+                        stable: 49833451762954775,
+                    },
                 ],
             },
         ),
@@ -1267,12 +1280,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -1309,17 +1323,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 2064803031553448449,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Mesh",
                     ],
                 },
                 js_name: "Mesh",
-                mangled_name: "__cursed_rustdoc_test_crate__Mesh",
+                mangled_name: "__cursed_crate__Mesh",
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {
@@ -1387,17 +1402,18 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    4,
-                ),
+                orig: AsgId {
+                    index: 4,
+                    stable: 2220091951560094638,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Hitbox",
                     ],
                 },
                 js_name: "Hitbox",
-                mangled_name: "__cursed_rustdoc_test_crate__Hitbox",
+                mangled_name: "__cursed_crate__Hitbox",
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {

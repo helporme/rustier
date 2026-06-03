@@ -20,8 +20,8 @@ pub mod a {
 #![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 /// fn glue for `crate::a::b::c::deep`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__a__b__c__deep")]
-pub fn __cursed_rustdoc_test_crate__a__b__c__deep() -> Result<(), JsValue> {
+#[wasm_bindgen(js_name = "__cursed_crate__a__b__c__deep")]
+pub fn __cursed_crate__a__b__c__deep() -> Result<(), JsValue> {
     crate::a::b::c::deep();
     Ok(())
 }
@@ -35,8 +35,8 @@ use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
 use napi::JsValue as _;
 use napi_derive::napi;
 /// fn glue for `crate::a::b::c::deep`
-#[napi(js_name = "__cursed_rustdoc_test_crate__a__b__c__deep")]
-pub fn __cursed_rustdoc_test_crate__a__b__c__deep() -> napi::Result<()> {
+#[napi(js_name = "__cursed_crate__a__b__c__deep")]
+pub fn __cursed_crate__a__b__c__deep() -> napi::Result<()> {
     crate::a::b::c::deep();
     Ok(())
 }
@@ -78,36 +78,36 @@ export function deep(): void;
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
+// $rust/crate
 export {};
 
-// $rust/rustdoc_test_crate/a
+// $rust/crate/a
 export {};
 
-// $rust/rustdoc_test_crate/a/b
+// $rust/crate/a/b
 export {};
 
-// $rust/rustdoc_test_crate/a/b/c
-import __wbg_init, { __cursed_rustdoc_test_crate__a__b__c__deep } from '$test';
+// $rust/crate/a/b/c
+import __wbg_init, { __cursed_crate__a__b__c__deep } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__a__b__c__deep as deep };
+export { __cursed_crate__a__b__c__deep as deep };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
+// $rust/crate
 export {};
 
-// $rust/rustdoc_test_crate/a
+// $rust/crate/a
 export {};
 
-// $rust/rustdoc_test_crate/a/b
+// $rust/crate/a/b
 export {};
 
-// $rust/rustdoc_test_crate/a/b/c
-import { __cursed_rustdoc_test_crate__a__b__c__deep } from '$test';
-export { __cursed_rustdoc_test_crate__a__b__c__deep as deep };
+// $rust/crate/a/b/c
+import { __cursed_crate__a__b__c__deep } from '$test';
+export { __cursed_crate__a__b__c__deep as deep };
 ```
 
 # warns
@@ -120,19 +120,21 @@ export { __cursed_rustdoc_test_crate__a__b__c__deep as deep };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -151,21 +153,23 @@ Asg {
                 uses: [
                     Use {
                         name: "a",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 15835094506087490055,
+                        },
                     },
                 ],
             },
         ),
         Mod(
             ModDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 15835094506087490055,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "a",
                     ],
                 },
@@ -185,21 +189,23 @@ Asg {
                 uses: [
                     Use {
                         name: "b",
-                        target: AsgId(
-                            2,
-                        ),
+                        target: AsgId {
+                            index: 2,
+                            stable: 1714630948032203615,
+                        },
                     },
                 ],
             },
         ),
         Mod(
             ModDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 1714630948032203615,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "a",
                         "b",
                     ],
@@ -220,21 +226,23 @@ Asg {
                 uses: [
                     Use {
                         name: "c",
-                        target: AsgId(
-                            3,
-                        ),
+                        target: AsgId {
+                            index: 3,
+                            stable: 8522826408852793844,
+                        },
                     },
                 ],
             },
         ),
         Mod(
             ModDef {
-                id: AsgId(
-                    3,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 8522826408852793844,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "a",
                         "b",
                         "c",
@@ -256,21 +264,23 @@ Asg {
                 uses: [
                     Use {
                         name: "deep",
-                        target: AsgId(
-                            4,
-                        ),
+                        target: AsgId {
+                            index: 4,
+                            stable: 4595757237863906078,
+                        },
                     },
                 ],
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 4,
+                    stable: 4595757237863906078,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "a",
                         "b",
                         "c",
@@ -316,12 +326,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -352,12 +363,13 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 15835094506087490055,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "a",
                     ],
                 },
@@ -389,12 +401,13 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    2,
-                ),
+                orig: AsgId {
+                    index: 2,
+                    stable: 1714630948032203615,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "a",
                         "b",
                     ],
@@ -427,12 +440,13 @@ Ir {
                 id: IrId(
                     3,
                 ),
-                orig: AsgId(
-                    3,
-                ),
+                orig: AsgId {
+                    index: 3,
+                    stable: 8522826408852793844,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "a",
                         "b",
                         "c",
@@ -466,12 +480,13 @@ Ir {
                 id: IrId(
                     4,
                 ),
-                orig: AsgId(
-                    4,
-                ),
+                orig: AsgId {
+                    index: 4,
+                    stable: 4595757237863906078,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "a",
                         "b",
                         "c",
@@ -479,7 +494,7 @@ Ir {
                     ],
                 },
                 js_name: "deep",
-                mangled_name: "__cursed_rustdoc_test_crate__a__b__c__deep",
+                mangled_name: "__cursed_crate__a__b__c__deep",
                 params: [],
                 return_type: Primitive(
                     Unit,

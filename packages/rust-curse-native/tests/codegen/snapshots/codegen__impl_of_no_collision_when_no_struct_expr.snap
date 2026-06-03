@@ -194,17 +194,15 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// class wrapper for `crate::Mat2x2`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Mat2x2")]
-pub struct __cursed_rustdoc_test_crate__Mat2x2 {
+#[wasm_bindgen(js_name = "__cursed_crate__Mat2x2")]
+pub struct __cursed_crate__Mat2x2 {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Mat2x2>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Mat2x2 {
+impl __cursed_crate__Mat2x2 {
     #[wasm_bindgen(js_name = "of")]
-    pub fn __cursed_method__of(
-        diag: i32,
-    ) -> Result<__cursed_rustdoc_test_crate__Mat2x2, JsValue> {
-        Ok(__cursed_rustdoc_test_crate__Mat2x2 {
+    pub fn __cursed_method__of(diag: i32) -> Result<__cursed_crate__Mat2x2, JsValue> {
+        Ok(__cursed_crate__Mat2x2 {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(crate::Mat2x2::of(diag)))
@@ -215,7 +213,7 @@ impl __cursed_rustdoc_test_crate__Mat2x2 {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Mat2x2(
+fn __cursed_coerce___cursed_crate__Mat2x2(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Mat2x2>, JsValue> {
     let _ = val;
@@ -399,17 +397,15 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// class wrapper for `crate::Mat2x2`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Mat2x2")]
-pub struct __cursed_rustdoc_test_crate__Mat2x2 {
+#[napi(js_name = "__cursed_crate__Mat2x2")]
+pub struct __cursed_crate__Mat2x2 {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Mat2x2>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Mat2x2 {
+impl __cursed_crate__Mat2x2 {
     #[napi(factory, js_name = "of")]
-    pub fn __cursed_method__of(
-        diag: i32,
-    ) -> napi::Result<__cursed_rustdoc_test_crate__Mat2x2> {
-        Ok(__cursed_rustdoc_test_crate__Mat2x2 {
+    pub fn __cursed_method__of(diag: i32) -> napi::Result<__cursed_crate__Mat2x2> {
+        Ok(__cursed_crate__Mat2x2 {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(crate::Mat2x2::of(diag)))
@@ -420,14 +416,14 @@ impl __cursed_rustdoc_test_crate__Mat2x2 {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Mat2x2<'a>(
+fn __cursed_coerce___cursed_crate__Mat2x2<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Mat2x2>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Mat2x2,
+            __cursed_crate__Mat2x2,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -450,7 +446,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Mat2x2<'a>(
 
 // src/lib.rs.d.ts
 export class Mat2x2 {
-    private [" "]: 'rustdoc_test_crate::Mat2x2';
+    private [" "]: 'crate::Mat2x2';
 
     private constructor();
 
@@ -468,18 +464,18 @@ export class Mat2x2 {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Mat2x2 } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Mat2x2 } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Mat2x2 as Mat2x2 };
+export { __cursed_crate__Mat2x2 as Mat2x2 };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Mat2x2 } from '$test';
-export { __cursed_rustdoc_test_crate__Mat2x2 as Mat2x2 };
+// $rust/crate
+import { __cursed_crate__Mat2x2 } from '$test';
+export { __cursed_crate__Mat2x2 as Mat2x2 };
 ```
 
 # warns
@@ -492,19 +488,21 @@ export { __cursed_rustdoc_test_crate__Mat2x2 as Mat2x2 };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -523,21 +521,23 @@ Asg {
                 uses: [
                     Use {
                         name: "Mat2x2",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 2755398605862873194,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 2755398605862873194,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Mat2x2",
                     ],
                 },
@@ -558,12 +558,14 @@ Asg {
                     [],
                 ),
                 impls: [
-                    AsgId(
-                        3,
-                    ),
-                    AsgId(
-                        5,
-                    ),
+                    AsgId {
+                        index: 3,
+                        stable: 1129122723845949581,
+                    },
+                    AsgId {
+                        index: 5,
+                        stable: 4806097119311248138,
+                    },
                 ],
                 docs: None,
                 has_private_fields: true,
@@ -571,11 +573,14 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 7407593792495738303,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Mat2x2",
                         "of",
                     ],
                 },
@@ -603,36 +608,43 @@ Asg {
                     },
                 ],
                 return_type: Struct(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 2755398605862873194,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    3,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 1129122723845949581,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 2755398605862873194,
+                },
                 trait_: None,
                 fns: [
-                    AsgId(
-                        2,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 7407593792495738303,
+                    },
                 ],
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 4,
+                    stable: 12251272465655160923,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Mat2x2",
                         "clone",
                     ],
                 },
@@ -654,30 +666,34 @@ Asg {
                 ),
                 params: [],
                 return_type: Struct(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 2755398605862873194,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    5,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 5,
+                    stable: 4806097119311248138,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 2755398605862873194,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        4,
-                    ),
+                    AsgId {
+                        index: 4,
+                        stable: 12251272465655160923,
+                    },
                 ],
             },
         ),
@@ -699,12 +715,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -735,17 +752,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 2755398605862873194,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Mat2x2",
                     ],
                 },
                 js_name: "Mat2x2",
-                mangled_name: "__cursed_rustdoc_test_crate__Mat2x2",
+                mangled_name: "__cursed_crate__Mat2x2",
                 ctor: None,
                 struct_expr: None,
                 methods: [
@@ -779,16 +797,19 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    2,
-                ),
+                orig: AsgId {
+                    index: 2,
+                    stable: 7407593792495738303,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Mat2x2",
                         "of",
                     ],
                 },
                 js_name: "of",
-                mangled_name: "__cursed_of",
+                mangled_name: "__cursed_crate__Mat2x2__of",
                 params: [
                     FnParam {
                         name: "diag",

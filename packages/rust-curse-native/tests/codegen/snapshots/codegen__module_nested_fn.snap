@@ -20,8 +20,8 @@ pub mod math {
 use wasm_bindgen::prelude::*;
 /// fn glue for `crate::math::square`
 /// Returns the square of `x`.
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__math__square")]
-pub fn __cursed_rustdoc_test_crate__math__square(x: f64) -> Result<f64, JsValue> {
+#[wasm_bindgen(js_name = "__cursed_crate__math__square")]
+pub fn __cursed_crate__math__square(x: f64) -> Result<f64, JsValue> {
     Ok(crate::math::square(x))
 }
 ```
@@ -35,8 +35,8 @@ use napi::JsValue as _;
 use napi_derive::napi;
 /// fn glue for `crate::math::square`
 /// Returns the square of `x`.
-#[napi(js_name = "__cursed_rustdoc_test_crate__math__square")]
-pub fn __cursed_rustdoc_test_crate__math__square(x: f64) -> napi::Result<f64> {
+#[napi(js_name = "__cursed_crate__math__square")]
+pub fn __cursed_crate__math__square(x: f64) -> napi::Result<f64> {
     Ok(crate::math::square(x))
 }
 ```
@@ -66,24 +66,24 @@ export function square(x: number): number;
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
+// $rust/crate
 export {};
 
-// $rust/rustdoc_test_crate/math
-import __wbg_init, { __cursed_rustdoc_test_crate__math__square } from '$test';
+// $rust/crate/math
+import __wbg_init, { __cursed_crate__math__square } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__math__square as square };
+export { __cursed_crate__math__square as square };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
+// $rust/crate
 export {};
 
-// $rust/rustdoc_test_crate/math
-import { __cursed_rustdoc_test_crate__math__square } from '$test';
-export { __cursed_rustdoc_test_crate__math__square as square };
+// $rust/crate/math
+import { __cursed_crate__math__square } from '$test';
+export { __cursed_crate__math__square as square };
 ```
 
 # warns
@@ -96,19 +96,21 @@ export { __cursed_rustdoc_test_crate__math__square as square };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -127,21 +129,23 @@ Asg {
                 uses: [
                     Use {
                         name: "math",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 15098608428904943322,
+                        },
                     },
                 ],
             },
         ),
         Mod(
             ModDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 15098608428904943322,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "math",
                     ],
                 },
@@ -161,21 +165,23 @@ Asg {
                 uses: [
                     Use {
                         name: "square",
-                        target: AsgId(
-                            2,
-                        ),
+                        target: AsgId {
+                            index: 2,
+                            stable: 8279172592814712989,
+                        },
                     },
                 ],
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 8279172592814712989,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "math",
                         "square",
                     ],
@@ -229,12 +235,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -265,12 +272,13 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 15098608428904943322,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "math",
                     ],
                 },
@@ -302,18 +310,19 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    2,
-                ),
+                orig: AsgId {
+                    index: 2,
+                    stable: 8279172592814712989,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "math",
                         "square",
                     ],
                 },
                 js_name: "square",
-                mangled_name: "__cursed_rustdoc_test_crate__math__square",
+                mangled_name: "__cursed_crate__math__square",
                 params: [
                     FnParam {
                         name: "x",

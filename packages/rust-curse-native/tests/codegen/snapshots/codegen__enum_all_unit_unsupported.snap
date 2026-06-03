@@ -46,14 +46,14 @@ use napi_derive::napi;
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
+// $rust/crate
 export {};
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
+// $rust/crate
 export {};
 ```
 
@@ -76,19 +76,21 @@ rust-curse::enum_all_unit_unsupported
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -107,21 +109,23 @@ Asg {
                 uses: [
                     Use {
                         name: "E",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 15835125292413079963,
+                        },
                     },
                 ],
             },
         ),
         Enum(
             EnumDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 15835125292413079963,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "E",
                     ],
                 },
@@ -216,12 +220,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(

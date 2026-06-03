@@ -191,12 +191,12 @@ impl From<__cursed::StaleRef> for JsValue {
 }
 /// class wrapper for `crate::types::Token`
 /// An authentication token.
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__types__Token")]
-pub struct __cursed_rustdoc_test_crate__types__Token {
+#[wasm_bindgen(js_name = "__cursed_crate__types__Token")]
+pub struct __cursed_crate__types__Token {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::types::Token>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__types__Token {
+impl __cursed_crate__types__Token {
     #[wasm_bindgen(getter, js_name = "value")]
     pub fn __cursed_get__value(&self) -> Result<String, JsValue> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -220,7 +220,7 @@ impl __cursed_rustdoc_test_crate__types__Token {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__types__Token(
+fn __cursed_coerce___cursed_crate__types__Token(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::types::Token>, JsValue> {
     let _ = val;
@@ -232,11 +232,11 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__types__Token(
 }
 /// fn glue for `crate::ops::parse`
 /// Parses a raw string into a Token.
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__ops__parse")]
-pub fn __cursed_rustdoc_test_crate__ops__parse(
+#[wasm_bindgen(js_name = "__cursed_crate__ops__parse")]
+pub fn __cursed_crate__ops__parse(
     s: String,
-) -> Result<__cursed_rustdoc_test_crate__types__Token, JsValue> {
-    Ok(__cursed_rustdoc_test_crate__types__Token {
+) -> Result<__cursed_crate__types__Token, JsValue> {
+    Ok(__cursed_crate__types__Token {
         __cursed_root: Rc::new(
             RefCell::new(
                 Rc::new(RefCell::new(crate::ops::parse(s)))
@@ -420,12 +420,12 @@ impl From<__cursed::StaleRef> for napi::Error {
 }
 /// class wrapper for `crate::types::Token`
 /// An authentication token.
-#[napi(js_name = "__cursed_rustdoc_test_crate__types__Token")]
-pub struct __cursed_rustdoc_test_crate__types__Token {
+#[napi(js_name = "__cursed_crate__types__Token")]
+pub struct __cursed_crate__types__Token {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::types::Token>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__types__Token {
+impl __cursed_crate__types__Token {
     #[napi(getter, js_name = "value")]
     pub fn __cursed_get__value(&self) -> napi::Result<String> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -446,14 +446,14 @@ impl __cursed_rustdoc_test_crate__types__Token {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__types__Token<'a>(
+fn __cursed_coerce___cursed_crate__types__Token<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::types::Token>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__types__Token,
+            __cursed_crate__types__Token,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -470,11 +470,11 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__types__Token<'a>(
 }
 /// fn glue for `crate::ops::parse`
 /// Parses a raw string into a Token.
-#[napi(js_name = "__cursed_rustdoc_test_crate__ops__parse")]
-pub fn __cursed_rustdoc_test_crate__ops__parse(
+#[napi(js_name = "__cursed_crate__ops__parse")]
+pub fn __cursed_crate__ops__parse(
     s: String,
-) -> napi::Result<__cursed_rustdoc_test_crate__types__Token> {
-    Ok(__cursed_rustdoc_test_crate__types__Token {
+) -> napi::Result<__cursed_crate__types__Token> {
+    Ok(__cursed_crate__types__Token {
         __cursed_root: Rc::new(
             RefCell::new(
                 Rc::new(RefCell::new(crate::ops::parse(s)))
@@ -495,7 +495,7 @@ pub fn __cursed_rustdoc_test_crate__ops__parse(
 // src/types.rs.d.ts
 /** An authentication token. */
 export class Token {
-    private [" "]: 'rustdoc_test_crate::types::Token';
+    private [" "]: 'crate::types::Token';
 
     /** The raw token string. */
     get value(): string;
@@ -528,33 +528,33 @@ export function parse(s: string): Token;
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
+// $rust/crate
 export {};
 
-// $rust/rustdoc_test_crate/types
-import __wbg_init, { __cursed_rustdoc_test_crate__types__Token } from '$test';
+// $rust/crate/types
+import __wbg_init, { __cursed_crate__types__Token } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__types__Token as Token };
+export { __cursed_crate__types__Token as Token };
 
-// $rust/rustdoc_test_crate/ops
-import __wbg_init, { __cursed_rustdoc_test_crate__ops__parse } from '$test';
+// $rust/crate/ops
+import __wbg_init, { __cursed_crate__ops__parse } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__ops__parse as parse };
+export { __cursed_crate__ops__parse as parse };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
+// $rust/crate
 export {};
 
-// $rust/rustdoc_test_crate/types
-import { __cursed_rustdoc_test_crate__types__Token } from '$test';
-export { __cursed_rustdoc_test_crate__types__Token as Token };
+// $rust/crate/types
+import { __cursed_crate__types__Token } from '$test';
+export { __cursed_crate__types__Token as Token };
 
-// $rust/rustdoc_test_crate/ops
-import { __cursed_rustdoc_test_crate__ops__parse } from '$test';
-export { __cursed_rustdoc_test_crate__ops__parse as parse };
+// $rust/crate/ops
+import { __cursed_crate__ops__parse } from '$test';
+export { __cursed_crate__ops__parse as parse };
 ```
 
 # warns
@@ -567,19 +567,21 @@ export { __cursed_rustdoc_test_crate__ops__parse as parse };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -598,27 +600,30 @@ Asg {
                 uses: [
                     Use {
                         name: "types",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 12477764562663638085,
+                        },
                     },
                     Use {
                         name: "ops",
-                        target: AsgId(
-                            3,
-                        ),
+                        target: AsgId {
+                            index: 3,
+                            stable: 2307574771474569784,
+                        },
                     },
                 ],
             },
         ),
         Mod(
             ModDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 12477764562663638085,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "types",
                     ],
                 },
@@ -638,21 +643,23 @@ Asg {
                 uses: [
                     Use {
                         name: "Token",
-                        target: AsgId(
-                            2,
-                        ),
+                        target: AsgId {
+                            index: 2,
+                            stable: 299876152288612546,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 299876152288612546,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "types",
                         "Token",
                     ],
@@ -705,12 +712,13 @@ Asg {
         ),
         Mod(
             ModDef {
-                id: AsgId(
-                    3,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 2307574771474569784,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "ops",
                     ],
                 },
@@ -730,21 +738,23 @@ Asg {
                 uses: [
                     Use {
                         name: "parse",
-                        target: AsgId(
-                            4,
-                        ),
+                        target: AsgId {
+                            index: 4,
+                            stable: 13322622530149500819,
+                        },
                     },
                 ],
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 4,
+                    stable: 13322622530149500819,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "ops",
                         "parse",
                     ],
@@ -773,9 +783,10 @@ Asg {
                     },
                 ],
                 return_type: Struct(
-                    AsgId(
-                        2,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 299876152288612546,
+                    },
                 ),
                 docs: Some(
                     "Parses a raw string into a Token.",
@@ -800,12 +811,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -842,12 +854,13 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 12477764562663638085,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "types",
                     ],
                 },
@@ -879,18 +892,19 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    2,
-                ),
+                orig: AsgId {
+                    index: 2,
+                    stable: 299876152288612546,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "types",
                         "Token",
                     ],
                 },
                 js_name: "Token",
-                mangled_name: "__cursed_rustdoc_test_crate__types__Token",
+                mangled_name: "__cursed_crate__types__Token",
                 ctor: None,
                 struct_expr: None,
                 methods: [],
@@ -949,12 +963,13 @@ Ir {
                 id: IrId(
                     3,
                 ),
-                orig: AsgId(
-                    3,
-                ),
+                orig: AsgId {
+                    index: 3,
+                    stable: 2307574771474569784,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "ops",
                     ],
                 },
@@ -986,18 +1001,19 @@ Ir {
                 id: IrId(
                     4,
                 ),
-                orig: AsgId(
-                    4,
-                ),
+                orig: AsgId {
+                    index: 4,
+                    stable: 13322622530149500819,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "ops",
                         "parse",
                     ],
                 },
                 js_name: "parse",
-                mangled_name: "__cursed_rustdoc_test_crate__ops__parse",
+                mangled_name: "__cursed_crate__ops__parse",
                 params: [
                     FnParam {
                         name: "s",

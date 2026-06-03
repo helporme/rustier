@@ -192,19 +192,17 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// class wrapper for `crate::Point`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Point")]
-pub struct __cursed_rustdoc_test_crate__Point {
+#[wasm_bindgen(js_name = "__cursed_crate__Point")]
+pub struct __cursed_crate__Point {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Point {
+impl __cursed_crate__Point {
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Point, JsValue> {
-        let __cursed_owned: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
-                init,
-            )?
+    pub fn of(init: JsValue) -> Result<__cursed_crate__Point, JsValue> {
+        let __cursed_owned: crate::Point = __cursed_coerce___cursed_crate__Point(init)?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__Point {
+        Ok(__cursed_crate__Point {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -246,7 +244,7 @@ impl __cursed_rustdoc_test_crate__Point {
     #[wasm_bindgen(js_name = "dot")]
     pub fn __cursed_method__dot(
         &self,
-        other: &__cursed_rustdoc_test_crate__Point,
+        other: &__cursed_crate__Point,
     ) -> Result<i32, JsValue> {
         let __cursed_proj_self = self.__cursed_root.borrow().clone();
         let __cursed_co_other = __cursed::Coerced::Projected(
@@ -272,9 +270,7 @@ impl __cursed_rustdoc_test_crate__Point {
         Ok(__cursed_ret_val)
     }
     #[wasm_bindgen(js_name = "negate")]
-    pub fn __cursed_method__negate(
-        &self,
-    ) -> Result<__cursed_rustdoc_test_crate__Point, JsValue> {
+    pub fn __cursed_method__negate(&self) -> Result<__cursed_crate__Point, JsValue> {
         let __cursed_proj_self = self.__cursed_root.borrow().clone();
         let mut __cursed_ret: Option<crate::Point> = None;
         __cursed_proj_self
@@ -284,7 +280,7 @@ impl __cursed_rustdoc_test_crate__Point {
                 },
             )?;
         let __cursed_ret_val = __cursed_ret.unwrap();
-        Ok(__cursed_rustdoc_test_crate__Point {
+        Ok(__cursed_crate__Point {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_ret_val))
@@ -295,7 +291,7 @@ impl __cursed_rustdoc_test_crate__Point {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Point(
+fn __cursed_coerce___cursed_crate__Point(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Point>, JsValue> {
     let __cursed_raw_x = js_sys::Reflect::get(&val, &JsValue::from_str("x"))?;
@@ -487,17 +483,15 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// class wrapper for `crate::Point`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Point")]
-pub struct __cursed_rustdoc_test_crate__Point {
+#[napi(js_name = "__cursed_crate__Point")]
+pub struct __cursed_crate__Point {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Point {
+impl __cursed_crate__Point {
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
-                init,
-            )?
+        let __cursed_owned: crate::Point = __cursed_coerce___cursed_crate__Point(init)?
             .into_owned()?;
         Ok(Self {
             __cursed_root: Rc::new(
@@ -544,9 +538,7 @@ impl __cursed_rustdoc_test_crate__Point {
         other: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<i32> {
         let __cursed_proj_self = self.__cursed_root.borrow().clone();
-        let __cursed_co_other = __cursed_coerce___cursed_rustdoc_test_crate__Point(
-            other,
-        )?;
+        let __cursed_co_other = __cursed_coerce___cursed_crate__Point(other)?;
         let mut __cursed_ret: Option<i32> = None;
         let mut __cursed_stale_1: Result<(), __cursed::StaleRef> = Ok(());
         __cursed_proj_self
@@ -567,9 +559,7 @@ impl __cursed_rustdoc_test_crate__Point {
         Ok(__cursed_ret_val)
     }
     #[napi(js_name = "negate")]
-    pub fn __cursed_method__negate(
-        &self,
-    ) -> napi::Result<__cursed_rustdoc_test_crate__Point> {
+    pub fn __cursed_method__negate(&self) -> napi::Result<__cursed_crate__Point> {
         let __cursed_proj_self = self.__cursed_root.borrow().clone();
         let mut __cursed_ret: Option<crate::Point> = None;
         __cursed_proj_self
@@ -579,7 +569,7 @@ impl __cursed_rustdoc_test_crate__Point {
                 },
             )?;
         let __cursed_ret_val = __cursed_ret.unwrap();
-        Ok(__cursed_rustdoc_test_crate__Point {
+        Ok(__cursed_crate__Point {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_ret_val))
@@ -590,14 +580,14 @@ impl __cursed_rustdoc_test_crate__Point {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Point<'a>(
+fn __cursed_coerce___cursed_crate__Point<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Point>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Point,
+            __cursed_crate__Point,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -622,7 +612,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Point<'a>(
 
 // src/lib.rs.d.ts
 export class Point {
-    private [" "]: 'rustdoc_test_crate::Point';
+    private [" "]: 'crate::Point';
 
     get x(): number;
 
@@ -659,18 +649,18 @@ export namespace Point {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Point } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Point } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Point as Point };
+export { __cursed_crate__Point as Point };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Point } from '$test';
-export { __cursed_rustdoc_test_crate__Point as Point };
+// $rust/crate
+import { __cursed_crate__Point } from '$test';
+export { __cursed_crate__Point as Point };
 ```
 
 # warns
@@ -683,19 +673,21 @@ export { __cursed_rustdoc_test_crate__Point as Point };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -714,21 +706,23 @@ Asg {
                 uses: [
                     Use {
                         name: "Point",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 11881441256571997362,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 11881441256571997362,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Point",
                     ],
                 },
@@ -790,15 +784,18 @@ Asg {
                     ],
                 ),
                 impls: [
-                    AsgId(
-                        3,
-                    ),
-                    AsgId(
-                        5,
-                    ),
-                    AsgId(
-                        7,
-                    ),
+                    AsgId {
+                        index: 3,
+                        stable: 8805119337110813422,
+                    },
+                    AsgId {
+                        index: 5,
+                        stable: 8805119337110813422,
+                    },
+                    AsgId {
+                        index: 7,
+                        stable: 14364120100424076553,
+                    },
                 ],
                 docs: None,
                 has_private_fields: false,
@@ -806,11 +803,14 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 5619721789121909485,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Point",
                         "dot",
                     ],
                 },
@@ -835,9 +835,10 @@ Asg {
                         name: "other",
                         mode: ByRef,
                         ty: Struct(
-                            AsgId(
-                                1,
-                            ),
+                            AsgId {
+                                index: 1,
+                                stable: 11881441256571997362,
+                            },
                         ),
                     },
                 ],
@@ -849,27 +850,33 @@ Asg {
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    3,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 8805119337110813422,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 11881441256571997362,
+                },
                 trait_: None,
                 fns: [
-                    AsgId(
-                        2,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 5619721789121909485,
+                    },
                 ],
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 4,
+                    stable: 8095232032030248896,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Point",
                         "negate",
                     ],
                 },
@@ -891,36 +898,43 @@ Asg {
                 ),
                 params: [],
                 return_type: Struct(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 11881441256571997362,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    5,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 5,
+                    stable: 8805119337110813422,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 11881441256571997362,
+                },
                 trait_: None,
                 fns: [
-                    AsgId(
-                        4,
-                    ),
+                    AsgId {
+                        index: 4,
+                        stable: 8095232032030248896,
+                    },
                 ],
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    6,
-                ),
+                id: AsgId {
+                    index: 6,
+                    stable: 4203880583284788867,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Point",
                         "clone",
                     ],
                 },
@@ -942,30 +956,34 @@ Asg {
                 ),
                 params: [],
                 return_type: Struct(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 11881441256571997362,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    7,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 7,
+                    stable: 14364120100424076553,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 11881441256571997362,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        6,
-                    ),
+                    AsgId {
+                        index: 6,
+                        stable: 4203880583284788867,
+                    },
                 ],
             },
         ),
@@ -987,12 +1005,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -1023,17 +1042,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 11881441256571997362,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Point",
                     ],
                 },
                 js_name: "Point",
-                mangled_name: "__cursed_rustdoc_test_crate__Point",
+                mangled_name: "__cursed_crate__Point",
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {
@@ -1140,16 +1160,19 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    2,
-                ),
+                orig: AsgId {
+                    index: 2,
+                    stable: 5619721789121909485,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Point",
                         "dot",
                     ],
                 },
                 js_name: "dot",
-                mangled_name: "__cursed_dot",
+                mangled_name: "__cursed_crate__Point__dot",
                 params: [
                     FnParam {
                         name: "other",
@@ -1190,16 +1213,19 @@ Ir {
                 id: IrId(
                     3,
                 ),
-                orig: AsgId(
-                    4,
-                ),
+                orig: AsgId {
+                    index: 4,
+                    stable: 8095232032030248896,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Point",
                         "negate",
                     ],
                 },
                 js_name: "negate",
-                mangled_name: "__cursed_negate",
+                mangled_name: "__cursed_crate__Point__negate",
                 params: [],
                 return_type: Class(
                     IrId(

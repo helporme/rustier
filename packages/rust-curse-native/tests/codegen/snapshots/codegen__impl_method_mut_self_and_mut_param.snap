@@ -187,19 +187,19 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// class wrapper for `crate::Counter`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Counter")]
-pub struct __cursed_rustdoc_test_crate__Counter {
+#[wasm_bindgen(js_name = "__cursed_crate__Counter")]
+pub struct __cursed_crate__Counter {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Counter>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Counter {
+impl __cursed_crate__Counter {
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Counter, JsValue> {
-        let __cursed_owned: crate::Counter = __cursed_coerce___cursed_rustdoc_test_crate__Counter(
+    pub fn of(init: JsValue) -> Result<__cursed_crate__Counter, JsValue> {
+        let __cursed_owned: crate::Counter = __cursed_coerce___cursed_crate__Counter(
                 init,
             )?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__Counter {
+        Ok(__cursed_crate__Counter {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -228,7 +228,7 @@ impl __cursed_rustdoc_test_crate__Counter {
     #[wasm_bindgen(js_name = "merge")]
     pub fn __cursed_method__merge(
         &mut self,
-        other: &__cursed_rustdoc_test_crate__Counter,
+        other: &__cursed_crate__Counter,
     ) -> Result<(), JsValue> {
         let __cursed_proj_self = self.__cursed_root.borrow().clone();
         let mut __cursed_co_other = __cursed::Coerced::Projected(
@@ -251,7 +251,7 @@ impl __cursed_rustdoc_test_crate__Counter {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Counter(
+fn __cursed_coerce___cursed_crate__Counter(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Counter>, JsValue> {
     let __cursed_raw_count = js_sys::Reflect::get(&val, &JsValue::from_str("count"))?;
@@ -438,15 +438,15 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// class wrapper for `crate::Counter`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Counter")]
-pub struct __cursed_rustdoc_test_crate__Counter {
+#[napi(js_name = "__cursed_crate__Counter")]
+pub struct __cursed_crate__Counter {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Counter>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Counter {
+impl __cursed_crate__Counter {
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::Counter = __cursed_coerce___cursed_rustdoc_test_crate__Counter(
+        let __cursed_owned: crate::Counter = __cursed_coerce___cursed_crate__Counter(
                 init,
             )?
             .into_owned()?;
@@ -482,9 +482,7 @@ impl __cursed_rustdoc_test_crate__Counter {
         other: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
         let __cursed_proj_self = self.__cursed_root.borrow().clone();
-        let mut __cursed_co_other = __cursed_coerce___cursed_rustdoc_test_crate__Counter(
-            other,
-        )?;
+        let mut __cursed_co_other = __cursed_coerce___cursed_crate__Counter(other)?;
         let mut __cursed_stale_1: Result<(), __cursed::StaleRef> = Ok(());
         __cursed_proj_self
             .with_mut(
@@ -502,14 +500,14 @@ impl __cursed_rustdoc_test_crate__Counter {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Counter<'a>(
+fn __cursed_coerce___cursed_crate__Counter<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Counter>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Counter,
+            __cursed_crate__Counter,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -532,7 +530,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Counter<'a>(
 
 // src/lib.rs.d.ts
 export class Counter {
-    private [" "]: 'rustdoc_test_crate::Counter';
+    private [" "]: 'crate::Counter';
 
     get count(): number;
 
@@ -562,18 +560,18 @@ export namespace Counter {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Counter } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Counter } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Counter as Counter };
+export { __cursed_crate__Counter as Counter };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Counter } from '$test';
-export { __cursed_rustdoc_test_crate__Counter as Counter };
+// $rust/crate
+import { __cursed_crate__Counter } from '$test';
+export { __cursed_crate__Counter as Counter };
 ```
 
 # warns
@@ -586,19 +584,21 @@ export { __cursed_rustdoc_test_crate__Counter as Counter };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -617,21 +617,23 @@ Asg {
                 uses: [
                     Use {
                         name: "Counter",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 17027865142197123328,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 17027865142197123328,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Counter",
                     ],
                 },
@@ -673,12 +675,14 @@ Asg {
                     ],
                 ),
                 impls: [
-                    AsgId(
-                        3,
-                    ),
-                    AsgId(
-                        5,
-                    ),
+                    AsgId {
+                        index: 3,
+                        stable: 2532347982470518514,
+                    },
+                    AsgId {
+                        index: 5,
+                        stable: 13293609299107271885,
+                    },
                 ],
                 docs: None,
                 has_private_fields: false,
@@ -686,11 +690,14 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 2732351912575490880,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Counter",
                         "merge",
                     ],
                 },
@@ -715,9 +722,10 @@ Asg {
                         name: "other",
                         mode: ByMut,
                         ty: Struct(
-                            AsgId(
-                                1,
-                            ),
+                            AsgId {
+                                index: 1,
+                                stable: 17027865142197123328,
+                            },
                         ),
                     },
                 ],
@@ -729,27 +737,33 @@ Asg {
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    3,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 2532347982470518514,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 17027865142197123328,
+                },
                 trait_: None,
                 fns: [
-                    AsgId(
-                        2,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 2732351912575490880,
+                    },
                 ],
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 4,
+                    stable: 616347278034074353,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Counter",
                         "clone",
                     ],
                 },
@@ -771,30 +785,34 @@ Asg {
                 ),
                 params: [],
                 return_type: Struct(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 17027865142197123328,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    5,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 5,
+                    stable: 13293609299107271885,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 17027865142197123328,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        4,
-                    ),
+                    AsgId {
+                        index: 4,
+                        stable: 616347278034074353,
+                    },
                 ],
             },
         ),
@@ -816,12 +834,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -852,17 +871,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 17027865142197123328,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Counter",
                     ],
                 },
                 js_name: "Counter",
-                mangled_name: "__cursed_rustdoc_test_crate__Counter",
+                mangled_name: "__cursed_crate__Counter",
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {
@@ -934,16 +954,19 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    2,
-                ),
+                orig: AsgId {
+                    index: 2,
+                    stable: 2732351912575490880,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Counter",
                         "merge",
                     ],
                 },
                 js_name: "merge",
-                mangled_name: "__cursed_merge",
+                mangled_name: "__cursed_crate__Counter__merge",
                 params: [
                     FnParam {
                         name: "other",

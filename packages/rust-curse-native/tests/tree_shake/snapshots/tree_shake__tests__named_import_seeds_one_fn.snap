@@ -4,5 +4,5 @@ description: "`Cargo.toml`\n```toml\n[package]\nname = \"rustdoc_tree_shake_test
 expression: names
 ---
 [
-    "rustdoc_tree_shake_test::greet::hello",
+    "crate::greet::hello",
 ]

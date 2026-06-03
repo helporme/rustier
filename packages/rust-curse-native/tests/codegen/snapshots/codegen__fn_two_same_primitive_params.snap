@@ -14,8 +14,8 @@ pub fn two_i32(a: i32, b: i32) {}
 #![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 /// fn glue for `crate::two_i32`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__two_i32")]
-pub fn __cursed_rustdoc_test_crate__two_i32(a: i32, b: i32) -> Result<(), JsValue> {
+#[wasm_bindgen(js_name = "__cursed_crate__two_i32")]
+pub fn __cursed_crate__two_i32(a: i32, b: i32) -> Result<(), JsValue> {
     crate::two_i32(a, b);
     Ok(())
 }
@@ -29,8 +29,8 @@ use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
 use napi::JsValue as _;
 use napi_derive::napi;
 /// fn glue for `crate::two_i32`
-#[napi(js_name = "__cursed_rustdoc_test_crate__two_i32")]
-pub fn __cursed_rustdoc_test_crate__two_i32(a: i32, b: i32) -> napi::Result<()> {
+#[napi(js_name = "__cursed_crate__two_i32")]
+pub fn __cursed_crate__two_i32(a: i32, b: i32) -> napi::Result<()> {
     crate::two_i32(a, b);
     Ok(())
 }
@@ -54,18 +54,18 @@ export function two_i32(a: number, b: number): void;
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__two_i32 } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__two_i32 } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__two_i32 as two_i32 };
+export { __cursed_crate__two_i32 as two_i32 };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__two_i32 } from '$test';
-export { __cursed_rustdoc_test_crate__two_i32 as two_i32 };
+// $rust/crate
+import { __cursed_crate__two_i32 } from '$test';
+export { __cursed_crate__two_i32 as two_i32 };
 ```
 
 # warns
@@ -78,19 +78,21 @@ export { __cursed_rustdoc_test_crate__two_i32 as two_i32 };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -109,21 +111,23 @@ Asg {
                 uses: [
                     Use {
                         name: "two_i32",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 8935348743419889991,
+                        },
                     },
                 ],
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 8935348743419889991,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "two_i32",
                     ],
                 },
@@ -181,12 +185,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -217,17 +222,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 8935348743419889991,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "two_i32",
                     ],
                 },
                 js_name: "two_i32",
-                mangled_name: "__cursed_rustdoc_test_crate__two_i32",
+                mangled_name: "__cursed_crate__two_i32",
                 params: [
                     FnParam {
                         name: "a",

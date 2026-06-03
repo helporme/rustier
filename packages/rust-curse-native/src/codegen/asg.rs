@@ -8,7 +8,65 @@ use std::path::PathBuf;
 
 /// A unique identifier for an item in the ASG.
 #[derive(Copy, Clone, Default, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AsgId(pub usize);
+pub struct AsgId {
+    /// Position in [`Asg::items`].
+    pub index: usize,
+    /// Stable hash of the item's source identity.
+    pub stable: u64,
+}
+
+impl AsgId {
+    pub fn new(index: usize, path: &ItemPath) -> Self {
+        Self {
+            index,
+            stable: fnv1a(path.segments.join("::").as_bytes()),
+        }
+    }
+
+    pub fn of_impl(
+        index: usize,
+        for_: AsgId,
+        trait_: Option<&TraitRef>,
+        module: &[String],
+    ) -> Self {
+        let mut hash = fnv1a_step(FNV_OFFSET_BASIS, b"impl:");
+        hash = fnv1a_step(hash, &for_.stable.to_le_bytes());
+        match trait_ {
+            None => hash = fnv1a_step(hash, b"|inherent"),
+            Some(TraitRef::Local(tid)) => {
+                hash = fnv1a_step(hash, b"|trait:");
+                hash = fnv1a_step(hash, &tid.stable.to_le_bytes());
+            }
+            Some(TraitRef::WellKnown(wk)) => {
+                hash = fnv1a_step(hash, b"|well-known:");
+                hash = fnv1a_step(hash, &[*wk as u8]);
+            }
+        }
+        for segment in module {
+            hash = fnv1a_step(hash, b"|");
+            hash = fnv1a_step(hash, segment.as_bytes());
+        }
+        Self {
+            index,
+            stable: hash,
+        }
+    }
+}
+
+const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
+const FNV_PRIME: u64 = 0x100000001b3;
+
+fn fnv1a(bytes: &[u8]) -> u64 {
+    fnv1a_step(FNV_OFFSET_BASIS, bytes)
+}
+
+fn fnv1a_step(mut hash: u64, bytes: &[u8]) -> u64 {
+    for &byte in bytes {
+        hash ^= byte as u64;
+        hash = hash.wrapping_mul(FNV_PRIME);
+    }
+    hash
+}
 
 /// Complete path to an item as it appears in the source crate,
 /// e.g. `crate::module::Type` is stored as `["crate", "module", "Type"]`.
@@ -255,7 +313,12 @@ pub struct Asg {
 impl Asg {
     /// Gets an item by its ID, panics if the item is not found.
     pub fn get_unchecked(&self, id: AsgId) -> &Item {
-        &self.items[id.0]
+        &self.items[id.index]
+    }
+
+    /// Mutably gets an item by its ID, panics if the item is not found.
+    pub fn get_mut_unchecked(&mut self, id: AsgId) -> &mut Item {
+        &mut self.items[id.index]
     }
 
     /// Gets a struct by its ID, panics if the item is not a struct.

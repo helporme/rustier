@@ -454,7 +454,7 @@ impl<'a> Lowerer<'a> {
                 key.push("new".to_string());
                 candidates.push(Candidate {
                     key,
-                    impl_ord: impl_id.0,
+                    impl_ord: impl_id.index,
                     fid,
                 });
             }
@@ -841,7 +841,7 @@ impl<'a> Lowerer<'a> {
                 key.push("new".to_string());
                 candidates.push(Candidate {
                     key,
-                    impl_ord: impl_id.0,
+                    impl_ord: impl_id.index,
                     params: &f.params,
                     span: f.span.clone(),
                 });

@@ -15,14 +15,14 @@ pub fn g(y: i32) {}
 #![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 /// fn glue for `crate::f`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__f")]
-pub fn __cursed_rustdoc_test_crate__f(x: i32) -> Result<(), JsValue> {
+#[wasm_bindgen(js_name = "__cursed_crate__f")]
+pub fn __cursed_crate__f(x: i32) -> Result<(), JsValue> {
     crate::f(x);
     Ok(())
 }
 /// fn glue for `crate::g`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__g")]
-pub fn __cursed_rustdoc_test_crate__g(y: i32) -> Result<(), JsValue> {
+#[wasm_bindgen(js_name = "__cursed_crate__g")]
+pub fn __cursed_crate__g(y: i32) -> Result<(), JsValue> {
     crate::g(y);
     Ok(())
 }
@@ -36,14 +36,14 @@ use napi::bindgen_prelude::{FromNapiValue as _, JsObjectValue as _};
 use napi::JsValue as _;
 use napi_derive::napi;
 /// fn glue for `crate::f`
-#[napi(js_name = "__cursed_rustdoc_test_crate__f")]
-pub fn __cursed_rustdoc_test_crate__f(x: i32) -> napi::Result<()> {
+#[napi(js_name = "__cursed_crate__f")]
+pub fn __cursed_crate__f(x: i32) -> napi::Result<()> {
     crate::f(x);
     Ok(())
 }
 /// fn glue for `crate::g`
-#[napi(js_name = "__cursed_rustdoc_test_crate__g")]
-pub fn __cursed_rustdoc_test_crate__g(y: i32) -> napi::Result<()> {
+#[napi(js_name = "__cursed_crate__g")]
+pub fn __cursed_crate__g(y: i32) -> napi::Result<()> {
     crate::g(y);
     Ok(())
 }
@@ -69,18 +69,18 @@ export function g(y: number): void;
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__f, __cursed_rustdoc_test_crate__g } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__f, __cursed_crate__g } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__f as f, __cursed_rustdoc_test_crate__g as g };
+export { __cursed_crate__f as f, __cursed_crate__g as g };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__f, __cursed_rustdoc_test_crate__g } from '$test';
-export { __cursed_rustdoc_test_crate__f as f, __cursed_rustdoc_test_crate__g as g };
+// $rust/crate
+import { __cursed_crate__f, __cursed_crate__g } from '$test';
+export { __cursed_crate__f as f, __cursed_crate__g as g };
 ```
 
 # warns
@@ -93,19 +93,21 @@ export { __cursed_rustdoc_test_crate__f as f, __cursed_rustdoc_test_crate__g as 
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -124,27 +126,30 @@ Asg {
                 uses: [
                     Use {
                         name: "f",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 15835091207552605422,
+                        },
                     },
                     Use {
                         name: "g",
-                        target: AsgId(
-                            2,
-                        ),
+                        target: AsgId {
+                            index: 2,
+                            stable: 15835092307064233633,
+                        },
                     },
                 ],
             },
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 15835091207552605422,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "f",
                     ],
                 },
@@ -179,12 +184,13 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 15835092307064233633,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "g",
                     ],
                 },
@@ -235,12 +241,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -277,17 +284,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 15835091207552605422,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "f",
                     ],
                 },
                 js_name: "f",
-                mangled_name: "__cursed_rustdoc_test_crate__f",
+                mangled_name: "__cursed_crate__f",
                 params: [
                     FnParam {
                         name: "x",
@@ -324,17 +332,18 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    2,
-                ),
+                orig: AsgId {
+                    index: 2,
+                    stable: 15835092307064233633,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "g",
                     ],
                 },
                 js_name: "g",
-                mangled_name: "__cursed_rustdoc_test_crate__g",
+                mangled_name: "__cursed_crate__g",
                 params: [
                     FnParam {
                         name: "y",

@@ -185,16 +185,14 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// class wrapper for `crate::Builder`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Builder")]
-pub struct __cursed_rustdoc_test_crate__Builder {
+#[wasm_bindgen(js_name = "__cursed_crate__Builder")]
+pub struct __cursed_crate__Builder {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Builder>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Builder {
+impl __cursed_crate__Builder {
     #[wasm_bindgen(js_name = "new")]
-    pub fn __cursed_method__new(
-        &self,
-    ) -> Result<__cursed_rustdoc_test_crate__Builder, JsValue> {
+    pub fn __cursed_method__new(&self) -> Result<__cursed_crate__Builder, JsValue> {
         let __cursed_proj_self = self.__cursed_root.borrow().clone();
         let mut __cursed_ret: Option<crate::Builder> = None;
         __cursed_proj_self
@@ -204,7 +202,7 @@ impl __cursed_rustdoc_test_crate__Builder {
                 },
             )?;
         let __cursed_ret_val = __cursed_ret.unwrap();
-        Ok(__cursed_rustdoc_test_crate__Builder {
+        Ok(__cursed_crate__Builder {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_ret_val))
@@ -215,7 +213,7 @@ impl __cursed_rustdoc_test_crate__Builder {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Builder(
+fn __cursed_coerce___cursed_crate__Builder(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Builder>, JsValue> {
     let _ = val;
@@ -399,16 +397,14 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// class wrapper for `crate::Builder`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Builder")]
-pub struct __cursed_rustdoc_test_crate__Builder {
+#[napi(js_name = "__cursed_crate__Builder")]
+pub struct __cursed_crate__Builder {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Builder>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Builder {
+impl __cursed_crate__Builder {
     #[napi(js_name = "new")]
-    pub fn __cursed_method__new(
-        &self,
-    ) -> napi::Result<__cursed_rustdoc_test_crate__Builder> {
+    pub fn __cursed_method__new(&self) -> napi::Result<__cursed_crate__Builder> {
         let __cursed_proj_self = self.__cursed_root.borrow().clone();
         let mut __cursed_ret: Option<crate::Builder> = None;
         __cursed_proj_self
@@ -418,7 +414,7 @@ impl __cursed_rustdoc_test_crate__Builder {
                 },
             )?;
         let __cursed_ret_val = __cursed_ret.unwrap();
-        Ok(__cursed_rustdoc_test_crate__Builder {
+        Ok(__cursed_crate__Builder {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_ret_val))
@@ -429,14 +425,14 @@ impl __cursed_rustdoc_test_crate__Builder {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Builder<'a>(
+fn __cursed_coerce___cursed_crate__Builder<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Builder>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Builder,
+            __cursed_crate__Builder,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -459,7 +455,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Builder<'a>(
 
 // src/lib.rs.d.ts
 export class Builder {
-    private [" "]: 'rustdoc_test_crate::Builder';
+    private [" "]: 'crate::Builder';
 
     private constructor();
 
@@ -477,18 +473,18 @@ export class Builder {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Builder } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Builder } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Builder as Builder };
+export { __cursed_crate__Builder as Builder };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Builder } from '$test';
-export { __cursed_rustdoc_test_crate__Builder as Builder };
+// $rust/crate
+import { __cursed_crate__Builder } from '$test';
+export { __cursed_crate__Builder as Builder };
 ```
 
 # warns
@@ -501,19 +497,21 @@ export { __cursed_rustdoc_test_crate__Builder as Builder };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -532,21 +530,23 @@ Asg {
                 uses: [
                     Use {
                         name: "Builder",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 63292727359980971,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 63292727359980971,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Builder",
                     ],
                 },
@@ -567,9 +567,10 @@ Asg {
                     [],
                 ),
                 impls: [
-                    AsgId(
-                        3,
-                    ),
+                    AsgId {
+                        index: 3,
+                        stable: 16354237509408883568,
+                    },
                 ],
                 docs: None,
                 has_private_fields: true,
@@ -577,11 +578,14 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 14626823154198252235,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Builder",
                         "new",
                     ],
                 },
@@ -603,26 +607,30 @@ Asg {
                 ),
                 params: [],
                 return_type: Struct(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 63292727359980971,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    3,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 16354237509408883568,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 63292727359980971,
+                },
                 trait_: None,
                 fns: [
-                    AsgId(
-                        2,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 14626823154198252235,
+                    },
                 ],
             },
         ),
@@ -644,12 +652,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -680,17 +689,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 63292727359980971,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Builder",
                     ],
                 },
                 js_name: "Builder",
-                mangled_name: "__cursed_rustdoc_test_crate__Builder",
+                mangled_name: "__cursed_crate__Builder",
                 ctor: None,
                 struct_expr: None,
                 methods: [
@@ -724,16 +734,19 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    2,
-                ),
+                orig: AsgId {
+                    index: 2,
+                    stable: 14626823154198252235,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Builder",
                         "new",
                     ],
                 },
                 js_name: "new",
-                mangled_name: "__cursed_new",
+                mangled_name: "__cursed_crate__Builder__new",
                 params: [],
                 return_type: Class(
                     IrId(

@@ -148,7 +148,7 @@ impl<'a> Builder<'a> {
             return Ok(None);
         }
 
-        if let Item::Mod(m) = &mut self.asg.items[mid.0] {
+        if let Item::Mod(m) = self.asg.get_mut_unchecked(mid) {
             m.uses = uses;
         }
         Ok(Some(mid))
@@ -262,7 +262,7 @@ impl<'a> Builder<'a> {
     }
 
     fn reserve_mod(&mut self, path: ItemPath, span: Option<Span>) -> AsgId {
-        let id = AsgId(self.asg.items.len());
+        let id = AsgId::new(self.asg.items.len(), &path);
         self.asg.items.push(Item::Mod(ModDef {
             id,
             path,
@@ -328,7 +328,7 @@ impl<'a> Builder<'a> {
             }
         };
 
-        let sid = AsgId(self.asg.items.len());
+        let sid = AsgId::new(self.asg.items.len(), &path);
         self.struct_intern.insert(id, Some(sid));
         self.asg.items.push(Item::Struct(StructDef {
             id: sid,
@@ -342,7 +342,7 @@ impl<'a> Builder<'a> {
 
         let impls = self.build_impls(id, sid, &impl_rids)?;
 
-        if let Item::Struct(def) = &mut self.asg.items[sid.0] {
+        if let Item::Struct(def) = self.asg.get_mut_unchecked(sid) {
             def.impls = impls;
         }
         Ok(Some(sid))
@@ -397,7 +397,7 @@ impl<'a> Builder<'a> {
             }
         };
 
-        let eid = AsgId(self.asg.items.len());
+        let eid = AsgId::new(self.asg.items.len(), &path);
         self.enum_intern.insert(id, Some(eid));
         self.asg.items.push(Item::Enum(EnumDef {
             id: eid,
@@ -410,7 +410,7 @@ impl<'a> Builder<'a> {
 
         let impls = self.build_impls(id, eid, &impl_rids)?;
 
-        if let Item::Enum(def) = &mut self.asg.items[eid.0] {
+        if let Item::Enum(def) = self.asg.get_mut_unchecked(eid) {
             def.impls = impls;
         }
         Ok(Some(eid))
@@ -476,6 +476,12 @@ impl<'a> Builder<'a> {
         struct_sid: AsgId,
         impl_rids: &[RId],
     ) -> Result<Vec<AsgId>, ProbeError> {
+        let module = match self.asg.get_unchecked(struct_sid) {
+            Item::Struct(def) => parent_module(&def.path),
+            Item::Enum(def) => parent_module(&def.path),
+            _ => Vec::new(),
+        };
+
         let mut out = Vec::new();
         for &impl_rid in impl_rids {
             let Some(impl_item) = self.crate_.index.get(&impl_rid) else {
@@ -530,7 +536,8 @@ impl<'a> Builder<'a> {
             }
             self.self_stack.pop();
 
-            let impl_id = AsgId(self.asg.items.len());
+            let impl_id =
+                AsgId::of_impl(self.asg.items.len(), struct_sid, trait_.as_ref(), &module);
             self.asg.items.push(Item::Impl(ImplDef {
                 id: impl_id,
                 for_: struct_sid,
@@ -539,7 +546,7 @@ impl<'a> Builder<'a> {
             }));
 
             if let Some(TraitRef::Local(tid)) = &trait_ {
-                if let Item::Trait(t) = &mut self.asg.items[tid.0] {
+                if let Item::Trait(t) = self.asg.get_mut_unchecked(*tid) {
                     t.impls.push(impl_id);
                 }
             }
@@ -586,7 +593,7 @@ impl<'a> Builder<'a> {
 
         let span = item.span.as_ref().map(convert_span);
         let path = path_of(item, id, self.crate_);
-        let tid = AsgId(self.asg.items.len());
+        let tid = AsgId::new(self.asg.items.len(), &path);
         self.trait_intern.insert(id, Some(tid));
         self.asg.items.push(Item::Trait(TraitDef {
             id: tid,
@@ -675,7 +682,7 @@ impl<'a> Builder<'a> {
         };
 
         let span = item.span.as_ref().map(convert_span);
-        let path = path_of(item, id, self.crate_);
+        let path = self.fn_path(id, item);
 
         // Dry-probe signature.
         let probed: Result<(Option<Receiver>, Vec<FnParam>, Type), ProbeError> = (|| {
@@ -729,7 +736,7 @@ impl<'a> Builder<'a> {
             }
         };
 
-        let fid = AsgId(self.asg.items.len());
+        let fid = AsgId::new(self.asg.items.len(), &path);
         self.fn_intern.insert(id, Some(fid));
         self.asg.items.push(Item::Fn(FnDef {
             id: fid,
@@ -843,6 +850,22 @@ impl<'a> Builder<'a> {
         Ok(Some(out))
     }
 
+    /// Path of a function item. rustdoc's `paths` map omits associated
+    /// functions, so [`path_of`] would render a method as its bare name,
+    /// which is not unique across types. When interning inside an impl, the
+    /// path is qualified with the enclosing `Self` type, yielding e.g.
+    /// `crate::Point::make_default`.
+    fn fn_path(&self, fn_id: RId, fn_item: &RItem) -> ItemPath {
+        if let Some(&self_rid) = self.self_stack.last() {
+            if let Some(self_item) = self.crate_.index.get(&self_rid) {
+                let mut segments = path_of(self_item, self_rid, self.crate_).segments;
+                segments.push(fn_item.name.clone().unwrap_or_default());
+                return ItemPath::new(segments);
+            }
+        }
+        path_of(fn_item, fn_id, self.crate_)
+    }
+
     fn get_item(&self, id: RId) -> Result<&'a RItem, ProbeError> {
         self.crate_
             .index
@@ -941,12 +964,26 @@ pub(crate) fn convert_span(s: &RSpan) -> Span {
     }
 }
 
+/// Build the [`ItemPath`] for a local item. The leading segment is always
+/// normalized to `crate`, so a path reads `crate::module::Type` regardless of
+/// the crate's own name. Only items in the local crate's index reach this
+/// function.
 fn path_of(item: &RItem, id: RId, crate_: &Crate) -> ItemPath {
     if let Some(summary) = crate_.paths.get(&id) {
-        return ItemPath::new(summary.path.clone());
+        let mut segments = summary.path.clone();
+        match segments.first_mut() {
+            Some(first) => *first = "crate".to_string(),
+            None => segments.push("crate".to_string()),
+        }
+        return ItemPath::new(segments);
     }
     let name = item.name.clone().unwrap_or_default();
-    ItemPath::new(vec![name])
+    ItemPath::new(vec!["crate".to_string(), name])
+}
+
+fn parent_module(path: &ItemPath) -> Vec<String> {
+    let len = path.segments.len();
+    path.segments[..len.saturating_sub(1)].to_vec()
 }
 
 #[derive(Debug)]

@@ -194,19 +194,17 @@ impl From<__cursed::StaleRef> for JsValue {
 }
 /// class wrapper for `crate::Point`
 /// A point in 2D space.
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Point")]
-pub struct __cursed_rustdoc_test_crate__Point {
+#[wasm_bindgen(js_name = "__cursed_crate__Point")]
+pub struct __cursed_crate__Point {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Point {
+impl __cursed_crate__Point {
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Point, JsValue> {
-        let __cursed_owned: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
-                init,
-            )?
+    pub fn of(init: JsValue) -> Result<__cursed_crate__Point, JsValue> {
+        let __cursed_owned: crate::Point = __cursed_coerce___cursed_crate__Point(init)?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__Point {
+        Ok(__cursed_crate__Point {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -247,7 +245,7 @@ impl __cursed_rustdoc_test_crate__Point {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Point(
+fn __cursed_coerce___cursed_crate__Point(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Point>, JsValue> {
     let __cursed_raw_x = js_sys::Reflect::get(&val, &JsValue::from_str("x"))?;
@@ -267,22 +265,20 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Point(
 }
 /// class wrapper for `crate::Circle`
 /// A circle defined by its center and radius.
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Circle")]
-pub struct __cursed_rustdoc_test_crate__Circle {
+#[wasm_bindgen(js_name = "__cursed_crate__Circle")]
+pub struct __cursed_crate__Circle {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Circle>>>>,
     __cursed_cache__center: Option<
         Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
     >,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Circle {
+impl __cursed_crate__Circle {
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Circle, JsValue> {
-        let __cursed_owned: crate::Circle = __cursed_coerce___cursed_rustdoc_test_crate__Circle(
-                init,
-            )?
+    pub fn of(init: JsValue) -> Result<__cursed_crate__Circle, JsValue> {
+        let __cursed_owned: crate::Circle = __cursed_coerce___cursed_crate__Circle(init)?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__Circle {
+        Ok(__cursed_crate__Circle {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -293,13 +289,13 @@ impl __cursed_rustdoc_test_crate__Circle {
         })
     }
     #[wasm_bindgen(getter, js_name = "center")]
-    pub fn __cursed_get__center(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__center(&mut self) -> __cursed_crate__Point {
         if let Some(__cursed_cell) = self
             .__cursed_cache__center
             .as_ref()
             .and_then(Weak::upgrade)
         {
-            return __cursed_rustdoc_test_crate__Point {
+            return __cursed_crate__Point {
                 __cursed_root: __cursed_cell,
             };
         }
@@ -310,7 +306,7 @@ impl __cursed_rustdoc_test_crate__Circle {
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
         self.__cursed_cache__center = Some(Rc::downgrade(&__cursed_cell));
-        __cursed_rustdoc_test_crate__Point {
+        __cursed_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
@@ -320,8 +316,7 @@ impl __cursed_rustdoc_test_crate__Circle {
         __cursed_arg__center: JsValue,
     ) -> Result<(), JsValue> {
         let mut __cursed_new_val: Option<crate::Point> = Some(
-            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__center)?
-                .into_owned()?,
+            __cursed_coerce___cursed_crate__Point(__cursed_arg__center)?.into_owned()?,
         );
         if let Some(__cursed_cell) = self
             .__cursed_cache__center
@@ -367,11 +362,11 @@ impl __cursed_rustdoc_test_crate__Circle {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Circle(
+fn __cursed_coerce___cursed_crate__Circle(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Circle>, JsValue> {
     let __cursed_raw_center = js_sys::Reflect::get(&val, &JsValue::from_str("center"))?;
-    let __cursed_field_center: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
+    let __cursed_field_center: crate::Point = __cursed_coerce___cursed_crate__Point(
             __cursed_raw_center,
         )?
         .into_owned()?;
@@ -561,17 +556,15 @@ impl From<__cursed::StaleRef> for napi::Error {
 }
 /// class wrapper for `crate::Point`
 /// A point in 2D space.
-#[napi(js_name = "__cursed_rustdoc_test_crate__Point")]
-pub struct __cursed_rustdoc_test_crate__Point {
+#[napi(js_name = "__cursed_crate__Point")]
+pub struct __cursed_crate__Point {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Point {
+impl __cursed_crate__Point {
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
-                init,
-            )?
+        let __cursed_owned: crate::Point = __cursed_coerce___cursed_crate__Point(init)?
             .into_owned()?;
         Ok(Self {
             __cursed_root: Rc::new(
@@ -614,14 +607,14 @@ impl __cursed_rustdoc_test_crate__Point {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Point<'a>(
+fn __cursed_coerce___cursed_crate__Point<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Point>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Point,
+            __cursed_crate__Point,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -640,20 +633,18 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Point<'a>(
 }
 /// class wrapper for `crate::Circle`
 /// A circle defined by its center and radius.
-#[napi(js_name = "__cursed_rustdoc_test_crate__Circle")]
-pub struct __cursed_rustdoc_test_crate__Circle {
+#[napi(js_name = "__cursed_crate__Circle")]
+pub struct __cursed_crate__Circle {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Circle>>>>,
     __cursed_cache__center: Option<
         Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
     >,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Circle {
+impl __cursed_crate__Circle {
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::Circle = __cursed_coerce___cursed_rustdoc_test_crate__Circle(
-                init,
-            )?
+        let __cursed_owned: crate::Circle = __cursed_coerce___cursed_crate__Circle(init)?
             .into_owned()?;
         Ok(Self {
             __cursed_root: Rc::new(
@@ -666,13 +657,13 @@ impl __cursed_rustdoc_test_crate__Circle {
         })
     }
     #[napi(getter, js_name = "center")]
-    pub fn __cursed_get__center(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__center(&mut self) -> __cursed_crate__Point {
         if let Some(__cursed_cell) = self
             .__cursed_cache__center
             .as_ref()
             .and_then(Weak::upgrade)
         {
-            return __cursed_rustdoc_test_crate__Point {
+            return __cursed_crate__Point {
                 __cursed_root: __cursed_cell,
             };
         }
@@ -683,7 +674,7 @@ impl __cursed_rustdoc_test_crate__Circle {
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
         self.__cursed_cache__center = Some(Rc::downgrade(&__cursed_cell));
-        __cursed_rustdoc_test_crate__Point {
+        __cursed_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
@@ -693,8 +684,7 @@ impl __cursed_rustdoc_test_crate__Circle {
         __cursed_arg__center: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
         let mut __cursed_new_val: Option<crate::Point> = Some(
-            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__center)?
-                .into_owned()?,
+            __cursed_coerce___cursed_crate__Point(__cursed_arg__center)?.into_owned()?,
         );
         if let Some(__cursed_cell) = self
             .__cursed_cache__center
@@ -737,14 +727,14 @@ impl __cursed_rustdoc_test_crate__Circle {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Circle<'a>(
+fn __cursed_coerce___cursed_crate__Circle<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Circle>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Circle,
+            __cursed_crate__Circle,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -752,7 +742,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Circle<'a>(
         );
     }
     let __cursed_obj = val.coerce_to_object()?;
-    let __cursed_field_center: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
+    let __cursed_field_center: crate::Point = __cursed_coerce___cursed_crate__Point(
             __cursed_obj.get_named_property::<napi::bindgen_prelude::Unknown>("center")?,
         )?
         .into_owned()?;
@@ -773,7 +763,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Circle<'a>(
 // src/lib.rs.d.ts
 /** A point in 2D space. */
 export class Point {
-    private [" "]: 'rustdoc_test_crate::Point';
+    private [" "]: 'crate::Point';
 
     /** Horizontal position. */
     get x(): number;
@@ -802,7 +792,7 @@ export namespace Point {
 
 /** A circle defined by its center and radius. */
 export class Circle {
-    private [" "]: 'rustdoc_test_crate::Circle';
+    private [" "]: 'crate::Circle';
 
     /** The center point. */
     get center(): Point;
@@ -840,18 +830,18 @@ export namespace Circle {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Point, __cursed_rustdoc_test_crate__Circle } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Point, __cursed_crate__Circle } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crate__Circle as Circle };
+export { __cursed_crate__Point as Point, __cursed_crate__Circle as Circle };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Point, __cursed_rustdoc_test_crate__Circle } from '$test';
-export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crate__Circle as Circle };
+// $rust/crate
+import { __cursed_crate__Point, __cursed_crate__Circle } from '$test';
+export { __cursed_crate__Point as Point, __cursed_crate__Circle as Circle };
 ```
 
 # warns
@@ -864,19 +854,21 @@ export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crat
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -895,27 +887,30 @@ Asg {
                 uses: [
                     Use {
                         name: "Point",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 11881441256571997362,
+                        },
                     },
                     Use {
                         name: "Circle",
-                        target: AsgId(
-                            4,
-                        ),
+                        target: AsgId {
+                            index: 4,
+                            stable: 17947797531335925008,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 11881441256571997362,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Point",
                     ],
                 },
@@ -981,9 +976,10 @@ Asg {
                     ],
                 ),
                 impls: [
-                    AsgId(
-                        3,
-                    ),
+                    AsgId {
+                        index: 3,
+                        stable: 14364120100424076553,
+                    },
                 ],
                 docs: Some(
                     "A point in 2D space.",
@@ -993,11 +989,14 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 4203880583284788867,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Point",
                         "clone",
                     ],
                 },
@@ -1019,41 +1018,46 @@ Asg {
                 ),
                 params: [],
                 return_type: Struct(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 11881441256571997362,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    3,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 14364120100424076553,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 11881441256571997362,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        2,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 4203880583284788867,
+                    },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 4,
+                    stable: 17947797531335925008,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Circle",
                     ],
                 },
@@ -1075,9 +1079,10 @@ Asg {
                         StructField {
                             name: "center",
                             ty: Struct(
-                                AsgId(
-                                    1,
-                                ),
+                                AsgId {
+                                    index: 1,
+                                    stable: 11881441256571997362,
+                                },
                             ),
                             span: Some(
                                 Span {
@@ -1121,9 +1126,10 @@ Asg {
                     ],
                 ),
                 impls: [
-                    AsgId(
-                        6,
-                    ),
+                    AsgId {
+                        index: 6,
+                        stable: 11130242671869522360,
+                    },
                 ],
                 docs: Some(
                     "A circle defined by its center and radius.",
@@ -1133,11 +1139,14 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    5,
-                ),
+                id: AsgId {
+                    index: 5,
+                    stable: 15696445861607229537,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Circle",
                         "clone",
                     ],
                 },
@@ -1159,30 +1168,34 @@ Asg {
                 ),
                 params: [],
                 return_type: Struct(
-                    AsgId(
-                        4,
-                    ),
+                    AsgId {
+                        index: 4,
+                        stable: 17947797531335925008,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    6,
-                ),
-                for_: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 6,
+                    stable: 11130242671869522360,
+                },
+                for_: AsgId {
+                    index: 4,
+                    stable: 17947797531335925008,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        5,
-                    ),
+                    AsgId {
+                        index: 5,
+                        stable: 15696445861607229537,
+                    },
                 ],
             },
         ),
@@ -1204,12 +1217,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -1246,17 +1260,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 11881441256571997362,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Point",
                     ],
                 },
                 js_name: "Point",
-                mangled_name: "__cursed_rustdoc_test_crate__Point",
+                mangled_name: "__cursed_crate__Point",
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {
@@ -1362,17 +1377,18 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    4,
-                ),
+                orig: AsgId {
+                    index: 4,
+                    stable: 17947797531335925008,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Circle",
                     ],
                 },
                 js_name: "Circle",
-                mangled_name: "__cursed_rustdoc_test_crate__Circle",
+                mangled_name: "__cursed_crate__Circle",
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {

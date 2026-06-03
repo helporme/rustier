@@ -192,19 +192,17 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// class wrapper for `crate::Point`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Point")]
-pub struct __cursed_rustdoc_test_crate__Point {
+#[wasm_bindgen(js_name = "__cursed_crate__Point")]
+pub struct __cursed_crate__Point {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Point {
+impl __cursed_crate__Point {
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Point, JsValue> {
-        let __cursed_owned: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
-                init,
-            )?
+    pub fn of(init: JsValue) -> Result<__cursed_crate__Point, JsValue> {
+        let __cursed_owned: crate::Point = __cursed_coerce___cursed_crate__Point(init)?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__Point {
+        Ok(__cursed_crate__Point {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -245,7 +243,7 @@ impl __cursed_rustdoc_test_crate__Point {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Point(
+fn __cursed_coerce___cursed_crate__Point(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Point>, JsValue> {
     let __cursed_raw_x = js_sys::Reflect::get(&val, &JsValue::from_str("x"))?;
@@ -264,8 +262,8 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Point(
     )
 }
 /// class wrapper for `crate::Line`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Line")]
-pub struct __cursed_rustdoc_test_crate__Line {
+#[wasm_bindgen(js_name = "__cursed_crate__Line")]
+pub struct __cursed_crate__Line {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Line>>>>,
     __cursed_cache__start: Option<
         Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
@@ -275,14 +273,12 @@ pub struct __cursed_rustdoc_test_crate__Line {
     >,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Line {
+impl __cursed_crate__Line {
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Line, JsValue> {
-        let __cursed_owned: crate::Line = __cursed_coerce___cursed_rustdoc_test_crate__Line(
-                init,
-            )?
+    pub fn of(init: JsValue) -> Result<__cursed_crate__Line, JsValue> {
+        let __cursed_owned: crate::Line = __cursed_coerce___cursed_crate__Line(init)?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__Line {
+        Ok(__cursed_crate__Line {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -294,13 +290,13 @@ impl __cursed_rustdoc_test_crate__Line {
         })
     }
     #[wasm_bindgen(getter, js_name = "start")]
-    pub fn __cursed_get__start(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__start(&mut self) -> __cursed_crate__Point {
         if let Some(__cursed_cell) = self
             .__cursed_cache__start
             .as_ref()
             .and_then(Weak::upgrade)
         {
-            return __cursed_rustdoc_test_crate__Point {
+            return __cursed_crate__Point {
                 __cursed_root: __cursed_cell,
             };
         }
@@ -311,7 +307,7 @@ impl __cursed_rustdoc_test_crate__Line {
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
         self.__cursed_cache__start = Some(Rc::downgrade(&__cursed_cell));
-        __cursed_rustdoc_test_crate__Point {
+        __cursed_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
@@ -321,8 +317,7 @@ impl __cursed_rustdoc_test_crate__Line {
         __cursed_arg__start: JsValue,
     ) -> Result<(), JsValue> {
         let mut __cursed_new_val: Option<crate::Point> = Some(
-            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__start)?
-                .into_owned()?,
+            __cursed_coerce___cursed_crate__Point(__cursed_arg__start)?.into_owned()?,
         );
         if let Some(__cursed_cell) = self
             .__cursed_cache__start
@@ -347,13 +342,13 @@ impl __cursed_rustdoc_test_crate__Line {
         Ok(())
     }
     #[wasm_bindgen(getter, js_name = "end")]
-    pub fn __cursed_get__end(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__end(&mut self) -> __cursed_crate__Point {
         if let Some(__cursed_cell) = self
             .__cursed_cache__end
             .as_ref()
             .and_then(Weak::upgrade)
         {
-            return __cursed_rustdoc_test_crate__Point {
+            return __cursed_crate__Point {
                 __cursed_root: __cursed_cell,
             };
         }
@@ -364,7 +359,7 @@ impl __cursed_rustdoc_test_crate__Line {
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
         self.__cursed_cache__end = Some(Rc::downgrade(&__cursed_cell));
-        __cursed_rustdoc_test_crate__Point {
+        __cursed_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
@@ -374,8 +369,7 @@ impl __cursed_rustdoc_test_crate__Line {
         __cursed_arg__end: JsValue,
     ) -> Result<(), JsValue> {
         let mut __cursed_new_val: Option<crate::Point> = Some(
-            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__end)?
-                .into_owned()?,
+            __cursed_coerce___cursed_crate__Point(__cursed_arg__end)?.into_owned()?,
         );
         if let Some(__cursed_cell) = self
             .__cursed_cache__end
@@ -401,16 +395,16 @@ impl __cursed_rustdoc_test_crate__Line {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Line(
+fn __cursed_coerce___cursed_crate__Line(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Line>, JsValue> {
     let __cursed_raw_start = js_sys::Reflect::get(&val, &JsValue::from_str("start"))?;
-    let __cursed_field_start: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
+    let __cursed_field_start: crate::Point = __cursed_coerce___cursed_crate__Point(
             __cursed_raw_start,
         )?
         .into_owned()?;
     let __cursed_raw_end = js_sys::Reflect::get(&val, &JsValue::from_str("end"))?;
-    let __cursed_field_end: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
+    let __cursed_field_end: crate::Point = __cursed_coerce___cursed_crate__Point(
             __cursed_raw_end,
         )?
         .into_owned()?;
@@ -422,21 +416,21 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Line(
     )
 }
 /// class wrapper for `crate::Triangle`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Triangle")]
-pub struct __cursed_rustdoc_test_crate__Triangle {
+#[wasm_bindgen(js_name = "__cursed_crate__Triangle")]
+pub struct __cursed_crate__Triangle {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Triangle>>>>,
     __cursed_cache__a: Option<Weak<RefCell<Rc<dyn __cursed::Projection<crate::Line>>>>>,
     __cursed_cache__b: Option<Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Triangle {
+impl __cursed_crate__Triangle {
     #[wasm_bindgen(js_name = "of")]
-    pub fn of(init: JsValue) -> Result<__cursed_rustdoc_test_crate__Triangle, JsValue> {
-        let __cursed_owned: crate::Triangle = __cursed_coerce___cursed_rustdoc_test_crate__Triangle(
+    pub fn of(init: JsValue) -> Result<__cursed_crate__Triangle, JsValue> {
+        let __cursed_owned: crate::Triangle = __cursed_coerce___cursed_crate__Triangle(
                 init,
             )?
             .into_owned()?;
-        Ok(__cursed_rustdoc_test_crate__Triangle {
+        Ok(__cursed_crate__Triangle {
             __cursed_root: Rc::new(
                 RefCell::new(
                     Rc::new(RefCell::new(__cursed_owned))
@@ -448,13 +442,13 @@ impl __cursed_rustdoc_test_crate__Triangle {
         })
     }
     #[wasm_bindgen(getter, js_name = "a")]
-    pub fn __cursed_get__a(&mut self) -> __cursed_rustdoc_test_crate__Line {
+    pub fn __cursed_get__a(&mut self) -> __cursed_crate__Line {
         if let Some(__cursed_cell) = self
             .__cursed_cache__a
             .as_ref()
             .and_then(Weak::upgrade)
         {
-            return __cursed_rustdoc_test_crate__Line {
+            return __cursed_crate__Line {
                 __cursed_root: __cursed_cell,
                 __cursed_cache__start: None,
                 __cursed_cache__end: None,
@@ -467,7 +461,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
         self.__cursed_cache__a = Some(Rc::downgrade(&__cursed_cell));
-        __cursed_rustdoc_test_crate__Line {
+        __cursed_crate__Line {
             __cursed_root: __cursed_cell,
             __cursed_cache__start: None,
             __cursed_cache__end: None,
@@ -476,8 +470,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
     #[wasm_bindgen(setter, js_name = "a")]
     pub fn __cursed_set__a(&mut self, __cursed_arg__a: JsValue) -> Result<(), JsValue> {
         let mut __cursed_new_val: Option<crate::Line> = Some(
-            __cursed_coerce___cursed_rustdoc_test_crate__Line(__cursed_arg__a)?
-                .into_owned()?,
+            __cursed_coerce___cursed_crate__Line(__cursed_arg__a)?.into_owned()?,
         );
         if let Some(__cursed_cell) = self
             .__cursed_cache__a
@@ -502,13 +495,13 @@ impl __cursed_rustdoc_test_crate__Triangle {
         Ok(())
     }
     #[wasm_bindgen(getter, js_name = "b")]
-    pub fn __cursed_get__b(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__b(&mut self) -> __cursed_crate__Point {
         if let Some(__cursed_cell) = self
             .__cursed_cache__b
             .as_ref()
             .and_then(Weak::upgrade)
         {
-            return __cursed_rustdoc_test_crate__Point {
+            return __cursed_crate__Point {
                 __cursed_root: __cursed_cell,
             };
         }
@@ -519,15 +512,14 @@ impl __cursed_rustdoc_test_crate__Triangle {
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
         self.__cursed_cache__b = Some(Rc::downgrade(&__cursed_cell));
-        __cursed_rustdoc_test_crate__Point {
+        __cursed_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
     #[wasm_bindgen(setter, js_name = "b")]
     pub fn __cursed_set__b(&mut self, __cursed_arg__b: JsValue) -> Result<(), JsValue> {
         let mut __cursed_new_val: Option<crate::Point> = Some(
-            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__b)?
-                .into_owned()?,
+            __cursed_coerce___cursed_crate__Point(__cursed_arg__b)?.into_owned()?,
         );
         if let Some(__cursed_cell) = self
             .__cursed_cache__b
@@ -553,16 +545,16 @@ impl __cursed_rustdoc_test_crate__Triangle {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Triangle(
+fn __cursed_coerce___cursed_crate__Triangle(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Triangle>, JsValue> {
     let __cursed_raw_a = js_sys::Reflect::get(&val, &JsValue::from_str("a"))?;
-    let __cursed_field_a: crate::Line = __cursed_coerce___cursed_rustdoc_test_crate__Line(
+    let __cursed_field_a: crate::Line = __cursed_coerce___cursed_crate__Line(
             __cursed_raw_a,
         )?
         .into_owned()?;
     let __cursed_raw_b = js_sys::Reflect::get(&val, &JsValue::from_str("b"))?;
-    let __cursed_field_b: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
+    let __cursed_field_b: crate::Point = __cursed_coerce___cursed_crate__Point(
             __cursed_raw_b,
         )?
         .into_owned()?;
@@ -747,17 +739,15 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// class wrapper for `crate::Point`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Point")]
-pub struct __cursed_rustdoc_test_crate__Point {
+#[napi(js_name = "__cursed_crate__Point")]
+pub struct __cursed_crate__Point {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Point {
+impl __cursed_crate__Point {
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
-                init,
-            )?
+        let __cursed_owned: crate::Point = __cursed_coerce___cursed_crate__Point(init)?
             .into_owned()?;
         Ok(Self {
             __cursed_root: Rc::new(
@@ -800,14 +790,14 @@ impl __cursed_rustdoc_test_crate__Point {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Point<'a>(
+fn __cursed_coerce___cursed_crate__Point<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Point>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Point,
+            __cursed_crate__Point,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -825,8 +815,8 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Point<'a>(
     )
 }
 /// class wrapper for `crate::Line`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Line")]
-pub struct __cursed_rustdoc_test_crate__Line {
+#[napi(js_name = "__cursed_crate__Line")]
+pub struct __cursed_crate__Line {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Line>>>>,
     __cursed_cache__start: Option<
         Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>,
@@ -836,12 +826,10 @@ pub struct __cursed_rustdoc_test_crate__Line {
     >,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Line {
+impl __cursed_crate__Line {
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::Line = __cursed_coerce___cursed_rustdoc_test_crate__Line(
-                init,
-            )?
+        let __cursed_owned: crate::Line = __cursed_coerce___cursed_crate__Line(init)?
             .into_owned()?;
         Ok(Self {
             __cursed_root: Rc::new(
@@ -855,13 +843,13 @@ impl __cursed_rustdoc_test_crate__Line {
         })
     }
     #[napi(getter, js_name = "start")]
-    pub fn __cursed_get__start(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__start(&mut self) -> __cursed_crate__Point {
         if let Some(__cursed_cell) = self
             .__cursed_cache__start
             .as_ref()
             .and_then(Weak::upgrade)
         {
-            return __cursed_rustdoc_test_crate__Point {
+            return __cursed_crate__Point {
                 __cursed_root: __cursed_cell,
             };
         }
@@ -872,7 +860,7 @@ impl __cursed_rustdoc_test_crate__Line {
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
         self.__cursed_cache__start = Some(Rc::downgrade(&__cursed_cell));
-        __cursed_rustdoc_test_crate__Point {
+        __cursed_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
@@ -882,8 +870,7 @@ impl __cursed_rustdoc_test_crate__Line {
         __cursed_arg__start: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
         let mut __cursed_new_val: Option<crate::Point> = Some(
-            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__start)?
-                .into_owned()?,
+            __cursed_coerce___cursed_crate__Point(__cursed_arg__start)?.into_owned()?,
         );
         if let Some(__cursed_cell) = self
             .__cursed_cache__start
@@ -908,13 +895,13 @@ impl __cursed_rustdoc_test_crate__Line {
         Ok(())
     }
     #[napi(getter, js_name = "end")]
-    pub fn __cursed_get__end(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__end(&mut self) -> __cursed_crate__Point {
         if let Some(__cursed_cell) = self
             .__cursed_cache__end
             .as_ref()
             .and_then(Weak::upgrade)
         {
-            return __cursed_rustdoc_test_crate__Point {
+            return __cursed_crate__Point {
                 __cursed_root: __cursed_cell,
             };
         }
@@ -925,7 +912,7 @@ impl __cursed_rustdoc_test_crate__Line {
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
         self.__cursed_cache__end = Some(Rc::downgrade(&__cursed_cell));
-        __cursed_rustdoc_test_crate__Point {
+        __cursed_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
@@ -935,8 +922,7 @@ impl __cursed_rustdoc_test_crate__Line {
         __cursed_arg__end: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
         let mut __cursed_new_val: Option<crate::Point> = Some(
-            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__end)?
-                .into_owned()?,
+            __cursed_coerce___cursed_crate__Point(__cursed_arg__end)?.into_owned()?,
         );
         if let Some(__cursed_cell) = self
             .__cursed_cache__end
@@ -962,14 +948,14 @@ impl __cursed_rustdoc_test_crate__Line {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Line<'a>(
+fn __cursed_coerce___cursed_crate__Line<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Line>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Line,
+            __cursed_crate__Line,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -977,11 +963,11 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Line<'a>(
         );
     }
     let __cursed_obj = val.coerce_to_object()?;
-    let __cursed_field_start: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
+    let __cursed_field_start: crate::Point = __cursed_coerce___cursed_crate__Point(
             __cursed_obj.get_named_property::<napi::bindgen_prelude::Unknown>("start")?,
         )?
         .into_owned()?;
-    let __cursed_field_end: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
+    let __cursed_field_end: crate::Point = __cursed_coerce___cursed_crate__Point(
             __cursed_obj.get_named_property::<napi::bindgen_prelude::Unknown>("end")?,
         )?
         .into_owned()?;
@@ -993,17 +979,17 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Line<'a>(
     )
 }
 /// class wrapper for `crate::Triangle`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Triangle")]
-pub struct __cursed_rustdoc_test_crate__Triangle {
+#[napi(js_name = "__cursed_crate__Triangle")]
+pub struct __cursed_crate__Triangle {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Triangle>>>>,
     __cursed_cache__a: Option<Weak<RefCell<Rc<dyn __cursed::Projection<crate::Line>>>>>,
     __cursed_cache__b: Option<Weak<RefCell<Rc<dyn __cursed::Projection<crate::Point>>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Triangle {
+impl __cursed_crate__Triangle {
     #[napi(factory, js_name = "of")]
     pub fn of(init: napi::bindgen_prelude::Unknown<'_>) -> napi::Result<Self> {
-        let __cursed_owned: crate::Triangle = __cursed_coerce___cursed_rustdoc_test_crate__Triangle(
+        let __cursed_owned: crate::Triangle = __cursed_coerce___cursed_crate__Triangle(
                 init,
             )?
             .into_owned()?;
@@ -1019,13 +1005,13 @@ impl __cursed_rustdoc_test_crate__Triangle {
         })
     }
     #[napi(getter, js_name = "a")]
-    pub fn __cursed_get__a(&mut self) -> __cursed_rustdoc_test_crate__Line {
+    pub fn __cursed_get__a(&mut self) -> __cursed_crate__Line {
         if let Some(__cursed_cell) = self
             .__cursed_cache__a
             .as_ref()
             .and_then(Weak::upgrade)
         {
-            return __cursed_rustdoc_test_crate__Line {
+            return __cursed_crate__Line {
                 __cursed_root: __cursed_cell,
                 __cursed_cache__start: None,
                 __cursed_cache__end: None,
@@ -1038,7 +1024,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
         self.__cursed_cache__a = Some(Rc::downgrade(&__cursed_cell));
-        __cursed_rustdoc_test_crate__Line {
+        __cursed_crate__Line {
             __cursed_root: __cursed_cell,
             __cursed_cache__start: None,
             __cursed_cache__end: None,
@@ -1050,8 +1036,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
         __cursed_arg__a: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
         let mut __cursed_new_val: Option<crate::Line> = Some(
-            __cursed_coerce___cursed_rustdoc_test_crate__Line(__cursed_arg__a)?
-                .into_owned()?,
+            __cursed_coerce___cursed_crate__Line(__cursed_arg__a)?.into_owned()?,
         );
         if let Some(__cursed_cell) = self
             .__cursed_cache__a
@@ -1076,13 +1061,13 @@ impl __cursed_rustdoc_test_crate__Triangle {
         Ok(())
     }
     #[napi(getter, js_name = "b")]
-    pub fn __cursed_get__b(&mut self) -> __cursed_rustdoc_test_crate__Point {
+    pub fn __cursed_get__b(&mut self) -> __cursed_crate__Point {
         if let Some(__cursed_cell) = self
             .__cursed_cache__b
             .as_ref()
             .and_then(Weak::upgrade)
         {
-            return __cursed_rustdoc_test_crate__Point {
+            return __cursed_crate__Point {
                 __cursed_root: __cursed_cell,
             };
         }
@@ -1093,7 +1078,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
         });
         let __cursed_cell = Rc::new(RefCell::new(__cursed_proj));
         self.__cursed_cache__b = Some(Rc::downgrade(&__cursed_cell));
-        __cursed_rustdoc_test_crate__Point {
+        __cursed_crate__Point {
             __cursed_root: __cursed_cell,
         }
     }
@@ -1103,8 +1088,7 @@ impl __cursed_rustdoc_test_crate__Triangle {
         __cursed_arg__b: napi::bindgen_prelude::Unknown<'_>,
     ) -> napi::Result<()> {
         let mut __cursed_new_val: Option<crate::Point> = Some(
-            __cursed_coerce___cursed_rustdoc_test_crate__Point(__cursed_arg__b)?
-                .into_owned()?,
+            __cursed_coerce___cursed_crate__Point(__cursed_arg__b)?.into_owned()?,
         );
         if let Some(__cursed_cell) = self
             .__cursed_cache__b
@@ -1130,14 +1114,14 @@ impl __cursed_rustdoc_test_crate__Triangle {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Triangle<'a>(
+fn __cursed_coerce___cursed_crate__Triangle<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Triangle>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Triangle,
+            __cursed_crate__Triangle,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -1145,11 +1129,11 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Triangle<'a>(
         );
     }
     let __cursed_obj = val.coerce_to_object()?;
-    let __cursed_field_a: crate::Line = __cursed_coerce___cursed_rustdoc_test_crate__Line(
+    let __cursed_field_a: crate::Line = __cursed_coerce___cursed_crate__Line(
             __cursed_obj.get_named_property::<napi::bindgen_prelude::Unknown>("a")?,
         )?
         .into_owned()?;
-    let __cursed_field_b: crate::Point = __cursed_coerce___cursed_rustdoc_test_crate__Point(
+    let __cursed_field_b: crate::Point = __cursed_coerce___cursed_crate__Point(
             __cursed_obj.get_named_property::<napi::bindgen_prelude::Unknown>("b")?,
         )?
         .into_owned()?;
@@ -1168,7 +1152,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Triangle<'a>(
 
 // src/lib.rs.d.ts
 export class Point {
-    private [" "]: 'rustdoc_test_crate::Point';
+    private [" "]: 'crate::Point';
 
     get x(): number;
 
@@ -1191,7 +1175,7 @@ export namespace Point {
 }
 
 export class Line {
-    private [" "]: 'rustdoc_test_crate::Line';
+    private [" "]: 'crate::Line';
 
     get start(): Point;
 
@@ -1214,7 +1198,7 @@ export namespace Line {
 }
 
 export class Triangle {
-    private [" "]: 'rustdoc_test_crate::Triangle';
+    private [" "]: 'crate::Triangle';
 
     get a(): Line;
 
@@ -1247,18 +1231,18 @@ export namespace Triangle {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Point, __cursed_rustdoc_test_crate__Line, __cursed_rustdoc_test_crate__Triangle } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Point, __cursed_crate__Line, __cursed_crate__Triangle } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crate__Line as Line, __cursed_rustdoc_test_crate__Triangle as Triangle };
+export { __cursed_crate__Point as Point, __cursed_crate__Line as Line, __cursed_crate__Triangle as Triangle };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Point, __cursed_rustdoc_test_crate__Line, __cursed_rustdoc_test_crate__Triangle } from '$test';
-export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crate__Line as Line, __cursed_rustdoc_test_crate__Triangle as Triangle };
+// $rust/crate
+import { __cursed_crate__Point, __cursed_crate__Line, __cursed_crate__Triangle } from '$test';
+export { __cursed_crate__Point as Point, __cursed_crate__Line as Line, __cursed_crate__Triangle as Triangle };
 ```
 
 # warns
@@ -1271,19 +1255,21 @@ export { __cursed_rustdoc_test_crate__Point as Point, __cursed_rustdoc_test_crat
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -1302,33 +1288,37 @@ Asg {
                 uses: [
                     Use {
                         name: "Point",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 11881441256571997362,
+                        },
                     },
                     Use {
                         name: "Line",
-                        target: AsgId(
-                            4,
-                        ),
+                        target: AsgId {
+                            index: 4,
+                            stable: 6633153952349105310,
+                        },
                     },
                     Use {
                         name: "Triangle",
-                        target: AsgId(
-                            7,
-                        ),
+                        target: AsgId {
+                            index: 7,
+                            stable: 2595083718195503944,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 11881441256571997362,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Point",
                     ],
                 },
@@ -1390,9 +1380,10 @@ Asg {
                     ],
                 ),
                 impls: [
-                    AsgId(
-                        3,
-                    ),
+                    AsgId {
+                        index: 3,
+                        stable: 14364120100424076553,
+                    },
                 ],
                 docs: None,
                 has_private_fields: false,
@@ -1400,11 +1391,14 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    2,
-                ),
+                id: AsgId {
+                    index: 2,
+                    stable: 4203880583284788867,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Point",
                         "clone",
                     ],
                 },
@@ -1426,41 +1420,46 @@ Asg {
                 ),
                 params: [],
                 return_type: Struct(
-                    AsgId(
-                        1,
-                    ),
+                    AsgId {
+                        index: 1,
+                        stable: 11881441256571997362,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    3,
-                ),
-                for_: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 3,
+                    stable: 14364120100424076553,
+                },
+                for_: AsgId {
+                    index: 1,
+                    stable: 11881441256571997362,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        2,
-                    ),
+                    AsgId {
+                        index: 2,
+                        stable: 4203880583284788867,
+                    },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 4,
+                    stable: 6633153952349105310,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Line",
                     ],
                 },
@@ -1482,9 +1481,10 @@ Asg {
                         StructField {
                             name: "start",
                             ty: Struct(
-                                AsgId(
-                                    1,
-                                ),
+                                AsgId {
+                                    index: 1,
+                                    stable: 11881441256571997362,
+                                },
                             ),
                             span: Some(
                                 Span {
@@ -1504,9 +1504,10 @@ Asg {
                         StructField {
                             name: "end",
                             ty: Struct(
-                                AsgId(
-                                    1,
-                                ),
+                                AsgId {
+                                    index: 1,
+                                    stable: 11881441256571997362,
+                                },
                             ),
                             span: Some(
                                 Span {
@@ -1526,9 +1527,10 @@ Asg {
                     ],
                 ),
                 impls: [
-                    AsgId(
-                        6,
-                    ),
+                    AsgId {
+                        index: 6,
+                        stable: 9576566568343819138,
+                    },
                 ],
                 docs: None,
                 has_private_fields: false,
@@ -1536,11 +1538,14 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    5,
-                ),
+                id: AsgId {
+                    index: 5,
+                    stable: 6109941876971641319,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Line",
                         "clone",
                     ],
                 },
@@ -1562,41 +1567,46 @@ Asg {
                 ),
                 params: [],
                 return_type: Struct(
-                    AsgId(
-                        4,
-                    ),
+                    AsgId {
+                        index: 4,
+                        stable: 6633153952349105310,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    6,
-                ),
-                for_: AsgId(
-                    4,
-                ),
+                id: AsgId {
+                    index: 6,
+                    stable: 9576566568343819138,
+                },
+                for_: AsgId {
+                    index: 4,
+                    stable: 6633153952349105310,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        5,
-                    ),
+                    AsgId {
+                        index: 5,
+                        stable: 6109941876971641319,
+                    },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    7,
-                ),
+                id: AsgId {
+                    index: 7,
+                    stable: 2595083718195503944,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Triangle",
                     ],
                 },
@@ -1618,9 +1628,10 @@ Asg {
                         StructField {
                             name: "a",
                             ty: Struct(
-                                AsgId(
-                                    4,
-                                ),
+                                AsgId {
+                                    index: 4,
+                                    stable: 6633153952349105310,
+                                },
                             ),
                             span: Some(
                                 Span {
@@ -1640,9 +1651,10 @@ Asg {
                         StructField {
                             name: "b",
                             ty: Struct(
-                                AsgId(
-                                    1,
-                                ),
+                                AsgId {
+                                    index: 1,
+                                    stable: 11881441256571997362,
+                                },
                             ),
                             span: Some(
                                 Span {
@@ -1662,9 +1674,10 @@ Asg {
                     ],
                 ),
                 impls: [
-                    AsgId(
-                        9,
-                    ),
+                    AsgId {
+                        index: 9,
+                        stable: 136640953392468420,
+                    },
                 ],
                 docs: None,
                 has_private_fields: false,
@@ -1672,11 +1685,14 @@ Asg {
         ),
         Fn(
             FnDef {
-                id: AsgId(
-                    8,
-                ),
+                id: AsgId {
+                    index: 8,
+                    stable: 117541168025014745,
+                },
                 path: ItemPath {
                     segments: [
+                        "crate",
+                        "Triangle",
                         "clone",
                     ],
                 },
@@ -1698,30 +1714,34 @@ Asg {
                 ),
                 params: [],
                 return_type: Struct(
-                    AsgId(
-                        7,
-                    ),
+                    AsgId {
+                        index: 7,
+                        stable: 2595083718195503944,
+                    },
                 ),
                 docs: None,
             },
         ),
         Impl(
             ImplDef {
-                id: AsgId(
-                    9,
-                ),
-                for_: AsgId(
-                    7,
-                ),
+                id: AsgId {
+                    index: 9,
+                    stable: 136640953392468420,
+                },
+                for_: AsgId {
+                    index: 7,
+                    stable: 2595083718195503944,
+                },
                 trait_: Some(
                     WellKnown(
                         Clone,
                     ),
                 ),
                 fns: [
-                    AsgId(
-                        8,
-                    ),
+                    AsgId {
+                        index: 8,
+                        stable: 117541168025014745,
+                    },
                 ],
             },
         ),
@@ -1743,12 +1763,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -1791,17 +1812,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 11881441256571997362,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Point",
                     ],
                 },
                 js_name: "Point",
-                mangled_name: "__cursed_rustdoc_test_crate__Point",
+                mangled_name: "__cursed_crate__Point",
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {
@@ -1901,17 +1923,18 @@ Ir {
                 id: IrId(
                     2,
                 ),
-                orig: AsgId(
-                    4,
-                ),
+                orig: AsgId {
+                    index: 4,
+                    stable: 6633153952349105310,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Line",
                     ],
                 },
                 js_name: "Line",
-                mangled_name: "__cursed_rustdoc_test_crate__Line",
+                mangled_name: "__cursed_crate__Line",
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {
@@ -2019,17 +2042,18 @@ Ir {
                 id: IrId(
                     3,
                 ),
-                orig: AsgId(
-                    7,
-                ),
+                orig: AsgId {
+                    index: 7,
+                    stable: 2595083718195503944,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Triangle",
                     ],
                 },
                 js_name: "Triangle",
-                mangled_name: "__cursed_rustdoc_test_crate__Triangle",
+                mangled_name: "__cursed_crate__Triangle",
                 ctor: None,
                 struct_expr: Some(
                     StructExpr {

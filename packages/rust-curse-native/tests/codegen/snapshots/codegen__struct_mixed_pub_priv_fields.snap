@@ -181,12 +181,12 @@ impl From<__cursed::StaleRef> for JsValue {
     }
 }
 /// class wrapper for `crate::Mixed`
-#[wasm_bindgen(js_name = "__cursed_rustdoc_test_crate__Mixed")]
-pub struct __cursed_rustdoc_test_crate__Mixed {
+#[wasm_bindgen(js_name = "__cursed_crate__Mixed")]
+pub struct __cursed_crate__Mixed {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Mixed>>>>,
 }
 #[wasm_bindgen]
-impl __cursed_rustdoc_test_crate__Mixed {
+impl __cursed_crate__Mixed {
     #[wasm_bindgen(getter, js_name = "x")]
     pub fn __cursed_get__x(&self) -> Result<i32, JsValue> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -204,7 +204,7 @@ impl __cursed_rustdoc_test_crate__Mixed {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Mixed(
+fn __cursed_coerce___cursed_crate__Mixed(
     val: JsValue,
 ) -> Result<__cursed::Coerced<crate::Mixed>, JsValue> {
     let _ = val;
@@ -388,12 +388,12 @@ impl From<__cursed::StaleRef> for napi::Error {
     }
 }
 /// class wrapper for `crate::Mixed`
-#[napi(js_name = "__cursed_rustdoc_test_crate__Mixed")]
-pub struct __cursed_rustdoc_test_crate__Mixed {
+#[napi(js_name = "__cursed_crate__Mixed")]
+pub struct __cursed_crate__Mixed {
     __cursed_root: Rc<RefCell<Rc<dyn __cursed::Projection<crate::Mixed>>>>,
 }
 #[napi]
-impl __cursed_rustdoc_test_crate__Mixed {
+impl __cursed_crate__Mixed {
     #[napi(getter, js_name = "x")]
     pub fn __cursed_get__x(&self) -> napi::Result<i32> {
         let __cursed_proj = self.__cursed_root.borrow().clone();
@@ -411,14 +411,14 @@ impl __cursed_rustdoc_test_crate__Mixed {
     }
 }
 #[allow(dead_code)]
-fn __cursed_coerce___cursed_rustdoc_test_crate__Mixed<'a>(
+fn __cursed_coerce___cursed_crate__Mixed<'a>(
     val: napi::bindgen_prelude::Unknown<'a>,
 ) -> napi::Result<__cursed::Coerced<crate::Mixed>> {
     let __cursed_env_raw = napi::JsValue::value(&val).env;
     let __cursed_raw = napi::JsValue::raw(&val);
     if let Ok(__cursed_inst) = unsafe {
         napi::bindgen_prelude::ClassInstance::<
-            __cursed_rustdoc_test_crate__Mixed,
+            __cursed_crate__Mixed,
         >::from_napi_value(__cursed_env_raw, __cursed_raw)
     } {
         return Ok(
@@ -441,7 +441,7 @@ fn __cursed_coerce___cursed_rustdoc_test_crate__Mixed<'a>(
 
 // src/lib.rs.d.ts
 export class Mixed {
-    private [" "]: 'rustdoc_test_crate::Mixed';
+    private [" "]: 'crate::Mixed';
 
     get x(): number;
 
@@ -461,18 +461,18 @@ export class Mixed {
 # js-wasm
 
 ```js
-// $rust/rustdoc_test_crate
-import __wbg_init, { __cursed_rustdoc_test_crate__Mixed } from '$test';
+// $rust/crate
+import __wbg_init, { __cursed_crate__Mixed } from '$test';
 await __wbg_init();
-export { __cursed_rustdoc_test_crate__Mixed as Mixed };
+export { __cursed_crate__Mixed as Mixed };
 ```
 
 # js-napi
 
 ```js
-// $rust/rustdoc_test_crate
-import { __cursed_rustdoc_test_crate__Mixed } from '$test';
-export { __cursed_rustdoc_test_crate__Mixed as Mixed };
+// $rust/crate
+import { __cursed_crate__Mixed } from '$test';
+export { __cursed_crate__Mixed as Mixed };
 ```
 
 # warns
@@ -485,19 +485,21 @@ export { __cursed_rustdoc_test_crate__Mixed as Mixed };
 
 ```rs
 Asg {
-    root: AsgId(
-        0,
-    ),
+    root: AsgId {
+        index: 0,
+        stable: 10468875301434874976,
+    },
     crate_name: "rustdoc_test_crate",
     items: [
         Mod(
             ModDef {
-                id: AsgId(
-                    0,
-                ),
+                id: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -516,21 +518,23 @@ Asg {
                 uses: [
                     Use {
                         name: "Mixed",
-                        target: AsgId(
-                            1,
-                        ),
+                        target: AsgId {
+                            index: 1,
+                            stable: 3153567254226213091,
+                        },
                     },
                 ],
             },
         ),
         Struct(
             StructDef {
-                id: AsgId(
-                    1,
-                ),
+                id: AsgId {
+                    index: 1,
+                    stable: 3153567254226213091,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Mixed",
                     ],
                 },
@@ -594,12 +598,13 @@ Ir {
                 id: IrId(
                     0,
                 ),
-                orig: AsgId(
-                    0,
-                ),
+                orig: AsgId {
+                    index: 0,
+                    stable: 10468875301434874976,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                     ],
                 },
                 span: Some(
@@ -630,17 +635,18 @@ Ir {
                 id: IrId(
                     1,
                 ),
-                orig: AsgId(
-                    1,
-                ),
+                orig: AsgId {
+                    index: 1,
+                    stable: 3153567254226213091,
+                },
                 path: ItemPath {
                     segments: [
-                        "rustdoc_test_crate",
+                        "crate",
                         "Mixed",
                     ],
                 },
                 js_name: "Mixed",
-                mangled_name: "__cursed_rustdoc_test_crate__Mixed",
+                mangled_name: "__cursed_crate__Mixed",
                 ctor: None,
                 struct_expr: None,
                 methods: [],
