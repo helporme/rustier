@@ -52,7 +52,7 @@ impl Syncer {
                 continue;
             };
             let mid = m.id;
-            let segs = &m.path.segments;
+            let segs = &m.path.path;
             if segs.len() < 2 {
                 continue;
             }

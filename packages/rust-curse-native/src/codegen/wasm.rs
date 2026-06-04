@@ -59,7 +59,7 @@ impl<'a> Printer<'a> {
             let Item::Mod(mod_def) = &self.ir.items[i] else {
                 continue;
             };
-            let mod_segs = mod_def.path.segments.clone();
+            let mod_segs = mod_def.path.path.clone();
             for use_ in mod_def.uses.clone() {
                 if !self.exposed.contains(&use_.target) {
                     continue;
@@ -232,7 +232,7 @@ impl<'a> Printer<'a> {
         if let Some(docs) = &def.docs {
             out.push_str(&rust_doc(docs, ""));
         }
-        let brand = def.path.segments.join("::");
+        let brand = def.path.path.join("::");
         out.push_str(&format!(
             "#[wasm_bindgen(js_name = \"{mangled}\")]\npub struct {mangled} {{\n"
         ));

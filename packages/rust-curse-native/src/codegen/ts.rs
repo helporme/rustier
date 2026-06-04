@@ -116,7 +116,7 @@ impl<'a> Printer<'a> {
 
     fn run(mut self) -> PrintedTsMod {
         let mod_def = self.ir.get_mod_unchecked(self.mod_id).clone();
-        let mod_segments = mod_def.path.segments.clone();
+        let mod_segments = mod_def.path.path.clone();
         let uses = mod_def.uses.clone();
 
         for use_ in &uses {
@@ -249,7 +249,7 @@ impl<'a> Printer<'a> {
         }
         let def = self.ir.get_class_unchecked(cid).clone();
         let name = def.js_name.clone();
-        let brand = def.path.segments.join("::");
+        let brand = def.path.path.join("::");
         let ClassShape::Struct { fields } = &def.shape else {
             unreachable!("enum shape handled by print_enum_class")
         };
@@ -332,7 +332,7 @@ impl<'a> Printer<'a> {
     fn print_enum_class(&mut self, cid: IrId) {
         let def = self.ir.get_class_unchecked(cid).clone();
         let name = def.js_name.clone();
-        let brand = def.path.segments.join("::");
+        let brand = def.path.path.join("::");
         let ClassShape::Enum {
             variants,
             discriminator,
@@ -593,7 +593,7 @@ impl<'a> Printer<'a> {
 
     fn print_reexport(&mut self, canonical: &ItemPath, local_name: &str) {
         let canonical_name = canonical.name().unwrap_or(local_name).to_string();
-        let target_mod_segments = &canonical.segments[..canonical.segments.len() - 1];
+        let target_mod_segments = &canonical.path[..canonical.path.len() - 1];
         let specifier = self.specifier_to_module(target_mod_segments);
         if canonical_name == local_name {
             self.body
@@ -625,11 +625,11 @@ impl<'a> Printer<'a> {
     }
 
     fn record_import(&mut self, path: &ItemPath) {
-        if path.segments.len() < 2 {
+        if path.path.len() < 2 {
             return;
         }
         let type_name = path.name().unwrap().to_string();
-        let target_mod_segments = &path.segments[..path.segments.len() - 1];
+        let target_mod_segments = &path.path[..path.path.len() - 1];
         let specifier = self.specifier_to_module(target_mod_segments);
         self.imports.entry(specifier).or_default().insert(type_name);
     }
@@ -639,7 +639,7 @@ impl<'a> Printer<'a> {
     fn specifier_to_module(&self, target_mod_segments: &[String]) -> String {
         let from = mod_file_path(
             self.rel_src_path,
-            &self.ir.get_mod_unchecked(self.mod_id).path.segments,
+            &self.ir.get_mod_unchecked(self.mod_id).path.path,
         );
         let to = mod_file_path(self.rel_src_path, target_mod_segments);
         relative_specifier(&from, &to)

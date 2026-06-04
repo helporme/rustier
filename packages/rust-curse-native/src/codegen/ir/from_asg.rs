@@ -437,10 +437,10 @@ impl<'a> Lowerer<'a> {
             let impl_ = self.asg.get_impl_unchecked(impl_id);
             let key_path: Vec<String> = match &impl_.trait_ {
                 Some(asg::TraitRef::Local(tid)) => {
-                    self.asg.get_trait_unchecked(*tid).path.segments.clone()
+                    self.asg.get_trait_unchecked(*tid).path.path.clone()
                 }
                 Some(asg::TraitRef::WellKnown(_)) => continue,
-                None => path.segments.clone(),
+                None => path.path.clone(),
             };
             for &fid in &impl_.fns {
                 let f = self.asg.get_fn_unchecked(fid);
@@ -823,11 +823,9 @@ impl<'a> Lowerer<'a> {
         for impl_id in self.nominal_impls(id) {
             let impl_ = self.asg.get_impl_unchecked(impl_id);
             let key_path: Vec<String> = match &impl_.trait_ {
-                Some(TraitRef::Local(tid)) => {
-                    self.asg.get_trait_unchecked(*tid).path.segments.clone()
-                }
+                Some(TraitRef::Local(tid)) => self.asg.get_trait_unchecked(*tid).path.path.clone(),
                 Some(TraitRef::WellKnown(_)) => continue,
-                None => path.segments.clone(),
+                None => path.path.clone(),
             };
             for &fid in &impl_.fns {
                 let f = self.asg.get_fn_unchecked(fid);

@@ -8,14 +8,8 @@ use rustdoc_types::{
     StructKind, Type as RType, Use as RUse, VariantKind, Visibility,
 };
 
-use super::{
-    Asg, AsgId, EnumDef, EnumVariant, FnDef, FnParam, ImplDef, Item, ItemPath, ModDef, ParamMode,
-    Primitive, Receiver, Span, StructDef, StructField, StructShape, TraitDef, TraitRef, Type, Use,
-    WellKnownTrait,
-};
-use crate::warns::Warn;
-use crate::warns::WarnLabel;
-use crate::warns::Warns;
+use super::*;
+use crate::warns::{Warn, WarnLabel, Warns};
 
 #[derive(Debug, thiserror::Error)]
 pub enum BuildError {
@@ -858,7 +852,7 @@ impl<'a> Builder<'a> {
     fn fn_path(&self, fn_id: RId, fn_item: &RItem) -> ItemPath {
         if let Some(&self_rid) = self.self_stack.last() {
             if let Some(self_item) = self.crate_.index.get(&self_rid) {
-                let mut segments = path_of(self_item, self_rid, self.crate_).segments;
+                let mut segments = path_of(self_item, self_rid, self.crate_).path;
                 segments.push(fn_item.name.clone().unwrap_or_default());
                 return ItemPath::new(segments);
             }
@@ -982,8 +976,8 @@ fn path_of(item: &RItem, id: RId, crate_: &Crate) -> ItemPath {
 }
 
 fn parent_module(path: &ItemPath) -> Vec<String> {
-    let len = path.segments.len();
-    path.segments[..len.saturating_sub(1)].to_vec()
+    let len = path.path.len();
+    path.path[..len.saturating_sub(1)].to_vec()
 }
 
 #[derive(Debug)]

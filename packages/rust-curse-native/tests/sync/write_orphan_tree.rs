@@ -559,7 +559,7 @@ fn module_without_filename_is_skipped() {
     );
     for item in asg.items.iter_mut() {
         if let rust_curse::codegen::asg::Item::Mod(m) = item {
-            if m.path.segments.last().map(String::as_str) == Some("ghost") {
+            if m.path.path.last().map(String::as_str) == Some("ghost") {
                 m.span = None;
             }
         }

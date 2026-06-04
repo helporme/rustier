@@ -56,7 +56,7 @@ impl Syncer {
                     return None;
                 }
                 let rel_rs_path = m.span.as_ref()?.filename.clone();
-                let mod_name = m.path.segments[1..].join("::");
+                let mod_name = m.path.path[1..].join("::");
                 Some((mod_name, rel_rs_path, id))
             })
             .collect();

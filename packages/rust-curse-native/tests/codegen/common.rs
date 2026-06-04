@@ -62,7 +62,7 @@ pub fn print_ts_per_mod(
             continue;
         };
         let mid = m.id;
-        let segs = &m.path.segments;
+        let segs = &m.path.path;
         if segs.is_empty() {
             continue;
         }
@@ -101,7 +101,7 @@ pub fn print_ts_map_per_mod(
             continue;
         };
         let mid = m.id;
-        let segs = &m.path.segments;
+        let segs = &m.path.path;
         if segs.is_empty() {
             continue;
         }
@@ -176,7 +176,7 @@ where
             continue;
         };
         let mid = m.id;
-        let mod_path = m.path.segments.join("/");
+        let mod_path = m.path.path.join("/");
         if !out.is_empty() {
             out.push('\n');
         }

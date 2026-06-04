@@ -212,11 +212,11 @@ fn walk_type(ty: &Type, stack: &mut Vec<AsgId>) {
 /// no path of their own, so they are described by the struct they are for.
 fn item_desc(item: &Item) -> (&'static str, String) {
     match item {
-        Item::Struct(def) => ("struct", def.path.segments.join("::")),
-        Item::Enum(def) => ("enum", def.path.segments.join("::")),
-        Item::Fn(def) => ("fn", def.path.segments.join("::")),
-        Item::Mod(def) => ("mod", def.path.segments.join("::")),
-        Item::Trait(def) => ("trait", def.path.segments.join("::")),
+        Item::Struct(def) => ("struct", def.path.path.join("::")),
+        Item::Enum(def) => ("enum", def.path.path.join("::")),
+        Item::Fn(def) => ("fn", def.path.path.join("::")),
+        Item::Mod(def) => ("mod", def.path.path.join("::")),
+        Item::Trait(def) => ("trait", def.path.path.join("::")),
         Item::Impl(def) => ("impl", format!("for #{}", def.for_.index)),
     }
 }
@@ -232,7 +232,7 @@ fn find_module(asg: &Asg, mod_name: &str) -> Option<AsgId> {
     let expected: Vec<&str> = vec!["crate", flattened.as_str()];
     for item in &asg.items {
         let Item::Mod(def) = item else { continue };
-        let segments: Vec<&str> = def.path.segments.iter().map(String::as_str).collect();
+        let segments: Vec<&str> = def.path.path.iter().map(String::as_str).collect();
         if segments == expected {
             return Some(def.id);
         }
@@ -517,11 +517,11 @@ fn parse_members(specifier_part: &str) -> Vec<String> {
 /// Used by tree_shake tests to render id sets in a stable, human-readable form.
 pub fn item_path(asg: &Asg, id: AsgId) -> String {
     let segs = match asg.get_unchecked(id) {
-        Item::Fn(def) => &def.path.segments,
-        Item::Struct(def) => &def.path.segments,
-        Item::Enum(def) => &def.path.segments,
-        Item::Mod(def) => &def.path.segments,
-        Item::Trait(def) => &def.path.segments,
+        Item::Fn(def) => &def.path.path,
+        Item::Struct(def) => &def.path.path,
+        Item::Enum(def) => &def.path.path,
+        Item::Mod(def) => &def.path.path,
+        Item::Trait(def) => &def.path.path,
         Item::Impl(_) => return "<impl>".to_string(),
     };
     segs.join("::")
