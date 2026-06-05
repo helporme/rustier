@@ -11,7 +11,7 @@ use std::path::PathBuf;
 /// e.g. `crate::module::Type` or a
 /// `external_crate::module::Type` for external crate.
 #[salsa::interned(debug)]
-pub struct ItemPath<'db> {
+pub struct Path<'db> {
     #[returns(ref)]
     pub value: String,
 }
@@ -28,13 +28,10 @@ pub struct Span {
     pub end: (usize, usize),
 }
 
-/// A type that rust-curse treats as a primitive.
 #[derive(Debug, Clone, Eq, PartialEq, salsa::Update)]
 pub enum Primitive {
-    Unit,
     Boolean,
     Char,
-    String,
     Str,
     i8,
     u8,
@@ -55,48 +52,36 @@ pub enum Type<'db> {
     Primitive(Primitive),
     Struct(StructDef<'db>),
     Enum(EnumDef<'db>),
-}
-
-/// A parameter mode.
-#[derive(Clone, Debug, PartialEq, Eq, salsa::Update)]
-pub enum ParamMode {
-    ByValue,
-    ByRef,
-    ByMut,
-}
-
-/// The `self` receiver of an associated fn.
-#[derive(Clone, Debug, PartialEq, Eq, salsa::Update)]
-pub enum Receiver {
-    /// `self`
-    ByValue,
-    /// `&self`
-    ByRef,
-    /// `&mut self`
-    ByMut,
+    Ref {
+        is_mutable: bool,
+        ty: Box<Type<'db>>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, salsa::Update)]
 pub struct FnParam<'db> {
     pub name: String,
-    pub mode: ParamMode,
     pub ty: Type<'db>,
 }
 
 #[salsa::tracked(debug)]
 pub struct FnDef<'db> {
-    pub path: ItemPath<'db>,
+    pub path: Path<'db>,
+    /// Whether the function has a body.
+    ///
+    /// For example, it is `true` for functions declared for trait.
+    /// ```
+    #[tracked]
+    pub has_body: bool,
     #[tracked]
     #[returns(ref)]
     pub span: Option<Span>,
-    #[tracked]
-    pub receiver: Option<Receiver>,
     #[tracked]
     #[returns(ref)]
     pub params: Vec<FnParam<'db>>,
     #[tracked]
     #[returns(ref)]
-    pub return_type: Type<'db>,
+    pub return_type: Option<Type<'db>>,
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,
@@ -114,14 +99,23 @@ pub struct StructField<'db> {
 /// Shape of a struct or enum variant payload.
 #[derive(Clone, Debug, PartialEq, Eq, salsa::Update)]
 pub enum StructShape<'db> {
-    Unit,
-    Tuple(Vec<Type<'db>>),
-    Struct(Vec<StructField<'db>>),
+    /// Unit struct like `struct Foo;`.
+    // Unit,
+    /// Tuple struct like `struct Foo(Bar, Baz)`.
+    /// Private fields are None.
+    // Tuple(Vec<Option<TupleField<'db>>>),
+    /// Plain struct like `struct Foo { bar: Bar }`.
+    Plain {
+        fields: Vec<StructField<'db>>,
+        /// Whether the struct has also private fields.
+        // todo: check the #[docs(hidden)] influence on private fields
+        has_stripped_fields: bool,
+    },
 }
 
 #[salsa::tracked(debug)]
 pub struct StructDef<'db> {
-    pub path: ItemPath<'db>,
+    pub path: Path<'db>,
     #[tracked]
     #[returns(ref)]
     pub span: Option<Span>,
@@ -134,8 +128,6 @@ pub struct StructDef<'db> {
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,
-    #[tracked]
-    pub has_private_fields: bool,
 }
 
 /// A variant of an enum.
@@ -150,7 +142,7 @@ pub struct EnumVariant<'db> {
 /// An enum definition (at least one struct-shaped variant -> data enum).
 #[salsa::tracked(debug)]
 pub struct EnumDef<'db> {
-    pub path: ItemPath<'db>,
+    pub path: Path<'db>,
     #[tracked]
     #[returns(ref)]
     pub span: Option<Span>,
@@ -167,7 +159,7 @@ pub struct EnumDef<'db> {
 
 #[salsa::tracked(debug)]
 pub struct TraitDef<'db> {
-    pub path: ItemPath<'db>,
+    pub path: Path<'db>,
     #[tracked]
     #[returns(ref)]
     pub span: Option<Span>,
@@ -184,18 +176,15 @@ pub struct TraitDef<'db> {
     pub docs: Option<String>,
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, salsa::Update)]
-pub enum ImplFor<'db> {
-    Struct(StructDef<'db>),
-    Enum(EnumDef<'db>),
-}
-
 #[salsa::tracked(debug)]
 pub struct ImplDef<'db> {
     /// Struct or enum this impl is for.
-    pub for_: ImplFor<'db>,
-    /// `None` for an inherent impl.
-    pub trait_: Option<TraitDef<'db>>,
+    // Contains a path to avoid circular references when building the ASG.
+    pub for_: Path<'db>,
+    /// `None` for an inherent impl, path to the trait this impl implements
+    /// otherwise.
+    // Contains a path to avoid circular references when building the ASG.
+    pub trait_: Option<Path<'db>>,
     /// Associated fns this impl defines.
     #[tracked]
     #[returns(ref)]
@@ -214,14 +203,18 @@ pub enum Item<'db> {
 /// A name brought into a module's public surface.
 #[derive(Clone, Debug, PartialEq, Eq, salsa::Update)]
 pub struct Use<'db> {
+    /// The name this use is given in the module's public surface.
+    ///
+    /// For example, if this use is `use foo::bar as baz`, then `name` would be
+    /// `"baz"`.
     pub name: String,
-    pub target: Item<'db>,
+    pub item: Item<'db>,
 }
 
 /// A module definition.
 #[salsa::tracked(debug)]
 pub struct ModDef<'db> {
-    pub path: ItemPath<'db>,
+    pub path: Path<'db>,
     #[tracked]
     #[returns(ref)]
     pub span: Option<Span>,

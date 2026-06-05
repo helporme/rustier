@@ -7,9 +7,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use rust_curse::codegen::asg::{
-    Asg, AsgId, FnDef, Item, ItemPath, ModDef, Primitive, Span, Type, Use,
-};
+use rust_curse::codegen::asg::{Asg, AsgId, FnDef, Item, ModDef, Path, Primitive, Span, Type, Use};
 use rust_curse::orphans::OrphanModule;
 use rust_curse::sync::Syncer;
 
@@ -160,7 +158,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
     asg.crate_name = crate_name.to_string();
     let mut exposed: HashSet<AsgId> = HashSet::new();
 
-    let root_path = ItemPath::new(vec![crate_name.to_string()]);
+    let root_path = Path::new(vec![crate_name.to_string()]);
     let root_id = AsgId::new(asg.items.len(), &root_path);
     asg.items.push(Item::Mod(ModDef {
         id: root_id,
@@ -176,7 +174,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
         let mod_segs: Vec<String> = std::iter::once(crate_name.to_string())
             .chain(module.mod_name.split("::").map(String::from))
             .collect();
-        let mod_path = ItemPath::new(mod_segs.clone());
+        let mod_path = Path::new(mod_segs.clone());
         let mod_id = AsgId::new(asg.items.len(), &mod_path);
         asg.items.push(Item::Mod(ModDef {
             id: mod_id,
@@ -193,7 +191,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
         for fn_fix in module.fns {
             let mut fn_segs = mod_segs.clone();
             fn_segs.push(fn_fix.name.to_string());
-            let fn_path = ItemPath::new(fn_segs);
+            let fn_path = Path::new(fn_segs);
             let fn_id = AsgId::new(asg.items.len(), &fn_path);
             asg.items.push(Item::Fn(FnDef {
                 id: fn_id,
@@ -209,7 +207,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
             }
             mod_uses.push(Use {
                 name: fn_fix.name.to_string(),
-                target: fn_id,
+                item: fn_id,
             });
         }
         if let Item::Mod(m) = asg.get_mut_unchecked(mod_id) {
@@ -218,7 +216,7 @@ pub fn make_asg(crate_name: &str, modules: &[ModFixture]) -> (Asg, HashSet<AsgId
 
         root_uses.push(Use {
             name: module.mod_name.to_string(),
-            target: mod_id,
+            item: mod_id,
         });
     }
 
