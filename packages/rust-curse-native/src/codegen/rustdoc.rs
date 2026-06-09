@@ -4,18 +4,20 @@ use crate::codegen::{db::Db, ir};
 use rustdoc_types::{Crate as RCrate, Id, Item as RItem, Span, Type};
 
 mod fn_;
+mod mod_;
 mod type_;
 
 pub use fn_::*;
+pub use mod_::*;
 pub use type_::*;
 
 #[salsa::input(singleton)]
-pub struct Rustdoc {
+pub struct RustdocInput {
     #[returns(ref)]
     pub crates: BTreeMap<String, RCrate>,
 }
 
-impl Rustdoc {
+impl RustdocInput {
     pub fn crate_<'db>(&self, db: &'db dyn Db, name: &str) -> Option<&'db RCrate> {
         self.crates(db).get(name)
     }
@@ -33,7 +35,7 @@ pub struct RustdocType<'db> {
 impl<'db> RustdocType<'db> {
     /// Find the crate where this item with this id is defined.
     pub fn crate_(&self, db: &'db dyn Db) -> &'db RCrate {
-        let rustdoc = Rustdoc::get(db);
+        let rustdoc = RustdocInput::get(db);
         rustdoc.crate_(db, self.crate_name(db)).unwrap()
     }
 }
@@ -51,7 +53,7 @@ impl<'db> RustdocId<'db> {
     /// Find the rustdoc item corresponding to this ID, from the crate stored in
     /// database.
     pub fn item(&self, db: &'db dyn Db) -> &RItem {
-        let rustdoc = Rustdoc::get(db);
+        let rustdoc = RustdocInput::get(db);
         let crate_name = self.crate_name(db);
         let idx = self.idx(db);
 
@@ -63,7 +65,7 @@ impl<'db> RustdocId<'db> {
 
     /// Find the crate where this item with this id is defined.
     pub fn crate_(&self, db: &'db dyn Db) -> &'db RCrate {
-        let rustdoc = Rustdoc::get(db);
+        let rustdoc = RustdocInput::get(db);
         rustdoc.crate_(db, self.crate_name(db)).unwrap()
     }
 }

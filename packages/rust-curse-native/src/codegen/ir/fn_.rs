@@ -1,14 +1,7 @@
 use crate::codegen::{
     db::Db,
-    ir::{mangle::mangle_path, span::Span, type_::Type},
+    ir::{mangle::mangle_path, span::Span, type_::Type, IrId},
 };
-
-#[salsa::interned(debug)]
-pub struct FnId<'db> {
-    /// Fully qualified path to the fn, e.g. [`std`, `mem`, `drop`]
-    #[returns(ref)]
-    pub path: Vec<String>,
-}
 
 /// How a parameter is passed to a function.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
@@ -34,8 +27,8 @@ pub struct FnParam<'db> {
 
 /// A function.
 #[salsa::tracked(debug)]
-pub struct FnDef<'db> {
-    pub id: FnId<'db>,
+pub struct Fn<'db> {
+    pub id: IrId<'db>,
     #[tracked]
     #[returns(ref)]
     pub params: Vec<FnParam<'db>>,
@@ -55,26 +48,30 @@ pub struct FnDef<'db> {
 }
 
 #[salsa::tracked(returns(ref))]
-fn mangled_name<'db>(db: &'db dyn Db, id: FnId<'db>) -> String {
+fn mangled_name<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
     let path = id.path(db);
     format!("__cursed_fn__{}", mangle_path(path))
 }
 
 #[salsa::tracked(returns(ref))]
-fn fqn<'db>(db: &'db dyn Db, id: FnId<'db>) -> String {
-    let path = id.path(db);
-    path.join("::")
+fn fqn<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+    id.path(db).join("::")
 }
 
-impl<'db> FnDef<'db> {
+impl<'db> Fn<'db> {
     /// Returns the mangled name of the function e.g.
     /// `__cursed_fn__std_mem_drop`
     pub fn mangled_name(&self, db: &'db dyn Db) -> &'db str {
         mangled_name(db, self.id(db))
     }
 
+    /// Returns the name of the function, e.g. `drop` for `std::mem::drop`.
+    pub fn name(&self, db: &'db dyn Db) -> &'db str {
+        self.id(db).path(db).last().expect("fn must have a name")
+    }
+
     /// Returns the fully qualified name of the function, e.g.
-    /// `std::mem::drop`
+    /// `std::mem::drop`.
     pub fn fqn(&self, db: &'db dyn Db) -> &'db str {
         fqn(db, self.id(db))
     }

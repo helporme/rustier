@@ -1,5 +1,3 @@
-//! Lowers the rustdoc function to an ir's [`ir::FnDef`].
-
 use rustdoc_types::{Abi, ItemEnum, ItemKind};
 
 use crate::codegen::{
@@ -8,9 +6,9 @@ use crate::codegen::{
     rustdoc::{lower_type, CrateExt, LoweredType, RustdocId},
 };
 
-/// Lowers the rustdoc function to an ir's [`ir::FnDef`].
+/// Lowers the rustdoc function to an [`ir::FnDef`].
 #[salsa::tracked]
-pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Option<ir::FnDef<'db>> {
+pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Option<ir::Fn<'db>> {
     let item = id.item(db);
     let crate_ = id.crate_(db);
 
@@ -102,12 +100,12 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Option<ir::FnDef<'d
 
     let item_summary = crate_.paths.get(&item.id).unwrap();
     assert_eq!(item_summary.kind, ItemKind::Function);
-    let id = ir::FnId::new(db, &item_summary.path);
+    let id = ir::IrId::new(db, &item_summary.path);
 
     // let path = asg::FnPath(lower_path(db, id));
     let span = item.span.clone().map(|s| s.into());
 
-    Some(ir::FnDef::new(
+    Some(ir::Fn::new(
         db,
         id,
         params,

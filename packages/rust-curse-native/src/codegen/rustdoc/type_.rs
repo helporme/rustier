@@ -1,5 +1,3 @@
-//! Lowers the rustdoc type to an ir's [`ir::Type`].
-
 use rustdoc_types::Type;
 
 use crate::codegen::{
@@ -14,7 +12,7 @@ pub enum LoweredType {
     Borrowed { type_: ir::Type, is_mutable: bool },
 }
 
-/// Lowers the rustdoc type to an ir's [`ir::Type`].
+/// Lowers the rustdoc type to an [`ir::Type`].
 #[salsa::tracked]
 pub fn lower_type<'db>(db: &'db dyn Db, id: RustdocType<'db>) -> Option<LoweredType> {
     let type_ = id.type_(db);
@@ -110,13 +108,9 @@ fn lower_primitive(name: &str) -> Option<ir::Primitive> {
         "i8" => Some(ir::Primitive::i8),
         "i16" => Some(ir::Primitive::i16),
         "i32" => Some(ir::Primitive::i32),
-        "i64" => Some(ir::Primitive::i64),
         "u8" => Some(ir::Primitive::u8),
         "u16" => Some(ir::Primitive::u16),
         "u32" => Some(ir::Primitive::u32),
-        "u64" => Some(ir::Primitive::u64),
-        "isize" => Some(ir::Primitive::isize),
-        "usize" => Some(ir::Primitive::usize),
         "f32" => Some(ir::Primitive::f32),
         "f64" => Some(ir::Primitive::f64),
         _ => None,
