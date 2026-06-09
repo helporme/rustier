@@ -1,5 +1,5 @@
-//! Codegen layer: ASG, IR, plus the target printers (ts/wasm/napi).
+//! Codegen layer
 
-pub mod asg;
 pub mod db;
+pub mod ir;
 pub mod rustdoc;

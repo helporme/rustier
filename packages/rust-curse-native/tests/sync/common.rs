@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use rust_curse::codegen::asg::{Asg, AsgId, FnDef, Item, ModDef, Path, Primitive, Span, Type, Use};
+use rust_curse::codegen::asg::{Asg, AsgId, FnDef, Id, Item, ModDef, Primitive, Span, Type, Use};
 use rust_curse::orphans::OrphanModule;
 use rust_curse::sync::Syncer;
 
@@ -240,12 +240,12 @@ pub fn make_ir(
     crate_name: &str,
     modules: &[ModFixture],
 ) -> (
-    rust_curse::codegen::ir::Ir,
-    HashSet<rust_curse::codegen::ir::IrId>,
+    rust_curse::codegen::ir_old::Ir,
+    HashSet<rust_curse::codegen::ir_old::IrId>,
 ) {
     let (asg, exposed) = make_asg(crate_name, modules);
     let mut warns = rust_curse::warns::Warns::new();
-    let ir = rust_curse::codegen::ir::Ir::from_asg(&mut warns, &asg).unwrap();
+    let ir = rust_curse::codegen::ir_old::Ir::from_asg(&mut warns, &asg).unwrap();
     let exposed = ir.exposed_from_asg(&exposed);
     (ir, exposed)
 }
@@ -255,8 +255,8 @@ pub fn make_ir(
 pub fn empty_ir(
     crate_name: &str,
 ) -> (
-    rust_curse::codegen::ir::Ir,
-    HashSet<rust_curse::codegen::ir::IrId>,
+    rust_curse::codegen::ir_old::Ir,
+    HashSet<rust_curse::codegen::ir_old::IrId>,
 ) {
     make_ir(crate_name, &[])
 }
