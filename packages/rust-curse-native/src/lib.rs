@@ -1,2 +1,2 @@
 pub mod codegen;
-pub mod warns;
+pub mod diag;

@@ -1,4 +1,5 @@
 use rustdoc_types::{ItemEnum, ItemKind};
+use salsa::Accumulator;
 
 use crate::codegen::{
     db::Db,
@@ -37,9 +38,13 @@ pub fn lower_mod_fns<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<ir::Fn<'db
     for item_id in &def.items {
         let item = crate_.index.get(item_id).unwrap();
         if matches!(item.inner, ItemEnum::Function(_)) {
-            if let Some(fn_) = lower_fn(db, RustdocId::new(db, *item_id, id.crate_name(db).clone()))
-            {
-                fns.push(fn_);
+            match lower_fn(db, RustdocId::new(db, *item_id, id.crate_name(db).clone())) {
+                Ok(fn_) => fns.push(fn_),
+                Err(diags) => {
+                    for diag in diags {
+                        diag.accumulate(db);
+                    }
+                }
             }
         }
     }
