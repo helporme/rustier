@@ -1,13 +1,13 @@
 use crate::codegen::{
     db::Db,
-    ir::{Fn, IrId, Span},
+    ir::{Fn, Id, Span},
     rustdoc::{lower_mod_fns, lower_mod_submods},
 };
 
 /// A module definition.
 #[salsa::tracked(debug)]
 pub struct Mod<'db> {
-    pub id: IrId<'db>,
+    pub id: Id<'db>,
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,

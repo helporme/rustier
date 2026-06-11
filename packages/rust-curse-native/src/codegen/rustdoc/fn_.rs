@@ -5,14 +5,14 @@ use crate::{
     codegen::{
         db::Db,
         ir,
-        rustdoc::{lower_type, CrateExt, LoweredType, RustdocId},
+        rustdoc::{lower_type, CrateExt, Id, LoweredType},
     },
     diag::{Diag, DiagResult},
 };
 
 /// Lowers the rustdoc function.
 #[salsa::tracked]
-pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> DiagResult<ir::Fn<'db>> {
+pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> DiagResult<ir::Fn<'db>> {
     let item = id.item(db);
     let crate_ = id.crate_(db);
 
@@ -106,7 +106,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> DiagResult<ir::Fn<'
 
     let item_summary = crate_.paths.get(&item.id).unwrap();
     assert_eq!(item_summary.kind, ItemKind::Function);
-    let id = ir::IrId::new(db, &item_summary.path);
+    let id = ir::Id::new(db, &item_summary.path);
 
     Ok(ir::Fn::new(
         db,

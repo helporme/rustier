@@ -3,13 +3,13 @@
 use rust_curse::{
     codegen::{
         db::Db,
-        rustdoc::{lower_mod, lower_mod_fns, lower_mod_submods, RustdocId},
+        rustdoc::{lower_mod, lower_mod_fns, lower_mod_submods, Id},
     },
     diag::Diag,
 };
 
 /// Collects diagnostics from lowering every possible item in the given module.
-pub fn collect_diags_mod<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Diag> {
+pub fn collect_diags_mod<'db>(db: &'db dyn Db, id: Id<'db>) -> Vec<Diag> {
     let mut diags = vec![];
 
     // Lower mod itself.

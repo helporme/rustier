@@ -1,12 +1,14 @@
+//! Compiles IR into TypeScript declarations.
+
 use crate::codegen::{
     db::Db,
     ir::{Fn, Primitive, Type},
-    rustdoc::{lower_mod, lower_mod_fns, RustdocId},
+    rustdoc::{lower_mod, lower_mod_fns, Id},
 };
 
-/// Compiles a Rust module to TypeScript.
+/// Compiles an ir mod to ts declaration.
 #[salsa::tracked(returns(ref))]
-pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> String {
+pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: Id<'db>) -> String {
     let mod_ = lower_mod(db, mod_id);
     let fns = lower_mod_fns(db, mod_id);
 
@@ -28,7 +30,7 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> String {
     out
 }
 
-/// Compiles a Rust function to TypeScript.
+/// Compiles an ir function to ts declaration.
 #[salsa::tracked(returns(ref))]
 fn compile_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
     let mut out = String::new();

@@ -1,6 +1,6 @@
 use crate::codegen::{
     db::Db,
-    ir::{mangle::mangle_path, span::Span, type_::Type, IrId},
+    ir::{mangle::mangle_path, span::Span, type_::Type, Id},
 };
 
 /// How a parameter is passed to a function.
@@ -28,7 +28,7 @@ pub struct FnParam<'db> {
 /// A function.
 #[salsa::tracked(debug)]
 pub struct Fn<'db> {
-    pub id: IrId<'db>,
+    pub id: Id<'db>,
     #[tracked]
     #[returns(ref)]
     pub params: Vec<FnParam<'db>>,
@@ -48,13 +48,13 @@ pub struct Fn<'db> {
 }
 
 #[salsa::tracked(returns(ref))]
-fn mangled_name<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+fn mangled_name<'db>(db: &'db dyn Db, id: Id<'db>) -> String {
     let path = id.path(db);
     format!("__cursed_fn__{}", mangle_path(path))
 }
 
 #[salsa::tracked(returns(ref))]
-fn fqn<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+fn fqn<'db>(db: &'db dyn Db, id: Id<'db>) -> String {
     id.path(db).join("::")
 }
 

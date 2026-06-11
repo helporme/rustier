@@ -4,12 +4,12 @@ use crate::utils::{diags, ir_debug::DebugRender as _, rustdoc};
 use rust_curse::{
     codegen::{
         db::Db,
-        rustdoc::{lower_mod, RustdocId},
+        rustdoc::{lower_mod, Id},
         ts,
     },
     diag::{render_diags, Theme},
 };
-use rustdoc_types::{Crate as RustdocCrate, Id, ItemEnum};
+use rustdoc_types::{Crate as RustdocCrate, Id as RId, ItemEnum};
 
 /// Builds a snapshot of the given source code, rendering the requested
 /// categories.
@@ -53,7 +53,7 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
     body
 }
 
-fn build_diags_body(db: &dyn Db, root_id: RustdocId<'_>, fixture: &rustdoc::Fixture) -> String {
+fn build_diags_body(db: &dyn Db, root_id: Id<'_>, fixture: &rustdoc::Fixture) -> String {
     let diags = diags::collect_diags_mod(db, root_id);
     let rendered = render_diags(diags, &fixture.root_abs_path, Theme::UnicodeNoColor)
         .expect("render diagnostics");
@@ -69,11 +69,11 @@ fn build_diags_body(db: &dyn Db, root_id: RustdocId<'_>, fixture: &rustdoc::Fixt
     }
 }
 
-fn build_typescript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[Id]) -> String {
+fn build_typescript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[RId]) -> String {
     let mut text = String::new();
 
     for id in module_ids {
-        let ts = ts::compile_mod(db, RustdocId::new(db, *id, rustdoc::TEST_CRATE_NAME));
+        let ts = ts::compile_mod(db, Id::new(db, *id, rustdoc::TEST_CRATE_NAME));
         if ts.trim().is_empty() {
             continue;
         }
@@ -120,13 +120,13 @@ fn push_markdown_section(body: &mut String, name: &str, content: &str) {
     body.push('\n');
 }
 
-fn module_ids(crate_: &RustdocCrate) -> Vec<Id> {
+fn module_ids(crate_: &RustdocCrate) -> Vec<RId> {
     let mut ids = Vec::new();
     collect_module_ids(crate_, crate_.root, &mut ids);
     ids
 }
 
-fn collect_module_ids(crate_: &RustdocCrate, id: Id, ids: &mut Vec<Id>) {
+fn collect_module_ids(crate_: &RustdocCrate, id: RId, ids: &mut Vec<RId>) {
     ids.push(id);
 
     let Some(item) = crate_.index.get(&id) else {
@@ -146,7 +146,7 @@ fn collect_module_ids(crate_: &RustdocCrate, id: Id, ids: &mut Vec<Id>) {
     }
 }
 
-fn module_path_display(crate_: &RustdocCrate, id: Id) -> String {
+fn module_path_display(crate_: &RustdocCrate, id: RId) -> String {
     crate_
         .paths
         .get(&id)

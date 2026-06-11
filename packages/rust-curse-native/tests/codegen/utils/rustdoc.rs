@@ -4,7 +4,7 @@ use std::{collections::BTreeMap, fs, path::Path, process::Command};
 
 use rust_curse::codegen::{
     db::{Db, DbImpl},
-    rustdoc::{RustdocId, RustdocInput},
+    rustdoc::{Id, Input},
 };
 use rustdoc_types::Crate as RustdocCrate;
 use tempfile::TempDir;
@@ -99,10 +99,10 @@ fn run_rustdoc(
 pub fn db_with_rustdoc(crate_: RustdocCrate) -> DbImpl {
     let db = DbImpl::default();
     let crates = BTreeMap::from([(TEST_CRATE_NAME.to_string(), crate_)]);
-    RustdocInput::new(&db, crates);
+    Input::new(&db, crates);
     db
 }
 
-pub fn root_id<'db>(db: &'db dyn Db, crate_: &RustdocCrate) -> RustdocId<'db> {
-    RustdocId::new(db, crate_.root, TEST_CRATE_NAME)
+pub fn root_id<'db>(db: &'db dyn Db, crate_: &RustdocCrate) -> Id<'db> {
+    Id::new(db, crate_.root, TEST_CRATE_NAME)
 }

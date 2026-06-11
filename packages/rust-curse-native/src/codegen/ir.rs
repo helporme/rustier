@@ -11,20 +11,17 @@ pub use mod_::*;
 pub use span::*;
 pub use type_::*;
 
-use crate::codegen::{
-    db::Db,
-    rustdoc::{RustdocId, RustdocInput},
-};
+use crate::codegen::{db::Db, rustdoc};
 
 #[salsa::interned(debug)]
-pub struct IrId<'db> {
+pub struct Id<'db> {
     /// Fully qualified path to the item, e.g. [`std`, `mem`, `drop`]
     #[returns(ref)]
     pub path: Vec<String>,
 }
 
 #[salsa::tracked]
-fn id_to_rustdoc_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> RustdocId<'db> {
+fn id_to_rustdoc_id<'db>(db: &'db dyn Db, id: Id<'db>) -> rustdoc::Id<'db> {
     let backmap = rustdoc_backmap(db);
 
     *backmap
@@ -33,8 +30,8 @@ fn id_to_rustdoc_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> RustdocId<'db> {
 }
 
 #[salsa::tracked(returns(ref))]
-fn rustdoc_backmap<'db>(db: &'db dyn Db) -> HashMap<IrId<'db>, RustdocId<'db>> {
-    let rustdoc = RustdocInput::get(db);
+fn rustdoc_backmap<'db>(db: &'db dyn Db) -> HashMap<Id<'db>, rustdoc::Id<'db>> {
+    let rustdoc = rustdoc::Input::get(db);
 
     let mut backmap = HashMap::new();
 
@@ -44,16 +41,16 @@ fn rustdoc_backmap<'db>(db: &'db dyn Db) -> HashMap<IrId<'db>, RustdocId<'db>> {
                 continue;
             }
 
-            let id = IrId::new(db, &item_summary.path);
-            backmap.insert(id, RustdocId::new(db, *idx, crate_name));
+            let id = Id::new(db, &item_summary.path);
+            backmap.insert(id, rustdoc::Id::new(db, *idx, crate_name));
         }
     }
 
     backmap
 }
 
-impl<'db> IrId<'db> {
-    pub fn rustdoc_id(&self, db: &'db dyn Db) -> RustdocId<'db> {
+impl<'db> Id<'db> {
+    pub fn rustdoc_id(&self, db: &'db dyn Db) -> rustdoc::Id<'db> {
         id_to_rustdoc_id(db, *self)
     }
 }
