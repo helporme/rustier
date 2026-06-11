@@ -1,0 +1,36 @@
+---
+source: tests/codegen/fns/primitives.rs
+expression: body
+---
+## Test
+
+```text
+fns_primitives::fn_no_args_no_return
+```
+
+## Source
+
+```rs
+pub fn foo() {}
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [
+        Fn {
+            id: "rustdoc_test_crate::foo",
+            params: [],
+            return_type: None,
+        },
+    ],
+}
+```
+
+## Typescript
+
+```ts
+export function foo();
+```

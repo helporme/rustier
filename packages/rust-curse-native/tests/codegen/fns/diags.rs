@@ -1,6 +1,4 @@
-#[path = "../utils.rs"]
-mod utils;
-use utils::*;
+use crate::utils::*;
 
 fn assert_skipped_fn(diags: &[rust_curse::diag::Diag], expected_causes: &[&str]) {
     assert_eq!(diags.len(), 1);

@@ -1,8 +1,13 @@
 ---
 source: tests/codegen/fns/diags.rs
-assertion_line: 7
 expression: body
 ---
+## Test
+
+```text
+fns_diags::snap_chained_diags
+```
+
 ## Source
 
 ```rs

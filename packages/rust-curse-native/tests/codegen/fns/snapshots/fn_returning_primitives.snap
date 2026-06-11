@@ -1,0 +1,38 @@
+---
+source: tests/codegen/fns/primitives.rs
+expression: body
+---
+## Test
+
+```text
+fns_primitives::fn_returning_primitives
+```
+
+## Source
+
+```rs
+pub fn foo() -> bool {
+    true
+}
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [
+        Fn {
+            id: "rustdoc_test_crate::foo",
+            params: [],
+            return_type: Some(bool),
+        },
+    ],
+}
+```
+
+## Typescript
+
+```ts
+export function foo(): boolean;
+```

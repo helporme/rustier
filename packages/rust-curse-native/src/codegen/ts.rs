@@ -37,15 +37,11 @@ fn compile_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
         .collect::<Vec<_>>()
         .join(", ");
 
-    let return_type = match fn_.return_type(db) {
-        Some(type_) => compile_type(&type_),
-        None => "void",
-    };
-
-    out.push_str(&format!(
-        "export function {}({params}): {return_type};\n",
-        fn_.name(db)
-    ));
+    out.push_str(&format!("export function {}({params})", fn_.name(db)));
+    if let Some(return_type) = fn_.return_type(db) {
+        out.push_str(&format!(": {}", compile_type(&return_type)));
+    }
+    out.push_str(";\n");
 
     out
 }
