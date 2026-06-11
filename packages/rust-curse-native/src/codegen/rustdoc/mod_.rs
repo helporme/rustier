@@ -54,7 +54,7 @@ pub fn lower_mod_fns<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<ir::Fn<'db
 
 /// Lowers the submodules defined inside the given rustdoc module.
 #[salsa::tracked(returns(ref))]
-pub fn lower_mod_submodules<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<ir::Mod<'db>> {
+pub fn lower_mod_submods<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<ir::Mod<'db>> {
     let item = id.item(db);
     let crate_ = id.crate_(db);
 

@@ -1,7 +1,7 @@
 use crate::codegen::{
     db::Db,
     ir::{Fn, IrId, Span},
-    rustdoc::{lower_mod_fns, lower_mod_submodules},
+    rustdoc::{lower_mod_fns, lower_mod_submods},
 };
 
 /// A module definition.
@@ -21,6 +21,6 @@ impl<'db> Mod<'db> {
 
     /// Gets the submodules defined in this module.
     pub fn mods(&self, db: &'db dyn Db) -> &[Mod<'db>] {
-        lower_mod_submodules(db, self.id(db).rustdoc_id(db))
+        lower_mod_submods(db, self.id(db).rustdoc_id(db))
     }
 }
