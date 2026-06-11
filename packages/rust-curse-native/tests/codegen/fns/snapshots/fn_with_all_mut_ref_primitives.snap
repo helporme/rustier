@@ -1,0 +1,104 @@
+---
+source: tests/codegen/fns/primitives.rs
+expression: body
+---
+## Test
+
+```text
+fns_primitives::fn_with_all_mut_ref_primitives
+```
+
+## Source
+
+```rs
+pub fn foo(
+    a: &mut bool,
+    b: &mut char,
+    c: &mut str,
+    d: &mut i8,
+    e: &mut i16,
+    f: &mut i32,
+    g: &mut u8,
+    h: &mut u16,
+    i: &mut u32,
+    j: &mut f32,
+    k: &mut f64,
+) {}
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [
+        Fn {
+            id: "rustdoc_test_crate::foo",
+            params: [
+                FnParam {
+                    name: "a",
+                    type: bool,
+                    mode: Mut,
+                },
+                FnParam {
+                    name: "b",
+                    type: char,
+                    mode: Mut,
+                },
+                FnParam {
+                    name: "c",
+                    type: str,
+                    mode: Mut,
+                },
+                FnParam {
+                    name: "d",
+                    type: i8,
+                    mode: Mut,
+                },
+                FnParam {
+                    name: "e",
+                    type: i16,
+                    mode: Mut,
+                },
+                FnParam {
+                    name: "f",
+                    type: i32,
+                    mode: Mut,
+                },
+                FnParam {
+                    name: "g",
+                    type: u8,
+                    mode: Mut,
+                },
+                FnParam {
+                    name: "h",
+                    type: u16,
+                    mode: Mut,
+                },
+                FnParam {
+                    name: "i",
+                    type: u32,
+                    mode: Mut,
+                },
+                FnParam {
+                    name: "j",
+                    type: f32,
+                    mode: Mut,
+                },
+                FnParam {
+                    name: "k",
+                    type: f64,
+                    mode: Mut,
+                },
+            ],
+            return_type: None,
+        },
+    ],
+}
+```
+
+## Typescript
+
+```ts
+export function foo(a: boolean, b: string, c: string, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number): void;
+```
