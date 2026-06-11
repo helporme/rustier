@@ -1,10 +1,10 @@
+use std::collections::HashMap;
+
 mod fn_;
 mod mangle;
 mod mod_;
 mod span;
 mod type_;
-
-use std::collections::HashMap;
 
 pub use fn_::*;
 pub use mod_::*;
