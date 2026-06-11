@@ -6,7 +6,6 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 
-use rust_curse::*;
 use tempfile::TempDir;
 
 const TEST_CRATE_NAME: &str = "rustdoc_test_crate";

@@ -287,6 +287,7 @@ pub fn render_diags(
             GraphicalReportHandler::new_themed(GraphicalTheme::unicode_nocolor())
         }
     }
+    .with_context_lines(0)
     .with_show_related_as_nested(true);
 
     diags

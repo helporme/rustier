@@ -1,0 +1,49 @@
+---
+source: tests/codegen/fns/diags.rs
+assertion_line: 7
+expression: body
+---
+## Source
+
+```rs
+pub struct MyStruct {
+    pub field: i32,
+}
+pub unsafe fn foo(a: MyStruct, b: u64, c: &&mut usize) {}
+```
+
+## Diagnostics
+
+```text
+rust-curse::skipped_fn
+
+  ⚠ the function `foo` cannot be exported to JS
+   ╭─[src/lib.rs:4:1]
+ 4 │ pub unsafe fn foo(a: MyStruct, b: u64, c: &&mut usize) {}
+   · ─────────────────────────────────────────────────────────
+   ╰────
+  ├─▶ rust-curse::unsupported_unsafe_fn
+  │   
+  │     ⚠ unsafe functions are not supported
+  │     help: wrap the unsafe operations in a safe function and export that instead
+  ├─▶ rust-curse::unsupported_param
+  │   
+  │     ⚠ the parameter `a` has an unsupported type
+  │     ╰─▶ rust-curse::unsupported_type
+  │   
+  │           ⚠ struct types are not supported
+  ├─▶ rust-curse::unsupported_param
+  │   
+  │     ⚠ the parameter `b` has an unsupported type
+  │     ╰─▶ rust-curse::unsupported_primitive
+  │   
+  │           ⚠ the primitive type `u64` is not supported
+  │           help: supported primitive types are bool, char, str, i8, i16, i32, u8, u16, u32, f32 and f64
+  ╰─▶ rust-curse::unsupported_param
+      
+        ⚠ the parameter `c` has an unsupported type
+        ╰─▶ rust-curse::unsupported_primitive
+      
+              ⚠ the primitive type `usize` is not supported
+              help: supported primitive types are bool, char, str, i8, i16, i32, u8, u16, u32, f32 and f64
+```
