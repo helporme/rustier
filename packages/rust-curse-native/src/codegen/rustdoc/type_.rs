@@ -15,7 +15,7 @@ pub enum LoweredType {
     Borrowed { type_: ir::Type, is_mutable: bool },
 }
 
-/// Lowers the rustdoc type to an [`ir::Type`].
+/// Lowers the rustdoc type.
 #[salsa::tracked]
 pub fn lower_type<'db>(db: &'db dyn Db, id: RustdocType<'db>) -> DiagResult<LoweredType> {
     let type_ = id.type_(db);

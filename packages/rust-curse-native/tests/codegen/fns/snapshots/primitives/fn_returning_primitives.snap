@@ -28,10 +28,13 @@ ModDef {
             return_type: Some(bool),
         },
     ],
+    submods: [],
 }
 ```
 
 ## Typescript
+
+for `rustdoc_test_crate`:
 
 ```ts
 export function foo(): boolean;

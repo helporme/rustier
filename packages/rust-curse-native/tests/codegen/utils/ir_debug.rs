@@ -9,12 +9,13 @@ pub trait DebugRender<'db> {
     fn render(&self, db: &'db dyn Db) -> String;
 }
 
-impl<'db> DebugRender<'db> for ir::ModDef<'db> {
+impl<'db> DebugRender<'db> for ir::Mod<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         let fns = render_list(self.fns(db).iter().map(|fn_| fn_.render(db)).collect());
+        let submods = render_list(self.mods(db).iter().map(|mod_| mod_.render(db)).collect());
 
         format!(
-            "ModDef {{\n    id: {:?},\n    fns: {fns},\n}}",
+            "ModDef {{\n    id: {:?},\n    fns: {fns},\n    submods: {submods},\n}}",
             self.id(db).path(db).join("::"),
         )
     }

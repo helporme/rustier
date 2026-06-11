@@ -26,10 +26,13 @@ ModDef {
             return_type: None,
         },
     ],
+    submods: [],
 }
 ```
 
 ## Typescript
+
+for `rustdoc_test_crate`:
 
 ```ts
 export function foo(): void;

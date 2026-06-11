@@ -10,7 +10,7 @@ use crate::{
     diag::{Diag, DiagResult},
 };
 
-/// Lowers the rustdoc function to an [`ir::Fn`].
+/// Lowers the rustdoc function.
 #[salsa::tracked]
 pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> DiagResult<ir::Fn<'db>> {
     let item = id.item(db);

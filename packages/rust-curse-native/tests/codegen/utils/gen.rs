@@ -8,7 +8,7 @@ use crate::utils::ir_debug::DebugRender as _;
 use rust_curse::{
     codegen::{
         db::{Db, DbImpl},
-        ir::ModDef,
+        ir::Mod,
         rustdoc::{lower_mod, lower_mod_fns, RustdocId, RustdocInput},
         ts,
     },
@@ -111,7 +111,7 @@ pub fn db_with_rustdoc(crate_: RustdocCrate) -> DbImpl {
     db
 }
 
-pub fn root_mod<'db>(db: &'db dyn Db, crate_: &RustdocCrate) -> ModDef<'db> {
+pub fn root_mod<'db>(db: &'db dyn Db, crate_: &RustdocCrate) -> Mod<'db> {
     lower_mod(db, RustdocId::new(db, crate_.root, TEST_CRATE_NAME))
 }
 
@@ -185,11 +185,7 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
                 push_section(&mut body, "Diagnostics", "text", &text);
             }
             "ir" | "intermediate" => {
-                let text = mods
-                    .iter()
-                    .map(|mod_| mod_.render(&db))
-                    .collect::<Vec<_>>()
-                    .join("\n\n");
+                let text = mods[0].render(&db);
                 let text = if text.trim().is_empty() {
                     "None\n"
                 } else {
@@ -198,19 +194,34 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
                 push_section(&mut body, "IR", "rs", text);
             }
             "ts" | "typescript" => {
-                let ts = module_ids
-                    .iter()
-                    .map(|id| ts::compile_mod(&db, RustdocId::new(&db, *id, TEST_CRATE_NAME)))
-                    .filter(|ts| !ts.trim().is_empty())
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                let text = if ts.trim().is_empty() {
+                let mut text = String::new();
+
+                for id in &module_ids {
+                    let ts = ts::compile_mod(&db, RustdocId::new(&db, *id, TEST_CRATE_NAME));
+                    if ts.trim().is_empty() {
+                        continue;
+                    }
+
+                    if !text.is_empty() {
+                        text.push('\n');
+                    }
+
+                    let module_name = module_path_display(&fixture.crate_, *id);
+                    text.push_str(&format!("for `{module_name}`:\n\n"));
+                    text.push_str("```ts\n");
+                    text.push_str(ts);
+                    if !ts.ends_with('\n') {
+                        text.push('\n');
+                    }
+                    text.push_str("```\n");
+                }
+
+                let text = if text.trim().is_empty() {
                     "None\n"
                 } else {
-                    ts.as_str()
+                    text.as_str()
                 };
-                push_section(&mut body, "Typescript", "ts", text);
+                push_markdown_section(&mut body, "Typescript", text);
             }
             other => panic!("unknown snapshot category `{other}`"),
         }
@@ -229,6 +240,24 @@ fn push_section(body: &mut String, name: &str, lang: &str, content: &str) {
         body.push('\n');
     }
     body.push_str("```\n\n");
+}
+
+fn push_markdown_section(body: &mut String, name: &str, content: &str) {
+    body.push_str(&format!("## {name}\n\n"));
+    body.push_str(content);
+    if !content.ends_with('\n') {
+        body.push('\n');
+    }
+    body.push('\n');
+}
+
+fn module_path_display(crate_: &RustdocCrate, id: Id) -> String {
+    crate_
+        .paths
+        .get(&id)
+        .map(|summary| summary.path.join("::"))
+        .filter(|path| !path.is_empty())
+        .unwrap_or_else(|| "crate".to_string())
 }
 
 macro_rules! rustdoc {
