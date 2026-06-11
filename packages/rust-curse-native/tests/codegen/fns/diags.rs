@@ -87,6 +87,22 @@ pub fn unsupported_param() {
 }
 
 #[test]
+pub fn lifetimes() {
+    let (diags, _) = diag! {
+        pub fn foo<'a>(value: &'a i32, b: &'a i32) -> i32 { *value }
+    };
+
+    assert_skipped_fn(
+        &diags,
+        &[
+            "rust-curse::unsupported_generic_fn",
+            "rust-curse::unsupported_param",
+            "rust-curse::unsupported_param",
+        ],
+    );
+}
+
+#[test]
 pub fn borrowed_return() {
     let (diags, _) = diag! {
         pub fn foo(value: &i32) -> &i32 { value }
