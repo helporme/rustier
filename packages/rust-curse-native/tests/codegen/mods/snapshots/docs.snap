@@ -1,0 +1,52 @@
+---
+source: tests/codegen/mods/docs.rs
+expression: body
+---
+## Test
+
+```text
+mods_docs::docs
+```
+
+## Source
+
+```rs
+/// (^.^)
+pub mod math {
+    pub fn answer() -> i32 {
+        42
+    }
+}
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    submods: [
+        ModDef {
+            id: "rustdoc_test_crate::math",
+            fns: [
+                Fn {
+                    id: "rustdoc_test_crate::math::answer",
+                    params: [],
+                    return_type: Some(i32),
+                },
+            ],
+            submods: [],
+        },
+    ],
+}
+```
+
+## Typescript
+
+for `rustdoc_test_crate::math`:
+
+```ts
+/** (^.^) */
+
+export function answer(): number;
+```

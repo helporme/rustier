@@ -10,6 +10,9 @@ pub struct Mod<'db> {
     pub id: IrId<'db>,
     #[tracked]
     #[returns(ref)]
+    pub docs: Option<String>,
+    #[tracked]
+    #[returns(ref)]
     pub span: Option<Span>,
 }
 
