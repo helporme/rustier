@@ -14,7 +14,7 @@ fns_primitives::fn_with_all_primitives
 pub fn foo(
     a: bool,
     b: char,
-    c: str,
+    c: &str,
     d: i8,
     e: i16,
     f: i32,
@@ -48,7 +48,7 @@ ModDef {
                 FnParam {
                     name: "c",
                     type: str,
-                    mode: Move,
+                    mode: Ref,
                 },
                 FnParam {
                     name: "d",
