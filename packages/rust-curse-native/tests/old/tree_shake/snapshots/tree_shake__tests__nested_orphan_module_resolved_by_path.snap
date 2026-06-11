@@ -1,8 +1,0 @@
----
-source: tests/tree_shake/tests.rs
-description: "`Cargo.toml`\n```toml\n[package]\nname = \"rustdoc_tree_shake_test\"\nversion = \"0.0.0\"\nedition = \"2021\"\npublish = false\n\n[lib]\npath = \"lib.rs\"\n\n[workspace]\n```\n\n`app/main.js`\n```js\nimport { go } from '../src/nested/deep.rs'\n```\n\n`lib.rs`\n```rs\n#[path = \"src/nested/deep.rs\"]\n#[allow(non_snake_case)]\npub mod nested__deep;\n```\n\n`src/nested/deep.rs`\n```rs\npub fn go() {}\n```\n\n"
-expression: names
----
-[
-    "crate::nested__deep::go",
-]

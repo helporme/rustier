@@ -1,9 +1,0 @@
----
-source: tests/tree_shake/tests.rs
-description: "`Cargo.toml`\n```toml\n[package]\nname = \"rustdoc_tree_shake_test\"\nversion = \"0.0.0\"\nedition = \"2021\"\npublish = false\n\n[lib]\npath = \"lib.rs\"\n\n[workspace]\n```\n\n`app/main.js`\n```js\nimport * from '../src/math.rs'\n```\n\n`lib.rs`\n```rs\n#[path = \"src/math.rs\"]\n#[allow(non_snake_case)]\npub mod math;\n```\n\n`src/math.rs`\n```rs\npub fn add() {}\npub fn sub() {}\n```\n\n"
-expression: names
----
-[
-    "crate::math::add",
-    "crate::math::sub",
-]

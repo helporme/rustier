@@ -1,8 +1,0 @@
----
-source: tests/tree_shake/tests.rs
-description: "`Cargo.toml`\n```toml\n[package]\nname = \"rustdoc_tree_shake_test\"\nversion = \"0.0.0\"\nedition = \"2021\"\npublish = false\n\n[lib]\npath = \"lib.rs\"\n\n[workspace]\n```\n\n`app/main.js`\n```js\nimport { hello } from '../src/greet.rs'\n```\n\n`lib.rs`\n```rs\n#[path = \"src/greet.rs\"]\n#[allow(non_snake_case)]\npub mod greet;\n```\n\n`src/greet.rs`\n```rs\npub fn hello() {}\npub fn unused() {}\n```\n\n"
-expression: names
----
-[
-    "crate::greet::hello",
-]

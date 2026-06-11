@@ -1,8 +1,0 @@
----
-source: tests/sync/write_ts.rs
-expression: project_to_md(&project)
----
-`.rust-curse/ambient.d.ts`
-```ts
-
-```
