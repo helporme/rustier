@@ -7,6 +7,7 @@ use crate::utils::*;
 pub fn fn_with_all_primitives() {
     assert_snap! {
         @gen: ir, ts;
+        @category: primitives;
 
         pub fn foo(
             a: bool,
@@ -27,6 +28,7 @@ pub fn fn_with_all_primitives() {
 pub fn fn_with_all_ref_primitives() {
     assert_snap! {
         @gen: ir, ts;
+        @category: primitives;
 
         pub fn foo(
             a: &bool,
@@ -48,6 +50,7 @@ pub fn fn_with_all_ref_primitives() {
 pub fn fn_with_all_mut_ref_primitives() {
     assert_snap! {
         @gen: ir, ts;
+        @category: primitives;
 
         pub fn foo(
             a: &mut bool,
@@ -69,6 +72,7 @@ pub fn fn_with_all_mut_ref_primitives() {
 pub fn fn_returning_primitives() {
     assert_snap! {
         @gen: ir, ts;
+        @category: primitives;
 
         pub fn foo() -> bool {
             true
@@ -80,6 +84,7 @@ pub fn fn_returning_primitives() {
 pub fn fn_no_args_no_return() {
     assert_snap! {
         @gen: ir, ts;
+        @category: primitives;
 
         pub fn foo() { }
     }

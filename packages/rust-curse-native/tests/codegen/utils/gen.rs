@@ -14,7 +14,7 @@ use rust_curse::{
     },
     diag::{render_diags, Diag, DiagRendered, Theme},
 };
-use rustdoc_types::Crate as RustdocCrate;
+use rustdoc_types::{Crate as RustdocCrate, Id, ItemEnum};
 use tempfile::TempDir;
 
 const TEST_CRATE_NAME: &str = "rustdoc_test_crate";
@@ -124,6 +124,31 @@ pub fn lower_root_fns_and_diags(db: &dyn Db, crate_: &RustdocCrate) -> Vec<Diag>
         .collect()
 }
 
+fn mod_ids(crate_: &RustdocCrate) -> Vec<Id> {
+    let mut ids = Vec::new();
+    collect_mod_ids(crate_, crate_.root, &mut ids);
+    ids
+}
+
+fn collect_mod_ids(crate_: &RustdocCrate, id: Id, ids: &mut Vec<Id>) {
+    let item = crate_.index.get(&id).expect("module item not found");
+    let ItemEnum::Module(module) = &item.inner else {
+        return;
+    };
+
+    ids.push(id);
+
+    for child_id in &module.items {
+        let Some(child) = crate_.index.get(child_id) else {
+            continue;
+        };
+
+        if matches!(child.inner, ItemEnum::Module(_)) {
+            collect_mod_ids(crate_, *child_id, ids);
+        }
+    }
+}
+
 pub fn rendered_diags(diags: Vec<Diag>, root_abs_path: &Path) -> Vec<DiagRendered> {
     render_diags(diags, root_abs_path, Theme::UnicodeNoColor).expect("render diagnostics")
 }
@@ -131,8 +156,11 @@ pub fn rendered_diags(diags: Vec<Diag>, root_abs_path: &Path) -> Vec<DiagRendere
 pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
     let fixture = rustdoc_from_src(raw_src);
     let db = db_with_rustdoc(fixture.crate_.clone());
-    let root_id = RustdocId::new(&db, fixture.crate_.root, TEST_CRATE_NAME);
-    let mod_ = lower_mod(&db, root_id);
+    let module_ids = mod_ids(&fixture.crate_);
+    let mods = module_ids
+        .iter()
+        .map(|id| lower_mod(&db, RustdocId::new(&db, *id, TEST_CRATE_NAME)))
+        .collect::<Vec<_>>();
     let diags = lower_root_fns_and_diags(&db, &fixture.crate_);
 
     let mut body = String::new();
@@ -157,7 +185,11 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
                 push_section(&mut body, "Diagnostics", "text", &text);
             }
             "ir" | "intermediate" => {
-                let text = mod_.render(&db);
+                let text = mods
+                    .iter()
+                    .map(|mod_| mod_.render(&db))
+                    .collect::<Vec<_>>()
+                    .join("\n\n");
                 let text = if text.trim().is_empty() {
                     "None\n"
                 } else {
@@ -166,8 +198,18 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
                 push_section(&mut body, "IR", "rs", text);
             }
             "ts" | "typescript" => {
-                let ts = ts::compile_mod(&db, mod_.id(&db).rustdoc_id(&db));
-                let text = if ts.trim().is_empty() { "None\n" } else { ts };
+                let ts = module_ids
+                    .iter()
+                    .map(|id| ts::compile_mod(&db, RustdocId::new(&db, *id, TEST_CRATE_NAME)))
+                    .filter(|ts| !ts.trim().is_empty())
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                let text = if ts.trim().is_empty() {
+                    "None\n"
+                } else {
+                    ts.as_str()
+                };
                 push_section(&mut body, "Typescript", "ts", text);
             }
             other => panic!("unknown snapshot category `{other}`"),
@@ -219,12 +261,26 @@ macro_rules! diag {
 pub(crate) use diag;
 
 macro_rules! assert_snap {
-    (@gen: $($category:ident),+ $(,)?; $($tt:tt)*) => {{
+    (@gen: [$($category:ident),+ $(,)?]; @snapshot_path: $snapshot_path:expr; $($tt:tt)*) => {{
         let categories = &[$(stringify!($category)),+];
         let body = build_snap(stringify!($($tt)*), categories);
-        insta::with_settings!({ snapshot_path => "snapshots", prepend_module_to_snapshot => false }, {
+        insta::with_settings!({ snapshot_path => $snapshot_path, prepend_module_to_snapshot => false }, {
             insta::assert_snapshot!(body);
         });
+    }};
+    (@gen: $($category:ident),+ $(,)?; @category: $snapshot_category:ident; $($tt:tt)*) => {{
+        assert_snap!(
+            @gen: [$($category),+];
+            @snapshot_path: concat!("snapshots/", stringify!($snapshot_category));
+            $($tt)*
+        )
+    }};
+    (@gen: $($category:ident),+ $(,)?; $($tt:tt)*) => {{
+        assert_snap!(
+            @gen: [$($category),+];
+            @snapshot_path: "snapshots";
+            $($tt)*
+        )
     }};
     ({ [$($category:ident),+ $(,)?] { $($tt:tt)* } }) => {
         assert_snap!(@gen: $($category),+; $($tt)*)

@@ -110,6 +110,7 @@ pub fn primitive_mut_ref_ignored() {
 pub fn snap_chained_diags() {
     assert_snap! {
         @gen: diags;
+        @category: diags;
 
         pub struct MyStruct {
             pub field: i32,
