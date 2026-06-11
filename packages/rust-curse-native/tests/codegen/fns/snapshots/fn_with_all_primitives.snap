@@ -100,5 +100,5 @@ ModDef {
 ## Typescript
 
 ```ts
-export function foo(a: boolean, b: string, c: string, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number);
+export function foo(a: boolean, b: string, c: string, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number): void;
 ```
