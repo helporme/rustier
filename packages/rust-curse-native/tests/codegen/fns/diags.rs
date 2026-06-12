@@ -19,7 +19,7 @@ fn assert_unsupported_primitive_param(diag: &rust_curse::diag::Diag) {
 }
 
 #[test]
-pub fn unsupported_async_fn() {
+fn unsupported_async_fn() {
     let (diags, _) = diag! {
         pub async fn foo() { todo!() }
     };
@@ -28,7 +28,7 @@ pub fn unsupported_async_fn() {
 }
 
 #[test]
-pub fn unsupported_unsafe_fn() {
+fn unsupported_unsafe_fn() {
     let (diags, _) = diag! {
         pub unsafe fn foo() { todo!() }
     };
@@ -37,7 +37,7 @@ pub fn unsupported_unsafe_fn() {
 }
 
 #[test]
-pub fn unsupported_abi_fn() {
+fn unsupported_abi_fn() {
     let (diags, _) = diag! {
         pub extern "C" fn foo() { todo!() }
     };
@@ -46,7 +46,7 @@ pub fn unsupported_abi_fn() {
 }
 
 #[test]
-pub fn unsupported_variadic_fn() {
+fn unsupported_variadic_fn() {
     let (diags, _) = diag! {
         #![feature(c_variadic)]
 
@@ -64,7 +64,7 @@ pub fn unsupported_variadic_fn() {
 }
 
 #[test]
-pub fn unsupported_generic_fn() {
+fn unsupported_generic_fn() {
     let (diags, _) = diag! {
         pub fn foo<T>(_: T) { todo!() }
     };
@@ -79,7 +79,7 @@ pub fn unsupported_generic_fn() {
 }
 
 #[test]
-pub fn unsupported_param() {
+fn unsupported_param() {
     let (diags, _) = diag! {
         pub fn foo(_: u64) { todo!() }
     };
@@ -89,7 +89,7 @@ pub fn unsupported_param() {
 }
 
 #[test]
-pub fn unsupported_primitive_params() {
+fn unsupported_primitive_params() {
     let (diags, _) = diag! {
         pub fn foo(_: char, _: f32, _: i128, _: u128) { todo!() }
     };
@@ -109,7 +109,7 @@ pub fn unsupported_primitive_params() {
 }
 
 #[test]
-pub fn lifetimes() {
+fn lifetimes() {
     let (diags, _) = diag! {
         pub fn foo<'a>(value: &'a i32, b: &'a i32) -> i32 { *value }
     };
@@ -125,7 +125,7 @@ pub fn lifetimes() {
 }
 
 #[test]
-pub fn borrowed_return() {
+fn borrowed_return() {
     let (diags, _) = diag! {
         pub fn foo(value: &i32) -> &i32 { value }
     };
@@ -134,7 +134,7 @@ pub fn borrowed_return() {
 }
 
 #[test]
-pub fn primitive_mut_ref_ignored() {
+fn primitive_mut_ref_ignored() {
     let (diags, _) = diag! {
         pub fn foo(value: &mut i32) { *value += 1; }
     };
@@ -145,7 +145,7 @@ pub fn primitive_mut_ref_ignored() {
 }
 
 #[test]
-pub fn snap_chained_diags() {
+fn snap_chained_diags() {
     assert_snap! {
         @gen: diags;
         @category: diags;

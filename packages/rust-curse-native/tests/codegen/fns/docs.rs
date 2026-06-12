@@ -3,7 +3,7 @@
 use crate::utils::*;
 
 #[test]
-pub fn docs() {
+fn docs() {
     assert_snap! {
         @gen: ir, ts;
 

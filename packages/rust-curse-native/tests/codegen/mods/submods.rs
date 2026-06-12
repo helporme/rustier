@@ -3,7 +3,7 @@
 use crate::utils::*;
 
 #[test]
-pub fn two_mods() {
+fn two_mods() {
     assert_snap! {
         @gen: ir, ts;
 
@@ -18,7 +18,7 @@ pub fn two_mods() {
 }
 
 #[test]
-pub fn submod() {
+fn submod() {
     assert_snap! {
         @gen: ir, ts;
 

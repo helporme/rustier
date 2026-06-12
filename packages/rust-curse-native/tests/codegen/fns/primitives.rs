@@ -4,7 +4,7 @@
 use crate::utils::*;
 
 #[test]
-pub fn fn_with_all_primitives() {
+fn fn_with_all_primitives() {
     assert_snap! {
         @gen: ts, ir, node, wasm;
         @category: primitives;
@@ -23,7 +23,7 @@ pub fn fn_with_all_primitives() {
     }
 }
 #[test]
-pub fn fn_with_all_ref_primitives() {
+fn fn_with_all_ref_primitives() {
     assert_snap! {
         @gen: ts, ir, node, wasm;
         @category: primitives;
@@ -43,7 +43,7 @@ pub fn fn_with_all_ref_primitives() {
 }
 
 #[test]
-pub fn fn_with_all_mut_ref_primitives() {
+fn fn_with_all_mut_ref_primitives() {
     assert_snap! {
         @gen: ts, ir, node, wasm;
         @category: primitives;
@@ -63,7 +63,7 @@ pub fn fn_with_all_mut_ref_primitives() {
 }
 
 #[test]
-pub fn fn_returning_primitives() {
+fn fn_returning_primitives() {
     assert_snap! {
         @gen: ts, ir, node, wasm;
         @category: primitives;
@@ -75,7 +75,7 @@ pub fn fn_returning_primitives() {
 }
 
 #[test]
-pub fn fn_no_args_no_return() {
+fn fn_no_args_no_return() {
     assert_snap! {
         @gen: ts, ir, node, wasm;
         @category: primitives;
