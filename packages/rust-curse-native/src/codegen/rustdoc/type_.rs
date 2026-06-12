@@ -6,7 +6,7 @@ use crate::{
         ir,
         rustdoc::{CrateExt, RustdocType},
     },
-    diag::{Diag, DiagResult},
+    diag::{Diag, Severity},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -17,7 +17,7 @@ pub enum LoweredType {
 
 /// Lowers the rustdoc type.
 #[salsa::tracked]
-pub fn lower_type<'db>(db: &'db dyn Db, id: RustdocType<'db>) -> DiagResult<LoweredType> {
+pub fn lower_type<'db>(db: &'db dyn Db, id: RustdocType<'db>) -> Result<LoweredType, Vec<Diag>> {
     let type_ = id.type_(db);
     let crate_ = id.crate_(db);
 
@@ -98,6 +98,7 @@ impl Diag {
         Diag::new(
             "rust-curse::unsupported_type",
             format!("{kind} types are not supported"),
+            Severity::Warning,
         )
     }
 
@@ -105,6 +106,7 @@ impl Diag {
         Diag::new(
             "rust-curse::unsupported_primitive",
             format!("the primitive type `{name}` is not supported"),
+            Severity::Warning,
         )
         .with_help("supported primitive types are bool, str, i8, i16, i32, u8, u16, u32 and f64")
     }
@@ -113,6 +115,7 @@ impl Diag {
         Diag::new(
             "rust-curse::unsupported_lifetime_ref",
             "references with explicit lifetimes are not supported",
+            Severity::Warning,
         )
     }
 
@@ -120,6 +123,7 @@ impl Diag {
         Diag::new(
             "rust-curse::unsupported_nested_ref",
             "nested references are not supported",
+            Severity::Warning,
         )
         .with_help("use a single reference instead of a double reference")
     }

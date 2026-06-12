@@ -7,12 +7,12 @@ use crate::{
         ir,
         rustdoc::{lower_type, CrateExt, Id, LoweredType},
     },
-    diag::{Diag, DiagResult},
+    diag::{Diag, Severity},
 };
 
 /// Lowers the rustdoc function.
 #[salsa::tracked]
-pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> DiagResult<ir::Fn<'db>> {
+pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Diag>> {
     let item = id.item(db);
     let crate_ = id.crate_(db);
 
@@ -70,11 +70,9 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> DiagResult<ir::Fn<'db>> {
         };
 
         if matches!(type_, ir::Type::Primitive(_)) && mode == ir::ParamMode::Mut {
-            let mut diag = Diag::primitive_mut_ref_ignored(name);
-            if let Some(span) = &span {
-                diag = diag.with_span(span);
-            }
-            diag.accumulate(db);
+            Diag::primitive_mut_ref_ignored(name)
+                .try_add_span(span.clone())
+                .accumulate(db);
         }
 
         params.push(ir::FnParam::new(db, name.clone(), type_, mode));
@@ -97,10 +95,10 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> DiagResult<ir::Fn<'db>> {
 
     if !causes.is_empty() {
         let name = item.name.as_deref().unwrap_or_default();
-        let mut diag = Diag::skipped_fn(name).with_causes(causes);
-        if let Some(span) = &span {
-            diag = diag.with_span(span);
-        }
+        let diag = Diag::skipped_fn(name)
+            .with_causes(causes)
+            .try_add_span(span);
+
         return Err(vec![diag]);
     }
 
@@ -123,6 +121,7 @@ impl Diag {
         Diag::new(
             "rust-curse::unsupported_async_fn",
             "async functions are not supported",
+            Severity::Warning,
         )
     }
 
@@ -130,6 +129,7 @@ impl Diag {
         Diag::new(
             "rust-curse::unsupported_unsafe_fn",
             "unsafe functions are not supported",
+            Severity::Warning,
         )
         .with_help("wrap the unsafe operations in a safe function and export that instead")
     }
@@ -138,6 +138,7 @@ impl Diag {
         Diag::new(
             "rust-curse::unsupported_abi",
             format!("functions with the {abi:?} ABI are not supported"),
+            Severity::Warning,
         )
     }
 
@@ -145,6 +146,7 @@ impl Diag {
         Diag::new(
             "rust-curse::unsupported_variadic_fn",
             "C-variadic functions are not supported",
+            Severity::Warning,
         )
     }
 
@@ -152,6 +154,7 @@ impl Diag {
         Diag::new(
             "rust-curse::unsupported_generic_fn",
             "generic functions are not supported",
+            Severity::Warning,
         )
         .with_help(
             "export a non-generic wrapper that instantiates the generic parameters with concrete types",
@@ -162,6 +165,7 @@ impl Diag {
         Diag::new(
             "rust-curse::unsupported_param",
             format!("the parameter `{name}` has an unsupported type"),
+            Severity::Warning,
         )
     }
 
@@ -169,6 +173,7 @@ impl Diag {
         Diag::new(
             "rust-curse::borrowed_return",
             "functions cannot return borrowed values",
+            Severity::Warning,
         )
         // todo: enrich help with Box<> etc. once they are supported
         .with_help("return an owned value instead, for example via `.to_owned()` or `.clone()`")
@@ -178,6 +183,7 @@ impl Diag {
         Diag::new(
             "rust-curse::skipped_fn",
             format!("the function `{name}` cannot be exported to JS"),
+            Severity::Warning,
         )
     }
 
@@ -185,6 +191,7 @@ impl Diag {
         Diag::new(
             "rust-curse::primitive_mut_ref_ignored",
             format!("the mutable reference to the primitive parameter `{name}` does not propagate changes"),
+            Severity::Warning,
         )
         .with_help("primitive values are copied across the JS boundary, so mutations made in Rust are not reflected in JS")
     }
