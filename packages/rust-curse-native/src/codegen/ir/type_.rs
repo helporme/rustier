@@ -9,7 +9,6 @@ pub enum Type {
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
 pub enum Primitive {
     Boolean,
-    Char,
     Str,
     i8,
     u8,
@@ -17,6 +16,5 @@ pub enum Primitive {
     u16,
     i32,
     u32,
-    f32,
     f64,
 }

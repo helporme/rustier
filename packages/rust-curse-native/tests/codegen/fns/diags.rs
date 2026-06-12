@@ -12,6 +12,12 @@ fn assert_skipped_fn(diags: &[rust_curse::diag::Diag], expected_causes: &[&str])
     assert_eq!(actual_causes, expected_causes);
 }
 
+fn assert_unsupported_primitive_param(diag: &rust_curse::diag::Diag) {
+    assert_eq!(diag.code, "rust-curse::unsupported_param");
+    assert_eq!(diag.causes.len(), 1);
+    assert_eq!(diag.causes[0].code, "rust-curse::unsupported_primitive");
+}
+
 #[test]
 pub fn unsupported_async_fn() {
     let (diags, _) = diag! {
@@ -79,11 +85,27 @@ pub fn unsupported_param() {
     };
 
     assert_skipped_fn(&diags, &["rust-curse::unsupported_param"]);
-    assert_eq!(diags[0].causes[0].causes.len(), 1);
-    assert_eq!(
-        diags[0].causes[0].causes[0].code,
-        "rust-curse::unsupported_primitive"
+    assert_unsupported_primitive_param(&diags[0].causes[0]);
+}
+
+#[test]
+pub fn unsupported_primitive_params() {
+    let (diags, _) = diag! {
+        pub fn foo(_: char, _: f32, _: i128, _: u128) { todo!() }
+    };
+
+    assert_skipped_fn(
+        &diags,
+        &[
+            "rust-curse::unsupported_param",
+            "rust-curse::unsupported_param",
+            "rust-curse::unsupported_param",
+            "rust-curse::unsupported_param",
+        ],
     );
+    for cause in &diags[0].causes {
+        assert_unsupported_primitive_param(cause);
+    }
 }
 
 #[test]

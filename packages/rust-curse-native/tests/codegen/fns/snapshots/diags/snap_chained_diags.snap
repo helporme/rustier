@@ -43,12 +43,12 @@ rust-curse::skipped_fn
   │     ╰─▶ rust-curse::unsupported_primitive
   │   
   │           ⚠ the primitive type `u64` is not supported
-  │           help: supported primitive types are bool, char, str, i8, i16, i32, u8, u16, u32, f32 and f64
+  │           help: supported primitive types are bool, str, i8, i16, i32, u8, u16, u32 and f64
   ╰─▶ rust-curse::unsupported_param
       
         ⚠ the parameter `c` has an unsupported type
         ╰─▶ rust-curse::unsupported_primitive
       
               ⚠ the primitive type `usize` is not supported
-              help: supported primitive types are bool, char, str, i8, i16, i32, u8, u16, u32, f32 and f64
+              help: supported primitive types are bool, str, i8, i16, i32, u8, u16, u32 and f64
 ```

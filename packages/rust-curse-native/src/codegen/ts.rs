@@ -68,14 +68,13 @@ fn compile_type(type_: &Type) -> &'static str {
 fn compile_primitive(primitive: Primitive) -> &'static str {
     match primitive {
         Primitive::Boolean => "boolean",
-        Primitive::Char | Primitive::Str => "string",
+        Primitive::Str => "string",
         Primitive::i8
         | Primitive::u8
         | Primitive::i16
         | Primitive::u16
         | Primitive::i32
         | Primitive::u32
-        | Primitive::f32
         | Primitive::f64 => "number",
     }
 }

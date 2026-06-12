@@ -14,6 +14,14 @@ fns_primitives::fn_no_args_no_return
 pub fn foo() {}
 ```
 
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+export function foo(): void;
+```
+
 ## IR
 
 ```rs
@@ -30,10 +38,30 @@ ModDef {
 }
 ```
 
-## Typescript
+## Node Bindings
 
-for `rustdoc_test_crate`:
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi_derive::napi;
 
-```ts
-export function foo(): void;
+#[napi]
+pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> napi::Result<()> {
+	rustdoc_test_crate::foo();
+	Ok(())
+}
+
+```
+
+## Wasm Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> Result<(), JsValue> {
+	rustdoc_test_crate::foo();
+	Ok(())
+}
+
 ```

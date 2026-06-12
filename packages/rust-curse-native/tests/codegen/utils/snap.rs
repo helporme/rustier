@@ -3,13 +3,14 @@
 use crate::utils::{diags, ir_debug::DebugRender as _, rustdoc};
 use rust_curse::{
     codegen::{
+        bindings::{self, Api},
         db::Db,
-        rustdoc::{lower_mod, Id},
+        rustdoc::{all_mod_ids, lower_mod, Id},
         ts,
     },
     diag::{render_diags, Theme},
 };
-use rustdoc_types::{Crate as RustdocCrate, Id as RId, ItemEnum};
+use rustdoc_types::{Crate as RustdocCrate, Id as RId};
 
 /// Builds a snapshot of the given source code, rendering the requested
 /// categories.
@@ -17,7 +18,7 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
     let fixture = rustdoc::rustdoc_from_src(raw_src);
     let db = rustdoc::db_with_rustdoc(fixture.crate_.clone());
     let root_id = rustdoc::root_id(&db, &fixture.crate_);
-    let module_ids = module_ids(&fixture.crate_);
+    let module_ids = all_mod_ids(&db);
 
     let mut body = String::new();
     let thread = std::thread::current();
@@ -43,8 +44,16 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
                 push_section(&mut body, "IR", "rs", text);
             }
             "ts" => {
-                let text = build_typescript_body(&db, &fixture.crate_, &module_ids);
+                let text = build_typescript_body(&db, &fixture.crate_, module_ids);
                 push_markdown_section(&mut body, "Typescript", &text);
+            }
+            "wasm" => {
+                let text = bindings::compile(&db, Api::Wasm);
+                push_section(&mut body, "Wasm Bindings", "rs", &text);
+            }
+            "node" => {
+                let text = bindings::compile(&db, Api::Node);
+                push_section(&mut body, "Node Bindings", "rs", &text);
             }
             other => panic!("unknown snapshot category `{other}`"),
         }
@@ -69,11 +78,11 @@ fn build_diags_body(db: &dyn Db, root_id: Id<'_>, fixture: &rustdoc::Fixture) ->
     }
 }
 
-fn build_typescript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[RId]) -> String {
+fn build_typescript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[Id<'_>]) -> String {
     let mut text = String::new();
 
     for id in module_ids {
-        let ts = ts::compile_mod(db, Id::new(db, *id, rustdoc::TEST_CRATE_NAME));
+        let ts = ts::compile_mod(db, *id);
         if ts.trim().is_empty() {
             continue;
         }
@@ -82,7 +91,7 @@ fn build_typescript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[RId])
             text.push('\n');
         }
 
-        let module_name = module_path_display(crate_, *id);
+        let module_name = module_path_display(crate_, id.idx(db));
         text.push_str(&format!("for `{module_name}`:\n\n"));
         text.push_str("```ts\n");
         text.push_str(ts);
@@ -118,32 +127,6 @@ fn push_markdown_section(body: &mut String, name: &str, content: &str) {
         body.push('\n');
     }
     body.push('\n');
-}
-
-fn module_ids(crate_: &RustdocCrate) -> Vec<RId> {
-    let mut ids = Vec::new();
-    collect_module_ids(crate_, crate_.root, &mut ids);
-    ids
-}
-
-fn collect_module_ids(crate_: &RustdocCrate, id: RId, ids: &mut Vec<RId>) {
-    ids.push(id);
-
-    let Some(item) = crate_.index.get(&id) else {
-        return;
-    };
-    let ItemEnum::Module(module) = &item.inner else {
-        return;
-    };
-
-    for child_id in &module.items {
-        let Some(child) = crate_.index.get(child_id) else {
-            continue;
-        };
-        if matches!(child.inner, ItemEnum::Module(_)) {
-            collect_module_ids(crate_, *child_id, ids);
-        }
-    }
 }
 
 fn module_path_display(crate_: &RustdocCrate, id: RId) -> String {

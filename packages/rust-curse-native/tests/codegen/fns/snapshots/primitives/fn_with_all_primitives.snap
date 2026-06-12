@@ -11,19 +11,15 @@ fns_primitives::fn_with_all_primitives
 ## Source
 
 ```rs
-pub fn foo(
-    a: bool,
-    b: char,
-    c: &str,
-    d: i8,
-    e: i16,
-    f: i32,
-    g: u8,
-    h: u16,
-    i: u32,
-    j: f32,
-    k: f64,
-) {}
+pub fn foo(a: bool, c: &str, d: i8, e: i16, f: i32, g: u8, h: u16, i: u32, k: f64) {}
+```
+
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+export function foo(a: boolean, c: string, d: number, e: number, f: number, g: number, h: number, i: number, k: number): void;
 ```
 
 ## IR
@@ -38,11 +34,6 @@ ModDef {
                 FnParam {
                     name: "a",
                     type: bool,
-                    mode: Move,
-                },
-                FnParam {
-                    name: "b",
-                    type: char,
                     mode: Move,
                 },
                 FnParam {
@@ -81,11 +72,6 @@ ModDef {
                     mode: Move,
                 },
                 FnParam {
-                    name: "j",
-                    type: f32,
-                    mode: Move,
-                },
-                FnParam {
                     name: "k",
                     type: f64,
                     mode: Move,
@@ -98,10 +84,70 @@ ModDef {
 }
 ```
 
-## Typescript
+## Node Bindings
 
-for `rustdoc_test_crate`:
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi_derive::napi;
 
-```ts
-export function foo(a: boolean, b: string, c: string, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number): void;
+#[napi]
+pub fn __cursed_fn__rustdoc_0test_0crate_foo(
+	mut __p__a: bool,
+	mut __p__c: String,
+	mut __p__d: i8,
+	mut __p__e: i16,
+	mut __p__f: i32,
+	mut __p__g: u8,
+	mut __p__h: u16,
+	mut __p__i: u32,
+	mut __p__k: f64,
+) -> napi::Result<()> {
+	rustdoc_test_crate::foo(
+		__p__a,
+		&__p__c,
+		__p__d,
+		__p__e,
+		__p__f,
+		__p__g,
+		__p__h,
+		__p__i,
+		__p__k,
+	);
+	Ok(())
+}
+
+```
+
+## Wasm Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn __cursed_fn__rustdoc_0test_0crate_foo(
+	mut __p__a: bool,
+	mut __p__c: String,
+	mut __p__d: i8,
+	mut __p__e: i16,
+	mut __p__f: i32,
+	mut __p__g: u8,
+	mut __p__h: u16,
+	mut __p__i: u32,
+	mut __p__k: f64,
+) -> Result<(), JsValue> {
+	rustdoc_test_crate::foo(
+		__p__a,
+		&__p__c,
+		__p__d,
+		__p__e,
+		__p__f,
+		__p__g,
+		__p__h,
+		__p__i,
+		__p__k,
+	);
+	Ok(())
+}
+
 ```

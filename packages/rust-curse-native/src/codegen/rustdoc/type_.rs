@@ -64,7 +64,6 @@ pub fn lower_type<'db>(db: &'db dyn Db, id: RustdocType<'db>) -> DiagResult<Lowe
 fn lower_primitive(name: &str) -> Option<ir::Primitive> {
     match name {
         "bool" => Some(ir::Primitive::Boolean),
-        "char" => Some(ir::Primitive::Char),
         "str" => Some(ir::Primitive::Str),
         "i8" => Some(ir::Primitive::i8),
         "i16" => Some(ir::Primitive::i16),
@@ -72,7 +71,6 @@ fn lower_primitive(name: &str) -> Option<ir::Primitive> {
         "u8" => Some(ir::Primitive::u8),
         "u16" => Some(ir::Primitive::u16),
         "u32" => Some(ir::Primitive::u32),
-        "f32" => Some(ir::Primitive::f32),
         "f64" => Some(ir::Primitive::f64),
         _ => None,
     }
@@ -108,9 +106,7 @@ impl Diag {
             "rust-curse::unsupported_primitive",
             format!("the primitive type `{name}` is not supported"),
         )
-        .with_help(
-            "supported primitive types are bool, char, str, i8, i16, i32, u8, u16, u32, f32 and f64",
-        )
+        .with_help("supported primitive types are bool, str, i8, i16, i32, u8, u16, u32 and f64")
     }
 
     pub fn unsupported_lifetime_ref() -> Diag {

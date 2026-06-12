@@ -14,7 +14,9 @@ pub fn all_mod_ids<'db>(db: &'db dyn Db) -> Vec<rustdoc::Id<'db>> {
         let mut crate_mod_ids = crate_
             .paths
             .iter()
-            .filter(|(_, item_summary)| item_summary.kind == ItemKind::Module)
+            .filter(|(id, item_summary)| {
+                item_summary.kind == ItemKind::Module && crate_.index.contains_key(id)
+            })
             .collect::<Vec<_>>();
 
         crate_mod_ids.sort_by(|(_, a), (_, b)| a.path.cmp(&b.path));
