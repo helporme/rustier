@@ -14,8 +14,8 @@ pub struct Span {
     pub end: (usize, usize),
 }
 
-impl From<&Span> for diag::Span {
-    fn from(span: &Span) -> Self {
+impl From<Span> for diag::Span {
+    fn from(span: Span) -> Self {
         diag::Span {
             filename: span.filename.clone(),
             begin: span.begin,

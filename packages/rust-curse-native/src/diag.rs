@@ -7,8 +7,6 @@ use std::{
 };
 
 use miette::{Diagnostic, GraphicalReportHandler, GraphicalTheme, LabeledSpan, NamedSource};
-#[cfg(feature = "napi-binding")]
-use napi_derive::napi;
 
 /// Source code span a diagnostic is anchored to.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
@@ -30,7 +28,32 @@ pub struct DiagLabel {
     pub span: Span,
 }
 
-/// Structured diagnostic surfaced to JS.
+/// Severity of a diagnostic.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
+pub enum Severity {
+    Warning,
+    Fatal,
+}
+
+impl Severity {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Warning => "warning",
+            Self::Fatal => "fatal",
+        }
+    }
+}
+
+impl From<Severity> for miette::Severity {
+    fn from(severity: Severity) -> Self {
+        match severity {
+            Severity::Warning => miette::Severity::Warning,
+            Severity::Fatal => miette::Severity::Error,
+        }
+    }
+}
+
+/// Structured diagnostic.
 #[salsa::accumulator]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
 pub struct Diag {
@@ -39,39 +62,51 @@ pub struct Diag {
     /// Primary leading message. Should explain the diagnostic as if no context
     /// was attached to it.
     pub message: String,
-    /// Label attached to the diagnostic source code.
-    pub label: Option<DiagLabel>,
+    /// Severity of the diagnostic.
+    pub severity: Severity,
+    /// Labels attached to the diagnostic source code.
+    pub labels: Vec<DiagLabel>,
     /// Help text to display to the user.
     pub help: Option<String>,
     /// Causes of the diagnostic.
     pub causes: Vec<Diag>,
 }
 
-pub type DiagResult<T> = Result<T, Vec<Diag>>;
-
 impl Diag {
-    pub fn new(code: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn new(code: impl Into<String>, message: impl Into<String>, severity: Severity) -> Self {
         Self {
             code: code.into(),
             message: message.into(),
-            label: None,
+            severity,
+            labels: Vec::new(),
             help: None,
             causes: Vec::new(),
         }
     }
 
-    /// Attaches a `Span` to the diagnostic.
-    pub fn with_span(mut self, span: impl Into<Span>) -> Self {
-        self.label = Some(DiagLabel {
+    /// Adds a span to the diagnostic.
+    pub fn add_span(self, span: impl Into<Span>) -> Self {
+        self.add_label(DiagLabel {
             message: None,
             span: span.into(),
-        });
-        self
+        })
     }
 
-    /// Attaches a `DiagLabel` to the diagnostic.
-    pub fn with_label(mut self, label: DiagLabel) -> Self {
-        self.label = Some(label);
+    /// Adds a span to the diagnostic, if the span is present.
+    pub fn try_add_span(self, span: Option<impl Into<Span>>) -> Self {
+        if let Some(span) = span {
+            self.add_label(DiagLabel {
+                message: None,
+                span: span.into(),
+            })
+        } else {
+            self
+        }
+    }
+
+    /// Adds a labeled span to the diagnostic.
+    pub fn add_label(mut self, label: DiagLabel) -> Self {
+        self.labels.push(label);
         self
     }
 
@@ -87,7 +122,7 @@ impl Diag {
         self
     }
 
-    /// Attaches causes to the diagnostic.
+    /// Attaches multiple causes to the diagnostic.
     pub fn with_causes(mut self, causes: impl IntoIterator<Item = Diag>) -> Self {
         self.causes.extend(causes);
         self
@@ -99,37 +134,46 @@ impl Diag {
     /// Reads the source code relative to `root_abs_path`, in case the
     /// diagnostic refers to a source code file with relative paths.
     fn into_report(self, root_abs_path: &Path) -> DiagReport {
-        let source_code = self.label.as_ref().and_then(|label| {
-            let abs_path = if label.span.filename.is_absolute() {
-                label.span.filename.clone()
-            } else {
-                root_abs_path.join(&label.span.filename)
-            };
+        let source_code = self.labels.iter().find_map(|label| {
+            let abs_path = label_abs_path(label, root_abs_path);
 
-            std::fs::read_to_string(&abs_path)
-                .ok()
-                .map(|text| NamedSource::new(label.span.filename.to_string_lossy(), text))
+            std::fs::read_to_string(&abs_path).ok().map(|text| {
+                (
+                    abs_path,
+                    NamedSource::new(label.span.filename.to_string_lossy(), text),
+                )
+            })
         });
 
-        let label = match (&self.label, &source_code) {
-            (Some(label), Some(source_code)) => {
-                let begin =
-                    line_col_to_byte(source_code.inner(), label.span.begin.0, label.span.begin.1);
-                let end = line_col_to_byte(source_code.inner(), label.span.end.0, label.span.end.1);
-                Some(LabeledSpan::new(
-                    label.message.map(|message| message.to_string()),
-                    begin,
-                    end - begin,
-                ))
-            }
-            _ => None,
+        let labels = match &source_code {
+            Some((source_abs_path, source_code)) => self
+                .labels
+                .iter()
+                .filter(|label| label_abs_path(label, root_abs_path) == *source_abs_path)
+                .map(|label| {
+                    let begin = line_col_to_byte(
+                        source_code.inner(),
+                        label.span.begin.0,
+                        label.span.begin.1,
+                    );
+                    let end =
+                        line_col_to_byte(source_code.inner(), label.span.end.0, label.span.end.1);
+                    LabeledSpan::new(
+                        label.message.map(|message| message.to_string()),
+                        begin,
+                        end.saturating_sub(begin),
+                    )
+                })
+                .collect(),
+            None => Vec::new(),
         };
 
         DiagReport {
             code: self.code,
             message: self.message,
-            label,
-            source_code,
+            severity: self.severity,
+            labels,
+            source_code: source_code.map(|(_, source_code)| source_code),
             help: self.help,
             related: self
                 .causes
@@ -137,6 +181,14 @@ impl Diag {
                 .map(|cause| cause.into_report(root_abs_path))
                 .collect(),
         }
+    }
+}
+
+fn label_abs_path(label: &DiagLabel, root_abs_path: &Path) -> PathBuf {
+    if label.span.filename.is_absolute() {
+        label.span.filename.clone()
+    } else {
+        root_abs_path.join(&label.span.filename)
     }
 }
 
@@ -161,7 +213,8 @@ fn line_col_to_byte(source: &str, line: usize, col: usize) -> usize {
 struct DiagReport {
     pub code: String,
     pub message: String,
-    pub label: Option<LabeledSpan>,
+    pub severity: Severity,
+    pub labels: Vec<LabeledSpan>,
     pub source_code: Option<NamedSource<String>>,
     pub help: Option<String>,
     pub related: Vec<DiagReport>,
@@ -180,7 +233,7 @@ impl Diagnostic for DiagReport {
     }
 
     fn severity(&self) -> Option<miette::Severity> {
-        Some(miette::Severity::Warning)
+        Some(self.severity.into())
     }
 
     fn source_code(&self) -> Option<&dyn miette::SourceCode> {
@@ -191,9 +244,10 @@ impl Diagnostic for DiagReport {
     }
 
     fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
-        match &self.label {
-            Some(label) => Some(Box::new(std::iter::once(label.clone()))),
-            None => None,
+        if self.labels.is_empty() {
+            None
+        } else {
+            Some(Box::new(self.labels.iter().cloned()))
         }
     }
 
@@ -231,26 +285,11 @@ impl DiagReport {
     }
 }
 
-/// Source code location a rendered diagnostic is anchored to.
-#[cfg_attr(feature = "napi-binding", napi(object))]
-#[derive(Clone)]
-pub struct DiagLabelRendered {
-    /// Message describing the labeled span, if any.
-    pub message: Option<String>,
-    /// Path to the source code file the diagnostic refers to.
-    pub filename: String,
-    /// 1-indexed line of the span start.
-    pub begin_line: u32,
-    /// 1-indexed column of the span start.
-    pub begin_col: u32,
-    /// 1-indexed line of the span end.
-    pub end_line: u32,
-    /// 1-indexed column of the span end.
-    pub end_col: u32,
-}
-
-/// Rendered diagnostic message with nice rendered string.
-#[cfg_attr(feature = "napi-binding", napi(object))]
+/// Rendered diagnostic message with nice rendered string, needed to pass the
+/// diagnostic across the js/rust boundary.
+// todo: once the rust-curse self-hosting is achieved, remove this DiagRender and use just normal
+// Diag.
+#[cfg_attr(feature = "napi-binding", napi_derive::napi(object))]
 #[derive(Clone)]
 pub struct DiagRendered {
     /// Code of the diagnostic, like `rust-curse::unresolved_import`.
@@ -258,8 +297,8 @@ pub struct DiagRendered {
     /// Primary leading message. Should explain the diagnostic as if no context
     /// was attached to it.
     pub message: String,
-    /// Source code location the diagnostic is anchored to, if any.
-    pub label: Option<DiagLabelRendered>,
+    /// Severity of the diagnostic.
+    pub severity: String,
     /// Help text to display to the user.
     pub help: Option<String>,
     /// Causes of the diagnostic.
@@ -270,12 +309,14 @@ pub struct DiagRendered {
 }
 
 /// Theme for the rendered diagnostic message.
+#[derive(Clone, Copy, Debug)]
 pub enum Theme {
     Unicode,
     UnicodeNoColor,
 }
 
-/// Render each diagnostic into a structured [`DiagRendered`] for the host.
+/// Render each diagnostic into a [`DiagRendered`] that can be passed across the
+/// js/rust boundary.
 pub fn render_diags(
     diags: impl IntoIterator<Item = Diag>,
     root_abs_path: &Path,
@@ -293,31 +334,16 @@ pub fn render_diags(
     diags
         .into_iter()
         .map(|diag| {
-            let structured = structure_diag(&diag);
-            let rendered = diag.into_report(root_abs_path).render(&handler)?;
+            let rendered = diag.clone().into_report(root_abs_path).render(&handler)?;
 
             Ok(DiagRendered {
+                code: diag.code.clone(),
+                message: diag.message.clone(),
+                severity: diag.severity.as_str().to_string(),
+                help: diag.help.clone(),
                 rendered: Some(rendered),
-                ..structured
+                causes: render_diags(diag.causes, root_abs_path, theme)?,
             })
         })
         .collect()
-}
-
-fn structure_diag(diag: &Diag) -> DiagRendered {
-    DiagRendered {
-        code: diag.code.clone(),
-        message: diag.message.clone(),
-        label: diag.label.as_ref().map(|label| DiagLabelRendered {
-            message: label.message.map(|message| message.to_string()),
-            filename: label.span.filename.to_string_lossy().into_owned(),
-            begin_line: label.span.begin.0 as u32,
-            begin_col: label.span.begin.1 as u32,
-            end_line: label.span.end.0 as u32,
-            end_col: label.span.end.1 as u32,
-        }),
-        help: diag.help.clone(),
-        causes: diag.causes.iter().map(structure_diag).collect(),
-        rendered: None,
-    }
 }
