@@ -1,6 +1,6 @@
 use miette::NamedSource;
 
-use crate::tools::rustdoc::Crate;
+use crate::codegen::rustdoc::Crate;
 
 /// Source code span.
 pub type Span = miette::SourceSpan;

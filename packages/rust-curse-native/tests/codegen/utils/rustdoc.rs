@@ -2,11 +2,10 @@
 
 use std::{collections::BTreeMap, fs, path::PathBuf};
 
-use rust_curse::tools::rustdoc::{Crate as StoredCrate, RunOpts};
 use rust_curse::{
     codegen::{
         db::{Db, DbImpl},
-        rustdoc::{Id, Input},
+        rustdoc::{Crate as StoredCrate, Id, Input},
     },
     tools::rustdoc,
 };
@@ -44,17 +43,15 @@ pub fn rustdoc_from_src(src: &str) -> Fixture {
     fs::create_dir_all(root_abs_path.join("src")).expect("create src/");
     fs::write(root_abs_path.join("src/lib.rs"), &src).expect("write src/lib.rs");
 
-    let crate_ = rustdoc::run(RunOpts {
-        manifest_path: root_abs_path.join("Cargo.toml"),
-        crate_name: None,
-    })
-    .unwrap_or_else(|err| panic!("rustdoc generation failed: {err}"));
+    let manifest_path = root_abs_path.join("Cargo.toml");
+    let crate_ = rustdoc::run(&manifest_path)
+        .unwrap_or_else(|err| panic!("rustdoc generation failed: {err}"));
 
     Fixture {
         _dir: dir,
         src,
-        crate_dir: crate_.dir,
-        crate_: crate_.body,
+        crate_dir: root_abs_path,
+        crate_,
     }
 }
 

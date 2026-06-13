@@ -1,6 +1,6 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::PathBuf};
 
-use crate::{codegen::db::Db, tools::rustdoc::Crate};
+use crate::codegen::db::Db;
 use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, Type};
 
 mod fn_;
@@ -112,4 +112,14 @@ impl CrateExt for RCrate {
 
         RustdocType::new(db, ty, crate_name)
     }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Crate {
+    /// The parsed rustdoc crate body.
+    pub body: RCrate,
+    /// Whether the crate is external (i.e. not part of the workspace).
+    pub is_external: bool,
+    /// The crate directory absolute path.
+    pub dir: PathBuf,
 }

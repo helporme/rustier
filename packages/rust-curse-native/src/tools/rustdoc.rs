@@ -6,58 +6,27 @@ use std::{
     process::{Command, Output},
 };
 
-use cargo_metadata::{Metadata, MetadataCommand, Package, Target, TargetKind};
+use cargo_metadata::{MetadataCommand, Target, TargetKind};
 use miette::Diagnostic;
-use rustdoc_types::Crate as RustdocCrate;
+use rustdoc_types::Crate;
 use thiserror::Error;
 
-pub type Result<T> = std::result::Result<T, RustdocError>;
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Crate {
-    /// The parsed rustdoc crate body.
-    pub body: RustdocCrate,
-    /// Whether the crate is external (i.e. not part of the workspace).
-    pub is_external: bool,
-    /// The crate directory absolute path.
-    pub dir: PathBuf,
-}
-
-/// Options for [`run`].
-#[derive(Debug, Clone)]
-pub struct RunOpts {
-    /// Path to the `Cargo.toml`.
-    pub manifest_path: PathBuf,
-    /// Package/dependency/crate name to document.
-    ///
-    /// If omitted, the package at [`Self::manifest_path`] is documented.
-    pub crate_name: Option<String>,
-}
-
-/// Generate rustdoc JSON for the resolved crate and deserialize it.
-///
-/// Resolution rules:
-///
-/// 1. If `crate_name` is omitted, document the package identified by
-///    `manifest_path`.
-/// 2. If `crate_name` is present, first look for a matching workspace package.
-/// 3. Otherwise, look for a matching direct dependency of the package
-///    identified by `manifest_path`.
-///
-/// Matching accepts both Cargo package names and the crate name of the library
-/// target, so `foo-bar` and `foo_bar` can both resolve to the same library.
-pub fn run(opts: RunOpts) -> Result<Crate> {
+/// Generate rustdoc JSON for the package identified by `manifest_path` and
+/// deserialize it.
+pub fn run(manifest_path: &Path) -> Result<Crate, RustdocError> {
     let metadata = MetadataCommand::new()
-        .manifest_path(&opts.manifest_path)
+        .manifest_path(manifest_path)
         .exec()
         .map_err(|source| RustdocError::ReadCargoMetadata {
-            manifest_path: opts.manifest_path.clone(),
+            manifest_path: manifest_path.to_path_buf(),
             source,
         })?;
 
-    let package = resolve_package(&metadata, &opts.manifest_path, opts.crate_name.as_deref())?;
-    let is_external = !metadata.workspace_members.contains(&package.id);
-    let dir = package_path(package)?;
+    let package = metadata
+        .root_package()
+        .ok_or_else(|| RustdocError::MissingRootPackage {
+            manifest_path: manifest_path.to_path_buf(),
+        })?;
 
     let lib_target = package
         .targets
@@ -96,28 +65,22 @@ pub fn run(opts: RunOpts) -> Result<Crate> {
     let rustdoc_json_path = target_dir
         .join("doc")
         .join(format!("{}.json", &lib_target.name.replace('-', "_")));
+
     let json =
         fs::read_to_string(&rustdoc_json_path).map_err(|source| RustdocError::ReadRustdocJson {
             path: rustdoc_json_path.clone(),
             source,
         })?;
 
-    let body: RustdocCrate =
-        serde_json::from_str(&json).map_err(|source| RustdocError::DeserializeRustdocJson {
-            path: rustdoc_json_path.clone(),
-            source,
-        })?;
-
-    Ok(Crate {
-        body,
-        is_external,
-        dir,
+    serde_json::from_str(&json).map_err(|source| RustdocError::DeserializeRustdocJson {
+        path: rustdoc_json_path.clone(),
+        source,
     })
 }
 
 /// Ensure the default nightly toolchain required by rustdoc JSON generation is
 /// installed.
-pub fn ensure() -> Result<()> {
+pub fn ensure() -> Result<(), RustdocError> {
     let check = Command::new("rustup")
         .args(["run", "nightly", "rustdoc", "--version"])
         .output()
@@ -135,76 +98,6 @@ pub fn ensure() -> Result<()> {
     ensure_success(&output, "`rustup toolchain install nightly` failed")
 }
 
-fn package_path(package: &Package) -> Result<PathBuf> {
-    package
-        .manifest_path
-        .as_std_path()
-        .parent()
-        .ok_or_else(|| RustdocError::MissingManifestParent {
-            package: package.name.to_string(),
-        })?
-        .canonicalize()
-        .map_err(|source| RustdocError::CanonicalizeCratePath {
-            package: package.name.to_string(),
-            source,
-        })
-}
-
-fn resolve_package<'a>(
-    metadata: &'a Metadata,
-    manifest_path: &Path,
-    crate_name: Option<&str>,
-) -> Result<&'a Package> {
-    let Some(crate_name) = crate_name else {
-        return root_package(metadata, manifest_path);
-    };
-
-    if let Some(package) = metadata
-        .workspace_packages()
-        .into_iter()
-        .find(|package| package_matches_name(package, crate_name))
-    {
-        return Ok(package);
-    }
-
-    let root = root_package(metadata, manifest_path)?;
-    direct_dependency(metadata, root, crate_name).ok_or_else(|| RustdocError::CrateNotFound {
-        crate_name: crate_name.to_string(),
-        root_package: root.name.to_string(),
-    })
-}
-
-fn root_package<'a>(metadata: &'a Metadata, manifest_path: &Path) -> Result<&'a Package> {
-    metadata
-        .root_package()
-        .ok_or_else(|| RustdocError::MissingRootPackage {
-            manifest_path: manifest_path.to_path_buf(),
-        })
-}
-
-fn direct_dependency<'a>(
-    metadata: &'a Metadata,
-    root: &Package,
-    crate_name: &str,
-) -> Option<&'a Package> {
-    root.dependencies.iter().find_map(|dep| {
-        let package = metadata
-            .packages
-            .iter()
-            .find(|package| package.name.as_str() == dep.name)?;
-        let renamed = dep.rename.as_deref() == Some(crate_name);
-        (renamed || package_matches_name(package, crate_name)).then_some(package)
-    })
-}
-
-fn package_matches_name(package: &Package, crate_name: &str) -> bool {
-    package.name == crate_name
-        || package
-            .targets
-            .iter()
-            .any(|target| is_lib_target(target) && target.name == crate_name)
-}
-
 fn is_lib_target(target: &Target) -> bool {
     target
         .kind
@@ -212,7 +105,7 @@ fn is_lib_target(target: &Target) -> bool {
         .any(|kind| matches!(kind, TargetKind::Lib | TargetKind::ProcMacro))
 }
 
-fn ensure_success(output: &Output, context: &str) -> Result<()> {
+fn ensure_success(output: &Output, context: &str) -> Result<(), RustdocError> {
     if output.status.success() {
         return Ok(());
     }
@@ -280,26 +173,7 @@ pub enum RustdocError {
         source: std::io::Error,
     },
 
-    #[error("package `{package}` manifest has no parent directory")]
-    #[diagnostic(code(rust_curse::rustdoc::missing_manifest_parent))]
-    MissingManifestParent { package: String },
-
-    #[error("failed to canonicalize crate path for {package}")]
-    #[diagnostic(code(rust_curse::rustdoc::canonicalize_crate_path))]
-    CanonicalizeCratePath {
-        package: String,
-        #[source]
-        source: std::io::Error,
-    },
-
-    #[error("crate `{crate_name}` was not found as a workspace package or a direct dependency of `{root_package}`")]
-    #[diagnostic(code(rust_curse::rustdoc::crate_not_found))]
-    CrateNotFound {
-        crate_name: String,
-        root_package: String,
-    },
-
-    #[error("could not find a package for manifest {}; virtual workspaces require `crate_name`", manifest_path.display())]
+    #[error("could not find a root package for manifest {}; virtual workspace manifests cannot be documented directly", manifest_path.display())]
     #[diagnostic(code(rust_curse::rustdoc::missing_root_package))]
     MissingRootPackage { manifest_path: PathBuf },
 
