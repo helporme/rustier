@@ -1,18 +1,17 @@
+use miette::Diagnostic;
 use rustdoc_types::{Abi, ItemEnum, ItemKind};
-use salsa::Accumulator;
+use thiserror::Error;
 
-use crate::{
-    codegen::{
-        db::Db,
-        ir,
-        rustdoc::{lower_type, CrateExt, Id, LoweredType},
-    },
-    diag::{Diag, Severity},
+use crate::codegen::{
+    db::Db,
+    diag::DiagAccumulateExt as _,
+    ir,
+    rustdoc::{lower_type, CrateExt, Id, LoweredType, TypeLowerError},
 };
 
 /// Lowers the rustdoc function.
 #[salsa::tracked]
-pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Diag>> {
+pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<FnLowerError>> {
     let item = id.item(db);
     let crate_ = id.crate_body(db);
 
@@ -23,27 +22,32 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Di
 
     assert!(def.has_body, "trait/extern functions cannot be lowerd");
 
-    let span: Option<ir::Span> = item.span.clone().map(|s| id.crate_(db).abs_span(s));
+    let span: Option<ir::Span> = item.span.clone().map(|s| id.crate_(db).conv_span(s));
+    let item_summary = crate_.paths.get(&item.id).unwrap();
+    assert_eq!(item_summary.kind, ItemKind::Function);
+
     let mut causes = Vec::new();
 
     if def.header.is_async {
-        causes.push(Diag::unsupported_async_fn());
+        causes.push(FnLowerError::UnsupportedAsync);
     }
 
     if def.header.is_unsafe {
-        causes.push(Diag::unsupported_unsafe_fn());
+        causes.push(FnLowerError::UnsupportedUnsafe);
     }
 
     if def.header.abi != Abi::Rust {
-        causes.push(Diag::unsupported_abi(&def.header.abi));
+        causes.push(FnLowerError::UnsupportedAbi {
+            abi: def.header.abi.clone(),
+        });
     }
 
     if def.sig.is_c_variadic {
-        causes.push(Diag::unsupported_variadic_fn());
+        causes.push(FnLowerError::UnsupportedVariadic);
     }
 
     if !def.generics.params.is_empty() {
-        causes.push(Diag::unsupported_generic_fn());
+        causes.push(FnLowerError::UnsupportedGeneric);
     }
 
     let mut params = Vec::new();
@@ -52,7 +56,10 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Di
         let lowered = match lower_type(db, crate_.ty(db, ty)) {
             Ok(lowered) => lowered,
             Err(diags) => {
-                causes.push(Diag::unsupported_param(name).with_causes(diags));
+                causes.push(FnLowerError::UnsupportedParam {
+                    name: name.clone(),
+                    causes: diags,
+                });
                 continue;
             }
         };
@@ -70,9 +77,11 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Di
         };
 
         if matches!(type_, ir::Type::Primitive(_)) && mode == ir::ParamMode::Mut {
-            Diag::primitive_mut_ref_ignored(name)
-                .try_add_span(span.clone())
-                .accumulate(db);
+            FnLowerError::PrimitiveMutRefIgnored {
+                name: name.clone(),
+                span: span.clone().into(),
+            }
+            .accumulate(db);
         }
 
         params.push(ir::FnParam::new(db, name.clone(), type_, mode));
@@ -83,27 +92,24 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Di
         Some(ty) => match lower_type(db, crate_.ty(db, ty)) {
             Ok(LoweredType::Moved(type_)) => Some(type_),
             Ok(LoweredType::Borrowed { .. }) => {
-                causes.push(Diag::borrowed_return());
+                causes.push(FnLowerError::BorrowedReturn);
                 None
             }
             Err(diags) => {
-                causes.extend(diags);
+                causes.extend(diags.into_iter().map(FnLowerError::Type));
                 None
             }
         },
     };
 
     if !causes.is_empty() {
-        let name = item.name.as_deref().unwrap_or_default();
-        let diag = Diag::skipped_fn(name)
-            .with_causes(causes)
-            .try_add_span(span);
-
-        return Err(vec![diag]);
+        return Err(vec![FnLowerError::Skipped {
+            fn_fqn: item_summary.path.join("::"),
+            span: span.into(),
+            causes,
+        }]);
     }
 
-    let item_summary = crate_.paths.get(&item.id).unwrap();
-    assert_eq!(item_summary.kind, ItemKind::Function);
     let id = ir::Id::new(db, &item_summary.path);
 
     Ok(ir::Fn::new(
@@ -116,83 +122,84 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Di
     ))
 }
 
-impl Diag {
-    pub fn unsupported_async_fn() -> Diag {
-        Diag::new(
-            "rust-curse::unsupported_async_fn",
-            "async functions are not supported",
-            Severity::Warning,
-        )
-    }
+#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
+pub enum FnLowerError {
+    #[error("the function \"{fn_fqn}\" cannot be exported to JS")]
+    #[diagnostic(code(rust_curse::skipped_fn), severity(Warning))]
+    Skipped {
+        /// The fully qualified name of the function being lowered.
+        fn_fqn: String,
+        #[source_code]
+        #[label]
+        span: ir::OptionalSpan,
+        #[related]
+        causes: Vec<FnLowerError>,
+    },
 
-    pub fn unsupported_unsafe_fn() -> Diag {
-        Diag::new(
-            "rust-curse::unsupported_unsafe_fn",
-            "unsafe functions are not supported",
-            Severity::Warning,
-        )
-        .with_help("wrap the unsafe operations in a safe function and export that instead")
-    }
+    #[error("async functions are not supported")]
+    #[diagnostic(code(rust_curse::unsupported_async_fn), severity(Warning))]
+    UnsupportedAsync,
 
-    pub fn unsupported_abi(abi: &Abi) -> Diag {
-        Diag::new(
-            "rust-curse::unsupported_abi",
-            format!("functions with the {abi:?} ABI are not supported"),
-            Severity::Warning,
-        )
-    }
+    #[error("unsafe functions are not supported")]
+    #[diagnostic(
+        code(rust_curse::unsupported_unsafe_fn),
+        help("wrap the unsafe operations in a safe function and export that instead"),
+        severity(Warning)
+    )]
+    UnsupportedUnsafe,
 
-    pub fn unsupported_variadic_fn() -> Diag {
-        Diag::new(
-            "rust-curse::unsupported_variadic_fn",
-            "C-variadic functions are not supported",
-            Severity::Warning,
-        )
-    }
+    #[error("functions with the {abi:?} ABI are not supported")]
+    #[diagnostic(code(rust_curse::unsupported_abi), severity(Warning))]
+    UnsupportedAbi { abi: Abi },
 
-    pub fn unsupported_generic_fn() -> Diag {
-        Diag::new(
-            "rust-curse::unsupported_generic_fn",
-            "generic functions are not supported",
-            Severity::Warning,
-        )
-        .with_help(
-            "export a non-generic wrapper that instantiates the generic parameters with concrete types",
-        )
-    }
+    #[error("C-variadic functions are not supported")]
+    #[diagnostic(code(rust_curse::unsupported_variadic_fn), severity(Warning))]
+    UnsupportedVariadic,
 
-    pub fn unsupported_param(name: &str) -> Diag {
-        Diag::new(
-            "rust-curse::unsupported_param",
-            format!("the parameter `{name}` has an unsupported type"),
-            Severity::Warning,
-        )
-    }
+    #[error("generic functions are not supported")]
+    #[diagnostic(
+        code(rust_curse::unsupported_generic_fn),
+        help("export a non-generic wrapper that instantiates the generic parameters with concrete types"),
+        severity(Warning)
+    )]
+    UnsupportedGeneric,
 
-    pub fn borrowed_return() -> Diag {
-        Diag::new(
-            "rust-curse::borrowed_return",
-            "functions cannot return borrowed values",
-            Severity::Warning,
-        )
-        // todo: enrich help with Box<> etc. once they are supported
-        .with_help("return an owned value instead, for example via `.to_owned()` or `.clone()`")
-    }
+    #[error("the parameter `{name}` has an unsupported type")]
+    #[diagnostic(code(rust_curse::unsupported_param), severity(Warning))]
+    UnsupportedParam {
+        /// The name of the parameter that has an unsupported type.
+        name: String,
 
-    pub fn skipped_fn(name: &str) -> Diag {
-        Diag::new(
-            "rust-curse::skipped_fn",
-            format!("the function `{name}` cannot be exported to JS"),
-            Severity::Warning,
-        )
-    }
+        #[related]
+        causes: Vec<TypeLowerError>,
+    },
 
-    pub fn primitive_mut_ref_ignored(name: &str) -> Diag {
-        Diag::new(
-            "rust-curse::primitive_mut_ref_ignored",
-            format!("the mutable reference to the primitive parameter `{name}` does not propagate changes"),
-            Severity::Warning,
-        )
-        .with_help("primitive values are copied across the JS boundary, so mutations made in Rust are not reflected in JS")
-    }
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Type(#[from] TypeLowerError),
+
+    #[error("functions cannot return borrowed values")]
+    #[diagnostic(
+        code(rust_curse::borrowed_return),
+        help("return an owned value instead, for example via `.to_owned()` or `.clone()`"),
+        severity(Warning)
+    )]
+    BorrowedReturn,
+
+    #[error(
+        "the mutable reference to the primitive parameter `{name}` does not propagate changes"
+    )]
+    #[diagnostic(
+        code(rust_curse::primitive_mut_ref_ignored),
+        help("primitive values are copied across the JS boundary, so mutations made in Rust are not reflected in JS"),
+        severity(Warning)
+    )]
+    PrimitiveMutRefIgnored {
+        /// The name of the parameter that has an unsupported type.
+        name: String,
+
+        #[source_code]
+        #[label]
+        span: ir::OptionalSpan,
+    },
 }

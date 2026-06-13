@@ -11,10 +11,7 @@ pub use mod_::*;
 pub use span::*;
 pub use type_::*;
 
-use crate::{
-    codegen::{db::Db, rustdoc},
-    tools::rustdoc::Crate,
-};
+use crate::codegen::{db::Db, rustdoc};
 
 #[salsa::interned(debug)]
 pub struct Id<'db> {
@@ -55,23 +52,5 @@ fn rustdoc_backmap<'db>(db: &'db dyn Db) -> HashMap<Id<'db>, rustdoc::Id<'db>> {
 impl<'db> Id<'db> {
     pub fn rustdoc_id(&self, db: &'db dyn Db) -> rustdoc::Id<'db> {
         id_to_rustdoc_id(db, *self)
-    }
-}
-
-impl Crate {
-    /// Converts the given [`rustdoc_types::Span`] to an [`ir::Span`] with an
-    /// absolute filename.
-    pub fn abs_span(&self, span: rustdoc_types::Span) -> Span {
-        let filename = if span.filename.is_absolute() {
-            span.filename
-        } else {
-            self.dir.join(span.filename)
-        };
-
-        Span {
-            filename,
-            begin: span.begin,
-            end: span.end,
-        }
     }
 }

@@ -14,8 +14,9 @@ use rustdoc_types::Crate as RustdocCrate;
 pub struct Crate {
     /// The parsed rustdoc crate body.
     pub body: RustdocCrate,
-    /// The crate directory path: relative to the current working directory for
-    /// workspace crates, absolute for external dependencies.
+    /// Whether the crate is external (i.e. not part of the workspace).
+    pub is_external: bool,
+    /// The crate directory absolute path.
     pub dir: PathBuf,
 }
 
@@ -54,12 +55,8 @@ pub fn run(opts: RunOpts) -> Result<Crate> {
         })?;
 
     let package = resolve_package(&metadata, &opts.manifest_path, opts.crate_name.as_deref())?;
-    let abs_path = package_path(package)?;
-    let dir = if metadata.workspace_members.contains(&package.id) {
-        relative_to_current_dir(&abs_path)
-    } else {
-        abs_path
-    };
+    let is_external = !metadata.workspace_members.contains(&package.id);
+    let dir = package_path(package)?;
 
     let lib_target = package
         .targets
@@ -110,7 +107,11 @@ pub fn run(opts: RunOpts) -> Result<Crate> {
         )
     })?;
 
-    Ok(Crate { body, dir })
+    Ok(Crate {
+        body,
+        is_external,
+        dir,
+    })
 }
 
 /// Ensure the default nightly toolchain required by rustdoc JSON generation is
@@ -146,17 +147,6 @@ fn package_path(package: &Package) -> Result<PathBuf> {
         })?
         .canonicalize()
         .with_context(|| format!("failed to canonicalize crate path for {}", package.name))
-}
-
-fn relative_to_current_dir(abs_path: &Path) -> PathBuf {
-    let Ok(current_dir) = std::env::current_dir().and_then(|path| path.canonicalize()) else {
-        return abs_path.to_path_buf();
-    };
-
-    match abs_path.strip_prefix(&current_dir) {
-        Ok(relative) if !relative.as_os_str().is_empty() => relative.to_path_buf(),
-        _ => abs_path.to_path_buf(),
-    }
 }
 
 fn resolve_package<'a>(

@@ -1,14 +1,12 @@
 //! Utilities for building insta snapshots from rustdoc fixtures.
 
 use crate::utils::{diags, ir_debug::DebugRender as _, rustdoc};
-use rust_curse::{
-    codegen::{
-        bindings::{self, Api},
-        db::Db,
-        rustdoc::{all_mod_ids, lower_mod, Id},
-        ts,
-    },
-    diag::{render_diags, Theme},
+use rust_curse::codegen::{
+    bindings::{self, Api},
+    db::Db,
+    diag::Theme,
+    rustdoc::{all_mod_ids, lower_mod, Id},
+    ts,
 };
 use rustdoc_types::{Crate as RustdocCrate, Id as RId};
 
@@ -30,7 +28,7 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
     for category in categories {
         match *category {
             "diags" => {
-                let text = build_diags_body(&db, root_id, &fixture);
+                let text = build_diags_body(&db, root_id);
                 push_section(&mut body, "Diagnostics", "text", &text);
             }
             "ir" => {
@@ -62,17 +60,18 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
     body
 }
 
-fn build_diags_body(db: &dyn Db, root_id: Id<'_>, fixture: &rustdoc::Fixture) -> String {
+fn build_diags_body(db: &dyn Db, root_id: Id<'_>) -> String {
     let diags = diags::collect_diags_mod(db, root_id);
-    let rendered = render_diags(diags, &fixture.root_abs_path, Theme::UnicodeNoColor)
-        .expect("render diagnostics");
 
-    if rendered.is_empty() {
+    if diags.is_empty() {
         "None\n".to_string()
     } else {
-        rendered
+        diags
             .into_iter()
-            .filter_map(|diag| diag.rendered)
+            .map(|diag| {
+                diag.render(Theme::UnicodeNoColor)
+                    .expect("render diagnostic")
+            })
             .collect::<Vec<_>>()
             .join("\n")
     }

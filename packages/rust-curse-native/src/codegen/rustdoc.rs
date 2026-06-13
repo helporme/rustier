@@ -85,10 +85,12 @@ impl<'db> Id<'db> {
     }
 
     pub fn span(&self, db: &'db dyn Db, span: Span) -> ir::Span {
-        self.crate_(db).abs_span(span)
+        self.crate_(db).conv_span(span)
     }
 }
 
+/// Extension trait for [`RCrate`] that provides convenience methods for code
+/// generation.
 pub trait CrateExt {
     /// Returns the [`RustdocId`] for the given `id` in this crate.
     fn id<'db>(&self, db: &'db dyn Db, id: RId) -> Id<'db>;

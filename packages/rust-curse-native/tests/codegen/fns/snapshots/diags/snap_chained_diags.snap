@@ -20,34 +20,42 @@ pub unsafe fn foo(a: MyStruct, b: u64, c: &&mut usize) {}
 ## Diagnostics
 
 ```text
-rust-curse::skipped_fn
+rust_curse::skipped_fn
 
-  ⚠ the function `foo` cannot be exported to JS
+  ⚠ the function "rustdoc_test_crate::foo" cannot be exported to JS
    ╭─[src/lib.rs:4:1]
  4 │ pub unsafe fn foo(a: MyStruct, b: u64, c: &&mut usize) {}
-   · ─────────────────────────────────────────────────────────
+   · ──────────────────────────────────────────────────────────
    ╰────
-  ├─▶ rust-curse::unsupported_unsafe_fn
+  ├─▶ rust_curse::unsupported_unsafe_fn
   │   
   │     ⚠ unsafe functions are not supported
   │     help: wrap the unsafe operations in a safe function and export that instead
-  ├─▶ rust-curse::unsupported_param
+  ├─▶ rust_curse::unsupported_param
   │   
   │     ⚠ the parameter `a` has an unsupported type
-  │     ╰─▶ rust-curse::unsupported_type
+  │     ╰─▶ rust_curse::unsupported_type
   │   
-  │           ⚠ struct types are not supported
-  ├─▶ rust-curse::unsupported_param
+  │           ⚠ unsupported type: ResolvedPath(
+  │           │     Path {
+  │           │         path: "MyStruct",
+  │           │         id: Id(
+  │           │             1,
+  │           │         ),
+  │           │         args: None,
+  │           │     },
+  │           │ )
+  ├─▶ rust_curse::unsupported_param
   │   
   │     ⚠ the parameter `b` has an unsupported type
-  │     ╰─▶ rust-curse::unsupported_primitive
+  │     ╰─▶ rust_curse::unsupported_primitive
   │   
   │           ⚠ the primitive type `u64` is not supported
   │           help: supported primitive types are bool, str, i8, i16, i32, u8, u16, u32 and f64
-  ╰─▶ rust-curse::unsupported_param
+  ╰─▶ rust_curse::unsupported_param
       
         ⚠ the parameter `c` has an unsupported type
-        ╰─▶ rust-curse::unsupported_primitive
+        ╰─▶ rust_curse::unsupported_primitive
       
               ⚠ the primitive type `usize` is not supported
               help: supported primitive types are bool, str, i8, i16, i32, u8, u16, u32 and f64

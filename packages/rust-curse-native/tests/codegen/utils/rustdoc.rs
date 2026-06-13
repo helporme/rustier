@@ -17,7 +17,6 @@ pub const TEST_CRATE_NAME: &str = "rustdoc_test_crate";
 
 pub struct Fixture {
     pub _dir: TempDir,
-    pub root_abs_path: PathBuf,
     pub src: String,
     pub crate_: RustdocCrate,
     pub crate_dir: PathBuf,
@@ -53,7 +52,6 @@ pub fn rustdoc_from_src(src: &str) -> Fixture {
 
     Fixture {
         _dir: dir,
-        root_abs_path,
         src,
         crate_dir: crate_.dir,
         crate_: crate_.body,
@@ -73,6 +71,7 @@ pub fn db_with_rustdoc(crate_: RustdocCrate, dir: impl Into<PathBuf>) -> DbImpl 
         TEST_CRATE_NAME.to_string(),
         StoredCrate {
             body: crate_,
+            is_external: false,
             dir: dir.into(),
         },
     )]);

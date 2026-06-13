@@ -1,21 +1,37 @@
+use miette::Diagnostic;
+use rust_curse::codegen::diag::Diag;
+
 use crate::utils::*;
 
-fn assert_skipped_fn(diags: &[rust_curse::diag::Diag], expected_causes: &[&str]) {
+fn assert_skipped_fn(diags: &[Diag], expected_causes: &[&str]) {
     assert_eq!(diags.len(), 1);
-    assert_eq!(diags[0].code, "rust-curse::skipped_fn");
+    assert_eq!(diag_code(diags[0].inner.as_ref()), "rust_curse::skipped_fn");
 
-    let actual_causes = diags[0]
-        .causes
-        .iter()
-        .map(|diag| diag.code.as_str())
+    let actual_causes = related(diags[0].inner.as_ref())
+        .into_iter()
+        .map(diag_code)
         .collect::<Vec<_>>();
     assert_eq!(actual_causes, expected_causes);
 }
 
-fn assert_unsupported_primitive_param(diag: &rust_curse::diag::Diag) {
-    assert_eq!(diag.code, "rust-curse::unsupported_param");
-    assert_eq!(diag.causes.len(), 1);
-    assert_eq!(diag.causes[0].code, "rust-curse::unsupported_primitive");
+fn assert_unsupported_primitive_param(diag: &dyn Diagnostic) {
+    assert_eq!(diag_code(diag), "rust_curse::unsupported_param");
+
+    let causes = related(diag);
+    assert_eq!(causes.len(), 1);
+    assert_eq!(diag_code(causes[0]), "rust_curse::unsupported_primitive");
+}
+
+fn diag_code(diag: &dyn Diagnostic) -> String {
+    diag.code()
+        .map(|code| code.to_string())
+        .unwrap_or_else(|| "<missing code>".to_string())
+}
+
+fn related(diag: &dyn Diagnostic) -> Vec<&dyn Diagnostic> {
+    diag.related()
+        .map(|related| related.collect())
+        .unwrap_or_default()
 }
 
 #[test]
@@ -24,7 +40,7 @@ fn unsupported_async_fn() {
         pub async fn foo() { todo!() }
     };
 
-    assert_skipped_fn(&diags, &["rust-curse::unsupported_async_fn"]);
+    assert_skipped_fn(&diags, &["rust_curse::unsupported_async_fn"]);
 }
 
 #[test]
@@ -33,7 +49,7 @@ fn unsupported_unsafe_fn() {
         pub unsafe fn foo() { todo!() }
     };
 
-    assert_skipped_fn(&diags, &["rust-curse::unsupported_unsafe_fn"]);
+    assert_skipped_fn(&diags, &["rust_curse::unsupported_unsafe_fn"]);
 }
 
 #[test]
@@ -42,7 +58,7 @@ fn unsupported_abi_fn() {
         pub extern "C" fn foo() { todo!() }
     };
 
-    assert_skipped_fn(&diags, &["rust-curse::unsupported_abi"]);
+    assert_skipped_fn(&diags, &["rust_curse::unsupported_abi"]);
 }
 
 #[test]
@@ -56,9 +72,9 @@ fn unsupported_variadic_fn() {
     assert_skipped_fn(
         &diags,
         &[
-            "rust-curse::unsupported_unsafe_fn",
-            "rust-curse::unsupported_abi",
-            "rust-curse::unsupported_variadic_fn",
+            "rust_curse::unsupported_unsafe_fn",
+            "rust_curse::unsupported_abi",
+            "rust_curse::unsupported_variadic_fn",
         ],
     );
 }
@@ -72,8 +88,8 @@ fn unsupported_generic_fn() {
     assert_skipped_fn(
         &diags,
         &[
-            "rust-curse::unsupported_generic_fn",
-            "rust-curse::unsupported_param",
+            "rust_curse::unsupported_generic_fn",
+            "rust_curse::unsupported_param",
         ],
     );
 }
@@ -84,8 +100,9 @@ fn unsupported_param() {
         pub fn foo(_: u64) { todo!() }
     };
 
-    assert_skipped_fn(&diags, &["rust-curse::unsupported_param"]);
-    assert_unsupported_primitive_param(&diags[0].causes[0]);
+    assert_skipped_fn(&diags, &["rust_curse::unsupported_param"]);
+    let causes = related(diags[0].inner.as_ref());
+    assert_unsupported_primitive_param(causes[0]);
 }
 
 #[test]
@@ -97,13 +114,13 @@ fn unsupported_primitive_params() {
     assert_skipped_fn(
         &diags,
         &[
-            "rust-curse::unsupported_param",
-            "rust-curse::unsupported_param",
-            "rust-curse::unsupported_param",
-            "rust-curse::unsupported_param",
+            "rust_curse::unsupported_param",
+            "rust_curse::unsupported_param",
+            "rust_curse::unsupported_param",
+            "rust_curse::unsupported_param",
         ],
     );
-    for cause in &diags[0].causes {
+    for cause in related(diags[0].inner.as_ref()) {
         assert_unsupported_primitive_param(cause);
     }
 }
@@ -117,9 +134,9 @@ fn lifetimes() {
     assert_skipped_fn(
         &diags,
         &[
-            "rust-curse::unsupported_generic_fn",
-            "rust-curse::unsupported_param",
-            "rust-curse::unsupported_param",
+            "rust_curse::unsupported_generic_fn",
+            "rust_curse::unsupported_param",
+            "rust_curse::unsupported_param",
         ],
     );
 }
@@ -130,7 +147,7 @@ fn borrowed_return() {
         pub fn foo(value: &i32) -> &i32 { value }
     };
 
-    assert_skipped_fn(&diags, &["rust-curse::borrowed_return"]);
+    assert_skipped_fn(&diags, &["rust_curse::borrowed_return"]);
 }
 
 #[test]
@@ -140,8 +157,11 @@ fn primitive_mut_ref_ignored() {
     };
 
     assert_eq!(diags.len(), 1);
-    assert_eq!(diags[0].code, "rust-curse::primitive_mut_ref_ignored");
-    assert!(diags[0].causes.is_empty());
+    assert_eq!(
+        diag_code(diags[0].inner.as_ref()),
+        "rust_curse::primitive_mut_ref_ignored"
+    );
+    assert!(related(diags[0].inner.as_ref()).is_empty());
 }
 
 #[test]
@@ -155,5 +175,25 @@ fn snap_chained_diags() {
         }
 
         pub unsafe fn foo(a: MyStruct, b: u64, c: &&mut usize) { }
+    }
+}
+
+#[test]
+fn snap_macro_diags() {
+    assert_snap! {
+        @gen: diags;
+        @category: diags;
+
+        macro_rules! foo_fn {
+            () => {
+                pub unsafe fn foo(a: MyStruct, b: u64, c: &&mut usize) { }
+            }
+        }
+
+        pub struct MyStruct {
+            pub field: i32,
+        }
+
+        foo_fn!();
     }
 }

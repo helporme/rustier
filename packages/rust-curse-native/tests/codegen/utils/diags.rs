@@ -1,11 +1,9 @@
 //! Utilities for collecting diagnostics produced while lowering rustdoc items.
 
-use rust_curse::{
-    codegen::{
-        db::Db,
-        rustdoc::{lower_mod, lower_mod_fns, lower_mod_submods, Id},
-    },
+use rust_curse::codegen::{
+    db::Db,
     diag::Diag,
+    rustdoc::{lower_mod, lower_mod_fns, lower_mod_submods, Id},
 };
 
 /// Collects diagnostics from lowering every possible item in the given module.

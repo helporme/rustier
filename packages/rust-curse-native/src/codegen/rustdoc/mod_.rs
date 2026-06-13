@@ -1,7 +1,6 @@
 use rustdoc_types::{ItemEnum, ItemKind};
-use salsa::Accumulator;
 
-use crate::codegen::{db::Db, ir, rustdoc};
+use crate::codegen::{db::Db, diag::DiagAccumulateExt as _, ir, rustdoc};
 
 /// Returns all rustdoc module IDs available in all crates.
 #[salsa::tracked(returns(ref))]

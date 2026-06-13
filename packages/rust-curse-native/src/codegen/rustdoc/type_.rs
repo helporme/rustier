@@ -1,12 +1,11 @@
+use miette::Diagnostic;
 use rustdoc_types::Type;
+use thiserror::Error;
 
-use crate::{
-    codegen::{
-        db::Db,
-        ir,
-        rustdoc::{CrateExt, RustdocType},
-    },
-    diag::{Diag, Severity},
+use crate::codegen::{
+    db::Db,
+    ir,
+    rustdoc::{CrateExt, RustdocType},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -17,14 +16,19 @@ pub enum LoweredType {
 
 /// Lowers the rustdoc type.
 #[salsa::tracked]
-pub fn lower_type<'db>(db: &'db dyn Db, id: RustdocType<'db>) -> Result<LoweredType, Vec<Diag>> {
+pub fn lower_type<'db>(
+    db: &'db dyn Db,
+    id: RustdocType<'db>,
+) -> Result<LoweredType, Vec<TypeLowerError>> {
     let type_ = id.type_(db);
     let crate_ = id.crate_(db);
 
     match type_ {
         Type::Primitive(name) => match lower_primitive(name) {
             Some(primitive) => Ok(LoweredType::Moved(ir::Type::Primitive(primitive))),
-            None => Err(vec![Diag::unsupported_primitive(name)]),
+            None => Err(vec![TypeLowerError::UnsupportedPrimitive {
+                name: name.clone(),
+            }]),
         },
         Type::BorrowedRef {
             lifetime,
@@ -34,13 +38,13 @@ pub fn lower_type<'db>(db: &'db dyn Db, id: RustdocType<'db>) -> Result<LoweredT
             let mut diags = Vec::new();
 
             if lifetime.is_some() {
-                diags.push(Diag::unsupported_lifetime_ref());
+                diags.push(TypeLowerError::UnsupportedLifetimeRef);
             }
 
             let inner = match lower_type(db, crate_.ty(db, type_)) {
                 Ok(LoweredType::Moved(inner)) => Some(inner),
                 Ok(LoweredType::Borrowed { .. }) => {
-                    diags.push(Diag::unsupported_nested_ref());
+                    diags.push(TypeLowerError::UnsupportedNestedRef);
                     None
                 }
                 Err(inner_diags) => {
@@ -57,7 +61,9 @@ pub fn lower_type<'db>(db: &'db dyn Db, id: RustdocType<'db>) -> Result<LoweredT
                 _ => Err(diags),
             }
         }
-        _ => Err(vec![Diag::unsupported_type(type_)]),
+        _ => Err(vec![TypeLowerError::UnsupportedType {
+            type_: type_.clone(),
+        }]),
     }
 }
 
@@ -76,55 +82,29 @@ fn lower_primitive(name: &str) -> Option<ir::Primitive> {
     }
 }
 
-impl Diag {
-    pub fn unsupported_type(type_: &Type) -> Diag {
-        let kind = match type_ {
-            Type::Primitive(..) => "primitive",
-            Type::ResolvedPath(..) => "struct",
-            Type::DynTrait(..) => "dyn trait",
-            Type::Generic(..) => "generic",
-            Type::FunctionPointer(..) => "function pointer",
-            Type::Tuple(..) => "tuple",
-            Type::Slice(..) => "slice",
-            Type::Array { .. } => "array",
-            Type::Pat { .. } => "pattern",
-            Type::ImplTrait(..) => "impl trait",
-            Type::Infer => "inferred",
-            Type::RawPointer { .. } => "raw pointer",
-            Type::BorrowedRef { .. } => "borrowed reference",
-            Type::QualifiedPath { .. } => "qualified path",
-        };
+#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
+pub enum TypeLowerError {
+    #[error("unsupported type: {type_:#?}")]
+    #[diagnostic(code(rust_curse::unsupported_type), severity(Warning))]
+    UnsupportedType { type_: Type },
 
-        Diag::new(
-            "rust-curse::unsupported_type",
-            format!("{kind} types are not supported"),
-            Severity::Warning,
-        )
-    }
+    #[error("the primitive type `{name}` is not supported")]
+    #[diagnostic(
+        code(rust_curse::unsupported_primitive),
+        help("supported primitive types are bool, str, i8, i16, i32, u8, u16, u32 and f64"),
+        severity(Warning)
+    )]
+    UnsupportedPrimitive { name: String },
 
-    pub fn unsupported_primitive(name: &str) -> Diag {
-        Diag::new(
-            "rust-curse::unsupported_primitive",
-            format!("the primitive type `{name}` is not supported"),
-            Severity::Warning,
-        )
-        .with_help("supported primitive types are bool, str, i8, i16, i32, u8, u16, u32 and f64")
-    }
+    #[error("references with explicit lifetimes are not supported")]
+    #[diagnostic(code(rust_curse::unsupported_lifetime_ref), severity(Warning))]
+    UnsupportedLifetimeRef,
 
-    pub fn unsupported_lifetime_ref() -> Diag {
-        Diag::new(
-            "rust-curse::unsupported_lifetime_ref",
-            "references with explicit lifetimes are not supported",
-            Severity::Warning,
-        )
-    }
-
-    pub fn unsupported_nested_ref() -> Diag {
-        Diag::new(
-            "rust-curse::unsupported_nested_ref",
-            "nested references are not supported",
-            Severity::Warning,
-        )
-        .with_help("use a single reference instead of a double reference")
-    }
+    #[error("nested references are not supported")]
+    #[diagnostic(
+        code(rust_curse::unsupported_nested_ref),
+        help("use a single reference instead of a double reference"),
+        severity(Warning)
+    )]
+    UnsupportedNestedRef,
 }
