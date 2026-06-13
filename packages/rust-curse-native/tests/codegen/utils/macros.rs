@@ -16,7 +16,7 @@ macro_rules! ir {
             ::std::boxed::Box::leak(::std::boxed::Box::new(
                 $crate::utils::rustdoc::db_with_rustdoc(
                     fixture.crate_.clone(),
-                    fixture.root_abs_path.clone(),
+                    fixture.crate_dir.clone(),
                 ),
             ));
         let root_id = $crate::utils::rustdoc::root_id(db, &fixture.crate_);
@@ -33,7 +33,7 @@ macro_rules! diag {
             ::std::boxed::Box::leak(::std::boxed::Box::new(
                 $crate::utils::rustdoc::db_with_rustdoc(
                     fixture.crate_.clone(),
-                    fixture.root_abs_path.clone(),
+                    fixture.crate_dir.clone(),
                 ),
             ));
         let root_id = $crate::utils::rustdoc::root_id(db, &fixture.crate_);

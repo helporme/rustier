@@ -23,7 +23,7 @@ pub unsafe fn foo(a: MyStruct, b: u64, c: &&mut usize) {}
 rust-curse::skipped_fn
 
   ⚠ the function `foo` cannot be exported to JS
-   ╭─[/var/folders/cx/2v470j4s1673w_h_bgyr5t0m0000gn/T/.tmpKVkMS6/src/lib.rs:4:1]
+   ╭─[src/lib.rs:4:1]
  4 │ pub unsafe fn foo(a: MyStruct, b: u64, c: &&mut usize) {}
    · ─────────────────────────────────────────────────────────
    ╰────

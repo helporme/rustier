@@ -138,10 +138,9 @@ impl Diag {
             let abs_path = label_abs_path(label, root_abs_path);
 
             std::fs::read_to_string(&abs_path).ok().map(|text| {
-                (
-                    abs_path,
-                    NamedSource::new(label.span.filename.to_string_lossy(), text),
-                )
+                let display_name =
+                    source_display_name(&abs_path, &label.span.filename, root_abs_path);
+                (abs_path, NamedSource::new(display_name, text))
             })
         });
 
@@ -190,6 +189,27 @@ fn label_abs_path(label: &DiagLabel, root_abs_path: &Path) -> PathBuf {
     } else {
         root_abs_path.join(&label.span.filename)
     }
+}
+
+fn source_display_name(abs_path: &Path, span_filename: &Path, root_abs_path: &Path) -> String {
+    if let Some(relative) = strip_non_empty_prefix(abs_path, root_abs_path) {
+        return relative.to_string_lossy().into_owned();
+    }
+
+    if let (Ok(abs_path), Ok(root_abs_path)) =
+        (abs_path.canonicalize(), root_abs_path.canonicalize())
+    {
+        if let Some(relative) = strip_non_empty_prefix(&abs_path, &root_abs_path) {
+            return relative.to_string_lossy().into_owned();
+        }
+    }
+
+    span_filename.to_string_lossy().into_owned()
+}
+
+fn strip_non_empty_prefix<'a>(path: &'a Path, prefix: &Path) -> Option<&'a Path> {
+    let relative = path.strip_prefix(prefix).ok()?;
+    (!relative.as_os_str().is_empty()).then_some(relative)
 }
 
 /// Converts a line/column index to a byte offset in the source code.

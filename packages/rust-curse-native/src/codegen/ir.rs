@@ -65,7 +65,7 @@ impl Crate {
         let filename = if span.filename.is_absolute() {
             span.filename
         } else {
-            self.abs_path.join(span.filename)
+            self.dir.join(span.filename)
         };
 
         Span {

@@ -14,8 +14,9 @@ use rustdoc_types::Crate as RustdocCrate;
 pub struct Crate {
     /// The parsed rustdoc crate body.
     pub body: RustdocCrate,
-    /// The absolute path to the crate directory.
-    pub abs_path: PathBuf,
+    /// The crate directory path: relative to the current working directory for
+    /// workspace crates, absolute for external dependencies.
+    pub dir: PathBuf,
 }
 
 /// Options for [`run`].
@@ -53,18 +54,12 @@ pub fn run(opts: RunOpts) -> Result<Crate> {
         })?;
 
     let package = resolve_package(&metadata, &opts.manifest_path, opts.crate_name.as_deref())?;
-    let abs_path = package
-        .manifest_path
-        .as_std_path()
-        .parent()
-        .ok_or_else(|| {
-            anyhow!(
-                "package `{}` manifest has no parent directory",
-                package.name
-            )
-        })?
-        .canonicalize()
-        .with_context(|| format!("failed to canonicalize crate path for {}", package.name))?;
+    let abs_path = package_path(package)?;
+    let dir = if metadata.workspace_members.contains(&package.id) {
+        relative_to_current_dir(&abs_path)
+    } else {
+        abs_path
+    };
 
     let lib_target = package
         .targets
@@ -115,7 +110,7 @@ pub fn run(opts: RunOpts) -> Result<Crate> {
         )
     })?;
 
-    Ok(Crate { body, abs_path })
+    Ok(Crate { body, dir })
 }
 
 /// Ensure the default nightly toolchain required by rustdoc JSON generation is
@@ -136,6 +131,32 @@ pub fn ensure() -> Result<()> {
         .context("failed to run `rustup toolchain install nightly`")?;
 
     ensure_success(&output, "`rustup toolchain install nightly` failed")
+}
+
+fn package_path(package: &Package) -> Result<PathBuf> {
+    package
+        .manifest_path
+        .as_std_path()
+        .parent()
+        .ok_or_else(|| {
+            anyhow!(
+                "package `{}` manifest has no parent directory",
+                package.name
+            )
+        })?
+        .canonicalize()
+        .with_context(|| format!("failed to canonicalize crate path for {}", package.name))
+}
+
+fn relative_to_current_dir(abs_path: &Path) -> PathBuf {
+    let Ok(current_dir) = std::env::current_dir().and_then(|path| path.canonicalize()) else {
+        return abs_path.to_path_buf();
+    };
+
+    match abs_path.strip_prefix(&current_dir) {
+        Ok(relative) if !relative.as_os_str().is_empty() => relative.to_path_buf(),
+        _ => abs_path.to_path_buf(),
+    }
 }
 
 fn resolve_package<'a>(
