@@ -1,6 +1,6 @@
 use crate::codegen::{
     db::Db,
-    ir::{Fn, Id, Span},
+    ir::{Fn, Id},
     rustdoc::{lower_mod_fns, lower_mod_submods},
 };
 
@@ -11,9 +11,6 @@ pub struct Mod<'db> {
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,
-    #[tracked]
-    #[returns(ref)]
-    pub span: Option<Span>,
 }
 
 impl<'db> Mod<'db> {

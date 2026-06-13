@@ -1,6 +1,6 @@
 use crate::codegen::{
     db::Db,
-    ir::{mangle::mangle_path, span::Span, type_::Type, Id},
+    ir::{mangle::mangle_path, type_::Type, Id},
 };
 
 /// How a parameter is passed to a function.
@@ -53,9 +53,6 @@ pub struct Fn<'db> {
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,
-    #[tracked]
-    #[returns(ref)]
-    pub span: Option<Span>,
 }
 
 #[salsa::tracked(returns(ref))]

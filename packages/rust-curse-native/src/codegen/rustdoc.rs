@@ -1,10 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::{
-    codegen::{db::Db, ir},
-    tools::rustdoc::Crate,
-};
-use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, Span, Type};
+use crate::{codegen::db::Db, tools::rustdoc::Crate};
+use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, Type};
 
 mod fn_;
 mod mod_;
@@ -82,10 +79,6 @@ impl<'db> Id<'db> {
     /// Find the crate where this item with this id is defined.
     pub fn crate_body(&self, db: &'db dyn Db) -> &'db RCrate {
         &self.crate_(db).body
-    }
-
-    pub fn span(&self, db: &'db dyn Db, span: Span) -> ir::Span {
-        self.crate_(db).conv_span(span)
     }
 }
 

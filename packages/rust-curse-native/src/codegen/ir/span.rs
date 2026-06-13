@@ -1,30 +1,93 @@
-use std::{path::PathBuf, sync::Arc};
+use miette::NamedSource;
 
 use crate::tools::rustdoc::Crate;
 
 /// Source code span.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub struct Span {
-    /// Relative path to the source file from the project root.
-    pub rel_path: PathBuf,
-    /// Absolute path to the source file from the project root.
-    pub abs_path: PathBuf,
-    /// The source code of the file.
-    pub source: Arc<String>,
-    /// 1-indexed `(line, column)` begin/end of the span.
-    pub begin: (usize, usize),
-    /// 1-indexed `(line, column)` begin/end of the span.
-    pub end: (usize, usize),
+pub type Span = miette::SourceSpan;
+
+/// Source code.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
+pub struct SourceCode(pub Option<miette::NamedSource<String>>);
+
+impl SourceCode {
+    pub fn not_available() -> Self {
+        Self(None)
+    }
 }
 
-impl From<Span> for miette::SourceSpan {
-    fn from(value: Span) -> Self {
-        let source = value.source.as_str();
+impl From<NamedSource<String>> for SourceCode {
+    fn from(source: NamedSource<String>) -> Self {
+        Self(Some(source))
+    }
+}
 
-        let start = line_col_to_offset(source, value.begin);
-        let stop = line_col_to_offset(source, value.end);
+impl miette::SourceCode for SourceCode {
+    fn read_span<'a>(
+        &'a self,
+        span: &miette::SourceSpan,
+        context_lines_before: usize,
+        context_lines_after: usize,
+    ) -> Result<Box<dyn miette::SpanContents<'a> + 'a>, miette::MietteError> {
+        match &self.0 {
+            Some(source) => source.read_span(span, context_lines_before, context_lines_after),
+            None => Ok(Box::new(miette::MietteSpanContents::new(
+                b"/* Not available */",
+                (0, 0).into(),
+                0,
+                0,
+                0,
+            ))),
+        }
+    }
+}
 
-        (start, stop.saturating_sub(start)).into()
+impl Crate {
+    /// Converts the given [`rustdoc_types::Span`] to an [`Span`].
+    pub fn read_span(&self, span: &rustdoc_types::Span) -> Span {
+        let abs_path = if span.filename.is_absolute() {
+            span.filename.clone()
+        } else {
+            self.dir.join(span.filename.clone())
+        };
+
+        let Ok(source) = std::fs::read_to_string(&abs_path) else {
+            return (0, 0).into();
+        };
+
+        let offset = line_col_to_offset(&source, span.begin);
+        let len = line_col_to_offset(&source, span.end).saturating_sub(offset);
+
+        (offset, len).into()
+    }
+
+    /// Converts the given [`rustdoc_types::Span`] to an [`Span`], if available.
+    pub fn read_span_opt(&self, span: Option<&rustdoc_types::Span>) -> Option<Span> {
+        span.map(|s| self.read_span(s))
+    }
+
+    /// Reads the source code for the given [`rustdoc_types::Span`].
+    pub fn read_source_code_for_span(&self, span: &rustdoc_types::Span) -> SourceCode {
+        let abs_path = if span.filename.is_absolute() {
+            span.filename.clone()
+        } else {
+            self.dir.join(span.filename.clone())
+        };
+
+        let source_name = span.filename.display().to_string();
+
+        match std::fs::read_to_string(&abs_path) {
+            Ok(source) => NamedSource::new(source_name, source).into(),
+            Err(_) => SourceCode::not_available(),
+        }
+    }
+
+    /// Reads the source code for the given [`rustdoc_types::Span`], if
+    /// available.
+    pub fn read_source_code_for_span_opt(&self, span: Option<&rustdoc_types::Span>) -> SourceCode {
+        match span {
+            Some(span) => self.read_source_code_for_span(span),
+            None => SourceCode::not_available(),
+        }
     }
 }
 
@@ -46,92 +109,4 @@ fn line_col_to_offset(source: &str, (line, column): (usize, usize)) -> usize {
     }
 
     source.len()
-}
-
-// The most convininet way of implementing `SourceCode` is to read the source
-// file directly from the span.
-impl miette::SourceCode for Span {
-    fn read_span<'a>(
-        &'a self,
-        span: &miette::SourceSpan,
-        context_lines_before: usize,
-        context_lines_after: usize,
-    ) -> Result<Box<dyn miette::SpanContents<'a> + 'a>, miette::MietteError> {
-        let source = self.source.as_bytes();
-        let contents = source.read_span(span, context_lines_before, context_lines_after)?;
-
-        Ok(Box::new(miette::MietteSpanContents::new_named(
-            self.rel_path.display().to_string(),
-            contents.data(),
-            *contents.span(),
-            contents.line(),
-            contents.column(),
-            contents.line_count(),
-        )))
-    }
-}
-
-/// Optinal source code span.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub struct OptionalSpan(pub Option<Span>);
-
-impl From<Option<Span>> for OptionalSpan {
-    fn from(value: Option<Span>) -> Self {
-        Self(value)
-    }
-}
-
-impl From<OptionalSpan> for miette::SourceSpan {
-    fn from(value: OptionalSpan) -> Self {
-        match value.0 {
-            Some(span) => span.into(),
-            None => (0, 0).into(),
-        }
-    }
-}
-
-impl miette::SourceCode for OptionalSpan {
-    fn read_span<'a>(
-        &'a self,
-        span: &miette::SourceSpan,
-        context_lines_before: usize,
-        context_lines_after: usize,
-    ) -> Result<Box<dyn miette::SpanContents<'a> + 'a>, miette::MietteError> {
-        match &self.0 {
-            Some(_source) => _source.read_span(span, context_lines_before, context_lines_after),
-            None => Ok(Box::new(miette::MietteSpanContents::new(
-                b"/* source is not available */",
-                *span,
-                0,
-                0,
-                0,
-            ))),
-        }
-    }
-}
-
-impl Crate {
-    /// Converts the given [`rustdoc_types::Span`] to an [`ir::Span`] with an
-    /// absolute filename.
-    pub fn conv_span(&self, span: rustdoc_types::Span) -> Span {
-        let abs_path = if span.filename.is_absolute() {
-            span.filename.clone()
-        } else {
-            self.dir.join(span.filename.clone())
-        };
-
-        let source = std::fs::read_to_string(&abs_path).unwrap_or_default();
-
-        Span {
-            rel_path: if self.is_external {
-                abs_path.clone()
-            } else {
-                span.filename
-            },
-            abs_path,
-            source: Arc::new(source),
-            begin: span.begin,
-            end: span.end,
-        }
-    }
 }

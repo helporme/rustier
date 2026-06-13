@@ -37,12 +37,11 @@ pub fn lower_mod<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> ir::Mod<'db> {
 
     let item_summary = crate_.paths.get(&item.id).unwrap();
     assert_eq!(item_summary.kind, ItemKind::Module);
-    let span = item.span.clone().map(|span| id.span(db, span));
     let id = ir::Id::new(db, &item_summary.path);
 
     let docs = item.docs.clone();
 
-    ir::Mod::new(db, id, docs, span)
+    ir::Mod::new(db, id, docs)
 }
 
 /// Lowers the functions defined inside the given rustdoc module.

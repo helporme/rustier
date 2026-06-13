@@ -13,7 +13,7 @@ use crate::codegen::{
 #[salsa::tracked]
 pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<FnLowerError>> {
     let item = id.item(db);
-    let crate_ = id.crate_body(db);
+    let crate_body = id.crate_body(db);
 
     let def = match &item.inner {
         ItemEnum::Function(def) => def,
@@ -22,8 +22,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Fn
 
     assert!(def.has_body, "trait/extern functions cannot be lowerd");
 
-    let span: Option<ir::Span> = item.span.clone().map(|s| id.crate_(db).conv_span(s));
-    let item_summary = crate_.paths.get(&item.id).unwrap();
+    let item_summary = crate_body.paths.get(&item.id).unwrap();
     assert_eq!(item_summary.kind, ItemKind::Function);
 
     let mut causes = Vec::new();
@@ -53,7 +52,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Fn
     let mut params = Vec::new();
 
     for (name, ty) in &def.sig.inputs {
-        let lowered = match lower_type(db, crate_.ty(db, ty)) {
+        let lowered = match lower_type(db, crate_body.ty(db, ty)) {
             Ok(lowered) => lowered,
             Err(diags) => {
                 causes.push(FnLowerError::UnsupportedParam {
@@ -77,9 +76,11 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Fn
         };
 
         if matches!(type_, ir::Type::Primitive(_)) && mode == ir::ParamMode::Mut {
+            let crate_ = id.crate_(db);
             FnLowerError::PrimitiveMutRefIgnored {
                 name: name.clone(),
-                span: span.clone().into(),
+                source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
+                span: crate_.read_span_opt(item.span.as_ref()),
             }
             .accumulate(db);
         }
@@ -89,7 +90,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Fn
 
     let ret_type = match &def.sig.output {
         None => None,
-        Some(ty) => match lower_type(db, crate_.ty(db, ty)) {
+        Some(ty) => match lower_type(db, crate_body.ty(db, ty)) {
             Ok(LoweredType::Moved(type_)) => Some(type_),
             Ok(LoweredType::Borrowed { .. }) => {
                 causes.push(FnLowerError::BorrowedReturn);
@@ -103,23 +104,27 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Fn
     };
 
     if !causes.is_empty() {
+        let crate_ = id.crate_(db);
         return Err(vec![FnLowerError::Skipped {
             fn_fqn: item_summary.path.join("::"),
-            span: span.into(),
+            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
+            span: crate_.read_span_opt(item.span.as_ref()),
             causes,
         }]);
     }
 
     let id = ir::Id::new(db, &item_summary.path);
 
-    Ok(ir::Fn::new(
-        db,
-        id,
-        params,
-        ret_type,
-        item.docs.clone(),
-        span,
-    ))
+    Ok(ir::Fn::new(db, id, params, ret_type, item.docs.clone()))
+}
+
+#[derive(Diagnostic, Debug, Error)]
+#[error("oops")]
+#[diagnostic()]
+pub struct MyErrorType {
+    // Note: label but no source code
+    #[label]
+    err_span: Option<ir::Span>,
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
@@ -130,8 +135,9 @@ pub enum FnLowerError {
         /// The fully qualified name of the function being lowered.
         fn_fqn: String,
         #[source_code]
+        source_code: ir::SourceCode,
         #[label]
-        span: ir::OptionalSpan,
+        span: Option<ir::Span>,
         #[related]
         causes: Vec<FnLowerError>,
     },
@@ -197,9 +203,9 @@ pub enum FnLowerError {
     PrimitiveMutRefIgnored {
         /// The name of the parameter that has an unsupported type.
         name: String,
-
         #[source_code]
+        source_code: ir::SourceCode,
         #[label]
-        span: ir::OptionalSpan,
+        span: Option<ir::Span>,
     },
 }
