@@ -6,9 +6,12 @@ use std::{
     process::{Command, Output},
 };
 
-use anyhow::{anyhow, bail, Context, Result};
 use cargo_metadata::{Metadata, MetadataCommand, Package, Target, TargetKind};
+use miette::Diagnostic;
 use rustdoc_types::Crate as RustdocCrate;
+use thiserror::Error;
+
+pub type Result<T> = std::result::Result<T, RustdocError>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Crate {
@@ -47,11 +50,9 @@ pub fn run(opts: RunOpts) -> Result<Crate> {
     let metadata = MetadataCommand::new()
         .manifest_path(&opts.manifest_path)
         .exec()
-        .with_context(|| {
-            format!(
-                "failed to read cargo metadata for {}",
-                opts.manifest_path.display()
-            )
+        .map_err(|source| RustdocError::ReadCargoMetadata {
+            manifest_path: opts.manifest_path.clone(),
+            source,
         })?;
 
     let package = resolve_package(&metadata, &opts.manifest_path, opts.crate_name.as_deref())?;
@@ -62,7 +63,9 @@ pub fn run(opts: RunOpts) -> Result<Crate> {
         .targets
         .iter()
         .find(|target| is_lib_target(target))
-        .ok_or_else(|| anyhow!("package `{}` does not have a library target", package.name))?;
+        .ok_or_else(|| RustdocError::MissingLibraryTarget {
+            package: package.name.to_string(),
+        })?;
 
     let target_dir = metadata
         .target_directory
@@ -83,7 +86,7 @@ pub fn run(opts: RunOpts) -> Result<Crate> {
             "json",
         ])
         .output()
-        .context("failed to run cargo +nightly rustdoc")?;
+        .map_err(|source| RustdocError::RunCargoRustdoc { source })?;
 
     ensure_success(
         &output,
@@ -93,19 +96,17 @@ pub fn run(opts: RunOpts) -> Result<Crate> {
     let rustdoc_json_path = target_dir
         .join("doc")
         .join(format!("{}.json", &lib_target.name.replace('-', "_")));
-    let json = fs::read_to_string(&rustdoc_json_path).with_context(|| {
-        format!(
-            "failed to read generated rustdoc JSON at {}",
-            rustdoc_json_path.display()
-        )
-    })?;
+    let json =
+        fs::read_to_string(&rustdoc_json_path).map_err(|source| RustdocError::ReadRustdocJson {
+            path: rustdoc_json_path.clone(),
+            source,
+        })?;
 
-    let body: RustdocCrate = serde_json::from_str(&json).with_context(|| {
-        format!(
-            "failed to deserialize rustdoc JSON at {}",
-            rustdoc_json_path.display()
-        )
-    })?;
+    let body: RustdocCrate =
+        serde_json::from_str(&json).map_err(|source| RustdocError::DeserializeRustdocJson {
+            path: rustdoc_json_path.clone(),
+            source,
+        })?;
 
     Ok(Crate {
         body,
@@ -120,7 +121,7 @@ pub fn ensure() -> Result<()> {
     let check = Command::new("rustup")
         .args(["run", "nightly", "rustdoc", "--version"])
         .output()
-        .context("failed to run `rustup run nightly rustdoc --version`; is rustup installed?")?;
+        .map_err(|source| RustdocError::CheckNightlyRustdoc { source })?;
 
     if check.status.success() {
         return Ok(());
@@ -129,7 +130,7 @@ pub fn ensure() -> Result<()> {
     let output = Command::new("rustup")
         .args(["toolchain", "install", "nightly"])
         .output()
-        .context("failed to run `rustup toolchain install nightly`")?;
+        .map_err(|source| RustdocError::InstallNightlyToolchain { source })?;
 
     ensure_success(&output, "`rustup toolchain install nightly` failed")
 }
@@ -139,14 +140,14 @@ fn package_path(package: &Package) -> Result<PathBuf> {
         .manifest_path
         .as_std_path()
         .parent()
-        .ok_or_else(|| {
-            anyhow!(
-                "package `{}` manifest has no parent directory",
-                package.name
-            )
+        .ok_or_else(|| RustdocError::MissingManifestParent {
+            package: package.name.to_string(),
         })?
         .canonicalize()
-        .with_context(|| format!("failed to canonicalize crate path for {}", package.name))
+        .map_err(|source| RustdocError::CanonicalizeCratePath {
+            package: package.name.to_string(),
+            source,
+        })
 }
 
 fn resolve_package<'a>(
@@ -167,21 +168,18 @@ fn resolve_package<'a>(
     }
 
     let root = root_package(metadata, manifest_path)?;
-    direct_dependency(metadata, root, crate_name).ok_or_else(|| {
-        anyhow!(
-            "crate `{crate_name}` was not found as a workspace package or a direct dependency of `{}`",
-            root.name
-        )
+    direct_dependency(metadata, root, crate_name).ok_or_else(|| RustdocError::CrateNotFound {
+        crate_name: crate_name.to_string(),
+        root_package: root.name.to_string(),
     })
 }
 
 fn root_package<'a>(metadata: &'a Metadata, manifest_path: &Path) -> Result<&'a Package> {
-    metadata.root_package().ok_or_else(|| {
-        anyhow!(
-            "could not find a package for manifest {}; virtual workspaces require `crate_name`",
-            manifest_path.display()
-        )
-    })
+    metadata
+        .root_package()
+        .ok_or_else(|| RustdocError::MissingRootPackage {
+            manifest_path: manifest_path.to_path_buf(),
+        })
 }
 
 fn direct_dependency<'a>(
@@ -219,12 +217,98 @@ fn ensure_success(output: &Output, context: &str) -> Result<()> {
         return Ok(());
     }
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    bail!(
-        "{context} (exit code {:?})\nstdout:\n{}\nstderr:\n{}",
-        output.status.code(),
-        stdout.trim_end(),
-        stderr.trim_end()
-    )
+    Err(RustdocError::CommandFailed {
+        context: context.to_string(),
+        exit_code: output.status.code(),
+        stdout: String::from_utf8_lossy(&output.stdout)
+            .trim_end()
+            .to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr)
+            .trim_end()
+            .to_string(),
+    })
+}
+
+#[derive(Error, Diagnostic, Debug)]
+pub enum RustdocError {
+    #[error("failed to read cargo metadata for {}", manifest_path.display())]
+    #[diagnostic(code(rust_curse::rustdoc::read_cargo_metadata))]
+    ReadCargoMetadata {
+        manifest_path: PathBuf,
+        #[source]
+        source: cargo_metadata::Error,
+    },
+
+    #[error("package `{package}` does not have a library target")]
+    #[diagnostic(code(rust_curse::rustdoc::missing_library_target))]
+    MissingLibraryTarget { package: String },
+
+    #[error("failed to run cargo +nightly rustdoc")]
+    #[diagnostic(code(rust_curse::rustdoc::run_cargo_rustdoc))]
+    RunCargoRustdoc {
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error("failed to read generated rustdoc JSON at {}", path.display())]
+    #[diagnostic(code(rust_curse::rustdoc::read_rustdoc_json))]
+    ReadRustdocJson {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error("failed to deserialize rustdoc JSON at {}", path.display())]
+    #[diagnostic(code(rust_curse::rustdoc::deserialize_rustdoc_json))]
+    DeserializeRustdocJson {
+        path: PathBuf,
+        #[source]
+        source: serde_json::Error,
+    },
+
+    #[error("failed to run `rustup run nightly rustdoc --version`; is rustup installed?")]
+    #[diagnostic(code(rust_curse::rustdoc::check_nightly_rustdoc))]
+    CheckNightlyRustdoc {
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error("failed to run `rustup toolchain install nightly`")]
+    #[diagnostic(code(rust_curse::rustdoc::install_nightly_toolchain))]
+    InstallNightlyToolchain {
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error("package `{package}` manifest has no parent directory")]
+    #[diagnostic(code(rust_curse::rustdoc::missing_manifest_parent))]
+    MissingManifestParent { package: String },
+
+    #[error("failed to canonicalize crate path for {package}")]
+    #[diagnostic(code(rust_curse::rustdoc::canonicalize_crate_path))]
+    CanonicalizeCratePath {
+        package: String,
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error("crate `{crate_name}` was not found as a workspace package or a direct dependency of `{root_package}`")]
+    #[diagnostic(code(rust_curse::rustdoc::crate_not_found))]
+    CrateNotFound {
+        crate_name: String,
+        root_package: String,
+    },
+
+    #[error("could not find a package for manifest {}; virtual workspaces require `crate_name`", manifest_path.display())]
+    #[diagnostic(code(rust_curse::rustdoc::missing_root_package))]
+    MissingRootPackage { manifest_path: PathBuf },
+
+    #[error("{context} (exit code {exit_code:?})\nstdout:\n{stdout}\nstderr:\n{stderr}")]
+    #[diagnostic(code(rust_curse::rustdoc::command_failed))]
+    CommandFailed {
+        context: String,
+        exit_code: Option<i32>,
+        stdout: String,
+        stderr: String,
+    },
 }
