@@ -14,7 +14,7 @@ use crate::{
 #[salsa::tracked]
 pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Diag>> {
     let item = id.item(db);
-    let crate_ = id.crate_(db);
+    let crate_ = id.crate_body(db);
 
     let def = match &item.inner {
         ItemEnum::Function(def) => def,
@@ -23,7 +23,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Di
 
     assert!(def.has_body, "trait/extern functions cannot be lowerd");
 
-    let span: Option<ir::Span> = item.span.clone().map(Into::into);
+    let span: Option<ir::Span> = item.span.clone().map(|s| id.crate_(db).abs_span(s));
     let mut causes = Vec::new();
 
     if def.header.is_async {

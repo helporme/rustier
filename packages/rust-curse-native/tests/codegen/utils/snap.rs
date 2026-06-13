@@ -16,7 +16,7 @@ use rustdoc_types::{Crate as RustdocCrate, Id as RId};
 /// categories.
 pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
     let fixture = rustdoc::rustdoc_from_src(raw_src);
-    let db = rustdoc::db_with_rustdoc(fixture.crate_.clone());
+    let db = rustdoc::db_with_rustdoc(fixture.crate_.clone(), fixture.root_abs_path.clone());
     let root_id = rustdoc::root_id(&db, &fixture.crate_);
     let module_ids = all_mod_ids(&db);
 

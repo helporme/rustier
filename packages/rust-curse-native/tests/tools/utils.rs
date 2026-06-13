@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf};
 
-use rustdoc_types::Crate as RustdocCrate;
+use rust_curse::tools::rustdoc::Crate as RustdocCrate;
 use tempfile::TempDir;
 
 pub struct Fixture {
@@ -28,6 +28,7 @@ pub fn fixture(files: &[(&str, &str)]) -> Fixture {
 
 pub fn has_item_named(crate_: &RustdocCrate, item_name: &str) -> bool {
     crate_
+        .body
         .index
         .values()
         .any(|item| item.name.as_deref() == Some(item_name))

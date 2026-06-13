@@ -10,6 +10,14 @@ use anyhow::{anyhow, bail, Context, Result};
 use cargo_metadata::{Metadata, MetadataCommand, Package, Target, TargetKind};
 use rustdoc_types::Crate as RustdocCrate;
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct Crate {
+    /// The parsed rustdoc crate body.
+    pub body: RustdocCrate,
+    /// The absolute path to the crate directory.
+    pub abs_path: PathBuf,
+}
+
 /// Options for [`run`].
 #[derive(Debug, Clone)]
 pub struct RunOpts {
@@ -33,7 +41,7 @@ pub struct RunOpts {
 ///
 /// Matching accepts both Cargo package names and the crate name of the library
 /// target, so `foo-bar` and `foo_bar` can both resolve to the same library.
-pub fn run(opts: RunOpts) -> Result<RustdocCrate> {
+pub fn run(opts: RunOpts) -> Result<Crate> {
     let metadata = MetadataCommand::new()
         .manifest_path(&opts.manifest_path)
         .exec()
@@ -45,6 +53,18 @@ pub fn run(opts: RunOpts) -> Result<RustdocCrate> {
         })?;
 
     let package = resolve_package(&metadata, &opts.manifest_path, opts.crate_name.as_deref())?;
+    let abs_path = package
+        .manifest_path
+        .as_std_path()
+        .parent()
+        .ok_or_else(|| {
+            anyhow!(
+                "package `{}` manifest has no parent directory",
+                package.name
+            )
+        })?
+        .canonicalize()
+        .with_context(|| format!("failed to canonicalize crate path for {}", package.name))?;
 
     let lib_target = package
         .targets
@@ -88,12 +108,14 @@ pub fn run(opts: RunOpts) -> Result<RustdocCrate> {
         )
     })?;
 
-    serde_json::from_str(&json).with_context(|| {
+    let body: RustdocCrate = serde_json::from_str(&json).with_context(|| {
         format!(
             "failed to deserialize rustdoc JSON at {}",
             rustdoc_json_path.display()
         )
-    })
+    })?;
+
+    Ok(Crate { body, abs_path })
 }
 
 /// Ensure the default nightly toolchain required by rustdoc JSON generation is

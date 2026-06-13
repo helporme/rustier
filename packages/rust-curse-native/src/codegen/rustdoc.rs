@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::codegen::{db::Db, ir};
+use crate::{
+    codegen::{db::Db, ir},
+    tools::rustdoc::Crate,
+};
 use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, Span, Type};
 
 mod fn_;
@@ -14,12 +17,16 @@ pub use type_::*;
 #[salsa::input(singleton)]
 pub struct Input {
     #[returns(ref)]
-    pub crates: BTreeMap<String, RCrate>,
+    pub crates: BTreeMap<String, Crate>,
 }
 
 impl Input {
-    pub fn crate_<'db>(&self, db: &'db dyn Db, name: &str) -> Option<&'db RCrate> {
+    pub fn crate_data<'db>(&self, db: &'db dyn Db, name: &str) -> Option<&'db Crate> {
         self.crates(db).get(name)
+    }
+
+    pub fn crate_<'db>(&self, db: &'db dyn Db, name: &str) -> Option<&'db RCrate> {
+        self.crate_data(db, name).map(|c| &c.body)
     }
 }
 
@@ -33,10 +40,15 @@ pub struct RustdocType<'db> {
 }
 
 impl<'db> RustdocType<'db> {
-    /// Find the crate where this item with this id is defined.
-    pub fn crate_(&self, db: &'db dyn Db) -> &'db RCrate {
+    /// Find the crate data where this type is defined.
+    pub fn crate_data(&self, db: &'db dyn Db) -> &'db Crate {
         let rustdoc = Input::get(db);
-        rustdoc.crate_(db, self.crate_name(db)).unwrap()
+        rustdoc.crate_data(db, self.crate_name(db)).unwrap()
+    }
+
+    /// Find the crate where this type is defined.
+    pub fn crate_(&self, db: &'db dyn Db) -> &'db RCrate {
+        &self.crate_data(db).body
     }
 }
 
@@ -53,20 +65,27 @@ impl<'db> Id<'db> {
     /// Find the rustdoc item corresponding to this ID, from the crate stored in
     /// database.
     pub fn item(&self, db: &'db dyn Db) -> &RItem {
-        let rustdoc = Input::get(db);
-        let crate_name = self.crate_name(db);
+        let crate_data = self.crate_(db);
         let idx = self.idx(db);
 
-        let crate_ = rustdoc.crate_(db, crate_name).expect("crate not found");
-        let item = crate_.index.get(&idx).expect("item not found");
+        crate_data.body.index.get(&idx).expect("item not found")
+    }
 
-        item
+    /// Find the crate data where this item with this id is defined.
+    pub fn crate_(&self, db: &'db dyn Db) -> &'db Crate {
+        let rustdoc = Input::get(db);
+        rustdoc
+            .crate_data(db, self.crate_name(db))
+            .expect("crate not found")
     }
 
     /// Find the crate where this item with this id is defined.
-    pub fn crate_(&self, db: &'db dyn Db) -> &'db RCrate {
-        let rustdoc = Input::get(db);
-        rustdoc.crate_(db, self.crate_name(db)).unwrap()
+    pub fn crate_body(&self, db: &'db dyn Db) -> &'db RCrate {
+        &self.crate_(db).body
+    }
+
+    pub fn span(&self, db: &'db dyn Db, span: Span) -> ir::Span {
+        self.crate_(db).abs_span(span)
     }
 }
 
@@ -97,15 +116,5 @@ impl CrateExt for RCrate {
             .expect("root module has no name");
 
         RustdocType::new(db, ty, crate_name)
-    }
-}
-
-impl From<Span> for ir::Span {
-    fn from(span: Span) -> Self {
-        ir::Span {
-            filename: span.filename,
-            begin: span.begin,
-            end: span.end,
-        }
     }
 }

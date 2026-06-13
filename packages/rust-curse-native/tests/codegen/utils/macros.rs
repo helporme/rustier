@@ -14,7 +14,10 @@ macro_rules! ir {
         let fixture = $crate::utils::rustdoc::rustdoc_from_src(::std::stringify!($($tt)*));
         let db: &'static ::rust_curse::codegen::db::DbImpl =
             ::std::boxed::Box::leak(::std::boxed::Box::new(
-                $crate::utils::rustdoc::db_with_rustdoc(fixture.crate_.clone()),
+                $crate::utils::rustdoc::db_with_rustdoc(
+                    fixture.crate_.clone(),
+                    fixture.root_abs_path.clone(),
+                ),
             ));
         let root_id = $crate::utils::rustdoc::root_id(db, &fixture.crate_);
         let mod_ = ::rust_curse::codegen::rustdoc::lower_mod(db, root_id);
@@ -28,7 +31,10 @@ macro_rules! diag {
         let fixture = $crate::utils::rustdoc::rustdoc_from_src(::std::stringify!($($tt)*));
         let db: &'static ::rust_curse::codegen::db::DbImpl =
             ::std::boxed::Box::leak(::std::boxed::Box::new(
-                $crate::utils::rustdoc::db_with_rustdoc(fixture.crate_.clone()),
+                $crate::utils::rustdoc::db_with_rustdoc(
+                    fixture.crate_.clone(),
+                    fixture.root_abs_path.clone(),
+                ),
             ));
         let root_id = $crate::utils::rustdoc::root_id(db, &fixture.crate_);
         let diags = $crate::utils::diags::collect_diags_mod(db, root_id);

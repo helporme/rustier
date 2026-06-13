@@ -1,11 +1,17 @@
 //! Utilities for generating rustdoc JSON from inline test fixtures.
 
-use std::{collections::BTreeMap, fs, path::Path, process::Command};
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use rust_curse::codegen::{
     db::{Db, DbImpl},
     rustdoc::{Id, Input},
 };
+use rust_curse::tools::rustdoc::Crate as StoredCrate;
 use rustdoc_types::Crate as RustdocCrate;
 use tempfile::TempDir;
 
@@ -96,9 +102,15 @@ fn run_rustdoc(
     serde_json::from_str(&json).map_err(|err| format!("failed to parse rustdoc JSON: {err}"))
 }
 
-pub fn db_with_rustdoc(crate_: RustdocCrate) -> DbImpl {
+pub fn db_with_rustdoc(crate_: RustdocCrate, crate_abs_path: impl Into<PathBuf>) -> DbImpl {
     let db = DbImpl::default();
-    let crates = BTreeMap::from([(TEST_CRATE_NAME.to_string(), crate_)]);
+    let crates = BTreeMap::from([(
+        TEST_CRATE_NAME.to_string(),
+        StoredCrate {
+            body: crate_,
+            abs_path: crate_abs_path.into(),
+        },
+    )]);
     Input::new(&db, crates);
     db
 }

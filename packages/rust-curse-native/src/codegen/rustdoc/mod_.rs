@@ -12,10 +12,11 @@ pub fn all_mod_ids<'db>(db: &'db dyn Db) -> Vec<rustdoc::Id<'db>> {
 
     for (crate_name, crate_) in rustdoc.crates(db) {
         let mut crate_mod_ids = crate_
+            .body
             .paths
             .iter()
             .filter(|(id, item_summary)| {
-                item_summary.kind == ItemKind::Module && crate_.index.contains_key(id)
+                item_summary.kind == ItemKind::Module && crate_.body.index.contains_key(id)
             })
             .collect::<Vec<_>>();
 
@@ -33,14 +34,14 @@ pub fn all_mod_ids<'db>(db: &'db dyn Db) -> Vec<rustdoc::Id<'db>> {
 #[salsa::tracked]
 pub fn lower_mod<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> ir::Mod<'db> {
     let item = id.item(db);
-    let crate_ = id.crate_(db);
+    let crate_ = id.crate_body(db);
 
     let item_summary = crate_.paths.get(&item.id).unwrap();
     assert_eq!(item_summary.kind, ItemKind::Module);
+    let span = item.span.clone().map(|span| id.span(db, span));
     let id = ir::Id::new(db, &item_summary.path);
 
     let docs = item.docs.clone();
-    let span = item.span.clone().map(|s| s.into());
 
     ir::Mod::new(db, id, docs, span)
 }
@@ -49,7 +50,7 @@ pub fn lower_mod<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> ir::Mod<'db> {
 #[salsa::tracked(returns(ref))]
 pub fn lower_mod_fns<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::Fn<'db>> {
     let item = id.item(db);
-    let crate_ = id.crate_(db);
+    let crate_ = id.crate_body(db);
 
     let def = match &item.inner {
         ItemEnum::Module(def) => def,
@@ -82,7 +83,7 @@ pub fn lower_mod_fns<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::Fn<'
 #[salsa::tracked(returns(ref))]
 pub fn lower_mod_submods<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::Mod<'db>> {
     let item = id.item(db);
-    let crate_ = id.crate_(db);
+    let crate_ = id.crate_body(db);
 
     let def = match &item.inner {
         ItemEnum::Module(def) => def,
