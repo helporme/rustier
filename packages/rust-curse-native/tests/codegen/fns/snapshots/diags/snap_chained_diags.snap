@@ -25,7 +25,7 @@ rust_curse::skipped_fn
   ⚠ the function "rustdoc_test_crate::foo" cannot be exported to JS
    ╭─[src/lib.rs:4:1]
  4 │ pub unsafe fn foo(a: MyStruct, b: u64, c: &&mut usize) {}
-   · ──────────────────────────────────────────────────────────
+   · ─────────────────────────────────────────────────────────
    ╰────
   ├─▶ rust_curse::unsupported_unsafe_fn
   │   

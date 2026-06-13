@@ -7,8 +7,9 @@ use crate::tools::rustdoc::Crate;
 pub struct Span {
     /// Relative path to the source file from the project root.
     pub rel_path: PathBuf,
-    /// Relative path to the source file from the project root.
+    /// Absolute path to the source file from the project root.
     pub abs_path: PathBuf,
+    /// The source code of the file.
     pub source: Arc<String>,
     /// 1-indexed `(line, column)` begin/end of the span.
     pub begin: (usize, usize),
@@ -21,11 +22,7 @@ impl From<Span> for miette::SourceSpan {
         let source = value.source.as_str();
 
         let start = line_col_to_offset(source, value.begin);
-        let mut stop = line_col_to_offset(source, value.end);
-
-        if stop < source.len() {
-            stop += source[stop..].chars().next().map_or(0, char::len_utf8);
-        }
+        let stop = line_col_to_offset(source, value.end);
 
         (start, stop.saturating_sub(start)).into()
     }
