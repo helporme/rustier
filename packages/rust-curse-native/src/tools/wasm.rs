@@ -18,18 +18,17 @@ const WASM_BINDGEN_BIN: &str = "wasm-bindgen";
 /// Options for installing the local `wasm-bindgen` CLI tool.
 pub struct EnsureWasmBindgenCliInstalledOpts<'a> {
     /// Directory passed to `cargo install --root`.
-    pub install_root_abs_path: &'a Path,
+    pub install_root_path: &'a Path,
 }
 
 /// Options for building a crate for wasm and generating wasm-bindgen bindings.
 pub struct BuildOpts<'a> {
-    /// Absolute path to the crate directory used as the `cargo build` working
-    /// directory.
-    pub project_root_abs_path: &'a Path,
-    /// Absolute directory where wasm-bindgen should write generated files.
-    pub out_dir_abs_path: &'a Path,
-    /// Absolute path to the local `wasm-bindgen` executable.
-    pub wasm_bindgen_tool_bin_abs_path: &'a Path,
+    /// Crate directory used as the `cargo build` working directory.
+    pub project_root_path: &'a Path,
+    /// Directory where wasm-bindgen should write generated files.
+    pub out_dir_path: &'a Path,
+    /// Path to the local `wasm-bindgen` executable.
+    pub wasm_bindgen_tool_bin_path: &'a Path,
     /// Whether to build with `cargo build --release`.
     pub release: bool,
     /// JavaScript runtime compatibility mode for generated bindings.
@@ -56,13 +55,6 @@ pub struct BuildOutput {
 
 /// Ensure the `wasm32-unknown-unknown` Rust target is installed for the active
 /// toolchain.
-///
-/// ```no_run
-/// use rust_curse::tools::wasm::ensure_wasm_target_installed;
-///
-/// ensure_wasm_target_installed()?;
-/// # Ok::<(), rust_curse::tools::wasm::EnsureWasmTargetInstalledError>(())
-/// ```
 pub fn ensure_wasm_target_installed() -> Result<(), EnsureWasmTargetInstalledError> {
     let check = Command::new("rustup")
         .args(["target", "list", "--installed"])
@@ -92,8 +84,7 @@ pub fn ensure_wasm_target_installed() -> Result<(), EnsureWasmTargetInstalledErr
     .map_err(|source| EnsureWasmTargetInstalledError::InstallTargetFailed { source })
 }
 
-/// Ensure a local `wasm-bindgen` CLI is installed under
-/// `install_root_abs_path`.
+/// Ensure a local `wasm-bindgen` CLI is installed under `install_root_path`.
 ///
 /// Returns the absolute path to the installed `wasm-bindgen` binary.
 ///
@@ -104,7 +95,7 @@ pub fn ensure_wasm_target_installed() -> Result<(), EnsureWasmTargetInstalledErr
 /// use std::path::Path;
 ///
 /// let wasm_bindgen = ensure_wasm_bindgen_cli_installed(EnsureWasmBindgenCliInstalledOpts {
-///     install_root_abs_path: Path::new("/tmp/rust-curse-tools"),
+///     install_root_path: Path::new("/tmp/rust-curse-tools"),
 /// })?;
 /// # let _ = wasm_bindgen;
 /// # Ok::<(), rust_curse::tools::wasm::EnsureWasmBindgenCliInstalledError>(())
@@ -112,12 +103,9 @@ pub fn ensure_wasm_target_installed() -> Result<(), EnsureWasmTargetInstalledErr
 pub fn ensure_wasm_bindgen_cli_installed(
     opts: EnsureWasmBindgenCliInstalledOpts<'_>,
 ) -> Result<PathBuf, EnsureWasmBindgenCliInstalledError> {
-    ensure_abs_path("install_root_abs_path", opts.install_root_abs_path)
-        .map_err(|source| EnsureWasmBindgenCliInstalledError::PathMustBeAbsolute { source })?;
-
-    fs::create_dir_all(opts.install_root_abs_path).map_err(|source| {
+    fs::create_dir_all(opts.install_root_path).map_err(|source| {
         EnsureWasmBindgenCliInstalledError::CreateInstallRoot {
-            path: opts.install_root_abs_path.to_path_buf(),
+            path: opts.install_root_path.to_path_buf(),
             source,
         }
     })?;
@@ -128,7 +116,7 @@ pub fn ensure_wasm_bindgen_cli_installed(
         format!("{WASM_BINDGEN_BIN}.{}", std::env::consts::EXE_EXTENSION)
     };
     let tool_bin_abs_path = opts
-        .install_root_abs_path
+        .install_root_path
         .join("bin")
         .join(wasm_bindgen_bin_name);
     let force_install = if tool_bin_abs_path.is_file() {
@@ -157,7 +145,7 @@ pub fn ensure_wasm_bindgen_cli_installed(
     install
         .arg(WASM_BINDGEN_PACKAGE)
         .arg("--root")
-        .arg(opts.install_root_abs_path);
+        .arg(opts.install_root_path);
 
     let output = install
         .output()
@@ -167,7 +155,7 @@ pub fn ensure_wasm_bindgen_cli_installed(
         &output,
         &format!(
             "`cargo install {WASM_BINDGEN_PACKAGE} --root {}` failed",
-            opts.install_root_abs_path.display()
+            opts.install_root_path.display()
         ),
     )
     .map_err(|source| EnsureWasmBindgenCliInstalledError::InstallCliFailed { source })?;
@@ -201,17 +189,17 @@ pub fn ensure_wasm_bindgen_cli_installed(
 /// Build a crate for wasm and run `wasm-bindgen` to generate JavaScript
 /// bindings.
 ///
-/// `project_root_abs_path` is used as the working directory for `cargo build`.
-/// The build must produce exactly one `.wasm` artifact.
+/// `project_root_path` is used as the working directory for `cargo build`. The
+/// build must produce exactly one `.wasm` artifact.
 ///
 /// ```no_run
 /// use rust_curse::tools::wasm::{build, BuildOpts, WasmCompat};
 /// use std::path::Path;
 ///
 /// let output = build(BuildOpts {
-///     project_root_abs_path: Path::new("/absolute/path/to/crate"),
-///     out_dir_abs_path: Path::new("/absolute/path/to/out"),
-///     wasm_bindgen_tool_bin_abs_path: Path::new("/absolute/path/to/wasm-bindgen"),
+///     project_root_path: Path::new("/path/to/crate"),
+///     out_dir_path: Path::new("/path/to/out"),
+///     wasm_bindgen_tool_bin_path: Path::new("/path/to/wasm-bindgen"),
 ///     release: true,
 ///     compat: WasmCompat::Web,
 /// })?;
@@ -219,23 +207,13 @@ pub fn ensure_wasm_bindgen_cli_installed(
 /// # Ok::<(), rust_curse::tools::wasm::BuildError>(())
 /// ```
 pub fn build(opts: BuildOpts<'_>) -> Result<BuildOutput, BuildError> {
-    ensure_abs_path("project_root_abs_path", opts.project_root_abs_path)
-        .map_err(|source| BuildError::PathMustBeAbsolute { source })?;
-    ensure_abs_path("out_dir_abs_path", opts.out_dir_abs_path)
-        .map_err(|source| BuildError::PathMustBeAbsolute { source })?;
-    ensure_abs_path(
-        "wasm_bindgen_tool_bin_abs_path",
-        opts.wasm_bindgen_tool_bin_abs_path,
-    )
-    .map_err(|source| BuildError::PathMustBeAbsolute { source })?;
-
     let mut build = Command::new("cargo");
     build
         .arg("build")
         .arg("--target")
         .arg(WASM_TARGET)
         .arg("--message-format=json-render-diagnostics")
-        .current_dir(opts.project_root_abs_path);
+        .current_dir(opts.project_root_path);
     if opts.release {
         build.arg("--release");
     }
@@ -248,15 +226,15 @@ pub fn build(opts: BuildOpts<'_>) -> Result<BuildOutput, BuildError> {
         &output,
         &format!(
             "`cargo build --target {WASM_TARGET}` failed in {}",
-            opts.project_root_abs_path.display()
+            opts.project_root_path.display()
         ),
     )
     .map_err(|source| BuildError::CargoBuildFailed { source })?;
 
-    let built_wasm_abs_path = built_wasm_artifact(&output, opts.project_root_abs_path)?;
+    let built_wasm_abs_path = built_wasm_artifact(&output, opts.project_root_path)?;
 
-    fs::create_dir_all(opts.out_dir_abs_path).map_err(|source| BuildError::CreateOutputDir {
-        path: opts.out_dir_abs_path.to_path_buf(),
+    fs::create_dir_all(opts.out_dir_path).map_err(|source| BuildError::CreateOutputDir {
+        path: opts.out_dir_path.to_path_buf(),
         source,
     })?;
 
@@ -271,17 +249,17 @@ pub fn build(opts: BuildOpts<'_>) -> Result<BuildOutput, BuildError> {
         WasmCompat::Web => "web",
     };
 
-    let bindgen = Command::new(opts.wasm_bindgen_tool_bin_abs_path)
+    let bindgen = Command::new(opts.wasm_bindgen_tool_bin_path)
         .arg(&built_wasm_abs_path)
         .arg("--out-dir")
-        .arg(opts.out_dir_abs_path)
+        .arg(opts.out_dir_path)
         .arg("--target")
         .arg(wasm_bindgen_target)
         .arg("--out-name")
         .arg(out_name)
         .output()
         .map_err(|source| BuildError::RunWasmBindgenCli {
-            path: opts.wasm_bindgen_tool_bin_abs_path.to_path_buf(),
+            path: opts.wasm_bindgen_tool_bin_path.to_path_buf(),
             source,
         })?;
 
@@ -289,14 +267,14 @@ pub fn build(opts: BuildOpts<'_>) -> Result<BuildOutput, BuildError> {
         &bindgen,
         &format!(
             "`{}` failed for {}",
-            opts.wasm_bindgen_tool_bin_abs_path.display(),
+            opts.wasm_bindgen_tool_bin_path.display(),
             built_wasm_abs_path.display()
         ),
     )
     .map_err(|source| BuildError::WasmBindgenCliFailed { source })?;
 
-    let js_abs_path = opts.out_dir_abs_path.join(format!("{out_name}.js"));
-    let wasm_abs_path = opts.out_dir_abs_path.join(format!("{out_name}_bg.wasm"));
+    let js_abs_path = opts.out_dir_path.join(format!("{out_name}.js"));
+    let wasm_abs_path = opts.out_dir_path.join(format!("{out_name}_bg.wasm"));
 
     if !js_abs_path.is_file() {
         return Err(BuildError::MissingGeneratedJs { path: js_abs_path });
@@ -350,17 +328,6 @@ fn built_wasm_artifact(
     }
 }
 
-fn ensure_abs_path(field: &'static str, path: &Path) -> Result<(), PathMustBeAbsolute> {
-    if path.is_absolute() {
-        return Ok(());
-    }
-
-    Err(PathMustBeAbsolute {
-        field,
-        path: path.to_path_buf(),
-    })
-}
-
 fn ensure_success(output: &Output, context: &str) -> Result<(), CommandFailed> {
     if output.status.success() {
         return Ok(());
@@ -378,7 +345,6 @@ fn ensure_success(output: &Output, context: &str) -> Result<(), CommandFailed> {
     })
 }
 
-/// A command exited with a non-zero status.
 #[derive(Error, Diagnostic, Debug)]
 #[error("{context} (exit code {exit_code:?})\nstdout:\n{stdout}\nstderr:\n{stderr}")]
 #[diagnostic(code(rust_curse::wasm::command_failed))]
@@ -389,16 +355,6 @@ pub struct CommandFailed {
     stderr: String,
 }
 
-/// A path option was expected to be absolute.
-#[derive(Error, Diagnostic, Debug)]
-#[error("{field} must be an absolute path, got {}", path.display())]
-#[diagnostic(code(rust_curse::wasm::path_must_be_absolute))]
-pub struct PathMustBeAbsolute {
-    field: &'static str,
-    path: PathBuf,
-}
-
-/// Errors that can happen while ensuring the wasm Rust target is installed.
 #[derive(Error, Diagnostic, Debug)]
 pub enum EnsureWasmTargetInstalledError {
     #[error("failed to run `rustup target list --installed`; is rustup installed?")]
@@ -430,17 +386,8 @@ pub enum EnsureWasmTargetInstalledError {
     },
 }
 
-/// Errors that can happen while ensuring the local wasm-bindgen CLI is
-/// installed.
 #[derive(Error, Diagnostic, Debug)]
 pub enum EnsureWasmBindgenCliInstalledError {
-    #[error("{source}")]
-    #[diagnostic(code(rust_curse::wasm::path_must_be_absolute))]
-    PathMustBeAbsolute {
-        #[source]
-        source: PathMustBeAbsolute,
-    },
-
     #[error("failed to create wasm-bindgen install root at {}", path.display())]
     #[diagnostic(code(rust_curse::wasm::create_install_root))]
     CreateInstallRoot {
@@ -483,16 +430,8 @@ pub enum EnsureWasmBindgenCliInstalledError {
     },
 }
 
-/// Errors that can happen while building wasm and generating bindings.
 #[derive(Error, Diagnostic, Debug)]
 pub enum BuildError {
-    #[error("{source}")]
-    #[diagnostic(code(rust_curse::wasm::path_must_be_absolute))]
-    PathMustBeAbsolute {
-        #[source]
-        source: PathMustBeAbsolute,
-    },
-
     #[error("failed to run `cargo build --target {WASM_TARGET}`")]
     #[diagnostic(code(rust_curse::wasm::run_cargo_build))]
     RunCargoBuild {
