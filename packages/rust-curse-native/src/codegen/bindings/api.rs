@@ -31,4 +31,12 @@ impl Api {
             Api::Node => format!("napi::Result<{}>", ok_type),
         }
     }
+
+    /// Returns the contents of `fn main` for this API's build script, if any.
+    pub fn build_script_body(&self) -> Option<&'static str> {
+        match self {
+            Api::Wasm => None,
+            Api::Node => Some("napi_build::setup();"),
+        }
+    }
 }

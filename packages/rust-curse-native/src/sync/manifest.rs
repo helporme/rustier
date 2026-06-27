@@ -1,5 +1,7 @@
 //! Manifest rendering for generated cursed crates.
 
+use std::path::Path;
+
 use indoc::indoc;
 
 use crate::codegen::bindings::Api;
@@ -18,7 +20,7 @@ pub struct ManifestOpts<'a> {
     /// The source crate name used as the dependency key.
     pub source_crate_name: &'a str,
     /// The filesystem path to the source package.
-    pub source_package_path: &'a str,
+    pub source_package_path: &'a Path,
 }
 
 /// Renders `Cargo.toml` contents for the generated cursed crate.
@@ -37,7 +39,7 @@ pub struct ManifestOpts<'a> {
 ///     version: "1.2.3",
 ///     edition: "2021",
 ///     source_crate_name: "demo_crate",
-///     source_package_path: "/workspace/demo-crate",
+///     source_package_path: std::path::Path::new("/workspace/demo-crate"),
 /// });
 ///
 /// assert!(manifest.contains("name = \"cursed-demo-crate\""));
@@ -49,7 +51,8 @@ pub fn render_manifest(opts: ManifestOpts<'_>) -> String {
     let version = toml_string(opts.version);
     let edition = toml_string(opts.edition);
     let source_crate_name = toml_string(opts.source_crate_name);
-    let source_package_path = toml_string(opts.source_package_path);
+    let source_package_path = opts.source_package_path.to_string_lossy();
+    let source_package_path = toml_string(source_package_path.as_ref());
 
     let package_build = match opts.api {
         Api::Wasm => "",
@@ -197,7 +200,7 @@ mod tests {
             version: "1.2.3",
             edition: "2021",
             source_crate_name,
-            source_package_path: "/workspace/demo-crate",
+            source_package_path: Path::new("/workspace/demo-crate"),
         }
     }
 }

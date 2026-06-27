@@ -2,9 +2,68 @@
 
 use std::path::{Path, PathBuf};
 
-use cargo_metadata::{Metadata, MetadataCommand, Package, Target, TargetKind};
+use cargo_metadata::{Metadata, MetadataCommand, Package as CargoPackage, Target, TargetKind};
 use miette::Diagnostic;
 use thiserror::Error;
+
+/// Cargo package metadata needed by generated cursed crates.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Package {
+    /// The Cargo package name.
+    pub name: String,
+    /// The Cargo package version.
+    pub version: String,
+    /// The Rust edition used by the package.
+    pub edition: String,
+    /// The source crate name to use in generated Rust dependencies.
+    pub source_crate_name: String,
+    /// The canonical source package directory.
+    pub source_package_path: PathBuf,
+}
+
+/// Reads metadata for the root package identified by `manifest_path`.
+pub fn get_package(manifest_path: &Path) -> std::result::Result<Package, GetPackageErr> {
+    let metadata = MetadataCommand::new()
+        .manifest_path(manifest_path)
+        .exec()
+        .map_err(|source| GetPackageErr::ReadCargoMetadata {
+            manifest_path: manifest_path.to_path_buf(),
+            source,
+        })?;
+
+    let package = metadata
+        .root_package()
+        .ok_or_else(|| GetPackageErr::MissingRootPackage {
+            manifest_path: manifest_path.to_path_buf(),
+        })?;
+    let lib_target = package
+        .targets
+        .iter()
+        .find(|target| is_lib_target(target))
+        .ok_or_else(|| GetPackageErr::MissingLibraryTarget {
+            package: package.name.to_string(),
+        })?;
+    let source_package_path = package
+        .manifest_path
+        .as_std_path()
+        .parent()
+        .ok_or_else(|| GetPackageErr::ManifestHasNoParent {
+            manifest_path: package.manifest_path.as_std_path().to_path_buf(),
+        })?
+        .canonicalize()
+        .map_err(|source| GetPackageErr::CanonicalizePackageDir {
+            package: package.name.to_string(),
+            source,
+        })?;
+
+    Ok(Package {
+        name: package.name.to_string(),
+        version: package.version.to_string(),
+        edition: package.edition.to_string(),
+        source_crate_name: lib_target.name.clone(),
+        source_package_path,
+    })
+}
 
 /// Locate a workspace package or direct dependency by package name.
 pub fn locate_dependency(
@@ -41,7 +100,7 @@ pub fn locate_dependency(
 fn root_package<'a>(
     metadata: &'a Metadata,
     manifest_path: &Path,
-) -> std::result::Result<&'a Package, LocateDependencyErr> {
+) -> std::result::Result<&'a CargoPackage, LocateDependencyErr> {
     metadata
         .root_package()
         .ok_or_else(|| LocateDependencyErr::MissingRootPackage {
@@ -51,9 +110,9 @@ fn root_package<'a>(
 
 fn direct_dependency<'a>(
     metadata: &'a Metadata,
-    root: &Package,
+    root: &CargoPackage,
     package_name: &str,
-) -> Option<&'a Package> {
+) -> Option<&'a CargoPackage> {
     root.dependencies.iter().find_map(|dep| {
         let package = metadata
             .packages
@@ -64,7 +123,7 @@ fn direct_dependency<'a>(
     })
 }
 
-fn package_matches_name(package: &Package, package_name: &str) -> bool {
+fn package_matches_name(package: &CargoPackage, package_name: &str) -> bool {
     package.name.as_str() == package_name
         || package
             .targets
@@ -79,7 +138,9 @@ fn is_lib_target(target: &Target) -> bool {
         .any(|kind| matches!(kind, TargetKind::Lib | TargetKind::ProcMacro))
 }
 
-fn package_manifest_path(package: &Package) -> std::result::Result<PathBuf, LocateDependencyErr> {
+fn package_manifest_path(
+    package: &CargoPackage,
+) -> std::result::Result<PathBuf, LocateDependencyErr> {
     package
         .manifest_path
         .as_std_path()
@@ -88,6 +149,37 @@ fn package_manifest_path(package: &Package) -> std::result::Result<PathBuf, Loca
             package: package.name.to_string(),
             source,
         })
+}
+
+#[derive(Error, Diagnostic, Debug)]
+pub enum GetPackageErr {
+    #[error("failed to read cargo metadata for {}", manifest_path.display())]
+    #[diagnostic(code(rust_curse::workspace::read_cargo_metadata))]
+    ReadCargoMetadata {
+        manifest_path: PathBuf,
+        #[source]
+        source: cargo_metadata::Error,
+    },
+
+    #[error("could not find a root package for manifest {}; virtual workspace manifests cannot be inspected directly", manifest_path.display())]
+    #[diagnostic(code(rust_curse::workspace::missing_root_package))]
+    MissingRootPackage { manifest_path: PathBuf },
+
+    #[error("package `{package}` does not have a library target")]
+    #[diagnostic(code(rust_curse::workspace::missing_library_target))]
+    MissingLibraryTarget { package: String },
+
+    #[error("manifest path {} has no parent directory", manifest_path.display())]
+    #[diagnostic(code(rust_curse::workspace::manifest_has_no_parent))]
+    ManifestHasNoParent { manifest_path: PathBuf },
+
+    #[error("failed to canonicalize package directory for {package}")]
+    #[diagnostic(code(rust_curse::workspace::canonicalize_package_dir))]
+    CanonicalizePackageDir {
+        package: String,
+        #[source]
+        source: std::io::Error,
+    },
 }
 
 #[derive(Error, Diagnostic, Debug)]
