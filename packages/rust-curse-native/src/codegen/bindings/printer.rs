@@ -1,5 +1,15 @@
 use std::fmt::{self, Write as _};
 
+/// Builds generated source text with tab indentation helpers.
+///
+/// ```
+/// use rust_curse::codegen::bindings::Printer;
+///
+/// let mut printer = Printer::default();
+/// printer.line("let answer = 42;");
+///
+/// assert_eq!(String::from(printer), "let answer = 42;\n");
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct Printer {
     out: String,
@@ -8,7 +18,17 @@ pub struct Printer {
 }
 
 impl Printer {
-    /// Adds a text to the output.
+    /// Appends text to the output without adding a trailing newline.
+    ///
+    /// ```
+    /// use rust_curse::codegen::bindings::Printer;
+    ///
+    /// let mut printer = Printer::default();
+    /// printer.write("const ");
+    /// printer.write("name = \"Alice\";");
+    ///
+    /// assert_eq!(String::from(printer), "const name = \"Alice\";");
+    /// ```
     pub fn write(&mut self, text: &str) {
         if self.at_line_start {
             self.indent();
@@ -18,7 +38,16 @@ impl Printer {
         self.at_line_start = false;
     }
 
-    /// Adds formatted text to the output.
+    /// Appends formatted text to the output without adding a trailing newline.
+    ///
+    /// ```
+    /// use rust_curse::codegen::bindings::Printer;
+    ///
+    /// let mut printer = Printer::default();
+    /// printer.write_fmt(format_args!("answer = {}", 42));
+    ///
+    /// assert_eq!(String::from(printer), "answer = 42");
+    /// ```
     pub fn write_fmt(&mut self, args: fmt::Arguments<'_>) {
         if self.at_line_start {
             self.indent();
@@ -27,13 +56,31 @@ impl Printer {
         self.at_line_start = false;
     }
 
-    /// Adds a blank line to the output, followed by a newline character.
+    /// Appends an indented blank line followed by a newline.
+    ///
+    /// ```
+    /// use rust_curse::codegen::bindings::Printer;
+    ///
+    /// let mut printer = Printer::default();
+    /// printer.blank();
+    ///
+    /// assert_eq!(String::from(printer), "\n");
+    /// ```
     pub fn blank(&mut self) {
         self.indent();
         self.newline();
     }
 
-    /// Adds a line of text to the output, followed by a newline character.
+    /// Appends one line of text followed by a newline.
+    ///
+    /// ```
+    /// use rust_curse::codegen::bindings::Printer;
+    ///
+    /// let mut printer = Printer::default();
+    /// printer.line("export const value = 1;");
+    ///
+    /// assert_eq!(String::from(printer), "export const value = 1;\n");
+    /// ```
     pub fn line(&mut self, text: &str) {
         debug_assert!(text.lines().count() == 1);
 
@@ -42,29 +89,65 @@ impl Printer {
         self.newline();
     }
 
-    /// Adds a line of formatted text to the output, followed by a newline
-    /// character.
+    /// Appends one formatted line followed by a newline.
+    ///
+    /// ```
+    /// use rust_curse::codegen::bindings::Printer;
+    ///
+    /// let mut printer = Printer::default();
+    /// printer.line_fmt(format_args!("export const value = {};", 1));
+    ///
+    /// assert_eq!(String::from(printer), "export const value = 1;\n");
+    /// ```
     pub fn line_fmt(&mut self, args: fmt::Arguments<'_>) {
         self.write_fmt(args);
         self.newline();
     }
 
-    /// Adds a block of text to the output, reindenting each line.
+    /// Appends every line in a text block as its own indented line.
+    ///
+    /// ```
+    /// use rust_curse::codegen::bindings::Printer;
+    ///
+    /// let mut printer = Printer::default();
+    /// printer.lines("let first = 1;\nlet second = 2;");
+    ///
+    /// assert_eq!(String::from(printer), "let first = 1;\nlet second = 2;\n");
+    /// ```
     pub fn lines(&mut self, text: &str) {
         for line in text.lines() {
             self.line(line);
         }
     }
 
-    /// Adds a block of formatted text to the output, reindenting each line.
+    /// Appends every line in formatted text as its own indented line.
+    ///
+    /// ```
+    /// use rust_curse::codegen::bindings::Printer;
+    ///
+    /// let mut printer = Printer::default();
+    /// printer.lines_fmt(format_args!("let first = {};\nlet second = {};", 1, 2));
+    ///
+    /// assert_eq!(String::from(printer), "let first = 1;\nlet second = 2;\n");
+    /// ```
     pub fn lines_fmt(&mut self, args: fmt::Arguments<'_>) {
         for line in args.to_string().lines() {
             self.line(line);
         }
     }
 
-    /// Adds a block of text wrapped in curly braces to the output, with
-    /// indentation.
+    /// Appends an indented block wrapped in curly braces.
+    ///
+    /// ```
+    /// use rust_curse::codegen::bindings::Printer;
+    ///
+    /// let mut printer = Printer::default();
+    /// printer.curlies(|printer| {
+    ///     printer.line("answer: 42");
+    /// });
+    ///
+    /// assert_eq!(String::from(printer), "{\n\tanswer: 42\n}\n");
+    /// ```
     pub fn curlies(&mut self, f: impl FnOnce(&mut Self)) {
         self.line("{");
         self.indent += 1;
@@ -73,8 +156,18 @@ impl Printer {
         self.line("}");
     }
 
-    /// Adds a block of text wrapped in parentheses to the output, with
-    /// indentation.
+    /// Appends an indented block wrapped in parentheses.
+    ///
+    /// ```
+    /// use rust_curse::codegen::bindings::Printer;
+    ///
+    /// let mut printer = Printer::default();
+    /// printer.parens(|printer| {
+    ///     printer.line("answer");
+    /// });
+    ///
+    /// assert_eq!(String::from(printer), "(\n\tanswer\n)");
+    /// ```
     pub fn parens(&mut self, f: impl FnOnce(&mut Self)) {
         self.line("(");
         self.indent += 1;
@@ -88,7 +181,16 @@ impl Printer {
         self.write(")");
     }
 
-    /// Adds a comma-separated list of items to the output, with indentation.
+    /// Appends a comma-separated list with one item per indented line.
+    ///
+    /// ```
+    /// use rust_curse::codegen::bindings::Printer;
+    ///
+    /// let mut printer = Printer::default();
+    /// printer.comma_list(["first", "second"]);
+    ///
+    /// assert_eq!(String::from(printer), "first,\nsecond,\n");
+    /// ```
     pub fn comma_list<I, S>(&mut self, args: I)
     where
         S: AsRef<str>,
