@@ -1,16 +1,16 @@
-//! Compiles IR into TypeScript declarations.
+//! Compiles rustdoc into TypeScript declarations.
 
 use crate::codegen::{
     db::Db,
     ir::{Fn, Primitive, Type},
-    rustdoc::{lower_mod, lower_mod_fns, Id},
+    rustdoc,
 };
 
-/// Compiles an ir mod to ts declaration.
+/// Compiles an rustdoc id to ts declaration.
 #[salsa::tracked(returns(ref))]
-pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: Id<'db>) -> String {
-    let mod_ = lower_mod(db, mod_id);
-    let fns = lower_mod_fns(db, mod_id);
+pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: rustdoc::Id<'db>) -> String {
+    let mod_ = rustdoc::lower_mod(db, mod_id);
+    let fns = rustdoc::lower_mod_fns(db, mod_id);
 
     let mut out = String::new();
 
