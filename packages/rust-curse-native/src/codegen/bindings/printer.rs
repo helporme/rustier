@@ -146,14 +146,14 @@ impl Printer {
     ///     printer.line("answer: 42");
     /// });
     ///
-    /// assert_eq!(String::from(printer), "{\n\tanswer: 42\n}\n");
+    /// assert_eq!(String::from(printer), "{\n\tanswer: 42\n}");
     /// ```
     pub fn curlies(&mut self, f: impl FnOnce(&mut Self)) {
         self.line("{");
         self.indent += 1;
         f(self);
         self.indent -= 1;
-        self.line("}");
+        self.write("}");
     }
 
     /// Appends an indented block wrapped in parentheses.
