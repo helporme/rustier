@@ -5,6 +5,7 @@ use rust_curse::codegen::{
     bindings::{self, Api},
     db::Db,
     diag::Theme,
+    js,
     rustdoc::{all_mod_ids, lower_mod, Id},
     ts,
 };
@@ -45,6 +46,10 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
                 let text = build_typescript_body(&db, &fixture.crate_, module_ids);
                 push_markdown_section(&mut body, "Typescript", &text);
             }
+            "js" => {
+                let text = build_javascript_body(&db, &fixture.crate_, module_ids);
+                push_markdown_section(&mut body, "Javascript", &text);
+            }
             "wasm" => {
                 let text = bindings::compile(&db, Api::Wasm);
                 push_section(&mut body, "Wasm Bindings", "rs", &text);
@@ -82,22 +87,7 @@ fn build_typescript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[Id<'_
 
     for id in module_ids {
         let ts = ts::compile_mod(db, *id);
-        if ts.trim().is_empty() {
-            continue;
-        }
-
-        if !text.is_empty() {
-            text.push('\n');
-        }
-
-        let module_name = module_path_display(crate_, id.idx(db));
-        text.push_str(&format!("for `{module_name}`:\n\n"));
-        text.push_str("```ts\n");
-        text.push_str(ts);
-        if !ts.ends_with('\n') {
-            text.push('\n');
-        }
-        text.push_str("```\n");
+        push_module_code_block(&mut text, db, crate_, *id, "ts", ts);
     }
 
     if text.trim().is_empty() {
@@ -105,6 +95,49 @@ fn build_typescript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[Id<'_
     } else {
         text
     }
+}
+
+fn build_javascript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[Id<'_>]) -> String {
+    let mut text = String::new();
+
+    for id in module_ids {
+        let js = js::compile_mod(db, *id, "./bindings.js".to_string());
+        push_module_code_block(&mut text, db, crate_, *id, "js", js);
+    }
+
+    if text.trim().is_empty() {
+        "None\n".to_string()
+    } else {
+        text
+    }
+}
+
+fn push_module_code_block(
+    text: &mut String,
+    db: &dyn Db,
+    crate_: &RustdocCrate,
+    id: Id<'_>,
+    lang: &str,
+    code: &str,
+) {
+    if code.trim().is_empty() {
+        return;
+    }
+
+    if !text.is_empty() {
+        text.push('\n');
+    }
+
+    let module_name = module_path_display(crate_, id.idx(db));
+    text.push_str(&format!("for `{module_name}`:\n\n"));
+    text.push_str("```");
+    text.push_str(lang);
+    text.push('\n');
+    text.push_str(code);
+    if !code.ends_with('\n') {
+        text.push('\n');
+    }
+    text.push_str("```\n");
 }
 
 fn push_section(body: &mut String, name: &str, lang: &str, content: &str) {

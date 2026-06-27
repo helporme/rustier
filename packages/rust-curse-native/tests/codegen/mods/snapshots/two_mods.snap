@@ -5,7 +5,7 @@ expression: body
 ## Test
 
 ```text
-submods::two_mods
+mods_submods::two_mods
 ```
 
 ## Source

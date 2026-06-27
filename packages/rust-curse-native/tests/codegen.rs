@@ -13,7 +13,10 @@ mod fns_primitives;
 mod mods_docs;
 
 #[path = "codegen/mods/submods.rs"]
-mod submods;
+mod mods_submods;
+
+#[path = "codegen/mods/mods.rs"]
+mod mods_mods;
 
 #[path = "codegen/utils.rs"]
 mod utils;
