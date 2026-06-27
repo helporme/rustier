@@ -1,0 +1,130 @@
+use std::{collections::BTreeMap, fs};
+
+use rust_curse::{
+    codegen::{
+        bindings::Api,
+        db::DbImpl,
+        rustdoc::{Crate as StoredCrate, Input},
+    },
+    sync::cursed_crate::{sync_crate, SyncCrateOps},
+};
+use tempfile::{tempdir, TempDir};
+
+#[test]
+fn syncs_wasm_crate() {
+    let fixture = fixture("sync-crate-wasm", None);
+    let out_dir = fixture.dir.path().join(".rust-curse/crates/wasm");
+
+    let changed = sync_crate(SyncCrateOps {
+        manifest_path: &fixture.manifest_path,
+        out_dir: &out_dir,
+        api: Api::Wasm,
+        db: empty_db(),
+    })
+    .expect("sync wasm crate");
+
+    assert!(changed);
+    assert!(out_dir.join("Cargo.toml").is_file());
+    assert!(out_dir.join("src/lib.rs").is_file());
+    assert!(!out_dir.join("build.rs").exists());
+
+    let manifest = fs::read_to_string(out_dir.join("Cargo.toml")).unwrap();
+    assert!(manifest.contains("name = \"cursed-sync-crate-wasm\""));
+    assert!(manifest.contains("wasm-bindgen = \"0.2\""));
+    assert!(manifest.contains(&format!(
+        "\"sync_crate_wasm\" = {{ package = \"sync-crate-wasm\", path = \"{}\" }}",
+        fixture.dir.path().canonicalize().unwrap().display()
+    )));
+
+    let lib = fs::read_to_string(out_dir.join("src/lib.rs")).unwrap();
+    assert!(lib.contains("use wasm_bindgen::prelude::*;"));
+
+    let changed = sync_crate(SyncCrateOps {
+        manifest_path: &fixture.manifest_path,
+        out_dir: &out_dir,
+        api: Api::Wasm,
+        db: empty_db(),
+    })
+    .expect("sync unchanged wasm crate");
+
+    assert!(!changed);
+}
+
+#[test]
+fn syncs_node_crate() {
+    let fixture = fixture("sync-crate-node", Some("sync_crate_node_bindings"));
+    let out_dir = fixture.dir.path().join(".rust-curse/crates/node");
+
+    let changed = sync_crate(SyncCrateOps {
+        manifest_path: &fixture.manifest_path,
+        out_dir: &out_dir,
+        api: Api::Node,
+        db: empty_db(),
+    })
+    .expect("sync node crate");
+
+    assert!(changed);
+    assert!(out_dir.join("Cargo.toml").is_file());
+    assert!(out_dir.join("src/lib.rs").is_file());
+    assert!(out_dir.join("build.rs").is_file());
+
+    let manifest = fs::read_to_string(out_dir.join("Cargo.toml")).unwrap();
+    assert!(manifest.contains("name = \"cursed-sync-crate-node\""));
+    assert!(manifest.contains("build = \"build.rs\""));
+    assert!(manifest.contains("napi = { version = \"3\", features = [\"napi10\"] }"));
+    assert!(manifest.contains("napi-build = \"2\""));
+    assert!(manifest.contains(&format!(
+        "\"sync_crate_node_bindings\" = {{ package = \"sync-crate-node\", path = \"{}\" }}",
+        fixture.dir.path().canonicalize().unwrap().display()
+    )));
+
+    let lib = fs::read_to_string(out_dir.join("src/lib.rs")).unwrap();
+    assert!(lib.contains("use napi_derive::napi;"));
+
+    let build_script = fs::read_to_string(out_dir.join("build.rs")).unwrap();
+    assert!(build_script.contains("fn main()"));
+    assert!(build_script.contains("napi_build::setup();"));
+
+    let changed = sync_crate(SyncCrateOps {
+        manifest_path: &fixture.manifest_path,
+        out_dir: &out_dir,
+        api: Api::Node,
+        db: empty_db(),
+    })
+    .expect("sync unchanged node crate");
+
+    assert!(!changed);
+}
+
+struct Fixture {
+    dir: TempDir,
+    manifest_path: std::path::PathBuf,
+}
+
+fn fixture(package_name: &str, lib_name: Option<&str>) -> Fixture {
+    let dir = tempdir().unwrap();
+    let manifest_path = dir.path().join("Cargo.toml");
+    let lib_section = lib_name
+        .map(|name| format!("\n[lib]\nname = \"{name}\"\n"))
+        .unwrap_or_default();
+    let manifest = format!(
+        "[package]\n\
+         name = \"{package_name}\"\n\
+         version = \"1.2.3\"\n\
+         edition = \"2021\"\n\
+         publish = false\n\
+         {lib_section}"
+    );
+
+    fs::write(&manifest_path, manifest).unwrap();
+    fs::create_dir_all(dir.path().join("src")).unwrap();
+    fs::write(dir.path().join("src/lib.rs"), "pub fn marker() {}\n").unwrap();
+
+    Fixture { dir, manifest_path }
+}
+
+fn empty_db() -> DbImpl {
+    let db = DbImpl::default();
+    Input::new(&db, BTreeMap::<String, StoredCrate>::new());
+    db
+}
