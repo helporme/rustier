@@ -1,6 +1,14 @@
 use rust_curse::tools::rustdoc::run;
+use rustdoc_types::Crate;
 
-use crate::utils::{fixture, has_item_named};
+use crate::utils::fixture;
+
+pub fn has_item_named(crate_: &Crate, item_name: &str) -> bool {
+    crate_
+        .index
+        .values()
+        .any(|item| item.name.as_deref() == Some(item_name))
+}
 
 fn package_manifest(name: &str) -> String {
     format!(
