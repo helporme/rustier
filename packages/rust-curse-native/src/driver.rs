@@ -136,24 +136,24 @@ impl Driver {
             }
         }
 
-        tools::rustdoc::ensure().map_err(|source| InstallDepsError::EnsureRustdoc { source })?;
+        tools::rustdoc::ensure().map_err(|source| InstallDepsError::Rustdoc { source })?;
 
         if needs_wasm_tools {
             tools::wasm::ensure_wasm_target_installed()
-                .map_err(|source| InstallDepsError::EnsureWasmTarget { source })?;
+                .map_err(|source| InstallDepsError::WasmTarget { source })?;
             tools::wasm::ensure_wasm_bindgen_cli_installed(
                 tools::wasm::EnsureWasmBindgenCliInstalledOpts {
                     install_root_path: &tools_dir.join("wasm-bindgen"),
                 },
             )
-            .map_err(|source| InstallDepsError::EnsureWasmBindgen { source })?;
+            .map_err(|source| InstallDepsError::WasmBindgen { source })?;
         }
 
         if needs_node_tools {
             tools::node::ensure_napi_cli_installed(tools::node::EnsureNapiCliInstalledOpts {
                 install_root_path: &tools_dir.join("napi"),
             })
-            .map_err(|source| InstallDepsError::EnsureNapi { source })?;
+            .map_err(|source| InstallDepsError::Napi { source })?;
         }
 
         Ok(())
@@ -272,30 +272,30 @@ impl Driver {
 
 #[derive(Error, Diagnostic, Debug)]
 enum InstallDepsError {
-    #[error("failed to ensure rustdoc prerequisites")]
-    #[diagnostic(code(rust_curse::driver::ensure_rustdoc))]
-    EnsureRustdoc {
+    #[error("failed to install rustdoc prerequisites")]
+    #[diagnostic(code(rust_curse::driver::install_rustdoc))]
+    Rustdoc {
         #[source]
         source: tools::rustdoc::RustdocError,
     },
 
-    #[error("failed to ensure wasm Rust target")]
-    #[diagnostic(code(rust_curse::driver::ensure_wasm_target))]
-    EnsureWasmTarget {
+    #[error("failed to install wasm Rust target")]
+    #[diagnostic(code(rust_curse::driver::install_wasm_target))]
+    WasmTarget {
         #[source]
         source: tools::wasm::EnsureWasmTargetInstalledError,
     },
 
-    #[error("failed to ensure wasm-bindgen CLI")]
-    #[diagnostic(code(rust_curse::driver::ensure_wasm_bindgen))]
-    EnsureWasmBindgen {
+    #[error("failed to install wasm-bindgen CLI")]
+    #[diagnostic(code(rust_curse::driver::install_wasm_bindgen))]
+    WasmBindgen {
         #[source]
         source: tools::wasm::EnsureWasmBindgenCliInstalledError,
     },
 
-    #[error("failed to ensure NAPI CLI")]
-    #[diagnostic(code(rust_curse::driver::ensure_napi))]
-    EnsureNapi {
+    #[error("failed to install NAPI CLI")]
+    #[diagnostic(code(rust_curse::driver::install_napi))]
+    Napi {
         #[source]
         source: tools::node::EnsureNapiCliInstalledError,
     },
