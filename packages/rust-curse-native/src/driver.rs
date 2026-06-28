@@ -8,7 +8,7 @@ use napi_derive::napi;
 use thiserror::Error;
 
 use crate::{
-    codegen::{self, db::DbImpl},
+    codegen::{self, db::DbImpl, diag::Theme},
     sync::{sync_crate, SyncCrateOps},
     tools::{self, node::BuildOutput as NodeBuildOutput, wasm::BuildOutput as WasmBuildOutput},
 };
@@ -42,7 +42,7 @@ pub struct DriverOpts {
 }
 
 #[napi]
-pub enum BuildOutput {
+pub enum BuildArtifact {
     Wasm {
         wasm_abs_path: String,
         js_abs_path: String,
@@ -51,6 +51,12 @@ pub enum BuildOutput {
         js_abs_path: String,
         node_abs_path: String,
     },
+}
+
+#[napi(object)]
+pub struct BuildOutput {
+    pub artifacts: HashMap<String, BuildArtifact>,
+    pub diags: Vec<String>,
 }
 
 enum BuildArtifacts {
@@ -76,14 +82,14 @@ impl From<&WasmTarget> for tools::wasm::WasmCompat {
     }
 }
 
-impl From<&BuildArtifacts> for BuildOutput {
+impl From<&BuildArtifacts> for BuildArtifact {
     fn from(artifacts: &BuildArtifacts) -> Self {
         match artifacts {
-            BuildArtifacts::Wasm(output) => BuildOutput::Wasm {
+            BuildArtifacts::Wasm(output) => BuildArtifact::Wasm {
                 wasm_abs_path: output.wasm_abs_path.to_string_lossy().into_owned(),
                 js_abs_path: output.js_abs_path.to_string_lossy().into_owned(),
             },
-            BuildArtifacts::Node(output) => BuildOutput::Node {
+            BuildArtifacts::Node(output) => BuildArtifact::Node {
                 js_abs_path: output.js_path.to_string_lossy().into_owned(),
                 node_abs_path: output.node_path.to_string_lossy().into_owned(),
             },
@@ -154,18 +160,12 @@ impl Driver {
     }
 
     #[napi]
-    pub fn build(
-        &mut self,
-        profile_names: Vec<String>,
-    ) -> napi::Result<HashMap<String, BuildOutput>> {
+    pub fn build(&mut self, profile_names: Vec<String>) -> napi::Result<BuildOutput> {
         self._build(profile_names)
             .map_err(|error| napi::Error::from_reason(error.to_string()))
     }
 
-    fn _build(
-        &mut self,
-        profile_names: Vec<String>,
-    ) -> Result<HashMap<String, BuildOutput>, BuildError> {
+    fn _build(&mut self, profile_names: Vec<String>) -> Result<BuildOutput, BuildError> {
         let manifest_path = PathBuf::from(&self.opts.manifest_path);
         let out_dir = PathBuf::from(&self.opts.out_dir);
         let tools_dir = out_dir.join("tools");
@@ -189,11 +189,13 @@ impl Driver {
             )]),
         );
 
+        let diags = self.render_diags()?;
+
         let wasm_bindgen_tool_bin_path =
             tools::wasm::wasm_bindgen_cli_path(&tools_dir.join("wasm-bindgen"));
         let node_cli_path = tools::node::napi_cli_path(&tools_dir.join("napi"));
 
-        let mut outputs = HashMap::new();
+        let mut artifacts_by_profile = HashMap::new();
 
         for profile_name in profile_names {
             let profile = self.opts.profiles.get(&profile_name).ok_or_else(|| {
@@ -235,7 +237,7 @@ impl Driver {
                     ),
                 };
 
-                outputs.insert(profile_name.clone(), BuildOutput::from(&artifacts));
+                artifacts_by_profile.insert(profile_name.clone(), BuildArtifact::from(&artifacts));
                 self.profile_builds.insert(profile_name, artifacts);
                 continue;
             }
@@ -245,10 +247,26 @@ impl Driver {
                     profile_name: profile_name.clone(),
                 }
             })?;
-            outputs.insert(profile_name, artifacts.into());
+            artifacts_by_profile.insert(profile_name, artifacts.into());
         }
 
-        Ok(outputs)
+        Ok(BuildOutput {
+            artifacts: artifacts_by_profile,
+            diags,
+        })
+    }
+
+    fn render_diags(&self) -> Result<Vec<String>, BuildError> {
+        let mut diags = Vec::new();
+
+        for diag in codegen::bindings::get_compile_diags(&self.db) {
+            diags.push(
+                diag.render(Theme::UnicodeNoColor)
+                    .map_err(|source| BuildError::RenderDiagnostic { source })?,
+            );
+        }
+
+        Ok(diags)
     }
 }
 
@@ -308,6 +326,13 @@ enum BuildError {
     SyncCrate {
         #[source]
         source: crate::sync::SyncCrateError,
+    },
+
+    #[error("failed to render codegen diagnostic")]
+    #[diagnostic(code(rust_curse::driver::render_diagnostic))]
+    RenderDiagnostic {
+        #[source]
+        source: std::fmt::Error,
     },
 
     #[error("failed to build wasm profile")]

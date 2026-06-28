@@ -11,7 +11,7 @@ pub use type_::*;
 
 pub use api::Api;
 
-use crate::codegen::{db::Db, rustdoc};
+use crate::codegen::{db::Db, diag::Diag, rustdoc};
 
 /// Compiles the whole IR into a bindings code for given API.
 pub fn compile(db: &dyn Db, api: Api) -> String {
@@ -30,4 +30,21 @@ pub fn compile(db: &dyn Db, api: Api) -> String {
     }
 
     out
+}
+
+/// Returns diagnostics accumulated while lowering rustdoc for binding
+/// generation.
+pub fn get_compile_diags(db: &dyn Db) -> Vec<Diag> {
+    let mut diags = Vec::new();
+
+    for mod_id in rustdoc::all_mod_ids(db) {
+        rustdoc::lower_mod_fns(db, *mod_id);
+        diags.extend(
+            rustdoc::lower_mod_fns::accumulated::<Diag>(db, *mod_id)
+                .into_iter()
+                .cloned(),
+        );
+    }
+
+    diags
 }
