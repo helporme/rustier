@@ -77,6 +77,17 @@ pub fn ensure_napi_cli_installed(
             source,
         }
     })?;
+    let package_json_path = opts.install_root_path.join("package.json");
+    if !package_json_path.is_file() {
+        fs::write(
+            &package_json_path,
+            "{\n  \"private\": true,\n  \"devDependencies\": {}\n}\n",
+        )
+        .map_err(|source| EnsureNapiCliInstalledError::WriteInstallPackage {
+            path: package_json_path,
+            source,
+        })?;
+    }
 
     let tool_bin_path = napi_cli_path(opts.install_root_path);
 
@@ -275,6 +286,14 @@ pub enum EnsureNapiCliInstalledError {
     #[error("failed to create NAPI CLI install root at {}", path.display())]
     #[diagnostic(code(rust_curse::node::create_install_root))]
     CreateInstallRoot {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error("failed to write NAPI CLI install package at {}", path.display())]
+    #[diagnostic(code(rust_curse::node::write_install_package))]
+    WriteInstallPackage {
         path: PathBuf,
         #[source]
         source: std::io::Error,
