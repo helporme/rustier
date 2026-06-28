@@ -9,7 +9,7 @@ use thiserror::Error;
 use crate::{
     codegen,
     sync::{file::write_if_changed, manifest},
-    tools::workspace,
+    tools::{node, workspace},
 };
 
 /// Options for [`sync_crate`].
@@ -74,6 +74,11 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
         changed |= write_file(opts.out_dir.join("build.rs"), build_script)?;
     }
 
+    if opts.api == codegen::bindings::Api::Node {
+        changed |= node::ensure_node_compat(opts.out_dir)
+            .map_err(|source| SyncCrateError::EnsureNodeCompat { source })?;
+    }
+
     Ok(changed)
 }
 
@@ -117,5 +122,12 @@ pub enum SyncCrateError {
         path: PathBuf,
         #[source]
         source: std::io::Error,
+    },
+
+    #[error("failed to make generated Node crate compatible with Node tooling")]
+    #[diagnostic(code(rust_curse::sync_crate::ensure_node_compat))]
+    EnsureNodeCompat {
+        #[source]
+        source: node::EnsureNodeCompatError,
     },
 }

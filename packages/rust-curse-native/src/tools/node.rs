@@ -12,6 +12,7 @@ use thiserror::Error;
 const NAPI_CLI_PACKAGE: &str = "@napi-rs/cli@3.7.2";
 const NAPI_CLI_BIN: &str = "napi";
 const GENERATED_JS_FILE: &str = "index.js";
+const NODE_COMPAT_PACKAGE_JSON: &str = "{\n  \"private\": true\n}\n";
 
 /// Options for installing the local NAPI CLI tool.
 pub struct EnsureNapiCliInstalledOpts<'a> {
@@ -54,6 +55,38 @@ pub fn napi_cli_path(install_root_path: &Path) -> PathBuf {
         .join(napi_bin_name)
 }
 
+/// Ensures `path` is compatible with Node tooling that expects a package root.
+///
+/// Returns `true` when this call changed the filesystem.
+///
+/// ```no_run
+/// use rust_curse::tools::node::ensure_node_compat;
+/// use std::path::Path;
+///
+/// let changed = ensure_node_compat(Path::new("/tmp/generated-node-crate"))?;
+/// # let _ = changed;
+/// # Ok::<(), rust_curse::tools::node::EnsureNodeCompatError>(())
+/// ```
+pub fn ensure_node_compat(path: &Path) -> Result<bool, EnsureNodeCompatError> {
+    fs::create_dir_all(path).map_err(|source| EnsureNodeCompatError::CreateDirectory {
+        path: path.to_path_buf(),
+        source,
+    })?;
+
+    let package_json_path = path.join("package.json");
+    if package_json_path.is_file() {
+        return Ok(false);
+    }
+
+    fs::write(&package_json_path, NODE_COMPAT_PACKAGE_JSON).map_err(|source| {
+        EnsureNodeCompatError::WritePackage {
+            path: package_json_path,
+            source,
+        }
+    })?;
+    Ok(true)
+}
+
 /// Ensure a local NAPI CLI is installed under `install_root_path`.
 ///
 /// Returns the path to the installed `napi` binary.
@@ -71,23 +104,8 @@ pub fn napi_cli_path(install_root_path: &Path) -> PathBuf {
 pub fn ensure_napi_cli_installed(
     opts: EnsureNapiCliInstalledOpts<'_>,
 ) -> Result<PathBuf, EnsureNapiCliInstalledError> {
-    fs::create_dir_all(opts.install_root_path).map_err(|source| {
-        EnsureNapiCliInstalledError::CreateInstallRoot {
-            path: opts.install_root_path.to_path_buf(),
-            source,
-        }
-    })?;
-    let package_json_path = opts.install_root_path.join("package.json");
-    if !package_json_path.is_file() {
-        fs::write(
-            &package_json_path,
-            "{\n  \"private\": true,\n  \"devDependencies\": {}\n}\n",
-        )
-        .map_err(|source| EnsureNapiCliInstalledError::WriteInstallPackage {
-            path: package_json_path,
-            source,
-        })?;
-    }
+    ensure_node_compat(opts.install_root_path)
+        .map_err(|source| EnsureNapiCliInstalledError::EnsureNodeCompat { source })?;
 
     let tool_bin_path = napi_cli_path(opts.install_root_path);
 
@@ -280,23 +298,34 @@ pub struct CommandFailed {
     stderr: String,
 }
 
-/// Errors that can happen while ensuring the local NAPI CLI is installed.
+/// Errors that can happen while ensuring a directory is compatible with Node tooling.
 #[derive(Error, Diagnostic, Debug)]
-pub enum EnsureNapiCliInstalledError {
-    #[error("failed to create NAPI CLI install root at {}", path.display())]
-    #[diagnostic(code(rust_curse::node::create_install_root))]
-    CreateInstallRoot {
+pub enum EnsureNodeCompatError {
+    #[error("failed to create Node-compatible directory at {}", path.display())]
+    #[diagnostic(code(rust_curse::node::create_compat_directory))]
+    CreateDirectory {
         path: PathBuf,
         #[source]
         source: std::io::Error,
     },
 
-    #[error("failed to write NAPI CLI install package at {}", path.display())]
-    #[diagnostic(code(rust_curse::node::write_install_package))]
-    WriteInstallPackage {
+    #[error("failed to write Node compatibility package at {}", path.display())]
+    #[diagnostic(code(rust_curse::node::write_compat_package))]
+    WritePackage {
         path: PathBuf,
         #[source]
         source: std::io::Error,
+    },
+}
+
+/// Errors that can happen while ensuring the local NAPI CLI is installed.
+#[derive(Error, Diagnostic, Debug)]
+pub enum EnsureNapiCliInstalledError {
+    #[error("failed to prepare NAPI CLI install root for Node tooling")]
+    #[diagnostic(code(rust_curse::node::ensure_node_compat))]
+    EnsureNodeCompat {
+        #[source]
+        source: EnsureNodeCompatError,
     },
 
     #[error("failed to run NAPI CLI at {}", path.display())]
