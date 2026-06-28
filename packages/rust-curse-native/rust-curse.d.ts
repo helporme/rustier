@@ -8,6 +8,11 @@ export declare class Driver {
    */
   installDeps(): void
   build(profileNames: Array<string>): BuildOutput
+  /**
+   * Resolves a Rust module import to JavaScript that re-exports generated
+   * bindings for the selected profile.
+   */
+  resolve(profileName: string, filePath: string): string
 }
 
 export type BuildArtifact =

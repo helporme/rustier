@@ -5,6 +5,7 @@ use std::{
 
 use miette::Diagnostic;
 use napi_derive::napi;
+use salsa::Setter;
 use thiserror::Error;
 
 use crate::{
@@ -177,17 +178,19 @@ impl Driver {
         let package = tools::workspace::get_package(&manifest_path)
             .map_err(|source| BuildError::GetPackage { source })?;
 
-        codegen::rustdoc::Input::new(
-            &self.db,
-            BTreeMap::from([(
-                package.source_crate_name,
-                codegen::rustdoc::Crate {
-                    body: rustdoc,
-                    is_external: false,
-                    dir: package.source_package_path,
-                },
-            )]),
-        );
+        let crates = BTreeMap::from([(
+            package.source_crate_name,
+            codegen::rustdoc::Crate {
+                body: rustdoc,
+                is_external: false,
+                dir: package.source_package_path,
+            },
+        )]);
+        if let Some(input) = codegen::rustdoc::Input::try_get(&self.db) {
+            input.set_crates(&mut self.db).to(crates);
+        } else {
+            codegen::rustdoc::Input::new(&self.db, crates);
+        }
 
         let diags = self.render_diags()?;
 
@@ -268,6 +271,62 @@ impl Driver {
 
         Ok(diags)
     }
+
+    /// Resolves a Rust module import to JavaScript that re-exports generated
+    /// bindings for the selected profile.
+    #[napi]
+    pub fn resolve(&self, profile_name: String, file_path: String) -> napi::Result<String> {
+        self._resolve(&profile_name, file_path)
+            .map_err(|error| napi::Error::from_reason(error.to_string()))
+    }
+
+    fn _resolve(&self, profile_name: &str, file_path: String) -> Result<String, ResolveError> {
+        if !self.opts.profiles.contains_key(profile_name) {
+            return Err(ResolveError::UnknownProfile {
+                profile_name: profile_name.to_string(),
+            });
+        }
+
+        let artifacts = self.profile_builds.get(profile_name).ok_or_else(|| {
+            ResolveError::MissingProfileBuildArtifacts {
+                profile_name: profile_name.to_string(),
+            }
+        })?;
+        let src_path = match artifacts {
+            BuildArtifacts::Wasm(output) => output.js_abs_path.to_string_lossy().into_owned(),
+            BuildArtifacts::Node(output) => output.js_path.to_string_lossy().into_owned(),
+        };
+
+        let module_path = PathBuf::from(&file_path).canonicalize().map_err(|source| {
+            ResolveError::CanonicalizeModulePath {
+                path: PathBuf::from(&file_path),
+                source,
+            }
+        })?;
+
+        // todo: build file map instaed
+        for mod_id in codegen::rustdoc::all_mod_ids(&self.db) {
+            let item = mod_id.item(&self.db);
+            let Some(span) = &item.span else {
+                continue;
+            };
+            let crate_ = mod_id.crate_(&self.db);
+            let span_path = if span.filename.is_absolute() {
+                span.filename.clone()
+            } else {
+                crate_.dir.join(&span.filename)
+            };
+            let Ok(span_path) = span_path.canonicalize() else {
+                continue;
+            };
+
+            if span_path == module_path {
+                return Ok(codegen::js::compile_mod(&self.db, *mod_id, src_path).to_string());
+            }
+        }
+
+        Err(ResolveError::UnknownModule { path: module_path })
+    }
 }
 
 #[derive(Error, Diagnostic, Debug)]
@@ -299,6 +358,29 @@ enum InstallDepsError {
         #[source]
         source: tools::node::EnsureNapiCliInstalledError,
     },
+}
+
+#[derive(Error, Diagnostic, Debug)]
+enum ResolveError {
+    #[error("unknown build profile `{profile_name}`")]
+    #[diagnostic(code(rust_curse::driver::unknown_profile))]
+    UnknownProfile { profile_name: String },
+
+    #[error("profile `{profile_name}` has no build artifacts")]
+    #[diagnostic(code(rust_curse::driver::missing_profile_build_artifacts))]
+    MissingProfileBuildArtifacts { profile_name: String },
+
+    #[error("failed to canonicalize Rust module path `{}`", path.display())]
+    #[diagnostic(code(rust_curse::driver::canonicalize_module_path))]
+    CanonicalizeModulePath {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error("no Rust module found for `{}`", path.display())]
+    #[diagnostic(code(rust_curse::driver::unknown_module))]
+    UnknownModule { path: PathBuf },
 }
 
 #[derive(Error, Diagnostic, Debug)]
