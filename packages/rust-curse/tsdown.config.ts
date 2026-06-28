@@ -2,7 +2,6 @@ import { defineConfig } from 'tsdown'
 
 export default defineConfig({
   entry: {
-    tsdown: 'src/tsdown/index.ts',
     unstable: 'src/unstable/index.ts',
     utils: 'src/utils.ts',
   },

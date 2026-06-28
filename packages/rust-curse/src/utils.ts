@@ -1,5 +1,3 @@
-import { FileFilter } from 'rust-curse-native'
-
 /**
  * `Required` type but also applied on properties.
  */
@@ -36,32 +34,4 @@ export function deepMerge<T extends DeepMergeable>(
 
 function isObject(value: unknown): value is DeepMergeable {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
-}
-
-/**
- * Normalizes source options
- */
-export function normalizeFilter(
-  options:
-    | {
-        include?: string | string[]
-        exclude?: string | string[]
-      }
-    | string
-    | string[],
-): Required<FileFilter> {
-  if (typeof options === 'string') return { include: [options], exclude: [] }
-  if (Array.isArray(options)) return { include: options, exclude: [] }
-
-  const include =
-    typeof options.include === 'string'
-      ? [options.include]
-      : (options.include ?? [])
-
-  const exclude =
-    typeof options.exclude === 'string'
-      ? [options.exclude]
-      : (options.exclude ?? [])
-
-  return { include, exclude }
 }

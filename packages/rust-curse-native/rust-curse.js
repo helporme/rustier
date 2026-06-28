@@ -579,8 +579,6 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { BuildOutput, RustCurse, NapiBuildArtifactKind, WasmDeployTarget } = nativeBinding
-export { BuildOutput }
-export { RustCurse }
-export { NapiBuildArtifactKind }
-export { WasmDeployTarget }
+const { Driver, WasmTarget } = nativeBinding
+export { Driver }
+export { WasmTarget }
