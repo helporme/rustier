@@ -53,6 +53,17 @@ pub struct BuildOutput {
     pub js_abs_path: PathBuf,
 }
 
+/// Returns the expected path to the local `wasm-bindgen` binary.
+pub fn wasm_bindgen_cli_path(install_root_path: &Path) -> PathBuf {
+    let wasm_bindgen_bin_name = if std::env::consts::EXE_EXTENSION.is_empty() {
+        WASM_BINDGEN_BIN.to_string()
+    } else {
+        format!("{WASM_BINDGEN_BIN}.{}", std::env::consts::EXE_EXTENSION)
+    };
+
+    install_root_path.join("bin").join(wasm_bindgen_bin_name)
+}
+
 /// Ensure the `wasm32-unknown-unknown` Rust target is installed for the active
 /// toolchain.
 pub fn ensure_wasm_target_installed() -> Result<(), EnsureWasmTargetInstalledError> {
@@ -110,15 +121,7 @@ pub fn ensure_wasm_bindgen_cli_installed(
         }
     })?;
 
-    let wasm_bindgen_bin_name = if std::env::consts::EXE_EXTENSION.is_empty() {
-        WASM_BINDGEN_BIN.to_string()
-    } else {
-        format!("{WASM_BINDGEN_BIN}.{}", std::env::consts::EXE_EXTENSION)
-    };
-    let tool_bin_abs_path = opts
-        .install_root_path
-        .join("bin")
-        .join(wasm_bindgen_bin_name);
+    let tool_bin_abs_path = wasm_bindgen_cli_path(opts.install_root_path);
     let force_install = if tool_bin_abs_path.is_file() {
         let check = Command::new(&tool_bin_abs_path)
             .arg("--version")

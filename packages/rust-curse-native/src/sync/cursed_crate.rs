@@ -23,7 +23,7 @@ pub struct SyncCrateOps<'a> {
     /// The API to use for compiling bindings.
     pub api: codegen::bindings::Api,
     /// The database for compiling bindings.
-    pub db: codegen::db::DbImpl,
+    pub db: &'a codegen::db::DbImpl,
 }
 
 /// Syncs a generated cursed crate for a source crate.
@@ -48,6 +48,7 @@ pub struct SyncCrateOps<'a> {
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
+    // todo: remove, use package passed in opts
     let package = workspace::get_package(opts.manifest_path)
         .map_err(|source| SyncCrateError::GetPackage { source })?;
 
@@ -60,7 +61,7 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
         source_package_path: &package.source_package_path,
     });
 
-    let bindings = codegen::bindings::compile(&opts.db, opts.api);
+    let bindings = codegen::bindings::compile(opts.db, opts.api);
 
     let mut changed = ensure_dir(opts.out_dir)?;
     let src_dir = opts.out_dir.join("src");
@@ -117,18 +118,4 @@ pub enum SyncCrateError {
         #[source]
         source: std::io::Error,
     },
-}
-
-/// Options for [`build_crate`].
-pub struct BuildCrateOps {
-    /// The path to the directory where the cursed crate will be crated.
-    /// e.g. ".rust-curse/crates/"
-    pub cursed_crate_dir: PathBuf,
-    /// The API to use for compiling bindings.
-    pub api: codegen::bindings::Api,
-}
-
-/// Builds a cursed crate for a given crate.
-pub fn build_crate(_opts: BuildCrateOps) {
-    todo!()
 }

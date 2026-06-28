@@ -40,6 +40,20 @@ pub struct BuildOutput {
     pub js_path: PathBuf,
 }
 
+/// Returns the expected path to the local `napi` binary.
+pub fn napi_cli_path(install_root_path: &Path) -> PathBuf {
+    let napi_bin_name = if cfg!(windows) {
+        format!("{NAPI_CLI_BIN}.cmd")
+    } else {
+        NAPI_CLI_BIN.to_string()
+    };
+
+    install_root_path
+        .join("node_modules")
+        .join(".bin")
+        .join(napi_bin_name)
+}
+
 /// Ensure a local NAPI CLI is installed under `install_root_path`.
 ///
 /// Returns the path to the installed `napi` binary.
@@ -64,16 +78,7 @@ pub fn ensure_napi_cli_installed(
         }
     })?;
 
-    let napi_bin_name = if cfg!(windows) {
-        format!("{NAPI_CLI_BIN}.cmd")
-    } else {
-        NAPI_CLI_BIN.to_string()
-    };
-    let tool_bin_path = opts
-        .install_root_path
-        .join("node_modules")
-        .join(".bin")
-        .join(napi_bin_name);
+    let tool_bin_path = napi_cli_path(opts.install_root_path);
 
     if tool_bin_path.is_file() {
         let check = Command::new(&tool_bin_path)

@@ -122,6 +122,7 @@ fn ensure_success(output: &Output, context: &str) -> Result<(), RustdocError> {
     })
 }
 
+// todo: split on two errors types, one for ensure, one for run
 #[derive(Error, Diagnostic, Debug)]
 pub enum RustdocError {
     #[error("failed to read cargo metadata for {}", manifest_path.display())]
