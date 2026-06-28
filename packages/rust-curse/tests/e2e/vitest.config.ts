@@ -1,59 +1,39 @@
 import { defineConfig, Plugin } from 'vitest/config'
-import {
-  buildNapi,
-  BuildOutput,
-  RustCurse,
-  WasmDeployTarget,
-} from 'rust-curse/unstable'
+import { BuildOutput, Driver, WasmTarget } from 'rust-curse/unstable'
 import { resolve as resolvePath } from 'node:path'
 
-// temporary setup
-const curse = new RustCurse(
-  {
-    projectRoot: resolvePath('.'),
-    outDir: '.rust-curse',
-    rust: { modulesRootDir: 'src' },
-    js: {
-      filter: {
-        include: ['src/**/*.ts', 'src/**/*.js'],
-      },
-      typescript: true,
+const curse = new Driver({
+  manifestPath: resolvePath('Cargo.toml'),
+  outDir: resolvePath('.rust-curse'),
+  profiles: {
+    wasm: {
+      target: { type: 'Wasm', target: WasmTarget.Web },
+      release: false,
     },
-    profiles: [
-      {
-        name: 'wasm',
-        rust: { target: { type: 'wasm', deployTo: WasmDeployTarget.NodeJs } },
-      },
-      {
-        name: 'node',
-        rust: { target: { type: 'node' } },
-      },
-    ],
+    node: {
+      target: { type: 'Node' },
+      release: false,
+    },
   },
-  buildNapi,
-)
+})
+curse.installDeps()
 
 const VIRTUAL_MODULES = {
   warns: `$build/warns`,
 }
 const RESOLVED_MOD_PREFIX = '\0'
 
-const rustCurse = (target: 'wasm' | 'node'): Plugin => {
+const rustCurse = (profile: 'wasm' | 'node'): Plugin => {
   let output: BuildOutput | undefined
 
   return {
-    name: 'rust-curse-' + target,
+    name: 'rust-curse-' + profile,
 
     async buildStart() {
-      // fix it one day
-      // output = await curse.build([target])
-      output = await curse.build(['wasm', 'node'])
+      output = curse.build([profile])
 
-      for (const warn of output.warns) {
-        this.warn({
-          code: warn.code,
-          message: warn.rendered ?? warn.message,
-        })
+      for (const diag of output.diags) {
+        this.warn(diag)
       }
     },
 
@@ -64,7 +44,7 @@ const rustCurse = (target: 'wasm' | 'node'): Plugin => {
 
     async handleHotUpdate({ file, server, modules }) {
       if (!/\.(rs|toml|lock)$/.test(file)) return
-      await curse?.build(['wasm', 'node'])
+      curse?.build(['wasm', 'node'])
       server.moduleGraph.invalidateAll()
       return []
     },
@@ -72,20 +52,17 @@ const rustCurse = (target: 'wasm' | 'node'): Plugin => {
     load(id) {
       // Resolve warnigs module
       if (id.substring(1) === VIRTUAL_MODULES.warns) {
-        const warns = (output?.warns ?? []).map((w) => ({
-          code: w.code,
-          message: w.message,
-          sourceCodePath: w.sourceCodePath,
-          label: w.label,
-          help: w.help,
-          rendered: w.rendered,
+        const diags = (output?.diags ?? []).map((diag) => ({
+          code: '',
+          message: diag,
+          rendered: diag,
         }))
-        return `export const rustCurseWarns = ${JSON.stringify(warns)};`
+        return `export const rustCurseDiags = ${JSON.stringify(diags)};`
       }
 
       // Resolve .rs files
       if (!id.endsWith('.rs') || !output) return null
-      return output.resolve(target, id)
+      return curse.resolve(profile, id)
     },
   }
 }

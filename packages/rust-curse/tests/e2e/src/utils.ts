@@ -1,8 +1,8 @@
-import { rustCurseWarns } from '$build/warns'
+import { rustCurseDiags } from '$build/diags'
 import { inject } from 'vitest'
 
 export const hasWarn = (code: string, includes: string) =>
-  rustCurseWarns.some((w) => w.code === code && w.message.includes(includes))
+  rustCurseDiags.some((w) => w.code === code && w.message.includes(includes))
 
 export const makeBigInt = (value: string | number) =>
   (
