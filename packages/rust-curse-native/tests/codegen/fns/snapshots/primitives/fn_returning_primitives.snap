@@ -46,7 +46,7 @@ ModDef {
 #![allow(non_camel_case_types, non_snake_case)]
 use napi_derive::napi;
 
-#[napi]
+#[napi(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> napi::Result<bool> {
 	let result = rustdoc_test_crate::foo();
 	Ok(result)
@@ -59,7 +59,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> napi::Result<bool> {
 #![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = __cursed_fn__rustdoc_0test_0crate_foo)]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> Result<bool, JsValue> {
 	let result = rustdoc_test_crate::foo();
 	Ok(result)

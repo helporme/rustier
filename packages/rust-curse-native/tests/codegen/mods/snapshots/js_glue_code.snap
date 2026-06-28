@@ -20,8 +20,13 @@ pub fn b_fn() {}
 for `rustdoc_test_crate`:
 
 ```js
+import {
+	__cursed_fn__rustdoc_0test_0crate_a_0fn,
+	__cursed_fn__rustdoc_0test_0crate_b_0fn,
+} from './bindings.js';
+
 export {
 	__cursed_fn__rustdoc_0test_0crate_a_0fn as a_fn,
 	__cursed_fn__rustdoc_0test_0crate_b_0fn as b_fn,
-} from './bindings.js';
+}
 ```

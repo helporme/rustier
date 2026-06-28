@@ -1,3 +1,5 @@
+use crate::codegen::{db::Db, ir};
+
 /// Api used for generating bindings code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Api {
@@ -17,10 +19,11 @@ impl Api {
     }
 
     /// Returns the function header for this API.
-    pub fn fn_header(&self) -> &'static str {
+    pub fn fn_header(&self, db: &dyn Db, _fn: ir::Fn) -> String {
+        let fn_name = _fn.mangled_name(db);
         match self {
-            Api::Wasm => "#[wasm_bindgen]",
-            Api::Node => "#[napi]",
+            Api::Wasm => format!("#[wasm_bindgen(js_name = {})]", fn_name),
+            Api::Node => format!("#[napi(js_name = \"{}\")]", fn_name),
         }
     }
 

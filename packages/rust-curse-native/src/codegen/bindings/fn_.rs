@@ -9,7 +9,7 @@ use crate::codegen::{
 pub fn compile_fn(db: &dyn Db, api: Api, fn_: ir::Fn<'_>) -> String {
     let mut p = Printer::default();
 
-    p.lines(api.fn_header());
+    p.lines(&api.fn_header(db, fn_));
     p.write_fmt(format_args!("pub fn {}", fn_.mangled_name(db)));
     p.parens(|p| {
         p.comma_list(fn_.params(db).iter().map(|param| {

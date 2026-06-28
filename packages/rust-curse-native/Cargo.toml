@@ -8,7 +8,7 @@ publish = false
 crate-type = ["cdylib", "lib"]
 
 [features]
-default = ["napi-binding"]
+default = []
 napi-binding = ["dep:napi", "dep:napi-derive", "dep:napi-build", "dep:tracing-subscriber"]
 
 [dependencies]

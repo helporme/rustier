@@ -19,7 +19,7 @@ fn syncs_wasm_crate() {
         manifest_path: &fixture.manifest_path,
         out_dir: &out_dir,
         api: Api::Wasm,
-        db: empty_db(),
+        db: &empty_db(),
     })
     .expect("sync wasm crate");
 
@@ -43,7 +43,7 @@ fn syncs_wasm_crate() {
         manifest_path: &fixture.manifest_path,
         out_dir: &out_dir,
         api: Api::Wasm,
-        db: empty_db(),
+        db: &empty_db(),
     })
     .expect("sync unchanged wasm crate");
 
@@ -59,7 +59,7 @@ fn syncs_node_crate() {
         manifest_path: &fixture.manifest_path,
         out_dir: &out_dir,
         api: Api::Node,
-        db: empty_db(),
+        db: &empty_db(),
     })
     .expect("sync node crate");
 
@@ -89,7 +89,7 @@ fn syncs_node_crate() {
         manifest_path: &fixture.manifest_path,
         out_dir: &out_dir,
         api: Api::Node,
-        db: empty_db(),
+        db: &empty_db(),
     })
     .expect("sync unchanged node crate");
 
