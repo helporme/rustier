@@ -7,7 +7,7 @@ const curse = new Driver({
   outDir: resolvePath('.rust-curse'),
   profiles: {
     wasm: {
-      target: { type: 'Wasm', target: WasmTarget.Web },
+      target: { type: 'Wasm', target: WasmTarget.NodeJs },
       release: false,
     },
     node: {
