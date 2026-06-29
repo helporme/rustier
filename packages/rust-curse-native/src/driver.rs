@@ -68,8 +68,19 @@ enum BuildArtifacts {
 impl ProfileOpts {
     fn api(&self) -> codegen::bindings::Api {
         match &self.target {
-            ProfileTarget::Wasm { .. } => codegen::bindings::Api::Wasm,
+            ProfileTarget::Wasm { target } => codegen::bindings::Api::Wasm {
+                target: target.into(),
+            },
             ProfileTarget::Node => codegen::bindings::Api::Node,
+        }
+    }
+}
+
+impl From<&WasmTarget> for codegen::bindings::WasmTarget {
+    fn from(target: &WasmTarget) -> Self {
+        match target {
+            WasmTarget::Web => Self::Web,
+            WasmTarget::NodeJs => Self::Node,
         }
     }
 }
@@ -281,11 +292,13 @@ impl Driver {
     }
 
     fn _resolve(&self, profile_name: &str, file_path: String) -> Result<String, ResolveError> {
-        if !self.opts.profiles.contains_key(profile_name) {
-            return Err(ResolveError::UnknownProfile {
-                profile_name: profile_name.to_string(),
-            });
-        }
+        let profile =
+            self.opts
+                .profiles
+                .get(profile_name)
+                .ok_or_else(|| ResolveError::UnknownProfile {
+                    profile_name: profile_name.to_string(),
+                })?;
 
         let artifacts = self.profile_builds.get(profile_name).ok_or_else(|| {
             ResolveError::MissingProfileBuildArtifacts {
@@ -321,7 +334,10 @@ impl Driver {
             };
 
             if span_path == module_path {
-                return Ok(codegen::js::compile_mod(&self.db, *mod_id, src_path).to_string());
+                return Ok(
+                    codegen::js::compile_mod(&self.db, profile.api(), *mod_id, src_path)
+                        .to_string(),
+                );
             }
         }
 

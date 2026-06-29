@@ -2,7 +2,7 @@
 
 use crate::utils::{diags, ir_debug::DebugRender as _, rustdoc};
 use rust_curse::codegen::{
-    bindings::{self, Api},
+    bindings::{self, Api, WasmTarget},
     db::Db,
     diag::Theme,
     js,
@@ -47,11 +47,15 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
                 push_markdown_section(&mut body, "Typescript", &text);
             }
             "js" => {
-                let text = build_javascript_body(&db, &fixture.crate_, module_ids);
+                let text = build_javascript_body(&db, &fixture.crate_, module_ids, Api::Node);
                 push_markdown_section(&mut body, "Javascript", &text);
             }
+            "wasm_web_js" => {
+                let text = build_javascript_body(&db, &fixture.crate_, module_ids, wasm_web_api());
+                push_markdown_section(&mut body, "Wasm Web Javascript", &text);
+            }
             "wasm" => {
-                let text = bindings::compile(&db, Api::Wasm);
+                let text = bindings::compile(&db, wasm_web_api());
                 push_section(&mut body, "Wasm Bindings", "rs", &text);
             }
             "node" => {
@@ -63,6 +67,12 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
     }
 
     body
+}
+
+fn wasm_web_api() -> Api {
+    Api::Wasm {
+        target: WasmTarget::Web,
+    }
 }
 
 fn build_diags_body(db: &dyn Db, root_id: Id<'_>) -> String {
@@ -97,11 +107,16 @@ fn build_typescript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[Id<'_
     }
 }
 
-fn build_javascript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[Id<'_>]) -> String {
+fn build_javascript_body(
+    db: &dyn Db,
+    crate_: &RustdocCrate,
+    module_ids: &[Id<'_>],
+    api: Api,
+) -> String {
     let mut text = String::new();
 
     for id in module_ids {
-        let js = js::compile_mod(db, *id, "./bindings.js".to_string());
+        let js = js::compile_mod(db, api, *id, "./bindings.js".to_string());
         push_module_code_block(&mut text, db, crate_, *id, "js", js);
     }
 

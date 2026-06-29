@@ -9,7 +9,7 @@ pub use mod_::*;
 pub use printer::*;
 pub use type_::*;
 
-pub use api::Api;
+pub use api::{Api, WasmTarget};
 
 use crate::codegen::{db::Db, diag::Diag, rustdoc};
 

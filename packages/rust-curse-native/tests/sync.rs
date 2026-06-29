@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, fs};
 
 use rust_curse::{
     codegen::{
-        bindings::Api,
+        bindings::{Api, WasmTarget},
         db::DbImpl,
         rustdoc::{Crate as StoredCrate, Input},
     },
@@ -18,7 +18,7 @@ fn syncs_wasm_crate() {
     let changed = sync_crate(SyncCrateOps {
         manifest_path: &fixture.manifest_path,
         out_dir: &out_dir,
-        api: Api::Wasm,
+        api: wasm_api(),
         db: &empty_db(),
     })
     .expect("sync wasm crate");
@@ -42,7 +42,7 @@ fn syncs_wasm_crate() {
     let changed = sync_crate(SyncCrateOps {
         manifest_path: &fixture.manifest_path,
         out_dir: &out_dir,
-        api: Api::Wasm,
+        api: wasm_api(),
         db: &empty_db(),
     })
     .expect("sync unchanged wasm crate");
@@ -121,6 +121,12 @@ fn fixture(package_name: &str, lib_name: Option<&str>) -> Fixture {
     fs::write(dir.path().join("src/lib.rs"), "pub fn marker() {}\n").unwrap();
 
     Fixture { dir, manifest_path }
+}
+
+fn wasm_api() -> Api {
+    Api::Wasm {
+        target: WasmTarget::Web,
+    }
 }
 
 fn empty_db() -> DbImpl {

@@ -34,15 +34,20 @@ pub struct SyncCrateOps<'a> {
 /// use std::path::Path;
 ///
 /// use rust_curse::{
-///     codegen::{bindings::Api, db::DbImpl},
+///     codegen::{
+///         bindings::{Api, WasmTarget},
+///         db::DbImpl,
+///     },
 ///     sync::cursed_crate::{sync_crate, SyncCrateOps},
 /// };
 ///
 /// let changed = sync_crate(SyncCrateOps {
 ///     manifest_path: Path::new("Cargo.toml"),
 ///     out_dir: Path::new(".rust-curse/crates"),
-///     api: Api::Wasm,
-///     db: DbImpl::default(),
+///     api: Api::Wasm {
+///         target: WasmTarget::Web,
+///     },
+///     db: &DbImpl::default(),
 /// })?;
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
