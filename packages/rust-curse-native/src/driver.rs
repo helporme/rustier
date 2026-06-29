@@ -114,6 +114,7 @@ pub struct Driver {
     opts: DriverOpts,
     db: DbImpl,
     profile_builds: HashMap<String, BuildArtifacts>,
+    build_version: u64,
 }
 
 #[napi]
@@ -124,6 +125,7 @@ impl Driver {
             opts,
             db: DbImpl::default(),
             profile_builds: HashMap::new(),
+            build_version: 0,
         }
     }
 
@@ -209,6 +211,9 @@ impl Driver {
             tools::wasm::wasm_bindgen_cli_path(&tools_dir.join("wasm-bindgen"));
         let node_cli_path = tools::node::napi_cli_path(&tools_dir.join("napi"));
 
+        let build_version = self.build_version;
+        self.build_version += 1;
+
         let mut artifacts_by_profile = HashMap::new();
 
         for profile_name in profile_names {
@@ -218,50 +223,44 @@ impl Driver {
                 }
             })?;
             let profile_crate_dir = profile_crates_dir.join(&profile_name);
-            let build_required = sync_crate(SyncCrateOps {
+            sync_crate(SyncCrateOps {
                 manifest_path: &manifest_path,
                 out_dir: &profile_crate_dir,
                 api: profile.api(),
                 db: &self.db,
             })
-            .map_err(|source| BuildError::SyncCrate { source })?
-                || !self.profile_builds.contains_key(&profile_name);
+            .map_err(|source| BuildError::SyncCrate { source })?;
 
-            if build_required {
-                let profile_out_dir = profile_crate_dir.join("output");
-                let artifacts = match &profile.target {
-                    ProfileTarget::Wasm { target } => BuildArtifacts::Wasm(
-                        tools::wasm::build(tools::wasm::BuildOpts {
-                            project_root_path: &profile_crate_dir,
-                            out_dir_path: &profile_out_dir,
-                            wasm_bindgen_tool_bin_path: &wasm_bindgen_tool_bin_path,
-                            release: profile.release,
-                            compat: target.into(),
-                        })
-                        .map_err(|source| BuildError::BuildWasm { source })?,
-                    ),
-                    ProfileTarget::Node => BuildArtifacts::Node(
-                        tools::node::build(tools::node::BuildOpts {
-                            project_root_path: &profile_crate_dir,
-                            out_dir_path: &profile_out_dir,
-                            node_cli_path: &node_cli_path,
-                            release: profile.release,
-                        })
-                        .map_err(|source| BuildError::BuildNode { source })?,
-                    ),
-                };
+            let output_root_dir = profile_crate_dir.join("output");
+            let profile_out_dir =
+                tools::build_versioning::get_versioned_dir(&output_root_dir, build_version);
+            let artifacts = match &profile.target {
+                ProfileTarget::Wasm { target } => BuildArtifacts::Wasm(
+                    tools::wasm::build(tools::wasm::BuildOpts {
+                        project_root_path: &profile_crate_dir,
+                        out_dir_path: &profile_out_dir,
+                        wasm_bindgen_tool_bin_path: &wasm_bindgen_tool_bin_path,
+                        release: profile.release,
+                        compat: target.into(),
+                    })
+                    .map_err(|source| BuildError::BuildWasm { source })?,
+                ),
+                ProfileTarget::Node => BuildArtifacts::Node(
+                    tools::node::build(tools::node::BuildOpts {
+                        project_root_path: &profile_crate_dir,
+                        out_dir_path: &profile_out_dir,
+                        node_cli_path: &node_cli_path,
+                        release: profile.release,
+                    })
+                    .map_err(|source| BuildError::BuildNode { source })?,
+                ),
+            };
 
-                artifacts_by_profile.insert(profile_name.clone(), BuildArtifact::from(&artifacts));
-                self.profile_builds.insert(profile_name, artifacts);
-                continue;
-            }
+            tools::build_versioning::cleanup_old_build_versions(&output_root_dir, build_version)
+                .map_err(|source| BuildError::CleanupBuildVersions { source })?;
 
-            let artifacts = self.profile_builds.get(&profile_name).ok_or_else(|| {
-                BuildError::MissingProfileBuildArtifacts {
-                    profile_name: profile_name.clone(),
-                }
-            })?;
-            artifacts_by_profile.insert(profile_name, artifacts.into());
+            artifacts_by_profile.insert(profile_name.clone(), BuildArtifact::from(&artifacts));
+            self.profile_builds.insert(profile_name, artifacts);
         }
 
         Ok(BuildOutput {
@@ -447,7 +446,10 @@ enum BuildError {
         source: tools::node::BuildError,
     },
 
-    #[error("profile `{profile_name}` has no build artifacts")]
-    #[diagnostic(code(rust_curse::driver::missing_profile_build_artifacts))]
-    MissingProfileBuildArtifacts { profile_name: String },
+    #[error("failed to clean up old build versions")]
+    #[diagnostic(code(rust_curse::driver::cleanup_build_versions))]
+    CleanupBuildVersions {
+        #[source]
+        source: tools::build_versioning::CleanupOldBuildVersionsError,
+    },
 }
