@@ -23,18 +23,53 @@ const VIRTUAL_MODULES = {
 }
 const RESOLVED_MOD_PREFIX = '\0'
 
-const rustCurse = (profile: 'wasm' | 'node'): Plugin => {
-  let output: BuildOutput | undefined
+const OUT_DIR = resolvePath('.rust-curse')
+const RUST_INPUT_RE = /\.(rs|toml|lock)$/
+const isRustInput = (file: string) =>
+  RUST_INPUT_RE.test(file) && !file.startsWith(OUT_DIR)
 
+type Profile = 'wasm' | 'node'
+
+const profiles: Profile[] = ['node', 'wasm']
+const outputs: Partial<Record<Profile, BuildOutput>> = {}
+const dirtyProfiles = new Set<Profile>(profiles)
+
+const rebuildProfiles = (
+  profileNames: Profile[],
+  warn: (diag: string) => void,
+) => {
+  const output = curse.build(profileNames)
+
+  for (const profile of profileNames) {
+    outputs[profile] = output
+    dirtyProfiles.delete(profile)
+  }
+
+  for (const diag of output.diags) {
+    warn(diag)
+  }
+}
+
+// use this convoulted plugin setup since vitest sends file change updates only to the root plugin
+// and not to the per project plugins
+const rustCurseWatcher = (): Plugin => ({
+  name: 'rust-curse-watcher',
+
+  configureServer(server) {
+    server.watcher.on('change', (file) => {
+      if (!isRustInput(file)) return
+
+      rebuildProfiles(profiles, (diag) => server.config.logger.warn(diag))
+    })
+  },
+})
+
+const rustCurse = (profile: Profile): Plugin => {
   return {
     name: 'rust-curse-' + profile,
 
-    async buildStart() {
-      output = curse.build([profile])
-
-      for (const diag of output.diags) {
-        this.warn(diag)
-      }
+    buildStart() {
+      rebuildProfiles([profile], (diag) => this.warn(diag))
     },
 
     resolveId(id) {
@@ -42,17 +77,16 @@ const rustCurse = (profile: 'wasm' | 'node'): Plugin => {
         return RESOLVED_MOD_PREFIX + id
     },
 
-    async handleHotUpdate({ file, server, modules }) {
-      if (!/\.(rs|toml|lock)$/.test(file)) return
-      curse?.build(['wasm', 'node'])
-      server.moduleGraph.invalidateAll()
-      return []
+    watchChange(id) {
+      if (isRustInput(id)) {
+        dirtyProfiles.add(profile)
+      }
     },
 
     load(id) {
       // Resolve warnigs module
       if (id.substring(1) === VIRTUAL_MODULES.warns) {
-        const diags = (output?.diags ?? []).map((diag) => ({
+        const diags = (outputs[profile]?.diags ?? []).map((diag) => ({
           code: '',
           message: diag,
           rendered: diag,
@@ -61,13 +95,19 @@ const rustCurse = (profile: 'wasm' | 'node'): Plugin => {
       }
 
       // Resolve .rs files
-      if (!id.endsWith('.rs') || !output) return null
+      if (!id.endsWith('.rs')) return null
+
+      if (!outputs[profile] || dirtyProfiles.has(profile)) {
+        rebuildProfiles([profile], (diag) => this.warn(diag))
+      }
+
       return curse.resolve(profile, id)
     },
   }
 }
 
 export default defineConfig({
+  plugins: [rustCurseWatcher()],
   test: {
     projects: [
       {
