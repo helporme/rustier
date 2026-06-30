@@ -42,6 +42,13 @@ impl miette::SourceCode for SourceCode {
 }
 
 impl Crate {
+    // todo: it introduces impurity to the codegen, since converting a span requires
+    // reading the source file. There is no sane way how to workaround to it, so or
+    // I introduce custom diagnostics or I fork the miette and fix the span format
+    // to row:col.
+    //
+    // So far I am fine with little impurity there.
+
     /// Converts the given [`rustdoc_types::Span`] to an [`Span`].
     pub fn read_span(&self, span: &rustdoc_types::Span) -> Span {
         let abs_path = if span.filename.is_absolute() {
