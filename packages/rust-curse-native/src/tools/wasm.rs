@@ -10,6 +10,7 @@ use std::{
 use cargo_metadata::Message;
 use miette::Diagnostic;
 use thiserror::Error;
+use tracing::{debug, info, trace};
 
 const WASM_TARGET: &str = "wasm32-unknown-unknown";
 const WASM_BINDGEN_PACKAGE: &str = "wasm-bindgen-cli";
@@ -54,6 +55,7 @@ pub struct BuildOutput {
 }
 
 /// Returns the expected path to the local `wasm-bindgen` binary.
+#[tracing::instrument(level = "trace", skip_all, fields(install_root_path = %install_root_path.display()))]
 pub fn wasm_bindgen_cli_path(install_root_path: &Path) -> PathBuf {
     let wasm_bindgen_bin_name = if std::env::consts::EXE_EXTENSION.is_empty() {
         WASM_BINDGEN_BIN.to_string()
@@ -61,12 +63,17 @@ pub fn wasm_bindgen_cli_path(install_root_path: &Path) -> PathBuf {
         format!("{WASM_BINDGEN_BIN}.{}", std::env::consts::EXE_EXTENSION)
     };
 
-    install_root_path.join("bin").join(wasm_bindgen_bin_name)
+    let path = install_root_path.join("bin").join(wasm_bindgen_bin_name);
+    trace!(path = %path.display(), "resolved wasm-bindgen CLI path");
+    path
 }
 
 /// Ensure the `wasm32-unknown-unknown` Rust target is installed for the active
 /// toolchain.
+#[tracing::instrument(level = "debug")]
 pub fn ensure_wasm_target_installed() -> Result<(), EnsureWasmTargetInstalledError> {
+    debug!(target = WASM_TARGET, "checking installed Rust targets");
+
     let check = Command::new("rustup")
         .args(["target", "list", "--installed"])
         .output()
@@ -80,8 +87,11 @@ pub fn ensure_wasm_target_installed() -> Result<(), EnsureWasmTargetInstalledErr
         .lines()
         .any(|line| line.trim() == WASM_TARGET)
     {
+        debug!(target = WASM_TARGET, "Rust target is already installed");
         return Ok(());
     }
+
+    info!(target = WASM_TARGET, "installing Rust target");
 
     let output = Command::new("rustup")
         .args(["target", "add", WASM_TARGET])
@@ -92,7 +102,10 @@ pub fn ensure_wasm_target_installed() -> Result<(), EnsureWasmTargetInstalledErr
         &output,
         &format!("`rustup target add {WASM_TARGET}` failed"),
     )
-    .map_err(|source| EnsureWasmTargetInstalledError::InstallTargetFailed { source })
+    .map_err(|source| EnsureWasmTargetInstalledError::InstallTargetFailed { source })?;
+
+    info!(target = WASM_TARGET, "installed Rust target");
+    Ok(())
 }
 
 /// Ensure a local `wasm-bindgen` CLI is installed under `install_root_path`.
@@ -111,9 +124,16 @@ pub fn ensure_wasm_target_installed() -> Result<(), EnsureWasmTargetInstalledErr
 /// # let _ = wasm_bindgen;
 /// # Ok::<(), rust_curse::tools::wasm::EnsureWasmBindgenCliInstalledError>(())
 /// ```
+#[tracing::instrument(
+    level = "debug",
+    skip(opts),
+    fields(install_root_path = %opts.install_root_path.display())
+)]
 pub fn ensure_wasm_bindgen_cli_installed(
     opts: EnsureWasmBindgenCliInstalledOpts<'_>,
 ) -> Result<PathBuf, EnsureWasmBindgenCliInstalledError> {
+    debug!("ensuring wasm-bindgen CLI install root exists");
+
     fs::create_dir_all(opts.install_root_path).map_err(|source| {
         EnsureWasmBindgenCliInstalledError::CreateInstallRoot {
             path: opts.install_root_path.to_path_buf(),
@@ -123,6 +143,8 @@ pub fn ensure_wasm_bindgen_cli_installed(
 
     let tool_bin_abs_path = wasm_bindgen_cli_path(opts.install_root_path);
     let force_install = if tool_bin_abs_path.is_file() {
+        debug!(path = %tool_bin_abs_path.display(), "checking existing wasm-bindgen CLI");
+
         let check = Command::new(&tool_bin_abs_path)
             .arg("--version")
             .output()
@@ -132,13 +154,22 @@ pub fn ensure_wasm_bindgen_cli_installed(
             })?;
 
         if check.status.success() {
+            debug!(path = %tool_bin_abs_path.display(), "wasm-bindgen CLI is already installed");
             return Ok(tool_bin_abs_path);
         }
 
+        debug!(path = %tool_bin_abs_path.display(), "existing wasm-bindgen CLI check failed; reinstalling");
         true
     } else {
         false
     };
+
+    info!(
+        package = WASM_BINDGEN_PACKAGE,
+        install_root_path = %opts.install_root_path.display(),
+        force_install,
+        "installing wasm-bindgen CLI"
+    );
 
     let mut install = Command::new("cargo");
     install.arg("install");
@@ -163,6 +194,8 @@ pub fn ensure_wasm_bindgen_cli_installed(
     )
     .map_err(|source| EnsureWasmBindgenCliInstalledError::InstallCliFailed { source })?;
 
+    debug!(path = %tool_bin_abs_path.display(), "checking installed wasm-bindgen CLI");
+
     if !tool_bin_abs_path.is_file() {
         return Err(EnsureWasmBindgenCliInstalledError::MissingInstalledCli {
             path: tool_bin_abs_path,
@@ -185,6 +218,8 @@ pub fn ensure_wasm_bindgen_cli_installed(
         ),
     )
     .map_err(|source| EnsureWasmBindgenCliInstalledError::InstalledCliCheckFailed { source })?;
+
+    info!(path = %tool_bin_abs_path.display(), "installed wasm-bindgen CLI");
 
     Ok(tool_bin_abs_path)
 }
@@ -209,7 +244,20 @@ pub fn ensure_wasm_bindgen_cli_installed(
 /// # let _ = output;
 /// # Ok::<(), rust_curse::tools::wasm::BuildError>(())
 /// ```
+#[tracing::instrument(
+    level = "debug",
+    skip(opts),
+    fields(
+        project_root_path = %opts.project_root_path.display(),
+        out_dir_path = %opts.out_dir_path.display(),
+        wasm_bindgen_tool_bin_path = %opts.wasm_bindgen_tool_bin_path.display(),
+        release = opts.release,
+        compat = ?opts.compat,
+    )
+)]
 pub fn build(opts: BuildOpts<'_>) -> Result<BuildOutput, BuildError> {
+    info!("building wasm profile crate");
+
     let mut build = Command::new("cargo");
     build
         .arg("build")
@@ -220,6 +268,13 @@ pub fn build(opts: BuildOpts<'_>) -> Result<BuildOutput, BuildError> {
     if opts.release {
         build.arg("--release");
     }
+
+    debug!(
+        target = WASM_TARGET,
+        current_dir = %opts.project_root_path.display(),
+        release = opts.release,
+        "running cargo build for wasm"
+    );
 
     let output = build
         .output()
@@ -235,7 +290,9 @@ pub fn build(opts: BuildOpts<'_>) -> Result<BuildOutput, BuildError> {
     .map_err(|source| BuildError::CargoBuildFailed { source })?;
 
     let built_wasm_abs_path = built_wasm_artifact(&output, opts.project_root_path)?;
+    debug!(path = %built_wasm_abs_path.display(), "found built wasm artifact");
 
+    debug!(path = %opts.out_dir_path.display(), "ensuring wasm-bindgen output directory exists");
     fs::create_dir_all(opts.out_dir_path).map_err(|source| BuildError::CreateOutputDir {
         path: opts.out_dir_path.to_path_buf(),
         source,
@@ -251,6 +308,15 @@ pub fn build(opts: BuildOpts<'_>) -> Result<BuildOutput, BuildError> {
         WasmCompat::NodeJs => "nodejs",
         WasmCompat::Web => "web",
     };
+
+    debug!(
+        path = %opts.wasm_bindgen_tool_bin_path.display(),
+        input = %built_wasm_abs_path.display(),
+        out_dir = %opts.out_dir_path.display(),
+        target = wasm_bindgen_target,
+        out_name,
+        "running wasm-bindgen"
+    );
 
     let bindgen = Command::new(opts.wasm_bindgen_tool_bin_path)
         .arg(&built_wasm_abs_path)
@@ -289,12 +355,19 @@ pub fn build(opts: BuildOpts<'_>) -> Result<BuildOutput, BuildError> {
         });
     }
 
+    info!(
+        js_abs_path = %js_abs_path.display(),
+        wasm_abs_path = %wasm_abs_path.display(),
+        "built wasm profile crate"
+    );
+
     Ok(BuildOutput {
         wasm_abs_path,
         js_abs_path,
     })
 }
 
+#[tracing::instrument(level = "trace", skip(output), fields(project_root_abs_path = %project_root_abs_path.display()))]
 fn built_wasm_artifact(
     output: &Output,
     project_root_abs_path: &Path,
@@ -310,6 +383,7 @@ fn built_wasm_artifact(
         for filename in artifact.filenames {
             let path = filename.into_std_path_buf();
             if path.extension().and_then(|ext| ext.to_str()) == Some("wasm") {
+                trace!(path = %path.display(), "found wasm artifact candidate");
                 wasm_paths.push(path);
             }
         }

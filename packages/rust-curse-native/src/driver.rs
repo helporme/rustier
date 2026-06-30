@@ -1,18 +1,39 @@
 use std::{
     collections::{BTreeMap, HashMap},
     path::PathBuf,
+    sync::Once,
 };
 
 use miette::Diagnostic;
 use napi_derive::napi;
 use salsa::Setter;
 use thiserror::Error;
+use tracing::{debug, info, trace};
+use tracing_subscriber::{fmt::time::ChronoLocal, EnvFilter};
 
 use crate::{
     codegen::{self, db::DbImpl, diag::Theme},
     sync::{sync_crate, SyncCrateOps},
     tools::{self, node::BuildOutput as NodeBuildOutput, wasm::BuildOutput as WasmBuildOutput},
 };
+
+const DEFAULT_LOG_FILTER: &str = "rust_curse=info";
+static SETUP_LOGGING: Once = Once::new();
+
+fn setup_logging() {
+    SETUP_LOGGING.call_once(|| {
+        let filter = EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| EnvFilter::new(DEFAULT_LOG_FILTER));
+
+        let timer = ChronoLocal::new("%H:%M:%S%.3f".to_string());
+
+        let _ = tracing_subscriber::fmt()
+            .compact()
+            .with_timer(timer)
+            .with_env_filter(filter)
+            .try_init();
+    });
+}
 
 #[napi]
 pub enum WasmTarget {
@@ -121,6 +142,15 @@ pub struct Driver {
 impl Driver {
     #[napi(constructor)]
     pub fn new(opts: DriverOpts) -> Self {
+        setup_logging();
+
+        debug!(
+            manifest_path = %opts.manifest_path,
+            out_dir = %opts.out_dir,
+            profile_count = opts.profiles.len(),
+            "creating rust-curse driver"
+        );
+
         Self {
             opts,
             db: DbImpl::default(),
@@ -179,11 +209,26 @@ impl Driver {
             .map_err(|error| napi::Error::from_reason(error.to_string()))
     }
 
+    #[tracing::instrument(name = "build", level = "debug", skip(self), fields(profile_names = ?profile_names))]
     fn _build(&mut self, profile_names: Vec<String>) -> Result<BuildOutput, BuildError> {
+        info!(
+            profile_count = profile_names.len(),
+            build_version = self.build_version,
+            "building profiles"
+        );
+
         let manifest_path = PathBuf::from(&self.opts.manifest_path);
         let out_dir = PathBuf::from(&self.opts.out_dir);
         let tools_dir = out_dir.join("tools");
         let profile_crates_dir = out_dir.join("crates");
+
+        debug!(
+            manifest_path = %manifest_path.display(),
+            out_dir = %out_dir.display(),
+            tools_dir = %tools_dir.display(),
+            profile_crates_dir = %profile_crates_dir.display(),
+            "resolved driver build paths"
+        );
 
         let rustdoc = tools::rustdoc::run(&manifest_path)
             .map_err(|source| BuildError::GenerateRustdoc { source })?;
@@ -206,6 +251,7 @@ impl Driver {
         }
 
         let diags = self.render_diags()?;
+        debug!(diag_count = diags.len(), "rendered codegen diagnostics");
 
         let wasm_bindgen_tool_bin_path =
             tools::wasm::wasm_bindgen_cli_path(&tools_dir.join("wasm-bindgen"));
@@ -217,12 +263,24 @@ impl Driver {
         let mut artifacts_by_profile = HashMap::new();
 
         for profile_name in profile_names {
+            info!(
+                profile_name = %profile_name,
+                build_version,
+                "building profile"
+            );
+
             let profile = self.opts.profiles.get(&profile_name).ok_or_else(|| {
                 BuildError::UnknownProfile {
                     profile_name: profile_name.clone(),
                 }
             })?;
             let profile_crate_dir = profile_crates_dir.join(&profile_name);
+            debug!(
+                profile_name = %profile_name,
+                profile_crate_dir = %profile_crate_dir.display(),
+                "syncing profile crate"
+            );
+
             sync_crate(SyncCrateOps {
                 manifest_path: &manifest_path,
                 out_dir: &profile_crate_dir,
@@ -234,6 +292,13 @@ impl Driver {
             let output_root_dir = profile_crate_dir.join("output");
             let profile_out_dir =
                 tools::build_versioning::get_versioned_dir(&output_root_dir, build_version);
+            debug!(
+                profile_name = %profile_name,
+                output_root_dir = %output_root_dir.display(),
+                profile_out_dir = %profile_out_dir.display(),
+                "resolved profile output directories"
+            );
+
             let artifacts = match &profile.target {
                 ProfileTarget::Wasm { target } => BuildArtifacts::Wasm(
                     tools::wasm::build(tools::wasm::BuildOpts {
@@ -260,8 +325,16 @@ impl Driver {
                 .map_err(|source| BuildError::CleanupBuildVersions { source })?;
 
             artifacts_by_profile.insert(profile_name.clone(), BuildArtifact::from(&artifacts));
-            self.profile_builds.insert(profile_name, artifacts);
+            self.profile_builds.insert(profile_name.clone(), artifacts);
+
+            info!(profile_name = %profile_name, "built profile");
         }
+
+        info!(
+            artifact_count = artifacts_by_profile.len(),
+            diag_count = diags.len(),
+            "built profiles"
+        );
 
         Ok(BuildOutput {
             artifacts: artifacts_by_profile,
@@ -290,7 +363,15 @@ impl Driver {
             .map_err(|error| napi::Error::from_reason(error.to_string()))
     }
 
+    #[tracing::instrument(
+        name = "resolve",
+        level = "debug",
+        skip(self),
+        fields(profile_name = %profile_name, file_path = %file_path)
+    )]
     fn _resolve(&self, profile_name: &str, file_path: String) -> Result<String, ResolveError> {
+        debug!(profile_name, file_path, "resolving Rust module import");
+
         let profile =
             self.opts
                 .profiles
@@ -309,12 +390,16 @@ impl Driver {
             BuildArtifacts::Node(output) => output.js_path.to_string_lossy().into_owned(),
         };
 
+        trace!(src_path, "resolved profile artifact source path");
+
         let module_path = PathBuf::from(&file_path).canonicalize().map_err(|source| {
             ResolveError::CanonicalizeModulePath {
                 path: PathBuf::from(&file_path),
                 source,
             }
         })?;
+
+        debug!(module_path = %module_path.display(), "canonicalized Rust module path");
 
         // todo: build file map instaed
         for mod_id in codegen::rustdoc::all_mod_ids(&self.db) {
@@ -329,10 +414,14 @@ impl Driver {
                 crate_.dir.join(&span.filename)
             };
             let Ok(span_path) = span_path.canonicalize() else {
+                trace!("skipping rustdoc module with non-canonicalizable span path");
                 continue;
             };
 
+            trace!(span_path = %span_path.display(), "checking rustdoc module span path");
+
             if span_path == module_path {
+                debug!(module_path = %module_path.display(), "resolved Rust module import");
                 return Ok(
                     codegen::js::compile_mod(&self.db, profile.api(), *mod_id, src_path)
                         .to_string(),

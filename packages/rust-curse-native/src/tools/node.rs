@@ -8,6 +8,7 @@ use std::{
 
 use miette::Diagnostic;
 use thiserror::Error;
+use tracing::{debug, info, trace};
 
 const NAPI_CLI_PACKAGE: &str = "@napi-rs/cli@3.7.2";
 const NAPI_CLI_BIN: &str = "napi";
@@ -42,6 +43,7 @@ pub struct BuildOutput {
 }
 
 /// Returns the expected path to the local `napi` binary.
+#[tracing::instrument(level = "trace", skip_all, fields(install_root_path = %install_root_path.display()))]
 pub fn napi_cli_path(install_root_path: &Path) -> PathBuf {
     let napi_bin_name = if cfg!(windows) {
         format!("{NAPI_CLI_BIN}.cmd")
@@ -49,10 +51,12 @@ pub fn napi_cli_path(install_root_path: &Path) -> PathBuf {
         NAPI_CLI_BIN.to_string()
     };
 
-    install_root_path
+    let path = install_root_path
         .join("node_modules")
         .join(".bin")
-        .join(napi_bin_name)
+        .join(napi_bin_name);
+    trace!(path = %path.display(), "resolved NAPI CLI path");
+    path
 }
 
 /// Ensures `path` is compatible with Node tooling that expects a package root.
@@ -67,7 +71,10 @@ pub fn napi_cli_path(install_root_path: &Path) -> PathBuf {
 /// # let _ = changed;
 /// # Ok::<(), rust_curse::tools::node::EnsureNodeCompatError>(())
 /// ```
+#[tracing::instrument(level = "debug", skip_all, fields(path = %path.display()))]
 pub fn ensure_node_compat(path: &Path) -> Result<bool, EnsureNodeCompatError> {
+    debug!("ensuring Node-compatible package root exists");
+
     fs::create_dir_all(path).map_err(|source| EnsureNodeCompatError::CreateDirectory {
         path: path.to_path_buf(),
         source,
@@ -75,9 +82,11 @@ pub fn ensure_node_compat(path: &Path) -> Result<bool, EnsureNodeCompatError> {
 
     let package_json_path = path.join("package.json");
     if package_json_path.is_file() {
+        debug!(path = %package_json_path.display(), "Node compatibility package already exists");
         return Ok(false);
     }
 
+    debug!(path = %package_json_path.display(), "writing Node compatibility package");
     fs::write(&package_json_path, NODE_COMPAT_PACKAGE_JSON).map_err(|source| {
         EnsureNodeCompatError::WritePackage {
             path: package_json_path,
@@ -101,6 +110,11 @@ pub fn ensure_node_compat(path: &Path) -> Result<bool, EnsureNodeCompatError> {
 /// # let _ = napi;
 /// # Ok::<(), rust_curse::tools::node::EnsureNapiCliInstalledError>(())
 /// ```
+#[tracing::instrument(
+    level = "debug",
+    skip(opts),
+    fields(install_root_path = %opts.install_root_path.display())
+)]
 pub fn ensure_napi_cli_installed(
     opts: EnsureNapiCliInstalledOpts<'_>,
 ) -> Result<PathBuf, EnsureNapiCliInstalledError> {
@@ -110,6 +124,8 @@ pub fn ensure_napi_cli_installed(
     let tool_bin_path = napi_cli_path(opts.install_root_path);
 
     if tool_bin_path.is_file() {
+        debug!(path = %tool_bin_path.display(), "checking existing NAPI CLI");
+
         let check = Command::new(&tool_bin_path)
             .arg("--version")
             .output()
@@ -119,9 +135,18 @@ pub fn ensure_napi_cli_installed(
             })?;
 
         if check.status.success() {
+            debug!(path = %tool_bin_path.display(), "NAPI CLI is already installed");
             return Ok(tool_bin_path);
         }
+
+        debug!(path = %tool_bin_path.display(), "existing NAPI CLI check failed; reinstalling");
     }
+
+    info!(
+        package = NAPI_CLI_PACKAGE,
+        install_root_path = %opts.install_root_path.display(),
+        "installing NAPI CLI"
+    );
 
     let output = Command::new("npm")
         .args([
@@ -149,6 +174,8 @@ pub fn ensure_napi_cli_installed(
         });
     }
 
+    debug!(path = %tool_bin_path.display(), "checking installed NAPI CLI");
+
     let check = Command::new(&tool_bin_path)
         .arg("--version")
         .output()
@@ -165,6 +192,8 @@ pub fn ensure_napi_cli_installed(
         ),
     )
     .map_err(|source| EnsureNapiCliInstalledError::InstalledCliCheckFailed { source })?;
+
+    info!(path = %tool_bin_path.display(), "installed NAPI CLI");
 
     Ok(tool_bin_path)
 }
@@ -187,7 +216,20 @@ pub fn ensure_napi_cli_installed(
 /// # let _ = output;
 /// # Ok::<(), rust_curse::tools::node::BuildError>(())
 /// ```
+#[tracing::instrument(
+    level = "debug",
+    skip(opts),
+    fields(
+        project_root_path = %opts.project_root_path.display(),
+        out_dir_path = %opts.out_dir_path.display(),
+        node_cli_path = %opts.node_cli_path.display(),
+        release = opts.release,
+    )
+)]
 pub fn build(opts: BuildOpts<'_>) -> Result<BuildOutput, BuildError> {
+    info!("building native Node profile crate");
+
+    debug!(path = %opts.out_dir_path.display(), "ensuring NAPI output directory exists");
     fs::create_dir_all(opts.out_dir_path).map_err(|source| BuildError::CreateOutputDir {
         path: opts.out_dir_path.to_path_buf(),
         source,
@@ -209,6 +251,14 @@ pub fn build(opts: BuildOpts<'_>) -> Result<BuildOutput, BuildError> {
     if opts.release {
         build.arg("--release");
     }
+
+    debug!(
+        path = %opts.node_cli_path.display(),
+        manifest_path = %manifest_path.display(),
+        out_dir = %opts.out_dir_path.display(),
+        release = opts.release,
+        "running NAPI CLI build"
+    );
 
     let output = build.output().map_err(|source| BuildError::RunNapiCli {
         path: opts.node_cli_path.to_path_buf(),
@@ -232,9 +282,16 @@ pub fn build(opts: BuildOpts<'_>) -> Result<BuildOutput, BuildError> {
 
     let node_path = built_node_artifact(opts.out_dir_path)?;
 
+    info!(
+        js_path = %js_path.display(),
+        node_path = %node_path.display(),
+        "built native Node profile crate"
+    );
+
     Ok(BuildOutput { node_path, js_path })
 }
 
+#[tracing::instrument(level = "trace", skip_all, fields(out_dir_path = %out_dir_path.display()))]
 fn built_node_artifact(out_dir_path: &Path) -> Result<PathBuf, BuildError> {
     let mut node_paths = Vec::new();
 
@@ -248,6 +305,7 @@ fn built_node_artifact(out_dir_path: &Path) -> Result<PathBuf, BuildError> {
         })?;
         let path = entry.path();
         if path.extension().and_then(|ext| ext.to_str()) == Some("node") {
+            trace!(path = %path.display(), "found native Node artifact candidate");
             node_paths.push(path);
         }
     }
@@ -298,7 +356,8 @@ pub struct CommandFailed {
     stderr: String,
 }
 
-/// Errors that can happen while ensuring a directory is compatible with Node tooling.
+/// Errors that can happen while ensuring a directory is compatible with Node
+/// tooling.
 #[derive(Error, Diagnostic, Debug)]
 pub enum EnsureNodeCompatError {
     #[error("failed to create Node-compatible directory at {}", path.display())]

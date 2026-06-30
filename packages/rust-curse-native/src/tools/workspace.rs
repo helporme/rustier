@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use cargo_metadata::{Metadata, MetadataCommand, Package as CargoPackage, Target, TargetKind};
 use miette::Diagnostic;
 use thiserror::Error;
+use tracing::debug;
 
 /// Cargo package metadata needed by generated cursed crates.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -22,7 +23,10 @@ pub struct Package {
 }
 
 /// Reads metadata for the root package identified by `manifest_path`.
+#[tracing::instrument(level = "debug", skip_all, fields(manifest_path = %manifest_path.display()))]
 pub fn get_package(manifest_path: &Path) -> std::result::Result<Package, GetPackageErr> {
+    debug!("reading root package metadata");
+
     let metadata = MetadataCommand::new()
         .manifest_path(manifest_path)
         .exec()
@@ -43,6 +47,12 @@ pub fn get_package(manifest_path: &Path) -> std::result::Result<Package, GetPack
         .ok_or_else(|| GetPackageErr::MissingLibraryTarget {
             package: package.name.to_string(),
         })?;
+    debug!(
+        package = %package.name,
+        lib_target = %lib_target.name,
+        "resolved package library target"
+    );
+
     let source_package_path = package
         .manifest_path
         .as_std_path()
@@ -56,6 +66,15 @@ pub fn get_package(manifest_path: &Path) -> std::result::Result<Package, GetPack
             source,
         })?;
 
+    debug!(
+        package = %package.name,
+        version = %package.version,
+        edition = %package.edition,
+        source_crate_name = %lib_target.name,
+        source_package_path = %source_package_path.display(),
+        "resolved package metadata"
+    );
+
     Ok(Package {
         name: package.name.to_string(),
         version: package.version.to_string(),
@@ -66,10 +85,17 @@ pub fn get_package(manifest_path: &Path) -> std::result::Result<Package, GetPack
 }
 
 /// Locate a workspace package or direct dependency by package name.
+#[tracing::instrument(
+    level = "debug",
+    skip_all,
+    fields(manifest_path = %manifest_path.display(), package_name = %package_name)
+)]
 pub fn locate_dependency(
     manifest_path: &Path,
     package_name: String,
 ) -> std::result::Result<PathBuf, LocateDependencyErr> {
+    debug!("locating Cargo dependency");
+
     let metadata = MetadataCommand::new()
         .manifest_path(manifest_path)
         .exec()
@@ -83,6 +109,7 @@ pub fn locate_dependency(
         .into_iter()
         .find(|package| package_matches_name(package, &package_name))
     {
+        debug!(package = %package.name, "found dependency as workspace package");
         return package_manifest_path(package);
     }
 
@@ -93,6 +120,12 @@ pub fn locate_dependency(
             root_package: root.name.to_string(),
         }
     })?;
+
+    debug!(
+        package = %package.name,
+        root_package = %root.name,
+        "found dependency as direct dependency"
+    );
 
     package_manifest_path(package)
 }
@@ -141,14 +174,22 @@ fn is_lib_target(target: &Target) -> bool {
 fn package_manifest_path(
     package: &CargoPackage,
 ) -> std::result::Result<PathBuf, LocateDependencyErr> {
-    package
+    let manifest_path = package
         .manifest_path
         .as_std_path()
         .canonicalize()
         .map_err(|source| LocateDependencyErr::CanonicalizeManifestPath {
             package: package.name.to_string(),
             source,
-        })
+        })?;
+
+    debug!(
+        package = %package.name,
+        manifest_path = %manifest_path.display(),
+        "resolved dependency manifest path"
+    );
+
+    Ok(manifest_path)
 }
 
 #[derive(Error, Diagnostic, Debug)]

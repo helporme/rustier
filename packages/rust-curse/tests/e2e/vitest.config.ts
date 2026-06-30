@@ -108,6 +108,7 @@ const rustCurse = (profile: Profile): Plugin => {
 
 export default defineConfig({
   plugins: [rustCurseWatcher()],
+  clearScreen: false,
   test: {
     projects: [
       {

@@ -5,6 +5,7 @@ use std::{
 
 use miette::Diagnostic;
 use thiserror::Error;
+use tracing::{debug, info};
 
 use crate::{
     codegen,
@@ -52,10 +53,30 @@ pub struct SyncCrateOps<'a> {
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+#[tracing::instrument(
+    level = "debug",
+    skip(opts),
+    fields(
+        manifest_path = %opts.manifest_path.display(),
+        out_dir = %opts.out_dir.display(),
+        api = ?opts.api,
+    )
+)]
 pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
+    info!("syncing generated cursed crate");
+
     // todo: remove, use package passed in opts
     let package = workspace::get_package(opts.manifest_path)
         .map_err(|source| SyncCrateError::GetPackage { source })?;
+
+    debug!(
+        package = %package.name,
+        version = %package.version,
+        edition = %package.edition,
+        source_crate_name = %package.source_crate_name,
+        source_package_path = %package.source_package_path.display(),
+        "resolved source package metadata"
+    );
 
     let manifest = manifest::render_manifest(manifest::ManifestOpts {
         api: opts.api,
@@ -66,7 +87,13 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
         source_package_path: &package.source_package_path,
     });
 
+    debug!("compiled generated crate manifest");
+
     let bindings = codegen::bindings::compile(opts.db, opts.api);
+    debug!(
+        bindings_bytes = bindings.len(),
+        "compiled generated bindings"
+    );
 
     let mut changed = ensure_dir(opts.out_dir)?;
     let src_dir = opts.out_dir.join("src");
@@ -75,23 +102,29 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
     changed |= write_file(src_dir.join("lib.rs"), bindings)?;
 
     if let Some(build_script_body) = opts.api.build_script_body() {
+        debug!("writing generated build script");
         let build_script = format!("fn main() {{\n\t{build_script_body}\n}}\n");
         changed |= write_file(opts.out_dir.join("build.rs"), build_script)?;
     }
 
     if opts.api == codegen::bindings::Api::Node {
+        debug!("ensuring generated Node crate compatibility");
         changed |= node::ensure_node_compat(opts.out_dir)
             .map_err(|source| SyncCrateError::EnsureNodeCompat { source })?;
     }
+
+    info!(changed, "synced generated cursed crate");
 
     Ok(changed)
 }
 
 fn ensure_dir(path: &Path) -> Result<bool, SyncCrateError> {
     if path.exists() {
+        debug!(path = %path.display(), "directory already exists");
         return Ok(false);
     }
 
+    debug!(path = %path.display(), "creating directory");
     fs::create_dir_all(path).map_err(|source| SyncCrateError::CreateDirectory {
         path: path.to_path_buf(),
         source,
@@ -100,7 +133,13 @@ fn ensure_dir(path: &Path) -> Result<bool, SyncCrateError> {
 }
 
 fn write_file(path: PathBuf, content: impl AsRef<[u8]>) -> Result<bool, SyncCrateError> {
-    write_if_changed(&path, content).map_err(|source| SyncCrateError::WriteFile { path, source })
+    let changed =
+        write_if_changed(&path, content.as_ref()).map_err(|source| SyncCrateError::WriteFile {
+            path: path.clone(),
+            source,
+        })?;
+    debug!(path = %path.display(), changed, "synced generated file");
+    Ok(changed)
 }
 
 /// Error returned when syncing a generated cursed crate fails.

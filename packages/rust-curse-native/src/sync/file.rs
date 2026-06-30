@@ -1,20 +1,28 @@
 use std::{fs, io, path::Path};
 
+use tracing::debug;
+
 /// Writes `content` to `path` only when the file contents differ.
 ///
 /// Returns `Ok(true)` when the file was written, and `Ok(false)` when the
 /// existing file already matched `content`.
+#[tracing::instrument(level = "trace", skip(path, content), fields(path = %path.as_ref().display()))]
 pub fn write_if_changed(path: impl AsRef<Path>, content: impl AsRef<[u8]>) -> io::Result<bool> {
     let path = path.as_ref();
     let content = content.as_ref();
 
     match fs::read(path) {
-        Ok(existing) if existing == content => Ok(false),
+        Ok(existing) if existing == content => {
+            debug!(bytes = content.len(), "file content unchanged");
+            Ok(false)
+        }
         Ok(_) => {
+            debug!(bytes = content.len(), "rewriting changed file");
             fs::write(path, content)?;
             Ok(true)
         }
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            debug!(bytes = content.len(), "writing missing file");
             fs::write(path, content)?;
             Ok(true)
         }

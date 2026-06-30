@@ -10,10 +10,14 @@ use cargo_metadata::{MetadataCommand, Target, TargetKind};
 use miette::Diagnostic;
 use rustdoc_types::Crate;
 use thiserror::Error;
+use tracing::{debug, info};
 
 /// Generate rustdoc JSON for the package identified by `manifest_path` and
 /// deserialize it.
+#[tracing::instrument(level = "debug", skip_all, fields(manifest_path = %manifest_path.display()))]
 pub fn run(manifest_path: &Path) -> Result<Crate, RustdocError> {
+    info!("generating rustdoc JSON");
+
     let metadata = MetadataCommand::new()
         .manifest_path(manifest_path)
         .exec()
@@ -28,6 +32,8 @@ pub fn run(manifest_path: &Path) -> Result<Crate, RustdocError> {
             manifest_path: manifest_path.to_path_buf(),
         })?;
 
+    debug!(package = %package.name, "resolved root package for rustdoc");
+
     let lib_target = package
         .targets
         .iter()
@@ -40,6 +46,13 @@ pub fn run(manifest_path: &Path) -> Result<Crate, RustdocError> {
         .target_directory
         .join("rustdoc-json")
         .into_std_path_buf();
+
+    debug!(
+        package = %package.name,
+        lib_target = %lib_target.name,
+        target_dir = %target_dir.display(),
+        "running cargo rustdoc"
+    );
 
     let output = Command::new("cargo")
         .args(["+nightly", "rustdoc", "--manifest-path"])
@@ -66,36 +79,50 @@ pub fn run(manifest_path: &Path) -> Result<Crate, RustdocError> {
         .join("doc")
         .join(format!("{}.json", &lib_target.name.replace('-', "_")));
 
+    debug!(path = %rustdoc_json_path.display(), "reading generated rustdoc JSON");
     let json =
         fs::read_to_string(&rustdoc_json_path).map_err(|source| RustdocError::ReadRustdocJson {
             path: rustdoc_json_path.clone(),
             source,
         })?;
 
-    serde_json::from_str(&json).map_err(|source| RustdocError::DeserializeRustdocJson {
-        path: rustdoc_json_path.clone(),
-        source,
-    })
+    let krate =
+        serde_json::from_str(&json).map_err(|source| RustdocError::DeserializeRustdocJson {
+            path: rustdoc_json_path.clone(),
+            source,
+        })?;
+
+    info!(path = %rustdoc_json_path.display(), "generated rustdoc JSON");
+
+    Ok(krate)
 }
 
 /// Ensure the default nightly toolchain required by rustdoc JSON generation is
 /// installed.
+#[tracing::instrument(level = "debug")]
 pub fn ensure() -> Result<(), RustdocError> {
+    debug!("checking nightly rustdoc availability");
+
     let check = Command::new("rustup")
         .args(["run", "nightly", "rustdoc", "--version"])
         .output()
         .map_err(|source| RustdocError::CheckNightlyRustdoc { source })?;
 
     if check.status.success() {
+        debug!("nightly rustdoc is available");
         return Ok(());
     }
+
+    info!("installing nightly toolchain for rustdoc JSON generation");
 
     let output = Command::new("rustup")
         .args(["toolchain", "install", "nightly"])
         .output()
         .map_err(|source| RustdocError::InstallNightlyToolchain { source })?;
 
-    ensure_success(&output, "`rustup toolchain install nightly` failed")
+    ensure_success(&output, "`rustup toolchain install nightly` failed")?;
+    info!("installed nightly toolchain for rustdoc JSON generation");
+    Ok(())
 }
 
 fn is_lib_target(target: &Target) -> bool {
