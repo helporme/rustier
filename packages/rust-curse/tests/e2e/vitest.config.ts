@@ -34,19 +34,37 @@ const profiles: Profile[] = ['node', 'wasm']
 const outputs: Partial<Record<Profile, BuildOutput>> = {}
 const dirtyProfiles = new Set<Profile>(profiles)
 
+const reportException = (error: unknown, warn: (diag: string) => void) => {
+  const diag = error instanceof Error ? error.message : String(error)
+  warn(diag)
+  return diag
+}
+
 const rebuildProfiles = (
   profileNames: Profile[],
   warn: (diag: string) => void,
 ) => {
-  const output = curse.build(profileNames)
+  try {
+    const output = curse.build(profileNames)
 
-  for (const profile of profileNames) {
-    outputs[profile] = output
-    dirtyProfiles.delete(profile)
-  }
+    for (const profile of profileNames) {
+      outputs[profile] = output
+      dirtyProfiles.delete(profile)
+    }
 
-  for (const diag of output.diags) {
-    warn(diag)
+    for (const diag of output.diags) {
+      warn(diag)
+    }
+  } catch (error) {
+    const diag = reportException(error, warn)
+
+    for (const profile of profileNames) {
+      outputs[profile] = {
+        artifacts: outputs[profile]?.artifacts ?? {},
+        diags: [...(outputs[profile]?.diags ?? []), diag],
+      }
+      dirtyProfiles.delete(profile)
+    }
   }
 }
 
@@ -101,7 +119,24 @@ const rustCurse = (profile: Profile): Plugin => {
         rebuildProfiles([profile], (diag) => this.warn(diag))
       }
 
-      return curse.resolve(profile, id)
+      if (!outputs[profile]?.artifacts[profile]) {
+        const diags = outputs[profile]?.diags ?? []
+        const diag =
+          diags[diags.length - 1] ??
+          `profile \`${profile}\` has no build artifacts`
+        return `throw new Error(${JSON.stringify(diag)});`
+      }
+
+      try {
+        return curse.resolve(profile, id)
+      } catch (error) {
+        const diag = reportException(error, (diag) => this.warn(diag))
+        outputs[profile] = {
+          artifacts: outputs[profile]?.artifacts ?? {},
+          diags: [...(outputs[profile]?.diags ?? []), diag],
+        }
+        return `throw new Error(${JSON.stringify(diag)});`
+      }
     },
   }
 }
