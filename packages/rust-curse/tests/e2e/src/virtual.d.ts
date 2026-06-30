@@ -1,5 +1,5 @@
 /**
- * Module generated at build time by vitest plugin containing all build warnings
+ * Module generated at build time by vitest plugin containing all build diagnostics
  */
 declare module '$build/diags' {
   export const rustCurseDiags: string[]

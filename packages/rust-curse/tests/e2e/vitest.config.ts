@@ -19,7 +19,7 @@ const curse = new Driver({
 curse.installDeps()
 
 const VIRTUAL_MODULES = {
-  warns: `$build/warns`,
+  diags: `$build/diags`,
 }
 const RESOLVED_MOD_PREFIX = '\0'
 
@@ -102,14 +102,9 @@ const rustCurse = (profile: Profile): Plugin => {
     },
 
     load(id) {
-      // Resolve warnigs module
-      if (id.substring(1) === VIRTUAL_MODULES.warns) {
-        const diags = (outputs[profile]?.diags ?? []).map((diag) => ({
-          code: '',
-          message: diag,
-          rendered: diag,
-        }))
-        return `export const rustCurseDiags = ${JSON.stringify(diags)};`
+      // Resolve diagnostics module
+      if (id.substring(1) === VIRTUAL_MODULES.diags) {
+        return `export const rustCurseDiags = ${JSON.stringify(outputs[profile]?.diags ?? [])};`
       }
 
       // Resolve .rs files
@@ -143,13 +138,14 @@ const rustCurse = (profile: Profile): Plugin => {
 
 export default defineConfig({
   plugins: [rustCurseWatcher()],
-  clearScreen: false,
   test: {
     projects: [
       {
         plugins: [rustCurse('node')],
         test: {
           name: 'node',
+          include: ['src/**/*.test.ts'],
+          exclude: ['src/**/*.wasm.test.ts'],
           provide: { target: 'node' },
           typecheck: {
             enabled: true,
@@ -162,6 +158,8 @@ export default defineConfig({
         plugins: [rustCurse('wasm')],
         test: {
           name: 'wasm',
+          include: ['src/**/*.test.ts'],
+          exclude: ['src/**/*.node.test.ts'],
           provide: { target: 'wasm' },
           typecheck: {
             enabled: true,
