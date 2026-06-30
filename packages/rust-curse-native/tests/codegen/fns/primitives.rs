@@ -1,8 +1,6 @@
 //! Tests for simple function generation with all primitive types as arguments
 //! and return values.
 
-// todo: convert them to unit tests and put near the code
-
 use crate::utils::*;
 
 #[test]
