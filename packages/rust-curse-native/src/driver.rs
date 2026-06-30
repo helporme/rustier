@@ -1,3 +1,13 @@
+//! Driver for the Rust curse building. Generally ressembles the vitest plugin.
+//!
+//! I have no idea what api it should have nor I can plan it ahead, once I will
+//! acome up with the api good enough to be used by the
+//! vite/rollup/rolldown/tsdown/custom-cli -- I will refactor this. For now
+//! this is a dump of everything.
+//!
+//! At the end, if rust-curse itself will be good enough, the driver can be
+//! removed and js can just use rust-curse as lib.
+
 use std::{
     collections::{BTreeMap, HashMap},
     path::PathBuf,
