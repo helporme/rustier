@@ -23,7 +23,7 @@ use tracing_subscriber::{fmt::time::ChronoLocal, EnvFilter};
 
 use crate::{
     codegen::{self, db::DbImpl, diag::Theme},
-    sync::{sync_crate, SyncCrateOps},
+    sync::{sync_crate, sync_ts_tree, SyncCrateOps, SyncTsTreeOpts},
     tools::{self, node::BuildOutput as NodeBuildOutput, wasm::BuildOutput as WasmBuildOutput},
 };
 
@@ -231,12 +231,14 @@ impl Driver {
         let out_dir = PathBuf::from(&self.opts.out_dir);
         let tools_dir = out_dir.join("tools");
         let profile_crates_dir = out_dir.join("crates");
+        let types_dir = out_dir.join("types");
 
         debug!(
             manifest_path = %manifest_path.display(),
             out_dir = %out_dir.display(),
             tools_dir = %tools_dir.display(),
             profile_crates_dir = %profile_crates_dir.display(),
+            types_dir = %types_dir.display(),
             "resolved driver build paths"
         );
 
@@ -246,6 +248,7 @@ impl Driver {
         let package = tools::workspace::get_package(&manifest_path)
             .map_err(|source| BuildError::GetPackage { source })?;
 
+        let src_dir = package.source_package_path.join("src");
         let crates = BTreeMap::from([(
             package.source_crate_name,
             codegen::rustdoc::Crate {
@@ -259,6 +262,13 @@ impl Driver {
         } else {
             codegen::rustdoc::Input::new(&self.db, crates);
         }
+
+        sync_ts_tree(SyncTsTreeOpts {
+            our_dir: &types_dir,
+            src_dir: &src_dir,
+            db: &self.db,
+        })
+        .map_err(|source| BuildError::SyncTsTree { source })?;
 
         let diags = self.render_diags()?;
         debug!(diag_count = diags.len(), "rendered codegen diagnostics");
@@ -522,6 +532,13 @@ enum BuildError {
     SyncCrate {
         #[source]
         source: crate::sync::SyncCrateError,
+    },
+
+    #[error("failed to sync TypeScript declaration tree")]
+    #[diagnostic(code(rust_curse::driver::sync_ts_tree))]
+    SyncTsTree {
+        #[source]
+        source: crate::sync::SyncTsTreeError,
     },
 
     #[error("failed to render codegen diagnostic")]
