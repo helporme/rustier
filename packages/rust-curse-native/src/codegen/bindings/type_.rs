@@ -17,7 +17,7 @@ pub fn compile_primitive(primitive: ir::Primitive) -> &'static str {
         ir::Primitive::i16 => "i16",
         ir::Primitive::u16 => "u16",
         ir::Primitive::i32 => "i32",
-        ir::Primitive::u32 => "u32",
-        ir::Primitive::f64 => "f64",
+        ir::Primitive::u32 | ir::Primitive::Char => "u32",
+        ir::Primitive::f64 | ir::Primitive::f32 => "f64",
     }
 }

@@ -33,6 +33,7 @@ impl<'db> DebugRender<'db> for ir::Primitive {
     fn render(&self, _db: &'db dyn Db) -> String {
         match self {
             ir::Primitive::Boolean => "bool",
+            ir::Primitive::Char => "char",
             ir::Primitive::Str => "str",
             ir::Primitive::i8 => "i8",
             ir::Primitive::u8 => "u8",
@@ -40,6 +41,7 @@ impl<'db> DebugRender<'db> for ir::Primitive {
             ir::Primitive::u16 => "u16",
             ir::Primitive::i32 => "i32",
             ir::Primitive::u32 => "u32",
+            ir::Primitive::f32 => "f32",
             ir::Primitive::f64 => "f64",
         }
         .to_string()

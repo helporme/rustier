@@ -51,11 +51,15 @@ ModDef {
 use napi_derive::napi;
 
 #[napi(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
-pub fn __cursed_fn__rustdoc_0test_0crate_foo(mut __p__value: u32) -> napi::Result<()> {
+pub fn __cursed_fn__rustdoc_0test_0crate_foo(
+	mut __p__value: u32,
+) -> napi::Result<()> {
 	let __p__value = char::from_u32(__p__value).ok_or_else(|| {
 		napi::Error::from_reason(format!("invalid char code point: {}", __p__value))
 	})?;
-	rustdoc_test_crate::foo(__p__value);
+	rustdoc_test_crate::foo(
+		__p__value,
+	);
 	Ok(())
 }
 ```
@@ -67,11 +71,15 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(mut __p__value: u32) -> napi::Resul
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(js_name = __cursed_fn__rustdoc_0test_0crate_foo)]
-pub fn __cursed_fn__rustdoc_0test_0crate_foo(mut __p__value: u32) -> Result<(), JsValue> {
+pub fn __cursed_fn__rustdoc_0test_0crate_foo(
+	mut __p__value: u32,
+) -> Result<(), JsValue> {
 	let __p__value = char::from_u32(__p__value).ok_or_else(|| {
 		JsValue::from_str(&format!("invalid char code point: {}", __p__value))
 	})?;
-	rustdoc_test_crate::foo(__p__value);
+	rustdoc_test_crate::foo(
+		__p__value,
+	);
 	Ok(())
 }
 ```
