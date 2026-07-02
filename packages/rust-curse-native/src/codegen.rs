@@ -7,3 +7,4 @@ pub mod ir;
 pub mod js;
 pub mod rustdoc;
 pub mod ts;
+pub mod ts_sourcemap;

@@ -7,7 +7,7 @@ use rust_curse::codegen::{
     diag::Theme,
     js,
     rustdoc::{all_mod_ids, lower_mod, Id},
-    ts,
+    ts, ts_sourcemap,
 };
 use rustdoc_types::{Crate as RustdocCrate, Id as RId};
 
@@ -49,6 +49,15 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
             "js" => {
                 let text = build_javascript_body(&db, &fixture.crate_, module_ids, Api::Node);
                 push_markdown_section(&mut body, "Javascript", &text);
+            }
+            "ts_sourcemap" => {
+                let text = build_typescript_sourcemap_body(
+                    &db,
+                    &fixture.crate_,
+                    &fixture.crate_dir,
+                    module_ids,
+                );
+                push_markdown_section(&mut body, "Typescript Sourcemap", &text);
             }
             "wasm_web_js" => {
                 let text = build_javascript_body(&db, &fixture.crate_, module_ids, wasm_web_api());
@@ -98,6 +107,31 @@ fn build_typescript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[Id<'_
     for id in module_ids {
         let ts = ts::compile_mod(db, *id);
         push_module_code_block(&mut text, db, crate_, *id, "ts", ts);
+    }
+
+    if text.trim().is_empty() {
+        "None\n".to_string()
+    } else {
+        text
+    }
+}
+
+fn build_typescript_sourcemap_body(
+    db: &dyn Db,
+    crate_: &RustdocCrate,
+    crate_dir: &std::path::Path,
+    module_ids: &[Id<'_>],
+) -> String {
+    let mut text = String::new();
+    let crate_dir = crate_dir
+        .to_string_lossy()
+        .replace(std::path::MAIN_SEPARATOR, "/");
+
+    for id in module_ids {
+        let sourcemap = ts_sourcemap::compile_mod(db, *id)
+            .to_string()
+            .replace(&crate_dir, "<crate>");
+        push_module_code_block(&mut text, db, crate_, *id, "json", &sourcemap);
     }
 
     if text.trim().is_empty() {

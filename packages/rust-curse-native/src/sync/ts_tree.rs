@@ -11,7 +11,8 @@ use crate::{codegen, sync::file::write_if_changed};
 
 /// Options for [`sync_ts_tree`].
 pub struct SyncTsTreeOpts<'a> {
-    /// The directory where mirrored TypeScript declarations should be written.
+    /// The directory where mirrored TypeScript declarations and source maps
+    /// should be written.
     pub our_dir: &'a Path,
     /// The source `src` directory used to calculate mirrored module paths.
     pub src_dir: &'a Path,
@@ -19,8 +20,8 @@ pub struct SyncTsTreeOpts<'a> {
     pub db: &'a codegen::db::DbImpl,
 }
 
-/// Syncs a mirrored `src` tree with TypeScript declarations for each Rust
-/// module.
+/// Syncs a mirrored `src` tree with TypeScript declarations and source maps
+/// for each Rust module.
 ///
 /// # Example
 ///
@@ -100,17 +101,26 @@ pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<(), Error> {
             });
         };
 
+        let declaration_file_name = format!("{}.d.ts", file_name.to_string_lossy());
+        let sourcemap_file_name = format!("{declaration_file_name}.map");
         let output_path = opts
             .our_dir
             .join(relative_path)
-            .with_file_name(format!("{}.d.ts", file_name.to_string_lossy()));
+            .with_file_name(&declaration_file_name);
+        let sourcemap_path = output_path.with_file_name(&sourcemap_file_name);
 
         if let Some(parent) = output_path.parent() {
             ensure_dir(parent)?;
         }
 
-        let declarations = codegen::ts::compile_mod(opts.db, *mod_id);
-        write_file(output_path, declarations.as_bytes())?;
+        let mut declaration = codegen::ts::compile_mod(opts.db, *mod_id).to_string();
+        if !declaration.is_empty() {
+            declaration.push_str(&format!("\n//# sourceMappingURL={sourcemap_file_name}\n"));
+        }
+        write_file(output_path, declaration.as_bytes())?;
+
+        let sourcemap = codegen::ts_sourcemap::compile_mod(opts.db, *mod_id).to_string();
+        write_file(sourcemap_path, sourcemap.as_bytes())?;
     }
 
     info!("synced TypeScript declaration tree");
@@ -137,7 +147,7 @@ fn write_file(path: PathBuf, content: impl AsRef<[u8]>) -> Result<bool, Error> {
         path: path.clone(),
         source,
     })?;
-    debug!(path = %path.display(), changed, "synced TypeScript declaration file");
+    debug!(path = %path.display(), changed, "synced TypeScript tree file");
     Ok(changed)
 }
 
@@ -164,7 +174,7 @@ pub enum Error {
         source: std::io::Error,
     },
 
-    #[error("failed to canonicalize Rust module path at {}", path.display())]
+    #[error("failed to canonicalize module path at {}", path.display())]
     #[diagnostic(code(rust_curse::sync_ts_tree::canonicalize_module_path))]
     CanonicalizeModulePath {
         path: PathBuf,
@@ -187,7 +197,7 @@ pub enum Error {
     #[diagnostic(code(rust_curse::sync_ts_tree::missing_module_file_name))]
     MissingModuleFileName { path: PathBuf },
 
-    #[error("failed to write TypeScript declaration file at {}", path.display())]
+    #[error("failed to write TypeScript tree file at {}", path.display())]
     #[diagnostic(code(rust_curse::sync_ts_tree::write_file))]
     WriteFile {
         path: PathBuf,

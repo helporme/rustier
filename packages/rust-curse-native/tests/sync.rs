@@ -6,7 +6,11 @@ use rust_curse::{
         db::DbImpl,
         rustdoc::{Crate as StoredCrate, Input},
     },
-    sync::cursed_crate::{sync_crate, SyncCrateOps},
+    sync::{
+        cursed_crate::{sync_crate, SyncCrateOps},
+        ts_tree::{sync_ts_tree, SyncTsTreeOpts},
+    },
+    tools,
 };
 use tempfile::{tempdir, TempDir};
 
@@ -94,6 +98,55 @@ fn syncs_node_crate() {
     .expect("sync unchanged node crate");
 
     assert!(!changed);
+}
+
+#[test]
+fn syncs_ts_tree_sourcemaps() {
+    let fixture = fixture("sync_ts_tree", None);
+    let rustdoc = tools::rustdoc::run(&fixture.manifest_path).expect("generate rustdoc");
+    let db = DbImpl::default();
+    Input::new(
+        &db,
+        BTreeMap::from([(
+            "sync_ts_tree".to_string(),
+            StoredCrate {
+                body: rustdoc,
+                is_external: false,
+                dir: fixture.dir.path().to_path_buf(),
+            },
+        )]),
+    );
+    let out_dir = fixture.dir.path().join(".rust-curse/ts");
+    let src_dir = fixture.dir.path().join("src");
+
+    sync_ts_tree(SyncTsTreeOpts {
+        our_dir: &out_dir,
+        src_dir: &src_dir,
+        db: &db,
+    })
+    .expect("sync TypeScript tree");
+
+    let declarations_path = out_dir.join("src/lib.rs.d.ts");
+    let sourcemap_path = out_dir.join("src/lib.rs.d.ts.map");
+    assert!(declarations_path.is_file());
+    assert!(sourcemap_path.is_file());
+
+    let declarations = fs::read_to_string(declarations_path).unwrap();
+    assert!(declarations.contains("export function marker(): void;"));
+    assert!(declarations.contains("//# sourceMappingURL=lib.rs.d.ts.map"));
+
+    let sourcemap = fs::read_to_string(sourcemap_path).unwrap();
+    let source_path = fixture
+        .dir
+        .path()
+        .join("src/lib.rs")
+        .canonicalize()
+        .unwrap()
+        .to_string_lossy()
+        .replace(std::path::MAIN_SEPARATOR, "/");
+    assert!(sourcemap.contains(&format!(r#""sources":["{source_path}"]"#)));
+    assert!(sourcemap.contains(r#""names":["marker"]"#));
+    assert!(sourcemap.contains(r#""mappings":"AAAAA,gBAAOA""#));
 }
 
 struct Fixture {

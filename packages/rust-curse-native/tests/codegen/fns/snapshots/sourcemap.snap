@@ -1,0 +1,38 @@
+---
+source: tests/codegen/fns/sourcemap.rs
+expression: body
+---
+## Test
+
+```text
+fns_sourcemap::sourcemap
+```
+
+## Source
+
+```rs
+pub fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+pub fn greet(name: &str) {
+    let _ = name;
+}
+```
+
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+export function add(a: number, b: number): number;
+
+export function greet(name: string): void;
+```
+
+## Typescript Sourcemap
+
+for `rustdoc_test_crate`:
+
+```json
+{"version":3,"file":"lib.rs.d.ts","sourceRoot":"","sources":["<crate>/src/lib.rs"],"names":["add","greet"],"mappings":"AAAAA,gBAAOA;;AAGPC,gBAAOA"}
+```
