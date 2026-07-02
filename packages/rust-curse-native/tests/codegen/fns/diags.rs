@@ -163,6 +163,48 @@ fn primitive_mut_ref_ignored() {
 }
 
 #[test]
+fn f32_param_precision_loss() {
+    let (diags, _) = diag! {
+        pub fn foo(value: f32) { let _ = value; }
+    };
+
+    assert_eq!(diags.len(), 1);
+    assert_eq!(
+        diag_code(diags[0].inner.as_ref()),
+        "rust_curse::f32_precision_loss"
+    );
+    assert!(related(diags[0].inner.as_ref()).is_empty());
+}
+
+#[test]
+fn f32_return_precision_loss() {
+    let (diags, _) = diag! {
+        pub fn foo() -> f32 { 1.25 }
+    };
+
+    assert_eq!(diags.len(), 1);
+    assert_eq!(
+        diag_code(diags[0].inner.as_ref()),
+        "rust_curse::f32_precision_loss"
+    );
+    assert!(related(diags[0].inner.as_ref()).is_empty());
+}
+
+#[test]
+fn f32_param_and_return_emit_one_precision_loss_diag() {
+    let (diags, _) = diag! {
+        pub fn foo(value: f32) -> f32 { value }
+    };
+
+    assert_eq!(diags.len(), 1);
+    assert_eq!(
+        diag_code(diags[0].inner.as_ref()),
+        "rust_curse::f32_precision_loss"
+    );
+    assert!(related(diags[0].inner.as_ref()).is_empty());
+}
+
+#[test]
 fn snap_chained_diags() {
     assert_snap! {
         @gen: diags;

@@ -103,6 +103,8 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Fn
         },
     };
 
+    analyze_f32_percission_los(db, id, item, &params, ret_type);
+
     if !causes.is_empty() {
         let crate_ = id.crate_(db);
         return Err(vec![FnLowerError::Skipped {
@@ -116,6 +118,28 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Fn
     let id = ir::Id::new(db, &item_summary.path);
 
     Ok(ir::Fn::new(db, id, params, ret_type, item.docs.clone()))
+}
+
+fn analyze_f32_percission_los(
+    db: &dyn Db,
+    id: Id<'_>,
+    item: &rustdoc_types::Item,
+    params: &[ir::FnParam<'_>],
+    ret_type: Option<ir::Type>,
+) {
+    let has_f32_param = params
+        .iter()
+        .any(|param| matches!(param.type_(db), ir::Type::Primitive(ir::Primitive::f32)));
+    let has_f32_return = matches!(ret_type, Some(ir::Type::Primitive(ir::Primitive::f32)));
+
+    if has_f32_param || has_f32_return {
+        let crate_ = id.crate_(db);
+        FnLowerError::F32PrecisionLoss {
+            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
+            span: crate_.read_span_opt(item.span.as_ref()),
+        }
+        .accumulate(db);
+    }
 }
 
 #[derive(Diagnostic, Debug, Error)]
@@ -203,6 +227,19 @@ pub enum FnLowerError {
     PrimitiveMutRefIgnored {
         /// The name of the parameter that has an unsupported type.
         name: String,
+        #[source_code]
+        source_code: ir::SourceCode,
+        #[label]
+        span: Option<ir::Span>,
+    },
+
+    #[error("passing f32 values between Rust and JS may lose precision")]
+    #[diagnostic(
+        code(rust_curse::f32_precision_loss),
+        help("use f64 instead to avoid precision loss across the JS boundary"),
+        severity(Warning)
+    )]
+    F32PrecisionLoss {
         #[source_code]
         source_code: ir::SourceCode,
         #[label]
