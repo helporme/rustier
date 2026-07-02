@@ -75,6 +75,8 @@ fn compile_primitive(primitive: Primitive) -> &'static str {
         | Primitive::u16
         | Primitive::i32
         | Primitive::u32
+        | Primitive::Char
+        | Primitive::f32
         | Primitive::f64 => "number",
     }
 }

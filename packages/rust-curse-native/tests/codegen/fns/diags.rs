@@ -108,14 +108,12 @@ fn unsupported_param() {
 #[test]
 fn unsupported_primitive_params() {
     let (diags, _) = diag! {
-        pub fn foo(_: char, _: f32, _: i128, _: u128) { todo!() }
+        pub fn foo(_: i128, _: u128) { todo!() }
     };
 
     assert_skipped_fn(
         &diags,
         &[
-            "rust_curse::unsupported_param",
-            "rust_curse::unsupported_param",
             "rust_curse::unsupported_param",
             "rust_curse::unsupported_param",
         ],
@@ -160,6 +158,48 @@ fn primitive_mut_ref_ignored() {
     assert_eq!(
         diag_code(diags[0].inner.as_ref()),
         "rust_curse::primitive_mut_ref_ignored"
+    );
+    assert!(related(diags[0].inner.as_ref()).is_empty());
+}
+
+#[test]
+fn f32_param_precision_loss() {
+    let (diags, _) = diag! {
+        pub fn foo(value: f32) { let _ = value; }
+    };
+
+    assert_eq!(diags.len(), 1);
+    assert_eq!(
+        diag_code(diags[0].inner.as_ref()),
+        "rust_curse::f32_precision_loss"
+    );
+    assert!(related(diags[0].inner.as_ref()).is_empty());
+}
+
+#[test]
+fn f32_return_precision_loss() {
+    let (diags, _) = diag! {
+        pub fn foo() -> f32 { 1.25 }
+    };
+
+    assert_eq!(diags.len(), 1);
+    assert_eq!(
+        diag_code(diags[0].inner.as_ref()),
+        "rust_curse::f32_precision_loss"
+    );
+    assert!(related(diags[0].inner.as_ref()).is_empty());
+}
+
+#[test]
+fn f32_param_and_return_emit_one_precision_loss_diag() {
+    let (diags, _) = diag! {
+        pub fn foo(value: f32) -> f32 { value }
+    };
+
+    assert_eq!(diags.len(), 1);
+    assert_eq!(
+        diag_code(diags[0].inner.as_ref()),
+        "rust_curse::f32_precision_loss"
     );
     assert!(related(diags[0].inner.as_ref()).is_empty());
 }

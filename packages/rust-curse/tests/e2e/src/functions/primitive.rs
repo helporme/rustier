@@ -1,6 +1,7 @@
 #[allow(clippy::too_many_arguments)]
 pub fn accepts_all_primitives(
     flag: bool,
+    char_value: char,
     text: &str,
     i8_value: i8,
     i16_value: i16,
@@ -8,15 +9,18 @@ pub fn accepts_all_primitives(
     u8_value: u8,
     u16_value: u16,
     u32_value: u32,
+    f32_value: f32,
     f64_value: f64,
 ) -> bool {
-    flag && text == "rust"
+    flag && char_value == '🦀'
+        && text == "rust"
         && i8_value == -8
         && i16_value == -16
         && i32_value == -32
         && u8_value == 8
         && u16_value == 16
         && u32_value == 32
+        && f32_value == 32.5
         && f64_value == 64.5
 }
 
@@ -49,6 +53,14 @@ pub fn identity_u16(value: u16) -> u16 {
 }
 
 pub fn identity_u32(value: u32) -> u32 {
+    value
+}
+
+pub fn identity_char(value: char) -> char {
+    value
+}
+
+pub fn identity_f32(value: f32) -> f32 {
     value
 }
 
@@ -86,6 +98,14 @@ pub fn return_u16() -> u16 {
 
 pub fn return_u32() -> u32 {
     32
+}
+
+pub fn return_char() -> char {
+    '🦀'
+}
+
+pub fn return_f32() -> f32 {
+    32.5
 }
 
 pub fn return_f64() -> f64 {

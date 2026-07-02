@@ -42,6 +42,14 @@ impl Api {
         }
     }
 
+    /// Returns an error expression with the given reason.
+    pub fn error(&self, reason: &str) -> String {
+        match self {
+            Api::Wasm { .. } => format!("JsValue::from_str(&{reason})"),
+            Api::Node => format!("napi::Error::from_reason({reason})"),
+        }
+    }
+
     /// Returns the contents of `fn main` for this API's build script, if any.
     pub fn build_script_body(&self) -> Option<&'static str> {
         match self {
