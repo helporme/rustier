@@ -4,7 +4,7 @@
 use crate::utils::*;
 
 #[test]
-fn fn_with_all_primitives() {
+fn fn_with_all_as_is_primitives() {
     assert_snap! {
         @gen: ts, ir, node, wasm;
         @category: primitives;
@@ -23,7 +23,7 @@ fn fn_with_all_primitives() {
     }
 }
 #[test]
-fn fn_with_all_ref_primitives() {
+fn fn_with_all_ref_as_is_primitives() {
     assert_snap! {
         @gen: ts, ir, node, wasm;
         @category: primitives;
@@ -43,7 +43,7 @@ fn fn_with_all_ref_primitives() {
 }
 
 #[test]
-fn fn_with_all_mut_ref_primitives() {
+fn fn_with_all_mut_ref_as_is_primitives() {
     assert_snap! {
         @gen: ts, ir, node, wasm;
         @category: primitives;
@@ -63,7 +63,7 @@ fn fn_with_all_mut_ref_primitives() {
 }
 
 #[test]
-fn fn_returning_primitives() {
+fn fn_returning_as_is_primitives() {
     assert_snap! {
         @gen: ts, ir, node, wasm;
         @category: primitives;
@@ -81,5 +81,49 @@ fn fn_no_args_no_return() {
         @category: primitives;
 
         pub fn foo() { }
+    }
+}
+
+#[test]
+fn fn_accepting_char() {
+    assert_snap! {
+        @gen: ts, ir, node, wasm;
+        @category: primitives;
+
+        pub fn foo(value: char) { }
+    }
+}
+
+#[test]
+fn fn_returning_char() {
+    assert_snap! {
+        @gen: ts, ir, node, wasm;
+        @category: primitives;
+
+        pub fn foo() -> char {
+            '🦀'
+        }
+    }
+}
+
+#[test]
+fn fn_accepting_f32() {
+    assert_snap! {
+        @gen: ts, ir, node, wasm;
+        @category: primitives;
+
+        pub fn foo(value: f32) { }
+    }
+}
+
+#[test]
+fn fn_returning_f32() {
+    assert_snap! {
+        @gen: ts, ir, node, wasm;
+        @category: primitives;
+
+        pub fn foo() -> f32 {
+            1.25
+        }
     }
 }

@@ -3,6 +3,8 @@ import {
   accepts_all_primitives,
   accepts_refs,
   identity_bool,
+  identity_char,
+  identity_f32,
   identity_f64,
   identity_i16,
   identity_i32,
@@ -12,6 +14,8 @@ import {
   identity_u8,
   no_args_no_return,
   return_bool,
+  return_char,
+  return_f32,
   return_f64,
   return_i16,
   return_i32,
@@ -25,7 +29,19 @@ import {
 describe('primitive functions', () => {
   it('accepts all supported primitive parameters', () => {
     expect(
-      accepts_all_primitives(true, 'rust', -8, -16, -32, 8, 16, 32, 64.5),
+      accepts_all_primitives(
+        true,
+        '🦀'.codePointAt(0)!,
+        'rust',
+        -8,
+        -16,
+        -32,
+        8,
+        16,
+        32,
+        32.5,
+        64.5,
+      ),
     ).toBe(true)
   })
 
@@ -51,6 +67,13 @@ describe('primitive functions', () => {
     expect(identity_u32(0)).toBe(0)
     expect(identity_u32(4294967295)).toBe(4294967295)
 
+    expect(identity_char('A'.codePointAt(0)!)).toBe('A'.codePointAt(0))
+    expect(identity_char('🦀'.codePointAt(0)!)).toBe('🦀'.codePointAt(0))
+
+    const f32Value = Math.PI
+    expect(identity_f32(f32Value)).toBe(Math.fround(f32Value))
+    expect(identity_f32(f32Value)).not.toBe(f32Value)
+
     expect(identity_f64(-Number.MAX_VALUE)).toBe(-Number.MAX_VALUE)
     expect(identity_f64(Number.MAX_VALUE)).toBe(Number.MAX_VALUE)
     expect(identity_f64(Number.MIN_VALUE)).toBe(Number.MIN_VALUE)
@@ -61,6 +84,11 @@ describe('primitive functions', () => {
       Number.POSITIVE_INFINITY,
     )
     expect(identity_f64(Number.NaN)).toBeNaN()
+  })
+
+  it('throws when an invalid char code point is passed', () => {
+    expect(() => identity_char(0xd800)).toThrow('invalid char code point')
+    expect(() => identity_char(0x110000)).toThrow('invalid char code point')
   })
 
   it('passes strings with different UTF characters', () => {
@@ -87,6 +115,8 @@ describe('primitive functions', () => {
     expect(return_u8()).toBe(8)
     expect(return_u16()).toBe(16)
     expect(return_u32()).toBe(32)
+    expect(return_char()).toBe('🦀'.codePointAt(0))
+    expect(return_f32()).toBe(Math.fround(32.5))
     expect(return_f64()).toBe(64.5)
   })
 

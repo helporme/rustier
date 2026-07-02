@@ -108,14 +108,12 @@ fn unsupported_param() {
 #[test]
 fn unsupported_primitive_params() {
     let (diags, _) = diag! {
-        pub fn foo(_: char, _: f32, _: i128, _: u128) { todo!() }
+        pub fn foo(_: i128, _: u128) { todo!() }
     };
 
     assert_skipped_fn(
         &diags,
         &[
-            "rust_curse::unsupported_param",
-            "rust_curse::unsupported_param",
             "rust_curse::unsupported_param",
             "rust_curse::unsupported_param",
         ],

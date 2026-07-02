@@ -1,0 +1,77 @@
+---
+source: tests/codegen/fns/primitives.rs
+expression: body
+---
+## Test
+
+```text
+fns_primitives::fn_accepting_char
+```
+
+## Source
+
+```rs
+pub fn foo(value: char) {}
+```
+
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+export function foo(value: number): void;
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [
+        Fn {
+            id: "rustdoc_test_crate::foo",
+            params: [
+                FnParam {
+                    name: "value",
+                    type: char,
+                    mode: Move,
+                },
+            ],
+            return_type: None,
+        },
+    ],
+    submods: [],
+}
+```
+
+## Node Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi_derive::napi;
+
+#[napi(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
+pub fn __cursed_fn__rustdoc_0test_0crate_foo(mut __p__value: u32) -> napi::Result<()> {
+	let __p__value = char::from_u32(__p__value).ok_or_else(|| {
+		napi::Error::from_reason(format!("invalid char code point: {}", __p__value))
+	})?;
+	rustdoc_test_crate::foo(__p__value);
+	Ok(())
+}
+```
+
+## Wasm Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen(js_name = __cursed_fn__rustdoc_0test_0crate_foo)]
+pub fn __cursed_fn__rustdoc_0test_0crate_foo(mut __p__value: u32) -> Result<(), JsValue> {
+	let __p__value = char::from_u32(__p__value).ok_or_else(|| {
+		JsValue::from_str(&format!("invalid char code point: {}", __p__value))
+	})?;
+	rustdoc_test_crate::foo(__p__value);
+	Ok(())
+}
+```

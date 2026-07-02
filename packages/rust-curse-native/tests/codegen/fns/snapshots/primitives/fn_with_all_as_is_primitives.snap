@@ -5,23 +5,13 @@ expression: body
 ## Test
 
 ```text
-fns_primitives::fn_with_all_ref_primitives
+fns_primitives::fn_with_all_as_is_primitives
 ```
 
 ## Source
 
 ```rs
-pub fn foo(
-    a: &bool,
-    c: &str,
-    d: &i8,
-    e: &i16,
-    f: &i32,
-    g: &u8,
-    h: &u16,
-    i: &u32,
-    k: &f64,
-) {}
+pub fn foo(a: bool, c: &str, d: i8, e: i16, f: i32, g: u8, h: u16, i: u32, k: f64) {}
 ```
 
 ## Typescript
@@ -44,7 +34,7 @@ ModDef {
                 FnParam {
                     name: "a",
                     type: bool,
-                    mode: Ref,
+                    mode: Move,
                 },
                 FnParam {
                     name: "c",
@@ -54,37 +44,37 @@ ModDef {
                 FnParam {
                     name: "d",
                     type: i8,
-                    mode: Ref,
+                    mode: Move,
                 },
                 FnParam {
                     name: "e",
                     type: i16,
-                    mode: Ref,
+                    mode: Move,
                 },
                 FnParam {
                     name: "f",
                     type: i32,
-                    mode: Ref,
+                    mode: Move,
                 },
                 FnParam {
                     name: "g",
                     type: u8,
-                    mode: Ref,
+                    mode: Move,
                 },
                 FnParam {
                     name: "h",
                     type: u16,
-                    mode: Ref,
+                    mode: Move,
                 },
                 FnParam {
                     name: "i",
                     type: u32,
-                    mode: Ref,
+                    mode: Move,
                 },
                 FnParam {
                     name: "k",
                     type: f64,
-                    mode: Ref,
+                    mode: Move,
                 },
             ],
             return_type: None,
@@ -113,15 +103,15 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	mut __p__k: f64,
 ) -> napi::Result<()> {
 	rustdoc_test_crate::foo(
-		&__p__a,
+		__p__a,
 		&__p__c,
-		&__p__d,
-		&__p__e,
-		&__p__f,
-		&__p__g,
-		&__p__h,
-		&__p__i,
-		&__p__k,
+		__p__d,
+		__p__e,
+		__p__f,
+		__p__g,
+		__p__h,
+		__p__i,
+		__p__k,
 	);
 	Ok(())
 }
@@ -146,15 +136,15 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	mut __p__k: f64,
 ) -> Result<(), JsValue> {
 	rustdoc_test_crate::foo(
-		&__p__a,
+		__p__a,
 		&__p__c,
-		&__p__d,
-		&__p__e,
-		&__p__f,
-		&__p__g,
-		&__p__h,
-		&__p__i,
-		&__p__k,
+		__p__d,
+		__p__e,
+		__p__f,
+		__p__g,
+		__p__h,
+		__p__i,
+		__p__k,
 	);
 	Ok(())
 }

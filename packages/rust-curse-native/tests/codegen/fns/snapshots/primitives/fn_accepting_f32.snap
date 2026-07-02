@@ -1,0 +1,73 @@
+---
+source: tests/codegen/fns/primitives.rs
+expression: body
+---
+## Test
+
+```text
+fns_primitives::fn_accepting_f32
+```
+
+## Source
+
+```rs
+pub fn foo(value: f32) {}
+```
+
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+export function foo(value: number): void;
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [
+        Fn {
+            id: "rustdoc_test_crate::foo",
+            params: [
+                FnParam {
+                    name: "value",
+                    type: f32,
+                    mode: Move,
+                },
+            ],
+            return_type: None,
+        },
+    ],
+    submods: [],
+}
+```
+
+## Node Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi_derive::napi;
+
+#[napi(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
+pub fn __cursed_fn__rustdoc_0test_0crate_foo(mut __p__value: f64) -> napi::Result<()> {
+	let __p__value = __p__value as f32;
+	rustdoc_test_crate::foo(__p__value);
+	Ok(())
+}
+```
+
+## Wasm Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen(js_name = __cursed_fn__rustdoc_0test_0crate_foo)]
+pub fn __cursed_fn__rustdoc_0test_0crate_foo(mut __p__value: f64) -> Result<(), JsValue> {
+	let __p__value = __p__value as f32;
+	rustdoc_test_crate::foo(__p__value);
+	Ok(())
+}
+```

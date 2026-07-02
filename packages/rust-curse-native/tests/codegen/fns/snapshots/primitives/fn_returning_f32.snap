@@ -1,0 +1,69 @@
+---
+source: tests/codegen/fns/primitives.rs
+expression: body
+---
+## Test
+
+```text
+fns_primitives::fn_returning_f32
+```
+
+## Source
+
+```rs
+pub fn foo() -> f32 {
+    1.25
+}
+```
+
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+export function foo(): number;
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [
+        Fn {
+            id: "rustdoc_test_crate::foo",
+            params: [],
+            return_type: Some(f32),
+        },
+    ],
+    submods: [],
+}
+```
+
+## Node Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi_derive::napi;
+
+#[napi(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
+pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> napi::Result<f64> {
+	let result = rustdoc_test_crate::foo();
+	let result = result as f64;
+	Ok(result)
+}
+```
+
+## Wasm Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen(js_name = __cursed_fn__rustdoc_0test_0crate_foo)]
+pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> Result<f64, JsValue> {
+	let result = rustdoc_test_crate::foo();
+	let result = result as f64;
+	Ok(result)
+}
+```
