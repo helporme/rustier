@@ -4,7 +4,7 @@ use std::path::Path;
 
 use indoc::indoc;
 
-use crate::codegen::{bindings::Api, db::Db};
+use crate::codegen::{api::Api, db::Db};
 
 /// Options used to render `Cargo.toml` contents for the generated cursed crate.
 pub struct ManifestOpts<'a> {
@@ -27,7 +27,7 @@ pub struct ManifestOpts<'a> {
 /// ```
 /// use rust_curse::{
 ///     codegen::{
-///         bindings::{Api, ApiKind, WasmTarget},
+///         api::{Api, ApiKind, WasmTarget},
 ///         db::DbImpl,
 ///     },
 ///     sync::manifest::{render_manifest, ManifestOpts},
@@ -115,7 +115,7 @@ fn escape_toml(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use crate::codegen::{
-        bindings::{ApiKind, WasmTarget},
+        api::{ApiKind, WasmTarget},
         db::DbImpl,
     };
 

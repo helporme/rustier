@@ -1,10 +1,6 @@
 //! Compiles rustdoc into JavaScript that imports bindings.
 
-use crate::codegen::{
-    bindings::{self, Printer},
-    db::Db,
-    rustdoc,
-};
+use crate::codegen::{api::Api, bindings::Printer, db::Db, rustdoc};
 
 /// Compiles a rustdoc module id to JavaScript glue code.
 ///
@@ -12,7 +8,7 @@ use crate::codegen::{
 /// selected bindings API, such as the `package.js` emitted by wasm-bindgen.
 #[salsa::tracked(returns(ref))]
 pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: rustdoc::Id<'db>, src_path: String) -> String {
-    let api = bindings::Api::get(db);
+    let api = Api::get(db);
     let fns = rustdoc::lower_mod_fns(db, mod_id);
 
     let mut out = Printer::default();

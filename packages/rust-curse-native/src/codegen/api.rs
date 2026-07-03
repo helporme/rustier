@@ -25,6 +25,8 @@ pub enum WasmTarget {
     Node,
 }
 
+// todo: split it on multiple files?
+
 impl Api {
     /// Sets the active binding API in the database.
     ///
@@ -32,7 +34,7 @@ impl Api {
     ///
     /// ```
     /// use rust_curse::codegen::{
-    ///     bindings::{Api, ApiKind},
+    ///     api::{Api, ApiKind},
     ///     db::DbImpl,
     /// };
     ///

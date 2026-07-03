@@ -97,17 +97,17 @@ enum BuildArtifacts {
 }
 
 impl ProfileOpts {
-    fn api_kind(&self) -> codegen::bindings::ApiKind {
+    fn api_kind(&self) -> codegen::api::ApiKind {
         match &self.target {
-            ProfileTarget::Wasm { target } => codegen::bindings::ApiKind::Wasm {
+            ProfileTarget::Wasm { target } => codegen::api::ApiKind::Wasm {
                 target: target.into(),
             },
-            ProfileTarget::Node => codegen::bindings::ApiKind::Node,
+            ProfileTarget::Node => codegen::api::ApiKind::Node,
         }
     }
 }
 
-impl From<&WasmTarget> for codegen::bindings::WasmTarget {
+impl From<&WasmTarget> for codegen::api::WasmTarget {
     fn from(target: &WasmTarget) -> Self {
         match target {
             WasmTarget::Web => Self::Web,
@@ -298,7 +298,7 @@ impl Driver {
                 "syncing profile crate"
             );
 
-            codegen::bindings::Api::set(&mut self.db, profile.api_kind());
+            codegen::api::Api::set(&mut self.db, profile.api_kind());
             sync_crate(SyncCrateOps {
                 manifest_path: &manifest_path,
                 out_dir: &profile_crate_dir,
@@ -410,7 +410,7 @@ impl Driver {
 
         trace!(src_path, "resolved profile artifact source path");
 
-        codegen::bindings::Api::set(&mut self.db, api_kind);
+        codegen::api::Api::set(&mut self.db, api_kind);
 
         let module_path = PathBuf::from(&file_path).canonicalize().map_err(|source| {
             ResolveError::CanonicalizeModulePath {

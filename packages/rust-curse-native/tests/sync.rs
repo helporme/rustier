@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, fs};
 
 use rust_curse::{
     codegen::{
-        bindings::{Api, ApiKind, WasmTarget},
+        api::{Api, ApiKind, WasmTarget},
         db::DbImpl,
         rustdoc::{Crate as StoredCrate, RustdocCrates},
     },

@@ -1,5 +1,6 @@
 use crate::codegen::{
-    bindings::{compile_type, Api, Printer},
+    api::Api,
+    bindings::{compile_type, Printer},
     db::Db,
     ir,
 };

@@ -8,7 +8,7 @@ use thiserror::Error;
 use tracing::{debug, info};
 
 use crate::{
-    codegen::{self, bindings::ApiKind},
+    codegen::{self, api::ApiKind},
     sync::{file::write_if_changed, manifest},
     tools::{node, workspace},
 };
@@ -34,7 +34,7 @@ pub struct SyncCrateOps<'a> {
 ///
 /// use rust_curse::{
 ///     codegen::{
-///         bindings::{Api, ApiKind, WasmTarget},
+///         api::{Api, ApiKind, WasmTarget},
 ///         db::DbImpl,
 ///     },
 ///     sync::cursed_crate::{sync_crate, SyncCrateOps},
@@ -80,7 +80,7 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
         "resolved source package metadata"
     );
 
-    let api = codegen::bindings::Api::get(opts.db);
+    let api = codegen::api::Api::get(opts.db);
     let manifest = manifest::render_manifest(
         opts.db,
         manifest::ManifestOpts {

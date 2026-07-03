@@ -1,5 +1,6 @@
 //! Codegen layer
 
+pub mod api;
 pub mod bindings;
 pub mod db;
 pub mod diag;

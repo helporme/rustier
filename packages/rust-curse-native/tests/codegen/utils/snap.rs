@@ -2,7 +2,8 @@
 
 use crate::utils::{diags, ir_debug::DebugRender as _, rustdoc};
 use rust_curse::codegen::{
-    bindings::{self, Api, ApiKind, WasmTarget},
+    api::{Api, ApiKind, WasmTarget},
+    bindings,
     db::Db,
     diag::Theme,
     js,

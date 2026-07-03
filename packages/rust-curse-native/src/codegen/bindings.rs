@@ -1,4 +1,3 @@
-mod api;
 mod fn_;
 mod mod_;
 mod printer;
@@ -9,9 +8,7 @@ pub use mod_::*;
 pub use printer::*;
 pub use type_::*;
 
-pub use api::{Api, ApiKind, WasmTarget};
-
-use crate::codegen::{db::Db, diag::Diag, rustdoc};
+use crate::codegen::{api::Api, db::Db, diag::Diag, rustdoc};
 
 /// Compiles the whole IR into bindings code for the active API.
 pub fn compile(db: &dyn Db) -> String {
