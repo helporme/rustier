@@ -2,9 +2,9 @@ use std::{collections::BTreeMap, fs};
 
 use rust_curse::{
     codegen::{
-        bindings::{Api, WasmTarget},
+        bindings::{Api, ApiKind, WasmTarget},
         db::DbImpl,
-        rustdoc::{Crate as StoredCrate, Input},
+        rustdoc::{Crate as StoredCrate, RustdocCrates},
     },
     sync::{
         cursed_crate::{sync_crate, SyncCrateOps},
@@ -18,12 +18,12 @@ use tempfile::{tempdir, TempDir};
 fn syncs_wasm_crate() {
     let fixture = fixture("sync-crate-wasm", None);
     let out_dir = fixture.dir.path().join(".rust-curse/crates/wasm");
+    let db = empty_db(wasm_api());
 
     let changed = sync_crate(SyncCrateOps {
         manifest_path: &fixture.manifest_path,
         out_dir: &out_dir,
-        api: wasm_api(),
-        db: &empty_db(),
+        db: &db,
     })
     .expect("sync wasm crate");
 
@@ -46,8 +46,7 @@ fn syncs_wasm_crate() {
     let changed = sync_crate(SyncCrateOps {
         manifest_path: &fixture.manifest_path,
         out_dir: &out_dir,
-        api: wasm_api(),
-        db: &empty_db(),
+        db: &db,
     })
     .expect("sync unchanged wasm crate");
 
@@ -58,12 +57,12 @@ fn syncs_wasm_crate() {
 fn syncs_node_crate() {
     let fixture = fixture("sync-crate-node", Some("sync_crate_node_bindings"));
     let out_dir = fixture.dir.path().join(".rust-curse/crates/node");
+    let db = empty_db(ApiKind::Node);
 
     let changed = sync_crate(SyncCrateOps {
         manifest_path: &fixture.manifest_path,
         out_dir: &out_dir,
-        api: Api::Node,
-        db: &empty_db(),
+        db: &db,
     })
     .expect("sync node crate");
 
@@ -92,8 +91,7 @@ fn syncs_node_crate() {
     let changed = sync_crate(SyncCrateOps {
         manifest_path: &fixture.manifest_path,
         out_dir: &out_dir,
-        api: Api::Node,
-        db: &empty_db(),
+        db: &db,
     })
     .expect("sync unchanged node crate");
 
@@ -104,9 +102,9 @@ fn syncs_node_crate() {
 fn syncs_ts_tree_sourcemaps() {
     let fixture = fixture("sync_ts_tree", None);
     let rustdoc = tools::rustdoc::run(&fixture.manifest_path).expect("generate rustdoc");
-    let db = DbImpl::default();
-    Input::new(
-        &db,
+    let mut db = DbImpl::default();
+    RustdocCrates::set(
+        &mut db,
         BTreeMap::from([(
             "sync_ts_tree".to_string(),
             StoredCrate {
@@ -176,14 +174,15 @@ fn fixture(package_name: &str, lib_name: Option<&str>) -> Fixture {
     Fixture { dir, manifest_path }
 }
 
-fn wasm_api() -> Api {
-    Api::Wasm {
+fn wasm_api() -> ApiKind {
+    ApiKind::Wasm {
         target: WasmTarget::Web,
     }
 }
 
-fn empty_db() -> DbImpl {
-    let db = DbImpl::default();
-    Input::new(&db, BTreeMap::<String, StoredCrate>::new());
+fn empty_db(api: ApiKind) -> DbImpl {
+    let mut db = DbImpl::default();
+    Api::set(&mut db, api);
+    RustdocCrates::set(&mut db, BTreeMap::<String, StoredCrate>::new());
     db
 }

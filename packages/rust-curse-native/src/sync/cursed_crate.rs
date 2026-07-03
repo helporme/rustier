@@ -8,7 +8,7 @@ use thiserror::Error;
 use tracing::{debug, info};
 
 use crate::{
-    codegen,
+    codegen::{self, bindings::ApiKind},
     sync::{file::write_if_changed, manifest},
     tools::{node, workspace},
 };
@@ -21,8 +21,6 @@ pub struct SyncCrateOps<'a> {
     /// The path to the directory where the cursed crate will be crated.
     /// e.g. ".rust-curse/crates/"
     pub out_dir: &'a Path,
-    /// The API to use for compiling bindings.
-    pub api: codegen::bindings::Api,
     /// The database for compiling bindings.
     pub db: &'a codegen::db::DbImpl,
 }
@@ -36,19 +34,24 @@ pub struct SyncCrateOps<'a> {
 ///
 /// use rust_curse::{
 ///     codegen::{
-///         bindings::{Api, WasmTarget},
+///         bindings::{Api, ApiKind, WasmTarget},
 ///         db::DbImpl,
 ///     },
 ///     sync::cursed_crate::{sync_crate, SyncCrateOps},
 /// };
 ///
+/// let mut db = DbImpl::default();
+/// Api::set(
+///     &mut db,
+///     ApiKind::Wasm {
+///         target: WasmTarget::Web,
+///     },
+/// );
+///
 /// let changed = sync_crate(SyncCrateOps {
 ///     manifest_path: Path::new("Cargo.toml"),
 ///     out_dir: Path::new(".rust-curse/crates"),
-///     api: Api::Wasm {
-///         target: WasmTarget::Web,
-///     },
-///     db: &DbImpl::default(),
+///     db: &db,
 /// })?;
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -59,7 +62,6 @@ pub struct SyncCrateOps<'a> {
     fields(
         manifest_path = %opts.manifest_path.display(),
         out_dir = %opts.out_dir.display(),
-        api = ?opts.api,
     )
 )]
 pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
@@ -78,18 +80,21 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
         "resolved source package metadata"
     );
 
-    let manifest = manifest::render_manifest(manifest::ManifestOpts {
-        api: opts.api,
-        name: &package.name,
-        version: &package.version,
-        edition: &package.edition,
-        source_crate_name: &package.source_crate_name,
-        source_package_path: &package.source_package_path,
-    });
+    let api = codegen::bindings::Api::get(opts.db);
+    let manifest = manifest::render_manifest(
+        opts.db,
+        manifest::ManifestOpts {
+            name: &package.name,
+            version: &package.version,
+            edition: &package.edition,
+            source_crate_name: &package.source_crate_name,
+            source_package_path: &package.source_package_path,
+        },
+    );
 
     debug!("compiled generated crate manifest");
 
-    let bindings = codegen::bindings::compile(opts.db, opts.api);
+    let bindings = codegen::bindings::compile(opts.db);
     debug!(
         bindings_bytes = bindings.len(),
         "compiled generated bindings"
@@ -101,13 +106,13 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
     changed |= write_file(opts.out_dir.join("Cargo.toml"), manifest)?;
     changed |= write_file(src_dir.join("lib.rs"), bindings)?;
 
-    if let Some(build_script_body) = opts.api.build_script_body() {
+    if let Some(build_script_body) = api.build_script_body(opts.db) {
         debug!("writing generated build script");
         let build_script = format!("fn main() {{\n\t{build_script_body}\n}}\n");
         changed |= write_file(opts.out_dir.join("build.rs"), build_script)?;
     }
 
-    if opts.api == codegen::bindings::Api::Node {
+    if api.kind(opts.db) == ApiKind::Node {
         debug!("ensuring generated Node crate compatibility");
         changed |= node::ensure_node_compat(opts.out_dir)
             .map_err(|source| SyncCrateError::EnsureNodeCompat { source })?;

@@ -16,7 +16,7 @@ use std::{
 
 use miette::Diagnostic;
 use napi_derive::napi;
-use salsa::Setter;
+
 use thiserror::Error;
 use tracing::{debug, info, trace};
 use tracing_subscriber::{fmt::time::ChronoLocal, EnvFilter};
@@ -97,12 +97,12 @@ enum BuildArtifacts {
 }
 
 impl ProfileOpts {
-    fn api(&self) -> codegen::bindings::Api {
+    fn api_kind(&self) -> codegen::bindings::ApiKind {
         match &self.target {
-            ProfileTarget::Wasm { target } => codegen::bindings::Api::Wasm {
+            ProfileTarget::Wasm { target } => codegen::bindings::ApiKind::Wasm {
                 target: target.into(),
             },
-            ProfileTarget::Node => codegen::bindings::Api::Node,
+            ProfileTarget::Node => codegen::bindings::ApiKind::Node,
         }
     }
 }
@@ -257,11 +257,7 @@ impl Driver {
                 dir: package.source_package_path,
             },
         )]);
-        if let Some(input) = codegen::rustdoc::Input::try_get(&self.db) {
-            input.set_crates(&mut self.db).to(crates);
-        } else {
-            codegen::rustdoc::Input::new(&self.db, crates);
-        }
+        codegen::rustdoc::RustdocCrates::set(&mut self.db, crates);
 
         sync_ts_tree(SyncTsTreeOpts {
             our_dir: &types_dir,
@@ -282,6 +278,7 @@ impl Driver {
 
         let mut artifacts_by_profile = HashMap::new();
 
+        // todo: parallel builds
         for profile_name in profile_names {
             info!(
                 profile_name = %profile_name,
@@ -301,10 +298,10 @@ impl Driver {
                 "syncing profile crate"
             );
 
+            codegen::bindings::Api::set(&mut self.db, profile.api_kind());
             sync_crate(SyncCrateOps {
                 manifest_path: &manifest_path,
                 out_dir: &profile_crate_dir,
-                api: profile.api(),
                 db: &self.db,
             })
             .map_err(|source| BuildError::SyncCrate { source })?;
@@ -378,7 +375,7 @@ impl Driver {
     /// Resolves a Rust module import to JavaScript that re-exports generated
     /// bindings for the selected profile.
     #[napi]
-    pub fn resolve(&self, profile_name: String, file_path: String) -> napi::Result<String> {
+    pub fn resolve(&mut self, profile_name: String, file_path: String) -> napi::Result<String> {
         self._resolve(&profile_name, file_path)
             .map_err(|error| napi::Error::from_reason(error.to_string()))
     }
@@ -389,16 +386,17 @@ impl Driver {
         skip(self),
         fields(profile_name = %profile_name, file_path = %file_path)
     )]
-    fn _resolve(&self, profile_name: &str, file_path: String) -> Result<String, ResolveError> {
+    fn _resolve(&mut self, profile_name: &str, file_path: String) -> Result<String, ResolveError> {
         debug!(profile_name, file_path, "resolving Rust module import");
 
-        let profile =
-            self.opts
-                .profiles
-                .get(profile_name)
-                .ok_or_else(|| ResolveError::UnknownProfile {
-                    profile_name: profile_name.to_string(),
-                })?;
+        let api_kind = self
+            .opts
+            .profiles
+            .get(profile_name)
+            .ok_or_else(|| ResolveError::UnknownProfile {
+                profile_name: profile_name.to_string(),
+            })?
+            .api_kind();
 
         let artifacts = self.profile_builds.get(profile_name).ok_or_else(|| {
             ResolveError::MissingProfileBuildArtifacts {
@@ -411,6 +409,8 @@ impl Driver {
         };
 
         trace!(src_path, "resolved profile artifact source path");
+
+        codegen::bindings::Api::set(&mut self.db, api_kind);
 
         let module_path = PathBuf::from(&file_path).canonicalize().map_err(|source| {
             ResolveError::CanonicalizeModulePath {
@@ -442,10 +442,7 @@ impl Driver {
 
             if span_path == module_path {
                 debug!(module_path = %module_path.display(), "resolved Rust module import");
-                return Ok(
-                    codegen::js::compile_mod(&self.db, profile.api(), *mod_id, src_path)
-                        .to_string(),
-                );
+                return Ok(codegen::js::compile_mod(&self.db, *mod_id, src_path).to_string());
             }
         }
 

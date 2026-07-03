@@ -31,7 +31,7 @@ fn id_to_rustdoc_id<'db>(db: &'db dyn Db, id: Id<'db>) -> rustdoc::Id<'db> {
 
 #[salsa::tracked(returns(ref))]
 fn rustdoc_backmap<'db>(db: &'db dyn Db) -> HashMap<Id<'db>, rustdoc::Id<'db>> {
-    let rustdoc = rustdoc::Input::get(db);
+    let rustdoc = rustdoc::RustdocCrates::get(db);
 
     let mut backmap = HashMap::new();
 

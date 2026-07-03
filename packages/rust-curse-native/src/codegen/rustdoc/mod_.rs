@@ -5,7 +5,7 @@ use crate::codegen::{db::Db, diag::DiagAccumulateExt as _, ir, rustdoc};
 /// Returns all rustdoc module IDs available in all crates.
 #[salsa::tracked(returns(ref))]
 pub fn all_mod_ids<'db>(db: &'db dyn Db) -> Vec<rustdoc::Id<'db>> {
-    let rustdoc = rustdoc::Input::get(db);
+    let rustdoc = rustdoc::RustdocCrates::get(db);
 
     let mut mod_ids = Vec::new();
 

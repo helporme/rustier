@@ -4,9 +4,10 @@ use crate::codegen::{
     ir,
 };
 
-/// Compiles [`ir::Fn`] to a function bindings using given API.
+/// Compiles [`ir::Fn`] to function bindings using the active API.
 #[salsa::tracked(returns(ref))]
-pub fn compile_fn(db: &dyn Db, api: Api, fn_: ir::Fn<'_>) -> String {
+pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
+    let api = Api::get(db);
     let mut p = Printer::default();
 
     p.lines(&api.fn_header(db, fn_));
@@ -29,11 +30,11 @@ pub fn compile_fn(db: &dyn Db, api: Api, fn_: ir::Fn<'_>) -> String {
     let ret_ty = fn_.return_type(db).map(|ty| compile_type(&ty));
     match ret_ty {
         Some(ok_ty) => {
-            p.write(&api.result_type(ok_ty));
+            p.write(&api.result_type(db, ok_ty));
             p.write(" ");
             p.curlies(|p| {
                 for param in fn_.params(db) {
-                    p.lines(compile_param_conv(db, api, *param));
+                    p.lines(compile_param_conv(db, *param));
                 }
                 p.lines_fmt(format_args!(
                     "let result = {};",
@@ -46,11 +47,11 @@ pub fn compile_fn(db: &dyn Db, api: Api, fn_: ir::Fn<'_>) -> String {
             });
         }
         None => {
-            p.write(&api.result_type("()"));
+            p.write(&api.result_type(db, "()"));
             p.write(" ");
             p.curlies(|p| {
                 for param in fn_.params(db) {
-                    p.lines(compile_param_conv(db, api, *param));
+                    p.lines(compile_param_conv(db, *param));
                 }
                 p.lines_fmt(format_args!("{};", compile_fn_call_stmt(db, fn_)));
                 p.line("Ok(())");
@@ -64,7 +65,8 @@ pub fn compile_fn(db: &dyn Db, api: Api, fn_: ir::Fn<'_>) -> String {
 /// Compiles Rust boundary conversion statements for a generated binding
 /// parameter.
 #[salsa::tracked(returns(ref))]
-pub fn compile_param_conv<'db>(db: &'db dyn Db, api: Api, param: ir::FnParam<'db>) -> String {
+pub fn compile_param_conv<'db>(db: &'db dyn Db, param: ir::FnParam<'db>) -> String {
+    let api = Api::get(db);
     let mut p = Printer::default();
     let mutable = matches!(param.mode(db), ir::ParamMode::Mut)
         .then_some("mut ")
@@ -80,9 +82,10 @@ pub fn compile_param_conv<'db>(db: &'db dyn Db, api: Api, param: ir::FnParam<'db
             ));
             p.line_fmt(format_args!(
                 "\t{}",
-                api.error(&format!(
-                    "format!(\"invalid char code point: {{}}\", {name})"
-                ))
+                api.error(
+                    db,
+                    &format!("format!(\"invalid char code point: {{}}\", {name})"),
+                )
             ));
             p.line("})?;");
         }

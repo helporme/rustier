@@ -5,7 +5,7 @@ use std::{collections::BTreeMap, fs, path::PathBuf};
 use rust_curse::{
     codegen::{
         db::{Db, DbImpl},
-        rustdoc::{Crate as StoredCrate, Id, Input},
+        rustdoc::{Crate as StoredCrate, Id, RustdocCrates},
     },
     tools::rustdoc,
 };
@@ -63,7 +63,7 @@ pub fn fmt_src(src: &str) -> String {
 }
 
 pub fn db_with_rustdoc(crate_: RustdocCrate, dir: impl Into<PathBuf>) -> DbImpl {
-    let db = DbImpl::default();
+    let mut db = DbImpl::default();
     let crates = BTreeMap::from([(
         TEST_CRATE_NAME.to_string(),
         StoredCrate {
@@ -72,7 +72,7 @@ pub fn db_with_rustdoc(crate_: RustdocCrate, dir: impl Into<PathBuf>) -> DbImpl 
             dir: dir.into(),
         },
     )]);
-    Input::new(&db, crates);
+    RustdocCrates::set(&mut db, crates);
     db
 }
 

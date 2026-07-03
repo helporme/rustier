@@ -2,6 +2,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 use crate::codegen::db::Db;
 use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, Type};
+use salsa::Setter;
 
 mod fn_;
 mod mod_;
@@ -12,12 +13,35 @@ pub use mod_::*;
 pub use type_::*;
 
 #[salsa::input(singleton)]
-pub struct Input {
+pub struct RustdocCrates {
     #[returns(ref)]
     pub crates: BTreeMap<String, Crate>,
 }
 
-impl Input {
+impl RustdocCrates {
+    /// Sets the active rustdoc crates in the database.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::collections::BTreeMap;
+    ///
+    /// use rust_curse::codegen::{db::DbImpl, rustdoc::RustdocCrates};
+    ///
+    /// let mut db = DbImpl::default();
+    /// RustdocCrates::set(&mut db, BTreeMap::new());
+    ///
+    /// assert!(RustdocCrates::get(&db).crates(&db).is_empty());
+    /// ```
+    pub fn set(db: &mut crate::codegen::db::DbImpl, crates: BTreeMap<String, Crate>) -> Self {
+        if let Some(rustdoc) = Self::try_get(db) {
+            rustdoc.set_crates(db).to(crates);
+            rustdoc
+        } else {
+            Self::new(db, crates)
+        }
+    }
+
     pub fn crate_data<'db>(&self, db: &'db dyn Db, name: &str) -> Option<&'db Crate> {
         self.crates(db).get(name)
     }
@@ -39,7 +63,7 @@ pub struct RustdocType<'db> {
 impl<'db> RustdocType<'db> {
     /// Find the crate data where this type is defined.
     pub fn crate_data(&self, db: &'db dyn Db) -> &'db Crate {
-        let rustdoc = Input::get(db);
+        let rustdoc = RustdocCrates::get(db);
         rustdoc.crate_data(db, self.crate_name(db)).unwrap()
     }
 
@@ -70,7 +94,7 @@ impl<'db> Id<'db> {
 
     /// Find the crate data where this item with this id is defined.
     pub fn crate_(&self, db: &'db dyn Db) -> &'db Crate {
-        let rustdoc = Input::get(db);
+        let rustdoc = RustdocCrates::get(db);
         rustdoc
             .crate_data(db, self.crate_name(db))
             .expect("crate not found")

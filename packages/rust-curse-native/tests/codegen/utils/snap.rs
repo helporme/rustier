@@ -2,7 +2,7 @@
 
 use crate::utils::{diags, ir_debug::DebugRender as _, rustdoc};
 use rust_curse::codegen::{
-    bindings::{self, Api, WasmTarget},
+    bindings::{self, Api, ApiKind, WasmTarget},
     db::Db,
     diag::Theme,
     js,
@@ -15,10 +15,7 @@ use rustdoc_types::{Crate as RustdocCrate, Id as RId};
 /// categories.
 pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
     let fixture = rustdoc::rustdoc_from_src(raw_src);
-    let db = rustdoc::db_with_rustdoc(fixture.crate_.clone(), fixture.crate_dir.clone());
-    let root_id = rustdoc::root_id(&db, &fixture.crate_);
-    let module_ids = all_mod_ids(&db);
-
+    let mut db = rustdoc::db_with_rustdoc(fixture.crate_.clone(), fixture.crate_dir.clone());
     let mut body = String::new();
     let thread = std::thread::current();
     let test_name = thread.name().unwrap_or("<unknown>");
@@ -29,10 +26,12 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
     for category in categories {
         match *category {
             "diags" => {
+                let root_id = rustdoc::root_id(&db, &fixture.crate_);
                 let text = build_diags_body(&db, root_id);
                 push_section(&mut body, "Diagnostics", "text", &text);
             }
             "ir" => {
+                let root_id = rustdoc::root_id(&db, &fixture.crate_);
                 let root_mod = lower_mod(&db, root_id);
                 let text = root_mod.render(&db);
                 let text = if text.trim().is_empty() {
@@ -43,11 +42,12 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
                 push_section(&mut body, "IR", "rs", text);
             }
             "ts" => {
-                let text = build_typescript_body(&db, &fixture.crate_, module_ids);
+                let text = build_typescript_body(&db, &fixture.crate_, all_mod_ids(&db));
                 push_markdown_section(&mut body, "Typescript", &text);
             }
             "js" => {
-                let text = build_javascript_body(&db, &fixture.crate_, module_ids, Api::Node);
+                Api::set(&mut db, ApiKind::Node);
+                let text = build_javascript_body(&db, &fixture.crate_, all_mod_ids(&db));
                 push_markdown_section(&mut body, "Javascript", &text);
             }
             "ts_sourcemap" => {
@@ -55,20 +55,23 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
                     &db,
                     &fixture.crate_,
                     &fixture.crate_dir,
-                    module_ids,
+                    all_mod_ids(&db),
                 );
                 push_markdown_section(&mut body, "Typescript Sourcemap", &text);
             }
             "wasm_web_js" => {
-                let text = build_javascript_body(&db, &fixture.crate_, module_ids, wasm_web_api());
+                Api::set(&mut db, wasm_web_api());
+                let text = build_javascript_body(&db, &fixture.crate_, all_mod_ids(&db));
                 push_markdown_section(&mut body, "Wasm Web Javascript", &text);
             }
             "wasm" => {
-                let text = bindings::compile(&db, wasm_web_api());
+                Api::set(&mut db, wasm_web_api());
+                let text = bindings::compile(&db);
                 push_section(&mut body, "Wasm Bindings", "rs", &text);
             }
             "node" => {
-                let text = bindings::compile(&db, Api::Node);
+                Api::set(&mut db, ApiKind::Node);
+                let text = bindings::compile(&db);
                 push_section(&mut body, "Node Bindings", "rs", &text);
             }
             other => panic!("unknown snapshot category `{other}`"),
@@ -78,8 +81,8 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
     body
 }
 
-fn wasm_web_api() -> Api {
-    Api::Wasm {
+fn wasm_web_api() -> ApiKind {
+    ApiKind::Wasm {
         target: WasmTarget::Web,
     }
 }
@@ -141,16 +144,11 @@ fn build_typescript_sourcemap_body(
     }
 }
 
-fn build_javascript_body(
-    db: &dyn Db,
-    crate_: &RustdocCrate,
-    module_ids: &[Id<'_>],
-    api: Api,
-) -> String {
+fn build_javascript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[Id<'_>]) -> String {
     let mut text = String::new();
 
     for id in module_ids {
-        let js = js::compile_mod(db, api, *id, "./bindings.js".to_string());
+        let js = js::compile_mod(db, *id, "./bindings.js".to_string());
         push_module_code_block(&mut text, db, crate_, *id, "js", js);
     }
 

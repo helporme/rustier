@@ -9,18 +9,19 @@ pub use mod_::*;
 pub use printer::*;
 pub use type_::*;
 
-pub use api::{Api, WasmTarget};
+pub use api::{Api, ApiKind, WasmTarget};
 
 use crate::codegen::{db::Db, diag::Diag, rustdoc};
 
-/// Compiles the whole IR into a bindings code for given API.
-pub fn compile(db: &dyn Db, api: Api) -> String {
+/// Compiles the whole IR into bindings code for the active API.
+pub fn compile(db: &dyn Db) -> String {
+    let api = Api::get(db);
     let mut out = String::new();
     out.push_str("#![allow(non_camel_case_types, non_snake_case)]\n");
-    out.push_str(api.prelude());
+    out.push_str(api.prelude(db));
 
     for mod_id in rustdoc::all_mod_ids(db) {
-        let compiled = compile_mod(db, api, *mod_id);
+        let compiled = compile_mod(db, *mod_id);
         if compiled.trim().is_empty() {
             continue;
         }
