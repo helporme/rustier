@@ -120,6 +120,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Fn
     Ok(ir::Fn::new(db, id, params, ret_type, item.docs.clone()))
 }
 
+/// Emits a warning in case function accepts or returns f32 type.
 fn analyze_f32_percission_los(
     db: &dyn Db,
     id: Id<'_>,

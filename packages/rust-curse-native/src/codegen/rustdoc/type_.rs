@@ -44,7 +44,7 @@ pub fn lower_type<'db>(
             let inner = match lower_type(db, crate_.ty(db, type_)) {
                 Ok(LoweredType::Moved(inner)) => Some(inner),
                 Ok(LoweredType::Borrowed { .. }) => {
-                    diags.push(TypeLowerError::UnsupportedNestedRef);
+                    diags.push(TypeLowerError::UnsupportedDoubleReference);
                     None
                 }
                 Err(inner_diags) => {
@@ -102,11 +102,11 @@ pub enum TypeLowerError {
     #[diagnostic(code(rust_curse::unsupported_lifetime_ref), severity(Warning))]
     UnsupportedLifetimeRef,
 
-    #[error("nested references are not supported")]
+    #[error("double references are not supported")]
     #[diagnostic(
-        code(rust_curse::unsupported_nested_ref),
+        code(rust_curse::unsupported_double_reference),
         help("use a single reference instead of a double reference"),
         severity(Warning)
     )]
-    UnsupportedNestedRef,
+    UnsupportedDoubleReference,
 }
