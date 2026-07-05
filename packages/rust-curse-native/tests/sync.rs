@@ -110,7 +110,7 @@ fn syncs_ts_tree_sourcemaps() {
             StoredCrate {
                 body: rustdoc,
                 is_external: false,
-                dir: fixture.dir.path().to_path_buf(),
+                dir: fixture.dir.path().canonicalize().unwrap(),
             },
         )]),
     );
