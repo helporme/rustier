@@ -1,6 +1,12 @@
 use std::collections::HashSet;
 
-use crate::codegen::{api::Api, bindings::Printer, db::Db, ir, rustdoc};
+use crate::codegen::{
+    api::Api,
+    bindings::Printer,
+    db::Db,
+    ir::{self, Primitive::Str, Type::Primitive},
+    rustdoc,
+};
 
 /// Compiles shared JavaScript-to-Rust cast helpers used by generated bindings.
 #[salsa::tracked(returns(ref))]
@@ -59,7 +65,7 @@ fn compile_cast_fn(db: &dyn Db, type_: ir::Type) -> String {
         "fn {}(value: {}) -> Result<{}, String> ",
         type_.cast_fn_name(),
         api.js_type(db),
-        type_.rs_name()
+        compile_cast_res(type_)
     ));
     out.curlies(|p| {
         p.lines(&compile_cast_body(db, type_));
@@ -67,6 +73,13 @@ fn compile_cast_fn(db: &dyn Db, type_: ir::Type) -> String {
 
     out.blank();
     out.into()
+}
+
+fn compile_cast_res(type_: ir::Type) -> &'static str {
+    match type_ {
+        ir::Type::Primitive(ir::Primitive::Str) => "String",
+        ir::Type::Primitive(primitive) => primitive.rs_name(),
+    }
 }
 
 fn compile_cast_body(db: &dyn Db, type_: ir::Type) -> String {

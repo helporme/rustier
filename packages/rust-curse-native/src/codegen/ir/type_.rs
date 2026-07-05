@@ -22,7 +22,7 @@ pub enum Primitive {
 }
 
 impl Primitive {
-    /// Returns this primitive's Rust source name.
+    /// Returns this primitive's Rust source name for diagnostics.
     ///
     /// # Example
     ///
@@ -35,7 +35,7 @@ impl Primitive {
         match self {
             Primitive::Boolean => "bool",
             Primitive::Char => "char",
-            Primitive::Str => "String",
+            Primitive::Str => "str",
             Primitive::i8 => "i8",
             Primitive::u8 => "u8",
             Primitive::i16 => "i16",
@@ -47,7 +47,7 @@ impl Primitive {
         }
     }
 
-    /// Returns this primitive's JavaScript source name.
+    /// Returns this primitive's JavaScript source name for diagnostics.
     ///
     /// # Example
     ///
@@ -72,7 +72,8 @@ impl Primitive {
         }
     }
 
-    /// Returns the generated cast helper function name for this primitive.
+    /// Returns the generated cast helper function name for this primitive for
+    /// diagnostics.
     ///
     /// # Example
     ///
@@ -101,7 +102,7 @@ impl Primitive {
 }
 
 impl Type {
-    /// Returns this type's Rust source name.
+    /// Returns this type's Rust source name for diagnostics.
     ///
     /// # Example
     ///
