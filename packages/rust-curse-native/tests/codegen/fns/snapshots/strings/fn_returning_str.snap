@@ -1,0 +1,45 @@
+---
+source: tests/codegen/fns/strings.rs
+expression: body
+---
+## Test
+
+```text
+fns_strings::fn_returning_str
+```
+
+## Source
+
+```rs
+pub fn foo() -> &'static str {
+    "Hi"
+}
+```
+
+## Typescript
+
+None
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    submods: [],
+}
+```
+
+## Node Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi_derive::napi;
+```
+
+## Wasm Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+```

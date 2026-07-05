@@ -5,7 +5,7 @@ expression: body
 ## Test
 
 ```text
-fns_primitives::fn_returning_as_is_primitives
+fns_primitives::fn_returning_as_is_primitive
 ```
 
 ## Source

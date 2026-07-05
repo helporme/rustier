@@ -11,7 +11,6 @@ fn fn_with_all_as_is_primitives() {
 
         pub fn foo(
             a: bool,
-            c: &str,
             d: i8,
             e: i16,
             f: i32,
@@ -30,7 +29,6 @@ fn fn_with_all_ref_as_is_primitives() {
 
         pub fn foo(
             a: &bool,
-            c: &str,
             d: &i8,
             e: &i16,
             f: &i32,
@@ -50,7 +48,6 @@ fn fn_with_all_mut_ref_as_is_primitives() {
 
         pub fn foo(
             a: &mut bool,
-            c: &mut str,
             d: &mut i8,
             e: &mut i16,
             f: &mut i32,
@@ -63,7 +60,7 @@ fn fn_with_all_mut_ref_as_is_primitives() {
 }
 
 #[test]
-fn fn_returning_as_is_primitives() {
+fn fn_returning_as_is_primitive() {
     assert_snap! {
         @gen: ts, ir, node, wasm;
         @category: primitives;

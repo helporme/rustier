@@ -11,7 +11,7 @@ fns_primitives::fn_with_all_as_is_primitives
 ## Source
 
 ```rs
-pub fn foo(a: bool, c: &str, d: i8, e: i16, f: i32, g: u8, h: u16, i: u32, k: f64) {}
+pub fn foo(a: bool, d: i8, e: i16, f: i32, g: u8, h: u16, i: u32, k: f64) {}
 ```
 
 ## Typescript
@@ -19,7 +19,7 @@ pub fn foo(a: bool, c: &str, d: i8, e: i16, f: i32, g: u8, h: u16, i: u32, k: f6
 for `rustdoc_test_crate`:
 
 ```ts
-export function foo(a: boolean, c: string, d: number, e: number, f: number, g: number, h: number, i: number, k: number): void;
+export function foo(a: boolean, d: number, e: number, f: number, g: number, h: number, i: number, k: number): void;
 ```
 
 ## IR
@@ -35,11 +35,6 @@ ModDef {
                     name: "a",
                     type: bool,
                     mode: Move,
-                },
-                FnParam {
-                    name: "c",
-                    type: str,
-                    mode: Ref,
                 },
                 FnParam {
                     name: "d",
@@ -99,16 +94,6 @@ fn __cast_bool(value: Unknown<'_>) -> Result<bool, String> {
 	else
 	{
 		Err("cannot cast value to bool".to_string())
-	}
-}
-fn __cast_String(value: Unknown<'_>) -> Result<String, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::String
-	{
-		unsafe { value.cast::<String>() }.map_err(|_| "cannot cast value to String".to_string())
-	}
-	else
-	{
-		Err("cannot cast value to String".to_string())
 	}
 }
 fn __cast_f64(value: Unknown<'_>) -> Result<f64, String> {
@@ -173,7 +158,6 @@ fn __cast_u32(value: Unknown<'_>) -> Result<u32, String> {
 #[napi(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__a: Unknown<'_>,
-	__p__c: Unknown<'_>,
 	__p__d: Unknown<'_>,
 	__p__e: Unknown<'_>,
 	__p__f: Unknown<'_>,
@@ -183,7 +167,6 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__k: Unknown<'_>,
 ) -> napi::Result<()> {
 	let __p__a = __cast_bool(__p__a).map_err(|err| napi::Error::from_reason(format!("Invalid argument `a` passed to `foo`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-	let __p__c = __cast_String(__p__c).map_err(|err| napi::Error::from_reason(format!("Invalid argument `c` passed to `foo`: expected Rust `str` from a JavaScript string: {}", err)))?;
 	let __p__d = __cast_i8(__p__d).map_err(|err| napi::Error::from_reason(format!("Invalid argument `d` passed to `foo`: expected Rust `i8` from a JavaScript number: {}", err)))?;
 	let __p__e = __cast_i16(__p__e).map_err(|err| napi::Error::from_reason(format!("Invalid argument `e` passed to `foo`: expected Rust `i16` from a JavaScript number: {}", err)))?;
 	let __p__f = __cast_i32(__p__f).map_err(|err| napi::Error::from_reason(format!("Invalid argument `f` passed to `foo`: expected Rust `i32` from a JavaScript number: {}", err)))?;
@@ -193,7 +176,6 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	let __p__k = __cast_f64(__p__k).map_err(|err| napi::Error::from_reason(format!("Invalid argument `k` passed to `foo`: expected Rust `f64` from a JavaScript number: {}", err)))?;
 	rustdoc_test_crate::foo(
 		__p__a,
-		&__p__c,
 		__p__d,
 		__p__e,
 		__p__f,
@@ -214,9 +196,6 @@ use wasm_bindgen::prelude::*;
 
 fn __cast_bool(value: JsValue) -> Result<bool, String> {
 	value.as_bool().ok_or_else(|| "cannot cast value to bool".to_string())
-}
-fn __cast_String(value: JsValue) -> Result<String, String> {
-	value.as_string().ok_or_else(|| "cannot cast value to String".to_string())
 }
 fn __cast_f64(value: JsValue) -> Result<f64, String> {
 	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
@@ -273,7 +252,6 @@ fn __cast_u32(value: JsValue) -> Result<u32, String> {
 #[wasm_bindgen(js_name = __cursed_fn__rustdoc_0test_0crate_foo)]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__a: JsValue,
-	__p__c: JsValue,
 	__p__d: JsValue,
 	__p__e: JsValue,
 	__p__f: JsValue,
@@ -283,7 +261,6 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__k: JsValue,
 ) -> Result<(), JsValue> {
 	let __p__a = __cast_bool(__p__a).map_err(|err| JsValue::from_str(&format!("Invalid argument `a` passed to `foo`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-	let __p__c = __cast_String(__p__c).map_err(|err| JsValue::from_str(&format!("Invalid argument `c` passed to `foo`: expected Rust `str` from a JavaScript string: {}", err)))?;
 	let __p__d = __cast_i8(__p__d).map_err(|err| JsValue::from_str(&format!("Invalid argument `d` passed to `foo`: expected Rust `i8` from a JavaScript number: {}", err)))?;
 	let __p__e = __cast_i16(__p__e).map_err(|err| JsValue::from_str(&format!("Invalid argument `e` passed to `foo`: expected Rust `i16` from a JavaScript number: {}", err)))?;
 	let __p__f = __cast_i32(__p__f).map_err(|err| JsValue::from_str(&format!("Invalid argument `f` passed to `foo`: expected Rust `i32` from a JavaScript number: {}", err)))?;
@@ -293,7 +270,6 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	let __p__k = __cast_f64(__p__k).map_err(|err| JsValue::from_str(&format!("Invalid argument `k` passed to `foo`: expected Rust `f64` from a JavaScript number: {}", err)))?;
 	rustdoc_test_crate::foo(
 		__p__a,
-		&__p__c,
 		__p__d,
 		__p__e,
 		__p__f,

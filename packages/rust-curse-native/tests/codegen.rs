@@ -12,6 +12,9 @@ mod fns_primitives;
 #[path = "codegen/fns/sourcemap.rs"]
 mod fns_sourcemap;
 
+#[path = "codegen/fns/strings.rs"]
+mod fns_strings;
+
 #[path = "codegen/mods/docs.rs"]
 mod mods_docs;
 
