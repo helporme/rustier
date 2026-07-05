@@ -4,6 +4,7 @@ use crate::codegen::ir;
 pub fn compile_type(type_: &ir::Type) -> &'static str {
     match type_ {
         ir::Type::Primitive(primitive) => compile_primitive(*primitive),
+        ir::Type::Str => "String",
     }
 }
 
@@ -11,7 +12,6 @@ pub fn compile_type(type_: &ir::Type) -> &'static str {
 pub fn compile_primitive(primitive: ir::Primitive) -> &'static str {
     match primitive {
         ir::Primitive::Boolean => "bool",
-        ir::Primitive::Str => "String",
         ir::Primitive::i8 => "i8",
         ir::Primitive::u8 => "u8",
         ir::Primitive::i16 => "i16",

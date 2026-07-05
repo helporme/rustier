@@ -62,13 +62,13 @@ fn compile_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
 fn compile_type(type_: &Type) -> &'static str {
     match type_ {
         Type::Primitive(primitive) => compile_primitive(*primitive),
+        Type::Str => "string",
     }
 }
 
 fn compile_primitive(primitive: Primitive) -> &'static str {
     match primitive {
         Primitive::Boolean => "boolean",
-        Primitive::Str => "string",
         Primitive::i8
         | Primitive::u8
         | Primitive::i16

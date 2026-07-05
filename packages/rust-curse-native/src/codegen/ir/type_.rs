@@ -2,6 +2,7 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum Type {
     Primitive(Primitive),
+    Str,
 }
 
 /// A primitive type.
@@ -10,7 +11,6 @@ pub enum Type {
 pub enum Primitive {
     Boolean,
     Char,
-    Str,
     i8,
     u8,
     i16,
@@ -29,13 +29,12 @@ impl Primitive {
     /// ```
     /// use rust_curse::codegen::ir::Primitive;
     ///
-    /// assert_eq!(Primitive::Str.rs_name(), "str");
+    /// assert_eq!(Primitive::i8.rs_name(), "i8");
     /// ```
     pub fn rs_name(&self) -> &'static str {
         match self {
             Primitive::Boolean => "bool",
             Primitive::Char => "char",
-            Primitive::Str => "str",
             Primitive::i8 => "i8",
             Primitive::u8 => "u8",
             Primitive::i16 => "i16",
@@ -68,7 +67,6 @@ impl Primitive {
             | Primitive::u32
             | Primitive::f32
             | Primitive::f64 => "number",
-            Primitive::Str => "string",
         }
     }
 
@@ -78,17 +76,14 @@ impl Primitive {
     /// # Example
     ///
     /// ```
-    /// use rust_curse::codegen::{db::DbImpl, ir::Primitive};
+    /// use rust_curse::codegen::ir::Primitive;
     ///
-    /// let db = DbImpl::default();
-    ///
-    /// assert_eq!(Primitive::f64.cast_fn_name(&db), "__cast_f64");
+    /// assert_eq!(Primitive::f64.cast_fn_name(), "__cast_f64");
     /// ```
     pub fn cast_fn_name(&self) -> &'static str {
         match self {
             Primitive::Boolean => "__cast_bool",
             Primitive::Char => "__cast_char",
-            Primitive::Str => "__cast_String",
             Primitive::i8 => "__cast_i8",
             Primitive::u8 => "__cast_u8",
             Primitive::i16 => "__cast_i16",
@@ -107,15 +102,16 @@ impl Type {
     /// # Example
     ///
     /// ```
-    /// use rust_curse::codegen::ir::{Primitive, Type};
+    /// use rust_curse::codegen::ir::Type;
     ///
-    /// let type_ = Type::Primitive(Primitive::Str);
+    /// let type_ = Type::Str;
     ///
-    /// assert_eq!(type_.rs_name(), "String");
+    /// assert_eq!(type_.rs_name(), "str");
     /// ```
     pub fn rs_name(&self) -> &'static str {
         match self {
             Type::Primitive(primitive) => primitive.rs_name(),
+            Type::Str => "str",
         }
     }
 
@@ -133,6 +129,7 @@ impl Type {
     pub fn js_name(&self) -> &'static str {
         match self {
             Type::Primitive(primitive) => primitive.js_name(),
+            Type::Str => "string",
         }
     }
 
@@ -141,19 +138,16 @@ impl Type {
     /// # Example
     ///
     /// ```
-    /// use rust_curse::codegen::{
-    ///     db::DbImpl,
-    ///     ir::{Primitive, Type},
-    /// };
+    /// use rust_curse::codegen::ir::{Primitive, Type};
     ///
-    /// let db = DbImpl::default();
     /// let type_ = Type::Primitive(Primitive::f64);
     ///
-    /// assert_eq!(type_.cast_fn_name(&db), "__cast_f64");
+    /// assert_eq!(type_.cast_fn_name(), "__cast_f64");
     /// ```
     pub fn cast_fn_name(&self) -> &'static str {
         match self {
             Type::Primitive(primitive) => primitive.cast_fn_name(),
+            Type::Str => "__cast_String",
         }
     }
 }

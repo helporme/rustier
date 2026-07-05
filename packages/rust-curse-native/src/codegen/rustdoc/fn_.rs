@@ -75,14 +75,27 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Fn
             ),
         };
 
-        if matches!(type_, ir::Type::Primitive(_)) && mode == ir::ParamMode::Mut {
-            let crate_ = id.crate_(db);
-            FnLowerError::PrimitiveMutRefIgnored {
-                name: name.clone(),
-                source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-                span: crate_.read_span_opt(item.span.as_ref()),
+        if mode == ir::ParamMode::Mut {
+            match type_ {
+                ir::Type::Primitive(_) => {
+                    let crate_ = id.crate_(db);
+                    FnLowerError::PrimitiveMutRefIgnored {
+                        name: name.clone(),
+                        source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
+                        span: crate_.read_span_opt(item.span.as_ref()),
+                    }
+                    .accumulate(db);
+                }
+                ir::Type::Str => {
+                    let crate_ = id.crate_(db);
+                    FnLowerError::StringMutRefIgnored {
+                        name: name.clone(),
+                        source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
+                        span: crate_.read_span_opt(item.span.as_ref()),
+                    }
+                    .accumulate(db);
+                }
             }
-            .accumulate(db);
         }
 
         params.push(ir::FnParam::new(db, name.clone(), type_, mode));
@@ -226,7 +239,22 @@ pub enum FnLowerError {
         severity(Warning)
     )]
     PrimitiveMutRefIgnored {
-        /// The name of the parameter that has an unsupported type.
+        /// The name of the parameter that has an ignored mutable reference.
+        name: String,
+        #[source_code]
+        source_code: ir::SourceCode,
+        #[label]
+        span: Option<ir::Span>,
+    },
+
+    #[error("the mutable reference to the string parameter `{name}` does not propagate changes")]
+    #[diagnostic(
+        code(rust_curse::string_mut_ref_ignored),
+        help("string values are copied across the JS boundary, so mutations made in Rust are not reflected in JS"),
+        severity(Warning)
+    )]
+    StringMutRefIgnored {
+        /// The name of the parameter that has an ignored mutable reference.
         name: String,
         #[source_code]
         source_code: ir::SourceCode,

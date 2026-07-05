@@ -163,6 +163,20 @@ fn primitive_mut_ref_ignored() {
 }
 
 #[test]
+fn string_mut_ref_ignored() {
+    let (diags, _) = diag! {
+        pub fn foo(value: &mut str) { value.make_ascii_uppercase(); }
+    };
+
+    assert_eq!(diags.len(), 1);
+    assert_eq!(
+        diag_code(diags[0].inner.as_ref()),
+        "rust_curse::string_mut_ref_ignored"
+    );
+    assert!(related(diags[0].inner.as_ref()).is_empty());
+}
+
+#[test]
 fn f32_param_precision_loss() {
     let (diags, _) = diag! {
         pub fn foo(value: f32) { let _ = value; }
