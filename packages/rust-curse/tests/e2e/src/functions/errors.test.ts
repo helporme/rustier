@@ -6,7 +6,7 @@ import {
   identity_u16,
   identity_u32,
   identity_u8,
-} from '../errors.rs'
+} from './errors.rs'
 
 // we want to specifically check for a concrete message error to make sure that we do not
 // propagate errors from the napi/wasm-bindgen
