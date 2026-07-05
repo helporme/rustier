@@ -4,7 +4,7 @@ use crate::codegen::ir;
 pub fn compile_type(type_: &ir::Type) -> &'static str {
     match type_ {
         ir::Type::Primitive(primitive) => compile_primitive(*primitive),
-        ir::Type::Str => "String",
+        ir::Type::Str | ir::Type::String => "String",
     }
 }
 

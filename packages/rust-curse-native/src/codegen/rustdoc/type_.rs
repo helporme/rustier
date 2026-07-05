@@ -30,6 +30,21 @@ pub fn lower_type<'db>(
                 name: name.clone(),
             }]),
         },
+        Type::ResolvedPath(path) => {
+            let Some(summary) = crate_.paths.get(&path.id) else {
+                return Err(vec![TypeLowerError::UnsupportedType {
+                    type_: type_.clone(),
+                }]);
+            };
+
+            if summary.path == ["alloc", "string", "String"] {
+                Ok(LoweredType::Moved(ir::Type::String))
+            } else {
+                Err(vec![TypeLowerError::UnsupportedType {
+                    type_: type_.clone(),
+                }])
+            }
+        }
         Type::BorrowedRef {
             lifetime,
             is_mutable,

@@ -86,7 +86,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Fn
                     }
                     .accumulate(db);
                 }
-                ir::Type::Str => {
+                ir::Type::Str | ir::Type::String => {
                     let crate_ = id.crate_(db);
                     FnLowerError::StringMutRefIgnored {
                         name: name.clone(),

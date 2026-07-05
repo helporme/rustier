@@ -26,6 +26,7 @@ impl<'db> DebugRender<'db> for ir::Type {
         match self {
             ir::Type::Primitive(primitive) => primitive.render(db),
             ir::Type::Str => "str".to_string(),
+            ir::Type::String => "String".to_string(),
         }
     }
 }

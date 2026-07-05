@@ -29,6 +29,11 @@ fn collect_cast_type(type_: ir::Type, seen: &mut HashSet<ir::Type>, types: &mut 
     }
 
     match type_ {
+        ir::Type::Str => {
+            collect_cast_type(ir::Type::String, seen, types);
+            return; // no need for both str and string, we generate one cast fn
+                    // for both
+        }
         ir::Type::Primitive(ir::Primitive::Char) => {
             // char is casted to/from u32 when passing a js boundary
             collect_cast_type(ir::Type::Primitive(ir::Primitive::u32), seen, types);
@@ -45,7 +50,7 @@ fn collect_cast_type(type_: ir::Type, seen: &mut HashSet<ir::Type>, types: &mut 
             // all "normal" numbers are casted from f64 when passing js border
             collect_cast_type(ir::Type::Primitive(ir::Primitive::f64), seen, types);
         }
-        ir::Type::Primitive(ir::Primitive::Boolean | ir::Primitive::f64) | ir::Type::Str => {}
+        ir::Type::Primitive(ir::Primitive::Boolean | ir::Primitive::f64) | ir::Type::String => {}
     }
 
     types.push(type_);
@@ -72,7 +77,7 @@ fn compile_cast_fn(db: &dyn Db, type_: ir::Type) -> String {
 fn compile_cast_res(type_: ir::Type) -> &'static str {
     match type_ {
         ir::Type::Primitive(primitive) => primitive.rs_name(),
-        ir::Type::Str => "String",
+        ir::Type::Str | ir::Type::String => "String",
     }
 }
 
@@ -82,7 +87,7 @@ fn compile_cast_body(db: &dyn Db, type_: ir::Type) -> String {
     match type_ {
         ir::Type::Primitive(ir::Primitive::Boolean) => api.cast_to_bool(db),
         ir::Type::Primitive(ir::Primitive::Char) => compile_char_cast_body(),
-        ir::Type::Str => api.cast_to_string(db),
+        ir::Type::Str | ir::Type::String => api.cast_to_string(db),
         ir::Type::Primitive(ir::Primitive::i8) => {
             compile_signed_integer_cast_body(ir::Primitive::i8)
         }

@@ -3,6 +3,7 @@
 pub enum Type {
     Primitive(Primitive),
     Str,
+    String,
 }
 
 /// A primitive type.
@@ -104,14 +105,15 @@ impl Type {
     /// ```
     /// use rust_curse::codegen::ir::Type;
     ///
-    /// let type_ = Type::Str;
+    /// let type_ = Type::String;
     ///
-    /// assert_eq!(type_.rs_name(), "str");
+    /// assert_eq!(type_.rs_name(), "String");
     /// ```
     pub fn rs_name(&self) -> &'static str {
         match self {
             Type::Primitive(primitive) => primitive.rs_name(),
             Type::Str => "str",
+            Type::String => "String",
         }
     }
 
@@ -129,7 +131,7 @@ impl Type {
     pub fn js_name(&self) -> &'static str {
         match self {
             Type::Primitive(primitive) => primitive.js_name(),
-            Type::Str => "string",
+            Type::Str | Type::String => "string",
         }
     }
 
@@ -147,7 +149,7 @@ impl Type {
     pub fn cast_fn_name(&self) -> &'static str {
         match self {
             Type::Primitive(primitive) => primitive.cast_fn_name(),
-            Type::Str => "__cast_String",
+            Type::Str | Type::String => "__cast_String",
         }
     }
 }
