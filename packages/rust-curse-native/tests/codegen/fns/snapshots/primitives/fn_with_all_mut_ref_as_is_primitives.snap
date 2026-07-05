@@ -101,117 +101,106 @@ ModDef {
 use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
 
+fn __cast_bool(value: Unknown<'_>) -> Result<bool, String> {
+	if value.get_type().map_err(|err| err.reason)? == ValueType::Boolean
+	{
+		unsafe { value.cast::<bool>() }.map_err(|_| "cannot cast value to bool".to_string())
+	}
+	else
+	{
+		Err("cannot cast value to bool".to_string())
+	}
+}
+fn __cast_String(value: Unknown<'_>) -> Result<String, String> {
+	if value.get_type().map_err(|err| err.reason)? == ValueType::String
+	{
+		unsafe { value.cast::<String>() }.map_err(|_| "cannot cast value to String".to_string())
+	}
+	else
+	{
+		Err("cannot cast value to String".to_string())
+	}
+}
+fn __cast_f64(value: Unknown<'_>) -> Result<f64, String> {
+	if value.get_type().map_err(|err| err.reason)? == ValueType::Number
+	{
+		unsafe { value.cast::<f64>() }.map_err(|_| "cannot cast value to f64".to_string())
+	}
+	else
+	{
+		Err("cannot cast value to f64".to_string())
+	}
+}
+fn __cast_i8(value: Unknown<'_>) -> Result<i8, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to i8".to_string())?;
+	if value.trunc() != value || value < i8::MIN as f64 || value > i8::MAX as f64
+	{
+		return Err(format!("cannot cast {} to i8", value));
+	}
+	Ok(value as i8)
+}
+fn __cast_i16(value: Unknown<'_>) -> Result<i16, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to i16".to_string())?;
+	if value.trunc() != value || value < i16::MIN as f64 || value > i16::MAX as f64
+	{
+		return Err(format!("cannot cast {} to i16", value));
+	}
+	Ok(value as i16)
+}
+fn __cast_i32(value: Unknown<'_>) -> Result<i32, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to i32".to_string())?;
+	if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64
+	{
+		return Err(format!("cannot cast {} to i32", value));
+	}
+	Ok(value as i32)
+}
+fn __cast_u8(value: Unknown<'_>) -> Result<u8, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u8".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u8::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u8", value));
+	}
+	Ok(value as u8)
+}
+fn __cast_u16(value: Unknown<'_>) -> Result<u16, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u16".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u16::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u16", value));
+	}
+	Ok(value as u16)
+}
+fn __cast_u32(value: Unknown<'_>) -> Result<u32, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u32".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u32", value));
+	}
+	Ok(value as u32)
+}
+
 #[napi(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
-	mut __p__a: Unknown<'_>,
-	mut __p__c: Unknown<'_>,
-	mut __p__d: Unknown<'_>,
-	mut __p__e: Unknown<'_>,
-	mut __p__f: Unknown<'_>,
-	mut __p__g: Unknown<'_>,
-	mut __p__h: Unknown<'_>,
-	mut __p__i: Unknown<'_>,
-	mut __p__k: Unknown<'_>,
+	__p__a: Unknown<'_>,
+	__p__c: Unknown<'_>,
+	__p__d: Unknown<'_>,
+	__p__e: Unknown<'_>,
+	__p__f: Unknown<'_>,
+	__p__g: Unknown<'_>,
+	__p__h: Unknown<'_>,
+	__p__i: Unknown<'_>,
+	__p__k: Unknown<'_>,
 ) -> napi::Result<()> {
-	let mut __p__a = if __p__a.get_type()? == ValueType::Boolean {
-		unsafe { __p__a.cast::<bool>() }.map_err(|_| {
-			napi::Error::from_reason(
-				"Invalid argument `a` passed to `foo`: expected Rust `bool` from a JavaScript boolean.",
-			)
-		})?
-	} else {
-		return Err(napi::Error::from_reason(
-			"Invalid argument `a` passed to `foo`: expected Rust `bool` from a JavaScript boolean.",
-		));
-	};
-	let mut __p__c = if __p__c.get_type()? == ValueType::String {
-		unsafe { __p__c.cast::<String>() }.map_err(|_| {
-			napi::Error::from_reason(
-				"Invalid argument `c` passed to `foo`: expected Rust `str` from a JavaScript string.",
-			)
-		})?
-	} else {
-		return Err(napi::Error::from_reason(
-			"Invalid argument `c` passed to `foo`: expected Rust `str` from a JavaScript string.",
-		));
-	};
-	let mut __p__d = if __p__d.get_type()? == ValueType::Number {
-		unsafe { __p__d.cast::<i8>() }.map_err(|_| {
-			napi::Error::from_reason(
-				"Invalid argument `d` passed to `foo`: expected Rust `i8` from a JavaScript number.",
-			)
-		})?
-	} else {
-		return Err(napi::Error::from_reason(
-			"Invalid argument `d` passed to `foo`: expected Rust `i8` from a JavaScript number.",
-		));
-	};
-	let mut __p__e = if __p__e.get_type()? == ValueType::Number {
-		unsafe { __p__e.cast::<i16>() }.map_err(|_| {
-			napi::Error::from_reason(
-				"Invalid argument `e` passed to `foo`: expected Rust `i16` from a JavaScript number.",
-			)
-		})?
-	} else {
-		return Err(napi::Error::from_reason(
-			"Invalid argument `e` passed to `foo`: expected Rust `i16` from a JavaScript number.",
-		));
-	};
-	let mut __p__f = if __p__f.get_type()? == ValueType::Number {
-		unsafe { __p__f.cast::<i32>() }.map_err(|_| {
-			napi::Error::from_reason(
-				"Invalid argument `f` passed to `foo`: expected Rust `i32` from a JavaScript number.",
-			)
-		})?
-	} else {
-		return Err(napi::Error::from_reason(
-			"Invalid argument `f` passed to `foo`: expected Rust `i32` from a JavaScript number.",
-		));
-	};
-	let mut __p__g = if __p__g.get_type()? == ValueType::Number {
-		unsafe { __p__g.cast::<u8>() }.map_err(|_| {
-			napi::Error::from_reason(
-				"Invalid argument `g` passed to `foo`: expected Rust `u8` from a JavaScript number.",
-			)
-		})?
-	} else {
-		return Err(napi::Error::from_reason(
-			"Invalid argument `g` passed to `foo`: expected Rust `u8` from a JavaScript number.",
-		));
-	};
-	let mut __p__h = if __p__h.get_type()? == ValueType::Number {
-		unsafe { __p__h.cast::<u16>() }.map_err(|_| {
-			napi::Error::from_reason(
-				"Invalid argument `h` passed to `foo`: expected Rust `u16` from a JavaScript number.",
-			)
-		})?
-	} else {
-		return Err(napi::Error::from_reason(
-			"Invalid argument `h` passed to `foo`: expected Rust `u16` from a JavaScript number.",
-		));
-	};
-	let mut __p__i = if __p__i.get_type()? == ValueType::Number {
-		unsafe { __p__i.cast::<u32>() }.map_err(|_| {
-			napi::Error::from_reason(
-				"Invalid argument `i` passed to `foo`: expected Rust `u32` from a JavaScript number.",
-			)
-		})?
-	} else {
-		return Err(napi::Error::from_reason(
-			"Invalid argument `i` passed to `foo`: expected Rust `u32` from a JavaScript number.",
-		));
-	};
-	let mut __p__k = if __p__k.get_type()? == ValueType::Number {
-		unsafe { __p__k.cast::<f64>() }.map_err(|_| {
-			napi::Error::from_reason(
-				"Invalid argument `k` passed to `foo`: expected Rust `f64` from a JavaScript number.",
-			)
-		})?
-	} else {
-		return Err(napi::Error::from_reason(
-			"Invalid argument `k` passed to `foo`: expected Rust `f64` from a JavaScript number.",
-		));
-	};
+	let mut __p__a = __cast_bool(__p__a).map_err(|err| napi::Error::from_reason(format!("Invalid argument `a` passed to `foo`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
+	let mut __p__c = __cast_String(__p__c).map_err(|err| napi::Error::from_reason(format!("Invalid argument `c` passed to `foo`: expected Rust `String` from a JavaScript string: {}", err)))?;
+	let mut __p__d = __cast_i8(__p__d).map_err(|err| napi::Error::from_reason(format!("Invalid argument `d` passed to `foo`: expected Rust `i8` from a JavaScript number: {}", err)))?;
+	let mut __p__e = __cast_i16(__p__e).map_err(|err| napi::Error::from_reason(format!("Invalid argument `e` passed to `foo`: expected Rust `i16` from a JavaScript number: {}", err)))?;
+	let mut __p__f = __cast_i32(__p__f).map_err(|err| napi::Error::from_reason(format!("Invalid argument `f` passed to `foo`: expected Rust `i32` from a JavaScript number: {}", err)))?;
+	let mut __p__g = __cast_u8(__p__g).map_err(|err| napi::Error::from_reason(format!("Invalid argument `g` passed to `foo`: expected Rust `u8` from a JavaScript number: {}", err)))?;
+	let mut __p__h = __cast_u16(__p__h).map_err(|err| napi::Error::from_reason(format!("Invalid argument `h` passed to `foo`: expected Rust `u16` from a JavaScript number: {}", err)))?;
+	let mut __p__i = __cast_u32(__p__i).map_err(|err| napi::Error::from_reason(format!("Invalid argument `i` passed to `foo`: expected Rust `u32` from a JavaScript number: {}", err)))?;
+	let mut __p__k = __cast_f64(__p__k).map_err(|err| napi::Error::from_reason(format!("Invalid argument `k` passed to `foo`: expected Rust `f64` from a JavaScript number: {}", err)))?;
 	rustdoc_test_crate::foo(
 		&mut __p__a,
 		&mut __p__c,
@@ -233,63 +222,85 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 #![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 
+fn __cast_bool(value: JsValue) -> Result<bool, String> {
+	value.as_bool().ok_or_else(|| "cannot cast value to bool".to_string())
+}
+fn __cast_String(value: JsValue) -> Result<String, String> {
+	value.as_string().ok_or_else(|| "cannot cast value to String".to_string())
+}
+fn __cast_f64(value: JsValue) -> Result<f64, String> {
+	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
+}
+fn __cast_i8(value: JsValue) -> Result<i8, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to i8".to_string())?;
+	if value.trunc() != value || value < i8::MIN as f64 || value > i8::MAX as f64
+	{
+		return Err(format!("cannot cast {} to i8", value));
+	}
+	Ok(value as i8)
+}
+fn __cast_i16(value: JsValue) -> Result<i16, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to i16".to_string())?;
+	if value.trunc() != value || value < i16::MIN as f64 || value > i16::MAX as f64
+	{
+		return Err(format!("cannot cast {} to i16", value));
+	}
+	Ok(value as i16)
+}
+fn __cast_i32(value: JsValue) -> Result<i32, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to i32".to_string())?;
+	if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64
+	{
+		return Err(format!("cannot cast {} to i32", value));
+	}
+	Ok(value as i32)
+}
+fn __cast_u8(value: JsValue) -> Result<u8, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u8".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u8::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u8", value));
+	}
+	Ok(value as u8)
+}
+fn __cast_u16(value: JsValue) -> Result<u16, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u16".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u16::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u16", value));
+	}
+	Ok(value as u16)
+}
+fn __cast_u32(value: JsValue) -> Result<u32, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u32".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u32", value));
+	}
+	Ok(value as u32)
+}
+
 #[wasm_bindgen(js_name = __cursed_fn__rustdoc_0test_0crate_foo)]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
-	mut __p__a: JsValue,
-	mut __p__c: JsValue,
-	mut __p__d: JsValue,
-	mut __p__e: JsValue,
-	mut __p__f: JsValue,
-	mut __p__g: JsValue,
-	mut __p__h: JsValue,
-	mut __p__i: JsValue,
-	mut __p__k: JsValue,
+	__p__a: JsValue,
+	__p__c: JsValue,
+	__p__d: JsValue,
+	__p__e: JsValue,
+	__p__f: JsValue,
+	__p__g: JsValue,
+	__p__h: JsValue,
+	__p__i: JsValue,
+	__p__k: JsValue,
 ) -> Result<(), JsValue> {
-	let mut __p__a = __p__a.as_bool().ok_or_else(|| {
-		JsValue::from_str(
-			"Invalid argument `a` passed to `foo`: expected Rust `bool` from a JavaScript boolean.",
-		)
-	})?;
-	let mut __p__c = __p__c.as_string().ok_or_else(|| {
-		JsValue::from_str(
-			"Invalid argument `c` passed to `foo`: expected Rust `str` from a JavaScript string.",
-		)
-	})?;
-	let mut __p__d = __p__d.as_f64().ok_or_else(|| {
-		JsValue::from_str(
-			"Invalid argument `d` passed to `foo`: expected Rust `i8` from a JavaScript number.",
-		)
-	})? as i8;
-	let mut __p__e = __p__e.as_f64().ok_or_else(|| {
-		JsValue::from_str(
-			"Invalid argument `e` passed to `foo`: expected Rust `i16` from a JavaScript number.",
-		)
-	})? as i16;
-	let mut __p__f = __p__f.as_f64().ok_or_else(|| {
-		JsValue::from_str(
-			"Invalid argument `f` passed to `foo`: expected Rust `i32` from a JavaScript number.",
-		)
-	})? as i32;
-	let mut __p__g = __p__g.as_f64().ok_or_else(|| {
-		JsValue::from_str(
-			"Invalid argument `g` passed to `foo`: expected Rust `u8` from a JavaScript number.",
-		)
-	})? as u8;
-	let mut __p__h = __p__h.as_f64().ok_or_else(|| {
-		JsValue::from_str(
-			"Invalid argument `h` passed to `foo`: expected Rust `u16` from a JavaScript number.",
-		)
-	})? as u16;
-	let mut __p__i = __p__i.as_f64().ok_or_else(|| {
-		JsValue::from_str(
-			"Invalid argument `i` passed to `foo`: expected Rust `u32` from a JavaScript number.",
-		)
-	})? as u32;
-	let mut __p__k = __p__k.as_f64().ok_or_else(|| {
-		JsValue::from_str(
-			"Invalid argument `k` passed to `foo`: expected Rust `f64` from a JavaScript number.",
-		)
-	})?;
+	let mut __p__a = __cast_bool(__p__a).map_err(|err| JsValue::from_str(&format!("Invalid argument `a` passed to `foo`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
+	let mut __p__c = __cast_String(__p__c).map_err(|err| JsValue::from_str(&format!("Invalid argument `c` passed to `foo`: expected Rust `String` from a JavaScript string: {}", err)))?;
+	let mut __p__d = __cast_i8(__p__d).map_err(|err| JsValue::from_str(&format!("Invalid argument `d` passed to `foo`: expected Rust `i8` from a JavaScript number: {}", err)))?;
+	let mut __p__e = __cast_i16(__p__e).map_err(|err| JsValue::from_str(&format!("Invalid argument `e` passed to `foo`: expected Rust `i16` from a JavaScript number: {}", err)))?;
+	let mut __p__f = __cast_i32(__p__f).map_err(|err| JsValue::from_str(&format!("Invalid argument `f` passed to `foo`: expected Rust `i32` from a JavaScript number: {}", err)))?;
+	let mut __p__g = __cast_u8(__p__g).map_err(|err| JsValue::from_str(&format!("Invalid argument `g` passed to `foo`: expected Rust `u8` from a JavaScript number: {}", err)))?;
+	let mut __p__h = __cast_u16(__p__h).map_err(|err| JsValue::from_str(&format!("Invalid argument `h` passed to `foo`: expected Rust `u16` from a JavaScript number: {}", err)))?;
+	let mut __p__i = __cast_u32(__p__i).map_err(|err| JsValue::from_str(&format!("Invalid argument `i` passed to `foo`: expected Rust `u32` from a JavaScript number: {}", err)))?;
+	let mut __p__k = __cast_f64(__p__k).map_err(|err| JsValue::from_str(&format!("Invalid argument `k` passed to `foo`: expected Rust `f64` from a JavaScript number: {}", err)))?;
 	rustdoc_test_crate::foo(
 		&mut __p__a,
 		&mut __p__c,

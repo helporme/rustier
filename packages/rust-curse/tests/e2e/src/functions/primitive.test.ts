@@ -86,9 +86,12 @@ describe('primitive functions', () => {
     expect(identity_f64(Number.NaN)).toBeNaN()
   })
 
-  it('throws when an invalid char code point is passed', () => {
-    expect(() => identity_char(0xd800)).toThrow('invalid char code point')
-    expect(() => identity_char(0x110000)).toThrow('invalid char code point')
+  it('throws when an invalid char value is passed', () => {
+    expect(() => identity_char(0xd800)).toThrow('cannot cast 55296 to char')
+    expect(() => identity_char(0x110000)).toThrow('cannot cast 1114112 to char')
+    expect(() => identity_char(0x1_0000_0000)).toThrow(
+      'cannot cast value to char',
+    )
   })
 
   it('passes strings with different UTF characters', () => {

@@ -60,6 +60,61 @@ impl Api {
         }
     }
 
+    /// Returns extra prelude code required by generated cast functions.
+    pub fn cast_prelude(&self, db: &dyn Db) -> Option<&'static str> {
+        match self.kind(db) {
+            ApiKind::Wasm { .. } => None,
+            ApiKind::Node => Some("use napi::bindgen_prelude::{Unknown, ValueType};\n"),
+        }
+    }
+
+    /// Returns the Rust boundary type used for incoming JavaScript values.
+    pub fn js_type(&self, db: &dyn Db) -> &'static str {
+        match self.kind(db) {
+            ApiKind::Wasm { .. } => "JsValue",
+            ApiKind::Node => "Unknown<'_>",
+        }
+    }
+
+    /// Returns the API-specific body for casting a JavaScript value to `bool`.
+    pub fn cast_to_bool(&self, db: &dyn Db) -> String {
+        self.cast_to_primitive(db, "bool", "as_bool", "Boolean")
+    }
+
+    /// Returns the API-specific body for casting a JavaScript value to
+    /// `String`.
+    pub fn cast_to_string(&self, db: &dyn Db) -> String {
+        self.cast_to_primitive(db, "String", "as_string", "String")
+    }
+
+    /// Returns the API-specific body for casting a JavaScript value to `f64`.
+    pub fn cast_to_f64(&self, db: &dyn Db) -> String {
+        self.cast_to_primitive(db, "f64", "as_f64", "Number")
+    }
+
+    fn cast_to_primitive(
+        &self,
+        db: &dyn Db,
+        rust_type: &'static str,
+        wasm_accessor: &'static str,
+        node_value_type: &'static str,
+    ) -> String {
+        match self.kind(db) {
+            ApiKind::Wasm { .. } => format!(
+                "value.{wasm_accessor}().ok_or_else(|| \"cannot cast value to {rust_type}\".to_string())"
+            ),
+            ApiKind::Node => indoc::formatdoc! {r#"
+                if value.get_type().map_err(|err| err.reason)? == ValueType::{node_value_type}
+                {{
+                	unsafe {{ value.cast::<{rust_type}>() }}.map_err(|_| "cannot cast value to {rust_type}".to_string())
+                }}
+                else
+                {{
+                	Err("cannot cast value to {rust_type}".to_string())
+                }}"#},
+        }
+    }
+
     /// Returns the function header for this API.
     pub fn fn_header(&self, db: &dyn Db, _fn: ir::Fn) -> String {
         let fn_name = _fn.mangled_name(db);

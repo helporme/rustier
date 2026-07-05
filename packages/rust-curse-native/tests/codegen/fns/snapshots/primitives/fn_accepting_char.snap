@@ -1,5 +1,6 @@
 ---
 source: tests/codegen/fns/primitives.rs
+assertion_line: 89
 expression: body
 ---
 ## Test
@@ -51,24 +52,34 @@ ModDef {
 use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
 
+fn __cast_f64(value: Unknown<'_>) -> Result<f64, String> {
+	if value.get_type().map_err(|err| err.reason)? == ValueType::Number
+	{
+		unsafe { value.cast::<f64>() }.map_err(|_| "cannot cast value to f64".to_string())
+	}
+	else
+	{
+		Err("cannot cast value to f64".to_string())
+	}
+}
+fn __cast_u32(value: Unknown<'_>) -> Result<u32, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u32".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u32", value));
+	}
+	Ok(value as u32)
+}
+fn __cast_char(value: Unknown<'_>) -> Result<char, String> {
+	let value = __cast_u32(value).map_err(|_| "cannot cast value to char".to_string())?;
+	char::from_u32(value).ok_or_else(|| format!("cannot cast {} to char", value))
+}
+
 #[napi(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
-	mut __p__value: Unknown<'_>,
+	__p__value: Unknown<'_>,
 ) -> napi::Result<()> {
-	let mut __p__value = if __p__value.get_type()? == ValueType::Number {
-		unsafe { __p__value.cast::<u32>() }.map_err(|_| {
-			napi::Error::from_reason(
-				"Invalid argument `value` passed to `foo`: expected Rust `char` from a JavaScript number.",
-			)
-		})?
-	} else {
-		return Err(napi::Error::from_reason(
-			"Invalid argument `value` passed to `foo`: expected Rust `char` from a JavaScript number.",
-		));
-	};
-	let __p__value = char::from_u32(__p__value).ok_or_else(|| {
-		napi::Error::from_reason(format!("invalid char code point: {}", __p__value))
-	})?;
+	let __p__value = __cast_char(__p__value).map_err(|err| napi::Error::from_reason(format!("Invalid argument `value` passed to `foo`: expected Rust `char` from a JavaScript number: {}", err)))?;
 	rustdoc_test_crate::foo(
 		__p__value,
 	);
@@ -82,18 +93,27 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 #![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 
+fn __cast_f64(value: JsValue) -> Result<f64, String> {
+	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
+}
+fn __cast_u32(value: JsValue) -> Result<u32, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u32".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u32", value));
+	}
+	Ok(value as u32)
+}
+fn __cast_char(value: JsValue) -> Result<char, String> {
+	let value = __cast_u32(value).map_err(|_| "cannot cast value to char".to_string())?;
+	char::from_u32(value).ok_or_else(|| format!("cannot cast {} to char", value))
+}
+
 #[wasm_bindgen(js_name = __cursed_fn__rustdoc_0test_0crate_foo)]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
-	mut __p__value: JsValue,
+	__p__value: JsValue,
 ) -> Result<(), JsValue> {
-	let mut __p__value = __p__value.as_f64().ok_or_else(|| {
-		JsValue::from_str(
-			"Invalid argument `value` passed to `foo`: expected Rust `char` from a JavaScript number.",
-		)
-	})? as u32;
-	let __p__value = char::from_u32(__p__value).ok_or_else(|| {
-		JsValue::from_str(&format!("invalid char code point: {}", __p__value))
-	})?;
+	let __p__value = __cast_char(__p__value).map_err(|err| JsValue::from_str(&format!("Invalid argument `value` passed to `foo`: expected Rust `char` from a JavaScript number: {}", err)))?;
 	rustdoc_test_crate::foo(
 		__p__value,
 	);

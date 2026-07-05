@@ -14,17 +14,11 @@ pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
     p.lines(&api.fn_header(db, fn_));
     p.write_fmt(format_args!("pub fn {}", fn_.mangled_name(db)));
     p.parens(|p| {
-        p.comma_list(fn_.params(db).iter().map(|param| {
-            format!(
-                // mark all params as mutable for convenience,
-                // so we can always make a mut reference to them
-                "mut {}: {}",
-                param.mangled_name(db),
-                // - numbers that were passed as references are now moved,
-                // - &str / &mut str converted to String
-                compile_type(param.type_(db))
-            )
-        }));
+        p.comma_list(
+            fn_.params(db)
+                .iter()
+                .map(|param| format!("{}: {}", param.mangled_name(db), api.js_type(db))),
+        );
     });
     p.write(" -> ");
 
@@ -35,7 +29,7 @@ pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
             p.write(" ");
             p.curlies(|p| {
                 for param in fn_.params(db) {
-                    p.lines(compile_param_conv(db, *param));
+                    p.lines(compile_param_conv(db, fn_, *param));
                 }
                 p.lines_fmt(format_args!(
                     "let result = {};",
@@ -52,7 +46,7 @@ pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
             p.write(" ");
             p.curlies(|p| {
                 for param in fn_.params(db) {
-                    p.lines(compile_param_conv(db, *param));
+                    p.lines(compile_param_conv(db, fn_, *param));
                 }
                 p.lines_fmt(format_args!("{};", compile_fn_call_stmt(db, fn_)));
                 p.line("Ok(())");
@@ -66,39 +60,37 @@ pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
 /// Compiles Rust boundary conversion statements for a generated binding
 /// parameter.
 #[salsa::tracked(returns(ref))]
-pub fn compile_param_conv<'db>(db: &'db dyn Db, param: ir::FnParam<'db>) -> String {
+pub fn compile_param_conv<'db>(
+    db: &'db dyn Db,
+    fn_: ir::Fn<'db>,
+    param: ir::FnParam<'db>,
+) -> String {
     let api = Api::get(db);
-    let mut p = Printer::default();
+    let mut out = Printer::default();
+
+    let name = param.mangled_name(db);
     let mutable = matches!(param.mode(db), ir::ParamMode::Mut)
         .then_some("mut ")
         .unwrap_or("");
 
-    match param.type_(db) {
-        // char is passed as a number from the js side and converted to u32 by api.
-        // Not all u32 are valid unicode code points however.
-        ir::Type::Primitive(ir::Primitive::Char) => {
-            let name = param.mangled_name(db);
-            p.line_fmt(format_args!(
-                "let {mutable}{name} = char::from_u32({name}).ok_or_else(|| {{"
-            ));
-            p.line_fmt(format_args!(
-                "\t{}",
-                api.error(
-                    db,
-                    &format!("format!(\"invalid char code point: {{}}\", {name})"),
-                )
-            ));
-            p.line("})?;");
-        }
-        // we coerce f64 to f32 on the js side with some loss of precision
-        ir::Type::Primitive(ir::Primitive::f32) => {
-            let name = param.mangled_name(db);
-            p.line_fmt(format_args!("let {mutable}{name} = {name} as f32;"));
-        }
-        _ => {}
-    }
+    let type_ = param.type_(db);
+    let error = api.error(
+        db,
+        &format!(
+            "format!(\"Invalid argument `{}` passed to `{}`: expected Rust `{}` from a JavaScript {}: {{}}\", err)",
+            param.name(db),
+            fn_.name(db),
+            type_.rs_name(),
+            type_.js_name()
+        ),
+    );
 
-    p.into()
+    out.line_fmt(format_args!(
+        "let {mutable}{name} = {}({name}).map_err(|err| {error})?;",
+        type_.cast_fn_name()
+    ));
+
+    out.into()
 }
 
 /// Compiles Rust boundary conversion statements for a generated binding return
