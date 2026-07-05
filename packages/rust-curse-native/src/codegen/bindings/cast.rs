@@ -1,12 +1,6 @@
 use std::collections::HashSet;
 
-use crate::codegen::{
-    api::Api,
-    bindings::Printer,
-    db::Db,
-    ir::{self, Primitive::Str, Type::Primitive},
-    rustdoc,
-};
+use crate::codegen::{api::Api, bindings::Printer, db::Db, ir, rustdoc};
 
 /// Compiles shared JavaScript-to-Rust cast helpers used by generated bindings.
 #[salsa::tracked(returns(ref))]
