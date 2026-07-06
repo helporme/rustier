@@ -21,6 +21,9 @@ mod structs_diags;
 #[path = "codegen/structs/docs.rs"]
 mod structs_docs;
 
+#[path = "codegen/structs/partial.rs"]
+mod structs_partial;
+
 #[path = "codegen/structs/primitives.rs"]
 mod structs_primitives;
 

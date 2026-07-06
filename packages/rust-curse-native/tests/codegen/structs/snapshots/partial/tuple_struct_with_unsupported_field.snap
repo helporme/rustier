@@ -1,0 +1,40 @@
+---
+source: tests/codegen/structs/partial.rs
+expression: body
+---
+## Test
+
+```text
+structs_partial::tuple_struct_with_unsupported_field
+```
+
+## Source
+
+```rs
+pub struct TupleStruct(pub i32, pub u64, pub bool);
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::TupleStruct",
+            shape:
+                Tuple([
+                        Some(TupleStructField {
+                            type: i32,
+                        }),
+                        None,
+                        Some(TupleStructField {
+                            type: bool,
+                        }),
+                    ]),
+        },
+    ],
+    submods: [],
+}
+```

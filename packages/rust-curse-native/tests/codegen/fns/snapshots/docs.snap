@@ -25,6 +25,7 @@ ModDef {
     fns: [
         Fn {
             id: "rustdoc_test_crate::add",
+            docs: Some("Adds two numbers."),
             params: [
                 FnParam {
                     name: "a",

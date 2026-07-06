@@ -1,0 +1,44 @@
+---
+source: tests/codegen/structs/partial.rs
+expression: body
+---
+## Test
+
+```text
+structs_partial::plain_struct_with_private_and_unsupported_fields
+```
+
+## Source
+
+```rs
+pub struct PlainStruct {
+    pub supported: i32,
+    private: bool,
+    pub unsupported: u64,
+}
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::PlainStruct",
+            shape:
+                Plain {
+                    fields: [
+                        PlainStructField {
+                            name: "supported",
+                            type: i32,
+                        },
+                    ],
+                    has_stripped_fields: true,
+                },
+        },
+    ],
+    submods: [],
+}
+```

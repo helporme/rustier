@@ -124,6 +124,25 @@ fn unsupported_primitive_params() {
 }
 
 #[test]
+fn unsupported_double_reference_param() {
+    let (diags, _) = diag! {
+        pub fn foo(value: &&i32) { let _ = value; }
+    };
+
+    assert_skipped_fn(&diags, &["rust_curse::unsupported_param"]);
+
+    let causes = related(diags[0].inner.as_ref());
+    assert_eq!(diag_code(causes[0]), "rust_curse::unsupported_param");
+
+    let param_causes = related(causes[0]);
+    assert_eq!(param_causes.len(), 1);
+    assert_eq!(
+        diag_code(param_causes[0]),
+        "rust_curse::unsupported_double_reference"
+    );
+}
+
+#[test]
 fn lifetimes() {
     let (diags, _) = diag! {
         pub fn foo<'a>(value: &'a i32, b: &'a i32) -> i32 { *value }

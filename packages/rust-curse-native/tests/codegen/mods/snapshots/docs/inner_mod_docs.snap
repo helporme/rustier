@@ -5,7 +5,7 @@ expression: body
 ## Test
 
 ```text
-mods_docs::docs
+mods_docs::inner_mod_docs
 ```
 
 ## Source
@@ -28,6 +28,7 @@ ModDef {
     submods: [
         ModDef {
             id: "rustdoc_test_crate::math",
+            docs: Some("(^.^)"),
             fns: [
                 Fn {
                     id: "rustdoc_test_crate::math::answer",

@@ -11,6 +11,11 @@ pub trait DebugRender<'db> {
 
 impl<'db> DebugRender<'db> for ir::Mod<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
+        let docs = self
+            .docs(db)
+            .as_ref()
+            .map(|docs| format!("\n    docs: Some({docs:?}),"))
+            .unwrap_or_default();
         let fns = render_list(self.fns(db).iter().map(|fn_| fn_.render(db)).collect());
         let structs = rustdoc::lower_mod_structs(db, self.id(db).rustdoc_id(db))
             .iter()
@@ -20,7 +25,7 @@ impl<'db> DebugRender<'db> for ir::Mod<'db> {
 
         if structs.is_empty() {
             return format!(
-                "ModDef {{\n    id: {:?},\n    fns: {fns},\n    submods: {submods},\n}}",
+                "ModDef {{\n    id: {:?},{docs}\n    fns: {fns},\n    submods: {submods},\n}}",
                 self.id(db).path(db).join("::"),
             );
         }
@@ -28,7 +33,7 @@ impl<'db> DebugRender<'db> for ir::Mod<'db> {
         let structs = render_list(structs);
 
         format!(
-            "ModDef {{\n    id: {:?},\n    fns: {fns},\n    structs: {structs},\n    submods: {submods},\n}}",
+            "ModDef {{\n    id: {:?},{docs}\n    fns: {fns},\n    structs: {structs},\n    submods: {submods},\n}}",
             self.id(db).path(db).join("::"),
         )
     }
@@ -164,9 +169,14 @@ impl<'db> DebugRender<'db> for ir::Fn<'db> {
             Some(return_type) => format!("Some({})", return_type.render(db)),
             None => "None".to_string(),
         };
+        let docs = self
+            .docs(db)
+            .as_ref()
+            .map(|docs| format!("\n    docs: Some({docs:?}),"))
+            .unwrap_or_default();
 
         format!(
-            "Fn {{\n    id: {:?},\n    params: {params},\n    return_type: {return_type},\n}}",
+            "Fn {{\n    id: {:?},{docs}\n    params: {params},\n    return_type: {return_type},\n}}",
             self.fqn(db),
         )
     }
