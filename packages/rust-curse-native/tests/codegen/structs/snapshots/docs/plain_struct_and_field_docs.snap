@@ -44,3 +44,16 @@ ModDef {
     submods: [],
 }
 ```
+
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+/** Plain struct docs. */
+export class PlainStruct {
+	/** Plain field docs. */
+	public value: number;
+	private constructor();
+}
+```

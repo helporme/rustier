@@ -40,3 +40,14 @@ ModDef {
     submods: [],
 }
 ```
+
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+export class PlainStruct {
+	public value: string;
+	private constructor();
+}
+```

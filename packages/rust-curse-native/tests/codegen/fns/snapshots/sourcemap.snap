@@ -24,9 +24,14 @@ pub fn greet(name: &str) {
 for `rustdoc_test_crate`:
 
 ```ts
-export function add(a: number, b: number): number;
+export function add(
+	a: number,
+	b: number,
+): number;
 
-export function greet(name: string): void;
+export function greet(
+	name: string,
+): void;
 ```
 
 ## Typescript Sourcemap

@@ -38,3 +38,15 @@ ModDef {
     submods: [],
 }
 ```
+
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+export class TupleStruct {
+	public 0: boolean;
+	public 2: boolean;
+	private constructor();
+}
+```

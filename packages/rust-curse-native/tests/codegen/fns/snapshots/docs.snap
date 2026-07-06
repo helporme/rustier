@@ -51,5 +51,8 @@ for `rustdoc_test_crate`:
 
 ```ts
 /** Adds two numbers. */
-export function add(a: number, b: number): number;
+export function add(
+	a: number,
+	b: number,
+): number;
 ```

@@ -40,3 +40,16 @@ ModDef {
     submods: [],
 }
 ```
+
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+/** Tuple struct docs. */
+export class TupleStruct {
+	/** Tuple field docs. */
+	public 0: number;
+	private constructor();
+}
+```

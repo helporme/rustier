@@ -64,3 +64,21 @@ ModDef {
     submods: [],
 }
 ```
+
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+export class TupleStruct {
+	public 0: boolean;
+	public 1: number;
+	public 2: number;
+	public 3: number;
+	public 4: number;
+	public 5: number;
+	public 6: number;
+	public 7: number;
+	private constructor();
+}
+```

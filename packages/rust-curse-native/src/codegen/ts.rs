@@ -1,8 +1,9 @@
 //! Compiles rustdoc into TypeScript declarations.
 
 use crate::codegen::{
+    bindings::Printer,
     db::Db,
-    ir::{Fn, Primitive, Type},
+    ir::{Fn, Primitive, Struct, StructShape, Type},
     rustdoc,
 };
 
@@ -10,53 +11,103 @@ use crate::codegen::{
 #[salsa::tracked(returns(ref))]
 pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: rustdoc::Id<'db>) -> String {
     let mod_ = rustdoc::lower_mod(db, mod_id);
-    let fns = rustdoc::lower_mod_fns(db, mod_id);
 
-    let mut out = String::new();
+    let mut out = Printer::default();
 
     if let Some(docs) = mod_.docs(db) {
         // todo: move to ambient.d.ts and put a comment on declaration of the module
         // so it's will be shown in IDE when hovering over the module name in import
-        out.push_str(&compile_jsdoc(docs));
+        out.lines(&compile_jsdoc(docs));
     }
 
-    for fn_ in fns {
+    for fn_ in rustdoc::lower_mod_fns(db, mod_id) {
         if !out.is_empty() {
-            out.push('\n');
+            out.blank();
         }
-        out.push_str(compile_fn(db, *fn_));
+        out.lines(compile_fn(db, *fn_));
     }
 
-    out
+    for struct_ in rustdoc::lower_mod_structs(db, mod_id) {
+        if !out.is_empty() {
+            out.blank();
+        }
+        out.lines(compile_struct(db, *struct_));
+    }
+
+    out.into()
 }
 
 /// Compiles an ir function to ts declaration.
 #[salsa::tracked(returns(ref))]
 fn compile_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
-    let mut out = String::new();
+    let mut out = Printer::default();
 
     if let Some(docs) = fn_.docs(db) {
-        out.push_str(&compile_jsdoc(docs));
+        out.lines(&compile_jsdoc(docs));
     }
 
-    let params = fn_
-        .params(db)
-        .iter()
-        .map(|param| format!("{}: {}", param.name(db), compile_type(param.type_(db))))
-        .collect::<Vec<_>>()
-        .join(", ");
+    out.write_fmt(format_args!("export function {}", fn_.name(db)));
+    out.parens(|out| {
+        out.comma_list(
+            fn_.params(db)
+                .iter()
+                .map(|param| format!("{}: {}", param.name(db), compile_type(param.type_(db)))),
+        );
+    });
 
     let return_type = match fn_.return_type(db) {
         Some(type_) => compile_type(type_),
         None => "void",
     };
 
-    out.push_str(&format!(
-        "export function {}({params}): {return_type};\n",
-        fn_.name(db)
-    ));
+    out.write_fmt(format_args!(": {};", return_type));
 
-    out
+    out.into()
+}
+
+/// Compiles an ir struct to ts declaration.
+#[salsa::tracked(returns(ref))]
+fn compile_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
+    let mut out = Printer::default();
+
+    if let Some(docs) = struct_.docs(db) {
+        out.lines(&compile_jsdoc(docs));
+    }
+
+    out.write_fmt(format_args!("export class {} ", struct_.name(db)));
+    out.curlies(|out| {
+        match struct_.shape(db) {
+            StructShape::Unit => {}
+            StructShape::Tuple(fields) => {
+                for (i, field) in fields.iter().enumerate() {
+                    if let Some(field) = field {
+                        if let Some(docs) = field.docs(db) {
+                            out.lines(&compile_jsdoc(docs));
+                        }
+                        out.line_fmt(format_args!(
+                            "public {i}: {};",
+                            compile_type(field.type_(db))
+                        ));
+                    }
+                }
+            }
+            StructShape::Plain { fields, .. } => {
+                for field in fields {
+                    if let Some(docs) = field.docs(db) {
+                        out.lines(&compile_jsdoc(docs));
+                    }
+                    out.line_fmt(format_args!(
+                        "public {}: {};",
+                        field.name(db),
+                        compile_type(field.type_(db))
+                    ));
+                }
+            }
+        }
+        out.line("private constructor();");
+    });
+
+    out.into()
 }
 
 fn compile_type(type_: Type) -> &'static str {

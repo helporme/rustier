@@ -28,7 +28,16 @@ pub fn foo(
 for `rustdoc_test_crate`:
 
 ```ts
-export function foo(a: boolean, d: number, e: number, f: number, g: number, h: number, i: number, k: number): void;
+export function foo(
+	a: boolean,
+	d: number,
+	e: number,
+	f: number,
+	g: number,
+	h: number,
+	i: number,
+	k: number,
+): void;
 ```
 
 ## IR

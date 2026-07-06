@@ -1,6 +1,5 @@
 ---
 source: tests/codegen/fns/primitives.rs
-assertion_line: 111
 expression: body
 ---
 ## Test
@@ -20,7 +19,9 @@ pub fn foo(value: f32) {}
 for `rustdoc_test_crate`:
 
 ```ts
-export function foo(value: number): void;
+export function foo(
+	value: number,
+): void;
 ```
 
 ## IR

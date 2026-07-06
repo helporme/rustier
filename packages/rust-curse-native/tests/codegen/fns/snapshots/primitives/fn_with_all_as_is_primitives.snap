@@ -19,7 +19,16 @@ pub fn foo(a: bool, d: i8, e: i16, f: i32, g: u8, h: u16, i: u32, k: f64) {}
 for `rustdoc_test_crate`:
 
 ```ts
-export function foo(a: boolean, d: number, e: number, f: number, g: number, h: number, i: number, k: number): void;
+export function foo(
+	a: boolean,
+	d: number,
+	e: number,
+	f: number,
+	g: number,
+	h: number,
+	i: number,
+	k: number,
+): void;
 ```
 
 ## IR

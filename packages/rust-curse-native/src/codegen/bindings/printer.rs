@@ -211,6 +211,21 @@ impl Printer {
         }
     }
 
+    /// Returns whether the printer is empty.
+    ///
+    /// ```
+    /// use rust_curse::codegen::bindings::Printer;
+    ///
+    /// let mut printer = Printer::default();
+    /// assert!(printer.is_empty());
+    ///
+    /// printer.line("export const value = 1;");
+    /// assert!(!printer.is_empty());
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.out.is_empty()
+    }
+
     fn indent(&mut self) {
         for _ in 0..self.indent {
             self.out.push('\t');

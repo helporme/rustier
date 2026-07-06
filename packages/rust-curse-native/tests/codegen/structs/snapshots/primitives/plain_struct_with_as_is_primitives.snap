@@ -75,3 +75,21 @@ ModDef {
     submods: [],
 }
 ```
+
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+export class PlainStruct {
+	public a: boolean;
+	public d: number;
+	public e: number;
+	public f: number;
+	public g: number;
+	public h: number;
+	public i: number;
+	public k: number;
+	private constructor();
+}
+```

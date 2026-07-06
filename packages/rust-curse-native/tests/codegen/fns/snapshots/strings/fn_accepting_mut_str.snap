@@ -19,7 +19,9 @@ pub fn foo(_: &str) {}
 for `rustdoc_test_crate`:
 
 ```ts
-export function foo(_: string): void;
+export function foo(
+	_: string,
+): void;
 ```
 
 ## IR
