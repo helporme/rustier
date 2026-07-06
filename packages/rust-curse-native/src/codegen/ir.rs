@@ -4,11 +4,13 @@ mod fn_;
 mod mangle;
 mod mod_;
 mod span;
+mod struct_;
 mod type_;
 
 pub use fn_::*;
 pub use mod_::*;
 pub use span::*;
+pub use struct_::*;
 pub use type_::*;
 
 use crate::codegen::{db::Db, rustdoc};

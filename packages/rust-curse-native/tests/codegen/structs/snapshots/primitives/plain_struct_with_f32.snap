@@ -1,0 +1,42 @@
+---
+source: tests/codegen/structs/primitives.rs
+expression: body
+---
+## Test
+
+```text
+structs_primitives::plain_struct_with_f32
+```
+
+## Source
+
+```rs
+pub struct PlainStruct {
+    pub value: f32,
+}
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::PlainStruct",
+            shape:
+                Plain {
+                    fields: [
+                        PlainStructField {
+                            name: "value",
+                            type: f32,
+                        },
+                    ],
+                    has_stripped_fields: false,
+                },
+        },
+    ],
+    submods: [],
+}
+```

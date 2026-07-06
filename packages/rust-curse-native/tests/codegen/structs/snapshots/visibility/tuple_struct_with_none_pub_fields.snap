@@ -1,0 +1,36 @@
+---
+source: tests/codegen/structs/visibility.rs
+expression: body
+---
+## Test
+
+```text
+structs_visibility::tuple_struct_with_none_pub_fields
+```
+
+## Source
+
+```rs
+pub struct TupleStruct(bool, bool, bool);
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::TupleStruct",
+            shape:
+                Tuple([
+                        None,
+                        None,
+                        None,
+                    ]),
+        },
+    ],
+    submods: [],
+}
+```

@@ -1,0 +1,34 @@
+---
+source: tests/codegen/structs/docs.rs
+expression: body
+---
+## Test
+
+```text
+structs_docs::unit_struct_docs
+```
+
+## Source
+
+```rs
+/// Unit struct docs.
+pub struct UnitStruct;
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::UnitStruct",
+            docs: Some("Unit struct docs."),
+            shape:
+                Unit,
+        },
+    ],
+    submods: [],
+}
+```

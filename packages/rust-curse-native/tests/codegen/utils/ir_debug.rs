@@ -1,4 +1,4 @@
-use rust_curse::codegen::{db::Db, ir};
+use rust_curse::codegen::{db::Db, ir, rustdoc};
 
 /// Renders the item as a debug human-readable string.
 ///
@@ -12,10 +12,23 @@ pub trait DebugRender<'db> {
 impl<'db> DebugRender<'db> for ir::Mod<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         let fns = render_list(self.fns(db).iter().map(|fn_| fn_.render(db)).collect());
+        let structs = rustdoc::lower_mod_structs(db, self.id(db).rustdoc_id(db))
+            .iter()
+            .map(|struct_| struct_.render(db))
+            .collect::<Vec<_>>();
         let submods = render_list(self.mods(db).iter().map(|mod_| mod_.render(db)).collect());
 
+        if structs.is_empty() {
+            return format!(
+                "ModDef {{\n    id: {:?},\n    fns: {fns},\n    submods: {submods},\n}}",
+                self.id(db).path(db).join("::"),
+            );
+        }
+
+        let structs = render_list(structs);
+
         format!(
-            "ModDef {{\n    id: {:?},\n    fns: {fns},\n    submods: {submods},\n}}",
+            "ModDef {{\n    id: {:?},\n    fns: {fns},\n    structs: {structs},\n    submods: {submods},\n}}",
             self.id(db).path(db).join("::"),
         )
     }
@@ -46,6 +59,84 @@ impl<'db> DebugRender<'db> for ir::Primitive {
             ir::Primitive::f64 => "f64",
         }
         .to_string()
+    }
+}
+
+impl<'db> DebugRender<'db> for ir::PlainStructField<'db> {
+    fn render(&self, db: &'db dyn Db) -> String {
+        let docs = self
+            .docs(db)
+            .as_ref()
+            .map(|docs| format!("\n    docs: Some({docs:?}),"))
+            .unwrap_or_default();
+
+        format!(
+            "PlainStructField {{\n    name: {:?},\n    type: {},{docs}\n}}",
+            self.name(db),
+            self.type_(db).render(db),
+        )
+    }
+}
+
+impl<'db> DebugRender<'db> for ir::TupleStructField<'db> {
+    fn render(&self, db: &'db dyn Db) -> String {
+        let docs = self
+            .docs(db)
+            .as_ref()
+            .map(|docs| format!("\n    docs: Some({docs:?}),"))
+            .unwrap_or_default();
+
+        format!(
+            "TupleStructField {{\n    type: {},{docs}\n}}",
+            self.type_(db).render(db),
+        )
+    }
+}
+
+impl<'db> DebugRender<'db> for ir::StructShape<'db> {
+    fn render(&self, db: &'db dyn Db) -> String {
+        match self {
+            ir::StructShape::Unit => "Unit".to_string(),
+            ir::StructShape::Tuple(fields) => {
+                let fields = render_list(
+                    fields
+                        .iter()
+                        .map(|field| match field {
+                            Some(field) => format!("Some({})", field.render(db)),
+                            None => "None".to_string(),
+                        })
+                        .collect(),
+                );
+
+                format!("Tuple({fields})")
+            }
+            ir::StructShape::Plain {
+                fields,
+                has_stripped_fields,
+            } => {
+                let fields = render_list(fields.iter().map(|field| field.render(db)).collect());
+
+                format!(
+                    "Plain {{\n    fields: {fields},\n    has_stripped_fields: {has_stripped_fields},\n}}"
+                )
+            }
+        }
+    }
+}
+
+impl<'db> DebugRender<'db> for ir::Struct<'db> {
+    fn render(&self, db: &'db dyn Db) -> String {
+        let docs = self
+            .docs(db)
+            .as_ref()
+            .map(|docs| format!("\n    docs: Some({docs:?}),"))
+            .unwrap_or_default();
+        let shape = indent(&self.shape(db).render(db), 8);
+
+        format!(
+            "Struct {{\n    id: {:?},{docs}\n    shape:\n{shape},\n}}",
+            self.fqn(db),
+        )
     }
 }
 

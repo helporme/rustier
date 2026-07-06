@@ -65,16 +65,45 @@ pub fn lower_mod_fns<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::Fn<'
                 rustdoc::Id::new(db, *item_id, id.crate_name(db).clone()),
             ) {
                 Ok(fn_) => fns.push(fn_),
-                Err(diags) => {
-                    for diag in diags {
-                        diag.accumulate(db);
-                    }
+                Err(diag) => {
+                    diag.accumulate(db);
                 }
             }
         }
     }
 
     fns
+}
+
+/// Lowers the structs defined inside the given rustdoc module.
+#[salsa::tracked(returns(ref))]
+pub fn lower_mod_structs<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::Struct<'db>> {
+    let item = id.item(db);
+    let crate_ = id.crate_body(db);
+
+    let def = match &item.inner {
+        ItemEnum::Module(def) => def,
+        _ => unreachable!(),
+    };
+
+    let mut structs = Vec::new();
+
+    for item_id in &def.items {
+        let item = crate_.index.get(item_id).unwrap();
+        if matches!(item.inner, ItemEnum::Struct(_)) {
+            match rustdoc::lower_struct(
+                db,
+                rustdoc::Id::new(db, *item_id, id.crate_name(db).clone()),
+            ) {
+                Ok(struct_) => structs.push(struct_),
+                Err(diag) => {
+                    diag.accumulate(db);
+                }
+            }
+        }
+    }
+
+    structs
 }
 
 /// Lowers the submodules defined inside the given rustdoc module.

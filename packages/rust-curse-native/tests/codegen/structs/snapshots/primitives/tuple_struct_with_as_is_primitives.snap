@@ -1,0 +1,66 @@
+---
+source: tests/codegen/structs/primitives.rs
+expression: body
+---
+## Test
+
+```text
+structs_primitives::tuple_struct_with_as_is_primitives
+```
+
+## Source
+
+```rs
+pub struct TupleStruct(
+    pub bool,
+    pub i8,
+    pub i16,
+    pub i32,
+    pub u8,
+    pub u16,
+    pub u32,
+    pub f64,
+);
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::TupleStruct",
+            shape:
+                Tuple([
+                        Some(TupleStructField {
+                            type: bool,
+                        }),
+                        Some(TupleStructField {
+                            type: i8,
+                        }),
+                        Some(TupleStructField {
+                            type: i16,
+                        }),
+                        Some(TupleStructField {
+                            type: i32,
+                        }),
+                        Some(TupleStructField {
+                            type: u8,
+                        }),
+                        Some(TupleStructField {
+                            type: u16,
+                        }),
+                        Some(TupleStructField {
+                            type: u32,
+                        }),
+                        Some(TupleStructField {
+                            type: f64,
+                        }),
+                    ]),
+        },
+    ],
+    submods: [],
+}
+```

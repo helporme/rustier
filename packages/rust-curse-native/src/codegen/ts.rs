@@ -47,7 +47,7 @@ fn compile_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
         .join(", ");
 
     let return_type = match fn_.return_type(db) {
-        Some(type_) => compile_type(&type_),
+        Some(type_) => compile_type(type_),
         None => "void",
     };
 
@@ -59,9 +59,9 @@ fn compile_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
     out
 }
 
-fn compile_type(type_: &Type) -> &'static str {
+fn compile_type(type_: Type) -> &'static str {
     match type_ {
-        Type::Primitive(primitive) => compile_primitive(*primitive),
+        Type::Primitive(primitive) => compile_primitive(primitive),
         Type::Str | Type::String => "string",
     }
 }

@@ -1,0 +1,46 @@
+---
+source: tests/codegen/structs/docs.rs
+expression: body
+---
+## Test
+
+```text
+structs_docs::plain_struct_and_field_docs
+```
+
+## Source
+
+```rs
+/// Plain struct docs.
+pub struct PlainStruct {
+    /// Plain field docs.
+    pub value: i32,
+}
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::PlainStruct",
+            docs: Some("Plain struct docs."),
+            shape:
+                Plain {
+                    fields: [
+                        PlainStructField {
+                            name: "value",
+                            type: i32,
+                            docs: Some("Plain field docs."),
+                        },
+                    ],
+                    has_stripped_fields: false,
+                },
+        },
+    ],
+    submods: [],
+}
+```

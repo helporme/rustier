@@ -1,0 +1,77 @@
+---
+source: tests/codegen/structs/primitives.rs
+expression: body
+---
+## Test
+
+```text
+structs_primitives::plain_struct_with_as_is_primitives
+```
+
+## Source
+
+```rs
+pub struct PlainStruct {
+    pub a: bool,
+    pub d: i8,
+    pub e: i16,
+    pub f: i32,
+    pub g: u8,
+    pub h: u16,
+    pub i: u32,
+    pub k: f64,
+}
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::PlainStruct",
+            shape:
+                Plain {
+                    fields: [
+                        PlainStructField {
+                            name: "a",
+                            type: bool,
+                        },
+                        PlainStructField {
+                            name: "d",
+                            type: i8,
+                        },
+                        PlainStructField {
+                            name: "e",
+                            type: i16,
+                        },
+                        PlainStructField {
+                            name: "f",
+                            type: i32,
+                        },
+                        PlainStructField {
+                            name: "g",
+                            type: u8,
+                        },
+                        PlainStructField {
+                            name: "h",
+                            type: u16,
+                        },
+                        PlainStructField {
+                            name: "i",
+                            type: u32,
+                        },
+                        PlainStructField {
+                            name: "k",
+                            type: f64,
+                        },
+                    ],
+                    has_stripped_fields: false,
+                },
+        },
+    ],
+    submods: [],
+}
+```

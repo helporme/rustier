@@ -1,0 +1,35 @@
+---
+source: tests/codegen/structs/unit.rs
+expression: body
+---
+## Test
+
+```text
+structs_unit::plain_unit_struct
+```
+
+## Source
+
+```rs
+pub struct PlainStruct {}
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::PlainStruct",
+            shape:
+                Plain {
+                    fields: [],
+                    has_stripped_fields: false,
+                },
+        },
+    ],
+    submods: [],
+}
+```

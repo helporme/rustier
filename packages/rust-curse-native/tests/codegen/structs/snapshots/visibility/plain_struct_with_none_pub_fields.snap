@@ -1,0 +1,39 @@
+---
+source: tests/codegen/structs/visibility.rs
+expression: body
+---
+## Test
+
+```text
+structs_visibility::plain_struct_with_none_pub_fields
+```
+
+## Source
+
+```rs
+pub struct PlainStruct {
+    a: bool,
+    b: bool,
+    c: bool,
+}
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::PlainStruct",
+            shape:
+                Plain {
+                    fields: [],
+                    has_stripped_fields: true,
+                },
+        },
+    ],
+    submods: [],
+}
+```

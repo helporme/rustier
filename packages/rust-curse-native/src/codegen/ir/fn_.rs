@@ -14,13 +14,10 @@ pub enum ParamMode {
 /// A function parameter.
 #[salsa::tracked(debug)]
 pub struct FnParam<'db> {
-    #[tracked]
     #[returns(ref)]
     pub name: String,
     #[tracked]
-    #[returns(ref)]
     pub type_: Type,
-    #[tracked]
     #[returns(copy)]
     pub mode: ParamMode,
 }

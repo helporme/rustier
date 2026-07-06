@@ -1,0 +1,32 @@
+---
+source: tests/codegen/structs/unit.rs
+expression: body
+---
+## Test
+
+```text
+structs_unit::tuple_unit_struct
+```
+
+## Source
+
+```rs
+pub struct TupleStruct();
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::TupleStruct",
+            shape:
+                Tuple([]),
+        },
+    ],
+    submods: [],
+}
+```

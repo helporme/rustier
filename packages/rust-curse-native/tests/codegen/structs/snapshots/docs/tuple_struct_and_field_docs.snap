@@ -1,0 +1,42 @@
+---
+source: tests/codegen/structs/docs.rs
+expression: body
+---
+## Test
+
+```text
+structs_docs::tuple_struct_and_field_docs
+```
+
+## Source
+
+```rs
+/// Tuple struct docs.
+pub struct TupleStruct(
+    /// Tuple field docs.
+    pub i32,
+);
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::TupleStruct",
+            docs: Some("Tuple struct docs."),
+            shape:
+                Tuple([
+                        Some(TupleStructField {
+                            type: i32,
+                            docs: Some("Tuple field docs."),
+                        }),
+                    ]),
+        },
+    ],
+    submods: [],
+}
+```

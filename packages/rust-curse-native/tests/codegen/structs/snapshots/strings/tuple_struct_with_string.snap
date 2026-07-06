@@ -1,0 +1,36 @@
+---
+source: tests/codegen/structs/strings.rs
+expression: body
+---
+## Test
+
+```text
+structs_strings::tuple_struct_with_string
+```
+
+## Source
+
+```rs
+pub struct TupleStruct(pub String);
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::TupleStruct",
+            shape:
+                Tuple([
+                        Some(TupleStructField {
+                            type: String,
+                        }),
+                    ]),
+        },
+    ],
+    submods: [],
+}
+```

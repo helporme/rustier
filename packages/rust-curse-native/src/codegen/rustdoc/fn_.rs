@@ -11,7 +11,7 @@ use crate::codegen::{
 
 /// Lowers the rustdoc function.
 #[salsa::tracked]
-pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<FnLowerError>> {
+pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Box<FnLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);
 
@@ -120,12 +120,12 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Vec<Fn
 
     if !causes.is_empty() {
         let crate_ = id.crate_(db);
-        return Err(vec![FnLowerError::Skipped {
+        return Err(Box::new(FnLowerError::Skipped {
             fn_fqn: item_summary.path.join("::"),
             source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
             span: crate_.read_span_opt(item.span.as_ref()),
             causes,
-        }]);
+        }));
     }
 
     let id = ir::Id::new(db, &item_summary.path);
@@ -154,15 +154,6 @@ fn analyze_f32_percission_los(
         }
         .accumulate(db);
     }
-}
-
-#[derive(Diagnostic, Debug, Error)]
-#[error("oops")]
-#[diagnostic()]
-pub struct MyErrorType {
-    // Note: label but no source code
-    #[label]
-    err_span: Option<ir::Span>,
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]

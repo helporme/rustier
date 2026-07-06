@@ -6,10 +6,12 @@ use salsa::Setter;
 
 mod fn_;
 mod mod_;
+mod struct_;
 mod type_;
 
 pub use fn_::*;
 pub use mod_::*;
+pub use struct_::*;
 pub use type_::*;
 
 #[salsa::input(singleton)]

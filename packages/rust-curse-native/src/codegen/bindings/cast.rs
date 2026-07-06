@@ -11,7 +11,7 @@ pub fn compile_cast_fns(db: &dyn Db) -> String {
     for mod_id in rustdoc::all_mod_ids(db) {
         for fn_ in rustdoc::lower_mod_fns(db, *mod_id) {
             for param in fn_.params(db) {
-                collect_cast_type(*param.type_(db), &mut seen, &mut types);
+                collect_cast_type(param.type_(db), &mut seen, &mut types);
             }
         }
     }
