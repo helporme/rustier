@@ -40,6 +40,7 @@ for `rustdoc_test_crate`:
 
 ```ts
 export class PlainStruct {
+	private __rust_curse_brand: never;
 	private constructor();
 }
 ```

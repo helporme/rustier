@@ -90,6 +90,7 @@ export class PlainStruct {
 	public h: number;
 	public i: number;
 	public k: number;
+	private __rust_curse_brand: never;
 	private constructor();
 }
 ```

@@ -104,6 +104,7 @@ fn compile_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
                 }
             }
         }
+        out.line("private __rust_curse_brand: never;");
         out.line("private constructor();");
     });
 

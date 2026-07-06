@@ -50,6 +50,7 @@ for `rustdoc_test_crate`:
 export class TupleStruct {
 	/** Tuple field docs. */
 	public 0: number;
+	private __rust_curse_brand: never;
 	private constructor();
 }
 ```

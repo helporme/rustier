@@ -42,6 +42,7 @@ for `rustdoc_test_crate`:
 ```ts
 export class TupleStruct {
 	public 0: number;
+	private __rust_curse_brand: never;
 	private constructor();
 }
 ```
