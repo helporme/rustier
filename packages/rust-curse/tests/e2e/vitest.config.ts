@@ -1,5 +1,9 @@
 import { defineConfig, Plugin } from 'vitest/config'
-import { BuildOutput, Driver, WasmTarget } from 'rust-curse/unstable'
+import {
+  Driver,
+  type ProfileBuildOutput,
+  WasmTarget,
+} from 'rust-curse/unstable'
 import { resolve as resolvePath } from 'node:path'
 
 const curse = new Driver({
@@ -31,7 +35,12 @@ const isRustInput = (file: string) =>
 type Profile = 'wasm' | 'node'
 
 const profiles: Profile[] = ['node', 'wasm']
-const outputs: Partial<Record<Profile, BuildOutput>> = {}
+type CachedProfileOutput = Partial<Pick<ProfileBuildOutput, 'artifact'>> & {
+  diags: string[]
+}
+
+const outputs: Partial<Record<Profile, CachedProfileOutput>> = {}
+let sharedDiags: string[] = []
 const dirtyProfiles = new Set<Profile>(profiles)
 
 const reportException = (error: unknown, warn: (diag: string) => void) => {
@@ -46,21 +55,28 @@ const rebuildProfiles = (
 ) => {
   try {
     const output = curse.build(profileNames)
-
-    for (const profile of profileNames) {
-      outputs[profile] = output
-      dirtyProfiles.delete(profile)
-    }
+    sharedDiags = output.diags
 
     for (const diag of output.diags) {
       warn(diag)
+    }
+
+    for (const profile of profileNames) {
+      const profileOutput = output.perProfile[profile]
+      if (profileOutput) {
+        outputs[profile] = profileOutput
+        for (const diag of profileOutput.diags) {
+          warn(diag)
+        }
+      }
+      dirtyProfiles.delete(profile)
     }
   } catch (error) {
     const diag = reportException(error, warn)
 
     for (const profile of profileNames) {
       outputs[profile] = {
-        artifacts: outputs[profile]?.artifacts ?? {},
+        artifact: outputs[profile]?.artifact,
         diags: [...(outputs[profile]?.diags ?? []), diag],
       }
       dirtyProfiles.delete(profile)
@@ -104,7 +120,8 @@ const rustCurse = (profile: Profile): Plugin => {
     load(id) {
       // Resolve diagnostics module
       if (id.substring(1) === VIRTUAL_MODULES.diags) {
-        return `export const rustCurseDiags = ${JSON.stringify(outputs[profile]?.diags ?? [])};`
+        const diags = [...sharedDiags, ...(outputs[profile]?.diags ?? [])]
+        return `export const rustCurseDiags = ${JSON.stringify(diags)};`
       }
 
       // Resolve .rs files
@@ -114,8 +131,8 @@ const rustCurse = (profile: Profile): Plugin => {
         rebuildProfiles([profile], (diag) => this.warn(diag))
       }
 
-      if (!outputs[profile]?.artifacts[profile]) {
-        const diags = outputs[profile]?.diags ?? []
+      if (!outputs[profile]?.artifact) {
+        const diags = [...sharedDiags, ...(outputs[profile]?.diags ?? [])]
         const diag =
           diags[diags.length - 1] ??
           `profile \`${profile}\` has no build artifacts`
@@ -127,7 +144,7 @@ const rustCurse = (profile: Profile): Plugin => {
       } catch (error) {
         const diag = reportException(error, (diag) => this.warn(diag))
         outputs[profile] = {
-          artifacts: outputs[profile]?.artifacts ?? {},
+          artifact: outputs[profile]?.artifact,
           diags: [...(outputs[profile]?.diags ?? []), diag],
         }
         return `throw new Error(${JSON.stringify(diag)});`

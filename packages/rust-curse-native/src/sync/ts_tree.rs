@@ -7,7 +7,7 @@ use miette::Diagnostic;
 
 use tracing::{debug, info, trace};
 
-use crate::{codegen, sync::file::write_if_changed};
+use crate::{codegen, codegen::diag::Diag, sync::file::write_if_changed};
 
 /// Options for [`sync_ts_tree`].
 pub struct SyncTsTreeOpts<'a> {
@@ -46,23 +46,26 @@ pub struct SyncTsTreeOpts<'a> {
     skip(opts),
     fields(our_dir = %opts.our_dir.display(), src_dir = %opts.src_dir.display())
 )]
-pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<(), Error> {
+pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<Vec<Diag>, SyncTsTreeError> {
     info!("syncing TypeScript declaration tree");
+
+    let mut diags = Vec::new();
 
     ensure_dir(opts.our_dir)?;
     let src_dir = opts
         .src_dir
         .parent()
-        .ok_or_else(|| Error::ReadParentDirectory {
+        .ok_or_else(|| SyncTsTreeError::ReadParentDirectory {
             path: opts.src_dir.to_path_buf(),
         })?;
 
-    let src_dir = src_dir
-        .canonicalize()
-        .map_err(|source| Error::CanonicalizeSourceDirectory {
-            path: opts.src_dir.to_path_buf(),
-            source,
-        })?;
+    let src_dir =
+        src_dir
+            .canonicalize()
+            .map_err(|source| SyncTsTreeError::CanonicalizeSourceDirectory {
+                path: opts.src_dir.to_path_buf(),
+                source,
+            })?;
 
     for mod_id in codegen::rustdoc::all_mod_ids(opts.db) {
         let item = mod_id.item(opts.db);
@@ -82,21 +85,20 @@ pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<(), Error> {
         let span_path =
             span_path
                 .canonicalize()
-                .map_err(|source| Error::CanonicalizeModulePath {
+                .map_err(|source| SyncTsTreeError::CanonicalizeModulePath {
                     path: span_path,
                     source,
                 })?;
 
-        let relative_path =
-            span_path
-                .strip_prefix(&src_dir)
-                .map_err(|_| Error::ModuleOutsideSourceDirectory {
-                    module_path: span_path.clone(),
-                    src_dir: src_dir.clone(),
-                })?;
+        let relative_path = span_path.strip_prefix(&src_dir).map_err(|_| {
+            SyncTsTreeError::ModuleOutsideSourceDirectory {
+                module_path: span_path.clone(),
+                src_dir: src_dir.clone(),
+            }
+        })?;
 
         let Some(file_name) = relative_path.file_name() else {
-            return Err(Error::MissingModuleFileName {
+            return Err(SyncTsTreeError::MissingModuleFileName {
                 path: relative_path.to_path_buf(),
             });
         };
@@ -114,46 +116,57 @@ pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<(), Error> {
         }
 
         let mut declaration = codegen::ts::compile_mod(opts.db, *mod_id).to_string();
+        diags.extend(
+            codegen::ts::compile_mod::accumulated::<Diag>(opts.db, *mod_id)
+                .into_iter()
+                .cloned(),
+        );
         if !declaration.is_empty() {
             declaration.push_str(&format!("\n//# sourceMappingURL={sourcemap_file_name}\n"));
         }
         write_file(output_path, declaration.as_bytes())?;
 
         let sourcemap = codegen::ts_sourcemap::compile_mod(opts.db, *mod_id).to_string();
+        diags.extend(
+            codegen::ts_sourcemap::compile_mod::accumulated::<Diag>(opts.db, *mod_id)
+                .into_iter()
+                .cloned(),
+        );
         write_file(sourcemap_path, sourcemap.as_bytes())?;
     }
 
     info!("synced TypeScript declaration tree");
 
-    Ok(())
+    Ok(diags)
 }
 
-fn ensure_dir(path: &Path) -> Result<(), Error> {
+fn ensure_dir(path: &Path) -> Result<(), SyncTsTreeError> {
     if path.exists() {
         debug!(path = %path.display(), "directory already exists");
         return Ok(());
     }
 
     debug!(path = %path.display(), "creating directory");
-    fs::create_dir_all(path).map_err(|source| Error::CreateDirectory {
+    fs::create_dir_all(path).map_err(|source| SyncTsTreeError::CreateDirectory {
         path: path.to_path_buf(),
         source,
     })?;
     Ok(())
 }
 
-fn write_file(path: PathBuf, content: impl AsRef<[u8]>) -> Result<bool, Error> {
-    let changed = write_if_changed(&path, content.as_ref()).map_err(|source| Error::WriteFile {
-        path: path.clone(),
-        source,
-    })?;
+fn write_file(path: PathBuf, content: impl AsRef<[u8]>) -> Result<bool, SyncTsTreeError> {
+    let changed =
+        write_if_changed(&path, content.as_ref()).map_err(|source| SyncTsTreeError::WriteFile {
+            path: path.clone(),
+            source,
+        })?;
     debug!(path = %path.display(), changed, "synced TypeScript tree file");
     Ok(changed)
 }
 
 /// Error returned when syncing the TypeScript declaration tree fails.
 #[derive(thiserror::Error, Diagnostic, Debug)]
-pub enum Error {
+pub enum SyncTsTreeError {
     #[error("failed to create directory at {}", path.display())]
     #[diagnostic(code(rust_curse::sync_ts_tree::create_directory))]
     CreateDirectory {

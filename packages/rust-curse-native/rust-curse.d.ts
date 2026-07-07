@@ -20,7 +20,7 @@ export type BuildArtifact =
   | { type: 'Node', jsAbsPath: string, nodeAbsPath: string }
 
 export interface BuildOutput {
-  artifacts: Record<string, BuildArtifact>
+  perProfile: Record<string, ProfileBuildOutput>
   diags: Array<string>
 }
 
@@ -31,6 +31,11 @@ export interface DriverOpts {
   outDir: string
   /** profiles to build for */
   profiles: Record<string, ProfileOpts>
+}
+
+export interface ProfileBuildOutput {
+  artifact: BuildArtifact
+  diags: Array<string>
 }
 
 export interface ProfileOpts {

@@ -23,7 +23,11 @@ use tracing::{debug, info, trace};
 use tracing_subscriber::{fmt::time::ChronoLocal, EnvFilter};
 
 use crate::{
-    codegen::{self, db::DbImpl, diag::Theme},
+    codegen::{
+        self,
+        db::DbImpl,
+        diag::{Diag, Theme},
+    },
     sync::{sync_crate, sync_ts_tree, SyncCrateOps, SyncTsTreeOpts},
     tools::{self, node::BuildOutput as NodeBuildOutput, wasm::BuildOutput as WasmBuildOutput},
 };
@@ -114,7 +118,13 @@ pub enum BuildArtifact {
 
 #[napi(object)]
 pub struct BuildOutput {
-    pub artifacts: HashMap<String, BuildArtifact>,
+    pub per_profile: HashMap<String, ProfileBuildOutput>,
+    pub diags: Vec<String>,
+}
+
+#[napi(object)]
+pub struct ProfileBuildOutput {
+    pub artifact: BuildArtifact,
     pub diags: Vec<String>,
 }
 
@@ -284,15 +294,26 @@ impl Driver {
         )]);
         codegen::rustdoc::RustdocCrates::set(&mut self.db, crates);
 
-        sync_ts_tree(SyncTsTreeOpts {
+        let sync_ts_tree_diags = sync_ts_tree(SyncTsTreeOpts {
             our_dir: &types_dir,
             src_dir: &src_dir,
             db: &self.db,
         })
         .map_err(|source| BuildError::SyncTsTree { source })?;
 
-        let diags = self.render_diags()?;
-        debug!(diag_count = diags.len(), "rendered codegen diagnostics");
+        let mut diags = Vec::new();
+
+        for diag in sync_ts_tree_diags.into_iter() {
+            diags.push(
+                diag.render(Theme::UnicodeNoColor)
+                    .map_err(|source| BuildError::RenderDiagnostic { source })?,
+            );
+        }
+
+        debug!(
+            diag_count = diags.len(),
+            "rendered shared codegen diagnostics"
+        );
 
         let wasm_bindgen_tool_bin_path =
             tools::wasm::wasm_bindgen_cli_path(&tools_dir.join("wasm-bindgen"));
@@ -301,7 +322,7 @@ impl Driver {
         let build_version = self.build_version;
         self.build_version += 1;
 
-        let mut artifacts_by_profile = HashMap::new();
+        let mut per_profile = HashMap::new();
 
         // todo: parallel builds
         for profile_name in profile_names {
@@ -330,6 +351,19 @@ impl Driver {
                 db: &self.db,
             })
             .map_err(|source| BuildError::SyncCrate { source })?;
+
+            let mut profile_diags = Vec::new();
+            for diag in codegen::bindings::compile::accumulated::<Diag>(&self.db) {
+                profile_diags.push(
+                    diag.render(Theme::UnicodeNoColor)
+                        .map_err(|source| BuildError::RenderDiagnostic { source })?,
+                );
+            }
+            debug!(
+                profile_name = %profile_name,
+                diag_count = profile_diags.len(),
+                "rendered profile codegen diagnostics"
+            );
 
             let output_root_dir = profile_crate_dir.join("output");
             let profile_out_dir =
@@ -366,35 +400,25 @@ impl Driver {
             tools::build_versioning::cleanup_old_build_versions(&output_root_dir, build_version)
                 .map_err(|source| BuildError::CleanupBuildVersions { source })?;
 
-            artifacts_by_profile.insert(profile_name.clone(), BuildArtifact::from(&artifacts));
+            per_profile.insert(
+                profile_name.clone(),
+                ProfileBuildOutput {
+                    artifact: BuildArtifact::from(&artifacts),
+                    diags: profile_diags,
+                },
+            );
             self.profile_builds.insert(profile_name.clone(), artifacts);
 
             info!(profile_name = %profile_name, "built profile");
         }
 
         info!(
-            artifact_count = artifacts_by_profile.len(),
+            profile_count = per_profile.len(),
             diag_count = diags.len(),
             "built profiles"
         );
 
-        Ok(BuildOutput {
-            artifacts: artifacts_by_profile,
-            diags,
-        })
-    }
-
-    fn render_diags(&self) -> Result<Vec<String>, BuildError> {
-        let mut diags = Vec::new();
-
-        for diag in codegen::bindings::get_compile_diags(&self.db) {
-            diags.push(
-                diag.render(Theme::UnicodeNoColor)
-                    .map_err(|source| BuildError::RenderDiagnostic { source })?,
-            );
-        }
-
-        Ok(diags)
+        Ok(BuildOutput { per_profile, diags })
     }
 
     /// Resolves a Rust module import to JavaScript that re-exports generated

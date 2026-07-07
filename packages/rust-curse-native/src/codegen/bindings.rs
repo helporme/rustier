@@ -12,9 +12,10 @@ pub use printer::*;
 pub use struct_::*;
 pub use type_::*;
 
-use crate::codegen::{api::Api, db::Db, diag::Diag, rustdoc};
+use crate::codegen::{api::Api, db::Db, rustdoc};
 
 /// Compiles the whole IR into bindings code for the active API.
+#[salsa::tracked]
 pub fn compile(db: &dyn Db) -> String {
     let api = Api::get(db);
     let mut out = String::new();
@@ -44,21 +45,4 @@ pub fn compile(db: &dyn Db) -> String {
     }
 
     out
-}
-
-/// Returns diagnostics accumulated while lowering rustdoc for binding
-/// generation.
-pub fn get_compile_diags(db: &dyn Db) -> Vec<Diag> {
-    let mut diags = Vec::new();
-
-    for mod_id in rustdoc::all_mod_ids(db) {
-        rustdoc::lower_mod_fns(db, *mod_id);
-        diags.extend(
-            rustdoc::lower_mod_fns::accumulated::<Diag>(db, *mod_id)
-                .into_iter()
-                .cloned(),
-        );
-    }
-
-    diags
 }
