@@ -412,6 +412,19 @@ impl Driver {
             info!(profile_name = %profile_name, "built profile");
         }
 
+        for diag in codegen::check::check(&self.db) {
+            diags.push(
+                Diag::from(diag.clone())
+                    .render(Theme::UnicodeNoColor)
+                    .map_err(|source| BuildError::RenderDiagnostic { source })?,
+            );
+        }
+
+        debug!(
+            diag_count = diags.len(),
+            "rendered shared diagnostics after IR checks"
+        );
+
         info!(
             profile_count = per_profile.len(),
             diag_count = diags.len(),

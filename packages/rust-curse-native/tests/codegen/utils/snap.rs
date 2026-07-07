@@ -89,7 +89,7 @@ fn wasm_web_api() -> ApiKind {
 }
 
 fn build_diags_body(db: &dyn Db, root_id: Id<'_>) -> String {
-    let diags = diags::collect_diags_mod(db, root_id);
+    let diags = diags::collect_diags(db, root_id);
 
     if diags.is_empty() {
         "None\n".to_string()

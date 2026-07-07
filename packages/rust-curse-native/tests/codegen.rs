@@ -1,5 +1,8 @@
 // todo: find a better way to structure such tests?
 
+#[path = "codegen/check/f32_percission_los.rs"]
+mod check_f32_percission_los;
+
 #[path = "codegen/fns/diags.rs"]
 mod fns_diags;
 

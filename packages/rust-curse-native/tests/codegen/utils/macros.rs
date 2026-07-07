@@ -37,7 +37,7 @@ macro_rules! diag {
                 ),
             ));
         let root_id = $crate::utils::rustdoc::root_id(db, &fixture.crate_);
-        let diags = $crate::utils::diags::collect_diags_mod(db, root_id);
+        let diags = $crate::utils::diags::collect_diags(db, root_id);
         (diags, db)
     }};
 }
