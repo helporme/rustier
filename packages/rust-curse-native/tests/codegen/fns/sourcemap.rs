@@ -5,7 +5,7 @@ use crate::utils::*;
 #[test]
 fn sourcemap() {
     assert_snap! {
-        @gen: ts, ts_sourcemap;
+        @gen: ts, sourcemap;
 
         pub fn add(a: i32, b: i32) -> i32 {
             a + b

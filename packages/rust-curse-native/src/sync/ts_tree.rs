@@ -126,9 +126,9 @@ pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<Vec<Diag>, SyncTsTreeErr
         }
         write_file(output_path, declaration.as_bytes())?;
 
-        let sourcemap = codegen::ts_sourcemap::compile_mod(opts.db, *mod_id).to_string();
+        let sourcemap = codegen::ts::sourcemap::compile_mod(opts.db, *mod_id).to_string();
         diags.extend(
-            codegen::ts_sourcemap::compile_mod::accumulated::<Diag>(opts.db, *mod_id)
+            codegen::ts::sourcemap::compile_mod::accumulated::<Diag>(opts.db, *mod_id)
                 .into_iter()
                 .cloned(),
         );

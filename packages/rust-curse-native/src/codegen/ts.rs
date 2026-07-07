@@ -1,5 +1,7 @@
 //! Compiles rustdoc into TypeScript declarations.
 
+pub mod sourcemap;
+
 use crate::codegen::{
     bindings::Printer,
     db::Db,

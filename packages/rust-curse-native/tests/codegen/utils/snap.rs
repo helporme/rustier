@@ -8,7 +8,7 @@ use rust_curse::codegen::{
     diag::Theme,
     js,
     rustdoc::{all_mod_ids, lower_mod, Id},
-    ts, ts_sourcemap,
+    ts,
 };
 use rustdoc_types::{Crate as RustdocCrate, Id as RId};
 
@@ -51,7 +51,7 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
                 let text = build_javascript_body(&db, &fixture.crate_, all_mod_ids(&db));
                 push_markdown_section(&mut body, "Javascript", &text);
             }
-            "ts_sourcemap" => {
+            "sourcemap" => {
                 let text = build_typescript_sourcemap_body(
                     &db,
                     &fixture.crate_,
@@ -132,7 +132,7 @@ fn build_typescript_sourcemap_body(
         .replace(std::path::MAIN_SEPARATOR, "/");
 
     for id in module_ids {
-        let sourcemap = ts_sourcemap::compile_mod(db, *id)
+        let sourcemap = ts::sourcemap::compile_mod(db, *id)
             .to_string()
             .replace(&crate_dir, "<crate>");
         push_module_code_block(&mut text, db, crate_, *id, "json", &sourcemap);
