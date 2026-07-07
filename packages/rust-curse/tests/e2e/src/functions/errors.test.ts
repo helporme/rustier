@@ -17,7 +17,7 @@ const invalidArgumentMessage = (
   jsType: string,
   reason: string,
 ) =>
-  `Invalid argument \`${paramName}\` passed to \`${fnName}\`: expected Rust \`${rustType}\` from a JavaScript ${jsType}: ${reason}`
+  `Invalid argument \`${paramName}\`: expected Rust \`${rustType}\` from a JavaScript ${jsType}: ${reason}`
 
 describe('binding errors', () => {
   it('throws a custom error when a wrong JS type is passed to a function argument', () => {
