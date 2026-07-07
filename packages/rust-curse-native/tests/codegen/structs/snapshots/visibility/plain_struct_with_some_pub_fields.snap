@@ -59,3 +59,113 @@ export class PlainStruct {
 	private constructor();
 }
 ```
+
+## Wasm Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+
+fn __cast_bool(value: JsValue) -> Result<bool, String> {
+	value.as_bool().ok_or_else(|| "cannot cast value to bool".to_string())
+}
+
+#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_PlainStruct)]
+pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	orig: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
+}
+
+#[wasm_bindgen]
+impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	#[wasm_bindgen(getter, js_name = a)]
+	pub fn __getter__a(&self) -> Result<bool, JsValue> {
+		let orig = self.orig.borrow();
+		let result = orig.a.clone();
+			Ok(result)
+	}
+	
+	#[wasm_bindgen(setter, js_name = a)]
+	pub fn __setter__a(&self, __p__a: JsValue) -> Result<(), JsValue> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__a = __cast_bool(__p__a).map_err(|err| JsValue::from_str(&format!("Invalid argument `a`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
+		orig.a = __p__a;
+		Ok(())
+	}
+	
+	#[wasm_bindgen(getter, js_name = c)]
+	pub fn __getter__c(&self) -> Result<bool, JsValue> {
+		let orig = self.orig.borrow();
+		let result = orig.c.clone();
+			Ok(result)
+	}
+	
+	#[wasm_bindgen(setter, js_name = c)]
+	pub fn __setter__c(&self, __p__c: JsValue) -> Result<(), JsValue> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__c = __cast_bool(__p__c).map_err(|err| JsValue::from_str(&format!("Invalid argument `c`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
+		orig.c = __p__c;
+		Ok(())
+	}
+	
+}
+
+```
+
+## Node Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{Unknown, ValueType};
+use napi_derive::napi;
+
+fn __cast_bool(value: Unknown<'_>) -> Result<bool, String> {
+	if value.get_type().map_err(|err| err.reason)? == ValueType::Boolean
+	{
+		unsafe { value.cast::<bool>() }.map_err(|_| "cannot cast value to bool".to_string())
+	}
+	else
+	{
+		Err("cannot cast value to bool".to_string())
+	}
+}
+
+#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
+pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	orig: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
+}
+
+#[napi]
+impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	#[napi(getter, js_name = "a")]
+	pub fn __getter__a(&self) -> napi::Result<bool> {
+		let orig = self.orig.borrow();
+		let result = orig.a.clone();
+			Ok(result)
+	}
+	
+	#[napi(setter, js_name = "a")]
+	pub fn __setter__a(&self, __p__a: Unknown<'_>) -> napi::Result<()> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__a = __cast_bool(__p__a).map_err(|err| napi::Error::from_reason(format!("Invalid argument `a`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
+		orig.a = __p__a;
+		Ok(())
+	}
+	
+	#[napi(getter, js_name = "c")]
+	pub fn __getter__c(&self) -> napi::Result<bool> {
+		let orig = self.orig.borrow();
+		let result = orig.c.clone();
+			Ok(result)
+	}
+	
+	#[napi(setter, js_name = "c")]
+	pub fn __setter__c(&self, __p__c: Unknown<'_>) -> napi::Result<()> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__c = __cast_bool(__p__c).map_err(|err| napi::Error::from_reason(format!("Invalid argument `c`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
+		orig.c = __p__c;
+		Ok(())
+	}
+	
+}
+
+```

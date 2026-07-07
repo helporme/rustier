@@ -9,44 +9,44 @@ use crate::codegen::{
 #[salsa::tracked(returns(ref))]
 pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
     let api = Api::get(db);
-    let mut p = Printer::default();
+    let mut out = Printer::default();
 
-    p.lines(&api.fn_header(db, fn_));
-    p.write_fmt(format_args!("pub fn {}", fn_.mangled_name(db)));
-    p.parens(|p| {
+    out.lines(&api.fn_header(db, fn_));
+    out.write_fmt(format_args!("pub fn {}", fn_.mangled_name(db)));
+    out.parens(|p| {
         p.comma_list(
             fn_.params(db)
                 .iter()
-                .map(|param| format!("{}: {}", param.mangled_name(db), api.js_type(db))),
+                .map(|param| compile_param_decl(db, *param)),
         );
     });
-    p.write(" -> ");
+    out.write(" -> ");
 
-    let ret_ty = fn_.return_type(db).map(|ty| compile_type(&ty));
+    let ret_ty = fn_.return_type(db).map(|ty| compile_ret_decl(ty));
     match ret_ty {
         Some(ok_ty) => {
-            p.write(&api.result_type(db, ok_ty));
-            p.write(" ");
-            p.curlies(|p| {
+            out.write(&api.result_type(db, ok_ty));
+            out.write(" ");
+            out.curlies(|p| {
                 for param in fn_.params(db) {
-                    p.lines(compile_param_conv(db, fn_, *param));
+                    p.lines(compile_param_conv(db, *param));
                 }
                 p.lines_fmt(format_args!(
                     "let result = {};",
                     compile_fn_call_stmt(db, fn_)
                 ));
                 if let Some(return_type) = fn_.return_type(db) {
-                    p.lines(&compile_ret_value_conv(db, return_type));
+                    p.lines(&compile_ret_conv(db, return_type));
                 }
                 p.line("Ok(result)");
             });
         }
         None => {
-            p.write(&api.result_type(db, "()"));
-            p.write(" ");
-            p.curlies(|p| {
+            out.write(&api.result_type(db, "()"));
+            out.write(" ");
+            out.curlies(|p| {
                 for param in fn_.params(db) {
-                    p.lines(compile_param_conv(db, fn_, *param));
+                    p.lines(compile_param_conv(db, *param));
                 }
                 p.lines_fmt(format_args!("{};", compile_fn_call_stmt(db, fn_)));
                 p.line("Ok(())");
@@ -54,17 +54,34 @@ pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
         }
     }
 
-    p.into()
+    out.into()
+}
+
+/// Compiles a function parameter into a param declaration.
+///
+/// ```ignore (incomplete expression)
+/// pub fn foo(value: String)
+///         // ~~~~~~~~~~~~~
+///         // this part
+/// ```
+#[salsa::tracked(returns(ref))]
+pub fn compile_param_decl<'db>(db: &'db dyn Db, param: ir::FnParam<'db>) -> String {
+    let api = Api::get(db);
+    format!("{}: {}", param.mangled_name(db), api.js_type(db))
 }
 
 /// Compiles Rust boundary conversion statements for a generated binding
 /// parameter.
+///
+/// ```ignore (incomplete expression)
+/// pub fn foo(param_name: String) {
+///    let mut param_name = /* conversion */;
+///  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+///  // this part
+/// }
+/// ```
 #[salsa::tracked(returns(ref))]
-pub fn compile_param_conv<'db>(
-    db: &'db dyn Db,
-    fn_: ir::Fn<'db>,
-    param: ir::FnParam<'db>,
-) -> String {
+pub fn compile_param_conv<'db>(db: &'db dyn Db, param: ir::FnParam<'db>) -> String {
     let api = Api::get(db);
     let mut out = Printer::default();
 
@@ -77,9 +94,8 @@ pub fn compile_param_conv<'db>(
     let error = api.error(
         db,
         &format!(
-            "format!(\"Invalid argument `{}` passed to `{}`: expected Rust `{}` from a JavaScript {}: {{}}\", err)",
+            "format!(\"Invalid argument `{}`: expected Rust `{}` from a JavaScript {}: {{}}\", err)",
             param.name(db),
-            fn_.name(db),
             type_.rs_name(),
             type_.js_name()
         ),
@@ -93,9 +109,30 @@ pub fn compile_param_conv<'db>(
     out.into()
 }
 
+/// Compiles the return type of a function into a return type declaration.
+///
+/// ```ignore (incomplete expression)
+/// pub fn foo() -> Result<String>
+///                     // ~~~~~~
+///                     // this part
+/// ```
+pub fn compile_ret_decl(ty: ir::Type) -> &'static str {
+    compile_type(&ty)
+}
+
 /// Compiles Rust boundary conversion statements for a generated binding return
 /// value.
-pub fn compile_ret_value_conv(db: &dyn Db, ty: ir::Type) -> String {
+///
+/// ```ignore (incomplete expression)
+/// pub fn foo(param_name: String) {
+///    let result = get_my_result();
+///
+///    let result = result as ...;
+/// // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/// // this part
+/// }
+/// ```
+pub fn compile_ret_conv(db: &dyn Db, ty: ir::Type) -> String {
     let _ = db;
     let mut p = Printer::default();
 

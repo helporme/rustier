@@ -2,12 +2,14 @@ mod cast;
 mod fn_;
 mod mod_;
 mod printer;
+mod struct_;
 mod type_;
 
 pub use cast::*;
 pub use fn_::*;
 pub use mod_::*;
 pub use printer::*;
+pub use struct_::*;
 pub use type_::*;
 
 use crate::codegen::{api::Api, db::Db, diag::Diag, rustdoc};

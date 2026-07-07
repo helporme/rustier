@@ -3,7 +3,7 @@ use crate::utils::*;
 #[test]
 fn plain_struct_with_some_pub_fields() {
     assert_snap! {
-        @gen: ir, ts;
+        @gen: ir, ts, wasm, node;
         @category: visibility;
 
         pub struct PlainStruct {
@@ -17,7 +17,7 @@ fn plain_struct_with_some_pub_fields() {
 #[test]
 fn plain_struct_with_none_pub_fields() {
     assert_snap! {
-        @gen: ir, ts;
+        @gen: ir, ts, wasm, node;
         @category: visibility;
 
         pub struct PlainStruct {
@@ -31,7 +31,7 @@ fn plain_struct_with_none_pub_fields() {
 #[test]
 fn tuple_struct_with_some_pub_fields() {
     assert_snap! {
-        @gen: ir, ts;
+        @gen: ir, ts, wasm, node;
         @category: visibility;
 
         pub struct TupleStruct(pub bool, bool, pub bool);
@@ -41,7 +41,7 @@ fn tuple_struct_with_some_pub_fields() {
 #[test]
 fn tuple_struct_with_none_pub_fields() {
     assert_snap! {
-        @gen: ir, ts;
+        @gen: ir, ts, wasm, node;
         @category: visibility;
 
         pub struct TupleStruct(bool, bool, bool);

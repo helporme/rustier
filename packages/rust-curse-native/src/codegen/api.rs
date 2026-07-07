@@ -1,6 +1,9 @@
 use salsa::Setter;
 
-use crate::codegen::{db::Db, ir};
+use crate::codegen::{
+    db::Db,
+    ir::{self, StructField},
+};
 
 /// Active binding API used for generated Rust and JavaScript glue code.
 #[salsa::input(singleton)]
@@ -121,6 +124,42 @@ impl Api {
         match self.kind(db) {
             ApiKind::Wasm { .. } => format!("#[wasm_bindgen(js_name = {})]", fn_name),
             ApiKind::Node => format!("#[napi(js_name = \"{}\")]", fn_name),
+        }
+    }
+
+    pub fn impl_header(&self, db: &dyn Db) -> &'static str {
+        match self.kind(db) {
+            ApiKind::Wasm { .. } => "#[wasm_bindgen]",
+            ApiKind::Node => "#[napi]",
+        }
+    }
+
+    /// Returns the struct header for this API.
+    pub fn struct_header(&self, db: &dyn Db, _struct: ir::Struct) -> String {
+        let struct_name = _struct.mangled_name(db);
+        match self.kind(db) {
+            ApiKind::Wasm { .. } => format!("#[wasm_bindgen(js_name = {})]", struct_name),
+            ApiKind::Node => format!("#[napi(js_name = \"{}\")]", struct_name),
+        }
+    }
+
+    /// Returns the getter header for this API.
+    pub fn field_getter_header(&self, db: &dyn Db, field: StructField) -> String {
+        match self.kind(db) {
+            ApiKind::Wasm { .. } => {
+                format!("#[wasm_bindgen(getter, js_name = {})]", field.name(db))
+            }
+            ApiKind::Node => format!("#[napi(getter, js_name = \"{}\")]", field.name(db)),
+        }
+    }
+
+    /// Returns the setter header for this API.
+    pub fn field_setter_header(&self, db: &dyn Db, field: StructField) -> String {
+        match self.kind(db) {
+            ApiKind::Wasm { .. } => {
+                format!("#[wasm_bindgen(setter, js_name = {})]", field.name(db))
+            }
+            ApiKind::Node => format!("#[napi(setter, js_name = \"{}\")]", field.name(db)),
         }
     }
 

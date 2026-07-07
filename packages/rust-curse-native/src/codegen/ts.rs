@@ -3,7 +3,7 @@
 use crate::codegen::{
     bindings::Printer,
     db::Db,
-    ir::{Fn, Primitive, Struct, StructShape, Type},
+    ir::{Fn, Primitive, Struct, StructField, StructShape, Type},
     rustdoc,
 };
 
@@ -79,34 +79,35 @@ fn compile_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
         match struct_.shape(db) {
             StructShape::Unit => {}
             StructShape::Tuple(fields) => {
-                for (i, field) in fields.iter().enumerate() {
-                    if let Some(field) = field {
-                        if let Some(docs) = field.docs(db) {
-                            out.lines(&compile_jsdoc(docs));
-                        }
-                        out.line_fmt(format_args!(
-                            "public {i}: {};",
-                            compile_type(field.type_(db))
-                        ));
-                    }
+                for field in fields.iter().flatten() {
+                    out.lines(compile_class_field(db, *field));
                 }
             }
             StructShape::Plain { fields, .. } => {
                 for field in fields {
-                    if let Some(docs) = field.docs(db) {
-                        out.lines(&compile_jsdoc(docs));
-                    }
-                    out.line_fmt(format_args!(
-                        "public {}: {};",
-                        field.name(db),
-                        compile_type(field.type_(db))
-                    ));
+                    out.lines(compile_class_field(db, *field));
                 }
             }
         }
         out.line("private __rust_curse_brand: never;");
         out.line("private constructor();");
     });
+
+    out.into()
+}
+
+#[salsa::tracked(returns(ref))]
+fn compile_class_field<'db>(db: &'db dyn Db, field: StructField<'db>) -> String {
+    let mut out = Printer::default();
+
+    if let Some(docs) = field.docs(db) {
+        out.lines(&compile_jsdoc(docs));
+    }
+    out.line_fmt(format_args!(
+        "public {}: {};",
+        field.name(db),
+        compile_type(field.type_(db))
+    ));
 
     out.into()
 }

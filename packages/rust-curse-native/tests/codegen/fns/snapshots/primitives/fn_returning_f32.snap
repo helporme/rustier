@@ -52,6 +52,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> napi::Result<f64> {
 	let result = result as f64;
 	Ok(result)
 }
+
 ```
 
 ## Wasm Bindings
@@ -66,4 +67,5 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> Result<f64, JsValue> {
 	let result = result as f64;
 	Ok(result)
 }
+
 ```

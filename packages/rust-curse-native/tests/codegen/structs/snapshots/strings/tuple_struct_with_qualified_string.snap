@@ -46,3 +46,83 @@ export class TupleStruct {
 	private constructor();
 }
 ```
+
+## Wasm Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+
+fn __cast_String(value: JsValue) -> Result<String, String> {
+	value.as_string().ok_or_else(|| "cannot cast value to String".to_string())
+}
+
+#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_TupleStruct)]
+pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
+	orig: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
+}
+
+#[wasm_bindgen]
+impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
+	#[wasm_bindgen(getter, js_name = 0)]
+	pub fn __getter__0(&self) -> Result<String, JsValue> {
+		let orig = self.orig.borrow();
+		let result = orig.0.clone();
+			Ok(result)
+	}
+	
+	#[wasm_bindgen(setter, js_name = 0)]
+	pub fn __setter__0(&self, __p__0: JsValue) -> Result<(), JsValue> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__0 = __cast_String(__p__0).map_err(|err| JsValue::from_str(&format!("Invalid argument `0`: expected Rust `String` from a JavaScript string: {}", err)))?;
+		orig.0 = __p__0;
+		Ok(())
+	}
+	
+}
+
+```
+
+## Node Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{Unknown, ValueType};
+use napi_derive::napi;
+
+fn __cast_String(value: Unknown<'_>) -> Result<String, String> {
+	if value.get_type().map_err(|err| err.reason)? == ValueType::String
+	{
+		unsafe { value.cast::<String>() }.map_err(|_| "cannot cast value to String".to_string())
+	}
+	else
+	{
+		Err("cannot cast value to String".to_string())
+	}
+}
+
+#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]
+pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
+	orig: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
+}
+
+#[napi]
+impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
+	#[napi(getter, js_name = "0")]
+	pub fn __getter__0(&self) -> napi::Result<String> {
+		let orig = self.orig.borrow();
+		let result = orig.0.clone();
+			Ok(result)
+	}
+	
+	#[napi(setter, js_name = "0")]
+	pub fn __setter__0(&self, __p__0: Unknown<'_>) -> napi::Result<()> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__0 = __cast_String(__p__0).map_err(|err| napi::Error::from_reason(format!("Invalid argument `0`: expected Rust `String` from a JavaScript string: {}", err)))?;
+		orig.0 = __p__0;
+		Ok(())
+	}
+	
+}
+
+```

@@ -10,6 +10,7 @@
 
 use std::{
     collections::{BTreeMap, HashMap},
+    error::Error as StdError,
     path::PathBuf,
     sync::Once,
 };
@@ -43,6 +44,32 @@ fn setup_logging() {
             .with_env_filter(filter)
             .try_init();
     });
+}
+
+fn napi_error(error: impl StdError) -> napi::Error {
+    let mut reason = error.to_string();
+    let mut previous_message = reason.clone();
+    let mut source = error.source();
+    let mut cause_index = 1;
+
+    while let Some(error) = source {
+        let message = error.to_string();
+        if !message.is_empty() && message != previous_message {
+            if cause_index == 1 {
+                reason.push_str("\n\nCaused by:");
+            }
+
+            reason.push_str(&format!(
+                "\n  {cause_index}: {}",
+                message.replace('\n', "\n     ")
+            ));
+            cause_index += 1;
+            previous_message = message;
+        }
+        source = error.source();
+    }
+
+    napi::Error::from_reason(reason)
 }
 
 #[napi]
@@ -173,8 +200,7 @@ impl Driver {
     /// profiles.
     #[napi]
     pub fn install_deps(&self) -> napi::Result<()> {
-        self._install_deps()
-            .map_err(|error| napi::Error::from_reason(error.to_string()))
+        self._install_deps().map_err(napi_error)
     }
 
     fn _install_deps(&self) -> Result<(), InstallDepsError> {
@@ -215,8 +241,7 @@ impl Driver {
 
     #[napi]
     pub fn build(&mut self, profile_names: Vec<String>) -> napi::Result<BuildOutput> {
-        self._build(profile_names)
-            .map_err(|error| napi::Error::from_reason(error.to_string()))
+        self._build(profile_names).map_err(napi_error)
     }
 
     #[tracing::instrument(name = "build", level = "debug", skip(self), fields(profile_names = ?profile_names))]
@@ -376,8 +401,7 @@ impl Driver {
     /// bindings for the selected profile.
     #[napi]
     pub fn resolve(&mut self, profile_name: String, file_path: String) -> napi::Result<String> {
-        self._resolve(&profile_name, file_path)
-            .map_err(|error| napi::Error::from_reason(error.to_string()))
+        self._resolve(&profile_name, file_path).map_err(napi_error)
     }
 
     #[tracing::instrument(

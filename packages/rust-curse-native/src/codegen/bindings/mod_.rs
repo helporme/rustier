@@ -1,5 +1,5 @@
 use crate::codegen::{
-    bindings::{compile_fn, Printer},
+    bindings::{compile_fn, compile_struct, Printer},
     db::Db,
     rustdoc,
 };
@@ -7,14 +7,17 @@ use crate::codegen::{
 /// Compiles all items inside the module to bindings code using the active API.
 #[salsa::tracked(returns(ref))]
 pub fn compile_mod(db: &dyn Db, mod_id: rustdoc::Id<'_>) -> String {
-    let fns = rustdoc::lower_mod_fns(db, mod_id);
+    let mut out = Printer::default();
 
-    let mut p = Printer::default();
-
-    for fn_ in fns {
-        p.write(compile_fn(db, *fn_));
-        p.blank();
+    for fn_ in rustdoc::lower_mod_fns(db, mod_id) {
+        out.lines(compile_fn(db, *fn_));
+        out.blank();
     }
 
-    p.into()
+    for struct_ in rustdoc::lower_mod_structs(db, mod_id) {
+        out.lines(compile_struct(db, *struct_));
+        out.blank();
+    }
+
+    out.into()
 }

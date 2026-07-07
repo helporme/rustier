@@ -175,14 +175,14 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__i: Unknown<'_>,
 	__p__k: Unknown<'_>,
 ) -> napi::Result<()> {
-	let __p__a = __cast_bool(__p__a).map_err(|err| napi::Error::from_reason(format!("Invalid argument `a` passed to `foo`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-	let __p__d = __cast_i8(__p__d).map_err(|err| napi::Error::from_reason(format!("Invalid argument `d` passed to `foo`: expected Rust `i8` from a JavaScript number: {}", err)))?;
-	let __p__e = __cast_i16(__p__e).map_err(|err| napi::Error::from_reason(format!("Invalid argument `e` passed to `foo`: expected Rust `i16` from a JavaScript number: {}", err)))?;
-	let __p__f = __cast_i32(__p__f).map_err(|err| napi::Error::from_reason(format!("Invalid argument `f` passed to `foo`: expected Rust `i32` from a JavaScript number: {}", err)))?;
-	let __p__g = __cast_u8(__p__g).map_err(|err| napi::Error::from_reason(format!("Invalid argument `g` passed to `foo`: expected Rust `u8` from a JavaScript number: {}", err)))?;
-	let __p__h = __cast_u16(__p__h).map_err(|err| napi::Error::from_reason(format!("Invalid argument `h` passed to `foo`: expected Rust `u16` from a JavaScript number: {}", err)))?;
-	let __p__i = __cast_u32(__p__i).map_err(|err| napi::Error::from_reason(format!("Invalid argument `i` passed to `foo`: expected Rust `u32` from a JavaScript number: {}", err)))?;
-	let __p__k = __cast_f64(__p__k).map_err(|err| napi::Error::from_reason(format!("Invalid argument `k` passed to `foo`: expected Rust `f64` from a JavaScript number: {}", err)))?;
+	let __p__a = __cast_bool(__p__a).map_err(|err| napi::Error::from_reason(format!("Invalid argument `a`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
+	let __p__d = __cast_i8(__p__d).map_err(|err| napi::Error::from_reason(format!("Invalid argument `d`: expected Rust `i8` from a JavaScript number: {}", err)))?;
+	let __p__e = __cast_i16(__p__e).map_err(|err| napi::Error::from_reason(format!("Invalid argument `e`: expected Rust `i16` from a JavaScript number: {}", err)))?;
+	let __p__f = __cast_i32(__p__f).map_err(|err| napi::Error::from_reason(format!("Invalid argument `f`: expected Rust `i32` from a JavaScript number: {}", err)))?;
+	let __p__g = __cast_u8(__p__g).map_err(|err| napi::Error::from_reason(format!("Invalid argument `g`: expected Rust `u8` from a JavaScript number: {}", err)))?;
+	let __p__h = __cast_u16(__p__h).map_err(|err| napi::Error::from_reason(format!("Invalid argument `h`: expected Rust `u16` from a JavaScript number: {}", err)))?;
+	let __p__i = __cast_u32(__p__i).map_err(|err| napi::Error::from_reason(format!("Invalid argument `i`: expected Rust `u32` from a JavaScript number: {}", err)))?;
+	let __p__k = __cast_f64(__p__k).map_err(|err| napi::Error::from_reason(format!("Invalid argument `k`: expected Rust `f64` from a JavaScript number: {}", err)))?;
 	rustdoc_test_crate::foo(
 		__p__a,
 		__p__d,
@@ -195,6 +195,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	);
 	Ok(())
 }
+
 ```
 
 ## Wasm Bindings
@@ -269,14 +270,14 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__i: JsValue,
 	__p__k: JsValue,
 ) -> Result<(), JsValue> {
-	let __p__a = __cast_bool(__p__a).map_err(|err| JsValue::from_str(&format!("Invalid argument `a` passed to `foo`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-	let __p__d = __cast_i8(__p__d).map_err(|err| JsValue::from_str(&format!("Invalid argument `d` passed to `foo`: expected Rust `i8` from a JavaScript number: {}", err)))?;
-	let __p__e = __cast_i16(__p__e).map_err(|err| JsValue::from_str(&format!("Invalid argument `e` passed to `foo`: expected Rust `i16` from a JavaScript number: {}", err)))?;
-	let __p__f = __cast_i32(__p__f).map_err(|err| JsValue::from_str(&format!("Invalid argument `f` passed to `foo`: expected Rust `i32` from a JavaScript number: {}", err)))?;
-	let __p__g = __cast_u8(__p__g).map_err(|err| JsValue::from_str(&format!("Invalid argument `g` passed to `foo`: expected Rust `u8` from a JavaScript number: {}", err)))?;
-	let __p__h = __cast_u16(__p__h).map_err(|err| JsValue::from_str(&format!("Invalid argument `h` passed to `foo`: expected Rust `u16` from a JavaScript number: {}", err)))?;
-	let __p__i = __cast_u32(__p__i).map_err(|err| JsValue::from_str(&format!("Invalid argument `i` passed to `foo`: expected Rust `u32` from a JavaScript number: {}", err)))?;
-	let __p__k = __cast_f64(__p__k).map_err(|err| JsValue::from_str(&format!("Invalid argument `k` passed to `foo`: expected Rust `f64` from a JavaScript number: {}", err)))?;
+	let __p__a = __cast_bool(__p__a).map_err(|err| JsValue::from_str(&format!("Invalid argument `a`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
+	let __p__d = __cast_i8(__p__d).map_err(|err| JsValue::from_str(&format!("Invalid argument `d`: expected Rust `i8` from a JavaScript number: {}", err)))?;
+	let __p__e = __cast_i16(__p__e).map_err(|err| JsValue::from_str(&format!("Invalid argument `e`: expected Rust `i16` from a JavaScript number: {}", err)))?;
+	let __p__f = __cast_i32(__p__f).map_err(|err| JsValue::from_str(&format!("Invalid argument `f`: expected Rust `i32` from a JavaScript number: {}", err)))?;
+	let __p__g = __cast_u8(__p__g).map_err(|err| JsValue::from_str(&format!("Invalid argument `g`: expected Rust `u8` from a JavaScript number: {}", err)))?;
+	let __p__h = __cast_u16(__p__h).map_err(|err| JsValue::from_str(&format!("Invalid argument `h`: expected Rust `u16` from a JavaScript number: {}", err)))?;
+	let __p__i = __cast_u32(__p__i).map_err(|err| JsValue::from_str(&format!("Invalid argument `i`: expected Rust `u32` from a JavaScript number: {}", err)))?;
+	let __p__k = __cast_f64(__p__k).map_err(|err| JsValue::from_str(&format!("Invalid argument `k`: expected Rust `f64` from a JavaScript number: {}", err)))?;
 	rustdoc_test_crate::foo(
 		__p__a,
 		__p__d,
@@ -289,4 +290,5 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	);
 	Ok(())
 }
+
 ```

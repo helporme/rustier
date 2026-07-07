@@ -5,7 +5,7 @@ use crate::utils::*;
 #[test]
 fn unit_struct_docs() {
     assert_snap! {
-        @gen: ir, ts;
+        @gen: ir, ts, wasm, node;
         @category: docs;
 
         /// Unit struct docs.
@@ -16,7 +16,7 @@ fn unit_struct_docs() {
 #[test]
 fn plain_struct_and_field_docs() {
     assert_snap! {
-        @gen: ir, ts;
+        @gen: ir, ts, wasm, node;
         @category: docs;
 
         /// Plain struct docs.
@@ -30,7 +30,7 @@ fn plain_struct_and_field_docs() {
 #[test]
 fn tuple_struct_and_field_docs() {
     assert_snap! {
-        @gen: ir, ts;
+        @gen: ir, ts, wasm, node;
         @category: docs;
 
         /// Tuple struct docs.

@@ -1,6 +1,12 @@
 use std::collections::HashSet;
 
-use crate::codegen::{api::Api, bindings::Printer, db::Db, ir, rustdoc};
+use crate::codegen::{
+    api::Api,
+    bindings::Printer,
+    db::Db,
+    ir::{self, StructShape},
+    rustdoc,
+};
 
 /// Compiles shared JavaScript-to-Rust cast helpers used by generated bindings.
 #[salsa::tracked(returns(ref))]
@@ -12,6 +18,21 @@ pub fn compile_cast_fns(db: &dyn Db) -> String {
         for fn_ in rustdoc::lower_mod_fns(db, *mod_id) {
             for param in fn_.params(db) {
                 collect_cast_type(param.type_(db), &mut seen, &mut types);
+            }
+        }
+        for struct_ in rustdoc::lower_mod_structs(db, *mod_id) {
+            match struct_.shape(db) {
+                StructShape::Tuple(fields) => {
+                    for field in fields.iter().flatten() {
+                        collect_cast_type(field.type_(db), &mut seen, &mut types);
+                    }
+                }
+                StructShape::Plain { fields, .. } => {
+                    for field in fields {
+                        collect_cast_type(field.type_(db), &mut seen, &mut types);
+                    }
+                }
+                StructShape::Unit => {}
             }
         }
     }

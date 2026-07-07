@@ -94,3 +94,402 @@ export class PlainStruct {
 	private constructor();
 }
 ```
+
+## Node Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{Unknown, ValueType};
+use napi_derive::napi;
+
+fn __cast_bool(value: Unknown<'_>) -> Result<bool, String> {
+	if value.get_type().map_err(|err| err.reason)? == ValueType::Boolean
+	{
+		unsafe { value.cast::<bool>() }.map_err(|_| "cannot cast value to bool".to_string())
+	}
+	else
+	{
+		Err("cannot cast value to bool".to_string())
+	}
+}
+fn __cast_f64(value: Unknown<'_>) -> Result<f64, String> {
+	if value.get_type().map_err(|err| err.reason)? == ValueType::Number
+	{
+		unsafe { value.cast::<f64>() }.map_err(|_| "cannot cast value to f64".to_string())
+	}
+	else
+	{
+		Err("cannot cast value to f64".to_string())
+	}
+}
+fn __cast_i8(value: Unknown<'_>) -> Result<i8, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to i8".to_string())?;
+	if value.trunc() != value || value < i8::MIN as f64 || value > i8::MAX as f64
+	{
+		return Err(format!("cannot cast {} to i8", value));
+	}
+	Ok(value as i8)
+}
+fn __cast_i16(value: Unknown<'_>) -> Result<i16, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to i16".to_string())?;
+	if value.trunc() != value || value < i16::MIN as f64 || value > i16::MAX as f64
+	{
+		return Err(format!("cannot cast {} to i16", value));
+	}
+	Ok(value as i16)
+}
+fn __cast_i32(value: Unknown<'_>) -> Result<i32, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to i32".to_string())?;
+	if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64
+	{
+		return Err(format!("cannot cast {} to i32", value));
+	}
+	Ok(value as i32)
+}
+fn __cast_u8(value: Unknown<'_>) -> Result<u8, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u8".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u8::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u8", value));
+	}
+	Ok(value as u8)
+}
+fn __cast_u16(value: Unknown<'_>) -> Result<u16, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u16".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u16::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u16", value));
+	}
+	Ok(value as u16)
+}
+fn __cast_u32(value: Unknown<'_>) -> Result<u32, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u32".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u32", value));
+	}
+	Ok(value as u32)
+}
+
+#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
+pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	orig: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
+}
+
+#[napi]
+impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	#[napi(getter, js_name = "a")]
+	pub fn __getter__a(&self) -> napi::Result<bool> {
+		let orig = self.orig.borrow();
+		let result = orig.a.clone();
+			Ok(result)
+	}
+	
+	#[napi(setter, js_name = "a")]
+	pub fn __setter__a(&self, __p__a: Unknown<'_>) -> napi::Result<()> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__a = __cast_bool(__p__a).map_err(|err| napi::Error::from_reason(format!("Invalid argument `a`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
+		orig.a = __p__a;
+		Ok(())
+	}
+	
+	#[napi(getter, js_name = "d")]
+	pub fn __getter__d(&self) -> napi::Result<i8> {
+		let orig = self.orig.borrow();
+		let result = orig.d.clone();
+			Ok(result)
+	}
+	
+	#[napi(setter, js_name = "d")]
+	pub fn __setter__d(&self, __p__d: Unknown<'_>) -> napi::Result<()> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__d = __cast_i8(__p__d).map_err(|err| napi::Error::from_reason(format!("Invalid argument `d`: expected Rust `i8` from a JavaScript number: {}", err)))?;
+		orig.d = __p__d;
+		Ok(())
+	}
+	
+	#[napi(getter, js_name = "e")]
+	pub fn __getter__e(&self) -> napi::Result<i16> {
+		let orig = self.orig.borrow();
+		let result = orig.e.clone();
+			Ok(result)
+	}
+	
+	#[napi(setter, js_name = "e")]
+	pub fn __setter__e(&self, __p__e: Unknown<'_>) -> napi::Result<()> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__e = __cast_i16(__p__e).map_err(|err| napi::Error::from_reason(format!("Invalid argument `e`: expected Rust `i16` from a JavaScript number: {}", err)))?;
+		orig.e = __p__e;
+		Ok(())
+	}
+	
+	#[napi(getter, js_name = "f")]
+	pub fn __getter__f(&self) -> napi::Result<i32> {
+		let orig = self.orig.borrow();
+		let result = orig.f.clone();
+			Ok(result)
+	}
+	
+	#[napi(setter, js_name = "f")]
+	pub fn __setter__f(&self, __p__f: Unknown<'_>) -> napi::Result<()> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__f = __cast_i32(__p__f).map_err(|err| napi::Error::from_reason(format!("Invalid argument `f`: expected Rust `i32` from a JavaScript number: {}", err)))?;
+		orig.f = __p__f;
+		Ok(())
+	}
+	
+	#[napi(getter, js_name = "g")]
+	pub fn __getter__g(&self) -> napi::Result<u8> {
+		let orig = self.orig.borrow();
+		let result = orig.g.clone();
+			Ok(result)
+	}
+	
+	#[napi(setter, js_name = "g")]
+	pub fn __setter__g(&self, __p__g: Unknown<'_>) -> napi::Result<()> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__g = __cast_u8(__p__g).map_err(|err| napi::Error::from_reason(format!("Invalid argument `g`: expected Rust `u8` from a JavaScript number: {}", err)))?;
+		orig.g = __p__g;
+		Ok(())
+	}
+	
+	#[napi(getter, js_name = "h")]
+	pub fn __getter__h(&self) -> napi::Result<u16> {
+		let orig = self.orig.borrow();
+		let result = orig.h.clone();
+			Ok(result)
+	}
+	
+	#[napi(setter, js_name = "h")]
+	pub fn __setter__h(&self, __p__h: Unknown<'_>) -> napi::Result<()> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__h = __cast_u16(__p__h).map_err(|err| napi::Error::from_reason(format!("Invalid argument `h`: expected Rust `u16` from a JavaScript number: {}", err)))?;
+		orig.h = __p__h;
+		Ok(())
+	}
+	
+	#[napi(getter, js_name = "i")]
+	pub fn __getter__i(&self) -> napi::Result<u32> {
+		let orig = self.orig.borrow();
+		let result = orig.i.clone();
+			Ok(result)
+	}
+	
+	#[napi(setter, js_name = "i")]
+	pub fn __setter__i(&self, __p__i: Unknown<'_>) -> napi::Result<()> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__i = __cast_u32(__p__i).map_err(|err| napi::Error::from_reason(format!("Invalid argument `i`: expected Rust `u32` from a JavaScript number: {}", err)))?;
+		orig.i = __p__i;
+		Ok(())
+	}
+	
+	#[napi(getter, js_name = "k")]
+	pub fn __getter__k(&self) -> napi::Result<f64> {
+		let orig = self.orig.borrow();
+		let result = orig.k.clone();
+			Ok(result)
+	}
+	
+	#[napi(setter, js_name = "k")]
+	pub fn __setter__k(&self, __p__k: Unknown<'_>) -> napi::Result<()> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__k = __cast_f64(__p__k).map_err(|err| napi::Error::from_reason(format!("Invalid argument `k`: expected Rust `f64` from a JavaScript number: {}", err)))?;
+		orig.k = __p__k;
+		Ok(())
+	}
+	
+}
+
+```
+
+## Wasm Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+
+fn __cast_bool(value: JsValue) -> Result<bool, String> {
+	value.as_bool().ok_or_else(|| "cannot cast value to bool".to_string())
+}
+fn __cast_f64(value: JsValue) -> Result<f64, String> {
+	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
+}
+fn __cast_i8(value: JsValue) -> Result<i8, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to i8".to_string())?;
+	if value.trunc() != value || value < i8::MIN as f64 || value > i8::MAX as f64
+	{
+		return Err(format!("cannot cast {} to i8", value));
+	}
+	Ok(value as i8)
+}
+fn __cast_i16(value: JsValue) -> Result<i16, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to i16".to_string())?;
+	if value.trunc() != value || value < i16::MIN as f64 || value > i16::MAX as f64
+	{
+		return Err(format!("cannot cast {} to i16", value));
+	}
+	Ok(value as i16)
+}
+fn __cast_i32(value: JsValue) -> Result<i32, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to i32".to_string())?;
+	if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64
+	{
+		return Err(format!("cannot cast {} to i32", value));
+	}
+	Ok(value as i32)
+}
+fn __cast_u8(value: JsValue) -> Result<u8, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u8".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u8::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u8", value));
+	}
+	Ok(value as u8)
+}
+fn __cast_u16(value: JsValue) -> Result<u16, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u16".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u16::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u16", value));
+	}
+	Ok(value as u16)
+}
+fn __cast_u32(value: JsValue) -> Result<u32, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to u32".to_string())?;
+	if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64
+	{
+		return Err(format!("cannot cast {} to u32", value));
+	}
+	Ok(value as u32)
+}
+
+#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_PlainStruct)]
+pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	orig: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
+}
+
+#[wasm_bindgen]
+impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	#[wasm_bindgen(getter, js_name = a)]
+	pub fn __getter__a(&self) -> Result<bool, JsValue> {
+		let orig = self.orig.borrow();
+		let result = orig.a.clone();
+			Ok(result)
+	}
+	
+	#[wasm_bindgen(setter, js_name = a)]
+	pub fn __setter__a(&self, __p__a: JsValue) -> Result<(), JsValue> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__a = __cast_bool(__p__a).map_err(|err| JsValue::from_str(&format!("Invalid argument `a`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
+		orig.a = __p__a;
+		Ok(())
+	}
+	
+	#[wasm_bindgen(getter, js_name = d)]
+	pub fn __getter__d(&self) -> Result<i8, JsValue> {
+		let orig = self.orig.borrow();
+		let result = orig.d.clone();
+			Ok(result)
+	}
+	
+	#[wasm_bindgen(setter, js_name = d)]
+	pub fn __setter__d(&self, __p__d: JsValue) -> Result<(), JsValue> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__d = __cast_i8(__p__d).map_err(|err| JsValue::from_str(&format!("Invalid argument `d`: expected Rust `i8` from a JavaScript number: {}", err)))?;
+		orig.d = __p__d;
+		Ok(())
+	}
+	
+	#[wasm_bindgen(getter, js_name = e)]
+	pub fn __getter__e(&self) -> Result<i16, JsValue> {
+		let orig = self.orig.borrow();
+		let result = orig.e.clone();
+			Ok(result)
+	}
+	
+	#[wasm_bindgen(setter, js_name = e)]
+	pub fn __setter__e(&self, __p__e: JsValue) -> Result<(), JsValue> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__e = __cast_i16(__p__e).map_err(|err| JsValue::from_str(&format!("Invalid argument `e`: expected Rust `i16` from a JavaScript number: {}", err)))?;
+		orig.e = __p__e;
+		Ok(())
+	}
+	
+	#[wasm_bindgen(getter, js_name = f)]
+	pub fn __getter__f(&self) -> Result<i32, JsValue> {
+		let orig = self.orig.borrow();
+		let result = orig.f.clone();
+			Ok(result)
+	}
+	
+	#[wasm_bindgen(setter, js_name = f)]
+	pub fn __setter__f(&self, __p__f: JsValue) -> Result<(), JsValue> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__f = __cast_i32(__p__f).map_err(|err| JsValue::from_str(&format!("Invalid argument `f`: expected Rust `i32` from a JavaScript number: {}", err)))?;
+		orig.f = __p__f;
+		Ok(())
+	}
+	
+	#[wasm_bindgen(getter, js_name = g)]
+	pub fn __getter__g(&self) -> Result<u8, JsValue> {
+		let orig = self.orig.borrow();
+		let result = orig.g.clone();
+			Ok(result)
+	}
+	
+	#[wasm_bindgen(setter, js_name = g)]
+	pub fn __setter__g(&self, __p__g: JsValue) -> Result<(), JsValue> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__g = __cast_u8(__p__g).map_err(|err| JsValue::from_str(&format!("Invalid argument `g`: expected Rust `u8` from a JavaScript number: {}", err)))?;
+		orig.g = __p__g;
+		Ok(())
+	}
+	
+	#[wasm_bindgen(getter, js_name = h)]
+	pub fn __getter__h(&self) -> Result<u16, JsValue> {
+		let orig = self.orig.borrow();
+		let result = orig.h.clone();
+			Ok(result)
+	}
+	
+	#[wasm_bindgen(setter, js_name = h)]
+	pub fn __setter__h(&self, __p__h: JsValue) -> Result<(), JsValue> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__h = __cast_u16(__p__h).map_err(|err| JsValue::from_str(&format!("Invalid argument `h`: expected Rust `u16` from a JavaScript number: {}", err)))?;
+		orig.h = __p__h;
+		Ok(())
+	}
+	
+	#[wasm_bindgen(getter, js_name = i)]
+	pub fn __getter__i(&self) -> Result<u32, JsValue> {
+		let orig = self.orig.borrow();
+		let result = orig.i.clone();
+			Ok(result)
+	}
+	
+	#[wasm_bindgen(setter, js_name = i)]
+	pub fn __setter__i(&self, __p__i: JsValue) -> Result<(), JsValue> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__i = __cast_u32(__p__i).map_err(|err| JsValue::from_str(&format!("Invalid argument `i`: expected Rust `u32` from a JavaScript number: {}", err)))?;
+		orig.i = __p__i;
+		Ok(())
+	}
+	
+	#[wasm_bindgen(getter, js_name = k)]
+	pub fn __getter__k(&self) -> Result<f64, JsValue> {
+		let orig = self.orig.borrow();
+		let result = orig.k.clone();
+			Ok(result)
+	}
+	
+	#[wasm_bindgen(setter, js_name = k)]
+	pub fn __setter__k(&self, __p__k: JsValue) -> Result<(), JsValue> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__k = __cast_f64(__p__k).map_err(|err| JsValue::from_str(&format!("Invalid argument `k`: expected Rust `f64` from a JavaScript number: {}", err)))?;
+		orig.k = __p__k;
+		Ok(())
+	}
+	
+}
+
+```

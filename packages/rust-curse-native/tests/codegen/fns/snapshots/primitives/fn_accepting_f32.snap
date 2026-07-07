@@ -72,12 +72,13 @@ fn __cast_f32(value: Unknown<'_>) -> Result<f32, String> {
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__value: Unknown<'_>,
 ) -> napi::Result<()> {
-	let __p__value = __cast_f32(__p__value).map_err(|err| napi::Error::from_reason(format!("Invalid argument `value` passed to `foo`: expected Rust `f32` from a JavaScript number: {}", err)))?;
+	let __p__value = __cast_f32(__p__value).map_err(|err| napi::Error::from_reason(format!("Invalid argument `value`: expected Rust `f32` from a JavaScript number: {}", err)))?;
 	rustdoc_test_crate::foo(
 		__p__value,
 	);
 	Ok(())
 }
+
 ```
 
 ## Wasm Bindings
@@ -98,10 +99,11 @@ fn __cast_f32(value: JsValue) -> Result<f32, String> {
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__value: JsValue,
 ) -> Result<(), JsValue> {
-	let __p__value = __cast_f32(__p__value).map_err(|err| JsValue::from_str(&format!("Invalid argument `value` passed to `foo`: expected Rust `f32` from a JavaScript number: {}", err)))?;
+	let __p__value = __cast_f32(__p__value).map_err(|err| JsValue::from_str(&format!("Invalid argument `value`: expected Rust `f32` from a JavaScript number: {}", err)))?;
 	rustdoc_test_crate::foo(
 		__p__value,
 	);
 	Ok(())
 }
+
 ```

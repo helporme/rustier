@@ -48,3 +48,37 @@ export class PlainStruct {
 	private constructor();
 }
 ```
+
+## Wasm Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_PlainStruct)]
+pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	orig: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
+}
+
+#[wasm_bindgen]
+impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+}
+
+```
+
+## Node Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi_derive::napi;
+
+#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
+pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	orig: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
+}
+
+#[napi]
+impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+}
+
+```

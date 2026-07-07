@@ -50,10 +50,11 @@ pub fn lower_struct<'db>(
 
             let tuple_fields = ids
                 .iter()
-                .map(|id| {
+                .enumerate()
+                .map(|(index, id)| {
                     id.map(|id| {
                         let id = crate_body.id(db, id);
-                        let field = lower_tuple_struct_field(db, id);
+                        let field = lower_tuple_struct_field(db, id, index);
                         match field {
                             Ok(ty) => Some(ty),
                             Err(diag) => {
@@ -72,7 +73,7 @@ pub fn lower_struct<'db>(
             fields,
             mut has_stripped_fields,
         } => {
-            let mut plain_fields: Vec<ir::PlainStructField<'db>> = vec![];
+            let mut plain_fields: Vec<ir::StructField<'db>> = vec![];
             let mut skipped_causes = Vec::new();
 
             for id in fields {
@@ -121,7 +122,8 @@ pub fn lower_struct<'db>(
 fn lower_tuple_struct_field<'db>(
     db: &'db dyn Db,
     id: Id<'db>,
-) -> Result<ir::TupleStructField<'db>, Box<StructFieldLowerError>> {
+    index: usize,
+) -> Result<ir::StructField<'db>, Box<StructFieldLowerError>> {
     let item = id.item(db);
     let field_type = lower_struct_field_type(db, id).map_err(|causes| {
         let crate_ = id.crate_(db);
@@ -131,16 +133,18 @@ fn lower_tuple_struct_field<'db>(
             causes,
         }
     })?;
+
+    let name = index.to_string();
     let docs = item.docs.clone();
 
-    Ok(ir::TupleStructField::new(db, field_type, docs))
+    Ok(ir::StructField::new(db, name, field_type, docs))
 }
 
 #[salsa::tracked]
 fn lower_plain_struct_field<'db>(
     db: &'db dyn Db,
     id: Id<'db>,
-) -> Result<ir::PlainStructField<'db>, Box<StructFieldLowerError>> {
+) -> Result<ir::StructField<'db>, Box<StructFieldLowerError>> {
     let item = id.item(db);
     let name = item.name.clone().expect("struct field must have a name");
 
@@ -156,7 +160,7 @@ fn lower_plain_struct_field<'db>(
 
     let docs = item.docs.clone();
 
-    Ok(ir::PlainStructField::new(db, name, field_type, docs))
+    Ok(ir::StructField::new(db, name, field_type, docs))
 }
 
 #[salsa::tracked]

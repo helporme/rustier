@@ -52,6 +52,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> napi::Result<u32> {
 	let result = result as u32;
 	Ok(result)
 }
+
 ```
 
 ## Wasm Bindings
@@ -66,4 +67,5 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> Result<u32, JsValue> {
 	let result = result as u32;
 	Ok(result)
 }
+
 ```

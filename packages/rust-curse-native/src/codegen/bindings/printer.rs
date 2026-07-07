@@ -82,8 +82,6 @@ impl Printer {
     /// assert_eq!(String::from(printer), "export const value = 1;\n");
     /// ```
     pub fn line(&mut self, text: &str) {
-        debug_assert!(text.lines().count() == 1);
-
         self.indent();
         self.out.push_str(text);
         self.newline();

@@ -67,7 +67,7 @@ impl<'db> DebugRender<'db> for ir::Primitive {
     }
 }
 
-impl<'db> DebugRender<'db> for ir::PlainStructField<'db> {
+impl<'db> DebugRender<'db> for ir::StructField<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         let docs = self
             .docs(db)
@@ -83,21 +83,6 @@ impl<'db> DebugRender<'db> for ir::PlainStructField<'db> {
     }
 }
 
-impl<'db> DebugRender<'db> for ir::TupleStructField<'db> {
-    fn render(&self, db: &'db dyn Db) -> String {
-        let docs = self
-            .docs(db)
-            .as_ref()
-            .map(|docs| format!("\n    docs: Some({docs:?}),"))
-            .unwrap_or_default();
-
-        format!(
-            "TupleStructField {{\n    type: {},{docs}\n}}",
-            self.type_(db).render(db),
-        )
-    }
-}
-
 impl<'db> DebugRender<'db> for ir::StructShape<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         match self {
@@ -107,7 +92,18 @@ impl<'db> DebugRender<'db> for ir::StructShape<'db> {
                     fields
                         .iter()
                         .map(|field| match field {
-                            Some(field) => format!("Some({})", field.render(db)),
+                            Some(field) => {
+                                let docs = field
+                                    .docs(db)
+                                    .as_ref()
+                                    .map(|docs| format!("\n    docs: Some({docs:?}),"))
+                                    .unwrap_or_default();
+
+                                format!(
+                                    "Some(TupleStructField {{\n    type: {},{docs}\n}})",
+                                    field.type_(db).render(db),
+                                )
+                            }
                             None => "None".to_string(),
                         })
                         .collect(),

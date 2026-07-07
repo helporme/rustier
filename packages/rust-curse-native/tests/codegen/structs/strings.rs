@@ -3,7 +3,7 @@ use crate::utils::*;
 #[test]
 fn plain_struct_with_string() {
     assert_snap! {
-        @gen: ir, ts;
+        @gen: ir, ts, wasm, node;
         @category: strings;
 
         pub struct PlainStruct {
@@ -15,7 +15,7 @@ fn plain_struct_with_string() {
 #[test]
 fn tuple_struct_with_string() {
     assert_snap! {
-        @gen: ir, ts;
+        @gen: ir, ts, wasm, node;
         @category: strings;
 
         pub struct TupleStruct(pub String);
@@ -25,7 +25,7 @@ fn tuple_struct_with_string() {
 #[test]
 fn plain_struct_with_qualified_string() {
     assert_snap! {
-        @gen: ir, ts;
+        @gen: ir, ts, wasm, node;
         @category: strings;
 
         pub struct PlainStruct {
@@ -37,7 +37,7 @@ fn plain_struct_with_qualified_string() {
 #[test]
 fn tuple_struct_with_qualified_string() {
     assert_snap! {
-        @gen: ir, ts;
+        @gen: ir, ts, wasm, node;
         @category: strings;
 
         pub struct TupleStruct(pub std::string::String);

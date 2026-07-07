@@ -52,3 +52,93 @@ export class PlainStruct {
 	private constructor();
 }
 ```
+
+## Node Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi::bindgen_prelude::{Unknown, ValueType};
+use napi_derive::napi;
+
+fn __cast_f64(value: Unknown<'_>) -> Result<f64, String> {
+	if value.get_type().map_err(|err| err.reason)? == ValueType::Number
+	{
+		unsafe { value.cast::<f64>() }.map_err(|_| "cannot cast value to f64".to_string())
+	}
+	else
+	{
+		Err("cannot cast value to f64".to_string())
+	}
+}
+fn __cast_f32(value: Unknown<'_>) -> Result<f32, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to f32".to_string())?;
+	Ok(value as f32)
+}
+
+#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
+pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	orig: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
+}
+
+#[napi]
+impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	#[napi(getter, js_name = "value")]
+	pub fn __getter__value(&self) -> napi::Result<f64> {
+		let orig = self.orig.borrow();
+		let result = orig.value.clone();
+		let result = result as f64;
+		Ok(result)
+	}
+	
+	#[napi(setter, js_name = "value")]
+	pub fn __setter__value(&self, __p__value: Unknown<'_>) -> napi::Result<()> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__value = __cast_f32(__p__value).map_err(|err| napi::Error::from_reason(format!("Invalid argument `value`: expected Rust `f32` from a JavaScript number: {}", err)))?;
+		orig.value = __p__value;
+		Ok(())
+	}
+	
+}
+
+```
+
+## Wasm Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+
+fn __cast_f64(value: JsValue) -> Result<f64, String> {
+	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
+}
+fn __cast_f32(value: JsValue) -> Result<f32, String> {
+	let value = __cast_f64(value).map_err(|_| "cannot cast value to f32".to_string())?;
+	Ok(value as f32)
+}
+
+#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_PlainStruct)]
+pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	orig: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
+}
+
+#[wasm_bindgen]
+impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+	#[wasm_bindgen(getter, js_name = value)]
+	pub fn __getter__value(&self) -> Result<f64, JsValue> {
+		let orig = self.orig.borrow();
+		let result = orig.value.clone();
+		let result = result as f64;
+		Ok(result)
+	}
+	
+	#[wasm_bindgen(setter, js_name = value)]
+	pub fn __setter__value(&self, __p__value: JsValue) -> Result<(), JsValue> {
+		let mut orig = self.orig.borrow_mut();
+		let __p__value = __cast_f32(__p__value).map_err(|err| JsValue::from_str(&format!("Invalid argument `value`: expected Rust `f32` from a JavaScript number: {}", err)))?;
+		orig.value = __p__value;
+		Ok(())
+	}
+	
+}
+
+```

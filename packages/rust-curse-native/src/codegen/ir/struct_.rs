@@ -4,7 +4,7 @@ use crate::codegen::{
 };
 
 #[salsa::tracked(debug)]
-pub struct PlainStructField<'db> {
+pub struct StructField<'db> {
     #[returns(ref)]
     pub name: String,
     #[tracked]
@@ -14,22 +14,33 @@ pub struct PlainStructField<'db> {
     pub docs: Option<String>,
 }
 
-#[salsa::tracked(debug)]
-pub struct TupleStructField<'db> {
-    #[tracked]
-    pub type_: Type,
-    #[tracked]
-    #[returns(ref)]
-    pub docs: Option<String>,
+#[salsa::tracked(returns(ref))]
+fn struct_field_getter_name<'db>(db: &'db dyn Db, field: StructField<'db>) -> String {
+    format!("__getter__{}", field.name(db))
+}
+
+#[salsa::tracked(returns(ref))]
+fn struct_field_setter_name<'db>(db: &'db dyn Db, field: StructField<'db>) -> String {
+    format!("__setter__{}", field.name(db))
+}
+
+impl<'db> StructField<'db> {
+    pub fn getter_name(&self, db: &'db dyn Db) -> &'db String {
+        struct_field_getter_name(db, *self)
+    }
+
+    pub fn setter_name(&self, db: &'db dyn Db) -> &'db String {
+        struct_field_setter_name(db, *self)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub enum StructShape<'db> {
     Unit,
     // private fields are `None`
-    Tuple(Vec<Option<TupleStructField<'db>>>),
+    Tuple(Vec<Option<StructField<'db>>>),
     Plain {
-        fields: Vec<PlainStructField<'db>>,
+        fields: Vec<StructField<'db>>,
         has_stripped_fields: bool,
     },
 }
