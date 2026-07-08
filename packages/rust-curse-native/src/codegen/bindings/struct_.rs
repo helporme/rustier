@@ -14,7 +14,7 @@ pub fn compile_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
     let mut out = Printer::default();
 
     out.lines(&api.struct_header(db, struct_));
-    out.write_fmt(format_args!("pub struct {} ", struct_.cursed_name(db)));
+    out.write_fmt(format_args!("pub struct {} ", struct_.bindings_name(db)));
     out.curlies(|out| {
         out.line_fmt(format_args!(
             "orig: std::cell::RefCell<{}>",
@@ -26,7 +26,7 @@ pub fn compile_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
 
     if struct_.shape(db) != &StructShape::Unit {
         out.lines(api.impl_header(db));
-        out.write_fmt(format_args!("impl {} ", struct_.cursed_name(db)));
+        out.write_fmt(format_args!("impl {} ", struct_.bindings_name(db)));
         out.curlies(|out| match struct_.shape(db) {
             StructShape::Unit => unreachable!(),
             StructShape::Tuple(fields) => {
@@ -59,7 +59,7 @@ pub fn compile_field_getter<'db>(db: &'db dyn Db, field: StructField<'db>) -> St
     out.lines(&api.field_getter_header(db, field));
     out.write_fmt(format_args!(
         "pub fn {}(&self) -> {} ",
-        field.getter_name(db),
+        field.getter_binding_name(db),
         api.result_type(db, compile_ret_decl(field.type_(db)))
     ));
 
@@ -90,7 +90,7 @@ pub fn compile_field_setter<'db>(db: &'db dyn Db, field: StructField<'db>) -> St
     out.lines(&api.field_setter_header(db, field));
     out.write_fmt(format_args!(
         "pub fn {}(&self, {}) -> {} ",
-        field.setter_name(db),
+        field.setter_binding_name(db),
         compile_param_decl(db, param),
         api.result_type(db, "()")
     ));
@@ -101,7 +101,7 @@ pub fn compile_field_setter<'db>(db: &'db dyn Db, field: StructField<'db>) -> St
         out.line_fmt(format_args!(
             "orig.{} = {};",
             field.name(db),
-            param.mangled_name(db)
+            param.binding_name(db)
         ));
         out.line("Ok(())");
     });

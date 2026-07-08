@@ -15,7 +15,7 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: rustdoc::Id<'db>, src_path: Str
 
     out.write("import ");
     out.curlies(|out| {
-        out.comma_list(fns.iter().map(|fn_| fn_.mangled_name(db)));
+        out.comma_list(fns.iter().map(|fn_| fn_.bindings_name(db)));
     });
     out.write_fmt(format_args!(" from '{}';", src_path));
     out.blank();
@@ -29,7 +29,7 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: rustdoc::Id<'db>, src_path: Str
     out.curlies(|out| {
         out.comma_list(
             fns.iter()
-                .map(|fn_| format!("{} as {}", fn_.mangled_name(db), fn_.name(db))),
+                .map(|fn_| format!("{} as {}", fn_.bindings_name(db), fn_.name(db))),
         );
     });
 

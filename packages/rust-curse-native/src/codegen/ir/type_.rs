@@ -1,11 +1,3 @@
-/// A type.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub enum Type {
-    Primitive(Primitive),
-    Str,
-    String,
-}
-
 /// A primitive type.
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
@@ -95,6 +87,14 @@ impl Primitive {
             Primitive::f64 => "__cast_f64",
         }
     }
+}
+
+/// A type.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub enum Type {
+    Primitive(Primitive),
+    Str,
+    String,
 }
 
 impl Type {

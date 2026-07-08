@@ -17,23 +17,18 @@ pub struct StructField<'db> {
     pub docs: Option<String>,
 }
 
-#[salsa::tracked(returns(ref))]
-fn struct_field_getter_name<'db>(db: &'db dyn Db, field: StructField<'db>) -> String {
-    format!("__getter__{}", field.name(db))
-}
-
-#[salsa::tracked(returns(ref))]
-fn struct_field_setter_name<'db>(db: &'db dyn Db, field: StructField<'db>) -> String {
-    format!("__setter__{}", field.name(db))
-}
-
+#[salsa::tracked]
 impl<'db> StructField<'db> {
-    pub fn getter_name(&self, db: &'db dyn Db) -> &'db String {
-        struct_field_getter_name(db, *self)
+    /// Returns the binding name of the getter function, e.g. `__getter__foo`.
+    #[salsa::tracked(returns(ref))]
+    pub fn getter_binding_name(self, db: &'db dyn Db) -> String {
+        format!("__getter__{}", self.name(db))
     }
 
-    pub fn setter_name(&self, db: &'db dyn Db) -> &'db String {
-        struct_field_setter_name(db, *self)
+    /// Returns the binding name of the setter function, e.g. `__setter__foo`.
+    #[salsa::tracked(returns(ref))]
+    pub fn setter_binding_name(self, db: &'db dyn Db) -> String {
+        format!("__setter__{}", self.name(db))
     }
 }
 
@@ -48,7 +43,6 @@ pub enum StructShape<'db> {
     },
 }
 
-/// A struct.
 #[salsa::tracked(debug)]
 pub struct Struct<'db> {
     pub id: Id<'db>,
@@ -61,10 +55,10 @@ pub struct Struct<'db> {
 }
 
 impl<'db> Struct<'db> {
-    /// Returns the cursed name of the struct e.g.
+    /// Returns the name of the binding struct, e.g.
     /// `__cursed_struct__std_mem_Drop`
-    pub fn cursed_name(&self, db: &'db dyn Db) -> &'db str {
-        struct_cursed_name_from_rustdoc_id(db, self.id(db).rustdoc_id(db))
+    pub fn bindings_name(&self, db: &'db dyn Db) -> &'db str {
+        struct_binding_name_from_rustdoc_id(db, self.id(db).rustdoc_id(db))
     }
 
     /// Returns the name of the struct, e.g. `Drop` for `std::mem::Drop`.
@@ -93,10 +87,10 @@ pub fn struct_mangled_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id
     mangle_path(&summary.path)
 }
 
-/// Returns the cursed name of the struct e.g. `__cursed_struct__std_mem_Drop`
+/// Returns the binding name of the struct e.g. `__cursed_struct__std_mem_Drop`
 /// for a rustdoc id pointing to the struct.
 #[salsa::tracked(returns(ref))]
-pub fn struct_cursed_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> String {
+pub fn struct_binding_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> String {
     let summary = id
         .crate_body(db)
         .paths

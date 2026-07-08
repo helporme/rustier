@@ -22,14 +22,12 @@ pub struct FnParam<'db> {
     pub mode: ParamMode,
 }
 
-#[salsa::tracked(returns(ref))]
-fn fn_param_mangled_name<'db>(db: &'db dyn Db, param: FnParam<'db>) -> String {
-    format!("__p__{}", param.name(db))
-}
-
+#[salsa::tracked]
 impl<'db> FnParam<'db> {
-    pub fn mangled_name(&self, db: &'db dyn Db) -> &str {
-        fn_param_mangled_name(db, *self)
+    /// Returns the binding name of the parameter, e.g. `__p__foo`.
+    #[salsa::tracked(returns(ref))]
+    pub fn binding_name(self, db: &'db dyn Db) -> String {
+        format!("__p__{}", self.name(db))
     }
 }
 
@@ -52,22 +50,14 @@ pub struct Fn<'db> {
     pub docs: Option<String>,
 }
 
-#[salsa::tracked(returns(ref))]
-fn fn_mangled_name<'db>(db: &'db dyn Db, id: Id<'db>) -> String {
-    let path = id.path(db);
-    format!("__cursed_fn__{}", mangle_path(path))
-}
-
-#[salsa::tracked(returns(ref))]
-fn fn_fqn<'db>(db: &'db dyn Db, id: Id<'db>) -> String {
-    id.path(db).join("::")
-}
-
+#[salsa::tracked]
 impl<'db> Fn<'db> {
-    /// Returns the mangled name of the function e.g.
+    /// Returns the name of the binding function, e.g.
     /// `__cursed_fn__std_mem_drop`
-    pub fn mangled_name(&self, db: &'db dyn Db) -> &'db str {
-        fn_mangled_name(db, self.id(db))
+    #[salsa::tracked(returns(ref))]
+    pub fn bindings_name(self, db: &'db dyn Db) -> String {
+        let path = self.id(db).path(db);
+        format!("__cursed_fn__{}", mangle_path(path))
     }
 
     /// Returns the name of the function, e.g. `drop` for `std::mem::drop`.
@@ -77,7 +67,8 @@ impl<'db> Fn<'db> {
 
     /// Returns the fully qualified name of the function, e.g.
     /// `std::mem::drop`.
-    pub fn fqn(&self, db: &'db dyn Db) -> &'db str {
-        fn_fqn(db, self.id(db))
+    #[salsa::tracked(returns(ref))]
+    pub fn fqn(self, db: &'db dyn Db) -> String {
+        self.id(db).path(db).join("::")
     }
 }

@@ -12,7 +12,7 @@ pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
     let mut out = Printer::default();
 
     out.lines(&api.fn_header(db, fn_));
-    out.write_fmt(format_args!("pub fn {}", fn_.mangled_name(db)));
+    out.write_fmt(format_args!("pub fn {}", fn_.bindings_name(db)));
     out.parens(|p| {
         p.comma_list(
             fn_.params(db)
@@ -67,7 +67,7 @@ pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
 #[salsa::tracked(returns(ref))]
 pub fn compile_param_decl<'db>(db: &'db dyn Db, param: ir::FnParam<'db>) -> String {
     let api = Api::get(db);
-    format!("{}: {}", param.mangled_name(db), api.js_type(db))
+    format!("{}: {}", param.binding_name(db), api.js_type(db))
 }
 
 /// Compiles Rust boundary conversion statements for a generated binding
@@ -85,7 +85,7 @@ pub fn compile_param_conv<'db>(db: &'db dyn Db, param: ir::FnParam<'db>) -> Stri
     let api = Api::get(db);
     let mut out = Printer::default();
 
-    let name = param.mangled_name(db);
+    let name = param.binding_name(db);
     let mutable = matches!(param.mode(db), ir::ParamMode::Mut)
         .then_some("mut ")
         .unwrap_or("");
@@ -154,12 +154,12 @@ pub fn compile_fn_call_stmt<'db>(db: &'db dyn Db, fn_: ir::Fn<'db>) -> String {
     p.parens(|p| {
         p.comma_list(fn_.params(db).iter().map(|param| match param.mode(db) {
             ir::ParamMode::Ref => {
-                format!("&{}", param.mangled_name(db))
+                format!("&{}", param.binding_name(db))
             }
             ir::ParamMode::Mut => {
-                format!("&mut {}", param.mangled_name(db))
+                format!("&mut {}", param.binding_name(db))
             }
-            ir::ParamMode::Move => param.mangled_name(db).to_owned(),
+            ir::ParamMode::Move => param.binding_name(db).to_owned(),
         }));
     });
 
