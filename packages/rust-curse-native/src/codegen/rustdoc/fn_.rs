@@ -5,8 +5,14 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir,
-    rustdoc::{lower_type, CrateExt, LoweredType, RustdocId, TypeLowerError},
+    ir::{
+        self,
+        span::{SourceCode, Span},
+    },
+    rustdoc::{
+        type_::{lower_type, LoweredType, TypeLowerError},
+        CrateExt, RustdocId,
+    },
 };
 
 /// Lowers the rustdoc function.
@@ -14,7 +20,7 @@ use crate::codegen::{
 pub fn lower_fn<'db>(
     db: &'db dyn Db,
     id: RustdocId<'db>,
-) -> Result<ir::Fn<'db>, Box<FnLowerError>> {
+) -> Result<ir::fn_::Fn<'db>, Box<FnLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);
 
@@ -67,20 +73,20 @@ pub fn lower_fn<'db>(
         };
 
         let (type_, mode) = match lowered {
-            LoweredType::Moved(type_) => (type_, ir::ParamMode::Move),
+            LoweredType::Moved(type_) => (type_, ir::fn_::ParamMode::Move),
             LoweredType::Borrowed { type_, is_mutable } => (
                 type_,
                 if is_mutable {
-                    ir::ParamMode::Mut
+                    ir::fn_::ParamMode::Mut
                 } else {
-                    ir::ParamMode::Ref
+                    ir::fn_::ParamMode::Ref
                 },
             ),
         };
 
-        if mode == ir::ParamMode::Mut {
+        if mode == ir::fn_::ParamMode::Mut {
             match type_ {
-                ir::Type::Primitive(_) => {
+                ir::type_::Type::Primitive(_) => {
                     let crate_ = id.crate_(db);
                     FnLowerError::PrimitiveMutRefIgnored {
                         name: name.clone(),
@@ -89,7 +95,7 @@ pub fn lower_fn<'db>(
                     }
                     .accumulate(db);
                 }
-                ir::Type::Str | ir::Type::String => {
+                ir::type_::Type::Str | ir::type_::Type::String => {
                     let crate_ = id.crate_(db);
                     FnLowerError::StringMutRefIgnored {
                         name: name.clone(),
@@ -101,7 +107,7 @@ pub fn lower_fn<'db>(
             }
         }
 
-        params.push(ir::FnParam::new(db, name.clone(), type_, mode));
+        params.push(ir::fn_::FnParam::new(db, name.clone(), type_, mode));
     }
 
     let ret_type = match &def.sig.output {
@@ -131,7 +137,13 @@ pub fn lower_fn<'db>(
 
     let id = ir::IrId::new(db, &item_summary.path);
 
-    Ok(ir::Fn::new(db, id, params, ret_type, item.docs.clone()))
+    Ok(ir::fn_::Fn::new(
+        db,
+        id,
+        params,
+        ret_type,
+        item.docs.clone(),
+    ))
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
@@ -142,9 +154,9 @@ pub enum FnLowerError {
         /// The fully qualified name of the function being lowered.
         fn_fqn: String,
         #[source_code]
-        source_code: ir::SourceCode,
+        source_code: SourceCode,
         #[label]
-        span: Option<ir::Span>,
+        span: Option<Span>,
         #[related]
         causes: Vec<FnLowerError>,
     },
@@ -211,9 +223,9 @@ pub enum FnLowerError {
         /// The name of the parameter that has an ignored mutable reference.
         name: String,
         #[source_code]
-        source_code: ir::SourceCode,
+        source_code: SourceCode,
         #[label]
-        span: Option<ir::Span>,
+        span: Option<Span>,
     },
 
     #[error("the mutable reference to the string parameter `{name}` does not propagate changes")]
@@ -226,8 +238,8 @@ pub enum FnLowerError {
         /// The name of the parameter that has an ignored mutable reference.
         name: String,
         #[source_code]
-        source_code: ir::SourceCode,
+        source_code: SourceCode,
         #[label]
-        span: Option<ir::Span>,
+        span: Option<Span>,
     },
 }

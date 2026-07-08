@@ -1,6 +1,6 @@
 use rustdoc_types::ItemEnum;
 
-use crate::codegen::{db::Db, rustdoc::all_mod_ids};
+use crate::codegen::{db::Db, rustdoc::mod_::all_mod_ids};
 
 pub const PROJECTION_RUNTIME: &str = indoc::indoc! {r#"
     #[allow(non_snake_case, dead_code)]

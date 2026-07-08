@@ -1,23 +1,23 @@
-use crate::codegen::ir;
+use crate::codegen::ir::type_::{Primitive, Type};
 
 /// Compiles a type to a string.
-pub fn compile_type(type_: &ir::Type) -> &'static str {
+pub fn compile_type(type_: &Type) -> &'static str {
     match type_ {
-        ir::Type::Primitive(primitive) => compile_primitive(*primitive),
-        ir::Type::Str | ir::Type::String => "String",
+        Type::Primitive(primitive) => compile_primitive(*primitive),
+        Type::Str | Type::String => "String",
     }
 }
 
 /// Compiles a primitive type to a string.
-pub fn compile_primitive(primitive: ir::Primitive) -> &'static str {
+pub fn compile_primitive(primitive: Primitive) -> &'static str {
     match primitive {
-        ir::Primitive::Boolean => "bool",
-        ir::Primitive::i8 => "i8",
-        ir::Primitive::u8 => "u8",
-        ir::Primitive::i16 => "i16",
-        ir::Primitive::u16 => "u16",
-        ir::Primitive::i32 => "i32",
-        ir::Primitive::u32 | ir::Primitive::Char => "u32",
-        ir::Primitive::f64 | ir::Primitive::f32 => "f64",
+        Primitive::Boolean => "bool",
+        Primitive::i8 => "i8",
+        Primitive::u8 => "u8",
+        Primitive::i16 => "i16",
+        Primitive::u16 => "u16",
+        Primitive::i32 => "i32",
+        Primitive::u32 | Primitive::Char => "u32",
+        Primitive::f64 | Primitive::f32 => "f64",
     }
 }

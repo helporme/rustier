@@ -5,8 +5,15 @@ pub mod sourcemap;
 use crate::codegen::{
     bindings::Printer,
     db::Db,
-    ir::{Fn, Primitive, Struct, StructField, StructShape, Type},
-    rustdoc::{lower_mod, lower_mod_fns, lower_mod_structs, RustdocId},
+    ir::{
+        fn_::Fn,
+        struct_::{Struct, StructField, StructShape},
+        type_::{Primitive, Type},
+    },
+    rustdoc::{
+        mod_::{lower_mod, lower_mod_fns, lower_mod_structs},
+        RustdocId,
+    },
 };
 
 /// Compiles an rustdoc id to ts declaration.

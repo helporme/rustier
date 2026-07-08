@@ -14,7 +14,7 @@ pub use projection::*;
 pub use struct_::*;
 pub use type_::*;
 
-use crate::codegen::{api::Api, db::Db, rustdoc};
+use crate::codegen::{api::Api, db::Db, rustdoc::mod_::all_mod_ids};
 
 /// Compiles the bindings using active
 /// [`crate::codegen::rustdoc::RustdocCrates`] and
@@ -44,7 +44,7 @@ pub fn compile_bindings(db: &dyn Db) -> String {
         out.push_str(cast_fns);
     }
 
-    for mod_id in rustdoc::all_mod_ids(db) {
+    for mod_id in all_mod_ids(db) {
         let compiled = compile_mod(db, *mod_id);
         if compiled.trim().is_empty() {
             continue;

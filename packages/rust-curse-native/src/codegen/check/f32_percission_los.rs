@@ -1,7 +1,16 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::codegen::{db::Db, ir, rustdoc};
+use crate::codegen::{
+    db::Db,
+    ir::{
+        fn_::Fn,
+        span::{SourceCode, Span},
+        struct_::{Struct, StructShape},
+        type_::{Primitive, Type},
+    },
+    rustdoc::mod_::{all_mod_ids, lower_mod_fns, lower_mod_structs},
+};
 
 /// Emits warnings for exported items that pass f32 values across the JS
 /// boundary.
@@ -9,14 +18,14 @@ use crate::codegen::{db::Db, ir, rustdoc};
 pub fn check_f32_percission_los(db: &dyn Db) -> Vec<F32PrecisionLoss> {
     let mut diags = Vec::new();
 
-    for mod_id in rustdoc::all_mod_ids(db) {
-        for fn_ in rustdoc::lower_mod_fns(db, *mod_id) {
+    for mod_id in all_mod_ids(db) {
+        for fn_ in lower_mod_fns(db, *mod_id) {
             if let Some(diag) = check_f32_percission_los_fn(db, *fn_) {
                 diags.push(diag);
             }
         }
 
-        for struct_ in rustdoc::lower_mod_structs(db, *mod_id) {
+        for struct_ in lower_mod_structs(db, *mod_id) {
             if let Some(diag) = check_f32_percission_los_struct(db, *struct_) {
                 diags.push(diag);
             }
@@ -26,12 +35,12 @@ pub fn check_f32_percission_los(db: &dyn Db) -> Vec<F32PrecisionLoss> {
     diags
 }
 
-fn check_f32_percission_los_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> Option<F32PrecisionLoss> {
+fn check_f32_percission_los_fn(db: &dyn Db, fn_: Fn<'_>) -> Option<F32PrecisionLoss> {
     let has_f32_param = fn_
         .params(db)
         .iter()
-        .any(|param| param.type_(db) == ir::Type::Primitive(ir::Primitive::f32));
-    let has_f32_return = fn_.return_type(db) == Some(ir::Type::Primitive(ir::Primitive::f32));
+        .any(|param| param.type_(db) == Type::Primitive(Primitive::f32));
+    let has_f32_return = fn_.return_type(db) == Some(Type::Primitive(Primitive::f32));
 
     if has_f32_param || has_f32_return {
         let id = fn_.id(db).rustdoc_id(db);
@@ -47,19 +56,16 @@ fn check_f32_percission_los_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> Option<F32Precis
     None
 }
 
-fn check_f32_percission_los_struct(
-    db: &dyn Db,
-    struct_: ir::Struct<'_>,
-) -> Option<F32PrecisionLoss> {
+fn check_f32_percission_los_struct(db: &dyn Db, struct_: Struct<'_>) -> Option<F32PrecisionLoss> {
     let has_f32_field = match struct_.shape(db) {
-        ir::StructShape::Unit => false,
-        ir::StructShape::Tuple(fields) => fields
+        StructShape::Unit => false,
+        StructShape::Tuple(fields) => fields
             .iter()
             .flatten()
-            .any(|field| field.type_(db) == ir::Type::Primitive(ir::Primitive::f32)),
-        ir::StructShape::Plain { fields, .. } => fields
+            .any(|field| field.type_(db) == Type::Primitive(Primitive::f32)),
+        StructShape::Plain { fields, .. } => fields
             .iter()
-            .any(|field| field.type_(db) == ir::Type::Primitive(ir::Primitive::f32)),
+            .any(|field| field.type_(db) == Type::Primitive(Primitive::f32)),
     };
 
     if has_f32_field {
@@ -86,7 +92,7 @@ fn check_f32_percission_los_struct(
 )]
 pub struct F32PrecisionLoss {
     #[source_code]
-    source_code: ir::SourceCode,
+    source_code: SourceCode,
     #[label]
-    span: Option<ir::Span>,
+    span: Option<Span>,
 }

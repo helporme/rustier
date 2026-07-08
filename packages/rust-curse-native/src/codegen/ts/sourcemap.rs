@@ -4,8 +4,11 @@ mod mappings;
 
 use crate::codegen::{
     db::Db,
-    ir::Fn,
-    rustdoc::{lower_mod, lower_mod_fns, RustdocId},
+    ir::fn_::Fn,
+    rustdoc::{
+        mod_::{lower_mod, lower_mod_fns},
+        RustdocId,
+    },
 };
 pub use mappings::Mapping;
 use mappings::{compile_mappings, jsdoc_line_count};

@@ -7,8 +7,15 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt,
-    ir,
-    rustdoc::{lower_type, CrateExt, LoweredType, RustdocId, TypeLowerError},
+    ir::{
+        self,
+        span::{SourceCode, Span},
+        type_::Type,
+    },
+    rustdoc::{
+        type_::{lower_type, LoweredType, TypeLowerError},
+        CrateExt, RustdocId,
+    },
 };
 
 /// Lowers the rustdoc struct to the IR struct.
@@ -16,7 +23,7 @@ use crate::codegen::{
 pub fn lower_struct<'db>(
     db: &'db dyn Db,
     id: RustdocId<'db>,
-) -> Result<ir::Struct<'db>, Box<StructLowerError>> {
+) -> Result<ir::struct_::Struct<'db>, Box<StructLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);
 
@@ -45,7 +52,7 @@ pub fn lower_struct<'db>(
     }
 
     let (shape, field_skipped_causes) = match &def.kind {
-        StructKind::Unit => (ir::StructShape::Unit, vec![]),
+        StructKind::Unit => (ir::struct_::StructShape::Unit, vec![]),
         StructKind::Tuple(ids) => {
             let mut skipped_causes = Vec::new();
 
@@ -68,13 +75,16 @@ pub fn lower_struct<'db>(
                 })
                 .collect::<Vec<_>>();
 
-            (ir::StructShape::Tuple(tuple_fields), skipped_causes)
+            (
+                ir::struct_::StructShape::Tuple(tuple_fields),
+                skipped_causes,
+            )
         }
         StructKind::Plain {
             fields,
             mut has_stripped_fields,
         } => {
-            let mut plain_fields: Vec<ir::StructField<'db>> = vec![];
+            let mut plain_fields: Vec<ir::struct_::StructField<'db>> = vec![];
             let mut skipped_causes = Vec::new();
 
             for id in fields {
@@ -93,7 +103,7 @@ pub fn lower_struct<'db>(
             }
 
             (
-                ir::StructShape::Plain {
+                ir::struct_::StructShape::Plain {
                     fields: plain_fields,
                     has_stripped_fields,
                 },
@@ -116,7 +126,7 @@ pub fn lower_struct<'db>(
     let docs = item.docs.clone();
     let id = ir::IrId::new(db, &item_summary.path);
 
-    Ok(ir::Struct::new(db, id, shape, docs))
+    Ok(ir::struct_::Struct::new(db, id, shape, docs))
 }
 
 #[salsa::tracked]
@@ -124,7 +134,7 @@ fn lower_tuple_struct_field<'db>(
     db: &'db dyn Db,
     id: RustdocId<'db>,
     index: usize,
-) -> Result<ir::StructField<'db>, Box<StructFieldLowerError>> {
+) -> Result<ir::struct_::StructField<'db>, Box<StructFieldLowerError>> {
     let item = id.item(db);
     let field_type = lower_struct_field_type(db, id).map_err(|causes| {
         let crate_ = id.crate_(db);
@@ -138,14 +148,14 @@ fn lower_tuple_struct_field<'db>(
     let name = index.to_string();
     let docs = item.docs.clone();
 
-    Ok(ir::StructField::new(db, name, field_type, docs))
+    Ok(ir::struct_::StructField::new(db, name, field_type, docs))
 }
 
 #[salsa::tracked]
 fn lower_plain_struct_field<'db>(
     db: &'db dyn Db,
     id: RustdocId<'db>,
-) -> Result<ir::StructField<'db>, Box<StructFieldLowerError>> {
+) -> Result<ir::struct_::StructField<'db>, Box<StructFieldLowerError>> {
     let item = id.item(db);
     let name = item.name.clone().expect("struct field must have a name");
 
@@ -161,14 +171,14 @@ fn lower_plain_struct_field<'db>(
 
     let docs = item.docs.clone();
 
-    Ok(ir::StructField::new(db, name, field_type, docs))
+    Ok(ir::struct_::StructField::new(db, name, field_type, docs))
 }
 
 #[salsa::tracked]
 fn lower_struct_field_type<'db>(
     db: &'db dyn Db,
     id: RustdocId<'db>,
-) -> Result<ir::Type, Vec<TypeLowerError>> {
+) -> Result<Type, Vec<TypeLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);
 
@@ -194,9 +204,9 @@ pub enum StructLowerError {
         /// The fully qualified name of the struct being lowered.
         struct_fqn: String,
         #[source_code]
-        source_code: ir::SourceCode,
+        source_code: SourceCode,
         #[label]
-        span: Option<ir::Span>,
+        span: Option<Span>,
         #[related]
         causes: Vec<StructLowerError>,
     },
@@ -207,9 +217,9 @@ pub enum StructLowerError {
         /// The fully qualified name of the struct being lowered.
         struct_fqn: String,
         #[source_code]
-        source_code: ir::SourceCode,
+        source_code: SourceCode,
         #[label]
-        span: Option<ir::Span>,
+        span: Option<Span>,
         #[related]
         causes: Vec<StructFieldLowerError>,
     },
@@ -230,9 +240,9 @@ pub enum StructFieldLowerError {
     PlainFieldSkipped {
         field_name: String,
         #[source_code]
-        source_code: ir::SourceCode,
+        source_code: SourceCode,
         #[label]
-        span: Option<ir::Span>,
+        span: Option<Span>,
         #[related]
         causes: Vec<TypeLowerError>,
     },
@@ -241,9 +251,9 @@ pub enum StructFieldLowerError {
     #[diagnostic(code(rust_curse::skipped_field), severity(Warning))]
     TupleFieldSkipped {
         #[source_code]
-        source_code: ir::SourceCode,
+        source_code: SourceCode,
         #[label]
-        span: Option<ir::Span>,
+        span: Option<Span>,
         #[related]
         causes: Vec<TypeLowerError>,
     },

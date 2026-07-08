@@ -7,7 +7,9 @@ use miette::Diagnostic;
 
 use tracing::{debug, info, trace};
 
-use crate::{codegen, codegen::diag::Diag, sync::file::write_if_changed};
+use crate::{
+    codegen, codegen::diag::Diag, codegen::rustdoc::mod_::all_mod_ids, sync::file::write_if_changed,
+};
 
 /// Options for [`sync_ts_tree`].
 pub struct SyncTsTreeOpts<'a> {
@@ -67,7 +69,7 @@ pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<Vec<Diag>, SyncTsTreeErr
                 source,
             })?;
 
-    for mod_id in codegen::rustdoc::all_mod_ids(opts.db) {
+    for mod_id in all_mod_ids(opts.db) {
         let item = mod_id.item(opts.db);
         let Some(span) = &item.span else {
             trace!("skipping rustdoc module without a span");

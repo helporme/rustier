@@ -3,8 +3,8 @@ use rustdoc_types::{ItemEnum, ItemKind};
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir,
-    rustdoc::{lower_fn, lower_struct, RustdocCrates, RustdocId},
+    ir::{fn_::Fn, mod_::Mod, struct_::Struct, IrId},
+    rustdoc::{fn_::lower_fn, struct_::lower_struct, RustdocCrates, RustdocId},
 };
 
 /// Returns all rustdoc module IDs available in all crates.
@@ -36,23 +36,23 @@ pub fn all_mod_ids<'db>(db: &'db dyn Db) -> Vec<RustdocId<'db>> {
 
 /// Lowers the rustdoc module to the IR module.
 #[salsa::tracked]
-pub fn lower_mod<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> ir::Mod<'db> {
+pub fn lower_mod<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Mod<'db> {
     let item = id.item(db);
     let crate_ = id.crate_body(db);
 
     let item_summary = crate_.paths.get(&item.id).unwrap();
     assert_eq!(item_summary.kind, ItemKind::Module);
-    let id = ir::IrId::new(db, &item_summary.path);
+    let id = IrId::new(db, &item_summary.path);
 
     let docs = item.docs.clone();
 
-    ir::Mod::new(db, id, docs)
+    Mod::new(db, id, docs)
 }
 
 /// Lowers the functions defined inside the given rustdoc module to the IR
 /// functions.
 #[salsa::tracked(returns(ref))]
-pub fn lower_mod_fns<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<ir::Fn<'db>> {
+pub fn lower_mod_fns<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Fn<'db>> {
     let item = id.item(db);
     let crate_ = id.crate_body(db);
 
@@ -81,7 +81,7 @@ pub fn lower_mod_fns<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<ir::Fn<'db
 /// Lowers the structs defined inside the given rustdoc module to the IR
 /// structs.
 #[salsa::tracked(returns(ref))]
-pub fn lower_mod_structs<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<ir::Struct<'db>> {
+pub fn lower_mod_structs<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Struct<'db>> {
     let item = id.item(db);
     let crate_ = id.crate_body(db);
 
@@ -110,7 +110,7 @@ pub fn lower_mod_structs<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<ir::St
 /// Lowers the submodules defined inside the given rustdoc module to the IR
 /// modules.
 #[salsa::tracked(returns(ref))]
-pub fn lower_mod_submods<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<ir::Mod<'db>> {
+pub fn lower_mod_submods<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Mod<'db>> {
     let item = id.item(db);
     let crate_ = id.crate_body(db);
 

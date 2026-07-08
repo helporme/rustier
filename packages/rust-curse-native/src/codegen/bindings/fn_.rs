@@ -5,7 +5,10 @@ use crate::codegen::{
     api::Api,
     bindings::{compile_type, Printer},
     db::Db,
-    ir::{Fn, FnParam, ParamMode, Primitive, Type},
+    ir::{
+        fn_::{Fn, FnParam, ParamMode},
+        type_::{Primitive, Type},
+    },
 };
 
 /// Compiles a function into a binding function.

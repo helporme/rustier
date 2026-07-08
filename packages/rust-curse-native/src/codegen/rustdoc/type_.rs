@@ -4,14 +4,14 @@ use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
-    ir,
+    ir::type_::{Primitive, Type as IrType},
     rustdoc::{CrateExt, RustdocType},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum LoweredType {
-    Moved(ir::Type),
-    Borrowed { type_: ir::Type, is_mutable: bool },
+    Moved(IrType),
+    Borrowed { type_: IrType, is_mutable: bool },
 }
 
 /// Lowers the rustdoc type to the IR type.
@@ -38,7 +38,7 @@ pub fn lower_type<'db>(
             };
 
             if summary.path == ["alloc", "string", "String"] {
-                Ok(LoweredType::Moved(ir::Type::String))
+                Ok(LoweredType::Moved(IrType::String))
             } else {
                 Err(vec![TypeLowerError::UnsupportedType {
                     type_: type_.clone(),
@@ -82,19 +82,19 @@ pub fn lower_type<'db>(
     }
 }
 
-fn lower_primitive(name: &str) -> Option<ir::Type> {
+fn lower_primitive(name: &str) -> Option<IrType> {
     let type_ = match name {
-        "bool" => ir::Type::Primitive(ir::Primitive::Boolean),
-        "char" => ir::Type::Primitive(ir::Primitive::Char),
-        "str" => ir::Type::Str,
-        "i8" => ir::Type::Primitive(ir::Primitive::i8),
-        "i16" => ir::Type::Primitive(ir::Primitive::i16),
-        "i32" => ir::Type::Primitive(ir::Primitive::i32),
-        "u8" => ir::Type::Primitive(ir::Primitive::u8),
-        "u16" => ir::Type::Primitive(ir::Primitive::u16),
-        "u32" => ir::Type::Primitive(ir::Primitive::u32),
-        "f32" => ir::Type::Primitive(ir::Primitive::f32),
-        "f64" => ir::Type::Primitive(ir::Primitive::f64),
+        "bool" => IrType::Primitive(Primitive::Boolean),
+        "char" => IrType::Primitive(Primitive::Char),
+        "str" => IrType::Str,
+        "i8" => IrType::Primitive(Primitive::i8),
+        "i16" => IrType::Primitive(Primitive::i16),
+        "i32" => IrType::Primitive(Primitive::i32),
+        "u8" => IrType::Primitive(Primitive::u8),
+        "u16" => IrType::Primitive(Primitive::u16),
+        "u32" => IrType::Primitive(Primitive::u32),
+        "f32" => IrType::Primitive(Primitive::f32),
+        "f64" => IrType::Primitive(Primitive::f64),
         _ => return None,
     };
 

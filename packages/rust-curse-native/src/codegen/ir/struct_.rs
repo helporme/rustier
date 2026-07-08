@@ -2,7 +2,7 @@ use rustdoc_types::ItemKind;
 
 use crate::codegen::{
     db::Db,
-    ir::{mangle::mangle_path, IrId, Type},
+    ir::{mangle::mangle_path, type_::Type, IrId},
     rustdoc::RustdocId,
 };
 

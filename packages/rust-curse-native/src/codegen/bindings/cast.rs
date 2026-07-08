@@ -11,8 +11,11 @@ use crate::codegen::{
     api::Api,
     bindings::Printer,
     db::Db,
-    ir::{Primitive, StructShape, Type},
-    rustdoc::{all_mod_ids, lower_mod_fns, lower_mod_structs},
+    ir::{
+        struct_::StructShape,
+        type_::{Primitive, Type},
+    },
+    rustdoc::mod_::{all_mod_ids, lower_mod_fns, lower_mod_structs},
 };
 
 /// Compiles all cast helper functions required by public Rust functions and

@@ -4,15 +4,10 @@ use crate::codegen::db::Db;
 use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, Type};
 use salsa::Setter;
 
-mod fn_;
-mod mod_;
-mod struct_;
-mod type_;
-
-pub use fn_::*;
-pub use mod_::*;
-pub use struct_::*;
-pub use type_::*;
+pub mod fn_;
+pub mod mod_;
+pub mod struct_;
+pub mod type_;
 
 #[salsa::input(singleton)]
 pub struct RustdocCrates {

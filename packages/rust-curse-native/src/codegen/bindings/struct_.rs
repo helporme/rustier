@@ -8,7 +8,10 @@ use crate::codegen::{
         compile_binding_fn_ret_decl, Printer,
     },
     db::Db,
-    ir::{FnParam, ParamMode, Struct, StructField, StructShape},
+    ir::{
+        fn_::{FnParam, ParamMode},
+        struct_::{Struct, StructField, StructShape},
+    },
 };
 
 /// Compiles struct to the struct bindings.

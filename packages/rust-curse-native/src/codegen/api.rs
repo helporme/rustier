@@ -4,7 +4,7 @@ use salsa::Setter;
 
 use crate::codegen::{
     db::Db,
-    ir::{self, StructField},
+    ir::{self, struct_::StructField},
 };
 
 /// Active binding API used for generated Rust and JavaScript glue code.
@@ -121,7 +121,7 @@ impl Api {
     }
 
     /// Returns the function header for this API.
-    pub fn fn_header(&self, db: &dyn Db, _fn: ir::Fn) -> String {
+    pub fn fn_header(&self, db: &dyn Db, _fn: ir::fn_::Fn) -> String {
         let fn_name = _fn.bindings_name(db);
         match self.kind(db) {
             ApiKind::Wasm { .. } => format!("#[wasm_bindgen(js_name = {})]", fn_name),
@@ -137,7 +137,7 @@ impl Api {
     }
 
     /// Returns the struct header for this API.
-    pub fn struct_header(&self, db: &dyn Db, _struct: ir::Struct) -> String {
+    pub fn struct_header(&self, db: &dyn Db, _struct: ir::struct_::Struct) -> String {
         let struct_name = _struct.bindings_name(db);
         match self.kind(db) {
             ApiKind::Wasm { .. } => format!("#[wasm_bindgen(js_name = {})]", struct_name),

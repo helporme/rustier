@@ -1,17 +1,11 @@
 use std::collections::HashMap;
 
-mod fn_;
-mod mangle;
-mod mod_;
-mod span;
-mod struct_;
-mod type_;
-
-pub use fn_::*;
-pub use mod_::*;
-pub use span::*;
-pub use struct_::*;
-pub use type_::*;
+pub mod fn_;
+pub mod mangle;
+pub mod mod_;
+pub mod span;
+pub mod struct_;
+pub mod type_;
 
 use crate::codegen::{
     db::Db,

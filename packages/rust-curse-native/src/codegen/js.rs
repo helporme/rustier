@@ -4,7 +4,7 @@ use crate::codegen::{
     api::Api,
     bindings::Printer,
     db::Db,
-    rustdoc::{lower_mod_fns, RustdocId},
+    rustdoc::{mod_::lower_mod_fns, RustdocId},
 };
 
 /// Compiles a rustdoc module id to JavaScript glue code.

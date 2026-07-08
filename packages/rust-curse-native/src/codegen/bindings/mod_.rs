@@ -3,7 +3,10 @@
 use crate::codegen::{
     bindings::{compile_binding_fn, compile_binidng_struct, Printer},
     db::Db,
-    rustdoc::{lower_mod_fns, lower_mod_structs, RustdocId},
+    rustdoc::{
+        mod_::{lower_mod_fns, lower_mod_structs},
+        RustdocId,
+    },
 };
 
 /// Compiles all items inside the module to bindings code.
