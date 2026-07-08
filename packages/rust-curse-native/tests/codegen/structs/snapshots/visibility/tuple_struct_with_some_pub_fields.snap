@@ -58,6 +58,43 @@ export class TupleStruct {
 #![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 
+#[allow(non_snake_case, dead_code)]
+mod __curse {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    pub trait Projection<T> {
+        fn with(&self, f: &mut dyn FnMut(&T));
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+    }
+
+    impl<T> Projection<T> for RefCell<T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            f(&*self.borrow());
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            f(&mut *self.borrow_mut());
+        }
+    }
+
+    pub struct Projector<Parent, T> {
+        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+        pub project: fn(&Parent) -> &T,
+        pub project_mut: fn(&mut Parent) -> &mut T,
+    }
+
+    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with(&mut |p| f((self.project)(p)))
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with_mut(&mut |p| f((self.project_mut)(p)))
+        }
+    }
+}
+
 fn __cast_bool(value: JsValue) -> Result<bool, String> {
 	value.as_bool().ok_or_else(|| "cannot cast value to bool".to_string())
 }
@@ -109,6 +146,43 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 #![allow(non_camel_case_types, non_snake_case)]
 use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
+
+#[allow(non_snake_case, dead_code)]
+mod __curse {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    pub trait Projection<T> {
+        fn with(&self, f: &mut dyn FnMut(&T));
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+    }
+
+    impl<T> Projection<T> for RefCell<T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            f(&*self.borrow());
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            f(&mut *self.borrow_mut());
+        }
+    }
+
+    pub struct Projector<Parent, T> {
+        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+        pub project: fn(&Parent) -> &T,
+        pub project_mut: fn(&mut Parent) -> &mut T,
+    }
+
+    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with(&mut |p| f((self.project)(p)))
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with_mut(&mut |p| f((self.project_mut)(p)))
+        }
+    }
+}
 
 fn __cast_bool(value: Unknown<'_>) -> Result<bool, String> {
 	if value.get_type().map_err(|err| err.reason)? == ValueType::Boolean

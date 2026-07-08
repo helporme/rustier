@@ -49,6 +49,43 @@ ModDef {
 #![allow(non_camel_case_types, non_snake_case)]
 use wasm_bindgen::prelude::*;
 
+#[allow(non_snake_case, dead_code)]
+mod __curse {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    pub trait Projection<T> {
+        fn with(&self, f: &mut dyn FnMut(&T));
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+    }
+
+    impl<T> Projection<T> for RefCell<T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            f(&*self.borrow());
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            f(&mut *self.borrow_mut());
+        }
+    }
+
+    pub struct Projector<Parent, T> {
+        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+        pub project: fn(&Parent) -> &T,
+        pub project_mut: fn(&mut Parent) -> &mut T,
+    }
+
+    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with(&mut |p| f((self.project)(p)))
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with_mut(&mut |p| f((self.project_mut)(p)))
+        }
+    }
+}
+
 fn __cast_f64(value: JsValue) -> Result<f64, String> {
 	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
 }
@@ -93,6 +130,43 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 #![allow(non_camel_case_types, non_snake_case)]
 use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
+
+#[allow(non_snake_case, dead_code)]
+mod __curse {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    pub trait Projection<T> {
+        fn with(&self, f: &mut dyn FnMut(&T));
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+    }
+
+    impl<T> Projection<T> for RefCell<T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            f(&*self.borrow());
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            f(&mut *self.borrow_mut());
+        }
+    }
+
+    pub struct Projector<Parent, T> {
+        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+        pub project: fn(&Parent) -> &T,
+        pub project_mut: fn(&mut Parent) -> &mut T,
+    }
+
+    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
+        fn with(&self, f: &mut dyn FnMut(&T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with(&mut |p| f((self.project)(p)))
+        }
+        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let parent = self.parent.borrow().clone();
+            parent.with_mut(&mut |p| f((self.project_mut)(p)))
+        }
+    }
+}
 
 fn __cast_f64(value: Unknown<'_>) -> Result<f64, String> {
 	if value.get_type().map_err(|err| err.reason)? == ValueType::Number

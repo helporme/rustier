@@ -2,6 +2,7 @@ mod cast;
 mod fn_;
 mod mod_;
 mod printer;
+mod projection;
 mod struct_;
 mod type_;
 
@@ -9,6 +10,7 @@ pub use cast::*;
 pub use fn_::*;
 pub use mod_::*;
 pub use printer::*;
+pub use projection::*;
 pub use struct_::*;
 pub use type_::*;
 
@@ -29,6 +31,12 @@ pub fn compile(db: &dyn Db) -> String {
         }
     }
     out.push_str(api.prelude(db));
+
+    if is_projection_preamble_needed(db) {
+        out.push('\n');
+        out.push_str(PROJECTION_PREAMBLE);
+    }
+
     if !cast_fns.is_empty() {
         out.push('\n');
         out.push_str(cast_fns);
