@@ -2,7 +2,7 @@
 
 use crate::codegen::{
     api::Api,
-    bindings::Printer,
+    bindings::printer::Printer,
     db::Db,
     rustdoc::{mod_::lower_mod_fns, RustdocId},
 };

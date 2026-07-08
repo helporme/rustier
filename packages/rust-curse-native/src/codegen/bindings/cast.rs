@@ -9,7 +9,7 @@ use std::collections::HashSet;
 
 use crate::codegen::{
     api::Api,
-    bindings::Printer,
+    bindings::printer::Printer,
     db::Db,
     ir::{
         struct_::StructShape,

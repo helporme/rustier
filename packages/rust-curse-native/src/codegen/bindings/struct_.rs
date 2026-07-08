@@ -4,8 +4,11 @@
 use crate::codegen::{
     api::Api,
     bindings::{
-        compile_binding_fn_param_conv, compile_binding_fn_param_decl, compile_binding_fn_ret_conv,
-        compile_binding_fn_ret_decl, Printer,
+        fn_::{
+            compile_binding_fn_param_conv, compile_binding_fn_param_decl,
+            compile_binding_fn_ret_conv, compile_binding_fn_ret_decl,
+        },
+        printer::Printer,
     },
     db::Db,
     ir::{

@@ -5,14 +5,16 @@ pub mod printer;
 pub mod projection;
 pub mod struct_;
 
-pub use cast::*;
-pub use fn_::*;
-pub use mod_::*;
-pub use printer::*;
-pub use projection::*;
-pub use struct_::*;
-
-use crate::codegen::{api::Api, db::Db, rustdoc::mod_::all_mod_ids};
+use crate::codegen::{
+    api::Api,
+    bindings::{
+        cast::compile_cast_fns,
+        mod_::compile_mod,
+        projection::{is_projection_preamble_needed, PROJECTION_RUNTIME},
+    },
+    db::Db,
+    rustdoc::mod_::all_mod_ids,
+};
 
 /// Compiles the bindings using active
 /// [`crate::codegen::rustdoc::RustdocCrates`] and

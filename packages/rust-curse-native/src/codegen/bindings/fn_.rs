@@ -3,7 +3,7 @@
 
 use crate::codegen::{
     api::Api,
-    bindings::Printer,
+    bindings::printer::Printer,
     db::Db,
     ir::{
         fn_::{Fn, FnParam, ParamMode},

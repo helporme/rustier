@@ -3,7 +3,7 @@
 pub mod sourcemap;
 
 use crate::codegen::{
-    bindings::Printer,
+    bindings::printer::Printer,
     db::Db,
     ir::{
         fn_::Fn,

@@ -1,7 +1,7 @@
 //! Module for compiling all supported items in a Rust module to bindings code.
 
 use crate::codegen::{
-    bindings::{compile_binding_fn, compile_binidng_struct, Printer},
+    bindings::{fn_::compile_binding_fn, printer::Printer, struct_::compile_binidng_struct},
     db::Db,
     rustdoc::{
         mod_::{lower_mod_fns, lower_mod_structs},
