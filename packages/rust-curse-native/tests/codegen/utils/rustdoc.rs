@@ -5,7 +5,7 @@ use std::{collections::BTreeMap, fs, path::PathBuf};
 use rust_curse::{
     codegen::{
         db::{Db, DbImpl},
-        rustdoc::{Crate as StoredCrate, RustdocId, RustdocCrates},
+        rustdoc::{Crate as StoredCrate, RustdocCrates, RustdocId},
     },
     tools::rustdoc,
 };
