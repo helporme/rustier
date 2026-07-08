@@ -14,7 +14,7 @@ pub fn compile_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
     let mut out = Printer::default();
 
     out.lines(&api.struct_header(db, struct_));
-    out.write_fmt(format_args!("pub struct {} ", struct_.mangled_name(db)));
+    out.write_fmt(format_args!("pub struct {} ", struct_.cursed_name(db)));
     out.curlies(|out| {
         out.line_fmt(format_args!(
             "orig: std::cell::RefCell<{}>",
@@ -26,7 +26,7 @@ pub fn compile_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
 
     if struct_.shape(db) != &StructShape::Unit {
         out.lines(api.impl_header(db));
-        out.write_fmt(format_args!("impl {} ", struct_.mangled_name(db)));
+        out.write_fmt(format_args!("impl {} ", struct_.cursed_name(db)));
         out.curlies(|out| match struct_.shape(db) {
             StructShape::Unit => unreachable!(),
             StructShape::Tuple(fields) => {

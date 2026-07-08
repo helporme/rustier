@@ -1,6 +1,9 @@
+use rustdoc_types::ItemKind;
+
 use crate::codegen::{
     db::Db,
     ir::{mangle::mangle_path, Id, Type},
+    rustdoc,
 };
 
 #[salsa::tracked(debug)]
@@ -57,35 +60,81 @@ pub struct Struct<'db> {
     pub docs: Option<String>,
 }
 
-#[salsa::tracked(returns(ref))]
-fn struct_mangled_name<'db>(db: &'db dyn Db, id: Id<'db>) -> String {
-    let path = id.path(db);
-    format!("__cursed_struct__{}", mangle_path(path))
-}
-
-#[salsa::tracked(returns(ref))]
-fn struct_fqn<'db>(db: &'db dyn Db, id: Id<'db>) -> String {
-    id.path(db).join("::")
-}
-
 impl<'db> Struct<'db> {
-    /// Returns the mangled name of the struct e.g.
+    /// Returns the cursed name of the struct e.g.
     /// `__cursed_struct__std_mem_Drop`
-    pub fn mangled_name(&self, db: &'db dyn Db) -> &'db str {
-        struct_mangled_name(db, self.id(db))
+    pub fn cursed_name(&self, db: &'db dyn Db) -> &'db str {
+        struct_cursed_name_from_rustdoc_id(db, self.id(db).rustdoc_id(db))
     }
 
     /// Returns the name of the struct, e.g. `Drop` for `std::mem::Drop`.
     pub fn name(&self, db: &'db dyn Db) -> &'db str {
-        self.id(db)
-            .path(db)
-            .last()
-            .expect("struct must have a name")
+        struct_name_from_rustdoc_id(db, self.id(db).rustdoc_id(db))
     }
 
     /// Returns the fully qualified name of the struct, e.g.
     /// `std::mem::Drop`.
     pub fn fqn(&self, db: &'db dyn Db) -> &'db str {
-        struct_fqn(db, self.id(db))
+        struct_fqn_from_rustdoc_id(db, self.id(db).rustdoc_id(db))
     }
+}
+
+/// Returns the mangled name of the struct e.g. `std_mem_Drop` for a rustdoc id
+/// pointing to the struct.
+#[salsa::tracked(returns(ref))]
+pub fn struct_mangled_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> String {
+    let summary = id
+        .crate_body(db)
+        .paths
+        .get(&id.idx(db))
+        .expect("Struct not found in a rustdoc crate");
+
+    debug_assert_eq!(summary.kind, ItemKind::Struct);
+    mangle_path(&summary.path)
+}
+
+/// Returns the cursed name of the struct e.g. `__cursed_struct__std_mem_Drop`
+/// for a rustdoc id pointing to the struct.
+#[salsa::tracked(returns(ref))]
+pub fn struct_cursed_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> String {
+    let summary = id
+        .crate_body(db)
+        .paths
+        .get(&id.idx(db))
+        .expect("Struct not found in a rustdoc crate");
+
+    debug_assert_eq!(summary.kind, ItemKind::Struct);
+    format!("__cursed_struct__{}", mangle_path(&summary.path))
+}
+
+/// Returns the fully qualified name of the struct e.g. `std::mem::Drop`
+/// for a rustdoc id pointing to the struct.
+#[salsa::tracked(returns(ref))]
+pub fn struct_fqn_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> String {
+    let summary = id
+        .crate_body(db)
+        .paths
+        .get(&id.idx(db))
+        .expect("Struct not found in a rustdoc crate");
+
+    debug_assert_eq!(summary.kind, ItemKind::Struct);
+    summary.path.join("::")
+}
+
+/// Returns the name of the struct e.g. `std::mem::Drop`
+/// for a rustdoc id pointing to the struct.
+#[salsa::tracked(returns(ref))]
+pub fn struct_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> String {
+    let summary = id
+        .crate_body(db)
+        .paths
+        .get(&id.idx(db))
+        .expect("Struct not found in a rustdoc crate");
+
+    debug_assert_eq!(summary.kind, ItemKind::Struct);
+    summary
+        .path
+        .last()
+        .expect("Struct must have a name")
+        .to_string()
 }

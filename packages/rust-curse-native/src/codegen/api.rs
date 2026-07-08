@@ -136,7 +136,7 @@ impl Api {
 
     /// Returns the struct header for this API.
     pub fn struct_header(&self, db: &dyn Db, _struct: ir::Struct) -> String {
-        let struct_name = _struct.mangled_name(db);
+        let struct_name = _struct.cursed_name(db);
         match self.kind(db) {
             ApiKind::Wasm { .. } => format!("#[wasm_bindgen(js_name = {})]", struct_name),
             ApiKind::Node => format!("#[napi(js_name = \"{}\")]", struct_name),
