@@ -1,3 +1,5 @@
+//! All api-specific code generation utilities.
+
 use salsa::Setter;
 
 use crate::codegen::{

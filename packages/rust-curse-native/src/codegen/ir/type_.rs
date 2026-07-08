@@ -15,7 +15,7 @@ pub enum Primitive {
 }
 
 impl Primitive {
-    /// Returns this primitive's Rust source name for diagnostics.
+    /// Returns this primitive's Rust name.
     ///
     /// # Example
     ///
@@ -39,16 +39,16 @@ impl Primitive {
         }
     }
 
-    /// Returns this primitive's JavaScript source name for diagnostics.
+    /// Returns this primitive's TypeScript name.
     ///
     /// # Example
     ///
     /// ```
     /// use rust_curse::codegen::ir::Primitive;
     ///
-    /// assert_eq!(Primitive::Boolean.js_name(), "boolean");
+    /// assert_eq!(Primitive::Boolean.ts_name(), "boolean");
     /// ```
-    pub fn js_name(&self) -> &'static str {
+    pub fn ts_name(&self) -> &'static str {
         match self {
             Primitive::Boolean => "boolean",
             Primitive::Char
@@ -63,8 +63,9 @@ impl Primitive {
         }
     }
 
-    /// Returns the generated cast helper function name for this primitive for
-    /// diagnostics.
+    /// Returns the cast function name for this primitive.
+    ///
+    /// See [`crate::codegen::bindings::cast`].
     ///
     /// # Example
     ///
@@ -98,7 +99,7 @@ pub enum Type {
 }
 
 impl Type {
-    /// Returns this type's Rust source name for diagnostics.
+    /// Returns this type's Rust name used in source code.
     ///
     /// # Example
     ///
@@ -117,7 +118,7 @@ impl Type {
         }
     }
 
-    /// Returns this type's JavaScript source name for diagnostics.
+    /// Returns this type's TypeScript name.
     ///
     /// # Example
     ///
@@ -126,16 +127,18 @@ impl Type {
     ///
     /// let type_ = Type::Primitive(Primitive::Boolean);
     ///
-    /// assert_eq!(type_.js_name(), "boolean");
+    /// assert_eq!(type_.ts_name(), "boolean");
     /// ```
-    pub fn js_name(&self) -> &'static str {
+    pub fn ts_name(&self) -> &'static str {
         match self {
-            Type::Primitive(primitive) => primitive.js_name(),
+            Type::Primitive(primitive) => primitive.ts_name(),
             Type::Str | Type::String => "string",
         }
     }
 
-    /// Returns the generated cast helper function name for this type.
+    /// Returns the cast function name for this type.
+    ///
+    /// See [`crate::codegen::bindings::cast`].
     ///
     /// # Example
     ///

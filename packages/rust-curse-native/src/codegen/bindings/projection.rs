@@ -2,7 +2,7 @@ use rustdoc_types::ItemEnum;
 
 use crate::codegen::{db::Db, rustdoc::all_mod_ids};
 
-pub const PROJECTION_PREAMBLE: &str = indoc::indoc! {r#"
+pub const PROJECTION_RUNTIME: &str = indoc::indoc! {r#"
     #[allow(non_snake_case, dead_code)]
     mod __curse {
         use std::cell::RefCell;

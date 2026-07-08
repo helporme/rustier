@@ -1,15 +1,19 @@
+//! Module for compiling structs into a binding structs that can be exposed to
+//! the JavaScript.
+
 use crate::codegen::{
     api::Api,
     bindings::{
-        compile_param_conv, compile_param_decl, compile_ret_conv, compile_ret_decl, Printer,
+        compile_binding_fn_param_conv, compile_binding_fn_param_decl, compile_binding_fn_ret_conv,
+        compile_binding_fn_ret_decl, Printer,
     },
     db::Db,
     ir::{FnParam, ParamMode, Struct, StructField, StructShape},
 };
 
-/// Compiles [`ir::Struct`] to struct bindings using the active API.
+/// Compiles struct to the struct bindings.
 #[salsa::tracked(returns(ref))]
-pub fn compile_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
+pub fn compile_binidng_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
     let api = Api::get(db);
     let mut out = Printer::default();
 
@@ -51,8 +55,9 @@ pub fn compile_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
     out.into()
 }
 
+/// Compiles the associated function for getting a field of a struct.
 #[salsa::tracked(returns(ref))]
-pub fn compile_field_getter<'db>(db: &'db dyn Db, field: StructField<'db>) -> String {
+fn compile_field_getter<'db>(db: &'db dyn Db, field: StructField<'db>) -> String {
     let api = Api::get(db);
     let mut out = Printer::default();
 
@@ -60,7 +65,7 @@ pub fn compile_field_getter<'db>(db: &'db dyn Db, field: StructField<'db>) -> St
     out.write_fmt(format_args!(
         "pub fn {}(&self) -> {} ",
         field.getter_binding_name(db),
-        api.result_type(db, compile_ret_decl(field.type_(db)))
+        api.result_type(db, compile_binding_fn_ret_decl(field.type_(db)))
     ));
 
     out.curlies(|out| {
@@ -72,15 +77,16 @@ pub fn compile_field_getter<'db>(db: &'db dyn Db, field: StructField<'db>) -> St
             "let result = orig.{}.clone();",
             field.name(db)
         ));
-        out.write(&compile_ret_conv(db, field.type_(db)));
+        out.write(&compile_binding_fn_ret_conv(db, field.type_(db)));
         out.line("Ok(result)");
     });
 
     out.into()
 }
 
+/// Compiles the associated function for setting a field of a struct.
 #[salsa::tracked(returns(ref))]
-pub fn compile_field_setter<'db>(db: &'db dyn Db, field: StructField<'db>) -> String {
+fn compile_field_setter<'db>(db: &'db dyn Db, field: StructField<'db>) -> String {
     let api = Api::get(db);
     let mut out = Printer::default();
 
@@ -91,13 +97,13 @@ pub fn compile_field_setter<'db>(db: &'db dyn Db, field: StructField<'db>) -> St
     out.write_fmt(format_args!(
         "pub fn {}(&self, {}) -> {} ",
         field.setter_binding_name(db),
-        compile_param_decl(db, param),
+        compile_binding_fn_param_decl(db, param),
         api.result_type(db, "()")
     ));
 
     out.curlies(|out| {
         out.line("let mut orig = self.orig.borrow_mut();"); // todo: try_borrow_mut
-        out.lines(compile_param_conv(db, param));
+        out.lines(compile_binding_fn_param_conv(db, param));
         out.line_fmt(format_args!(
             "orig.{} = {};",
             field.name(db),

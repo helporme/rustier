@@ -1,26 +1,34 @@
+//! Module for compiling a cast functions used to convert or reinterpret
+//! values passed from the JavaScript to the Rust types expected by the source
+//! code.
+//!
+//! JavaScript value representation is api-specific, see
+//! [`crate::codegen::api`].
+
 use std::collections::HashSet;
 
 use crate::codegen::{
     api::Api,
     bindings::Printer,
     db::Db,
-    ir::{self, StructShape},
-    rustdoc,
+    ir::{Primitive, StructShape, Type},
+    rustdoc::{all_mod_ids, lower_mod_fns, lower_mod_structs},
 };
 
-/// Compiles shared JavaScript-to-Rust cast helpers used by generated bindings.
+/// Compiles all cast helper functions required by public Rust functions and
+/// structs.
 #[salsa::tracked(returns(ref))]
 pub fn compile_cast_fns(db: &dyn Db) -> String {
     let mut seen = HashSet::new();
     let mut types = Vec::new();
 
-    for mod_id in rustdoc::all_mod_ids(db) {
-        for fn_ in rustdoc::lower_mod_fns(db, *mod_id) {
+    for mod_id in all_mod_ids(db) {
+        for fn_ in lower_mod_fns(db, *mod_id) {
             for param in fn_.params(db) {
                 collect_cast_type(param.type_(db), &mut seen, &mut types);
             }
         }
-        for struct_ in rustdoc::lower_mod_structs(db, *mod_id) {
+        for struct_ in lower_mod_structs(db, *mod_id) {
             match struct_.shape(db) {
                 StructShape::Tuple(fields) => {
                     for field in fields.iter().flatten() {
@@ -44,40 +52,42 @@ pub fn compile_cast_fns(db: &dyn Db) -> String {
     out
 }
 
-fn collect_cast_type(type_: ir::Type, seen: &mut HashSet<ir::Type>, types: &mut Vec<ir::Type>) {
+/// Collects a cast target type and any wider helper types it depends on.
+fn collect_cast_type(type_: Type, seen: &mut HashSet<Type>, types: &mut Vec<Type>) {
     if !seen.insert(type_) {
         return;
     }
 
     match type_ {
-        ir::Type::Str => {
-            collect_cast_type(ir::Type::String, seen, types);
+        Type::Str => {
+            collect_cast_type(Type::String, seen, types);
             return; // no need for both str and string, we generate one cast fn
                     // for both
         }
-        ir::Type::Primitive(ir::Primitive::Char) => {
+        Type::Primitive(Primitive::Char) => {
             // char is casted to/from u32 when passing a js boundary
-            collect_cast_type(ir::Type::Primitive(ir::Primitive::u32), seen, types);
+            collect_cast_type(Type::Primitive(Primitive::u32), seen, types);
         }
-        ir::Type::Primitive(
-            ir::Primitive::i8
-            | ir::Primitive::i16
-            | ir::Primitive::i32
-            | ir::Primitive::u8
-            | ir::Primitive::u16
-            | ir::Primitive::u32
-            | ir::Primitive::f32,
+        Type::Primitive(
+            Primitive::i8
+            | Primitive::i16
+            | Primitive::i32
+            | Primitive::u8
+            | Primitive::u16
+            | Primitive::u32
+            | Primitive::f32,
         ) => {
             // all "normal" numbers are casted from f64 when passing js border
-            collect_cast_type(ir::Type::Primitive(ir::Primitive::f64), seen, types);
+            collect_cast_type(Type::Primitive(Primitive::f64), seen, types);
         }
-        ir::Type::Primitive(ir::Primitive::Boolean | ir::Primitive::f64) | ir::Type::String => {}
+        Type::Primitive(Primitive::Boolean | Primitive::f64) | Type::String => {}
     }
 
     types.push(type_);
 }
 
-fn compile_cast_fn(db: &dyn Db, type_: ir::Type) -> String {
+/// Compiles a cast helper function for the given type.
+fn compile_cast_fn(db: &dyn Db, type_: Type) -> String {
     let api = Api::get(db);
     let mut out = Printer::default();
 
@@ -95,45 +105,42 @@ fn compile_cast_fn(db: &dyn Db, type_: ir::Type) -> String {
     out.into()
 }
 
-fn compile_cast_res(type_: ir::Type) -> &'static str {
+/// Compiles the successful `Result` type of a cast function.
+///
+/// ```ignore (incomplete expression)
+/// fn cast(value: JsValue) -> Result<String, String>
+///                                // ~~~~~~
+///                                // this part
+/// ```
+fn compile_cast_res(type_: Type) -> &'static str {
     match type_ {
-        ir::Type::Primitive(primitive) => primitive.rs_name(),
-        ir::Type::Str | ir::Type::String => "String",
+        Type::Primitive(primitive) => primitive.rs_name(),
+        Type::Str | Type::String => "String",
     }
 }
 
-fn compile_cast_body(db: &dyn Db, type_: ir::Type) -> String {
+/// Compiles the body of a cast function.
+fn compile_cast_body(db: &dyn Db, type_: Type) -> String {
     let api = Api::get(db);
 
     match type_ {
-        ir::Type::Primitive(ir::Primitive::Boolean) => api.cast_to_bool(db),
-        ir::Type::Primitive(ir::Primitive::Char) => compile_char_cast_body(),
-        ir::Type::Str | ir::Type::String => api.cast_to_string(db),
-        ir::Type::Primitive(ir::Primitive::i8) => {
-            compile_signed_integer_cast_body(ir::Primitive::i8)
-        }
-        ir::Type::Primitive(ir::Primitive::u8) => {
-            compile_unsigned_integer_cast_body(ir::Primitive::u8)
-        }
-        ir::Type::Primitive(ir::Primitive::i16) => {
-            compile_signed_integer_cast_body(ir::Primitive::i16)
-        }
-        ir::Type::Primitive(ir::Primitive::u16) => {
-            compile_unsigned_integer_cast_body(ir::Primitive::u16)
-        }
-        ir::Type::Primitive(ir::Primitive::i32) => {
-            compile_signed_integer_cast_body(ir::Primitive::i32)
-        }
-        ir::Type::Primitive(ir::Primitive::u32) => {
-            compile_unsigned_integer_cast_body(ir::Primitive::u32)
-        }
-        ir::Type::Primitive(ir::Primitive::f32) => compile_f32_cast_body(),
-        ir::Type::Primitive(ir::Primitive::f64) => api.cast_to_f64(db),
+        Type::Primitive(Primitive::Boolean) => api.cast_to_bool(db),
+        Type::Primitive(Primitive::Char) => compile_char_cast_body(),
+        Type::Str | Type::String => api.cast_to_string(db),
+        Type::Primitive(Primitive::i8) => compile_signed_integer_cast_body(Primitive::i8),
+        Type::Primitive(Primitive::u8) => compile_unsigned_integer_cast_body(Primitive::u8),
+        Type::Primitive(Primitive::i16) => compile_signed_integer_cast_body(Primitive::i16),
+        Type::Primitive(Primitive::u16) => compile_unsigned_integer_cast_body(Primitive::u16),
+        Type::Primitive(Primitive::i32) => compile_signed_integer_cast_body(Primitive::i32),
+        Type::Primitive(Primitive::u32) => compile_unsigned_integer_cast_body(Primitive::u32),
+        Type::Primitive(Primitive::f32) => compile_f32_cast_body(),
+        Type::Primitive(Primitive::f64) => api.cast_to_f64(db),
     }
 }
 
+/// Compiles a cast body that converts a JavaScript number into a Rust `char`.
 fn compile_char_cast_body() -> String {
-    let u32_cast_fn = ir::Primitive::u32.cast_fn_name();
+    let u32_cast_fn = Primitive::u32.cast_fn_name();
 
     indoc::formatdoc! {r#"
         let value = {u32_cast_fn}(value).map_err(|_| "cannot cast value to char".to_string())?;
@@ -141,9 +148,10 @@ fn compile_char_cast_body() -> String {
     "#}
 }
 
+/// Compiles a cast body that converts a JavaScript number into a Rust `f32`.
 fn compile_f32_cast_body() -> String {
-    let f64_cast_fn = ir::Primitive::f64.cast_fn_name();
-    let type_name = ir::Primitive::f32.rs_name();
+    let f64_cast_fn = Primitive::f64.cast_fn_name();
+    let type_name = Primitive::f32.rs_name();
 
     indoc::formatdoc! {r#"
         let value = {f64_cast_fn}(value).map_err(|_| "cannot cast value to {type_name}".to_string())?;
@@ -151,8 +159,10 @@ fn compile_f32_cast_body() -> String {
     "#}
 }
 
-fn compile_signed_integer_cast_body(primitive: ir::Primitive) -> String {
-    let f64_cast_fn = ir::Primitive::f64.cast_fn_name();
+/// Compiles a cast body that converts a JavaScript number into a signed Rust
+/// integer.
+fn compile_signed_integer_cast_body(primitive: Primitive) -> String {
+    let f64_cast_fn = Primitive::f64.cast_fn_name();
     let type_name = primitive.rs_name();
 
     indoc::formatdoc! {r#"
@@ -165,8 +175,10 @@ fn compile_signed_integer_cast_body(primitive: ir::Primitive) -> String {
     "#}
 }
 
-fn compile_unsigned_integer_cast_body(primitive: ir::Primitive) -> String {
-    let f64_cast_fn = ir::Primitive::f64.cast_fn_name();
+/// Compiles a cast body that converts a JavaScript number into an unsigned Rust
+/// integer.
+fn compile_unsigned_integer_cast_body(primitive: Primitive) -> String {
+    let f64_cast_fn = Primitive::f64.cast_fn_name();
     let type_name = primitive.rs_name();
 
     indoc::formatdoc! {r#"

@@ -11,6 +11,7 @@ use crate::codegen::{
     rustdoc::{lower_type, CrateExt, LoweredType, RustdocId, TypeLowerError},
 };
 
+/// Lowers the rustdoc struct to the IR struct.
 #[salsa::tracked]
 pub fn lower_struct<'db>(
     db: &'db dyn Db,

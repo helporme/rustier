@@ -1,13 +1,16 @@
+//! Module for compiling standalone (not associated) functions into a binding
+//! functions that can be exposed to JavaScript.
+
 use crate::codegen::{
     api::Api,
     bindings::{compile_type, Printer},
     db::Db,
-    ir,
+    ir::{Fn, FnParam, ParamMode, Primitive, Type},
 };
 
-/// Compiles [`ir::Fn`] to function bindings using the active API.
+/// Compiles a function into a binding function.
 #[salsa::tracked(returns(ref))]
-pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
+pub fn compile_binding_fn(db: &dyn Db, fn_: Fn<'_>) -> String {
     let api = Api::get(db);
     let mut out = Printer::default();
 
@@ -17,26 +20,28 @@ pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
         p.comma_list(
             fn_.params(db)
                 .iter()
-                .map(|param| compile_param_decl(db, *param)),
+                .map(|param| compile_binding_fn_param_decl(db, *param)),
         );
     });
     out.write(" -> ");
 
-    let ret_ty = fn_.return_type(db).map(|ty| compile_ret_decl(ty));
+    let ret_ty = fn_
+        .return_type(db)
+        .map(|ty| compile_binding_fn_ret_decl(ty));
     match ret_ty {
         Some(ok_ty) => {
             out.write(&api.result_type(db, ok_ty));
             out.write(" ");
             out.curlies(|p| {
                 for param in fn_.params(db) {
-                    p.lines(compile_param_conv(db, *param));
+                    p.lines(compile_binding_fn_param_conv(db, *param));
                 }
                 p.lines_fmt(format_args!(
                     "let result = {};",
-                    compile_fn_call_stmt(db, fn_)
+                    compile_src_fn_call_stmt(db, fn_)
                 ));
                 if let Some(return_type) = fn_.return_type(db) {
-                    p.lines(&compile_ret_conv(db, return_type));
+                    p.lines(&compile_binding_fn_ret_conv(db, return_type));
                 }
                 p.line("Ok(result)");
             });
@@ -46,9 +51,9 @@ pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
             out.write(" ");
             out.curlies(|p| {
                 for param in fn_.params(db) {
-                    p.lines(compile_param_conv(db, *param));
+                    p.lines(compile_binding_fn_param_conv(db, *param));
                 }
-                p.lines_fmt(format_args!("{};", compile_fn_call_stmt(db, fn_)));
+                p.lines_fmt(format_args!("{};", compile_src_fn_call_stmt(db, fn_)));
                 p.line("Ok(())");
             });
         }
@@ -57,7 +62,8 @@ pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
     out.into()
 }
 
-/// Compiles a function parameter into a param declaration.
+/// Compiles a function parameter into a param declaration of a binding
+/// function.
 ///
 /// ```ignore (incomplete expression)
 /// pub fn foo(value: String)
@@ -65,7 +71,7 @@ pub fn compile_fn(db: &dyn Db, fn_: ir::Fn<'_>) -> String {
 ///         // this part
 /// ```
 #[salsa::tracked(returns(ref))]
-pub fn compile_param_decl<'db>(db: &'db dyn Db, param: ir::FnParam<'db>) -> String {
+pub fn compile_binding_fn_param_decl<'db>(db: &'db dyn Db, param: FnParam<'db>) -> String {
     let api = Api::get(db);
     format!("{}: {}", param.binding_name(db), api.js_type(db))
 }
@@ -81,12 +87,12 @@ pub fn compile_param_decl<'db>(db: &'db dyn Db, param: ir::FnParam<'db>) -> Stri
 /// }
 /// ```
 #[salsa::tracked(returns(ref))]
-pub fn compile_param_conv<'db>(db: &'db dyn Db, param: ir::FnParam<'db>) -> String {
+pub fn compile_binding_fn_param_conv<'db>(db: &'db dyn Db, param: FnParam<'db>) -> String {
     let api = Api::get(db);
     let mut out = Printer::default();
 
     let name = param.binding_name(db);
-    let mutable = matches!(param.mode(db), ir::ParamMode::Mut)
+    let mutable = matches!(param.mode(db), ParamMode::Mut)
         .then_some("mut ")
         .unwrap_or("");
 
@@ -97,7 +103,7 @@ pub fn compile_param_conv<'db>(db: &'db dyn Db, param: ir::FnParam<'db>) -> Stri
             "format!(\"Invalid argument `{}`: expected Rust `{}` from a JavaScript {}: {{}}\", err)",
             param.name(db),
             type_.rs_name(),
-            type_.js_name()
+            type_.ts_name()
         ),
     );
 
@@ -109,14 +115,15 @@ pub fn compile_param_conv<'db>(db: &'db dyn Db, param: ir::FnParam<'db>) -> Stri
     out.into()
 }
 
-/// Compiles the return type of a function into a return type declaration.
+/// Compiles the return type of a function into a return type declaration for a
+/// binding function.
 ///
 /// ```ignore (incomplete expression)
 /// pub fn foo() -> Result<String>
 ///                     // ~~~~~~
 ///                     // this part
 /// ```
-pub fn compile_ret_decl(ty: ir::Type) -> &'static str {
+pub fn compile_binding_fn_ret_decl(ty: Type) -> &'static str {
     compile_type(&ty)
 }
 
@@ -132,34 +139,36 @@ pub fn compile_ret_decl(ty: ir::Type) -> &'static str {
 /// // this part
 /// }
 /// ```
-pub fn compile_ret_conv(db: &dyn Db, ty: ir::Type) -> String {
+pub fn compile_binding_fn_ret_conv(db: &dyn Db, ty: Type) -> String {
     let _ = db;
     let mut p = Printer::default();
 
     match ty {
-        ir::Type::Primitive(ir::Primitive::Char) => p.line("let result = result as u32;"),
-        ir::Type::Primitive(ir::Primitive::f32) => p.line("let result = result as f64;"),
+        Type::Primitive(Primitive::Char) => p.line("let result = result as u32;"),
+        Type::Primitive(Primitive::f32) => p.line("let result = result as f64;"),
         _ => {}
     }
 
     p.into()
 }
 
-/// Compiles [`ir::Fn`] to a function call statement.
+/// Compiles a function into a call statement of the function.
+///
+/// Assumes the binding parameter variables present in the scope.
 #[salsa::tracked(returns(ref))]
-pub fn compile_fn_call_stmt<'db>(db: &'db dyn Db, fn_: ir::Fn<'db>) -> String {
+fn compile_src_fn_call_stmt<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
     let mut p = Printer::default();
 
     p.write(fn_.fqn(db));
     p.parens(|p| {
         p.comma_list(fn_.params(db).iter().map(|param| match param.mode(db) {
-            ir::ParamMode::Ref => {
+            ParamMode::Ref => {
                 format!("&{}", param.binding_name(db))
             }
-            ir::ParamMode::Mut => {
+            ParamMode::Mut => {
                 format!("&mut {}", param.binding_name(db))
             }
-            ir::ParamMode::Move => param.binding_name(db).to_owned(),
+            ParamMode::Move => param.binding_name(db).to_owned(),
         }));
     });
 

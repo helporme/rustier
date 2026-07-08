@@ -94,7 +94,7 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
 
     debug!("compiled generated crate manifest");
 
-    let bindings = codegen::bindings::compile(opts.db);
+    let bindings = codegen::bindings::compile_bindings(opts.db);
     debug!(
         bindings_bytes = bindings.len(),
         "compiled generated bindings"

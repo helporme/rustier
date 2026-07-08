@@ -1,10 +1,10 @@
-mod cast;
-mod fn_;
-mod mod_;
-mod printer;
-mod projection;
-mod struct_;
-mod type_;
+pub mod cast;
+pub mod fn_;
+pub mod mod_;
+pub mod printer;
+pub mod projection;
+pub mod struct_;
+pub mod type_;
 
 pub use cast::*;
 pub use fn_::*;
@@ -16,9 +16,11 @@ pub use type_::*;
 
 use crate::codegen::{api::Api, db::Db, rustdoc};
 
-/// Compiles the whole IR into bindings code for the active API.
+/// Compiles the bindings using active
+/// [`crate::codegen::rustdoc::RustdocCrates`] and
+/// [`crate::codegen::api::Api`].
 #[salsa::tracked]
-pub fn compile(db: &dyn Db) -> String {
+pub fn compile_bindings(db: &dyn Db) -> String {
     let api = Api::get(db);
     let mut out = String::new();
 
@@ -34,7 +36,7 @@ pub fn compile(db: &dyn Db) -> String {
 
     if is_projection_preamble_needed(db) {
         out.push('\n');
-        out.push_str(PROJECTION_PREAMBLE);
+        out.push_str(PROJECTION_RUNTIME);
     }
 
     if !cast_fns.is_empty() {

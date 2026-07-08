@@ -1,5 +1,5 @@
-//! Runs checks on IR for spotting common (but not critical) mistakes and
-//! pitfalls when using rust-curse.
+//! Module for running checks on IR for spotting common (but not critical)
+//! mistakes and pitfalls when using rust-curse.
 
 use miette::Diagnostic;
 use thiserror::Error;

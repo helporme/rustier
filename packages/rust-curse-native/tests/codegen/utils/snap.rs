@@ -67,12 +67,12 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
             }
             "wasm" => {
                 Api::set(&mut db, wasm_web_api());
-                let text = bindings::compile(&db);
+                let text = bindings::compile_bindings(&db);
                 push_section(&mut body, "Wasm Bindings", "rs", &text);
             }
             "node" => {
                 Api::set(&mut db, ApiKind::Node);
-                let text = bindings::compile(&db);
+                let text = bindings::compile_bindings(&db);
                 push_section(&mut body, "Node Bindings", "rs", &text);
             }
             other => panic!("unknown snapshot category `{other}`"),

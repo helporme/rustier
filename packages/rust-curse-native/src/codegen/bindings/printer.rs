@@ -1,3 +1,5 @@
+//! Glorified [`String::push`].
+
 use std::fmt::{self, Write as _};
 
 /// Builds generated source text with tab indentation helpers.
