@@ -1,11 +1,16 @@
 use rustdoc_types::{ItemEnum, ItemKind};
 
-use crate::codegen::{db::Db, diag::DiagAccumulateExt as _, ir, rustdoc};
+use crate::codegen::{
+    db::Db,
+    diag::DiagAccumulateExt as _,
+    ir,
+    rustdoc::{lower_fn, lower_struct, RustdocCrates, RustdocId},
+};
 
 /// Returns all rustdoc module IDs available in all crates.
 #[salsa::tracked(returns(ref))]
-pub fn all_mod_ids<'db>(db: &'db dyn Db) -> Vec<rustdoc::Id<'db>> {
-    let rustdoc = rustdoc::RustdocCrates::get(db);
+pub fn all_mod_ids<'db>(db: &'db dyn Db) -> Vec<RustdocId<'db>> {
+    let rustdoc = RustdocCrates::get(db);
 
     let mut mod_ids = Vec::new();
 
@@ -22,7 +27,7 @@ pub fn all_mod_ids<'db>(db: &'db dyn Db) -> Vec<rustdoc::Id<'db>> {
         crate_mod_ids.sort_by(|(_, a), (_, b)| a.path.cmp(&b.path));
 
         for (id, _) in crate_mod_ids {
-            mod_ids.push(rustdoc::Id::new(db, *id, crate_name));
+            mod_ids.push(RustdocId::new(db, *id, crate_name));
         }
     }
 
@@ -31,7 +36,7 @@ pub fn all_mod_ids<'db>(db: &'db dyn Db) -> Vec<rustdoc::Id<'db>> {
 
 /// Lowers the rustdoc module.
 #[salsa::tracked]
-pub fn lower_mod<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> ir::Mod<'db> {
+pub fn lower_mod<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> ir::Mod<'db> {
     let item = id.item(db);
     let crate_ = id.crate_body(db);
 
@@ -46,7 +51,7 @@ pub fn lower_mod<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> ir::Mod<'db> {
 
 /// Lowers the functions defined inside the given rustdoc module.
 #[salsa::tracked(returns(ref))]
-pub fn lower_mod_fns<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::Fn<'db>> {
+pub fn lower_mod_fns<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<ir::Fn<'db>> {
     let item = id.item(db);
     let crate_ = id.crate_body(db);
 
@@ -60,10 +65,7 @@ pub fn lower_mod_fns<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::Fn<'
     for item_id in &def.items {
         let item = crate_.index.get(item_id).unwrap();
         if matches!(item.inner, ItemEnum::Function(_)) {
-            match rustdoc::lower_fn(
-                db,
-                rustdoc::Id::new(db, *item_id, id.crate_name(db).clone()),
-            ) {
+            match lower_fn(db, RustdocId::new(db, *item_id, id.crate_name(db).clone())) {
                 Ok(fn_) => fns.push(fn_),
                 Err(diag) => {
                     diag.accumulate(db);
@@ -77,7 +79,7 @@ pub fn lower_mod_fns<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::Fn<'
 
 /// Lowers the structs defined inside the given rustdoc module.
 #[salsa::tracked(returns(ref))]
-pub fn lower_mod_structs<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::Struct<'db>> {
+pub fn lower_mod_structs<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<ir::Struct<'db>> {
     let item = id.item(db);
     let crate_ = id.crate_body(db);
 
@@ -91,10 +93,7 @@ pub fn lower_mod_structs<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::
     for item_id in &def.items {
         let item = crate_.index.get(item_id).unwrap();
         if matches!(item.inner, ItemEnum::Struct(_)) {
-            match rustdoc::lower_struct(
-                db,
-                rustdoc::Id::new(db, *item_id, id.crate_name(db).clone()),
-            ) {
+            match lower_struct(db, RustdocId::new(db, *item_id, id.crate_name(db).clone())) {
                 Ok(struct_) => structs.push(struct_),
                 Err(diag) => {
                     diag.accumulate(db);
@@ -108,7 +107,7 @@ pub fn lower_mod_structs<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::
 
 /// Lowers the submodules defined inside the given rustdoc module.
 #[salsa::tracked(returns(ref))]
-pub fn lower_mod_submods<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::Mod<'db>> {
+pub fn lower_mod_submods<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<ir::Mod<'db>> {
     let item = id.item(db);
     let crate_ = id.crate_body(db);
 
@@ -122,10 +121,7 @@ pub fn lower_mod_submods<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> Vec<ir::
     for item_id in &def.items {
         let item = crate_.index.get(item_id).unwrap();
         if matches!(item.inner, ItemEnum::Module(_)) {
-            let submod = lower_mod(
-                db,
-                rustdoc::Id::new(db, *item_id, id.crate_name(db).clone()),
-            );
+            let submod = lower_mod(db, RustdocId::new(db, *item_id, id.crate_name(db).clone()));
             mods.push(submod);
         }
     }

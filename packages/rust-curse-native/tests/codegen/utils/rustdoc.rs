@@ -5,7 +5,7 @@ use std::{collections::BTreeMap, fs, path::PathBuf};
 use rust_curse::{
     codegen::{
         db::{Db, DbImpl},
-        rustdoc::{Crate as StoredCrate, Id, RustdocCrates},
+        rustdoc::{Crate as StoredCrate, RustdocId, RustdocCrates},
     },
     tools::rustdoc,
 };
@@ -76,6 +76,6 @@ pub fn db_with_rustdoc(crate_: RustdocCrate, dir: impl Into<PathBuf>) -> DbImpl 
     db
 }
 
-pub fn root_id<'db>(db: &'db dyn Db, crate_: &RustdocCrate) -> Id<'db> {
-    Id::new(db, crate_.root, TEST_CRATE_NAME)
+pub fn root_id<'db>(db: &'db dyn Db, crate_: &RustdocCrate) -> RustdocId<'db> {
+    RustdocId::new(db, crate_.root, TEST_CRATE_NAME)
 }

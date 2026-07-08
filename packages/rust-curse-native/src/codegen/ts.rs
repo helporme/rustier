@@ -6,13 +6,13 @@ use crate::codegen::{
     bindings::Printer,
     db::Db,
     ir::{Fn, Primitive, Struct, StructField, StructShape, Type},
-    rustdoc,
+    rustdoc::{lower_mod, lower_mod_fns, lower_mod_structs, RustdocId},
 };
 
 /// Compiles an rustdoc id to ts declaration.
 #[salsa::tracked(returns(ref))]
-pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: rustdoc::Id<'db>) -> String {
-    let mod_ = rustdoc::lower_mod(db, mod_id);
+pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> String {
+    let mod_ = lower_mod(db, mod_id);
 
     let mut out = Printer::default();
 
@@ -22,14 +22,14 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: rustdoc::Id<'db>) -> String {
         out.lines(&compile_jsdoc(docs));
     }
 
-    for fn_ in rustdoc::lower_mod_fns(db, mod_id) {
+    for fn_ in lower_mod_fns(db, mod_id) {
         if !out.is_empty() {
             out.blank();
         }
         out.lines(compile_fn(db, *fn_));
     }
 
-    for struct_ in rustdoc::lower_mod_structs(db, mod_id) {
+    for struct_ in lower_mod_structs(db, mod_id) {
         if !out.is_empty() {
             out.blank();
         }

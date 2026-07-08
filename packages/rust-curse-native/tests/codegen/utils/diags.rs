@@ -5,12 +5,12 @@ use rust_curse::codegen::{
     check,
     db::Db,
     diag::Diag,
-    rustdoc::{lower_mod, lower_mod_fns, lower_mod_structs, lower_mod_submods, Id},
+    rustdoc::{lower_mod, lower_mod_fns, lower_mod_structs, lower_mod_submods, RustdocId},
 };
 
 /// Collects diagnostics from lowering every possible item in the given module
 /// and from all IR checks.
-pub fn collect_diags<'db>(db: &'db dyn Db, id: Id<'db>) -> Vec<Diag> {
+pub fn collect_diags<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Diag> {
     let mut diags = collect_lower_diags_mod(db, id);
 
     diags.extend(check::check(db).iter().cloned().map(Diag::from));
@@ -18,7 +18,7 @@ pub fn collect_diags<'db>(db: &'db dyn Db, id: Id<'db>) -> Vec<Diag> {
     diags
 }
 
-fn collect_lower_diags_mod<'db>(db: &'db dyn Db, id: Id<'db>) -> Vec<Diag> {
+fn collect_lower_diags_mod<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Diag> {
     let mut diags = vec![];
 
     // Lower mod itself.

@@ -6,12 +6,15 @@ use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
     ir,
-    rustdoc::{lower_type, CrateExt, Id, LoweredType, TypeLowerError},
+    rustdoc::{lower_type, CrateExt, LoweredType, RustdocId, TypeLowerError},
 };
 
 /// Lowers the rustdoc function.
 #[salsa::tracked]
-pub fn lower_fn<'db>(db: &'db dyn Db, id: Id<'db>) -> Result<ir::Fn<'db>, Box<FnLowerError>> {
+pub fn lower_fn<'db>(
+    db: &'db dyn Db,
+    id: RustdocId<'db>,
+) -> Result<ir::Fn<'db>, Box<FnLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);
 

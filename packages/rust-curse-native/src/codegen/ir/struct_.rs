@@ -3,7 +3,7 @@ use rustdoc_types::ItemKind;
 use crate::codegen::{
     db::Db,
     ir::{mangle::mangle_path, Id, Type},
-    rustdoc,
+    rustdoc::RustdocId,
 };
 
 #[salsa::tracked(debug)]
@@ -76,7 +76,7 @@ impl<'db> Struct<'db> {
 /// Returns the mangled name of the struct e.g. `std_mem_Drop` for a rustdoc id
 /// pointing to the struct.
 #[salsa::tracked(returns(ref))]
-pub fn struct_mangled_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> String {
+pub fn struct_mangled_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> String {
     let summary = id
         .crate_body(db)
         .paths
@@ -90,7 +90,7 @@ pub fn struct_mangled_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id
 /// Returns the binding name of the struct e.g. `__cursed_struct__std_mem_Drop`
 /// for a rustdoc id pointing to the struct.
 #[salsa::tracked(returns(ref))]
-pub fn struct_binding_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> String {
+pub fn struct_binding_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> String {
     let summary = id
         .crate_body(db)
         .paths
@@ -104,7 +104,7 @@ pub fn struct_binding_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id
 /// Returns the fully qualified name of the struct e.g. `std::mem::Drop`
 /// for a rustdoc id pointing to the struct.
 #[salsa::tracked(returns(ref))]
-pub fn struct_fqn_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> String {
+pub fn struct_fqn_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> String {
     let summary = id
         .crate_body(db)
         .paths
@@ -118,7 +118,7 @@ pub fn struct_fqn_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) ->
 /// Returns the name of the struct e.g. `std::mem::Drop`
 /// for a rustdoc id pointing to the struct.
 #[salsa::tracked(returns(ref))]
-pub fn struct_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: rustdoc::Id<'db>) -> String {
+pub fn struct_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> String {
     let summary = id
         .crate_body(db)
         .paths

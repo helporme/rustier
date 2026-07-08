@@ -77,14 +77,14 @@ impl<'db> RustdocType<'db> {
 
 /// An interned ID to a specific rustdoc item in a specific crate.
 #[salsa::interned]
-pub struct Id<'db> {
+pub struct RustdocId<'db> {
     #[returns(copy)]
     pub idx: RId,
     #[returns(ref)]
     pub crate_name: String,
 }
 
-impl<'db> Id<'db> {
+impl<'db> RustdocId<'db> {
     /// Find the rustdoc item corresponding to this ID, from the crate stored in
     /// database.
     pub fn item(&self, db: &'db dyn Db) -> &RItem {
@@ -112,21 +112,21 @@ impl<'db> Id<'db> {
 /// generation.
 pub trait CrateExt {
     /// Returns the [`RustdocId`] for the given `id` in this crate.
-    fn id<'db>(&self, db: &'db dyn Db, id: RId) -> Id<'db>;
+    fn id<'db>(&self, db: &'db dyn Db, id: RId) -> RustdocId<'db>;
 
     /// Returns the [`RustdocType`] for the given `ty` in this crate.
     fn ty<'db>(&self, db: &'db dyn Db, ty: &Type) -> RustdocType<'db>;
 }
 
 impl CrateExt for RCrate {
-    fn id<'db>(&self, db: &'db dyn Db, id: RId) -> Id<'db> {
+    fn id<'db>(&self, db: &'db dyn Db, id: RId) -> RustdocId<'db> {
         let crate_name = self
             .index
             .get(&self.root)
             .and_then(|item| item.name.as_deref())
             .expect("root module has no name");
 
-        Id::new(db, id, crate_name)
+        RustdocId::new(db, id, crate_name)
     }
 
     fn ty<'db>(&self, db: &'db dyn Db, ty: &Type) -> RustdocType<'db> {

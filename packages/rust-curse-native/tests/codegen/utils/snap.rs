@@ -7,7 +7,7 @@ use rust_curse::codegen::{
     db::Db,
     diag::Theme,
     js,
-    rustdoc::{all_mod_ids, lower_mod, Id},
+    rustdoc::{all_mod_ids, lower_mod, RustdocId},
     ts,
 };
 use rustdoc_types::{Crate as RustdocCrate, Id as RId};
@@ -88,7 +88,7 @@ fn wasm_web_api() -> ApiKind {
     }
 }
 
-fn build_diags_body(db: &dyn Db, root_id: Id<'_>) -> String {
+fn build_diags_body(db: &dyn Db, root_id: RustdocId<'_>) -> String {
     let diags = diags::collect_diags(db, root_id);
 
     if diags.is_empty() {
@@ -105,7 +105,11 @@ fn build_diags_body(db: &dyn Db, root_id: Id<'_>) -> String {
     }
 }
 
-fn build_typescript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[Id<'_>]) -> String {
+fn build_typescript_body(
+    db: &dyn Db,
+    crate_: &RustdocCrate,
+    module_ids: &[RustdocId<'_>],
+) -> String {
     let mut text = String::new();
 
     for id in module_ids {
@@ -124,7 +128,7 @@ fn build_typescript_sourcemap_body(
     db: &dyn Db,
     crate_: &RustdocCrate,
     crate_dir: &std::path::Path,
-    module_ids: &[Id<'_>],
+    module_ids: &[RustdocId<'_>],
 ) -> String {
     let mut text = String::new();
     let crate_dir = crate_dir
@@ -145,7 +149,11 @@ fn build_typescript_sourcemap_body(
     }
 }
 
-fn build_javascript_body(db: &dyn Db, crate_: &RustdocCrate, module_ids: &[Id<'_>]) -> String {
+fn build_javascript_body(
+    db: &dyn Db,
+    crate_: &RustdocCrate,
+    module_ids: &[RustdocId<'_>],
+) -> String {
     let mut text = String::new();
 
     for id in module_ids {
@@ -164,7 +172,7 @@ fn push_module_code_block(
     text: &mut String,
     db: &dyn Db,
     crate_: &RustdocCrate,
-    id: Id<'_>,
+    id: RustdocId<'_>,
     lang: &str,
     code: &str,
 ) {

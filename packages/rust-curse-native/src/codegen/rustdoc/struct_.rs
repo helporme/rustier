@@ -8,13 +8,13 @@ use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt,
     ir,
-    rustdoc::{lower_type, CrateExt, Id, LoweredType, TypeLowerError},
+    rustdoc::{lower_type, CrateExt, LoweredType, RustdocId, TypeLowerError},
 };
 
 #[salsa::tracked]
 pub fn lower_struct<'db>(
     db: &'db dyn Db,
-    id: Id<'db>,
+    id: RustdocId<'db>,
 ) -> Result<ir::Struct<'db>, Box<StructLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);
@@ -121,7 +121,7 @@ pub fn lower_struct<'db>(
 #[salsa::tracked]
 fn lower_tuple_struct_field<'db>(
     db: &'db dyn Db,
-    id: Id<'db>,
+    id: RustdocId<'db>,
     index: usize,
 ) -> Result<ir::StructField<'db>, Box<StructFieldLowerError>> {
     let item = id.item(db);
@@ -143,7 +143,7 @@ fn lower_tuple_struct_field<'db>(
 #[salsa::tracked]
 fn lower_plain_struct_field<'db>(
     db: &'db dyn Db,
-    id: Id<'db>,
+    id: RustdocId<'db>,
 ) -> Result<ir::StructField<'db>, Box<StructFieldLowerError>> {
     let item = id.item(db);
     let name = item.name.clone().expect("struct field must have a name");
@@ -166,7 +166,7 @@ fn lower_plain_struct_field<'db>(
 #[salsa::tracked]
 fn lower_struct_field_type<'db>(
     db: &'db dyn Db,
-    id: Id<'db>,
+    id: RustdocId<'db>,
 ) -> Result<ir::Type, Vec<TypeLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);

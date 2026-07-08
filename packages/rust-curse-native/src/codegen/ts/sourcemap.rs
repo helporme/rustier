@@ -2,7 +2,11 @@
 
 mod mappings;
 
-use crate::codegen::{db::Db, ir::Fn, rustdoc};
+use crate::codegen::{
+    db::Db,
+    ir::Fn,
+    rustdoc::{lower_mod, lower_mod_fns, RustdocId},
+};
 pub use mappings::Mapping;
 use mappings::{compile_mappings, jsdoc_line_count};
 use serde::Serialize;
@@ -29,7 +33,7 @@ impl fmt::Display for SourceMap {
 
 /// Compiles a rustdoc module id into a TypeScript declaration source map.
 #[salsa::tracked(returns(ref))]
-pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: rustdoc::Id<'db>) -> SourceMap {
+pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> SourceMap {
     let item = mod_id.item(db);
     let file = item
         .span
@@ -52,9 +56,9 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: rustdoc::Id<'db>) -> SourceMap 
 /// Compiles a rustdoc module id into TypeScript declaration source map
 /// mappings.
 #[salsa::tracked(returns(ref))]
-fn compile_mod_mappings<'db>(db: &'db dyn Db, mod_id: rustdoc::Id<'db>) -> Vec<Mapping> {
-    let mod_ = rustdoc::lower_mod(db, mod_id);
-    let fns = rustdoc::lower_mod_fns(db, mod_id);
+fn compile_mod_mappings<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> Vec<Mapping> {
+    let mod_ = lower_mod(db, mod_id);
+    let fns = lower_mod_fns(db, mod_id);
     let mut mappings = Vec::new();
     let mut generated_line = 0;
     let mut has_output = false;
