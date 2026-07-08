@@ -4,7 +4,6 @@ pub mod mod_;
 pub mod printer;
 pub mod projection;
 pub mod struct_;
-pub mod type_;
 
 pub use cast::*;
 pub use fn_::*;
@@ -12,7 +11,6 @@ pub use mod_::*;
 pub use printer::*;
 pub use projection::*;
 pub use struct_::*;
-pub use type_::*;
 
 use crate::codegen::{api::Api, db::Db, rustdoc::mod_::all_mod_ids};
 

@@ -3,7 +3,7 @@
 
 use crate::codegen::{
     api::Api,
-    bindings::{compile_type, Printer},
+    bindings::Printer,
     db::Db,
     ir::{
         fn_::{Fn, FnParam, ParamMode},
@@ -127,7 +127,17 @@ pub fn compile_binding_fn_param_conv<'db>(db: &'db dyn Db, param: FnParam<'db>) 
 ///                     // this part
 /// ```
 pub fn compile_binding_fn_ret_decl(ty: Type) -> &'static str {
-    compile_type(&ty)
+    match ty {
+        Type::Primitive(Primitive::Boolean) => "bool",
+        Type::Primitive(Primitive::i8) => "i8",
+        Type::Primitive(Primitive::u8) => "u8",
+        Type::Primitive(Primitive::i16) => "i16",
+        Type::Primitive(Primitive::u16) => "u16",
+        Type::Primitive(Primitive::i32) => "i32",
+        Type::Primitive(Primitive::u32) | Type::Primitive(Primitive::Char) => "u32",
+        Type::Primitive(Primitive::f64) | Type::Primitive(Primitive::f32) => "f64",
+        Type::Str | Type::String => "String",
+    }
 }
 
 /// Compiles Rust boundary conversion statements for a generated binding return
