@@ -7,7 +7,10 @@ use rust_curse::codegen::{
     db::Db,
     diag::Theme,
     js,
-    rustdoc::{all_mod_ids, lower_mod, RustdocId},
+    rustdoc::{
+        mod_::{all_mod_ids, lower_mod},
+        RustdocId,
+    },
     ts,
 };
 use rustdoc_types::{Crate as RustdocCrate, Id as RId};

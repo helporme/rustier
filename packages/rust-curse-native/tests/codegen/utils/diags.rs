@@ -5,7 +5,10 @@ use rust_curse::codegen::{
     check,
     db::Db,
     diag::Diag,
-    rustdoc::{lower_mod, lower_mod_fns, lower_mod_structs, lower_mod_submods, RustdocId},
+    rustdoc::{
+        mod_::{lower_mod, lower_mod_fns, lower_mod_structs, lower_mod_submods},
+        RustdocId,
+    },
 };
 
 /// Collects diagnostics from lowering every possible item in the given module

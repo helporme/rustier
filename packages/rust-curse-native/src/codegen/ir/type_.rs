@@ -20,7 +20,7 @@ impl Primitive {
     /// # Example
     ///
     /// ```
-    /// use rust_curse::codegen::ir::Primitive;
+    /// use rust_curse::codegen::ir::type_::Primitive;
     ///
     /// assert_eq!(Primitive::i8.rs_name(), "i8");
     /// ```
@@ -44,7 +44,7 @@ impl Primitive {
     /// # Example
     ///
     /// ```
-    /// use rust_curse::codegen::ir::Primitive;
+    /// use rust_curse::codegen::ir::type_::Primitive;
     ///
     /// assert_eq!(Primitive::Boolean.ts_name(), "boolean");
     /// ```
@@ -70,7 +70,7 @@ impl Primitive {
     /// # Example
     ///
     /// ```
-    /// use rust_curse::codegen::ir::Primitive;
+    /// use rust_curse::codegen::ir::type_::Primitive;
     ///
     /// assert_eq!(Primitive::f64.cast_fn_name(), "__cast_f64");
     /// ```
@@ -104,7 +104,7 @@ impl Type {
     /// # Example
     ///
     /// ```
-    /// use rust_curse::codegen::ir::Type;
+    /// use rust_curse::codegen::ir::type_::Type;
     ///
     /// let type_ = Type::String;
     ///
@@ -123,7 +123,7 @@ impl Type {
     /// # Example
     ///
     /// ```
-    /// use rust_curse::codegen::ir::{Primitive, Type};
+    /// use rust_curse::codegen::ir::type_::{Primitive, Type};
     ///
     /// let type_ = Type::Primitive(Primitive::Boolean);
     ///
@@ -143,7 +143,7 @@ impl Type {
     /// # Example
     ///
     /// ```
-    /// use rust_curse::codegen::ir::{Primitive, Type};
+    /// use rust_curse::codegen::ir::type_::{Primitive, Type};
     ///
     /// let type_ = Type::Primitive(Primitive::f64);
     ///

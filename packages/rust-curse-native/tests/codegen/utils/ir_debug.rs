@@ -1,7 +1,12 @@
 use rust_curse::codegen::{
     db::Db,
-    ir,
-    rustdoc::{self, lower_mod_fns, lower_mod_submods},
+    ir::{
+        fn_::{Fn, FnParam},
+        mod_::Mod,
+        struct_::{Struct, StructField, StructShape},
+        type_::{Primitive, Type},
+    },
+    rustdoc::mod_::{lower_mod_fns, lower_mod_structs, lower_mod_submods},
 };
 
 /// Renders the item as a debug human-readable string.
@@ -13,7 +18,7 @@ pub trait DebugRender<'db> {
     fn render(&self, db: &'db dyn Db) -> String;
 }
 
-impl<'db> DebugRender<'db> for ir::Mod<'db> {
+impl<'db> DebugRender<'db> for Mod<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         let docs = self
             .docs(db)
@@ -28,7 +33,7 @@ impl<'db> DebugRender<'db> for ir::Mod<'db> {
                 .collect(),
         );
 
-        let structs = rustdoc::lower_mod_structs(db, self.id(db).rustdoc_id(db))
+        let structs = lower_mod_structs(db, self.id(db).rustdoc_id(db))
             .iter()
             .map(|struct_| struct_.render(db))
             .collect::<Vec<_>>();
@@ -56,35 +61,35 @@ impl<'db> DebugRender<'db> for ir::Mod<'db> {
     }
 }
 
-impl<'db> DebugRender<'db> for ir::Type {
+impl<'db> DebugRender<'db> for Type {
     fn render(&self, db: &'db dyn Db) -> String {
         match self {
-            ir::Type::Primitive(primitive) => primitive.render(db),
-            ir::Type::Str => "str".to_string(),
-            ir::Type::String => "String".to_string(),
+            Type::Primitive(primitive) => primitive.render(db),
+            Type::Str => "str".to_string(),
+            Type::String => "String".to_string(),
         }
     }
 }
 
-impl<'db> DebugRender<'db> for ir::Primitive {
+impl<'db> DebugRender<'db> for Primitive {
     fn render(&self, _db: &'db dyn Db) -> String {
         match self {
-            ir::Primitive::Boolean => "bool",
-            ir::Primitive::Char => "char",
-            ir::Primitive::i8 => "i8",
-            ir::Primitive::u8 => "u8",
-            ir::Primitive::i16 => "i16",
-            ir::Primitive::u16 => "u16",
-            ir::Primitive::i32 => "i32",
-            ir::Primitive::u32 => "u32",
-            ir::Primitive::f32 => "f32",
-            ir::Primitive::f64 => "f64",
+            Primitive::Boolean => "bool",
+            Primitive::Char => "char",
+            Primitive::i8 => "i8",
+            Primitive::u8 => "u8",
+            Primitive::i16 => "i16",
+            Primitive::u16 => "u16",
+            Primitive::i32 => "i32",
+            Primitive::u32 => "u32",
+            Primitive::f32 => "f32",
+            Primitive::f64 => "f64",
         }
         .to_string()
     }
 }
 
-impl<'db> DebugRender<'db> for ir::StructField<'db> {
+impl<'db> DebugRender<'db> for StructField<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         let docs = self
             .docs(db)
@@ -100,11 +105,11 @@ impl<'db> DebugRender<'db> for ir::StructField<'db> {
     }
 }
 
-impl<'db> DebugRender<'db> for ir::StructShape<'db> {
+impl<'db> DebugRender<'db> for StructShape<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         match self {
-            ir::StructShape::Unit => "Unit".to_string(),
-            ir::StructShape::Tuple(fields) => {
+            StructShape::Unit => "Unit".to_string(),
+            StructShape::Tuple(fields) => {
                 let fields = render_list(
                     fields
                         .iter()
@@ -128,7 +133,7 @@ impl<'db> DebugRender<'db> for ir::StructShape<'db> {
 
                 format!("Tuple({fields})")
             }
-            ir::StructShape::Plain {
+            StructShape::Plain {
                 fields,
                 has_stripped_fields,
             } => {
@@ -142,7 +147,7 @@ impl<'db> DebugRender<'db> for ir::StructShape<'db> {
     }
 }
 
-impl<'db> DebugRender<'db> for ir::Struct<'db> {
+impl<'db> DebugRender<'db> for Struct<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         let docs = self
             .docs(db)
@@ -158,7 +163,7 @@ impl<'db> DebugRender<'db> for ir::Struct<'db> {
     }
 }
 
-impl<'db> DebugRender<'db> for ir::FnParam<'db> {
+impl<'db> DebugRender<'db> for FnParam<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         format!(
             "FnParam {{\n    name: {:?},\n    type: {},\n    mode: {:?},\n}}",
@@ -169,7 +174,7 @@ impl<'db> DebugRender<'db> for ir::FnParam<'db> {
     }
 }
 
-impl<'db> DebugRender<'db> for ir::Fn<'db> {
+impl<'db> DebugRender<'db> for Fn<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         let params = render_list(
             self.params(db)
