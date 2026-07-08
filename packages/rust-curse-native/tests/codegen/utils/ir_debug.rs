@@ -1,4 +1,8 @@
-use rust_curse::codegen::{db::Db, ir, rustdoc};
+use rust_curse::codegen::{
+    db::Db,
+    ir,
+    rustdoc::{self, lower_mod_fns, lower_mod_submods},
+};
 
 /// Renders the item as a debug human-readable string.
 ///
@@ -16,12 +20,25 @@ impl<'db> DebugRender<'db> for ir::Mod<'db> {
             .as_ref()
             .map(|docs| format!("\n    docs: Some({docs:?}),"))
             .unwrap_or_default();
-        let fns = render_list(self.fns(db).iter().map(|fn_| fn_.render(db)).collect());
+
+        let fns = render_list(
+            lower_mod_fns(db, self.id(db).rustdoc_id(db))
+                .iter()
+                .map(|fn_| fn_.render(db))
+                .collect(),
+        );
+
         let structs = rustdoc::lower_mod_structs(db, self.id(db).rustdoc_id(db))
             .iter()
             .map(|struct_| struct_.render(db))
             .collect::<Vec<_>>();
-        let submods = render_list(self.mods(db).iter().map(|mod_| mod_.render(db)).collect());
+
+        let submods = render_list(
+            lower_mod_submods(db, self.id(db).rustdoc_id(db))
+                .iter()
+                .map(|mod_| mod_.render(db))
+                .collect(),
+        );
 
         if structs.is_empty() {
             return format!(
