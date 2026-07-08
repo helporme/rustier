@@ -100,38 +100,38 @@ fn __cast_bool(value: JsValue) -> Result<bool, String> {
 
 #[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_TupleStruct)]
 pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	orig: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
+	src: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	#[wasm_bindgen(getter, js_name = 0)]
 	pub fn __getter__0(&self) -> Result<i32, JsValue> {
-		let orig = self.orig.borrow();
-		let result = orig.0.clone();
+		let src = self.src.borrow();
+		let result = src.0.clone();
 			Ok(result)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 0)]
 	pub fn __setter__0(&self, __p__0: JsValue) -> Result<(), JsValue> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__0 = __cast_i32(__p__0).map_err(|err| JsValue::from_str(&format!("Invalid argument `0`: expected Rust `i32` from a JavaScript number: {}", err)))?;
-		orig.0 = __p__0;
+		src.0 = __p__0;
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 3)]
 	pub fn __getter__3(&self) -> Result<bool, JsValue> {
-		let orig = self.orig.borrow();
-		let result = orig.3.clone();
+		let src = self.src.borrow();
+		let result = src.3.clone();
 			Ok(result)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 3)]
 	pub fn __setter__3(&self, __p__3: JsValue) -> Result<(), JsValue> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__3 = __cast_bool(__p__3).map_err(|err| JsValue::from_str(&format!("Invalid argument `3`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-		orig.3 = __p__3;
+		src.3 = __p__3;
 		Ok(())
 	}
 	
@@ -214,38 +214,38 @@ fn __cast_bool(value: Unknown<'_>) -> Result<bool, String> {
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]
 pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	orig: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
+	src: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
 }
 
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	#[napi(getter, js_name = "0")]
 	pub fn __getter__0(&self) -> napi::Result<i32> {
-		let orig = self.orig.borrow();
-		let result = orig.0.clone();
+		let src = self.src.borrow();
+		let result = src.0.clone();
 			Ok(result)
 	}
 	
 	#[napi(setter, js_name = "0")]
 	pub fn __setter__0(&self, __p__0: Unknown<'_>) -> napi::Result<()> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__0 = __cast_i32(__p__0).map_err(|err| napi::Error::from_reason(format!("Invalid argument `0`: expected Rust `i32` from a JavaScript number: {}", err)))?;
-		orig.0 = __p__0;
+		src.0 = __p__0;
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "3")]
 	pub fn __getter__3(&self) -> napi::Result<bool> {
-		let orig = self.orig.borrow();
-		let result = orig.3.clone();
+		let src = self.src.borrow();
+		let result = src.3.clone();
 			Ok(result)
 	}
 	
 	#[napi(setter, js_name = "3")]
 	pub fn __setter__3(&self, __p__3: Unknown<'_>) -> napi::Result<()> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__3 = __cast_bool(__p__3).map_err(|err| napi::Error::from_reason(format!("Invalid argument `3`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-		orig.3 = __p__3;
+		src.3 = __p__3;
 		Ok(())
 	}
 	

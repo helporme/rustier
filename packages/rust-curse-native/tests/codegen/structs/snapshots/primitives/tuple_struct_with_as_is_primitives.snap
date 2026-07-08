@@ -199,128 +199,128 @@ fn __cast_u32(value: Unknown<'_>) -> Result<u32, String> {
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]
 pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	orig: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
+	src: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
 }
 
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	#[napi(getter, js_name = "0")]
 	pub fn __getter__0(&self) -> napi::Result<bool> {
-		let orig = self.orig.borrow();
-		let result = orig.0.clone();
+		let src = self.src.borrow();
+		let result = src.0.clone();
 			Ok(result)
 	}
 	
 	#[napi(setter, js_name = "0")]
 	pub fn __setter__0(&self, __p__0: Unknown<'_>) -> napi::Result<()> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__0 = __cast_bool(__p__0).map_err(|err| napi::Error::from_reason(format!("Invalid argument `0`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-		orig.0 = __p__0;
+		src.0 = __p__0;
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "1")]
 	pub fn __getter__1(&self) -> napi::Result<i8> {
-		let orig = self.orig.borrow();
-		let result = orig.1.clone();
+		let src = self.src.borrow();
+		let result = src.1.clone();
 			Ok(result)
 	}
 	
 	#[napi(setter, js_name = "1")]
 	pub fn __setter__1(&self, __p__1: Unknown<'_>) -> napi::Result<()> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__1 = __cast_i8(__p__1).map_err(|err| napi::Error::from_reason(format!("Invalid argument `1`: expected Rust `i8` from a JavaScript number: {}", err)))?;
-		orig.1 = __p__1;
+		src.1 = __p__1;
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "2")]
 	pub fn __getter__2(&self) -> napi::Result<i16> {
-		let orig = self.orig.borrow();
-		let result = orig.2.clone();
+		let src = self.src.borrow();
+		let result = src.2.clone();
 			Ok(result)
 	}
 	
 	#[napi(setter, js_name = "2")]
 	pub fn __setter__2(&self, __p__2: Unknown<'_>) -> napi::Result<()> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__2 = __cast_i16(__p__2).map_err(|err| napi::Error::from_reason(format!("Invalid argument `2`: expected Rust `i16` from a JavaScript number: {}", err)))?;
-		orig.2 = __p__2;
+		src.2 = __p__2;
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "3")]
 	pub fn __getter__3(&self) -> napi::Result<i32> {
-		let orig = self.orig.borrow();
-		let result = orig.3.clone();
+		let src = self.src.borrow();
+		let result = src.3.clone();
 			Ok(result)
 	}
 	
 	#[napi(setter, js_name = "3")]
 	pub fn __setter__3(&self, __p__3: Unknown<'_>) -> napi::Result<()> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__3 = __cast_i32(__p__3).map_err(|err| napi::Error::from_reason(format!("Invalid argument `3`: expected Rust `i32` from a JavaScript number: {}", err)))?;
-		orig.3 = __p__3;
+		src.3 = __p__3;
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "4")]
 	pub fn __getter__4(&self) -> napi::Result<u8> {
-		let orig = self.orig.borrow();
-		let result = orig.4.clone();
+		let src = self.src.borrow();
+		let result = src.4.clone();
 			Ok(result)
 	}
 	
 	#[napi(setter, js_name = "4")]
 	pub fn __setter__4(&self, __p__4: Unknown<'_>) -> napi::Result<()> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__4 = __cast_u8(__p__4).map_err(|err| napi::Error::from_reason(format!("Invalid argument `4`: expected Rust `u8` from a JavaScript number: {}", err)))?;
-		orig.4 = __p__4;
+		src.4 = __p__4;
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "5")]
 	pub fn __getter__5(&self) -> napi::Result<u16> {
-		let orig = self.orig.borrow();
-		let result = orig.5.clone();
+		let src = self.src.borrow();
+		let result = src.5.clone();
 			Ok(result)
 	}
 	
 	#[napi(setter, js_name = "5")]
 	pub fn __setter__5(&self, __p__5: Unknown<'_>) -> napi::Result<()> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__5 = __cast_u16(__p__5).map_err(|err| napi::Error::from_reason(format!("Invalid argument `5`: expected Rust `u16` from a JavaScript number: {}", err)))?;
-		orig.5 = __p__5;
+		src.5 = __p__5;
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "6")]
 	pub fn __getter__6(&self) -> napi::Result<u32> {
-		let orig = self.orig.borrow();
-		let result = orig.6.clone();
+		let src = self.src.borrow();
+		let result = src.6.clone();
 			Ok(result)
 	}
 	
 	#[napi(setter, js_name = "6")]
 	pub fn __setter__6(&self, __p__6: Unknown<'_>) -> napi::Result<()> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__6 = __cast_u32(__p__6).map_err(|err| napi::Error::from_reason(format!("Invalid argument `6`: expected Rust `u32` from a JavaScript number: {}", err)))?;
-		orig.6 = __p__6;
+		src.6 = __p__6;
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "7")]
 	pub fn __getter__7(&self) -> napi::Result<f64> {
-		let orig = self.orig.borrow();
-		let result = orig.7.clone();
+		let src = self.src.borrow();
+		let result = src.7.clone();
 			Ok(result)
 	}
 	
 	#[napi(setter, js_name = "7")]
 	pub fn __setter__7(&self, __p__7: Unknown<'_>) -> napi::Result<()> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__7 = __cast_f64(__p__7).map_err(|err| napi::Error::from_reason(format!("Invalid argument `7`: expected Rust `f64` from a JavaScript number: {}", err)))?;
-		orig.7 = __p__7;
+		src.7 = __p__7;
 		Ok(())
 	}
 	
@@ -428,128 +428,128 @@ fn __cast_u32(value: JsValue) -> Result<u32, String> {
 
 #[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_TupleStruct)]
 pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	orig: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
+	src: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	#[wasm_bindgen(getter, js_name = 0)]
 	pub fn __getter__0(&self) -> Result<bool, JsValue> {
-		let orig = self.orig.borrow();
-		let result = orig.0.clone();
+		let src = self.src.borrow();
+		let result = src.0.clone();
 			Ok(result)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 0)]
 	pub fn __setter__0(&self, __p__0: JsValue) -> Result<(), JsValue> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__0 = __cast_bool(__p__0).map_err(|err| JsValue::from_str(&format!("Invalid argument `0`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-		orig.0 = __p__0;
+		src.0 = __p__0;
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 1)]
 	pub fn __getter__1(&self) -> Result<i8, JsValue> {
-		let orig = self.orig.borrow();
-		let result = orig.1.clone();
+		let src = self.src.borrow();
+		let result = src.1.clone();
 			Ok(result)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 1)]
 	pub fn __setter__1(&self, __p__1: JsValue) -> Result<(), JsValue> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__1 = __cast_i8(__p__1).map_err(|err| JsValue::from_str(&format!("Invalid argument `1`: expected Rust `i8` from a JavaScript number: {}", err)))?;
-		orig.1 = __p__1;
+		src.1 = __p__1;
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 2)]
 	pub fn __getter__2(&self) -> Result<i16, JsValue> {
-		let orig = self.orig.borrow();
-		let result = orig.2.clone();
+		let src = self.src.borrow();
+		let result = src.2.clone();
 			Ok(result)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 2)]
 	pub fn __setter__2(&self, __p__2: JsValue) -> Result<(), JsValue> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__2 = __cast_i16(__p__2).map_err(|err| JsValue::from_str(&format!("Invalid argument `2`: expected Rust `i16` from a JavaScript number: {}", err)))?;
-		orig.2 = __p__2;
+		src.2 = __p__2;
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 3)]
 	pub fn __getter__3(&self) -> Result<i32, JsValue> {
-		let orig = self.orig.borrow();
-		let result = orig.3.clone();
+		let src = self.src.borrow();
+		let result = src.3.clone();
 			Ok(result)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 3)]
 	pub fn __setter__3(&self, __p__3: JsValue) -> Result<(), JsValue> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__3 = __cast_i32(__p__3).map_err(|err| JsValue::from_str(&format!("Invalid argument `3`: expected Rust `i32` from a JavaScript number: {}", err)))?;
-		orig.3 = __p__3;
+		src.3 = __p__3;
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 4)]
 	pub fn __getter__4(&self) -> Result<u8, JsValue> {
-		let orig = self.orig.borrow();
-		let result = orig.4.clone();
+		let src = self.src.borrow();
+		let result = src.4.clone();
 			Ok(result)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 4)]
 	pub fn __setter__4(&self, __p__4: JsValue) -> Result<(), JsValue> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__4 = __cast_u8(__p__4).map_err(|err| JsValue::from_str(&format!("Invalid argument `4`: expected Rust `u8` from a JavaScript number: {}", err)))?;
-		orig.4 = __p__4;
+		src.4 = __p__4;
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 5)]
 	pub fn __getter__5(&self) -> Result<u16, JsValue> {
-		let orig = self.orig.borrow();
-		let result = orig.5.clone();
+		let src = self.src.borrow();
+		let result = src.5.clone();
 			Ok(result)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 5)]
 	pub fn __setter__5(&self, __p__5: JsValue) -> Result<(), JsValue> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__5 = __cast_u16(__p__5).map_err(|err| JsValue::from_str(&format!("Invalid argument `5`: expected Rust `u16` from a JavaScript number: {}", err)))?;
-		orig.5 = __p__5;
+		src.5 = __p__5;
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 6)]
 	pub fn __getter__6(&self) -> Result<u32, JsValue> {
-		let orig = self.orig.borrow();
-		let result = orig.6.clone();
+		let src = self.src.borrow();
+		let result = src.6.clone();
 			Ok(result)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 6)]
 	pub fn __setter__6(&self, __p__6: JsValue) -> Result<(), JsValue> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__6 = __cast_u32(__p__6).map_err(|err| JsValue::from_str(&format!("Invalid argument `6`: expected Rust `u32` from a JavaScript number: {}", err)))?;
-		orig.6 = __p__6;
+		src.6 = __p__6;
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 7)]
 	pub fn __getter__7(&self) -> Result<f64, JsValue> {
-		let orig = self.orig.borrow();
-		let result = orig.7.clone();
+		let src = self.src.borrow();
+		let result = src.7.clone();
 			Ok(result)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 7)]
 	pub fn __setter__7(&self, __p__7: JsValue) -> Result<(), JsValue> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__7 = __cast_f64(__p__7).map_err(|err| JsValue::from_str(&format!("Invalid argument `7`: expected Rust `f64` from a JavaScript number: {}", err)))?;
-		orig.7 = __p__7;
+		src.7 = __p__7;
 		Ok(())
 	}
 	

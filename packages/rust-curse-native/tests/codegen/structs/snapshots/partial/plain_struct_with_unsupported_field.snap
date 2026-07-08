@@ -99,23 +99,23 @@ fn __cast_i32(value: JsValue) -> Result<i32, String> {
 
 #[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_PlainStruct)]
 pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
-	orig: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
+	src: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	#[wasm_bindgen(getter, js_name = supported)]
 	pub fn __getter__supported(&self) -> Result<i32, JsValue> {
-		let orig = self.orig.borrow();
-		let result = orig.supported.clone();
+		let src = self.src.borrow();
+		let result = src.supported.clone();
 			Ok(result)
 	}
 	
 	#[wasm_bindgen(setter, js_name = supported)]
 	pub fn __setter__supported(&self, __p__supported: JsValue) -> Result<(), JsValue> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__supported = __cast_i32(__p__supported).map_err(|err| JsValue::from_str(&format!("Invalid argument `supported`: expected Rust `i32` from a JavaScript number: {}", err)))?;
-		orig.supported = __p__supported;
+		src.supported = __p__supported;
 		Ok(())
 	}
 	
@@ -188,23 +188,23 @@ fn __cast_i32(value: Unknown<'_>) -> Result<i32, String> {
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
 pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
-	orig: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
+	src: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
 }
 
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	#[napi(getter, js_name = "supported")]
 	pub fn __getter__supported(&self) -> napi::Result<i32> {
-		let orig = self.orig.borrow();
-		let result = orig.supported.clone();
+		let src = self.src.borrow();
+		let result = src.supported.clone();
 			Ok(result)
 	}
 	
 	#[napi(setter, js_name = "supported")]
 	pub fn __setter__supported(&self, __p__supported: Unknown<'_>) -> napi::Result<()> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__supported = __cast_i32(__p__supported).map_err(|err| napi::Error::from_reason(format!("Invalid argument `supported`: expected Rust `i32` from a JavaScript number: {}", err)))?;
-		orig.supported = __p__supported;
+		src.supported = __p__supported;
 		Ok(())
 	}
 	

@@ -122,24 +122,24 @@ fn __cast_char(value: Unknown<'_>) -> Result<char, String> {
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
 pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
-	orig: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
+	src: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
 }
 
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	#[napi(getter, js_name = "value")]
 	pub fn __getter__value(&self) -> napi::Result<u32> {
-		let orig = self.orig.borrow();
-		let result = orig.value.clone();
+		let src = self.src.borrow();
+		let result = src.value.clone();
 		let result = result as u32;
 		Ok(result)
 	}
 	
 	#[napi(setter, js_name = "value")]
 	pub fn __setter__value(&self, __p__value: Unknown<'_>) -> napi::Result<()> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__value = __cast_char(__p__value).map_err(|err| napi::Error::from_reason(format!("Invalid argument `value`: expected Rust `char` from a JavaScript number: {}", err)))?;
-		orig.value = __p__value;
+		src.value = __p__value;
 		Ok(())
 	}
 	
@@ -208,24 +208,24 @@ fn __cast_char(value: JsValue) -> Result<char, String> {
 
 #[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_PlainStruct)]
 pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
-	orig: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
+	src: std::cell::RefCell<rustdoc_test_crate::PlainStruct>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	#[wasm_bindgen(getter, js_name = value)]
 	pub fn __getter__value(&self) -> Result<u32, JsValue> {
-		let orig = self.orig.borrow();
-		let result = orig.value.clone();
+		let src = self.src.borrow();
+		let result = src.value.clone();
 		let result = result as u32;
 		Ok(result)
 	}
 	
 	#[wasm_bindgen(setter, js_name = value)]
 	pub fn __setter__value(&self, __p__value: JsValue) -> Result<(), JsValue> {
-		let mut orig = self.orig.borrow_mut();
+		let mut src = self.src.borrow_mut();
 		let __p__value = __cast_char(__p__value).map_err(|err| JsValue::from_str(&format!("Invalid argument `value`: expected Rust `char` from a JavaScript number: {}", err)))?;
-		orig.value = __p__value;
+		src.value = __p__value;
 		Ok(())
 	}
 	

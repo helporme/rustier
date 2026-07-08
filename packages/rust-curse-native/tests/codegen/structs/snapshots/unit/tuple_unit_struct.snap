@@ -87,7 +87,7 @@ mod __curse {
 
 #[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_TupleStruct)]
 pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	orig: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
+	src: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
 }
 
 #[wasm_bindgen]
@@ -141,7 +141,7 @@ mod __curse {
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]
 pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	orig: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
+	src: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
 }
 
 #[napi]

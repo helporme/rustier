@@ -26,10 +26,7 @@ pub fn compile_binidng_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
     out.lines(&api.struct_header(db, struct_));
     out.write_fmt(format_args!("pub struct {} ", struct_.bindings_name(db)));
     out.curlies(|out| {
-        out.line_fmt(format_args!(
-            "orig: std::cell::RefCell<{}>",
-            struct_.fqn(db)
-        ));
+        out.line_fmt(format_args!("src: std::cell::RefCell<{}>", struct_.fqn(db)));
     });
     out.blank();
     out.blank();
@@ -75,12 +72,12 @@ fn compile_field_getter<'db>(db: &'db dyn Db, field: StructField<'db>) -> String
     ));
 
     out.curlies(|out| {
-        out.line("let orig = self.orig.borrow();"); // todo: try_borrow
+        out.line("let src = self.src.borrow();"); // todo: try_borrow
         out.line_fmt(format_args!(
             // We are fine cloning here, since fiels is either:
             //  - a number, cloning is obvious here
             //  - a string, which is impossible to return by reference to js anyway
-            "let result = orig.{}.clone();",
+            "let result = src.{}.clone();",
             field.name(db)
         ));
         out.write(&compile_binding_fn_ret_conv(db, field.type_(db)));
@@ -108,10 +105,10 @@ fn compile_field_setter<'db>(db: &'db dyn Db, field: StructField<'db>) -> String
     ));
 
     out.curlies(|out| {
-        out.line("let mut orig = self.orig.borrow_mut();"); // todo: try_borrow_mut
+        out.line("let mut src = self.src.borrow_mut();"); // todo: try_borrow_mut
         out.lines(compile_binding_fn_param_conv(db, param));
         out.line_fmt(format_args!(
-            "orig.{} = {};",
+            "src.{} = {};",
             field.name(db),
             param.binding_name(db)
         ));
