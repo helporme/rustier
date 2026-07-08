@@ -1,6 +1,6 @@
 use crate::codegen::{
     db::Db,
-    ir::{mangle::mangle_path, type_::Type, Id},
+    ir::{mangle::mangle_path, type_::Type, IrId},
 };
 
 /// How a parameter is passed to a function.
@@ -34,7 +34,7 @@ impl<'db> FnParam<'db> {
 /// A function.
 #[salsa::tracked(debug)]
 pub struct Fn<'db> {
-    pub id: Id<'db>,
+    pub id: IrId<'db>,
     #[tracked]
     #[returns(ref)]
     pub params: Vec<FnParam<'db>>,

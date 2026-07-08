@@ -2,7 +2,7 @@ use rustdoc_types::ItemKind;
 
 use crate::codegen::{
     db::Db,
-    ir::{mangle::mangle_path, Id, Type},
+    ir::{mangle::mangle_path, IrId, Type},
     rustdoc::RustdocId,
 };
 
@@ -45,7 +45,7 @@ pub enum StructShape<'db> {
 
 #[salsa::tracked(debug)]
 pub struct Struct<'db> {
-    pub id: Id<'db>,
+    pub id: IrId<'db>,
     #[tracked]
     #[returns(ref)]
     pub shape: StructShape<'db>,

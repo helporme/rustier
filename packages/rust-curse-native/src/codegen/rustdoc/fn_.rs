@@ -129,7 +129,7 @@ pub fn lower_fn<'db>(
         }));
     }
 
-    let id = ir::Id::new(db, &item_summary.path);
+    let id = ir::IrId::new(db, &item_summary.path);
 
     Ok(ir::Fn::new(db, id, params, ret_type, item.docs.clone()))
 }

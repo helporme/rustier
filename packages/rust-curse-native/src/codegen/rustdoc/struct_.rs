@@ -113,7 +113,7 @@ pub fn lower_struct<'db>(
     }
 
     let docs = item.docs.clone();
-    let id = ir::Id::new(db, &item_summary.path);
+    let id = ir::IrId::new(db, &item_summary.path);
 
     Ok(ir::Struct::new(db, id, shape, docs))
 }

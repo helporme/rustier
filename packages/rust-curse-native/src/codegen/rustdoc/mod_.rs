@@ -42,7 +42,7 @@ pub fn lower_mod<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> ir::Mod<'db> {
 
     let item_summary = crate_.paths.get(&item.id).unwrap();
     assert_eq!(item_summary.kind, ItemKind::Module);
-    let id = ir::Id::new(db, &item_summary.path);
+    let id = ir::IrId::new(db, &item_summary.path);
 
     let docs = item.docs.clone();
 
