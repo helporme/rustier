@@ -18,6 +18,9 @@ mod fns_sourcemap;
 #[path = "codegen/fns/strings.rs"]
 mod fns_strings;
 
+#[path = "codegen/fns/structs.rs"]
+mod fns_structs;
+
 #[path = "codegen/structs/diags.rs"]
 mod structs_diags;
 
@@ -32,6 +35,9 @@ mod structs_primitives;
 
 #[path = "codegen/structs/strings.rs"]
 mod structs_strings;
+
+#[path = "codegen/structs/structs.rs"]
+mod structs_structs;
 
 #[path = "codegen/structs/visibility.rs"]
 mod structs_visibility;

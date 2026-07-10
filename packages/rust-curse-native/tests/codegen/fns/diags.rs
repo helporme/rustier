@@ -124,6 +124,24 @@ fn unsupported_primitive_params() {
 }
 
 #[test]
+fn unsupported_primitive_return() {
+    let (diags, _) = diag! {
+        pub fn foo() -> u64 { 0 }
+    };
+
+    assert_skipped_fn(&diags, &["rust_curse::unsupported_primitive"]);
+}
+
+#[test]
+fn unsupported_type_return() {
+    let (diags, _) = diag! {
+        pub fn foo() -> Vec<i32> { Vec::new() }
+    };
+
+    assert_skipped_fn(&diags, &["rust_curse::unsupported_type"]);
+}
+
+#[test]
 fn unsupported_double_reference_param() {
     let (diags, _) = diag! {
         pub fn foo(value: &&i32) { let _ = value; }
