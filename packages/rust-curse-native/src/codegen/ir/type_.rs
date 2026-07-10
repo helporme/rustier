@@ -116,11 +116,12 @@ impl<'db> Type<'db> {
     /// # Example
     ///
     /// ```
-    /// use rust_curse::codegen::ir::type_::Type;
+    /// use rust_curse::codegen::{db::DbImpl, ir::type_::Type};
     ///
+    /// let db = DbImpl::default();
     /// let type_ = Type::String;
     ///
-    /// assert_eq!(type_.rs_name(), "String");
+    /// assert_eq!(type_.rs_name(&db), "String");
     /// ```
     pub fn rs_name(&self, db: &'db dyn Db) -> String {
         match self {
@@ -136,11 +137,15 @@ impl<'db> Type<'db> {
     /// # Example
     ///
     /// ```
-    /// use rust_curse::codegen::ir::type_::{Primitive, Type};
+    /// use rust_curse::codegen::{
+    ///     db::DbImpl,
+    ///     ir::type_::{Primitive, Type},
+    /// };
     ///
+    /// let db = DbImpl::default();
     /// let type_ = Type::Primitive(Primitive::Boolean);
     ///
-    /// assert_eq!(type_.ts_name(), "boolean");
+    /// assert_eq!(type_.ts_name(&db), "boolean");
     /// ```
     pub fn ts_name(&self, db: &'db dyn Db) -> String {
         match self {
@@ -157,11 +162,15 @@ impl<'db> Type<'db> {
     /// # Example
     ///
     /// ```
-    /// use rust_curse::codegen::ir::type_::{Primitive, Type};
+    /// use rust_curse::codegen::{
+    ///     db::DbImpl,
+    ///     ir::type_::{Primitive, Type},
+    /// };
     ///
+    /// let db = DbImpl::default();
     /// let type_ = Type::Primitive(Primitive::f64);
     ///
-    /// assert_eq!(type_.cast_fn_name(), "__cast_f64");
+    /// assert_eq!(type_.cast_fn_name(&db), "__cast_f64");
     /// ```
     pub fn cast_fn_name(&self, db: &'db dyn Db) -> String {
         match self {

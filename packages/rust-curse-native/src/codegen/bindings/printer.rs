@@ -5,7 +5,7 @@ use std::fmt::{self, Write as _};
 /// Builds generated source text with tab indentation helpers.
 ///
 /// ```
-/// use rust_curse::codegen::bindings::Printer;
+/// use rust_curse::codegen::bindings::printer::Printer;
 ///
 /// let mut printer = Printer::default();
 /// printer.line("let answer = 42;");
@@ -23,7 +23,7 @@ impl Printer {
     /// Appends text to the output without adding a trailing newline.
     ///
     /// ```
-    /// use rust_curse::codegen::bindings::Printer;
+    /// use rust_curse::codegen::bindings::printer::Printer;
     ///
     /// let mut printer = Printer::default();
     /// printer.write("const ");
@@ -43,7 +43,7 @@ impl Printer {
     /// Appends formatted text to the output without adding a trailing newline.
     ///
     /// ```
-    /// use rust_curse::codegen::bindings::Printer;
+    /// use rust_curse::codegen::bindings::printer::Printer;
     ///
     /// let mut printer = Printer::default();
     /// printer.write_fmt(format_args!("answer = {}", 42));
@@ -61,7 +61,7 @@ impl Printer {
     /// Appends an indented blank line followed by a newline.
     ///
     /// ```
-    /// use rust_curse::codegen::bindings::Printer;
+    /// use rust_curse::codegen::bindings::printer::Printer;
     ///
     /// let mut printer = Printer::default();
     /// printer.blank();
@@ -76,7 +76,7 @@ impl Printer {
     /// Appends one line of text followed by a newline.
     ///
     /// ```
-    /// use rust_curse::codegen::bindings::Printer;
+    /// use rust_curse::codegen::bindings::printer::Printer;
     ///
     /// let mut printer = Printer::default();
     /// printer.line("export const value = 1;");
@@ -92,7 +92,7 @@ impl Printer {
     /// Appends one formatted line followed by a newline.
     ///
     /// ```
-    /// use rust_curse::codegen::bindings::Printer;
+    /// use rust_curse::codegen::bindings::printer::Printer;
     ///
     /// let mut printer = Printer::default();
     /// printer.line_fmt(format_args!("export const value = {};", 1));
@@ -107,7 +107,7 @@ impl Printer {
     /// Appends every line in a text block as its own indented line.
     ///
     /// ```
-    /// use rust_curse::codegen::bindings::Printer;
+    /// use rust_curse::codegen::bindings::printer::Printer;
     ///
     /// let mut printer = Printer::default();
     /// printer.lines("let first = 1;\nlet second = 2;");
@@ -123,7 +123,7 @@ impl Printer {
     /// Appends every line in formatted text as its own indented line.
     ///
     /// ```
-    /// use rust_curse::codegen::bindings::Printer;
+    /// use rust_curse::codegen::bindings::printer::Printer;
     ///
     /// let mut printer = Printer::default();
     /// printer.lines_fmt(format_args!("let first = {};\nlet second = {};", 1, 2));
@@ -139,7 +139,7 @@ impl Printer {
     /// Appends an indented block wrapped in curly braces.
     ///
     /// ```
-    /// use rust_curse::codegen::bindings::Printer;
+    /// use rust_curse::codegen::bindings::printer::Printer;
     ///
     /// let mut printer = Printer::default();
     /// printer.curlies(|printer| {
@@ -159,7 +159,7 @@ impl Printer {
     /// Appends an indented block wrapped in parentheses.
     ///
     /// ```
-    /// use rust_curse::codegen::bindings::Printer;
+    /// use rust_curse::codegen::bindings::printer::Printer;
     ///
     /// let mut printer = Printer::default();
     /// printer.parens(|printer| {
@@ -184,7 +184,7 @@ impl Printer {
     /// Appends a comma-separated list with one item per indented line.
     ///
     /// ```
-    /// use rust_curse::codegen::bindings::Printer;
+    /// use rust_curse::codegen::bindings::printer::Printer;
     ///
     /// let mut printer = Printer::default();
     /// printer.comma_list(["first", "second"]);
@@ -214,7 +214,7 @@ impl Printer {
     /// Returns whether the printer is empty.
     ///
     /// ```
-    /// use rust_curse::codegen::bindings::Printer;
+    /// use rust_curse::codegen::bindings::printer::Printer;
     ///
     /// let mut printer = Printer::default();
     /// assert!(printer.is_empty());
