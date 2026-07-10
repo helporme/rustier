@@ -171,8 +171,11 @@ fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
         for field in struct_.fields(db) {
             out.lines(compile_field_getter(db, struct_, *field));
             out.blank();
-            out.lines(compile_field_setter(db, struct_, *field));
-            out.blank();
+
+            if !field.is_readonly(db) {
+                out.lines(compile_field_setter(db, struct_, *field));
+                out.blank();
+            }
         }
     });
 

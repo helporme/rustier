@@ -112,7 +112,12 @@ fn compile_class_field<'db>(db: &'db dyn Db, field: StructField<'db>) -> String 
         out.lines(&compile_jsdoc(docs));
     }
     out.line_fmt(format_args!(
-        "public {}: {};",
+        "public {}{}: {};",
+        if field.is_readonly(db) {
+            "readonly "
+        } else {
+            ""
+        },
         field.name(db),
         field.type_(db).ts_name(db)
     ));

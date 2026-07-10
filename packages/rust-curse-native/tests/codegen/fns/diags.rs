@@ -186,6 +186,53 @@ fn borrowed_return() {
 }
 
 #[test]
+fn non_clonable_moved_struct_param() {
+    let (diags, _) = diag! {
+        pub struct Value;
+
+        pub fn consume(value: Value) { let _ = value; }
+    };
+
+    assert_skipped_fn(&diags, &["rust_curse::non_clonable_moved_struct_param"]);
+
+    let causes = related(diags[0].inner.as_ref());
+    assert_eq!(
+        causes[0].to_string(),
+        "the moved struct parameter `value` cannot be exported because \"rustdoc_test_crate::Value\" does not implement `Clone`"
+    );
+    assert_eq!(
+        causes[0].help().unwrap().to_string(),
+        "derive or implement `Clone` for \"rustdoc_test_crate::Value\", or pass the parameter by reference"
+    );
+}
+
+#[test]
+fn negative_clone_impl_does_not_make_moved_struct_clonable() {
+    let (diags, _) = diag! {
+        #![feature(negative_impls)]
+
+        pub struct Value;
+        impl !Clone for Value {}
+
+        pub fn consume(value: Value) { let _ = value; }
+    };
+
+    assert_skipped_fn(&diags, &["rust_curse::non_clonable_moved_struct_param"]);
+}
+
+#[test]
+fn clonable_moved_struct_param() {
+    let (diags, _) = diag! {
+        #[derive(Clone)]
+        pub struct Value;
+
+        pub fn consume(value: Value) { let _ = value; }
+    };
+
+    assert!(diags.is_empty());
+}
+
+#[test]
 fn primitive_mut_ref_ignored() {
     let (diags, _) = diag! {
         pub fn foo(value: &mut i32) { *value += 1; }

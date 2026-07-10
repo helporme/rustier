@@ -146,9 +146,33 @@ fn lower_tuple_struct_field<'db>(
     })?;
 
     let name = index.to_string();
+    let readonly_struct_fqn = match field_type {
+        Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
+            Some(struct_id.path(db).join("::"))
+        }
+        _ => None,
+    };
+    let is_readonly = readonly_struct_fqn.is_some();
+
+    if let Some(struct_fqn) = readonly_struct_fqn {
+        let crate_ = id.crate_(db);
+        StructFieldReadonly::Tuple {
+            struct_fqn,
+            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
+            span: crate_.read_span_opt(item.span.as_ref()),
+        }
+        .accumulate(db);
+    }
+
     let docs = item.docs.clone();
 
-    Ok(ir::struct_::StructField::new(db, name, field_type, docs))
+    Ok(ir::struct_::StructField::new(
+        db,
+        name,
+        field_type,
+        is_readonly,
+        docs,
+    ))
 }
 
 #[salsa::tracked]
@@ -169,9 +193,67 @@ fn lower_plain_struct_field<'db>(
         }
     })?;
 
+    let readonly_struct_fqn = match field_type {
+        Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
+            Some(struct_id.path(db).join("::"))
+        }
+        _ => None,
+    };
+    let is_readonly = readonly_struct_fqn.is_some();
+
+    if let Some(struct_fqn) = readonly_struct_fqn {
+        let crate_ = id.crate_(db);
+        StructFieldReadonly::Plain {
+            field_name: name.clone(),
+            struct_fqn,
+            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
+            span: crate_.read_span_opt(item.span.as_ref()),
+        }
+        .accumulate(db);
+    }
+
     let docs = item.docs.clone();
 
-    Ok(ir::struct_::StructField::new(db, name, field_type, docs))
+    Ok(ir::struct_::StructField::new(
+        db,
+        name,
+        field_type,
+        is_readonly,
+        docs,
+    ))
+}
+
+/// Returns whether the struct implements [`Clone`].
+#[salsa::tracked]
+pub fn is_struct_clonable<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> bool {
+    let item = id.item(db);
+    let crate_body = id.crate_body(db);
+
+    let def = match &item.inner {
+        ItemEnum::Struct(def) => def,
+        _ => unreachable!(),
+    };
+
+    def.impls.iter().any(|impl_id| {
+        let impl_item = crate_body
+            .index
+            .get(impl_id)
+            .expect("struct impl must be present in the rustdoc index");
+        let ItemEnum::Impl(impl_) = &impl_item.inner else {
+            unreachable!()
+        };
+        if impl_.is_negative {
+            return false;
+        }
+        let Some(trait_) = &impl_.trait_ else {
+            return false;
+        };
+        let Some(trait_summary) = crate_body.paths.get(&trait_.id) else {
+            return false;
+        };
+
+        trait_summary.path == ["core", "clone", "Clone"]
+    })
 }
 
 #[salsa::tracked]
@@ -231,6 +313,44 @@ pub enum StructLowerError {
         severity(Warning)
     )]
     UnsupportedGeneric,
+}
+
+#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
+pub enum StructFieldReadonly {
+    #[error("the field `{field_name}` is readonly in JS because \"{struct_fqn}\" does not implement `Clone`")]
+    #[diagnostic(
+        code(rust_curse::readonly_struct_field),
+        help(
+            "derive or implement `Clone` for \"{struct_fqn}\" to make this field writable from JS"
+        ),
+        severity(Warning)
+    )]
+    Plain {
+        field_name: String,
+        /// The fully qualified name of the field's struct.
+        struct_fqn: String,
+        #[source_code]
+        source_code: SourceCode,
+        #[label]
+        span: Option<Span>,
+    },
+
+    #[error("the field is readonly in JS because \"{struct_fqn}\" does not implement `Clone`")]
+    #[diagnostic(
+        code(rust_curse::readonly_struct_field),
+        help(
+            "derive or implement `Clone` for \"{struct_fqn}\" to make this field writable from JS"
+        ),
+        severity(Warning)
+    )]
+    Tuple {
+        /// The fully qualified name of the field's struct.
+        struct_fqn: String,
+        #[source_code]
+        source_code: SourceCode,
+        #[label]
+        span: Option<Span>,
+    },
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]

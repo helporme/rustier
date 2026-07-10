@@ -98,8 +98,14 @@ impl<'db> DebugRender<'db> for StructField<'db> {
             .map(|docs| format!("\n    docs: Some({docs:?}),"))
             .unwrap_or_default();
 
+        let is_readonly = if self.is_readonly(db) {
+            "\n    is_readonly: true,"
+        } else {
+            Default::default()
+        };
+
         format!(
-            "PlainStructField {{\n    name: {:?},\n    type: {},{docs}\n}}",
+            "PlainStructField {{\n    name: {:?},\n    type: {},{is_readonly}{docs}\n}}",
             self.name(db),
             self.type_(db).render(db),
         )
@@ -122,8 +128,11 @@ impl<'db> DebugRender<'db> for StructShape<'db> {
                                     .map(|docs| format!("\n    docs: Some({docs:?}),"))
                                     .unwrap_or_default();
 
+                                let is_readonly = if field
+                                    .is_readonly(db) { "\n    is_readonly: true," } else { Default::default() };
+
                                 format!(
-                                    "Some(TupleStructField {{\n    type: {},{docs}\n}})",
+                                    "Some(TupleStructField {{\n    type: {},{is_readonly}{docs}\n}})",
                                     field.type_(db).render(db),
                                 )
                             }
