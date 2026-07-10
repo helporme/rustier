@@ -13,6 +13,8 @@ pub struct StructField<'db> {
     #[tracked]
     pub type_: Type<'db>,
     #[tracked]
+    pub is_readonly: bool,
+    #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,
 }

@@ -139,6 +139,63 @@ fn plain_field_with_nested_unsupported_lifetime_refs() {
 }
 
 #[test]
+fn non_clonable_struct_field_is_readonly() {
+    let (diags, _) = diag! {
+        pub struct Inner;
+
+        pub struct Outer {
+            pub inner: Inner,
+        }
+    };
+
+    assert_eq!(diags.len(), 1);
+    let diag = diags[0].inner.as_ref();
+    assert_eq!(diag_code(diag), "rust_curse::readonly_struct_field");
+    assert_eq!(
+        diag.to_string(),
+        "the field `inner` is readonly in JS because \"rustdoc_test_crate::Inner\" does not implement `Clone`"
+    );
+    assert_eq!(
+        diag.help().unwrap().to_string(),
+        "derive or implement `Clone` for \"rustdoc_test_crate::Inner\" to make this field writable from JS"
+    );
+}
+
+#[test]
+fn non_clonable_tuple_struct_field_is_readonly() {
+    let (diags, _) = diag! {
+        pub struct Inner;
+        pub struct Outer(pub Inner);
+    };
+
+    assert_eq!(diags.len(), 1);
+    let diag = diags[0].inner.as_ref();
+    assert_eq!(diag_code(diag), "rust_curse::readonly_struct_field");
+    assert_eq!(
+        diag.to_string(),
+        "the field is readonly in JS because \"rustdoc_test_crate::Inner\" does not implement `Clone`"
+    );
+    assert_eq!(
+        diag.help().unwrap().to_string(),
+        "derive or implement `Clone` for \"rustdoc_test_crate::Inner\" to make this field writable from JS"
+    );
+}
+
+#[test]
+fn clonable_struct_field_is_writable() {
+    let (diags, _) = diag! {
+        #[derive(Clone)]
+        pub struct Inner;
+
+        pub struct Outer {
+            pub inner: Inner,
+        }
+    };
+
+    assert!(diags.is_empty());
+}
+
+#[test]
 fn snap_plain_field_with_unsupported_primitive() {
     assert_snap! {
         @gen: diags;

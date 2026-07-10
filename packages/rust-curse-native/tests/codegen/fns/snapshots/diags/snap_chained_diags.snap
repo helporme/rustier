@@ -31,6 +31,10 @@ rust_curse::skipped_fn
   │   
   │     ⚠ unsafe functions are not supported
   │     help: wrap the unsafe operations in a safe function and export that instead
+  ├─▶ rust_curse::non_clonable_moved_struct_param
+  │   
+  │     ⚠ the moved struct parameter `a` cannot be exported because "rustdoc_test_crate::MyStruct" does not implement `Clone`
+  │     help: derive or implement `Clone` for "rustdoc_test_crate::MyStruct", or pass the parameter by reference
   ├─▶ rust_curse::unsupported_param
   │   
   │     ⚠ the parameter `b` has an unsupported type

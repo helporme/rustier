@@ -12,6 +12,7 @@ use crate::codegen::{
         IrId,
     },
     rustdoc::{
+        struct_::is_struct_clonable,
         type_::{lower_type, LoweredType, TypeLowerError},
         CrateExt, RustdocId,
     },
@@ -82,6 +83,18 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
                 },
             ),
         };
+
+        if mode == ParamMode::Move {
+            if let Type::Struct(struct_id) = type_ {
+                if !is_struct_clonable(db, struct_id.rustdoc_id(db)) {
+                    causes.push(FnLowerError::NonClonableMovedStructParam {
+                        name: name.clone(),
+                        struct_fqn: struct_id.path(db).join("::"),
+                    });
+                    continue;
+                }
+            }
+        }
 
         if mode == ParamMode::Mut {
             match type_ {
@@ -204,6 +217,21 @@ pub enum FnLowerError {
         severity(Warning)
     )]
     BorrowedReturn,
+
+    #[error("the moved struct parameter `{name}` cannot be exported because \"{struct_fqn}\" does not implement `Clone`")]
+    #[diagnostic(
+        code(rust_curse::non_clonable_moved_struct_param),
+        help(
+            "derive or implement `Clone` for \"{struct_fqn}\", or pass the parameter by reference"
+        ),
+        severity(Warning)
+    )]
+    NonClonableMovedStructParam {
+        /// The name of the non-clonable moved struct parameter.
+        name: String,
+        /// The fully qualified name of the parameter's struct.
+        struct_fqn: String,
+    },
 
     #[error(
         "the mutable reference to the primitive parameter `{name}` does not propagate changes"
