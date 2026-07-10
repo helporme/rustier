@@ -11,20 +11,16 @@ import {
 // we want to specifically check for a concrete message error to make sure that we do not
 // propagate errors from the napi/wasm-bindgen
 const invalidArgumentMessage = (
-  paramName: string,
-  fnName: string,
   rustType: string,
   jsType: string,
   reason: string,
 ) =>
-  `Invalid argument \`${paramName}\`: expected Rust \`${rustType}\` from a JavaScript ${jsType}: ${reason}`
+  `Expected Rust \`${rustType}\` from a JavaScript ${jsType}: ${reason}`
 
 describe('binding errors', () => {
   it('throws a custom error when a wrong JS type is passed to a function argument', () => {
     expect(() => identity_i32(Symbol('wrong type') as never)).toThrow(
       invalidArgumentMessage(
-        'value',
-        'identity_i32',
         'i32',
         'number',
         'cannot cast value to i32',
@@ -49,8 +45,6 @@ describe('binding errors', () => {
       ] as const) {
         expect(() => identity(value), `${rustType} ${name}`).toThrow(
           invalidArgumentMessage(
-            'value',
-            `identity_${rustType}`,
             rustType,
             'number',
             `cannot cast ${value} to ${rustType}`,
