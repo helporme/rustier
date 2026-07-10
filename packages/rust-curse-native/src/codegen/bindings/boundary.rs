@@ -17,7 +17,7 @@ use crate::codegen::{
     },
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum BoundaryMode {
     Move,
     Ref,
@@ -124,6 +124,19 @@ pub fn compile_boundary_in_conversion_stmt<'db>(
     let mut out = Printer::default();
 
     out.curlies(|out| {
+        for expr in exprs {
+            if matches!(
+                (expr.type_, expr.mode),
+                (Type::Struct(_), BoundaryMode::Move)
+            ) {
+                let name = expr.out_var_name;
+                inner_stmt = indoc::formatdoc! {r#"
+                    let {name} = {name}.clone();
+                    {inner_stmt}
+                "#};
+            }
+        }
+
         for param in exprs {
             if matches!(param.type_, Type::Struct(_)) {
                 inner_stmt = compile_boundary_conversion_expr_via_projection(param, &inner_stmt);
@@ -216,20 +229,9 @@ fn compile_boundary_conversion_expr_via_projection<'db>(
     let src_access_expr = compile_binding_struct_accessor_expr(expr.in_expr);
 
     match expr.mode {
-        BoundaryMode::Move => {
-            let mut inner_wrap = Printer::default();
-            inner_wrap.curlies(|out| {
-                out.line_fmt(format_args!(
-                    "let {} = {}.clone();",
-                    expr.out_var_name, expr.out_var_name
-                ));
-                out.lines(inner_expr);
-            });
-            let inner_expr_wrap: String = inner_wrap.into();
-
-            compile_ref_access_stmt(&src_access_expr, expr.out_var_name, &inner_expr_wrap)
-        }
-        BoundaryMode::Ref => {
+        // cloning inside move is handled in a caller function, since we nede in advance know all
+        // exprs that are going to be converted
+        BoundaryMode::Ref | BoundaryMode::Move => {
             compile_ref_access_stmt(&src_access_expr, expr.out_var_name, inner_expr)
         }
         BoundaryMode::Mut => {
