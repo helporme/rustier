@@ -243,3 +243,15 @@ impl From<Printer> for String {
         printer.out
     }
 }
+
+impl From<String> for Printer {
+    fn from(value: String) -> Self {
+        let at_line_start = value.ends_with('\n');
+
+        Self {
+            out: value,
+            indent: 0,
+            at_line_start,
+        }
+    }
+}

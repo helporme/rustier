@@ -59,37 +59,87 @@ mod __curse {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    pub trait Projection<T> {
-        fn with(&self, f: &mut dyn FnMut(&T));
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+    pub trait Accessor<T> {
+        fn access(&self, f: &mut dyn FnMut(&T));
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T));
     }
 
-    impl<T> Projection<T> for RefCell<T> {
-        fn with(&self, f: &mut dyn FnMut(&T)) {
+    impl<T> Accessor<T> for RefCell<T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
             f(&*self.borrow());
         }
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
             f(&mut *self.borrow_mut());
         }
     }
 
-    pub struct Projector<Parent, T> {
-        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+    pub enum Backing<T> {
+        Owned(T),
+        Projected(Rc<dyn Accessor<T>>),
+    }
+
+    pub struct Slot<T>(RefCell<Backing<T>>);
+
+    impl<T: 'static> Slot<T> {
+        pub fn owned(value: T) -> Self {
+            Slot(RefCell::new(Backing::Owned(value)))
+        }
+        pub fn projected(projection: Rc<dyn Accessor<T>>) -> Self {
+            Slot(RefCell::new(Backing::Projected(projection)))
+        }
+        pub fn replace_with_owned(&self, value: T) {
+            *self.0.borrow_mut() = Backing::Owned(value);
+        }
+    }
+
+    impl<T> Accessor<T> for Slot<T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            let projection = {
+                let target = self.0.borrow();
+
+                match &*target {
+                    Backing::Owned(value) => {
+                        f(value);
+                        return;
+                    }
+                    Backing::Projected(access) => Rc::clone(access),
+                }
+            };
+            projection.access(f);
+        }
+
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let projection = {
+                let mut target = self.0.borrow_mut();
+
+                match &mut *target {
+                    Backing::Owned(value) => {
+                        f(value);
+                        return;
+                    }
+                    Backing::Projected(access) => Rc::clone(access),
+                }
+            };
+            projection.access_mut(f);
+        }
+    }
+
+    pub struct Projection<Parent, T> {
+        pub parent: Rc<dyn Accessor<Parent>>,
         pub project: fn(&Parent) -> &T,
         pub project_mut: fn(&mut Parent) -> &mut T,
     }
 
-    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
-        fn with(&self, f: &mut dyn FnMut(&T)) {
-            let parent = self.parent.borrow().clone();
-            parent.with(&mut |p| f((self.project)(p)))
+    impl<Parent: 'static, T: 'static> Accessor<T> for Projection<Parent, T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            self.parent.access(&mut |p| f((self.project)(p)))
         }
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            let parent = self.parent.borrow().clone();
-            parent.with_mut(&mut |p| f((self.project_mut)(p)))
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            self.parent.access_mut(&mut |p| f((self.project_mut)(p)))
         }
     }
 }
+use __curse::Accessor as _;
 
 fn __cast_f64(value: Unknown<'_>) -> Result<f64, String> {
 	if value.get_type().map_err(|err| err.reason)? == ValueType::Number
@@ -106,26 +156,60 @@ fn __cast_f32(value: Unknown<'_>) -> Result<f32, String> {
 	Ok(value as f32)
 }
 
+struct __cursed_handle__rustdoc_0test_0crate_TupleStruct{
+	src: __curse::Slot<rustdoc_test_crate::TupleStruct>,
+}
+
+impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
+	pub fn new_owned(input: rustdoc_test_crate::TupleStruct) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_TupleStruct 		{
+			src: __curse::Slot::owned(input),
+		}}	
+	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleStruct>>) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_TupleStruct 		{
+			src: __curse::Slot::projected(input),
+		}}}
+
+impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rustdoc_0test_0crate_TupleStruct
+{
+    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::TupleStruct)) {
+        self.src.access(f);
+    }
+
+    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::TupleStruct)) {
+        self.src.access_mut(f);
+    }
+}
+
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]
 pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	src: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
+	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_TupleStruct>
 }
 
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	#[napi(getter, js_name = "0")]
 	pub fn __getter__0(&self) -> napi::Result<f64> {
-		let src = self.src.borrow();
-		let result = src.0.clone();
-		let result = result as f64;
-		Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.0 as f64); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[napi(setter, js_name = "0")]
-	pub fn __setter__0(&self, __p__0: Unknown<'_>) -> napi::Result<()> {
-		let mut src = self.src.borrow_mut();
-		let __p__0 = __cast_f32(__p__0).map_err(|err| napi::Error::from_reason(format!("Invalid argument `0`: expected Rust `f32` from a JavaScript number: {}", err)))?;
-		src.0 = __p__0;
+	pub fn __setter__0(&self, value: Unknown<'_>) -> napi::Result<()> {
+		{
+			let mut value = __cast_f32(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `f32` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.0 = value; })
+		}
 		Ok(())
 	}
 	
@@ -144,37 +228,87 @@ mod __curse {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    pub trait Projection<T> {
-        fn with(&self, f: &mut dyn FnMut(&T));
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+    pub trait Accessor<T> {
+        fn access(&self, f: &mut dyn FnMut(&T));
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T));
     }
 
-    impl<T> Projection<T> for RefCell<T> {
-        fn with(&self, f: &mut dyn FnMut(&T)) {
+    impl<T> Accessor<T> for RefCell<T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
             f(&*self.borrow());
         }
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
             f(&mut *self.borrow_mut());
         }
     }
 
-    pub struct Projector<Parent, T> {
-        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+    pub enum Backing<T> {
+        Owned(T),
+        Projected(Rc<dyn Accessor<T>>),
+    }
+
+    pub struct Slot<T>(RefCell<Backing<T>>);
+
+    impl<T: 'static> Slot<T> {
+        pub fn owned(value: T) -> Self {
+            Slot(RefCell::new(Backing::Owned(value)))
+        }
+        pub fn projected(projection: Rc<dyn Accessor<T>>) -> Self {
+            Slot(RefCell::new(Backing::Projected(projection)))
+        }
+        pub fn replace_with_owned(&self, value: T) {
+            *self.0.borrow_mut() = Backing::Owned(value);
+        }
+    }
+
+    impl<T> Accessor<T> for Slot<T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            let projection = {
+                let target = self.0.borrow();
+
+                match &*target {
+                    Backing::Owned(value) => {
+                        f(value);
+                        return;
+                    }
+                    Backing::Projected(access) => Rc::clone(access),
+                }
+            };
+            projection.access(f);
+        }
+
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let projection = {
+                let mut target = self.0.borrow_mut();
+
+                match &mut *target {
+                    Backing::Owned(value) => {
+                        f(value);
+                        return;
+                    }
+                    Backing::Projected(access) => Rc::clone(access),
+                }
+            };
+            projection.access_mut(f);
+        }
+    }
+
+    pub struct Projection<Parent, T> {
+        pub parent: Rc<dyn Accessor<Parent>>,
         pub project: fn(&Parent) -> &T,
         pub project_mut: fn(&mut Parent) -> &mut T,
     }
 
-    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
-        fn with(&self, f: &mut dyn FnMut(&T)) {
-            let parent = self.parent.borrow().clone();
-            parent.with(&mut |p| f((self.project)(p)))
+    impl<Parent: 'static, T: 'static> Accessor<T> for Projection<Parent, T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            self.parent.access(&mut |p| f((self.project)(p)))
         }
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            let parent = self.parent.borrow().clone();
-            parent.with_mut(&mut |p| f((self.project_mut)(p)))
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            self.parent.access_mut(&mut |p| f((self.project_mut)(p)))
         }
     }
 }
+use __curse::Accessor as _;
 
 fn __cast_f64(value: JsValue) -> Result<f64, String> {
 	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
@@ -184,26 +318,60 @@ fn __cast_f32(value: JsValue) -> Result<f32, String> {
 	Ok(value as f32)
 }
 
+struct __cursed_handle__rustdoc_0test_0crate_TupleStruct{
+	src: __curse::Slot<rustdoc_test_crate::TupleStruct>,
+}
+
+impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
+	pub fn new_owned(input: rustdoc_test_crate::TupleStruct) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_TupleStruct 		{
+			src: __curse::Slot::owned(input),
+		}}	
+	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleStruct>>) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_TupleStruct 		{
+			src: __curse::Slot::projected(input),
+		}}}
+
+impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rustdoc_0test_0crate_TupleStruct
+{
+    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::TupleStruct)) {
+        self.src.access(f);
+    }
+
+    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::TupleStruct)) {
+        self.src.access_mut(f);
+    }
+}
+
 #[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_TupleStruct)]
 pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	src: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
+	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_TupleStruct>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	#[wasm_bindgen(getter, js_name = 0)]
 	pub fn __getter__0(&self) -> Result<f64, JsValue> {
-		let src = self.src.borrow();
-		let result = src.0.clone();
-		let result = result as f64;
-		Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.0 as f64); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 0)]
-	pub fn __setter__0(&self, __p__0: JsValue) -> Result<(), JsValue> {
-		let mut src = self.src.borrow_mut();
-		let __p__0 = __cast_f32(__p__0).map_err(|err| JsValue::from_str(&format!("Invalid argument `0`: expected Rust `f32` from a JavaScript number: {}", err)))?;
-		src.0 = __p__0;
+	pub fn __setter__0(&self, value: JsValue) -> Result<(), JsValue> {
+		{
+			let mut value = __cast_f32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `f32` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.0 = value; })
+		}
 		Ok(())
 	}
 	

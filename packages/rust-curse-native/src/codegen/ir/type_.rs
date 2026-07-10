@@ -1,3 +1,14 @@
+use crate::codegen::{
+    db::Db,
+    ir::{
+        struct_::{
+            struct_binding_name_from_rustdoc_id, struct_fqn_from_rustdoc_id,
+            struct_name_from_rustdoc_id,
+        },
+        IrId,
+    },
+};
+
 /// A primitive type.
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
@@ -92,13 +103,14 @@ impl Primitive {
 
 /// A type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub enum Type {
+pub enum Type<'db> {
     Primitive(Primitive),
     Str,
     String,
+    Struct(IrId<'db>),
 }
 
-impl Type {
+impl<'db> Type<'db> {
     /// Returns this type's Rust name used in source code.
     ///
     /// # Example
@@ -110,11 +122,12 @@ impl Type {
     ///
     /// assert_eq!(type_.rs_name(), "String");
     /// ```
-    pub fn rs_name(&self) -> &'static str {
+    pub fn rs_name(&self, db: &'db dyn Db) -> String {
         match self {
-            Type::Primitive(primitive) => primitive.rs_name(),
-            Type::Str => "str",
-            Type::String => "String",
+            Type::Primitive(primitive) => primitive.rs_name().to_owned(),
+            Type::Str => "str".to_owned(),
+            Type::String => "String".to_owned(),
+            Type::Struct(id) => struct_fqn_from_rustdoc_id(db, id.rustdoc_id(db)).to_owned(),
         }
     }
 
@@ -129,10 +142,11 @@ impl Type {
     ///
     /// assert_eq!(type_.ts_name(), "boolean");
     /// ```
-    pub fn ts_name(&self) -> &'static str {
+    pub fn ts_name(&self, db: &'db dyn Db) -> String {
         match self {
-            Type::Primitive(primitive) => primitive.ts_name(),
-            Type::Str | Type::String => "string",
+            Type::Primitive(primitive) => primitive.ts_name().to_owned(),
+            Type::Str | Type::String => "string".to_owned(),
+            Type::Struct(id) => struct_name_from_rustdoc_id(db, id.rustdoc_id(db)).to_owned(),
         }
     }
 
@@ -149,10 +163,14 @@ impl Type {
     ///
     /// assert_eq!(type_.cast_fn_name(), "__cast_f64");
     /// ```
-    pub fn cast_fn_name(&self) -> &'static str {
+    pub fn cast_fn_name(&self, db: &'db dyn Db) -> String {
         match self {
-            Type::Primitive(primitive) => primitive.cast_fn_name(),
-            Type::Str | Type::String => "__cast_String",
+            Type::Primitive(primitive) => primitive.cast_fn_name().to_owned(),
+            Type::Str | Type::String => "__cast_String".to_owned(),
+            Type::Struct(id) => format!(
+                "__cast_{}",
+                struct_binding_name_from_rustdoc_id(db, id.rustdoc_id(db))
+            ),
         }
     }
 }

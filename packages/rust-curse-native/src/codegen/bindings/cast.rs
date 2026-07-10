@@ -12,7 +12,7 @@ use crate::codegen::{
     bindings::printer::Printer,
     db::Db,
     ir::{
-        struct_::StructShape,
+        struct_::struct_fqn_from_rustdoc_id,
         type_::{Primitive, Type},
     },
     rustdoc::mod_::{all_mod_ids, lower_mod_fns, lower_mod_structs},
@@ -32,18 +32,8 @@ pub fn compile_cast_fns(db: &dyn Db) -> String {
             }
         }
         for struct_ in lower_mod_structs(db, *mod_id) {
-            match struct_.shape(db) {
-                StructShape::Tuple(fields) => {
-                    for field in fields.iter().flatten() {
-                        collect_cast_type(field.type_(db), &mut seen, &mut types);
-                    }
-                }
-                StructShape::Plain { fields, .. } => {
-                    for field in fields {
-                        collect_cast_type(field.type_(db), &mut seen, &mut types);
-                    }
-                }
-                StructShape::Unit => {}
+            for field in struct_.fields(db) {
+                collect_cast_type(field.type_(db), &mut seen, &mut types);
             }
         }
     }
@@ -56,7 +46,11 @@ pub fn compile_cast_fns(db: &dyn Db) -> String {
 }
 
 /// Collects a cast target type and any wider helper types it depends on.
-fn collect_cast_type(type_: Type, seen: &mut HashSet<Type>, types: &mut Vec<Type>) {
+fn collect_cast_type<'db>(
+    type_: Type<'db>,
+    seen: &mut HashSet<Type<'db>>,
+    types: &mut Vec<Type<'db>>,
+) {
     if !seen.insert(type_) {
         return;
     }
@@ -84,6 +78,7 @@ fn collect_cast_type(type_: Type, seen: &mut HashSet<Type>, types: &mut Vec<Type
             collect_cast_type(Type::Primitive(Primitive::f64), seen, types);
         }
         Type::Primitive(Primitive::Boolean | Primitive::f64) | Type::String => {}
+        Type::Struct(_) => return,
     }
 
     types.push(type_);
@@ -96,9 +91,9 @@ fn compile_cast_fn(db: &dyn Db, type_: Type) -> String {
 
     out.write_fmt(format_args!(
         "fn {}(value: {}) -> Result<{}, String> ",
-        type_.cast_fn_name(),
+        type_.cast_fn_name(db),
         api.js_type(db),
-        compile_cast_res(type_)
+        compile_cast_res(db, type_)
     ));
     out.curlies(|p| {
         p.lines(&compile_cast_body(db, type_));
@@ -115,10 +110,11 @@ fn compile_cast_fn(db: &dyn Db, type_: Type) -> String {
 ///                                // ~~~~~~
 ///                                // this part
 /// ```
-fn compile_cast_res(type_: Type) -> &'static str {
+fn compile_cast_res<'db>(db: &'db dyn Db, type_: Type<'db>) -> &'db str {
     match type_ {
         Type::Primitive(primitive) => primitive.rs_name(),
         Type::Str | Type::String => "String",
+        Type::Struct(id) => struct_fqn_from_rustdoc_id(db, id.rustdoc_id(db)),
     }
 }
 
@@ -138,6 +134,7 @@ fn compile_cast_body(db: &dyn Db, type_: Type) -> String {
         Type::Primitive(Primitive::u32) => compile_unsigned_integer_cast_body(Primitive::u32),
         Type::Primitive(Primitive::f32) => compile_f32_cast_body(),
         Type::Primitive(Primitive::f64) => api.cast_to_f64(db),
+        Type::Struct(_) => unreachable!(),
     }
 }
 

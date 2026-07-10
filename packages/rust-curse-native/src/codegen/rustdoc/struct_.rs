@@ -178,7 +178,7 @@ fn lower_plain_struct_field<'db>(
 fn lower_struct_field_type<'db>(
     db: &'db dyn Db,
     id: RustdocId<'db>,
-) -> Result<Type, Vec<TypeLowerError>> {
+) -> Result<Type<'db>, Vec<TypeLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);
 

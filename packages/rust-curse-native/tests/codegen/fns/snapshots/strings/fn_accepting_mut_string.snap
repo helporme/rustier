@@ -68,10 +68,13 @@ fn __cast_String(value: Unknown<'_>) -> Result<String, String> {
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p___: Unknown<'_>,
 ) -> napi::Result<()> {
-	let mut __p___ = __cast_String(__p___).map_err(|err| napi::Error::from_reason(format!("Invalid argument `_`: expected Rust `String` from a JavaScript string: {}", err)))?;
-	rustdoc_test_crate::foo(
-		&mut __p___,
-	);
+	{
+		let mut __p___ = &mut __cast_String(__p___).map_err(|err| napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
+		
+		rustdoc_test_crate::foo(
+			__p___,
+		)
+	}
 	Ok(())
 }
 
@@ -91,10 +94,13 @@ fn __cast_String(value: JsValue) -> Result<String, String> {
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p___: JsValue,
 ) -> Result<(), JsValue> {
-	let mut __p___ = __cast_String(__p___).map_err(|err| JsValue::from_str(&format!("Invalid argument `_`: expected Rust `String` from a JavaScript string: {}", err)))?;
-	rustdoc_test_crate::foo(
-		&mut __p___,
-	);
+	{
+		let mut __p___ = &mut __cast_String(__p___).map_err(|err| JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
+		
+		rustdoc_test_crate::foo(
+			__p___,
+		)
+	}
 	Ok(())
 }
 

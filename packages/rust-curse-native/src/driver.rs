@@ -353,7 +353,7 @@ impl Driver {
             .map_err(|source| BuildError::SyncCrate { source })?;
 
             let mut profile_diags = Vec::new();
-            for diag in codegen::bindings::compile::accumulated::<Diag>(&self.db) {
+            for diag in codegen::bindings::compile_bindings::accumulated::<Diag>(&self.db) {
                 profile_diags.push(
                     diag.render(Theme::UnicodeNoColor)
                         .map_err(|source| BuildError::RenderDiagnostic { source })?,
@@ -483,7 +483,7 @@ impl Driver {
         debug!(module_path = %module_path.display(), "canonicalized Rust module path");
 
         // todo: build file map instaed
-        for mod_id in codegen::rustdoc::all_mod_ids(&self.db) {
+        for mod_id in codegen::rustdoc::mod_::all_mod_ids(&self.db) {
             let item = mod_id.item(&self.db);
             let Some(span) = &item.span else {
                 continue;

@@ -48,9 +48,9 @@ use napi_derive::napi;
 
 #[napi(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> napi::Result<bool> {
-	let result = rustdoc_test_crate::foo();
-	Ok(result)
-}
+	Ok	(
+		rustdoc_test_crate::foo()
+	)}
 
 ```
 
@@ -62,8 +62,8 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(js_name = __cursed_fn__rustdoc_0test_0crate_foo)]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> Result<bool, JsValue> {
-	let result = rustdoc_test_crate::foo();
-	Ok(result)
-}
+	Ok	(
+		rustdoc_test_crate::foo()
+	)}
 
 ```

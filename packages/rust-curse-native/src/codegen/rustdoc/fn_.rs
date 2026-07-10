@@ -6,8 +6,10 @@ use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
     ir::{
-        self,
+        fn_::{Fn, FnParam, ParamMode},
         span::{SourceCode, Span},
+        type_::Type,
+        IrId,
     },
     rustdoc::{
         type_::{lower_type, LoweredType, TypeLowerError},
@@ -17,10 +19,7 @@ use crate::codegen::{
 
 /// Lowers the rustdoc function.
 #[salsa::tracked]
-pub fn lower_fn<'db>(
-    db: &'db dyn Db,
-    id: RustdocId<'db>,
-) -> Result<ir::fn_::Fn<'db>, Box<FnLowerError>> {
+pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box<FnLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);
 
@@ -73,20 +72,20 @@ pub fn lower_fn<'db>(
         };
 
         let (type_, mode) = match lowered {
-            LoweredType::Moved(type_) => (type_, ir::fn_::ParamMode::Move),
+            LoweredType::Moved(type_) => (type_, ParamMode::Move),
             LoweredType::Borrowed { type_, is_mutable } => (
                 type_,
                 if is_mutable {
-                    ir::fn_::ParamMode::Mut
+                    ParamMode::Mut
                 } else {
-                    ir::fn_::ParamMode::Ref
+                    ParamMode::Ref
                 },
             ),
         };
 
-        if mode == ir::fn_::ParamMode::Mut {
+        if mode == ParamMode::Mut {
             match type_ {
-                ir::type_::Type::Primitive(_) => {
+                Type::Primitive(_) => {
                     let crate_ = id.crate_(db);
                     FnLowerError::PrimitiveMutRefIgnored {
                         name: name.clone(),
@@ -95,7 +94,7 @@ pub fn lower_fn<'db>(
                     }
                     .accumulate(db);
                 }
-                ir::type_::Type::Str | ir::type_::Type::String => {
+                Type::Str | Type::String => {
                     let crate_ = id.crate_(db);
                     FnLowerError::StringMutRefIgnored {
                         name: name.clone(),
@@ -104,10 +103,11 @@ pub fn lower_fn<'db>(
                     }
                     .accumulate(db);
                 }
+                Type::Struct(_) => {}
             }
         }
 
-        params.push(ir::fn_::FnParam::new(db, name.clone(), type_, mode));
+        params.push(FnParam::new(db, name.clone(), type_, mode));
     }
 
     let ret_type = match &def.sig.output {
@@ -135,15 +135,9 @@ pub fn lower_fn<'db>(
         }));
     }
 
-    let id = ir::IrId::new(db, &item_summary.path);
+    let id = IrId::new(db, &item_summary.path);
 
-    Ok(ir::fn_::Fn::new(
-        db,
-        id,
-        params,
-        ret_type,
-        item.docs.clone(),
-    ))
+    Ok(Fn::new(db, id, params, ret_type, item.docs.clone()))
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]

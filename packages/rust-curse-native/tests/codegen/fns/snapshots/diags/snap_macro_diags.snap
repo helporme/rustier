@@ -38,20 +38,6 @@ rust_curse::skipped_fn
   │     help: wrap the unsafe operations in a safe function and export that instead
   ├─▶ rust_curse::unsupported_param
   │   
-  │     ⚠ the parameter `a` has an unsupported type
-  │     ╰─▶ rust_curse::unsupported_type
-  │   
-  │           ⚠ unsupported type: ResolvedPath(
-  │           │     Path {
-  │           │         path: "MyStruct",
-  │           │         id: Id(
-  │           │             1,
-  │           │         ),
-  │           │         args: None,
-  │           │     },
-  │           │ )
-  ├─▶ rust_curse::unsupported_param
-  │   
   │     ⚠ the parameter `b` has an unsupported type
   │     ╰─▶ rust_curse::unsupported_primitive
   │   

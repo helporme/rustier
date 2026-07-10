@@ -96,37 +96,87 @@ mod __curse {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    pub trait Projection<T> {
-        fn with(&self, f: &mut dyn FnMut(&T));
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+    pub trait Accessor<T> {
+        fn access(&self, f: &mut dyn FnMut(&T));
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T));
     }
 
-    impl<T> Projection<T> for RefCell<T> {
-        fn with(&self, f: &mut dyn FnMut(&T)) {
+    impl<T> Accessor<T> for RefCell<T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
             f(&*self.borrow());
         }
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
             f(&mut *self.borrow_mut());
         }
     }
 
-    pub struct Projector<Parent, T> {
-        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+    pub enum Backing<T> {
+        Owned(T),
+        Projected(Rc<dyn Accessor<T>>),
+    }
+
+    pub struct Slot<T>(RefCell<Backing<T>>);
+
+    impl<T: 'static> Slot<T> {
+        pub fn owned(value: T) -> Self {
+            Slot(RefCell::new(Backing::Owned(value)))
+        }
+        pub fn projected(projection: Rc<dyn Accessor<T>>) -> Self {
+            Slot(RefCell::new(Backing::Projected(projection)))
+        }
+        pub fn replace_with_owned(&self, value: T) {
+            *self.0.borrow_mut() = Backing::Owned(value);
+        }
+    }
+
+    impl<T> Accessor<T> for Slot<T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            let projection = {
+                let target = self.0.borrow();
+
+                match &*target {
+                    Backing::Owned(value) => {
+                        f(value);
+                        return;
+                    }
+                    Backing::Projected(access) => Rc::clone(access),
+                }
+            };
+            projection.access(f);
+        }
+
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let projection = {
+                let mut target = self.0.borrow_mut();
+
+                match &mut *target {
+                    Backing::Owned(value) => {
+                        f(value);
+                        return;
+                    }
+                    Backing::Projected(access) => Rc::clone(access),
+                }
+            };
+            projection.access_mut(f);
+        }
+    }
+
+    pub struct Projection<Parent, T> {
+        pub parent: Rc<dyn Accessor<Parent>>,
         pub project: fn(&Parent) -> &T,
         pub project_mut: fn(&mut Parent) -> &mut T,
     }
 
-    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
-        fn with(&self, f: &mut dyn FnMut(&T)) {
-            let parent = self.parent.borrow().clone();
-            parent.with(&mut |p| f((self.project)(p)))
+    impl<Parent: 'static, T: 'static> Accessor<T> for Projection<Parent, T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            self.parent.access(&mut |p| f((self.project)(p)))
         }
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            let parent = self.parent.borrow().clone();
-            parent.with_mut(&mut |p| f((self.project_mut)(p)))
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            self.parent.access_mut(&mut |p| f((self.project_mut)(p)))
         }
     }
 }
+use __curse::Accessor as _;
 
 fn __cast_bool(value: Unknown<'_>) -> Result<bool, String> {
 	if value.get_type().map_err(|err| err.reason)? == ValueType::Boolean
@@ -197,130 +247,221 @@ fn __cast_u32(value: Unknown<'_>) -> Result<u32, String> {
 	Ok(value as u32)
 }
 
+struct __cursed_handle__rustdoc_0test_0crate_TupleStruct{
+	src: __curse::Slot<rustdoc_test_crate::TupleStruct>,
+}
+
+impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
+	pub fn new_owned(input: rustdoc_test_crate::TupleStruct) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_TupleStruct 		{
+			src: __curse::Slot::owned(input),
+		}}	
+	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleStruct>>) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_TupleStruct 		{
+			src: __curse::Slot::projected(input),
+		}}}
+
+impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rustdoc_0test_0crate_TupleStruct
+{
+    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::TupleStruct)) {
+        self.src.access(f);
+    }
+
+    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::TupleStruct)) {
+        self.src.access_mut(f);
+    }
+}
+
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]
 pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	src: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
+	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_TupleStruct>
 }
 
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	#[napi(getter, js_name = "0")]
 	pub fn __getter__0(&self) -> napi::Result<bool> {
-		let src = self.src.borrow();
-		let result = src.0.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.0); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[napi(setter, js_name = "0")]
-	pub fn __setter__0(&self, __p__0: Unknown<'_>) -> napi::Result<()> {
-		let mut src = self.src.borrow_mut();
-		let __p__0 = __cast_bool(__p__0).map_err(|err| napi::Error::from_reason(format!("Invalid argument `0`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-		src.0 = __p__0;
+	pub fn __setter__0(&self, value: Unknown<'_>) -> napi::Result<()> {
+		{
+			let mut value = __cast_bool(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.0 = value; })
+		}
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "1")]
 	pub fn __getter__1(&self) -> napi::Result<i8> {
-		let src = self.src.borrow();
-		let result = src.1.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.1); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[napi(setter, js_name = "1")]
-	pub fn __setter__1(&self, __p__1: Unknown<'_>) -> napi::Result<()> {
-		let mut src = self.src.borrow_mut();
-		let __p__1 = __cast_i8(__p__1).map_err(|err| napi::Error::from_reason(format!("Invalid argument `1`: expected Rust `i8` from a JavaScript number: {}", err)))?;
-		src.1 = __p__1;
+	pub fn __setter__1(&self, value: Unknown<'_>) -> napi::Result<()> {
+		{
+			let mut value = __cast_i8(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i8` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.1 = value; })
+		}
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "2")]
 	pub fn __getter__2(&self) -> napi::Result<i16> {
-		let src = self.src.borrow();
-		let result = src.2.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.2); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[napi(setter, js_name = "2")]
-	pub fn __setter__2(&self, __p__2: Unknown<'_>) -> napi::Result<()> {
-		let mut src = self.src.borrow_mut();
-		let __p__2 = __cast_i16(__p__2).map_err(|err| napi::Error::from_reason(format!("Invalid argument `2`: expected Rust `i16` from a JavaScript number: {}", err)))?;
-		src.2 = __p__2;
+	pub fn __setter__2(&self, value: Unknown<'_>) -> napi::Result<()> {
+		{
+			let mut value = __cast_i16(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i16` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.2 = value; })
+		}
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "3")]
 	pub fn __getter__3(&self) -> napi::Result<i32> {
-		let src = self.src.borrow();
-		let result = src.3.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.3); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[napi(setter, js_name = "3")]
-	pub fn __setter__3(&self, __p__3: Unknown<'_>) -> napi::Result<()> {
-		let mut src = self.src.borrow_mut();
-		let __p__3 = __cast_i32(__p__3).map_err(|err| napi::Error::from_reason(format!("Invalid argument `3`: expected Rust `i32` from a JavaScript number: {}", err)))?;
-		src.3 = __p__3;
+	pub fn __setter__3(&self, value: Unknown<'_>) -> napi::Result<()> {
+		{
+			let mut value = __cast_i32(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.3 = value; })
+		}
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "4")]
 	pub fn __getter__4(&self) -> napi::Result<u8> {
-		let src = self.src.borrow();
-		let result = src.4.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.4); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[napi(setter, js_name = "4")]
-	pub fn __setter__4(&self, __p__4: Unknown<'_>) -> napi::Result<()> {
-		let mut src = self.src.borrow_mut();
-		let __p__4 = __cast_u8(__p__4).map_err(|err| napi::Error::from_reason(format!("Invalid argument `4`: expected Rust `u8` from a JavaScript number: {}", err)))?;
-		src.4 = __p__4;
+	pub fn __setter__4(&self, value: Unknown<'_>) -> napi::Result<()> {
+		{
+			let mut value = __cast_u8(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `u8` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.4 = value; })
+		}
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "5")]
 	pub fn __getter__5(&self) -> napi::Result<u16> {
-		let src = self.src.borrow();
-		let result = src.5.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.5); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[napi(setter, js_name = "5")]
-	pub fn __setter__5(&self, __p__5: Unknown<'_>) -> napi::Result<()> {
-		let mut src = self.src.borrow_mut();
-		let __p__5 = __cast_u16(__p__5).map_err(|err| napi::Error::from_reason(format!("Invalid argument `5`: expected Rust `u16` from a JavaScript number: {}", err)))?;
-		src.5 = __p__5;
+	pub fn __setter__5(&self, value: Unknown<'_>) -> napi::Result<()> {
+		{
+			let mut value = __cast_u16(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `u16` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.5 = value; })
+		}
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "6")]
 	pub fn __getter__6(&self) -> napi::Result<u32> {
-		let src = self.src.borrow();
-		let result = src.6.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.6); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[napi(setter, js_name = "6")]
-	pub fn __setter__6(&self, __p__6: Unknown<'_>) -> napi::Result<()> {
-		let mut src = self.src.borrow_mut();
-		let __p__6 = __cast_u32(__p__6).map_err(|err| napi::Error::from_reason(format!("Invalid argument `6`: expected Rust `u32` from a JavaScript number: {}", err)))?;
-		src.6 = __p__6;
+	pub fn __setter__6(&self, value: Unknown<'_>) -> napi::Result<()> {
+		{
+			let mut value = __cast_u32(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `u32` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.6 = value; })
+		}
 		Ok(())
 	}
 	
 	#[napi(getter, js_name = "7")]
 	pub fn __getter__7(&self) -> napi::Result<f64> {
-		let src = self.src.borrow();
-		let result = src.7.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.7); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[napi(setter, js_name = "7")]
-	pub fn __setter__7(&self, __p__7: Unknown<'_>) -> napi::Result<()> {
-		let mut src = self.src.borrow_mut();
-		let __p__7 = __cast_f64(__p__7).map_err(|err| napi::Error::from_reason(format!("Invalid argument `7`: expected Rust `f64` from a JavaScript number: {}", err)))?;
-		src.7 = __p__7;
+	pub fn __setter__7(&self, value: Unknown<'_>) -> napi::Result<()> {
+		{
+			let mut value = __cast_f64(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `f64` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.7 = value; })
+		}
 		Ok(())
 	}
 	
@@ -339,37 +480,87 @@ mod __curse {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    pub trait Projection<T> {
-        fn with(&self, f: &mut dyn FnMut(&T));
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T));
+    pub trait Accessor<T> {
+        fn access(&self, f: &mut dyn FnMut(&T));
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T));
     }
 
-    impl<T> Projection<T> for RefCell<T> {
-        fn with(&self, f: &mut dyn FnMut(&T)) {
+    impl<T> Accessor<T> for RefCell<T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
             f(&*self.borrow());
         }
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
             f(&mut *self.borrow_mut());
         }
     }
 
-    pub struct Projector<Parent, T> {
-        pub parent: Rc<RefCell<Rc<dyn Projection<Parent>>>>,
+    pub enum Backing<T> {
+        Owned(T),
+        Projected(Rc<dyn Accessor<T>>),
+    }
+
+    pub struct Slot<T>(RefCell<Backing<T>>);
+
+    impl<T: 'static> Slot<T> {
+        pub fn owned(value: T) -> Self {
+            Slot(RefCell::new(Backing::Owned(value)))
+        }
+        pub fn projected(projection: Rc<dyn Accessor<T>>) -> Self {
+            Slot(RefCell::new(Backing::Projected(projection)))
+        }
+        pub fn replace_with_owned(&self, value: T) {
+            *self.0.borrow_mut() = Backing::Owned(value);
+        }
+    }
+
+    impl<T> Accessor<T> for Slot<T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            let projection = {
+                let target = self.0.borrow();
+
+                match &*target {
+                    Backing::Owned(value) => {
+                        f(value);
+                        return;
+                    }
+                    Backing::Projected(access) => Rc::clone(access),
+                }
+            };
+            projection.access(f);
+        }
+
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let projection = {
+                let mut target = self.0.borrow_mut();
+
+                match &mut *target {
+                    Backing::Owned(value) => {
+                        f(value);
+                        return;
+                    }
+                    Backing::Projected(access) => Rc::clone(access),
+                }
+            };
+            projection.access_mut(f);
+        }
+    }
+
+    pub struct Projection<Parent, T> {
+        pub parent: Rc<dyn Accessor<Parent>>,
         pub project: fn(&Parent) -> &T,
         pub project_mut: fn(&mut Parent) -> &mut T,
     }
 
-    impl<Parent: 'static, T: 'static> Projection<T> for Projector<Parent, T> {
-        fn with(&self, f: &mut dyn FnMut(&T)) {
-            let parent = self.parent.borrow().clone();
-            parent.with(&mut |p| f((self.project)(p)))
+    impl<Parent: 'static, T: 'static> Accessor<T> for Projection<Parent, T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            self.parent.access(&mut |p| f((self.project)(p)))
         }
-        fn with_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            let parent = self.parent.borrow().clone();
-            parent.with_mut(&mut |p| f((self.project_mut)(p)))
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            self.parent.access_mut(&mut |p| f((self.project_mut)(p)))
         }
     }
 }
+use __curse::Accessor as _;
 
 fn __cast_bool(value: JsValue) -> Result<bool, String> {
 	value.as_bool().ok_or_else(|| "cannot cast value to bool".to_string())
@@ -426,130 +617,221 @@ fn __cast_u32(value: JsValue) -> Result<u32, String> {
 	Ok(value as u32)
 }
 
+struct __cursed_handle__rustdoc_0test_0crate_TupleStruct{
+	src: __curse::Slot<rustdoc_test_crate::TupleStruct>,
+}
+
+impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
+	pub fn new_owned(input: rustdoc_test_crate::TupleStruct) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_TupleStruct 		{
+			src: __curse::Slot::owned(input),
+		}}	
+	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleStruct>>) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_TupleStruct 		{
+			src: __curse::Slot::projected(input),
+		}}}
+
+impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rustdoc_0test_0crate_TupleStruct
+{
+    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::TupleStruct)) {
+        self.src.access(f);
+    }
+
+    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::TupleStruct)) {
+        self.src.access_mut(f);
+    }
+}
+
 #[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_TupleStruct)]
 pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	src: std::cell::RefCell<rustdoc_test_crate::TupleStruct>
+	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_TupleStruct>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	#[wasm_bindgen(getter, js_name = 0)]
 	pub fn __getter__0(&self) -> Result<bool, JsValue> {
-		let src = self.src.borrow();
-		let result = src.0.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.0); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 0)]
-	pub fn __setter__0(&self, __p__0: JsValue) -> Result<(), JsValue> {
-		let mut src = self.src.borrow_mut();
-		let __p__0 = __cast_bool(__p__0).map_err(|err| JsValue::from_str(&format!("Invalid argument `0`: expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-		src.0 = __p__0;
+	pub fn __setter__0(&self, value: JsValue) -> Result<(), JsValue> {
+		{
+			let mut value = __cast_bool(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.0 = value; })
+		}
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 1)]
 	pub fn __getter__1(&self) -> Result<i8, JsValue> {
-		let src = self.src.borrow();
-		let result = src.1.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.1); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 1)]
-	pub fn __setter__1(&self, __p__1: JsValue) -> Result<(), JsValue> {
-		let mut src = self.src.borrow_mut();
-		let __p__1 = __cast_i8(__p__1).map_err(|err| JsValue::from_str(&format!("Invalid argument `1`: expected Rust `i8` from a JavaScript number: {}", err)))?;
-		src.1 = __p__1;
+	pub fn __setter__1(&self, value: JsValue) -> Result<(), JsValue> {
+		{
+			let mut value = __cast_i8(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i8` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.1 = value; })
+		}
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 2)]
 	pub fn __getter__2(&self) -> Result<i16, JsValue> {
-		let src = self.src.borrow();
-		let result = src.2.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.2); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 2)]
-	pub fn __setter__2(&self, __p__2: JsValue) -> Result<(), JsValue> {
-		let mut src = self.src.borrow_mut();
-		let __p__2 = __cast_i16(__p__2).map_err(|err| JsValue::from_str(&format!("Invalid argument `2`: expected Rust `i16` from a JavaScript number: {}", err)))?;
-		src.2 = __p__2;
+	pub fn __setter__2(&self, value: JsValue) -> Result<(), JsValue> {
+		{
+			let mut value = __cast_i16(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i16` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.2 = value; })
+		}
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 3)]
 	pub fn __getter__3(&self) -> Result<i32, JsValue> {
-		let src = self.src.borrow();
-		let result = src.3.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.3); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 3)]
-	pub fn __setter__3(&self, __p__3: JsValue) -> Result<(), JsValue> {
-		let mut src = self.src.borrow_mut();
-		let __p__3 = __cast_i32(__p__3).map_err(|err| JsValue::from_str(&format!("Invalid argument `3`: expected Rust `i32` from a JavaScript number: {}", err)))?;
-		src.3 = __p__3;
+	pub fn __setter__3(&self, value: JsValue) -> Result<(), JsValue> {
+		{
+			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.3 = value; })
+		}
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 4)]
 	pub fn __getter__4(&self) -> Result<u8, JsValue> {
-		let src = self.src.borrow();
-		let result = src.4.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.4); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 4)]
-	pub fn __setter__4(&self, __p__4: JsValue) -> Result<(), JsValue> {
-		let mut src = self.src.borrow_mut();
-		let __p__4 = __cast_u8(__p__4).map_err(|err| JsValue::from_str(&format!("Invalid argument `4`: expected Rust `u8` from a JavaScript number: {}", err)))?;
-		src.4 = __p__4;
+	pub fn __setter__4(&self, value: JsValue) -> Result<(), JsValue> {
+		{
+			let mut value = __cast_u8(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `u8` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.4 = value; })
+		}
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 5)]
 	pub fn __getter__5(&self) -> Result<u16, JsValue> {
-		let src = self.src.borrow();
-		let result = src.5.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.5); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 5)]
-	pub fn __setter__5(&self, __p__5: JsValue) -> Result<(), JsValue> {
-		let mut src = self.src.borrow_mut();
-		let __p__5 = __cast_u16(__p__5).map_err(|err| JsValue::from_str(&format!("Invalid argument `5`: expected Rust `u16` from a JavaScript number: {}", err)))?;
-		src.5 = __p__5;
+	pub fn __setter__5(&self, value: JsValue) -> Result<(), JsValue> {
+		{
+			let mut value = __cast_u16(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `u16` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.5 = value; })
+		}
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 6)]
 	pub fn __getter__6(&self) -> Result<u32, JsValue> {
-		let src = self.src.borrow();
-		let result = src.6.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.6); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 6)]
-	pub fn __setter__6(&self, __p__6: JsValue) -> Result<(), JsValue> {
-		let mut src = self.src.borrow_mut();
-		let __p__6 = __cast_u32(__p__6).map_err(|err| JsValue::from_str(&format!("Invalid argument `6`: expected Rust `u32` from a JavaScript number: {}", err)))?;
-		src.6 = __p__6;
+	pub fn __setter__6(&self, value: JsValue) -> Result<(), JsValue> {
+		{
+			let mut value = __cast_u32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `u32` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.6 = value; })
+		}
 		Ok(())
 	}
 	
 	#[wasm_bindgen(getter, js_name = 7)]
 	pub fn __getter__7(&self) -> Result<f64, JsValue> {
-		let src = self.src.borrow();
-		let result = src.7.clone();
-			Ok(result)
+		Ok(
+			{
+				let mut result = std::mem::MaybeUninit::uninit();
+				{
+					(self).handle.src.access(&mut |src| { result.write(src.7); })
+				}
+				unsafe { result.assume_init() }
+			}
+		)
 	}
 	
 	#[wasm_bindgen(setter, js_name = 7)]
-	pub fn __setter__7(&self, __p__7: JsValue) -> Result<(), JsValue> {
-		let mut src = self.src.borrow_mut();
-		let __p__7 = __cast_f64(__p__7).map_err(|err| JsValue::from_str(&format!("Invalid argument `7`: expected Rust `f64` from a JavaScript number: {}", err)))?;
-		src.7 = __p__7;
+	pub fn __setter__7(&self, value: JsValue) -> Result<(), JsValue> {
+		{
+			let mut value = __cast_f64(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `f64` from a JavaScript number: {}", err)))?;
+			
+			(self).handle.src.access_mut(&mut |src| { src.7 = value; })
+		}
 		Ok(())
 	}
 	

@@ -1,17 +1,23 @@
 use miette::Diagnostic;
-use rustdoc_types::Type;
+use rustdoc_types::{ItemKind, Type};
 use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
-    ir::type_::{Primitive, Type as IrType},
+    ir::{
+        type_::{Primitive, Type as IrType},
+        IrId,
+    },
     rustdoc::{CrateExt, RustdocType},
 };
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum LoweredType {
-    Moved(IrType),
-    Borrowed { type_: IrType, is_mutable: bool },
+#[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub enum LoweredType<'db> {
+    Moved(IrType<'db>),
+    Borrowed {
+        type_: IrType<'db>,
+        is_mutable: bool,
+    },
 }
 
 /// Lowers the rustdoc type to the IR type.
@@ -19,7 +25,7 @@ pub enum LoweredType {
 pub fn lower_type<'db>(
     db: &'db dyn Db,
     id: RustdocType<'db>,
-) -> Result<LoweredType, Vec<TypeLowerError>> {
+) -> Result<LoweredType<'db>, Vec<TypeLowerError>> {
     let type_ = id.type_(db);
     let crate_ = id.crate_(db);
 
@@ -39,6 +45,11 @@ pub fn lower_type<'db>(
 
             if summary.path == ["alloc", "string", "String"] {
                 Ok(LoweredType::Moved(IrType::String))
+            } else if summary.kind == ItemKind::Struct && crate_.index.contains_key(&path.id) {
+                Ok(LoweredType::Moved(IrType::Struct(IrId::new(
+                    db,
+                    &summary.path,
+                ))))
             } else {
                 Err(vec![TypeLowerError::UnsupportedType {
                     type_: type_.clone(),
@@ -82,7 +93,7 @@ pub fn lower_type<'db>(
     }
 }
 
-fn lower_primitive(name: &str) -> Option<IrType> {
+fn lower_primitive<'db>(name: &str) -> Option<IrType<'db>> {
     let type_ = match name {
         "bool" => IrType::Primitive(Primitive::Boolean),
         "char" => IrType::Primitive(Primitive::Char),

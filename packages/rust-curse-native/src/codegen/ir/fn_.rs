@@ -17,7 +17,7 @@ pub struct FnParam<'db> {
     #[returns(ref)]
     pub name: String,
     #[tracked]
-    pub type_: Type,
+    pub type_: Type<'db>,
     #[returns(copy)]
     pub mode: ParamMode,
 }
@@ -44,7 +44,7 @@ pub struct Fn<'db> {
     /// alternative for it.
     #[tracked]
     #[returns(copy)]
-    pub return_type: Option<Type>,
+    pub return_type: Option<Type<'db>>,
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,

@@ -8,7 +8,6 @@ use crate::codegen::{
     ir::{
         fn_::Fn,
         struct_::{Struct, StructField, StructShape},
-        type_::{Primitive, Type},
     },
     rustdoc::{
         mod_::{lower_mod, lower_mod_fns, lower_mod_structs},
@@ -60,12 +59,12 @@ fn compile_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
         out.comma_list(
             fn_.params(db)
                 .iter()
-                .map(|param| format!("{}: {}", param.name(db), compile_type(param.type_(db)))),
+                .map(|param| format!("{}: {}", param.name(db), param.type_(db).ts_name(db))),
         );
     });
 
     let return_type = match fn_.return_type(db) {
-        Some(type_) => compile_type(type_),
+        Some(type_) => &type_.ts_name(db),
         None => "void",
     };
 
@@ -115,32 +114,10 @@ fn compile_class_field<'db>(db: &'db dyn Db, field: StructField<'db>) -> String 
     out.line_fmt(format_args!(
         "public {}: {};",
         field.name(db),
-        compile_type(field.type_(db))
+        field.type_(db).ts_name(db)
     ));
 
     out.into()
-}
-
-fn compile_type(type_: Type) -> &'static str {
-    match type_ {
-        Type::Primitive(primitive) => compile_primitive(primitive),
-        Type::Str | Type::String => "string",
-    }
-}
-
-fn compile_primitive(primitive: Primitive) -> &'static str {
-    match primitive {
-        Primitive::Boolean => "boolean",
-        Primitive::i8
-        | Primitive::u8
-        | Primitive::i16
-        | Primitive::u16
-        | Primitive::i32
-        | Primitive::u32
-        | Primitive::Char
-        | Primitive::f32
-        | Primitive::f64 => "number",
-    }
 }
 
 fn compile_jsdoc(docs: &str) -> String {
