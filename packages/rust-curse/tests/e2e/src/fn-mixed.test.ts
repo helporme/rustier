@@ -4,11 +4,16 @@ import {
   add_mixed,
   choose_mixed,
   format_mixed,
+  make_value_struct,
 } from './lib.rs'
 
 const crab = '🦀'.codePointAt(0)!
 
 it('accepts every supported argument by value, shared reference, and mutable reference', () => {
+  const structValue = make_value_struct(1)
+  const structRef = make_value_struct(2)
+  const structMutRef = make_value_struct(3)
+
   expect(
     accepts_mixed_arguments(
       true,
@@ -46,8 +51,14 @@ it('accepts every supported argument by value, shared reference, and mutable ref
       64.5,
       64.5,
       64.5,
+      structValue,
+      structRef,
+      structMutRef,
     ),
   ).toBe(true)
+  expect(structValue.value).toBe(1)
+  expect(structRef.value).toBe(2)
+  expect(structMutRef.value).toBe(4)
 })
 
 it('combines a str, char, and number into a String', () => {
