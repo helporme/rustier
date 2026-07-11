@@ -363,7 +363,6 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	}
 	
 }
-
 ```
 
 ## Wasm Bindings
@@ -612,5 +611,4 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	}
 	
 }
-
 ```

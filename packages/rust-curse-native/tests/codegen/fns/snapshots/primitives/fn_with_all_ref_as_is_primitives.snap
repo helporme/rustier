@@ -205,7 +205,6 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	}
 	Ok(())
 }
-
 ```
 
 ## Wasm Bindings
@@ -310,5 +309,4 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	}
 	Ok(())
 }
-
 ```

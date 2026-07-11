@@ -230,7 +230,6 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	}
 	
 }
-
 ```
 
 ## Node Bindings
@@ -419,5 +418,4 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	}
 	
 }
-
 ```

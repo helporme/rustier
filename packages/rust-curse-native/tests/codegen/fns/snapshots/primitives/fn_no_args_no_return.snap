@@ -51,7 +51,6 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> napi::Result<()> {
 	}
 	Ok(())
 }
-
 ```
 
 ## Wasm Bindings
@@ -67,5 +66,4 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> Result<(), JsValue> {
 	}
 	Ok(())
 }
-
 ```

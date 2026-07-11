@@ -246,7 +246,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	}
 	
 }
-
 ```
 
 ## Wasm Bindings
@@ -436,5 +435,4 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	}
 	
 }
-
 ```

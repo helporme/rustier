@@ -51,7 +51,6 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> napi::Result<bool> {
 	Ok	(
 		rustdoc_test_crate::foo()
 	)}
-
 ```
 
 ## Wasm Bindings
@@ -65,5 +64,4 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> Result<bool, JsValue> {
 	Ok	(
 		rustdoc_test_crate::foo()
 	)}
-
 ```

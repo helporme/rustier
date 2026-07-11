@@ -177,7 +177,6 @@ pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 }
-
 ```
 
 ## Node Bindings
@@ -308,5 +307,4 @@ pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 }
-
 ```
