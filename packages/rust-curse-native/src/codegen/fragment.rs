@@ -306,6 +306,10 @@ impl_fragment_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6);
 impl_fragment_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7);
 impl_fragment_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7, I.8);
 
+pub fn fragment_fn(f: impl Fn(&mut Printer)) -> impl Fragment {
+    f.into_fragment()
+}
+
 /// Increases indentation while rendering the given fragment.
 ///
 /// ```
@@ -394,6 +398,40 @@ where
     .into_fragment()
 }
 
+/// Joins fragments with one blank line between them.
+///
+/// If the previous fragment does not end with a newline, `spaced` inserts two;
+/// if it ends with one, `spaced` inserts one more. Existing blank lines are
+/// preserved.
+///
+/// ```
+/// # use rust_curse::codegen::fragment::{spaced, FragmentPrint};
+/// #
+/// assert_eq!(spaced(["one", "two"]).print(), "one\n\ntwo");
+/// assert_eq!(spaced(["one\n", "two"]).print(), "one\n\ntwo");
+/// assert_eq!(spaced(["one\n\n", "two"]).print(), "one\n\ntwo");
+/// assert_eq!(spaced(Vec::<&str>::new()).print(), "");
+/// ```
+pub fn spaced<I>(frags: I) -> impl Fragment
+where
+    I: IntoIterator + Clone,
+    I::Item: Fragment,
+{
+    (move |p: &mut Printer| {
+        for (index, frag) in frags.clone().into_iter().enumerate() {
+            if index > 0 && !p.out.ends_with("\n\n") {
+                if !p.at_line_start {
+                    p.write("\n");
+                }
+                p.write("\n");
+            }
+
+            frag.apply(p);
+        }
+    })
+    .into_fragment()
+}
+
 /// Builds a fragment from source-like tokens and interpolated fragments.
 ///
 /// Static tokens are emitted as written, `~` inserts a space between tokens and
@@ -405,6 +443,38 @@ where
 /// #
 /// let name = "world";
 /// let greeting = frag!(hello ~ {name} @ goodbye);
+///
+/// assert_eq!(greeting.print(), "hello world\ngoodbye");
+/// ```
+///
+/// # Special tokens
+/// ## Space insertion (`~`)
+/// Use `~` to insert a space between static tokens and interpolations. While
+/// working, it's not neccessary to use `~` between static tokens; the macro
+/// will insert a space automatically.
+///
+/// ```
+/// # use rust_curse::codegen::fragment::{frag, FragmentPrint};
+/// #
+/// assert_eq!(frag!(hello ~ world).print(), "hello world");
+/// assert_eq!(frag!(hello world).print(), "hello world");
+///
+/// let world = "world";
+/// assert_eq!(frag!(hello {world}).print(), "helloworld");
+/// assert_eq!(frag!(hello ~{world}).print(), "hello world");
+/// ```
+///
+/// ## Newline insertion (`@`)
+/// Use `@` to insert a newline.
+///
+/// ```
+/// # use rust_curse::codegen::fragment::{frag, FragmentPrint};
+/// #
+/// let name = "world";
+/// let greeting = frag!(
+///     hello ~ {name}@
+///     goodbye
+/// );
 ///
 /// assert_eq!(greeting.print(), "hello world\ngoodbye");
 /// ```
