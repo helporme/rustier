@@ -1,0 +1,446 @@
+---
+source: tests/codegen/structs/structs.rs
+expression: body
+---
+## Test
+
+```text
+structs_structs::plain_struct_with_non_clonable_struct_field
+```
+
+## Source
+
+```rs
+pub struct Field;
+pub struct Parent {
+    pub field: Field,
+}
+```
+
+## IR
+
+```rs
+ModDef {
+    id: "rustdoc_test_crate",
+    fns: [],
+    structs: [
+        Struct {
+            id: "rustdoc_test_crate::Field",
+            shape:
+                Unit,
+        },
+        Struct {
+            id: "rustdoc_test_crate::Parent",
+            shape:
+                Plain {
+                    fields: [
+                        PlainStructField {
+                            name: "field",
+                            type: rustdoc_test_crate::Field,
+                            is_readonly: true,
+                        },
+                    ],
+                    has_stripped_fields: false,
+                },
+        },
+    ],
+    submods: [],
+}
+```
+
+## Typescript
+
+for `rustdoc_test_crate`:
+
+```ts
+export class Field {
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+export class Parent {
+	public readonly field: Field;
+	private __rust_curse_brand: never;
+	private constructor();
+}
+```
+
+## Node Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use napi_derive::napi;
+
+#[allow(non_snake_case, dead_code)]
+mod __curse {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    pub trait Accessor<T> {
+        fn access(&self, f: &mut dyn FnMut(&T));
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T));
+    }
+
+    impl<T> Accessor<T> for RefCell<T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            f(&*self.borrow());
+        }
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            f(&mut *self.borrow_mut());
+        }
+    }
+
+    pub enum Backing<T> {
+        Owned(T),
+        Projected(Rc<dyn Accessor<T>>),
+    }
+
+    pub struct Slot<T>(RefCell<Backing<T>>);
+
+    impl<T: 'static> Slot<T> {
+        pub fn owned(value: T) -> Self {
+            Slot(RefCell::new(Backing::Owned(value)))
+        }
+        pub fn projected(projection: Rc<dyn Accessor<T>>) -> Self {
+            Slot(RefCell::new(Backing::Projected(projection)))
+        }
+        pub fn replace_with_owned(&self, value: T) {
+            *self.0.borrow_mut() = Backing::Owned(value);
+        }
+    }
+
+    impl<T> Accessor<T> for Slot<T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            let projection = {
+                let target = self.0.borrow();
+
+                match &*target {
+                    Backing::Owned(value) => {
+                        f(value);
+                        return;
+                    }
+                    Backing::Projected(access) => Rc::clone(access),
+                }
+            };
+            projection.access(f);
+        }
+
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let projection = {
+                let mut target = self.0.borrow_mut();
+
+                match &mut *target {
+                    Backing::Owned(value) => {
+                        f(value);
+                        return;
+                    }
+                    Backing::Projected(access) => Rc::clone(access),
+                }
+            };
+            projection.access_mut(f);
+        }
+    }
+
+    pub struct Projection<Parent, T> {
+        pub parent: Rc<dyn Accessor<Parent>>,
+        pub project: fn(&Parent) -> &T,
+        pub project_mut: fn(&mut Parent) -> &mut T,
+    }
+
+    impl<Parent: 'static, T: 'static> Accessor<T> for Projection<Parent, T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            self.parent.access(&mut |p| f((self.project)(p)))
+        }
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            self.parent.access_mut(&mut |p| f((self.project_mut)(p)))
+        }
+    }
+}
+use __curse::Accessor as _;
+
+struct __cursed_handle__rustdoc_0test_0crate_Field{
+	src: __curse::Slot<rustdoc_test_crate::Field>,
+}
+
+impl __cursed_handle__rustdoc_0test_0crate_Field {
+	pub fn new_owned(input: rustdoc_test_crate::Field) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_Field 		{
+			src: __curse::Slot::owned(input),
+		}}	
+	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Field>>) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_Field 		{
+			src: __curse::Slot::projected(input),
+		}}}
+
+impl __curse::Accessor<rustdoc_test_crate::Field> for __cursed_handle__rustdoc_0test_0crate_Field
+{
+    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::Field)) {
+        self.src.access(f);
+    }
+
+    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::Field)) {
+        self.src.access_mut(f);
+    }
+}
+
+#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_Field")]
+pub struct __cursed_struct__rustdoc_0test_0crate_Field {
+	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_Field>
+}
+
+#[napi]
+impl __cursed_struct__rustdoc_0test_0crate_Field {
+}
+
+struct __cursed_handle__rustdoc_0test_0crate_Parent{
+	src: __curse::Slot<rustdoc_test_crate::Parent>,
+	__c__field: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_Field>>>,
+}
+
+impl __cursed_handle__rustdoc_0test_0crate_Parent {
+	pub fn new_owned(input: rustdoc_test_crate::Parent) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_Parent 		{
+			src: __curse::Slot::owned(input),
+			__c__field: std::cell::RefCell::new(None),
+		}}	
+	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Parent>>) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_Parent 		{
+			src: __curse::Slot::projected(input),
+			__c__field: std::cell::RefCell::new(None),
+		}}}
+
+impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent
+{
+    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::Parent)) {
+        self.src.access(f);
+    }
+
+    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::Parent)) {
+        self.src.access_mut(f);
+    }
+}
+
+#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]
+pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
+	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_Parent>
+}
+
+#[napi]
+impl __cursed_struct__rustdoc_0test_0crate_Parent {
+	#[napi(getter, js_name = "field")]
+	pub fn __getter__field(&self) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_Field> {
+		if let Some(handle) = self.handle.__c__field.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
+		    return Ok(__cursed_struct__rustdoc_0test_0crate_Field { handle });
+		}
+		
+		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Field>> = std::rc::Rc::new(__curse::Projection {
+		    parent: self.handle.clone(),
+		    project: |parent| &parent.field,
+		    project_mut: |parent| &mut parent.field,
+		});
+		
+		let handle = std::rc::Rc::new(__cursed_handle__rustdoc_0test_0crate_Field::new_projected(projection));
+		
+		*self.handle.__c__field.borrow_mut() =
+		    Some(std::rc::Rc::downgrade(&handle));
+		
+		return Ok(__cursed_struct__rustdoc_0test_0crate_Field { handle });
+	}
+	
+}
+
+```
+
+## Wasm Bindings
+
+```rs
+#![allow(non_camel_case_types, non_snake_case)]
+use wasm_bindgen::prelude::*;
+
+#[allow(non_snake_case, dead_code)]
+mod __curse {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    pub trait Accessor<T> {
+        fn access(&self, f: &mut dyn FnMut(&T));
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T));
+    }
+
+    impl<T> Accessor<T> for RefCell<T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            f(&*self.borrow());
+        }
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            f(&mut *self.borrow_mut());
+        }
+    }
+
+    pub enum Backing<T> {
+        Owned(T),
+        Projected(Rc<dyn Accessor<T>>),
+    }
+
+    pub struct Slot<T>(RefCell<Backing<T>>);
+
+    impl<T: 'static> Slot<T> {
+        pub fn owned(value: T) -> Self {
+            Slot(RefCell::new(Backing::Owned(value)))
+        }
+        pub fn projected(projection: Rc<dyn Accessor<T>>) -> Self {
+            Slot(RefCell::new(Backing::Projected(projection)))
+        }
+        pub fn replace_with_owned(&self, value: T) {
+            *self.0.borrow_mut() = Backing::Owned(value);
+        }
+    }
+
+    impl<T> Accessor<T> for Slot<T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            let projection = {
+                let target = self.0.borrow();
+
+                match &*target {
+                    Backing::Owned(value) => {
+                        f(value);
+                        return;
+                    }
+                    Backing::Projected(access) => Rc::clone(access),
+                }
+            };
+            projection.access(f);
+        }
+
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            let projection = {
+                let mut target = self.0.borrow_mut();
+
+                match &mut *target {
+                    Backing::Owned(value) => {
+                        f(value);
+                        return;
+                    }
+                    Backing::Projected(access) => Rc::clone(access),
+                }
+            };
+            projection.access_mut(f);
+        }
+    }
+
+    pub struct Projection<Parent, T> {
+        pub parent: Rc<dyn Accessor<Parent>>,
+        pub project: fn(&Parent) -> &T,
+        pub project_mut: fn(&mut Parent) -> &mut T,
+    }
+
+    impl<Parent: 'static, T: 'static> Accessor<T> for Projection<Parent, T> {
+        fn access(&self, f: &mut dyn FnMut(&T)) {
+            self.parent.access(&mut |p| f((self.project)(p)))
+        }
+        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
+            self.parent.access_mut(&mut |p| f((self.project_mut)(p)))
+        }
+    }
+}
+use __curse::Accessor as _;
+
+struct __cursed_handle__rustdoc_0test_0crate_Field{
+	src: __curse::Slot<rustdoc_test_crate::Field>,
+}
+
+impl __cursed_handle__rustdoc_0test_0crate_Field {
+	pub fn new_owned(input: rustdoc_test_crate::Field) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_Field 		{
+			src: __curse::Slot::owned(input),
+		}}	
+	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Field>>) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_Field 		{
+			src: __curse::Slot::projected(input),
+		}}}
+
+impl __curse::Accessor<rustdoc_test_crate::Field> for __cursed_handle__rustdoc_0test_0crate_Field
+{
+    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::Field)) {
+        self.src.access(f);
+    }
+
+    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::Field)) {
+        self.src.access_mut(f);
+    }
+}
+
+#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_Field)]
+pub struct __cursed_struct__rustdoc_0test_0crate_Field {
+	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_Field>
+}
+
+#[wasm_bindgen]
+impl __cursed_struct__rustdoc_0test_0crate_Field {
+}
+
+struct __cursed_handle__rustdoc_0test_0crate_Parent{
+	src: __curse::Slot<rustdoc_test_crate::Parent>,
+	__c__field: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_Field>>>,
+}
+
+impl __cursed_handle__rustdoc_0test_0crate_Parent {
+	pub fn new_owned(input: rustdoc_test_crate::Parent) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_Parent 		{
+			src: __curse::Slot::owned(input),
+			__c__field: std::cell::RefCell::new(None),
+		}}	
+	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Parent>>) -> Self 
+	{
+		__cursed_handle__rustdoc_0test_0crate_Parent 		{
+			src: __curse::Slot::projected(input),
+			__c__field: std::cell::RefCell::new(None),
+		}}}
+
+impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent
+{
+    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::Parent)) {
+        self.src.access(f);
+    }
+
+    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::Parent)) {
+        self.src.access_mut(f);
+    }
+}
+
+#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_Parent)]
+pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
+	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_Parent>
+}
+
+#[wasm_bindgen]
+impl __cursed_struct__rustdoc_0test_0crate_Parent {
+	#[wasm_bindgen(getter, js_name = field)]
+	pub fn __getter__field(&self) -> Result<__cursed_struct__rustdoc_0test_0crate_Field, JsValue> {
+		if let Some(handle) = self.handle.__c__field.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
+		    return Ok(__cursed_struct__rustdoc_0test_0crate_Field { handle });
+		}
+		
+		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Field>> = std::rc::Rc::new(__curse::Projection {
+		    parent: self.handle.clone(),
+		    project: |parent| &parent.field,
+		    project_mut: |parent| &mut parent.field,
+		});
+		
+		let handle = std::rc::Rc::new(__cursed_handle__rustdoc_0test_0crate_Field::new_projected(projection));
+		
+		*self.handle.__c__field.borrow_mut() =
+		    Some(std::rc::Rc::downgrade(&handle));
+		
+		return Ok(__cursed_struct__rustdoc_0test_0crate_Field { handle });
+	}
+	
+}
+
+```

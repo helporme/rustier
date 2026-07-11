@@ -40,3 +40,29 @@ fn tuple_struct_with_struct_fields() {
         pub struct Parent(pub PlainField, pub TupleField);
     }
 }
+
+#[test]
+fn plain_struct_with_non_clonable_struct_field() {
+    assert_snap! {
+        @gen: ir, ts, node, wasm;
+        @category: structs;
+
+        pub struct Field;
+
+        pub struct Parent {
+            pub field: Field,
+        }
+    }
+}
+
+#[test]
+fn tuple_struct_with_non_clonable_struct_field() {
+    assert_snap! {
+        @gen: ir, ts, node, wasm;
+        @category: structs;
+
+        pub struct Field;
+
+        pub struct Parent(pub Field);
+    }
+}
