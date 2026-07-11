@@ -190,7 +190,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.value); })
+					(self).handle.src.access(&mut |src| { result.write(src.value.clone()); })
 				}
 				unsafe { result.assume_init() }
 			}
@@ -359,7 +359,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.value); })
+					(self).handle.src.access(&mut |src| { result.write(src.value.clone()); })
 				}
 				unsafe { result.assume_init() }
 			}

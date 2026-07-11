@@ -269,7 +269,17 @@ fn compile_primitive_field_getter_body<'db>(
             in_expr: &format!("src.{}", field.name(db)),
             type_: field.type_(db),
         };
-        compile_boundary_out_conversion_expr(db, &get_field_expr)
+
+        let expr = compile_boundary_out_conversion_expr(db, &get_field_expr);
+
+        if field.type_(db) == Type::String {
+            // Clone the string to avoid moving it out from the struct.
+            // Strings are always cloned when passing the js boundary, so it's not a
+            // performance concern.
+            format!("{expr}.clone()")
+        } else {
+            expr
+        }
     });
 
     out.write("Ok");

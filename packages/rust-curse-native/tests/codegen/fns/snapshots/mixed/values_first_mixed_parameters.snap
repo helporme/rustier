@@ -395,7 +395,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.0); })
+					(self).handle.src.access(&mut |src| { result.write(src.0.clone()); })
 				}
 				unsafe { result.assume_init() }
 			}
@@ -664,7 +664,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.0); })
+					(self).handle.src.access(&mut |src| { result.write(src.0.clone()); })
 				}
 				unsafe { result.assume_init() }
 			}
