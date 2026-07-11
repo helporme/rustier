@@ -354,7 +354,10 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_String(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
 			
-			(self).handle.src.access_mut(&mut |src| { src.0 = value; })
+			let mut value = Some(value);
+			(self).handle.src.access_mut(&mut |src| { let value = value.take().unwrap();
+			src.0 = value;
+			 })
 		}
 		Ok(())
 	}
@@ -600,7 +603,10 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_String(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
 			
-			(self).handle.src.access_mut(&mut |src| { src.0 = value; })
+			let mut value = Some(value);
+			(self).handle.src.access_mut(&mut |src| { let value = value.take().unwrap();
+			src.0 = value;
+			 })
 		}
 		Ok(())
 	}

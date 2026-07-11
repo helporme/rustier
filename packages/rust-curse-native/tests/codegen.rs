@@ -3,11 +3,17 @@
 #[path = "codegen/check/f32_percission_los.rs"]
 mod check_f32_percission_los;
 
+#[path = "codegen/incremental_regressions.rs"]
+mod incremental_regressions;
+
 #[path = "codegen/fns/diags.rs"]
 mod fns_diags;
 
 #[path = "codegen/fns/docs.rs"]
 mod fns_docs;
+
+#[path = "codegen/fns/mixed.rs"]
+mod fns_mixed;
 
 #[path = "codegen/fns/primitives.rs"]
 mod fns_primitives;

@@ -123,8 +123,18 @@ pub fn compile_boundary_in_conversion_stmt<'db>(
 ) -> String {
     let mut out = Printer::default();
 
+    let will_use_projection_closures = exprs
+        .iter()
+        .any(|expr| matches!(expr.type_, Type::Struct(_)));
+
     out.curlies(|out| {
         for expr in exprs {
+            // Structs are cloned on move. To achieve it, we are accessing the source
+            // structs by ref projection and cloning them inside the clojure.
+            //
+            // It's important to clone the struct inside the clojure, rather than
+            // before it, to avoid moving the struct out of the closure's scope, since
+            // projection fn takes FnMut and not FnOnce.
             if matches!(
                 (expr.type_, expr.mode),
                 (Type::Struct(_), BoundaryMode::Move)
@@ -135,17 +145,40 @@ pub fn compile_boundary_in_conversion_stmt<'db>(
                     {inner_stmt}
                 "#};
             }
-        }
 
-        for param in exprs {
-            if matches!(param.type_, Type::Struct(_)) {
-                inner_stmt = compile_boundary_conversion_expr_via_projection(param, &inner_stmt);
+            // In case projections will are used, we wrap strings in `Some` on
+            // move, so we can take them out safely without violating the FnMut
+            // contract.
+            if will_use_projection_closures
+                && matches!((expr.type_, expr.mode), (Type::String, BoundaryMode::Move))
+            {
+                let name = expr.out_var_name;
+                inner_stmt = indoc::formatdoc! {r#"
+                    let {name} = {name}.take().unwrap();
+                    {inner_stmt}
+                "#};
             }
         }
 
-        for param in exprs {
-            if !matches!(param.type_, Type::Struct(_)) {
-                let cast = compile_boundary_conversion_stmt_via_cast(db, param);
+        for expr in exprs {
+            if matches!(expr.type_, Type::Struct(_)) {
+                inner_stmt = compile_boundary_conversion_expr_via_projection(expr, &inner_stmt);
+            }
+        }
+
+        for expr in exprs {
+            if !matches!(expr.type_, Type::Struct(_)) {
+                let mut cast = compile_boundary_conversion_stmt_via_cast(db, expr);
+
+                if will_use_projection_closures
+                    && matches!((expr.type_, expr.mode), (Type::String, BoundaryMode::Move))
+                {
+                    cast = format!(
+                        "{cast}\nlet mut {} = Some({});",
+                        expr.out_var_name, expr.out_var_name
+                    );
+                }
+
                 inner_stmt = format!("{cast}\n{inner_stmt}");
             }
         }
@@ -179,13 +212,12 @@ fn compile_boundary_conversion_stmt_via_cast<'db>(
     let api = Api::get(db);
     let mut out = Printer::default();
 
-    let type_ = expr.type_;
     let error = api.error(
         db,
         &format!(
             "format!(\"Expected Rust `{}` from a JavaScript {}: {{}}\", err)",
-            type_.rs_name(db),
-            type_.ts_name(db)
+            expr.type_.rs_name(db),
+            expr.type_.ts_name(db)
         ),
     );
 
@@ -197,7 +229,7 @@ fn compile_boundary_conversion_stmt_via_cast<'db>(
         BoundaryMode::Ref => "& ",
         BoundaryMode::Mut => "&mut ",
     };
-    let cast_fn_name = type_.cast_fn_name(db);
+    let cast_fn_name = expr.type_.cast_fn_name(db);
 
     out.line_fmt(format_args!(
         "let mut {var_name} = {ref_}{cast_fn_name}({expr_to_convert}).map_err(|err| {error})?;",
