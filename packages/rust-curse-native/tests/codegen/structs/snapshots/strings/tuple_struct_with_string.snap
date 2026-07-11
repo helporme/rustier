@@ -140,7 +140,9 @@ mod __curse {
 }
 use __curse::Accessor as _;
 
-fn __cast_String(value: JsValue) -> Result<String, String> {
+fn __cast_String(
+	value: JsValue
+)-> Result<String, String> {
 	value.as_string().ok_or_else(|| "cannot cast value to String".to_string())
 }
 
@@ -309,7 +311,9 @@ mod __curse {
 }
 use __curse::Accessor as _;
 
-fn __cast_String(value: Unknown<'_>) -> Result<String, String> {
+fn __cast_String(
+	value: Unknown<'_>
+)-> Result<String, String> {
 	if value.get_type().map_err(|err| err.reason)? == ValueType::String
 	{
 		unsafe { value.cast::<String>() }.map_err(|_| "cannot cast value to String".to_string())

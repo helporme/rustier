@@ -359,6 +359,17 @@ pub fn singles(frag: impl Fragment) -> impl Fragment {
     ("'", frag, "'")
 }
 
+/// Wraps the given fragment in double quotes.
+///
+/// ```
+/// # use rust_curse::codegen::fragment::{doubles, FragmentPrint};
+/// #
+/// assert_eq!(doubles("value").print(), "\"value\"");
+/// ```
+pub fn doubles(frag: impl Fragment) -> impl Fragment {
+    ("\"", frag, "\"")
+}
+
 /// Joins fragments with a comma and a newline.
 ///
 /// ```

@@ -145,7 +145,9 @@ mod __curse {
 }
 use __curse::Accessor as _;
 
-fn __cast_bool(value: JsValue) -> Result<bool, String> {
+fn __cast_bool(
+	value: JsValue
+)-> Result<bool, String> {
 	value.as_bool().ok_or_else(|| "cannot cast value to bool".to_string())
 }
 
@@ -342,7 +344,9 @@ mod __curse {
 }
 use __curse::Accessor as _;
 
-fn __cast_bool(value: Unknown<'_>) -> Result<bool, String> {
+fn __cast_bool(
+	value: Unknown<'_>
+)-> Result<bool, String> {
 	if value.get_type().map_err(|err| err.reason)? == ValueType::Boolean
 	{
 		unsafe { value.cast::<bool>() }.map_err(|_| "cannot cast value to bool".to_string())

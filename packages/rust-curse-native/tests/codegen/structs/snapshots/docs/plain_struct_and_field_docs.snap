@@ -152,16 +152,33 @@ mod __curse {
 }
 use __curse::Accessor as _;
 
-fn __cast_f64(value: JsValue) -> Result<f64, String> {
+fn __cast_f64(
+	value: JsValue
+)-> Result<f64, String> {
 	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
 }
-fn __cast_i32(value: JsValue) -> Result<i32, String> {
-	let value = __cast_f64(value).map_err(|_| "cannot cast value to i32".to_string())?;
-	if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64
-	{
-		return Err(format!("cannot cast {} to i32", value));
+
+fn __cast_i32(
+	value: JsValue
+)-> Result<i32, String> {
+	let type_name = "i32";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
 	}
-	Ok(value as i32)
+	Ok(
+		value as i32
+	)
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainStruct{
@@ -326,7 +343,9 @@ mod __curse {
 }
 use __curse::Accessor as _;
 
-fn __cast_f64(value: Unknown<'_>) -> Result<f64, String> {
+fn __cast_f64(
+	value: Unknown<'_>
+)-> Result<f64, String> {
 	if value.get_type().map_err(|err| err.reason)? == ValueType::Number
 	{
 		unsafe { value.cast::<f64>() }.map_err(|_| "cannot cast value to f64".to_string())
@@ -336,13 +355,28 @@ fn __cast_f64(value: Unknown<'_>) -> Result<f64, String> {
 		Err("cannot cast value to f64".to_string())
 	}
 }
-fn __cast_i32(value: Unknown<'_>) -> Result<i32, String> {
-	let value = __cast_f64(value).map_err(|_| "cannot cast value to i32".to_string())?;
-	if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64
-	{
-		return Err(format!("cannot cast {} to i32", value));
+
+fn __cast_i32(
+	value: Unknown<'_>
+)-> Result<i32, String> {
+	let type_name = "i32";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
 	}
-	Ok(value as i32)
+	Ok(
+		value as i32
+	)
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainStruct{

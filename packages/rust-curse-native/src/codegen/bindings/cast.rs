@@ -7,15 +7,18 @@
 
 use std::collections::HashSet;
 
-use crate::codegen::{
-    api::Api,
-    bindings::printer::Printer,
-    db::Db,
-    ir::{
-        struct_::struct_fqn_from_rustdoc_id,
-        type_::{Primitive, Type},
+use crate::{
+    codegen::{
+        api::Api,
+        db::Db,
+        fragment::{doubles, fragment_fn, spaced, Fragment, FragmentPrint},
+        ir::{
+            struct_::struct_fqn_from_rustdoc_id,
+            type_::{Primitive, Type},
+        },
+        rustdoc::mod_::{all_mod_ids, lower_mod_fns, lower_mod_structs},
     },
-    rustdoc::mod_::{all_mod_ids, lower_mod_fns, lower_mod_structs},
+    frag,
 };
 
 /// Compiles all cast helper functions required by public Rust functions and
@@ -38,11 +41,8 @@ pub fn compile_cast_fns(db: &dyn Db) -> String {
         }
     }
 
-    let mut out = String::new();
-    for type_ in types {
-        out.push_str(&compile_cast_fn(db, type_));
-    }
-    out
+    let casted_fns = spaced(types.iter().map(|ty| compile_cast_fn(db, *ty)));
+    casted_fns.print()
 }
 
 /// Collects a cast target type and any wider helper types it depends on.
@@ -85,31 +85,17 @@ fn collect_cast_type<'db>(
 }
 
 /// Compiles a cast helper function for the given type.
-fn compile_cast_fn(db: &dyn Db, type_: Type) -> String {
+fn compile_cast_fn<'db>(db: &'db dyn Db, type_: Type<'db>) -> impl Fragment + 'db {
     let api = Api::get(db);
-    let mut out = Printer::default();
 
-    out.write_fmt(format_args!(
-        "fn {}(value: {}) -> Result<{}, String> ",
-        type_.cast_fn_name(db),
-        api.js_type(db),
-        compile_cast_res(db, type_)
-    ));
-    out.curlies(|p| {
-        p.lines(&compile_cast_body(db, type_));
-    });
-
-    out.blank();
-    out.into()
+    frag!(
+        fn ~{type_.cast_fn_name(db)}(value: ~{api.js_type(db)}) -> Result<{compile_cast_res(db, type_)}, String> ~{{
+            {compile_cast_body(db, type_)}
+        }}
+    )
 }
 
 /// Compiles the successful `Result` type of a cast function.
-///
-/// ```ignore (incomplete expression)
-/// fn cast(value: JsValue) -> Result<String, String>
-///                                // ~~~~~~
-///                                // this part
-/// ```
 fn compile_cast_res<'db>(db: &'db dyn Db, type_: Type<'db>) -> &'db str {
     match type_ {
         Type::Primitive(primitive) => primitive.rs_name(),
@@ -119,74 +105,85 @@ fn compile_cast_res<'db>(db: &'db dyn Db, type_: Type<'db>) -> &'db str {
 }
 
 /// Compiles the body of a cast function.
-fn compile_cast_body(db: &dyn Db, type_: Type) -> String {
-    let api = Api::get(db);
+fn compile_cast_body<'db>(db: &'db dyn Db, type_: Type<'db>) -> impl Fragment + 'db {
+    fragment_fn(move |p| {
+        let api = Api::get(db);
 
-    match type_ {
-        Type::Primitive(Primitive::Boolean) => api.cast_to_bool(db),
-        Type::Primitive(Primitive::Char) => compile_char_cast_body(),
-        Type::Str | Type::String => api.cast_to_string(db),
-        Type::Primitive(Primitive::i8) => compile_signed_integer_cast_body(Primitive::i8),
-        Type::Primitive(Primitive::u8) => compile_unsigned_integer_cast_body(Primitive::u8),
-        Type::Primitive(Primitive::i16) => compile_signed_integer_cast_body(Primitive::i16),
-        Type::Primitive(Primitive::u16) => compile_unsigned_integer_cast_body(Primitive::u16),
-        Type::Primitive(Primitive::i32) => compile_signed_integer_cast_body(Primitive::i32),
-        Type::Primitive(Primitive::u32) => compile_unsigned_integer_cast_body(Primitive::u32),
-        Type::Primitive(Primitive::f32) => compile_f32_cast_body(),
-        Type::Primitive(Primitive::f64) => api.cast_to_f64(db),
-        Type::Struct(_) => unreachable!(),
-    }
+        let body: &dyn Fragment = match type_ {
+            Type::Primitive(Primitive::Boolean) => &api.cast_to_bool(db),
+            Type::Primitive(Primitive::Char) => &compile_char_cast_body(),
+            Type::Str | Type::String => &api.cast_to_string(db),
+            Type::Primitive(Primitive::i8) => &compile_signed_integer_cast_body(Primitive::i8),
+            Type::Primitive(Primitive::u8) => &compile_unsigned_integer_cast_body(Primitive::u8),
+            Type::Primitive(Primitive::i16) => &compile_signed_integer_cast_body(Primitive::i16),
+            Type::Primitive(Primitive::u16) => &compile_unsigned_integer_cast_body(Primitive::u16),
+            Type::Primitive(Primitive::i32) => &compile_signed_integer_cast_body(Primitive::i32),
+            Type::Primitive(Primitive::u32) => &compile_unsigned_integer_cast_body(Primitive::u32),
+            Type::Primitive(Primitive::f32) => &compile_f32_cast_body(),
+            Type::Primitive(Primitive::f64) => &api.cast_to_f64(db),
+            Type::Struct(_) => unreachable!(),
+        };
+
+        body.apply(p);
+    })
 }
 
 /// Compiles a cast body that converts a JavaScript number into a Rust `char`.
-fn compile_char_cast_body() -> String {
+fn compile_char_cast_body() -> impl Fragment {
     let u32_cast_fn = Primitive::u32.cast_fn_name();
 
-    indoc::formatdoc! {r#"
-        let value = {u32_cast_fn}(value).map_err(|_| "cannot cast value to char".to_string())?;
-        char::from_u32(value).ok_or_else(|| format!("cannot cast {{}} to char", value))
-    "#}
+    frag!(
+        let value = ~{u32_cast_fn}(value).map_err(|_| "cannot cast value to char".to_string())?;
+        char::from_u32(value).ok_or_else(|| format!("cannot cast {value} to char"))
+    )
 }
 
 /// Compiles a cast body that converts a JavaScript number into a Rust `f32`.
-fn compile_f32_cast_body() -> String {
+fn compile_f32_cast_body() -> impl Fragment {
     let f64_cast_fn = Primitive::f64.cast_fn_name();
     let type_name = Primitive::f32.rs_name();
 
-    indoc::formatdoc! {r#"
-        let value = {f64_cast_fn}(value).map_err(|_| "cannot cast value to {type_name}".to_string())?;
-        Ok(value as {type_name})
-    "#}
+    frag!(
+        let type_name = ~{doubles(type_name)};@
+        let value = ~{f64_cast_fn}(value).map_err(|_| format!("cannot cast value to {type_name}"))?;@
+        Ok(value as ~{type_name})
+    )
 }
 
 /// Compiles a cast body that converts a JavaScript number into a signed Rust
 /// integer.
-fn compile_signed_integer_cast_body(primitive: Primitive) -> String {
+fn compile_signed_integer_cast_body(primitive: Primitive) -> impl Fragment {
     let f64_cast_fn = Primitive::f64.cast_fn_name();
     let type_name = primitive.rs_name();
 
-    indoc::formatdoc! {r#"
-        let value = {f64_cast_fn}(value).map_err(|_| "cannot cast value to {type_name}".to_string())?;
-        if value.trunc() != value || value < {type_name}::MIN as f64 || value > {type_name}::MAX as f64
-        {{
-        	return Err(format!("cannot cast {{}} to {type_name}", value));
-        }}
-        Ok(value as {type_name})
-    "#}
+    frag!(
+        let type_name = ~{doubles(type_name)};@
+        let value = ~{f64_cast_fn}(value).map_err(|_| format!("cannot cast value to {type_name}"))?;@
+
+        if value.trunc()~ != value || value < ~{type_name}::MIN as f64 || value > ~{type_name}::MAX as f64
+        ~{{
+            return Err(format!("cannot cast {value} to {type_name}"));
+        }}@
+
+        Ok(value as ~{type_name})
+    )
 }
 
 /// Compiles a cast body that converts a JavaScript number into an unsigned Rust
 /// integer.
-fn compile_unsigned_integer_cast_body(primitive: Primitive) -> String {
+fn compile_unsigned_integer_cast_body(primitive: Primitive) -> impl Fragment {
     let f64_cast_fn = Primitive::f64.cast_fn_name();
     let type_name = primitive.rs_name();
 
-    indoc::formatdoc! {r#"
-        let value = {f64_cast_fn}(value).map_err(|_| "cannot cast value to {type_name}".to_string())?;
-        if value.trunc() != value || value < 0 as f64 || value > {type_name}::MAX as f64
-        {{
-        	return Err(format!("cannot cast {{}} to {type_name}", value));
-        }}
-        Ok(value as {type_name})
-    "#}
+    frag! (
+        let type_name = ~{doubles(type_name)};@
+        let value = ~{f64_cast_fn}(value).map_err(|_| format!("cannot cast value to {type_name}"))?;@
+
+        if value.trunc()~ != value || value < 0 as f64 || value > ~{type_name}::MAX as f64
+        ~{{
+            return Err(format!("cannot cast {value} to {type_name}"));
+        }}@
+
+        Ok(value as ~{type_name})
+    )
 }

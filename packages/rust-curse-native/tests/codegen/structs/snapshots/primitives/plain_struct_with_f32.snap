@@ -147,7 +147,9 @@ mod __curse {
 }
 use __curse::Accessor as _;
 
-fn __cast_f64(value: Unknown<'_>) -> Result<f64, String> {
+fn __cast_f64(
+	value: Unknown<'_>
+)-> Result<f64, String> {
 	if value.get_type().map_err(|err| err.reason)? == ValueType::Number
 	{
 		unsafe { value.cast::<f64>() }.map_err(|_| "cannot cast value to f64".to_string())
@@ -157,9 +159,21 @@ fn __cast_f64(value: Unknown<'_>) -> Result<f64, String> {
 		Err("cannot cast value to f64".to_string())
 	}
 }
-fn __cast_f32(value: Unknown<'_>) -> Result<f32, String> {
-	let value = __cast_f64(value).map_err(|_| "cannot cast value to f32".to_string())?;
-	Ok(value as f32)
+
+fn __cast_f32(
+	value: Unknown<'_>
+)-> Result<f32, String> {
+	let type_name = "f32";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	Ok(
+		value as f32
+	)
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainStruct{
@@ -323,12 +337,26 @@ mod __curse {
 }
 use __curse::Accessor as _;
 
-fn __cast_f64(value: JsValue) -> Result<f64, String> {
+fn __cast_f64(
+	value: JsValue
+)-> Result<f64, String> {
 	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
 }
-fn __cast_f32(value: JsValue) -> Result<f32, String> {
-	let value = __cast_f64(value).map_err(|_| "cannot cast value to f32".to_string())?;
-	Ok(value as f32)
+
+fn __cast_f32(
+	value: JsValue
+)-> Result<f32, String> {
+	let type_name = "f32";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	Ok(
+		value as f32
+	)
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainStruct{
