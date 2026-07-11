@@ -223,7 +223,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[wasm_bindgen(setter, js_name = "a")]
-	pub fn __setter__a(&self, value: JsValue) -> Result<(), JsValue> {
+	pub fn __setter__a(
+		&self, value: JsValue
+	) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_bool(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
@@ -234,6 +236,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			)
 		}
 		Ok(())
+
 	}
 
 	#[wasm_bindgen(getter, js_name = "c")]
@@ -256,7 +259,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[wasm_bindgen(setter, js_name = "c")]
-	pub fn __setter__c(&self, value: JsValue) -> Result<(), JsValue> {
+	pub fn __setter__c(
+		&self, value: JsValue
+	) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_bool(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
@@ -267,6 +272,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			)
 		}
 		Ok(())
+
 	}
 }
 ```
@@ -442,7 +448,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[napi(setter, js_name = "a")]
-	pub fn __setter__a(&self, value: Unknown<'_>) -> napi::Result<()> {
+	pub fn __setter__a(
+		&self, value: Unknown<'_>
+	) -> napi::Result<()> {
 		{
 			let mut value = __cast_bool(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
@@ -453,6 +461,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			)
 		}
 		Ok(())
+
 	}
 
 	#[napi(getter, js_name = "c")]
@@ -475,7 +484,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[napi(setter, js_name = "c")]
-	pub fn __setter__c(&self, value: Unknown<'_>) -> napi::Result<()> {
+	pub fn __setter__c(
+		&self, value: Unknown<'_>
+	) -> napi::Result<()> {
 		{
 			let mut value = __cast_bool(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
@@ -486,6 +497,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			)
 		}
 		Ok(())
+
 	}
 }
 ```

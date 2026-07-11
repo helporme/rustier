@@ -283,43 +283,38 @@ fn compile_primitive_field_getter_body<'db>(
 }
 
 /// Compiles the associated function for setting a field of a struct.
-#[salsa::tracked(returns(ref))]
 fn compile_field_setter<'db>(
     db: &'db dyn Db,
     struct_: Struct<'db>,
     field: StructField<'db>,
-) -> String {
+) -> impl Fragment + 'db {
     let api = Api::get(db);
-    let mut out = Printer::default();
-
-    out.lines(&api.field_setter_header(db, field));
 
     let setter_name = field.setter_binding_name(db);
     let param_type_name = compile_boundary_in_type_name(db, field.type_(db));
     let res_type_name = api.result_type(db, "()");
 
-    out.write_fmt(format_args!(
-        "pub fn {setter_name}(&self, value: {param_type_name}) -> {res_type_name} ",
-    ));
-
-    out.curlies(|out| {
+    let body = fragment_fn(move |p| {
         if let Type::Struct(_) = field.type_(db) {
-            out.lines(&compile_struct_field_setter_body(db, field));
+            compile_struct_field_setter_body(db, field).apply(p);
         } else {
-            out.lines(&compile_primitive_field_setter_body(db, struct_, field));
+            compile_primitive_field_setter_body(db, struct_, field).apply(p);
         }
     });
 
-    out.into()
+    frag!(
+        {api.field_setter_header(db, field)}@
+        pub fn ~{setter_name}(&self, value: ~{param_type_name})~ -> ~{res_type_name}~ {{
+            {body}
+        }}
+    )
 }
 
 /// Compiles the body of the setter for a struct field.
-fn compile_struct_field_setter_body<'db>(db: &'db dyn Db, field: StructField<'db>) -> String {
-    let mut out = Printer::default();
-
-    let field_name = field.name(db);
-    let field_cache_name = field.cache_field_name(db);
-
+fn compile_struct_field_setter_body<'db>(
+    db: &'db dyn Db,
+    field: StructField<'db>,
+) -> impl Fragment + 'db {
     let value_in_expr = BoundaryInExpr {
         in_expr: "value",
         out_var_name: "value",
@@ -329,34 +324,33 @@ fn compile_struct_field_setter_body<'db>(db: &'db dyn Db, field: StructField<'db
         mode: BoundaryMode::Move,
     };
 
-    out.lines_fmt(format_args!(
-        "let value = {};",
-        compile_boundary_in_conversion_expr(db, [value_in_expr], "value".to_string(),)
-    ));
+    frag!(
+        let value =~{compile_boundary_in_conversion_expr(db, [value_in_expr], "value".to_string())};@@
 
-    out.lines(&indoc::formatdoc! {r#"
-        let cached_value = self.{HANDLE_FIELD}.{field_cache_name}.borrow_mut().take().and_then(|handle| handle.upgrade());
+        let cached_value = self.{HANDLE_FIELD}
+            .{field.cache_field_name(db)}
+            .borrow_mut()
+            .take()
+            .and_then(|handle| handle.upgrade());@@
 
-        let mut old_value = None;
-        let mut value = Some(value);
+        let mut old_value = None;@
+        let mut value = Some(value);@@
 
-        self.{HANDLE_FIELD}.access_mut(&mut |src| {{
+        self.{HANDLE_FIELD}.access_mut(&mut |src|~{{
             old_value = Some(std::mem::replace(
-                &mut src.{field_name},
+                &mut src.{field.name(db)},
                 value.take().unwrap(),
             ));
-        }});
+        }});@@
 
-        if let Some(cached_value) = cached_value {{
+        if let Some(cached_value)~= cached_value~{{
             cached_value.src.replace_with_owned(
                 old_value.unwrap(),
             );
-        }}
+        }}@@
 
         Ok(())
-    "#});
-
-    out.into()
+    )
 }
 
 /// Compiles the body of the setter for a primitive field.

@@ -215,7 +215,9 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	}
 
 	#[wasm_bindgen(setter, js_name = "0")]
-	pub fn __setter__0(&self, value: JsValue) -> Result<(), JsValue> {
+	pub fn __setter__0(
+		&self, value: JsValue
+	) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_bool(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
@@ -226,6 +228,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			)
 		}
 		Ok(())
+
 	}
 
 	#[wasm_bindgen(getter, js_name = "2")]
@@ -248,7 +251,9 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	}
 
 	#[wasm_bindgen(setter, js_name = "2")]
-	pub fn __setter__2(&self, value: JsValue) -> Result<(), JsValue> {
+	pub fn __setter__2(
+		&self, value: JsValue
+	) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_bool(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
@@ -259,6 +264,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			)
 		}
 		Ok(())
+
 	}
 }
 ```
@@ -434,7 +440,9 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	}
 
 	#[napi(setter, js_name = "0")]
-	pub fn __setter__0(&self, value: Unknown<'_>) -> napi::Result<()> {
+	pub fn __setter__0(
+		&self, value: Unknown<'_>
+	) -> napi::Result<()> {
 		{
 			let mut value = __cast_bool(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
@@ -445,6 +453,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			)
 		}
 		Ok(())
+
 	}
 
 	#[napi(getter, js_name = "2")]
@@ -467,7 +476,9 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	}
 
 	#[napi(setter, js_name = "2")]
-	pub fn __setter__2(&self, value: Unknown<'_>) -> napi::Result<()> {
+	pub fn __setter__2(
+		&self, value: Unknown<'_>
+	) -> napi::Result<()> {
 		{
 			let mut value = __cast_bool(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
@@ -478,6 +489,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			)
 		}
 		Ok(())
+
 	}
 }
 ```

@@ -426,7 +426,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[napi(setter, js_name = "value")]
-	pub fn __setter__value(&self, value: Unknown<'_>) -> napi::Result<()> {
+	pub fn __setter__value(
+		&self, value: Unknown<'_>
+	) -> napi::Result<()> {
 		{
 			let mut value = __cast_i32(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
@@ -437,6 +439,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			)
 		}
 		Ok(())
+
 	}
 }
 
@@ -504,7 +507,9 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	}
 
 	#[napi(setter, js_name = "0")]
-	pub fn __setter__0(&self, value: Unknown<'_>) -> napi::Result<()> {
+	pub fn __setter__0(
+		&self, value: Unknown<'_>
+	) -> napi::Result<()> {
 		{
 			let mut value = __cast_String(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
 			
@@ -518,6 +523,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			)
 		}
 		Ok(())
+
 	}
 }
 ```
@@ -782,7 +788,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[wasm_bindgen(setter, js_name = "value")]
-	pub fn __setter__value(&self, value: JsValue) -> Result<(), JsValue> {
+	pub fn __setter__value(
+		&self, value: JsValue
+	) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
@@ -793,6 +801,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			)
 		}
 		Ok(())
+
 	}
 }
 
@@ -860,7 +869,9 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	}
 
 	#[wasm_bindgen(setter, js_name = "0")]
-	pub fn __setter__0(&self, value: JsValue) -> Result<(), JsValue> {
+	pub fn __setter__0(
+		&self, value: JsValue
+	) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_String(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
 			
@@ -874,6 +885,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			)
 		}
 		Ok(())
+
 	}
 }
 ```

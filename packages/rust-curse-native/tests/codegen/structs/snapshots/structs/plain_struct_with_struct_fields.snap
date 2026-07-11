@@ -307,7 +307,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 	}
 
 	#[napi(setter, js_name = "value")]
-	pub fn __setter__value(&self, value: Unknown<'_>) -> napi::Result<()> {
+	pub fn __setter__value(
+		&self, value: Unknown<'_>
+	) -> napi::Result<()> {
 		{
 			let mut value = __cast_i32(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
@@ -318,6 +320,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 			)
 		}
 		Ok(())
+
 	}
 }
 
@@ -385,7 +388,9 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 	}
 
 	#[napi(setter, js_name = "0")]
-	pub fn __setter__0(&self, value: Unknown<'_>) -> napi::Result<()> {
+	pub fn __setter__0(
+		&self, value: Unknown<'_>
+	) -> napi::Result<()> {
 		{
 			let mut value = __cast_String(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
 			
@@ -399,6 +404,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 			)
 		}
 		Ok(())
+
 	}
 }
 
@@ -495,7 +501,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	}
 
 	#[napi(setter, js_name = "plain")]
-	pub fn __setter__plain(&self, value: &__cursed_struct__rustdoc_0test_0crate_PlainField) -> napi::Result<()> {
+	pub fn __setter__plain(
+		&self, value: &__cursed_struct__rustdoc_0test_0crate_PlainField
+	) -> napi::Result<()> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
@@ -509,25 +517,37 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 			unsafe { result.assume_init() }
 		};
-		let cached_value = self.handle.__c__plain.borrow_mut().take().and_then(|handle| handle.upgrade());
-		
+
+		let cached_value = self.handle.__c__plain.borrow_mut().take().and_then(
+			|handle| handle.upgrade()
+		);
+
 		let mut old_value = None;
-		let mut value = Some(value);
-		
-		self.handle.access_mut(&mut |src| {
-		    old_value = Some(std::mem::replace(
-		        &mut src.plain,
-		        value.take().unwrap(),
-		    ));
-		});
-		
-		if let Some(cached_value) = cached_value {
-		    cached_value.src.replace_with_owned(
-		        old_value.unwrap(),
-		    );
+		let mut value = Some(
+			value
+		);
+
+		self.handle.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mut src.plain, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap(),
+			);
 		}
-		
-		Ok(())
+
+		Ok(
+			()
+		)
 	}
 
 	#[napi(getter, js_name = "tuple")]
@@ -573,7 +593,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	}
 
 	#[napi(setter, js_name = "tuple")]
-	pub fn __setter__tuple(&self, value: &__cursed_struct__rustdoc_0test_0crate_TupleField) -> napi::Result<()> {
+	pub fn __setter__tuple(
+		&self, value: &__cursed_struct__rustdoc_0test_0crate_TupleField
+	) -> napi::Result<()> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
@@ -587,25 +609,37 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 			unsafe { result.assume_init() }
 		};
-		let cached_value = self.handle.__c__tuple.borrow_mut().take().and_then(|handle| handle.upgrade());
-		
+
+		let cached_value = self.handle.__c__tuple.borrow_mut().take().and_then(
+			|handle| handle.upgrade()
+		);
+
 		let mut old_value = None;
-		let mut value = Some(value);
-		
-		self.handle.access_mut(&mut |src| {
-		    old_value = Some(std::mem::replace(
-		        &mut src.tuple,
-		        value.take().unwrap(),
-		    ));
-		});
-		
-		if let Some(cached_value) = cached_value {
-		    cached_value.src.replace_with_owned(
-		        old_value.unwrap(),
-		    );
+		let mut value = Some(
+			value
+		);
+
+		self.handle.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mut src.tuple, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap(),
+			);
 		}
-		
-		Ok(())
+
+		Ok(
+			()
+		)
 	}
 }
 ```
@@ -802,7 +836,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 	}
 
 	#[wasm_bindgen(setter, js_name = "value")]
-	pub fn __setter__value(&self, value: JsValue) -> Result<(), JsValue> {
+	pub fn __setter__value(
+		&self, value: JsValue
+	) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
@@ -813,6 +849,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 			)
 		}
 		Ok(())
+
 	}
 }
 
@@ -880,7 +917,9 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 	}
 
 	#[wasm_bindgen(setter, js_name = "0")]
-	pub fn __setter__0(&self, value: JsValue) -> Result<(), JsValue> {
+	pub fn __setter__0(
+		&self, value: JsValue
+	) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_String(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
 			
@@ -894,6 +933,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 			)
 		}
 		Ok(())
+
 	}
 }
 
@@ -990,7 +1030,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	}
 
 	#[wasm_bindgen(setter, js_name = "plain")]
-	pub fn __setter__plain(&self, value: &__cursed_struct__rustdoc_0test_0crate_PlainField) -> Result<(), JsValue> {
+	pub fn __setter__plain(
+		&self, value: &__cursed_struct__rustdoc_0test_0crate_PlainField
+	) -> Result<(), JsValue> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
@@ -1004,25 +1046,37 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 			unsafe { result.assume_init() }
 		};
-		let cached_value = self.handle.__c__plain.borrow_mut().take().and_then(|handle| handle.upgrade());
-		
+
+		let cached_value = self.handle.__c__plain.borrow_mut().take().and_then(
+			|handle| handle.upgrade()
+		);
+
 		let mut old_value = None;
-		let mut value = Some(value);
-		
-		self.handle.access_mut(&mut |src| {
-		    old_value = Some(std::mem::replace(
-		        &mut src.plain,
-		        value.take().unwrap(),
-		    ));
-		});
-		
-		if let Some(cached_value) = cached_value {
-		    cached_value.src.replace_with_owned(
-		        old_value.unwrap(),
-		    );
+		let mut value = Some(
+			value
+		);
+
+		self.handle.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mut src.plain, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap(),
+			);
 		}
-		
-		Ok(())
+
+		Ok(
+			()
+		)
 	}
 
 	#[wasm_bindgen(getter, js_name = "tuple")]
@@ -1068,7 +1122,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	}
 
 	#[wasm_bindgen(setter, js_name = "tuple")]
-	pub fn __setter__tuple(&self, value: &__cursed_struct__rustdoc_0test_0crate_TupleField) -> Result<(), JsValue> {
+	pub fn __setter__tuple(
+		&self, value: &__cursed_struct__rustdoc_0test_0crate_TupleField
+	) -> Result<(), JsValue> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
@@ -1082,25 +1138,37 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 			unsafe { result.assume_init() }
 		};
-		let cached_value = self.handle.__c__tuple.borrow_mut().take().and_then(|handle| handle.upgrade());
-		
+
+		let cached_value = self.handle.__c__tuple.borrow_mut().take().and_then(
+			|handle| handle.upgrade()
+		);
+
 		let mut old_value = None;
-		let mut value = Some(value);
-		
-		self.handle.access_mut(&mut |src| {
-		    old_value = Some(std::mem::replace(
-		        &mut src.tuple,
-		        value.take().unwrap(),
-		    ));
-		});
-		
-		if let Some(cached_value) = cached_value {
-		    cached_value.src.replace_with_owned(
-		        old_value.unwrap(),
-		    );
+		let mut value = Some(
+			value
+		);
+
+		self.handle.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mut src.tuple, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap(),
+			);
 		}
-		
-		Ok(())
+
+		Ok(
+			()
+		)
 	}
 }
 ```

@@ -363,7 +363,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	}
 
 	#[napi(setter, js_name = "clonable")]
-	pub fn __setter__clonable(&self, value: &__cursed_struct__rustdoc_0test_0crate_ClonableField) -> napi::Result<()> {
+	pub fn __setter__clonable(
+		&self, value: &__cursed_struct__rustdoc_0test_0crate_ClonableField
+	) -> napi::Result<()> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
@@ -377,25 +379,37 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 			unsafe { result.assume_init() }
 		};
-		let cached_value = self.handle.__c__clonable.borrow_mut().take().and_then(|handle| handle.upgrade());
-		
+
+		let cached_value = self.handle.__c__clonable.borrow_mut().take().and_then(
+			|handle| handle.upgrade()
+		);
+
 		let mut old_value = None;
-		let mut value = Some(value);
-		
-		self.handle.access_mut(&mut |src| {
-		    old_value = Some(std::mem::replace(
-		        &mut src.clonable,
-		        value.take().unwrap(),
-		    ));
-		});
-		
-		if let Some(cached_value) = cached_value {
-		    cached_value.src.replace_with_owned(
-		        old_value.unwrap(),
-		    );
+		let mut value = Some(
+			value
+		);
+
+		self.handle.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mut src.clonable, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap(),
+			);
 		}
-		
-		Ok(())
+
+		Ok(
+			()
+		)
 	}
 
 	#[napi(getter, js_name = "non_clonable")]
@@ -723,7 +737,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	}
 
 	#[wasm_bindgen(setter, js_name = "clonable")]
-	pub fn __setter__clonable(&self, value: &__cursed_struct__rustdoc_0test_0crate_ClonableField) -> Result<(), JsValue> {
+	pub fn __setter__clonable(
+		&self, value: &__cursed_struct__rustdoc_0test_0crate_ClonableField
+	) -> Result<(), JsValue> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
@@ -737,25 +753,37 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 			unsafe { result.assume_init() }
 		};
-		let cached_value = self.handle.__c__clonable.borrow_mut().take().and_then(|handle| handle.upgrade());
-		
+
+		let cached_value = self.handle.__c__clonable.borrow_mut().take().and_then(
+			|handle| handle.upgrade()
+		);
+
 		let mut old_value = None;
-		let mut value = Some(value);
-		
-		self.handle.access_mut(&mut |src| {
-		    old_value = Some(std::mem::replace(
-		        &mut src.clonable,
-		        value.take().unwrap(),
-		    ));
-		});
-		
-		if let Some(cached_value) = cached_value {
-		    cached_value.src.replace_with_owned(
-		        old_value.unwrap(),
-		    );
+		let mut value = Some(
+			value
+		);
+
+		self.handle.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mut src.clonable, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap(),
+			);
 		}
-		
-		Ok(())
+
+		Ok(
+			()
+		)
 	}
 
 	#[wasm_bindgen(getter, js_name = "non_clonable")]
