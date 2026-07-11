@@ -358,15 +358,25 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 			src: __curse::Slot::projected(input),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rustdoc_0test_0crate_TupleStruct
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::TupleStruct)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::TupleStruct)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rustdoc_0test_0crate_TupleStruct{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::TupleStruct
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::TupleStruct
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]
@@ -382,7 +392,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.0);
 						}
@@ -398,7 +408,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_bool(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.0 = value;
 				}
@@ -413,7 +423,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.1);
 						}
@@ -429,7 +439,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_i8(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i8` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.1 = value;
 				}
@@ -444,7 +454,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.2);
 						}
@@ -460,7 +470,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_i16(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i16` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.2 = value;
 				}
@@ -475,7 +485,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.3);
 						}
@@ -491,7 +501,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_i32(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.3 = value;
 				}
@@ -506,7 +516,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.4);
 						}
@@ -522,7 +532,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_u8(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `u8` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.4 = value;
 				}
@@ -537,7 +547,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.5);
 						}
@@ -553,7 +563,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_u16(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `u16` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.5 = value;
 				}
@@ -568,7 +578,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.6);
 						}
@@ -584,7 +594,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_u32(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `u32` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.6 = value;
 				}
@@ -599,7 +609,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.7);
 						}
@@ -615,7 +625,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_f64(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `f64` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.7 = value;
 				}
@@ -886,15 +896,25 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 			src: __curse::Slot::projected(input),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rustdoc_0test_0crate_TupleStruct
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::TupleStruct)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::TupleStruct)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rustdoc_0test_0crate_TupleStruct{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::TupleStruct
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::TupleStruct
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]
@@ -910,7 +930,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.0);
 						}
@@ -926,7 +946,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_bool(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.0 = value;
 				}
@@ -941,7 +961,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.1);
 						}
@@ -957,7 +977,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_i8(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i8` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.1 = value;
 				}
@@ -972,7 +992,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.2);
 						}
@@ -988,7 +1008,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_i16(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i16` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.2 = value;
 				}
@@ -1003,7 +1023,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.3);
 						}
@@ -1019,7 +1039,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.3 = value;
 				}
@@ -1034,7 +1054,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.4);
 						}
@@ -1050,7 +1070,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_u8(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `u8` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.4 = value;
 				}
@@ -1065,7 +1085,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.5);
 						}
@@ -1081,7 +1101,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_u16(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `u16` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.5 = value;
 				}
@@ -1096,7 +1116,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.6);
 						}
@@ -1112,7 +1132,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_u32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `u32` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.6 = value;
 				}
@@ -1127,7 +1147,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.7);
 						}
@@ -1143,7 +1163,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_f64(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `f64` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.7 = value;
 				}

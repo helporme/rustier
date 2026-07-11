@@ -1,26 +1,30 @@
 //! Module for compiling structs into a binding structs that can be exposed to
 //! the JavaScript.
 
-use crate::codegen::{
-    api::Api,
-    bindings::{
-        boundary::{
-            compile_boundary_in_conversion_expr, compile_boundary_in_conversion_stmt,
-            compile_boundary_in_type_name, compile_boundary_out_conversion_expr,
-            compile_boundary_out_type_name, BoundaryInExpr, BoundaryMode, BoundaryOutExpr,
+use crate::{
+    codegen::{
+        api::Api,
+        bindings::{
+            boundary::{
+                compile_boundary_in_conversion_expr, compile_boundary_in_conversion_stmt,
+                compile_boundary_in_type_name, compile_boundary_out_conversion_expr,
+                compile_boundary_out_type_name, BoundaryInExpr, BoundaryMode, BoundaryOutExpr,
+            },
+            printer::Printer,
+            projection::compile_slot_type_name,
         },
-        printer::Printer,
-        projection::compile_slot_type_name,
-    },
-    db::Db,
-    ir::{
-        struct_::{
-            struct_binding_name_from_rustdoc_id, struct_fqn_from_rustdoc_id,
-            struct_handle_name_from_rustdoc_id, Struct, StructField,
+        db::Db,
+        fragment::{Fragment, FragmentPrint},
+        ir::{
+            struct_::{
+                struct_binding_name_from_rustdoc_id, struct_fqn_from_rustdoc_id,
+                struct_handle_name_from_rustdoc_id, Struct, StructField,
+            },
+            type_::Type,
+            IrId,
         },
-        type_::Type,
-        IrId,
     },
+    frag,
 };
 
 /// The name of the binding sturct field holding a handle struct.
@@ -38,7 +42,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
     out.blank();
     out.lines(&compile_handle_impl(db, struct_));
     out.blank();
-    out.lines(&compile_handle_accessor_trait_impl(db, struct_));
+    out.lines(&compile_handle_accessor_trait_impl(db, struct_).print());
     out.blank();
     out.lines(&compile_wrapper_struct(db, struct_));
     out.blank();
@@ -143,22 +147,25 @@ fn compile_handle_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
     out.into()
 }
 
-fn compile_handle_accessor_trait_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
+fn compile_handle_accessor_trait_impl<'db>(
+    db: &'db dyn Db,
+    struct_: Struct<'db>,
+) -> impl Fragment + 'db {
     let struct_handle_name = struct_.handle_name(db);
     let struct_fqn = struct_.fqn(db);
 
-    indoc::formatdoc! {r#"
-        impl __curse::Accessor<{struct_fqn}> for {struct_handle_name}
+    frag!(
+        impl __curse::Accessor<{struct_fqn}> for ~{struct_handle_name}
         {{
-            fn access(&self, f: &mut dyn FnMut(&{struct_fqn})) {{
+            fn access(&self, f: &mut dyn FnMut(&{struct_fqn}))~{{
                 self.src.access(f);
-            }}
+            }}@
 
-            fn access_mut(&self, f: &mut dyn FnMut(&mut {struct_fqn})) {{
+            fn access_mut(&self, f: &mut dyn FnMut(&mut~{struct_fqn}))~{{
                 self.src.access_mut(f);
             }}
         }}
-    "#}
+    )
 }
 
 fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
@@ -201,7 +208,7 @@ fn compile_field_getter<'db>(
 
     out.curlies(|out| {
         if let Type::Struct(_) = field.type_(db) {
-            out.lines(&compile_struct_field_getter_body(db, field));
+            out.lines(&compile_struct_field_getter_body(db, field).print());
         } else {
             out.lines(&compile_primitive_field_getter_body(db, struct_, field));
         }
@@ -211,13 +218,14 @@ fn compile_field_getter<'db>(
 }
 
 /// Compiles the body of the getter for a struct field.
-fn compile_struct_field_getter_body<'db>(db: &'db dyn Db, field: StructField<'db>) -> String {
+fn compile_struct_field_getter_body<'db>(
+    db: &'db dyn Db,
+    field: StructField<'db>,
+) -> impl Fragment + 'db {
     let field_struct_id = match field.type_(db) {
         Type::Struct(id) => id,
         _ => unreachable!(),
     };
-
-    let mut out = Printer::default();
 
     let field_src_struct_fqn = struct_fqn_from_rustdoc_id(db, field_struct_id.rustdoc_id(db));
     let field_handle_struct_name =
@@ -227,26 +235,23 @@ fn compile_struct_field_getter_body<'db>(db: &'db dyn Db, field: StructField<'db
     let field_name = field.name(db);
     let field_cache_name = field.cache_field_name(db);
 
-    out.lines(&indoc::formatdoc! {r#"
-        if let Some(handle) = self.{HANDLE_FIELD}.{field_cache_name}.borrow().as_ref().and_then(std::rc::Weak::upgrade) {{
-            return Ok({field_wrapper_struct_name} {{ handle }});
-        }}
+    frag!(
+        if let Some(handle)~ = self.{HANDLE_FIELD}.{field_cache_name}.borrow().as_ref().and_then(std::rc::Weak::upgrade)~{{
+            return Ok({field_wrapper_struct_name} {{ handle }});@
+        }}@@
 
         let projection: std::rc::Rc<dyn __curse::Accessor<{field_src_struct_fqn}>> = std::rc::Rc::new(__curse::Projection {{
             parent: self.{HANDLE_FIELD}.clone(),
             project: |parent| &parent.{field_name},
             project_mut: |parent| &mut parent.{field_name},
-        }});
+        }});@@
 
-        let handle = std::rc::Rc::new({field_handle_struct_name}::new_projected(projection));
+        let handle = std::rc::Rc::new({field_handle_struct_name}::new_projected(projection));@@
 
-        *self.{HANDLE_FIELD}.{field_cache_name}.borrow_mut() =
-            Some(std::rc::Rc::downgrade(&handle));
+        *self.{HANDLE_FIELD}.{field_cache_name}.borrow_mut() = Some(std::rc::Rc::downgrade(&handle));@@
 
-        return Ok({field_wrapper_struct_name} {{ handle }});
-    "#});
-
-    out.into()
+        Ok({field_wrapper_struct_name} {{ handle }})
+    )
 }
 
 /// Compile body of a getter for a primitive or struct field.
@@ -409,8 +414,12 @@ pub fn compile_binding_struct_ctor_expr<'db>(
     let struct_handle_name = struct_handle_name_from_rustdoc_id(db, id.rustdoc_id(db));
     let struct_binding_name = struct_binding_name_from_rustdoc_id(db, id.rustdoc_id(db));
 
-    format!("{struct_binding_name} {{ handle: std::rc::Rc::new({struct_handle_name}::new_owned({input_src_expr})) }}"
+    frag!(
+        {struct_binding_name}~{{
+            handle: std::rc::Rc::new({struct_handle_name}::new_owned({input_src_expr}))
+        }}
     )
+    .print()
 }
 
 /// Compiles an expression that returns a reference to the accessor of the
@@ -418,5 +427,8 @@ pub fn compile_binding_struct_ctor_expr<'db>(
 ///
 /// Takes an expression that returns a reference to the binding struct.
 pub fn compile_binding_struct_accessor_expr(struct_expr: &str) -> String {
-    format!("({struct_expr}).{HANDLE_FIELD}.{SRC_FIELD}")
+    frag!(
+        {struct_expr}.{HANDLE_FIELD}.{SRC_FIELD}
+    )
+    .print()
 }

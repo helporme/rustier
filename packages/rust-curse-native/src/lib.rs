@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 pub mod codegen;
 pub mod sync;
 pub mod tools;

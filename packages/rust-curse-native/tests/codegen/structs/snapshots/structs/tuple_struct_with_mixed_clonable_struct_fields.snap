@@ -184,15 +184,25 @@ impl __cursed_handle__rustdoc_0test_0crate_ClonableField {
 			src: __curse::Slot::projected(input),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::ClonableField> for __cursed_handle__rustdoc_0test_0crate_ClonableField
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::ClonableField)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::ClonableField)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::ClonableField> for __cursed_handle__rustdoc_0test_0crate_ClonableField{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::ClonableField
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::ClonableField
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_ClonableField")]
@@ -220,15 +230,25 @@ impl __cursed_handle__rustdoc_0test_0crate_NonClonableField {
 			src: __curse::Slot::projected(input),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::NonClonableField> for __cursed_handle__rustdoc_0test_0crate_NonClonableField
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::NonClonableField)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::NonClonableField)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::NonClonableField> for __cursed_handle__rustdoc_0test_0crate_NonClonableField{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::NonClonableField
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::NonClonableField
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_NonClonableField")]
@@ -262,15 +282,25 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			__c__1: std::cell::RefCell::new(None),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::Parent)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::Parent)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]
@@ -282,22 +312,42 @@ pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
 impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	#[napi(getter, js_name = "0")]
 	pub fn __getter__0(&self) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_ClonableField> {
-		if let Some(handle) = self.handle.__c__0.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
-		    return Ok(__cursed_struct__rustdoc_0test_0crate_ClonableField { handle });
+		if let Some(
+			handle
+		) = self.handle.__c__0.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return Ok(
+				__cursed_struct__rustdoc_0test_0crate_ClonableField{
+					handle
+				}
+			);
+		
 		}
 		
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::ClonableField>> = std::rc::Rc::new(__curse::Projection {
-		    parent: self.handle.clone(),
-		    project: |parent| &parent.0,
-		    project_mut: |parent| &mut parent.0,
-		});
+		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::ClonableField>> = std::rc::Rc::new(
+			__curse::Projection{
+				parent: self.handle.clone(), project: |parent| &parent.0, project_mut: |parent| &mut parent.0,
+			}
+		);
 		
-		let handle = std::rc::Rc::new(__cursed_handle__rustdoc_0test_0crate_ClonableField::new_projected(projection));
+		let handle = std::rc::Rc::new(
+			__cursed_handle__rustdoc_0test_0crate_ClonableField::new_projected(
+				projection
+			)
+		);
 		
-		*self.handle.__c__0.borrow_mut() =
-		    Some(std::rc::Rc::downgrade(&handle));
+		*self.handle.__c__0.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&handle
+			)
+		);
 		
-		return Ok(__cursed_struct__rustdoc_0test_0crate_ClonableField { handle });
+		Ok(
+			__cursed_struct__rustdoc_0test_0crate_ClonableField{
+				handle
+			}
+		)
 	}
 	
 	#[napi(setter, js_name = "0")]
@@ -305,7 +355,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
-				(value).handle.src.access(
+				value.handle.src.access(
 					&mut |value| {
 						let value = value.clone();
 						result.write(value);
@@ -338,22 +388,42 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	
 	#[napi(getter, js_name = "1")]
 	pub fn __getter__1(&self) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_NonClonableField> {
-		if let Some(handle) = self.handle.__c__1.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
-		    return Ok(__cursed_struct__rustdoc_0test_0crate_NonClonableField { handle });
+		if let Some(
+			handle
+		) = self.handle.__c__1.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return Ok(
+				__cursed_struct__rustdoc_0test_0crate_NonClonableField{
+					handle
+				}
+			);
+		
 		}
 		
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::NonClonableField>> = std::rc::Rc::new(__curse::Projection {
-		    parent: self.handle.clone(),
-		    project: |parent| &parent.1,
-		    project_mut: |parent| &mut parent.1,
-		});
+		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::NonClonableField>> = std::rc::Rc::new(
+			__curse::Projection{
+				parent: self.handle.clone(), project: |parent| &parent.1, project_mut: |parent| &mut parent.1,
+			}
+		);
 		
-		let handle = std::rc::Rc::new(__cursed_handle__rustdoc_0test_0crate_NonClonableField::new_projected(projection));
+		let handle = std::rc::Rc::new(
+			__cursed_handle__rustdoc_0test_0crate_NonClonableField::new_projected(
+				projection
+			)
+		);
 		
-		*self.handle.__c__1.borrow_mut() =
-		    Some(std::rc::Rc::downgrade(&handle));
+		*self.handle.__c__1.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&handle
+			)
+		);
 		
-		return Ok(__cursed_struct__rustdoc_0test_0crate_NonClonableField { handle });
+		Ok(
+			__cursed_struct__rustdoc_0test_0crate_NonClonableField{
+				handle
+			}
+		)
 	}
 	
 }
@@ -468,15 +538,25 @@ impl __cursed_handle__rustdoc_0test_0crate_ClonableField {
 			src: __curse::Slot::projected(input),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::ClonableField> for __cursed_handle__rustdoc_0test_0crate_ClonableField
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::ClonableField)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::ClonableField)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::ClonableField> for __cursed_handle__rustdoc_0test_0crate_ClonableField{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::ClonableField
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::ClonableField
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_ClonableField")]
@@ -504,15 +584,25 @@ impl __cursed_handle__rustdoc_0test_0crate_NonClonableField {
 			src: __curse::Slot::projected(input),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::NonClonableField> for __cursed_handle__rustdoc_0test_0crate_NonClonableField
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::NonClonableField)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::NonClonableField)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::NonClonableField> for __cursed_handle__rustdoc_0test_0crate_NonClonableField{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::NonClonableField
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::NonClonableField
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_NonClonableField")]
@@ -546,15 +636,25 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			__c__1: std::cell::RefCell::new(None),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::Parent)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::Parent)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]
@@ -566,22 +666,42 @@ pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
 impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	#[wasm_bindgen(getter, js_name = "0")]
 	pub fn __getter__0(&self) -> Result<__cursed_struct__rustdoc_0test_0crate_ClonableField, JsValue> {
-		if let Some(handle) = self.handle.__c__0.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
-		    return Ok(__cursed_struct__rustdoc_0test_0crate_ClonableField { handle });
+		if let Some(
+			handle
+		) = self.handle.__c__0.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return Ok(
+				__cursed_struct__rustdoc_0test_0crate_ClonableField{
+					handle
+				}
+			);
+		
 		}
 		
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::ClonableField>> = std::rc::Rc::new(__curse::Projection {
-		    parent: self.handle.clone(),
-		    project: |parent| &parent.0,
-		    project_mut: |parent| &mut parent.0,
-		});
+		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::ClonableField>> = std::rc::Rc::new(
+			__curse::Projection{
+				parent: self.handle.clone(), project: |parent| &parent.0, project_mut: |parent| &mut parent.0,
+			}
+		);
 		
-		let handle = std::rc::Rc::new(__cursed_handle__rustdoc_0test_0crate_ClonableField::new_projected(projection));
+		let handle = std::rc::Rc::new(
+			__cursed_handle__rustdoc_0test_0crate_ClonableField::new_projected(
+				projection
+			)
+		);
 		
-		*self.handle.__c__0.borrow_mut() =
-		    Some(std::rc::Rc::downgrade(&handle));
+		*self.handle.__c__0.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&handle
+			)
+		);
 		
-		return Ok(__cursed_struct__rustdoc_0test_0crate_ClonableField { handle });
+		Ok(
+			__cursed_struct__rustdoc_0test_0crate_ClonableField{
+				handle
+			}
+		)
 	}
 	
 	#[wasm_bindgen(setter, js_name = "0")]
@@ -589,7 +709,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
-				(value).handle.src.access(
+				value.handle.src.access(
 					&mut |value| {
 						let value = value.clone();
 						result.write(value);
@@ -622,22 +742,42 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	
 	#[wasm_bindgen(getter, js_name = "1")]
 	pub fn __getter__1(&self) -> Result<__cursed_struct__rustdoc_0test_0crate_NonClonableField, JsValue> {
-		if let Some(handle) = self.handle.__c__1.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
-		    return Ok(__cursed_struct__rustdoc_0test_0crate_NonClonableField { handle });
+		if let Some(
+			handle
+		) = self.handle.__c__1.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return Ok(
+				__cursed_struct__rustdoc_0test_0crate_NonClonableField{
+					handle
+				}
+			);
+		
 		}
 		
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::NonClonableField>> = std::rc::Rc::new(__curse::Projection {
-		    parent: self.handle.clone(),
-		    project: |parent| &parent.1,
-		    project_mut: |parent| &mut parent.1,
-		});
+		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::NonClonableField>> = std::rc::Rc::new(
+			__curse::Projection{
+				parent: self.handle.clone(), project: |parent| &parent.1, project_mut: |parent| &mut parent.1,
+			}
+		);
 		
-		let handle = std::rc::Rc::new(__cursed_handle__rustdoc_0test_0crate_NonClonableField::new_projected(projection));
+		let handle = std::rc::Rc::new(
+			__cursed_handle__rustdoc_0test_0crate_NonClonableField::new_projected(
+				projection
+			)
+		);
 		
-		*self.handle.__c__1.borrow_mut() =
-		    Some(std::rc::Rc::downgrade(&handle));
+		*self.handle.__c__1.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&handle
+			)
+		);
 		
-		return Ok(__cursed_struct__rustdoc_0test_0crate_NonClonableField { handle });
+		Ok(
+			__cursed_struct__rustdoc_0test_0crate_NonClonableField{
+				handle
+			}
+		)
 	}
 	
 }

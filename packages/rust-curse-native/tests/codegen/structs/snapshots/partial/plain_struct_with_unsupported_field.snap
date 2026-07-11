@@ -180,15 +180,25 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 			src: __curse::Slot::projected(input),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rustdoc_0test_0crate_PlainStruct
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::PlainStruct)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::PlainStruct)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rustdoc_0test_0crate_PlainStruct{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::PlainStruct
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::PlainStruct
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
@@ -204,7 +214,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.supported);
 						}
@@ -220,7 +230,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		{
 			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.supported = value;
 				}
@@ -378,15 +388,25 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 			src: __curse::Slot::projected(input),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rustdoc_0test_0crate_PlainStruct
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::PlainStruct)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::PlainStruct)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rustdoc_0test_0crate_PlainStruct{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::PlainStruct
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::PlainStruct
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
@@ -402,7 +422,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.supported);
 						}
@@ -418,7 +438,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		{
 			let mut value = __cast_i32(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.supported = value;
 				}

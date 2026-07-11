@@ -259,15 +259,25 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainField {
 			src: __curse::Slot::projected(input),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::PlainField> for __cursed_handle__rustdoc_0test_0crate_PlainField
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::PlainField)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::PlainField)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::PlainField> for __cursed_handle__rustdoc_0test_0crate_PlainField{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::PlainField
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::PlainField
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainField")]
@@ -283,7 +293,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.value);
 						}
@@ -299,7 +309,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 		{
 			let mut value = __cast_i32(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.value = value;
 				}
@@ -326,15 +336,25 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleField {
 			src: __curse::Slot::projected(input),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::TupleField> for __cursed_handle__rustdoc_0test_0crate_TupleField
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::TupleField)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::TupleField)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::TupleField> for __cursed_handle__rustdoc_0test_0crate_TupleField{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::TupleField
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::TupleField
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleField")]
@@ -350,7 +370,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.0.clone());
 						}
@@ -367,7 +387,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 			let mut value = __cast_String(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
 			
 			let mut value = Some(value);
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					let value = value.take().unwrap();
 					src.0 = value;
@@ -402,15 +422,25 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			__c__tuple: std::cell::RefCell::new(None),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::Parent)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::Parent)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]
@@ -422,22 +452,42 @@ pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
 impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	#[napi(getter, js_name = "plain")]
 	pub fn __getter__plain(&self) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_PlainField> {
-		if let Some(handle) = self.handle.__c__plain.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
-		    return Ok(__cursed_struct__rustdoc_0test_0crate_PlainField { handle });
+		if let Some(
+			handle
+		) = self.handle.__c__plain.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return Ok(
+				__cursed_struct__rustdoc_0test_0crate_PlainField{
+					handle
+				}
+			);
+		
 		}
 		
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(__curse::Projection {
-		    parent: self.handle.clone(),
-		    project: |parent| &parent.plain,
-		    project_mut: |parent| &mut parent.plain,
-		});
+		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(
+			__curse::Projection{
+				parent: self.handle.clone(), project: |parent| &parent.plain, project_mut: |parent| &mut parent.plain,
+			}
+		);
 		
-		let handle = std::rc::Rc::new(__cursed_handle__rustdoc_0test_0crate_PlainField::new_projected(projection));
+		let handle = std::rc::Rc::new(
+			__cursed_handle__rustdoc_0test_0crate_PlainField::new_projected(
+				projection
+			)
+		);
 		
-		*self.handle.__c__plain.borrow_mut() =
-		    Some(std::rc::Rc::downgrade(&handle));
+		*self.handle.__c__plain.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&handle
+			)
+		);
 		
-		return Ok(__cursed_struct__rustdoc_0test_0crate_PlainField { handle });
+		Ok(
+			__cursed_struct__rustdoc_0test_0crate_PlainField{
+				handle
+			}
+		)
 	}
 	
 	#[napi(setter, js_name = "plain")]
@@ -445,7 +495,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
-				(value).handle.src.access(
+				value.handle.src.access(
 					&mut |value| {
 						let value = value.clone();
 						result.write(value);
@@ -478,22 +528,42 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	
 	#[napi(getter, js_name = "tuple")]
 	pub fn __getter__tuple(&self) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_TupleField> {
-		if let Some(handle) = self.handle.__c__tuple.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
-		    return Ok(__cursed_struct__rustdoc_0test_0crate_TupleField { handle });
+		if let Some(
+			handle
+		) = self.handle.__c__tuple.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return Ok(
+				__cursed_struct__rustdoc_0test_0crate_TupleField{
+					handle
+				}
+			);
+		
 		}
 		
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(__curse::Projection {
-		    parent: self.handle.clone(),
-		    project: |parent| &parent.tuple,
-		    project_mut: |parent| &mut parent.tuple,
-		});
+		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(
+			__curse::Projection{
+				parent: self.handle.clone(), project: |parent| &parent.tuple, project_mut: |parent| &mut parent.tuple,
+			}
+		);
 		
-		let handle = std::rc::Rc::new(__cursed_handle__rustdoc_0test_0crate_TupleField::new_projected(projection));
+		let handle = std::rc::Rc::new(
+			__cursed_handle__rustdoc_0test_0crate_TupleField::new_projected(
+				projection
+			)
+		);
 		
-		*self.handle.__c__tuple.borrow_mut() =
-		    Some(std::rc::Rc::downgrade(&handle));
+		*self.handle.__c__tuple.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&handle
+			)
+		);
 		
-		return Ok(__cursed_struct__rustdoc_0test_0crate_TupleField { handle });
+		Ok(
+			__cursed_struct__rustdoc_0test_0crate_TupleField{
+				handle
+			}
+		)
 	}
 	
 	#[napi(setter, js_name = "tuple")]
@@ -501,7 +571,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
-				(value).handle.src.access(
+				value.handle.src.access(
 					&mut |value| {
 						let value = value.clone();
 						result.write(value);
@@ -679,15 +749,25 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainField {
 			src: __curse::Slot::projected(input),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::PlainField> for __cursed_handle__rustdoc_0test_0crate_PlainField
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::PlainField)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::PlainField)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::PlainField> for __cursed_handle__rustdoc_0test_0crate_PlainField{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::PlainField
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::PlainField
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainField")]
@@ -703,7 +783,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.value);
 						}
@@ -719,7 +799,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 		{
 			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					src.value = value;
 				}
@@ -746,15 +826,25 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleField {
 			src: __curse::Slot::projected(input),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::TupleField> for __cursed_handle__rustdoc_0test_0crate_TupleField
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::TupleField)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::TupleField)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::TupleField> for __cursed_handle__rustdoc_0test_0crate_TupleField{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::TupleField
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::TupleField
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleField")]
@@ -770,7 +860,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(
+					self.handle.src.access(
 						&mut |src| {
 							result.write(src.0.clone());
 						}
@@ -787,7 +877,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 			let mut value = __cast_String(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
 			
 			let mut value = Some(value);
-			(self).handle.src.access_mut(
+			self.handle.src.access_mut(
 				&mut |src| {
 					let value = value.take().unwrap();
 					src.0 = value;
@@ -822,15 +912,25 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			__c__tuple: std::cell::RefCell::new(None),
 		}}}
 
-impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent
-{
-    fn access(&self, f: &mut dyn FnMut(&rustdoc_test_crate::Parent)) {
-        self.src.access(f);
-    }
-
-    fn access_mut(&self, f: &mut dyn FnMut(&mut rustdoc_test_crate::Parent)) {
-        self.src.access_mut(f);
-    }
+impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent{
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
 }
 
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]
@@ -842,22 +942,42 @@ pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
 impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	#[wasm_bindgen(getter, js_name = "plain")]
 	pub fn __getter__plain(&self) -> Result<__cursed_struct__rustdoc_0test_0crate_PlainField, JsValue> {
-		if let Some(handle) = self.handle.__c__plain.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
-		    return Ok(__cursed_struct__rustdoc_0test_0crate_PlainField { handle });
+		if let Some(
+			handle
+		) = self.handle.__c__plain.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return Ok(
+				__cursed_struct__rustdoc_0test_0crate_PlainField{
+					handle
+				}
+			);
+		
 		}
 		
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(__curse::Projection {
-		    parent: self.handle.clone(),
-		    project: |parent| &parent.plain,
-		    project_mut: |parent| &mut parent.plain,
-		});
+		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(
+			__curse::Projection{
+				parent: self.handle.clone(), project: |parent| &parent.plain, project_mut: |parent| &mut parent.plain,
+			}
+		);
 		
-		let handle = std::rc::Rc::new(__cursed_handle__rustdoc_0test_0crate_PlainField::new_projected(projection));
+		let handle = std::rc::Rc::new(
+			__cursed_handle__rustdoc_0test_0crate_PlainField::new_projected(
+				projection
+			)
+		);
 		
-		*self.handle.__c__plain.borrow_mut() =
-		    Some(std::rc::Rc::downgrade(&handle));
+		*self.handle.__c__plain.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&handle
+			)
+		);
 		
-		return Ok(__cursed_struct__rustdoc_0test_0crate_PlainField { handle });
+		Ok(
+			__cursed_struct__rustdoc_0test_0crate_PlainField{
+				handle
+			}
+		)
 	}
 	
 	#[wasm_bindgen(setter, js_name = "plain")]
@@ -865,7 +985,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
-				(value).handle.src.access(
+				value.handle.src.access(
 					&mut |value| {
 						let value = value.clone();
 						result.write(value);
@@ -898,22 +1018,42 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	
 	#[wasm_bindgen(getter, js_name = "tuple")]
 	pub fn __getter__tuple(&self) -> Result<__cursed_struct__rustdoc_0test_0crate_TupleField, JsValue> {
-		if let Some(handle) = self.handle.__c__tuple.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
-		    return Ok(__cursed_struct__rustdoc_0test_0crate_TupleField { handle });
+		if let Some(
+			handle
+		) = self.handle.__c__tuple.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return Ok(
+				__cursed_struct__rustdoc_0test_0crate_TupleField{
+					handle
+				}
+			);
+		
 		}
 		
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(__curse::Projection {
-		    parent: self.handle.clone(),
-		    project: |parent| &parent.tuple,
-		    project_mut: |parent| &mut parent.tuple,
-		});
+		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(
+			__curse::Projection{
+				parent: self.handle.clone(), project: |parent| &parent.tuple, project_mut: |parent| &mut parent.tuple,
+			}
+		);
 		
-		let handle = std::rc::Rc::new(__cursed_handle__rustdoc_0test_0crate_TupleField::new_projected(projection));
+		let handle = std::rc::Rc::new(
+			__cursed_handle__rustdoc_0test_0crate_TupleField::new_projected(
+				projection
+			)
+		);
 		
-		*self.handle.__c__tuple.borrow_mut() =
-		    Some(std::rc::Rc::downgrade(&handle));
+		*self.handle.__c__tuple.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&handle
+			)
+		);
 		
-		return Ok(__cursed_struct__rustdoc_0test_0crate_TupleField { handle });
+		Ok(
+			__cursed_struct__rustdoc_0test_0crate_TupleField{
+				handle
+			}
+		)
 	}
 	
 	#[wasm_bindgen(setter, js_name = "tuple")]
@@ -921,7 +1061,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
-				(value).handle.src.access(
+				value.handle.src.access(
 					&mut |value| {
 						let value = value.clone();
 						result.write(value);
