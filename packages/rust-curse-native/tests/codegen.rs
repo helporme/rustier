@@ -3,9 +3,6 @@
 #[path = "codegen/check/f32_percission_los.rs"]
 mod check_f32_percission_los;
 
-#[path = "codegen/incremental_regressions.rs"]
-mod incremental_regressions;
-
 #[path = "codegen/fns/diags.rs"]
 mod fns_diags;
 

@@ -124,7 +124,7 @@ impl Api {
     pub fn fn_header(&self, db: &dyn Db, _fn: ir::fn_::Fn) -> String {
         let fn_name = _fn.bindings_name(db);
         match self.kind(db) {
-            ApiKind::Wasm { .. } => format!("#[wasm_bindgen(js_name = {})]", fn_name),
+            ApiKind::Wasm { .. } => format!("#[wasm_bindgen(js_name = \"{}\")]", fn_name),
             ApiKind::Node => format!("#[napi(js_name = \"{}\")]", fn_name),
         }
     }
@@ -140,7 +140,7 @@ impl Api {
     pub fn struct_header(&self, db: &dyn Db, _struct: ir::struct_::Struct) -> String {
         let struct_name = _struct.binding_name(db);
         match self.kind(db) {
-            ApiKind::Wasm { .. } => format!("#[wasm_bindgen(js_name = {})]", struct_name),
+            ApiKind::Wasm { .. } => format!("#[wasm_bindgen(js_name = \"{}\")]", struct_name),
             ApiKind::Node => format!("#[napi(js_name = \"{}\")]", struct_name),
         }
     }
@@ -149,7 +149,7 @@ impl Api {
     pub fn field_getter_header(&self, db: &dyn Db, field: StructField) -> String {
         match self.kind(db) {
             ApiKind::Wasm { .. } => {
-                format!("#[wasm_bindgen(getter, js_name = {})]", field.name(db))
+                format!("#[wasm_bindgen(getter, js_name = \"{}\")]", field.name(db))
             }
             ApiKind::Node => format!("#[napi(getter, js_name = \"{}\")]", field.name(db)),
         }
@@ -159,7 +159,7 @@ impl Api {
     pub fn field_setter_header(&self, db: &dyn Db, field: StructField) -> String {
         match self.kind(db) {
             ApiKind::Wasm { .. } => {
-                format!("#[wasm_bindgen(setter, js_name = {})]", field.name(db))
+                format!("#[wasm_bindgen(setter, js_name = \"{}\")]", field.name(db))
             }
             ApiKind::Node => format!("#[napi(setter, js_name = \"{}\")]", field.name(db)),
         }

@@ -175,14 +175,14 @@ impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rus
     }
 }
 
-#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_TupleStruct)]
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]
 pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_TupleStruct>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	#[wasm_bindgen(getter, js_name = 0)]
+	#[wasm_bindgen(getter, js_name = "0")]
 	pub fn __getter__0(&self) -> Result<i32, JsValue> {
 		Ok(
 			{
@@ -195,7 +195,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = 0)]
+	#[wasm_bindgen(setter, js_name = "0")]
 	pub fn __setter__0(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
@@ -205,7 +205,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		Ok(())
 	}
 	
-	#[wasm_bindgen(getter, js_name = 3)]
+	#[wasm_bindgen(getter, js_name = "3")]
 	pub fn __getter__3(&self) -> Result<bool, JsValue> {
 		Ok(
 			{
@@ -218,7 +218,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = 3)]
+	#[wasm_bindgen(setter, js_name = "3")]
 	pub fn __setter__3(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_bool(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;

@@ -367,14 +367,14 @@ impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rus
     }
 }
 
-#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_PlainStruct)]
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
 pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_PlainStruct>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
-	#[wasm_bindgen(getter, js_name = value)]
+	#[wasm_bindgen(getter, js_name = "value")]
 	pub fn __getter__value(&self) -> Result<u32, JsValue> {
 		Ok(
 			{
@@ -387,7 +387,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = value)]
+	#[wasm_bindgen(setter, js_name = "value")]
 	pub fn __setter__value(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_char(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `char` from a JavaScript number: {}", err)))?;

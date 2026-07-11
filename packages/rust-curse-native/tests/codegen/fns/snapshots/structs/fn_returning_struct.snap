@@ -350,7 +350,7 @@ fn __cast_i32(value: JsValue) -> Result<i32, String> {
 	Ok(value as i32)
 }
 
-#[wasm_bindgen(js_name = __cursed_fn__rustdoc_0test_0crate_foo)]
+#[wasm_bindgen(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo() -> Result<__cursed_struct__rustdoc_0test_0crate_PlainStruct, JsValue> {
 	Ok	(
 		__cursed_struct__rustdoc_0test_0crate_PlainStruct { handle: std::rc::Rc::new(__cursed_handle__rustdoc_0test_0crate_PlainStruct::new_owned(rustdoc_test_crate::foo())) }
@@ -383,14 +383,14 @@ impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rus
     }
 }
 
-#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_PlainStruct)]
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
 pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_PlainStruct>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
-	#[wasm_bindgen(getter, js_name = value)]
+	#[wasm_bindgen(getter, js_name = "value")]
 	pub fn __getter__value(&self) -> Result<i32, JsValue> {
 		Ok(
 			{
@@ -403,7 +403,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = value)]
+	#[wasm_bindgen(setter, js_name = "value")]
 	pub fn __setter__value(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;

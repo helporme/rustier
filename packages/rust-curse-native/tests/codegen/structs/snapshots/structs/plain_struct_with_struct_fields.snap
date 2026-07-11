@@ -627,14 +627,14 @@ impl __curse::Accessor<rustdoc_test_crate::PlainField> for __cursed_handle__rust
     }
 }
 
-#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_PlainField)]
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainField")]
 pub struct __cursed_struct__rustdoc_0test_0crate_PlainField {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_PlainField>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_PlainField {
-	#[wasm_bindgen(getter, js_name = value)]
+	#[wasm_bindgen(getter, js_name = "value")]
 	pub fn __getter__value(&self) -> Result<i32, JsValue> {
 		Ok(
 			{
@@ -647,7 +647,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = value)]
+	#[wasm_bindgen(setter, js_name = "value")]
 	pub fn __setter__value(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
@@ -686,14 +686,14 @@ impl __curse::Accessor<rustdoc_test_crate::TupleField> for __cursed_handle__rust
     }
 }
 
-#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_TupleField)]
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleField")]
 pub struct __cursed_struct__rustdoc_0test_0crate_TupleField {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_TupleField>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_TupleField {
-	#[wasm_bindgen(getter, js_name = 0)]
+	#[wasm_bindgen(getter, js_name = "0")]
 	pub fn __getter__0(&self) -> Result<String, JsValue> {
 		Ok(
 			{
@@ -706,7 +706,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = 0)]
+	#[wasm_bindgen(setter, js_name = "0")]
 	pub fn __setter__0(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_String(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
@@ -754,14 +754,14 @@ impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_
     }
 }
 
-#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_Parent)]
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]
 pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_Parent>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_Parent {
-	#[wasm_bindgen(getter, js_name = plain)]
+	#[wasm_bindgen(getter, js_name = "plain")]
 	pub fn __getter__plain(&self) -> Result<__cursed_struct__rustdoc_0test_0crate_PlainField, JsValue> {
 		if let Some(handle) = self.handle.__c__plain.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
 		    return Ok(__cursed_struct__rustdoc_0test_0crate_PlainField { handle });
@@ -781,7 +781,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		return Ok(__cursed_struct__rustdoc_0test_0crate_PlainField { handle });
 	}
 	
-	#[wasm_bindgen(setter, js_name = plain)]
+	#[wasm_bindgen(setter, js_name = "plain")]
 	pub fn __setter__plain(&self, value: &__cursed_struct__rustdoc_0test_0crate_PlainField) -> Result<(), JsValue> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
@@ -813,7 +813,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		Ok(())
 	}
 	
-	#[wasm_bindgen(getter, js_name = tuple)]
+	#[wasm_bindgen(getter, js_name = "tuple")]
 	pub fn __getter__tuple(&self) -> Result<__cursed_struct__rustdoc_0test_0crate_TupleField, JsValue> {
 		if let Some(handle) = self.handle.__c__tuple.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
 		    return Ok(__cursed_struct__rustdoc_0test_0crate_TupleField { handle });
@@ -833,7 +833,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		return Ok(__cursed_struct__rustdoc_0test_0crate_TupleField { handle });
 	}
 	
-	#[wasm_bindgen(setter, js_name = tuple)]
+	#[wasm_bindgen(setter, js_name = "tuple")]
 	pub fn __setter__tuple(&self, value: &__cursed_struct__rustdoc_0test_0crate_TupleField) -> Result<(), JsValue> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();

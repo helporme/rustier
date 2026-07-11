@@ -484,7 +484,7 @@ impl __curse::Accessor<rustdoc_test_crate::ClonableField> for __cursed_handle__r
     }
 }
 
-#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_ClonableField)]
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_ClonableField")]
 pub struct __cursed_struct__rustdoc_0test_0crate_ClonableField {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_ClonableField>
 }
@@ -520,7 +520,7 @@ impl __curse::Accessor<rustdoc_test_crate::NonClonableField> for __cursed_handle
     }
 }
 
-#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_NonClonableField)]
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_NonClonableField")]
 pub struct __cursed_struct__rustdoc_0test_0crate_NonClonableField {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_NonClonableField>
 }
@@ -562,14 +562,14 @@ impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_
     }
 }
 
-#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_Parent)]
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]
 pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_Parent>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_Parent {
-	#[wasm_bindgen(getter, js_name = clonable)]
+	#[wasm_bindgen(getter, js_name = "clonable")]
 	pub fn __getter__clonable(&self) -> Result<__cursed_struct__rustdoc_0test_0crate_ClonableField, JsValue> {
 		if let Some(handle) = self.handle.__c__clonable.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
 		    return Ok(__cursed_struct__rustdoc_0test_0crate_ClonableField { handle });
@@ -589,7 +589,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		return Ok(__cursed_struct__rustdoc_0test_0crate_ClonableField { handle });
 	}
 	
-	#[wasm_bindgen(setter, js_name = clonable)]
+	#[wasm_bindgen(setter, js_name = "clonable")]
 	pub fn __setter__clonable(&self, value: &__cursed_struct__rustdoc_0test_0crate_ClonableField) -> Result<(), JsValue> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
@@ -621,7 +621,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		Ok(())
 	}
 	
-	#[wasm_bindgen(getter, js_name = non_clonable)]
+	#[wasm_bindgen(getter, js_name = "non_clonable")]
 	pub fn __getter__non_clonable(&self) -> Result<__cursed_struct__rustdoc_0test_0crate_NonClonableField, JsValue> {
 		if let Some(handle) = self.handle.__c__non_clonable.borrow().as_ref().and_then(std::rc::Weak::upgrade) {
 		    return Ok(__cursed_struct__rustdoc_0test_0crate_NonClonableField { handle });

@@ -98,7 +98,7 @@ fn __cast_f32(value: JsValue) -> Result<f32, String> {
 	Ok(value as f32)
 }
 
-#[wasm_bindgen(js_name = __cursed_fn__rustdoc_0test_0crate_foo)]
+#[wasm_bindgen(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__value: JsValue,
 ) -> Result<(), JsValue> {

@@ -278,7 +278,7 @@ fn __cast_u32(value: JsValue) -> Result<u32, String> {
 	Ok(value as u32)
 }
 
-#[wasm_bindgen(js_name = __cursed_fn__rustdoc_0test_0crate_foo)]
+#[wasm_bindgen(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__a: JsValue,
 	__p__d: JsValue,

@@ -655,14 +655,14 @@ impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rus
     }
 }
 
-#[wasm_bindgen(js_name = __cursed_struct__rustdoc_0test_0crate_PlainStruct)]
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
 pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_PlainStruct>
 }
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
-	#[wasm_bindgen(getter, js_name = a)]
+	#[wasm_bindgen(getter, js_name = "a")]
 	pub fn __getter__a(&self) -> Result<bool, JsValue> {
 		Ok(
 			{
@@ -675,7 +675,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = a)]
+	#[wasm_bindgen(setter, js_name = "a")]
 	pub fn __setter__a(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_bool(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
@@ -685,7 +685,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		Ok(())
 	}
 	
-	#[wasm_bindgen(getter, js_name = d)]
+	#[wasm_bindgen(getter, js_name = "d")]
 	pub fn __getter__d(&self) -> Result<i8, JsValue> {
 		Ok(
 			{
@@ -698,7 +698,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = d)]
+	#[wasm_bindgen(setter, js_name = "d")]
 	pub fn __setter__d(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_i8(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i8` from a JavaScript number: {}", err)))?;
@@ -708,7 +708,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		Ok(())
 	}
 	
-	#[wasm_bindgen(getter, js_name = e)]
+	#[wasm_bindgen(getter, js_name = "e")]
 	pub fn __getter__e(&self) -> Result<i16, JsValue> {
 		Ok(
 			{
@@ -721,7 +721,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = e)]
+	#[wasm_bindgen(setter, js_name = "e")]
 	pub fn __setter__e(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_i16(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i16` from a JavaScript number: {}", err)))?;
@@ -731,7 +731,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		Ok(())
 	}
 	
-	#[wasm_bindgen(getter, js_name = f)]
+	#[wasm_bindgen(getter, js_name = "f")]
 	pub fn __getter__f(&self) -> Result<i32, JsValue> {
 		Ok(
 			{
@@ -744,7 +744,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = f)]
+	#[wasm_bindgen(setter, js_name = "f")]
 	pub fn __setter__f(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
@@ -754,7 +754,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		Ok(())
 	}
 	
-	#[wasm_bindgen(getter, js_name = g)]
+	#[wasm_bindgen(getter, js_name = "g")]
 	pub fn __getter__g(&self) -> Result<u8, JsValue> {
 		Ok(
 			{
@@ -767,7 +767,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = g)]
+	#[wasm_bindgen(setter, js_name = "g")]
 	pub fn __setter__g(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_u8(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `u8` from a JavaScript number: {}", err)))?;
@@ -777,7 +777,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		Ok(())
 	}
 	
-	#[wasm_bindgen(getter, js_name = h)]
+	#[wasm_bindgen(getter, js_name = "h")]
 	pub fn __getter__h(&self) -> Result<u16, JsValue> {
 		Ok(
 			{
@@ -790,7 +790,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = h)]
+	#[wasm_bindgen(setter, js_name = "h")]
 	pub fn __setter__h(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_u16(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `u16` from a JavaScript number: {}", err)))?;
@@ -800,7 +800,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		Ok(())
 	}
 	
-	#[wasm_bindgen(getter, js_name = i)]
+	#[wasm_bindgen(getter, js_name = "i")]
 	pub fn __getter__i(&self) -> Result<u32, JsValue> {
 		Ok(
 			{
@@ -813,7 +813,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = i)]
+	#[wasm_bindgen(setter, js_name = "i")]
 	pub fn __setter__i(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_u32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `u32` from a JavaScript number: {}", err)))?;
@@ -823,7 +823,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		Ok(())
 	}
 	
-	#[wasm_bindgen(getter, js_name = k)]
+	#[wasm_bindgen(getter, js_name = "k")]
 	pub fn __getter__k(&self) -> Result<f64, JsValue> {
 		Ok(
 			{
@@ -836,7 +836,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		)
 	}
 	
-	#[wasm_bindgen(setter, js_name = k)]
+	#[wasm_bindgen(setter, js_name = "k")]
 	pub fn __setter__k(&self, value: JsValue) -> Result<(), JsValue> {
 		{
 			let mut value = __cast_f64(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `f64` from a JavaScript number: {}", err)))?;
