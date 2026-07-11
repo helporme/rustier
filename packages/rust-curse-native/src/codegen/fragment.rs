@@ -348,17 +348,6 @@ pub fn parens(frag: impl Fragment) -> impl Fragment {
     ("(\n", idented(frag), "\n)")
 }
 
-/// Wraps the given fragment in double quotes.
-///
-/// ```
-/// # use rust_curse::codegen::fragment::{doubles, FragmentPrint};
-/// #
-/// assert_eq!(doubles("value").print(), "\"value\"");
-/// ```
-pub fn doubles(frag: impl Fragment) -> impl Fragment {
-    ("\"", frag, "\"")
-}
-
 /// Wraps the given fragment in single quotes.
 ///
 /// ```
