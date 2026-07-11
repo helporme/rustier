@@ -79,10 +79,10 @@ impl<'db> BoundaryInExpr<'db> {
 /// ```
 pub fn compile_boundary_in_conversion_expr<'db>(
     db: &'db dyn Db,
-    exprs: &[BoundaryInExpr<'db>],
+    exprs: impl IntoIterator<Item = BoundaryInExpr<'db>> + Clone,
     inner_expr: String,
 ) -> String {
-    if exprs.is_empty() {
+    if exprs.clone().into_iter().next().is_none() {
         return inner_expr;
     }
 
@@ -118,17 +118,18 @@ pub fn compile_boundary_in_conversion_expr<'db>(
 /// ```
 pub fn compile_boundary_in_conversion_stmt<'db>(
     db: &'db dyn Db,
-    exprs: &[BoundaryInExpr<'db>],
+    exprs: impl IntoIterator<Item = BoundaryInExpr<'db>> + Clone,
     mut inner_stmt: String,
 ) -> String {
     let mut out = Printer::default();
 
     let will_use_projection_closures = exprs
-        .iter()
+        .clone()
+        .into_iter()
         .any(|expr| matches!(expr.type_, Type::Struct(_)));
 
     out.curlies(|out| {
-        for expr in exprs {
+        for expr in exprs.clone() {
             // Structs are cloned on move. To achieve it, we are accessing the source
             // structs by ref projection and cloning them inside the clojure.
             //
@@ -160,15 +161,15 @@ pub fn compile_boundary_in_conversion_stmt<'db>(
             }
         }
 
-        for expr in exprs {
+        for expr in exprs.clone() {
             if matches!(expr.type_, Type::Struct(_)) {
-                inner_stmt = compile_boundary_conversion_expr_via_projection(expr, &inner_stmt);
+                inner_stmt = compile_boundary_conversion_expr_via_projection(&expr, &inner_stmt);
             }
         }
 
-        for expr in exprs {
+        for expr in exprs.clone() {
             if !matches!(expr.type_, Type::Struct(_)) {
-                let mut cast = compile_boundary_conversion_stmt_via_cast(db, expr);
+                let mut cast = compile_boundary_conversion_stmt_via_cast(db, &expr);
 
                 if will_use_projection_closures
                     && matches!((expr.type_, expr.mode), (Type::String, BoundaryMode::Move))

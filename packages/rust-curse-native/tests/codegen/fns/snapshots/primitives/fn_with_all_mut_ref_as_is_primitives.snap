@@ -182,7 +182,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__g: Unknown<'_>,
 	__p__h: Unknown<'_>,
 	__p__i: Unknown<'_>,
-	__p__k: Unknown<'_>,
+	__p__k: Unknown<'_>
 ) -> napi::Result<()> {
 	{
 		let mut __p__k = &mut __cast_f64(__p__k).map_err(|err| napi::Error::from_reason(format!("Expected Rust `f64` from a JavaScript number: {}", err)))?;
@@ -209,7 +209,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 			__p__g,
 			__p__h,
 			__p__i,
-			__p__k,
+			__p__k
 		)
 	}
 	Ok(())
@@ -286,7 +286,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__g: JsValue,
 	__p__h: JsValue,
 	__p__i: JsValue,
-	__p__k: JsValue,
+	__p__k: JsValue
 ) -> Result<(), JsValue> {
 	{
 		let mut __p__k = &mut __cast_f64(__p__k).map_err(|err| JsValue::from_str(&format!("Expected Rust `f64` from a JavaScript number: {}", err)))?;
@@ -313,7 +313,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 			__p__g,
 			__p__h,
 			__p__i,
-			__p__k,
+			__p__k
 		)
 	}
 	Ok(())

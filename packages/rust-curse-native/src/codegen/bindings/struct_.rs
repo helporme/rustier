@@ -264,7 +264,7 @@ fn compile_primitive_field_getter_body<'db>(
         mode: BoundaryMode::Ref,
     };
 
-    let conversion_expr = compile_boundary_in_conversion_expr(db, &[get_self_expr], {
+    let conversion_expr = compile_boundary_in_conversion_expr(db, [get_self_expr], {
         let get_field_expr = BoundaryOutExpr {
             in_expr: &format!("src.{}", field.name(db)),
             type_: field.type_(db),
@@ -337,7 +337,7 @@ fn compile_struct_field_setter_body<'db>(db: &'db dyn Db, field: StructField<'db
 
     out.lines_fmt(format_args!(
         "let value = {};",
-        compile_boundary_in_conversion_expr(db, &[value_in_expr], "value".to_string(),)
+        compile_boundary_in_conversion_expr(db, [value_in_expr], "value".to_string(),)
     ));
 
     out.lines(&indoc::formatdoc! {r#"
@@ -389,7 +389,7 @@ fn compile_primitive_field_setter_body<'db>(
             mode: BoundaryMode::Move,
         },
     ];
-    out.lines(&compile_boundary_in_conversion_stmt(db, &inputs, {
+    out.lines(&compile_boundary_in_conversion_stmt(db, inputs, {
         format!("src.{} = value;", field.name(db))
     }));
 

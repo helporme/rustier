@@ -229,7 +229,7 @@ fn __cast_String(value: Unknown<'_>) -> Result<String, String> {
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__moved: &__cursed_struct__rustdoc_0test_0crate_PlainStruct,
 	__p__borrowed: &__cursed_struct__rustdoc_0test_0crate_TupleStruct,
-	__p__mutable: &__cursed_struct__rustdoc_0test_0crate_PlainStruct,
+	__p__mutable: &__cursed_struct__rustdoc_0test_0crate_PlainStruct
 ) -> napi::Result<()> {
 	{
 		(__p__mutable).handle.src.access_mut(
@@ -242,7 +242,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 								rustdoc_test_crate::foo(
 									__p__moved,
 									__p__borrowed,
-									__p__mutable,
+									__p__mutable
 								)
 		
 							}
@@ -505,7 +505,7 @@ fn __cast_String(value: JsValue) -> Result<String, String> {
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__moved: &__cursed_struct__rustdoc_0test_0crate_PlainStruct,
 	__p__borrowed: &__cursed_struct__rustdoc_0test_0crate_TupleStruct,
-	__p__mutable: &__cursed_struct__rustdoc_0test_0crate_PlainStruct,
+	__p__mutable: &__cursed_struct__rustdoc_0test_0crate_PlainStruct
 ) -> Result<(), JsValue> {
 	{
 		(__p__mutable).handle.src.access_mut(
@@ -518,7 +518,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 								rustdoc_test_crate::foo(
 									__p__moved,
 									__p__borrowed,
-									__p__mutable,
+									__p__mutable
 								)
 		
 							}

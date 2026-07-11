@@ -78,13 +78,13 @@ fn __cast_char(value: Unknown<'_>) -> Result<char, String> {
 
 #[napi(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
-	__p__value: Unknown<'_>,
+	__p__value: Unknown<'_>
 ) -> napi::Result<()> {
 	{
 		let mut __p__value = __cast_char(__p__value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `char` from a JavaScript number: {}", err)))?;
 		
 		rustdoc_test_crate::foo(
-			__p__value,
+			__p__value
 		)
 	}
 	Ok(())
@@ -115,13 +115,13 @@ fn __cast_char(value: JsValue) -> Result<char, String> {
 
 #[wasm_bindgen(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
-	__p__value: JsValue,
+	__p__value: JsValue
 ) -> Result<(), JsValue> {
 	{
 		let mut __p__value = __cast_char(__p__value).map_err(|err| JsValue::from_str(&format!("Expected Rust `char` from a JavaScript number: {}", err)))?;
 		
 		rustdoc_test_crate::foo(
-			__p__value,
+			__p__value
 		)
 	}
 	Ok(())
