@@ -398,7 +398,9 @@ pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	#[napi(getter, js_name = "a")]
-	pub fn __getter__a(&self) -> napi::Result<bool> {
+	pub fn __getter__a(
+		&self
+	) -> napi::Result<bool> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -429,7 +431,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[napi(getter, js_name = "d")]
-	pub fn __getter__d(&self) -> napi::Result<i8> {
+	pub fn __getter__d(
+		&self
+	) -> napi::Result<i8> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -460,7 +464,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[napi(getter, js_name = "e")]
-	pub fn __getter__e(&self) -> napi::Result<i16> {
+	pub fn __getter__e(
+		&self
+	) -> napi::Result<i16> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -491,7 +497,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[napi(getter, js_name = "f")]
-	pub fn __getter__f(&self) -> napi::Result<i32> {
+	pub fn __getter__f(
+		&self
+	) -> napi::Result<i32> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -522,7 +530,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[napi(getter, js_name = "g")]
-	pub fn __getter__g(&self) -> napi::Result<u8> {
+	pub fn __getter__g(
+		&self
+	) -> napi::Result<u8> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -553,7 +563,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[napi(getter, js_name = "h")]
-	pub fn __getter__h(&self) -> napi::Result<u16> {
+	pub fn __getter__h(
+		&self
+	) -> napi::Result<u16> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -584,7 +596,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[napi(getter, js_name = "i")]
-	pub fn __getter__i(&self) -> napi::Result<u32> {
+	pub fn __getter__i(
+		&self
+	) -> napi::Result<u32> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -615,7 +629,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[napi(getter, js_name = "k")]
-	pub fn __getter__k(&self) -> napi::Result<f64> {
+	pub fn __getter__k(
+		&self
+	) -> napi::Result<f64> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -935,7 +951,9 @@ pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	#[wasm_bindgen(getter, js_name = "a")]
-	pub fn __getter__a(&self) -> Result<bool, JsValue> {
+	pub fn __getter__a(
+		&self
+	) -> Result<bool, JsValue> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -966,7 +984,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[wasm_bindgen(getter, js_name = "d")]
-	pub fn __getter__d(&self) -> Result<i8, JsValue> {
+	pub fn __getter__d(
+		&self
+	) -> Result<i8, JsValue> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -997,7 +1017,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[wasm_bindgen(getter, js_name = "e")]
-	pub fn __getter__e(&self) -> Result<i16, JsValue> {
+	pub fn __getter__e(
+		&self
+	) -> Result<i16, JsValue> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -1028,7 +1050,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[wasm_bindgen(getter, js_name = "f")]
-	pub fn __getter__f(&self) -> Result<i32, JsValue> {
+	pub fn __getter__f(
+		&self
+	) -> Result<i32, JsValue> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -1059,7 +1083,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[wasm_bindgen(getter, js_name = "g")]
-	pub fn __getter__g(&self) -> Result<u8, JsValue> {
+	pub fn __getter__g(
+		&self
+	) -> Result<u8, JsValue> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -1090,7 +1116,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[wasm_bindgen(getter, js_name = "h")]
-	pub fn __getter__h(&self) -> Result<u16, JsValue> {
+	pub fn __getter__h(
+		&self
+	) -> Result<u16, JsValue> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -1121,7 +1149,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[wasm_bindgen(getter, js_name = "i")]
-	pub fn __getter__i(&self) -> Result<u32, JsValue> {
+	pub fn __getter__i(
+		&self
+	) -> Result<u32, JsValue> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -1152,7 +1182,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[wasm_bindgen(getter, js_name = "k")]
-	pub fn __getter__k(&self) -> Result<f64, JsValue> {
+	pub fn __getter__k(
+		&self
+	) -> Result<f64, JsValue> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();

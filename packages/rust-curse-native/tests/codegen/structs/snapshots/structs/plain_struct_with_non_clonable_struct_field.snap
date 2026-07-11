@@ -253,7 +253,9 @@ pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	#[napi(getter, js_name = "field")]
-	pub fn __getter__field(&self) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_Field> {
+	pub fn __getter__field(
+		&self
+	) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_Field> {
 		if let Some(
 			handle
 		) = self.handle.__c__field.borrow().as_ref().and_then(
@@ -264,27 +266,27 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 					handle
 				}
 			);
-		
+
 		}
-		
+
 		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Field>> = std::rc::Rc::new(
 			__curse::Projection{
 				parent: self.handle.clone(), project: |parent| &parent.field, project_mut: |parent| &mut parent.field,
 			}
 		);
-		
+
 		let handle = std::rc::Rc::new(
 			__cursed_handle__rustdoc_0test_0crate_Field::new_projected(
 				projection
 			)
 		);
-		
+
 		*self.handle.__c__field.borrow_mut()= Some(
 			std::rc::Rc::downgrade(
 				&handle
 			)
 		);
-		
+
 		Ok(
 			__cursed_struct__rustdoc_0test_0crate_Field{
 				handle
@@ -483,7 +485,9 @@ pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	#[wasm_bindgen(getter, js_name = "field")]
-	pub fn __getter__field(&self) -> Result<__cursed_struct__rustdoc_0test_0crate_Field, JsValue> {
+	pub fn __getter__field(
+		&self
+	) -> Result<__cursed_struct__rustdoc_0test_0crate_Field, JsValue> {
 		if let Some(
 			handle
 		) = self.handle.__c__field.borrow().as_ref().and_then(
@@ -494,27 +498,27 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 					handle
 				}
 			);
-		
+
 		}
-		
+
 		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Field>> = std::rc::Rc::new(
 			__curse::Projection{
 				parent: self.handle.clone(), project: |parent| &parent.field, project_mut: |parent| &mut parent.field,
 			}
 		);
-		
+
 		let handle = std::rc::Rc::new(
 			__cursed_handle__rustdoc_0test_0crate_Field::new_projected(
 				projection
 			)
 		);
-		
+
 		*self.handle.__c__field.borrow_mut()= Some(
 			std::rc::Rc::downgrade(
 				&handle
 			)
 		);
-		
+
 		Ok(
 			__cursed_struct__rustdoc_0test_0crate_Field{
 				handle

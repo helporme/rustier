@@ -204,7 +204,9 @@ pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	#[wasm_bindgen(getter, js_name = "a")]
-	pub fn __getter__a(&self) -> Result<bool, JsValue> {
+	pub fn __getter__a(
+		&self
+	) -> Result<bool, JsValue> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -235,7 +237,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[wasm_bindgen(getter, js_name = "c")]
-	pub fn __getter__c(&self) -> Result<bool, JsValue> {
+	pub fn __getter__c(
+		&self
+	) -> Result<bool, JsValue> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -419,7 +423,9 @@ pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	#[napi(getter, js_name = "a")]
-	pub fn __getter__a(&self) -> napi::Result<bool> {
+	pub fn __getter__a(
+		&self
+	) -> napi::Result<bool> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -450,7 +456,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 
 	#[napi(getter, js_name = "c")]
-	pub fn __getter__c(&self) -> napi::Result<bool> {
+	pub fn __getter__c(
+		&self
+	) -> napi::Result<bool> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();

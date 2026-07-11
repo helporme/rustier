@@ -185,32 +185,30 @@ fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl Frag
 }
 
 /// Compiles the associated function for getting a field of a struct.
-#[salsa::tracked(returns(ref))]
 fn compile_field_getter<'db>(
     db: &'db dyn Db,
     struct_: Struct<'db>,
     field: StructField<'db>,
-) -> String {
+) -> impl Fragment + 'db {
     let api = Api::get(db);
 
-    let mut out = Printer::default();
+    let getter_name = field.getter_binding_name(db);
+    let result_type = api.result_type(db, compile_boundary_out_type_name(db, field.type_(db)));
 
-    out.lines(&api.field_getter_header(db, field));
-    out.write_fmt(format_args!(
-        "pub fn {}(&self) -> {} ",
-        field.getter_binding_name(db),
-        api.result_type(db, compile_boundary_out_type_name(db, field.type_(db)))
-    ));
-
-    out.curlies(|out| {
+    let body = fragment_fn(move |p| {
         if let Type::Struct(_) = field.type_(db) {
-            out.lines(&compile_struct_field_getter_body(db, field).print());
+            compile_struct_field_getter_body(db, field).apply(p);
         } else {
-            out.lines(&compile_primitive_field_getter_body(db, struct_, field));
+            compile_primitive_field_getter_body(db, struct_, field).apply(p);
         }
     });
 
-    out.into()
+    frag!(
+        {api.field_getter_header(db, field)}@
+        pub fn ~{getter_name}(&self)~ -> ~{result_type}~ {{
+            {body}
+        }}
+    )
 }
 
 /// Compiles the body of the getter for a struct field.
@@ -255,9 +253,7 @@ fn compile_primitive_field_getter_body<'db>(
     db: &'db dyn Db,
     struct_: Struct<'db>,
     field: StructField<'db>,
-) -> String {
-    let mut out = Printer::default();
-
+) -> impl Fragment + 'db {
     let get_self_expr = BoundaryInExpr {
         in_expr: "self",
         out_var_name: "src",
@@ -283,10 +279,7 @@ fn compile_primitive_field_getter_body<'db>(
         }
     });
 
-    out.write("Ok");
-    out.parens(|out| out.lines(&conversion_expr));
-
-    out.into()
+    frag!(Ok({ conversion_expr }))
 }
 
 /// Compiles the associated function for setting a field of a struct.

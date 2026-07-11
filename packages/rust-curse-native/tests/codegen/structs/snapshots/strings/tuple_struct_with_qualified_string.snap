@@ -191,7 +191,9 @@ pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	#[wasm_bindgen(getter, js_name = "0")]
-	pub fn __getter__0(&self) -> Result<String, JsValue> {
+	pub fn __getter__0(
+		&self
+	) -> Result<String, JsValue> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -378,7 +380,9 @@ pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	#[napi(getter, js_name = "0")]
-	pub fn __getter__0(&self) -> napi::Result<String> {
+	pub fn __getter__0(
+		&self
+	) -> napi::Result<String> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();

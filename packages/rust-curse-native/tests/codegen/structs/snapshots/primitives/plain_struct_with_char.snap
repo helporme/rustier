@@ -244,7 +244,9 @@ pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	#[napi(getter, js_name = "value")]
-	pub fn __getter__value(&self) -> napi::Result<u32> {
+	pub fn __getter__value(
+		&self
+	) -> napi::Result<u32> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
@@ -459,7 +461,9 @@ pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	#[wasm_bindgen(getter, js_name = "value")]
-	pub fn __getter__value(&self) -> Result<u32, JsValue> {
+	pub fn __getter__value(
+		&self
+	) -> Result<u32, JsValue> {
 		Ok(
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
