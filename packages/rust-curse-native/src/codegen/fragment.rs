@@ -436,11 +436,24 @@ where
 /// assert_eq!(greeting.print(), "hello world\ngoodbye");
 /// ```
 ///
-/// # Special tokens
+/// # Special syntax
+///
+/// ## Escaping curly braces
+/// Double braces are are escaped.
+///
+/// ```
+/// # use rust_curse::codegen::fragment::{frag, FragmentPrint};
+/// #
+/// let field = "value";
+/// let struct_ = frag!(struct Foo ~{{ {field}: i32 }});
+///
+/// assert_eq!(struct_.print(), "struct Foo {\n\tvalue: i32\n}");
+/// ```
+///
 /// ## Space insertion (`~`)
-/// Use `~` to insert a space between static tokens and interpolations. While
-/// working, it's not neccessary to use `~` between static tokens; the macro
-/// will insert a space automatically.
+/// Use `~` to insert a space between static tokens (e.g text) and
+/// parentheses or curly braces. While working, it's not neccessary to use `~`
+/// between static tokens; the macro will insert a space automatically.
 ///
 /// ```
 /// # use rust_curse::codegen::fragment::{frag, FragmentPrint};
@@ -451,6 +464,9 @@ where
 /// let world = "world";
 /// assert_eq!(frag!(hello {world}).print(), "helloworld");
 /// assert_eq!(frag!(hello ~{world}).print(), "hello world");
+///
+/// assert_eq!(frag!(hello (world)).print(), "hello(\n\tworld\n)");
+/// assert_eq!(frag!(hello~(world)).print(), "hello (\n\tworld\n)");
 /// ```
 ///
 /// ## Newline insertion (`@`)
@@ -467,6 +483,12 @@ where
 ///
 /// assert_eq!(greeting.print(), "hello world\ngoodbye");
 /// ```
+///
+/// # Auto formating
+///
+/// Curly braces and parentheses are automatically wrapped with
+/// [`curlies`](crate::codegen::fragment::curlies) and
+/// [`parens`](crate::codegen::fragment::parens), respectively.
 #[macro_export]
 macro_rules! frag {
     (@nest) => {
@@ -491,6 +513,23 @@ macro_rules! frag {
         frag!(@nest $($parts,)* stringify!($($text)+),)
     };
 
+    // Curly fragment with no pending text.
+    (@collect [$($parts:expr,)*] [] {{ $($inner:tt)* }} $($rest:tt)*) => {
+        frag!(@collect [
+            $($parts,)*
+            $crate::codegen::fragment::curlies(frag!($($inner)*)),
+        ] [] $($rest)*)
+    };
+
+    // Curly fragment after some static tokens.
+    (@collect [$($parts:expr,)*] [$($text:tt)+] {{ $($inner:tt)* }} $($rest:tt)*) => {
+        frag!(@collect [
+            $($parts,)*
+            stringify!($($text)+),
+            $crate::codegen::fragment::curlies(frag!($($inner)*)),
+        ] [] $($rest)*)
+    };
+
     // Interpolation with no pending text.
     (@collect [$($parts:expr,)*] [] {$expr:expr} $($rest:tt)*) => {
         frag!(@collect [$($parts,)* $expr,] [] $($rest)*)
@@ -502,6 +541,37 @@ macro_rules! frag {
             $($parts,)*
             stringify!($($text)+),
             $expr,
+        ] [] $($rest)*)
+    };
+
+    // Empty parentheses with no pending text.
+    (@collect [$($parts:expr,)*] [] () $($rest:tt)*) => {
+        frag!(@collect [$($parts,)* "()",] [] $($rest)*)
+    };
+
+    // Empty parentheses after some static tokens.
+    (@collect [$($parts:expr,)*] [$($text:tt)+] () $($rest:tt)*) => {
+        frag!(@collect [
+            $($parts,)*
+            stringify!($($text)+),
+            "()",
+        ] [] $($rest)*)
+    };
+
+    // Parenthesized fragment with no pending text.
+    (@collect [$($parts:expr,)*] [] ($($inner:tt)+) $($rest:tt)*) => {
+        frag!(@collect [
+            $($parts,)*
+            $crate::codegen::fragment::parens(frag!($($inner)*)),
+        ] [] $($rest)*)
+    };
+
+    // Parenthesized fragment after some static tokens.
+    (@collect [$($parts:expr,)*] [$($text:tt)+] ($($inner:tt)+) $($rest:tt)*) => {
+        frag!(@collect [
+            $($parts,)*
+            stringify!($($text)+),
+            $crate::codegen::fragment::parens(frag!($($inner)*)),
         ] [] $($rest)*)
     };
 

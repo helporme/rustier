@@ -3,7 +3,7 @@
 use crate::codegen::{
     api::Api,
     db::Db,
-    fragment::{comma_list, curlies, frag, singles, FragmentPrint},
+    fragment::{comma_list, frag, singles, FragmentPrint},
     rustdoc::{mod_::lower_mod_fns, RustdocId},
 };
 
@@ -18,15 +18,19 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>, src_path: Strin
     let init = api.js_mod_init(db, &src_path);
 
     frag!(
-        import ~{curlies(comma_list(
-            fns.iter().map(|fn_| fn_.bindings_name(db)),
-        ))}~ from ~{singles(src_path)}; @
+        import ~{{
+            {comma_list(
+                fns.iter().map(|fn_| fn_.bindings_name(db)),
+            )}
+        }}~ from ~{singles(src_path)}; @
 
         {init.as_deref().unwrap_or_default()} @
 
-        export ~{curlies(comma_list(fns.iter().map(|fn_| frag!(
-            {fn_.bindings_name(db)}~ as ~{fn_.name(db)}
-        ))))}
+        export ~{{
+            {comma_list(fns.iter().map(|fn_| frag!(
+                {fn_.bindings_name(db)}~ as ~{fn_.name(db)}
+            )))}
+        }}
     )
     .print()
 }

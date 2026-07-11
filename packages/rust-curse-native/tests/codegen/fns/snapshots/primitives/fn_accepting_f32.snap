@@ -79,7 +79,9 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 			__p__value
 		)
 	}
-	Ok(())
+	Ok(
+		()
+	)
 }
 ```
 
@@ -108,6 +110,8 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 			__p__value
 		)
 	}
-	Ok(())
+	Ok(
+		()
+	)
 }
 ```

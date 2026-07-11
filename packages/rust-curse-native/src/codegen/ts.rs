@@ -5,8 +5,7 @@ pub mod sourcemap;
 use crate::codegen::{
     db::Db,
     fragment::{
-        comma_list, curlies, frag, fragment_fn, parens, spaced, Fragment, FragmentPrint,
-        IntoFnFragment, Printer,
+        comma_list, frag, fragment_fn, spaced, Fragment, FragmentPrint, IntoFnFragment, Printer,
     },
     ir::{
         fn_::Fn,
@@ -47,14 +46,13 @@ fn compile_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
         if fn_.params(db).is_empty() {
             "()".apply(printer);
         } else {
-            parens((
+            frag!(({
                 comma_list(
                     fn_.params(db)
                         .iter()
                         .map(|param| frag!({param.name(db)}:~{param.type_(db).ts_name(db)})),
-                ),
-                ",",
-            ))
+                )
+            },))
             .apply(printer);
         }
     })
@@ -96,7 +94,7 @@ fn compile_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
 
     frag!(
         {compile_jsdoc(struct_.docs(db).as_deref())}
-        export class ~{struct_.name(db)}{(" ", curlies(fields))}
+        export class ~{struct_.name(db)}~{{ {fields} }}
     )
     .print()
 }

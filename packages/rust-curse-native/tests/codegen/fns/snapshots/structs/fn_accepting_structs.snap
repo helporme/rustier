@@ -252,7 +252,9 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 			}
 		)
 	}
-	Ok(())
+	Ok(
+		()
+	)
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainStruct{
@@ -528,7 +530,9 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 			}
 		)
 	}
-	Ok(())
+	Ok(
+		()
+	)
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainStruct{

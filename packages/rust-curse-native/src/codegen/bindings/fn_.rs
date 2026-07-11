@@ -9,7 +9,7 @@ use crate::codegen::{
         compile_boundary_out_type_name, BoundaryInExpr, BoundaryOutExpr,
     },
     db::Db,
-    fragment::{comma_list, curlies, frag, fragment_fn, parens, Fragment, FragmentPrint},
+    fragment::{comma_list, frag, fragment_fn, Fragment, FragmentPrint},
     ir::fn_::Fn,
 };
 
@@ -24,25 +24,21 @@ pub fn compile_binding_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
 
     return frag!(
         {api.fn_header(db, fn_)}@
-        pub fn ~{fn_.bindings_name(db)}{compile_binding_fn_params(db, fn_)}~ -> ~{result_type}~
-        {curlies(compile_binding_fn_body(db, fn_))}
+        pub fn ~{fn_.bindings_name(db)}({compile_binding_fn_params(db, fn_)})~ -> ~{result_type}~ {{
+            {compile_binding_fn_body(db, fn_)}
+        }}
     )
     .print();
 }
 
 fn compile_binding_fn_params<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragment + 'db {
-    fragment_fn(move |printer| {
-        if fn_.params(db).is_empty() {
-            "()".apply(printer);
-        } else {
-            parens(comma_list(fn_.params(db).iter().map(|param| {
-                frag!(
-                    {param.binding_name(db)}:~
-                    {compile_boundary_in_type_name(db, param.type_(db))}
-                )
-            })))
-            .apply(printer);
-        }
+    frag!({
+        comma_list(fn_.params(db).iter().map(|param| {
+            frag!(
+                {param.binding_name(db)}:~
+                {compile_boundary_in_type_name(db, param.type_(db))}
+            )
+        }))
     })
 }
 
@@ -68,7 +64,7 @@ fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragment 
                     },
                 );
 
-                frag!(Ok{parens(conversion_expr)}).apply(printer);
+                frag!(Ok({ conversion_expr })).apply(printer);
             }
             None => {
                 let fn_call_stmt = compile_boundary_in_conversion_stmt(
@@ -91,10 +87,8 @@ fn compile_src_fn_call_stmt<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragment
         if fn_.params(db).is_empty() {
             "()".apply(printer);
         } else {
-            parens(comma_list(
-                fn_.params(db).iter().map(|param| param.binding_name(db)),
-            ))
-            .apply(printer);
+            frag!(({ comma_list(fn_.params(db).iter().map(|param| param.binding_name(db))) }))
+                .apply(printer);
         }
     });
 

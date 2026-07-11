@@ -2,11 +2,7 @@
 use rustdoc_types::ItemEnum;
 
 use crate::{
-    codegen::{
-        db::Db,
-        fragment::{curlies, parens, FragmentPrint},
-        rustdoc::mod_::all_mod_ids,
-    },
+    codegen::{db::Db, fragment::FragmentPrint, rustdoc::mod_::all_mod_ids},
     frag,
 };
 
@@ -127,9 +123,7 @@ pub fn compile_slot_type_name(inner_type_name: &str) -> String {
 /// trait.
 pub fn compile_ref_access_stmt(accessor_expr: &str, out_var: &str, in_stmt: &str) -> String {
     frag!(
-        {accessor_expr}.access{parens(frag! {
-            &mut |{out_var}|~{curlies(in_stmt)}
-        })}
+        {accessor_expr}.access(&mut |{out_var}|~{{ {in_stmt} }})
     )
     .print()
 }
@@ -138,9 +132,7 @@ pub fn compile_ref_access_stmt(accessor_expr: &str, out_var: &str, in_stmt: &str
 /// trait.
 pub fn compile_mut_access_stmt(accessor_expr: &str, out_var: &str, in_stmt: &str) -> String {
     frag!(
-        {accessor_expr}.access_mut{parens(frag! {
-            &mut |{out_var}|~{curlies(in_stmt)}
-        })}
+        {accessor_expr}.access_mut(&mut |{out_var}|~{{ {in_stmt} }})
     )
     .print()
 }
