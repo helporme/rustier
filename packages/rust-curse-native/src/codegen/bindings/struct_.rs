@@ -14,7 +14,7 @@ use crate::{
             projection::compile_slot_type_name,
         },
         db::Db,
-        fragment::{fragment_fn, spaced, Fragment, FragmentPrint},
+        fragment::{fragment_fn, spaced, FragmentOnce, FragmentPrint},
         ir::{
             struct_::{
                 struct_binding_name_from_rustdoc_id, struct_fqn_from_rustdoc_id,
@@ -37,11 +37,11 @@ const SRC_FIELD: &str = "src";
 #[salsa::tracked(returns(ref))]
 pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
     spaced([
-        &compile_handle_struct(db, struct_) as &dyn Fragment,
-        &compile_handle_impl(db, struct_),
-        &compile_handle_accessor_trait_impl(db, struct_),
-        &compile_wrapper_struct(db, struct_),
-        &compile_wrapper_impl(db, struct_),
+        compile_handle_struct(db, struct_),
+        compile_handle_impl(db, struct_).print(),
+        compile_handle_accessor_trait_impl(db, struct_).print(),
+        compile_wrapper_struct(db, struct_),
+        compile_wrapper_impl(db, struct_).print(),
     ])
     .print()
 }
@@ -145,7 +145,7 @@ fn compile_handle_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
 fn compile_handle_accessor_trait_impl<'db>(
     db: &'db dyn Db,
     struct_: Struct<'db>,
-) -> impl Fragment + 'db {
+) -> impl FragmentOnce + 'db {
     let struct_handle_name = struct_.handle_name(db);
     let struct_fqn = struct_.fqn(db);
 
@@ -163,7 +163,7 @@ fn compile_handle_accessor_trait_impl<'db>(
     )
 }
 
-fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl Fragment + 'db {
+fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
 
     let fields = spaced(struct_.fields(db).iter().copied().map(move |field| {
@@ -189,7 +189,7 @@ fn compile_field_getter<'db>(
     db: &'db dyn Db,
     struct_: Struct<'db>,
     field: StructField<'db>,
-) -> impl Fragment + 'db {
+) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
 
     let getter_name = field.getter_binding_name(db);
@@ -215,7 +215,7 @@ fn compile_field_getter<'db>(
 fn compile_struct_field_getter_body<'db>(
     db: &'db dyn Db,
     field: StructField<'db>,
-) -> impl Fragment + 'db {
+) -> impl FragmentOnce + 'db {
     let field_struct_id = match field.type_(db) {
         Type::Struct(id) => id,
         _ => unreachable!(),
@@ -253,7 +253,7 @@ fn compile_primitive_field_getter_body<'db>(
     db: &'db dyn Db,
     struct_: Struct<'db>,
     field: StructField<'db>,
-) -> impl Fragment + 'db {
+) -> impl FragmentOnce + 'db {
     let get_self_expr = BoundaryInExpr {
         in_expr: "self",
         out_var_name: "src",
@@ -287,7 +287,7 @@ fn compile_field_setter<'db>(
     db: &'db dyn Db,
     struct_: Struct<'db>,
     field: StructField<'db>,
-) -> impl Fragment + 'db {
+) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
 
     let setter_name = field.setter_binding_name(db);
@@ -314,7 +314,7 @@ fn compile_field_setter<'db>(
 fn compile_struct_field_setter_body<'db>(
     db: &'db dyn Db,
     field: StructField<'db>,
-) -> impl Fragment + 'db {
+) -> impl FragmentOnce + 'db {
     let value_in_expr = BoundaryInExpr {
         in_expr: "value",
         out_var_name: "value",

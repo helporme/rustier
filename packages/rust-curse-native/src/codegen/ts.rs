@@ -5,7 +5,7 @@ pub mod sourcemap;
 use crate::codegen::{
     db::Db,
     fragment::{
-        comma_list, frag, fragment_fn, spaced, Fragment, FragmentPrint, IntoFnFragment, Printer,
+        comma_list, frag, fragment_fn, spaced, FragmentOnce, FragmentPrint, IntoFnFragment, Printer,
     },
     ir::{
         fn_::Fn,
@@ -99,7 +99,7 @@ fn compile_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
     .print()
 }
 
-fn compile_class_field<'db>(db: &'db dyn Db, field: StructField<'db>) -> impl Fragment + 'db {
+fn compile_class_field<'db>(db: &'db dyn Db, field: StructField<'db>) -> impl FragmentOnce + 'db {
     let readonly = if field.is_readonly(db) {
         "readonly "
     } else {
@@ -112,7 +112,7 @@ fn compile_class_field<'db>(db: &'db dyn Db, field: StructField<'db>) -> impl Fr
     )
 }
 
-fn compile_jsdoc(docs: Option<&str>) -> impl Fragment + '_ {
+fn compile_jsdoc(docs: Option<&str>) -> impl FragmentOnce + '_ {
     fragment_fn(move |p| {
         let Some(docs) = docs else {
             return;

@@ -14,7 +14,7 @@ use crate::codegen::{
         projection::{is_projection_preamble_needed, PROJECTION_RUNTIME},
     },
     db::Db,
-    fragment::{frag, fragment_fn, spaced, Fragment, FragmentPrint},
+    fragment::{frag, fragment_fn, spaced, trim, FragmentOnce, FragmentPrint},
     rustdoc::mod_::all_mod_ids,
 };
 
@@ -25,39 +25,42 @@ use crate::codegen::{
 pub fn compile_bindings(db: &dyn Db) -> String {
     let api = Api::get(db);
     let cast_fns = compile_cast_fns(db);
+
     let cast_prelude = if cast_fns.is_empty() {
         ""
     } else {
         api.cast_prelude(db).unwrap_or_default()
     };
-    let prelude = frag!(
-        #![allow(non_camel_case_types, non_snake_case)]@
-        {cast_prelude}{api.prelude(db)}
-    );
 
-    let modules = fragment_fn(|printer| {
-        for (index, module) in all_mod_ids(db)
-            .iter()
-            .map(|mod_id| compile_mod(db, *mod_id))
-            .filter(|compiled| !compiled.trim().is_empty())
-            .enumerate()
-        {
-            if index > 0 {
-                "\n".apply(printer);
-            }
-            module.apply(printer);
+    fragment_fn(|p| {
+        frag!(
+            #![allow(non_camel_case_types, non_snake_case)]@
+            {cast_prelude}{api.prelude(db)}
+        )
+        .apply(p);
+
+        if is_projection_preamble_needed(db) {
+            trim().apply(p);
+            "\n\n".apply(p);
+            PROJECTION_RUNTIME.apply(p);
         }
-    });
 
-    let projection_runtime = PROJECTION_RUNTIME;
-    let sections = [
-        Some(&prelude as &dyn Fragment),
-        is_projection_preamble_needed(db).then_some(&projection_runtime as &dyn Fragment),
-        (!cast_fns.is_empty()).then_some(cast_fns as &dyn Fragment),
-        Some(&modules as &dyn Fragment),
-    ]
-    .into_iter()
-    .flatten();
+        if !cast_fns.is_empty() {
+            trim().apply(p);
+            "\n\n".apply(p);
+            cast_fns.apply(p);
+        }
 
-    return spaced(sections).print();
+        trim().apply(p);
+        frag!(@@).apply(p);
+
+        spaced(
+            all_mod_ids(db)
+                .iter()
+                .map(|mod_id| compile_mod(db, *mod_id))
+                .filter(|compiled| !compiled.trim().is_empty()),
+        )
+        .apply(p);
+    })
+    .print()
 }

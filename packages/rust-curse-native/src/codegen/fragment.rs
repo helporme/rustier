@@ -17,7 +17,7 @@ use std::fmt;
 /// also be applied to one directly.
 ///
 /// ```
-/// # use rust_curse::codegen::fragment::{Fragment, Printer};
+/// # use rust_curse::codegen::fragment::{FragmentOnce, Printer};
 /// #
 /// let mut printer = Printer::default();
 /// "hello".apply(&mut printer);
@@ -32,7 +32,7 @@ impl Default for Printer {
     /// Creates an empty printer positioned at the start of an unindented line.
     ///
     /// ```
-    /// # use rust_curse::codegen::fragment::{Fragment, Printer};
+    /// # use rust_curse::codegen::fragment::{FragmentOnce, Printer};
     /// #
     /// let mut printer = Printer::default();
     /// "hello".apply(&mut printer);
@@ -100,32 +100,44 @@ impl fmt::Write for Printer {
     }
 }
 
-// todo: FragmentOnce?
-pub trait Fragment {
-    /// Appends this fragment to `printer` without constructing intermediate
-    /// text.
-    ///
-    /// ```
-    /// # use rust_curse::codegen::fragment::{Fragment, FragmentPrint, Printer};
-    /// # use std::fmt::Write as _;
-    /// #
-    /// struct Greeting;
-    ///
-    /// impl Fragment for Greeting {
-    ///     fn apply(&self, printer: &mut Printer) {
-    ///         printer.write_str("hello").unwrap();
-    ///     }
-    /// }
-    ///
-    /// assert_eq!(Greeting.print(), "hello");
-    /// ```
-    fn apply(&self, printer: &mut Printer);
-}
-
-/// Wraps a reusable printing function as a [`Fragment`].
+/// A source code fragment that can be rendered once.
 ///
 /// ```
-/// # use rust_curse::codegen::fragment::{Fragment, FragmentPrint, IntoFnFragment, Printer};
+/// # use rust_curse::codegen::fragment::{fragment_fn, FragmentOnce, FragmentPrint};
+/// #
+/// let text = String::from("owned");
+/// let fragment = fragment_fn(move |printer| text.apply(printer));
+///
+/// assert_eq!(fragment.print(), "owned");
+/// ```
+pub trait FragmentOnce {
+    /// Consumes this fragment and appends it to `printer`.
+    fn apply(self, printer: &mut Printer);
+}
+
+/// A source code fragment that can be rendered through a shared reference.
+///
+/// This object-safe trait is intended for the uncommon cases that need reuse
+/// or type erasure. Normal fragment composition should use [`FragmentOnce`].
+///
+/// ```
+/// # use rust_curse::codegen::fragment::{Fragment, FragmentPrint};
+/// #
+/// let text = String::from("reusable");
+/// let fragment: &dyn Fragment = &text;
+///
+/// assert_eq!(fragment.print(), "reusable");
+/// assert_eq!(fragment.print(), "reusable");
+/// ```
+pub trait Fragment {
+    /// Appends this fragment to `printer` without consuming it.
+    fn apply_ref(&self, printer: &mut Printer);
+}
+
+/// Wraps a printing function as a [`FragmentOnce`].
+///
+/// ```
+/// # use rust_curse::codegen::fragment::{FragmentOnce, FragmentPrint, IntoFnFragment, Printer};
 /// #
 /// let fragment = (|printer: &mut Printer| {
 ///     "generated".apply(printer);
@@ -138,15 +150,15 @@ pub struct FnFragment<F>(F);
 
 impl<F> From<F> for FnFragment<F>
 where
-    F: Fn(&mut Printer),
+    F: FnOnce(&mut Printer),
 {
     fn from(f: F) -> Self {
         Self(f)
     }
 }
 
-/// Converts a reusable printing function into a [`Fragment`].
-pub trait IntoFnFragment: Fn(&mut Printer) + Sized {
+/// Converts a printing function into a [`FragmentOnce`].
+pub trait IntoFnFragment: FnOnce(&mut Printer) + Sized {
     /// Wraps this function in a [`FnFragment`].
     ///
     /// ```
@@ -165,20 +177,38 @@ pub trait IntoFnFragment: Fn(&mut Printer) + Sized {
     }
 }
 
-impl<F> IntoFnFragment for F where F: Fn(&mut Printer) {}
+impl<F> IntoFnFragment for F where F: FnOnce(&mut Printer) {}
+
+impl<F> FragmentOnce for FnFragment<F>
+where
+    F: FnOnce(&mut Printer),
+{
+    fn apply(self, printer: &mut Printer) {
+        (self.0)(printer);
+    }
+}
 
 impl<F> Fragment for FnFragment<F>
 where
     F: Fn(&mut Printer),
 {
-    fn apply(&self, printer: &mut Printer) {
+    fn apply_ref(&self, printer: &mut Printer) {
         (self.0)(printer);
     }
 }
 
 impl Fragment for dyn Fn(&mut Printer) + '_ {
-    fn apply(&self, printer: &mut Printer) {
+    fn apply_ref(&self, printer: &mut Printer) {
         self(printer);
+    }
+}
+
+impl<T> FragmentOnce for &T
+where
+    T: Fragment + ?Sized,
+{
+    fn apply(self, printer: &mut Printer) {
+        self.apply_ref(printer);
     }
 }
 
@@ -186,17 +216,17 @@ impl<T> Fragment for &T
 where
     T: Fragment + ?Sized,
 {
-    fn apply(&self, printer: &mut Printer) {
-        (**self).apply(printer);
+    fn apply_ref(&self, printer: &mut Printer) {
+        (**self).apply_ref(printer);
     }
 }
 
-impl<T> Fragment for Box<T>
+impl<T> FragmentOnce for Box<T>
 where
     T: Fragment + ?Sized,
 {
-    fn apply(&self, printer: &mut Printer) {
-        (**self).apply(printer);
+    fn apply(self, printer: &mut Printer) {
+        self.apply_ref(printer);
     }
 }
 
@@ -206,8 +236,14 @@ impl Fragment for str {
     /// #
     /// assert_eq!("slice".print(), "slice");
     /// ```
-    fn apply(&self, printer: &mut Printer) {
+    fn apply_ref(&self, printer: &mut Printer) {
         printer.write(self);
+    }
+}
+
+impl FragmentOnce for String {
+    fn apply(self, printer: &mut Printer) {
+        printer.write(&self);
     }
 }
 
@@ -217,8 +253,14 @@ impl Fragment for String {
     /// #
     /// assert_eq!(String::from("owned").print(), "owned");
     /// ```
-    fn apply(&self, printer: &mut Printer) {
+    fn apply_ref(&self, printer: &mut Printer) {
         printer.write(self);
+    }
+}
+
+impl FragmentOnce for fmt::Arguments<'_> {
+    fn apply(self, printer: &mut Printer) {
+        printer.write_fmt(self);
     }
 }
 
@@ -230,9 +272,13 @@ impl Fragment for fmt::Arguments<'_> {
     /// #
     /// assert_eq!(format_args!("{} + {}", 1, 2).print(), "1 + 2");
     /// ```
-    fn apply(&self, printer: &mut Printer) {
+    fn apply_ref(&self, printer: &mut Printer) {
         printer.write_fmt(*self);
     }
+}
+
+impl FragmentOnce for () {
+    fn apply(self, _printer: &mut Printer) {}
 }
 
 impl Fragment for () {
@@ -243,22 +289,22 @@ impl Fragment for () {
     /// #
     /// assert_eq!(().print(), "");
     /// ```
-    fn apply(&self, _printer: &mut Printer) {}
+    fn apply_ref(&self, _printer: &mut Printer) {}
 }
 
-/// Renders a [`Fragment`] into an owned string.
+/// Renders a [`FragmentOnce`] into an owned string.
 ///
 /// ```
 /// # use rust_curse::codegen::fragment::FragmentPrint;
 /// #
 /// assert_eq!(("hello", " ", "world").print(), "hello world");
 /// ```
-pub trait FragmentPrint {
-    /// Prints this fragment to the string.
-    fn print(&self) -> String;
+pub trait FragmentPrint: FragmentOnce + Sized {
+    /// Consumes this fragment and prints it to a string.
+    fn print(self) -> String;
 }
 
-impl<F: Fragment> FragmentPrint for F {
+impl<F: FragmentOnce> FragmentPrint for F {
     /// Applies this fragment to a fresh printer and returns its output.
     ///
     /// ```
@@ -266,7 +312,7 @@ impl<F: Fragment> FragmentPrint for F {
     /// #
     /// assert_eq!(("a", "b", "c").print(), "abc");
     /// ```
-    fn print(&self) -> String {
+    fn print(self) -> String {
         let mut printer = Printer::default();
         self.apply(&mut printer);
         while printer.out.ends_with('\n') {
@@ -278,9 +324,9 @@ impl<F: Fragment> FragmentPrint for F {
 
 macro_rules! impl_fragment_for_tuple {
     ($($type:ident.$index:tt),+ $(,)?) => {
-        impl<$($type),+> Fragment for ($($type,)+)
+        impl<$($type),+> FragmentOnce for ($($type,)+)
         where
-            $($type: Fragment,)+
+            $($type: FragmentOnce,)+
         {
             /// Appends each tuple element in order.
             ///
@@ -289,8 +335,17 @@ macro_rules! impl_fragment_for_tuple {
             /// #
             /// assert_eq!(("one", "two").print(), "onetwo");
             /// ```
-            fn apply(&self, printer: &mut Printer) {
+            fn apply(self, printer: &mut Printer) {
                 $(self.$index.apply(printer);)+
+            }
+        }
+
+        impl<$($type),+> Fragment for ($($type,)+)
+        where
+            $($type: Fragment,)+
+        {
+            fn apply_ref(&self, printer: &mut Printer) {
+                $(self.$index.apply_ref(printer);)+
             }
         }
     };
@@ -306,7 +361,10 @@ impl_fragment_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6);
 impl_fragment_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7);
 impl_fragment_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7, I.8);
 
-pub fn fragment_fn(f: impl Fn(&mut Printer)) -> impl Fragment {
+pub fn fragment_fn<F>(f: F) -> FnFragment<F>
+where
+    F: FnOnce(&mut Printer),
+{
     f.into_fragment()
 }
 
@@ -317,7 +375,7 @@ pub fn fragment_fn(f: impl Fn(&mut Printer)) -> impl Fragment {
 /// #
 /// assert_eq!(idented("one\ntwo").print(), "\tone\n\ttwo");
 /// ```
-pub fn idented(frag: impl Fragment) -> impl Fragment {
+pub fn idented(frag: impl FragmentOnce) -> impl FragmentOnce {
     (move |p: &mut Printer| {
         p.indent += 1;
         frag.apply(p);
@@ -333,7 +391,7 @@ pub fn idented(frag: impl Fragment) -> impl Fragment {
 /// #
 /// assert_eq!(curlies("value").print(), "{\n\tvalue\n}");
 /// ```
-pub fn curlies(frag: impl Fragment) -> impl Fragment {
+pub fn curlies(frag: impl FragmentOnce) -> impl FragmentOnce {
     ("{\n", idented(frag), "\n}")
 }
 
@@ -344,7 +402,7 @@ pub fn curlies(frag: impl Fragment) -> impl Fragment {
 /// #
 /// assert_eq!(parens("value").print(), "(\n\tvalue\n)");
 /// ```
-pub fn parens(frag: impl Fragment) -> impl Fragment {
+pub fn parens(frag: impl FragmentOnce) -> impl FragmentOnce {
     ("(\n", idented(frag), "\n)")
 }
 
@@ -355,7 +413,7 @@ pub fn parens(frag: impl Fragment) -> impl Fragment {
 /// #
 /// assert_eq!(singles("value").print(), "'value'");
 /// ```
-pub fn singles(frag: impl Fragment) -> impl Fragment {
+pub fn singles(frag: impl FragmentOnce) -> impl FragmentOnce {
     ("'", frag, "'")
 }
 
@@ -366,7 +424,7 @@ pub fn singles(frag: impl Fragment) -> impl Fragment {
 /// #
 /// assert_eq!(doubles("value").print(), "\"value\"");
 /// ```
-pub fn doubles(frag: impl Fragment) -> impl Fragment {
+pub fn doubles(frag: impl FragmentOnce) -> impl FragmentOnce {
     ("\"", frag, "\"")
 }
 
@@ -381,13 +439,13 @@ pub fn doubles(frag: impl Fragment) -> impl Fragment {
 /// );
 /// assert_eq!(comma_list(Vec::<&str>::new()).print(), "");
 /// ```
-pub fn comma_list<I>(frags: I) -> impl Fragment
+pub fn comma_list<I>(frags: I) -> impl FragmentOnce
 where
-    I: IntoIterator + Clone,
-    I::Item: Fragment,
+    I: IntoIterator,
+    I::Item: FragmentOnce,
 {
     (move |p: &mut Printer| {
-        for (index, frag) in frags.clone().into_iter().enumerate() {
+        for (index, frag) in frags.into_iter().enumerate() {
             if index > 0 {
                 p.write(",\n");
             }
@@ -396,6 +454,20 @@ where
         }
     })
     .into_fragment()
+}
+
+/// Removes trailing whitespace from the output.
+///
+/// ```
+/// # use rust_curse::codegen::fragment::{trim, FragmentPrint};
+/// #
+/// assert_eq!(("hello  ", trim()).print(), "hello");
+/// ```
+pub fn trim() -> impl FragmentOnce {
+    fragment_fn(|p| {
+        p.out.truncate(p.out.trim_end().len());
+        p.at_line_start = p.out.is_empty() || p.out.ends_with('\n');
+    })
 }
 
 /// Joins fragments with one blank line between them.
@@ -412,13 +484,13 @@ where
 /// assert_eq!(spaced(["one\n\n", "two"]).print(), "one\n\ntwo");
 /// assert_eq!(spaced(Vec::<&str>::new()).print(), "");
 /// ```
-pub fn spaced<I>(frags: I) -> impl Fragment
+pub fn spaced<I>(frags: I) -> impl FragmentOnce
 where
-    I: IntoIterator + Clone,
-    I::Item: Fragment,
+    I: IntoIterator,
+    I::Item: FragmentOnce,
 {
     (move |p: &mut Printer| {
-        for (index, frag) in frags.clone().into_iter().enumerate() {
+        for (index, frag) in frags.into_iter().enumerate() {
             if index > 0 && !p.out.ends_with("\n\n") {
                 if !p.at_line_start {
                     p.write("\n");
@@ -436,7 +508,7 @@ where
 ///
 /// Static tokens are emitted as written, `~` inserts a space between tokens and
 /// interpolations, `@` inserts a newline, and `{expression}` interpolates
-/// another [`Fragment`](crate::codegen::fragment::Fragment).
+/// another [`FragmentOnce`](crate::codegen::fragment::FragmentOnce).
 ///
 /// ```
 /// # use rust_curse::codegen::fragment::{frag, FragmentPrint};

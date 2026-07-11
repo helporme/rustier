@@ -9,7 +9,7 @@ use crate::codegen::{
         compile_boundary_out_type_name, BoundaryInExpr, BoundaryOutExpr,
     },
     db::Db,
-    fragment::{comma_list, frag, fragment_fn, Fragment, FragmentPrint},
+    fragment::{comma_list, frag, fragment_fn, FragmentOnce, FragmentPrint},
     ir::fn_::Fn,
 };
 
@@ -22,16 +22,16 @@ pub fn compile_binding_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
         None => api.result_type(db, "()"),
     };
 
-    return frag!(
+    frag!(
         {api.fn_header(db, fn_)}@
         pub fn ~{fn_.bindings_name(db)}({compile_binding_fn_params(db, fn_)})~ -> ~{result_type}~ {{
             {compile_binding_fn_body(db, fn_)}
         }}
     )
-    .print();
+    .print()
 }
 
-fn compile_binding_fn_params<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragment + 'db {
+fn compile_binding_fn_params<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentOnce + 'db {
     frag!({
         comma_list(fn_.params(db).iter().map(|param| {
             frag!(
@@ -42,7 +42,7 @@ fn compile_binding_fn_params<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragmen
     })
 }
 
-fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragment + 'db {
+fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentOnce + 'db {
     fragment_fn(move |printer| {
         let params_as_input_exprs = fn_
             .params(db)
@@ -82,7 +82,7 @@ fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragment 
 /// Compiles a function into a call statement of the function.
 ///
 /// Assumes the binding parameter variables present in the scope.
-fn compile_src_fn_call_stmt<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragment + 'db {
+fn compile_src_fn_call_stmt<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentOnce + 'db {
     let params = fragment_fn(move |printer| {
         if fn_.params(db).is_empty() {
             "()".apply(printer);
