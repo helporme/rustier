@@ -66,3 +66,36 @@ fn tuple_struct_with_non_clonable_struct_field() {
         pub struct Parent(pub Field);
     }
 }
+
+#[test]
+fn plain_struct_with_mixed_clonable_struct_fields() {
+    assert_snap! {
+        @gen: ir, ts, node, wasm;
+        @category: structs;
+
+        #[derive(Clone)]
+        pub struct ClonableField;
+
+        pub struct NonClonableField;
+
+        pub struct Parent {
+            pub clonable: ClonableField,
+            pub non_clonable: NonClonableField,
+        }
+    }
+}
+
+#[test]
+fn tuple_struct_with_mixed_clonable_struct_fields() {
+    assert_snap! {
+        @gen: ir, ts, node, wasm;
+        @category: structs;
+
+        #[derive(Clone)]
+        pub struct ClonableField;
+
+        pub struct NonClonableField;
+
+        pub struct Parent(pub ClonableField, pub NonClonableField);
+    }
+}
