@@ -305,9 +305,13 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
-				(value).handle.src.access(&mut |value| { let value = value.clone();
-				result.write(value);
-				 })
+				(value).handle.src.access(
+					&mut |value| {
+						let value = value.clone();
+						result.write(value);
+				
+					}
+				)
 			}
 			unsafe { result.assume_init() }
 		};
@@ -585,9 +589,13 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
-				(value).handle.src.access(&mut |value| { let value = value.clone();
-				result.write(value);
-				 })
+				(value).handle.src.access(
+					&mut |value| {
+						let value = value.clone();
+						result.write(value);
+				
+					}
+				)
 			}
 			unsafe { result.assume_init() }
 		};

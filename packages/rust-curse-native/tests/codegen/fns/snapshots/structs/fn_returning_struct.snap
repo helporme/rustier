@@ -224,7 +224,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.value); })
+					(self).handle.src.access(
+						&mut |src| {
+							result.write(src.value);
+						}
+					)
 				}
 				unsafe { result.assume_init() }
 			}
@@ -236,7 +240,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		{
 			let mut value = __cast_i32(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(&mut |src| { src.value = value; })
+			(self).handle.src.access_mut(
+				&mut |src| {
+					src.value = value;
+				}
+			)
 		}
 		Ok(())
 	}
@@ -395,7 +403,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.value); })
+					(self).handle.src.access(
+						&mut |src| {
+							result.write(src.value);
+						}
+					)
 				}
 				unsafe { result.assume_init() }
 			}
@@ -407,7 +419,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		{
 			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(&mut |src| { src.value = value; })
+			(self).handle.src.access_mut(
+				&mut |src| {
+					src.value = value;
+				}
+			)
 		}
 		Ok(())
 	}

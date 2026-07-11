@@ -204,7 +204,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.0 as u32); })
+					(self).handle.src.access(
+						&mut |src| {
+							result.write(src.0 as u32);
+						}
+					)
 				}
 				unsafe { result.assume_init() }
 			}
@@ -216,7 +220,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_char(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `char` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(&mut |src| { src.0 = value; })
+			(self).handle.src.access_mut(
+				&mut |src| {
+					src.0 = value;
+				}
+			)
 		}
 		Ok(())
 	}
@@ -373,7 +381,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.0 as u32); })
+					(self).handle.src.access(
+						&mut |src| {
+							result.write(src.0 as u32);
+						}
+					)
 				}
 				unsafe { result.assume_init() }
 			}
@@ -385,7 +397,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_char(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `char` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(&mut |src| { src.0 = value; })
+			(self).handle.src.access_mut(
+				&mut |src| {
+					src.0 = value;
+				}
+			)
 		}
 		Ok(())
 	}

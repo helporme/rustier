@@ -189,7 +189,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.0); })
+					(self).handle.src.access(
+						&mut |src| {
+							result.write(src.0);
+						}
+					)
 				}
 				unsafe { result.assume_init() }
 			}
@@ -201,7 +205,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_bool(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
-			(self).handle.src.access_mut(&mut |src| { src.0 = value; })
+			(self).handle.src.access_mut(
+				&mut |src| {
+					src.0 = value;
+				}
+			)
 		}
 		Ok(())
 	}
@@ -212,7 +220,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.2); })
+					(self).handle.src.access(
+						&mut |src| {
+							result.write(src.2);
+						}
+					)
 				}
 				unsafe { result.assume_init() }
 			}
@@ -224,7 +236,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_bool(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
-			(self).handle.src.access_mut(&mut |src| { src.2 = value; })
+			(self).handle.src.access_mut(
+				&mut |src| {
+					src.2 = value;
+				}
+			)
 		}
 		Ok(())
 	}
@@ -377,7 +393,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.0); })
+					(self).handle.src.access(
+						&mut |src| {
+							result.write(src.0);
+						}
+					)
 				}
 				unsafe { result.assume_init() }
 			}
@@ -389,7 +409,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_bool(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
-			(self).handle.src.access_mut(&mut |src| { src.0 = value; })
+			(self).handle.src.access_mut(
+				&mut |src| {
+					src.0 = value;
+				}
+			)
 		}
 		Ok(())
 	}
@@ -400,7 +424,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.2); })
+					(self).handle.src.access(
+						&mut |src| {
+							result.write(src.2);
+						}
+					)
 				}
 				unsafe { result.assume_init() }
 			}
@@ -412,7 +440,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		{
 			let mut value = __cast_bool(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
 			
-			(self).handle.src.access_mut(&mut |src| { src.2 = value; })
+			(self).handle.src.access_mut(
+				&mut |src| {
+					src.2 = value;
+				}
+			)
 		}
 		Ok(())
 	}

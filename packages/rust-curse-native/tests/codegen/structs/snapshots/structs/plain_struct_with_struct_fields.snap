@@ -263,7 +263,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.value); })
+					(self).handle.src.access(
+						&mut |src| {
+							result.write(src.value);
+						}
+					)
 				}
 				unsafe { result.assume_init() }
 			}
@@ -275,7 +279,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 		{
 			let mut value = __cast_i32(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(&mut |src| { src.value = value; })
+			(self).handle.src.access_mut(
+				&mut |src| {
+					src.value = value;
+				}
+			)
 		}
 		Ok(())
 	}
@@ -322,7 +330,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.0.clone()); })
+					(self).handle.src.access(
+						&mut |src| {
+							result.write(src.0.clone());
+						}
+					)
 				}
 				unsafe { result.assume_init() }
 			}
@@ -335,9 +347,13 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 			let mut value = __cast_String(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
 			
 			let mut value = Some(value);
-			(self).handle.src.access_mut(&mut |src| { let value = value.take().unwrap();
-			src.0 = value;
-			 })
+			(self).handle.src.access_mut(
+				&mut |src| {
+					let value = value.take().unwrap();
+					src.0 = value;
+			
+				}
+			)
 		}
 		Ok(())
 	}
@@ -409,9 +425,13 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
-				(value).handle.src.access(&mut |value| { let value = value.clone();
-				result.write(value);
-				 })
+				(value).handle.src.access(
+					&mut |value| {
+						let value = value.clone();
+						result.write(value);
+				
+					}
+				)
 			}
 			unsafe { result.assume_init() }
 		};
@@ -461,9 +481,13 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
-				(value).handle.src.access(&mut |value| { let value = value.clone();
-				result.write(value);
-				 })
+				(value).handle.src.access(
+					&mut |value| {
+						let value = value.clone();
+						result.write(value);
+				
+					}
+				)
 			}
 			unsafe { result.assume_init() }
 		};
@@ -639,7 +663,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.value); })
+					(self).handle.src.access(
+						&mut |src| {
+							result.write(src.value);
+						}
+					)
 				}
 				unsafe { result.assume_init() }
 			}
@@ -651,7 +679,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 		{
 			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
 			
-			(self).handle.src.access_mut(&mut |src| { src.value = value; })
+			(self).handle.src.access_mut(
+				&mut |src| {
+					src.value = value;
+				}
+			)
 		}
 		Ok(())
 	}
@@ -698,7 +730,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 			{
 				let mut result = std::mem::MaybeUninit::uninit();
 				{
-					(self).handle.src.access(&mut |src| { result.write(src.0.clone()); })
+					(self).handle.src.access(
+						&mut |src| {
+							result.write(src.0.clone());
+						}
+					)
 				}
 				unsafe { result.assume_init() }
 			}
@@ -711,9 +747,13 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 			let mut value = __cast_String(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
 			
 			let mut value = Some(value);
-			(self).handle.src.access_mut(&mut |src| { let value = value.take().unwrap();
-			src.0 = value;
-			 })
+			(self).handle.src.access_mut(
+				&mut |src| {
+					let value = value.take().unwrap();
+					src.0 = value;
+			
+				}
+			)
 		}
 		Ok(())
 	}
@@ -785,9 +825,13 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
-				(value).handle.src.access(&mut |value| { let value = value.clone();
-				result.write(value);
-				 })
+				(value).handle.src.access(
+					&mut |value| {
+						let value = value.clone();
+						result.write(value);
+				
+					}
+				)
 			}
 			unsafe { result.assume_init() }
 		};
@@ -837,9 +881,13 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();
 			{
-				(value).handle.src.access(&mut |value| { let value = value.clone();
-				result.write(value);
-				 })
+				(value).handle.src.access(
+					&mut |value| {
+						let value = value.clone();
+						result.write(value);
+				
+					}
+				)
 			}
 			unsafe { result.assume_init() }
 		};

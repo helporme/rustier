@@ -1,7 +1,14 @@
 // todo: fix messed up terminology of projection / accessor
 use rustdoc_types::ItemEnum;
 
-use crate::codegen::{db::Db, rustdoc::mod_::all_mod_ids};
+use crate::{
+    codegen::{
+        db::Db,
+        fragment::{curlies, parens, FragmentPrint},
+        rustdoc::mod_::all_mod_ids,
+    },
+    frag,
+};
 
 pub const PROJECTION_RUNTIME: &str = indoc::indoc! {r#"
     #[allow(non_snake_case, dead_code)]
@@ -113,17 +120,27 @@ pub fn is_projection_preamble_needed(db: &dyn Db) -> bool {
 
 /// Returns the fully qualified name of the slot type for the given inner type.
 pub fn compile_slot_type_name(inner_type_name: &str) -> String {
-    format!("__curse::Slot<{}>", inner_type_name)
+    frag!(__curse::Slot<{ inner_type_name }>).print()
 }
 
 /// Compiles a statement that accesses a value behind an Accessor (runtime)
 /// trait.
 pub fn compile_ref_access_stmt(accessor_expr: &str, out_var: &str, in_stmt: &str) -> String {
-    format!("{accessor_expr}.access(&mut |{out_var}| {{ {in_stmt} }})")
+    frag!(
+        {accessor_expr}.access{parens(frag! {
+            &mut |{out_var}|~{curlies(in_stmt)}
+        })}
+    )
+    .print()
 }
 
 /// Compiles a statement that accesses a mut value behind an Accessor (runtime)
 /// trait.
 pub fn compile_mut_access_stmt(accessor_expr: &str, out_var: &str, in_stmt: &str) -> String {
-    format!("{accessor_expr}.access_mut(&mut |{out_var}| {{ {in_stmt} }})")
+    frag!(
+        {accessor_expr}.access_mut{parens(frag! {
+            &mut |{out_var}|~{curlies(in_stmt)}
+        })}
+    )
+    .print()
 }
