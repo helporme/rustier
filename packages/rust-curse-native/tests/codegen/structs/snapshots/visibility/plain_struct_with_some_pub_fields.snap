@@ -219,7 +219,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "a")]
 	pub fn __setter__a(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -233,7 +233,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[wasm_bindgen(getter, js_name = "c")]
 	pub fn __getter__c(&self) -> Result<bool, JsValue> {
 		Ok(
@@ -250,7 +250,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "c")]
 	pub fn __setter__c(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -264,7 +264,6 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
 }
 ```
 
@@ -435,7 +434,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "a")]
 	pub fn __setter__a(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -449,7 +448,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[napi(getter, js_name = "c")]
 	pub fn __getter__c(&self) -> napi::Result<bool> {
 		Ok(
@@ -466,7 +465,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "c")]
 	pub fn __setter__c(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -480,6 +479,5 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
 }
 ```

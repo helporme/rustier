@@ -236,7 +236,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "value")]
 	pub fn __setter__value(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -250,7 +250,6 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
 }
 ```
 
@@ -429,7 +428,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "value")]
 	pub fn __setter__value(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -443,6 +442,5 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
 }
 ```

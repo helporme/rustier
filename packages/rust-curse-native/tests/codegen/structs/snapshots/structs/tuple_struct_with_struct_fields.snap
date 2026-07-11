@@ -295,7 +295,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "value")]
 	pub fn __setter__value(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -309,7 +309,6 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 		}
 		Ok(())
 	}
-	
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_TupleField{
@@ -372,7 +371,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "0")]
 	pub fn __setter__0(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -389,7 +388,6 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 		}
 		Ok(())
 	}
-	
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_Parent{
@@ -481,7 +479,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "0")]
 	pub fn __setter__0(&self, value: &__cursed_struct__rustdoc_0test_0crate_PlainField) -> napi::Result<()> {
 		let value = {
@@ -517,7 +515,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		
 		Ok(())
 	}
-	
+
 	#[napi(getter, js_name = "1")]
 	pub fn __getter__1(&self) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_TupleField> {
 		if let Some(
@@ -557,7 +555,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "1")]
 	pub fn __setter__1(&self, value: &__cursed_struct__rustdoc_0test_0crate_TupleField) -> napi::Result<()> {
 		let value = {
@@ -593,7 +591,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		
 		Ok(())
 	}
-	
 }
 ```
 
@@ -785,7 +782,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "value")]
 	pub fn __setter__value(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -799,7 +796,6 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 		}
 		Ok(())
 	}
-	
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_TupleField{
@@ -862,7 +858,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "0")]
 	pub fn __setter__0(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -879,7 +875,6 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 		}
 		Ok(())
 	}
-	
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_Parent{
@@ -971,7 +966,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "0")]
 	pub fn __setter__0(&self, value: &__cursed_struct__rustdoc_0test_0crate_PlainField) -> Result<(), JsValue> {
 		let value = {
@@ -1007,7 +1002,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		
 		Ok(())
 	}
-	
+
 	#[wasm_bindgen(getter, js_name = "1")]
 	pub fn __getter__1(&self) -> Result<__cursed_struct__rustdoc_0test_0crate_TupleField, JsValue> {
 		if let Some(
@@ -1047,7 +1042,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "1")]
 	pub fn __setter__1(&self, value: &__cursed_struct__rustdoc_0test_0crate_TupleField) -> Result<(), JsValue> {
 		let value = {
@@ -1083,6 +1078,5 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		
 		Ok(())
 	}
-	
 }
 ```

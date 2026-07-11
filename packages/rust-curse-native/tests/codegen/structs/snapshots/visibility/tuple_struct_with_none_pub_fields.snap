@@ -183,6 +183,7 @@ pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
+
 }
 ```
 
@@ -323,5 +324,6 @@ pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
+
 }
 ```

@@ -14,7 +14,7 @@ use crate::{
             projection::compile_slot_type_name,
         },
         db::Db,
-        fragment::{Fragment, FragmentPrint},
+        fragment::{fragment_fn, spaced, Fragment, FragmentPrint},
         ir::{
             struct_::{
                 struct_binding_name_from_rustdoc_id, struct_fqn_from_rustdoc_id,
@@ -36,19 +36,14 @@ const SRC_FIELD: &str = "src";
 /// Compiles struct to the struct bindings.
 #[salsa::tracked(returns(ref))]
 pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
-    let mut out = Printer::default();
-
-    out.lines(&compile_handle_struct(db, struct_));
-    out.blank();
-    out.lines(&compile_handle_impl(db, struct_));
-    out.blank();
-    out.lines(&compile_handle_accessor_trait_impl(db, struct_).print());
-    out.blank();
-    out.lines(&compile_wrapper_struct(db, struct_));
-    out.blank();
-    out.lines(&compile_wrapper_impl(db, struct_));
-
-    out.into()
+    spaced([
+        &compile_handle_struct(db, struct_) as &dyn Fragment,
+        &compile_handle_impl(db, struct_),
+        &compile_handle_accessor_trait_impl(db, struct_),
+        &compile_wrapper_struct(db, struct_),
+        &compile_wrapper_impl(db, struct_),
+    ])
+    .print()
 }
 
 fn compile_wrapper_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
@@ -168,25 +163,25 @@ fn compile_handle_accessor_trait_impl<'db>(
     )
 }
 
-fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
+fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl Fragment + 'db {
     let api = Api::get(db);
-    let mut out = Printer::default();
 
-    out.lines(api.impl_header(db));
-    out.write_fmt(format_args!("impl {} ", struct_.binding_name(db)));
-    out.curlies(|out| {
-        for field in struct_.fields(db) {
-            out.lines(compile_field_getter(db, struct_, *field));
-            out.blank();
+    let fields = spaced(struct_.fields(db).iter().copied().map(move |field| {
+        fragment_fn(move |p| {
+            frag!({compile_field_getter(db, struct_, field)}@).apply(p);
 
             if !field.is_readonly(db) {
-                out.lines(compile_field_setter(db, struct_, *field));
-                out.blank();
+                frag!(@{compile_field_setter(db, struct_, field)}).apply(p);
             }
-        }
-    });
+        })
+    }));
 
-    out.into()
+    frag!(
+        {api.impl_header(db)}@
+        impl~{struct_.binding_name(db)}~{{
+            {fields}
+        }}
+    )
 }
 
 /// Compiles the associated function for getting a field of a struct.
@@ -197,6 +192,7 @@ fn compile_field_getter<'db>(
     field: StructField<'db>,
 ) -> String {
     let api = Api::get(db);
+
     let mut out = Printer::default();
 
     out.lines(&api.field_getter_header(db, field));

@@ -212,6 +212,7 @@ pub struct __cursed_struct__rustdoc_0test_0crate_ClonableField {
 
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_ClonableField {
+
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_NonClonableField{
@@ -258,6 +259,7 @@ pub struct __cursed_struct__rustdoc_0test_0crate_NonClonableField {
 
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_NonClonableField {
+
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_Parent{
@@ -349,7 +351,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "0")]
 	pub fn __setter__0(&self, value: &__cursed_struct__rustdoc_0test_0crate_ClonableField) -> napi::Result<()> {
 		let value = {
@@ -385,7 +387,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		
 		Ok(())
 	}
-	
+
 	#[napi(getter, js_name = "1")]
 	pub fn __getter__1(&self) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_NonClonableField> {
 		if let Some(
@@ -425,7 +427,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 		)
 	}
-	
+
 }
 ```
 
@@ -566,6 +568,7 @@ pub struct __cursed_struct__rustdoc_0test_0crate_ClonableField {
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_ClonableField {
+
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_NonClonableField{
@@ -612,6 +615,7 @@ pub struct __cursed_struct__rustdoc_0test_0crate_NonClonableField {
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_NonClonableField {
+
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_Parent{
@@ -703,7 +707,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "0")]
 	pub fn __setter__0(&self, value: &__cursed_struct__rustdoc_0test_0crate_ClonableField) -> Result<(), JsValue> {
 		let value = {
@@ -739,7 +743,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		
 		Ok(())
 	}
-	
+
 	#[wasm_bindgen(getter, js_name = "1")]
 	pub fn __getter__1(&self) -> Result<__cursed_struct__rustdoc_0test_0crate_NonClonableField, JsValue> {
 		if let Some(
@@ -779,6 +783,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 		)
 	}
-	
+
 }
 ```

@@ -202,6 +202,7 @@ pub struct __cursed_struct__rustdoc_0test_0crate_Field {
 
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_Field {
+
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_Parent{
@@ -290,7 +291,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 		)
 	}
-	
+
 }
 ```
 
@@ -431,6 +432,7 @@ pub struct __cursed_struct__rustdoc_0test_0crate_Field {
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_Field {
+
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_Parent{
@@ -519,6 +521,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 		)
 	}
-	
+
 }
 ```

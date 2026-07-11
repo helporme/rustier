@@ -413,7 +413,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "a")]
 	pub fn __setter__a(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -427,7 +427,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[napi(getter, js_name = "d")]
 	pub fn __getter__d(&self) -> napi::Result<i8> {
 		Ok(
@@ -444,7 +444,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "d")]
 	pub fn __setter__d(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -458,7 +458,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[napi(getter, js_name = "e")]
 	pub fn __getter__e(&self) -> napi::Result<i16> {
 		Ok(
@@ -475,7 +475,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "e")]
 	pub fn __setter__e(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -489,7 +489,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[napi(getter, js_name = "f")]
 	pub fn __getter__f(&self) -> napi::Result<i32> {
 		Ok(
@@ -506,7 +506,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "f")]
 	pub fn __setter__f(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -520,7 +520,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[napi(getter, js_name = "g")]
 	pub fn __getter__g(&self) -> napi::Result<u8> {
 		Ok(
@@ -537,7 +537,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "g")]
 	pub fn __setter__g(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -551,7 +551,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[napi(getter, js_name = "h")]
 	pub fn __getter__h(&self) -> napi::Result<u16> {
 		Ok(
@@ -568,7 +568,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "h")]
 	pub fn __setter__h(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -582,7 +582,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[napi(getter, js_name = "i")]
 	pub fn __getter__i(&self) -> napi::Result<u32> {
 		Ok(
@@ -599,7 +599,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "i")]
 	pub fn __setter__i(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -613,7 +613,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[napi(getter, js_name = "k")]
 	pub fn __getter__k(&self) -> napi::Result<f64> {
 		Ok(
@@ -630,7 +630,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "k")]
 	pub fn __setter__k(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -644,7 +644,6 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
 }
 ```
 
@@ -951,7 +950,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "a")]
 	pub fn __setter__a(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -965,7 +964,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[wasm_bindgen(getter, js_name = "d")]
 	pub fn __getter__d(&self) -> Result<i8, JsValue> {
 		Ok(
@@ -982,7 +981,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "d")]
 	pub fn __setter__d(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -996,7 +995,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[wasm_bindgen(getter, js_name = "e")]
 	pub fn __getter__e(&self) -> Result<i16, JsValue> {
 		Ok(
@@ -1013,7 +1012,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "e")]
 	pub fn __setter__e(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -1027,7 +1026,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[wasm_bindgen(getter, js_name = "f")]
 	pub fn __getter__f(&self) -> Result<i32, JsValue> {
 		Ok(
@@ -1044,7 +1043,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "f")]
 	pub fn __setter__f(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -1058,7 +1057,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[wasm_bindgen(getter, js_name = "g")]
 	pub fn __getter__g(&self) -> Result<u8, JsValue> {
 		Ok(
@@ -1075,7 +1074,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "g")]
 	pub fn __setter__g(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -1089,7 +1088,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[wasm_bindgen(getter, js_name = "h")]
 	pub fn __getter__h(&self) -> Result<u16, JsValue> {
 		Ok(
@@ -1106,7 +1105,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "h")]
 	pub fn __setter__h(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -1120,7 +1119,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[wasm_bindgen(getter, js_name = "i")]
 	pub fn __getter__i(&self) -> Result<u32, JsValue> {
 		Ok(
@@ -1137,7 +1136,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "i")]
 	pub fn __setter__i(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -1151,7 +1150,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
+
 	#[wasm_bindgen(getter, js_name = "k")]
 	pub fn __getter__k(&self) -> Result<f64, JsValue> {
 		Ok(
@@ -1168,7 +1167,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "k")]
 	pub fn __setter__k(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -1182,6 +1181,5 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		}
 		Ok(())
 	}
-	
 }
 ```

@@ -182,6 +182,7 @@ pub struct __cursed_struct__rustdoc_0test_0crate_UnitStruct {
 
 #[wasm_bindgen]
 impl __cursed_struct__rustdoc_0test_0crate_UnitStruct {
+
 }
 ```
 
@@ -322,5 +323,6 @@ pub struct __cursed_struct__rustdoc_0test_0crate_UnitStruct {
 
 #[napi]
 impl __cursed_struct__rustdoc_0test_0crate_UnitStruct {
+
 }
 ```

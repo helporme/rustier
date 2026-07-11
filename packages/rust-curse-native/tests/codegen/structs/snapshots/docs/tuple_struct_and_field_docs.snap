@@ -237,7 +237,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			}
 		)
 	}
-	
+
 	#[wasm_bindgen(setter, js_name = "0")]
 	pub fn __setter__0(&self, value: JsValue) -> Result<(), JsValue> {
 		{
@@ -251,7 +251,6 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		}
 		Ok(())
 	}
-	
 }
 ```
 
@@ -445,7 +444,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 			}
 		)
 	}
-	
+
 	#[napi(setter, js_name = "0")]
 	pub fn __setter__0(&self, value: Unknown<'_>) -> napi::Result<()> {
 		{
@@ -459,6 +458,5 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		}
 		Ok(())
 	}
-	
 }
 ```
