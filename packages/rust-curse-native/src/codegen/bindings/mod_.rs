@@ -15,13 +15,13 @@ use crate::codegen::{
 pub fn compile_mod(db: &dyn Db, mod_id: RustdocId<'_>) -> String {
     let fns = lower_mod_fns(db, mod_id);
     let structs = lower_mod_structs(db, mod_id);
-    let bindings = || {
+
+    spaced({
         fns.iter().map(|fn_| compile_binding_fn(db, *fn_)).chain(
             structs
                 .iter()
                 .map(|struct_| compile_binding_struct(db, *struct_)),
         )
-    };
-
-    spaced(bindings()).print()
+    })
+    .print()
 }
