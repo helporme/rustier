@@ -2,8 +2,8 @@
 
 use crate::codegen::{
     api::Api,
-    bindings::printer::Printer,
     db::Db,
+    fragment::{comma_list, curlies, frag, singles, FragmentPrint},
     rustdoc::{mod_::lower_mod_fns, RustdocId},
 };
 
@@ -15,28 +15,18 @@ use crate::codegen::{
 pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>, src_path: String) -> String {
     let api = Api::get(db);
     let fns = lower_mod_fns(db, mod_id);
+    let init = api.js_mod_init(db, &src_path);
 
-    let mut out = Printer::default();
+    frag!(
+        import ~{curlies(comma_list(
+            fns.iter().map(|fn_| fn_.bindings_name(db)),
+        ))}~ from ~{singles(src_path)}; @
 
-    out.write("import ");
-    out.curlies(|out| {
-        out.comma_list(fns.iter().map(|fn_| fn_.bindings_name(db)));
-    });
-    out.write_fmt(format_args!(" from '{}';", src_path));
-    out.blank();
+        {init.as_deref().unwrap_or_default()} @
 
-    if let Some(init) = api.js_mod_init(db, &src_path) {
-        out.lines(&init);
-    }
-    out.blank();
-
-    out.write("export ");
-    out.curlies(|out| {
-        out.comma_list(
-            fns.iter()
-                .map(|fn_| format!("{} as {}", fn_.bindings_name(db), fn_.name(db))),
-        );
-    });
-
-    out.into()
+        export ~{curlies(comma_list(fns.iter().map(|fn_| frag!(
+            {fn_.bindings_name(db)}~ as ~{fn_.name(db)}
+        ))))}
+    )
+    .print()
 }
