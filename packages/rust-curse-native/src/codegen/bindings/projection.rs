@@ -2,7 +2,7 @@
 use rustdoc_types::ItemEnum;
 
 use crate::{
-    codegen::{db::Db, fragment::FragmentPrint, rustdoc::mod_::all_mod_ids},
+    codegen::{db::Db, fragment::FragmentOnce, rustdoc::mod_::all_mod_ids},
     frag,
 };
 
@@ -115,24 +115,30 @@ pub fn is_projection_preamble_needed(db: &dyn Db) -> bool {
 }
 
 /// Returns the fully qualified name of the slot type for the given inner type.
-pub fn compile_slot_type_name(inner_type_name: &str) -> String {
-    frag!(__curse::Slot<{ inner_type_name }>).print()
+pub fn compile_slot_type_name<'a>(inner_type_name: &'a str) -> impl FragmentOnce + 'a {
+    frag!(__curse::Slot<{ inner_type_name }>)
 }
 
 /// Compiles a statement that accesses a value behind an Accessor (runtime)
 /// trait.
-pub fn compile_ref_access_stmt(accessor_expr: &str, out_var: &str, in_stmt: &str) -> String {
+pub fn compile_ref_access_stmt<'a>(
+    accessor_expr: impl FragmentOnce + 'a,
+    out_var: &'a str,
+    in_stmt: impl FragmentOnce + 'a,
+) -> impl FragmentOnce + 'a {
     frag!(
-        {accessor_expr}.access(&mut |{out_var}|~{{ {in_stmt} }})
+        {accessor_expr}.access(&mut |{out_var}|~{{ {in_stmt} }});
     )
-    .print()
 }
 
 /// Compiles a statement that accesses a mut value behind an Accessor (runtime)
 /// trait.
-pub fn compile_mut_access_stmt(accessor_expr: &str, out_var: &str, in_stmt: &str) -> String {
+pub fn compile_mut_access_stmt<'a>(
+    accessor_expr: impl FragmentOnce + 'a,
+    out_var: &'a str,
+    in_stmt: impl FragmentOnce + 'a,
+) -> impl FragmentOnce + 'a {
     frag!(
-        {accessor_expr}.access_mut(&mut |{out_var}|~{{ {in_stmt} }})
+        {accessor_expr}.access_mut(&mut |{out_var}|~{{ {in_stmt} }});
     )
-    .print()
 }

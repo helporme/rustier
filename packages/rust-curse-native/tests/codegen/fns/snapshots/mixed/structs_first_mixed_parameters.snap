@@ -310,29 +310,43 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 			handle: std::rc::Rc::new(
 				__cursed_handle__rustdoc_0test_0crate_TupleStruct::new_owned(
 					{
-						let mut result = std::mem::MaybeUninit::uninit();
-						{
-							let mut __p__number = __cast_i32(__p__number).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
-							
-							let mut __p__mutable_text = &mut __cast_String(__p__mutable_text).map_err(|err| napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
-							
-							let mut __p__borrowed_text = & __cast_String(__p__borrowed_text).map_err(|err| napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
-							
-							let mut __p__text = __cast_String(__p__text).map_err(|err| napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
-							
-							let mut __p__text = Some(__p__text);
-							__p__borrowed.handle.src.access(
-								&mut |__p__borrowed| {
-									__p__mutable.handle.src.access_mut(
-										&mut |__p__mutable| {
-											__p__moved_tuple.handle.src.access(
-												&mut |__p__moved_tuple| {
-													__p__moved_plain.handle.src.access(
-														&mut |__p__moved_plain| {
-															let __p__text = __p__text.take().unwrap();
-															let __p__moved_tuple = __p__moved_tuple.clone();
-															let __p__moved_plain = __p__moved_plain.clone();
-															result.write(rustdoc_test_crate::foo(
+						let mut result = std::mem::MaybeUninit::uninit();let __p__text = __cast_String(
+							__p__text
+						).map_err(
+							|err|napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err))
+						)?;
+						let mut __p__text = Some(
+							__p__text
+						);
+						let __p__borrowed_text = & __cast_String(
+							__p__borrowed_text
+						).map_err(
+							|err|napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err))
+						)?;
+						let __p__mutable_text = &mut __cast_String(
+							__p__mutable_text
+						).map_err(
+							|err|napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err))
+						)?;
+						let __p__number = __cast_i32(
+							__p__number
+						).map_err(
+							|err|napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err))
+						)?;
+						__p__borrowed.handle.src.access(
+							&mut |__p__borrowed| {
+								__p__mutable.handle.src.access_mut(
+									&mut |__p__mutable| {
+										__p__moved_tuple.handle.src.access(
+											&mut |__p__moved_tuple| {
+												__p__moved_plain.handle.src.access(
+													&mut |__p__moved_plain| {
+														let __p__moved_plain = __p__moved_plain.clone();
+														let __p__moved_tuple = __p__moved_tuple.clone();
+														let __p__text = __p__text.take().unwrap();
+
+														result.write(
+															rustdoc_test_crate::foo(
 																__p__moved_plain,
 																__p__moved_tuple,
 																__p__mutable,
@@ -341,20 +355,19 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 																__p__mutable_text,
 																__p__borrowed,
 																__p__number
-															));
-							
-							
-							
-														}
-													)
-												}
-											)
-										}
-									)
-								}
-							)
+															)
+														);
+													}
+												);
+											}
+										);
+									}
+								);
+							}
+						);
+						unsafe {
+							result.assume_init()
 						}
-						unsafe { result.assume_init() }
 					}
 				)
 			)
@@ -362,21 +375,34 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	)
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_PlainStruct{
-	src: __curse::Slot<rustdoc_test_crate::PlainStruct>,
+struct __cursed_handle__rustdoc_0test_0crate_PlainStruct {
+	src:__curse::Slot<rustdoc_test_crate::PlainStruct>,
+
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
-	pub fn new_owned(input: rustdoc_test_crate::PlainStruct) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_PlainStruct 		{
-			src: __curse::Slot::owned(input),
-		}}	
-	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainStruct>>) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_PlainStruct 		{
-			src: __curse::Slot::projected(input),
-		}}}
+	pub fn new_owned(
+		input: rustdoc_test_crate::PlainStruct
+	) -> Self {
+		__cursed_handle__rustdoc_0test_0crate_PlainStruct {
+			src: __curse::Slot::owned(
+				input
+			),
+
+		}
+	}
+
+	pub fn new_projected(
+		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainStruct>>
+	)-> Self {
+		__cursed_handle__rustdoc_0test_0crate_PlainStruct {
+			src: __curse::Slot::projected(
+				input
+			),
+
+		}
+	}
+}
 
 impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rustdoc_0test_0crate_PlainStruct{
 	fn access(
@@ -399,8 +425,7 @@ impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rus
 	}
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
-pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_PlainStruct>
 }
 
@@ -412,15 +437,17 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	) -> napi::Result<i32> {
 		Ok(
 			{
-				let mut result = std::mem::MaybeUninit::uninit();
-				{
-					self.handle.src.access(
-						&mut |src| {
-							result.write(src.value);
-						}
-					)
+				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
+					&mut |src| {
+
+						result.write(
+							src.value
+						);
+					}
+				);
+				unsafe {
+					result.assume_init()
 				}
-				unsafe { result.assume_init() }
 			}
 		)
 	}
@@ -429,35 +456,50 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	pub fn __setter__value(
 		&self, value: Unknown<'_>
 	) -> napi::Result<()> {
-		{
-			let mut value = __cast_i32(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
-			
-			self.handle.src.access_mut(
-				&mut |src| {
-					src.value = value;
-				}
-			)
-		}
-		Ok(())
+		let value = __cast_i32(
+			value
+		).map_err(
+			|err|napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err))
+		)?;
+		self.handle.src.access_mut(
+			&mut |src| {
 
+				src.value= value;
+			}
+		);Ok(
+			()
+		)
 	}
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_TupleStruct{
-	src: __curse::Slot<rustdoc_test_crate::TupleStruct>,
+struct __cursed_handle__rustdoc_0test_0crate_TupleStruct {
+	src:__curse::Slot<rustdoc_test_crate::TupleStruct>,
+
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
-	pub fn new_owned(input: rustdoc_test_crate::TupleStruct) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_TupleStruct 		{
-			src: __curse::Slot::owned(input),
-		}}	
-	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleStruct>>) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_TupleStruct 		{
-			src: __curse::Slot::projected(input),
-		}}}
+	pub fn new_owned(
+		input: rustdoc_test_crate::TupleStruct
+	) -> Self {
+		__cursed_handle__rustdoc_0test_0crate_TupleStruct {
+			src: __curse::Slot::owned(
+				input
+			),
+
+		}
+	}
+
+	pub fn new_projected(
+		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleStruct>>
+	)-> Self {
+		__cursed_handle__rustdoc_0test_0crate_TupleStruct {
+			src: __curse::Slot::projected(
+				input
+			),
+
+		}
+	}
+}
 
 impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rustdoc_0test_0crate_TupleStruct{
 	fn access(
@@ -480,8 +522,7 @@ impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rus
 	}
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]
-pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
+#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_TupleStruct>
 }
 
@@ -493,15 +534,17 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	) -> napi::Result<String> {
 		Ok(
 			{
-				let mut result = std::mem::MaybeUninit::uninit();
-				{
-					self.handle.src.access(
-						&mut |src| {
-							result.write(src.0.clone());
-						}
-					)
+				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
+					&mut |src| {
+
+						result.write(
+							src.0.clone()
+						);
+					}
+				);
+				unsafe {
+					result.assume_init()
 				}
-				unsafe { result.assume_init() }
 			}
 		)
 	}
@@ -510,20 +553,23 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	pub fn __setter__0(
 		&self, value: Unknown<'_>
 	) -> napi::Result<()> {
-		{
-			let mut value = __cast_String(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
-			
-			let mut value = Some(value);
-			self.handle.src.access_mut(
-				&mut |src| {
-					let value = value.take().unwrap();
-					src.0 = value;
-			
-				}
-			)
-		}
-		Ok(())
+		let value = __cast_String(
+			value
+		).map_err(
+			|err|napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err))
+		)?;
+		let mut value = Some(
+			value
+		);
+		self.handle.src.access_mut(
+			&mut |src| {
+				let value = value.take().unwrap();
 
+				src.0= value;
+			}
+		);Ok(
+			()
+		)
 	}
 }
 ```
@@ -672,29 +718,43 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 			handle: std::rc::Rc::new(
 				__cursed_handle__rustdoc_0test_0crate_TupleStruct::new_owned(
 					{
-						let mut result = std::mem::MaybeUninit::uninit();
-						{
-							let mut __p__number = __cast_i32(__p__number).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
-							
-							let mut __p__mutable_text = &mut __cast_String(__p__mutable_text).map_err(|err| JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
-							
-							let mut __p__borrowed_text = & __cast_String(__p__borrowed_text).map_err(|err| JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
-							
-							let mut __p__text = __cast_String(__p__text).map_err(|err| JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
-							
-							let mut __p__text = Some(__p__text);
-							__p__borrowed.handle.src.access(
-								&mut |__p__borrowed| {
-									__p__mutable.handle.src.access_mut(
-										&mut |__p__mutable| {
-											__p__moved_tuple.handle.src.access(
-												&mut |__p__moved_tuple| {
-													__p__moved_plain.handle.src.access(
-														&mut |__p__moved_plain| {
-															let __p__text = __p__text.take().unwrap();
-															let __p__moved_tuple = __p__moved_tuple.clone();
-															let __p__moved_plain = __p__moved_plain.clone();
-															result.write(rustdoc_test_crate::foo(
+						let mut result = std::mem::MaybeUninit::uninit();let __p__text = __cast_String(
+							__p__text
+						).map_err(
+							|err|JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err))
+						)?;
+						let mut __p__text = Some(
+							__p__text
+						);
+						let __p__borrowed_text = & __cast_String(
+							__p__borrowed_text
+						).map_err(
+							|err|JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err))
+						)?;
+						let __p__mutable_text = &mut __cast_String(
+							__p__mutable_text
+						).map_err(
+							|err|JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err))
+						)?;
+						let __p__number = __cast_i32(
+							__p__number
+						).map_err(
+							|err|JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err))
+						)?;
+						__p__borrowed.handle.src.access(
+							&mut |__p__borrowed| {
+								__p__mutable.handle.src.access_mut(
+									&mut |__p__mutable| {
+										__p__moved_tuple.handle.src.access(
+											&mut |__p__moved_tuple| {
+												__p__moved_plain.handle.src.access(
+													&mut |__p__moved_plain| {
+														let __p__moved_plain = __p__moved_plain.clone();
+														let __p__moved_tuple = __p__moved_tuple.clone();
+														let __p__text = __p__text.take().unwrap();
+
+														result.write(
+															rustdoc_test_crate::foo(
 																__p__moved_plain,
 																__p__moved_tuple,
 																__p__mutable,
@@ -703,20 +763,19 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 																__p__mutable_text,
 																__p__borrowed,
 																__p__number
-															));
-							
-							
-							
-														}
-													)
-												}
-											)
-										}
-									)
-								}
-							)
+															)
+														);
+													}
+												);
+											}
+										);
+									}
+								);
+							}
+						);
+						unsafe {
+							result.assume_init()
 						}
-						unsafe { result.assume_init() }
 					}
 				)
 			)
@@ -724,21 +783,34 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	)
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_PlainStruct{
-	src: __curse::Slot<rustdoc_test_crate::PlainStruct>,
+struct __cursed_handle__rustdoc_0test_0crate_PlainStruct {
+	src:__curse::Slot<rustdoc_test_crate::PlainStruct>,
+
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
-	pub fn new_owned(input: rustdoc_test_crate::PlainStruct) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_PlainStruct 		{
-			src: __curse::Slot::owned(input),
-		}}	
-	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainStruct>>) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_PlainStruct 		{
-			src: __curse::Slot::projected(input),
-		}}}
+	pub fn new_owned(
+		input: rustdoc_test_crate::PlainStruct
+	) -> Self {
+		__cursed_handle__rustdoc_0test_0crate_PlainStruct {
+			src: __curse::Slot::owned(
+				input
+			),
+
+		}
+	}
+
+	pub fn new_projected(
+		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainStruct>>
+	)-> Self {
+		__cursed_handle__rustdoc_0test_0crate_PlainStruct {
+			src: __curse::Slot::projected(
+				input
+			),
+
+		}
+	}
+}
 
 impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rustdoc_0test_0crate_PlainStruct{
 	fn access(
@@ -761,8 +833,7 @@ impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rus
 	}
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
-pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_PlainStruct>
 }
 
@@ -774,15 +845,17 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	) -> Result<i32, JsValue> {
 		Ok(
 			{
-				let mut result = std::mem::MaybeUninit::uninit();
-				{
-					self.handle.src.access(
-						&mut |src| {
-							result.write(src.value);
-						}
-					)
+				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
+					&mut |src| {
+
+						result.write(
+							src.value
+						);
+					}
+				);
+				unsafe {
+					result.assume_init()
 				}
-				unsafe { result.assume_init() }
 			}
 		)
 	}
@@ -791,35 +864,50 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	pub fn __setter__value(
 		&self, value: JsValue
 	) -> Result<(), JsValue> {
-		{
-			let mut value = __cast_i32(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err)))?;
-			
-			self.handle.src.access_mut(
-				&mut |src| {
-					src.value = value;
-				}
-			)
-		}
-		Ok(())
+		let value = __cast_i32(
+			value
+		).map_err(
+			|err|JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err))
+		)?;
+		self.handle.src.access_mut(
+			&mut |src| {
 
+				src.value= value;
+			}
+		);Ok(
+			()
+		)
 	}
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_TupleStruct{
-	src: __curse::Slot<rustdoc_test_crate::TupleStruct>,
+struct __cursed_handle__rustdoc_0test_0crate_TupleStruct {
+	src:__curse::Slot<rustdoc_test_crate::TupleStruct>,
+
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
-	pub fn new_owned(input: rustdoc_test_crate::TupleStruct) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_TupleStruct 		{
-			src: __curse::Slot::owned(input),
-		}}	
-	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleStruct>>) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_TupleStruct 		{
-			src: __curse::Slot::projected(input),
-		}}}
+	pub fn new_owned(
+		input: rustdoc_test_crate::TupleStruct
+	) -> Self {
+		__cursed_handle__rustdoc_0test_0crate_TupleStruct {
+			src: __curse::Slot::owned(
+				input
+			),
+
+		}
+	}
+
+	pub fn new_projected(
+		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleStruct>>
+	)-> Self {
+		__cursed_handle__rustdoc_0test_0crate_TupleStruct {
+			src: __curse::Slot::projected(
+				input
+			),
+
+		}
+	}
+}
 
 impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rustdoc_0test_0crate_TupleStruct{
 	fn access(
@@ -842,8 +930,7 @@ impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rus
 	}
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]
-pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_TupleStruct>
 }
 
@@ -855,15 +942,17 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	) -> Result<String, JsValue> {
 		Ok(
 			{
-				let mut result = std::mem::MaybeUninit::uninit();
-				{
-					self.handle.src.access(
-						&mut |src| {
-							result.write(src.0.clone());
-						}
-					)
+				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
+					&mut |src| {
+
+						result.write(
+							src.0.clone()
+						);
+					}
+				);
+				unsafe {
+					result.assume_init()
 				}
-				unsafe { result.assume_init() }
 			}
 		)
 	}
@@ -872,20 +961,23 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	pub fn __setter__0(
 		&self, value: JsValue
 	) -> Result<(), JsValue> {
-		{
-			let mut value = __cast_String(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err)))?;
-			
-			let mut value = Some(value);
-			self.handle.src.access_mut(
-				&mut |src| {
-					let value = value.take().unwrap();
-					src.0 = value;
-			
-				}
-			)
-		}
-		Ok(())
+		let value = __cast_String(
+			value
+		).map_err(
+			|err|JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err))
+		)?;
+		let mut value = Some(
+			value
+		);
+		self.handle.src.access_mut(
+			&mut |src| {
+				let value = value.take().unwrap();
 
+				src.0= value;
+			}
+		);Ok(
+			()
+		)
 	}
 }
 ```

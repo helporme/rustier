@@ -6,10 +6,10 @@ use crate::codegen::{
     bindings::boundary::{
         compile_boundary_in_conversion_expr, compile_boundary_in_conversion_stmt,
         compile_boundary_in_type_name, compile_boundary_out_conversion_expr,
-        compile_boundary_out_type_name, BoundaryInExpr, BoundaryOutExpr,
+        compile_boundary_out_type_name, BoundaryInExpr,
     },
     db::Db,
-    fragment::{comma_list, frag, fragment_fn, FragmentOnce, FragmentPrint},
+    fragment::{comma_list, frag, fragment, FragmentOnce, FragmentPrint},
     ir::fn_::Fn,
 };
 
@@ -43,7 +43,7 @@ fn compile_binding_fn_params<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragmen
 }
 
 fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentOnce + 'db {
-    fragment_fn(move |printer| {
+    fragment(move |p| {
         let params_as_input_exprs = fn_
             .params(db)
             .iter()
@@ -54,26 +54,24 @@ fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentO
                 let fn_call_expr = compile_boundary_in_conversion_expr(
                     db,
                     params_as_input_exprs,
-                    compile_src_fn_call_stmt(db, fn_).print(),
+                    compile_src_fn_call_stmt(db, fn_),
                 );
-                let conversion_expr = compile_boundary_out_conversion_expr(
-                    db,
-                    &BoundaryOutExpr {
-                        in_expr: &fn_call_expr,
-                        type_,
-                    },
-                );
+                let conversion_expr = compile_boundary_out_conversion_expr(db, fn_call_expr, type_);
 
-                frag!(Ok({ conversion_expr })).apply(printer);
+                frag!(Ok({ conversion_expr })).apply(p);
             }
             None => {
                 let fn_call_stmt = compile_boundary_in_conversion_stmt(
                     db,
                     params_as_input_exprs,
-                    compile_src_fn_call_stmt(db, fn_).print(),
+                    frag!({compile_src_fn_call_stmt(db, fn_)};),
                 );
 
-                frag!({fn_call_stmt}@Ok(())).apply(printer);
+                frag!(
+                    {fn_call_stmt}@
+                    Ok(())
+                )
+                .apply(p);
             }
         }
     })
@@ -83,7 +81,7 @@ fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentO
 ///
 /// Assumes the binding parameter variables present in the scope.
 fn compile_src_fn_call_stmt<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentOnce + 'db {
-    let params = fragment_fn(move |printer| {
+    let params = fragment(move |printer| {
         if fn_.params(db).is_empty() {
             "()".apply(printer);
         } else {

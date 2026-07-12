@@ -86,13 +86,15 @@ fn __cast_f32(
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__value: Unknown<'_>
 ) -> napi::Result<()> {
-	{
-		let mut __p__value = __cast_f32(__p__value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `f32` from a JavaScript number: {}", err)))?;
-		
-		rustdoc_test_crate::foo(
-			__p__value
-		)
-	}
+	let __p__value = __cast_f32(
+		__p__value
+	).map_err(
+		|err|napi::Error::from_reason(format!("Expected Rust `f32` from a JavaScript number: {}", err))
+	)?;
+
+	rustdoc_test_crate::foo(
+		__p__value
+	);
 	Ok(
 		()
 	)
@@ -131,13 +133,15 @@ fn __cast_f32(
 pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	__p__value: JsValue
 ) -> Result<(), JsValue> {
-	{
-		let mut __p__value = __cast_f32(__p__value).map_err(|err| JsValue::from_str(&format!("Expected Rust `f32` from a JavaScript number: {}", err)))?;
-		
-		rustdoc_test_crate::foo(
-			__p__value
-		)
-	}
+	let __p__value = __cast_f32(
+		__p__value
+	).map_err(
+		|err|JsValue::from_str(&format!("Expected Rust `f32` from a JavaScript number: {}", err))
+	)?;
+
+	rustdoc_test_crate::foo(
+		__p__value
+	);
 	Ok(
 		()
 	)

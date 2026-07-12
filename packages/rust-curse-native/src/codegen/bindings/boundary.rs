@@ -1,20 +1,23 @@
 //! Module for compiling expressions to convert values from boundary type to
 //! source type and vice versa.
 
-use crate::codegen::{
-    api::Api,
-    bindings::{
-        printer::Printer,
-        projection::{compile_mut_access_stmt, compile_ref_access_stmt},
-        struct_::{compile_binding_struct_accessor_expr, compile_binding_struct_ctor_expr},
+use crate::{
+    codegen::{
+        api::Api,
+        bindings::{
+            projection::{compile_mut_access_stmt, compile_ref_access_stmt},
+            struct_::{compile_binding_struct_accessor_expr, compile_binding_struct_ctor_expr},
+        },
+        db::Db,
+        fragment::{fragment, Fragment, FragmentOnce, FragmentPrint},
+        ir::{
+            fn_::{FnParam, ParamMode},
+            struct_::struct_binding_name_from_rustdoc_id,
+            type_::{Primitive, Type},
+            IrId,
+        },
     },
-    db::Db,
-    ir::{
-        fn_::{FnParam, ParamMode},
-        struct_::struct_binding_name_from_rustdoc_id,
-        type_::{Primitive, Type},
-        IrId,
-    },
+    frag,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -26,10 +29,10 @@ pub enum BoundaryMode {
 
 /// Expression that needs to be converted from the binding type to the source
 /// type.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone)]
 pub struct BoundaryInExpr<'db> {
     /// Expression, for example `a` or `a.src`.
-    pub in_expr: &'db str,
+    pub in_expr: &'db dyn Fragment,
     /// Name of the variable to which the converted value will be assigned.
     pub out_var_name: &'db str,
     /// Type of the expression.
@@ -77,28 +80,39 @@ impl<'db> BoundaryInExpr<'db> {
 ///    result.unwrap()
 /// }
 /// ```
-pub fn compile_boundary_in_conversion_expr<'db>(
+pub fn compile_boundary_in_conversion_expr<'db, E>(
     db: &'db dyn Db,
-    exprs: impl IntoIterator<Item = BoundaryInExpr<'db>> + Clone,
-    inner_expr: String,
-) -> String {
-    if exprs.clone().into_iter().next().is_none() {
-        return inner_expr;
-    }
+    exprs: E,
+    inner_expr: impl FragmentOnce + 'db,
+) -> impl FragmentOnce + 'db
+where
+    E: IntoIterator<Item = BoundaryInExpr<'db>> + 'db,
+    E::IntoIter: Clone,
+{
+    fragment(move |p| {
+        let exprs = exprs.into_iter();
+        if exprs.clone().next().is_none() {
+            inner_expr.apply(p);
+            return;
+        }
 
-    let mut out = Printer::default();
-
-    out.curlies(|out| {
-        out.line("let mut result = std::mem::MaybeUninit::uninit();");
-        out.lines(&compile_boundary_in_conversion_stmt(
-            db,
-            exprs,
-            format!("result.write({inner_expr});"),
-        ));
-        out.line("unsafe { result.assume_init() }")
-    });
-
-    out.into()
+        frag!({
+            {
+                let mut result = std::mem::MaybeUninit::uninit();
+                {
+                    compile_boundary_in_conversion_stmt(
+                        db,
+                        exprs,
+                        frag!(result.write({inner_expr});),
+                    )
+                }@
+                unsafe~{{
+                    result.assume_init()
+                }}
+            }
+        })
+        .apply(p);
+    })
 }
 
 /// Compiles a statement that converts each given expression to the source
@@ -116,20 +130,44 @@ pub fn compile_boundary_in_conversion_expr<'db>(
 ///    }) // +map_err
 /// }
 /// ```
-pub fn compile_boundary_in_conversion_stmt<'db>(
+pub fn compile_boundary_in_conversion_stmt<'db, E>(
     db: &'db dyn Db,
-    exprs: impl IntoIterator<Item = BoundaryInExpr<'db>> + Clone,
-    mut inner_stmt: String,
-) -> String {
-    let mut out = Printer::default();
-
+    exprs: E,
+    inner_stmt: impl FragmentOnce + 'db,
+) -> impl FragmentOnce + 'db
+where
+    E: IntoIterator<Item = BoundaryInExpr<'db>> + 'db,
+    E::IntoIter: Clone,
+{
+    let exprs = exprs.into_iter();
     let will_use_projection_closures = exprs
         .clone()
-        .into_iter()
         .any(|expr| matches!(expr.type_, Type::Struct(_)));
 
-    out.curlies(|out| {
-        for expr in exprs.clone() {
+    let cast_exprs = exprs.clone();
+    let cast_stmts = fragment(move |p| {
+        for expr in cast_exprs {
+            if !matches!(expr.type_, Type::Struct(_)) {
+                frag!({compile_boundary_conversion_stmt_via_cast(db, expr)}@).apply(p);
+
+                // In case projections are used, we wrap strings in `Some` on move,
+                // so we can take them out safely without violating the FnMut contract of
+                // projection closures.
+                if will_use_projection_closures
+                    && matches!((expr.type_, expr.mode), (Type::String, BoundaryMode::Move))
+                {
+                    frag!(
+                        let mut ~{expr.out_var_name}~ = Some({expr.out_var_name});@
+                    )
+                    .apply(p);
+                }
+            }
+        }
+    });
+
+    let inner_stmt_exprs = exprs.clone();
+    let inner_stmt_prelude = fragment(move |p| {
+        for expr in inner_stmt_exprs {
             // Structs are cloned on move. To achieve it, we are accessing the source
             // structs by ref projection and cloning them inside the clojure.
             //
@@ -140,11 +178,10 @@ pub fn compile_boundary_in_conversion_stmt<'db>(
                 (expr.type_, expr.mode),
                 (Type::Struct(_), BoundaryMode::Move)
             ) {
-                let name = expr.out_var_name;
-                inner_stmt = indoc::formatdoc! {r#"
-                    let {name} = {name}.clone();
-                    {inner_stmt}
-                "#};
+                frag!(
+                    let ~{expr.out_var_name}~ = ~{expr.out_var_name}.clone();@
+                )
+                .apply(p);
             }
 
             // In case projections will are used, we wrap strings in `Some` on
@@ -153,41 +190,31 @@ pub fn compile_boundary_in_conversion_stmt<'db>(
             if will_use_projection_closures
                 && matches!((expr.type_, expr.mode), (Type::String, BoundaryMode::Move))
             {
-                let name = expr.out_var_name;
-                inner_stmt = indoc::formatdoc! {r#"
-                    let {name} = {name}.take().unwrap();
-                    {inner_stmt}
-                "#};
+                frag!(
+                    let ~{expr.out_var_name}~ = ~{expr.out_var_name}.take().unwrap();@
+                )
+                .apply(p);
             }
         }
-
-        for expr in exprs.clone() {
-            if matches!(expr.type_, Type::Struct(_)) {
-                inner_stmt = compile_boundary_conversion_expr_via_projection(&expr, &inner_stmt);
-            }
-        }
-
-        for expr in exprs.clone() {
-            if !matches!(expr.type_, Type::Struct(_)) {
-                let mut cast = compile_boundary_conversion_stmt_via_cast(db, &expr);
-
-                if will_use_projection_closures
-                    && matches!((expr.type_, expr.mode), (Type::String, BoundaryMode::Move))
-                {
-                    cast = format!(
-                        "{cast}\nlet mut {} = Some({});",
-                        expr.out_var_name, expr.out_var_name
-                    );
-                }
-
-                inner_stmt = format!("{cast}\n{inner_stmt}");
-            }
-        }
-
-        out.lines(&inner_stmt);
     });
 
-    out.into()
+    let mut projection_expr: String = frag!(
+        {inner_stmt_prelude}@
+        {inner_stmt}
+    )
+    .print();
+
+    for expr in exprs.clone() {
+        if matches!(expr.type_, Type::Struct(_)) {
+            projection_expr =
+                compile_boundary_conversion_expr_via_projection(expr, projection_expr).print();
+        }
+    }
+
+    frag!(
+        {cast_stmts}
+        {projection_expr}
+    )
 }
 
 /// Compiles a conversion statement that converts the given expression
@@ -206,12 +233,11 @@ pub fn compile_boundary_in_conversion_stmt<'db>(
 /// ```
 fn compile_boundary_conversion_stmt_via_cast<'db>(
     db: &'db dyn Db,
-    expr: &BoundaryInExpr<'db>,
-) -> String {
+    expr: BoundaryInExpr<'db>,
+) -> impl FragmentOnce + 'db {
     assert!(!matches!(expr.type_, Type::Struct(_)));
 
     let api = Api::get(db);
-    let mut out = Printer::default();
 
     let error = api.error(
         db,
@@ -222,9 +248,6 @@ fn compile_boundary_conversion_stmt_via_cast<'db>(
         ),
     );
 
-    let expr_to_convert = &expr.in_expr;
-    let var_name = &expr.out_var_name;
-
     let ref_ = match expr.mode {
         BoundaryMode::Move => "",
         BoundaryMode::Ref => "& ",
@@ -232,11 +255,9 @@ fn compile_boundary_conversion_stmt_via_cast<'db>(
     };
     let cast_fn_name = expr.type_.cast_fn_name(db);
 
-    out.line_fmt(format_args!(
-        "let mut {var_name} = {ref_}{cast_fn_name}({expr_to_convert}).map_err(|err| {error})?;",
-    ));
-
-    out.into()
+    frag!(
+        let ~{expr.out_var_name}~ = ~{ref_}{cast_fn_name}({expr.in_expr}).map_err(|err| {error})?;
+    )
 }
 
 /// Compiles a conversion expression that converts the given expression
@@ -254,23 +275,25 @@ fn compile_boundary_conversion_stmt_via_cast<'db>(
 /// }); // +map_err
 /// ```
 fn compile_boundary_conversion_expr_via_projection<'db>(
-    expr: &BoundaryInExpr<'db>,
-    inner_expr: &str,
-) -> String {
+    expr: BoundaryInExpr<'db>,
+    inner_expr: impl FragmentOnce + 'db,
+) -> impl FragmentOnce + 'db {
     assert!(matches!(expr.type_, Type::Struct(_)));
 
-    let src_access_expr = compile_binding_struct_accessor_expr(expr.in_expr);
+    fragment(move |p| {
+        let src_access_expr = compile_binding_struct_accessor_expr(expr.in_expr);
 
-    match expr.mode {
-        // cloning inside move is handled in a caller function, since we nede in advance know all
-        // exprs that are going to be converted
-        BoundaryMode::Ref | BoundaryMode::Move => {
-            compile_ref_access_stmt(&src_access_expr, expr.out_var_name, inner_expr)
+        match expr.mode {
+            // cloning inside move is handled in a caller function, since we nede in advance know
+            // all exprs that are going to be converted
+            BoundaryMode::Ref | BoundaryMode::Move => {
+                compile_ref_access_stmt(src_access_expr, expr.out_var_name, inner_expr).apply(p);
+            }
+            BoundaryMode::Mut => {
+                compile_mut_access_stmt(src_access_expr, expr.out_var_name, inner_expr).apply(p);
+            }
         }
-        BoundaryMode::Mut => {
-            compile_mut_access_stmt(&src_access_expr, expr.out_var_name, inner_expr)
-        }
-    }
+    })
 }
 
 /// Compiles the name of the boundary input type.
@@ -280,42 +303,36 @@ fn compile_boundary_conversion_expr_via_projection<'db>(
 ///
 /// For example, `Type::Primitive(Primitive::i32)` is compiled to `"JsValue"`
 /// for active wasm api (see [`crate::codegen::api::Api::js_type`]).
-pub fn compile_boundary_in_type_name<'db>(db: &'db dyn Db, ty: Type<'db>) -> &'db str {
-    let api = Api::get(db);
+pub fn compile_boundary_in_type_name<'db>(
+    db: &'db dyn Db,
+    ty: Type<'db>,
+) -> impl FragmentOnce + 'db {
+    fragment(move |p| {
+        let api = Api::get(db);
 
-    match ty {
-        Type::Primitive(
-            Primitive::Boolean
-            | Primitive::i8
-            | Primitive::u8
-            | Primitive::u16
-            | Primitive::i16
-            | Primitive::i32
-            | Primitive::u32
-            | Primitive::f32
-            | Primitive::f64
-            | Primitive::Char,
-        )
-        | Type::Str
-        | Type::String => api.js_type(db),
-        Type::Struct(id) => compile_boundary_in_struct_name(db, id),
-    }
+        match ty {
+            Type::Primitive(
+                Primitive::Boolean
+                | Primitive::i8
+                | Primitive::u8
+                | Primitive::u16
+                | Primitive::i16
+                | Primitive::i32
+                | Primitive::u32
+                | Primitive::f32
+                | Primitive::f64
+                | Primitive::Char,
+            )
+            | Type::Str
+            | Type::String => api.js_type(db).apply(p),
+            Type::Struct(id) => compile_boundary_in_struct_name(db, id).apply(p),
+        }
+    })
 }
 
-#[salsa::tracked(returns(ref))]
-fn compile_boundary_in_struct_name<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+fn compile_boundary_in_struct_name<'db>(db: &'db dyn Db, id: IrId<'db>) -> impl FragmentOnce + 'db {
     let name = struct_binding_name_from_rustdoc_id(db, id.rustdoc_id(db));
-    format!("&{}", name)
-}
-
-/// Expression that needs to be converted from the source type to the binding
-/// type.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct BoundaryOutExpr<'db> {
-    /// Expression to convert, for example `a` or `a.src`.
-    pub in_expr: &'db str,
-    /// Type of the expression.
-    pub type_: Type<'db>,
+    frag!(&{ name })
 }
 
 /// Compiles an expression that converts a given expression from the source type
@@ -325,31 +342,32 @@ pub struct BoundaryOutExpr<'db> {
 /// 123.3f64 as f32
 /// ```
 pub fn compile_boundary_out_conversion_expr<'db>(
-    db: &dyn Db,
-    expr: &BoundaryOutExpr<'db>,
-) -> String {
-    match expr.type_ {
-        Type::Primitive(Primitive::Char) => format!("{} as u32", expr.in_expr),
-        Type::Primitive(Primitive::f32) => format!("{} as f64", expr.in_expr),
-        // can be returned as-is, since all APIs are supporting it natively
-        Type::Primitive(
-            Primitive::Boolean
-            | Primitive::i8
-            | Primitive::u8
-            | Primitive::i16
-            | Primitive::u16
-            | Primitive::i32
-            | Primitive::u32
-            | Primitive::f64,
-        )
-        | Type::String => expr.in_expr.to_owned(),
-        Type::Str => unreachable!(
-            "str cannot be returned from the function, since functions cannot return references"
-        ),
-        Type::Struct(id) => {
-            compile_binding_struct_ctor_expr(db, id, expr.in_expr.to_owned()).to_owned()
+    db: &'db dyn Db,
+    in_expr: impl FragmentOnce + 'db,
+    in_expr_type: Type<'db>,
+) -> impl FragmentOnce + 'db {
+    fragment(move |p| {
+        match in_expr_type {
+            Type::Primitive(Primitive::Char) => frag!({ in_expr } as u32).apply(p),
+            Type::Primitive(Primitive::f32) => frag!({ in_expr } as f64).apply(p),
+            // can be returned as-is, since all APIs are supporting it natively
+            Type::Primitive(
+                Primitive::Boolean
+                | Primitive::i8
+                | Primitive::u8
+                | Primitive::i16
+                | Primitive::u16
+                | Primitive::i32
+                | Primitive::u32
+                | Primitive::f64,
+            )
+            | Type::String => in_expr.apply(p),
+            Type::Str => unreachable!(
+                "str cannot be returned from the function, since functions cannot return references"
+            ),
+            Type::Struct(id) => compile_binding_struct_ctor_expr(db, id, in_expr).apply(p),
         }
-    }
+    })
 }
 
 /// Compiles the name of the boundary output type.

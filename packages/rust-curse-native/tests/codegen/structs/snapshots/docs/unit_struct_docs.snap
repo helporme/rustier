@@ -138,21 +138,34 @@ mod __curse {
 }
 use __curse::Accessor as _;
 
-struct __cursed_handle__rustdoc_0test_0crate_UnitStruct{
-	src: __curse::Slot<rustdoc_test_crate::UnitStruct>,
+struct __cursed_handle__rustdoc_0test_0crate_UnitStruct {
+	src:__curse::Slot<rustdoc_test_crate::UnitStruct>,
+
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_UnitStruct {
-	pub fn new_owned(input: rustdoc_test_crate::UnitStruct) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_UnitStruct 		{
-			src: __curse::Slot::owned(input),
-		}}	
-	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::UnitStruct>>) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_UnitStruct 		{
-			src: __curse::Slot::projected(input),
-		}}}
+	pub fn new_owned(
+		input: rustdoc_test_crate::UnitStruct
+	) -> Self {
+		__cursed_handle__rustdoc_0test_0crate_UnitStruct {
+			src: __curse::Slot::owned(
+				input
+			),
+
+		}
+	}
+
+	pub fn new_projected(
+		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::UnitStruct>>
+	)-> Self {
+		__cursed_handle__rustdoc_0test_0crate_UnitStruct {
+			src: __curse::Slot::projected(
+				input
+			),
+
+		}
+	}
+}
 
 impl __curse::Accessor<rustdoc_test_crate::UnitStruct> for __cursed_handle__rustdoc_0test_0crate_UnitStruct{
 	fn access(
@@ -175,8 +188,7 @@ impl __curse::Accessor<rustdoc_test_crate::UnitStruct> for __cursed_handle__rust
 	}
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_UnitStruct")]
-pub struct __cursed_struct__rustdoc_0test_0crate_UnitStruct {
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_UnitStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_UnitStruct {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_UnitStruct>
 }
 
@@ -279,21 +291,34 @@ mod __curse {
 }
 use __curse::Accessor as _;
 
-struct __cursed_handle__rustdoc_0test_0crate_UnitStruct{
-	src: __curse::Slot<rustdoc_test_crate::UnitStruct>,
+struct __cursed_handle__rustdoc_0test_0crate_UnitStruct {
+	src:__curse::Slot<rustdoc_test_crate::UnitStruct>,
+
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_UnitStruct {
-	pub fn new_owned(input: rustdoc_test_crate::UnitStruct) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_UnitStruct 		{
-			src: __curse::Slot::owned(input),
-		}}	
-	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::UnitStruct>>) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_UnitStruct 		{
-			src: __curse::Slot::projected(input),
-		}}}
+	pub fn new_owned(
+		input: rustdoc_test_crate::UnitStruct
+	) -> Self {
+		__cursed_handle__rustdoc_0test_0crate_UnitStruct {
+			src: __curse::Slot::owned(
+				input
+			),
+
+		}
+	}
+
+	pub fn new_projected(
+		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::UnitStruct>>
+	)-> Self {
+		__cursed_handle__rustdoc_0test_0crate_UnitStruct {
+			src: __curse::Slot::projected(
+				input
+			),
+
+		}
+	}
+}
 
 impl __curse::Accessor<rustdoc_test_crate::UnitStruct> for __cursed_handle__rustdoc_0test_0crate_UnitStruct{
 	fn access(
@@ -316,8 +341,7 @@ impl __curse::Accessor<rustdoc_test_crate::UnitStruct> for __cursed_handle__rust
 	}
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_UnitStruct")]
-pub struct __cursed_struct__rustdoc_0test_0crate_UnitStruct {
+#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_UnitStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_UnitStruct {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_UnitStruct>
 }
 

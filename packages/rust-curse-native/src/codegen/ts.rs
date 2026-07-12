@@ -5,7 +5,7 @@ pub mod sourcemap;
 use crate::codegen::{
     db::Db,
     fragment::{
-        comma_list, frag, fragment_fn, spaced, FragmentOnce, FragmentPrint, IntoFnFragment, Printer,
+        comma_list, frag, fragment, spaced, FragmentOnce, FragmentPrint, IntoFnFragment, Printer,
     },
     ir::{
         fn_::Fn,
@@ -72,7 +72,7 @@ fn compile_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
 /// Compiles an ir struct to ts declaration.
 #[salsa::tracked(returns(ref))]
 fn compile_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
-    let fields = fragment_fn(move |p| {
+    let fields = fragment(move |p| {
         let fields = struct_.fields(db);
 
         for (index, field) in fields.iter().enumerate() {
@@ -113,7 +113,7 @@ fn compile_class_field<'db>(db: &'db dyn Db, field: StructField<'db>) -> impl Fr
 }
 
 fn compile_jsdoc(docs: Option<&str>) -> impl FragmentOnce + '_ {
-    fragment_fn(move |p| {
+    fragment(move |p| {
         let Some(docs) = docs else {
             return;
         };

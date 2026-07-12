@@ -51,7 +51,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 
 ) -> napi::Result<u32> {
 	Ok(
-		rustdoc_test_crate::foo() as u32
+		rustdoc_test_crate::foo()as u32
 	)
 }
 ```
@@ -67,7 +67,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 
 ) -> Result<u32, JsValue> {
 	Ok(
-		rustdoc_test_crate::foo() as u32
+		rustdoc_test_crate::foo()as u32
 	)
 }
 ```

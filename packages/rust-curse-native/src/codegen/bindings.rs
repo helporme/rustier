@@ -14,7 +14,7 @@ use crate::codegen::{
         projection::{is_projection_preamble_needed, PROJECTION_RUNTIME},
     },
     db::Db,
-    fragment::{frag, fragment_fn, spaced, trim, FragmentOnce, FragmentPrint},
+    fragment::{frag, fragment, spaced, trim, FragmentOnce, FragmentPrint},
     rustdoc::mod_::all_mod_ids,
 };
 
@@ -32,7 +32,7 @@ pub fn compile_bindings(db: &dyn Db) -> String {
         api.cast_prelude(db).unwrap_or_default()
     };
 
-    fragment_fn(|p| {
+    fragment(|p| {
         frag!(
             #![allow(non_camel_case_types, non_snake_case)]@
             {cast_prelude}{api.prelude(db)}

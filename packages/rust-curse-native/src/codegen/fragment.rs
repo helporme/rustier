@@ -103,10 +103,10 @@ impl fmt::Write for Printer {
 /// A source code fragment that can be rendered once.
 ///
 /// ```
-/// # use rust_curse::codegen::fragment::{fragment_fn, FragmentOnce, FragmentPrint};
+/// # use rust_curse::codegen::fragment::{fragment, FragmentOnce, FragmentPrint};
 /// #
 /// let text = String::from("owned");
-/// let fragment = fragment_fn(move |printer| text.apply(printer));
+/// let fragment = fragment(move |printer| text.apply(printer));
 ///
 /// assert_eq!(fragment.print(), "owned");
 /// ```
@@ -146,6 +146,7 @@ pub trait Fragment {
 ///
 /// assert_eq!(fragment.print(), "generated");
 /// ```
+#[derive(Clone)]
 pub struct FnFragment<F>(F);
 
 impl<F> From<F> for FnFragment<F>
@@ -361,7 +362,19 @@ impl_fragment_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6);
 impl_fragment_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7);
 impl_fragment_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7, I.8);
 
-pub fn fragment_fn<F>(f: F) -> FnFragment<F>
+/// Converts a printing closure into a composable [`FnFragment`].
+///
+/// ```
+/// # use rust_curse::codegen::fragment::{fragment, FragmentOnce, FragmentPrint};
+/// #
+/// let greeting = fragment(|p| {
+///     "Hello, ".apply(p);
+///     "world!".apply(p);
+/// });
+///
+/// assert_eq!(greeting.print(), "Hello, world!");
+/// ```
+pub fn fragment<F>(f: F) -> FnFragment<F>
 where
     F: FnOnce(&mut Printer),
 {
@@ -464,7 +477,7 @@ where
 /// assert_eq!(("hello  ", trim()).print(), "hello");
 /// ```
 pub fn trim() -> impl FragmentOnce {
-    fragment_fn(|p| {
+    fragment(|p| {
         p.out.truncate(p.out.trim_end().len());
         p.at_line_start = p.out.is_empty() || p.out.ends_with('\n');
     })

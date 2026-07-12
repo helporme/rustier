@@ -51,7 +51,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 
 ) -> napi::Result<f64> {
 	Ok(
-		rustdoc_test_crate::foo() as f64
+		rustdoc_test_crate::foo()as f64
 	)
 }
 ```
@@ -67,7 +67,7 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 
 ) -> Result<f64, JsValue> {
 	Ok(
-		rustdoc_test_crate::foo() as f64
+		rustdoc_test_crate::foo()as f64
 	)
 }
 ```

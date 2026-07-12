@@ -11,7 +11,7 @@ use crate::{
     codegen::{
         api::Api,
         db::Db,
-        fragment::{doubles, fragment_fn, spaced, FragmentOnce, FragmentPrint},
+        fragment::{doubles, fragment, spaced, FragmentOnce, FragmentPrint},
         ir::{
             struct_::struct_fqn_from_rustdoc_id,
             type_::{Primitive, Type},
@@ -106,7 +106,7 @@ fn compile_cast_res<'db>(db: &'db dyn Db, type_: Type<'db>) -> &'db str {
 
 /// Compiles the body of a cast function.
 fn compile_cast_body<'db>(db: &'db dyn Db, type_: Type<'db>) -> impl FragmentOnce + 'db {
-    fragment_fn(move |p| {
+    fragment(move |p| {
         let api = Api::get(db);
 
         match type_ {

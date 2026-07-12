@@ -8,13 +8,12 @@ use crate::{
             boundary::{
                 compile_boundary_in_conversion_expr, compile_boundary_in_conversion_stmt,
                 compile_boundary_in_type_name, compile_boundary_out_conversion_expr,
-                compile_boundary_out_type_name, BoundaryInExpr, BoundaryMode, BoundaryOutExpr,
+                compile_boundary_out_type_name, BoundaryInExpr, BoundaryMode,
             },
-            printer::Printer,
             projection::compile_slot_type_name,
         },
         db::Db,
-        fragment::{fragment_fn, spaced, FragmentOnce, FragmentPrint},
+        fragment::{fragment, spaced, FragmentOnce, FragmentPrint},
         ir::{
             struct_::{
                 struct_binding_name_from_rustdoc_id, struct_fqn_from_rustdoc_id,
@@ -36,110 +35,83 @@ const SRC_FIELD: &str = "src";
 /// Compiles struct to the struct bindings.
 #[salsa::tracked(returns(ref))]
 pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
-    spaced([
-        compile_handle_struct(db, struct_),
-        compile_handle_impl(db, struct_).print(),
-        compile_handle_accessor_trait_impl(db, struct_).print(),
-        compile_wrapper_struct(db, struct_),
-        compile_wrapper_impl(db, struct_).print(),
-    ])
+    frag!(
+        {compile_handle_struct(db, struct_)}@@
+        {compile_handle_impl(db, struct_)}@@
+        {compile_handle_accessor_trait_impl(db, struct_)}@@
+        {compile_wrapper_struct(db, struct_)}@@
+        {compile_wrapper_impl(db, struct_)}
+    )
     .print()
 }
 
-fn compile_wrapper_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
+fn compile_wrapper_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
-    let mut out = Printer::default();
 
-    out.lines(&api.struct_header(db, struct_));
-    out.write_fmt(format_args!("pub struct {} ", struct_.binding_name(db)));
-    out.curlies(|out| {
-        out.line_fmt(format_args!(
-            "{HANDLE_FIELD}: std::rc::Rc<{}>",
-            struct_.handle_name(db)
-        ));
-    });
-
-    out.blank();
-    out.into()
+    frag!(
+        {api.struct_header(db, struct_)}
+        pub struct ~{struct_.binding_name(db)}~{{
+            {HANDLE_FIELD}: std::rc::Rc<{struct_.handle_name(db)}>
+        }}
+    )
 }
 
-fn compile_handle_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
-    let mut out = Printer::default();
-
-    out.write_fmt(format_args!("struct {}", struct_.handle_name(db)));
-    out.curlies(|out| {
-        out.line_fmt(format_args!(
-            "{SRC_FIELD}: {},",
-            compile_slot_type_name(struct_.fqn(db))
-        ));
-
+fn compile_handle_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl FragmentOnce + 'db {
+    let cache_fields = fragment(move |p| {
         for field in struct_.fields(db) {
             if let Type::Struct(field_struct_id) = field.type_(db) {
-                out.line_fmt(format_args!(
-                    "{}: std::cell::RefCell<Option<std::rc::Weak<{}>>>,",
-                    field.cache_field_name(db),
-                    struct_handle_name_from_rustdoc_id(db, field_struct_id.rustdoc_id(db))
-                ));
+                let field_type_name =
+                    struct_handle_name_from_rustdoc_id(db, field_struct_id.rustdoc_id(db));
+                let field_name = field.cache_field_name(db);
+
+                frag!(
+                    {field_name}: std::cell::RefCell<Option<std::rc::Weak<{field_type_name}>>>,@
+                )
+                .apply(p);
             }
         }
     });
-    out.blank();
 
-    out.into()
+    frag!(
+        struct ~{struct_.handle_name(db)}~{{
+            {SRC_FIELD}: {compile_slot_type_name(struct_.fqn(db))},@
+            {cache_fields}
+        }}
+    )
 }
 
-fn compile_handle_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
-    let mut out = Printer::default();
-
+fn compile_handle_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl FragmentOnce + 'db {
     let struct_handle_name = struct_.handle_name(db);
     let struct_fqn = struct_.fqn(db);
 
-    out.write_fmt(format_args!("impl {struct_handle_name} "));
-    out.curlies(|out| {
-        out.line_fmt(format_args!(
-            "pub fn new_owned(input: {struct_fqn}) -> Self "
-        ));
-
-        out.curlies(|out| {
-            out.write_fmt(format_args!("{struct_handle_name} "));
-            out.curlies(|out| {
-                out.line_fmt(format_args!("src: __curse::Slot::owned(input),"));
-
-                for field in struct_.fields(db) {
-                    if matches!(field.type_(db), Type::Struct(_)) {
-                        out.line_fmt(format_args!(
-                            "{}: std::cell::RefCell::new(None),",
-                            field.cache_field_name(db),
-                        ));
-                    }
-                }
-            });
-        });
-        out.blank();
-
-        out.line_fmt(format_args!(
-            "pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<{struct_fqn}>>) -> Self "
-        ));
-
-        out.curlies(|out| {
-            out.write_fmt(format_args!("{struct_handle_name} "));
-            out.curlies(|out| {
-                out.line_fmt(format_args!("src: __curse::Slot::projected(input),"));
-
-                for field in struct_.fields(db) {
-                    if matches!(field.type_(db), Type::Struct(_)) {
-                        out.line_fmt(format_args!(
-                            "{}: std::cell::RefCell::new(None),",
-                            field.cache_field_name(db),
-                        ));
-                    }
-                }
-            });
-        });
+    let cache_fields = fragment(move |p| {
+        for field in struct_.fields(db) {
+            if matches!(field.type_(db), Type::Struct(_)) {
+                frag!(
+                    {field.cache_field_name(db)}: std::cell::RefCell::new(None),@
+                )
+                .apply(p);
+            }
+        }
     });
-    out.blank();
 
-    out.into()
+    frag!(
+        impl ~{struct_handle_name}~{{
+            pub fn new_owned(input: ~{struct_fqn})~ -> Self ~{{
+                {struct_handle_name}~{{
+                    src: __curse::Slot::owned(input),@
+                    {cache_fields.clone()}
+                }}
+            }}@@
+
+            pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<{struct_fqn}>>) -> Self~{{
+                {struct_handle_name}~{{
+                    src: __curse::Slot::projected(input),@
+                    {cache_fields}
+                }}
+            }}
+        }}
+    )
 }
 
 fn compile_handle_accessor_trait_impl<'db>(
@@ -167,7 +139,7 @@ fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl Frag
     let api = Api::get(db);
 
     let fields = spaced(struct_.fields(db).iter().copied().map(move |field| {
-        fragment_fn(move |p| {
+        fragment(move |p| {
             frag!({compile_field_getter(db, struct_, field)}@).apply(p);
 
             if !field.is_readonly(db) {
@@ -195,7 +167,7 @@ fn compile_field_getter<'db>(
     let getter_name = field.getter_binding_name(db);
     let result_type = api.result_type(db, compile_boundary_out_type_name(db, field.type_(db)));
 
-    let body = fragment_fn(move |p| {
+    let body = fragment(move |p| {
         if let Type::Struct(_) = field.type_(db) {
             compile_struct_field_getter_body(db, field).apply(p);
         } else {
@@ -255,29 +227,32 @@ fn compile_primitive_field_getter_body<'db>(
     field: StructField<'db>,
 ) -> impl FragmentOnce + 'db {
     let get_self_expr = BoundaryInExpr {
-        in_expr: "self",
+        in_expr: &"self",
         out_var_name: "src",
         type_: struct_.as_type(db),
         mode: BoundaryMode::Ref,
     };
 
-    let conversion_expr = compile_boundary_in_conversion_expr(db, [get_self_expr], {
-        let get_field_expr = BoundaryOutExpr {
-            in_expr: &format!("src.{}", field.name(db)),
-            type_: field.type_(db),
-        };
+    let conversion_expr = compile_boundary_in_conversion_expr(
+        db,
+        [get_self_expr],
+        fragment(move |p| {
+            let expr = compile_boundary_out_conversion_expr(
+                db,
+                frag!(src.{field.name(db)}),
+                field.type_(db),
+            );
 
-        let expr = compile_boundary_out_conversion_expr(db, &get_field_expr);
-
-        if field.type_(db) == Type::String {
-            // Clone the string to avoid moving it out from the struct.
-            // Strings are always cloned when passing the js boundary, so it's not a
-            // performance concern.
-            format!("{expr}.clone()")
-        } else {
-            expr
-        }
-    });
+            if field.type_(db) == Type::String {
+                // Clone the string to avoid moving it out from the struct.
+                // Strings are always cloned when passing the js boundary, so it's not a
+                // performance concern.
+                frag!({ expr }.clone()).apply(p);
+            } else {
+                expr.apply(p);
+            }
+        }),
+    );
 
     frag!(Ok({ conversion_expr }))
 }
@@ -294,7 +269,7 @@ fn compile_field_setter<'db>(
     let param_type_name = compile_boundary_in_type_name(db, field.type_(db));
     let res_type_name = api.result_type(db, "()");
 
-    let body = fragment_fn(move |p| {
+    let body = fragment(move |p| {
         if let Type::Struct(_) = field.type_(db) {
             compile_struct_field_setter_body(db, field).apply(p);
         } else {
@@ -316,7 +291,7 @@ fn compile_struct_field_setter_body<'db>(
     field: StructField<'db>,
 ) -> impl FragmentOnce + 'db {
     let value_in_expr = BoundaryInExpr {
-        in_expr: "value",
+        in_expr: &"value",
         out_var_name: "value",
         type_: field.type_(db),
         // struct cannot store references, so field setter cannot take a reference, hence we
@@ -358,18 +333,16 @@ fn compile_primitive_field_setter_body<'db>(
     db: &'db dyn Db,
     struct_: Struct<'db>,
     field: StructField<'db>,
-) -> String {
-    let mut out = Printer::default();
-
+) -> impl FragmentOnce + 'db {
     let inputs = [
         BoundaryInExpr {
-            in_expr: "self",
+            in_expr: &"self",
             out_var_name: "src",
             type_: struct_.as_type(db),
             mode: BoundaryMode::Mut,
         },
         BoundaryInExpr {
-            in_expr: "value",
+            in_expr: &"value",
             out_var_name: "value",
             type_: field.type_(db),
             // struct cannot store references, so field setter cannot take a reference, hence we
@@ -377,23 +350,20 @@ fn compile_primitive_field_setter_body<'db>(
             mode: BoundaryMode::Move,
         },
     ];
-    out.lines(&compile_boundary_in_conversion_stmt(db, inputs, {
-        format!("src.{} = value;", field.name(db))
-    }));
 
-    out.line("Ok(())");
-
-    out.into()
+    frag!(
+        {compile_boundary_in_conversion_stmt(db, inputs, frag!(src.{field.name(db)} = value;))}
+        Ok(())
+    )
 }
 
 /// Compiles an expression that creates a new instance of the binding
 /// struct from the given `input_src_expr` that returns the source value.
-#[salsa::tracked(returns(ref))]
 pub fn compile_binding_struct_ctor_expr<'db>(
     db: &'db dyn Db,
     id: IrId<'db>,
-    input_src_expr: String,
-) -> String {
+    input_src_expr: impl FragmentOnce + 'db,
+) -> impl FragmentOnce + 'db {
     let struct_handle_name = struct_handle_name_from_rustdoc_id(db, id.rustdoc_id(db));
     let struct_binding_name = struct_binding_name_from_rustdoc_id(db, id.rustdoc_id(db));
 
@@ -402,16 +372,16 @@ pub fn compile_binding_struct_ctor_expr<'db>(
             handle: std::rc::Rc::new({struct_handle_name}::new_owned({input_src_expr}))
         }}
     )
-    .print()
 }
 
 /// Compiles an expression that returns a reference to the accessor of the
 /// source struct.
 ///
 /// Takes an expression that returns a reference to the binding struct.
-pub fn compile_binding_struct_accessor_expr(struct_expr: &str) -> String {
+pub fn compile_binding_struct_accessor_expr<'a>(
+    struct_expr: impl FragmentOnce + 'a,
+) -> impl FragmentOnce + 'a {
     frag!(
         {struct_expr}.{HANDLE_FIELD}.{SRC_FIELD}
     )
-    .print()
 }

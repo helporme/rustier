@@ -159,21 +159,34 @@ fn __cast_bool(
 	value.as_bool().ok_or_else(|| "cannot cast value to bool".to_string())
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_PlainStruct{
-	src: __curse::Slot<rustdoc_test_crate::PlainStruct>,
+struct __cursed_handle__rustdoc_0test_0crate_PlainStruct {
+	src:__curse::Slot<rustdoc_test_crate::PlainStruct>,
+
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
-	pub fn new_owned(input: rustdoc_test_crate::PlainStruct) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_PlainStruct 		{
-			src: __curse::Slot::owned(input),
-		}}	
-	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainStruct>>) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_PlainStruct 		{
-			src: __curse::Slot::projected(input),
-		}}}
+	pub fn new_owned(
+		input: rustdoc_test_crate::PlainStruct
+	) -> Self {
+		__cursed_handle__rustdoc_0test_0crate_PlainStruct {
+			src: __curse::Slot::owned(
+				input
+			),
+
+		}
+	}
+
+	pub fn new_projected(
+		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainStruct>>
+	)-> Self {
+		__cursed_handle__rustdoc_0test_0crate_PlainStruct {
+			src: __curse::Slot::projected(
+				input
+			),
+
+		}
+	}
+}
 
 impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rustdoc_0test_0crate_PlainStruct{
 	fn access(
@@ -196,8 +209,7 @@ impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rus
 	}
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
-pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_PlainStruct>
 }
 
@@ -209,15 +221,17 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	) -> Result<bool, JsValue> {
 		Ok(
 			{
-				let mut result = std::mem::MaybeUninit::uninit();
-				{
-					self.handle.src.access(
-						&mut |src| {
-							result.write(src.a);
-						}
-					)
+				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
+					&mut |src| {
+
+						result.write(
+							src.a
+						);
+					}
+				);
+				unsafe {
+					result.assume_init()
 				}
-				unsafe { result.assume_init() }
 			}
 		)
 	}
@@ -226,17 +240,19 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	pub fn __setter__a(
 		&self, value: JsValue
 	) -> Result<(), JsValue> {
-		{
-			let mut value = __cast_bool(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-			
-			self.handle.src.access_mut(
-				&mut |src| {
-					src.a = value;
-				}
-			)
-		}
-		Ok(())
+		let value = __cast_bool(
+			value
+		).map_err(
+			|err|JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+		)?;
+		self.handle.src.access_mut(
+			&mut |src| {
 
+				src.a= value;
+			}
+		);Ok(
+			()
+		)
 	}
 
 	#[wasm_bindgen(getter, js_name = "c")]
@@ -245,15 +261,17 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	) -> Result<bool, JsValue> {
 		Ok(
 			{
-				let mut result = std::mem::MaybeUninit::uninit();
-				{
-					self.handle.src.access(
-						&mut |src| {
-							result.write(src.c);
-						}
-					)
+				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
+					&mut |src| {
+
+						result.write(
+							src.c
+						);
+					}
+				);
+				unsafe {
+					result.assume_init()
 				}
-				unsafe { result.assume_init() }
 			}
 		)
 	}
@@ -262,17 +280,19 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	pub fn __setter__c(
 		&self, value: JsValue
 	) -> Result<(), JsValue> {
-		{
-			let mut value = __cast_bool(value).map_err(|err| JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-			
-			self.handle.src.access_mut(
-				&mut |src| {
-					src.c = value;
-				}
-			)
-		}
-		Ok(())
+		let value = __cast_bool(
+			value
+		).map_err(
+			|err|JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+		)?;
+		self.handle.src.access_mut(
+			&mut |src| {
 
+				src.c= value;
+			}
+		);Ok(
+			()
+		)
 	}
 }
 ```
@@ -384,21 +404,34 @@ fn __cast_bool(
 	}
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_PlainStruct{
-	src: __curse::Slot<rustdoc_test_crate::PlainStruct>,
+struct __cursed_handle__rustdoc_0test_0crate_PlainStruct {
+	src:__curse::Slot<rustdoc_test_crate::PlainStruct>,
+
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
-	pub fn new_owned(input: rustdoc_test_crate::PlainStruct) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_PlainStruct 		{
-			src: __curse::Slot::owned(input),
-		}}	
-	pub fn new_projected(input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainStruct>>) -> Self 
-	{
-		__cursed_handle__rustdoc_0test_0crate_PlainStruct 		{
-			src: __curse::Slot::projected(input),
-		}}}
+	pub fn new_owned(
+		input: rustdoc_test_crate::PlainStruct
+	) -> Self {
+		__cursed_handle__rustdoc_0test_0crate_PlainStruct {
+			src: __curse::Slot::owned(
+				input
+			),
+
+		}
+	}
+
+	pub fn new_projected(
+		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainStruct>>
+	)-> Self {
+		__cursed_handle__rustdoc_0test_0crate_PlainStruct {
+			src: __curse::Slot::projected(
+				input
+			),
+
+		}
+	}
+}
 
 impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rustdoc_0test_0crate_PlainStruct{
 	fn access(
@@ -421,8 +454,7 @@ impl __curse::Accessor<rustdoc_test_crate::PlainStruct> for __cursed_handle__rus
 	}
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]
-pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_PlainStruct>
 }
 
@@ -434,15 +466,17 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	) -> napi::Result<bool> {
 		Ok(
 			{
-				let mut result = std::mem::MaybeUninit::uninit();
-				{
-					self.handle.src.access(
-						&mut |src| {
-							result.write(src.a);
-						}
-					)
+				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
+					&mut |src| {
+
+						result.write(
+							src.a
+						);
+					}
+				);
+				unsafe {
+					result.assume_init()
 				}
-				unsafe { result.assume_init() }
 			}
 		)
 	}
@@ -451,17 +485,19 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	pub fn __setter__a(
 		&self, value: Unknown<'_>
 	) -> napi::Result<()> {
-		{
-			let mut value = __cast_bool(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-			
-			self.handle.src.access_mut(
-				&mut |src| {
-					src.a = value;
-				}
-			)
-		}
-		Ok(())
+		let value = __cast_bool(
+			value
+		).map_err(
+			|err|napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+		)?;
+		self.handle.src.access_mut(
+			&mut |src| {
 
+				src.a= value;
+			}
+		);Ok(
+			()
+		)
 	}
 
 	#[napi(getter, js_name = "c")]
@@ -470,15 +506,17 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	) -> napi::Result<bool> {
 		Ok(
 			{
-				let mut result = std::mem::MaybeUninit::uninit();
-				{
-					self.handle.src.access(
-						&mut |src| {
-							result.write(src.c);
-						}
-					)
+				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
+					&mut |src| {
+
+						result.write(
+							src.c
+						);
+					}
+				);
+				unsafe {
+					result.assume_init()
 				}
-				unsafe { result.assume_init() }
 			}
 		)
 	}
@@ -487,17 +525,19 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 	pub fn __setter__c(
 		&self, value: Unknown<'_>
 	) -> napi::Result<()> {
-		{
-			let mut value = __cast_bool(value).map_err(|err| napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err)))?;
-			
-			self.handle.src.access_mut(
-				&mut |src| {
-					src.c = value;
-				}
-			)
-		}
-		Ok(())
+		let value = __cast_bool(
+			value
+		).map_err(
+			|err|napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+		)?;
+		self.handle.src.access_mut(
+			&mut |src| {
 
+				src.c= value;
+			}
+		);Ok(
+			()
+		)
 	}
 }
 ```
