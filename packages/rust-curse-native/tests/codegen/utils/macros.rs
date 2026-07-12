@@ -44,32 +44,32 @@ macro_rules! diag {
 pub(crate) use diag;
 
 macro_rules! assert_snap {
-    (@gen: [$($category:ident),+ $(,)?]; @snapshot_path: $snapshot_path:expr; $($tt:tt)*) => {{
+    (@generate: [$($category:ident),+ $(,)?]; @snapshot_path: $snapshot_path:expr_2021; $($tt:tt)*) => {{
         let categories = &[$(::std::stringify!($category)),+];
         let body = $crate::utils::snap::build_snap(::std::stringify!($($tt)*), categories);
         ::insta::with_settings!({ snapshot_path => $snapshot_path, prepend_module_to_snapshot => false }, {
             ::insta::assert_snapshot!(body);
         });
     }};
-    (@gen: $($category:ident),+ $(,)?; @category: $snapshot_category:ident; $($tt:tt)*) => {{
+    (@generate: $($category:ident),+ $(,)?; @category: $snapshot_category:ident; $($tt:tt)*) => {{
         $crate::utils::assert_snap!(
-            @gen: [$($category),+];
+            @generate: [$($category),+];
             @snapshot_path: ::std::concat!("snapshots/", ::std::stringify!($snapshot_category));
             $($tt)*
         )
     }};
-    (@gen: $($category:ident),+ $(,)?; $($tt:tt)*) => {{
+    (@generate: $($category:ident),+ $(,)?; $($tt:tt)*) => {{
         $crate::utils::assert_snap!(
-            @gen: [$($category),+];
+            @generate: [$($category),+];
             @snapshot_path: "snapshots";
             $($tt)*
         )
     }};
     ({ [$($category:ident),+ $(,)?] { $($tt:tt)* } }) => {
-        $crate::utils::assert_snap!(@gen: $($category),+; $($tt)*)
+        $crate::utils::assert_snap!(@generate: $($category),+; $($tt)*)
     };
     ([$($category:ident),+ $(,)?] { $($tt:tt)* }) => {
-        $crate::utils::assert_snap!(@gen: $($category),+; $($tt)*)
+        $crate::utils::assert_snap!(@generate: $($category),+; $($tt)*)
     };
 }
 pub(crate) use assert_snap;

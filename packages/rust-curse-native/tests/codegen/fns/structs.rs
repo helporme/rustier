@@ -3,7 +3,7 @@ use crate::utils::*;
 #[test]
 fn fn_accepting_structs() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: structs;
 
         #[derive(Clone)]
@@ -27,7 +27,7 @@ fn fn_accepting_structs() {
 #[test]
 fn fn_returning_struct() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: structs;
 
         #[derive(Clone)]

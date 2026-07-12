@@ -534,7 +534,9 @@ pub enum BuildError {
     #[diagnostic(code(rust_curse::wasm::missing_built_wasm))]
     MissingBuiltWasm { project_root_abs_path: PathBuf },
 
-    #[error("cargo build produced multiple .wasm artifacts; expected exactly one\nartifacts:\n{artifacts}")]
+    #[error(
+        "cargo build produced multiple .wasm artifacts; expected exactly one\nartifacts:\n{artifacts}"
+    )]
     #[diagnostic(code(rust_curse::wasm::ambiguous_built_wasm))]
     AmbiguousBuiltWasm { artifacts: String },
 

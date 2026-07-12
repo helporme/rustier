@@ -5,7 +5,7 @@ use crate::utils::*;
 #[test]
 fn plain_struct_with_unsupported_field() {
     assert_snap! {
-        @gen: ir, wasm, node;
+        @generate: ir, wasm, node;
         @category: partial;
 
         pub struct PlainStruct {
@@ -18,7 +18,7 @@ fn plain_struct_with_unsupported_field() {
 #[test]
 fn tuple_struct_with_unsupported_field() {
     assert_snap! {
-        @gen: ir, wasm, node;
+        @generate: ir, wasm, node;
         @category: partial;
 
         pub struct TupleStruct(pub i32, pub u64, pub bool);
@@ -28,7 +28,7 @@ fn tuple_struct_with_unsupported_field() {
 #[test]
 fn plain_struct_with_private_and_unsupported_fields() {
     assert_snap! {
-        @gen: ir, wasm, node;
+        @generate: ir, wasm, node;
         @category: partial;
 
         pub struct PlainStruct {
@@ -42,7 +42,7 @@ fn plain_struct_with_private_and_unsupported_fields() {
 #[test]
 fn tuple_struct_with_private_and_unsupported_fields() {
     assert_snap! {
-        @gen: ir, wasm, node;
+        @generate: ir, wasm, node;
         @category: partial;
 
         pub struct TupleStruct(pub i32, bool, pub u64, pub bool);

@@ -263,7 +263,7 @@ fn string_mut_ref_ignored() {
 #[test]
 fn snap_chained_diags() {
     assert_snap! {
-        @gen: diags;
+        @generate: diags;
         @category: diags;
 
         pub struct MyStruct {
@@ -277,7 +277,7 @@ fn snap_chained_diags() {
 #[test]
 fn snap_macro_diags() {
     assert_snap! {
-        @gen: diags;
+        @generate: diags;
         @category: diags;
 
         macro_rules! foo_fn {

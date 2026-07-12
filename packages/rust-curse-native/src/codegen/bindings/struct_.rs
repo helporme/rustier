@@ -6,21 +6,21 @@ use crate::{
         api::Api,
         bindings::{
             boundary::{
-                compile_boundary_in_conversion_expr, compile_boundary_in_conversion_stmt,
-                compile_boundary_in_type_name, compile_boundary_out_conversion_expr,
-                compile_boundary_out_type_name, BoundaryInExpr, BoundaryMode,
+                BoundaryInExpr, BoundaryMode, compile_boundary_in_conversion_expr,
+                compile_boundary_in_conversion_stmt, compile_boundary_in_type_name,
+                compile_boundary_out_conversion_expr, compile_boundary_out_type_name,
             },
             projection::compile_slot_type_name,
         },
         db::Db,
-        fragment::{fragment, spaced, FragmentOnce, FragmentPrint},
+        fragment::{FragmentOnce, FragmentPrint, fragment, spaced},
         ir::{
+            IrId,
             struct_::{
-                struct_binding_name_from_rustdoc_id, struct_fqn_from_rustdoc_id,
-                struct_handle_name_from_rustdoc_id, Struct, StructField,
+                Struct, StructField, struct_binding_name_from_rustdoc_id,
+                struct_fqn_from_rustdoc_id, struct_handle_name_from_rustdoc_id,
             },
             type_::Type,
-            IrId,
         },
     },
     frag,

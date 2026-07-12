@@ -198,7 +198,7 @@ fn clonable_struct_field_is_writable() {
 #[test]
 fn snap_plain_field_with_unsupported_primitive() {
     assert_snap! {
-        @gen: diags;
+        @generate: diags;
         @category: diags;
 
         pub struct PlainStruct {

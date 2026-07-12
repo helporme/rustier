@@ -11,7 +11,7 @@ use crate::{
     codegen::{
         api::Api,
         db::Db,
-        fragment::{doubles, fragment, spaced, FragmentOnce, FragmentPrint},
+        fragment::{FragmentOnce, FragmentPrint, doubles, fragment, spaced},
         ir::{
             struct_::struct_fqn_from_rustdoc_id,
             type_::{Primitive, Type},
@@ -59,7 +59,7 @@ fn collect_cast_type<'db>(
         Type::Str => {
             collect_cast_type(Type::String, seen, types);
             return; // no need for both str and string, we generate one cast fn
-                    // for both
+            // for both
         }
         Type::Primitive(Primitive::Char) => {
             // char is casted to/from u32 when passing a js boundary

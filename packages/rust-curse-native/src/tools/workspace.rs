@@ -233,7 +233,9 @@ pub enum LocateDependencyErr {
         source: cargo_metadata::Error,
     },
 
-    #[error("package `{package_name}` was not found as a workspace package or a direct dependency of `{root_package}`")]
+    #[error(
+        "package `{package_name}` was not found as a workspace package or a direct dependency of `{root_package}`"
+    )]
     #[diagnostic(code(rust_curse::workspace::package_not_found))]
     PackageNotFound {
         package_name: String,

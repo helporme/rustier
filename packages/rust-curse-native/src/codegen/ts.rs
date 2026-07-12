@@ -5,15 +5,15 @@ pub mod sourcemap;
 use crate::codegen::{
     db::Db,
     fragment::{
-        comma_list, frag, fragment, spaced, FragmentOnce, FragmentPrint, IntoFnFragment, Printer,
+        FragmentOnce, FragmentPrint, IntoFnFragment, Printer, comma_list, frag, fragment, spaced,
     },
     ir::{
         fn_::Fn,
         struct_::{Struct, StructField},
     },
     rustdoc::{
-        mod_::{lower_mod, lower_mod_fns, lower_mod_structs},
         RustdocId,
+        mod_::{lower_mod, lower_mod_fns, lower_mod_structs},
     },
 };
 

@@ -1,11 +1,11 @@
 use crate::codegen::{
     db::Db,
     ir::{
+        IrId,
         struct_::{
             struct_binding_name_from_rustdoc_id, struct_fqn_from_rustdoc_id,
             struct_name_from_rustdoc_id,
         },
-        IrId,
     },
 };
 

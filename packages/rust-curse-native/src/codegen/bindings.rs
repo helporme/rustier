@@ -10,10 +10,10 @@ use crate::codegen::{
     bindings::{
         cast::compile_cast_fns,
         mod_::compile_mod,
-        projection::{is_projection_preamble_needed, PROJECTION_RUNTIME},
+        projection::{PROJECTION_RUNTIME, is_projection_preamble_needed},
     },
     db::Db,
-    fragment::{frag, fragment, spaced, FragmentOnce, FragmentPrint},
+    fragment::{FragmentOnce, FragmentPrint, frag, fragment, spaced},
     rustdoc::mod_::all_mod_ids,
 };
 

@@ -20,7 +20,7 @@ use napi_derive::napi;
 
 use thiserror::Error;
 use tracing::{debug, info, trace};
-use tracing_subscriber::{fmt::time::ChronoLocal, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt::time::ChronoLocal};
 
 use crate::{
     codegen::{
@@ -28,7 +28,7 @@ use crate::{
         db::DbImpl,
         diag::{Diag, Theme},
     },
-    sync::{sync_crate, sync_ts_tree, SyncCrateOps, SyncTsTreeOpts},
+    sync::{SyncCrateOps, SyncTsTreeOpts, sync_crate, sync_ts_tree},
     tools::{self, node::BuildOutput as NodeBuildOutput, wasm::BuildOutput as WasmBuildOutput},
 };
 

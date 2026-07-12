@@ -5,7 +5,7 @@ use crate::utils::*;
 #[test]
 fn root_docs() {
     assert_snap! {
-        @gen: ir;
+        @generate: ir;
         @category: docs;
 
         //! Root module docs.
@@ -19,7 +19,7 @@ fn root_docs() {
 #[test]
 fn inner_mod_docs() {
     assert_snap! {
-        @gen: ir, ts;
+        @generate: ir, ts;
         @category: docs;
 
         /// (^.^)

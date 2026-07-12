@@ -3,7 +3,7 @@ use crate::utils::*;
 #[test]
 fn structs_first_mixed_parameters() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: mixed;
 
         #[derive(Clone)]
@@ -42,7 +42,7 @@ fn structs_first_mixed_parameters() {
 #[test]
 fn values_first_mixed_parameters() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: mixed;
 
         #[derive(Clone)]
@@ -79,7 +79,7 @@ fn values_first_mixed_parameters() {
 #[test]
 fn interleaved_mixed_parameters() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: mixed;
 
         #[derive(Clone)]

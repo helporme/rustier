@@ -8,8 +8,8 @@ use rust_curse::codegen::{
     diag::Theme,
     js,
     rustdoc::{
-        mod_::{all_mod_ids, lower_mod},
         RustdocId,
+        mod_::{all_mod_ids, lower_mod},
     },
     ts,
 };

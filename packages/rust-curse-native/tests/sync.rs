@@ -7,12 +7,12 @@ use rust_curse::{
         rustdoc::{Crate as StoredCrate, RustdocCrates},
     },
     sync::{
-        cursed_crate::{sync_crate, SyncCrateOps},
-        ts_tree::{sync_ts_tree, SyncTsTreeOpts},
+        cursed_crate::{SyncCrateOps, sync_crate},
+        ts_tree::{SyncTsTreeOpts, sync_ts_tree},
     },
     tools,
 };
-use tempfile::{tempdir, TempDir};
+use tempfile::{TempDir, tempdir};
 
 #[test]
 fn syncs_wasm_crate() {

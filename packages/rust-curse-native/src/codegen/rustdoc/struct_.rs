@@ -13,8 +13,8 @@ use crate::codegen::{
         type_::Type,
     },
     rustdoc::{
-        type_::{lower_type, LoweredType, TypeLowerError},
         CrateExt, RustdocId,
+        type_::{LoweredType, TypeLowerError, lower_type},
     },
 };
 
@@ -80,8 +80,8 @@ pub fn lower_struct<'db>(
                 skipped_causes,
             )
         }
-        StructKind::Plain {
-            fields,
+        &StructKind::Plain {
+            ref fields,
             mut has_stripped_fields,
         } => {
             let mut plain_fields: Vec<ir::struct_::StructField<'db>> = vec![];
@@ -309,7 +309,9 @@ pub enum StructLowerError {
     #[error("generic structs are not supported")]
     #[diagnostic(
         code(rust_curse::unsupported_generic_struct),
-        help("export a non-generic wrapper that instantiates the generic parameters with concrete types"),
+        help(
+            "export a non-generic wrapper that instantiates the generic parameters with concrete types"
+        ),
         severity(Warning)
     )]
     UnsupportedGeneric,
@@ -317,7 +319,9 @@ pub enum StructLowerError {
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 pub enum StructFieldReadonly {
-    #[error("the field `{field_name}` is readonly in JS because \"{struct_fqn}\" does not implement `Clone`")]
+    #[error(
+        "the field `{field_name}` is readonly in JS because \"{struct_fqn}\" does not implement `Clone`"
+    )]
     #[diagnostic(
         code(rust_curse::readonly_struct_field),
         help(

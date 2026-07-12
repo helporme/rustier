@@ -3,7 +3,7 @@ use rust_curse::codegen::{
     ir::{
         fn_::{Fn, FnParam},
         mod_::Mod,
-        struct_::{struct_fqn_from_rustdoc_id, Struct, StructField, StructShape},
+        struct_::{Struct, StructField, StructShape, struct_fqn_from_rustdoc_id},
         type_::{Primitive, Type},
     },
     rustdoc::mod_::{lower_mod_fns, lower_mod_structs, lower_mod_submods},

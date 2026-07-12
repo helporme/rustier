@@ -3,7 +3,7 @@ use crate::utils::*;
 #[test]
 fn js_glue_code() {
     assert_snap! {
-        @gen: js, wasm_web_js;
+        @generate: js, wasm_web_js;
 
         pub fn a_fn() {}
 

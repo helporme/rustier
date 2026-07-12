@@ -5,7 +5,7 @@ use crate::utils::*;
 #[test]
 fn plain_struct_with_as_is_primitives() {
     assert_snap! {
-        @gen: ir, ts, node, wasm;
+        @generate: ir, ts, node, wasm;
         @category: primitives;
 
         pub struct PlainStruct {
@@ -24,7 +24,7 @@ fn plain_struct_with_as_is_primitives() {
 #[test]
 fn tuple_struct_with_as_is_primitives() {
     assert_snap! {
-        @gen: ir, ts, node, wasm;
+        @generate: ir, ts, node, wasm;
         @category: primitives;
 
         pub struct TupleStruct(pub bool, pub i8, pub i16, pub i32, pub u8, pub u16, pub u32, pub f64);
@@ -34,7 +34,7 @@ fn tuple_struct_with_as_is_primitives() {
 #[test]
 fn plain_struct_with_char() {
     assert_snap! {
-        @gen: ir, ts, node, wasm;
+        @generate: ir, ts, node, wasm;
         @category: primitives;
 
         pub struct PlainStruct {
@@ -46,7 +46,7 @@ fn plain_struct_with_char() {
 #[test]
 fn tuple_struct_with_char() {
     assert_snap! {
-        @gen: ir, ts, node, wasm;
+        @generate: ir, ts, node, wasm;
         @category: primitives;
 
         pub struct TupleStruct(pub char);
@@ -56,7 +56,7 @@ fn tuple_struct_with_char() {
 #[test]
 fn plain_struct_with_f32() {
     assert_snap! {
-        @gen: ir, ts, node, wasm;
+        @generate: ir, ts, node, wasm;
         @category: primitives;
 
         pub struct PlainStruct {
@@ -68,7 +68,7 @@ fn plain_struct_with_f32() {
 #[test]
 fn tuple_struct_with_f32() {
     assert_snap! {
-        @gen: ir, ts, node, wasm;
+        @generate: ir, ts, node, wasm;
         @category: primitives;
 
         pub struct TupleStruct(pub f32);

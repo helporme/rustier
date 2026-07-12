@@ -463,7 +463,9 @@ pub enum BuildError {
     #[diagnostic(code(rust_curse::node::missing_generated_node))]
     MissingGeneratedNode { out_dir_path: PathBuf },
 
-    #[error("NAPI CLI generated multiple .node artifacts; expected exactly one\nartifacts:\n{artifacts}")]
+    #[error(
+        "NAPI CLI generated multiple .node artifacts; expected exactly one\nartifacts:\n{artifacts}"
+    )]
     #[diagnostic(code(rust_curse::node::ambiguous_generated_node))]
     AmbiguousGeneratedNode { artifacts: String },
 }

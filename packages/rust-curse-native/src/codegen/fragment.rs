@@ -615,26 +615,26 @@ macro_rules! frag {
         ()
     };
 
-    (@nest $single:expr,) => {
+    (@nest $single:expr_2021,) => {
         $single
     };
 
-    (@nest $first:expr, $($rest:expr,)+) => {
+    (@nest $first:expr_2021, $($rest:expr_2021,)+) => {
         ($first, frag!(@nest $($rest,)+))
     };
 
     // End with no pending text.
-    (@collect [$($parts:expr,)*] []) => {
+    (@collect [$($parts:expr_2021,)*] []) => {
         frag!(@nest $($parts,)*)
     };
 
     // End with pending text.
-    (@collect [$($parts:expr,)*] [$($text:tt)+]) => {
+    (@collect [$($parts:expr_2021,)*] [$($text:tt)+]) => {
         frag!(@nest $($parts,)* stringify!($($text)+),)
     };
 
     // Curly fragment with no pending text.
-    (@collect [$($parts:expr,)*] [] {{ $($inner:tt)* }} $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [] {{ $($inner:tt)* }} $($rest:tt)*) => {
         frag!(@collect [
             $($parts,)*
             $crate::codegen::fragment::curlies(frag!($($inner)*)),
@@ -642,7 +642,7 @@ macro_rules! frag {
     };
 
     // Curly fragment after some static tokens.
-    (@collect [$($parts:expr,)*] [$($text:tt)+] {{ $($inner:tt)* }} $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [$($text:tt)+] {{ $($inner:tt)* }} $($rest:tt)*) => {
         frag!(@collect [
             $($parts,)*
             stringify!($($text)+),
@@ -651,12 +651,12 @@ macro_rules! frag {
     };
 
     // Interpolation with no pending text.
-    (@collect [$($parts:expr,)*] [] {$expr:expr} $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [] {$expr:expr_2021} $($rest:tt)*) => {
         frag!(@collect [$($parts,)* $expr,] [] $($rest)*)
     };
 
     // Interpolation after some static tokens.
-    (@collect [$($parts:expr,)*] [$($text:tt)+] {$expr:expr} $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [$($text:tt)+] {$expr:expr_2021} $($rest:tt)*) => {
         frag!(@collect [
             $($parts,)*
             stringify!($($text)+),
@@ -665,12 +665,12 @@ macro_rules! frag {
     };
 
     // Empty parentheses with no pending text.
-    (@collect [$($parts:expr,)*] [] () $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [] () $($rest:tt)*) => {
         frag!(@collect [$($parts,)* "()",] [] $($rest)*)
     };
 
     // Empty parentheses after some static tokens.
-    (@collect [$($parts:expr,)*] [$($text:tt)+] () $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [$($text:tt)+] () $($rest:tt)*) => {
         frag!(@collect [
             $($parts,)*
             stringify!($($text)+),
@@ -679,7 +679,7 @@ macro_rules! frag {
     };
 
     // Parenthesized fragment with no pending text.
-    (@collect [$($parts:expr,)*] [] ($($inner:tt)+) $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [] ($($inner:tt)+) $($rest:tt)*) => {
         frag!(@collect [
             $($parts,)*
             $crate::codegen::fragment::parens(frag!($($inner)*)),
@@ -687,7 +687,7 @@ macro_rules! frag {
     };
 
     // Parenthesized fragment after some static tokens.
-    (@collect [$($parts:expr,)*] [$($text:tt)+] ($($inner:tt)+) $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [$($text:tt)+] ($($inner:tt)+) $($rest:tt)*) => {
         frag!(@collect [
             $($parts,)*
             stringify!($($text)+),
@@ -696,12 +696,12 @@ macro_rules! frag {
     };
 
     // Explicit space with no pending text.
-    (@collect [$($parts:expr,)*] [] ~ $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [] ~ $($rest:tt)*) => {
         frag!(@collect [$($parts,)* " ",] [] $($rest)*)
     };
 
     // Explicit space after static tokens.
-    (@collect [$($parts:expr,)*] [$($text:tt)+] ~ $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [$($text:tt)+] ~ $($rest:tt)*) => {
         frag!(@collect [
             $($parts,)*
             stringify!($($text)+),
@@ -710,7 +710,7 @@ macro_rules! frag {
     };
 
     // Deferred newline with no pending text.
-    (@collect [$($parts:expr,)*] [] @ $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [] @ $($rest:tt)*) => {
         frag!(@collect [
             $($parts,)*
             $crate::codegen::fragment::blank(),
@@ -718,7 +718,7 @@ macro_rules! frag {
     };
 
     // Deferred newline after static tokens.
-    (@collect [$($parts:expr,)*] [$($text:tt)+] @ $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [$($text:tt)+] @ $($rest:tt)*) => {
         frag!(@collect [
             $($parts,)*
             stringify!($($text)+),
@@ -727,7 +727,7 @@ macro_rules! frag {
     };
 
     // Accumulate another static token.
-    (@collect [$($parts:expr,)*] [$($text:tt)*] $token:tt $($rest:tt)*) => {
+    (@collect [$($parts:expr_2021,)*] [$($text:tt)*] $token:tt $($rest:tt)*) => {
         frag!(@collect [$($parts,)*] [$($text)* $token] $($rest)*)
     };
 

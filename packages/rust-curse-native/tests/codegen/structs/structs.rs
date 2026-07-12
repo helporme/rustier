@@ -3,7 +3,7 @@ use crate::utils::*;
 #[test]
 fn plain_struct_with_struct_fields() {
     assert_snap! {
-        @gen: ir, ts, node, wasm;
+        @generate: ir, ts, node, wasm;
         @category: structs;
 
         #[derive(Clone)]
@@ -25,7 +25,7 @@ fn plain_struct_with_struct_fields() {
 #[test]
 fn tuple_struct_with_struct_fields() {
     assert_snap! {
-        @gen: ir, ts, node, wasm;
+        @generate: ir, ts, node, wasm;
         @category: structs;
 
         #[derive(Clone)]
@@ -44,7 +44,7 @@ fn tuple_struct_with_struct_fields() {
 #[test]
 fn plain_struct_with_non_clonable_struct_field() {
     assert_snap! {
-        @gen: ir, ts, node, wasm;
+        @generate: ir, ts, node, wasm;
         @category: structs;
 
         pub struct Field;
@@ -58,7 +58,7 @@ fn plain_struct_with_non_clonable_struct_field() {
 #[test]
 fn tuple_struct_with_non_clonable_struct_field() {
     assert_snap! {
-        @gen: ir, ts, node, wasm;
+        @generate: ir, ts, node, wasm;
         @category: structs;
 
         pub struct Field;
@@ -70,7 +70,7 @@ fn tuple_struct_with_non_clonable_struct_field() {
 #[test]
 fn plain_struct_with_mixed_clonable_struct_fields() {
     assert_snap! {
-        @gen: ir, ts, node, wasm;
+        @generate: ir, ts, node, wasm;
         @category: structs;
 
         #[derive(Clone)]
@@ -88,7 +88,7 @@ fn plain_struct_with_mixed_clonable_struct_fields() {
 #[test]
 fn tuple_struct_with_mixed_clonable_struct_fields() {
     assert_snap! {
-        @gen: ir, ts, node, wasm;
+        @generate: ir, ts, node, wasm;
         @category: structs;
 
         #[derive(Clone)]

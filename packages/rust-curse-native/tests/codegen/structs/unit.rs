@@ -3,7 +3,7 @@ use crate::utils::*;
 #[test]
 fn plain_unit_struct() {
     assert_snap! {
-        @gen: ir, ts, wasm;
+        @generate: ir, ts, wasm;
         @category: unit;
 
         pub struct PlainStruct {}
@@ -13,7 +13,7 @@ fn plain_unit_struct() {
 #[test]
 fn tuple_unit_struct() {
     assert_snap! {
-        @gen: ir, ts, wasm, node;
+        @generate: ir, ts, wasm, node;
         @category: unit;
 
         pub struct TupleStruct();
@@ -23,7 +23,7 @@ fn tuple_unit_struct() {
 #[test]
 fn unit_struct() {
     assert_snap! {
-        @gen: ir, ts, wasm;
+        @generate: ir, ts, wasm;
         @category: unit;
 
         pub struct UnitStruct;

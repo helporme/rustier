@@ -5,7 +5,7 @@ use crate::utils::*;
 #[test]
 fn two_mods() {
     assert_snap! {
-        @gen: ir, ts;
+        @generate: ir, ts;
 
         pub mod a {
             pub fn a_fn() {}
@@ -20,7 +20,7 @@ fn two_mods() {
 #[test]
 fn submod() {
     assert_snap! {
-        @gen: ir, ts;
+        @generate: ir, ts;
 
         pub mod a {
             pub fn a_fn() {}

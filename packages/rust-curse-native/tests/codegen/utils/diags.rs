@@ -6,8 +6,8 @@ use rust_curse::codegen::{
     db::Db,
     diag::Diag,
     rustdoc::{
-        mod_::{lower_mod, lower_mod_fns, lower_mod_structs, lower_mod_submods},
         RustdocId,
+        mod_::{lower_mod, lower_mod_fns, lower_mod_structs, lower_mod_submods},
     },
 };
 

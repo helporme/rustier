@@ -6,15 +6,15 @@ use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
     ir::{
+        IrId,
         fn_::{Fn, FnParam, ParamMode},
         span::{SourceCode, Span},
         type_::Type,
-        IrId,
     },
     rustdoc::{
-        struct_::is_struct_clonable,
-        type_::{lower_type, LoweredType, TypeLowerError},
         CrateExt, RustdocId,
+        struct_::is_struct_clonable,
+        type_::{LoweredType, TypeLowerError, lower_type},
     },
 };
 
@@ -191,7 +191,9 @@ pub enum FnLowerError {
     #[error("generic functions are not supported")]
     #[diagnostic(
         code(rust_curse::unsupported_generic_fn),
-        help("export a non-generic wrapper that instantiates the generic parameters with concrete types"),
+        help(
+            "export a non-generic wrapper that instantiates the generic parameters with concrete types"
+        ),
         severity(Warning)
     )]
     UnsupportedGeneric,
@@ -218,7 +220,9 @@ pub enum FnLowerError {
     )]
     BorrowedReturn,
 
-    #[error("the moved struct parameter `{name}` cannot be exported because \"{struct_fqn}\" does not implement `Clone`")]
+    #[error(
+        "the moved struct parameter `{name}` cannot be exported because \"{struct_fqn}\" does not implement `Clone`"
+    )]
     #[diagnostic(
         code(rust_curse::non_clonable_moved_struct_param),
         help(
@@ -233,12 +237,12 @@ pub enum FnLowerError {
         struct_fqn: String,
     },
 
-    #[error(
-        "the mutable reference to the primitive parameter `{name}` does not propagate changes"
-    )]
+    #[error("the mutable reference to the primitive parameter `{name}` does not propagate changes")]
     #[diagnostic(
         code(rust_curse::primitive_mut_ref_ignored),
-        help("primitive values are copied across the JS boundary, so mutations made in Rust are not reflected in JS"),
+        help(
+            "primitive values are copied across the JS boundary, so mutations made in Rust are not reflected in JS"
+        ),
         severity(Warning)
     )]
     PrimitiveMutRefIgnored {
@@ -253,7 +257,9 @@ pub enum FnLowerError {
     #[error("the mutable reference to the string parameter `{name}` does not propagate changes")]
     #[diagnostic(
         code(rust_curse::string_mut_ref_ignored),
-        help("string values are copied across the JS boundary, so mutations made in Rust are not reflected in JS"),
+        help(
+            "string values are copied across the JS boundary, so mutations made in Rust are not reflected in JS"
+        ),
         severity(Warning)
     )]
     StringMutRefIgnored {

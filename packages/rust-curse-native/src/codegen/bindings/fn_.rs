@@ -4,12 +4,12 @@
 use crate::codegen::{
     api::Api,
     bindings::boundary::{
-        compile_boundary_in_conversion_expr, compile_boundary_in_conversion_stmt,
+        BoundaryInExpr, compile_boundary_in_conversion_expr, compile_boundary_in_conversion_stmt,
         compile_boundary_in_type_name, compile_boundary_out_conversion_expr,
-        compile_boundary_out_type_name, BoundaryInExpr,
+        compile_boundary_out_type_name,
     },
     db::Db,
-    fragment::{comma_list, frag, fragment, FragmentOnce, FragmentPrint},
+    fragment::{FragmentOnce, FragmentPrint, comma_list, frag, fragment},
     ir::fn_::Fn,
 };
 

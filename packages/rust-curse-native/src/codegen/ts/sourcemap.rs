@@ -6,8 +6,8 @@ use crate::codegen::{
     db::Db,
     ir::fn_::Fn,
     rustdoc::{
-        mod_::{lower_mod, lower_mod_fns},
         RustdocId,
+        mod_::{lower_mod, lower_mod_fns},
     },
 };
 pub use mappings::Mapping;

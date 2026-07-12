@@ -3,10 +3,10 @@
 use crate::codegen::{
     bindings::{fn_::compile_binding_fn, struct_::compile_binding_struct},
     db::Db,
-    fragment::{spaced, FragmentPrint},
+    fragment::{FragmentPrint, spaced},
     rustdoc::{
-        mod_::{lower_mod_fns, lower_mod_structs},
         RustdocId,
+        mod_::{lower_mod_fns, lower_mod_structs},
     },
 };
 

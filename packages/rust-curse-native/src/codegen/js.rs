@@ -3,8 +3,8 @@
 use crate::codegen::{
     api::Api,
     db::Db,
-    fragment::{comma_list, frag, singles, FragmentPrint},
-    rustdoc::{mod_::lower_mod_fns, RustdocId},
+    fragment::{FragmentPrint, comma_list, frag, singles},
+    rustdoc::{RustdocId, mod_::lower_mod_fns},
 };
 
 /// Compiles a rustdoc module id to JavaScript glue code.

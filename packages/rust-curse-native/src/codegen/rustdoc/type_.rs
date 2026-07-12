@@ -5,8 +5,8 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     ir::{
-        type_::{Primitive, Type as IrType},
         IrId,
+        type_::{Primitive, Type as IrType},
     },
     rustdoc::{CrateExt, RustdocType},
 };
@@ -121,7 +121,9 @@ pub enum TypeLowerError {
     #[error("the primitive type `{name}` is not supported")]
     #[diagnostic(
         code(rust_curse::unsupported_primitive),
-        help("supported primitive types are bool, char, str, i8, i16, i32, u8, u16, u32, f32 and f64"),
+        help(
+            "supported primitive types are bool, char, str, i8, i16, i32, u8, u16, u32, f32 and f64"
+        ),
         severity(Warning)
     )]
     UnsupportedPrimitive { name: String },

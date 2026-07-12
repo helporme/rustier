@@ -3,8 +3,8 @@ use rustdoc_types::{ItemEnum, ItemKind};
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::{fn_::Fn, mod_::Mod, struct_::Struct, IrId},
-    rustdoc::{fn_::lower_fn, struct_::lower_struct, RustdocCrates, RustdocId},
+    ir::{IrId, fn_::Fn, mod_::Mod, struct_::Struct},
+    rustdoc::{RustdocCrates, RustdocId, fn_::lower_fn, struct_::lower_struct},
 };
 
 /// Returns all rustdoc module IDs available in all crates.

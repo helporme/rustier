@@ -3,7 +3,7 @@ use crate::utils::*;
 #[test]
 fn fn_accepting_ref_str() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: strings;
 
         pub fn foo(_: &str) { }
@@ -13,7 +13,7 @@ fn fn_accepting_ref_str() {
 #[test]
 fn fn_accepting_mut_str() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: strings;
 
         pub fn foo(_: &str) { }
@@ -23,7 +23,7 @@ fn fn_accepting_mut_str() {
 #[test]
 fn fn_accepting_string() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: strings;
 
         pub fn foo(_: String) { }
@@ -33,7 +33,7 @@ fn fn_accepting_string() {
 #[test]
 fn fn_accepting_ref_string() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: strings;
 
         pub fn foo(_: &String) { }
@@ -43,7 +43,7 @@ fn fn_accepting_ref_string() {
 #[test]
 fn fn_accepting_mut_string() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: strings;
 
         pub fn foo(_: &mut String) { }
@@ -53,7 +53,7 @@ fn fn_accepting_mut_string() {
 #[test]
 fn fn_accepting_qualified_string() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: strings;
 
         pub fn foo(_: std::string::String) { }
@@ -63,7 +63,7 @@ fn fn_accepting_qualified_string() {
 #[test]
 fn fn_returning_string() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: strings;
 
         pub fn foo() -> String {

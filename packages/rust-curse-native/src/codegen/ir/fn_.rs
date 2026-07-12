@@ -1,6 +1,6 @@
 use crate::codegen::{
     db::Db,
-    ir::{mangle::mangle_path, type_::Type, IrId},
+    ir::{IrId, mangle::mangle_path, type_::Type},
 };
 
 /// How a parameter is passed to a function.

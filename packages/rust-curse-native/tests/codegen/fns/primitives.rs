@@ -6,7 +6,7 @@ use crate::utils::*;
 #[test]
 fn fn_with_all_as_is_primitives() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: primitives;
 
         pub fn foo(
@@ -24,7 +24,7 @@ fn fn_with_all_as_is_primitives() {
 #[test]
 fn fn_with_all_ref_as_is_primitives() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: primitives;
 
         pub fn foo(
@@ -43,7 +43,7 @@ fn fn_with_all_ref_as_is_primitives() {
 #[test]
 fn fn_with_all_mut_ref_as_is_primitives() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: primitives;
 
         pub fn foo(
@@ -62,7 +62,7 @@ fn fn_with_all_mut_ref_as_is_primitives() {
 #[test]
 fn fn_returning_as_is_primitive() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: primitives;
 
         pub fn foo() -> bool {
@@ -74,7 +74,7 @@ fn fn_returning_as_is_primitive() {
 #[test]
 fn fn_no_args_no_return() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: primitives;
 
         pub fn foo() { }
@@ -84,7 +84,7 @@ fn fn_no_args_no_return() {
 #[test]
 fn fn_accepting_char() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: primitives;
 
         pub fn foo(value: char) { }
@@ -94,7 +94,7 @@ fn fn_accepting_char() {
 #[test]
 fn fn_returning_char() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: primitives;
 
         pub fn foo() -> char {
@@ -106,7 +106,7 @@ fn fn_returning_char() {
 #[test]
 fn fn_accepting_f32() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: primitives;
 
         pub fn foo(value: f32) { }
@@ -116,7 +116,7 @@ fn fn_accepting_f32() {
 #[test]
 fn fn_returning_f32() {
     assert_snap! {
-        @gen: ts, ir, node, wasm;
+        @generate: ts, ir, node, wasm;
         @category: primitives;
 
         pub fn foo() -> f32 {
