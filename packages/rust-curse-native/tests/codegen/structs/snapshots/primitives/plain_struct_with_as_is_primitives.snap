@@ -355,7 +355,6 @@ fn __cast_u32(
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 	src:__curse::Slot<rustdoc_test_crate::PlainStruct>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
@@ -366,7 +365,6 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -377,7 +375,6 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }
@@ -976,7 +973,6 @@ fn __cast_u32(
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 	src:__curse::Slot<rustdoc_test_crate::PlainStruct>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
@@ -987,7 +983,6 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -998,7 +993,6 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }

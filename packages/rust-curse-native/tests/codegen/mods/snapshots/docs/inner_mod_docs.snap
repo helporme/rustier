@@ -48,6 +48,5 @@ for `rustdoc_test_crate::math`:
 
 ```ts
 /** (^.^) */
-
 export function answer(): number;
 ```

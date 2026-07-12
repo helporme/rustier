@@ -2,7 +2,6 @@ pub mod boundary;
 pub mod cast;
 pub mod fn_;
 pub mod mod_;
-pub mod printer;
 pub mod projection;
 pub mod struct_;
 
@@ -14,7 +13,7 @@ use crate::codegen::{
         projection::{is_projection_preamble_needed, PROJECTION_RUNTIME},
     },
     db::Db,
-    fragment::{frag, fragment, spaced, trim, FragmentOnce, FragmentPrint},
+    fragment::{frag, fragment, spaced, FragmentOnce, FragmentPrint},
     rustdoc::mod_::all_mod_ids,
 };
 
@@ -40,18 +39,15 @@ pub fn compile_bindings(db: &dyn Db) -> String {
         .apply(p);
 
         if is_projection_preamble_needed(db) {
-            trim().apply(p);
-            "\n\n".apply(p);
+            frag!(@@).apply(p);
             PROJECTION_RUNTIME.apply(p);
         }
 
         if !cast_fns.is_empty() {
-            trim().apply(p);
-            "\n\n".apply(p);
+            frag!(@@).apply(p);
             cast_fns.apply(p);
         }
 
-        trim().apply(p);
         frag!(@@).apply(p);
 
         spaced(

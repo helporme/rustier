@@ -277,7 +277,6 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 	src:__curse::Slot<rustdoc_test_crate::PlainStruct>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
@@ -288,7 +287,6 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -299,7 +297,6 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }
@@ -374,7 +371,6 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 
 struct __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 	src:__curse::Slot<rustdoc_test_crate::TupleStruct>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
@@ -385,7 +381,6 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -396,7 +391,6 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }
@@ -634,7 +628,6 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 	src:__curse::Slot<rustdoc_test_crate::PlainStruct>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
@@ -645,7 +638,6 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -656,7 +648,6 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainStruct {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }
@@ -731,7 +722,6 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 
 struct __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 	src:__curse::Slot<rustdoc_test_crate::TupleStruct>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
@@ -742,7 +732,6 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -753,7 +742,6 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }

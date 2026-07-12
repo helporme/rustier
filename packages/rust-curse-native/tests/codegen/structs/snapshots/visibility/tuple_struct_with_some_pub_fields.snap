@@ -153,7 +153,6 @@ fn __cast_bool(
 
 struct __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 	src:__curse::Slot<rustdoc_test_crate::TupleStruct>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
@@ -164,7 +163,6 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -175,7 +173,6 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }
@@ -398,7 +395,6 @@ fn __cast_bool(
 
 struct __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 	src:__curse::Slot<rustdoc_test_crate::TupleStruct>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
@@ -409,7 +405,6 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -420,7 +415,6 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }

@@ -26,6 +26,7 @@ pub struct Printer {
     out: String,
     indent: usize,
     at_line_start: bool,
+    new_lines: usize,
 }
 
 impl Default for Printer {
@@ -42,6 +43,7 @@ impl Default for Printer {
             out: String::new(),
             indent: 0,
             at_line_start: true,
+            new_lines: 0,
         }
     }
 }
@@ -56,6 +58,24 @@ impl Printer {
     /// assert_eq!(idented("one\ntwo").print(), "\tone\n\ttwo");
     /// ```
     fn write(&mut self, text: &str) {
+        if text.is_empty() {
+            return;
+        }
+
+        let new_lines = std::mem::take(&mut self.new_lines);
+        let existing_new_lines = self
+            .out
+            .bytes()
+            .rev()
+            .take_while(|byte| *byte == b'\n')
+            .count()
+            + text.bytes().take_while(|byte| *byte == b'\n').count();
+
+        for _ in existing_new_lines..new_lines {
+            self.out.push('\n');
+            self.at_line_start = true;
+        }
+
         for chunk in text.split_inclusive('\n') {
             if self.at_line_start && chunk != "\n" {
                 for _ in 0..self.indent {
@@ -381,6 +401,23 @@ where
     f.into_fragment()
 }
 
+/// Inserts a newline separator if another non-empty fragment follows it.
+///
+/// Existing newlines at either side of the boundary count toward the requested
+/// separator, and repeated calls request additional newlines.
+///
+/// ```
+/// # use rust_curse::codegen::fragment::{blank, FragmentPrint};
+/// #
+/// assert_eq!(("one", blank(), "two").print(), "one\ntwo");
+/// assert_eq!(("one\n", blank(), "two").print(), "one\ntwo");
+/// assert_eq!(("one", blank(), blank(), "two").print(), "one\n\ntwo");
+/// assert_eq!(("one", blank()).print(), "one");
+/// ```
+pub fn blank() -> impl FragmentOnce {
+    fragment(|p| p.new_lines += 1)
+}
+
 /// Increases indentation while rendering the given fragment.
 ///
 /// ```
@@ -469,20 +506,6 @@ where
     .into_fragment()
 }
 
-/// Removes trailing whitespace from the output.
-///
-/// ```
-/// # use rust_curse::codegen::fragment::{trim, FragmentPrint};
-/// #
-/// assert_eq!(("hello  ", trim()).print(), "hello");
-/// ```
-pub fn trim() -> impl FragmentOnce {
-    fragment(|p| {
-        p.out.truncate(p.out.trim_end().len());
-        p.at_line_start = p.out.is_empty() || p.out.ends_with('\n');
-    })
-}
-
 /// Joins fragments with one blank line between them.
 ///
 /// If the previous fragment does not end with a newline, `spaced` inserts two;
@@ -520,8 +543,9 @@ where
 /// Builds a fragment from source-like tokens and interpolated fragments.
 ///
 /// Static tokens are emitted as written, `~` inserts a space between tokens and
-/// interpolations, `@` inserts a newline, and `{expression}` interpolates
-/// another [`FragmentOnce`](crate::codegen::fragment::FragmentOnce).
+/// interpolations, `@` inserts a deferred newline separator, and `{expression}`
+/// interpolates another
+/// [`FragmentOnce`](crate::codegen::fragment::FragmentOnce).
 ///
 /// ```
 /// # use rust_curse::codegen::fragment::{frag, FragmentPrint};
@@ -566,7 +590,7 @@ where
 /// ```
 ///
 /// ## Newline insertion (`@`)
-/// Use `@` to insert a newline.
+/// Use `@` to insert a newline if non-empty text follows it.
 ///
 /// ```
 /// # use rust_curse::codegen::fragment::{frag, FragmentPrint};
@@ -685,17 +709,20 @@ macro_rules! frag {
         ] [] $($rest)*)
     };
 
-    // Explicit newline with no pending text.
+    // Deferred newline with no pending text.
     (@collect [$($parts:expr,)*] [] @ $($rest:tt)*) => {
-        frag!(@collect [$($parts,)* "\n",] [] $($rest)*)
+        frag!(@collect [
+            $($parts,)*
+            $crate::codegen::fragment::blank(),
+        ] [] $($rest)*)
     };
 
-    // Explicit newline after static tokens.
+    // Deferred newline after static tokens.
     (@collect [$($parts:expr,)*] [$($text:tt)+] @ $($rest:tt)*) => {
         frag!(@collect [
             $($parts,)*
             stringify!($($text)+),
-            "\n",
+            $crate::codegen::fragment::blank(),
         ] [] $($rest)*)
     };
 

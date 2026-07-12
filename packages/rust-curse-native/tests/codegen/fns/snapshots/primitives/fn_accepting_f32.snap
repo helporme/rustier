@@ -91,7 +91,6 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	).map_err(
 		|err|napi::Error::from_reason(format!("Expected Rust `f32` from a JavaScript number: {}", err))
 	)?;
-
 	rustdoc_test_crate::foo(
 		__p__value
 	);
@@ -138,7 +137,6 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	).map_err(
 		|err|JsValue::from_str(&format!("Expected Rust `f32` from a JavaScript number: {}", err))
 	)?;
-
 	rustdoc_test_crate::foo(
 		__p__value
 	);

@@ -245,7 +245,6 @@ fn __cast_String(
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainField {
 	src:__curse::Slot<rustdoc_test_crate::PlainField>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_PlainField {
@@ -256,7 +255,6 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainField {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -267,7 +265,6 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainField {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }
@@ -342,7 +339,6 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 
 struct __cursed_handle__rustdoc_0test_0crate_TupleField {
 	src:__curse::Slot<rustdoc_test_crate::TupleField>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_TupleField {
@@ -353,7 +349,6 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleField {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -364,7 +359,6 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleField {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }
@@ -445,7 +439,6 @@ struct __cursed_handle__rustdoc_0test_0crate_Parent {
 	src:__curse::Slot<rustdoc_test_crate::Parent>,
 	__c__plain: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_PlainField>>>,
 	__c__tuple: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_TupleField>>>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_Parent {
@@ -462,7 +455,6 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			__c__tuple: std::cell::RefCell::new(
 				None
 			),
-
 		}
 	}
 
@@ -479,7 +471,6 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			__c__tuple: std::cell::RefCell::new(
 				None
 			),
-
 		}
 	}
 }
@@ -525,7 +516,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 					handle
 				}
 			);
-
 		}
 
 		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(
@@ -618,7 +608,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 					handle
 				}
 			);
-
 		}
 
 		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(
@@ -829,7 +818,6 @@ fn __cast_String(
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainField {
 	src:__curse::Slot<rustdoc_test_crate::PlainField>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_PlainField {
@@ -840,7 +828,6 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainField {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -851,7 +838,6 @@ impl __cursed_handle__rustdoc_0test_0crate_PlainField {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }
@@ -926,7 +912,6 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 
 struct __cursed_handle__rustdoc_0test_0crate_TupleField {
 	src:__curse::Slot<rustdoc_test_crate::TupleField>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_TupleField {
@@ -937,7 +922,6 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleField {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -948,7 +932,6 @@ impl __cursed_handle__rustdoc_0test_0crate_TupleField {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }
@@ -1029,7 +1012,6 @@ struct __cursed_handle__rustdoc_0test_0crate_Parent {
 	src:__curse::Slot<rustdoc_test_crate::Parent>,
 	__c__plain: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_PlainField>>>,
 	__c__tuple: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_TupleField>>>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_Parent {
@@ -1046,7 +1028,6 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			__c__tuple: std::cell::RefCell::new(
 				None
 			),
-
 		}
 	}
 
@@ -1063,7 +1044,6 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			__c__tuple: std::cell::RefCell::new(
 				None
 			),
-
 		}
 	}
 }
@@ -1109,7 +1089,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 					handle
 				}
 			);
-
 		}
 
 		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(
@@ -1202,7 +1181,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 					handle
 				}
 			);
-
 		}
 
 		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(

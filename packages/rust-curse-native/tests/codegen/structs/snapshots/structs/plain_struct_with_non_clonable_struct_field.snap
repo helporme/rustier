@@ -160,7 +160,6 @@ use __curse::Accessor as _;
 
 struct __cursed_handle__rustdoc_0test_0crate_Field {
 	src:__curse::Slot<rustdoc_test_crate::Field>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_Field {
@@ -171,7 +170,6 @@ impl __cursed_handle__rustdoc_0test_0crate_Field {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -182,7 +180,6 @@ impl __cursed_handle__rustdoc_0test_0crate_Field {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }
@@ -220,7 +217,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Field {
 struct __cursed_handle__rustdoc_0test_0crate_Parent {
 	src:__curse::Slot<rustdoc_test_crate::Parent>,
 	__c__field: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_Field>>>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_Parent {
@@ -234,7 +230,6 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			__c__field: std::cell::RefCell::new(
 				None
 			),
-
 		}
 	}
 
@@ -248,7 +243,6 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			__c__field: std::cell::RefCell::new(
 				None
 			),
-
 		}
 	}
 }
@@ -294,7 +288,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 					handle
 				}
 			);
-
 		}
 
 		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Field>> = std::rc::Rc::new(
@@ -321,7 +314,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 		)
 	}
-
 }
 ```
 
@@ -420,7 +412,6 @@ use __curse::Accessor as _;
 
 struct __cursed_handle__rustdoc_0test_0crate_Field {
 	src:__curse::Slot<rustdoc_test_crate::Field>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_Field {
@@ -431,7 +422,6 @@ impl __cursed_handle__rustdoc_0test_0crate_Field {
 			src: __curse::Slot::owned(
 				input
 			),
-
 		}
 	}
 
@@ -442,7 +432,6 @@ impl __cursed_handle__rustdoc_0test_0crate_Field {
 			src: __curse::Slot::projected(
 				input
 			),
-
 		}
 	}
 }
@@ -480,7 +469,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Field {
 struct __cursed_handle__rustdoc_0test_0crate_Parent {
 	src:__curse::Slot<rustdoc_test_crate::Parent>,
 	__c__field: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_Field>>>,
-
 }
 
 impl __cursed_handle__rustdoc_0test_0crate_Parent {
@@ -494,7 +482,6 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			__c__field: std::cell::RefCell::new(
 				None
 			),
-
 		}
 	}
 
@@ -508,7 +495,6 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			__c__field: std::cell::RefCell::new(
 				None
 			),
-
 		}
 	}
 }
@@ -554,7 +540,6 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 					handle
 				}
 			);
-
 		}
 
 		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Field>> = std::rc::Rc::new(
@@ -581,6 +566,5 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 			}
 		)
 	}
-
 }
 ```
