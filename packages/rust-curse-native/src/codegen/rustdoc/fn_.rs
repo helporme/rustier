@@ -84,16 +84,15 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
             ),
         };
 
-        if mode == ParamMode::Move {
-            if let Type::Struct(struct_id) = type_ {
-                if !is_struct_clonable(db, struct_id.rustdoc_id(db)) {
-                    causes.push(FnLowerError::NonClonableMovedStructParam {
-                        name: name.clone(),
-                        struct_fqn: struct_id.path(db).join("::"),
-                    });
-                    continue;
-                }
-            }
+        if mode == ParamMode::Move
+            && let Type::Struct(struct_id) = type_
+            && !is_struct_clonable(db, struct_id.rustdoc_id(db))
+        {
+            causes.push(FnLowerError::NonClonableMovedStructParam {
+                name: name.clone(),
+                struct_fqn: struct_id.path(db).join("::"),
+            });
+            continue;
         }
 
         if mode == ParamMode::Mut {
