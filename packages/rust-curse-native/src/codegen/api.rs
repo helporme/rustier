@@ -5,7 +5,10 @@ use salsa::Setter;
 use crate::codegen::{
     db::Db,
     fragment::{FragmentOnce, doubles, frag, fragment, singles},
-    ir::{self, struct_::StructField},
+    ir::{
+        fn_::Fn,
+        struct_::{Struct, StructField},
+    },
 };
 
 /// Active binding API used for generated Rust and JavaScript glue code.
@@ -129,7 +132,7 @@ impl Api {
     }
 
     /// Returns the function header for this API.
-    pub fn fn_header<'db>(self, db: &'db dyn Db, _fn: ir::fn_::Fn<'db>) -> impl FragmentOnce + 'db {
+    pub fn fn_header<'db>(self, db: &'db dyn Db, _fn: Fn<'db>) -> impl FragmentOnce + 'db {
         let header = match self.kind(db) {
             ApiKind::Wasm { .. } => "#[wasm_bindgen(js_name = ",
             ApiKind::Node => "#[napi(js_name = ",
@@ -149,7 +152,7 @@ impl Api {
     pub fn struct_header<'db>(
         self,
         db: &'db dyn Db,
-        _struct: ir::struct_::Struct<'db>,
+        _struct: Struct<'db>,
     ) -> impl FragmentOnce + 'db {
         let header = match self.kind(db) {
             ApiKind::Wasm { .. } => "#[wasm_bindgen(js_name = ",
@@ -241,7 +244,8 @@ impl Api {
     /// Returns the Cargo manifest build dependencies required by this API.
     pub fn manifest_build_deps(self, db: &dyn Db) -> Option<impl FragmentOnce> {
         let deps = frag!(
-            @@[build-dependencies]@
+            @@
+            [build-dependencies]@
             {r#"napi-build = "2""#}
         );
 
