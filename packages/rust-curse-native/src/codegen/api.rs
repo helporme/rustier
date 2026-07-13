@@ -4,6 +4,7 @@ use salsa::Setter;
 
 use crate::codegen::{
     db::Db,
+    fragment::{FragmentOnce, doubles, frag, fragment, singles},
     ir::{self, struct_::StructField},
 };
 
@@ -82,51 +83,59 @@ impl Api {
     }
 
     /// Returns the API-specific body for casting a JavaScript value to `bool`.
-    pub fn cast_to_bool(&self, db: &dyn Db) -> String {
+    pub fn cast_to_bool(self, db: &dyn Db) -> impl FragmentOnce {
         self.cast_to_primitive(db, "bool", "as_bool", "Boolean")
     }
 
     /// Returns the API-specific body for casting a JavaScript value to
     /// `String`.
-    pub fn cast_to_string(&self, db: &dyn Db) -> String {
+    pub fn cast_to_string(self, db: &dyn Db) -> impl FragmentOnce {
         self.cast_to_primitive(db, "String", "as_string", "String")
     }
 
     /// Returns the API-specific body for casting a JavaScript value to `f64`.
-    pub fn cast_to_f64(&self, db: &dyn Db) -> String {
+    pub fn cast_to_f64(self, db: &dyn Db) -> impl FragmentOnce {
         self.cast_to_primitive(db, "f64", "as_f64", "Number")
     }
 
     fn cast_to_primitive(
-        &self,
+        self,
         db: &dyn Db,
         rust_type: &'static str,
         wasm_accessor: &'static str,
         node_value_type: &'static str,
-    ) -> String {
-        match self.kind(db) {
-            ApiKind::Wasm { .. } => format!(
-                "value.{wasm_accessor}().ok_or_else(|| \"cannot cast value to {rust_type}\".to_string())"
-            ),
-            ApiKind::Node => indoc::formatdoc! {r#"
-                if value.get_type().map_err(|err| err.reason)? == ValueType::{node_value_type}
-                {{
-                	unsafe {{ value.cast::<{rust_type}>() }}.map_err(|_| "cannot cast value to {rust_type}".to_string())
+    ) -> impl FragmentOnce {
+        let kind = self.kind(db);
+
+        fragment(move |p| match kind {
+            ApiKind::Wasm { .. } => frag!(
+                value.{wasm_accessor}().ok_or_else(||~
+                    {doubles(("cannot cast value to ", rust_type))}.to_string()
+                )
+            )
+            .apply(p),
+            ApiKind::Node => frag!(
+                if value.get_type().map_err(|err| err.reason)?~ == ValueType::{node_value_type}~{{
+                    unsafe~{{
+                        value.cast::<{rust_type}>()
+                    }}.map_err(|_|~{doubles(("cannot cast value to ", rust_type))}.to_string())
+                }}@
+                else~{{
+                    Err({doubles(("cannot cast value to ", rust_type))}.to_string())
                 }}
-                else
-                {{
-                	Err("cannot cast value to {rust_type}".to_string())
-                }}"#},
-        }
+            )
+            .apply(p),
+        })
     }
 
     /// Returns the function header for this API.
-    pub fn fn_header(&self, db: &dyn Db, _fn: ir::fn_::Fn) -> String {
-        let fn_name = _fn.bindings_name(db);
-        match self.kind(db) {
-            ApiKind::Wasm { .. } => format!("#[wasm_bindgen(js_name = \"{}\")]", fn_name),
-            ApiKind::Node => format!("#[napi(js_name = \"{}\")]", fn_name),
-        }
+    pub fn fn_header<'db>(self, db: &'db dyn Db, _fn: ir::fn_::Fn<'db>) -> impl FragmentOnce + 'db {
+        let header = match self.kind(db) {
+            ApiKind::Wasm { .. } => "#[wasm_bindgen(js_name = ",
+            ApiKind::Node => "#[napi(js_name = ",
+        };
+
+        frag!({header}{doubles(_fn.bindings_name(db))}{")]"})
     }
 
     pub fn impl_header(&self, db: &dyn Db) -> &'static str {
@@ -137,48 +146,69 @@ impl Api {
     }
 
     /// Returns the struct header for this API.
-    pub fn struct_header(&self, db: &dyn Db, _struct: ir::struct_::Struct) -> String {
-        let struct_name = _struct.binding_name(db);
-        match self.kind(db) {
-            ApiKind::Wasm { .. } => format!("#[wasm_bindgen(js_name = \"{}\")]", struct_name),
-            ApiKind::Node => format!("#[napi(js_name = \"{}\")]", struct_name),
-        }
+    pub fn struct_header<'db>(
+        self,
+        db: &'db dyn Db,
+        _struct: ir::struct_::Struct<'db>,
+    ) -> impl FragmentOnce + 'db {
+        let header = match self.kind(db) {
+            ApiKind::Wasm { .. } => "#[wasm_bindgen(js_name = ",
+            ApiKind::Node => "#[napi(js_name = ",
+        };
+
+        frag!({header}{doubles(_struct.binding_name(db))}{")]"})
     }
 
     /// Returns the getter header for this API.
-    pub fn field_getter_header(&self, db: &dyn Db, field: StructField) -> String {
-        match self.kind(db) {
-            ApiKind::Wasm { .. } => {
-                format!("#[wasm_bindgen(getter, js_name = \"{}\")]", field.name(db))
-            }
-            ApiKind::Node => format!("#[napi(getter, js_name = \"{}\")]", field.name(db)),
-        }
+    pub fn field_getter_header<'db>(
+        self,
+        db: &'db dyn Db,
+        field: StructField<'db>,
+    ) -> impl FragmentOnce + 'db {
+        let header = match self.kind(db) {
+            ApiKind::Wasm { .. } => "#[wasm_bindgen(getter, js_name = ",
+            ApiKind::Node => "#[napi(getter, js_name = ",
+        };
+
+        frag!({header}{doubles(field.name(db))}{")]"})
     }
 
     /// Returns the setter header for this API.
-    pub fn field_setter_header(&self, db: &dyn Db, field: StructField) -> String {
-        match self.kind(db) {
-            ApiKind::Wasm { .. } => {
-                format!("#[wasm_bindgen(setter, js_name = \"{}\")]", field.name(db))
-            }
-            ApiKind::Node => format!("#[napi(setter, js_name = \"{}\")]", field.name(db)),
-        }
+    pub fn field_setter_header<'db>(
+        self,
+        db: &'db dyn Db,
+        field: StructField<'db>,
+    ) -> impl FragmentOnce + 'db {
+        let header = match self.kind(db) {
+            ApiKind::Wasm { .. } => "#[wasm_bindgen(setter, js_name = ",
+            ApiKind::Node => "#[napi(setter, js_name = ",
+        };
+
+        frag!({header}{doubles(field.name(db))}{")]"})
     }
 
     /// Returns the error type for this API.
-    pub fn result_type(&self, db: &dyn Db, ok_type: &str) -> String {
-        match self.kind(db) {
-            ApiKind::Wasm { .. } => format!("Result<{}, JsValue>", ok_type),
-            ApiKind::Node => format!("napi::Result<{}>", ok_type),
-        }
+    pub fn result_type<'a>(
+        self,
+        db: &dyn Db,
+        ok_type: impl FragmentOnce + 'a,
+    ) -> impl FragmentOnce + 'a {
+        let kind = self.kind(db);
+
+        fragment(move |p| match kind {
+            ApiKind::Wasm { .. } => frag!(Result<{ok_type}, JsValue>).apply(p),
+            ApiKind::Node => frag!(napi::Result<{ ok_type }>).apply(p),
+        })
     }
 
     /// Returns an error expression with the given reason.
-    pub fn error(&self, db: &dyn Db, reason: &str) -> String {
-        match self.kind(db) {
-            ApiKind::Wasm { .. } => format!("JsValue::from_str(&{reason})"),
-            ApiKind::Node => format!("napi::Error::from_reason({reason})"),
-        }
+    pub fn error<'a>(self, db: &dyn Db, reason: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
+        let kind = self.kind(db);
+
+        fragment(move |p| match kind {
+            ApiKind::Wasm { .. } => frag!(JsValue::from_str(&{ reason })).apply(p),
+            ApiKind::Node => frag!(napi::Error::from_reason({ reason })).apply(p),
+        })
     }
 
     /// Returns the contents of `fn main` for this API's build script, if any.
@@ -195,49 +225,43 @@ impl Api {
     }
 
     /// Returns the Cargo manifest dependencies required by this API.
-    pub fn manifest_deps(&self, db: &dyn Db) -> Option<String> {
-        match self.kind(db) {
-            ApiKind::Wasm { .. } => Some(
-                indoc::indoc! {r#"
-                    wasm-bindgen = "0.2"
-                "#}
-                .to_string(),
-            ),
-            ApiKind::Node => Some(
-                indoc::indoc! {r#"
-                    napi = { version = "3", features = ["napi10"] }
-                    napi-derive = { version = "3" }
-                "#}
-                .to_string(),
-            ),
-        }
+    pub fn manifest_deps(self, db: &dyn Db) -> Option<impl FragmentOnce> {
+        let kind = self.kind(db);
+
+        Some(fragment(move |p| match kind {
+            ApiKind::Wasm { .. } => frag!({ r#"wasm-bindgen = "0.2""# }).apply(p),
+            ApiKind::Node => frag!(
+                {r#"napi = { version = "3", features = ["napi10"] }"#}@
+                {r#"napi-derive = { version = "3" }"#}
+            )
+            .apply(p),
+        }))
     }
 
     /// Returns the Cargo manifest build dependencies required by this API.
-    pub fn manifest_build_deps(&self, db: &dyn Db) -> Option<String> {
-        match self.kind(db) {
-            ApiKind::Wasm { .. } => None,
-            ApiKind::Node => Some(
-                indoc::indoc! {r#"
+    pub fn manifest_build_deps(self, db: &dyn Db) -> Option<impl FragmentOnce> {
+        let deps = frag!(
+            @@[build-dependencies]@
+            {r#"napi-build = "2""#}
+        );
 
-                    [build-dependencies]
-                    napi-build = "2""#}
-                .to_string(),
-            ),
-        }
+        (self.kind(db) == ApiKind::Node).then_some(deps)
     }
 
     /// Returns JavaScript initialization code needed by this API before exports
     /// are used.
-    pub fn js_mod_init(&self, db: &dyn Db, src_path: &str) -> Option<String> {
-        match self.kind(db) {
+    pub fn js_mod_init<'a>(self, db: &dyn Db, src_path: &'a str) -> Option<impl FragmentOnce + 'a> {
+        matches!(
+            self.kind(db),
             ApiKind::Wasm {
-                target: WasmTarget::Web,
-            } => Some(format!("import init from '{}';\nawait init();\n", src_path)),
-            ApiKind::Wasm {
-                target: WasmTarget::Node,
+                target: WasmTarget::Web
             }
-            | ApiKind::Node => None,
-        }
+        )
+        .then(|| {
+            frag!(
+                import init from ~{singles(src_path)};@
+                await init();
+            )
+        })
     }
 }

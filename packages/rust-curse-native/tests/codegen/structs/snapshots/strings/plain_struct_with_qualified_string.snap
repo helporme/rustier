@@ -149,7 +149,9 @@ use __curse::Accessor as _;
 fn __cast_String(
 	value: JsValue
 )-> Result<String, String> {
-	value.as_string().ok_or_else(|| "cannot cast value to String".to_string())
+	value.as_string().ok_or_else(
+		|| "cannot cast value to String".to_string()
+	)
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainStruct {
@@ -233,7 +235,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		let value = __cast_String(
 			value
 		).map_err(
-			|err|JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err))
+			|err| JsValue::from_str(
+				&format!(
+					"Expected Rust `String` from a JavaScript string: {}", err
+				)
+			)
 		)?;
 		let mut value = Some(
 			value
@@ -348,13 +354,19 @@ use __curse::Accessor as _;
 fn __cast_String(
 	value: Unknown<'_>
 )-> Result<String, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::String
-	{
-		unsafe { value.cast::<String>() }.map_err(|_| "cannot cast value to String".to_string())
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::String {
+		unsafe {
+			value.cast::<String>()
+		}.map_err(
+			|_| "cannot cast value to String".to_string()
+		)
 	}
-	else
-	{
-		Err("cannot cast value to String".to_string())
+	else {
+		Err(
+			"cannot cast value to String".to_string()
+		)
 	}
 }
 
@@ -439,7 +451,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		let value = __cast_String(
 			value
 		).map_err(
-			|err|napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err))
+			|err| napi::Error::from_reason(
+				format!(
+					"Expected Rust `String` from a JavaScript string: {}", err
+				)
+			)
 		)?;
 		let mut value = Some(
 			value

@@ -107,26 +107,38 @@ use napi_derive::napi;
 fn __cast_bool(
 	value: Unknown<'_>
 )-> Result<bool, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::Boolean
-	{
-		unsafe { value.cast::<bool>() }.map_err(|_| "cannot cast value to bool".to_string())
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::Boolean {
+		unsafe {
+			value.cast::<bool>()
+		}.map_err(
+			|_| "cannot cast value to bool".to_string()
+		)
 	}
-	else
-	{
-		Err("cannot cast value to bool".to_string())
+	else {
+		Err(
+			"cannot cast value to bool".to_string()
+		)
 	}
 }
 
 fn __cast_f64(
 	value: Unknown<'_>
 )-> Result<f64, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::Number
-	{
-		unsafe { value.cast::<f64>() }.map_err(|_| "cannot cast value to f64".to_string())
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::Number {
+		unsafe {
+			value.cast::<f64>()
+		}.map_err(
+			|_| "cannot cast value to f64".to_string()
+		)
 	}
-	else
-	{
-		Err("cannot cast value to f64".to_string())
+	else {
+		Err(
+			"cannot cast value to f64".to_string()
+		)
 	}
 }
 
@@ -282,42 +294,74 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	let __p__a = &mut __cast_bool(
 		__p__a
 	).map_err(
-		|err|napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `bool` from a JavaScript boolean: {}", err
+			)
+		)
 	)?;
 	let __p__d = &mut __cast_i8(
 		__p__d
 	).map_err(
-		|err|napi::Error::from_reason(format!("Expected Rust `i8` from a JavaScript number: {}", err))
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `i8` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	let __p__e = &mut __cast_i16(
 		__p__e
 	).map_err(
-		|err|napi::Error::from_reason(format!("Expected Rust `i16` from a JavaScript number: {}", err))
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `i16` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	let __p__f = &mut __cast_i32(
 		__p__f
 	).map_err(
-		|err|napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err))
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `i32` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	let __p__g = &mut __cast_u8(
 		__p__g
 	).map_err(
-		|err|napi::Error::from_reason(format!("Expected Rust `u8` from a JavaScript number: {}", err))
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `u8` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	let __p__h = &mut __cast_u16(
 		__p__h
 	).map_err(
-		|err|napi::Error::from_reason(format!("Expected Rust `u16` from a JavaScript number: {}", err))
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `u16` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	let __p__i = &mut __cast_u32(
 		__p__i
 	).map_err(
-		|err|napi::Error::from_reason(format!("Expected Rust `u32` from a JavaScript number: {}", err))
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `u32` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	let __p__k = &mut __cast_f64(
 		__p__k
 	).map_err(
-		|err|napi::Error::from_reason(format!("Expected Rust `f64` from a JavaScript number: {}", err))
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `f64` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	rustdoc_test_crate::foo(
 		__p__a,
@@ -344,13 +388,17 @@ use wasm_bindgen::prelude::*;
 fn __cast_bool(
 	value: JsValue
 )-> Result<bool, String> {
-	value.as_bool().ok_or_else(|| "cannot cast value to bool".to_string())
+	value.as_bool().ok_or_else(
+		|| "cannot cast value to bool".to_string()
+	)
 }
 
 fn __cast_f64(
 	value: JsValue
 )-> Result<f64, String> {
-	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
+	value.as_f64().ok_or_else(
+		|| "cannot cast value to f64".to_string()
+	)
 }
 
 fn __cast_i8(
@@ -505,42 +553,74 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	let __p__a = &mut __cast_bool(
 		__p__a
 	).map_err(
-		|err|JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `bool` from a JavaScript boolean: {}", err
+			)
+		)
 	)?;
 	let __p__d = &mut __cast_i8(
 		__p__d
 	).map_err(
-		|err|JsValue::from_str(&format!("Expected Rust `i8` from a JavaScript number: {}", err))
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `i8` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	let __p__e = &mut __cast_i16(
 		__p__e
 	).map_err(
-		|err|JsValue::from_str(&format!("Expected Rust `i16` from a JavaScript number: {}", err))
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `i16` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	let __p__f = &mut __cast_i32(
 		__p__f
 	).map_err(
-		|err|JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err))
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `i32` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	let __p__g = &mut __cast_u8(
 		__p__g
 	).map_err(
-		|err|JsValue::from_str(&format!("Expected Rust `u8` from a JavaScript number: {}", err))
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `u8` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	let __p__h = &mut __cast_u16(
 		__p__h
 	).map_err(
-		|err|JsValue::from_str(&format!("Expected Rust `u16` from a JavaScript number: {}", err))
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `u16` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	let __p__i = &mut __cast_u32(
 		__p__i
 	).map_err(
-		|err|JsValue::from_str(&format!("Expected Rust `u32` from a JavaScript number: {}", err))
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `u32` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	let __p__k = &mut __cast_f64(
 		__p__k
 	).map_err(
-		|err|JsValue::from_str(&format!("Expected Rust `f64` from a JavaScript number: {}", err))
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `f64` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	rustdoc_test_crate::foo(
 		__p__a,

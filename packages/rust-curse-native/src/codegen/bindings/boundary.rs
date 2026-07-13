@@ -9,7 +9,7 @@ use crate::{
             struct_::{compile_binding_struct_accessor_expr, compile_binding_struct_ctor_expr},
         },
         db::Db,
-        fragment::{Fragment, FragmentOnce, FragmentPrint, fragment},
+        fragment::{Fragment, FragmentOnce, FragmentPrint, doubles, fragment},
         ir::{
             IrId,
             fn_::{FnParam, ParamMode},
@@ -241,11 +241,18 @@ fn compile_boundary_conversion_stmt_via_cast<'db>(
 
     let error = api.error(
         db,
-        &format!(
-            "format!(\"Expected Rust `{}` from a JavaScript {}: {{}}\", err)",
-            expr.type_.rs_name(db),
-            expr.type_.ts_name(db)
-        ),
+        frag!(format!(
+            {
+                doubles((
+                    "Expected Rust `",
+                    expr.type_.rs_name(db),
+                    "` from a JavaScript ",
+                    expr.type_.ts_name(db),
+                    ": {}",
+                ))
+            },
+            err
+        )),
     );
 
     let ref_ = match expr.mode {
@@ -256,7 +263,7 @@ fn compile_boundary_conversion_stmt_via_cast<'db>(
     let cast_fn_name = expr.type_.cast_fn_name(db);
 
     frag!(
-        let ~{expr.out_var_name}~ = ~{ref_}{cast_fn_name}({expr.in_expr}).map_err(|err| {error})?;
+        let ~{expr.out_var_name}~ = ~{ref_}{cast_fn_name}({expr.in_expr}).map_err(|err|~{error})?;
     )
 }
 

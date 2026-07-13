@@ -239,13 +239,19 @@ use __curse::Accessor as _;
 fn __cast_f64(
 	value: Unknown<'_>
 )-> Result<f64, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::Number
-	{
-		unsafe { value.cast::<f64>() }.map_err(|_| "cannot cast value to f64".to_string())
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::Number {
+		unsafe {
+			value.cast::<f64>()
+		}.map_err(
+			|_| "cannot cast value to f64".to_string()
+		)
 	}
-	else
-	{
-		Err("cannot cast value to f64".to_string())
+	else {
+		Err(
+			"cannot cast value to f64".to_string()
+		)
 	}
 }
 
@@ -275,26 +281,38 @@ fn __cast_u32(
 fn __cast_String(
 	value: Unknown<'_>
 )-> Result<String, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::String
-	{
-		unsafe { value.cast::<String>() }.map_err(|_| "cannot cast value to String".to_string())
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::String {
+		unsafe {
+			value.cast::<String>()
+		}.map_err(
+			|_| "cannot cast value to String".to_string()
+		)
 	}
-	else
-	{
-		Err("cannot cast value to String".to_string())
+	else {
+		Err(
+			"cannot cast value to String".to_string()
+		)
 	}
 }
 
 fn __cast_bool(
 	value: Unknown<'_>
 )-> Result<bool, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::Boolean
-	{
-		unsafe { value.cast::<bool>() }.map_err(|_| "cannot cast value to bool".to_string())
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::Boolean {
+		unsafe {
+			value.cast::<bool>()
+		}.map_err(
+			|_| "cannot cast value to bool".to_string()
+		)
 	}
-	else
-	{
-		Err("cannot cast value to bool".to_string())
+	else {
+		Err(
+			"cannot cast value to bool".to_string()
+		)
 	}
 }
 
@@ -340,12 +358,20 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 						let mut result = std::mem::MaybeUninit::uninit();let __p__number = __cast_u32(
 							__p__number
 						).map_err(
-							|err|napi::Error::from_reason(format!("Expected Rust `u32` from a JavaScript number: {}", err))
+							|err| napi::Error::from_reason(
+								format!(
+									"Expected Rust `u32` from a JavaScript number: {}", err
+								)
+							)
 						)?;
 						let __p__text = __cast_String(
 							__p__text
 						).map_err(
-							|err|napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err))
+							|err| napi::Error::from_reason(
+								format!(
+									"Expected Rust `String` from a JavaScript string: {}", err
+								)
+							)
 						)?;
 						let mut __p__text = Some(
 							__p__text
@@ -353,17 +379,29 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 						let __p__borrowed_text = & __cast_String(
 							__p__borrowed_text
 						).map_err(
-							|err|napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err))
+							|err| napi::Error::from_reason(
+								format!(
+									"Expected Rust `String` from a JavaScript string: {}", err
+								)
+							)
 						)?;
 						let __p__flag = __cast_bool(
 							__p__flag
 						).map_err(
-							|err|napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+							|err| napi::Error::from_reason(
+								format!(
+									"Expected Rust `bool` from a JavaScript boolean: {}", err
+								)
+							)
 						)?;
 						let __p__mutable_text = &mut __cast_String(
 							__p__mutable_text
 						).map_err(
-							|err|napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err))
+							|err| napi::Error::from_reason(
+								format!(
+									"Expected Rust `String` from a JavaScript string: {}", err
+								)
+							)
 						)?;
 						__p__mutable.handle.src.access_mut(
 							&mut |__p__mutable| {
@@ -483,7 +521,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		let value = __cast_i32(
 			value
 		).map_err(
-			|err|napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err))
+			|err| napi::Error::from_reason(
+				format!(
+					"Expected Rust `i32` from a JavaScript number: {}", err
+				)
+			)
 		)?;
 		self.handle.src.access_mut(
 			&mut |src| {
@@ -577,7 +619,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		let value = __cast_String(
 			value
 		).map_err(
-			|err|napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err))
+			|err| napi::Error::from_reason(
+				format!(
+					"Expected Rust `String` from a JavaScript string: {}", err
+				)
+			)
 		)?;
 		let mut value = Some(
 			value
@@ -691,7 +737,9 @@ use __curse::Accessor as _;
 fn __cast_f64(
 	value: JsValue
 )-> Result<f64, String> {
-	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
+	value.as_f64().ok_or_else(
+		|| "cannot cast value to f64".to_string()
+	)
 }
 
 fn __cast_u32(
@@ -720,13 +768,17 @@ fn __cast_u32(
 fn __cast_String(
 	value: JsValue
 )-> Result<String, String> {
-	value.as_string().ok_or_else(|| "cannot cast value to String".to_string())
+	value.as_string().ok_or_else(
+		|| "cannot cast value to String".to_string()
+	)
 }
 
 fn __cast_bool(
 	value: JsValue
 )-> Result<bool, String> {
-	value.as_bool().ok_or_else(|| "cannot cast value to bool".to_string())
+	value.as_bool().ok_or_else(
+		|| "cannot cast value to bool".to_string()
+	)
 }
 
 fn __cast_i32(
@@ -771,12 +823,20 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 						let mut result = std::mem::MaybeUninit::uninit();let __p__number = __cast_u32(
 							__p__number
 						).map_err(
-							|err|JsValue::from_str(&format!("Expected Rust `u32` from a JavaScript number: {}", err))
+							|err| JsValue::from_str(
+								&format!(
+									"Expected Rust `u32` from a JavaScript number: {}", err
+								)
+							)
 						)?;
 						let __p__text = __cast_String(
 							__p__text
 						).map_err(
-							|err|JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err))
+							|err| JsValue::from_str(
+								&format!(
+									"Expected Rust `String` from a JavaScript string: {}", err
+								)
+							)
 						)?;
 						let mut __p__text = Some(
 							__p__text
@@ -784,17 +844,29 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 						let __p__borrowed_text = & __cast_String(
 							__p__borrowed_text
 						).map_err(
-							|err|JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err))
+							|err| JsValue::from_str(
+								&format!(
+									"Expected Rust `String` from a JavaScript string: {}", err
+								)
+							)
 						)?;
 						let __p__flag = __cast_bool(
 							__p__flag
 						).map_err(
-							|err|JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+							|err| JsValue::from_str(
+								&format!(
+									"Expected Rust `bool` from a JavaScript boolean: {}", err
+								)
+							)
 						)?;
 						let __p__mutable_text = &mut __cast_String(
 							__p__mutable_text
 						).map_err(
-							|err|JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err))
+							|err| JsValue::from_str(
+								&format!(
+									"Expected Rust `String` from a JavaScript string: {}", err
+								)
+							)
 						)?;
 						__p__mutable.handle.src.access_mut(
 							&mut |__p__mutable| {
@@ -914,7 +986,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		let value = __cast_i32(
 			value
 		).map_err(
-			|err|JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err))
+			|err| JsValue::from_str(
+				&format!(
+					"Expected Rust `i32` from a JavaScript number: {}", err
+				)
+			)
 		)?;
 		self.handle.src.access_mut(
 			&mut |src| {
@@ -1008,7 +1084,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		let value = __cast_String(
 			value
 		).map_err(
-			|err|JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err))
+			|err| JsValue::from_str(
+				&format!(
+					"Expected Rust `String` from a JavaScript string: {}", err
+				)
+			)
 		)?;
 		let mut value = Some(
 			value

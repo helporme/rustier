@@ -22,9 +22,9 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>, src_path: Strin
             {comma_list(
                 fns.iter().map(|fn_| fn_.bindings_name(db)),
             )}
-        }}~ from ~{singles(src_path)}; @
+        }}~ from ~{singles(&src_path)}; @
 
-        {init.as_deref().unwrap_or_default()} @
+        {init} @
 
         export ~{{
             {comma_list(fns.iter().map(|fn_| frag!(

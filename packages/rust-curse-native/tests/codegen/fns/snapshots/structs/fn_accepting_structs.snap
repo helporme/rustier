@@ -199,13 +199,19 @@ use __curse::Accessor as _;
 fn __cast_f64(
 	value: Unknown<'_>
 )-> Result<f64, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::Number
-	{
-		unsafe { value.cast::<f64>() }.map_err(|_| "cannot cast value to f64".to_string())
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::Number {
+		unsafe {
+			value.cast::<f64>()
+		}.map_err(
+			|_| "cannot cast value to f64".to_string()
+		)
 	}
-	else
-	{
-		Err("cannot cast value to f64".to_string())
+	else {
+		Err(
+			"cannot cast value to f64".to_string()
+		)
 	}
 }
 
@@ -235,13 +241,19 @@ fn __cast_i32(
 fn __cast_String(
 	value: Unknown<'_>
 )-> Result<String, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::String
-	{
-		unsafe { value.cast::<String>() }.map_err(|_| "cannot cast value to String".to_string())
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::String {
+		unsafe {
+			value.cast::<String>()
+		}.map_err(
+			|_| "cannot cast value to String".to_string()
+		)
 	}
-	else
-	{
-		Err("cannot cast value to String".to_string())
+	else {
+		Err(
+			"cannot cast value to String".to_string()
+		)
 	}
 }
 
@@ -356,7 +368,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		let value = __cast_i32(
 			value
 		).map_err(
-			|err|napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err))
+			|err| napi::Error::from_reason(
+				format!(
+					"Expected Rust `i32` from a JavaScript number: {}", err
+				)
+			)
 		)?;
 		self.handle.src.access_mut(
 			&mut |src| {
@@ -450,7 +466,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		let value = __cast_String(
 			value
 		).map_err(
-			|err|napi::Error::from_reason(format!("Expected Rust `String` from a JavaScript string: {}", err))
+			|err| napi::Error::from_reason(
+				format!(
+					"Expected Rust `String` from a JavaScript string: {}", err
+				)
+			)
 		)?;
 		let mut value = Some(
 			value
@@ -564,7 +584,9 @@ use __curse::Accessor as _;
 fn __cast_f64(
 	value: JsValue
 )-> Result<f64, String> {
-	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
+	value.as_f64().ok_or_else(
+		|| "cannot cast value to f64".to_string()
+	)
 }
 
 fn __cast_i32(
@@ -593,7 +615,9 @@ fn __cast_i32(
 fn __cast_String(
 	value: JsValue
 )-> Result<String, String> {
-	value.as_string().ok_or_else(|| "cannot cast value to String".to_string())
+	value.as_string().ok_or_else(
+		|| "cannot cast value to String".to_string()
+	)
 }
 
 #[wasm_bindgen(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
@@ -707,7 +731,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		let value = __cast_i32(
 			value
 		).map_err(
-			|err|JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err))
+			|err| JsValue::from_str(
+				&format!(
+					"Expected Rust `i32` from a JavaScript number: {}", err
+				)
+			)
 		)?;
 		self.handle.src.access_mut(
 			&mut |src| {
@@ -801,7 +829,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		let value = __cast_String(
 			value
 		).map_err(
-			|err|JsValue::from_str(&format!("Expected Rust `String` from a JavaScript string: {}", err))
+			|err| JsValue::from_str(
+				&format!(
+					"Expected Rust `String` from a JavaScript string: {}", err
+				)
+			)
 		)?;
 		let mut value = Some(
 			value

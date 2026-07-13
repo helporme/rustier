@@ -1,5 +1,10 @@
 //! Composable, allocation-light fragments for generated source text.
 //!
+//! The [`frag`] macro, [`FragmentOnce`] and [`Fragment`] are most probably what
+//! you are looking for.
+//!
+//! Example:
+//!
 //! ```
 //! # use rust_curse::codegen::fragment::{frag, FragmentPrint};
 //! #
@@ -8,10 +13,29 @@
 //!
 //! assert_eq!(greeting.print(), "hello world");
 //! ```
+//!
+//! ---
+//!
+//! # Idea
+//!
+//! [`FragmentOnce`] or [`Fragment`] are traits that can write text to the
+//! [`Printer`] directly, without intermediate allocations. Many types are
+//! implementing these traits, such as [`String`], [`str`] or [`Option`].
+//!
+//! To combine multiple fragments, you can use:
+//!  - [`fragment`] fn to create a custom fragment from a closure.
+//!  - tuples of fragments to combine them sequentially, usually through
+//!    [`frag!`] macro.
+//!
+//! Combined fragments do not allocate as well. Use [`FragmentPrint::print`] to
+//! print them to a [`String`].
+//!
+//! Some utility methods are also available in this module, like [`doubles`],
+//! [`comma_list`] and simillar.
 
 use std::fmt;
 
-/// Accumulates fragment output while applying tab-based indentation.
+/// Accumulates fragment output while applying basic indentation.
 ///
 /// `Printer` is normally created by [`FragmentPrint::print`], but fragments can
 /// also be applied to one directly.
@@ -22,6 +46,7 @@ use std::fmt;
 /// let mut printer = Printer::default();
 /// "hello".apply(&mut printer);
 /// ```
+#[derive(Clone, Debug)]
 pub struct Printer {
     out: String,
     indent: usize,
@@ -87,17 +112,6 @@ impl Printer {
             self.at_line_start = chunk.ends_with('\n');
         }
     }
-
-    /// Appends preformatted arguments without allocating intermediate text.
-    ///
-    /// ```
-    /// # use rust_curse::codegen::fragment::FragmentPrint;
-    /// #
-    /// assert_eq!(format_args!("answer: {}", 42).print(), "answer: 42");
-    /// ```
-    fn write_fmt(&mut self, args: fmt::Arguments<'_>) {
-        fmt::write(self, args).expect("writing to a String cannot fail");
-    }
 }
 
 impl fmt::Write for Printer {
@@ -120,7 +134,7 @@ impl fmt::Write for Printer {
     }
 }
 
-/// A source code fragment that can be rendered once.
+/// A trait for writing once a piece of source code to the [`Printer`].
 ///
 /// ```
 /// # use rust_curse::codegen::fragment::{fragment, FragmentOnce, FragmentPrint};
@@ -135,7 +149,8 @@ pub trait FragmentOnce {
     fn apply(self, printer: &mut Printer);
 }
 
-/// A source code fragment that can be rendered through a shared reference.
+/// A trait for writing a piece of source code to the [`Printer`] multiple
+/// times.
 ///
 /// This object-safe trait is intended for the uncommon cases that need reuse
 /// or type erasure. Normal fragment composition should use [`FragmentOnce`].
@@ -279,22 +294,33 @@ impl Fragment for String {
     }
 }
 
-impl FragmentOnce for fmt::Arguments<'_> {
-    fn apply(self, printer: &mut Printer) {
-        printer.write_fmt(self);
-    }
-}
-
-impl Fragment for fmt::Arguments<'_> {
-    /// Formats these arguments directly into `printer`.
+impl<T> FragmentOnce for Option<T>
+where
+    T: FragmentOnce,
+{
+    /// Applies the contained fragment or leaves `printer` unchanged for `None`.
     ///
     /// ```
     /// # use rust_curse::codegen::fragment::FragmentPrint;
     /// #
-    /// assert_eq!(format_args!("{} + {}", 1, 2).print(), "1 + 2");
+    /// assert_eq!(Some("present").print(), "present");
+    /// assert_eq!(None::<&str>.print(), "");
     /// ```
+    fn apply(self, printer: &mut Printer) {
+        if let Some(fragment) = self {
+            fragment.apply(printer);
+        }
+    }
+}
+
+impl<T> Fragment for Option<T>
+where
+    T: Fragment,
+{
     fn apply_ref(&self, printer: &mut Printer) {
-        printer.write_fmt(*self);
+        if let Some(fragment) = self {
+            fragment.apply_ref(printer);
+        }
     }
 }
 
@@ -540,12 +566,7 @@ where
     .into_fragment()
 }
 
-/// Builds a fragment from source-like tokens and interpolated fragments.
-///
-/// Static tokens are emitted as written, `~` inserts a space between tokens and
-/// interpolations, `@` inserts a deferred newline separator, and `{expression}`
-/// interpolates another
-/// [`FragmentOnce`](crate::codegen::fragment::FragmentOnce).
+/// Builds a fragment from source-like text supporting interpolation.
 ///
 /// ```
 /// # use rust_curse::codegen::fragment::{frag, FragmentPrint};
@@ -604,11 +625,23 @@ where
 /// assert_eq!(greeting.print(), "hello world\ngoodbye");
 /// ```
 ///
-/// # Auto formating
+/// # Auto formatting
 ///
-/// Curly braces and parentheses are automatically wrapped with
+/// Double curly braces and parentheses are automatically wrapped with
 /// [`curlies`](crate::codegen::fragment::curlies) and
 /// [`parens`](crate::codegen::fragment::parens), respectively.
+///
+/// ```
+/// # use rust_curse::codegen::fragment::{frag, FragmentPrint};
+/// #
+/// let function = frag!(
+///     fn greet(name: &str) ~{{
+///         hello
+///     }}
+/// );
+///
+/// assert_eq!(function.print(), "fn greet(\n\tname: &str\n) {\n\thello\n}");
+/// ```
 #[macro_export]
 macro_rules! frag {
     (@nest) => {

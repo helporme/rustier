@@ -156,7 +156,9 @@ use __curse::Accessor as _;
 fn __cast_bool(
 	value: JsValue
 )-> Result<bool, String> {
-	value.as_bool().ok_or_else(|| "cannot cast value to bool".to_string())
+	value.as_bool().ok_or_else(
+		|| "cannot cast value to bool".to_string()
+	)
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_PlainStruct {
@@ -240,7 +242,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		let value = __cast_bool(
 			value
 		).map_err(
-			|err|JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+			|err| JsValue::from_str(
+				&format!(
+					"Expected Rust `bool` from a JavaScript boolean: {}", err
+				)
+			)
 		)?;
 		self.handle.src.access_mut(
 			&mut |src| {
@@ -280,7 +286,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		let value = __cast_bool(
 			value
 		).map_err(
-			|err|JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+			|err| JsValue::from_str(
+				&format!(
+					"Expected Rust `bool` from a JavaScript boolean: {}", err
+				)
+			)
 		)?;
 		self.handle.src.access_mut(
 			&mut |src| {
@@ -391,13 +401,19 @@ use __curse::Accessor as _;
 fn __cast_bool(
 	value: Unknown<'_>
 )-> Result<bool, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::Boolean
-	{
-		unsafe { value.cast::<bool>() }.map_err(|_| "cannot cast value to bool".to_string())
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::Boolean {
+		unsafe {
+			value.cast::<bool>()
+		}.map_err(
+			|_| "cannot cast value to bool".to_string()
+		)
 	}
-	else
-	{
-		Err("cannot cast value to bool".to_string())
+	else {
+		Err(
+			"cannot cast value to bool".to_string()
+		)
 	}
 }
 
@@ -482,7 +498,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		let value = __cast_bool(
 			value
 		).map_err(
-			|err|napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+			|err| napi::Error::from_reason(
+				format!(
+					"Expected Rust `bool` from a JavaScript boolean: {}", err
+				)
+			)
 		)?;
 		self.handle.src.access_mut(
 			&mut |src| {
@@ -522,7 +542,11 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		let value = __cast_bool(
 			value
 		).map_err(
-			|err|napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+			|err| napi::Error::from_reason(
+				format!(
+					"Expected Rust `bool` from a JavaScript boolean: {}", err
+				)
+			)
 		)?;
 		self.handle.src.access_mut(
 			&mut |src| {

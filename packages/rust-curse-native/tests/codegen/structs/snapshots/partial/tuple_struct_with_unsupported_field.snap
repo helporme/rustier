@@ -135,7 +135,9 @@ use __curse::Accessor as _;
 fn __cast_f64(
 	value: JsValue
 )-> Result<f64, String> {
-	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
+	value.as_f64().ok_or_else(
+		|| "cannot cast value to f64".to_string()
+	)
 }
 
 fn __cast_i32(
@@ -164,7 +166,9 @@ fn __cast_i32(
 fn __cast_bool(
 	value: JsValue
 )-> Result<bool, String> {
-	value.as_bool().ok_or_else(|| "cannot cast value to bool".to_string())
+	value.as_bool().ok_or_else(
+		|| "cannot cast value to bool".to_string()
+	)
 }
 
 struct __cursed_handle__rustdoc_0test_0crate_TupleStruct {
@@ -248,7 +252,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		let value = __cast_i32(
 			value
 		).map_err(
-			|err|JsValue::from_str(&format!("Expected Rust `i32` from a JavaScript number: {}", err))
+			|err| JsValue::from_str(
+				&format!(
+					"Expected Rust `i32` from a JavaScript number: {}", err
+				)
+			)
 		)?;
 		self.handle.src.access_mut(
 			&mut |src| {
@@ -288,7 +296,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		let value = __cast_bool(
 			value
 		).map_err(
-			|err|JsValue::from_str(&format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+			|err| JsValue::from_str(
+				&format!(
+					"Expected Rust `bool` from a JavaScript boolean: {}", err
+				)
+			)
 		)?;
 		self.handle.src.access_mut(
 			&mut |src| {
@@ -399,13 +411,19 @@ use __curse::Accessor as _;
 fn __cast_f64(
 	value: Unknown<'_>
 )-> Result<f64, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::Number
-	{
-		unsafe { value.cast::<f64>() }.map_err(|_| "cannot cast value to f64".to_string())
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::Number {
+		unsafe {
+			value.cast::<f64>()
+		}.map_err(
+			|_| "cannot cast value to f64".to_string()
+		)
 	}
-	else
-	{
-		Err("cannot cast value to f64".to_string())
+	else {
+		Err(
+			"cannot cast value to f64".to_string()
+		)
 	}
 }
 
@@ -435,13 +453,19 @@ fn __cast_i32(
 fn __cast_bool(
 	value: Unknown<'_>
 )-> Result<bool, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::Boolean
-	{
-		unsafe { value.cast::<bool>() }.map_err(|_| "cannot cast value to bool".to_string())
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::Boolean {
+		unsafe {
+			value.cast::<bool>()
+		}.map_err(
+			|_| "cannot cast value to bool".to_string()
+		)
 	}
-	else
-	{
-		Err("cannot cast value to bool".to_string())
+	else {
+		Err(
+			"cannot cast value to bool".to_string()
+		)
 	}
 }
 
@@ -526,7 +550,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		let value = __cast_i32(
 			value
 		).map_err(
-			|err|napi::Error::from_reason(format!("Expected Rust `i32` from a JavaScript number: {}", err))
+			|err| napi::Error::from_reason(
+				format!(
+					"Expected Rust `i32` from a JavaScript number: {}", err
+				)
+			)
 		)?;
 		self.handle.src.access_mut(
 			&mut |src| {
@@ -566,7 +594,11 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		let value = __cast_bool(
 			value
 		).map_err(
-			|err|napi::Error::from_reason(format!("Expected Rust `bool` from a JavaScript boolean: {}", err))
+			|err| napi::Error::from_reason(
+				format!(
+					"Expected Rust `bool` from a JavaScript boolean: {}", err
+				)
+			)
 		)?;
 		self.handle.src.access_mut(
 			&mut |src| {

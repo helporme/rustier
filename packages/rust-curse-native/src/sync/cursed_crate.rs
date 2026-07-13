@@ -8,7 +8,12 @@ use thiserror::Error;
 use tracing::{debug, info};
 
 use crate::{
-    codegen::{self, api::ApiKind},
+    codegen::{
+        api::{Api, ApiKind},
+        bindings::compile_bindings,
+        db::DbImpl,
+        fragment::{FragmentPrint, frag},
+    },
     sync::{file::write_if_changed, manifest},
     tools::{node, workspace},
 };
@@ -22,7 +27,7 @@ pub struct SyncCrateOps<'a> {
     /// e.g. ".rust-curse/crates/"
     pub out_dir: &'a Path,
     /// The database for compiling bindings.
-    pub db: &'a codegen::db::DbImpl,
+    pub db: &'a DbImpl,
 }
 
 /// Syncs a generated cursed crate for a source crate.
@@ -37,7 +42,7 @@ pub struct SyncCrateOps<'a> {
 ///         api::{Api, ApiKind, WasmTarget},
 ///         db::DbImpl,
 ///     },
-///     sync::cursed_crate::{sync_crate, SyncCrateOps},
+///     sync::cursed_crate::{SyncCrateOps, sync_crate},
 /// };
 ///
 /// let mut db = DbImpl::default();
@@ -80,7 +85,7 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
         "resolved source package metadata"
     );
 
-    let api = codegen::api::Api::get(opts.db);
+    let api = Api::get(opts.db);
     let manifest = manifest::render_manifest(
         opts.db,
         manifest::ManifestOpts {
@@ -94,7 +99,7 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
 
     debug!("compiled generated crate manifest");
 
-    let bindings = codegen::bindings::compile_bindings(opts.db);
+    let bindings = compile_bindings(opts.db);
     debug!(
         bindings_bytes = bindings.len(),
         "compiled generated bindings"
@@ -108,7 +113,13 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
 
     if let Some(build_script_body) = api.build_script_body(opts.db) {
         debug!("writing generated build script");
-        let build_script = format!("fn main() {{\n\t{build_script_body}\n}}\n");
+        let build_script = frag!(
+            fn main()~{{
+                {build_script_body}
+            }}
+        )
+        .print();
+
         changed |= write_file(opts.out_dir.join("build.rs"), build_script)?;
     }
 

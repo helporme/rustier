@@ -56,13 +56,19 @@ use napi_derive::napi;
 fn __cast_f64(
 	value: Unknown<'_>
 )-> Result<f64, String> {
-	if value.get_type().map_err(|err| err.reason)? == ValueType::Number
-	{
-		unsafe { value.cast::<f64>() }.map_err(|_| "cannot cast value to f64".to_string())
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::Number {
+		unsafe {
+			value.cast::<f64>()
+		}.map_err(
+			|_| "cannot cast value to f64".to_string()
+		)
 	}
-	else
-	{
-		Err("cannot cast value to f64".to_string())
+	else {
+		Err(
+			"cannot cast value to f64".to_string()
+		)
 	}
 }
 
@@ -112,7 +118,11 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	let __p__value = __cast_char(
 		__p__value
 	).map_err(
-		|err|napi::Error::from_reason(format!("Expected Rust `char` from a JavaScript number: {}", err))
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `char` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	rustdoc_test_crate::foo(
 		__p__value
@@ -132,7 +142,9 @@ use wasm_bindgen::prelude::*;
 fn __cast_f64(
 	value: JsValue
 )-> Result<f64, String> {
-	value.as_f64().ok_or_else(|| "cannot cast value to f64".to_string())
+	value.as_f64().ok_or_else(
+		|| "cannot cast value to f64".to_string()
+	)
 }
 
 fn __cast_u32(
@@ -181,7 +193,11 @@ pub fn __cursed_fn__rustdoc_0test_0crate_foo(
 	let __p__value = __cast_char(
 		__p__value
 	).map_err(
-		|err|JsValue::from_str(&format!("Expected Rust `char` from a JavaScript number: {}", err))
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `char` from a JavaScript number: {}", err
+			)
+		)
 	)?;
 	rustdoc_test_crate::foo(
 		__p__value
