@@ -100,7 +100,7 @@ use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
 
 #[allow(non_snake_case, dead_code)]
-mod __curse {
+mod __tethering {
     use std::cell::RefCell;
     use std::rc::Rc;
 
@@ -118,73 +118,74 @@ mod __curse {
         }
     }
 
-    pub enum Backing<T> {
+    pub enum Source<T> {
         Owned(T),
         Projected(Rc<dyn Accessor<T>>),
     }
 
-    pub struct Slot<T>(RefCell<Backing<T>>);
+    pub struct SourceSlot<T>(RefCell<Source<T>>);
 
-    impl<T: 'static> Slot<T> {
+    impl<T: 'static> SourceSlot<T> {
         pub fn owned(value: T) -> Self {
-            Slot(RefCell::new(Backing::Owned(value)))
+            SourceSlot(RefCell::new(Source::Owned(value)))
         }
-        pub fn projected(projection: Rc<dyn Accessor<T>>) -> Self {
-            Slot(RefCell::new(Backing::Projected(projection)))
+        pub fn projected(accessor: Rc<dyn Accessor<T>>) -> Self {
+            SourceSlot(RefCell::new(Source::Projected(accessor)))
         }
         pub fn replace_with_owned(&self, value: T) {
-            *self.0.borrow_mut() = Backing::Owned(value);
+            *self.0.borrow_mut() = Source::Owned(value);
         }
     }
 
-    impl<T> Accessor<T> for Slot<T> {
+    impl<T> Accessor<T> for SourceSlot<T> {
         fn access(&self, f: &mut dyn FnMut(&T)) {
-            let projection = {
-                let target = self.0.borrow();
+            let accessor = {
+                let source = self.0.borrow();
 
-                match &*target {
-                    Backing::Owned(value) => {
+                match &*source {
+                    Source::Owned(value) => {
                         f(value);
                         return;
                     }
-                    Backing::Projected(access) => Rc::clone(access),
+                    Source::Projected(accessor) => Rc::clone(accessor),
                 }
             };
-            projection.access(f);
+            accessor.access(f);
         }
 
         fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            let projection = {
-                let mut target = self.0.borrow_mut();
+            let accessor = {
+                let mut source = self.0.borrow_mut();
 
-                match &mut *target {
-                    Backing::Owned(value) => {
+                match &mut *source {
+                    Source::Owned(value) => {
                         f(value);
                         return;
                     }
-                    Backing::Projected(access) => Rc::clone(access),
+                    Source::Projected(accessor) => Rc::clone(accessor),
                 }
             };
-            projection.access_mut(f);
+            accessor.access_mut(f);
         }
     }
 
-    pub struct Projection<Parent, T> {
+    pub struct FieldAccess<Parent, T> {
         pub parent: Rc<dyn Accessor<Parent>>,
-        pub project: fn(&Parent) -> &T,
-        pub project_mut: fn(&mut Parent) -> &mut T,
+        pub get: fn(&Parent) -> &T,
+        pub get_mut: fn(&mut Parent) -> &mut T,
     }
 
-    impl<Parent: 'static, T: 'static> Accessor<T> for Projection<Parent, T> {
+    impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
         fn access(&self, f: &mut dyn FnMut(&T)) {
-            self.parent.access(&mut |p| f((self.project)(p)))
+            self.parent.access(&mut |parent| f((self.get)(parent)))
         }
         fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            self.parent.access_mut(&mut |p| f((self.project_mut)(p)))
+            self.parent
+                .access_mut(&mut |parent| f((self.get_mut)(parent)))
         }
     }
 }
-use __curse::Accessor as _;
+use __tethering::Accessor as _;
 
 fn __cast_f64(
 	value: Unknown<'_>
@@ -247,33 +248,11 @@ fn __cast_String(
 	}
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_PlainField {
-	src:__curse::Slot<rustdoc_test_crate::PlainField>,
+struct __tethered_struct__rustdoc_0test_0crate_PlainField {
+	src: __tethering::SourceSlot<rustdoc_test_crate::PlainField>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_PlainField {
-	pub fn new_owned(
-		input: rustdoc_test_crate::PlainField
-	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_PlainField {
-			src: __curse::Slot::owned(
-				input
-			),
-		}
-	}
-
-	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainField>>
-	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_PlainField {
-			src: __curse::Slot::projected(
-				input
-			),
-		}
-	}
-}
-
-impl __curse::Accessor<rustdoc_test_crate::PlainField> for __cursed_handle__rustdoc_0test_0crate_PlainField{
+impl __tethering::Accessor<rustdoc_test_crate::PlainField> for __tethered_struct__rustdoc_0test_0crate_PlainField {
 	fn access(
 		&self, f: &mut dyn FnMut(
 			&rustdoc_test_crate::PlainField
@@ -283,6 +262,7 @@ impl __curse::Accessor<rustdoc_test_crate::PlainField> for __cursed_handle__rust
 			f
 		);
 	}
+
 	fn access_mut(
 		&self, f: &mut dyn FnMut(
 			&mut rustdoc_test_crate::PlainField
@@ -294,8 +274,59 @@ impl __curse::Accessor<rustdoc_test_crate::PlainField> for __cursed_handle__rust
 	}
 }
 
+impl __tethered_struct__rustdoc_0test_0crate_PlainField {
+	pub fn new_owned(
+		input: rustdoc_test_crate::PlainField
+	) -> Self {
+		__tethered_struct__rustdoc_0test_0crate_PlainField {
+			src: __tethering::SourceSlot::owned(
+				input
+			),
+		}
+	}
+
+	pub fn new_projected(
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::PlainField>>
+	)-> Self {
+		__tethered_struct__rustdoc_0test_0crate_PlainField {
+			src: __tethering::SourceSlot::projected(
+				accessor
+			),
+		}
+	}
+
+	pub fn get_value(
+		&self
+	)-> i32 {
+		let mut result = std::mem::MaybeUninit::uninit();
+		self.access(
+			&mut |src| {
+				result.write(
+					src.value.clone()
+				);
+			}
+		);
+		unsafe {
+			result.assume_init()
+		}
+	}
+
+	pub fn set_value(
+		&self, value: i32
+	) {
+		let mut value = Some(
+			value
+		);
+		self.access_mut(
+			&mut |src| {
+				src.value= value.take().unwrap();
+			}
+		);
+	}
+}
+
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainField")]pub struct __cursed_struct__rustdoc_0test_0crate_PlainField {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_PlainField>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_PlainField>
 }
 
 #[napi]
@@ -305,19 +336,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 		&self
 	) -> napi::Result<i32> {
 		Ok(
-			{
-				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
-					&mut |src| {
-
-						result.write(
-							src.value
-						);
-					}
-				);
-				unsafe {
-					result.assume_init()
-				}
-			}
+			self.src.get_value()
 		)
 	}
 
@@ -325,53 +344,36 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 	pub fn __setter__value(
 		&self, value: Unknown<'_>
 	) -> napi::Result<()> {
-		let value = __cast_i32(
-			value
-		).map_err(
-			|err| napi::Error::from_reason(
-				format!(
-					"Expected Rust `i32` from a JavaScript number: {}", err
+		let value = {
+			let mut result = std::mem::MaybeUninit::uninit();let value = __cast_i32(
+				value
+			).map_err(
+				|err| napi::Error::from_reason(
+					format!(
+						"Expected Rust `i32` from a JavaScript number: {}", err
+					)
 				)
-			)
-		)?;
-		self.handle.src.access_mut(
-			&mut |src| {
-
-				src.value= value;
+			)?;
+			result.write(
+				value
+			);
+			unsafe {
+				result.assume_init()
 			}
+		};
+		self.src.set_value(
+			value
 		);Ok(
 			()
 		)
 	}
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_TupleField {
-	src:__curse::Slot<rustdoc_test_crate::TupleField>,
+struct __tethered_struct__rustdoc_0test_0crate_TupleField {
+	src: __tethering::SourceSlot<rustdoc_test_crate::TupleField>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_TupleField {
-	pub fn new_owned(
-		input: rustdoc_test_crate::TupleField
-	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_TupleField {
-			src: __curse::Slot::owned(
-				input
-			),
-		}
-	}
-
-	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleField>>
-	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_TupleField {
-			src: __curse::Slot::projected(
-				input
-			),
-		}
-	}
-}
-
-impl __curse::Accessor<rustdoc_test_crate::TupleField> for __cursed_handle__rustdoc_0test_0crate_TupleField{
+impl __tethering::Accessor<rustdoc_test_crate::TupleField> for __tethered_struct__rustdoc_0test_0crate_TupleField {
 	fn access(
 		&self, f: &mut dyn FnMut(
 			&rustdoc_test_crate::TupleField
@@ -381,6 +383,7 @@ impl __curse::Accessor<rustdoc_test_crate::TupleField> for __cursed_handle__rust
 			f
 		);
 	}
+
 	fn access_mut(
 		&self, f: &mut dyn FnMut(
 			&mut rustdoc_test_crate::TupleField
@@ -392,8 +395,59 @@ impl __curse::Accessor<rustdoc_test_crate::TupleField> for __cursed_handle__rust
 	}
 }
 
+impl __tethered_struct__rustdoc_0test_0crate_TupleField {
+	pub fn new_owned(
+		input: rustdoc_test_crate::TupleField
+	) -> Self {
+		__tethered_struct__rustdoc_0test_0crate_TupleField {
+			src: __tethering::SourceSlot::owned(
+				input
+			),
+		}
+	}
+
+	pub fn new_projected(
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::TupleField>>
+	)-> Self {
+		__tethered_struct__rustdoc_0test_0crate_TupleField {
+			src: __tethering::SourceSlot::projected(
+				accessor
+			),
+		}
+	}
+
+	pub fn get_0(
+		&self
+	)-> String {
+		let mut result = std::mem::MaybeUninit::uninit();
+		self.access(
+			&mut |src| {
+				result.write(
+					src.0.clone()
+				);
+			}
+		);
+		unsafe {
+			result.assume_init()
+		}
+	}
+
+	pub fn set_0(
+		&self, value: String
+	) {
+		let mut value = Some(
+			value
+		);
+		self.access_mut(
+			&mut |src| {
+				src.0= value.take().unwrap();
+			}
+		);
+	}
+}
+
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleField")]pub struct __cursed_struct__rustdoc_0test_0crate_TupleField {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_TupleField>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_TupleField>
 }
 
 #[napi]
@@ -403,19 +457,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 		&self
 	) -> napi::Result<String> {
 		Ok(
-			{
-				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
-					&mut |src| {
-
-						result.write(
-							src.0.clone()
-						);
-					}
-				);
-				unsafe {
-					result.assume_init()
-				}
-			}
+			self.src.get_0()
 		)
 	}
 
@@ -423,42 +465,65 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 	pub fn __setter__0(
 		&self, value: Unknown<'_>
 	) -> napi::Result<()> {
-		let value = __cast_String(
-			value
-		).map_err(
-			|err| napi::Error::from_reason(
-				format!(
-					"Expected Rust `String` from a JavaScript string: {}", err
+		let value = {
+			let mut result = std::mem::MaybeUninit::uninit();let value = __cast_String(
+				value
+			).map_err(
+				|err| napi::Error::from_reason(
+					format!(
+						"Expected Rust `String` from a JavaScript string: {}", err
+					)
 				)
-			)
-		)?;
-		let mut value = Some(
-			value
-		);
-		self.handle.src.access_mut(
-			&mut |src| {
-				let value = value.take().unwrap();
-
-				src.0= value;
+			)?;
+			result.write(
+				value
+			);
+			unsafe {
+				result.assume_init()
 			}
+		};
+		self.src.set_0(
+			value
 		);Ok(
 			()
 		)
 	}
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_Parent {
-	src:__curse::Slot<rustdoc_test_crate::Parent>,
-	__c__0: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_PlainField>>>,
-	__c__1: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_TupleField>>>,
+struct __tethered_struct__rustdoc_0test_0crate_Parent {
+	src: __tethering::SourceSlot<rustdoc_test_crate::Parent>,
+	__c__0: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_PlainField>>>,
+	__c__1: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_TupleField>>>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_Parent {
+impl __tethering::Accessor<rustdoc_test_crate::Parent> for __tethered_struct__rustdoc_0test_0crate_Parent {
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
+}
+
+impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn new_owned(
 		input: rustdoc_test_crate::Parent
 	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_Parent {
-			src: __curse::Slot::owned(
+		__tethered_struct__rustdoc_0test_0crate_Parent {
+			src: __tethering::SourceSlot::owned(
 				input
 			),
 			__c__0: std::cell::RefCell::new(
@@ -471,11 +536,11 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 	}
 
 	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Parent>>
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Parent>>
 	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_Parent {
-			src: __curse::Slot::projected(
-				input
+		__tethered_struct__rustdoc_0test_0crate_Parent {
+			src: __tethering::SourceSlot::projected(
+				accessor
 			),
 			__c__0: std::cell::RefCell::new(
 				None
@@ -485,31 +550,132 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			),
 		}
 	}
-}
 
-impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent{
-	fn access(
-		&self, f: &mut dyn FnMut(
-			&rustdoc_test_crate::Parent
-		)
-	) {
-		self.src.access(
-			f
+	pub fn get_0(
+		self: &std::rc::Rc<Self>
+	)-> std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_PlainField> {
+		if let Some(
+			tethered
+		) = self.__c__0.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return tethered;
+		}
+
+		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(
+			__tethering::FieldAccess {
+				parent: self.clone(), get: |parent| &parent.0, get_mut: |parent| &mutparent.0,
+			}
 		);
+
+		let tethered = std::rc::Rc::new(
+			__tethered_struct__rustdoc_0test_0crate_PlainField::new_projected(
+				field_access
+			)
+		);
+
+		*self.__c__0.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&tethered
+			)
+		); tethered
 	}
-	fn access_mut(
-		&self, f: &mut dyn FnMut(
-			&mut rustdoc_test_crate::Parent
-		)
+
+	pub fn set_0(
+		&self, value: rustdoc_test_crate::PlainField
 	) {
-		self.src.access_mut(
-			f
+		let cached_value = self.__c__0.borrow_mut().take().and_then(
+			|tethered| tethered.upgrade()
 		);
+
+		let mut old_value = None;
+		let mut value = Some(
+			value
+		);
+
+		self.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mutsrc.0, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap()
+			);
+		}
+	}
+
+	pub fn get_1(
+		self: &std::rc::Rc<Self>
+	)-> std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_TupleField> {
+		if let Some(
+			tethered
+		) = self.__c__1.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return tethered;
+		}
+
+		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(
+			__tethering::FieldAccess {
+				parent: self.clone(), get: |parent| &parent.1, get_mut: |parent| &mutparent.1,
+			}
+		);
+
+		let tethered = std::rc::Rc::new(
+			__tethered_struct__rustdoc_0test_0crate_TupleField::new_projected(
+				field_access
+			)
+		);
+
+		*self.__c__1.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&tethered
+			)
+		); tethered
+	}
+
+	pub fn set_1(
+		&self, value: rustdoc_test_crate::TupleField
+	) {
+		let cached_value = self.__c__1.borrow_mut().take().and_then(
+			|tethered| tethered.upgrade()
+		);
+
+		let mut old_value = None;
+		let mut value = Some(
+			value
+		);
+
+		self.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mutsrc.1, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap()
+			);
+		}
 	}
 }
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_Parent>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Parent>
 }
 
 #[napi]
@@ -518,39 +684,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	pub fn __getter__0(
 		&self
 	) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_PlainField> {
-		if let Some(
-			handle
-		) = self.handle.__c__0.borrow().as_ref().and_then(
-			std::rc::Weak::upgrade
-		) {
-			return Ok(
-				__cursed_struct__rustdoc_0test_0crate_PlainField{
-					handle
-				}
-			);
-		}
-
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(
-			__curse::Projection{
-				parent: self.handle.clone(), project: |parent| &parent.0, project_mut: |parent| &mut parent.0,
-			}
-		);
-
-		let handle = std::rc::Rc::new(
-			__cursed_handle__rustdoc_0test_0crate_PlainField::new_projected(
-				projection
-			)
-		);
-
-		*self.handle.__c__0.borrow_mut()= Some(
-			std::rc::Rc::downgrade(
-				&handle
-			)
-		);
-
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_PlainField{
-				handle
+			__cursed_struct__rustdoc_0test_0crate_PlainField {
+				src:self.src.get_0()
 			}
 		)
 	}
@@ -560,7 +696,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		&self, value: &__cursed_struct__rustdoc_0test_0crate_PlainField
 	) -> napi::Result<()> {
 		let value = {
-			let mut result = std::mem::MaybeUninit::uninit();value.handle.src.access(
+			let mut result = std::mem::MaybeUninit::uninit();value.src.access(
 				&mut |value| {
 					let value = value.clone();
 
@@ -573,35 +709,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 				result.assume_init()
 			}
 		};
-
-		let cached_value = self.handle.__c__0.borrow_mut().take().and_then(
-			|handle| handle.upgrade()
-		);
-
-		let mut old_value = None;
-		let mut value = Some(
+		self.src.set_0(
 			value
-		);
-
-		self.handle.access_mut(
-			&mut |src| {
-				old_value = Some(
-					std::mem::replace(
-						&mut src.0, value.take().unwrap(),
-					)
-				);
-			}
-		);
-
-		if let Some(
-			cached_value
-		) = cached_value {
-			cached_value.src.replace_with_owned(
-				old_value.unwrap(),
-			);
-		}
-
-		Ok(
+		);Ok(
 			()
 		)
 	}
@@ -610,39 +720,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	pub fn __getter__1(
 		&self
 	) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_TupleField> {
-		if let Some(
-			handle
-		) = self.handle.__c__1.borrow().as_ref().and_then(
-			std::rc::Weak::upgrade
-		) {
-			return Ok(
-				__cursed_struct__rustdoc_0test_0crate_TupleField{
-					handle
-				}
-			);
-		}
-
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(
-			__curse::Projection{
-				parent: self.handle.clone(), project: |parent| &parent.1, project_mut: |parent| &mut parent.1,
-			}
-		);
-
-		let handle = std::rc::Rc::new(
-			__cursed_handle__rustdoc_0test_0crate_TupleField::new_projected(
-				projection
-			)
-		);
-
-		*self.handle.__c__1.borrow_mut()= Some(
-			std::rc::Rc::downgrade(
-				&handle
-			)
-		);
-
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_TupleField{
-				handle
+			__cursed_struct__rustdoc_0test_0crate_TupleField {
+				src:self.src.get_1()
 			}
 		)
 	}
@@ -652,7 +732,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		&self, value: &__cursed_struct__rustdoc_0test_0crate_TupleField
 	) -> napi::Result<()> {
 		let value = {
-			let mut result = std::mem::MaybeUninit::uninit();value.handle.src.access(
+			let mut result = std::mem::MaybeUninit::uninit();value.src.access(
 				&mut |value| {
 					let value = value.clone();
 
@@ -665,35 +745,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 				result.assume_init()
 			}
 		};
-
-		let cached_value = self.handle.__c__1.borrow_mut().take().and_then(
-			|handle| handle.upgrade()
-		);
-
-		let mut old_value = None;
-		let mut value = Some(
+		self.src.set_1(
 			value
-		);
-
-		self.handle.access_mut(
-			&mut |src| {
-				old_value = Some(
-					std::mem::replace(
-						&mut src.1, value.take().unwrap(),
-					)
-				);
-			}
-		);
-
-		if let Some(
-			cached_value
-		) = cached_value {
-			cached_value.src.replace_with_owned(
-				old_value.unwrap(),
-			);
-		}
-
-		Ok(
+		);Ok(
 			()
 		)
 	}
@@ -707,7 +761,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 use wasm_bindgen::prelude::*;
 
 #[allow(non_snake_case, dead_code)]
-mod __curse {
+mod __tethering {
     use std::cell::RefCell;
     use std::rc::Rc;
 
@@ -725,73 +779,74 @@ mod __curse {
         }
     }
 
-    pub enum Backing<T> {
+    pub enum Source<T> {
         Owned(T),
         Projected(Rc<dyn Accessor<T>>),
     }
 
-    pub struct Slot<T>(RefCell<Backing<T>>);
+    pub struct SourceSlot<T>(RefCell<Source<T>>);
 
-    impl<T: 'static> Slot<T> {
+    impl<T: 'static> SourceSlot<T> {
         pub fn owned(value: T) -> Self {
-            Slot(RefCell::new(Backing::Owned(value)))
+            SourceSlot(RefCell::new(Source::Owned(value)))
         }
-        pub fn projected(projection: Rc<dyn Accessor<T>>) -> Self {
-            Slot(RefCell::new(Backing::Projected(projection)))
+        pub fn projected(accessor: Rc<dyn Accessor<T>>) -> Self {
+            SourceSlot(RefCell::new(Source::Projected(accessor)))
         }
         pub fn replace_with_owned(&self, value: T) {
-            *self.0.borrow_mut() = Backing::Owned(value);
+            *self.0.borrow_mut() = Source::Owned(value);
         }
     }
 
-    impl<T> Accessor<T> for Slot<T> {
+    impl<T> Accessor<T> for SourceSlot<T> {
         fn access(&self, f: &mut dyn FnMut(&T)) {
-            let projection = {
-                let target = self.0.borrow();
+            let accessor = {
+                let source = self.0.borrow();
 
-                match &*target {
-                    Backing::Owned(value) => {
+                match &*source {
+                    Source::Owned(value) => {
                         f(value);
                         return;
                     }
-                    Backing::Projected(access) => Rc::clone(access),
+                    Source::Projected(accessor) => Rc::clone(accessor),
                 }
             };
-            projection.access(f);
+            accessor.access(f);
         }
 
         fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            let projection = {
-                let mut target = self.0.borrow_mut();
+            let accessor = {
+                let mut source = self.0.borrow_mut();
 
-                match &mut *target {
-                    Backing::Owned(value) => {
+                match &mut *source {
+                    Source::Owned(value) => {
                         f(value);
                         return;
                     }
-                    Backing::Projected(access) => Rc::clone(access),
+                    Source::Projected(accessor) => Rc::clone(accessor),
                 }
             };
-            projection.access_mut(f);
+            accessor.access_mut(f);
         }
     }
 
-    pub struct Projection<Parent, T> {
+    pub struct FieldAccess<Parent, T> {
         pub parent: Rc<dyn Accessor<Parent>>,
-        pub project: fn(&Parent) -> &T,
-        pub project_mut: fn(&mut Parent) -> &mut T,
+        pub get: fn(&Parent) -> &T,
+        pub get_mut: fn(&mut Parent) -> &mut T,
     }
 
-    impl<Parent: 'static, T: 'static> Accessor<T> for Projection<Parent, T> {
+    impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
         fn access(&self, f: &mut dyn FnMut(&T)) {
-            self.parent.access(&mut |p| f((self.project)(p)))
+            self.parent.access(&mut |parent| f((self.get)(parent)))
         }
         fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            self.parent.access_mut(&mut |p| f((self.project_mut)(p)))
+            self.parent
+                .access_mut(&mut |parent| f((self.get_mut)(parent)))
         }
     }
 }
-use __curse::Accessor as _;
+use __tethering::Accessor as _;
 
 fn __cast_f64(
 	value: JsValue
@@ -832,33 +887,11 @@ fn __cast_String(
 	)
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_PlainField {
-	src:__curse::Slot<rustdoc_test_crate::PlainField>,
+struct __tethered_struct__rustdoc_0test_0crate_PlainField {
+	src: __tethering::SourceSlot<rustdoc_test_crate::PlainField>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_PlainField {
-	pub fn new_owned(
-		input: rustdoc_test_crate::PlainField
-	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_PlainField {
-			src: __curse::Slot::owned(
-				input
-			),
-		}
-	}
-
-	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainField>>
-	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_PlainField {
-			src: __curse::Slot::projected(
-				input
-			),
-		}
-	}
-}
-
-impl __curse::Accessor<rustdoc_test_crate::PlainField> for __cursed_handle__rustdoc_0test_0crate_PlainField{
+impl __tethering::Accessor<rustdoc_test_crate::PlainField> for __tethered_struct__rustdoc_0test_0crate_PlainField {
 	fn access(
 		&self, f: &mut dyn FnMut(
 			&rustdoc_test_crate::PlainField
@@ -868,6 +901,7 @@ impl __curse::Accessor<rustdoc_test_crate::PlainField> for __cursed_handle__rust
 			f
 		);
 	}
+
 	fn access_mut(
 		&self, f: &mut dyn FnMut(
 			&mut rustdoc_test_crate::PlainField
@@ -879,8 +913,59 @@ impl __curse::Accessor<rustdoc_test_crate::PlainField> for __cursed_handle__rust
 	}
 }
 
+impl __tethered_struct__rustdoc_0test_0crate_PlainField {
+	pub fn new_owned(
+		input: rustdoc_test_crate::PlainField
+	) -> Self {
+		__tethered_struct__rustdoc_0test_0crate_PlainField {
+			src: __tethering::SourceSlot::owned(
+				input
+			),
+		}
+	}
+
+	pub fn new_projected(
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::PlainField>>
+	)-> Self {
+		__tethered_struct__rustdoc_0test_0crate_PlainField {
+			src: __tethering::SourceSlot::projected(
+				accessor
+			),
+		}
+	}
+
+	pub fn get_value(
+		&self
+	)-> i32 {
+		let mut result = std::mem::MaybeUninit::uninit();
+		self.access(
+			&mut |src| {
+				result.write(
+					src.value.clone()
+				);
+			}
+		);
+		unsafe {
+			result.assume_init()
+		}
+	}
+
+	pub fn set_value(
+		&self, value: i32
+	) {
+		let mut value = Some(
+			value
+		);
+		self.access_mut(
+			&mut |src| {
+				src.value= value.take().unwrap();
+			}
+		);
+	}
+}
+
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainField")]pub struct __cursed_struct__rustdoc_0test_0crate_PlainField {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_PlainField>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_PlainField>
 }
 
 #[wasm_bindgen]
@@ -890,19 +975,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 		&self
 	) -> Result<i32, JsValue> {
 		Ok(
-			{
-				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
-					&mut |src| {
-
-						result.write(
-							src.value
-						);
-					}
-				);
-				unsafe {
-					result.assume_init()
-				}
-			}
+			self.src.get_value()
 		)
 	}
 
@@ -910,53 +983,36 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainField {
 	pub fn __setter__value(
 		&self, value: JsValue
 	) -> Result<(), JsValue> {
-		let value = __cast_i32(
-			value
-		).map_err(
-			|err| JsValue::from_str(
-				&format!(
-					"Expected Rust `i32` from a JavaScript number: {}", err
+		let value = {
+			let mut result = std::mem::MaybeUninit::uninit();let value = __cast_i32(
+				value
+			).map_err(
+				|err| JsValue::from_str(
+					&format!(
+						"Expected Rust `i32` from a JavaScript number: {}", err
+					)
 				)
-			)
-		)?;
-		self.handle.src.access_mut(
-			&mut |src| {
-
-				src.value= value;
+			)?;
+			result.write(
+				value
+			);
+			unsafe {
+				result.assume_init()
 			}
+		};
+		self.src.set_value(
+			value
 		);Ok(
 			()
 		)
 	}
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_TupleField {
-	src:__curse::Slot<rustdoc_test_crate::TupleField>,
+struct __tethered_struct__rustdoc_0test_0crate_TupleField {
+	src: __tethering::SourceSlot<rustdoc_test_crate::TupleField>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_TupleField {
-	pub fn new_owned(
-		input: rustdoc_test_crate::TupleField
-	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_TupleField {
-			src: __curse::Slot::owned(
-				input
-			),
-		}
-	}
-
-	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleField>>
-	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_TupleField {
-			src: __curse::Slot::projected(
-				input
-			),
-		}
-	}
-}
-
-impl __curse::Accessor<rustdoc_test_crate::TupleField> for __cursed_handle__rustdoc_0test_0crate_TupleField{
+impl __tethering::Accessor<rustdoc_test_crate::TupleField> for __tethered_struct__rustdoc_0test_0crate_TupleField {
 	fn access(
 		&self, f: &mut dyn FnMut(
 			&rustdoc_test_crate::TupleField
@@ -966,6 +1022,7 @@ impl __curse::Accessor<rustdoc_test_crate::TupleField> for __cursed_handle__rust
 			f
 		);
 	}
+
 	fn access_mut(
 		&self, f: &mut dyn FnMut(
 			&mut rustdoc_test_crate::TupleField
@@ -977,8 +1034,59 @@ impl __curse::Accessor<rustdoc_test_crate::TupleField> for __cursed_handle__rust
 	}
 }
 
+impl __tethered_struct__rustdoc_0test_0crate_TupleField {
+	pub fn new_owned(
+		input: rustdoc_test_crate::TupleField
+	) -> Self {
+		__tethered_struct__rustdoc_0test_0crate_TupleField {
+			src: __tethering::SourceSlot::owned(
+				input
+			),
+		}
+	}
+
+	pub fn new_projected(
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::TupleField>>
+	)-> Self {
+		__tethered_struct__rustdoc_0test_0crate_TupleField {
+			src: __tethering::SourceSlot::projected(
+				accessor
+			),
+		}
+	}
+
+	pub fn get_0(
+		&self
+	)-> String {
+		let mut result = std::mem::MaybeUninit::uninit();
+		self.access(
+			&mut |src| {
+				result.write(
+					src.0.clone()
+				);
+			}
+		);
+		unsafe {
+			result.assume_init()
+		}
+	}
+
+	pub fn set_0(
+		&self, value: String
+	) {
+		let mut value = Some(
+			value
+		);
+		self.access_mut(
+			&mut |src| {
+				src.0= value.take().unwrap();
+			}
+		);
+	}
+}
+
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleField")]pub struct __cursed_struct__rustdoc_0test_0crate_TupleField {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_TupleField>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_TupleField>
 }
 
 #[wasm_bindgen]
@@ -988,19 +1096,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 		&self
 	) -> Result<String, JsValue> {
 		Ok(
-			{
-				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
-					&mut |src| {
-
-						result.write(
-							src.0.clone()
-						);
-					}
-				);
-				unsafe {
-					result.assume_init()
-				}
-			}
+			self.src.get_0()
 		)
 	}
 
@@ -1008,42 +1104,65 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleField {
 	pub fn __setter__0(
 		&self, value: JsValue
 	) -> Result<(), JsValue> {
-		let value = __cast_String(
-			value
-		).map_err(
-			|err| JsValue::from_str(
-				&format!(
-					"Expected Rust `String` from a JavaScript string: {}", err
+		let value = {
+			let mut result = std::mem::MaybeUninit::uninit();let value = __cast_String(
+				value
+			).map_err(
+				|err| JsValue::from_str(
+					&format!(
+						"Expected Rust `String` from a JavaScript string: {}", err
+					)
 				)
-			)
-		)?;
-		let mut value = Some(
-			value
-		);
-		self.handle.src.access_mut(
-			&mut |src| {
-				let value = value.take().unwrap();
-
-				src.0= value;
+			)?;
+			result.write(
+				value
+			);
+			unsafe {
+				result.assume_init()
 			}
+		};
+		self.src.set_0(
+			value
 		);Ok(
 			()
 		)
 	}
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_Parent {
-	src:__curse::Slot<rustdoc_test_crate::Parent>,
-	__c__0: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_PlainField>>>,
-	__c__1: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_TupleField>>>,
+struct __tethered_struct__rustdoc_0test_0crate_Parent {
+	src: __tethering::SourceSlot<rustdoc_test_crate::Parent>,
+	__c__0: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_PlainField>>>,
+	__c__1: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_TupleField>>>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_Parent {
+impl __tethering::Accessor<rustdoc_test_crate::Parent> for __tethered_struct__rustdoc_0test_0crate_Parent {
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
+}
+
+impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn new_owned(
 		input: rustdoc_test_crate::Parent
 	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_Parent {
-			src: __curse::Slot::owned(
+		__tethered_struct__rustdoc_0test_0crate_Parent {
+			src: __tethering::SourceSlot::owned(
 				input
 			),
 			__c__0: std::cell::RefCell::new(
@@ -1056,11 +1175,11 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 	}
 
 	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Parent>>
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Parent>>
 	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_Parent {
-			src: __curse::Slot::projected(
-				input
+		__tethered_struct__rustdoc_0test_0crate_Parent {
+			src: __tethering::SourceSlot::projected(
+				accessor
 			),
 			__c__0: std::cell::RefCell::new(
 				None
@@ -1070,31 +1189,132 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			),
 		}
 	}
-}
 
-impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent{
-	fn access(
-		&self, f: &mut dyn FnMut(
-			&rustdoc_test_crate::Parent
-		)
-	) {
-		self.src.access(
-			f
+	pub fn get_0(
+		self: &std::rc::Rc<Self>
+	)-> std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_PlainField> {
+		if let Some(
+			tethered
+		) = self.__c__0.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return tethered;
+		}
+
+		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(
+			__tethering::FieldAccess {
+				parent: self.clone(), get: |parent| &parent.0, get_mut: |parent| &mutparent.0,
+			}
 		);
+
+		let tethered = std::rc::Rc::new(
+			__tethered_struct__rustdoc_0test_0crate_PlainField::new_projected(
+				field_access
+			)
+		);
+
+		*self.__c__0.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&tethered
+			)
+		); tethered
 	}
-	fn access_mut(
-		&self, f: &mut dyn FnMut(
-			&mut rustdoc_test_crate::Parent
-		)
+
+	pub fn set_0(
+		&self, value: rustdoc_test_crate::PlainField
 	) {
-		self.src.access_mut(
-			f
+		let cached_value = self.__c__0.borrow_mut().take().and_then(
+			|tethered| tethered.upgrade()
 		);
+
+		let mut old_value = None;
+		let mut value = Some(
+			value
+		);
+
+		self.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mutsrc.0, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap()
+			);
+		}
+	}
+
+	pub fn get_1(
+		self: &std::rc::Rc<Self>
+	)-> std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_TupleField> {
+		if let Some(
+			tethered
+		) = self.__c__1.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return tethered;
+		}
+
+		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(
+			__tethering::FieldAccess {
+				parent: self.clone(), get: |parent| &parent.1, get_mut: |parent| &mutparent.1,
+			}
+		);
+
+		let tethered = std::rc::Rc::new(
+			__tethered_struct__rustdoc_0test_0crate_TupleField::new_projected(
+				field_access
+			)
+		);
+
+		*self.__c__1.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&tethered
+			)
+		); tethered
+	}
+
+	pub fn set_1(
+		&self, value: rustdoc_test_crate::TupleField
+	) {
+		let cached_value = self.__c__1.borrow_mut().take().and_then(
+			|tethered| tethered.upgrade()
+		);
+
+		let mut old_value = None;
+		let mut value = Some(
+			value
+		);
+
+		self.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mutsrc.1, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap()
+			);
+		}
 	}
 }
 
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_Parent>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Parent>
 }
 
 #[wasm_bindgen]
@@ -1103,39 +1323,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	pub fn __getter__0(
 		&self
 	) -> Result<__cursed_struct__rustdoc_0test_0crate_PlainField, JsValue> {
-		if let Some(
-			handle
-		) = self.handle.__c__0.borrow().as_ref().and_then(
-			std::rc::Weak::upgrade
-		) {
-			return Ok(
-				__cursed_struct__rustdoc_0test_0crate_PlainField{
-					handle
-				}
-			);
-		}
-
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(
-			__curse::Projection{
-				parent: self.handle.clone(), project: |parent| &parent.0, project_mut: |parent| &mut parent.0,
-			}
-		);
-
-		let handle = std::rc::Rc::new(
-			__cursed_handle__rustdoc_0test_0crate_PlainField::new_projected(
-				projection
-			)
-		);
-
-		*self.handle.__c__0.borrow_mut()= Some(
-			std::rc::Rc::downgrade(
-				&handle
-			)
-		);
-
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_PlainField{
-				handle
+			__cursed_struct__rustdoc_0test_0crate_PlainField {
+				src:self.src.get_0()
 			}
 		)
 	}
@@ -1145,7 +1335,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		&self, value: &__cursed_struct__rustdoc_0test_0crate_PlainField
 	) -> Result<(), JsValue> {
 		let value = {
-			let mut result = std::mem::MaybeUninit::uninit();value.handle.src.access(
+			let mut result = std::mem::MaybeUninit::uninit();value.src.access(
 				&mut |value| {
 					let value = value.clone();
 
@@ -1158,35 +1348,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 				result.assume_init()
 			}
 		};
-
-		let cached_value = self.handle.__c__0.borrow_mut().take().and_then(
-			|handle| handle.upgrade()
-		);
-
-		let mut old_value = None;
-		let mut value = Some(
+		self.src.set_0(
 			value
-		);
-
-		self.handle.access_mut(
-			&mut |src| {
-				old_value = Some(
-					std::mem::replace(
-						&mut src.0, value.take().unwrap(),
-					)
-				);
-			}
-		);
-
-		if let Some(
-			cached_value
-		) = cached_value {
-			cached_value.src.replace_with_owned(
-				old_value.unwrap(),
-			);
-		}
-
-		Ok(
+		);Ok(
 			()
 		)
 	}
@@ -1195,39 +1359,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	pub fn __getter__1(
 		&self
 	) -> Result<__cursed_struct__rustdoc_0test_0crate_TupleField, JsValue> {
-		if let Some(
-			handle
-		) = self.handle.__c__1.borrow().as_ref().and_then(
-			std::rc::Weak::upgrade
-		) {
-			return Ok(
-				__cursed_struct__rustdoc_0test_0crate_TupleField{
-					handle
-				}
-			);
-		}
-
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(
-			__curse::Projection{
-				parent: self.handle.clone(), project: |parent| &parent.1, project_mut: |parent| &mut parent.1,
-			}
-		);
-
-		let handle = std::rc::Rc::new(
-			__cursed_handle__rustdoc_0test_0crate_TupleField::new_projected(
-				projection
-			)
-		);
-
-		*self.handle.__c__1.borrow_mut()= Some(
-			std::rc::Rc::downgrade(
-				&handle
-			)
-		);
-
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_TupleField{
-				handle
+			__cursed_struct__rustdoc_0test_0crate_TupleField {
+				src:self.src.get_1()
 			}
 		)
 	}
@@ -1237,7 +1371,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		&self, value: &__cursed_struct__rustdoc_0test_0crate_TupleField
 	) -> Result<(), JsValue> {
 		let value = {
-			let mut result = std::mem::MaybeUninit::uninit();value.handle.src.access(
+			let mut result = std::mem::MaybeUninit::uninit();value.src.access(
 				&mut |value| {
 					let value = value.clone();
 
@@ -1250,35 +1384,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 				result.assume_init()
 			}
 		};
-
-		let cached_value = self.handle.__c__1.borrow_mut().take().and_then(
-			|handle| handle.upgrade()
-		);
-
-		let mut old_value = None;
-		let mut value = Some(
+		self.src.set_1(
 			value
-		);
-
-		self.handle.access_mut(
-			&mut |src| {
-				old_value = Some(
-					std::mem::replace(
-						&mut src.1, value.take().unwrap(),
-					)
-				);
-			}
-		);
-
-		if let Some(
-			cached_value
-		) = cached_value {
-			cached_value.src.replace_with_owned(
-				old_value.unwrap(),
-			);
-		}
-
-		Ok(
+		);Ok(
 			()
 		)
 	}

@@ -2,15 +2,14 @@ pub mod boundary;
 pub mod cast;
 pub mod fn_;
 pub mod mod_;
-pub mod projection;
 pub mod struct_;
+pub mod tethering;
 
 use crate::codegen::{
     api::Api,
     bindings::{
-        cast::compile_cast_fns,
-        mod_::compile_mod,
-        projection::{PROJECTION_RUNTIME, is_projection_preamble_needed},
+        cast::compile_cast_fns, mod_::compile_mod, struct_::is_using_tethering,
+        tethering::TETHERING_PRELUDE,
     },
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, frag, fragment, spaced},
@@ -38,9 +37,9 @@ pub fn compile_bindings(db: &dyn Db) -> String {
         )
         .apply(p);
 
-        if is_projection_preamble_needed(db) {
+        if is_using_tethering(db) {
             frag!(@@).apply(p);
-            PROJECTION_RUNTIME.apply(p);
+            TETHERING_PRELUDE.apply(p);
         }
 
         if !cast_fns.is_empty() {

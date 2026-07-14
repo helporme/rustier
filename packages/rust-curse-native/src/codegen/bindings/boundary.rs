@@ -5,15 +5,19 @@ use crate::{
     codegen::{
         api::Api,
         bindings::{
-            projection::{compile_mut_access_stmt, compile_ref_access_stmt},
-            struct_::{compile_binding_struct_accessor_expr, compile_binding_struct_ctor_expr},
+            struct_::{
+                compile_binding_struct_from_tethered_expr, compile_binding_struct_get_tethered_expr,
+            },
+            tethering::{
+                compile_tethered_struct_mut_access_stmt, compile_tethered_struct_ref_access_stmt,
+            },
         },
         db::Db,
-        fragment::{Fragment, FragmentOnce, FragmentPrint, doubles, fragment},
+        fragment::{FragmentOnce, FragmentPrint, doubles, fragment},
         ir::{
             IrId,
             fn_::{FnParam, ParamMode},
-            struct_::struct_binding_name_from_rustdoc_id,
+            struct_::{struct_binding_name_from_rustdoc_id, struct_tethered_name_from_rustdoc_id},
             type_::{Primitive, Type},
         },
     },
@@ -31,8 +35,8 @@ pub enum BoundaryMode {
 /// type.
 #[derive(Copy, Clone)]
 pub struct BoundaryInExpr<'db> {
-    /// Expression, for example `a` or `a.src`.
-    pub in_expr: &'db dyn Fragment,
+    /// Expression name, for example `a` or `self`.
+    pub in_expr: &'db str,
     /// Name of the variable to which the converted value will be assigned.
     pub out_var_name: &'db str,
     /// Type of the expression.
@@ -80,7 +84,7 @@ impl<'db> BoundaryInExpr<'db> {
 ///    result.unwrap()
 /// }
 /// ```
-pub fn compile_boundary_in_conversion_expr<'db, E>(
+pub fn compile_boundary_in_to_source_type_expr<'db, E>(
     db: &'db dyn Db,
     exprs: E,
     inner_expr: impl FragmentOnce + 'db,
@@ -100,7 +104,7 @@ where
             {
                 let mut result = std::mem::MaybeUninit::uninit();
                 {
-                    compile_boundary_in_conversion_stmt(
+                    compile_boundary_in_to_source_type_stmt(
                         db,
                         exprs,
                         frag!(result.write({inner_expr});),
@@ -130,7 +134,7 @@ where
 ///    }) // +map_err
 /// }
 /// ```
-pub fn compile_boundary_in_conversion_stmt<'db, E>(
+pub fn compile_boundary_in_to_source_type_stmt<'db, E>(
     db: &'db dyn Db,
     exprs: E,
     inner_stmt: impl FragmentOnce + 'db,
@@ -140,7 +144,7 @@ where
     E::IntoIter: Clone,
 {
     let exprs = exprs.into_iter();
-    let will_use_projection_closures = exprs
+    let will_use_tethering_closures = exprs
         .clone()
         .any(|expr| matches!(expr.type_, Type::Struct(_)));
 
@@ -150,10 +154,9 @@ where
             if !matches!(expr.type_, Type::Struct(_)) {
                 frag!({compile_boundary_conversion_stmt_via_cast(db, expr)}@).apply(p);
 
-                // In case projections are used, we wrap strings in `Some` on move,
-                // so we can take them out safely without violating the FnMut contract of
-                // projection closures.
-                if will_use_projection_closures
+                // When tethering closures are used, wrap moved strings in `Some`
+                // so they can be taken without violating the FnMut contract.
+                if will_use_tethering_closures
                     && matches!((expr.type_, expr.mode), (Type::String, BoundaryMode::Move))
                 {
                     frag!(
@@ -168,12 +171,11 @@ where
     let inner_stmt_exprs = exprs.clone();
     let inner_stmt_prelude = fragment(move |p| {
         for expr in inner_stmt_exprs {
-            // Structs are cloned on move. To achieve it, we are accessing the source
-            // structs by ref projection and cloning them inside the clojure.
+            // Structs are cloned on move by accessing the source through its tether
+            // and cloning it inside the closure.
             //
-            // It's important to clone the struct inside the clojure, rather than
-            // before it, to avoid moving the struct out of the closure's scope, since
-            // projection fn takes FnMut and not FnOnce.
+            // Clone inside the closure so the source value is not moved out of a
+            // callback that implements FnMut rather than FnOnce.
             if matches!(
                 (expr.type_, expr.mode),
                 (Type::Struct(_), BoundaryMode::Move)
@@ -184,10 +186,9 @@ where
                 .apply(p);
             }
 
-            // In case projections will are used, we wrap strings in `Some` on
-            // move, so we can take them out safely without violating the FnMut
-            // contract.
-            if will_use_projection_closures
+            // When tethering closures are used, unwrap strings at the innermost
+            // point so moving them does not violate the FnMut contract.
+            if will_use_tethering_closures
                 && matches!((expr.type_, expr.mode), (Type::String, BoundaryMode::Move))
             {
                 frag!(
@@ -198,7 +199,7 @@ where
         }
     });
 
-    let mut projection_expr: String = frag!(
+    let mut tethering_expr: String = frag!(
         {inner_stmt_prelude}@
         {inner_stmt}
     )
@@ -206,14 +207,14 @@ where
 
     for expr in exprs.clone() {
         if matches!(expr.type_, Type::Struct(_)) {
-            projection_expr =
-                compile_boundary_conversion_expr_via_projection(expr, projection_expr).print();
+            tethering_expr =
+                compile_boundary_in_struct_conversion_stmt(expr, tethering_expr).print();
         }
     }
 
     frag!(
         {cast_stmts}
-        {projection_expr}
+        {tethering_expr}
     )
 }
 
@@ -269,51 +270,61 @@ fn compile_boundary_conversion_stmt_via_cast<'db>(
 
 /// Compiles a conversion expression that converts the given expression
 /// to the source type using appropriate
-/// [`crate::codegen::bindings::projection`] function. Result is stored in a
+/// [`crate::codegen::bindings::tethering`] function. Result is stored in a
 /// variable specified in `expr`.
 ///
-/// Can be applied only to a boundary type that implements `Projection`, for
-/// example a struct.
+/// Can be applied only to a boundary type backed by a tethered struct.
 ///
 /// Illustrative example of compiled expression:
 /// ```ignore (incomplete expression)
-/// a.src.with_mut(|src| {
+/// a.src.access_mut(&mut |src| {
 ///    /* inner */
-/// }); // +map_err
+/// });
 /// ```
-fn compile_boundary_conversion_expr_via_projection<'db>(
+fn compile_boundary_in_struct_conversion_stmt<'db>(
     expr: BoundaryInExpr<'db>,
     inner_expr: impl FragmentOnce + 'db,
 ) -> impl FragmentOnce + 'db {
     assert!(matches!(expr.type_, Type::Struct(_)));
 
-    fragment(move |p| {
-        let src_access_expr = compile_binding_struct_accessor_expr(expr.in_expr);
+    let tethered_struct = compile_boundary_in_to_tethered_struct_expr(expr.in_expr, expr.type_);
 
-        match expr.mode {
-            // cloning inside move is handled in a caller function, since we nede in advance know
-            // all exprs that are going to be converted
-            BoundaryMode::Ref | BoundaryMode::Move => {
-                compile_ref_access_stmt(src_access_expr, expr.out_var_name, inner_expr).apply(p);
-            }
-            BoundaryMode::Mut => {
-                compile_mut_access_stmt(src_access_expr, expr.out_var_name, inner_expr).apply(p);
-            }
+    fragment(move |p| match expr.mode {
+        BoundaryMode::Ref | BoundaryMode::Move => {
+            compile_tethered_struct_ref_access_stmt(tethered_struct, expr.out_var_name, inner_expr)
+                .apply(p)
         }
+        BoundaryMode::Mut => {
+            compile_tethered_struct_mut_access_stmt(tethered_struct, expr.out_var_name, inner_expr)
+                .apply(p)
+        }
+    })
+}
+
+/// Compiles an expression that retrieves a tethered struct from its boundary
+/// representation.
+///
+/// ```ignore (requires a lowered struct type)
+/// compile_boundary_in_to_tethered_struct_expr("value", Type::Struct(id))
+/// ```
+pub fn compile_boundary_in_to_tethered_struct_expr<'db>(
+    boundary_expr: impl FragmentOnce + 'db,
+    boundary_type: Type<'db>,
+) -> impl FragmentOnce + 'db {
+    fragment(move |p| match boundary_type {
+        Type::Struct(_) => compile_binding_struct_get_tethered_expr(boundary_expr).apply(p),
+        _ => unreachable!(),
     })
 }
 
 /// Compiles the name of the boundary input type.
 ///
 /// The value matching type can be obtained from the expression compiled by
-/// [`compile_boundary_in_conversion_expr`].
+/// [`compile_boundary_in_to_source_type_expr`].
 ///
 /// For example, `Type::Primitive(Primitive::i32)` is compiled to `"JsValue"`
 /// for active wasm api (see [`crate::codegen::api::Api::js_type`]).
-pub fn compile_boundary_in_type_name<'db>(
-    db: &'db dyn Db,
-    ty: Type<'db>,
-) -> impl FragmentOnce + 'db {
+pub fn compile_boundary_in_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> impl FragmentOnce + 'db {
     fragment(move |p| {
         let api = Api::get(db);
 
@@ -348,7 +359,7 @@ fn compile_boundary_in_struct_name<'db>(db: &'db dyn Db, id: IrId<'db>) -> impl 
 /// ```ignore (incomplete expression)
 /// 123.3f64 as f32
 /// ```
-pub fn compile_boundary_out_conversion_expr<'db>(
+pub fn compile_boundary_out_from_source_type_expr<'db>(
     db: &'db dyn Db,
     in_expr: impl FragmentOnce + 'db,
     in_expr_type: Type<'db>,
@@ -372,18 +383,51 @@ pub fn compile_boundary_out_conversion_expr<'db>(
             Type::Str => unreachable!(
                 "str cannot be returned from the function, since functions cannot return references"
             ),
-            Type::Struct(id) => compile_binding_struct_ctor_expr(db, id, in_expr).apply(p),
+            Type::Struct(id) => {
+                let tethered_name = struct_tethered_name_from_rustdoc_id(db, id.rustdoc_id(db));
+                let tethered_struct =
+                    frag!(std::rc::Rc::new({tethered_name}::new_owned({in_expr})));
+
+                compile_boundary_out_from_tethered_struct_expr(
+                    db,
+                    tethered_struct,
+                    Type::Struct(id),
+                )
+                .apply(p);
+            }
         }
+    })
+}
+
+/// Compiles an expression that wraps a tethered struct in its boundary
+/// representation.
+///
+/// The input expression must evaluate to an `Rc` containing the tethered
+/// struct generated for `tethered_struct_type`.
+///
+/// ```ignore (requires a lowered struct type)
+/// compile_boundary_out_from_tethered_struct_expr(db, "tethered", Type::Struct(id))
+/// ```
+pub fn compile_boundary_out_from_tethered_struct_expr<'db>(
+    db: &'db dyn Db,
+    tethered_struct_expr: impl FragmentOnce + 'db,
+    tethered_struct_type: Type<'db>,
+) -> impl FragmentOnce + 'db {
+    fragment(move |p| match tethered_struct_type {
+        Type::Struct(id) => {
+            compile_binding_struct_from_tethered_expr(db, id, tethered_struct_expr).apply(p);
+        }
+        _ => unreachable!(),
     })
 }
 
 /// Compiles the name of the boundary output type.
 ///
 /// The value matching type can be obtained from the expression compiled by
-/// [`compile_boundary_out_conversion_expr`].
+/// [`compile_boundary_out_from_source_type_expr`].
 ///
 /// For example, `Type::Primitive(Primitive::i32)` is compiled to `"i32"`.
-pub fn compile_boundary_out_type_name<'db>(db: &'db dyn Db, ty: Type<'db>) -> &'db str {
+pub fn compile_boundary_out_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> &'db str {
     match ty {
         Type::Primitive(Primitive::Boolean) => "bool",
         Type::Primitive(Primitive::i8) => "i8",

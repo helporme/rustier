@@ -21,12 +21,6 @@ pub struct StructField<'db> {
 
 #[salsa::tracked]
 impl<'db> StructField<'db> {
-    /// Returns the name of the cache field, e.g. `__c__foo`.
-    #[salsa::tracked(returns(ref))]
-    pub fn cache_field_name(self, db: &'db dyn Db) -> String {
-        format!("__c__{}", self.name(db))
-    }
-
     /// Returns the binding name of the getter function, e.g. `__getter__foo`.
     #[salsa::tracked(returns(ref))]
     pub fn getter_binding_name(self, db: &'db dyn Db) -> String {
@@ -70,10 +64,10 @@ impl<'db> Struct<'db> {
         struct_binding_name_from_rustdoc_id(db, self.id(db).rustdoc_id(db))
     }
 
-    /// Returns the name of the handle struct, e.g.
-    /// `__cursed_handle__std_mem_Drop`
-    pub fn handle_name(&self, db: &'db dyn Db) -> &'db str {
-        struct_handle_name_from_rustdoc_id(db, self.id(db).rustdoc_id(db))
+    /// Returns the name of the tethered struct, e.g.
+    /// `__tethered_struct__std_mem_Drop`
+    pub fn tethered_name(&self, db: &'db dyn Db) -> &'db str {
+        struct_tethered_name_from_rustdoc_id(db, self.id(db).rustdoc_id(db))
     }
 
     /// Returns the name of the struct, e.g. `Drop` for `std::mem::Drop`.
@@ -130,10 +124,10 @@ pub fn struct_binding_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'
     format!("__cursed_struct__{}", mangle_path(&summary.path))
 }
 
-/// Returns the handle name of the struct e.g. `__cursed_handle__std_mem_Drop`
+/// Returns the handle name of the struct e.g. `__tethered_struct__std_mem_Drop`
 /// for a rustdoc id pointing to the struct.
 #[salsa::tracked(returns(ref))]
-pub fn struct_handle_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> String {
+pub fn struct_tethered_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> String {
     let summary = id
         .crate_body(db)
         .paths
@@ -141,7 +135,7 @@ pub fn struct_handle_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'d
         .expect("Struct not found in a rustdoc crate");
 
     debug_assert_eq!(summary.kind, ItemKind::Struct);
-    format!("__cursed_handle__{}", mangle_path(&summary.path))
+    format!("__tethered_struct__{}", mangle_path(&summary.path))
 }
 
 /// Returns the fully qualified name of the struct e.g. `std::mem::Drop`

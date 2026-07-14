@@ -4,9 +4,9 @@
 use crate::codegen::{
     api::Api,
     bindings::boundary::{
-        BoundaryInExpr, compile_boundary_in_conversion_expr, compile_boundary_in_conversion_stmt,
-        compile_boundary_in_type_name, compile_boundary_out_conversion_expr,
-        compile_boundary_out_type_name,
+        BoundaryInExpr, compile_boundary_in_to_source_type_expr,
+        compile_boundary_in_to_source_type_stmt, compile_boundary_in_type,
+        compile_boundary_out_from_source_type_expr, compile_boundary_out_type,
     },
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, comma_list, frag, fragment},
@@ -18,7 +18,7 @@ use crate::codegen::{
 pub fn compile_binding_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
     let api = Api::get(db);
     let result_type = match fn_.return_type(db) {
-        Some(type_) => api.result_type(db, compile_boundary_out_type_name(db, type_)),
+        Some(type_) => api.result_type(db, compile_boundary_out_type(db, type_)),
         None => api.result_type(db, "()"),
     };
 
@@ -36,7 +36,7 @@ fn compile_binding_fn_params<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragmen
         comma_list(fn_.params(db).iter().map(|param| {
             frag!(
                 {param.binding_name(db)}:~
-                {compile_boundary_in_type_name(db, param.type_(db))}
+                {compile_boundary_in_type(db, param.type_(db))}
             )
         }))
     })
@@ -51,17 +51,18 @@ fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentO
 
         match fn_.return_type(db) {
             Some(type_) => {
-                let fn_call_expr = compile_boundary_in_conversion_expr(
+                let fn_call_expr = compile_boundary_in_to_source_type_expr(
                     db,
                     params_as_input_exprs,
                     compile_src_fn_call_stmt(db, fn_),
                 );
-                let conversion_expr = compile_boundary_out_conversion_expr(db, fn_call_expr, type_);
+                let conversion_expr =
+                    compile_boundary_out_from_source_type_expr(db, fn_call_expr, type_);
 
                 frag!(Ok({ conversion_expr })).apply(p);
             }
             None => {
-                let fn_call_stmt = compile_boundary_in_conversion_stmt(
+                let fn_call_stmt = compile_boundary_in_to_source_type_stmt(
                     db,
                     params_as_input_exprs,
                     frag!({compile_src_fn_call_stmt(db, fn_)};),

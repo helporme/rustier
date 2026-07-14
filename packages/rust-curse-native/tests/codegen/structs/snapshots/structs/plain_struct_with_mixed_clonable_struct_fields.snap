@@ -90,7 +90,7 @@ export class Parent {
 use napi_derive::napi;
 
 #[allow(non_snake_case, dead_code)]
-mod __curse {
+mod __tethering {
     use std::cell::RefCell;
     use std::rc::Rc;
 
@@ -108,101 +108,80 @@ mod __curse {
         }
     }
 
-    pub enum Backing<T> {
+    pub enum Source<T> {
         Owned(T),
         Projected(Rc<dyn Accessor<T>>),
     }
 
-    pub struct Slot<T>(RefCell<Backing<T>>);
+    pub struct SourceSlot<T>(RefCell<Source<T>>);
 
-    impl<T: 'static> Slot<T> {
+    impl<T: 'static> SourceSlot<T> {
         pub fn owned(value: T) -> Self {
-            Slot(RefCell::new(Backing::Owned(value)))
+            SourceSlot(RefCell::new(Source::Owned(value)))
         }
-        pub fn projected(projection: Rc<dyn Accessor<T>>) -> Self {
-            Slot(RefCell::new(Backing::Projected(projection)))
+        pub fn projected(accessor: Rc<dyn Accessor<T>>) -> Self {
+            SourceSlot(RefCell::new(Source::Projected(accessor)))
         }
         pub fn replace_with_owned(&self, value: T) {
-            *self.0.borrow_mut() = Backing::Owned(value);
+            *self.0.borrow_mut() = Source::Owned(value);
         }
     }
 
-    impl<T> Accessor<T> for Slot<T> {
+    impl<T> Accessor<T> for SourceSlot<T> {
         fn access(&self, f: &mut dyn FnMut(&T)) {
-            let projection = {
-                let target = self.0.borrow();
+            let accessor = {
+                let source = self.0.borrow();
 
-                match &*target {
-                    Backing::Owned(value) => {
+                match &*source {
+                    Source::Owned(value) => {
                         f(value);
                         return;
                     }
-                    Backing::Projected(access) => Rc::clone(access),
+                    Source::Projected(accessor) => Rc::clone(accessor),
                 }
             };
-            projection.access(f);
+            accessor.access(f);
         }
 
         fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            let projection = {
-                let mut target = self.0.borrow_mut();
+            let accessor = {
+                let mut source = self.0.borrow_mut();
 
-                match &mut *target {
-                    Backing::Owned(value) => {
+                match &mut *source {
+                    Source::Owned(value) => {
                         f(value);
                         return;
                     }
-                    Backing::Projected(access) => Rc::clone(access),
+                    Source::Projected(accessor) => Rc::clone(accessor),
                 }
             };
-            projection.access_mut(f);
+            accessor.access_mut(f);
         }
     }
 
-    pub struct Projection<Parent, T> {
+    pub struct FieldAccess<Parent, T> {
         pub parent: Rc<dyn Accessor<Parent>>,
-        pub project: fn(&Parent) -> &T,
-        pub project_mut: fn(&mut Parent) -> &mut T,
+        pub get: fn(&Parent) -> &T,
+        pub get_mut: fn(&mut Parent) -> &mut T,
     }
 
-    impl<Parent: 'static, T: 'static> Accessor<T> for Projection<Parent, T> {
+    impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
         fn access(&self, f: &mut dyn FnMut(&T)) {
-            self.parent.access(&mut |p| f((self.project)(p)))
+            self.parent.access(&mut |parent| f((self.get)(parent)))
         }
         fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            self.parent.access_mut(&mut |p| f((self.project_mut)(p)))
+            self.parent
+                .access_mut(&mut |parent| f((self.get_mut)(parent)))
         }
     }
 }
-use __curse::Accessor as _;
+use __tethering::Accessor as _;
 
-struct __cursed_handle__rustdoc_0test_0crate_ClonableField {
-	src:__curse::Slot<rustdoc_test_crate::ClonableField>,
+struct __tethered_struct__rustdoc_0test_0crate_ClonableField {
+	src: __tethering::SourceSlot<rustdoc_test_crate::ClonableField>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_ClonableField {
-	pub fn new_owned(
-		input: rustdoc_test_crate::ClonableField
-	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_ClonableField {
-			src: __curse::Slot::owned(
-				input
-			),
-		}
-	}
-
-	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::ClonableField>>
-	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_ClonableField {
-			src: __curse::Slot::projected(
-				input
-			),
-		}
-	}
-}
-
-impl __curse::Accessor<rustdoc_test_crate::ClonableField> for __cursed_handle__rustdoc_0test_0crate_ClonableField{
+impl __tethering::Accessor<rustdoc_test_crate::ClonableField> for __tethered_struct__rustdoc_0test_0crate_ClonableField {
 	fn access(
 		&self, f: &mut dyn FnMut(
 			&rustdoc_test_crate::ClonableField
@@ -212,6 +191,7 @@ impl __curse::Accessor<rustdoc_test_crate::ClonableField> for __cursed_handle__r
 			f
 		);
 	}
+
 	fn access_mut(
 		&self, f: &mut dyn FnMut(
 			&mut rustdoc_test_crate::ClonableField
@@ -223,8 +203,31 @@ impl __curse::Accessor<rustdoc_test_crate::ClonableField> for __cursed_handle__r
 	}
 }
 
+impl __tethered_struct__rustdoc_0test_0crate_ClonableField {
+	pub fn new_owned(
+		input: rustdoc_test_crate::ClonableField
+	) -> Self {
+		__tethered_struct__rustdoc_0test_0crate_ClonableField {
+			src: __tethering::SourceSlot::owned(
+				input
+			),
+		}
+	}
+
+	pub fn new_projected(
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::ClonableField>>
+	)-> Self {
+		__tethered_struct__rustdoc_0test_0crate_ClonableField {
+			src: __tethering::SourceSlot::projected(
+				accessor
+			),
+		}
+	}
+
+}
+
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_ClonableField")]pub struct __cursed_struct__rustdoc_0test_0crate_ClonableField {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_ClonableField>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_ClonableField>
 }
 
 #[napi]
@@ -232,33 +235,11 @@ impl __cursed_struct__rustdoc_0test_0crate_ClonableField {
 
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_NonClonableField {
-	src:__curse::Slot<rustdoc_test_crate::NonClonableField>,
+struct __tethered_struct__rustdoc_0test_0crate_NonClonableField {
+	src: __tethering::SourceSlot<rustdoc_test_crate::NonClonableField>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_NonClonableField {
-	pub fn new_owned(
-		input: rustdoc_test_crate::NonClonableField
-	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_NonClonableField {
-			src: __curse::Slot::owned(
-				input
-			),
-		}
-	}
-
-	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::NonClonableField>>
-	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_NonClonableField {
-			src: __curse::Slot::projected(
-				input
-			),
-		}
-	}
-}
-
-impl __curse::Accessor<rustdoc_test_crate::NonClonableField> for __cursed_handle__rustdoc_0test_0crate_NonClonableField{
+impl __tethering::Accessor<rustdoc_test_crate::NonClonableField> for __tethered_struct__rustdoc_0test_0crate_NonClonableField {
 	fn access(
 		&self, f: &mut dyn FnMut(
 			&rustdoc_test_crate::NonClonableField
@@ -268,6 +249,7 @@ impl __curse::Accessor<rustdoc_test_crate::NonClonableField> for __cursed_handle
 			f
 		);
 	}
+
 	fn access_mut(
 		&self, f: &mut dyn FnMut(
 			&mut rustdoc_test_crate::NonClonableField
@@ -279,8 +261,31 @@ impl __curse::Accessor<rustdoc_test_crate::NonClonableField> for __cursed_handle
 	}
 }
 
+impl __tethered_struct__rustdoc_0test_0crate_NonClonableField {
+	pub fn new_owned(
+		input: rustdoc_test_crate::NonClonableField
+	) -> Self {
+		__tethered_struct__rustdoc_0test_0crate_NonClonableField {
+			src: __tethering::SourceSlot::owned(
+				input
+			),
+		}
+	}
+
+	pub fn new_projected(
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::NonClonableField>>
+	)-> Self {
+		__tethered_struct__rustdoc_0test_0crate_NonClonableField {
+			src: __tethering::SourceSlot::projected(
+				accessor
+			),
+		}
+	}
+
+}
+
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_NonClonableField")]pub struct __cursed_struct__rustdoc_0test_0crate_NonClonableField {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_NonClonableField>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_NonClonableField>
 }
 
 #[napi]
@@ -288,18 +293,40 @@ impl __cursed_struct__rustdoc_0test_0crate_NonClonableField {
 
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_Parent {
-	src:__curse::Slot<rustdoc_test_crate::Parent>,
-	__c__clonable: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_ClonableField>>>,
-	__c__non_clonable: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_NonClonableField>>>,
+struct __tethered_struct__rustdoc_0test_0crate_Parent {
+	src: __tethering::SourceSlot<rustdoc_test_crate::Parent>,
+	__c__clonable: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_ClonableField>>>,
+	__c__non_clonable: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_NonClonableField>>>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_Parent {
+impl __tethering::Accessor<rustdoc_test_crate::Parent> for __tethered_struct__rustdoc_0test_0crate_Parent {
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
+}
+
+impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn new_owned(
 		input: rustdoc_test_crate::Parent
 	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_Parent {
-			src: __curse::Slot::owned(
+		__tethered_struct__rustdoc_0test_0crate_Parent {
+			src: __tethering::SourceSlot::owned(
 				input
 			),
 			__c__clonable: std::cell::RefCell::new(
@@ -312,11 +339,11 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 	}
 
 	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Parent>>
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Parent>>
 	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_Parent {
-			src: __curse::Slot::projected(
-				input
+		__tethered_struct__rustdoc_0test_0crate_Parent {
+			src: __tethering::SourceSlot::projected(
+				accessor
 			),
 			__c__clonable: std::cell::RefCell::new(
 				None
@@ -326,31 +353,101 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			),
 		}
 	}
-}
 
-impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent{
-	fn access(
-		&self, f: &mut dyn FnMut(
-			&rustdoc_test_crate::Parent
-		)
-	) {
-		self.src.access(
-			f
+	pub fn get_clonable(
+		self: &std::rc::Rc<Self>
+	)-> std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_ClonableField> {
+		if let Some(
+			tethered
+		) = self.__c__clonable.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return tethered;
+		}
+
+		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::ClonableField>> = std::rc::Rc::new(
+			__tethering::FieldAccess {
+				parent: self.clone(), get: |parent| &parent.clonable, get_mut: |parent| &mutparent.clonable,
+			}
 		);
+
+		let tethered = std::rc::Rc::new(
+			__tethered_struct__rustdoc_0test_0crate_ClonableField::new_projected(
+				field_access
+			)
+		);
+
+		*self.__c__clonable.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&tethered
+			)
+		); tethered
 	}
-	fn access_mut(
-		&self, f: &mut dyn FnMut(
-			&mut rustdoc_test_crate::Parent
-		)
+
+	pub fn set_clonable(
+		&self, value: rustdoc_test_crate::ClonableField
 	) {
-		self.src.access_mut(
-			f
+		let cached_value = self.__c__clonable.borrow_mut().take().and_then(
+			|tethered| tethered.upgrade()
 		);
+
+		let mut old_value = None;
+		let mut value = Some(
+			value
+		);
+
+		self.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mutsrc.clonable, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap()
+			);
+		}
+	}
+
+	pub fn get_non_clonable(
+		self: &std::rc::Rc<Self>
+	)-> std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_NonClonableField> {
+		if let Some(
+			tethered
+		) = self.__c__non_clonable.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return tethered;
+		}
+
+		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::NonClonableField>> = std::rc::Rc::new(
+			__tethering::FieldAccess {
+				parent: self.clone(), get: |parent| &parent.non_clonable, get_mut: |parent| &mutparent.non_clonable,
+			}
+		);
+
+		let tethered = std::rc::Rc::new(
+			__tethered_struct__rustdoc_0test_0crate_NonClonableField::new_projected(
+				field_access
+			)
+		);
+
+		*self.__c__non_clonable.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&tethered
+			)
+		); tethered
 	}
 }
 
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_Parent>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Parent>
 }
 
 #[napi]
@@ -359,39 +456,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	pub fn __getter__clonable(
 		&self
 	) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_ClonableField> {
-		if let Some(
-			handle
-		) = self.handle.__c__clonable.borrow().as_ref().and_then(
-			std::rc::Weak::upgrade
-		) {
-			return Ok(
-				__cursed_struct__rustdoc_0test_0crate_ClonableField{
-					handle
-				}
-			);
-		}
-
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::ClonableField>> = std::rc::Rc::new(
-			__curse::Projection{
-				parent: self.handle.clone(), project: |parent| &parent.clonable, project_mut: |parent| &mut parent.clonable,
-			}
-		);
-
-		let handle = std::rc::Rc::new(
-			__cursed_handle__rustdoc_0test_0crate_ClonableField::new_projected(
-				projection
-			)
-		);
-
-		*self.handle.__c__clonable.borrow_mut()= Some(
-			std::rc::Rc::downgrade(
-				&handle
-			)
-		);
-
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_ClonableField{
-				handle
+			__cursed_struct__rustdoc_0test_0crate_ClonableField {
+				src:self.src.get_clonable()
 			}
 		)
 	}
@@ -401,7 +468,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		&self, value: &__cursed_struct__rustdoc_0test_0crate_ClonableField
 	) -> napi::Result<()> {
 		let value = {
-			let mut result = std::mem::MaybeUninit::uninit();value.handle.src.access(
+			let mut result = std::mem::MaybeUninit::uninit();value.src.access(
 				&mut |value| {
 					let value = value.clone();
 
@@ -414,35 +481,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 				result.assume_init()
 			}
 		};
-
-		let cached_value = self.handle.__c__clonable.borrow_mut().take().and_then(
-			|handle| handle.upgrade()
-		);
-
-		let mut old_value = None;
-		let mut value = Some(
+		self.src.set_clonable(
 			value
-		);
-
-		self.handle.access_mut(
-			&mut |src| {
-				old_value = Some(
-					std::mem::replace(
-						&mut src.clonable, value.take().unwrap(),
-					)
-				);
-			}
-		);
-
-		if let Some(
-			cached_value
-		) = cached_value {
-			cached_value.src.replace_with_owned(
-				old_value.unwrap(),
-			);
-		}
-
-		Ok(
+		);Ok(
 			()
 		)
 	}
@@ -451,39 +492,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	pub fn __getter__non_clonable(
 		&self
 	) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_NonClonableField> {
-		if let Some(
-			handle
-		) = self.handle.__c__non_clonable.borrow().as_ref().and_then(
-			std::rc::Weak::upgrade
-		) {
-			return Ok(
-				__cursed_struct__rustdoc_0test_0crate_NonClonableField{
-					handle
-				}
-			);
-		}
-
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::NonClonableField>> = std::rc::Rc::new(
-			__curse::Projection{
-				parent: self.handle.clone(), project: |parent| &parent.non_clonable, project_mut: |parent| &mut parent.non_clonable,
-			}
-		);
-
-		let handle = std::rc::Rc::new(
-			__cursed_handle__rustdoc_0test_0crate_NonClonableField::new_projected(
-				projection
-			)
-		);
-
-		*self.handle.__c__non_clonable.borrow_mut()= Some(
-			std::rc::Rc::downgrade(
-				&handle
-			)
-		);
-
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_NonClonableField{
-				handle
+			__cursed_struct__rustdoc_0test_0crate_NonClonableField {
+				src:self.src.get_non_clonable()
 			}
 		)
 	}
@@ -497,7 +508,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 use wasm_bindgen::prelude::*;
 
 #[allow(non_snake_case, dead_code)]
-mod __curse {
+mod __tethering {
     use std::cell::RefCell;
     use std::rc::Rc;
 
@@ -515,101 +526,80 @@ mod __curse {
         }
     }
 
-    pub enum Backing<T> {
+    pub enum Source<T> {
         Owned(T),
         Projected(Rc<dyn Accessor<T>>),
     }
 
-    pub struct Slot<T>(RefCell<Backing<T>>);
+    pub struct SourceSlot<T>(RefCell<Source<T>>);
 
-    impl<T: 'static> Slot<T> {
+    impl<T: 'static> SourceSlot<T> {
         pub fn owned(value: T) -> Self {
-            Slot(RefCell::new(Backing::Owned(value)))
+            SourceSlot(RefCell::new(Source::Owned(value)))
         }
-        pub fn projected(projection: Rc<dyn Accessor<T>>) -> Self {
-            Slot(RefCell::new(Backing::Projected(projection)))
+        pub fn projected(accessor: Rc<dyn Accessor<T>>) -> Self {
+            SourceSlot(RefCell::new(Source::Projected(accessor)))
         }
         pub fn replace_with_owned(&self, value: T) {
-            *self.0.borrow_mut() = Backing::Owned(value);
+            *self.0.borrow_mut() = Source::Owned(value);
         }
     }
 
-    impl<T> Accessor<T> for Slot<T> {
+    impl<T> Accessor<T> for SourceSlot<T> {
         fn access(&self, f: &mut dyn FnMut(&T)) {
-            let projection = {
-                let target = self.0.borrow();
+            let accessor = {
+                let source = self.0.borrow();
 
-                match &*target {
-                    Backing::Owned(value) => {
+                match &*source {
+                    Source::Owned(value) => {
                         f(value);
                         return;
                     }
-                    Backing::Projected(access) => Rc::clone(access),
+                    Source::Projected(accessor) => Rc::clone(accessor),
                 }
             };
-            projection.access(f);
+            accessor.access(f);
         }
 
         fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            let projection = {
-                let mut target = self.0.borrow_mut();
+            let accessor = {
+                let mut source = self.0.borrow_mut();
 
-                match &mut *target {
-                    Backing::Owned(value) => {
+                match &mut *source {
+                    Source::Owned(value) => {
                         f(value);
                         return;
                     }
-                    Backing::Projected(access) => Rc::clone(access),
+                    Source::Projected(accessor) => Rc::clone(accessor),
                 }
             };
-            projection.access_mut(f);
+            accessor.access_mut(f);
         }
     }
 
-    pub struct Projection<Parent, T> {
+    pub struct FieldAccess<Parent, T> {
         pub parent: Rc<dyn Accessor<Parent>>,
-        pub project: fn(&Parent) -> &T,
-        pub project_mut: fn(&mut Parent) -> &mut T,
+        pub get: fn(&Parent) -> &T,
+        pub get_mut: fn(&mut Parent) -> &mut T,
     }
 
-    impl<Parent: 'static, T: 'static> Accessor<T> for Projection<Parent, T> {
+    impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
         fn access(&self, f: &mut dyn FnMut(&T)) {
-            self.parent.access(&mut |p| f((self.project)(p)))
+            self.parent.access(&mut |parent| f((self.get)(parent)))
         }
         fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            self.parent.access_mut(&mut |p| f((self.project_mut)(p)))
+            self.parent
+                .access_mut(&mut |parent| f((self.get_mut)(parent)))
         }
     }
 }
-use __curse::Accessor as _;
+use __tethering::Accessor as _;
 
-struct __cursed_handle__rustdoc_0test_0crate_ClonableField {
-	src:__curse::Slot<rustdoc_test_crate::ClonableField>,
+struct __tethered_struct__rustdoc_0test_0crate_ClonableField {
+	src: __tethering::SourceSlot<rustdoc_test_crate::ClonableField>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_ClonableField {
-	pub fn new_owned(
-		input: rustdoc_test_crate::ClonableField
-	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_ClonableField {
-			src: __curse::Slot::owned(
-				input
-			),
-		}
-	}
-
-	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::ClonableField>>
-	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_ClonableField {
-			src: __curse::Slot::projected(
-				input
-			),
-		}
-	}
-}
-
-impl __curse::Accessor<rustdoc_test_crate::ClonableField> for __cursed_handle__rustdoc_0test_0crate_ClonableField{
+impl __tethering::Accessor<rustdoc_test_crate::ClonableField> for __tethered_struct__rustdoc_0test_0crate_ClonableField {
 	fn access(
 		&self, f: &mut dyn FnMut(
 			&rustdoc_test_crate::ClonableField
@@ -619,6 +609,7 @@ impl __curse::Accessor<rustdoc_test_crate::ClonableField> for __cursed_handle__r
 			f
 		);
 	}
+
 	fn access_mut(
 		&self, f: &mut dyn FnMut(
 			&mut rustdoc_test_crate::ClonableField
@@ -630,8 +621,31 @@ impl __curse::Accessor<rustdoc_test_crate::ClonableField> for __cursed_handle__r
 	}
 }
 
+impl __tethered_struct__rustdoc_0test_0crate_ClonableField {
+	pub fn new_owned(
+		input: rustdoc_test_crate::ClonableField
+	) -> Self {
+		__tethered_struct__rustdoc_0test_0crate_ClonableField {
+			src: __tethering::SourceSlot::owned(
+				input
+			),
+		}
+	}
+
+	pub fn new_projected(
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::ClonableField>>
+	)-> Self {
+		__tethered_struct__rustdoc_0test_0crate_ClonableField {
+			src: __tethering::SourceSlot::projected(
+				accessor
+			),
+		}
+	}
+
+}
+
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_ClonableField")]pub struct __cursed_struct__rustdoc_0test_0crate_ClonableField {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_ClonableField>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_ClonableField>
 }
 
 #[wasm_bindgen]
@@ -639,33 +653,11 @@ impl __cursed_struct__rustdoc_0test_0crate_ClonableField {
 
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_NonClonableField {
-	src:__curse::Slot<rustdoc_test_crate::NonClonableField>,
+struct __tethered_struct__rustdoc_0test_0crate_NonClonableField {
+	src: __tethering::SourceSlot<rustdoc_test_crate::NonClonableField>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_NonClonableField {
-	pub fn new_owned(
-		input: rustdoc_test_crate::NonClonableField
-	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_NonClonableField {
-			src: __curse::Slot::owned(
-				input
-			),
-		}
-	}
-
-	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::NonClonableField>>
-	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_NonClonableField {
-			src: __curse::Slot::projected(
-				input
-			),
-		}
-	}
-}
-
-impl __curse::Accessor<rustdoc_test_crate::NonClonableField> for __cursed_handle__rustdoc_0test_0crate_NonClonableField{
+impl __tethering::Accessor<rustdoc_test_crate::NonClonableField> for __tethered_struct__rustdoc_0test_0crate_NonClonableField {
 	fn access(
 		&self, f: &mut dyn FnMut(
 			&rustdoc_test_crate::NonClonableField
@@ -675,6 +667,7 @@ impl __curse::Accessor<rustdoc_test_crate::NonClonableField> for __cursed_handle
 			f
 		);
 	}
+
 	fn access_mut(
 		&self, f: &mut dyn FnMut(
 			&mut rustdoc_test_crate::NonClonableField
@@ -686,8 +679,31 @@ impl __curse::Accessor<rustdoc_test_crate::NonClonableField> for __cursed_handle
 	}
 }
 
+impl __tethered_struct__rustdoc_0test_0crate_NonClonableField {
+	pub fn new_owned(
+		input: rustdoc_test_crate::NonClonableField
+	) -> Self {
+		__tethered_struct__rustdoc_0test_0crate_NonClonableField {
+			src: __tethering::SourceSlot::owned(
+				input
+			),
+		}
+	}
+
+	pub fn new_projected(
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::NonClonableField>>
+	)-> Self {
+		__tethered_struct__rustdoc_0test_0crate_NonClonableField {
+			src: __tethering::SourceSlot::projected(
+				accessor
+			),
+		}
+	}
+
+}
+
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_NonClonableField")]pub struct __cursed_struct__rustdoc_0test_0crate_NonClonableField {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_NonClonableField>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_NonClonableField>
 }
 
 #[wasm_bindgen]
@@ -695,18 +711,40 @@ impl __cursed_struct__rustdoc_0test_0crate_NonClonableField {
 
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_Parent {
-	src:__curse::Slot<rustdoc_test_crate::Parent>,
-	__c__clonable: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_ClonableField>>>,
-	__c__non_clonable: std::cell::RefCell<Option<std::rc::Weak<__cursed_handle__rustdoc_0test_0crate_NonClonableField>>>,
+struct __tethered_struct__rustdoc_0test_0crate_Parent {
+	src: __tethering::SourceSlot<rustdoc_test_crate::Parent>,
+	__c__clonable: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_ClonableField>>>,
+	__c__non_clonable: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_NonClonableField>>>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_Parent {
+impl __tethering::Accessor<rustdoc_test_crate::Parent> for __tethered_struct__rustdoc_0test_0crate_Parent {
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut rustdoc_test_crate::Parent
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
+}
+
+impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn new_owned(
 		input: rustdoc_test_crate::Parent
 	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_Parent {
-			src: __curse::Slot::owned(
+		__tethered_struct__rustdoc_0test_0crate_Parent {
+			src: __tethering::SourceSlot::owned(
 				input
 			),
 			__c__clonable: std::cell::RefCell::new(
@@ -719,11 +757,11 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 	}
 
 	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::Parent>>
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Parent>>
 	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_Parent {
-			src: __curse::Slot::projected(
-				input
+		__tethered_struct__rustdoc_0test_0crate_Parent {
+			src: __tethering::SourceSlot::projected(
+				accessor
 			),
 			__c__clonable: std::cell::RefCell::new(
 				None
@@ -733,31 +771,101 @@ impl __cursed_handle__rustdoc_0test_0crate_Parent {
 			),
 		}
 	}
-}
 
-impl __curse::Accessor<rustdoc_test_crate::Parent> for __cursed_handle__rustdoc_0test_0crate_Parent{
-	fn access(
-		&self, f: &mut dyn FnMut(
-			&rustdoc_test_crate::Parent
-		)
-	) {
-		self.src.access(
-			f
+	pub fn get_clonable(
+		self: &std::rc::Rc<Self>
+	)-> std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_ClonableField> {
+		if let Some(
+			tethered
+		) = self.__c__clonable.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return tethered;
+		}
+
+		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::ClonableField>> = std::rc::Rc::new(
+			__tethering::FieldAccess {
+				parent: self.clone(), get: |parent| &parent.clonable, get_mut: |parent| &mutparent.clonable,
+			}
 		);
+
+		let tethered = std::rc::Rc::new(
+			__tethered_struct__rustdoc_0test_0crate_ClonableField::new_projected(
+				field_access
+			)
+		);
+
+		*self.__c__clonable.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&tethered
+			)
+		); tethered
 	}
-	fn access_mut(
-		&self, f: &mut dyn FnMut(
-			&mut rustdoc_test_crate::Parent
-		)
+
+	pub fn set_clonable(
+		&self, value: rustdoc_test_crate::ClonableField
 	) {
-		self.src.access_mut(
-			f
+		let cached_value = self.__c__clonable.borrow_mut().take().and_then(
+			|tethered| tethered.upgrade()
 		);
+
+		let mut old_value = None;
+		let mut value = Some(
+			value
+		);
+
+		self.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mutsrc.clonable, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap()
+			);
+		}
+	}
+
+	pub fn get_non_clonable(
+		self: &std::rc::Rc<Self>
+	)-> std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_NonClonableField> {
+		if let Some(
+			tethered
+		) = self.__c__non_clonable.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return tethered;
+		}
+
+		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::NonClonableField>> = std::rc::Rc::new(
+			__tethering::FieldAccess {
+				parent: self.clone(), get: |parent| &parent.non_clonable, get_mut: |parent| &mutparent.non_clonable,
+			}
+		);
+
+		let tethered = std::rc::Rc::new(
+			__tethered_struct__rustdoc_0test_0crate_NonClonableField::new_projected(
+				field_access
+			)
+		);
+
+		*self.__c__non_clonable.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&tethered
+			)
+		); tethered
 	}
 }
 
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_Parent>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Parent>
 }
 
 #[wasm_bindgen]
@@ -766,39 +874,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	pub fn __getter__clonable(
 		&self
 	) -> Result<__cursed_struct__rustdoc_0test_0crate_ClonableField, JsValue> {
-		if let Some(
-			handle
-		) = self.handle.__c__clonable.borrow().as_ref().and_then(
-			std::rc::Weak::upgrade
-		) {
-			return Ok(
-				__cursed_struct__rustdoc_0test_0crate_ClonableField{
-					handle
-				}
-			);
-		}
-
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::ClonableField>> = std::rc::Rc::new(
-			__curse::Projection{
-				parent: self.handle.clone(), project: |parent| &parent.clonable, project_mut: |parent| &mut parent.clonable,
-			}
-		);
-
-		let handle = std::rc::Rc::new(
-			__cursed_handle__rustdoc_0test_0crate_ClonableField::new_projected(
-				projection
-			)
-		);
-
-		*self.handle.__c__clonable.borrow_mut()= Some(
-			std::rc::Rc::downgrade(
-				&handle
-			)
-		);
-
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_ClonableField{
-				handle
+			__cursed_struct__rustdoc_0test_0crate_ClonableField {
+				src:self.src.get_clonable()
 			}
 		)
 	}
@@ -808,7 +886,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 		&self, value: &__cursed_struct__rustdoc_0test_0crate_ClonableField
 	) -> Result<(), JsValue> {
 		let value = {
-			let mut result = std::mem::MaybeUninit::uninit();value.handle.src.access(
+			let mut result = std::mem::MaybeUninit::uninit();value.src.access(
 				&mut |value| {
 					let value = value.clone();
 
@@ -821,35 +899,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 				result.assume_init()
 			}
 		};
-
-		let cached_value = self.handle.__c__clonable.borrow_mut().take().and_then(
-			|handle| handle.upgrade()
-		);
-
-		let mut old_value = None;
-		let mut value = Some(
+		self.src.set_clonable(
 			value
-		);
-
-		self.handle.access_mut(
-			&mut |src| {
-				old_value = Some(
-					std::mem::replace(
-						&mut src.clonable, value.take().unwrap(),
-					)
-				);
-			}
-		);
-
-		if let Some(
-			cached_value
-		) = cached_value {
-			cached_value.src.replace_with_owned(
-				old_value.unwrap(),
-			);
-		}
-
-		Ok(
+		);Ok(
 			()
 		)
 	}
@@ -858,39 +910,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	pub fn __getter__non_clonable(
 		&self
 	) -> Result<__cursed_struct__rustdoc_0test_0crate_NonClonableField, JsValue> {
-		if let Some(
-			handle
-		) = self.handle.__c__non_clonable.borrow().as_ref().and_then(
-			std::rc::Weak::upgrade
-		) {
-			return Ok(
-				__cursed_struct__rustdoc_0test_0crate_NonClonableField{
-					handle
-				}
-			);
-		}
-
-		let projection: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::NonClonableField>> = std::rc::Rc::new(
-			__curse::Projection{
-				parent: self.handle.clone(), project: |parent| &parent.non_clonable, project_mut: |parent| &mut parent.non_clonable,
-			}
-		);
-
-		let handle = std::rc::Rc::new(
-			__cursed_handle__rustdoc_0test_0crate_NonClonableField::new_projected(
-				projection
-			)
-		);
-
-		*self.handle.__c__non_clonable.borrow_mut()= Some(
-			std::rc::Rc::downgrade(
-				&handle
-			)
-		);
-
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_NonClonableField{
-				handle
+			__cursed_struct__rustdoc_0test_0crate_NonClonableField {
+				src:self.src.get_non_clonable()
 			}
 		)
 	}

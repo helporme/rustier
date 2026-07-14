@@ -123,12 +123,12 @@ impl<'db> Type<'db> {
     ///
     /// assert_eq!(type_.rs_name(&db), "String");
     /// ```
-    pub fn rs_name(&self, db: &'db dyn Db) -> String {
+    pub fn rs_name(&self, db: &'db dyn Db) -> &'db str {
         match self {
-            Type::Primitive(primitive) => primitive.rs_name().to_owned(),
-            Type::Str => "str".to_owned(),
-            Type::String => "String".to_owned(),
-            Type::Struct(id) => struct_fqn_from_rustdoc_id(db, id.rustdoc_id(db)).to_owned(),
+            Type::Primitive(primitive) => primitive.rs_name(),
+            Type::Str => "str",
+            Type::String => "String",
+            Type::Struct(id) => struct_fqn_from_rustdoc_id(db, id.rustdoc_id(db)),
         }
     }
 

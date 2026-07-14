@@ -54,7 +54,7 @@ export class TupleStruct {
 use wasm_bindgen::prelude::*;
 
 #[allow(non_snake_case, dead_code)]
-mod __curse {
+mod __tethering {
     use std::cell::RefCell;
     use std::rc::Rc;
 
@@ -72,73 +72,74 @@ mod __curse {
         }
     }
 
-    pub enum Backing<T> {
+    pub enum Source<T> {
         Owned(T),
         Projected(Rc<dyn Accessor<T>>),
     }
 
-    pub struct Slot<T>(RefCell<Backing<T>>);
+    pub struct SourceSlot<T>(RefCell<Source<T>>);
 
-    impl<T: 'static> Slot<T> {
+    impl<T: 'static> SourceSlot<T> {
         pub fn owned(value: T) -> Self {
-            Slot(RefCell::new(Backing::Owned(value)))
+            SourceSlot(RefCell::new(Source::Owned(value)))
         }
-        pub fn projected(projection: Rc<dyn Accessor<T>>) -> Self {
-            Slot(RefCell::new(Backing::Projected(projection)))
+        pub fn projected(accessor: Rc<dyn Accessor<T>>) -> Self {
+            SourceSlot(RefCell::new(Source::Projected(accessor)))
         }
         pub fn replace_with_owned(&self, value: T) {
-            *self.0.borrow_mut() = Backing::Owned(value);
+            *self.0.borrow_mut() = Source::Owned(value);
         }
     }
 
-    impl<T> Accessor<T> for Slot<T> {
+    impl<T> Accessor<T> for SourceSlot<T> {
         fn access(&self, f: &mut dyn FnMut(&T)) {
-            let projection = {
-                let target = self.0.borrow();
+            let accessor = {
+                let source = self.0.borrow();
 
-                match &*target {
-                    Backing::Owned(value) => {
+                match &*source {
+                    Source::Owned(value) => {
                         f(value);
                         return;
                     }
-                    Backing::Projected(access) => Rc::clone(access),
+                    Source::Projected(accessor) => Rc::clone(accessor),
                 }
             };
-            projection.access(f);
+            accessor.access(f);
         }
 
         fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            let projection = {
-                let mut target = self.0.borrow_mut();
+            let accessor = {
+                let mut source = self.0.borrow_mut();
 
-                match &mut *target {
-                    Backing::Owned(value) => {
+                match &mut *source {
+                    Source::Owned(value) => {
                         f(value);
                         return;
                     }
-                    Backing::Projected(access) => Rc::clone(access),
+                    Source::Projected(accessor) => Rc::clone(accessor),
                 }
             };
-            projection.access_mut(f);
+            accessor.access_mut(f);
         }
     }
 
-    pub struct Projection<Parent, T> {
+    pub struct FieldAccess<Parent, T> {
         pub parent: Rc<dyn Accessor<Parent>>,
-        pub project: fn(&Parent) -> &T,
-        pub project_mut: fn(&mut Parent) -> &mut T,
+        pub get: fn(&Parent) -> &T,
+        pub get_mut: fn(&mut Parent) -> &mut T,
     }
 
-    impl<Parent: 'static, T: 'static> Accessor<T> for Projection<Parent, T> {
+    impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
         fn access(&self, f: &mut dyn FnMut(&T)) {
-            self.parent.access(&mut |p| f((self.project)(p)))
+            self.parent.access(&mut |parent| f((self.get)(parent)))
         }
         fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            self.parent.access_mut(&mut |p| f((self.project_mut)(p)))
+            self.parent
+                .access_mut(&mut |parent| f((self.get_mut)(parent)))
         }
     }
 }
-use __curse::Accessor as _;
+use __tethering::Accessor as _;
 
 fn __cast_String(
 	value: JsValue
@@ -148,33 +149,11 @@ fn __cast_String(
 	)
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_TupleStruct {
-	src:__curse::Slot<rustdoc_test_crate::TupleStruct>,
+struct __tethered_struct__rustdoc_0test_0crate_TupleStruct {
+	src: __tethering::SourceSlot<rustdoc_test_crate::TupleStruct>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
-	pub fn new_owned(
-		input: rustdoc_test_crate::TupleStruct
-	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_TupleStruct {
-			src: __curse::Slot::owned(
-				input
-			),
-		}
-	}
-
-	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleStruct>>
-	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_TupleStruct {
-			src: __curse::Slot::projected(
-				input
-			),
-		}
-	}
-}
-
-impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rustdoc_0test_0crate_TupleStruct{
+impl __tethering::Accessor<rustdoc_test_crate::TupleStruct> for __tethered_struct__rustdoc_0test_0crate_TupleStruct {
 	fn access(
 		&self, f: &mut dyn FnMut(
 			&rustdoc_test_crate::TupleStruct
@@ -184,6 +163,7 @@ impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rus
 			f
 		);
 	}
+
 	fn access_mut(
 		&self, f: &mut dyn FnMut(
 			&mut rustdoc_test_crate::TupleStruct
@@ -195,8 +175,59 @@ impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rus
 	}
 }
 
+impl __tethered_struct__rustdoc_0test_0crate_TupleStruct {
+	pub fn new_owned(
+		input: rustdoc_test_crate::TupleStruct
+	) -> Self {
+		__tethered_struct__rustdoc_0test_0crate_TupleStruct {
+			src: __tethering::SourceSlot::owned(
+				input
+			),
+		}
+	}
+
+	pub fn new_projected(
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::TupleStruct>>
+	)-> Self {
+		__tethered_struct__rustdoc_0test_0crate_TupleStruct {
+			src: __tethering::SourceSlot::projected(
+				accessor
+			),
+		}
+	}
+
+	pub fn get_0(
+		&self
+	)-> String {
+		let mut result = std::mem::MaybeUninit::uninit();
+		self.access(
+			&mut |src| {
+				result.write(
+					src.0.clone()
+				);
+			}
+		);
+		unsafe {
+			result.assume_init()
+		}
+	}
+
+	pub fn set_0(
+		&self, value: String
+	) {
+		let mut value = Some(
+			value
+		);
+		self.access_mut(
+			&mut |src| {
+				src.0= value.take().unwrap();
+			}
+		);
+	}
+}
+
 #[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_TupleStruct>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_TupleStruct>
 }
 
 #[wasm_bindgen]
@@ -206,19 +237,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		&self
 	) -> Result<String, JsValue> {
 		Ok(
-			{
-				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
-					&mut |src| {
-
-						result.write(
-							src.0.clone()
-						);
-					}
-				);
-				unsafe {
-					result.assume_init()
-				}
-			}
+			self.src.get_0()
 		)
 	}
 
@@ -226,24 +245,25 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	pub fn __setter__0(
 		&self, value: JsValue
 	) -> Result<(), JsValue> {
-		let value = __cast_String(
-			value
-		).map_err(
-			|err| JsValue::from_str(
-				&format!(
-					"Expected Rust `String` from a JavaScript string: {}", err
+		let value = {
+			let mut result = std::mem::MaybeUninit::uninit();let value = __cast_String(
+				value
+			).map_err(
+				|err| JsValue::from_str(
+					&format!(
+						"Expected Rust `String` from a JavaScript string: {}", err
+					)
 				)
-			)
-		)?;
-		let mut value = Some(
-			value
-		);
-		self.handle.src.access_mut(
-			&mut |src| {
-				let value = value.take().unwrap();
-
-				src.0= value;
+			)?;
+			result.write(
+				value
+			);
+			unsafe {
+				result.assume_init()
 			}
+		};
+		self.src.set_0(
+			value
 		);Ok(
 			()
 		)
@@ -259,7 +279,7 @@ use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
 
 #[allow(non_snake_case, dead_code)]
-mod __curse {
+mod __tethering {
     use std::cell::RefCell;
     use std::rc::Rc;
 
@@ -277,73 +297,74 @@ mod __curse {
         }
     }
 
-    pub enum Backing<T> {
+    pub enum Source<T> {
         Owned(T),
         Projected(Rc<dyn Accessor<T>>),
     }
 
-    pub struct Slot<T>(RefCell<Backing<T>>);
+    pub struct SourceSlot<T>(RefCell<Source<T>>);
 
-    impl<T: 'static> Slot<T> {
+    impl<T: 'static> SourceSlot<T> {
         pub fn owned(value: T) -> Self {
-            Slot(RefCell::new(Backing::Owned(value)))
+            SourceSlot(RefCell::new(Source::Owned(value)))
         }
-        pub fn projected(projection: Rc<dyn Accessor<T>>) -> Self {
-            Slot(RefCell::new(Backing::Projected(projection)))
+        pub fn projected(accessor: Rc<dyn Accessor<T>>) -> Self {
+            SourceSlot(RefCell::new(Source::Projected(accessor)))
         }
         pub fn replace_with_owned(&self, value: T) {
-            *self.0.borrow_mut() = Backing::Owned(value);
+            *self.0.borrow_mut() = Source::Owned(value);
         }
     }
 
-    impl<T> Accessor<T> for Slot<T> {
+    impl<T> Accessor<T> for SourceSlot<T> {
         fn access(&self, f: &mut dyn FnMut(&T)) {
-            let projection = {
-                let target = self.0.borrow();
+            let accessor = {
+                let source = self.0.borrow();
 
-                match &*target {
-                    Backing::Owned(value) => {
+                match &*source {
+                    Source::Owned(value) => {
                         f(value);
                         return;
                     }
-                    Backing::Projected(access) => Rc::clone(access),
+                    Source::Projected(accessor) => Rc::clone(accessor),
                 }
             };
-            projection.access(f);
+            accessor.access(f);
         }
 
         fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            let projection = {
-                let mut target = self.0.borrow_mut();
+            let accessor = {
+                let mut source = self.0.borrow_mut();
 
-                match &mut *target {
-                    Backing::Owned(value) => {
+                match &mut *source {
+                    Source::Owned(value) => {
                         f(value);
                         return;
                     }
-                    Backing::Projected(access) => Rc::clone(access),
+                    Source::Projected(accessor) => Rc::clone(accessor),
                 }
             };
-            projection.access_mut(f);
+            accessor.access_mut(f);
         }
     }
 
-    pub struct Projection<Parent, T> {
+    pub struct FieldAccess<Parent, T> {
         pub parent: Rc<dyn Accessor<Parent>>,
-        pub project: fn(&Parent) -> &T,
-        pub project_mut: fn(&mut Parent) -> &mut T,
+        pub get: fn(&Parent) -> &T,
+        pub get_mut: fn(&mut Parent) -> &mut T,
     }
 
-    impl<Parent: 'static, T: 'static> Accessor<T> for Projection<Parent, T> {
+    impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
         fn access(&self, f: &mut dyn FnMut(&T)) {
-            self.parent.access(&mut |p| f((self.project)(p)))
+            self.parent.access(&mut |parent| f((self.get)(parent)))
         }
         fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            self.parent.access_mut(&mut |p| f((self.project_mut)(p)))
+            self.parent
+                .access_mut(&mut |parent| f((self.get_mut)(parent)))
         }
     }
 }
-use __curse::Accessor as _;
+use __tethering::Accessor as _;
 
 fn __cast_String(
 	value: Unknown<'_>
@@ -364,33 +385,11 @@ fn __cast_String(
 	}
 }
 
-struct __cursed_handle__rustdoc_0test_0crate_TupleStruct {
-	src:__curse::Slot<rustdoc_test_crate::TupleStruct>,
+struct __tethered_struct__rustdoc_0test_0crate_TupleStruct {
+	src: __tethering::SourceSlot<rustdoc_test_crate::TupleStruct>,
 }
 
-impl __cursed_handle__rustdoc_0test_0crate_TupleStruct {
-	pub fn new_owned(
-		input: rustdoc_test_crate::TupleStruct
-	) -> Self {
-		__cursed_handle__rustdoc_0test_0crate_TupleStruct {
-			src: __curse::Slot::owned(
-				input
-			),
-		}
-	}
-
-	pub fn new_projected(
-		input: std::rc::Rc<dyn __curse::Accessor<rustdoc_test_crate::TupleStruct>>
-	)-> Self {
-		__cursed_handle__rustdoc_0test_0crate_TupleStruct {
-			src: __curse::Slot::projected(
-				input
-			),
-		}
-	}
-}
-
-impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rustdoc_0test_0crate_TupleStruct{
+impl __tethering::Accessor<rustdoc_test_crate::TupleStruct> for __tethered_struct__rustdoc_0test_0crate_TupleStruct {
 	fn access(
 		&self, f: &mut dyn FnMut(
 			&rustdoc_test_crate::TupleStruct
@@ -400,6 +399,7 @@ impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rus
 			f
 		);
 	}
+
 	fn access_mut(
 		&self, f: &mut dyn FnMut(
 			&mut rustdoc_test_crate::TupleStruct
@@ -411,8 +411,59 @@ impl __curse::Accessor<rustdoc_test_crate::TupleStruct> for __cursed_handle__rus
 	}
 }
 
+impl __tethered_struct__rustdoc_0test_0crate_TupleStruct {
+	pub fn new_owned(
+		input: rustdoc_test_crate::TupleStruct
+	) -> Self {
+		__tethered_struct__rustdoc_0test_0crate_TupleStruct {
+			src: __tethering::SourceSlot::owned(
+				input
+			),
+		}
+	}
+
+	pub fn new_projected(
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::TupleStruct>>
+	)-> Self {
+		__tethered_struct__rustdoc_0test_0crate_TupleStruct {
+			src: __tethering::SourceSlot::projected(
+				accessor
+			),
+		}
+	}
+
+	pub fn get_0(
+		&self
+	)-> String {
+		let mut result = std::mem::MaybeUninit::uninit();
+		self.access(
+			&mut |src| {
+				result.write(
+					src.0.clone()
+				);
+			}
+		);
+		unsafe {
+			result.assume_init()
+		}
+	}
+
+	pub fn set_0(
+		&self, value: String
+	) {
+		let mut value = Some(
+			value
+		);
+		self.access_mut(
+			&mut |src| {
+				src.0= value.take().unwrap();
+			}
+		);
+	}
+}
+
 #[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
-	handle: std::rc::Rc<__cursed_handle__rustdoc_0test_0crate_TupleStruct>
+	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_TupleStruct>
 }
 
 #[napi]
@@ -422,19 +473,7 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 		&self
 	) -> napi::Result<String> {
 		Ok(
-			{
-				let mut result = std::mem::MaybeUninit::uninit();self.handle.src.access(
-					&mut |src| {
-
-						result.write(
-							src.0.clone()
-						);
-					}
-				);
-				unsafe {
-					result.assume_init()
-				}
-			}
+			self.src.get_0()
 		)
 	}
 
@@ -442,24 +481,25 @@ impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
 	pub fn __setter__0(
 		&self, value: Unknown<'_>
 	) -> napi::Result<()> {
-		let value = __cast_String(
-			value
-		).map_err(
-			|err| napi::Error::from_reason(
-				format!(
-					"Expected Rust `String` from a JavaScript string: {}", err
+		let value = {
+			let mut result = std::mem::MaybeUninit::uninit();let value = __cast_String(
+				value
+			).map_err(
+				|err| napi::Error::from_reason(
+					format!(
+						"Expected Rust `String` from a JavaScript string: {}", err
+					)
 				)
-			)
-		)?;
-		let mut value = Some(
-			value
-		);
-		self.handle.src.access_mut(
-			&mut |src| {
-				let value = value.take().unwrap();
-
-				src.0= value;
+			)?;
+			result.write(
+				value
+			);
+			unsafe {
+				result.assume_init()
 			}
+		};
+		self.src.set_0(
+			value
 		);Ok(
 			()
 		)
