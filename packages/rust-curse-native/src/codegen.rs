@@ -10,3 +10,6 @@ pub mod ir;
 pub mod js;
 pub mod rustdoc;
 pub mod ts;
+
+#[doc(hidden)]
+pub mod test;
