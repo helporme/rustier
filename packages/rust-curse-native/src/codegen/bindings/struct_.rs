@@ -47,22 +47,22 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
                 name,
                 get_ref_expr,
                 get_mut_expr,
-                type_: type_.rs_name(db),
-                tethered_type: struct_tethered_name_from_rustdoc_id(db, id.rustdoc_id(db)),
+                source_type: type_.rs_name(db),
+                tethered_name: struct_tethered_name_from_rustdoc_id(db, id.rustdoc_id(db)),
                 with_setter: !field.is_readonly(db),
             }),
             _ => TetheredField::Cloned(ClonedField {
                 name,
                 get_ref_expr,
                 get_mut_expr,
-                type_: type_.rs_name(db),
+                source_type: type_.rs_name(db),
             }),
         }
     });
 
     frag!(
         {compile_tethered_struct(TetheredStruct {
-            for_: struct_.fqn(db),
+            source_type: struct_.fqn(db),
             name: struct_.tethered_name(db),
             fields: tethered_fields,
         })}@@

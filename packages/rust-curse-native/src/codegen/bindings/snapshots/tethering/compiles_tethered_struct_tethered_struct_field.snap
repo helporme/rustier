@@ -1,0 +1,153 @@
+---
+source: src/codegen/bindings/tethering.rs
+expression: body
+---
+## Test
+
+```text
+codegen::bindings::tethering::tests::compiles_tethered_struct_tethered_struct_field
+```
+
+## Source
+
+```rs
+let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 1] = [
+    TetheredField::TetheredStruct(TetheredStructField {
+        name: "child",
+        get_ref_expr: |source| frag!({ source } .child),
+        get_mut_expr: |source| frag!({ source } .child),
+        source_type: "crate::Child",
+        tethered_name: "__tethered_child",
+        with_setter: true,
+    }),
+];
+compile_tethered_struct(TetheredStruct {
+    source_type: "crate::Parent",
+    name: "__tethered_parent",
+    fields,
+})
+```
+
+## Output
+
+```rs
+struct __tethered_parent {
+	src: __tethering::SourceSlot<crate::Parent>,
+	__c__child: std::cell::RefCell<Option<std::rc::Weak<__tethered_child>>>,
+}
+
+impl __tethering::Accessor<crate::Parent> for __tethered_parent {
+	fn access(
+		&self, f: &mut dyn FnMut(
+			&crate::Parent
+		)
+	) {
+		self.src.access(
+			f
+		);
+	}
+
+	fn access_mut(
+		&self, f: &mut dyn FnMut(
+			&mut crate::Parent
+		)
+	) {
+		self.src.access_mut(
+			f
+		);
+	}
+}
+
+impl __tethered_parent {
+	pub fn new_owned(
+		input: crate::Parent
+	) -> Self {
+		__tethered_parent {
+			src: __tethering::SourceSlot::owned(
+				input
+			),
+			__c__child: std::cell::RefCell::new(
+				None
+			),
+		}
+	}
+
+	pub fn new_projected(
+		accessor: std::rc::Rc<dyn __tethering::Accessor<crate::Parent>>
+	)-> Self {
+		__tethered_parent {
+			src: __tethering::SourceSlot::projected(
+				accessor
+			),
+			__c__child: std::cell::RefCell::new(
+				None
+			),
+		}
+	}
+
+	pub fn get_child(
+		self: &std::rc::Rc<Self>
+	)-> std::rc::Rc<__tethered_child> {
+		if let Some(
+			tethered
+		) = self.__c__child.borrow().as_ref().and_then(
+			std::rc::Weak::upgrade
+		) {
+			return tethered;
+		}
+
+		let field_access: std::rc::Rc<dyn __tethering::Accessor<crate::Child>> = std::rc::Rc::new(
+			__tethering::FieldAccess {
+				parent: self.clone(),
+				get: |parent| &parent.child,
+				get_mut: |parent| &mutparent.child,
+			}
+		);
+
+		let tethered = std::rc::Rc::new(
+			__tethered_child::new_projected(
+				field_access
+			)
+		);
+
+		*self.__c__child.borrow_mut()= Some(
+			std::rc::Rc::downgrade(
+				&tethered
+			)
+		);
+
+		tethered
+	}
+
+	pub fn set_child(
+		&self, value: crate::Child
+	) {
+		let cached_value = self.__c__child.borrow_mut().take().and_then(
+			|tethered| tethered.upgrade()
+		);
+
+		let mut old_value = None;
+		let mut value = Some(
+			value
+		);
+
+		self.access_mut(
+			&mut |src| {
+				old_value = Some(
+					std::mem::replace(
+						&mutsrc.child, value.take().unwrap(),
+					)
+				);
+			}
+		);
+
+		if let Some(
+			cached_value
+		) = cached_value {
+			cached_value.src.replace_with_owned(
+				old_value.unwrap()
+			);
+		}
+	}
+}
+```

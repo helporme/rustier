@@ -284,7 +284,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Field>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
-				parent: self.clone(), get: |parent| &parent.field, get_mut: |parent| &mutparent.field,
+				parent: self.clone(),
+				get: |parent| &parent.field,
+				get_mut: |parent| &mutparent.field,
 			}
 		);
 
@@ -298,7 +300,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			std::rc::Rc::downgrade(
 				&tethered
 			)
-		); tethered
+		);
+
+		tethered
 	}
 }
 
@@ -540,7 +544,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Field>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
-				parent: self.clone(), get: |parent| &parent.field, get_mut: |parent| &mutparent.field,
+				parent: self.clone(),
+				get: |parent| &parent.field,
+				get_mut: |parent| &mutparent.field,
 			}
 		);
 
@@ -554,7 +560,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			std::rc::Rc::downgrade(
 				&tethered
 			)
-		); tethered
+		);
+
+		tethered
 	}
 }
 

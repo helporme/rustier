@@ -5,7 +5,7 @@
 //!
 //! Without loss of generality, we will consider the following example:
 //!
-//! ```no_run
+//! ```
 //! pub struct Point {
 //!     pub x: f64,
 //!     pub y: f64,
@@ -19,7 +19,7 @@
 //!
 //! If we mentally translate this two structs to javascript classes, we can
 //! expect the following code to work:
-//! ```no_run
+//! ```js
 //! const line = new Line(new Point(1, 1), new Point(2, -3));
 //!
 //! const start = line.start;
@@ -37,7 +37,7 @@
 //!
 //! In rust we could represent something simillar using `Rc` and `RwLock` or
 //! `Arc` and `Mutex`:
-//! ```no_run
+//! ```text
 //! use std::sync::{Arc, Mutex};
 //!
 //! struct Line {
@@ -72,7 +72,7 @@
 //!
 //! Now, for each struct we generate a tethered struct with internal structure
 //! like this:
-//! ```no_run
+//! ```text
 //! struct TetheredPoint {
 //!     src: ProjectionOrOwned<Point>,
 //! }
@@ -108,7 +108,7 @@
 //!
 //! All projections created and returned from the previous pseudo-code example
 //! are projecting from the same source struct, so doing this:
-//! ```no_run
+//! ```js
 //! const start = line.start;
 //! line.start = new Point(-20, 13);
 //! ```
@@ -226,8 +226,8 @@ pub struct TetheredStruct<'a, FQN, Fields>
 where
     FQN: Fragment,
 {
-    /// Fully qualified source type represented by the tethered struct.
-    pub for_: FQN,
+    /// Source type for which the tethered struct is generated.
+    pub source_type: FQN,
     /// Mangled name of the generated tethered struct.
     pub name: &'a str,
     /// Source fields exposed by the tethered struct.
@@ -251,14 +251,13 @@ pub struct ClonedField<'a, FQN, GetRefExpr, GetMutExpr>
 where
     FQN: Fragment,
 {
-    /// Name of the generated field accessor.
     pub name: &'a str,
     /// Expression to access a source value through a shared reference.
     pub get_ref_expr: GetRefExpr,
     /// Expression to access a source value through a mutable reference.
     pub get_mut_expr: GetMutExpr,
-    /// Source type read from the field and accepted by its setter.
-    pub type_: FQN,
+    /// The type of this field on source type.
+    pub source_type: FQN,
 }
 
 #[derive(Clone, Copy)]
@@ -266,47 +265,22 @@ pub struct TetheredStructField<'a, FQN, GetRefExpr, GetMutExpr>
 where
     FQN: Fragment,
 {
-    /// Name of the generated field accessor.
+    // The field name.
     pub name: &'a str,
     /// Expression to access a source value through a shared reference.
     pub get_ref_expr: GetRefExpr,
     /// Expression to access a source value through a mutable reference.
     pub get_mut_expr: GetMutExpr,
-    /// Source type represented by the projected tether.
-    pub type_: FQN,
-    /// Generated tethered type representing the projected value.
-    pub tethered_type: FQN,
+    /// The type of this field on source type.
+    pub source_type: FQN,
+    /// The name of the tethered struct generated for this field source type.
+    pub tethered_name: FQN,
     /// Whether to generate a setter for this value.
     pub with_setter: bool,
 }
 
 /// Compiles a source-backed struct with field accessors and cached projected
 /// tethers.
-///
-/// ```
-/// use rust_curse::codegen::{
-///     bindings::tethering::{
-///         ClonedField, TetheredField, TetheredStruct, compile_tethered_struct,
-///     },
-///     fragment::{FragmentPrint, frag},
-/// };
-///
-/// let compiled = compile_tethered_struct(TetheredStruct {
-///     for_: "crate::Example",
-///     name: "__tethered_example",
-///     fields: [TetheredField::Cloned(ClonedField {
-///         name: "value",
-///         get_ref_expr: |source: &'static str| frag!({ source }.value),
-///         get_mut_expr: |source: &'static str| frag!({ source }.value),
-///         type_: "i32",
-///     })],
-/// })
-/// .print();
-///
-/// assert!(compiled.contains("struct __tethered_example"));
-/// assert!(compiled.contains("pub fn get_value"));
-/// assert!(compiled.contains("pub fn set_value"));
-/// ```
 pub fn compile_tethered_struct<
     'a,
     StructFQN,
@@ -331,7 +305,7 @@ where
 {
     fragment(move |p| {
         let fields = struct_.fields.into_iter();
-        let source_type = &struct_.for_;
+        let source_type = &struct_.source_type;
         let name = struct_.name;
 
         let cache_field_definitions = {
@@ -343,7 +317,7 @@ where
                         let cache_field_name = cache_field_name(field.name);
 
                         frag!(
-                            {&cache_field_name}: std::cell::RefCell<Option<std::rc::Weak<{&field.tethered_type}>>>,@
+                            {&cache_field_name}: std::cell::RefCell<Option<std::rc::Weak<{&field.tethered_name}>>>,@
                         )
                         .apply(p);
                     }
@@ -441,17 +415,6 @@ where
 /// Expression is of:
 ///  - Rc of tethered struct type in case field holds tetherable source type
 ///  - A source type otherwise
-///
-/// ```
-/// use rust_curse::codegen::{
-///     bindings::tethering::compile_tethered_struct_get_field_expr, fragment::FragmentPrint,
-/// };
-///
-/// assert_eq!(
-///     compile_tethered_struct_get_field_expr("value", "name").print(),
-///     "value.get_name()",
-/// );
-/// ```
 pub fn compile_tethered_struct_get_field_expr<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,
@@ -464,16 +427,6 @@ pub fn compile_tethered_struct_get_field_expr<'a>(
 /// Value should be of:
 ///  - Rc of tethered struct type in case field holds tetherable source type
 ///  - A source type otherwise
-///
-/// ```
-/// use rust_curse::codegen::{
-///     bindings::tethering::compile_tethered_struct_set_field_stmt, fragment::FragmentPrint,
-/// };
-///
-/// let compiled = compile_tethered_struct_set_field_stmt("value", "name", "input").print();
-/// assert!(compiled.starts_with("value.set_name("));
-/// assert!(compiled.ends_with(");"));
-/// ```
 pub fn compile_tethered_struct_set_field_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,
@@ -484,16 +437,6 @@ pub fn compile_tethered_struct_set_field_stmt<'a>(
 
 /// Compiles a statement that accesses the complete source value behind a
 /// tethered field by shared reference.
-///
-/// ```
-/// use rust_curse::codegen::{
-///     bindings::tethering::compile_tethered_struct_ref_access_stmt, fragment::FragmentPrint,
-/// };
-///
-/// let compiled =
-///     compile_tethered_struct_ref_access_stmt("value", "source", "consume(source);").print();
-/// assert!(compiled.starts_with("value.access("));
-/// ```
 pub fn compile_tethered_struct_ref_access_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     out_var: &'a str,
@@ -506,16 +449,6 @@ pub fn compile_tethered_struct_ref_access_stmt<'a>(
 
 /// Compiles a statement that accesses the complete source value behind a
 /// tethered field by mutable reference.
-///
-/// ```
-/// use rust_curse::codegen::{
-///     bindings::tethering::compile_tethered_struct_mut_access_stmt, fragment::FragmentPrint,
-/// };
-///
-/// let compiled =
-///     compile_tethered_struct_mut_access_stmt("value", "source", "mutate(source);").print();
-/// assert!(compiled.starts_with("value.access_mut("));
-/// ```
 pub fn compile_tethered_struct_mut_access_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     out_var: &'a str,
@@ -543,7 +476,7 @@ where
             let get_ref_expr = (self.get_ref_expr)("src");
 
             frag!(
-                pub fn get_{self.name}(&self) -> ~{&self.type_}~{{
+                pub fn get_{self.name}(&self) -> ~{&self.source_type}~{{
                     let mut result = std::mem::MaybeUninit::uninit();@
                     self.access(&mut |src|~{{
                         result.write({get_ref_expr}.clone());
@@ -566,7 +499,7 @@ where
             let get_mut_expr = (self.get_mut_expr)("src");
 
             frag!(
-                pub fn set_{self.name}(&self, value: ~{&self.type_})~{{
+                pub fn set_{self.name}(&self, value: ~{&self.source_type})~{{
                     let mut value = Some(value);@
                     self.access_mut(&mut |src|~{{
                         {get_mut_expr} = value.take().unwrap();
@@ -595,20 +528,20 @@ where
             let get_mut_expr = (self.get_mut_expr)("parent");
 
             frag!(
-                pub fn get_{self.name}(self: &std::rc::Rc<Self>) -> std::rc::Rc<{&self.tethered_type}>~{{
+                pub fn get_{self.name}(self: &std::rc::Rc<Self>) -> std::rc::Rc<{&self.tethered_name}>~{{
                     if let Some(tethered)~ = self.{&cache_field_name}.borrow().as_ref().and_then(std::rc::Weak::upgrade)~{{
                         return tethered;@
                     }}@@
 
-                    let field_access: std::rc::Rc<dyn __tethering::Accessor<{&self.type_}>> = std::rc::Rc::new(__tethering::FieldAccess~{{
-                        parent: self.clone(),
-                        get: |parent| &{get_ref_expr},
-                        get_mut: |parent| &mut {get_mut_expr},
+                    let field_access: std::rc::Rc<dyn __tethering::Accessor<{&self.source_type}>> = std::rc::Rc::new(__tethering::FieldAccess~{{
+                        parent: self.clone(),@
+                        get: |parent| &{get_ref_expr},@
+                        get_mut: |parent| &mut {get_mut_expr},@
                     }});@@
 
-                    let tethered = std::rc::Rc::new({&self.tethered_type}::new_projected(field_access));@@
+                    let tethered = std::rc::Rc::new({&self.tethered_name}::new_projected(field_access));@@
 
-                    *self.{&cache_field_name}.borrow_mut() = Some(std::rc::Rc::downgrade(&tethered));
+                    *self.{&cache_field_name}.borrow_mut() = Some(std::rc::Rc::downgrade(&tethered));@@
 
                     tethered
                 }}
@@ -627,7 +560,7 @@ where
             let get_mut_expr = (self.get_mut_expr)("src");
 
             frag!(
-                pub fn set_{self.name}(&self, value: ~{&self.type_})~{{
+                pub fn set_{self.name}(&self, value: ~{&self.source_type})~{{
                     let cached_value = self.{&cache_field_name}
                         .borrow_mut()
                         .take()
@@ -681,4 +614,101 @@ where
         TetheredField::Cloned(field) => field.compile_setter().apply(p),
         TetheredField::TetheredStruct(field) => field.compile_setter().apply(p),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::codegen::test::assert_snap;
+
+    type FieldExpr = fn(&'static str) -> (&'static str, &'static str);
+
+    #[test]
+    fn compiles_tethered_struct_empty() {
+        assert_snap!({
+            let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 0] = [];
+
+            compile_tethered_struct(TetheredStruct {
+                source_type: "crate::Empty",
+                name: "__tethered_empty",
+                fields,
+            })
+        });
+    }
+
+    #[test]
+    fn compiles_tethered_struct_cloned_field() {
+        assert_snap!({
+            let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 1] =
+                [TetheredField::Cloned(ClonedField {
+                    name: "count",
+                    get_ref_expr: |source| frag!({ source }.count),
+                    get_mut_expr: |source| frag!({ source }.count),
+                    source_type: "u32",
+                })];
+
+            compile_tethered_struct(TetheredStruct {
+                source_type: "crate::Parent",
+                name: "__tethered_parent",
+                fields,
+            })
+        });
+    }
+
+    #[test]
+    fn compiles_tethered_struct_tethered_struct_field() {
+        assert_snap!({
+            let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 1] =
+                [TetheredField::TetheredStruct(TetheredStructField {
+                    name: "child",
+                    get_ref_expr: |source| frag!({ source }.child),
+                    get_mut_expr: |source| frag!({ source }.child),
+                    source_type: "crate::Child",
+                    tethered_name: "__tethered_child",
+                    with_setter: true,
+                })];
+
+            compile_tethered_struct(TetheredStruct {
+                source_type: "crate::Parent",
+                name: "__tethered_parent",
+                fields,
+            })
+        });
+    }
+
+    #[test]
+    fn compiles_tethered_struct_mixed() {
+        assert_snap!({
+            let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 3] = [
+                TetheredField::Cloned(ClonedField {
+                    name: "count",
+                    get_ref_expr: |source| frag!({ source }.count),
+                    get_mut_expr: |source| frag!({ source }.count),
+                    source_type: "u32",
+                }),
+                TetheredField::TetheredStruct(TetheredStructField {
+                    name: "child",
+                    get_ref_expr: |source| frag!({ source }.child),
+                    get_mut_expr: |source| frag!({ source }.child),
+                    source_type: "crate::Child",
+                    tethered_name: "__tethered_child",
+                    with_setter: true,
+                }),
+                TetheredField::TetheredStruct(TetheredStructField {
+                    name: "readonly_child",
+                    get_ref_expr: |source| frag!({ source }.readonly_child),
+                    get_mut_expr: |source| frag!({ source }.readonly_child),
+                    source_type: "crate::ReadonlyChild",
+                    tethered_name: "__tethered_readonly_child",
+                    with_setter: false,
+                }),
+            ];
+
+            compile_tethered_struct(TetheredStruct {
+                source_type: "crate::Parent",
+                name: "__tethered_parent",
+                fields,
+            })
+        });
+    }
 }

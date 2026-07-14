@@ -572,7 +572,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
-				parent: self.clone(), get: |parent| &parent.plain, get_mut: |parent| &mutparent.plain,
+				parent: self.clone(),
+				get: |parent| &parent.plain,
+				get_mut: |parent| &mutparent.plain,
 			}
 		);
 
@@ -586,7 +588,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			std::rc::Rc::downgrade(
 				&tethered
 			)
-		); tethered
+		);
+
+		tethered
 	}
 
 	pub fn set_plain(
@@ -633,7 +637,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
-				parent: self.clone(), get: |parent| &parent.tuple, get_mut: |parent| &mutparent.tuple,
+				parent: self.clone(),
+				get: |parent| &parent.tuple,
+				get_mut: |parent| &mutparent.tuple,
 			}
 		);
 
@@ -647,7 +653,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			std::rc::Rc::downgrade(
 				&tethered
 			)
-		); tethered
+		);
+
+		tethered
 	}
 
 	pub fn set_tuple(
@@ -1211,7 +1219,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
-				parent: self.clone(), get: |parent| &parent.plain, get_mut: |parent| &mutparent.plain,
+				parent: self.clone(),
+				get: |parent| &parent.plain,
+				get_mut: |parent| &mutparent.plain,
 			}
 		);
 
@@ -1225,7 +1235,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			std::rc::Rc::downgrade(
 				&tethered
 			)
-		); tethered
+		);
+
+		tethered
 	}
 
 	pub fn set_plain(
@@ -1272,7 +1284,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
-				parent: self.clone(), get: |parent| &parent.tuple, get_mut: |parent| &mutparent.tuple,
+				parent: self.clone(),
+				get: |parent| &parent.tuple,
+				get_mut: |parent| &mutparent.tuple,
 			}
 		);
 
@@ -1286,7 +1300,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			std::rc::Rc::downgrade(
 				&tethered
 			)
-		); tethered
+		);
+
+		tethered
 	}
 
 	pub fn set_tuple(
