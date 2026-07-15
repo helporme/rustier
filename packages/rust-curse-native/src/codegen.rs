@@ -11,5 +11,6 @@ pub mod js;
 pub mod rustdoc;
 pub mod ts;
 
+#[cfg(test)]
 #[doc(hidden)]
 pub mod test;

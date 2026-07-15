@@ -54,14 +54,14 @@ macro_rules! assert_snap {
     (@generate: $($category:ident),+ $(,)?; @category: $snapshot_category:ident; $($tt:tt)*) => {{
         $crate::utils::assert_snap!(
             @generate: [$($category),+];
-            @snapshot_path: ::std::concat!("snapshots/", ::std::stringify!($snapshot_category));
+            @snapshot_path: ::std::concat!("_snapshots/", ::std::stringify!($snapshot_category));
             $($tt)*
         )
     }};
     (@generate: $($category:ident),+ $(,)?; $($tt:tt)*) => {{
         $crate::utils::assert_snap!(
             @generate: [$($category),+];
-            @snapshot_path: "snapshots";
+            @snapshot_path: "_snapshots";
             $($tt)*
         )
     }};

@@ -160,7 +160,8 @@ fn build_javascript_body(
     let mut text = String::new();
 
     for id in module_ids {
-        let js = js::compile_mod(db, *id, "./bindings.js".to_string());
+        let ir_id = lower_mod(db, *id).id(db);
+        let js = js::compile_mod(db, ir_id, "./bindings.js".to_string());
         push_module_code_block(&mut text, db, crate_, *id, "js", js);
     }
 
