@@ -1,7 +1,6 @@
-//! Composable, allocation-light fragments for generated source text.
-//!
-//! The [`frag`] macro, [`FragmentOnce`] and [`Fragment`] are most probably what
-//! you are looking for.
+//! Allocation-free fragments for generating any source text. Types implementing
+//! the [`FragmentOnce`] or [`Fragment`] traits replace [`String`] or [`str`],
+//! and the [`frag`] macro replaces [`format`].
 //!
 //! Example:
 //!
@@ -9,29 +8,69 @@
 //! # use rust_curse::codegen::fragment::{frag, FragmentPrint};
 //! #
 //! let name = "world";
-//! let greeting = frag!(hello ~ {name});
+//! let greeting = frag!(hello ~ {name}); // No allocation!
 //!
-//! assert_eq!(greeting.print(), "hello world");
+//! assert_eq!(greeting.print(), "hello world"); // print() allocates
 //! ```
 //!
 //! ---
 //!
-//! # Idea
+//! # Overview
 //!
-//! [`FragmentOnce`] or [`Fragment`] are traits that can write text to the
-//! [`Printer`] directly, without intermediate allocations. Many types are
-//! implementing these traits, such as [`String`], [`str`] or [`Option`].
+//! [`FragmentOnce`] or [`Fragment`] are simple traits that represent an action
+//! of pushing a piece of text to a [`String`], once or many times,
+//! respectively.
 //!
-//! To combine multiple fragments, you can use:
-//!  - [`fragment`] fn to create a custom fragment from a closure.
-//!  - tuples of fragments to combine them sequentially, usually through
-//!    [`frag!`] macro.
+//! Some common types implement these traits, such as [`String`], [`str`], or
+//! [`Option`]. The utility comes from composing these simple fragments into
+//! more complex ones, thereby representing a _fragment_ of source code.
 //!
-//! Combined fragments do not allocate as well. Use [`FragmentPrint::print`] to
-//! print them to a [`String`].
+//! ## Function composition
 //!
-//! Some utility methods are also available in this module, like [`doubles`],
-//! [`comma_list`] and simillar.
+//! One way of composing a fragment is to use the [`fragment`] function that
+//! converts a closure to a fragment by directly implementing the
+//! [`FragmentOnce`] trait. For example:
+//!
+//! ```
+//! # use rust_curse::codegen::fragment::{fragment, FragmentOnce};
+//! #
+//! let hello = "Hello ";
+//! let greeting = fragment(move |p| {
+//!     hello.apply(p);
+//!     ("world", "!").apply(p);
+//! });
+//! assert_eq!(greeting.print(), "Hello world!");
+//! ```
+//!
+//! You may notice that we do not push the text to the [`String`] directly,
+//! but instead use [`FragmentOnce::apply`] to apply the fragment to a
+//! [`Printer`]. Printer is a simple wrapper around [`String`] that keeps track
+//! of indentation and line breaks, so generated source code is a bit easier to
+//! read.
+//!
+//! ## Tuple composition
+//!
+//! Another way of composing a fragment is to combine fragments together using
+//! tuples like `("Hello ", Some("world"), "!")`. Any tuple of reasonable size
+//! that consists of types implementing either fragment trait is also a
+//! fragment.
+//!
+//! Usually, though, you do not want to manually type tuples to combine code.
+//! This is where the `frag` macro comes to help you. It accepts source-like
+//! syntax and automatically converts it into a fragment.
+//!
+//! ```
+//! # use rust_curse::codegen::fragment::frag;
+//! #
+//! let name = "%username%";
+//! let greeting = frag!(
+//!     Hello {name}!
+//! );
+//! assert_eq!(greeting.print(), "Hello %username%!");
+//! ```
+//!
+//! Check the [`frag`] macro documentation for more details about interpolations
+//! and other syntax.
 
 use std::fmt;
 
