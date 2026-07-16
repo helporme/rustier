@@ -521,6 +521,17 @@ pub fn parens(frag: impl FragmentOnce) -> impl FragmentOnce {
     ("(\n", idented(frag), "\n)")
 }
 
+/// Wraps the given fragment in square brackets.
+///
+/// ```
+/// # use rust_curse::codegen::fragment::{squares, FragmentPrint};
+/// #
+/// assert_eq!(squares("value").print(), "[value]");
+/// ```
+pub fn squares(frag: impl FragmentOnce) -> impl FragmentOnce {
+    ("[", frag, "]")
+}
+
 /// Wraps the given fragment in single quotes.
 ///
 /// ```
@@ -666,9 +677,10 @@ where
 ///
 /// # Auto formatting
 ///
-/// Double curly braces and parentheses are automatically wrapped with
-/// [`curlies`](crate::codegen::fragment::curlies) and
-/// [`parens`](crate::codegen::fragment::parens), respectively.
+/// Double curly braces, parentheses, and square brackets are automatically
+/// wrapped with [`curlies`](crate::codegen::fragment::curlies),
+/// [`parens`](crate::codegen::fragment::parens), and
+/// [`squares`](crate::codegen::fragment::squares), respectively.
 ///
 /// ```
 /// # use rust_curse::codegen::fragment::{frag, FragmentPrint};
@@ -680,6 +692,9 @@ where
 /// );
 ///
 /// assert_eq!(function.print(), "fn greet(\n\tname: &str\n) {\n\thello\n}");
+///
+/// let index = "0";
+/// assert_eq!(frag!(values[{index}]).print(), "values[0]");
 /// ```
 #[macro_export]
 macro_rules! frag {
@@ -719,6 +734,23 @@ macro_rules! frag {
             $($parts,)*
             stringify!($($text)+),
             $crate::codegen::fragment::curlies(frag!($($inner)*)),
+        ] [] $($rest)*)
+    };
+
+    // Square fragment with no pending text.
+    (@collect [$($parts:expr_2021,)*] [] [$($inner:tt)*] $($rest:tt)*) => {
+        frag!(@collect [
+            $($parts,)*
+            $crate::codegen::fragment::squares(frag!($($inner)*)),
+        ] [] $($rest)*)
+    };
+
+    // Square fragment after some static tokens.
+    (@collect [$($parts:expr_2021,)*] [$($text:tt)+] [$($inner:tt)*] $($rest:tt)*) => {
+        frag!(@collect [
+            $($parts,)*
+            stringify!($($text)+),
+            $crate::codegen::fragment::squares(frag!($($inner)*)),
         ] [] $($rest)*)
     };
 
