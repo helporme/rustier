@@ -1,0 +1,62 @@
+---
+source: src/codegen/js/imports.rs
+expression: body
+---
+## Test
+
+```text
+codegen::js::imports::tests::import_from_relative
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    @ file : "foo.rs"; pub mod foo { pub fn foo_fn(_0 : & super::bar::Bar, _1 : &
+    super::deeply::nested::Baz) {} } @ file : "bar.rs"; pub mod bar { pub struct Bar;
+    } @ file : "deeply/nested/baz.rs"; pub mod deeply { pub mod nested { pub struct
+    Baz; } }
+};
+let import_same = Import {
+    item: "Bar",
+    from: ImportFrom::RelativeToMod {
+        from: db.ir_id("foo"),
+        to: db.ir_id("bar"),
+    },
+};
+let import_forward = Import {
+    item: "Baz",
+    from: ImportFrom::RelativeToMod {
+        from: db.ir_id("foo"),
+        to: db.ir_id("deeply::nested"),
+    },
+};
+let import_backward = Import {
+    item: "Baz",
+    from: ImportFrom::RelativeToMod {
+        from: db.ir_id("deeply::nested"),
+        to: db.ir_id("foo"),
+    },
+};
+frag!(
+    { compile_import_stmt(& db, import_same) } @@ { compile_import_stmt(& db,
+    import_forward) } @@ { compile_import_stmt(& db, import_backward) } @@
+)
+    .print()
+```
+
+## Output
+
+```js
+import {
+	Bar
+} from './bar.rs';
+
+import {
+	Baz
+} from './deeply/nested/baz.rs';
+
+import {
+	Baz
+} from '../../foo.rs';
+```

@@ -27,6 +27,7 @@ use crate::{
         self,
         db::DbImpl,
         diag::{Diag, Theme},
+        rustdoc::mod_::lower_mod,
     },
     sync::{SyncCrateOps, SyncTsTreeOpts, sync_crate, sync_ts_tree},
     tools::{self, node::BuildOutput as NodeBuildOutput, wasm::BuildOutput as WasmBuildOutput},
@@ -472,6 +473,7 @@ impl Driver {
         trace!(src_path, "resolved profile artifact source path");
 
         codegen::api::Api::set(&mut self.db, api_kind);
+        codegen::js::JsCodegenPaths::set(&mut self.db, src_path);
 
         let module_path = PathBuf::from(&file_path).canonicalize().map_err(|source| {
             ResolveError::CanonicalizeModulePath {
@@ -503,7 +505,9 @@ impl Driver {
 
             if span_path == module_path {
                 debug!(module_path = %module_path.display(), "resolved Rust module import");
-                return Ok(codegen::js::compile_mod(&self.db, *mod_id, src_path).to_string());
+                let mod_ = lower_mod(&self.db, *mod_id);
+                let mod_id = mod_.id(&self.db);
+                return Ok(codegen::js::mod_::compile_js_file(&self.db, mod_id).to_owned());
             }
         }
 

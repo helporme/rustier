@@ -536,7 +536,7 @@ where
                     let field_access: std::rc::Rc<dyn __tethering::Accessor<{&self.source_type}>> = std::rc::Rc::new(__tethering::FieldAccess~{{
                         parent: self.clone(),@
                         get: |parent| &{get_ref_expr},@
-                        get_mut: |parent| &mut {get_mut_expr},@
+                        get_mut: |parent| &mut ~{get_mut_expr},@
                     }});@@
 
                     let tethered = std::rc::Rc::new({&self.tethered_name}::new_projected(field_access));@@
@@ -571,7 +571,7 @@ where
 
                     self.access_mut(&mut |src|~{{
                         old_value = Some(std::mem::replace(
-                            &mut {get_mut_expr},
+                            &mut ~{get_mut_expr},
                             value.take().unwrap(),
                         ));
                     }});@@
@@ -619,7 +619,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::codegen::test::assert_snap;
+    use crate::codegen::{fragment::FragmentPrint as _, test::assert_snap};
 
     type FieldExpr = fn(&'static str) -> (&'static str, &'static str);
 
@@ -633,6 +633,7 @@ mod tests {
                 name: "__tethered_empty",
                 fields,
             })
+            .print()
         });
     }
 
@@ -652,6 +653,7 @@ mod tests {
                 name: "__tethered_parent",
                 fields,
             })
+            .print()
         });
     }
 
@@ -673,6 +675,7 @@ mod tests {
                 name: "__tethered_parent",
                 fields,
             })
+            .print()
         });
     }
 
@@ -709,6 +712,7 @@ mod tests {
                 name: "__tethered_parent",
                 fields,
             })
+            .print()
         });
     }
 }

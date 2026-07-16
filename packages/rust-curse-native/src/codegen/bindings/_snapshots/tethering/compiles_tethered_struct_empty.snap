@@ -1,5 +1,6 @@
 ---
 source: src/codegen/bindings/tethering.rs
+assertion_line: 628
 expression: body
 ---
 ## Test
@@ -13,10 +14,11 @@ codegen::bindings::tethering::tests::compiles_tethered_struct_empty
 ```rs
 let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 0] = [];
 compile_tethered_struct(TetheredStruct {
-    source_type: "crate::Empty",
-    name: "__tethered_empty",
-    fields,
-})
+        source_type: "crate::Empty",
+        name: "__tethered_empty",
+        fields,
+    })
+    .print()
 ```
 
 ## Output

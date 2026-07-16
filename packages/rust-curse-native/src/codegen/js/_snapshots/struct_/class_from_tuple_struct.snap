@@ -1,0 +1,76 @@
+---
+source: src/codegen/js/struct_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::js::struct_::tests::class_from_tuple_struct
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    #[derive(Clone)] pub struct Baz {} pub struct Qux {} #[derive(Clone)] pub struct
+    Foo(pub Baz, pub Qux, pub String);
+};
+compile_test_struct(db, "Foo")
+```
+
+## Output
+
+```js
+
+
+export class Foo {
+	#_binding;
+	#_0;
+	#_1;
+
+	get [0](){
+		return this.#_0;
+	}
+
+	set [0](
+		value
+	){
+		this.#_binding[0] = value.__get_binding();
+		this.#_0 = Baz.__from_binding(
+			this.#_binding[0]
+		);
+	}
+
+	get [1](){
+		return this.#_1;
+	}
+
+	get [2](){
+		return this.#_binding[2];
+	}
+
+	set [2](
+		value
+	){
+		this.#_binding[2] = value;
+	}
+
+	static __from_binding(
+		binding
+	){
+		const obj = new Foo();
+		obj.#_binding = binding;
+		obj.#_0 = Baz.__from_binding(
+			binding[0]
+		);
+		obj.#_1 = Qux.__from_binding(
+			binding[1]
+		);
+		return obj;
+	}
+
+	__get_binding(){
+		return this.#_binding;
+	}
+}
+```

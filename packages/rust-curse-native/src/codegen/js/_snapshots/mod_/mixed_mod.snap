@@ -1,0 +1,144 @@
+---
+source: src/codegen/js/mod_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::js::mod_::tests::mixed_mod
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    @ file : "models.rs"; pub mod models { #[derive(Clone)] pub struct External; }
+    #[derive(Clone)] pub struct Local; pub struct Mixed { pub number : i32, pub text
+    : String, pub local : Local, pub external : models::External, } pub fn
+    mixed(number : i32, text : String, local : Local, external : models::External,)
+    -> models::External { models::External }
+};
+compile_test_mod(db)
+```
+
+## Output
+
+```js
+
+import {
+	External
+} from './models.rs';
+
+import {
+	__cursed_fn__rustdoc_0test_0crate_mixed
+} from 'path/to/bindings';
+
+export function mixed (
+	__p__number,
+	__p__text,
+	__p__local,
+	__p__external
+) {
+	 __p__number = __p__number;
+	 __p__text = __p__text;
+	 __p__local = __p__local.__get_binding();
+	 __p__external = __p__external.__get_binding();
+
+	return External.__from_binding(
+		__cursed_fn__rustdoc_0test_0crate_mixed(
+			__p__number,
+			__p__text,
+			__p__local,
+			__p__external
+		)
+	);
+}
+
+export class Local {
+	#_binding;
+
+
+
+	static __from_binding(
+		binding
+	){
+		const obj = new Local();
+		obj.#_binding = binding;
+		return obj;
+	}
+
+	__get_binding(){
+		return this.#_binding;
+	}
+}
+
+export class Mixed {
+	#_binding;
+	#_local;
+	#_external;
+
+	get ["number"](){
+		return this.#_binding["number"];
+	}
+
+	set ["number"](
+		value
+	){
+		this.#_binding["number"] = value;
+	}
+
+	get ["text"](){
+		return this.#_binding["text"];
+	}
+
+	set ["text"](
+		value
+	){
+		this.#_binding["text"] = value;
+	}
+
+	get ["local"](){
+		return this.#_local;
+	}
+
+	set ["local"](
+		value
+	){
+		this.#_binding["local"] = value.__get_binding();
+		this.#_local = Local.__from_binding(
+			this.#_binding["local"]
+		);
+	}
+
+	get ["external"](){
+		return this.#_external;
+	}
+
+	set ["external"](
+		value
+	){
+		this.#_binding["external"] = value.__get_binding();
+		this.#_external = External.__from_binding(
+			this.#_binding["external"]
+		);
+	}
+
+	static __from_binding(
+		binding
+	){
+		const obj = new Mixed();
+		obj.#_binding = binding;
+		obj.#_local = Local.__from_binding(
+			binding["local"]
+		);
+		obj.#_external = External.__from_binding(
+			binding["external"]
+		);
+		return obj;
+	}
+
+	__get_binding(){
+		return this.#_binding;
+	}
+}
+```

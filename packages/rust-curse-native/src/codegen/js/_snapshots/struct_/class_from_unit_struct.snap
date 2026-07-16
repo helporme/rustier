@@ -1,0 +1,84 @@
+---
+source: src/codegen/js/struct_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::js::struct_::tests::class_from_unit_struct
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    pub struct Foo; pub struct Bar(); pub struct Baz {}
+};
+let unit_struct = lower_struct(&db, db.rustdoc_id("Foo")).unwrap();
+let tuple_unit_struct = lower_struct(&db, db.rustdoc_id("Bar")).unwrap();
+let plain_unit_struct = lower_struct(&db, db.rustdoc_id("Baz")).unwrap();
+frag!(
+    { compile_facade_class_for_struct(& db, unit_struct) } @@ {
+    compile_facade_class_for_struct(& db, tuple_unit_struct) } @@ {
+    compile_facade_class_for_struct(& db, plain_unit_struct) }
+)
+    .print()
+```
+
+## Output
+
+```js
+export class Foo {
+	#_binding;
+
+
+
+	static __from_binding(
+		binding
+	){
+		const obj = new Foo();
+		obj.#_binding = binding;
+		return obj;
+	}
+
+	__get_binding(){
+		return this.#_binding.ptr;
+	}
+}
+
+export class Bar {
+	#_binding;
+
+
+
+	static __from_binding(
+		binding
+	){
+		const obj = new Bar();
+		obj.#_binding = binding;
+		return obj;
+	}
+
+	__get_binding(){
+		return this.#_binding.ptr;
+	}
+}
+
+export class Baz {
+	#_binding;
+
+
+
+	static __from_binding(
+		binding
+	){
+		const obj = new Baz();
+		obj.#_binding = binding;
+		return obj;
+	}
+
+	__get_binding(){
+		return this.#_binding.ptr;
+	}
+}
+```

@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
-use crate::codegen::db::Db;
+use crate::codegen::db::{Db, DbImpl};
 use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, Type};
 use salsa::Setter;
 
@@ -30,7 +30,7 @@ impl RustdocCrates {
     ///
     /// assert!(RustdocCrates::get(&db).crates(&db).is_empty());
     /// ```
-    pub fn set(db: &mut crate::codegen::db::DbImpl, crates: BTreeMap<String, Crate>) -> Self {
+    pub fn set(db: &mut DbImpl, crates: BTreeMap<String, Crate>) -> Self {
         if let Some(rustdoc) = Self::try_get(db) {
             rustdoc.set_crates(db).to(crates);
             rustdoc

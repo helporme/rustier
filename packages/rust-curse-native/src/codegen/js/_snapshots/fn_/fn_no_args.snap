@@ -1,0 +1,34 @@
+---
+source: src/codegen/js/fn_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::js::fn_::tests::fn_no_args
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    pub fn foo() {}
+};
+compile_test_fn(db)
+```
+
+## Output
+
+```js
+import {
+	__cursed_fn__rustdoc_0test_0crate_foo
+} from 'path/to/bindings';
+
+export function foo (
+
+) {
+	__cursed_fn__rustdoc_0test_0crate_foo(
+
+	);
+}
+```

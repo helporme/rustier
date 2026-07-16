@@ -6,7 +6,7 @@ use rust_curse::codegen::{
     bindings,
     db::Db,
     diag::Theme,
-    js,
+    js::{self, JsCodegenPaths},
     rustdoc::{
         RustdocId,
         mod_::{all_mod_ids, lower_mod},
@@ -51,6 +51,7 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
             }
             "js" => {
                 Api::set(&mut db, ApiKind::Node);
+                JsCodegenPaths::set(&mut db, "bindings.js".to_owned());
                 let text = build_javascript_body(&db, &fixture.crate_, all_mod_ids(&db));
                 push_markdown_section(&mut body, "Javascript", &text);
             }
@@ -65,6 +66,7 @@ pub fn build_snap(raw_src: &str, categories: &[&str]) -> String {
             }
             "wasm_web_js" => {
                 Api::set(&mut db, wasm_web_api());
+                JsCodegenPaths::set(&mut db, "bindings.js".to_owned());
                 let text = build_javascript_body(&db, &fixture.crate_, all_mod_ids(&db));
                 push_markdown_section(&mut body, "Wasm Web Javascript", &text);
             }
@@ -161,7 +163,7 @@ fn build_javascript_body(
 
     for id in module_ids {
         let ir_id = lower_mod(db, *id).id(db);
-        let js = js::compile_mod(db, ir_id, "./bindings.js".to_string());
+        let js = js::mod_::compile_js_file(db, ir_id);
         push_module_code_block(&mut text, db, crate_, *id, "js", js);
     }
 

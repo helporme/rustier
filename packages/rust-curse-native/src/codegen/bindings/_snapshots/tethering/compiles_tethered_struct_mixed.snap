@@ -36,10 +36,11 @@ let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 3] = [
     }),
 ];
 compile_tethered_struct(TetheredStruct {
-    source_type: "crate::Parent",
-    name: "__tethered_parent",
-    fields,
-})
+        source_type: "crate::Parent",
+        name: "__tethered_parent",
+        fields,
+    })
+    .print()
 ```
 
 ## Output
@@ -150,7 +151,7 @@ impl __tethered_parent {
 			__tethering::FieldAccess {
 				parent: self.clone(),
 				get: |parent| &parent.child,
-				get_mut: |parent| &mutparent.child,
+				get_mut: |parent| &mut parent.child,
 			}
 		);
 
@@ -185,7 +186,7 @@ impl __tethered_parent {
 			&mut |src| {
 				old_value = Some(
 					std::mem::replace(
-						&mutsrc.child, value.take().unwrap(),
+						&mut src.child, value.take().unwrap(),
 					)
 				);
 			}
@@ -215,7 +216,7 @@ impl __tethered_parent {
 			__tethering::FieldAccess {
 				parent: self.clone(),
 				get: |parent| &parent.readonly_child,
-				get_mut: |parent| &mutparent.readonly_child,
+				get_mut: |parent| &mut parent.readonly_child,
 			}
 		);
 

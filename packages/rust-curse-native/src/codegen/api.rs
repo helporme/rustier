@@ -38,21 +38,7 @@ pub enum WasmTarget {
 
 impl Api {
     /// Sets the active binding API in the database.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use rust_curse::codegen::{
-    ///     api::{Api, ApiKind},
-    ///     db::DbImpl,
-    /// };
-    ///
-    /// let mut db = DbImpl::default();
-    /// Api::set(&mut db, ApiKind::Node);
-    ///
-    /// assert_eq!(Api::get(&db).kind(&db), ApiKind::Node);
-    /// ```
-    pub fn set(db: &mut crate::codegen::db::DbImpl, kind: ApiKind) -> Self {
+    pub fn set(db: &mut dyn Db, kind: ApiKind) -> Self {
         if let Some(api) = Self::try_get(db) {
             api.set_kind(db).to(kind);
             api

@@ -21,7 +21,7 @@
 //! of pushing a piece of text to a [`String`], once or many times,
 //! respectively.
 //!
-//! Some common types implement these traits, such as [`String`], [`str`], or
+//! Some common types implement these traits, such as [`String`], `&str`, or
 //! [`Option`]. The utility comes from composing these simple fragments into
 //! more complex ones, thereby representing a _fragment_ of source code.
 //!
@@ -32,7 +32,7 @@
 //! [`FragmentOnce`] trait. For example:
 //!
 //! ```
-//! # use rust_curse::codegen::fragment::{fragment, FragmentOnce};
+//! # use rust_curse::codegen::fragment::{fragment, FragmentOnce, FragmentPrint};
 //! #
 //! let hello = "Hello ";
 //! let greeting = fragment(move |p| {
@@ -60,11 +60,11 @@
 //! syntax and automatically converts it into a fragment.
 //!
 //! ```
-//! # use rust_curse::codegen::fragment::frag;
+//! # use rust_curse::codegen::fragment::{frag, FragmentPrint};
 //! #
 //! let name = "%username%";
 //! let greeting = frag!(
-//!     Hello {name}!
+//!     Hello ~{name}!
 //! );
 //! assert_eq!(greeting.print(), "Hello %username%!");
 //! ```
@@ -192,18 +192,24 @@ pub trait FragmentOnce {
 /// times.
 ///
 /// This object-safe trait is intended for the uncommon cases that need reuse
-/// or type erasure. Normal fragment composition should use [`FragmentOnce`].
+/// or type erasure. Every `Fragment` can also be consumed as a
+/// [`FragmentOnce`]. Normal fragment composition should use [`FragmentOnce`].
 ///
 /// ```
 /// # use rust_curse::codegen::fragment::{Fragment, FragmentPrint};
 /// #
+/// fn print_fragment(fragment: impl Fragment) -> String {
+///     fragment.print()
+/// }
+///
 /// let text = String::from("reusable");
 /// let fragment: &dyn Fragment = &text;
 ///
+/// assert_eq!(print_fragment(String::from("owned")), "owned");
 /// assert_eq!(fragment.print(), "reusable");
 /// assert_eq!(fragment.print(), "reusable");
 /// ```
-pub trait Fragment {
+pub trait Fragment: FragmentOnce {
     /// Appends this fragment to `printer` without consuming it.
     fn apply_ref(&self, printer: &mut Printer);
 }
@@ -272,7 +278,13 @@ where
     }
 }
 
-impl Fragment for dyn Fn(&mut Printer) + '_ {
+impl FragmentOnce for &(dyn Fn(&mut Printer) + '_) {
+    fn apply(self, printer: &mut Printer) {
+        self(printer);
+    }
+}
+
+impl Fragment for &(dyn Fn(&mut Printer) + '_) {
     fn apply_ref(&self, printer: &mut Printer) {
         self(printer);
     }
@@ -305,7 +317,13 @@ where
     }
 }
 
-impl Fragment for str {
+impl FragmentOnce for &str {
+    fn apply(self, printer: &mut Printer) {
+        printer.write(self);
+    }
+}
+
+impl Fragment for &str {
     /// ```
     /// # use rust_curse::codegen::fragment::FragmentPrint;
     /// #
@@ -466,6 +484,21 @@ where
     f.into_fragment()
 }
 
+/// A reusable deferred newline fragment.
+pub struct Blank;
+
+impl FragmentOnce for Blank {
+    fn apply(self, printer: &mut Printer) {
+        printer.new_lines += 1;
+    }
+}
+
+impl Fragment for Blank {
+    fn apply_ref(&self, printer: &mut Printer) {
+        printer.new_lines += 1;
+    }
+}
+
 /// Inserts a newline separator if another non-empty fragment follows it.
 ///
 /// Existing newlines at either side of the boundary count toward the requested
@@ -479,24 +512,83 @@ where
 /// assert_eq!(("one", blank(), blank(), "two").print(), "one\n\ntwo");
 /// assert_eq!(("one", blank()).print(), "one");
 /// ```
-pub fn blank() -> impl FragmentOnce {
-    fragment(|p| p.new_lines += 1)
+pub fn blank() -> Blank {
+    Blank
+}
+
+/// A fragment that increases indentation while rendering its inner fragment.
+pub struct Indented<F> {
+    fragment: F,
+}
+
+impl<F> FragmentOnce for Indented<F>
+where
+    F: FragmentOnce,
+{
+    fn apply(self, printer: &mut Printer) {
+        printer.indent += 1;
+        self.fragment.apply(printer);
+        printer.indent -= 1;
+    }
+}
+
+impl<F> Fragment for Indented<F>
+where
+    F: Fragment,
+{
+    fn apply_ref(&self, printer: &mut Printer) {
+        printer.indent += 1;
+        self.fragment.apply_ref(printer);
+        printer.indent -= 1;
+    }
 }
 
 /// Increases indentation while rendering the given fragment.
 ///
+/// The returned fragment is reusable when the input implements [`Fragment`].
+///
 /// ```
-/// # use rust_curse::codegen::fragment::{idented, FragmentPrint};
+/// # use rust_curse::codegen::fragment::{idented, Fragment, FragmentPrint};
 /// #
+/// fn require_fragment(_: impl Fragment) {}
+///
 /// assert_eq!(idented("one\ntwo").print(), "\tone\n\ttwo");
+/// require_fragment(idented(String::from("reusable")));
 /// ```
-pub fn idented(frag: impl FragmentOnce) -> impl FragmentOnce {
-    (move |p: &mut Printer| {
-        p.indent += 1;
-        frag.apply(p);
-        p.indent -= 1;
-    })
-    .into_fragment()
+pub fn idented<F>(fragment: F) -> Indented<F>
+where
+    F: FragmentOnce,
+{
+    Indented { fragment }
+}
+
+/// A fragment surrounded by static opening and closing delimiters.
+pub struct Delimited<F> {
+    opening: &'static str,
+    fragment: F,
+    closing: &'static str,
+}
+
+impl<F> FragmentOnce for Delimited<F>
+where
+    F: FragmentOnce,
+{
+    fn apply(self, printer: &mut Printer) {
+        printer.write(self.opening);
+        self.fragment.apply(printer);
+        printer.write(self.closing);
+    }
+}
+
+impl<F> Fragment for Delimited<F>
+where
+    F: Fragment,
+{
+    fn apply_ref(&self, printer: &mut Printer) {
+        printer.write(self.opening);
+        self.fragment.apply_ref(printer);
+        printer.write(self.closing);
+    }
 }
 
 /// Wraps the given fragment in curly braces with indentation.
@@ -506,8 +598,15 @@ pub fn idented(frag: impl FragmentOnce) -> impl FragmentOnce {
 /// #
 /// assert_eq!(curlies("value").print(), "{\n\tvalue\n}");
 /// ```
-pub fn curlies(frag: impl FragmentOnce) -> impl FragmentOnce {
-    ("{\n", idented(frag), "\n}")
+pub fn curlies<F>(fragment: F) -> Delimited<Indented<F>>
+where
+    F: FragmentOnce,
+{
+    Delimited {
+        opening: "{\n",
+        fragment: idented(fragment),
+        closing: "\n}",
+    }
 }
 
 /// Wraps the given fragment in parentheses with indentation.
@@ -517,8 +616,15 @@ pub fn curlies(frag: impl FragmentOnce) -> impl FragmentOnce {
 /// #
 /// assert_eq!(parens("value").print(), "(\n\tvalue\n)");
 /// ```
-pub fn parens(frag: impl FragmentOnce) -> impl FragmentOnce {
-    ("(\n", idented(frag), "\n)")
+pub fn parens<F>(fragment: F) -> Delimited<Indented<F>>
+where
+    F: FragmentOnce,
+{
+    Delimited {
+        opening: "(\n",
+        fragment: idented(fragment),
+        closing: "\n)",
+    }
 }
 
 /// Wraps the given fragment in square brackets.
@@ -528,8 +634,15 @@ pub fn parens(frag: impl FragmentOnce) -> impl FragmentOnce {
 /// #
 /// assert_eq!(squares("value").print(), "[value]");
 /// ```
-pub fn squares(frag: impl FragmentOnce) -> impl FragmentOnce {
-    ("[", frag, "]")
+pub fn squares<F>(fragment: F) -> Delimited<F>
+where
+    F: FragmentOnce,
+{
+    Delimited {
+        opening: "[",
+        fragment,
+        closing: "]",
+    }
 }
 
 /// Wraps the given fragment in single quotes.
@@ -539,8 +652,15 @@ pub fn squares(frag: impl FragmentOnce) -> impl FragmentOnce {
 /// #
 /// assert_eq!(singles("value").print(), "'value'");
 /// ```
-pub fn singles(frag: impl FragmentOnce) -> impl FragmentOnce {
-    ("'", frag, "'")
+pub fn singles<F>(fragment: F) -> Delimited<F>
+where
+    F: FragmentOnce,
+{
+    Delimited {
+        opening: "'",
+        fragment,
+        closing: "'",
+    }
 }
 
 /// Wraps the given fragment in double quotes.
@@ -550,70 +670,149 @@ pub fn singles(frag: impl FragmentOnce) -> impl FragmentOnce {
 /// #
 /// assert_eq!(doubles("value").print(), "\"value\"");
 /// ```
-pub fn doubles(frag: impl FragmentOnce) -> impl FragmentOnce {
-    ("\"", frag, "\"")
+pub fn doubles<F>(fragment: F) -> Delimited<F>
+where
+    F: FragmentOnce,
+{
+    Delimited {
+        opening: "\"",
+        fragment,
+        closing: "\"",
+    }
+}
+
+/// A fragment iterator joined with a comma and a newline.
+pub struct CommaList<I> {
+    fragments: I,
+}
+
+impl<I> FragmentOnce for CommaList<I>
+where
+    I: Iterator,
+    I::Item: FragmentOnce,
+{
+    fn apply(self, printer: &mut Printer) {
+        for (index, fragment) in self.fragments.enumerate() {
+            if index > 0 {
+                printer.write(",\n");
+            }
+
+            fragment.apply(printer);
+        }
+    }
+}
+
+impl<I> Fragment for CommaList<I>
+where
+    I: Iterator + Clone,
+    I::Item: FragmentOnce,
+{
+    fn apply_ref(&self, printer: &mut Printer) {
+        for (index, fragment) in self.fragments.clone().enumerate() {
+            if index > 0 {
+                printer.write(",\n");
+            }
+
+            fragment.apply(printer);
+        }
+    }
 }
 
 /// Joins fragments with a comma and a newline.
 ///
+/// The returned fragment is reusable when the input's iterator is cloneable.
+///
 /// ```
-/// # use rust_curse::codegen::fragment::{comma_list, FragmentPrint};
+/// # use rust_curse::codegen::fragment::{comma_list, Fragment, FragmentPrint};
 /// #
+/// fn require_fragment(_: impl Fragment) {}
+///
 /// assert_eq!(
 ///     comma_list(["one", "two", "three"]).print(),
 ///     "one,\ntwo,\nthree"
 /// );
 /// assert_eq!(comma_list(Vec::<&str>::new()).print(), "");
+/// require_fragment(comma_list(["one", "two"]));
 /// ```
-pub fn comma_list<I>(frags: I) -> impl FragmentOnce
+pub fn comma_list<F>(fragments: F) -> CommaList<F::IntoIter>
 where
-    I: IntoIterator,
+    F: IntoIterator,
+    F::Item: FragmentOnce,
+{
+    CommaList {
+        fragments: fragments.into_iter(),
+    }
+}
+
+/// A fragment iterator joined with one blank line between items.
+pub struct Spaced<I> {
+    fragments: I,
+}
+
+impl<I> FragmentOnce for Spaced<I>
+where
+    I: Iterator,
     I::Item: FragmentOnce,
 {
-    (move |p: &mut Printer| {
-        for (index, frag) in frags.into_iter().enumerate() {
-            if index > 0 {
-                p.write(",\n");
+    fn apply(self, printer: &mut Printer) {
+        for (index, fragment) in self.fragments.enumerate() {
+            if index > 0 && !printer.out.ends_with("\n\n") {
+                if !printer.at_line_start {
+                    printer.write("\n");
+                }
+                printer.write("\n");
             }
 
-            frag.apply(p);
+            fragment.apply(printer);
         }
-    })
-    .into_fragment()
+    }
+}
+
+impl<I> Fragment for Spaced<I>
+where
+    I: Iterator + Clone,
+    I::Item: FragmentOnce,
+{
+    fn apply_ref(&self, printer: &mut Printer) {
+        for (index, fragment) in self.fragments.clone().enumerate() {
+            if index > 0 && !printer.out.ends_with("\n\n") {
+                if !printer.at_line_start {
+                    printer.write("\n");
+                }
+                printer.write("\n");
+            }
+
+            fragment.apply(printer);
+        }
+    }
 }
 
 /// Joins fragments with one blank line between them.
 ///
+/// The returned fragment is reusable when the input's iterator is cloneable.
 /// If the previous fragment does not end with a newline, `spaced` inserts two;
 /// if it ends with one, `spaced` inserts one more. Existing blank lines are
 /// preserved.
 ///
 /// ```
-/// # use rust_curse::codegen::fragment::{spaced, FragmentPrint};
+/// # use rust_curse::codegen::fragment::{spaced, Fragment, FragmentPrint};
 /// #
+/// fn require_fragment(_: impl Fragment) {}
+///
 /// assert_eq!(spaced(["one", "two"]).print(), "one\n\ntwo");
 /// assert_eq!(spaced(["one\n", "two"]).print(), "one\n\ntwo");
 /// assert_eq!(spaced(["one\n\n", "two"]).print(), "one\n\ntwo");
 /// assert_eq!(spaced(Vec::<&str>::new()).print(), "");
+/// require_fragment(spaced(["one", "two"]));
 /// ```
-pub fn spaced<I>(frags: I) -> impl FragmentOnce
+pub fn spaced<F>(fragments: F) -> Spaced<F::IntoIter>
 where
-    I: IntoIterator,
-    I::Item: FragmentOnce,
+    F: IntoIterator,
+    F::Item: FragmentOnce,
 {
-    (move |p: &mut Printer| {
-        for (index, frag) in frags.into_iter().enumerate() {
-            if index > 0 && !p.out.ends_with("\n\n") {
-                if !p.at_line_start {
-                    p.write("\n");
-                }
-                p.write("\n");
-            }
-
-            frag.apply(p);
-        }
-    })
-    .into_fragment()
+    Spaced {
+        fragments: fragments.into_iter(),
+    }
 }
 
 /// Builds a fragment from source-like text supporting interpolation.

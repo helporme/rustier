@@ -67,8 +67,7 @@ impl<'db> Fn<'db> {
 
     /// Returns the fully qualified name of the function, e.g.
     /// `std::mem::drop`.
-    #[salsa::tracked(returns(ref))]
-    pub fn fqn(self, db: &'db dyn Db) -> String {
-        self.id(db).path(db).join("::")
+    pub fn fqn(self, db: &'db dyn Db) -> &'db String {
+        self.id(db).fqn(db)
     }
 }

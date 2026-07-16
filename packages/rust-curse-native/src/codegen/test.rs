@@ -38,11 +38,13 @@ impl DbImpl {
     /// An empty path returns the test crate's root ID.
     ///
     /// ```no_run
-    /// use rust_curse::test_db;
-    ///
-    /// let db = test_db! {
-    ///     @api: "node";
+    /// use rust_curse::{
+    ///     codegen::api::{Api, ApiKind},
+    ///     test_db,
     /// };
+    ///
+    /// let mut db = test_db! {};
+    /// Api::set(&mut db, ApiKind::Node);
     /// let root = db.ir_id("");
     /// assert_eq!(root.path(&db), &["rustdoc_test_crate"]);
     /// ```
@@ -59,15 +61,17 @@ impl DbImpl {
     /// exist.
     ///
     /// ```no_run
-    /// use rust_curse::test_db;
+    /// use rust_curse::{
+    ///     codegen::api::{Api, ApiKind},
+    ///     test_db,
+    /// };
     ///
-    /// let db = test_db! {
-    ///     @api: "node";
-    ///
+    /// let mut db = test_db! {
     ///     pub mod path {
     ///         pub fn item() {}
     ///     }
     /// };
+    /// Api::set(&mut db, ApiKind::Node);
     /// let id = db.rustdoc_id("path::item");
     /// assert_eq!(id.item(&db).name.as_deref(), Some("item"));
     /// ```
@@ -76,14 +80,9 @@ impl DbImpl {
     }
 }
 
-/// Builds a codegen database from root source, additional module files, and an
-/// optional API.
+/// Builds a codegen database from root source and additional module files.
 #[doc(hidden)]
-pub fn build_test_db(
-    api: Option<crate::codegen::api::ApiKind>,
-    src: String,
-    files: &[(&str, String)],
-) -> DbImpl {
+pub fn build_test_db(src: String, files: &[(&str, String)]) -> DbImpl {
     let fixture_dir = tempfile::tempdir().expect("create test crate tempdir");
     let crate_dir = fixture_dir.path().to_path_buf();
     let src_dir = crate_dir.join("src");
@@ -131,9 +130,6 @@ pub fn build_test_db(
 
     let mut db = DbImpl::default();
     crate::codegen::rustdoc::RustdocCrates::set(&mut db, crates);
-    if let Some(api) = api {
-        crate::codegen::api::Api::set(&mut db, api);
-    }
 
     // Source files are read lazily by diagnostics and sourcemap queries,
     // so they must outlive the database returned from this function.
@@ -142,13 +138,12 @@ pub fn build_test_db(
 }
 
 /// Creates a [`DbImpl`](crate::codegen::db::DbImpl) containing rustdoc inputs
-/// for inline Rust code and, when specified, an API input.
+/// for inline Rust code.
 ///
-/// `wasm` selects the wasm-bindgen web target, while `node` selects napi.
-/// Omitting `@api` leaves the API input unset. The macro is only available to
-/// unit tests. Place `@file: "path";` before an
-/// inline module to emit its body into that file and replace the module with a
-/// `#[path = "path"]` declaration.
+/// The macro is only available to unit tests. Configure API inputs separately
+/// with [`Api::set`](crate::codegen::api::Api::set). Place `@file: "path";`
+/// before an inline module to emit its body into that file and replace the
+/// module with a `#[path = "path"]` declaration.
 ///
 /// ```no_run
 /// use rust_curse::test_db;
@@ -163,32 +158,8 @@ pub fn build_test_db(
 /// ```
 #[macro_export]
 macro_rules! test_db {
-    (@api: "wasm"; $($source:tt)*) => {
-        $crate::test_db! {
-            @build: ::std::option::Option::Some(
-                $crate::codegen::api::ApiKind::Wasm {
-                    target: $crate::codegen::api::WasmTarget::Web,
-                }
-            );
-            $($source)*
-        }
-    };
-    (@api: "node"; $($source:tt)*) => {
-        $crate::test_db! {
-            @build: ::std::option::Option::Some($crate::codegen::api::ApiKind::Node);
-            $($source)*
-        }
-    };
-    (@build: $api:expr; $($source:tt)*) => {
-        $crate::test_db! {
-            @files: $api;
-            @source: [];
-            @bodies: [];
-            $($source)*
-        }
-    };
     (
-        @files: $api:expr;
+        @parse;
         @source: [$($source:tt)*];
         @bodies: [$($bodies:tt)*];
         @file: $path:literal;
@@ -196,7 +167,7 @@ macro_rules! test_db {
         $($rest:tt)*
     ) => {
         $crate::test_db! {
-            @files: $api;
+            @parse;
             @source: [
                 $($source)*
                 #[path = $path]
@@ -210,31 +181,33 @@ macro_rules! test_db {
         }
     };
     (
-        @files: $api:expr;
+        @parse;
         @source: [$($source:tt)*];
         @bodies: [$($bodies:tt)*];
         $token:tt
         $($rest:tt)*
     ) => {
         $crate::test_db! {
-            @files: $api;
+            @parse;
             @source: [$($source)* $token];
             @bodies: [$($bodies)*];
             $($rest)*
         }
     };
     (
-        @files: $api:expr;
+        @parse;
         @source: [$($source:tt)*];
         @bodies: [$(($path:literal, { $($body:tt)* }))*];
     ) => {{
         let src = $crate::rust_source!($($source)*);
         let files = [$(($path, $crate::rust_source!($($body)*))),*];
-        $crate::codegen::test::build_test_db($api, src, &files)
+        $crate::codegen::test::build_test_db(src, &files)
     }};
     ($($source:tt)*) => {
         $crate::test_db! {
-            @build: ::std::option::Option::None;
+            @parse;
+            @source: [];
+            @bodies: [];
             $($source)*
         }
     };
@@ -300,7 +273,7 @@ pub fn build_snapshot(
 #[macro_export]
 macro_rules! assert_snap {
     (@assert $language:expr, $source:expr, $expression:expr) => {{
-        let generated = $crate::codegen::fragment::FragmentPrint::print($expression);
+        let generated = $expression;
         let (body, snapshot_path) = $crate::codegen::test::build_snapshot(
             $source,
             &generated,
@@ -340,21 +313,3 @@ macro_rules! assert_snap {
 
 #[cfg(test)]
 pub use crate::assert_snap;
-
-#[cfg(test)]
-mod tests {
-    use crate::codegen::api::Api;
-
-    #[test]
-    fn test_db_allows_api_to_be_omitted() {
-        let db = test_db! {
-            pub struct User;
-        };
-
-        assert!(Api::try_get(&db).is_none());
-        assert_eq!(
-            db.rustdoc_id("User").item(&db).name.as_deref(),
-            Some("User")
-        );
-    }
-}

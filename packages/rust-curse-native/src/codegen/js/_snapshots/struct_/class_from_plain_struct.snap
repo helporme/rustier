@@ -1,0 +1,89 @@
+---
+source: src/codegen/js/struct_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::js::struct_::tests::class_from_plain_struct
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    @ file : "baz.rs"; pub mod baz { #[derive(Clone)] pub struct Baz {} } pub struct
+    Qux {} pub struct Foo { pub x : i32, pub y : String, pub z : baz::Baz, pub v :
+    Qux, }
+};
+compile_test_struct(db, "Foo")
+```
+
+## Output
+
+```js
+import {
+	Baz
+} from './baz.rs';
+
+export class Foo {
+	#_binding;
+	#_z;
+	#_v;
+
+	get ["x"](){
+		return this.#_binding["x"];
+	}
+
+	set ["x"](
+		value
+	){
+		this.#_binding["x"] = value;
+	}
+
+	get ["y"](){
+		return this.#_binding["y"];
+	}
+
+	set ["y"](
+		value
+	){
+		this.#_binding["y"] = value;
+	}
+
+	get ["z"](){
+		return this.#_z;
+	}
+
+	set ["z"](
+		value
+	){
+		this.#_binding["z"] = value.__get_binding();
+		this.#_z = Baz.__from_binding(
+			this.#_binding["z"]
+		);
+	}
+
+	get ["v"](){
+		return this.#_v;
+	}
+
+	static __from_binding(
+		binding
+	){
+		const obj = new Foo();
+		obj.#_binding = binding;
+		obj.#_z = Baz.__from_binding(
+			binding["z"]
+		);
+		obj.#_v = Qux.__from_binding(
+			binding["v"]
+		);
+		return obj;
+	}
+
+	__get_binding(){
+		return this.#_binding;
+	}
+}
+```

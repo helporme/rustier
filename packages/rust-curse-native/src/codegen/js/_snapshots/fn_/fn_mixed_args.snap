@@ -1,0 +1,42 @@
+---
+source: src/codegen/js/fn_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::js::fn_::tests::fn_mixed_args
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    #[derive(Clone)] pub struct Foo {} pub fn foo(a : i32, b : String, c : Foo) {}
+};
+compile_test_fn(db)
+```
+
+## Output
+
+```js
+import {
+	__cursed_fn__rustdoc_0test_0crate_foo
+} from 'path/to/bindings';
+
+export function foo (
+	__p__a,
+	__p__b,
+	__p__c
+) {
+	 __p__a = __p__a;
+	 __p__b = __p__b;
+	 __p__c = __p__c.__get_binding();
+
+	__cursed_fn__rustdoc_0test_0crate_foo(
+		__p__a,
+		__p__b,
+		__p__c
+	);
+}
+```

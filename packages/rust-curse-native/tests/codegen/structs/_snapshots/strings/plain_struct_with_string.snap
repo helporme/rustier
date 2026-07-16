@@ -56,7 +56,9 @@ export class PlainStruct {
 ## Wasm Bindings
 
 ```rs
-#![allow(non_camel_case_types, non_snake_case)]
+#![allow(
+	non_camel_case_types, non_snake_case
+)]
 use wasm_bindgen::prelude::*;
 
 #[allow(non_snake_case, dead_code)]
@@ -280,7 +282,9 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 ## Node Bindings
 
 ```rs
-#![allow(non_camel_case_types, non_snake_case)]
+#![allow(
+	non_camel_case_types, non_snake_case
+)]
 use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
 
