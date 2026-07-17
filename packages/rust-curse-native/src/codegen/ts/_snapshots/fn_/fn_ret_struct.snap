@@ -1,0 +1,24 @@
+---
+source: src/codegen/ts/fn_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::ts::fn_::tests::fn_ret_struct
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    pub struct Foo; pub fn foo() -> Foo { Foo }
+};
+compile_test_fn(db)
+```
+
+## Output
+
+```ts
+export function foo(): Foo;
+```

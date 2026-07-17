@@ -32,7 +32,7 @@ pub struct SyncTsTreeOpts<'a> {
 ///
 /// use rust_curse::{
 ///     codegen::db::DbImpl,
-///     sync::ts_tree::{sync_ts_tree, SyncTsTreeOpts},
+///     sync::ts_tree::{SyncTsTreeOpts, sync_ts_tree},
 /// };
 ///
 /// sync_ts_tree(SyncTsTreeOpts {
@@ -117,9 +117,9 @@ pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<Vec<Diag>, SyncTsTreeErr
             ensure_dir(parent)?;
         }
 
-        let mut declaration = codegen::ts::compile_mod(opts.db, *mod_id).to_string();
+        let mut declaration = codegen::ts::mod_::compile_mod(opts.db, *mod_id).to_string();
         diags.extend(
-            codegen::ts::compile_mod::accumulated::<Diag>(opts.db, *mod_id)
+            codegen::ts::mod_::compile_mod::accumulated::<Diag>(opts.db, *mod_id)
                 .into_iter()
                 .cloned(),
         );

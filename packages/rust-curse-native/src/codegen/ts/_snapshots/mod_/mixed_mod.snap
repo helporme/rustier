@@ -1,0 +1,51 @@
+---
+source: src/codegen/ts/mod_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::ts::mod_::tests::mixed_mod
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    @ file : "models.rs"; pub mod models { #[derive(Clone)] pub struct External; }
+    #[derive(Clone)] pub struct Local; pub struct Mixed { pub number : i32, pub text
+    : String, pub local : Local, pub external : models::External, } pub fn
+    mixed(number : i32, text : String, local : Local, external : models::External,)
+    -> models::External { external }
+};
+compile_mod(&db, db.rustdoc_id("")).to_string()
+```
+
+## Output
+
+```ts
+import {
+	External
+} from './models.rs';
+
+export function mixed(
+	number: number,
+	text: string,
+	local: Local,
+	external: External,
+): External;
+
+export class Local {
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+export class Mixed {
+	public number: number;
+	public text: string;
+	public local: Local;
+	public external: External;
+	private __rust_curse_brand: never;
+	private constructor();
+}
+```
