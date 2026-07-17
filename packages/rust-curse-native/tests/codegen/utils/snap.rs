@@ -118,7 +118,7 @@ fn build_typescript_body(
     let mut text = String::new();
 
     for id in module_ids {
-        let ts = ts::compile_mod(db, *id);
+        let ts = ts::mod_::compile_mod(db, *id);
         push_module_code_block(&mut text, db, crate_, *id, "ts", ts);
     }
 

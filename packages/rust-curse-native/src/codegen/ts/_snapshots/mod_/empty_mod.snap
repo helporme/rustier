@@ -1,0 +1,22 @@
+---
+source: src/codegen/ts/mod_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::ts::mod_::tests::empty_mod
+```
+
+## Source
+
+```rs
+let db = test_db! {};
+compile_mod(&db, db.rustdoc_id("")).to_string()
+```
+
+## Output
+
+```ts
+
+```
