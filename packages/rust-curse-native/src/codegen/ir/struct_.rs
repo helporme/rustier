@@ -3,7 +3,6 @@ use rustdoc_types::ItemKind;
 use crate::codegen::{
     db::Db,
     ir::{IrId, mangle::mangle_path, type_::Type},
-    rustdoc::RustdocId,
 };
 
 /// A field declared by a Rust struct.
@@ -63,24 +62,24 @@ impl<'db> Struct<'db> {
     /// Returns the name of the binding struct, e.g.
     /// `__cursed_struct__std_mem_Drop`
     pub fn binding_name(&self, db: &'db dyn Db) -> &'db str {
-        struct_binding_name_from_rustdoc_id(db, self.id(db).rustdoc_id(db))
+        struct_binding_name_from_ir_id(db, self.id(db))
     }
 
     /// Returns the name of the tethered struct, e.g.
     /// `__tethered_struct__std_mem_Drop`
     pub fn tethered_name(&self, db: &'db dyn Db) -> &'db str {
-        struct_tethered_name_from_rustdoc_id(db, self.id(db).rustdoc_id(db))
+        struct_tethered_name_from_ir_id(db, self.id(db))
     }
 
     /// Returns the name of the struct, e.g. `Drop` for `std::mem::Drop`.
     pub fn name(&self, db: &'db dyn Db) -> &'db str {
-        struct_name_from_rustdoc_id(db, self.id(db).rustdoc_id(db))
+        struct_name_from_ir_id(db, self.id(db))
     }
 
     /// Returns the fully qualified name of the struct, e.g.
     /// `std::mem::Drop`.
     pub fn fqn(&self, db: &'db dyn Db) -> &'db str {
-        struct_fqn_from_rustdoc_id(db, self.id(db).rustdoc_id(db))
+        struct_fqn_from_ir_id(db, self.id(db))
     }
 
     /// Returns the struct as a [`Type`].
@@ -101,70 +100,75 @@ impl<'db> Struct<'db> {
 /// Returns the mangled name of the struct e.g. `std_mem_Drop` for a rustdoc id
 /// pointing to the struct.
 #[salsa::tracked(returns(ref))]
-pub fn struct_mangled_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> String {
+pub fn struct_mangled_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+    let id = id.rustdoc_id(db);
     let summary = id
         .crate_body(db)
         .paths
         .get(&id.idx(db))
         .expect("Struct not found in a rustdoc crate");
 
-    debug_assert_eq!(summary.kind, ItemKind::Struct);
+    assert_eq!(summary.kind, ItemKind::Struct);
     mangle_path(&summary.path)
 }
 
 /// Returns the binding name of the struct e.g. `__cursed_struct__std_mem_Drop`
 /// for a rustdoc id pointing to the struct.
 #[salsa::tracked(returns(ref))]
-pub fn struct_binding_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> String {
+pub fn struct_binding_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+    let id = id.rustdoc_id(db);
     let summary = id
         .crate_body(db)
         .paths
         .get(&id.idx(db))
         .expect("Struct not found in a rustdoc crate");
 
-    debug_assert_eq!(summary.kind, ItemKind::Struct);
+    assert_eq!(summary.kind, ItemKind::Struct);
     format!("__cursed_struct__{}", mangle_path(&summary.path))
 }
 
 /// Returns the handle name of the struct e.g. `__tethered_struct__std_mem_Drop`
 /// for a rustdoc id pointing to the struct.
 #[salsa::tracked(returns(ref))]
-pub fn struct_tethered_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> String {
+pub fn struct_tethered_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+    let id = id.rustdoc_id(db);
     let summary = id
         .crate_body(db)
         .paths
         .get(&id.idx(db))
         .expect("Struct not found in a rustdoc crate");
 
-    debug_assert_eq!(summary.kind, ItemKind::Struct);
+    assert_eq!(summary.kind, ItemKind::Struct);
     format!("__tethered_struct__{}", mangle_path(&summary.path))
 }
 
 /// Returns the fully qualified name of the struct e.g. `std::mem::Drop`
 /// for a rustdoc id pointing to the struct.
 #[salsa::tracked(returns(ref))]
-pub fn struct_fqn_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> String {
+pub fn struct_fqn_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+    let id = id.rustdoc_id(db);
     let summary = id
         .crate_body(db)
         .paths
         .get(&id.idx(db))
         .expect("Struct not found in a rustdoc crate");
 
-    debug_assert_eq!(summary.kind, ItemKind::Struct);
+    assert_eq!(summary.kind, ItemKind::Struct);
     summary.path.join("::")
 }
 
 /// Returns the name of the struct e.g. `std::mem::Drop`
 /// for a rustdoc id pointing to the struct.
 #[salsa::tracked(returns(ref))]
-pub fn struct_name_from_rustdoc_id<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> String {
+pub fn struct_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+    let id = id.rustdoc_id(db);
     let summary = id
         .crate_body(db)
         .paths
         .get(&id.idx(db))
         .expect("Struct not found in a rustdoc crate");
 
-    debug_assert_eq!(summary.kind, ItemKind::Struct);
+    assert_eq!(summary.kind, ItemKind::Struct);
     summary
         .path
         .last()

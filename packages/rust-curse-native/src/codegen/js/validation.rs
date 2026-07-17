@@ -7,7 +7,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{Fragment, FragmentOnce, doubles, fragment},
-        ir::{IrId, struct_::struct_name_from_rustdoc_id, type_::Type},
+        ir::{IrId, struct_::struct_name_from_ir_id, type_::Type},
         js::{imports::Import, struct_::compile_facade_class_from_binding_expr_required_imports},
     },
     frag,
@@ -25,7 +25,7 @@ pub fn compile_js_facade_value_validation_stmt<'db>(
             return;
         };
 
-        let struct_name = struct_name_from_rustdoc_id(db, struct_id.rustdoc_id(db));
+        let struct_name = struct_name_from_ir_id(db, struct_id);
         let message_start = doubles((
             r#"Expected a value of type \""#,
             struct_name,

@@ -3,7 +3,7 @@ use rust_curse::codegen::{
     ir::{
         fn_::{Fn, FnParam},
         mod_::Mod,
-        struct_::{Struct, StructField, StructShape, struct_fqn_from_rustdoc_id},
+        struct_::{Struct, StructField, StructShape, struct_fqn_from_ir_id},
         type_::{Primitive, Type},
     },
     rustdoc::mod_::{lower_mod_fns, lower_mod_structs, lower_mod_submods},
@@ -67,7 +67,7 @@ impl<'db> DebugRender<'db> for Type<'db> {
             Type::Primitive(primitive) => primitive.render(db),
             Type::Str => "str".to_string(),
             Type::String => "String".to_string(),
-            Type::Struct(id) => struct_fqn_from_rustdoc_id(db, id.rustdoc_id(db)).to_owned(),
+            Type::Struct(id) => struct_fqn_from_ir_id(db, *id).to_owned(),
         }
     }
 }
