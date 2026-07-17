@@ -29,7 +29,7 @@ frag!(
 
 export class Foo {
 	#_binding;
-	#_construction_token = Symbol();
+	static #_construction_token = Symbol();
 
 
 
@@ -62,7 +62,7 @@ export class Foo {
 
 export class Bar {
 	#_binding;
-	#_construction_token = Symbol();
+	static #_construction_token = Symbol();
 
 
 
@@ -95,7 +95,7 @@ export class Bar {
 
 export class Baz {
 	#_binding;
-	#_construction_token = Symbol();
+	static #_construction_token = Symbol();
 
 
 

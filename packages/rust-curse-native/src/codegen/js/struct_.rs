@@ -16,6 +16,10 @@ use crate::{
                 compile_js_facade_value_to_binding_expr,
             },
             imports::{Import, ImportFrom},
+            validation::{
+                compile_js_facade_value_validation_stmt,
+                compile_js_facade_value_validation_stmt_required_imports,
+            },
         },
     },
     frag,
@@ -34,7 +38,7 @@ pub fn compile_facade_class_for_struct<'a>(
     let private_fields = fragment(move |p| {
         frag!(
             #_binding;@
-            #_construction_token = Symbol();@
+            static #_construction_token = Symbol();@
         )
         .apply(p);
 
@@ -90,6 +94,11 @@ pub fn compile_facade_class_for_struct<'a>(
                 Type::Struct(_) => {
                     frag!(@@
                         set ~[{field_name.clone()}](value) {{
+                            {compile_js_facade_value_validation_stmt(
+                                db,
+                                field.type_(db),
+                                frag!(value),
+                            )}@
                             {binding_field_expr()}~ = ~{compile_js_facade_value_to_binding_expr(
                                 field.type_(db),
                                 frag!(value),
@@ -183,6 +192,15 @@ pub fn compile_facade_class_for_struct_required_imports<'db>(
             field.type_(db),
             imports,
         );
+
+        if !field.is_readonly(db) {
+            compile_js_facade_value_validation_stmt_required_imports(
+                db,
+                active_mod_id,
+                field.type_(db),
+                imports,
+            );
+        }
     }
 }
 

@@ -26,7 +26,7 @@ compile_test_struct(&db, "Foo")
 
 export class Foo {
 	#_binding;
-	#_construction_token = Symbol();
+	static #_construction_token = Symbol();
 	#_0;
 	#_1;
 
@@ -37,6 +37,17 @@ export class Foo {
 	set [0](
 		value
 	){
+		if(
+			!(
+				 value instanceof Baz
+			)
+		) {
+			throw new TypeError(
+				"Expected a value of type \"Baz\", but value of type \"" + typeof value + "\" was passed: \"" + String(
+					value
+				) + "\""
+			);
+		}
 		this.#_binding[0] = value.__get_binding();
 		this.#_0 = Baz.__from_binding(
 			this.#_binding[0]

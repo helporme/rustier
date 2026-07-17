@@ -5,6 +5,7 @@ pub mod fn_;
 pub mod imports;
 pub mod mod_;
 pub mod struct_;
+pub mod validation;
 
 use salsa::Setter;
 

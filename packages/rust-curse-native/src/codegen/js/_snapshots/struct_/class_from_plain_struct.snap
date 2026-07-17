@@ -29,7 +29,7 @@ import {
 
 export class Foo {
 	#_binding;
-	#_construction_token = Symbol();
+	static #_construction_token = Symbol();
 	#_z;
 	#_v;
 
@@ -60,6 +60,17 @@ export class Foo {
 	set ["z"](
 		value
 	){
+		if(
+			!(
+				 value instanceof Baz
+			)
+		) {
+			throw new TypeError(
+				"Expected a value of type \"Baz\", but value of type \"" + typeof value + "\" was passed: \"" + String(
+					value
+				) + "\""
+			);
+		}
 		this.#_binding["z"] = value.__get_binding();
 		this.#_z = Baz.__from_binding(
 			this.#_binding["z"]
