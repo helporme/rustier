@@ -2,10 +2,7 @@ use crate::codegen::{
     db::Db,
     ir::{
         IrId,
-        struct_::{
-            struct_binding_name_from_rustdoc_id, struct_fqn_from_rustdoc_id,
-            struct_name_from_rustdoc_id,
-        },
+        struct_::{struct_binding_name_from_ir_id, struct_fqn_from_ir_id, struct_name_from_ir_id},
     },
 };
 
@@ -128,7 +125,7 @@ impl<'db> Type<'db> {
             Type::Primitive(primitive) => primitive.rs_name(),
             Type::Str => "str",
             Type::String => "String",
-            Type::Struct(id) => struct_fqn_from_rustdoc_id(db, id.rustdoc_id(db)),
+            Type::Struct(id) => struct_fqn_from_ir_id(db, *id),
         }
     }
 
@@ -151,7 +148,7 @@ impl<'db> Type<'db> {
         match self {
             Type::Primitive(primitive) => primitive.ts_name().to_owned(),
             Type::Str | Type::String => "string".to_owned(),
-            Type::Struct(id) => struct_name_from_rustdoc_id(db, id.rustdoc_id(db)).to_owned(),
+            Type::Struct(id) => struct_name_from_ir_id(db, *id).to_owned(),
         }
     }
 
@@ -176,10 +173,7 @@ impl<'db> Type<'db> {
         match self {
             Type::Primitive(primitive) => primitive.cast_fn_name().to_owned(),
             Type::Str | Type::String => "__cast_String".to_owned(),
-            Type::Struct(id) => format!(
-                "__cast_{}",
-                struct_binding_name_from_rustdoc_id(db, id.rustdoc_id(db))
-            ),
+            Type::Struct(id) => format!("__cast_{}", struct_binding_name_from_ir_id(db, *id)),
         }
     }
 }

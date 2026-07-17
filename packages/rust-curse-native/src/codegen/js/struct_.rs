@@ -6,7 +6,7 @@ use crate::{
         fragment::{FragmentOnce, doubles, fragment, spaced},
         ir::{
             IrId,
-            struct_::{Struct, StructShape, struct_name_from_rustdoc_id},
+            struct_::{Struct, StructShape, struct_name_from_ir_id},
             type_::Type,
         },
         js::{
@@ -213,10 +213,7 @@ pub fn compile_facade_class_from_binding_expr<'db>(
     struct_id: IrId<'db>,
     binding_class_expr: impl FragmentOnce,
 ) -> impl FragmentOnce {
-    frag!(
-        { struct_name_from_rustdoc_id(db, struct_id.rustdoc_id(db)) }
-            .__from_binding({ binding_class_expr })
-    )
+    frag!({ struct_name_from_ir_id(db, struct_id) }.__from_binding({ binding_class_expr }))
 }
 
 /// Adds imports required by [`compile_facade_class_from_binding_expr`].
@@ -233,7 +230,7 @@ pub fn compile_facade_class_from_binding_expr_required_imports<'db>(
     }
 
     imports.insert(Import {
-        item: struct_name_from_rustdoc_id(db, struct_id.rustdoc_id(db)),
+        item: struct_name_from_ir_id(db, struct_id),
         from: ImportFrom::RelativeToMod {
             from: active_mod_id,
             to: struct_mod_id,

@@ -13,7 +13,7 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment, spaced},
         ir::{
-            struct_::struct_fqn_from_rustdoc_id,
+            struct_::struct_fqn_from_ir_id,
             type_::{Primitive, Type},
         },
         rustdoc::mod_::{all_mod_ids, lower_mod_fns, lower_mod_structs},
@@ -100,7 +100,7 @@ fn compile_cast_res<'db>(db: &'db dyn Db, type_: Type<'db>) -> &'db str {
     match type_ {
         Type::Primitive(primitive) => primitive.rs_name(),
         Type::Str | Type::String => "String",
-        Type::Struct(id) => struct_fqn_from_rustdoc_id(db, id.rustdoc_id(db)),
+        Type::Struct(id) => struct_fqn_from_ir_id(db, id),
     }
 }
 

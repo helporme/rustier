@@ -5,7 +5,7 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, fragment},
         ir::{
-            struct_::{Struct, StructField, struct_name_from_rustdoc_id},
+            struct_::{Struct, StructField, struct_name_from_ir_id},
             type_::Type,
         },
         js::imports::{Import, ImportFrom},
@@ -63,7 +63,7 @@ pub fn compile_struct_required_imports<'db>(
 
         if active_mod_id != struct_mod_id {
             imports.insert(Import {
-                item: struct_name_from_rustdoc_id(db, struct_id.rustdoc_id(db)),
+                item: struct_name_from_ir_id(db, struct_id),
                 from: ImportFrom::RelativeToMod {
                     from: active_mod_id,
                     to: struct_mod_id,

@@ -21,8 +21,8 @@ use crate::{
         ir::{
             IrId,
             struct_::{
-                Struct, StructField, struct_binding_name_from_rustdoc_id,
-                struct_tethered_name_from_rustdoc_id,
+                Struct, StructField, struct_binding_name_from_ir_id,
+                struct_tethered_name_from_ir_id,
             },
             type_::Type,
         },
@@ -48,7 +48,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
                 get_ref_expr,
                 get_mut_expr,
                 source_type: type_.rs_name(db),
-                tethered_name: struct_tethered_name_from_rustdoc_id(db, id.rustdoc_id(db)),
+                tethered_name: struct_tethered_name_from_ir_id(db, id),
                 with_setter: !field.is_readonly(db),
             }),
             _ => TetheredField::Cloned(ClonedField {
@@ -192,6 +192,6 @@ pub fn compile_binding_struct_from_tethered_expr<'db>(
     id: IrId<'db>,
     tethered_struct_expr: impl FragmentOnce + 'db,
 ) -> impl FragmentOnce + 'db {
-    let binding_name = struct_binding_name_from_rustdoc_id(db, id.rustdoc_id(db));
+    let binding_name = struct_binding_name_from_ir_id(db, id);
     frag!({binding_name}~{{ src: {tethered_struct_expr} }})
 }

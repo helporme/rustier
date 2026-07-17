@@ -17,7 +17,7 @@ use crate::{
         ir::{
             IrId,
             fn_::{FnParam, ParamMode},
-            struct_::{struct_binding_name_from_rustdoc_id, struct_tethered_name_from_rustdoc_id},
+            struct_::{struct_binding_name_from_ir_id, struct_tethered_name_from_ir_id},
             type_::{Primitive, Type},
         },
     },
@@ -349,7 +349,7 @@ pub fn compile_boundary_in_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> impl Fra
 }
 
 fn compile_boundary_in_struct_name<'db>(db: &'db dyn Db, id: IrId<'db>) -> impl FragmentOnce + 'db {
-    let name = struct_binding_name_from_rustdoc_id(db, id.rustdoc_id(db));
+    let name = struct_binding_name_from_ir_id(db, id);
     frag!(&{ name })
 }
 
@@ -384,7 +384,7 @@ pub fn compile_boundary_out_from_source_type_expr<'db>(
                 "str cannot be returned from the function, since functions cannot return references"
             ),
             Type::Struct(id) => {
-                let tethered_name = struct_tethered_name_from_rustdoc_id(db, id.rustdoc_id(db));
+                let tethered_name = struct_tethered_name_from_ir_id(db, id);
                 let tethered_struct =
                     frag!(std::rc::Rc::new({tethered_name}::new_owned({in_expr})));
 
@@ -441,6 +441,6 @@ pub fn compile_boundary_out_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> &'db st
         Type::Str => unreachable!(
             "str cannot be returned from the function, since functions cannot return references"
         ),
-        Type::Struct(id) => struct_binding_name_from_rustdoc_id(db, id.rustdoc_id(db)),
+        Type::Struct(id) => struct_binding_name_from_ir_id(db, id),
     }
 }
