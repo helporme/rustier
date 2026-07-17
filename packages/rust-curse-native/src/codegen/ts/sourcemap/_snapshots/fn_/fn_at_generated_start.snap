@@ -1,0 +1,45 @@
+---
+source: src/codegen/ts/sourcemap/fn_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::ts::sourcemap::fn_::tests::fn_at_generated_start
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    pub fn foo() {}
+};
+compile_test_fn(db, "foo", 0)
+```
+
+## Output
+
+```text
+TypeScript:
+  0 | export function foo(): void;
+
+Mappings:
+[
+    Mapping {
+        generated_line: 0,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 0,
+        original_column: 0,
+        name: "foo",
+    },
+    Mapping {
+        generated_line: 0,
+        generated_column: 16,
+        source: "src/lib.rs",
+        original_line: 0,
+        original_column: 7,
+        name: "foo",
+    },
+]
+```

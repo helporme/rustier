@@ -6,8 +6,10 @@ use crate::codegen::{
     rustdoc::RustdocId,
 };
 
+/// A field declared by a Rust struct.
 #[salsa::tracked(debug)]
 pub struct StructField<'db> {
+    pub rustdoc_id: RustdocId<'db>,
     #[returns(ref)]
     pub name: String,
     #[tracked]

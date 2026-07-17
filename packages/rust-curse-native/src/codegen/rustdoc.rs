@@ -71,7 +71,7 @@ impl<'db> RustdocType<'db> {
 }
 
 /// An interned ID to a specific rustdoc item in a specific crate.
-#[salsa::interned]
+#[salsa::interned(debug)]
 pub struct RustdocId<'db> {
     #[returns(copy)]
     pub idx: RId,

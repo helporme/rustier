@@ -1,0 +1,66 @@
+---
+source: src/codegen/ts/sourcemap/mod_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::ts::sourcemap::mod_::tests::documented_mod
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    #![doc = r" First module documentation line."] #![doc =
+    r" Second module documentation line."] #[doc = r" Function documentation."] pub
+    fn foo() {}
+};
+compile_test_mod(db, "")
+```
+
+## Output
+
+```text
+TypeScript:
+  0 | /**
+  1 |  * First module documentation line.
+  2 |  * Second module documentation line.
+  3 |  */
+  4 | /** Function documentation. */
+  5 | export function foo(): void;
+
+Source map:
+{
+  "version": 3,
+  "file": "lib.rs.d.ts",
+  "sourceRoot": "",
+  "sources": [
+    "src/lib.rs"
+  ],
+  "names": [
+    "foo"
+  ],
+  "mappings": ";;;;;AAGAA,gBAAOA"
+}
+
+Mappings:
+[
+    Mapping {
+        generated_line: 5,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 0,
+        name: "foo",
+    },
+    Mapping {
+        generated_line: 5,
+        generated_column: 16,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 7,
+        name: "foo",
+    },
+]
+```

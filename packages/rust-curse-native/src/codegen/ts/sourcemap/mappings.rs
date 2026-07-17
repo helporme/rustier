@@ -2,6 +2,8 @@
 
 use std::collections::BTreeMap;
 
+use crate::codegen::{db::Db, rustdoc::RustdocId};
+
 /// A single source map mapping before source and name indexes are assigned.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
 pub struct Mapping {
@@ -17,6 +19,55 @@ pub struct CompiledMappings {
     pub sources: Vec<String>,
     pub names: Vec<String>,
     pub encoded: String,
+}
+
+/// A zero-based source location resolved from a rustdoc item span.
+pub(super) struct OriginalLocation {
+    pub source: String,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// Resolves the beginning of a rustdoc item's span into a source-map location.
+pub(super) fn original_location<'db>(
+    db: &'db dyn Db,
+    rustdoc_id: RustdocId<'db>,
+) -> Option<OriginalLocation> {
+    let span = rustdoc_id.item(db).span.as_ref()?;
+    let crate_ = rustdoc_id.crate_(db);
+    let source_path = if span.filename.is_absolute() {
+        span.filename.clone()
+    } else {
+        crate_.dir.join(&span.filename)
+    };
+
+    Some(OriginalLocation {
+        source: source_path
+            .to_string_lossy()
+            .replace(std::path::MAIN_SEPARATOR, "/"),
+        line: span.begin.0.saturating_sub(1),
+        column: span.begin.1.saturating_sub(1),
+    })
+}
+
+/// Finds the next generated declaration whose name has exact token boundaries.
+pub(super) fn find_name_line(
+    source: &str,
+    start_line: usize,
+    prefix: &str,
+    name: &str,
+    suffix: &str,
+) -> Option<usize> {
+    source
+        .lines()
+        .enumerate()
+        .skip(start_line)
+        .find(|(_, line)| {
+            line.strip_prefix(prefix)
+                .and_then(|line| line.strip_prefix(name))
+                .is_some_and(|line| line.starts_with(suffix))
+        })
+        .map(|(line, _)| line)
 }
 
 struct IndexedMapping {
@@ -122,16 +173,6 @@ fn encode_mappings(mappings: &[IndexedMapping]) -> String {
     }
 
     out
-}
-
-/// Counts how many generated TypeScript lines a JSDoc block occupies.
-pub fn jsdoc_line_count(docs: &str) -> usize {
-    let trimmed = docs.trim();
-    if trimmed.contains('\n') {
-        trimmed.lines().count() + 2
-    } else {
-        1
-    }
 }
 
 fn encode_vlq(value: i64, out: &mut String) {
@@ -267,11 +308,5 @@ mod tests {
 
         assert_eq!(compiled.sources, ["b.rs", "a.rs"]);
         assert_eq!(compiled.names, ["second", "first"]);
-    }
-
-    #[test]
-    fn counts_generated_jsdoc_lines() {
-        assert_eq!(jsdoc_line_count("Adds two numbers."), 1);
-        assert_eq!(jsdoc_line_count("\nFirst line.\nSecond line.\n"), 4);
     }
 }
