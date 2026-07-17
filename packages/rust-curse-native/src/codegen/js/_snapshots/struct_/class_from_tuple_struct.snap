@@ -11,11 +11,12 @@ codegen::js::struct_::tests::class_from_tuple_struct
 ## Source
 
 ```rs
-let db = test_db! {
+let mut db = test_db! {
     #[derive(Clone)] pub struct Baz {} pub struct Qux {} #[derive(Clone)] pub struct
     Foo(pub Baz, pub Qux, pub String);
 };
-compile_test_struct(db, "Foo")
+JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
+compile_test_struct(&db, "Foo")
 ```
 
 ## Output
@@ -25,6 +26,7 @@ compile_test_struct(db, "Foo")
 
 export class Foo {
 	#_binding;
+	#_construction_token = Symbol();
 	#_0;
 	#_1;
 
@@ -55,10 +57,24 @@ export class Foo {
 		this.#_binding[2] = value;
 	}
 
+	constructor(
+		token
+	){
+		if(
+			token !== Foo.#_construction_token
+		){
+			throw new TypeError(
+				"Rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
 	static __from_binding(
 		binding
 	){
-		const obj = new Foo();
+		const obj = new Foo(
+			 Foo.#_construction_token
+		);
 		obj.#_binding = binding;
 		obj.#_0 = Baz.__from_binding(
 			binding[0]

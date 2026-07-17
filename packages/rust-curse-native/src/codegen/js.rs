@@ -20,7 +20,7 @@ pub struct JsCodegenPaths {
 }
 
 impl JsCodegenPaths {
-    /// Sets the active JsCodegenPath in the database.
+    /// Creates or updates the active [`JsCodegenPaths`] singleton.
     pub fn set(db: &mut dyn Db, generated_bindings_path: String) -> Self {
         if let Some(paths) = Self::try_get(db) {
             paths

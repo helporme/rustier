@@ -27,7 +27,7 @@ pub struct Import<'a> {
     pub from: ImportFrom<'a>,
 }
 
-/// Compiles an import statement.
+/// Compiles an import into a JavaScript import statement.
 pub fn compile_import_stmt<'db>(db: &'db dyn Db, import: Import<'db>) -> impl FragmentOnce + 'db {
     fragment(move |p| {
         let path = match import.from {

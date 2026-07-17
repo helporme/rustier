@@ -20,9 +20,6 @@ use crate::codegen::{
 
 /// Compiles all supported items declared by a Rust module into its facade
 /// JavaScript file.
-///
-/// `src_path` is reserved for the source JavaScript file produced by the
-/// bindings API and is not used yet.
 #[salsa::tracked(returns(ref))]
 pub fn compile_js_file<'db>(db: &'db dyn Db, mod_id: IrId<'db>) -> String {
     let js_codegen_paths = JsCodegenPaths::get(db);

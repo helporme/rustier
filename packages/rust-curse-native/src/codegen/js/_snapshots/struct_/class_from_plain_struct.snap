@@ -11,12 +11,13 @@ codegen::js::struct_::tests::class_from_plain_struct
 ## Source
 
 ```rs
-let db = test_db! {
+let mut db = test_db! {
     @ file : "baz.rs"; pub mod baz { #[derive(Clone)] pub struct Baz {} } pub struct
     Qux {} pub struct Foo { pub x : i32, pub y : String, pub z : baz::Baz, pub v :
     Qux, }
 };
-compile_test_struct(db, "Foo")
+JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
+compile_test_struct(&db, "Foo")
 ```
 
 ## Output
@@ -28,6 +29,7 @@ import {
 
 export class Foo {
 	#_binding;
+	#_construction_token = Symbol();
 	#_z;
 	#_v;
 
@@ -68,10 +70,24 @@ export class Foo {
 		return this.#_v;
 	}
 
+	constructor(
+		token
+	){
+		if(
+			token !== Foo.#_construction_token
+		){
+			throw new TypeError(
+				"Rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
 	static __from_binding(
 		binding
 	){
-		const obj = new Foo();
+		const obj = new Foo(
+			 Foo.#_construction_token
+		);
 		obj.#_binding = binding;
 		obj.#_z = Baz.__from_binding(
 			binding["z"]

@@ -56,13 +56,28 @@ export function mixed (
 
 export class Local {
 	#_binding;
+	#_construction_token = Symbol();
 
 
+
+	constructor(
+		token
+	){
+		if(
+			token !== Local.#_construction_token
+		){
+			throw new TypeError(
+				"Rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
 
 	static __from_binding(
 		binding
 	){
-		const obj = new Local();
+		const obj = new Local(
+			 Local.#_construction_token
+		);
 		obj.#_binding = binding;
 		return obj;
 	}
@@ -74,6 +89,7 @@ export class Local {
 
 export class Mixed {
 	#_binding;
+	#_construction_token = Symbol();
 	#_local;
 	#_external;
 
@@ -123,10 +139,24 @@ export class Mixed {
 		);
 	}
 
+	constructor(
+		token
+	){
+		if(
+			token !== Mixed.#_construction_token
+		){
+			throw new TypeError(
+				"Rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
 	static __from_binding(
 		binding
 	){
-		const obj = new Mixed();
+		const obj = new Mixed(
+			 Mixed.#_construction_token
+		);
 		obj.#_binding = binding;
 		obj.#_local = Local.__from_binding(
 			binding["local"]
