@@ -8,9 +8,10 @@ use crate::codegen::{
     js::imports::compile_import_stmt,
     rustdoc::{
         RustdocId,
-        mod_::{lower_mod, lower_mod_fns, lower_mod_structs},
+        mod_::{lower_mod, lower_mod_enums, lower_mod_fns, lower_mod_structs},
     },
     ts::{
+        enum_::{compile_enum, compile_enum_required_imports},
         fn_::{compile_fn, compile_fn_required_imports},
         jsdoc::compile_jsdoc,
         struct_::{compile_struct, compile_struct_required_imports},
@@ -24,6 +25,7 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> String {
     let mod_ = lower_mod(db, mod_id);
     let fns = lower_mod_fns(db, mod_id);
     let structs = lower_mod_structs(db, mod_id);
+    let enums = lower_mod_enums(db, mod_id);
 
     let mut imports = BTreeSet::new();
     for fn_ in fns.iter() {
@@ -31,6 +33,9 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> String {
     }
     for struct_ in structs.iter() {
         compile_struct_required_imports(db, *struct_, &mut imports);
+    }
+    for enum_ in enums.iter() {
+        compile_enum_required_imports(db, *enum_, &mut imports);
     }
     let has_imports = !imports.is_empty();
 
@@ -55,7 +60,8 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> String {
         spaced(
             fns.iter()
                 .map(|fn_| compile_fn(db, *fn_))
-                .chain(structs.iter().map(|struct_| compile_struct(db, *struct_))),
+                .chain(structs.iter().map(|struct_| compile_struct(db, *struct_)))
+                .chain(enums.iter().map(|enum_| compile_enum(db, *enum_))),
         )
         .apply(p);
     })
@@ -98,6 +104,11 @@ mod tests {
                     pub text: String,
                     pub local: Local,
                     pub external: models::External,
+                }
+
+                pub enum Choice {
+                    Empty,
+                    Value { number: i32 },
                 }
 
                 pub fn mixed(

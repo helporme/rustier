@@ -14,9 +14,9 @@ codegen::ts::mod_::tests::mixed_mod
 let db = test_db! {
     @ file : "models.rs"; pub mod models { #[derive(Clone)] pub struct External; }
     #[derive(Clone)] pub struct Local; pub struct Mixed { pub number : i32, pub text
-    : String, pub local : Local, pub external : models::External, } pub fn
-    mixed(number : i32, text : String, local : Local, external : models::External,)
-    -> models::External { external }
+    : String, pub local : Local, pub external : models::External, } pub enum Choice {
+    Empty, Value { number : i32 }, } pub fn mixed(number : i32, text : String, local
+    : Local, external : models::External,) -> models::External { external }
 };
 compile_mod(&db, db.rustdoc_id("")).to_string()
 ```
@@ -47,5 +47,23 @@ export class Mixed {
 	public external: External;
 	private __rust_curse_brand: never;
 	private constructor();
+}
+
+export type Choice = Choice.Instance & Choice.Plain;
+
+export namespace Choice {
+	export type Plain =
+		| {
+			type: "empty";
+		}
+		| {
+			type: "value";
+			number: number;
+		};
+
+	export class Instance {
+		private __rust_curse_brand: never;
+		private constructor();
+	}
 }
 ```
