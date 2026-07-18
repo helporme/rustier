@@ -163,17 +163,6 @@ fn compile_field_setter<'db>(db: &'db dyn Db, field: StructField<'db>) -> impl F
 
 /// Compiles an expression that retrieves the Rc of the tethered struct from a
 /// binding struct.
-///
-/// ```
-/// use rust_curse::codegen::{
-///     bindings::struct_::compile_binding_struct_get_tethered_expr, fragment::FragmentPrint,
-/// };
-///
-/// assert_eq!(
-///     compile_binding_struct_get_tethered_expr("value").print(),
-///     "value.src",
-/// );
-/// ```
 pub fn compile_binding_struct_get_tethered_expr<'a>(
     binding_struct_expr: impl FragmentOnce + 'a,
 ) -> impl FragmentOnce + 'a {
@@ -181,12 +170,6 @@ pub fn compile_binding_struct_get_tethered_expr<'a>(
 }
 
 /// Compiles an expression that wraps a tethered struct in its binding struct.
-///
-/// The tethered struct expression must be of type `Rc` of the tethered struct.
-///
-/// ```ignore (requires a lowered struct ID)
-/// compile_binding_struct_from_tethered_expr(db, id, "tethered")
-/// ```
 pub fn compile_binding_struct_from_tethered_expr<'db>(
     db: &'db dyn Db,
     id: IrId<'db>,

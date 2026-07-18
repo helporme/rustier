@@ -53,7 +53,6 @@ export class TupleStruct {
 #![allow(
 	non_camel_case_types, non_snake_case
 )]
-use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
 
 #[allow(
@@ -279,41 +278,6 @@ mod __tethering {
 	}
 }
 use __tethering::Accessor as _;
-
-fn __cast_f64(
-	value: Unknown<'_>
-)-> Result<f64, String> {
-	if value.get_type().map_err(
-		|err| err.reason
-	)? == ValueType::Number {
-		unsafe {
-			value.cast::<f64>()
-		}.map_err(
-			|_| "cannot cast value to f64".to_string()
-		)
-	}
-	else {
-		Err(
-			"cannot cast value to f64".to_string()
-		)
-	}
-}
-
-fn __cast_f32(
-	value: Unknown<'_>
-)-> Result<f32, String> {
-	let type_name = "f32";
-	let value = __cast_f64(
-		value
-	).map_err(
-		|_| format!(
-			"cannot cast value to {type_name}"
-		)
-	)?;
-	Ok(
-		value as f32
-	)
-}
 
 struct __tethered_struct__rustdoc_0test_0crate_TupleStruct {
 	src: __tethering::SourceSlot<rustdoc_test_crate::TupleStruct>,
@@ -681,30 +645,6 @@ mod __tethering {
 	}
 }
 use __tethering::Accessor as _;
-
-fn __cast_f64(
-	value: JsValue
-)-> Result<f64, String> {
-	value.as_f64().ok_or_else(
-		|| "cannot cast value to f64".to_string()
-	)
-}
-
-fn __cast_f32(
-	value: JsValue
-)-> Result<f32, String> {
-	let type_name = "f32";
-	let value = __cast_f64(
-		value
-	).map_err(
-		|_| format!(
-			"cannot cast value to {type_name}"
-		)
-	)?;
-	Ok(
-		value as f32
-	)
-}
 
 struct __tethered_struct__rustdoc_0test_0crate_TupleStruct {
 	src: __tethering::SourceSlot<rustdoc_test_crate::TupleStruct>,

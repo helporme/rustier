@@ -53,7 +53,6 @@ export class TupleStruct {
 #![allow(
 	non_camel_case_types, non_snake_case
 )]
-use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
 
 #[allow(
@@ -279,64 +278,6 @@ mod __tethering {
 	}
 }
 use __tethering::Accessor as _;
-
-fn __cast_f64(
-	value: Unknown<'_>
-)-> Result<f64, String> {
-	if value.get_type().map_err(
-		|err| err.reason
-	)? == ValueType::Number {
-		unsafe {
-			value.cast::<f64>()
-		}.map_err(
-			|_| "cannot cast value to f64".to_string()
-		)
-	}
-	else {
-		Err(
-			"cannot cast value to f64".to_string()
-		)
-	}
-}
-
-fn __cast_u32(
-	value: Unknown<'_>
-)-> Result<u32, String> {
-	let type_name = "u32";
-	let value = __cast_f64(
-		value
-	).map_err(
-		|_| format!(
-			"cannot cast value to {type_name}"
-		)
-	)?;
-	if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64 {
-		return Err(
-			format!(
-				"cannot cast {value} to {type_name}"
-			)
-		);
-	}
-	Ok(
-		value as u32
-	)
-}
-
-fn __cast_char(
-	value: Unknown<'_>
-)-> Result<char, String> {
-	let value = __cast_u32(
-		value
-	).map_err(
-		|_| "cannot cast value to char".to_string()
-	)?; char::from_u32(
-		value
-	).ok_or_else(
-		|| format!(
-			"cannot cast {value} to char"
-		)
-	)
-}
 
 struct __tethered_struct__rustdoc_0test_0crate_TupleStruct {
 	src: __tethering::SourceSlot<rustdoc_test_crate::TupleStruct>,
@@ -704,53 +645,6 @@ mod __tethering {
 	}
 }
 use __tethering::Accessor as _;
-
-fn __cast_f64(
-	value: JsValue
-)-> Result<f64, String> {
-	value.as_f64().ok_or_else(
-		|| "cannot cast value to f64".to_string()
-	)
-}
-
-fn __cast_u32(
-	value: JsValue
-)-> Result<u32, String> {
-	let type_name = "u32";
-	let value = __cast_f64(
-		value
-	).map_err(
-		|_| format!(
-			"cannot cast value to {type_name}"
-		)
-	)?;
-	if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64 {
-		return Err(
-			format!(
-				"cannot cast {value} to {type_name}"
-			)
-		);
-	}
-	Ok(
-		value as u32
-	)
-}
-
-fn __cast_char(
-	value: JsValue
-)-> Result<char, String> {
-	let value = __cast_u32(
-		value
-	).map_err(
-		|_| "cannot cast value to char".to_string()
-	)?; char::from_u32(
-		value
-	).ok_or_else(
-		|| format!(
-			"cannot cast {value} to char"
-		)
-	)
-}
 
 struct __tethered_struct__rustdoc_0test_0crate_TupleStruct {
 	src: __tethering::SourceSlot<rustdoc_test_crate::TupleStruct>,

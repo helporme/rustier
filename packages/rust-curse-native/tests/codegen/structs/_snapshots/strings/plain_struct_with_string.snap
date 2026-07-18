@@ -285,14 +285,6 @@ mod __tethering {
 }
 use __tethering::Accessor as _;
 
-fn __cast_String(
-	value: JsValue
-)-> Result<String, String> {
-	value.as_string().ok_or_else(
-		|| "cannot cast value to String".to_string()
-	)
-}
-
 struct __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 	src: __tethering::SourceSlot<rustdoc_test_crate::PlainStruct>,
 }
@@ -434,7 +426,6 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 #![allow(
 	non_camel_case_types, non_snake_case
 )]
-use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
 
 #[allow(
@@ -660,25 +651,6 @@ mod __tethering {
 	}
 }
 use __tethering::Accessor as _;
-
-fn __cast_String(
-	value: Unknown<'_>
-)-> Result<String, String> {
-	if value.get_type().map_err(
-		|err| err.reason
-	)? == ValueType::String {
-		unsafe {
-			value.cast::<String>()
-		}.map_err(
-			|_| "cannot cast value to String".to_string()
-		)
-	}
-	else {
-		Err(
-			"cannot cast value to String".to_string()
-		)
-	}
-}
 
 struct __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 	src: __tethering::SourceSlot<rustdoc_test_crate::PlainStruct>,

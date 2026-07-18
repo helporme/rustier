@@ -16,7 +16,7 @@ use crate::{
             struct_::struct_fqn_from_ir_id,
             type_::{Primitive, Type},
         },
-        rustdoc::mod_::{all_mod_ids, lower_mod_fns, lower_mod_structs},
+        rustdoc::mod_::{all_mod_ids, lower_mod_fns},
     },
     frag,
 };
@@ -32,11 +32,6 @@ pub fn compile_cast_fns(db: &dyn Db) -> String {
         for fn_ in lower_mod_fns(db, *mod_id) {
             for param in fn_.params(db) {
                 collect_cast_type(param.type_(db), &mut seen, &mut types);
-            }
-        }
-        for struct_ in lower_mod_structs(db, *mod_id) {
-            for field in struct_.fields(db) {
-                collect_cast_type(field.type_(db), &mut seen, &mut types);
             }
         }
     }

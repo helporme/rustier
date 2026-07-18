@@ -292,14 +292,6 @@ mod __tethering {
 }
 use __tethering::Accessor as _;
 
-fn __cast_bool(
-	value: JsValue
-)-> Result<bool, String> {
-	value.as_bool().ok_or_else(
-		|| "cannot cast value to bool".to_string()
-	)
-}
-
 struct __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 	src: __tethering::SourceSlot<rustdoc_test_crate::PlainStruct>,
 }
@@ -518,7 +510,6 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 #![allow(
 	non_camel_case_types, non_snake_case
 )]
-use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
 
 #[allow(
@@ -744,25 +735,6 @@ mod __tethering {
 	}
 }
 use __tethering::Accessor as _;
-
-fn __cast_bool(
-	value: Unknown<'_>
-)-> Result<bool, String> {
-	if value.get_type().map_err(
-		|err| err.reason
-	)? == ValueType::Boolean {
-		unsafe {
-			value.cast::<bool>()
-		}.map_err(
-			|_| "cannot cast value to bool".to_string()
-		)
-	}
-	else {
-		Err(
-			"cannot cast value to bool".to_string()
-		)
-	}
-}
 
 struct __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 	src: __tethering::SourceSlot<rustdoc_test_crate::PlainStruct>,
