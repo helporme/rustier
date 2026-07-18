@@ -104,91 +104,227 @@ export class PlainStruct {
 use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
 
-#[allow(non_snake_case, dead_code)]
+#[allow(
+	non_snake_case, dead_code
+)]
 mod __tethering {
-    use std::cell::RefCell;
-    use std::rc::Rc;
+	use super::*;
+	use std::cell::RefCell;
+	use std::rc::Rc;
 
-    pub trait Accessor<T> {
-        fn access(&self, f: &mut dyn FnMut(&T));
-        fn access_mut(&self, f: &mut dyn FnMut(&mut T));
-    }
+	pub type AccessResult<T> = napi::Result<T>;
 
-    impl<T> Accessor<T> for RefCell<T> {
-        fn access(&self, f: &mut dyn FnMut(&T)) {
-            f(&*self.borrow());
-        }
-        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            f(&mut *self.borrow_mut());
-        }
-    }
+	#[doc = r" Borrows a tethered value or returns an API-specific aliasing error.@"]pub fn try_borrow<T>(
+		value: &RefCell<T>
+	)-> AccessResult<std::cell::Ref<'_, T>> {
+		value.try_borrow().map_err(
+			|_| napi::Error::from_reason(
+				"cannot access a tethered value while it is mutably borrowed".to_string()
+			)
+		)
+	}
 
-    pub enum Source<T> {
-        Owned(T),
-        Projected(Rc<dyn Accessor<T>>),
-    }
+	#[doc =
+	r" Mutably borrows a tethered value or returns an API-specific aliasing error.@"]pub fn try_borrow_mut<T>(
+		value: &RefCell<T>
+	)-> AccessResult<std::cell::RefMut<'_, T>> {
+		value.try_borrow_mut().map_err(
+			|_| napi::Error::from_reason(
+				"cannot mutably access a tethered value while it is borrowed".to_string()
+			)
+		)
+	}
 
-    pub struct SourceSlot<T>(RefCell<Source<T>>);
+	pub trait Accessor<T> {
+		fn access(
+			&self, f: &mut dyn FnMut(
+				&T
+			)-> AccessResult<()>
+		)-> AccessResult<()>;
+		fn access_mut(
+			&self, f: &mut dyn FnMut(
+				&mut T
+			)-> AccessResult<()>
+		)-> AccessResult<()>;
+	}
 
-    impl<T: 'static> SourceSlot<T> {
-        pub fn owned(value: T) -> Self {
-            SourceSlot(RefCell::new(Source::Owned(value)))
-        }
-        pub fn projected(accessor: Rc<dyn Accessor<T>>) -> Self {
-            SourceSlot(RefCell::new(Source::Projected(accessor)))
-        }
-        pub fn replace_with_owned(&self, value: T) {
-            *self.0.borrow_mut() = Source::Owned(value);
-        }
-    }
+	impl<T> Accessor<T> for RefCell<T> {
+		fn access(
+			&self, f: &mut dyn FnMut(
+				&T
+			)-> AccessResult<()>
+		)-> AccessResult<()> {
+			let value = try_borrow(
+				self
+			)?;
+			f(
+				&*value
+			)
+		}
+		fn access_mut(
+			&self, f: &mut dyn FnMut(
+				&mut T
+			)-> AccessResult<()>
+		)-> AccessResult<()> {
+			let mut value = try_borrow_mut(
+				self
+			)?;
+			f(
+				&mut *value
+			)
+		}
+	}
 
-    impl<T> Accessor<T> for SourceSlot<T> {
-        fn access(&self, f: &mut dyn FnMut(&T)) {
-            let accessor = {
-                let source = self.0.borrow();
+	pub enum Source<T> {
+		Owned(
+			T
+		),
+		Projected(
+			Rc<dyn Accessor<T>>
+		),
+	}
 
-                match &*source {
-                    Source::Owned(value) => {
-                        f(value);
-                        return;
-                    }
-                    Source::Projected(accessor) => Rc::clone(accessor),
-                }
-            };
-            accessor.access(f);
-        }
+	pub struct SourceSlot<T>(
+		RefCell<Source<T>>
+	);
 
-        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            let accessor = {
-                let mut source = self.0.borrow_mut();
+	impl<T: 'static> SourceSlot<T> {
+		pub fn owned(
+			value: T
+		)-> Self {
+			SourceSlot(
+				RefCell::new(
+					Source::Owned(
+						value
+					)
+				)
+			)
+		}
+		pub fn projected(
+			accessor: Rc<dyn Accessor<T>>
+		)-> Self {
+			SourceSlot(
+				RefCell::new(
+					Source::Projected(
+						accessor
+					)
+				)
+			)
+		}
+		pub fn replace_with_owned(
+			&self, value: T
+		)-> AccessResult<()> {
+			*try_borrow_mut(
+				&self.0
+			)? = Source::Owned(
+				value
+			);
+			Ok(
+				()
+			)
+		}
+	}
 
-                match &mut *source {
-                    Source::Owned(value) => {
-                        f(value);
-                        return;
-                    }
-                    Source::Projected(accessor) => Rc::clone(accessor),
-                }
-            };
-            accessor.access_mut(f);
-        }
-    }
+	impl<T> Accessor<T> for SourceSlot<T> {
+		fn access(
+			&self, f: &mut dyn FnMut(
+				&T
+			)-> AccessResult<()>
+		)-> AccessResult<()> {
+			let accessor = {
+				let source = try_borrow(
+					&self.0
+				)?;
 
-    pub struct FieldAccess<Parent, T> {
-        pub parent: Rc<dyn Accessor<Parent>>,
-        pub get: fn(&Parent) -> &T,
-        pub get_mut: fn(&mut Parent) -> &mut T,
-    }
+				match &*source {
+					Source::Owned(
+						value
+					)=> return f(
+						value
+					),
+					Source::Projected(
+						accessor
+					)=> Rc::clone(
+						accessor
+					),
+				}
+			};
+			accessor.access(
+				f
+			)
+		}
 
-    impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
-        fn access(&self, f: &mut dyn FnMut(&T)) {
-            self.parent.access(&mut |parent| f((self.get)(parent)))
-        }
-        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            self.parent
-                .access_mut(&mut |parent| f((self.get_mut)(parent)))
-        }
-    }
+		fn access_mut(
+			&self, f: &mut dyn FnMut(
+				&mut T
+			)-> AccessResult<()>
+		)-> AccessResult<()> {
+			let accessor = {
+				let mut source = try_borrow_mut(
+					&self.0
+				)?;
+
+				match &mut *source {
+					Source::Owned(
+						value
+					)=> return f(
+						value
+					),
+					Source::Projected(
+						accessor
+					)=> Rc::clone(
+						accessor
+					),
+				}
+			};
+			accessor.access_mut(
+				f
+			)
+		}
+	}
+
+	pub struct FieldAccess<Parent, T> {
+		pub parent: Rc<dyn Accessor<Parent>>,
+		pub get: fn(
+			&Parent
+		)-> &T,
+		pub get_mut: fn(
+			&mut Parent
+		)-> &mut T,
+	}
+
+	impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
+		fn access(
+			&self, f: &mut dyn FnMut(
+				&T
+			)-> AccessResult<()>
+		)-> AccessResult<()> {
+			self.parent.access(
+				&mut |parent| f(
+					(
+						self.get
+					)(
+						parent
+					)
+				)
+			)
+		}
+		fn access_mut(
+			&self, f: &mut dyn FnMut(
+				&mut T
+			)-> AccessResult<()>
+		)-> AccessResult<()> {
+			self.parent.access_mut(
+				&mut |parent| f(
+					(
+						self.get_mut
+					)(
+						parent
+					)
+				)
+			)
+		}
+	}
 }
 use __tethering::Accessor as _;
 
@@ -374,23 +510,25 @@ struct __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 
 impl __tethering::Accessor<rustdoc_test_crate::PlainStruct> for __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 	fn access(
-		&self, f: &mut dyn FnMut(
+		&self,
+		f: &mut dyn FnMut(
 			&rustdoc_test_crate::PlainStruct
-		)
-	) {
+		)-> __tethering::AccessResult<()>,
+	)-> __tethering::AccessResult<()> {
 		self.src.access(
 			f
-		);
+		)
 	}
 
 	fn access_mut(
-		&self, f: &mut dyn FnMut(
+		&self,
+		f: &mut dyn FnMut(
 			&mut rustdoc_test_crate::PlainStruct
-		)
-	) {
+		)-> __tethering::AccessResult<()>,
+	)-> __tethering::AccessResult<()> {
 		self.src.access_mut(
 			f
-		);
+		)
 	}
 }
 
@@ -417,234 +555,322 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 
 	pub fn get_a(
 		&self
-	)-> bool {
+	)-> __tethering::AccessResult<bool> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.a.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_a(
 		&self, value: bool
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.a= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_d(
 		&self
-	)-> i8 {
+	)-> __tethering::AccessResult<i8> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.d.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_d(
 		&self, value: i8
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.d= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_e(
 		&self
-	)-> i16 {
+	)-> __tethering::AccessResult<i16> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.e.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_e(
 		&self, value: i16
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.e= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_f(
 		&self
-	)-> i32 {
+	)-> __tethering::AccessResult<i32> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.f.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_f(
 		&self, value: i32
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.f= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_g(
 		&self
-	)-> u8 {
+	)-> __tethering::AccessResult<u8> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.g.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_g(
 		&self, value: u8
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.g= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_h(
 		&self
-	)-> u16 {
+	)-> __tethering::AccessResult<u16> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.h.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_h(
 		&self, value: u16
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.h= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_i(
 		&self
-	)-> u32 {
+	)-> __tethering::AccessResult<u32> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.i.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_i(
 		&self, value: u32
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.i= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_k(
 		&self
-	)-> f64 {
+	)-> __tethering::AccessResult<f64> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.k.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_k(
 		&self, value: f64
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.k= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 }
 
@@ -659,7 +885,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> napi::Result<bool> {
 		Ok(
-			self.src.get_a()
+			self.src.get_a()?
 		)
 	}
 
@@ -686,7 +912,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_a(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -696,7 +922,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> napi::Result<i8> {
 		Ok(
-			self.src.get_d()
+			self.src.get_d()?
 		)
 	}
 
@@ -723,7 +949,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_d(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -733,7 +959,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> napi::Result<i16> {
 		Ok(
-			self.src.get_e()
+			self.src.get_e()?
 		)
 	}
 
@@ -760,7 +986,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_e(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -770,7 +996,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> napi::Result<i32> {
 		Ok(
-			self.src.get_f()
+			self.src.get_f()?
 		)
 	}
 
@@ -797,7 +1023,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_f(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -807,7 +1033,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> napi::Result<u8> {
 		Ok(
-			self.src.get_g()
+			self.src.get_g()?
 		)
 	}
 
@@ -834,7 +1060,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_g(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -844,7 +1070,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> napi::Result<u16> {
 		Ok(
-			self.src.get_h()
+			self.src.get_h()?
 		)
 	}
 
@@ -871,7 +1097,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_h(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -881,7 +1107,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> napi::Result<u32> {
 		Ok(
-			self.src.get_i()
+			self.src.get_i()?
 		)
 	}
 
@@ -908,7 +1134,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_i(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -918,7 +1144,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> napi::Result<f64> {
 		Ok(
-			self.src.get_k()
+			self.src.get_k()?
 		)
 	}
 
@@ -945,7 +1171,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_k(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -960,91 +1186,227 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 )]
 use wasm_bindgen::prelude::*;
 
-#[allow(non_snake_case, dead_code)]
+#[allow(
+	non_snake_case, dead_code
+)]
 mod __tethering {
-    use std::cell::RefCell;
-    use std::rc::Rc;
+	use super::*;
+	use std::cell::RefCell;
+	use std::rc::Rc;
 
-    pub trait Accessor<T> {
-        fn access(&self, f: &mut dyn FnMut(&T));
-        fn access_mut(&self, f: &mut dyn FnMut(&mut T));
-    }
+	pub type AccessResult<T> = Result<T, JsValue>;
 
-    impl<T> Accessor<T> for RefCell<T> {
-        fn access(&self, f: &mut dyn FnMut(&T)) {
-            f(&*self.borrow());
-        }
-        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            f(&mut *self.borrow_mut());
-        }
-    }
+	#[doc = r" Borrows a tethered value or returns an API-specific aliasing error.@"]pub fn try_borrow<T>(
+		value: &RefCell<T>
+	)-> AccessResult<std::cell::Ref<'_, T>> {
+		value.try_borrow().map_err(
+			|_| JsValue::from_str(
+				&"cannot access a tethered value while it is mutably borrowed".to_string()
+			)
+		)
+	}
 
-    pub enum Source<T> {
-        Owned(T),
-        Projected(Rc<dyn Accessor<T>>),
-    }
+	#[doc =
+	r" Mutably borrows a tethered value or returns an API-specific aliasing error.@"]pub fn try_borrow_mut<T>(
+		value: &RefCell<T>
+	)-> AccessResult<std::cell::RefMut<'_, T>> {
+		value.try_borrow_mut().map_err(
+			|_| JsValue::from_str(
+				&"cannot mutably access a tethered value while it is borrowed".to_string()
+			)
+		)
+	}
 
-    pub struct SourceSlot<T>(RefCell<Source<T>>);
+	pub trait Accessor<T> {
+		fn access(
+			&self, f: &mut dyn FnMut(
+				&T
+			)-> AccessResult<()>
+		)-> AccessResult<()>;
+		fn access_mut(
+			&self, f: &mut dyn FnMut(
+				&mut T
+			)-> AccessResult<()>
+		)-> AccessResult<()>;
+	}
 
-    impl<T: 'static> SourceSlot<T> {
-        pub fn owned(value: T) -> Self {
-            SourceSlot(RefCell::new(Source::Owned(value)))
-        }
-        pub fn projected(accessor: Rc<dyn Accessor<T>>) -> Self {
-            SourceSlot(RefCell::new(Source::Projected(accessor)))
-        }
-        pub fn replace_with_owned(&self, value: T) {
-            *self.0.borrow_mut() = Source::Owned(value);
-        }
-    }
+	impl<T> Accessor<T> for RefCell<T> {
+		fn access(
+			&self, f: &mut dyn FnMut(
+				&T
+			)-> AccessResult<()>
+		)-> AccessResult<()> {
+			let value = try_borrow(
+				self
+			)?;
+			f(
+				&*value
+			)
+		}
+		fn access_mut(
+			&self, f: &mut dyn FnMut(
+				&mut T
+			)-> AccessResult<()>
+		)-> AccessResult<()> {
+			let mut value = try_borrow_mut(
+				self
+			)?;
+			f(
+				&mut *value
+			)
+		}
+	}
 
-    impl<T> Accessor<T> for SourceSlot<T> {
-        fn access(&self, f: &mut dyn FnMut(&T)) {
-            let accessor = {
-                let source = self.0.borrow();
+	pub enum Source<T> {
+		Owned(
+			T
+		),
+		Projected(
+			Rc<dyn Accessor<T>>
+		),
+	}
 
-                match &*source {
-                    Source::Owned(value) => {
-                        f(value);
-                        return;
-                    }
-                    Source::Projected(accessor) => Rc::clone(accessor),
-                }
-            };
-            accessor.access(f);
-        }
+	pub struct SourceSlot<T>(
+		RefCell<Source<T>>
+	);
 
-        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            let accessor = {
-                let mut source = self.0.borrow_mut();
+	impl<T: 'static> SourceSlot<T> {
+		pub fn owned(
+			value: T
+		)-> Self {
+			SourceSlot(
+				RefCell::new(
+					Source::Owned(
+						value
+					)
+				)
+			)
+		}
+		pub fn projected(
+			accessor: Rc<dyn Accessor<T>>
+		)-> Self {
+			SourceSlot(
+				RefCell::new(
+					Source::Projected(
+						accessor
+					)
+				)
+			)
+		}
+		pub fn replace_with_owned(
+			&self, value: T
+		)-> AccessResult<()> {
+			*try_borrow_mut(
+				&self.0
+			)? = Source::Owned(
+				value
+			);
+			Ok(
+				()
+			)
+		}
+	}
 
-                match &mut *source {
-                    Source::Owned(value) => {
-                        f(value);
-                        return;
-                    }
-                    Source::Projected(accessor) => Rc::clone(accessor),
-                }
-            };
-            accessor.access_mut(f);
-        }
-    }
+	impl<T> Accessor<T> for SourceSlot<T> {
+		fn access(
+			&self, f: &mut dyn FnMut(
+				&T
+			)-> AccessResult<()>
+		)-> AccessResult<()> {
+			let accessor = {
+				let source = try_borrow(
+					&self.0
+				)?;
 
-    pub struct FieldAccess<Parent, T> {
-        pub parent: Rc<dyn Accessor<Parent>>,
-        pub get: fn(&Parent) -> &T,
-        pub get_mut: fn(&mut Parent) -> &mut T,
-    }
+				match &*source {
+					Source::Owned(
+						value
+					)=> return f(
+						value
+					),
+					Source::Projected(
+						accessor
+					)=> Rc::clone(
+						accessor
+					),
+				}
+			};
+			accessor.access(
+				f
+			)
+		}
 
-    impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
-        fn access(&self, f: &mut dyn FnMut(&T)) {
-            self.parent.access(&mut |parent| f((self.get)(parent)))
-        }
-        fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-            self.parent
-                .access_mut(&mut |parent| f((self.get_mut)(parent)))
-        }
-    }
+		fn access_mut(
+			&self, f: &mut dyn FnMut(
+				&mut T
+			)-> AccessResult<()>
+		)-> AccessResult<()> {
+			let accessor = {
+				let mut source = try_borrow_mut(
+					&self.0
+				)?;
+
+				match &mut *source {
+					Source::Owned(
+						value
+					)=> return f(
+						value
+					),
+					Source::Projected(
+						accessor
+					)=> Rc::clone(
+						accessor
+					),
+				}
+			};
+			accessor.access_mut(
+				f
+			)
+		}
+	}
+
+	pub struct FieldAccess<Parent, T> {
+		pub parent: Rc<dyn Accessor<Parent>>,
+		pub get: fn(
+			&Parent
+		)-> &T,
+		pub get_mut: fn(
+			&mut Parent
+		)-> &mut T,
+	}
+
+	impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
+		fn access(
+			&self, f: &mut dyn FnMut(
+				&T
+			)-> AccessResult<()>
+		)-> AccessResult<()> {
+			self.parent.access(
+				&mut |parent| f(
+					(
+						self.get
+					)(
+						parent
+					)
+				)
+			)
+		}
+		fn access_mut(
+			&self, f: &mut dyn FnMut(
+				&mut T
+			)-> AccessResult<()>
+		)-> AccessResult<()> {
+			self.parent.access_mut(
+				&mut |parent| f(
+					(
+						self.get_mut
+					)(
+						parent
+					)
+				)
+			)
+		}
+	}
 }
 use __tethering::Accessor as _;
 
@@ -1208,23 +1570,25 @@ struct __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 
 impl __tethering::Accessor<rustdoc_test_crate::PlainStruct> for __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 	fn access(
-		&self, f: &mut dyn FnMut(
+		&self,
+		f: &mut dyn FnMut(
 			&rustdoc_test_crate::PlainStruct
-		)
-	) {
+		)-> __tethering::AccessResult<()>,
+	)-> __tethering::AccessResult<()> {
 		self.src.access(
 			f
-		);
+		)
 	}
 
 	fn access_mut(
-		&self, f: &mut dyn FnMut(
+		&self,
+		f: &mut dyn FnMut(
 			&mut rustdoc_test_crate::PlainStruct
-		)
-	) {
+		)-> __tethering::AccessResult<()>,
+	)-> __tethering::AccessResult<()> {
 		self.src.access_mut(
 			f
-		);
+		)
 	}
 }
 
@@ -1251,234 +1615,322 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 
 	pub fn get_a(
 		&self
-	)-> bool {
+	)-> __tethering::AccessResult<bool> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.a.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_a(
 		&self, value: bool
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.a= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_d(
 		&self
-	)-> i8 {
+	)-> __tethering::AccessResult<i8> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.d.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_d(
 		&self, value: i8
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.d= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_e(
 		&self
-	)-> i16 {
+	)-> __tethering::AccessResult<i16> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.e.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_e(
 		&self, value: i16
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.e= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_f(
 		&self
-	)-> i32 {
+	)-> __tethering::AccessResult<i32> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.f.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_f(
 		&self, value: i32
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.f= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_g(
 		&self
-	)-> u8 {
+	)-> __tethering::AccessResult<u8> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.g.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_g(
 		&self, value: u8
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.g= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_h(
 		&self
-	)-> u16 {
+	)-> __tethering::AccessResult<u16> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.h.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_h(
 		&self, value: u16
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.h= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_i(
 		&self
-	)-> u32 {
+	)-> __tethering::AccessResult<u32> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.i.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_i(
 		&self, value: u32
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.i= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 
 	pub fn get_k(
 		&self
-	)-> f64 {
+	)-> __tethering::AccessResult<f64> {
 		let mut result = std::mem::MaybeUninit::uninit();
 		self.access(
 			&mut |src| {
 				result.write(
 					src.k.clone()
 				);
+				Ok(
+					()
+				)
 			}
-		);
-		unsafe {
-			result.assume_init()
-		}
+		)?;
+		Ok(
+			unsafe {
+				result.assume_init()
+			}
+		)
 	}
 
 	pub fn set_k(
 		&self, value: f64
-	) {
+	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
 			value
 		);
 		self.access_mut(
 			&mut |src| {
 				src.k= value.take().unwrap();
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
+		Ok(
+			()
+		)
 	}
 }
 
@@ -1493,7 +1945,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> Result<bool, JsValue> {
 		Ok(
-			self.src.get_a()
+			self.src.get_a()?
 		)
 	}
 
@@ -1520,7 +1972,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_a(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -1530,7 +1982,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> Result<i8, JsValue> {
 		Ok(
-			self.src.get_d()
+			self.src.get_d()?
 		)
 	}
 
@@ -1557,7 +2009,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_d(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -1567,7 +2019,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> Result<i16, JsValue> {
 		Ok(
-			self.src.get_e()
+			self.src.get_e()?
 		)
 	}
 
@@ -1594,7 +2046,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_e(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -1604,7 +2056,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> Result<i32, JsValue> {
 		Ok(
-			self.src.get_f()
+			self.src.get_f()?
 		)
 	}
 
@@ -1631,7 +2083,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_f(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -1641,7 +2093,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> Result<u8, JsValue> {
 		Ok(
-			self.src.get_g()
+			self.src.get_g()?
 		)
 	}
 
@@ -1668,7 +2120,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_g(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -1678,7 +2130,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> Result<u16, JsValue> {
 		Ok(
-			self.src.get_h()
+			self.src.get_h()?
 		)
 	}
 
@@ -1705,7 +2157,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_h(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -1715,7 +2167,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> Result<u32, JsValue> {
 		Ok(
-			self.src.get_i()
+			self.src.get_i()?
 		)
 	}
 
@@ -1742,7 +2194,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_i(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}
@@ -1752,7 +2204,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		&self
 	) -> Result<f64, JsValue> {
 		Ok(
-			self.src.get_k()
+			self.src.get_k()?
 		)
 	}
 
@@ -1779,7 +2231,7 @@ impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
 		};
 		self.src.set_k(
 			value
-		);Ok(
+		)?;Ok(
 			()
 		)
 	}

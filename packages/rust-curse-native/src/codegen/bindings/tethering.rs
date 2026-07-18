@@ -126,100 +126,145 @@
 //! on IR.
 
 use crate::{
-    codegen::fragment::{Fragment, FragmentOnce, fragment, spaced},
+    codegen::{
+        api::Api,
+        db::Db,
+        fragment::{Fragment, FragmentOnce, doubles, fragment, spaced},
+    },
     frag,
 };
 
-/// Supporting code
-pub const TETHERING_PRELUDE: &str = indoc::indoc! {r#"
-    #[allow(non_snake_case, dead_code)]
-    mod __tethering {
-        use std::cell::RefCell;
-        use std::rc::Rc;
+/// Compiles the API-specific supporting code used by generated tethered
+/// structs.
+pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
+    let api = Api::get(db);
+    let access_result = api.result_type(db, "T");
+    let borrow_error = api.error(
+        db,
+        frag!(
+            { doubles("cannot access a tethered value while it is mutably borrowed") }.to_string()
+        ),
+    );
+    let borrow_mut_error = api.error(
+        db,
+        frag!(
+            { doubles("cannot mutably access a tethered value while it is borrowed") }.to_string()
+        ),
+    );
 
-        pub trait Accessor<T> {
-            fn access(&self, f: &mut dyn FnMut(&T));
-            fn access_mut(&self, f: &mut dyn FnMut(&mut T));
-        }
+    let borrow_support = frag!(
+        use super::*;@
+        use std::cell::RefCell;@
+        use std::rc::Rc;@@
 
-        impl<T> Accessor<T> for RefCell<T> {
-            fn access(&self, f: &mut dyn FnMut(&T)) {
-                f(&*self.borrow());
-            }
-            fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-                f(&mut *self.borrow_mut());
-            }
-        }
+        pub type AccessResult<T> = ~{access_result};@@
 
-        pub enum Source<T> {
-            Owned(T),
+        /// Borrows a tethered value or returns an API-specific aliasing error.@
+        pub fn try_borrow<T>(value: &RefCell<T>) -> AccessResult<std::cell::Ref<'_, T>>~{{
+            value.try_borrow().map_err(|_|~{borrow_error})
+        }}@@
+
+        /// Mutably borrows a tethered value or returns an API-specific aliasing error.@
+        pub fn try_borrow_mut<T>(value: &RefCell<T>) -> AccessResult<std::cell::RefMut<'_, T>>~{{
+            value.try_borrow_mut().map_err(|_|~{borrow_mut_error})
+        }}@@
+
+        pub trait Accessor<T>~{{
+            fn access(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>;@
+            fn access_mut(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>;
+        }}@@
+
+        impl<T> Accessor<T> for RefCell<T>~{{
+            fn access(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>~{{
+                let value = try_borrow(self)?;@
+                f(&*value)
+            }}@
+            fn access_mut(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>~{{
+                let mut value = try_borrow_mut(self)?;@
+                f(&mut *value)
+            }}
+        }}
+    );
+
+    let source = frag!(
+        pub enum Source<T>~{{
+            Owned(T),@
             Projected(Rc<dyn Accessor<T>>),
-        }
+        }}@@
 
-        pub struct SourceSlot<T>(RefCell<Source<T>>);
+        pub struct SourceSlot<T>(RefCell<Source<T>>);@@
 
-        impl<T: 'static> SourceSlot<T> {
-            pub fn owned(value: T) -> Self {
+        impl<T: 'static> SourceSlot<T>~{{
+            pub fn owned(value: T) -> Self~{{
                 SourceSlot(RefCell::new(Source::Owned(value)))
-            }
-            pub fn projected(accessor: Rc<dyn Accessor<T>>) -> Self {
+            }}@
+            pub fn projected(accessor: Rc<dyn Accessor<T>>) -> Self~{{
                 SourceSlot(RefCell::new(Source::Projected(accessor)))
-            }
-            pub fn replace_with_owned(&self, value: T) {
-                *self.0.borrow_mut() = Source::Owned(value);
-            }
-        }
+            }}@
+            pub fn replace_with_owned(&self, value: T) -> AccessResult<()>~{{
+                *try_borrow_mut(&self.0)? = Source::Owned(value);@
+                Ok(())
+            }}
+        }}
+    );
 
-        impl<T> Accessor<T> for SourceSlot<T> {
-            fn access(&self, f: &mut dyn FnMut(&T)) {
-                let accessor = {
-                    let source = self.0.borrow();
+    let source_accessor = frag!(
+        impl<T> Accessor<T> for SourceSlot<T>~{{
+            fn access(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>~{{
+                let accessor = ~{{
+                    let source = try_borrow(&self.0)?;@@
 
-                    match &*source {
-                        Source::Owned(value) => {
-                            f(value);
-                            return;
-                        }
+                    match &*source~{{
+                        Source::Owned(value) => return f(value),@
                         Source::Projected(accessor) => Rc::clone(accessor),
-                    }
-                };
-                accessor.access(f);
-            }
+                    }}
+                }};@
+                accessor.access(f)
+            }}@@
 
-            fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-                let accessor = {
-                    let mut source = self.0.borrow_mut();
+            fn access_mut(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>~{{
+                let accessor = ~{{
+                    let mut source = try_borrow_mut(&self.0)?;@@
 
-                    match &mut *source {
-                        Source::Owned(value) => {
-                            f(value);
-                            return;
-                        }
+                    match &mut *source~{{
+                        Source::Owned(value) => return f(value),@
                         Source::Projected(accessor) => Rc::clone(accessor),
-                    }
-                };
-                accessor.access_mut(f);
-            }
-        }
+                    }}
+                }};@
+                accessor.access_mut(f)
+            }}
+        }}
+    );
 
-        pub struct FieldAccess<Parent, T> {
-            pub parent: Rc<dyn Accessor<Parent>>,
-            pub get: fn(&Parent) -> &T,
+    let field_access = frag!(
+        pub struct FieldAccess<Parent, T>~{{
+            pub parent: Rc<dyn Accessor<Parent>>,@
+            pub get: fn(&Parent) -> &T,@
             pub get_mut: fn(&mut Parent) -> &mut T,
-        }
+        }}@@
 
-        impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
-            fn access(&self, f: &mut dyn FnMut(&T)) {
+        impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T>~{{
+            fn access(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>~{{
                 self.parent.access(&mut |parent| f((self.get)(parent)))
-            }
-            fn access_mut(&self, f: &mut dyn FnMut(&mut T)) {
-                self.parent
-                    .access_mut(&mut |parent| f((self.get_mut)(parent)))
-            }
-        }
-    }
-    use __tethering::Accessor as _;
-"#};
+            }}@
+            fn access_mut(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>~{{
+                self.parent.access_mut(&mut |parent| f((self.get_mut)(parent)))
+            }}
+        }}
+    );
+
+    // todo: box it?
+    frag!(
+        #[allow(non_snake_case, dead_code)]@
+        mod __tethering~{{
+            {borrow_support}@@
+            {source}@@
+            {source_accessor}@@
+            {field_access}
+        }}@
+        use __tethering::Accessor as _;
+    )
+}
 
 /// A tethered struct. See the module-level documentation for more details.
 pub struct TetheredStruct<'a, FQN, Fields>
@@ -279,8 +324,8 @@ where
     pub with_setter: bool,
 }
 
-/// Compiles a source-backed struct with field accessors and cached projected
-/// tethers.
+/// Compiles a [`TetheredStruct`]. See the module-level documentation for more
+/// details.
 pub fn compile_tethered_struct<
     'a,
     StructFQN,
@@ -379,12 +424,18 @@ where
             }}@@
 
             impl __tethering::Accessor<{source_type}> for ~{name}~{{
-                fn access(&self, f: &mut dyn FnMut(&{source_type}))~{{
-                    self.src.access(f);
+                fn access(
+                    &self,@
+                    f: &mut dyn FnMut(&{source_type}) -> __tethering::AccessResult<()>,@
+                ) -> __tethering::AccessResult<()>~{{
+                    self.src.access(f)
                 }}@@
 
-                fn access_mut(&self, f: &mut dyn FnMut(&mut~{source_type}))~{{
-                    self.src.access_mut(f);
+                fn access_mut(
+                    &self,@
+                    f: &mut dyn FnMut(&mut~{source_type}) -> __tethering::AccessResult<()>,@
+                ) -> __tethering::AccessResult<()>~{{
+                    self.src.access_mut(f)
                 }}
             }}@@
 
@@ -415,11 +466,14 @@ where
 /// Expression is of:
 ///  - Rc of tethered struct type in case field holds tetherable source type
 ///  - A source type otherwise
+///
+/// The expression must be inserted into a scope that returns the
+/// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
 pub fn compile_tethered_struct_get_field_expr<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,
 ) -> impl FragmentOnce + 'a {
-    frag!({tethered_struct_expr}.get_{field_name}())
+    frag!({tethered_struct_expr}.get_{field_name}()?)
 }
 
 /// Compiles a call to a generated tethered field setter.
@@ -427,35 +481,50 @@ pub fn compile_tethered_struct_get_field_expr<'a>(
 /// Value should be of:
 ///  - Rc of tethered struct type in case field holds tetherable source type
 ///  - A source type otherwise
+///
+/// The statement must be inserted into a scope that returns the
+/// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
 pub fn compile_tethered_struct_set_field_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,
     value: impl FragmentOnce + 'a,
 ) -> impl FragmentOnce + 'a {
-    frag!({tethered_struct_expr}.set_{field_name}({value});)
+    frag!({tethered_struct_expr}.set_{field_name}({value})?;)
 }
 
 /// Compiles a statement that accesses the complete source value behind a
 /// tethered field by shared reference.
+///
+/// The statement must be inserted into a scope that returns the
+/// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
 pub fn compile_tethered_struct_ref_access_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     out_var: &'a str,
     in_stmt: impl FragmentOnce + 'a,
 ) -> impl FragmentOnce + 'a {
     frag!(
-        {tethered_struct_expr}.access(&mut |{out_var}|~{{ {in_stmt} }});
+        {tethered_struct_expr}.access(&mut |{out_var}|~{{
+            {in_stmt}@
+            Ok(())
+        }})?;
     )
 }
 
 /// Compiles a statement that accesses the complete source value behind a
 /// tethered field by mutable reference.
+///
+/// The statement must be inserted into a scope that returns the
+/// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
 pub fn compile_tethered_struct_mut_access_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     out_var: &'a str,
     in_stmt: impl FragmentOnce + 'a,
 ) -> impl FragmentOnce + 'a {
     frag!(
-        {tethered_struct_expr}.access_mut(&mut |{out_var}|~{{ {in_stmt} }});
+        {tethered_struct_expr}.access_mut(&mut |{out_var}|~{{
+            {in_stmt}@
+            Ok(())
+        }})?;
     )
 }
 
@@ -476,14 +545,15 @@ where
             let get_ref_expr = (self.get_ref_expr)("src");
 
             frag!(
-                pub fn get_{self.name}(&self) -> ~{&self.source_type}~{{
+                pub fn get_{self.name}(&self) -> __tethering::AccessResult<{&self.source_type}>~{{
                     let mut result = std::mem::MaybeUninit::uninit();@
                     self.access(&mut |src|~{{
-                        result.write({get_ref_expr}.clone());
-                    }});@
-                    unsafe~{{
+                        result.write({get_ref_expr}.clone());@
+                        Ok(())
+                    }})?;@
+                    Ok(unsafe~{{
                         result.assume_init()
-                    }}
+                    }})
                 }}
             )
             .apply(p);
@@ -499,11 +569,13 @@ where
             let get_mut_expr = (self.get_mut_expr)("src");
 
             frag!(
-                pub fn set_{self.name}(&self, value: ~{&self.source_type})~{{
+                pub fn set_{self.name}(&self, value: ~{&self.source_type}) -> __tethering::AccessResult<()>~{{
                     let mut value = Some(value);@
                     self.access_mut(&mut |src|~{{
-                        {get_mut_expr} = value.take().unwrap();
-                    }});
+                        {get_mut_expr} = value.take().unwrap();@
+                        Ok(())
+                    }})?;@
+                    Ok(())
                 }}
             )
             .apply(p);
@@ -528,9 +600,11 @@ where
             let get_mut_expr = (self.get_mut_expr)("parent");
 
             frag!(
-                pub fn get_{self.name}(self: &std::rc::Rc<Self>) -> std::rc::Rc<{&self.tethered_name}>~{{
-                    if let Some(tethered)~ = self.{&cache_field_name}.borrow().as_ref().and_then(std::rc::Weak::upgrade)~{{
-                        return tethered;@
+                pub fn get_{self.name}(
+                    self: &std::rc::Rc<Self>,@
+                ) -> __tethering::AccessResult<std::rc::Rc<{&self.tethered_name}>>~{{
+                    if let Some(tethered)~ = __tethering::try_borrow(&self.{&cache_field_name})?.as_ref().and_then(std::rc::Weak::upgrade)~{{
+                        return Ok(tethered);@
                     }}@@
 
                     let field_access: std::rc::Rc<dyn __tethering::Accessor<{&self.source_type}>> = std::rc::Rc::new(__tethering::FieldAccess~{{
@@ -541,9 +615,9 @@ where
 
                     let tethered = std::rc::Rc::new({&self.tethered_name}::new_projected(field_access));@@
 
-                    *self.{&cache_field_name}.borrow_mut() = Some(std::rc::Rc::downgrade(&tethered));@@
+                    *__tethering::try_borrow_mut(&self.{&cache_field_name})? = Some(std::rc::Rc::downgrade(&tethered));@@
 
-                    tethered
+                    Ok(tethered)
                 }}
             )
             .apply(p);
@@ -560,9 +634,8 @@ where
             let get_mut_expr = (self.get_mut_expr)("src");
 
             frag!(
-                pub fn set_{self.name}(&self, value: ~{&self.source_type})~{{
-                    let cached_value = self.{&cache_field_name}
-                        .borrow_mut()
+                pub fn set_{self.name}(&self, value: ~{&self.source_type}) -> __tethering::AccessResult<()>~{{
+                    let cached_value = __tethering::try_borrow_mut(&self.{&cache_field_name})?
                         .take()
                         .and_then(|tethered| tethered.upgrade());@@
 
@@ -573,12 +646,14 @@ where
                         old_value = Some(std::mem::replace(
                             &mut ~{get_mut_expr},
                             value.take().unwrap(),
-                        ));
-                    }});@@
+                        ));@
+                        Ok(())
+                    }})?;@@
 
                     if let Some(cached_value)~= cached_value~{{
-                        cached_value.src.replace_with_owned(old_value.unwrap());
-                    }}
+                        cached_value.src.replace_with_owned(old_value.unwrap())?;
+                    }}@
+                    Ok(())
                 }}
             )
             .apply(p);

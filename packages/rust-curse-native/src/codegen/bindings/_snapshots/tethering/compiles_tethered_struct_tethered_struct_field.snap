@@ -39,23 +39,25 @@ struct __tethered_parent {
 
 impl __tethering::Accessor<crate::Parent> for __tethered_parent {
 	fn access(
-		&self, f: &mut dyn FnMut(
+		&self,
+		f: &mut dyn FnMut(
 			&crate::Parent
-		)
-	) {
+		)-> __tethering::AccessResult<()>,
+	)-> __tethering::AccessResult<()> {
 		self.src.access(
 			f
-		);
+		)
 	}
 
 	fn access_mut(
-		&self, f: &mut dyn FnMut(
+		&self,
+		f: &mut dyn FnMut(
 			&mut crate::Parent
-		)
-	) {
+		)-> __tethering::AccessResult<()>,
+	)-> __tethering::AccessResult<()> {
 		self.src.access_mut(
 			f
-		);
+		)
 	}
 }
 
@@ -87,14 +89,18 @@ impl __tethered_parent {
 	}
 
 	pub fn get_child(
-		self: &std::rc::Rc<Self>
-	)-> std::rc::Rc<__tethered_child> {
+		self: &std::rc::Rc<Self>,
+	)-> __tethering::AccessResult<std::rc::Rc<__tethered_child>> {
 		if let Some(
 			tethered
-		) = self.__c__child.borrow().as_ref().and_then(
+		) = __tethering::try_borrow(
+			&self.__c__child
+		)?.as_ref().and_then(
 			std::rc::Weak::upgrade
 		) {
-			return tethered;
+			return Ok(
+				tethered
+			);
 		}
 
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<crate::Child>> = std::rc::Rc::new(
@@ -111,19 +117,25 @@ impl __tethered_parent {
 			)
 		);
 
-		*self.__c__child.borrow_mut()= Some(
+		*__tethering::try_borrow_mut(
+			&self.__c__child
+		)? = Some(
 			std::rc::Rc::downgrade(
 				&tethered
 			)
 		);
 
-		tethered
+		Ok(
+			tethered
+		)
 	}
 
 	pub fn set_child(
 		&self, value: crate::Child
-	) {
-		let cached_value = self.__c__child.borrow_mut().take().and_then(
+	)-> __tethering::AccessResult<()> {
+		let cached_value = __tethering::try_borrow_mut(
+			&self.__c__child
+		)? .take().and_then(
 			|tethered| tethered.upgrade()
 		);
 
@@ -139,16 +151,22 @@ impl __tethered_parent {
 						&mut src.child, value.take().unwrap(),
 					)
 				);
+				Ok(
+					()
+				)
 			}
-		);
+		)?;
 
 		if let Some(
 			cached_value
 		) = cached_value {
 			cached_value.src.replace_with_owned(
 				old_value.unwrap()
-			);
+			)?;
 		}
+		Ok(
+			()
+		)
 	}
 }
 ```

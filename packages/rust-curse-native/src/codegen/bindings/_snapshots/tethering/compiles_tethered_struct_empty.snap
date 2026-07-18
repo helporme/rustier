@@ -1,6 +1,5 @@
 ---
 source: src/codegen/bindings/tethering.rs
-assertion_line: 628
 expression: body
 ---
 ## Test
@@ -30,23 +29,25 @@ struct __tethered_empty {
 
 impl __tethering::Accessor<crate::Empty> for __tethered_empty {
 	fn access(
-		&self, f: &mut dyn FnMut(
+		&self,
+		f: &mut dyn FnMut(
 			&crate::Empty
-		)
-	) {
+		)-> __tethering::AccessResult<()>,
+	)-> __tethering::AccessResult<()> {
 		self.src.access(
 			f
-		);
+		)
 	}
 
 	fn access_mut(
-		&self, f: &mut dyn FnMut(
+		&self,
+		f: &mut dyn FnMut(
 			&mut crate::Empty
-		)
-	) {
+		)-> __tethering::AccessResult<()>,
+	)-> __tethering::AccessResult<()> {
 		self.src.access_mut(
 			f
-		);
+		)
 	}
 }
 

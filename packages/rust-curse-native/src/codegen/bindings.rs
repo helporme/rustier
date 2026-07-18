@@ -9,7 +9,7 @@ use crate::codegen::{
     api::Api,
     bindings::{
         cast::compile_cast_fns, mod_::compile_mod, struct_::is_using_tethering,
-        tethering::TETHERING_PRELUDE,
+        tethering::compile_tethering_prelude,
     },
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, frag, fragment, spaced},
@@ -39,7 +39,7 @@ pub fn compile_bindings(db: &dyn Db) -> String {
 
         if is_using_tethering(db) {
             frag!(@@).apply(p);
-            TETHERING_PRELUDE.apply(p);
+            compile_tethering_prelude(db).apply(p);
         }
 
         if !cast_fns.is_empty() {

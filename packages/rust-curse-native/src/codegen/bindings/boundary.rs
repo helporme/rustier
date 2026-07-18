@@ -279,8 +279,12 @@ fn compile_boundary_conversion_stmt_via_cast<'db>(
 /// ```ignore (incomplete expression)
 /// a.src.access_mut(&mut |src| {
 ///    /* inner */
-/// });
+///    Ok(())
+/// })?;
 /// ```
+///
+/// The statement must be inserted into a scope that returns the
+/// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
 fn compile_boundary_in_struct_conversion_stmt<'db>(
     expr: BoundaryInExpr<'db>,
     inner_expr: impl FragmentOnce + 'db,

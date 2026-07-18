@@ -39,5 +39,5 @@ export function greet(
 for `rustdoc_test_crate`:
 
 ```json
-{"version":3,"file":"lib.rs.d.ts","sourceRoot":"","sources":["<crate>/src/lib.rs"],"names":["add","greet"],"mappings":"AAAAA,gBAAOA;;AAGPC,gBAAOA"}
+{"version":3,"file":"lib.rs.d.ts","sourceRoot":"","sources":["<crate>/src/lib.rs"],"names":["add","greet"],"mappings":"AAAAA,gBAAOA;;;;;AAGPC,gBAAOA"}
 ```

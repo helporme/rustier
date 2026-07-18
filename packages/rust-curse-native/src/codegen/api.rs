@@ -72,17 +72,26 @@ impl Api {
     }
 
     /// Returns the API-specific body for casting a JavaScript value to `bool`.
+    ///
+    /// The expression must be inserted into a scope returning this API's result
+    /// type because some backends generate `?` operations.
     pub fn cast_to_bool(self, db: &dyn Db) -> impl FragmentOnce {
         self.cast_to_primitive(db, "bool", "as_bool", "Boolean")
     }
 
     /// Returns the API-specific body for casting a JavaScript value to
     /// `String`.
+    ///
+    /// The expression must be inserted into a scope returning this API's result
+    /// type because some backends generate `?` operations.
     pub fn cast_to_string(self, db: &dyn Db) -> impl FragmentOnce {
         self.cast_to_primitive(db, "String", "as_string", "String")
     }
 
     /// Returns the API-specific body for casting a JavaScript value to `f64`.
+    ///
+    /// The expression must be inserted into a scope returning this API's result
+    /// type because some backends generate `?` operations.
     pub fn cast_to_f64(self, db: &dyn Db) -> impl FragmentOnce {
         self.cast_to_primitive(db, "f64", "as_f64", "Number")
     }

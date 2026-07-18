@@ -42,6 +42,9 @@ fn compile_binding_fn_params<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragmen
     })
 }
 
+/// Compiles a binding function body for a function returning the active
+/// [`crate::codegen::api::Api::result_type`] type, allowing generated `?`
+/// expressions.
 fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentOnce + 'db {
     fragment(move |p| {
         let params_as_input_exprs = fn_
