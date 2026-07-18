@@ -119,11 +119,7 @@ pub fn add_mixed(left: i16, right: &i16, offset: u8) -> i32 {
 }
 
 pub fn choose_mixed(flag: &bool, value: char, fallback: &char) -> char {
-    if *flag {
-        value
-    } else {
-        *fallback
-    }
+    if *flag { value } else { *fallback }
 }
 
 pub fn identity_bool(value: bool) -> bool {
@@ -218,6 +214,7 @@ pub struct NonCloneParentStruct {
     pub child: NonCloneChildStruct,
 }
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct TupleStruct(i32, pub i32);
 
