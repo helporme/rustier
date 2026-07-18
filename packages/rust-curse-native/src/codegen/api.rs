@@ -5,10 +5,7 @@ use salsa::Setter;
 use crate::codegen::{
     db::Db,
     fragment::{FragmentOnce, doubles, frag, fragment, singles},
-    ir::{
-        fn_::Fn,
-        struct_::{Struct, StructField},
-    },
+    ir::{fn_::Fn, shape::ShapeField, struct_::Struct},
 };
 
 /// Active binding API used for generated Rust and JavaScript glue code.
@@ -161,7 +158,7 @@ impl Api {
     pub fn field_getter_header<'db>(
         self,
         db: &'db dyn Db,
-        field: StructField<'db>,
+        field: ShapeField<'db>,
     ) -> impl FragmentOnce + 'db {
         let header = match self.kind(db) {
             ApiKind::Wasm { .. } => "#[wasm_bindgen(getter, js_name = ",
@@ -175,7 +172,7 @@ impl Api {
     pub fn field_setter_header<'db>(
         self,
         db: &'db dyn Db,
-        field: StructField<'db>,
+        field: ShapeField<'db>,
     ) -> impl FragmentOnce + 'db {
         let header = match self.kind(db) {
             ApiKind::Wasm { .. } => "#[wasm_bindgen(setter, js_name = ",

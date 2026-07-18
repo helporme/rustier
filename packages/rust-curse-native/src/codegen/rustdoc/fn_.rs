@@ -13,7 +13,7 @@ use crate::codegen::{
     },
     rustdoc::{
         CrateExt, RustdocId,
-        struct_::is_struct_clonable,
+        shape::is_struct_clonable,
         type_::{LoweredType, TypeLowerError, lower_type},
     },
 };

@@ -6,7 +6,8 @@ use crate::{
         fragment::{FragmentOnce, doubles, fragment, spaced},
         ir::{
             IrId,
-            struct_::{Struct, StructShape, struct_name_from_ir_id},
+            shape::Shape,
+            struct_::{Struct, struct_name_from_ir_id},
             type_::Type,
         },
         js::{
@@ -54,9 +55,9 @@ pub fn compile_facade_class_for_struct<'a>(
 
     let fields = spaced(struct_.fields(db).iter().copied().map(move |field| {
         let field_name = fragment(move |p| match shape {
-            StructShape::Tuple(_) => field.name(db).apply(p),
-            StructShape::Plain { .. } => doubles(field.name(db)).apply(p),
-            StructShape::Unit => unreachable!(),
+            Shape::Tuple(_) => field.name(db).apply(p),
+            Shape::Plain { .. } => doubles(field.name(db)).apply(p),
+            Shape::Unit => unreachable!(),
         });
         let cached_field_expr = frag!(this.#_{field.name(db)});
         let binding_field_name = field_name.clone();
@@ -134,9 +135,9 @@ pub fn compile_facade_class_for_struct<'a>(
             .filter(|field| matches!(field.type_(db), Type::Struct(_)))
         {
             let field_name = fragment(|p| match shape {
-                StructShape::Tuple(_) => field.name(db).apply(p),
-                StructShape::Plain { .. } => doubles(field.name(db)).apply(p),
-                StructShape::Unit => unreachable!(),
+                Shape::Tuple(_) => field.name(db).apply(p),
+                Shape::Plain { .. } => doubles(field.name(db)).apply(p),
+                Shape::Unit => unreachable!(),
             });
             let cached_field_expr = frag!(obj.#_{field.name(db)});
 

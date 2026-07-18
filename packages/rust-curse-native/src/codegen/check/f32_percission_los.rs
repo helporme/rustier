@@ -5,8 +5,9 @@ use crate::codegen::{
     db::Db,
     ir::{
         fn_::Fn,
+        shape::Shape,
         span::{SourceCode, Span},
-        struct_::{Struct, StructShape},
+        struct_::Struct,
         type_::{Primitive, Type},
     },
     rustdoc::mod_::{all_mod_ids, lower_mod_fns, lower_mod_structs},
@@ -58,12 +59,12 @@ fn check_f32_percission_los_fn(db: &dyn Db, fn_: Fn<'_>) -> Option<F32PrecisionL
 
 fn check_f32_percission_los_struct(db: &dyn Db, struct_: Struct<'_>) -> Option<F32PrecisionLoss> {
     let has_f32_field = match struct_.shape(db) {
-        StructShape::Unit => false,
-        StructShape::Tuple(fields) => fields
+        Shape::Unit => false,
+        Shape::Tuple(fields) => fields
             .iter()
             .flatten()
             .any(|field| field.type_(db) == Type::Primitive(Primitive::f32)),
-        StructShape::Plain { fields, .. } => fields
+        Shape::Plain { fields, .. } => fields
             .iter()
             .any(|field| field.type_(db) == Type::Primitive(Primitive::f32)),
     };

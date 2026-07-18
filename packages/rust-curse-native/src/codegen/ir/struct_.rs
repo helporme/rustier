@@ -1,99 +1,21 @@
-use rustdoc_types::{ItemEnum, ItemKind, StructKind};
+use rustdoc_types::ItemKind;
 
 use crate::codegen::{
     db::Db,
-    ir::{IrId, mangle::mangle_path, type_::Type},
-    rustdoc::{RustdocId, struct_::lower_struct},
-};
-
-/// A field declared by a Rust struct.
-#[salsa::tracked(debug)]
-pub struct StructField<'db> {
-    #[returns(ref)]
-    pub name: String,
-    #[tracked]
-    pub type_: Type<'db>,
-    #[tracked]
-    pub is_readonly: bool,
-    #[tracked]
-    #[returns(ref)]
-    pub docs: Option<String>,
-}
-
-#[salsa::tracked]
-impl<'db> StructField<'db> {
-    /// Returns the binding name of the getter function, e.g. `__getter__foo`.
-    #[salsa::tracked(returns(ref))]
-    pub fn getter_binding_name(self, db: &'db dyn Db) -> String {
-        format!("__getter__{}", self.name(db))
-    }
-
-    /// Returns the binding name of the setter function, e.g. `__setter__foo`.
-    #[salsa::tracked(returns(ref))]
-    pub fn setter_binding_name(self, db: &'db dyn Db) -> String {
-        format!("__setter__{}", self.name(db))
-    }
-
-    /// Returns the rustdoc id of the field under the parent struct.
-    #[salsa::tracked(returns(copy))]
-    pub fn rustdoc_id(self, db: &'db dyn Db, struct_id: IrId<'db>) -> RustdocId<'db> {
-        // todo: i am uneasy about passing struct_id here. Shouldn't field find it
-        // parent struct without help?
-
-        let struct_rustdoc_id = struct_id.rustdoc_id(db);
-        let struct_ = lower_struct(db, struct_rustdoc_id)
-            .expect("struct must exist otherwise the field won't be lowered");
-
-        let idx = struct_
-            .fields(db)
-            .iter()
-            .position(|f| f.name(db) == self.name(db))
-            .expect("field must be found in an owning struct");
-
-        let def = match &struct_rustdoc_id.item(db).inner {
-            ItemEnum::Struct(def) => def,
-            _ => panic!(
-                "expected struct when getting rustdoc item for `{}`",
-                struct_id.fqn(db)
-            ),
-        };
-
-        let field_id = match &def.kind {
-            StructKind::Unit => unreachable!(),
-            StructKind::Tuple(ids) => ids
-                .iter()
-                .flatten()
-                .nth(idx)
-                .copied()
-                .expect("field must be found in an owning struct"),
-            StructKind::Plain { fields: ids, .. } => ids
-                .get(idx)
-                .copied()
-                .expect("field must be found in an owning struct"),
-        };
-
-        let crate_name = struct_rustdoc_id.crate_name(db);
-        RustdocId::new(db, field_id, crate_name)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
-pub enum StructShape<'db> {
-    Unit,
-    // private fields are `None`
-    Tuple(Vec<Option<StructField<'db>>>),
-    Plain {
-        fields: Vec<StructField<'db>>,
-        has_stripped_fields: bool,
+    ir::{
+        IrId,
+        mangle::mangle_path,
+        shape::{Shape, ShapeField},
+        type_::Type,
     },
-}
+};
 
 #[salsa::tracked(debug)]
 pub struct Struct<'db> {
     pub id: IrId<'db>,
     #[tracked]
     #[returns(ref)]
-    pub shape: StructShape<'db>,
+    pub shape: Shape<'db>,
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,
@@ -130,11 +52,11 @@ impl<'db> Struct<'db> {
     }
 
     #[salsa::tracked(returns(ref))]
-    pub fn fields(self, db: &'db dyn Db) -> Vec<StructField<'db>> {
+    pub fn fields(self, db: &'db dyn Db) -> Vec<ShapeField<'db>> {
         match self.shape(db) {
-            StructShape::Unit => vec![],
-            StructShape::Tuple(fields) => fields.iter().flatten().cloned().collect(),
-            StructShape::Plain { fields, .. } => fields.clone(),
+            Shape::Unit => vec![],
+            Shape::Tuple(fields) => fields.iter().flatten().cloned().collect(),
+            Shape::Plain { fields, .. } => fields.clone(),
         }
     }
 }
@@ -217,5 +139,3 @@ pub fn struct_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
         .expect("Struct must have a name")
         .to_string()
 }
-
-// todo: remove suffix from_rustdoc_id and just accept IrId

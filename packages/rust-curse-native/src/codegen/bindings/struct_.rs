@@ -20,10 +20,8 @@ use crate::{
         fragment::{FragmentOnce, FragmentPrint, fragment, spaced},
         ir::{
             IrId,
-            struct_::{
-                Struct, StructField, struct_binding_name_from_ir_id,
-                struct_tethered_name_from_ir_id,
-            },
+            shape::ShapeField,
+            struct_::{Struct, struct_binding_name_from_ir_id, struct_tethered_name_from_ir_id},
             type_::Type,
         },
         rustdoc::mod_::{all_mod_ids, lower_mod_structs},
@@ -113,7 +111,7 @@ fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl Frag
 }
 
 /// Compiles the public binding getter for a source struct field.
-fn compile_field_getter<'db>(db: &'db dyn Db, field: StructField<'db>) -> impl FragmentOnce + 'db {
+fn compile_field_getter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
     let getter_name = field.getter_binding_name(db);
     let field_type = field.type_(db);
@@ -136,7 +134,7 @@ fn compile_field_getter<'db>(db: &'db dyn Db, field: StructField<'db>) -> impl F
 }
 
 /// Compiles the public binding setter for a source struct field.
-fn compile_field_setter<'db>(db: &'db dyn Db, field: StructField<'db>) -> impl FragmentOnce + 'db {
+fn compile_field_setter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
     let setter_name = field.setter_binding_name(db);
     let param_type_name = compile_boundary_in_type(db, field.type_(db));

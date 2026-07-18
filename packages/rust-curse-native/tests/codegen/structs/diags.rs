@@ -150,7 +150,7 @@ fn non_clonable_struct_field_is_readonly() {
 
     assert_eq!(diags.len(), 1);
     let diag = diags[0].inner.as_ref();
-    assert_eq!(diag_code(diag), "rust_curse::readonly_struct_field");
+    assert_eq!(diag_code(diag), "rust_curse::readonly_field");
     assert_eq!(
         diag.to_string(),
         "the field `inner` is readonly in JS because \"rustdoc_test_crate::Inner\" does not implement `Clone`"
@@ -170,7 +170,7 @@ fn non_clonable_tuple_struct_field_is_readonly() {
 
     assert_eq!(diags.len(), 1);
     let diag = diags[0].inner.as_ref();
-    assert_eq!(diag_code(diag), "rust_curse::readonly_struct_field");
+    assert_eq!(diag_code(diag), "rust_curse::readonly_field");
     assert_eq!(
         diag.to_string(),
         "the field is readonly in JS because \"rustdoc_test_crate::Inner\" does not implement `Clone`"

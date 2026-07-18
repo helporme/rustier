@@ -2,7 +2,7 @@
 
 use crate::codegen::{
     db::Db,
-    ir::struct_::{Struct, StructShape},
+    ir::{shape::Shape, struct_::Struct},
     ts::{
         sourcemap::{
             Mapping,
@@ -47,7 +47,7 @@ pub fn compile_struct_mappings<'db>(
         },
     ];
 
-    let is_plain = matches!(struct_.shape(db), StructShape::Plain { .. });
+    let is_plain = matches!(struct_.shape(db), Shape::Plain { .. });
     let mut field_start_line = class_line + 1;
     for field in struct_.fields(db) {
         let prefix = if field.is_readonly(db) {

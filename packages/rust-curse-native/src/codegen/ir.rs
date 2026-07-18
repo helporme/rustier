@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
+pub mod enum_;
 pub mod fn_;
 pub mod mangle;
 pub mod mod_;
+pub mod shape;
 pub mod span;
 pub mod struct_;
 pub mod type_;

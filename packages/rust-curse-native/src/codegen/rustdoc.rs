@@ -4,8 +4,10 @@ use crate::codegen::db::{Db, DbImpl};
 use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, Type};
 use salsa::Setter;
 
+pub mod enum_;
 pub mod fn_;
 pub mod mod_;
+pub mod shape;
 pub mod struct_;
 pub mod type_;
 

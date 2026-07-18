@@ -3,7 +3,8 @@ use rust_curse::codegen::{
     ir::{
         fn_::{Fn, FnParam},
         mod_::Mod,
-        struct_::{Struct, StructField, StructShape, struct_fqn_from_ir_id},
+        shape::{Shape, ShapeField},
+        struct_::{Struct, struct_fqn_from_ir_id},
         type_::{Primitive, Type},
     },
     rustdoc::mod_::{lower_mod_fns, lower_mod_structs, lower_mod_submods},
@@ -90,7 +91,7 @@ impl<'db> DebugRender<'db> for Primitive {
     }
 }
 
-impl<'db> DebugRender<'db> for StructField<'db> {
+impl<'db> DebugRender<'db> for ShapeField<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         let docs = self
             .docs(db)
@@ -112,11 +113,11 @@ impl<'db> DebugRender<'db> for StructField<'db> {
     }
 }
 
-impl<'db> DebugRender<'db> for StructShape<'db> {
+impl<'db> DebugRender<'db> for Shape<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         match self {
-            StructShape::Unit => "Unit".to_string(),
-            StructShape::Tuple(fields) => {
+            Shape::Unit => "Unit".to_string(),
+            Shape::Tuple(fields) => {
                 let fields = render_list(
                     fields
                         .iter()
@@ -143,7 +144,7 @@ impl<'db> DebugRender<'db> for StructShape<'db> {
 
                 format!("Tuple({fields})")
             }
-            StructShape::Plain {
+            Shape::Plain {
                 fields,
                 has_stripped_fields,
             } => {

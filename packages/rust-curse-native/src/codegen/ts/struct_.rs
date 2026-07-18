@@ -5,7 +5,8 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, fragment},
         ir::{
-            struct_::{Struct, StructField, struct_name_from_ir_id},
+            shape::ShapeField,
+            struct_::{Struct, struct_name_from_ir_id},
             type_::Type,
         },
         js::imports::{Import, ImportFrom},
@@ -73,7 +74,7 @@ pub fn compile_struct_required_imports<'db>(
     }
 }
 
-fn compile_class_field<'db>(db: &'db dyn Db, field: StructField<'db>) -> impl FragmentOnce + 'db {
+fn compile_class_field<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl FragmentOnce + 'db {
     let readonly = if field.is_readonly(db) {
         "readonly "
     } else {
