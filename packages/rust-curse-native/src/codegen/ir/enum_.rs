@@ -11,7 +11,7 @@ pub struct EnumVariant<'db> {
     #[tracked]
     #[returns(ref)]
     /// The discriminant value of this variant as number between [`i128::MIN`]
-    /// and [`i128::MAX`], if any.
+    /// and [`u128::MAX`], if any.
     pub discriminant: Option<String>,
     #[tracked]
     #[returns(ref)]
