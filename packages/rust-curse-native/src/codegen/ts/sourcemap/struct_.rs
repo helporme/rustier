@@ -15,13 +15,13 @@ use crate::codegen::{
 /// Compiles an IR struct and its emitted fields into TypeScript declaration
 /// mappings.
 #[salsa::tracked(returns(ref))]
-pub(super) fn compile_struct_mappings<'db>(
+pub fn compile_struct_mappings<'db>(
     db: &'db dyn Db,
     struct_: Struct<'db>,
     generated_line: usize,
 ) -> Vec<Mapping> {
-    let rustdoc_id = struct_.id(db).rustdoc_id(db);
-    let Some(original) = original_location(db, rustdoc_id) else {
+    let struct_rustdoc_id = struct_.id(db).rustdoc_id(db);
+    let Some(original) = original_location(db, struct_rustdoc_id) else {
         return Vec::new();
     };
     let name = struct_.name(db).to_string();
@@ -59,9 +59,10 @@ pub(super) fn compile_struct_mappings<'db>(
             .expect("compiled TypeScript class field declaration should exist");
         field_start_line = field_line + 1;
 
-        let Some(original) = original_location(db, field.rustdoc_id(db)) else {
+        let Some(original) = original_location(db, field.rustdoc_id(db, struct_.id(db))) else {
             continue;
         };
+
         let generated_line = generated_line + field_line - class_line;
         let name = field.name(db).clone();
         let original_name_column = if is_plain {

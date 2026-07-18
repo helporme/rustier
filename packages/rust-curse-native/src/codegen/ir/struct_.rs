@@ -1,14 +1,14 @@
-use rustdoc_types::ItemKind;
+use rustdoc_types::{ItemEnum, ItemKind, StructKind};
 
 use crate::codegen::{
     db::Db,
     ir::{IrId, mangle::mangle_path, type_::Type},
+    rustdoc::{RustdocId, struct_::lower_struct},
 };
 
 /// A field declared by a Rust struct.
 #[salsa::tracked(debug)]
 pub struct StructField<'db> {
-    pub rustdoc_id: RustdocId<'db>,
     #[returns(ref)]
     pub name: String,
     #[tracked]
@@ -32,6 +32,48 @@ impl<'db> StructField<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn setter_binding_name(self, db: &'db dyn Db) -> String {
         format!("__setter__{}", self.name(db))
+    }
+
+    /// Returns the rustdoc id of the field under the parent struct.
+    #[salsa::tracked(returns(copy))]
+    pub fn rustdoc_id(self, db: &'db dyn Db, struct_id: IrId<'db>) -> RustdocId<'db> {
+        // todo: i am uneasy about passing struct_id here. Shouldn't field find it
+        // parent struct without help?
+
+        let struct_rustdoc_id = struct_id.rustdoc_id(db);
+        let struct_ = lower_struct(db, struct_rustdoc_id)
+            .expect("struct must exist otherwise the field won't be lowered");
+
+        let idx = struct_
+            .fields(db)
+            .iter()
+            .position(|f| f.name(db) == self.name(db))
+            .expect("field must be found in an owning struct");
+
+        let def = match &struct_rustdoc_id.item(db).inner {
+            ItemEnum::Struct(def) => def,
+            _ => panic!(
+                "expected struct when getting rustdoc item for `{}`",
+                struct_id.fqn(db)
+            ),
+        };
+
+        let field_id = match &def.kind {
+            StructKind::Unit => unreachable!(),
+            StructKind::Tuple(ids) => ids
+                .iter()
+                .flatten()
+                .nth(idx)
+                .copied()
+                .expect("field must be found in an owning struct"),
+            StructKind::Plain { fields: ids, .. } => ids
+                .get(idx)
+                .copied()
+                .expect("field must be found in an owning struct"),
+        };
+
+        let crate_name = struct_rustdoc_id.crate_name(db);
+        RustdocId::new(db, field_id, crate_name)
     }
 }
 

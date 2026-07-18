@@ -22,14 +22,14 @@ pub struct CompiledMappings {
 }
 
 /// A zero-based source location resolved from a rustdoc item span.
-pub(super) struct OriginalLocation {
+pub struct OriginalLocation {
     pub source: String,
     pub line: usize,
     pub column: usize,
 }
 
 /// Resolves the beginning of a rustdoc item's span into a source-map location.
-pub(super) fn original_location<'db>(
+pub fn original_location<'db>(
     db: &'db dyn Db,
     rustdoc_id: RustdocId<'db>,
 ) -> Option<OriginalLocation> {
@@ -51,7 +51,7 @@ pub(super) fn original_location<'db>(
 }
 
 /// Finds the next generated declaration whose name has exact token boundaries.
-pub(super) fn find_name_line(
+pub fn find_name_line(
     source: &str,
     start_line: usize,
     prefix: &str,

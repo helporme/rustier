@@ -65,7 +65,7 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> SourceMap {
 /// Compiles all emitted items in a module into mappings at their generated
 /// locations.
 #[salsa::tracked(returns(ref))]
-pub(super) fn compile_mod_mappings<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> Vec<Mapping> {
+pub fn compile_mod_mappings<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> Vec<Mapping> {
     let generated = compile_ts_mod(db, mod_id);
     let mut mappings = Vec::new();
     let mut search_line = 0;

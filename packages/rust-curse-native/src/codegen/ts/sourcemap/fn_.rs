@@ -8,7 +8,7 @@ use crate::codegen::{
 
 /// Compiles an IR function into mappings for its TypeScript declaration line.
 #[salsa::tracked(returns(ref))]
-pub(super) fn compile_fn_mappings<'db>(
+pub fn compile_fn_mappings<'db>(
     db: &'db dyn Db,
     fn_: Fn<'db>,
     generated_line: usize,

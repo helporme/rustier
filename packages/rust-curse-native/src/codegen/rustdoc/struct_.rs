@@ -168,7 +168,6 @@ fn lower_tuple_struct_field<'db>(
 
     Ok(ir::struct_::StructField::new(
         db,
-        id,
         name,
         field_type,
         is_readonly,
@@ -217,7 +216,6 @@ fn lower_plain_struct_field<'db>(
 
     Ok(ir::struct_::StructField::new(
         db,
-        id,
         name,
         field_type,
         is_readonly,

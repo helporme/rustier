@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::codegen::{db::DbImpl, rustdoc::RustdocId, ts::sourcemap::Mapping};
 
-pub(super) fn normalize_source(crate_dir: &Path, source: &str) -> String {
+pub fn normalize_source(crate_dir: &Path, source: &str) -> String {
     Path::new(source)
         .strip_prefix(crate_dir)
         .unwrap_or_else(|_| Path::new(source))
@@ -10,7 +10,7 @@ pub(super) fn normalize_source(crate_dir: &Path, source: &str) -> String {
         .replace(std::path::MAIN_SEPARATOR, "/")
 }
 
-pub(super) fn normalize_mappings(crate_dir: &Path, mappings: &[Mapping]) -> Vec<Mapping> {
+pub fn normalize_mappings(crate_dir: &Path, mappings: &[Mapping]) -> Vec<Mapping> {
     mappings
         .iter()
         .cloned()
@@ -21,7 +21,7 @@ pub(super) fn normalize_mappings(crate_dir: &Path, mappings: &[Mapping]) -> Vec<
         .collect()
 }
 
-pub(super) fn numbered_lines(source: &str) -> String {
+pub fn numbered_lines(source: &str) -> String {
     source
         .lines()
         .enumerate()
@@ -30,7 +30,7 @@ pub(super) fn numbered_lines(source: &str) -> String {
         .join("\n")
 }
 
-pub(super) fn snapshot_mappings(
+pub fn snapshot_mappings(
     db: &DbImpl,
     rustdoc_id: RustdocId<'_>,
     generated: &str,
