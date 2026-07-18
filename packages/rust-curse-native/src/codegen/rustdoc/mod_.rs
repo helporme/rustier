@@ -3,8 +3,8 @@ use rustdoc_types::{ItemEnum, ItemKind};
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::{IrId, fn_::Fn, mod_::Mod, struct_::Struct},
-    rustdoc::{RustdocCrates, RustdocId, fn_::lower_fn, struct_::lower_struct},
+    ir::{IrId, enum_::Enum, fn_::Fn, mod_::Mod, struct_::Struct},
+    rustdoc::{RustdocCrates, RustdocId, enum_::lower_enum, fn_::lower_fn, struct_::lower_struct},
 };
 
 /// Returns all rustdoc module IDs available in all crates.
@@ -105,6 +105,34 @@ pub fn lower_mod_structs<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Struct
     }
 
     structs
+}
+
+/// Lowers the enums defined inside the given rustdoc module to the IR enums.
+#[salsa::tracked(returns(ref))]
+pub fn lower_mod_enums<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Enum<'db>> {
+    let item = id.item(db);
+    let crate_ = id.crate_body(db);
+
+    let def = match &item.inner {
+        ItemEnum::Module(def) => def,
+        _ => unreachable!(),
+    };
+
+    let mut enums = Vec::new();
+
+    for item_id in &def.items {
+        let item = crate_.index.get(item_id).unwrap();
+        if matches!(item.inner, ItemEnum::Enum(_)) {
+            match lower_enum(db, RustdocId::new(db, *item_id, id.crate_name(db).clone())) {
+                Ok(enum_) => enums.push(enum_),
+                Err(diag) => {
+                    diag.accumulate(db);
+                }
+            }
+        }
+    }
+
+    enums
 }
 
 /// Lowers the submodules defined inside the given rustdoc module to the IR

@@ -7,7 +7,7 @@ use rust_curse::codegen::{
     diag::Diag,
     rustdoc::{
         RustdocId,
-        mod_::{lower_mod, lower_mod_fns, lower_mod_structs, lower_mod_submods},
+        mod_::{lower_mod, lower_mod_enums, lower_mod_fns, lower_mod_structs, lower_mod_submods},
     },
 };
 
@@ -40,6 +40,14 @@ fn collect_lower_diags_mod<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Diag
     let _ = lower_mod_structs(db, id);
     diags.extend(
         lower_mod_structs::accumulated::<Diag>(db, id)
+            .into_iter()
+            .cloned(),
+    );
+
+    // Lower each enum in the module.
+    let _ = lower_mod_enums(db, id);
+    diags.extend(
+        lower_mod_enums::accumulated::<Diag>(db, id)
             .into_iter()
             .cloned(),
     );
