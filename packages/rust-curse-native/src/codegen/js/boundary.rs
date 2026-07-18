@@ -5,10 +5,16 @@ use crate::codegen::{
     fragment::{FragmentOnce, fragment},
     ir::{IrId, type_::Type},
     js::{
+        enum_::{
+            compile_binding_class_from_facade_expr as compile_binding_enum_from_facade_expr,
+            compile_facade_class_from_binding_expr as compile_enum_facade_from_binding_expr,
+            compile_facade_class_from_binding_expr_required_imports as compile_enum_facade_from_binding_expr_required_imports,
+        },
         imports::Import,
         struct_::{
-            compile_binding_class_from_facade_expr, compile_facade_class_from_binding_expr,
-            compile_facade_class_from_binding_expr_required_imports,
+            compile_binding_class_from_facade_expr as compile_binding_struct_from_facade_expr,
+            compile_facade_class_from_binding_expr as compile_struct_facade_from_binding_expr,
+            compile_facade_class_from_binding_expr_required_imports as compile_struct_facade_from_binding_expr_required_imports,
         },
     },
 };
@@ -24,7 +30,10 @@ pub fn compile_js_binding_value_to_facade_expr<'db>(
 ) -> impl FragmentOnce + 'db {
     fragment(move |p| match binding_value_type {
         Type::Struct(struct_id) => {
-            compile_facade_class_from_binding_expr(db, struct_id, binding_value_expr).apply(p);
+            compile_struct_facade_from_binding_expr(db, struct_id, binding_value_expr).apply(p);
+        }
+        Type::Enum(enum_id) => {
+            compile_enum_facade_from_binding_expr(db, enum_id, binding_value_expr).apply(p);
         }
         Type::Primitive(_) | Type::Str | Type::String => binding_value_expr.apply(p),
     })
@@ -37,13 +46,24 @@ pub fn compile_js_binding_value_to_facade_expr_required_imports<'db>(
     binding_value_type: Type<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {
-    if let Type::Struct(struct_id) = binding_value_type {
-        compile_facade_class_from_binding_expr_required_imports(
-            db,
-            active_mod_id,
-            struct_id,
-            imports,
-        );
+    match binding_value_type {
+        Type::Struct(struct_id) => {
+            compile_struct_facade_from_binding_expr_required_imports(
+                db,
+                active_mod_id,
+                struct_id,
+                imports,
+            );
+        }
+        Type::Enum(enum_id) => {
+            compile_enum_facade_from_binding_expr_required_imports(
+                db,
+                active_mod_id,
+                enum_id,
+                imports,
+            );
+        }
+        Type::Primitive(_) | Type::Str | Type::String => {}
     }
 }
 
@@ -53,7 +73,8 @@ pub fn compile_js_facade_value_to_binding_expr<'a>(
     facade_value_expr: impl FragmentOnce + 'a,
 ) -> impl FragmentOnce + 'a {
     fragment(move |p| match facade_value_type {
-        Type::Struct(_) => compile_binding_class_from_facade_expr(facade_value_expr).apply(p),
+        Type::Struct(_) => compile_binding_struct_from_facade_expr(facade_value_expr).apply(p),
+        Type::Enum(_) => compile_binding_enum_from_facade_expr(facade_value_expr).apply(p),
         Type::Primitive(_) | Type::Str | Type::String => facade_value_expr.apply(p),
     })
 }

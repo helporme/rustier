@@ -28,15 +28,18 @@ use crate::{
 pub fn compile_facade_fn<'a>(db: &'a dyn Db, fn_: Fn<'a>) -> impl FragmentOnce + 'a {
     let param_conv = fragment(move |p| {
         for param in fn_.params(db).iter() {
-            if matches!(param.type_(db), Type::Struct(_)) {
-                frag!(
-                    {compile_js_facade_value_validation_stmt(
-                        db,
-                        param.type_(db),
-                        param.binding_name(db),
-                    )}@
-                )
-                .apply(p);
+            match param.type_(db) {
+                Type::Struct(_) | Type::Enum(_) => {
+                    frag!(
+                        {compile_js_facade_value_validation_stmt(
+                            db,
+                            param.type_(db),
+                            param.binding_name(db),
+                        )}@
+                    )
+                    .apply(p);
+                }
+                Type::Primitive(_) | Type::Str | Type::String => {}
             }
 
             frag!(

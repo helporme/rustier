@@ -12,10 +12,7 @@ use crate::{
         api::Api,
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment, spaced},
-        ir::{
-            struct_::struct_fqn_from_ir_id,
-            type_::{Primitive, Type},
-        },
+        ir::type_::{Primitive, Type},
         rustdoc::mod_::{all_mod_ids, lower_mod_fns},
     },
     frag,
@@ -73,7 +70,7 @@ fn collect_cast_type<'db>(
             collect_cast_type(Type::Primitive(Primitive::f64), seen, types);
         }
         Type::Primitive(Primitive::Boolean | Primitive::f64) | Type::String => {}
-        Type::Struct(_) => return,
+        Type::Struct(_) | Type::Enum(_) => return,
     }
 
     types.push(type_);
@@ -84,18 +81,18 @@ fn compile_cast_fn<'db>(db: &'db dyn Db, type_: Type<'db>) -> impl FragmentOnce 
     let api = Api::get(db);
 
     frag!(
-        fn ~{type_.cast_fn_name(db)}(value: ~{api.js_type(db)}) -> Result<{compile_cast_res(db, type_)}, String> ~{{
+        fn ~{type_.cast_fn_name(db)}(value: ~{api.js_type(db)}) -> Result<{compile_cast_res(type_)}, String> ~{{
             {compile_cast_body(db, type_)}
         }}
     )
 }
 
 /// Compiles the successful `Result` type of a cast function.
-fn compile_cast_res<'db>(db: &'db dyn Db, type_: Type<'db>) -> &'db str {
+fn compile_cast_res<'db>(type_: Type<'db>) -> &'db str {
     match type_ {
         Type::Primitive(primitive) => primitive.rs_name(),
         Type::Str | Type::String => "String",
-        Type::Struct(id) => struct_fqn_from_ir_id(db, id),
+        Type::Struct(_) | Type::Enum(_) => unreachable!(),
     }
 }
 
@@ -128,7 +125,7 @@ fn compile_cast_body<'db>(db: &'db dyn Db, type_: Type<'db>) -> impl FragmentOnc
             }
             Type::Primitive(Primitive::f32) => compile_f32_cast_body().apply(p),
             Type::Primitive(Primitive::f64) => api.cast_to_f64(db).apply(p),
-            Type::Struct(_) => unreachable!(),
+            Type::Struct(_) | Type::Enum(_) => unreachable!(),
         }
     })
 }

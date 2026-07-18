@@ -13,6 +13,7 @@ use crate::codegen::{
     },
     rustdoc::{
         CrateExt, RustdocId,
+        enum_::is_enum_clonable,
         shape::is_struct_clonable,
         type_::{LoweredType, TypeLowerError, lower_type},
     },
@@ -84,15 +85,25 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
             ),
         };
 
-        if mode == ParamMode::Move
-            && let Type::Struct(struct_id) = type_
-            && !is_struct_clonable(db, struct_id.rustdoc_id(db))
-        {
-            causes.push(FnLowerError::NonClonableMovedStructParam {
-                name: name.clone(),
-                struct_fqn: struct_id.path(db).join("::"),
-            });
-            continue;
+        if mode == ParamMode::Move {
+            match type_ {
+                Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
+                    causes.push(FnLowerError::NonClonableMovedStructParam {
+                        name: name.clone(),
+                        struct_fqn: struct_id.path(db).join("::"),
+                    });
+                    continue;
+                }
+                Type::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
+                    causes.push(FnLowerError::NonClonableMovedEnumParam {
+                        name: name.clone(),
+                        enum_fqn: enum_id.path(db).join("::"),
+                    });
+                    continue;
+                }
+                Type::Primitive(_) | Type::Str | Type::String | Type::Struct(_) | Type::Enum(_) => {
+                }
+            }
         }
 
         if mode == ParamMode::Mut {
@@ -115,7 +126,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
                     }
                     .accumulate(db);
                 }
-                Type::Struct(_) => {}
+                Type::Struct(_) | Type::Enum(_) => {}
             }
         }
 
@@ -234,6 +245,21 @@ pub enum FnLowerError {
         name: String,
         /// The fully qualified name of the parameter's struct.
         struct_fqn: String,
+    },
+
+    #[error(
+        "the moved enum parameter `{name}` cannot be exported because \"{enum_fqn}\" does not implement `Clone`"
+    )]
+    #[diagnostic(
+        code(rust_curse::non_clonable_moved_enum_param),
+        help("derive or implement `Clone` for \"{enum_fqn}\", or pass the parameter by reference"),
+        severity(Warning)
+    )]
+    NonClonableMovedEnumParam {
+        /// The name of the non-clonable moved enum parameter.
+        name: String,
+        /// The fully qualified name of the parameter's enum.
+        enum_fqn: String,
     },
 
     #[error("the mutable reference to the primitive parameter `{name}` does not propagate changes")]

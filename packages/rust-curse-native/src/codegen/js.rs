@@ -1,6 +1,7 @@
 //! Compiles rustdoc into JavaScript that imports bindings.
 
 pub mod boundary;
+pub mod enum_;
 pub mod fn_;
 pub mod imports;
 pub mod mod_;

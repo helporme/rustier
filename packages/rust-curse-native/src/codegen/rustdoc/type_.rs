@@ -50,6 +50,11 @@ pub fn lower_type<'db>(
                     db,
                     &summary.path,
                 ))))
+            } else if summary.kind == ItemKind::Enum && crate_.index.contains_key(&path.id) {
+                Ok(LoweredType::Moved(IrType::Enum(IrId::new(
+                    db,
+                    &summary.path,
+                ))))
             } else {
                 Err(vec![TypeLowerError::UnsupportedType {
                     type_: type_.clone(),

@@ -5,6 +5,7 @@ use crate::{
     codegen::{
         api::Api,
         bindings::{
+            enum_::compile_binding_enum_from_tethered_expr,
             struct_::{
                 compile_binding_struct_from_tethered_expr, compile_binding_struct_get_tethered_expr,
             },
@@ -16,7 +17,7 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment},
         ir::{
-            IrId,
+            enum_::{enum_binding_name_from_ir_id, enum_tethered_name_from_ir_id},
             fn_::{FnParam, ParamMode},
             struct_::{struct_binding_name_from_ir_id, struct_tethered_name_from_ir_id},
             type_::{Primitive, Type},
@@ -147,12 +148,12 @@ where
     let exprs = exprs.into_iter();
     let will_use_tethering_closures = exprs
         .clone()
-        .any(|expr| matches!(expr.type_, Type::Struct(_)));
+        .any(|expr| matches!(expr.type_, Type::Struct(_) | Type::Enum(_)));
 
     let cast_exprs = exprs.clone();
     let cast_stmts = fragment(move |p| {
         for expr in cast_exprs {
-            if !matches!(expr.type_, Type::Struct(_)) {
+            if !matches!(expr.type_, Type::Struct(_) | Type::Enum(_)) {
                 frag!({compile_boundary_conversion_stmt_via_cast(db, expr)}@).apply(p);
 
                 // When tethering closures are used, wrap moved strings in `Some`
@@ -177,10 +178,7 @@ where
             //
             // Clone inside the closure so the source value is not moved out of a
             // callback that implements FnMut rather than FnOnce.
-            if matches!(
-                (expr.type_, expr.mode),
-                (Type::Struct(_), BoundaryMode::Move)
-            ) {
+            if let (Type::Struct(_) | Type::Enum(_), BoundaryMode::Move) = (expr.type_, expr.mode) {
                 frag!(
                     let ~{expr.out_var_name}~ = ~{expr.out_var_name}.clone();@
                 )
@@ -207,9 +205,12 @@ where
     .print();
 
     for expr in exprs.clone() {
-        if matches!(expr.type_, Type::Struct(_)) {
-            tethering_expr =
-                compile_boundary_in_struct_conversion_stmt(expr, tethering_expr).print();
+        match expr.type_ {
+            Type::Struct(_) | Type::Enum(_) => {
+                tethering_expr =
+                    compile_boundary_in_struct_conversion_stmt(expr, tethering_expr).print();
+            }
+            Type::Primitive(_) | Type::Str | Type::String => {}
         }
     }
 
@@ -237,7 +238,7 @@ fn compile_boundary_conversion_stmt_via_cast<'db>(
     db: &'db dyn Db,
     expr: BoundaryInExpr<'db>,
 ) -> impl FragmentOnce + 'db {
-    assert!(!matches!(expr.type_, Type::Struct(_)));
+    assert!(!matches!(expr.type_, Type::Struct(_) | Type::Enum(_)));
 
     let api = Api::get(db);
 
@@ -290,7 +291,7 @@ fn compile_boundary_in_struct_conversion_stmt<'db>(
     expr: BoundaryInExpr<'db>,
     inner_expr: impl FragmentOnce + 'db,
 ) -> impl FragmentOnce + 'db {
-    assert!(matches!(expr.type_, Type::Struct(_)));
+    assert!(matches!(expr.type_, Type::Struct(_) | Type::Enum(_)));
 
     let tethered_struct = compile_boundary_in_to_tethered_struct_expr(expr.in_expr, expr.type_);
 
@@ -306,8 +307,8 @@ fn compile_boundary_in_struct_conversion_stmt<'db>(
     })
 }
 
-/// Compiles an expression that retrieves a tethered struct from its boundary
-/// representation.
+/// Compiles an expression that retrieves a tethered struct or enum from its
+/// boundary representation.
 ///
 /// ```ignore (requires a lowered struct type)
 /// compile_boundary_in_to_tethered_struct_expr("value", Type::Struct(id))
@@ -317,8 +318,10 @@ pub fn compile_boundary_in_to_tethered_struct_expr<'db>(
     boundary_type: Type<'db>,
 ) -> impl FragmentOnce + 'db {
     fragment(move |p| match boundary_type {
-        Type::Struct(_) => compile_binding_struct_get_tethered_expr(boundary_expr).apply(p),
-        _ => unreachable!(),
+        Type::Struct(_) | Type::Enum(_) => {
+            compile_binding_struct_get_tethered_expr(boundary_expr).apply(p);
+        }
+        Type::Primitive(_) | Type::Str | Type::String => unreachable!(),
     })
 }
 
@@ -348,14 +351,10 @@ pub fn compile_boundary_in_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> impl Fra
             )
             | Type::Str
             | Type::String => api.js_type(db).apply(p),
-            Type::Struct(id) => compile_boundary_in_struct_name(db, id).apply(p),
+            Type::Struct(id) => frag!(&{ struct_binding_name_from_ir_id(db, id) }).apply(p),
+            Type::Enum(id) => frag!(&{ enum_binding_name_from_ir_id(db, id) }).apply(p),
         }
     })
-}
-
-fn compile_boundary_in_struct_name<'db>(db: &'db dyn Db, id: IrId<'db>) -> impl FragmentOnce + 'db {
-    let name = struct_binding_name_from_ir_id(db, id);
-    frag!(&{ name })
 }
 
 /// Compiles an expression that converts a given expression from the source type
@@ -401,6 +400,15 @@ pub fn compile_boundary_out_from_source_type_expr<'db>(
                 )
                 .apply(p);
             }
+            Type::Enum(id) => {
+                let tethered_enum = compile_tethering_struct_from_source_expr(
+                    enum_tethered_name_from_ir_id(db, id),
+                    in_expr,
+                );
+
+                compile_boundary_out_from_tethered_struct_expr(db, tethered_enum, Type::Enum(id))
+                    .apply(p);
+            }
         }
     })
 }
@@ -423,7 +431,10 @@ pub fn compile_boundary_out_from_tethered_struct_expr<'db>(
         Type::Struct(id) => {
             compile_binding_struct_from_tethered_expr(db, id, tethered_struct_expr).apply(p);
         }
-        _ => unreachable!(),
+        Type::Enum(id) => {
+            compile_binding_enum_from_tethered_expr(db, id, tethered_struct_expr).apply(p);
+        }
+        Type::Primitive(_) | Type::Str | Type::String => unreachable!(),
     })
 }
 
@@ -448,5 +459,6 @@ pub fn compile_boundary_out_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> &'db st
             "str cannot be returned from the function, since functions cannot return references"
         ),
         Type::Struct(id) => struct_binding_name_from_ir_id(db, id),
+        Type::Enum(id) => enum_binding_name_from_ir_id(db, id),
     }
 }

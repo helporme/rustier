@@ -1,7 +1,13 @@
-use crate::codegen::ir::{
-    IrId,
-    mangle::to_camel_case,
-    shape::{Shape, ShapeField},
+use rustdoc_types::ItemKind;
+
+use crate::codegen::{
+    db::Db,
+    ir::{
+        IrId,
+        mangle::{mangle_path, to_camel_case},
+        shape::{Shape, ShapeField},
+        type_::Type,
+    },
 };
 
 /// A lowered enum variant and its field layout.
@@ -55,8 +61,89 @@ pub struct Enum<'db> {
 }
 
 impl<'db> Enum<'db> {
-    /// Returns the enum name, e.g. `Shape` for `geometry::Shape`.
-    pub fn name(&self, db: &'db dyn crate::codegen::db::Db) -> &'db str {
-        self.id(db).path(db).last().expect("enum must have a name")
+    /// Returns the name of the binding struct for this enum.
+    pub fn binding_name(&self, db: &'db dyn Db) -> &'db str {
+        enum_binding_name_from_ir_id(db, self.id(db))
     }
+
+    /// Returns the name of the tethered backing struct for this enum.
+    pub fn tethered_name(&self, db: &'db dyn Db) -> &'db str {
+        enum_tethered_name_from_ir_id(db, self.id(db))
+    }
+
+    /// Returns the enum name, e.g. `Shape` for `geometry::Shape`.
+    pub fn name(&self, db: &'db dyn Db) -> &'db str {
+        enum_name_from_ir_id(db, self.id(db))
+    }
+
+    /// Returns the fully qualified enum name, e.g. `geometry::Shape`.
+    pub fn fqn(&self, db: &'db dyn Db) -> &'db str {
+        enum_fqn_from_ir_id(db, self.id(db))
+    }
+
+    /// Returns the enum as a [`Type`].
+    pub fn as_type(&self, db: &'db dyn Db) -> Type<'db> {
+        Type::Enum(self.id(db))
+    }
+}
+
+/// Returns the mangled enum name for an IR ID.
+#[salsa::tracked(returns(ref))]
+pub fn enum_mangled_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+    let id = id.rustdoc_id(db);
+    let summary = id
+        .crate_body(db)
+        .paths
+        .get(&id.idx(db))
+        .expect("Enum not found in a rustdoc crate");
+
+    assert_eq!(summary.kind, ItemKind::Enum);
+    mangle_path(&summary.path)
+}
+
+/// Returns the Rust binding struct name for an enum IR ID.
+#[salsa::tracked(returns(ref))]
+pub fn enum_binding_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+    format!("__cursed_struct__{}", enum_mangled_name_from_ir_id(db, id))
+}
+
+/// Returns the tethered backing struct name for an enum IR ID.
+#[salsa::tracked(returns(ref))]
+pub fn enum_tethered_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+    format!(
+        "__tethered_struct__{}",
+        enum_mangled_name_from_ir_id(db, id)
+    )
+}
+
+/// Returns the fully qualified enum name for an IR ID.
+#[salsa::tracked(returns(ref))]
+pub fn enum_fqn_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+    let id = id.rustdoc_id(db);
+    let summary = id
+        .crate_body(db)
+        .paths
+        .get(&id.idx(db))
+        .expect("Enum not found in a rustdoc crate");
+
+    assert_eq!(summary.kind, ItemKind::Enum);
+    summary.path.join("::")
+}
+
+/// Returns the unqualified enum name for an IR ID.
+#[salsa::tracked(returns(ref))]
+pub fn enum_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
+    let id = id.rustdoc_id(db);
+    let summary = id
+        .crate_body(db)
+        .paths
+        .get(&id.idx(db))
+        .expect("Enum not found in a rustdoc crate");
+
+    assert_eq!(summary.kind, ItemKind::Enum);
+    summary
+        .path
+        .last()
+        .expect("Enum must have a name")
+        .to_string()
 }

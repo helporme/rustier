@@ -4,7 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, IntoFnFragment, Printer, comma_list},
-        ir::{fn_::Fn, struct_::struct_name_from_ir_id, type_::Type},
+        ir::{enum_::enum_name_from_ir_id, fn_::Fn, struct_::struct_name_from_ir_id, type_::Type},
         js::imports::{Import, ImportFrom},
         ts::jsdoc::compile_jsdoc,
     },
@@ -57,17 +57,19 @@ pub fn compile_fn_required_imports<'db>(
         .map(|param| param.type_(db))
         .chain(fn_.return_type(db))
     {
-        let Type::Struct(struct_id) = type_ else {
-            continue;
+        let (type_id, type_name) = match type_ {
+            Type::Struct(struct_id) => (struct_id, struct_name_from_ir_id(db, struct_id)),
+            Type::Enum(enum_id) => (enum_id, enum_name_from_ir_id(db, enum_id)),
+            Type::Primitive(_) | Type::Str | Type::String => continue,
         };
-        let struct_mod_id = struct_id.get_parent_mod_id(db).unwrap();
+        let type_mod_id = type_id.get_parent_mod_id(db).unwrap();
 
-        if active_mod_id != struct_mod_id {
+        if active_mod_id != type_mod_id {
             imports.insert(Import {
-                item: struct_name_from_ir_id(db, struct_id),
+                item: type_name,
                 from: ImportFrom::RelativeToMod {
                     from: active_mod_id,
-                    to: struct_mod_id,
+                    to: type_mod_id,
                 },
             });
         }

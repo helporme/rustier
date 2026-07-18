@@ -20,11 +20,12 @@ use crate::{
         fragment::{FragmentOnce, FragmentPrint, fragment, spaced},
         ir::{
             IrId,
+            enum_::enum_tethered_name_from_ir_id,
             shape::ShapeField,
             struct_::{Struct, struct_binding_name_from_ir_id, struct_tethered_name_from_ir_id},
             type_::Type,
         },
-        rustdoc::mod_::{all_mod_ids, lower_mod_structs},
+        rustdoc::mod_::{all_mod_ids, lower_mod_enums, lower_mod_structs},
     },
     frag,
 };
@@ -41,15 +42,23 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
         let get_mut_expr = move |source: &'static str| frag!({source}.{name});
 
         match type_ {
-            Type::Struct(id) => TetheredField::TetheredStruct(TetheredStructField {
-                name,
-                get_ref_expr,
-                get_mut_expr,
-                source_type: type_.rs_name(db),
-                tethered_name: struct_tethered_name_from_ir_id(db, id),
-                with_setter: !field.is_readonly(db),
-            }),
-            _ => TetheredField::Cloned(ClonedField {
+            Type::Struct(id) | Type::Enum(id) => {
+                let tethered_name = match type_ {
+                    Type::Struct(_) => struct_tethered_name_from_ir_id(db, id),
+                    Type::Enum(_) => enum_tethered_name_from_ir_id(db, id),
+                    Type::Primitive(_) | Type::Str | Type::String => unreachable!(),
+                };
+
+                TetheredField::TetheredStruct(TetheredStructField {
+                    name,
+                    get_ref_expr,
+                    get_mut_expr,
+                    source_type: type_.rs_name(db),
+                    tethered_name,
+                    with_setter: !field.is_readonly(db),
+                })
+            }
+            Type::Primitive(_) | Type::Str | Type::String => TetheredField::Cloned(ClonedField {
                 name,
                 get_ref_expr,
                 get_mut_expr,
@@ -70,12 +79,13 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
     .print()
 }
 
-/// Returns whether compiling any lowered struct requires the tethering prelude.
+/// Returns whether compiling any lowered struct or enum requires the tethering
+/// prelude.
 #[salsa::tracked]
 pub fn is_using_tethering(db: &dyn Db) -> bool {
-    all_mod_ids(db)
-        .iter()
-        .any(|mod_id| !lower_mod_structs(db, *mod_id).is_empty())
+    all_mod_ids(db).iter().any(|mod_id| {
+        !lower_mod_structs(db, *mod_id).is_empty() || !lower_mod_enums(db, *mod_id).is_empty()
+    })
 }
 
 fn compile_wrapper_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl FragmentOnce + 'db {
@@ -119,10 +129,12 @@ fn compile_field_getter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl Fr
 
     let tethered_value = compile_tethered_struct_get_field_expr(frag!(self.src), field.name(db));
     let output = fragment(move |p| match field_type {
-        Type::Struct(_) => {
+        Type::Struct(_) | Type::Enum(_) => {
             compile_boundary_out_from_tethered_struct_expr(db, tethered_value, field_type).apply(p);
         }
-        _ => compile_boundary_out_from_source_type_expr(db, tethered_value, field_type).apply(p),
+        Type::Primitive(_) | Type::Str | Type::String => {
+            compile_boundary_out_from_source_type_expr(db, tethered_value, field_type).apply(p);
+        }
     });
 
     frag!(

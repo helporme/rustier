@@ -103,6 +103,39 @@ fn lower_variant<'db>(
     Ok(EnumVariant::new(db, name, shape, discriminant, docs))
 }
 
+/// Returns whether the enum implements [`Clone`].
+#[salsa::tracked]
+pub fn is_enum_clonable<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> bool {
+    let item = id.item(db);
+    let crate_body = id.crate_body(db);
+
+    let def = match &item.inner {
+        ItemEnum::Enum(def) => def,
+        _ => unreachable!(),
+    };
+
+    def.impls.iter().any(|impl_id| {
+        let impl_item = crate_body
+            .index
+            .get(impl_id)
+            .expect("enum impl must be present in the rustdoc index");
+        let ItemEnum::Impl(impl_) = &impl_item.inner else {
+            unreachable!()
+        };
+        if impl_.is_negative {
+            return false;
+        }
+        let Some(trait_) = &impl_.trait_ else {
+            return false;
+        };
+        let Some(trait_summary) = crate_body.paths.get(&trait_.id) else {
+            return false;
+        };
+
+        trait_summary.path == ["core", "clone", "Clone"]
+    })
+}
+
 /// An error that prevents a rustdoc enum from being lowered to IR.
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 pub enum EnumLowerError {

@@ -47,7 +47,10 @@ pub fn compile_facade_class_for_struct<'a>(
             .fields(db)
             .iter()
             .copied()
-            .filter(|field| matches!(field.type_(db), Type::Struct(_)))
+            .filter(|field| match field.type_(db) {
+                Type::Struct(_) | Type::Enum(_) => true,
+                Type::Primitive(_) | Type::Str | Type::String => false,
+            })
         {
             frag!(#_{field.name(db)};@).apply(p);
         }
@@ -65,7 +68,7 @@ pub fn compile_facade_class_for_struct<'a>(
 
         fragment(move |p| {
             match field.type_(db) {
-                Type::Struct(_) => {
+                Type::Struct(_) | Type::Enum(_) => {
                     frag!(
                         get ~[{field_name.clone()}]() {{
                             return ~{cached_field_expr};
@@ -92,7 +95,7 @@ pub fn compile_facade_class_for_struct<'a>(
             }
 
             match field.type_(db) {
-                Type::Struct(_) => {
+                Type::Struct(_) | Type::Enum(_) => {
                     frag!(@@
                         set ~[{field_name.clone()}](value) {{
                             {compile_js_facade_value_validation_stmt(
@@ -132,7 +135,10 @@ pub fn compile_facade_class_for_struct<'a>(
         for field in struct_
             .fields(db)
             .iter()
-            .filter(|field| matches!(field.type_(db), Type::Struct(_)))
+            .filter(|field| match field.type_(db) {
+                Type::Struct(_) | Type::Enum(_) => true,
+                Type::Primitive(_) | Type::Str | Type::String => false,
+            })
         {
             let field_name = fragment(|p| match shape {
                 Shape::Tuple(_) => field.name(db).apply(p),

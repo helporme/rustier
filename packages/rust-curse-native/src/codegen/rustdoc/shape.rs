@@ -12,6 +12,7 @@ use crate::codegen::{
     },
     rustdoc::{
         CrateExt, RustdocId,
+        enum_::is_enum_clonable,
         type_::{LoweredType, TypeLowerError, lower_type},
     },
 };
@@ -136,16 +137,18 @@ fn lower_tuple_shape_field<'db>(
     })?;
 
     let name = index.to_string();
-    let readonly_struct_fqn = match field_type {
-        // todo: check that enum is also clonable
+    let readonly_parent_fqn = match field_type {
         Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
             Some(struct_id.path(db).join("::"))
         }
+        Type::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
+            Some(enum_id.path(db).join("::"))
+        }
         _ => None,
     };
-    let is_readonly = readonly_struct_fqn.is_some();
+    let is_readonly = readonly_parent_fqn.is_some();
 
-    if let Some(parent_fqn) = readonly_struct_fqn {
+    if let Some(parent_fqn) = readonly_parent_fqn {
         let crate_ = id.crate_(db);
         ShapeFieldReadonly::Tuple {
             parent_fqn,
@@ -178,15 +181,18 @@ fn lower_plain_shape_field<'db>(
         }
     })?;
 
-    let readonly_struct_fqn = match field_type {
+    let readonly_parent_fqn = match field_type {
         Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
             Some(struct_id.path(db).join("::"))
         }
+        Type::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
+            Some(enum_id.path(db).join("::"))
+        }
         _ => None,
     };
-    let is_readonly = readonly_struct_fqn.is_some();
+    let is_readonly = readonly_parent_fqn.is_some();
 
-    if let Some(parent_fqn) = readonly_struct_fqn {
+    if let Some(parent_fqn) = readonly_parent_fqn {
         let crate_ = id.crate_(db);
         ShapeFieldReadonly::Plain {
             field_name: name.clone(),
