@@ -10,6 +10,7 @@ use crate::{
             },
             tethering::{
                 compile_tethered_struct_mut_access_stmt, compile_tethered_struct_ref_access_stmt,
+                compile_tethering_struct_from_source_expr,
             },
         },
         db::Db,
@@ -388,9 +389,10 @@ pub fn compile_boundary_out_from_source_type_expr<'db>(
                 "str cannot be returned from the function, since functions cannot return references"
             ),
             Type::Struct(id) => {
-                let tethered_name = struct_tethered_name_from_ir_id(db, id);
-                let tethered_struct =
-                    frag!(std::rc::Rc::new({tethered_name}::new_owned({in_expr})));
+                let tethered_struct = compile_tethering_struct_from_source_expr(
+                    struct_tethered_name_from_ir_id(db, id),
+                    in_expr,
+                );
 
                 compile_boundary_out_from_tethered_struct_expr(
                     db,

@@ -461,6 +461,14 @@ where
     })
 }
 
+/// Compiles an owned source value into a reference-counted tethering struct.
+pub fn compile_tethering_struct_from_source_expr<'a>(
+    tethering_struct_name: impl FragmentOnce + 'a,
+    source_expr: impl FragmentOnce + 'a,
+) -> impl FragmentOnce + 'a {
+    frag!(std::rc::Rc::new({tethering_struct_name}::new_owned({source_expr})))
+}
+
 /// Compiles a call to a generated tethered field getter.
 ///
 /// Expression is of:
