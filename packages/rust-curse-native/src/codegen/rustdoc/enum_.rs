@@ -160,3 +160,107 @@ pub enum EnumVariantLowerError {
         causes: Vec<ShapeFieldLowerError>,
     },
 }
+
+#[cfg(test)]
+mod tests {
+    use miette::Diagnostic;
+
+    use super::*;
+    use crate::codegen::{db::DbImpl, test::test_db};
+
+    fn lower_test_enum(db: &DbImpl) -> Box<EnumLowerError> {
+        lower_enum(db, db.rustdoc_id("TestEnum")).expect_err("enum lowering must fail")
+    }
+
+    fn diagnostic_code(diagnostic: &dyn Diagnostic) -> String {
+        diagnostic
+            .code()
+            .map(|code| code.to_string())
+            .unwrap_or_else(|| "<missing code>".to_string())
+    }
+
+    fn related(diagnostic: &dyn Diagnostic) -> Vec<&dyn Diagnostic> {
+        diagnostic
+            .related()
+            .map(|related| related.collect())
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn reports_unsupported_generic_enum() {
+        let db = test_db! {
+            pub enum TestEnum<T> {
+                Value(T),
+            }
+        };
+
+        let error = lower_test_enum(&db);
+        assert_eq!(diagnostic_code(error.as_ref()), "rust_curse::skipped_enum");
+
+        let causes = related(error.as_ref());
+        assert_eq!(
+            causes
+                .iter()
+                .map(|cause| diagnostic_code(*cause))
+                .collect::<Vec<_>>(),
+            [
+                "rust_curse::unsupported_generic_enum",
+                "rust_curse::skipped_enum_variant",
+            ]
+        );
+    }
+
+    #[test]
+    fn reports_stripped_enum_variants() {
+        let db = test_db! {
+            pub enum TestEnum {
+                Visible,
+                #[doc(hidden)]
+                Hidden,
+            }
+        };
+
+        let error = lower_test_enum(&db);
+        assert_eq!(diagnostic_code(error.as_ref()), "rust_curse::skipped_enum");
+
+        let causes = related(error.as_ref());
+        assert_eq!(causes.len(), 1);
+        assert_eq!(
+            diagnostic_code(causes[0]),
+            "rust_curse::stripped_enum_variants"
+        );
+    }
+
+    #[test]
+    fn reports_enum_variant_with_unsupported_field() {
+        let db = test_db! {
+            pub enum TestEnum {
+                Invalid(u64),
+            }
+        };
+
+        let error = lower_test_enum(&db);
+        assert_eq!(diagnostic_code(error.as_ref()), "rust_curse::skipped_enum");
+
+        let enum_causes = related(error.as_ref());
+        assert_eq!(enum_causes.len(), 1);
+        assert_eq!(
+            diagnostic_code(enum_causes[0]),
+            "rust_curse::skipped_enum_variant"
+        );
+
+        let variant_causes = related(enum_causes[0]);
+        assert_eq!(variant_causes.len(), 1);
+        assert_eq!(
+            diagnostic_code(variant_causes[0]),
+            "rust_curse::skipped_field"
+        );
+
+        let field_causes = related(variant_causes[0]);
+        assert_eq!(field_causes.len(), 1);
+        assert_eq!(
+            diagnostic_code(field_causes[0]),
+            "rust_curse::unsupported_primitive"
+        );
+    }
+}
