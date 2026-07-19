@@ -90,7 +90,7 @@ pub fn compile_enum_required_imports<'db>(
 
 fn compile_variant<'db>(db: &'db dyn Db, variant: EnumVariant<'db>) -> impl FragmentOnce + 'db {
     let properties = fragment(move |printer| {
-        frag!(type:~{doubles(variant.js_tag_name(db))};).apply(printer);
+        frag!(readonly type:~{doubles(variant.js_tag_name(db))};).apply(printer);
 
         for field in variant.fields(db) {
             blank().apply(printer);

@@ -38,7 +38,7 @@ export namespace Shape {
 	export type Plain =
 		/** A circle with named fields. */
 		| {
-			type: "circle";
+			readonly type: "circle";
 			/** The circle radius. */
 			radius: number;
 			/** A local Rust-backed value. */
@@ -48,17 +48,17 @@ export namespace Shape {
 		}
 		/** Coordinates represented by tuple fields. */
 		| {
-			type: "point";
+			readonly type: "point";
 			[0]: number;
 			[1]: number;
 		}
 		/** A variant without fields. */
 		| {
-			type: "unit";
+			readonly type: "unit";
 		}
 		/** Checks acronym conversion. */
 		| {
-			type: "httpRequest";
+			readonly type: "httpRequest";
 		};
 
 	export class Instance {

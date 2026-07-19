@@ -54,10 +54,10 @@ export type Choice = Choice.Instance & Choice.Plain;
 export namespace Choice {
 	export type Plain =
 		| {
-			type: "empty";
+			readonly type: "empty";
 		}
 		| {
-			type: "value";
+			readonly type: "value";
 			number: number;
 		};
 
