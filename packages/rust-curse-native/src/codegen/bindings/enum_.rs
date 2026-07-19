@@ -37,7 +37,7 @@ use crate::{
 #[salsa::tracked(returns(ref))]
 pub fn compile_binding_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
     let tethered_fields = enum_.variants(db).iter().copied().flat_map(move |variant| {
-        variant.fields(db).iter().copied().map(move |field| {
+        variant.fields(db).map(move |field| {
             let name = enum_field_binding_name_from_ir_id(db, variant, field);
             let type_ = field.type_(db);
             let get_expr = move |source: &'static str| {
@@ -104,7 +104,7 @@ fn compile_wrapper_struct<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl Fragme
 fn compile_wrapper_impl<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
     let fields = spaced(enum_.variants(db).iter().copied().flat_map(move |variant| {
-        variant.fields(db).iter().copied().map(move |field| {
+        variant.fields(db).map(move |field| {
             fragment(move |printer| {
                 frag!({compile_field_getter(db, variant, field)}@).apply(printer);
 
@@ -133,7 +133,6 @@ fn compile_type_method<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl FragmentO
     };
     let variants = fragment(move |printer| {
         for (index, variant) in enum_.variants(db).iter().enumerate() {
-            let index = index.to_string();
             let variant_name = variant.name(db);
 
             match variant.shape(db) {
