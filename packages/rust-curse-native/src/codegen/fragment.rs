@@ -72,7 +72,7 @@
 //! Check the [`frag`] macro documentation for more details about interpolations
 //! and other syntax.
 
-use std::fmt;
+use std::fmt::{self, Write as _};
 
 /// Accumulates fragment output while applying basic indentation.
 ///
@@ -350,6 +350,28 @@ impl Fragment for String {
         printer.write(self);
     }
 }
+
+macro_rules! impl_fragment_for_integer {
+    ($($type:ty),+ $(,)?) => {
+        $(
+            impl FragmentOnce for $type {
+                fn apply(self, printer: &mut Printer) {
+                    write!(printer, "{self}").expect("writing to Printer cannot fail");
+                }
+            }
+
+            impl Fragment for $type {
+                fn apply_ref(&self, printer: &mut Printer) {
+                    write!(printer, "{self}").expect("writing to Printer cannot fail");
+                }
+            }
+        )+
+    };
+}
+
+impl_fragment_for_integer!(
+    i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize,
+);
 
 impl<T> FragmentOnce for Option<T>
 where
