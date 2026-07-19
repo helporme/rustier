@@ -93,7 +93,7 @@ fn compile_variant<'db>(db: &'db dyn Db, variant: EnumVariant<'db>) -> impl Frag
     let properties = fragment(move |printer| {
         frag!(readonly type:~{doubles(variant.js_tag_name(db))};).apply(printer);
 
-        for field in fields.clone() {
+        for field in fields {
             blank().apply(printer);
             compile_jsdoc(field.docs(db).as_deref()).apply(printer);
 

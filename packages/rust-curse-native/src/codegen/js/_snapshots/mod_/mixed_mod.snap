@@ -12,11 +12,13 @@ codegen::js::mod_::tests::mixed_mod
 
 ```rs
 let db = test_db! {
-    @ file : "models.rs"; pub mod models { #[derive(Clone)] pub struct External; }
-    #[derive(Clone)] pub struct Local; pub struct Mixed { pub number : i32, pub text
-    : String, pub local : Local, pub external : models::External, } pub fn
-    mixed(number : i32, text : String, local : Local, external : models::External,)
-    -> models::External { models::External }
+    @ file : "models.rs"; pub mod models { #[derive(Clone)] pub struct External;
+    #[derive(Clone)] pub enum ExternalKind { One, } } #[derive(Clone)] pub struct
+    Local; pub enum LocalEnum { Unit, Named { local : Local, external :
+    models::External, }, Tuple(models::ExternalKind), } pub struct Mixed { pub number
+    : i32, pub text : String, pub local : Local, pub external : models::External, }
+    pub fn mixed(number : i32, text : String, local : Local, external :
+    models::External,) -> models::External { models::External }
 };
 compile_test_mod(db)
 ```
@@ -27,6 +29,10 @@ compile_test_mod(db)
 
 import {
 	External
+} from './models.rs';
+
+import {
+	ExternalKind
 } from './models.rs';
 
 import {
@@ -212,6 +218,128 @@ export class Mixed {
 	}
 
 	__get_binding(){
+		return this.#_binding;
+	}
+}
+
+export class LocalEnum {
+	static #_types =["unit",
+	"named",
+	"tuple"];
+	static #_construction_token = Symbol();
+	#_binding;
+	#_Named_local;
+	#_Named_external;
+	#_Tuple_0;
+
+	get type() {
+		return LocalEnum.#_types[this.#_binding.__type()];
+	}
+
+	get ["local"](){
+		const binding = this.#_binding["__Named__local"];
+		return this.#_Named_local ??= Local.__from_binding(
+			binding
+		);
+	}
+
+	set ["local"](
+		value
+	){
+		if(
+			!(
+				 value instanceof Local
+			)
+		) {
+			throw new TypeError(
+				"Expected a value of type \"Local\", but value of type \"" + typeof value + "\" was passed: \"" + String(
+					value
+				) + "\""
+			);
+		}
+		this.#_binding["__Named__local"] = value.__get_binding();
+		this.#_Named_local = Local.__from_binding(
+			this.#_binding["__Named__local"]
+		);
+	}
+
+	get ["external"](){
+		const binding = this.#_binding["__Named__external"];
+		return this.#_Named_external ??= External.__from_binding(
+			binding
+		);
+	}
+
+	set ["external"](
+		value
+	){
+		if(
+			!(
+				 value instanceof External
+			)
+		) {
+			throw new TypeError(
+				"Expected a value of type \"External\", but value of type \"" + typeof value + "\" was passed: \"" + String(
+					value
+				) + "\""
+			);
+		}
+		this.#_binding["__Named__external"] = value.__get_binding();
+		this.#_Named_external = External.__from_binding(
+			this.#_binding["__Named__external"]
+		);
+	}
+
+	get [0](){
+		const binding = this.#_binding["__Tuple__0"];
+		return this.#_Tuple_0 ??= ExternalKind.__from_binding(
+			binding
+		);
+	}
+
+	set [0](
+		value
+	){
+		if(
+			!(
+				 value instanceof ExternalKind
+			)
+		) {
+			throw new TypeError(
+				"Expected a value of type \"ExternalKind\", but value of type \"" + typeof value + "\" was passed: \"" + String(
+					value
+				) + "\""
+			);
+		}
+		this.#_binding["__Tuple__0"] = value.__get_binding();
+		this.#_Tuple_0 = ExternalKind.__from_binding(
+			this.#_binding["__Tuple__0"]
+		);
+	}
+
+	constructor(
+		token
+	) {
+		if(
+			token !== LocalEnum.#_construction_token
+		) {
+			throw new TypeError(
+				"Rust-backed enums cannot be constructed directly"
+			);
+		}
+	}
+
+	static __from_binding(
+		binding
+	) {
+		const obj = new LocalEnum(
+			 LocalEnum.#_construction_token
+		);
+		obj.#_binding = binding;
+		return obj;
+	}
+
+	__get_binding() {
 		return this.#_binding;
 	}
 }

@@ -495,7 +495,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_ClonableField>> {
 		self.access(
 			&mut |parent| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&parent.0
 				)?;
 				Ok(
@@ -519,10 +519,10 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::ClonableField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| Ok(
+				get: |parent| __tethering::AccessResult::Ok(
 					&parent.0
 				),
-				get_mut: |parent| Ok(
+				get_mut: |parent| __tethering::AccessResult::Ok(
 					&mut parent.0
 				),
 			}
@@ -552,7 +552,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<()> {
 		self.access_mut(
 			&mut |src| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&mut src.0
 				)?;
 				Ok(
@@ -576,7 +576,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			&mut |src| {
 				old_value = Some(
 					std::mem::replace(
-						Ok(
+						__tethering::AccessResult::Ok(
 							&mut src.0
 						)?, value.take().unwrap(),
 					)
@@ -604,7 +604,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_NonClonableField>> {
 		self.access(
 			&mut |parent| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&parent.1
 				)?;
 				Ok(
@@ -628,10 +628,10 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::NonClonableField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| Ok(
+				get: |parent| __tethering::AccessResult::Ok(
 					&parent.1
 				),
-				get_mut: |parent| Ok(
+				get_mut: |parent| __tethering::AccessResult::Ok(
 					&mut parent.1
 				),
 			}
@@ -1135,7 +1135,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_ClonableField>> {
 		self.access(
 			&mut |parent| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&parent.0
 				)?;
 				Ok(
@@ -1159,10 +1159,10 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::ClonableField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| Ok(
+				get: |parent| __tethering::AccessResult::Ok(
 					&parent.0
 				),
-				get_mut: |parent| Ok(
+				get_mut: |parent| __tethering::AccessResult::Ok(
 					&mut parent.0
 				),
 			}
@@ -1192,7 +1192,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<()> {
 		self.access_mut(
 			&mut |src| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&mut src.0
 				)?;
 				Ok(
@@ -1216,7 +1216,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			&mut |src| {
 				old_value = Some(
 					std::mem::replace(
-						Ok(
+						__tethering::AccessResult::Ok(
 							&mut src.0
 						)?, value.take().unwrap(),
 					)
@@ -1244,7 +1244,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_NonClonableField>> {
 		self.access(
 			&mut |parent| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&parent.1
 				)?;
 				Ok(
@@ -1268,10 +1268,10 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::NonClonableField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| Ok(
+				get: |parent| __tethering::AccessResult::Ok(
 					&parent.1
 				),
-				get_mut: |parent| Ok(
+				get_mut: |parent| __tethering::AccessResult::Ok(
 					&mut parent.1
 				),
 			}

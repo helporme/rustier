@@ -39,7 +39,7 @@ syn::parse_file(&wasm)
 // Node
 struct __tethered_struct__rustdoc_0test_0crate_Example {
 	src: __tethering::SourceSlot<rustdoc_test_crate::Example>,
-	__c__Struct__point: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_Point>>>,
+	__c____Struct__point: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_Point>>>,
 }
 
 impl __tethering::Accessor<rustdoc_test_crate::Example> for __tethered_struct__rustdoc_0test_0crate_Example {
@@ -74,7 +74,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 			src: __tethering::SourceSlot::owned(
 				input
 			),
-			__c__Struct__point: std::cell::RefCell::new(
+			__c____Struct__point: std::cell::RefCell::new(
 				None
 			),
 		}
@@ -87,13 +87,13 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 			src: __tethering::SourceSlot::projected(
 				accessor
 			),
-			__c__Struct__point: std::cell::RefCell::new(
+			__c____Struct__point: std::cell::RefCell::new(
 				None
 			),
 		}
 	}
 
-	pub fn get_Struct__point(
+	pub fn get___Struct__point(
 		self: &std::rc::Rc<Self>,
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Point>> {
 		self.access(
@@ -119,7 +119,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		if let Some(
 			tethered
 		) = __tethering::try_borrow(
-			&self.__c__Struct__point
+			&self.__c____Struct__point
 		)?.as_ref().and_then(
 			std::rc::Weak::upgrade
 		) {
@@ -165,7 +165,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		);
 
 		*__tethering::try_borrow_mut(
-			&self.__c__Struct__point
+			&self.__c____Struct__point
 		)? = Some(
 			std::rc::Rc::downgrade(
 				&tethered
@@ -177,7 +177,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		)
 	}
 
-	pub fn set_Struct__point(
+	pub fn set___Struct__point(
 		&self, value: rustdoc_test_crate::Point
 	)-> __tethering::AccessResult<()> {
 		self.access_mut(
@@ -201,7 +201,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		)?;
 
 		let cached_value = __tethering::try_borrow_mut(
-			&self.__c__Struct__point
+			&self.__c____Struct__point
 		)? .take().and_then(
 			|tethered| tethered.upgrade()
 		);
@@ -247,7 +247,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		)
 	}
 
-	pub fn get_Struct__label(
+	pub fn get___Struct__label(
 		&self
 	)-> __tethering::AccessResult<String> {
 		let mut result = std::mem::MaybeUninit::uninit();
@@ -279,7 +279,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		)
 	}
 
-	pub fn set_Struct__label(
+	pub fn set___Struct__label(
 		&self, value: String
 	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
@@ -309,7 +309,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		)
 	}
 
-	pub fn get_Struct__count(
+	pub fn get___Struct__count(
 		&self
 	)-> __tethering::AccessResult<i32> {
 		let mut result = std::mem::MaybeUninit::uninit();
@@ -341,7 +341,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		)
 	}
 
-	pub fn set_Struct__count(
+	pub fn set___Struct__count(
 		&self, value: i32
 	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
@@ -409,7 +409,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 	) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_Point> {
 		Ok(
 			__cursed_struct__rustdoc_0test_0crate_Point {
-				src:self.src.get_Struct__point()?
+				src:self.src.get___Struct__point()?
 			}
 		)
 	}
@@ -435,7 +435,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 				result.assume_init()
 			}
 		};
-		self.src.set_Struct__point(
+		self.src.set___Struct__point(
 			value
 		)?;Ok(
 			()
@@ -447,7 +447,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 		&self
 	) -> napi::Result<String> {
 		Ok(
-			self.src.get_Struct__label()?
+			self.src.get___Struct__label()?
 		)
 	}
 
@@ -472,7 +472,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 				result.assume_init()
 			}
 		};
-		self.src.set_Struct__label(
+		self.src.set___Struct__label(
 			value
 		)?;Ok(
 			()
@@ -484,7 +484,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 		&self
 	) -> napi::Result<i32> {
 		Ok(
-			self.src.get_Struct__count()?
+			self.src.get___Struct__count()?
 		)
 	}
 
@@ -509,7 +509,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 				result.assume_init()
 			}
 		};
-		self.src.set_Struct__count(
+		self.src.set___Struct__count(
 			value
 		)?;Ok(
 			()
@@ -520,7 +520,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 // Wasm
 struct __tethered_struct__rustdoc_0test_0crate_Example {
 	src: __tethering::SourceSlot<rustdoc_test_crate::Example>,
-	__c__Struct__point: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_Point>>>,
+	__c____Struct__point: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_Point>>>,
 }
 
 impl __tethering::Accessor<rustdoc_test_crate::Example> for __tethered_struct__rustdoc_0test_0crate_Example {
@@ -555,7 +555,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 			src: __tethering::SourceSlot::owned(
 				input
 			),
-			__c__Struct__point: std::cell::RefCell::new(
+			__c____Struct__point: std::cell::RefCell::new(
 				None
 			),
 		}
@@ -568,13 +568,13 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 			src: __tethering::SourceSlot::projected(
 				accessor
 			),
-			__c__Struct__point: std::cell::RefCell::new(
+			__c____Struct__point: std::cell::RefCell::new(
 				None
 			),
 		}
 	}
 
-	pub fn get_Struct__point(
+	pub fn get___Struct__point(
 		self: &std::rc::Rc<Self>,
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Point>> {
 		self.access(
@@ -600,7 +600,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		if let Some(
 			tethered
 		) = __tethering::try_borrow(
-			&self.__c__Struct__point
+			&self.__c____Struct__point
 		)?.as_ref().and_then(
 			std::rc::Weak::upgrade
 		) {
@@ -646,7 +646,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		);
 
 		*__tethering::try_borrow_mut(
-			&self.__c__Struct__point
+			&self.__c____Struct__point
 		)? = Some(
 			std::rc::Rc::downgrade(
 				&tethered
@@ -658,7 +658,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		)
 	}
 
-	pub fn set_Struct__point(
+	pub fn set___Struct__point(
 		&self, value: rustdoc_test_crate::Point
 	)-> __tethering::AccessResult<()> {
 		self.access_mut(
@@ -682,7 +682,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		)?;
 
 		let cached_value = __tethering::try_borrow_mut(
-			&self.__c__Struct__point
+			&self.__c____Struct__point
 		)? .take().and_then(
 			|tethered| tethered.upgrade()
 		);
@@ -728,7 +728,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		)
 	}
 
-	pub fn get_Struct__label(
+	pub fn get___Struct__label(
 		&self
 	)-> __tethering::AccessResult<String> {
 		let mut result = std::mem::MaybeUninit::uninit();
@@ -760,7 +760,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		)
 	}
 
-	pub fn set_Struct__label(
+	pub fn set___Struct__label(
 		&self, value: String
 	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
@@ -790,7 +790,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		)
 	}
 
-	pub fn get_Struct__count(
+	pub fn get___Struct__count(
 		&self
 	)-> __tethering::AccessResult<i32> {
 		let mut result = std::mem::MaybeUninit::uninit();
@@ -822,7 +822,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 		)
 	}
 
-	pub fn set_Struct__count(
+	pub fn set___Struct__count(
 		&self, value: i32
 	)-> __tethering::AccessResult<()> {
 		let mut value = Some(
@@ -890,7 +890,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 	) -> Result<__cursed_struct__rustdoc_0test_0crate_Point, JsValue> {
 		Ok(
 			__cursed_struct__rustdoc_0test_0crate_Point {
-				src:self.src.get_Struct__point()?
+				src:self.src.get___Struct__point()?
 			}
 		)
 	}
@@ -916,7 +916,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 				result.assume_init()
 			}
 		};
-		self.src.set_Struct__point(
+		self.src.set___Struct__point(
 			value
 		)?;Ok(
 			()
@@ -928,7 +928,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 		&self
 	) -> Result<String, JsValue> {
 		Ok(
-			self.src.get_Struct__label()?
+			self.src.get___Struct__label()?
 		)
 	}
 
@@ -953,7 +953,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 				result.assume_init()
 			}
 		};
-		self.src.set_Struct__label(
+		self.src.set___Struct__label(
 			value
 		)?;Ok(
 			()
@@ -965,7 +965,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 		&self
 	) -> Result<i32, JsValue> {
 		Ok(
-			self.src.get_Struct__count()?
+			self.src.get___Struct__count()?
 		)
 	}
 
@@ -990,7 +990,7 @@ impl __cursed_enum__rustdoc_0test_0crate_Example {
 				result.assume_init()
 			}
 		};
-		self.src.set_Struct__count(
+		self.src.set___Struct__count(
 			value
 		)?;Ok(
 			()

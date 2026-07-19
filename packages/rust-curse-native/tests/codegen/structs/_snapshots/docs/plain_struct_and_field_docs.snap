@@ -347,7 +347,7 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 		self.access(
 			&mut |src| {
 				result.write(
-					Ok(
+					__tethering::AccessResult::Ok(
 						&src.value
 					)?.clone()
 				);
@@ -371,7 +371,7 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 		);
 		self.access_mut(
 			&mut |src| {
-				*Ok(
+				*__tethering::AccessResult::Ok(
 					&mut src.value
 				)? = value.take().unwrap();
 				Ok(
@@ -718,7 +718,7 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 		self.access(
 			&mut |src| {
 				result.write(
-					Ok(
+					__tethering::AccessResult::Ok(
 						&src.value
 					)?.clone()
 				);
@@ -742,7 +742,7 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 		);
 		self.access_mut(
 			&mut |src| {
-				*Ok(
+				*__tethering::AccessResult::Ok(
 					&mut src.value
 				)? = value.take().unwrap();
 				Ok(

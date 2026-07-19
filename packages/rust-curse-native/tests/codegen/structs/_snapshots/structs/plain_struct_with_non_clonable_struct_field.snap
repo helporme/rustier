@@ -418,7 +418,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Field>> {
 		self.access(
 			&mut |parent| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&parent.field
 				)?;
 				Ok(
@@ -442,10 +442,10 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Field>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| Ok(
+				get: |parent| __tethering::AccessResult::Ok(
 					&parent.field
 				),
-				get_mut: |parent| Ok(
+				get_mut: |parent| __tethering::AccessResult::Ok(
 					&mut parent.field
 				),
 			}
@@ -843,7 +843,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Field>> {
 		self.access(
 			&mut |parent| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&parent.field
 				)?;
 				Ok(
@@ -867,10 +867,10 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Field>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| Ok(
+				get: |parent| __tethering::AccessResult::Ok(
 					&parent.field
 				),
-				get_mut: |parent| Ok(
+				get_mut: |parent| __tethering::AccessResult::Ok(
 					&mut parent.field
 				),
 			}

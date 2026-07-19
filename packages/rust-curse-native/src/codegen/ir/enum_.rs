@@ -17,7 +17,7 @@ impl<'db> ShapeField<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn getter_binding_name_on_enum(self, db: &'db dyn Db, variant: EnumVariant<'db>) -> String {
         format!(
-            "__getter__{}",
+            "__getter{}",
             enum_field_binding_name_from_ir_id(db, variant, self)
         )
     }
@@ -27,7 +27,7 @@ impl<'db> ShapeField<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn setter_binding_name_on_enum(self, db: &'db dyn Db, variant: EnumVariant<'db>) -> String {
         format!(
-            "__setter__{}",
+            "__setter{}",
             enum_field_binding_name_from_ir_id(db, variant, self)
         )
     }
@@ -131,7 +131,7 @@ pub fn enum_field_binding_name_from_ir_id<'db>(
     variant: EnumVariant<'db>,
     field: ShapeField<'db>,
 ) -> String {
-    format!("{}__{}", variant.name(db), field.name(db))
+    format!("__{}__{}", variant.name(db), field.name(db))
 }
 
 /// Returns the Rust and JavaScript binding name for an enum IR ID.

@@ -9,13 +9,14 @@ use crate::codegen::{
     ir::IrId,
     js::{
         JsCodegenPaths,
+        enum_::{compile_facade_class_for_enum, compile_facade_class_for_enum_required_imports},
         fn_::{compile_facade_fn, compile_facade_fn_required_imports},
         imports::compile_import_stmt,
         struct_::{
             compile_facade_class_for_struct, compile_facade_class_for_struct_required_imports,
         },
     },
-    rustdoc::mod_::{lower_mod_fns, lower_mod_structs},
+    rustdoc::mod_::{lower_mod_enums, lower_mod_fns, lower_mod_structs},
 };
 
 /// Compiles all supported items declared by a Rust module into its facade
@@ -26,6 +27,7 @@ pub fn compile_js_file<'db>(db: &'db dyn Db, mod_id: IrId<'db>) -> String {
 
     let fns = lower_mod_fns(db, mod_id.rustdoc_id(db));
     let structs = lower_mod_structs(db, mod_id.rustdoc_id(db));
+    let enums = lower_mod_enums(db, mod_id.rustdoc_id(db));
 
     let mut imports = BTreeSet::new();
     for fn_ in fns.iter() {
@@ -33,6 +35,9 @@ pub fn compile_js_file<'db>(db: &'db dyn Db, mod_id: IrId<'db>) -> String {
     }
     for struct_ in structs.iter() {
         compile_facade_class_for_struct_required_imports(db, *struct_, &mut imports);
+    }
+    for enum_ in enums.iter() {
+        compile_facade_class_for_enum_required_imports(db, *enum_, &mut imports);
     }
     let imports = spaced(
         imports
@@ -46,13 +51,19 @@ pub fn compile_js_file<'db>(db: &'db dyn Db, mod_id: IrId<'db>) -> String {
             .iter()
             .map(|struct_| compile_facade_class_for_struct(db, *struct_)),
     );
+    let enums = spaced(
+        enums
+            .iter()
+            .map(|enum_| compile_facade_class_for_enum(db, *enum_)),
+    );
 
     let init = Api::get(db).js_mod_init(db, js_codegen_paths.generated_bindings_path(db));
     frag!(
         {init}@
         {imports}@@
         {fns}@@
-        {structs}
+        {structs}@@
+        {enums}
     )
     .print()
 }
@@ -95,10 +106,24 @@ mod tests {
                 pub mod models {
                     #[derive(Clone)]
                     pub struct External;
+
+                    #[derive(Clone)]
+                    pub enum ExternalKind {
+                        One,
+                    }
                 }
 
                 #[derive(Clone)]
                 pub struct Local;
+
+                pub enum LocalEnum {
+                    Unit,
+                    Named {
+                        local: Local,
+                        external: models::External,
+                    },
+                    Tuple(models::ExternalKind),
+                }
 
                 pub struct Mixed {
                     pub number: i32,

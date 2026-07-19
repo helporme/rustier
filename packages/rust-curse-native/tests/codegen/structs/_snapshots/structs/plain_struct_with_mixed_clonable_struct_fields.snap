@@ -503,7 +503,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_ClonableField>> {
 		self.access(
 			&mut |parent| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&parent.clonable
 				)?;
 				Ok(
@@ -527,10 +527,10 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::ClonableField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| Ok(
+				get: |parent| __tethering::AccessResult::Ok(
 					&parent.clonable
 				),
-				get_mut: |parent| Ok(
+				get_mut: |parent| __tethering::AccessResult::Ok(
 					&mut parent.clonable
 				),
 			}
@@ -560,7 +560,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<()> {
 		self.access_mut(
 			&mut |src| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&mut src.clonable
 				)?;
 				Ok(
@@ -584,7 +584,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			&mut |src| {
 				old_value = Some(
 					std::mem::replace(
-						Ok(
+						__tethering::AccessResult::Ok(
 							&mut src.clonable
 						)?, value.take().unwrap(),
 					)
@@ -612,7 +612,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_NonClonableField>> {
 		self.access(
 			&mut |parent| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&parent.non_clonable
 				)?;
 				Ok(
@@ -636,10 +636,10 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::NonClonableField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| Ok(
+				get: |parent| __tethering::AccessResult::Ok(
 					&parent.non_clonable
 				),
-				get_mut: |parent| Ok(
+				get_mut: |parent| __tethering::AccessResult::Ok(
 					&mut parent.non_clonable
 				),
 			}
@@ -1143,7 +1143,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_ClonableField>> {
 		self.access(
 			&mut |parent| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&parent.clonable
 				)?;
 				Ok(
@@ -1167,10 +1167,10 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::ClonableField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| Ok(
+				get: |parent| __tethering::AccessResult::Ok(
 					&parent.clonable
 				),
-				get_mut: |parent| Ok(
+				get_mut: |parent| __tethering::AccessResult::Ok(
 					&mut parent.clonable
 				),
 			}
@@ -1200,7 +1200,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<()> {
 		self.access_mut(
 			&mut |src| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&mut src.clonable
 				)?;
 				Ok(
@@ -1224,7 +1224,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			&mut |src| {
 				old_value = Some(
 					std::mem::replace(
-						Ok(
+						__tethering::AccessResult::Ok(
 							&mut src.clonable
 						)?, value.take().unwrap(),
 					)
@@ -1252,7 +1252,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_NonClonableField>> {
 		self.access(
 			&mut |parent| {
-				Ok(
+				__tethering::AccessResult::Ok(
 					&parent.non_clonable
 				)?;
 				Ok(
@@ -1276,10 +1276,10 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::NonClonableField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| Ok(
+				get: |parent| __tethering::AccessResult::Ok(
 					&parent.non_clonable
 				),
-				get_mut: |parent| Ok(
+				get_mut: |parent| __tethering::AccessResult::Ok(
 					&mut parent.non_clonable
 				),
 			}

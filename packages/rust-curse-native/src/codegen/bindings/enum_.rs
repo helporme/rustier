@@ -179,7 +179,6 @@ fn compile_field_getter<'db>(
     };
     let name = enum_field_binding_name_from_ir_id(db, variant, field);
     let getter_name = field.getter_binding_name_on_enum(db, variant);
-    let js_name = frag!(__ { name });
     let field_type = field.type_(db);
     let result_type = api.result_type(db, compile_boundary_out_type(db, field_type));
     let tethered_value = compile_tethered_struct_get_field_expr(frag!(self.src), name);
@@ -195,7 +194,7 @@ fn compile_field_getter<'db>(
     });
 
     frag!(
-        {header}{doubles(js_name)}{")]"}@
+        {header}{doubles(name)}{")]"}@
         pub fn ~{getter_name}(&self)~ -> ~{result_type}~{{
             Ok({output})
         }}
@@ -214,7 +213,6 @@ fn compile_field_setter<'db>(
     };
     let name = enum_field_binding_name_from_ir_id(db, variant, field);
     let setter_name = field.setter_binding_name_on_enum(db, variant);
-    let js_name = frag!(__ { name });
     let param_type_name = compile_boundary_in_type(db, field.type_(db));
     let result_type = api.result_type(db, "()");
     let value = BoundaryInExpr {
@@ -226,7 +224,7 @@ fn compile_field_setter<'db>(
     let set_tethered_field = compile_tethered_struct_set_field_stmt(frag!(self.src), name, "value");
 
     frag!(
-        {header}{doubles(js_name)}{")]"}@
+        {header}{doubles(name)}{")]"}@
         pub fn ~{setter_name}(&self, value: ~{param_type_name})~ -> ~{result_type}~{{
             let value = ~{compile_boundary_in_to_source_type_expr(db, [value], "value")};@
             {set_tethered_field}
