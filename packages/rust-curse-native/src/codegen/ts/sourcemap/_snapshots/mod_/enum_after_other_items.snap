@@ -1,0 +1,354 @@
+---
+source: src/codegen/ts/sourcemap/mod_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::ts::sourcemap::mod_::tests::enum_after_other_items
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    #![doc = r" Module documentation before generated imports and declarations."] @
+    file : "models.rs"; pub mod models { #[derive(Clone)] pub struct External; } pub
+    fn before() {} pub struct Value { pub number : i32, } #[doc =
+    r" The first choice emitted after functions and structs."] pub enum FirstChoice {
+    Imported { external : models::External }, } #[doc =
+    r" The second choice preserves enum declaration order."] pub enum SecondChoice {
+    Empty, }
+};
+compile_test_mod(db, "")
+```
+
+## Output
+
+```text
+TypeScript:
+  0 | import {
+  1 | 	External
+  2 | } from './models.rs';
+  3 | 
+  4 | /** Module documentation before generated imports and declarations. */
+  5 | export function before(): void;
+  6 | 
+  7 | export class Value {
+  8 | 	public number: number;
+  9 | 	private __rust_curse_brand: never;
+ 10 | 	private constructor();
+ 11 | }
+ 12 | 
+ 13 | /** The first choice emitted after functions and structs. */
+ 14 | export type FirstChoice = FirstChoice.Instance & FirstChoice.Plain;
+ 15 | 
+ 16 | export namespace FirstChoice {
+ 17 | 	export type Plain =
+ 18 | 		| {
+ 19 | 			readonly type: "imported";
+ 20 | 			external: External;
+ 21 | 		};
+ 22 | 
+ 23 | 	export class Instance {
+ 24 | 		private __rust_curse_brand: never;
+ 25 | 		private constructor();
+ 26 | 	}
+ 27 | }
+ 28 | 
+ 29 | /** The second choice preserves enum declaration order. */
+ 30 | export type SecondChoice = SecondChoice.Instance & SecondChoice.Plain;
+ 31 | 
+ 32 | export namespace SecondChoice {
+ 33 | 	export type Plain =
+ 34 | 		| {
+ 35 | 			readonly type: "empty";
+ 36 | 		};
+ 37 | 
+ 38 | 	export class Instance {
+ 39 | 		private __rust_curse_brand: never;
+ 40 | 		private constructor();
+ 41 | 	}
+ 42 | }
+
+Source map:
+{
+  "version": 3,
+  "file": "lib.rs.d.ts",
+  "sourceRoot": "",
+  "sources": [
+    "src/lib.rs"
+  ],
+  "names": [
+    "before",
+    "Value",
+    "number",
+    "FirstChoice",
+    "Imported",
+    "external",
+    "SecondChoice",
+    "Empty"
+  ],
+  "mappings": ";;;;;AAGAA,gBAAOA;;AACPC,aAAWA;AACPC,QAAIA;;;;;;AAGRC,YAASA;;AAATA,iBAASA;AAATA,aAASA;;AACLC,YAAAA;AAAWC,GAAAA;;;AADfF,cAASA;;AAATA,UAASA;;;;;AAITG,YAASA;;AAATA,iBAASA;AAATA,aAASA;;AACLC,YAAAA;;;AADJD,cAASA;;AAATA,UAASA"
+}
+
+Mappings:
+[
+    Mapping {
+        generated_line: 5,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 0,
+        name: "before",
+    },
+    Mapping {
+        generated_line: 5,
+        generated_column: 16,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 7,
+        name: "before",
+    },
+    Mapping {
+        generated_line: 7,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 4,
+        original_column: 0,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 7,
+        generated_column: 13,
+        source: "src/lib.rs",
+        original_line: 4,
+        original_column: 11,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 8,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 5,
+        original_column: 4,
+        name: "number",
+    },
+    Mapping {
+        generated_line: 8,
+        generated_column: 8,
+        source: "src/lib.rs",
+        original_line: 5,
+        original_column: 8,
+        name: "number",
+    },
+    Mapping {
+        generated_line: 14,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 8,
+        original_column: 0,
+        name: "FirstChoice",
+    },
+    Mapping {
+        generated_line: 14,
+        generated_column: 12,
+        source: "src/lib.rs",
+        original_line: 8,
+        original_column: 9,
+        name: "FirstChoice",
+    },
+    Mapping {
+        generated_line: 16,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 8,
+        original_column: 0,
+        name: "FirstChoice",
+    },
+    Mapping {
+        generated_line: 16,
+        generated_column: 17,
+        source: "src/lib.rs",
+        original_line: 8,
+        original_column: 9,
+        name: "FirstChoice",
+    },
+    Mapping {
+        generated_line: 17,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 8,
+        original_column: 0,
+        name: "FirstChoice",
+    },
+    Mapping {
+        generated_line: 17,
+        generated_column: 13,
+        source: "src/lib.rs",
+        original_line: 8,
+        original_column: 9,
+        name: "FirstChoice",
+    },
+    Mapping {
+        generated_line: 19,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 9,
+        original_column: 4,
+        name: "Imported",
+    },
+    Mapping {
+        generated_line: 19,
+        generated_column: 12,
+        source: "src/lib.rs",
+        original_line: 9,
+        original_column: 4,
+        name: "Imported",
+    },
+    Mapping {
+        generated_line: 20,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 9,
+        original_column: 15,
+        name: "external",
+    },
+    Mapping {
+        generated_line: 20,
+        generated_column: 3,
+        source: "src/lib.rs",
+        original_line: 9,
+        original_column: 15,
+        name: "external",
+    },
+    Mapping {
+        generated_line: 23,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 8,
+        original_column: 0,
+        name: "FirstChoice",
+    },
+    Mapping {
+        generated_line: 23,
+        generated_column: 14,
+        source: "src/lib.rs",
+        original_line: 8,
+        original_column: 9,
+        name: "FirstChoice",
+    },
+    Mapping {
+        generated_line: 25,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 8,
+        original_column: 0,
+        name: "FirstChoice",
+    },
+    Mapping {
+        generated_line: 25,
+        generated_column: 10,
+        source: "src/lib.rs",
+        original_line: 8,
+        original_column: 9,
+        name: "FirstChoice",
+    },
+    Mapping {
+        generated_line: 30,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 12,
+        original_column: 0,
+        name: "SecondChoice",
+    },
+    Mapping {
+        generated_line: 30,
+        generated_column: 12,
+        source: "src/lib.rs",
+        original_line: 12,
+        original_column: 9,
+        name: "SecondChoice",
+    },
+    Mapping {
+        generated_line: 32,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 12,
+        original_column: 0,
+        name: "SecondChoice",
+    },
+    Mapping {
+        generated_line: 32,
+        generated_column: 17,
+        source: "src/lib.rs",
+        original_line: 12,
+        original_column: 9,
+        name: "SecondChoice",
+    },
+    Mapping {
+        generated_line: 33,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 12,
+        original_column: 0,
+        name: "SecondChoice",
+    },
+    Mapping {
+        generated_line: 33,
+        generated_column: 13,
+        source: "src/lib.rs",
+        original_line: 12,
+        original_column: 9,
+        name: "SecondChoice",
+    },
+    Mapping {
+        generated_line: 35,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 13,
+        original_column: 4,
+        name: "Empty",
+    },
+    Mapping {
+        generated_line: 35,
+        generated_column: 12,
+        source: "src/lib.rs",
+        original_line: 13,
+        original_column: 4,
+        name: "Empty",
+    },
+    Mapping {
+        generated_line: 38,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 12,
+        original_column: 0,
+        name: "SecondChoice",
+    },
+    Mapping {
+        generated_line: 38,
+        generated_column: 14,
+        source: "src/lib.rs",
+        original_line: 12,
+        original_column: 9,
+        name: "SecondChoice",
+    },
+    Mapping {
+        generated_line: 40,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 12,
+        original_column: 0,
+        name: "SecondChoice",
+    },
+    Mapping {
+        generated_line: 40,
+        generated_column: 10,
+        source: "src/lib.rs",
+        original_line: 12,
+        original_column: 9,
+        name: "SecondChoice",
+    },
+]
+```

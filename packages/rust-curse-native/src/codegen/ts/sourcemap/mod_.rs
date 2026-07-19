@@ -8,12 +8,13 @@ use crate::codegen::{
     db::Db,
     rustdoc::{
         RustdocId,
-        mod_::{lower_mod_fns, lower_mod_structs},
+        mod_::{lower_mod_enums, lower_mod_fns, lower_mod_structs},
     },
     ts::{
         mod_::compile_mod as compile_ts_mod,
         sourcemap::{
             Mapping,
+            enum_::compile_enum_mappings,
             fn_::compile_fn_mappings,
             mappings::{compile_mappings, find_name_line},
             struct_::compile_struct_mappings,
@@ -99,6 +100,18 @@ pub fn compile_mod_mappings<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> Vec
         search_line = generated_line + 1;
         mappings.extend(
             compile_struct_mappings(db, *struct_, generated_line)
+                .iter()
+                .cloned(),
+        );
+    }
+
+    for enum_ in lower_mod_enums(db, mod_id) {
+        let generated_line =
+            find_name_line(generated, search_line, "export type ", enum_.name(db), " =")
+                .expect("compiled TypeScript enum type declaration should exist");
+        search_line = generated_line + 1;
+        mappings.extend(
+            compile_enum_mappings(db, *enum_, generated_line)
                 .iter()
                 .cloned(),
         );
@@ -220,6 +233,41 @@ mod tests {
 
                 /// A unit value.
                 pub struct Last;
+            };
+
+            compile_test_mod(db, "")
+        });
+    }
+
+    #[test]
+    fn enum_after_other_items() {
+        assert_snap!({
+            @lang: "text";
+
+            let db = test_db! {
+                //! Module documentation before generated imports and declarations.
+
+                @file: "models.rs";
+                pub mod models {
+                    #[derive(Clone)]
+                    pub struct External;
+                }
+
+                pub fn before() {}
+
+                pub struct Value {
+                    pub number: i32,
+                }
+
+                /// The first choice emitted after functions and structs.
+                pub enum FirstChoice {
+                    Imported { external: models::External },
+                }
+
+                /// The second choice preserves enum declaration order.
+                pub enum SecondChoice {
+                    Empty,
+                }
             };
 
             compile_test_mod(db, "")
