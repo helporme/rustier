@@ -39,7 +39,7 @@ use crate::{
 pub fn compile_binding_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
     let tethered_fields = enum_.variants(db).iter().copied().flat_map(move |variant| {
         variant.fields(db).iter().copied().map(move |field| {
-            let name = enum_field_binding_name_from_ir_id(db, enum_.id(db), field);
+            let name = enum_field_binding_name_from_ir_id(db, variant, field);
             let type_ = field.type_(db);
             let get_expr = move |source: &'static str| {
                 compile_variant_field_access_expr(db, enum_, variant, field, source)
@@ -107,10 +107,10 @@ fn compile_wrapper_impl<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl Fragment
     let fields = spaced(enum_.variants(db).iter().copied().flat_map(move |variant| {
         variant.fields(db).iter().copied().map(move |field| {
             fragment(move |printer| {
-                frag!({compile_field_getter(db, enum_, field)}@).apply(printer);
+                frag!({compile_field_getter(db, variant, field)}@).apply(printer);
 
                 if !field.is_readonly(db) {
-                    frag!(@{compile_field_setter(db, enum_, field)}).apply(printer);
+                    frag!(@{compile_field_setter(db, variant, field)}).apply(printer);
                 }
             })
         })
@@ -171,7 +171,7 @@ fn compile_type_method<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl FragmentO
 
 fn compile_field_getter<'db>(
     db: &'db dyn Db,
-    enum_: Enum<'db>,
+    variant: EnumVariant<'db>,
     field: ShapeField<'db>,
 ) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
@@ -179,8 +179,8 @@ fn compile_field_getter<'db>(
         ApiKind::Wasm { .. } => "#[wasm_bindgen(getter, js_name = ",
         ApiKind::Node => "#[napi(getter, js_name = ",
     };
-    let name = enum_field_binding_name_from_ir_id(db, enum_.id(db), field);
-    let getter_name = field.getter_binding_name_on_enum(db, enum_.id(db));
+    let name = enum_field_binding_name_from_ir_id(db, variant, field);
+    let getter_name = field.getter_binding_name_on_enum(db, variant);
     let js_name = frag!(__ { name });
     let field_type = field.type_(db);
     let result_type = api.result_type(db, compile_boundary_out_type(db, field_type));
@@ -206,7 +206,7 @@ fn compile_field_getter<'db>(
 
 fn compile_field_setter<'db>(
     db: &'db dyn Db,
-    enum_: Enum<'db>,
+    variant: EnumVariant<'db>,
     field: ShapeField<'db>,
 ) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
@@ -214,8 +214,8 @@ fn compile_field_setter<'db>(
         ApiKind::Wasm { .. } => "#[wasm_bindgen(setter, js_name = ",
         ApiKind::Node => "#[napi(setter, js_name = ",
     };
-    let name = enum_field_binding_name_from_ir_id(db, enum_.id(db), field);
-    let setter_name = field.setter_binding_name_on_enum(db, enum_.id(db));
+    let name = enum_field_binding_name_from_ir_id(db, variant, field);
+    let setter_name = field.setter_binding_name_on_enum(db, variant);
     let js_name = frag!(__ { name });
     let param_type_name = compile_boundary_in_type(db, field.type_(db));
     let result_type = api.result_type(db, "()");

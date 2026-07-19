@@ -26,16 +26,14 @@ impl<'db> ShapeField<'db> {
     /// Returns the struct field binding getter function name, e.g.
     /// `__getter__foo`.
     #[salsa::tracked(returns(ref))]
-    pub fn getter_binding_name_on_struct(self, db: &'db dyn Db, struct_id: IrId<'db>) -> String {
-        let _ = struct_id;
+    pub fn getter_binding_name_on_struct(self, db: &'db dyn Db) -> String {
         format!("__getter__{}", self.name(db))
     }
 
     /// Returns the struct field binding setter function name, e.g.
     /// `__setter__foo`.
     #[salsa::tracked(returns(ref))]
-    pub fn setter_binding_name_on_struct(self, db: &'db dyn Db, struct_id: IrId<'db>) -> String {
-        let _ = struct_id;
+    pub fn setter_binding_name_on_struct(self, db: &'db dyn Db) -> String {
         format!("__setter__{}", self.name(db))
     }
 }

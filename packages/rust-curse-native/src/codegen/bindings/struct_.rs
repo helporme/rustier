@@ -104,10 +104,10 @@ fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl Frag
 
     let fields = spaced(struct_.fields(db).iter().copied().map(move |field| {
         fragment(move |p| {
-            frag!({compile_field_getter(db, struct_, field)}@).apply(p);
+            frag!({compile_field_getter(db, field)}@).apply(p);
 
             if !field.is_readonly(db) {
-                frag!(@{compile_field_setter(db, struct_, field)}).apply(p);
+                frag!(@{compile_field_setter(db, field)}).apply(p);
             }
         })
     }));
@@ -121,13 +121,9 @@ fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl Frag
 }
 
 /// Compiles the public binding getter for a source struct field.
-fn compile_field_getter<'db>(
-    db: &'db dyn Db,
-    struct_: Struct<'db>,
-    field: ShapeField<'db>,
-) -> impl FragmentOnce + 'db {
+fn compile_field_getter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
-    let getter_name = field.getter_binding_name_on_struct(db, struct_.id(db));
+    let getter_name = field.getter_binding_name_on_struct(db);
     let field_type = field.type_(db);
     let result_type = api.result_type(db, compile_boundary_out_type(db, field_type));
 
@@ -150,13 +146,9 @@ fn compile_field_getter<'db>(
 }
 
 /// Compiles the public binding setter for a source struct field.
-fn compile_field_setter<'db>(
-    db: &'db dyn Db,
-    struct_: Struct<'db>,
-    field: ShapeField<'db>,
-) -> impl FragmentOnce + 'db {
+fn compile_field_setter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
-    let setter_name = field.setter_binding_name_on_struct(db, struct_.id(db));
+    let setter_name = field.setter_binding_name_on_struct(db);
     let param_type_name = compile_boundary_in_type(db, field.type_(db));
     let result_type = api.result_type(db, "()");
     let value = BoundaryInExpr {
