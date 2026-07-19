@@ -1,5 +1,6 @@
 //! Compiles rustdoc into TypeScript declaration source maps.
 
+mod enum_;
 mod fn_;
 mod mappings;
 mod mod_;
