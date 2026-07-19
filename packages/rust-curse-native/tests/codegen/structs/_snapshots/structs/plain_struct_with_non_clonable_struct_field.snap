@@ -254,12 +254,12 @@ mod __tethering {
 
 	pub struct FieldAccess<Parent, T> {
 		pub parent: Rc<dyn Accessor<Parent>>,
-		pub get: fn(
-			&Parent
-		)-> &T,
-		pub get_mut: fn(
-			&mut Parent
-		)-> &mut T,
+		pub get: for<'a> fn(
+			&'a Parent
+		)-> AccessResult<&'a T>,
+		pub get_mut: for<'a> fn(
+			&'a mut Parent
+		)-> AccessResult<&'a mut T>,
 	}
 
 	impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
@@ -274,7 +274,7 @@ mod __tethering {
 						self.get
 					)(
 						parent
-					)
+					)?
 				)
 			)
 		}
@@ -289,7 +289,7 @@ mod __tethering {
 						self.get_mut
 					)(
 						parent
-					)
+					)?
 				)
 			)
 		}
@@ -416,6 +416,17 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn get_field(
 		self: &std::rc::Rc<Self>,
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Field>> {
+		self.access(
+			&mut |parent| {
+				Ok(
+					&parent.field
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		if let Some(
 			tethered
 		) = __tethering::try_borrow(
@@ -431,8 +442,12 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Field>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| &parent.field,
-				get_mut: |parent| &mut parent.field,
+				get: |parent| Ok(
+					&parent.field
+				),
+				get_mut: |parent| Ok(
+					&mut parent.field
+				),
 			}
 		);
 
@@ -664,12 +679,12 @@ mod __tethering {
 
 	pub struct FieldAccess<Parent, T> {
 		pub parent: Rc<dyn Accessor<Parent>>,
-		pub get: fn(
-			&Parent
-		)-> &T,
-		pub get_mut: fn(
-			&mut Parent
-		)-> &mut T,
+		pub get: for<'a> fn(
+			&'a Parent
+		)-> AccessResult<&'a T>,
+		pub get_mut: for<'a> fn(
+			&'a mut Parent
+		)-> AccessResult<&'a mut T>,
 	}
 
 	impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
@@ -684,7 +699,7 @@ mod __tethering {
 						self.get
 					)(
 						parent
-					)
+					)?
 				)
 			)
 		}
@@ -699,7 +714,7 @@ mod __tethering {
 						self.get_mut
 					)(
 						parent
-					)
+					)?
 				)
 			)
 		}
@@ -826,6 +841,17 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn get_field(
 		self: &std::rc::Rc<Self>,
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Field>> {
+		self.access(
+			&mut |parent| {
+				Ok(
+					&parent.field
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		if let Some(
 			tethered
 		) = __tethering::try_borrow(
@@ -841,8 +867,12 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Field>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| &parent.field,
-				get_mut: |parent| &mut parent.field,
+				get: |parent| Ok(
+					&parent.field
+				),
+				get_mut: |parent| Ok(
+					&mut parent.field
+				),
 			}
 		);
 

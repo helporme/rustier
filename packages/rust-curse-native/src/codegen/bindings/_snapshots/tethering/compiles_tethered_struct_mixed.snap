@@ -14,22 +14,22 @@ codegen::bindings::tethering::tests::compiles_tethered_struct_mixed
 let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 3] = [
     TetheredField::Cloned(ClonedField {
         name: "count",
-        get_ref_expr: |source| frag!({ source } .count),
-        get_mut_expr: |source| frag!({ source } .count),
+        get_ref_expr: |source| frag!(Ok(& { source } .count)).print(),
+        get_mut_expr: |source| frag!(Ok(& mut ~ { source } .count)).print(),
         source_type: "u32",
     }),
     TetheredField::TetheredStruct(TetheredStructField {
         name: "child",
-        get_ref_expr: |source| frag!({ source } .child),
-        get_mut_expr: |source| frag!({ source } .child),
+        get_ref_expr: |source| frag!(Ok(& { source } .child)).print(),
+        get_mut_expr: |source| frag!(Ok(& mut ~ { source } .child)).print(),
         source_type: "crate::Child",
         tethered_name: "__tethered_child",
         with_setter: true,
     }),
     TetheredField::TetheredStruct(TetheredStructField {
         name: "readonly_child",
-        get_ref_expr: |source| frag!({ source } .readonly_child),
-        get_mut_expr: |source| frag!({ source } .readonly_child),
+        get_ref_expr: |source| frag!(Ok(& { source } .readonly_child)).print(),
+        get_mut_expr: |source| frag!(Ok(& mut ~ { source } .readonly_child)).print(),
         source_type: "crate::ReadonlyChild",
         tethered_name: "__tethered_readonly_child",
         with_setter: false,
@@ -116,7 +116,9 @@ impl __tethered_parent {
 		self.access(
 			&mut |src| {
 				result.write(
-					src.count.clone()
+					Ok(
+						&src.count
+					)?.clone()
 				);
 				Ok(
 					()
@@ -138,7 +140,9 @@ impl __tethered_parent {
 		);
 		self.access_mut(
 			&mut |src| {
-				src.count= value.take().unwrap();
+				*Ok(
+					&mut src.count
+				)? = value.take().unwrap();
 				Ok(
 					()
 				)
@@ -152,6 +156,17 @@ impl __tethered_parent {
 	pub fn get_child(
 		self: &std::rc::Rc<Self>,
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_child>> {
+		self.access(
+			&mut |parent| {
+				Ok(
+					&parent.child
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		if let Some(
 			tethered
 		) = __tethering::try_borrow(
@@ -167,8 +182,12 @@ impl __tethered_parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<crate::Child>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| &parent.child,
-				get_mut: |parent| &mut parent.child,
+				get: |parent| Ok(
+					&parent.child
+				),
+				get_mut: |parent| Ok(
+					&mut parent.child
+				),
 			}
 		);
 
@@ -194,6 +213,17 @@ impl __tethered_parent {
 	pub fn set_child(
 		&self, value: crate::Child
 	)-> __tethering::AccessResult<()> {
+		self.access_mut(
+			&mut |src| {
+				Ok(
+					&mut src.child
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		let cached_value = __tethering::try_borrow_mut(
 			&self.__c__child
 		)? .take().and_then(
@@ -209,7 +239,9 @@ impl __tethered_parent {
 			&mut |src| {
 				old_value = Some(
 					std::mem::replace(
-						&mut src.child, value.take().unwrap(),
+						Ok(
+							&mut src.child
+						)?, value.take().unwrap(),
 					)
 				);
 				Ok(
@@ -233,6 +265,17 @@ impl __tethered_parent {
 	pub fn get_readonly_child(
 		self: &std::rc::Rc<Self>,
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_readonly_child>> {
+		self.access(
+			&mut |parent| {
+				Ok(
+					&parent.readonly_child
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		if let Some(
 			tethered
 		) = __tethering::try_borrow(
@@ -248,8 +291,12 @@ impl __tethered_parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<crate::ReadonlyChild>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| &parent.readonly_child,
-				get_mut: |parent| &mut parent.readonly_child,
+				get: |parent| Ok(
+					&parent.readonly_child
+				),
+				get_mut: |parent| Ok(
+					&mut parent.readonly_child
+				),
 			}
 		);
 

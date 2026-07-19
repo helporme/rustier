@@ -281,12 +281,12 @@ mod __tethering {
 
 	pub struct FieldAccess<Parent, T> {
 		pub parent: Rc<dyn Accessor<Parent>>,
-		pub get: fn(
-			&Parent
-		)-> &T,
-		pub get_mut: fn(
-			&mut Parent
-		)-> &mut T,
+		pub get: for<'a> fn(
+			&'a Parent
+		)-> AccessResult<&'a T>,
+		pub get_mut: for<'a> fn(
+			&'a mut Parent
+		)-> AccessResult<&'a mut T>,
 	}
 
 	impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
@@ -301,7 +301,7 @@ mod __tethering {
 						self.get
 					)(
 						parent
-					)
+					)?
 				)
 			)
 		}
@@ -316,7 +316,7 @@ mod __tethering {
 						self.get_mut
 					)(
 						parent
-					)
+					)?
 				)
 			)
 		}
@@ -380,7 +380,9 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainField {
 		self.access(
 			&mut |src| {
 				result.write(
-					src.value.clone()
+					Ok(
+						&src.value
+					)?.clone()
 				);
 				Ok(
 					()
@@ -402,7 +404,9 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainField {
 		);
 		self.access_mut(
 			&mut |src| {
-				src.value= value.take().unwrap();
+				*Ok(
+					&mut src.value
+				)? = value.take().unwrap();
 				Ok(
 					()
 				)
@@ -514,7 +518,9 @@ impl __tethered_struct__rustdoc_0test_0crate_TupleField {
 		self.access(
 			&mut |src| {
 				result.write(
-					src.0.clone()
+					Ok(
+						&src.0
+					)?.clone()
 				);
 				Ok(
 					()
@@ -536,7 +542,9 @@ impl __tethered_struct__rustdoc_0test_0crate_TupleField {
 		);
 		self.access_mut(
 			&mut |src| {
-				src.0= value.take().unwrap();
+				*Ok(
+					&mut src.0
+				)? = value.take().unwrap();
 				Ok(
 					()
 				)
@@ -658,6 +666,17 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn get_0(
 		self: &std::rc::Rc<Self>,
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_PlainField>> {
+		self.access(
+			&mut |parent| {
+				Ok(
+					&parent.0
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		if let Some(
 			tethered
 		) = __tethering::try_borrow(
@@ -673,8 +692,12 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| &parent.0,
-				get_mut: |parent| &mut parent.0,
+				get: |parent| Ok(
+					&parent.0
+				),
+				get_mut: |parent| Ok(
+					&mut parent.0
+				),
 			}
 		);
 
@@ -700,6 +723,17 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn set_0(
 		&self, value: rustdoc_test_crate::PlainField
 	)-> __tethering::AccessResult<()> {
+		self.access_mut(
+			&mut |src| {
+				Ok(
+					&mut src.0
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		let cached_value = __tethering::try_borrow_mut(
 			&self.__c__0
 		)? .take().and_then(
@@ -715,7 +749,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			&mut |src| {
 				old_value = Some(
 					std::mem::replace(
-						&mut src.0, value.take().unwrap(),
+						Ok(
+							&mut src.0
+						)?, value.take().unwrap(),
 					)
 				);
 				Ok(
@@ -739,6 +775,17 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn get_1(
 		self: &std::rc::Rc<Self>,
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_TupleField>> {
+		self.access(
+			&mut |parent| {
+				Ok(
+					&parent.1
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		if let Some(
 			tethered
 		) = __tethering::try_borrow(
@@ -754,8 +801,12 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| &parent.1,
-				get_mut: |parent| &mut parent.1,
+				get: |parent| Ok(
+					&parent.1
+				),
+				get_mut: |parent| Ok(
+					&mut parent.1
+				),
 			}
 		);
 
@@ -781,6 +832,17 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn set_1(
 		&self, value: rustdoc_test_crate::TupleField
 	)-> __tethering::AccessResult<()> {
+		self.access_mut(
+			&mut |src| {
+				Ok(
+					&mut src.1
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		let cached_value = __tethering::try_borrow_mut(
 			&self.__c__1
 		)? .take().and_then(
@@ -796,7 +858,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			&mut |src| {
 				old_value = Some(
 					std::mem::replace(
-						&mut src.1, value.take().unwrap(),
+						Ok(
+							&mut src.1
+						)?, value.take().unwrap(),
 					)
 				);
 				Ok(
@@ -1093,12 +1157,12 @@ mod __tethering {
 
 	pub struct FieldAccess<Parent, T> {
 		pub parent: Rc<dyn Accessor<Parent>>,
-		pub get: fn(
-			&Parent
-		)-> &T,
-		pub get_mut: fn(
-			&mut Parent
-		)-> &mut T,
+		pub get: for<'a> fn(
+			&'a Parent
+		)-> AccessResult<&'a T>,
+		pub get_mut: for<'a> fn(
+			&'a mut Parent
+		)-> AccessResult<&'a mut T>,
 	}
 
 	impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
@@ -1113,7 +1177,7 @@ mod __tethering {
 						self.get
 					)(
 						parent
-					)
+					)?
 				)
 			)
 		}
@@ -1128,7 +1192,7 @@ mod __tethering {
 						self.get_mut
 					)(
 						parent
-					)
+					)?
 				)
 			)
 		}
@@ -1192,7 +1256,9 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainField {
 		self.access(
 			&mut |src| {
 				result.write(
-					src.value.clone()
+					Ok(
+						&src.value
+					)?.clone()
 				);
 				Ok(
 					()
@@ -1214,7 +1280,9 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainField {
 		);
 		self.access_mut(
 			&mut |src| {
-				src.value= value.take().unwrap();
+				*Ok(
+					&mut src.value
+				)? = value.take().unwrap();
 				Ok(
 					()
 				)
@@ -1326,7 +1394,9 @@ impl __tethered_struct__rustdoc_0test_0crate_TupleField {
 		self.access(
 			&mut |src| {
 				result.write(
-					src.0.clone()
+					Ok(
+						&src.0
+					)?.clone()
 				);
 				Ok(
 					()
@@ -1348,7 +1418,9 @@ impl __tethered_struct__rustdoc_0test_0crate_TupleField {
 		);
 		self.access_mut(
 			&mut |src| {
-				src.0= value.take().unwrap();
+				*Ok(
+					&mut src.0
+				)? = value.take().unwrap();
 				Ok(
 					()
 				)
@@ -1470,6 +1542,17 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn get_0(
 		self: &std::rc::Rc<Self>,
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_PlainField>> {
+		self.access(
+			&mut |parent| {
+				Ok(
+					&parent.0
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		if let Some(
 			tethered
 		) = __tethering::try_borrow(
@@ -1485,8 +1568,12 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::PlainField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| &parent.0,
-				get_mut: |parent| &mut parent.0,
+				get: |parent| Ok(
+					&parent.0
+				),
+				get_mut: |parent| Ok(
+					&mut parent.0
+				),
 			}
 		);
 
@@ -1512,6 +1599,17 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn set_0(
 		&self, value: rustdoc_test_crate::PlainField
 	)-> __tethering::AccessResult<()> {
+		self.access_mut(
+			&mut |src| {
+				Ok(
+					&mut src.0
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		let cached_value = __tethering::try_borrow_mut(
 			&self.__c__0
 		)? .take().and_then(
@@ -1527,7 +1625,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			&mut |src| {
 				old_value = Some(
 					std::mem::replace(
-						&mut src.0, value.take().unwrap(),
+						Ok(
+							&mut src.0
+						)?, value.take().unwrap(),
 					)
 				);
 				Ok(
@@ -1551,6 +1651,17 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn get_1(
 		self: &std::rc::Rc<Self>,
 	)-> __tethering::AccessResult<std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_TupleField>> {
+		self.access(
+			&mut |parent| {
+				Ok(
+					&parent.1
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		if let Some(
 			tethered
 		) = __tethering::try_borrow(
@@ -1566,8 +1677,12 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::TupleField>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
-				get: |parent| &parent.1,
-				get_mut: |parent| &mut parent.1,
+				get: |parent| Ok(
+					&parent.1
+				),
+				get_mut: |parent| Ok(
+					&mut parent.1
+				),
 			}
 		);
 
@@ -1593,6 +1708,17 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	pub fn set_1(
 		&self, value: rustdoc_test_crate::TupleField
 	)-> __tethering::AccessResult<()> {
+		self.access_mut(
+			&mut |src| {
+				Ok(
+					&mut src.1
+				)?;
+				Ok(
+					()
+				)
+			}
+		)?;
+
 		let cached_value = __tethering::try_borrow_mut(
 			&self.__c__1
 		)? .take().and_then(
@@ -1608,7 +1734,9 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 			&mut |src| {
 				old_value = Some(
 					std::mem::replace(
-						&mut src.1, value.take().unwrap(),
+						Ok(
+							&mut src.1
+						)?, value.take().unwrap(),
 					)
 				);
 				Ok(

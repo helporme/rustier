@@ -25,18 +25,6 @@ pub struct ShapeField<'db> {
 
 #[salsa::tracked]
 impl<'db> ShapeField<'db> {
-    /// Returns the binding name of the getter function, e.g. `__getter__foo`.
-    #[salsa::tracked(returns(ref))]
-    pub fn getter_binding_name(self, db: &'db dyn Db) -> String {
-        format!("__getter__{}", self.name(db))
-    }
-
-    /// Returns the binding name of the setter function, e.g. `__setter__foo`.
-    #[salsa::tracked(returns(ref))]
-    pub fn setter_binding_name(self, db: &'db dyn Db) -> String {
-        format!("__setter__{}", self.name(db))
-    }
-
     /// Returns the rustdoc ID of this field under the given parent struct or
     /// enum.
     #[salsa::tracked(returns(copy))]

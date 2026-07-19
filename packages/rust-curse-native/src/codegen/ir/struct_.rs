@@ -22,6 +22,25 @@ pub struct Struct<'db> {
 }
 
 #[salsa::tracked]
+impl<'db> ShapeField<'db> {
+    /// Returns the struct field binding getter function name, e.g.
+    /// `__getter__foo`.
+    #[salsa::tracked(returns(ref))]
+    pub fn getter_binding_name_on_struct(self, db: &'db dyn Db, struct_id: IrId<'db>) -> String {
+        let _ = struct_id;
+        format!("__getter__{}", self.name(db))
+    }
+
+    /// Returns the struct field binding setter function name, e.g.
+    /// `__setter__foo`.
+    #[salsa::tracked(returns(ref))]
+    pub fn setter_binding_name_on_struct(self, db: &'db dyn Db, struct_id: IrId<'db>) -> String {
+        let _ = struct_id;
+        format!("__setter__{}", self.name(db))
+    }
+}
+
+#[salsa::tracked]
 impl<'db> Struct<'db> {
     /// Returns the name of the binding struct, e.g.
     /// `__cursed_struct__std_mem_Drop`

@@ -1,4 +1,4 @@
-use rustdoc_types::ItemKind;
+use rustdoc_types::{ItemEnum, ItemKind};
 
 use crate::codegen::{
     db::Db,
@@ -8,7 +8,34 @@ use crate::codegen::{
         shape::{Shape, ShapeField},
         type_::Type,
     },
+    rustdoc::{
+        CrateExt,
+        shape::{RustdocShape, lower_shape},
+    },
 };
+
+#[salsa::tracked]
+impl<'db> ShapeField<'db> {
+    /// Returns the enum variant field binding getter function name, e.g.
+    /// `__getter__Circle__radius`.
+    #[salsa::tracked(returns(ref))]
+    pub fn getter_binding_name_on_enum(self, db: &'db dyn Db, enum_id: IrId<'db>) -> String {
+        format!(
+            "__getter__{}",
+            enum_field_binding_name_from_ir_id(db, enum_id, self)
+        )
+    }
+
+    /// Returns the enum variant field binding setter function name, e.g.
+    /// `__setter__Circle__radius`.
+    #[salsa::tracked(returns(ref))]
+    pub fn setter_binding_name_on_enum(self, db: &'db dyn Db, enum_id: IrId<'db>) -> String {
+        format!(
+            "__setter__{}",
+            enum_field_binding_name_from_ir_id(db, enum_id, self)
+        )
+    }
+}
 
 /// A lowered enum variant and its field layout.
 #[salsa::tracked(debug)]
@@ -99,6 +126,53 @@ pub fn enum_mangled_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> Stri
 
     assert_eq!(summary.kind, ItemKind::Enum);
     mangle_path(&summary.path)
+}
+
+/// Returns the variant-mangled binding field name for an enum field IR ID.
+#[salsa::tracked(returns(ref))]
+pub fn enum_field_binding_name_from_ir_id<'db>(
+    db: &'db dyn Db,
+    enum_id: IrId<'db>,
+    field: ShapeField<'db>,
+) -> String {
+    let enum_rustdoc_id = enum_id.rustdoc_id(db);
+    let enum_item = enum_rustdoc_id.item(db);
+    let crate_body = enum_rustdoc_id.crate_body(db);
+    let def = match &enum_item.inner {
+        ItemEnum::Enum(def) => def,
+        _ => panic!(
+            "expected enum when getting variant field binding name for `{}`",
+            enum_id.fqn(db)
+        ),
+    };
+
+    let variant_name = def
+        .variants
+        .iter()
+        .find_map(|variant_id| {
+            let variant_id = crate_body.id(db, *variant_id);
+            let variant_item = variant_id.item(db);
+            let variant = match &variant_item.inner {
+                ItemEnum::Variant(variant) => variant,
+                _ => unreachable!(),
+            };
+            let (shape, _) = lower_shape(db, variant_id, RustdocShape::from(&variant.kind));
+            let has_field = match shape {
+                Shape::Unit => false,
+                Shape::Tuple(fields) => fields.iter().any(|candidate| candidate == &Some(field)),
+                Shape::Plain { fields, .. } => fields.contains(&field),
+            };
+
+            has_field.then(|| {
+                variant_item
+                    .name
+                    .clone()
+                    .expect("enum variant must have a name")
+            })
+        })
+        .expect("field must be found under its parent enum");
+
+    format!("{}__{}", variant_name, field.name(db))
 }
 
 /// Returns the Rust binding struct name for an enum IR ID.

@@ -239,16 +239,16 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
     let field_access = frag!(
         pub struct FieldAccess<Parent, T>~{{
             pub parent: Rc<dyn Accessor<Parent>>,@
-            pub get: fn(&Parent) -> &T,@
-            pub get_mut: fn(&mut Parent) -> &mut T,
+            pub get: for<'a> fn(&'a Parent) -> AccessResult<&'a T>,@
+            pub get_mut: for<'a> fn(&'a mut Parent) -> AccessResult<&'a mut T>,
         }}@@
 
         impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T>~{{
             fn access(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>~{{
-                self.parent.access(&mut |parent| f((self.get)(parent)))
+                self.parent.access(&mut |parent| f((self.get)(parent)?))
             }}@
             fn access_mut(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>~{{
-                self.parent.access_mut(&mut |parent| f((self.get_mut)(parent)))
+                self.parent.access_mut(&mut |parent| f((self.get_mut)(parent)?))
             }}
         }}
     );
@@ -297,9 +297,9 @@ where
     FQN: Fragment,
 {
     pub name: &'a str,
-    /// Expression to access a source value through a shared reference.
+    /// Expression returning a fallible shared reference to the source value.
     pub get_ref_expr: GetRefExpr,
-    /// Expression to access a source value through a mutable reference.
+    /// Expression returning a fallible mutable reference to the source value.
     pub get_mut_expr: GetMutExpr,
     /// The type of this field on source type.
     pub source_type: FQN,
@@ -312,9 +312,9 @@ where
 {
     // The field name.
     pub name: &'a str,
-    /// Expression to access a source value through a shared reference.
+    /// Expression returning a fallible shared reference to the source value.
     pub get_ref_expr: GetRefExpr,
-    /// Expression to access a source value through a mutable reference.
+    /// Expression returning a fallible mutable reference to the source value.
     pub get_mut_expr: GetMutExpr,
     /// The type of this field on source type.
     pub source_type: FQN,
@@ -556,7 +556,7 @@ where
                 pub fn get_{self.name}(&self) -> __tethering::AccessResult<{&self.source_type}>~{{
                     let mut result = std::mem::MaybeUninit::uninit();@
                     self.access(&mut |src|~{{
-                        result.write({get_ref_expr}.clone());@
+                        result.write({get_ref_expr}?.clone());@
                         Ok(())
                     }})?;@
                     Ok(unsafe~{{
@@ -580,7 +580,7 @@ where
                 pub fn set_{self.name}(&self, value: ~{&self.source_type}) -> __tethering::AccessResult<()>~{{
                     let mut value = Some(value);@
                     self.access_mut(&mut |src|~{{
-                        {get_mut_expr} = value.take().unwrap();@
+                        *{get_mut_expr}? = value.take().unwrap();@
                         Ok(())
                     }})?;@
                     Ok(())
@@ -604,6 +604,7 @@ where
     {
         fragment(move |p| {
             let cache_field_name = cache_field_name(self.name);
+            let validate_get_ref_expr = (self.get_ref_expr)("parent");
             let get_ref_expr = (self.get_ref_expr)("parent");
             let get_mut_expr = (self.get_mut_expr)("parent");
 
@@ -611,14 +612,20 @@ where
                 pub fn get_{self.name}(
                     self: &std::rc::Rc<Self>,@
                 ) -> __tethering::AccessResult<std::rc::Rc<{&self.tethered_name}>>~{{
+                    // Try to access the field first so we can return early if it's invalid
+                    self.access(&mut |parent|~{{
+                        {validate_get_ref_expr}?;@
+                        Ok(())
+                    }})?;@@
+
                     if let Some(tethered)~ = __tethering::try_borrow(&self.{&cache_field_name})?.as_ref().and_then(std::rc::Weak::upgrade)~{{
                         return Ok(tethered);@
                     }}@@
 
                     let field_access: std::rc::Rc<dyn __tethering::Accessor<{&self.source_type}>> = std::rc::Rc::new(__tethering::FieldAccess~{{
                         parent: self.clone(),@
-                        get: |parent| &{get_ref_expr},@
-                        get_mut: |parent| &mut ~{get_mut_expr},@
+                        get: |parent|~{get_ref_expr},@
+                        get_mut: |parent|~{get_mut_expr},@
                     }});@@
 
                     let tethered = std::rc::Rc::new({&self.tethered_name}::new_projected(field_access));@@
@@ -639,10 +646,17 @@ where
     {
         fragment(move |p| {
             let cache_field_name = cache_field_name(self.name);
+            let validate_get_mut_expr = (self.get_mut_expr)("src");
             let get_mut_expr = (self.get_mut_expr)("src");
 
             frag!(
                 pub fn set_{self.name}(&self, value: ~{&self.source_type}) -> __tethering::AccessResult<()>~{{
+                    // Try to access the field first so we can return early if it's invalid
+                    self.access_mut(&mut |src|~{{
+                        {validate_get_mut_expr}?;@
+                        Ok(())
+                    }})?;@@
+
                     let cached_value = __tethering::try_borrow_mut(&self.{&cache_field_name})?
                         .take()
                         .and_then(|tethered| tethered.upgrade());@@
@@ -652,7 +666,7 @@ where
 
                     self.access_mut(&mut |src|~{{
                         old_value = Some(std::mem::replace(
-                            &mut ~{get_mut_expr},
+                            {get_mut_expr}?,
                             value.take().unwrap(),
                         ));@
                         Ok(())
@@ -704,7 +718,7 @@ mod tests {
     use super::*;
     use crate::codegen::{fragment::FragmentPrint as _, test::assert_snap};
 
-    type FieldExpr = fn(&'static str) -> (&'static str, &'static str);
+    type FieldExpr = fn(&'static str) -> String;
 
     #[test]
     fn compiles_tethered_struct_empty() {
@@ -726,8 +740,8 @@ mod tests {
             let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 1] =
                 [TetheredField::Cloned(ClonedField {
                     name: "count",
-                    get_ref_expr: |source| frag!({ source }.count),
-                    get_mut_expr: |source| frag!({ source }.count),
+                    get_ref_expr: |source| frag!(Ok(&{ source }.count)).print(),
+                    get_mut_expr: |source| frag!(Ok(&mut ~{ source }.count)).print(),
                     source_type: "u32",
                 })];
 
@@ -746,8 +760,8 @@ mod tests {
             let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 1] =
                 [TetheredField::TetheredStruct(TetheredStructField {
                     name: "child",
-                    get_ref_expr: |source| frag!({ source }.child),
-                    get_mut_expr: |source| frag!({ source }.child),
+                    get_ref_expr: |source| frag!(Ok(&{ source }.child)).print(),
+                    get_mut_expr: |source| frag!(Ok(&mut ~{ source }.child)).print(),
                     source_type: "crate::Child",
                     tethered_name: "__tethered_child",
                     with_setter: true,
@@ -768,22 +782,22 @@ mod tests {
             let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 3] = [
                 TetheredField::Cloned(ClonedField {
                     name: "count",
-                    get_ref_expr: |source| frag!({ source }.count),
-                    get_mut_expr: |source| frag!({ source }.count),
+                    get_ref_expr: |source| frag!(Ok(&{ source }.count)).print(),
+                    get_mut_expr: |source| frag!(Ok(&mut ~{ source }.count)).print(),
                     source_type: "u32",
                 }),
                 TetheredField::TetheredStruct(TetheredStructField {
                     name: "child",
-                    get_ref_expr: |source| frag!({ source }.child),
-                    get_mut_expr: |source| frag!({ source }.child),
+                    get_ref_expr: |source| frag!(Ok(&{ source }.child)).print(),
+                    get_mut_expr: |source| frag!(Ok(&mut ~{ source }.child)).print(),
                     source_type: "crate::Child",
                     tethered_name: "__tethered_child",
                     with_setter: true,
                 }),
                 TetheredField::TetheredStruct(TetheredStructField {
                     name: "readonly_child",
-                    get_ref_expr: |source| frag!({ source }.readonly_child),
-                    get_mut_expr: |source| frag!({ source }.readonly_child),
+                    get_ref_expr: |source| frag!(Ok(&{ source }.readonly_child)).print(),
+                    get_mut_expr: |source| frag!(Ok(&mut ~{ source }.readonly_child)).print(),
                     source_type: "crate::ReadonlyChild",
                     tethered_name: "__tethered_readonly_child",
                     with_setter: false,

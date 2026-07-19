@@ -249,12 +249,12 @@ mod __tethering {
 
 	pub struct FieldAccess<Parent, T> {
 		pub parent: Rc<dyn Accessor<Parent>>,
-		pub get: fn(
-			&Parent
-		)-> &T,
-		pub get_mut: fn(
-			&mut Parent
-		)-> &mut T,
+		pub get: for<'a> fn(
+			&'a Parent
+		)-> AccessResult<&'a T>,
+		pub get_mut: for<'a> fn(
+			&'a mut Parent
+		)-> AccessResult<&'a mut T>,
 	}
 
 	impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
@@ -269,7 +269,7 @@ mod __tethering {
 						self.get
 					)(
 						parent
-					)
+					)?
 				)
 			)
 		}
@@ -284,7 +284,7 @@ mod __tethering {
 						self.get_mut
 					)(
 						parent
-					)
+					)?
 				)
 			)
 		}
@@ -348,7 +348,9 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 		self.access(
 			&mut |src| {
 				result.write(
-					src.a.clone()
+					Ok(
+						&src.a
+					)?.clone()
 				);
 				Ok(
 					()
@@ -370,7 +372,9 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 		);
 		self.access_mut(
 			&mut |src| {
-				src.a= value.take().unwrap();
+				*Ok(
+					&mut src.a
+				)? = value.take().unwrap();
 				Ok(
 					()
 				)
@@ -388,7 +392,9 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 		self.access(
 			&mut |src| {
 				result.write(
-					src.c.clone()
+					Ok(
+						&src.c
+					)?.clone()
 				);
 				Ok(
 					()
@@ -410,7 +416,9 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 		);
 		self.access_mut(
 			&mut |src| {
-				src.c= value.take().unwrap();
+				*Ok(
+					&mut src.c
+				)? = value.take().unwrap();
 				Ok(
 					()
 				)
@@ -693,12 +701,12 @@ mod __tethering {
 
 	pub struct FieldAccess<Parent, T> {
 		pub parent: Rc<dyn Accessor<Parent>>,
-		pub get: fn(
-			&Parent
-		)-> &T,
-		pub get_mut: fn(
-			&mut Parent
-		)-> &mut T,
+		pub get: for<'a> fn(
+			&'a Parent
+		)-> AccessResult<&'a T>,
+		pub get_mut: for<'a> fn(
+			&'a mut Parent
+		)-> AccessResult<&'a mut T>,
 	}
 
 	impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T> {
@@ -713,7 +721,7 @@ mod __tethering {
 						self.get
 					)(
 						parent
-					)
+					)?
 				)
 			)
 		}
@@ -728,7 +736,7 @@ mod __tethering {
 						self.get_mut
 					)(
 						parent
-					)
+					)?
 				)
 			)
 		}
@@ -792,7 +800,9 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 		self.access(
 			&mut |src| {
 				result.write(
-					src.a.clone()
+					Ok(
+						&src.a
+					)?.clone()
 				);
 				Ok(
 					()
@@ -814,7 +824,9 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 		);
 		self.access_mut(
 			&mut |src| {
-				src.a= value.take().unwrap();
+				*Ok(
+					&mut src.a
+				)? = value.take().unwrap();
 				Ok(
 					()
 				)
@@ -832,7 +844,9 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 		self.access(
 			&mut |src| {
 				result.write(
-					src.c.clone()
+					Ok(
+						&src.c
+					)?.clone()
 				);
 				Ok(
 					()
@@ -854,7 +868,9 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 		);
 		self.access_mut(
 			&mut |src| {
-				src.c= value.take().unwrap();
+				*Ok(
+					&mut src.c
+				)? = value.take().unwrap();
 				Ok(
 					()
 				)
