@@ -111,3 +111,17 @@ pub enum Shape<'db> {
         has_stripped_fields: bool,
     },
 }
+
+impl<'db> Shape<'db> {
+    /// Iterates over the public lowered fields in their declaration order.
+    pub fn fields(&self) -> impl Iterator<Item = ShapeField<'db>> + Clone + '_ {
+        let (tuple_fields, plain_fields): (&[Option<ShapeField<'db>>], &[ShapeField<'db>]) =
+            match self {
+                Self::Unit => (&[], &[]),
+                Self::Tuple(fields) => (fields, &[]),
+                Self::Plain { fields, .. } => (&[], fields),
+            };
+
+        tuple_fields.iter().flatten().chain(plain_fields).copied()
+    }
+}

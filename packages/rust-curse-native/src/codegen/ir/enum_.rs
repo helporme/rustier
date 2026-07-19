@@ -59,15 +59,15 @@ impl<'db> EnumVariant<'db> {
     pub fn js_tag_name(self, db: &'db dyn crate::codegen::db::Db) -> String {
         to_camel_case(self.name(db))
     }
+}
 
-    /// Returns all fields declared by this variant.
-    #[salsa::tracked(returns(ref))]
-    pub fn fields(self, db: &'db dyn crate::codegen::db::Db) -> Vec<ShapeField<'db>> {
-        match self.shape(db) {
-            Shape::Unit => vec![],
-            Shape::Tuple(fields) => fields.iter().flatten().copied().collect(),
-            Shape::Plain { fields, .. } => fields.clone(),
-        }
+impl<'db> EnumVariant<'db> {
+    /// Iterates over this variant's public lowered fields in declaration order.
+    pub fn fields(
+        self,
+        db: &'db dyn crate::codegen::db::Db,
+    ) -> impl Iterator<Item = ShapeField<'db>> + Clone + 'db {
+        self.shape(db).fields()
     }
 }
 
