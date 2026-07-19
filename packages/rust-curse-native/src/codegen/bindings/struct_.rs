@@ -38,8 +38,12 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
         let name = field.name(db);
         let type_ = field.type_(db);
 
-        let get_ref_expr = move |source: &'static str| frag!(Ok(&{source}.{name}));
-        let get_mut_expr = move |source: &'static str| frag!(Ok(&mut ~{source}.{name}));
+        // todo: maybe move the __tethering::AccessResult::Ok() to the tethering.rs
+        // itself, and use it here and in enums
+        let get_ref_expr =
+            move |source: &'static str| frag!(__tethering::AccessResult::Ok(&{source}.{name}));
+        let get_mut_expr =
+            move |source: &'static str| frag!(__tethering::AccessResult::Ok(&mut ~{source}.{name}));
 
         match type_ {
             Type::Struct(id) | Type::Enum(id) => {
