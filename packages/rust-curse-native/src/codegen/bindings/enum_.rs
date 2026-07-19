@@ -22,8 +22,7 @@ use crate::{
             IrId,
             enum_::{
                 Enum, EnumVariant, enum_binding_name_from_ir_id,
-                enum_field_binding_name_from_ir_id, enum_mangled_name_from_ir_id,
-                enum_tethered_name_from_ir_id,
+                enum_field_binding_name_from_ir_id, enum_tethered_name_from_ir_id,
             },
             shape::{Shape, ShapeField},
             struct_::struct_tethered_name_from_ir_id,
@@ -92,11 +91,11 @@ fn compile_wrapper_struct<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl Fragme
         ApiKind::Wasm { .. } => "#[wasm_bindgen(js_name = ",
         ApiKind::Node => "#[napi(js_name = ",
     };
-    let js_name = frag!(__cursed_enum__{enum_mangled_name_from_ir_id(db, enum_.id(db))});
+    let binding_name = enum_.binding_name(db);
 
     frag!(
-        {header}{doubles(js_name)}{")]"}
-        pub struct ~{enum_.binding_name(db)}~{{
+        {header}{doubles(binding_name)}{")]"}
+        pub struct ~{binding_name}~{{
             src: std::rc::Rc<{enum_.tethered_name(db)}>
         }}
     )
