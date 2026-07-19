@@ -1,59 +1,63 @@
+/// A point stored as the center of a shape.
 #[derive(Clone)]
-pub struct ChildStruct {
-    pub value: i32,
+pub struct Point {
+    pub x: i32,
 }
 
+/// A shape that can be projected from a drawing.
 #[derive(Clone)]
-pub enum BoundaryEnum {
-    First {
-        unique: i32,
-        shared: i32,
-        child: ChildStruct,
+pub enum Shape {
+    Circle {
+        radius: i32,
+        layer: i32,
+        center: Point,
     },
-    Second {
-        shared: i32,
-        child: ChildStruct,
+    Square {
+        side: i32,
+        layer: i32,
+        center: Point,
     },
-    Third,
+    Hidden,
 }
 
-/// Returns the first variant of the boundary enum.
-pub fn make_first_boundary_enum(unique: i32, shared: i32, child: i32) -> BoundaryEnum {
-    BoundaryEnum::First {
-        unique,
-        shared,
-        child: ChildStruct { value: child },
+/// Returns a circle with the supplied radius, layer, and center coordinate.
+pub fn make_circle(radius: i32, layer: i32, center_x: i32) -> Shape {
+    Shape::Circle {
+        radius,
+        layer,
+        center: Point { x: center_x },
     }
 }
 
-/// Mutates a field through a mutable enum reference.
-pub fn set_boundary_enum_unique(value: &mut BoundaryEnum, new_value: i32) {
-    if let BoundaryEnum::First { unique, .. } = value {
-        *unique = new_value;
+/// Mutates the radius of a circle through a mutable shape reference.
+pub fn set_circle_radius(shape: &mut Shape, new_radius: i32) {
+    if let Shape::Circle { radius, .. } = shape {
+        *radius = new_radius;
     }
 }
 
-/// Replaces an enum in place with its second variant.
-pub fn replace_boundary_enum_with_second(value: &mut BoundaryEnum, shared: i32, child: i32) {
-    *value = BoundaryEnum::Second {
-        shared,
-        child: ChildStruct { value: child },
+/// Replaces a shape in place with a square.
+pub fn replace_with_square(shape: &mut Shape, side: i32, layer: i32, center_x: i32) {
+    *shape = Shape::Square {
+        side,
+        layer,
+        center: Point { x: center_x },
     };
 }
 
-/// An enum containing another enum as a variant field.
-pub enum BoundaryEnumContainer {
-    Occupied { value: BoundaryEnum },
+/// A drawing that optionally contains a selected shape.
+pub enum Drawing {
+    Selected { shape: Shape },
     Empty,
 }
 
-/// Returns an enum variant containing the first boundary enum variant.
-pub fn make_boundary_enum_container(unique: i32, shared: i32, child: i32) -> BoundaryEnumContainer {
-    BoundaryEnumContainer::Occupied {
-        value: BoundaryEnum::First {
-            unique,
-            shared,
-            child: ChildStruct { value: child },
+/// Returns a drawing with a selected circle.
+pub fn make_selected_drawing(radius: i32, layer: i32, center_x: i32) -> Drawing {
+    Drawing::Selected {
+        shape: Shape::Circle {
+            radius,
+            layer,
+            center: Point { x: center_x },
         },
     }
 }

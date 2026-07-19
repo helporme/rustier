@@ -1,6 +1,8 @@
+/// A two-dimensional point used by shape variants.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Point(pub i32, pub i32);
 
+/// A data-carrying shape enum with struct, tuple, and unit variants.
 pub enum Shape {
     Circle {
         radius: f64,
@@ -13,19 +15,19 @@ pub enum Shape {
     },
     Point(Point),
     Line(Point, Point),
-    Unit,
+    Hidden,
 }
 
-/// Returns a struct variant with primitive and struct fields.
-pub fn make_circle_shape(radius: f64, x: i32, y: i32) -> Shape {
+/// Returns a circle struct variant.
+pub fn make_circle(radius: f64, x: i32, y: i32) -> Shape {
     Shape::Circle {
         radius,
         center: Point(x, y),
     }
 }
 
-/// Returns a second struct variant that shares a field with the circle variant.
-pub fn make_oval_shape(radius_x: f64, radius_y: f64, x: i32, y: i32) -> Shape {
+/// Returns an oval struct variant.
+pub fn make_oval(radius_x: f64, radius_y: f64, x: i32, y: i32) -> Shape {
     Shape::Oval {
         radius_x,
         radius_y,
@@ -33,17 +35,17 @@ pub fn make_oval_shape(radius_x: f64, radius_y: f64, x: i32, y: i32) -> Shape {
     }
 }
 
-/// Returns a tuple variant containing one struct field.
-pub fn make_point_shape(x: i32, y: i32) -> Shape {
+/// Returns a point tuple variant with one field.
+pub fn make_point(x: i32, y: i32) -> Shape {
     Shape::Point(Point(x, y))
 }
 
-/// Returns a tuple variant containing two fields of the same type.
-pub fn make_line_shape(from_x: i32, from_y: i32, to_x: i32, to_y: i32) -> Shape {
+/// Returns a line tuple variant with two fields.
+pub fn make_line(from_x: i32, from_y: i32, to_x: i32, to_y: i32) -> Shape {
     Shape::Line(Point(from_x, from_y), Point(to_x, to_y))
 }
 
-/// Returns the unit variant of a data-carrying enum.
-pub fn make_unit_shape() -> Shape {
-    Shape::Unit
+/// Returns the hidden unit variant of the data-carrying shape enum.
+pub fn make_hidden() -> Shape {
+    Shape::Hidden
 }

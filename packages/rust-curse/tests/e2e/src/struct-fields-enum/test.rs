@@ -1,67 +1,69 @@
+/// A position projected through a shape variant.
 #[derive(Clone)]
-pub struct ChildStruct {
-    pub value: i32,
+pub struct Point {
+    pub position: i32,
 }
 
+/// A geometric shape with variant-specific fields.
 #[derive(Clone)]
-pub enum BoundaryEnum {
-    First {
-        unique: i32,
-        shared: i32,
-        child: ChildStruct,
+pub enum Shape {
+    Circle {
+        radius: i32,
+        layer: i32,
+        center: Point,
     },
-    Second {
-        shared: i32,
-        child: ChildStruct,
+    Square {
+        layer: i32,
+        center: Point,
     },
-    Third,
+    Hidden,
 }
 
-/// Returns the first variant of the boundary enum.
-pub fn make_first_boundary_enum(unique: i32, shared: i32, child: i32) -> BoundaryEnum {
-    BoundaryEnum::First {
-        unique,
-        shared,
-        child: ChildStruct { value: child },
+/// Returns a circle with the given radius, layer, and center position.
+pub fn circle(radius: i32, layer: i32, center: i32) -> Shape {
+    Shape::Circle {
+        radius,
+        layer,
+        center: Point { position: center },
     }
 }
 
-/// Reads the shared field through a shared enum reference.
-pub fn boundary_enum_shared(value: &BoundaryEnum) -> i32 {
-    match value {
-        BoundaryEnum::First { shared, .. } | BoundaryEnum::Second { shared, .. } => *shared,
-        BoundaryEnum::Third => 0,
+/// Reads a shape layer through a shared enum reference.
+pub fn shape_layer(shape: &Shape) -> i32 {
+    match shape {
+        Shape::Circle { layer, .. } | Shape::Square { layer, .. } => *layer,
+        Shape::Hidden => 0,
     }
 }
 
-/// Mutates a field through a mutable enum reference.
-pub fn set_boundary_enum_unique(value: &mut BoundaryEnum, new_value: i32) {
-    if let BoundaryEnum::First { unique, .. } = value {
-        *unique = new_value;
+/// Sets a circle radius through a mutable enum reference.
+pub fn set_circle_radius(shape: &mut Shape, new_radius: i32) {
+    if let Shape::Circle { radius, .. } = shape {
+        *radius = new_radius;
     }
 }
 
-/// Replaces an enum in place with its second variant.
-pub fn replace_boundary_enum_with_second(value: &mut BoundaryEnum, shared: i32, child: i32) {
-    *value = BoundaryEnum::Second {
-        shared,
-        child: ChildStruct { value: child },
+/// Replaces a shape in place with a square.
+pub fn replace_with_square(shape: &mut Shape, layer: i32, center: i32) {
+    *shape = Shape::Square {
+        layer,
+        center: Point { position: center },
     };
 }
 
-/// A struct containing an enum-valued field.
+/// A canvas containing an enum-valued shape field.
 #[derive(Clone)]
-pub struct BoundaryEnumHolder {
-    pub value: BoundaryEnum,
+pub struct Canvas {
+    pub shape: Shape,
 }
 
-/// Returns a struct containing the first boundary enum variant.
-pub fn make_boundary_enum_holder(unique: i32, shared: i32, child: i32) -> BoundaryEnumHolder {
-    BoundaryEnumHolder {
-        value: BoundaryEnum::First {
-            unique,
-            shared,
-            child: ChildStruct { value: child },
+/// Returns a canvas containing a circle.
+pub fn canvas_with_circle(radius: i32, layer: i32, center: i32) -> Canvas {
+    Canvas {
+        shape: Shape::Circle {
+            radius,
+            layer,
+            center: Point { position: center },
         },
     }
 }

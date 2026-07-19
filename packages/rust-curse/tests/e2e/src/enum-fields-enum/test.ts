@@ -1,55 +1,56 @@
 import { expect, it } from 'vitest'
 import {
-  make_boundary_enum_container,
-  make_first_boundary_enum,
-  replace_boundary_enum_with_second,
-  set_boundary_enum_unique,
+  make_circle,
+  make_selected_drawing,
+  replace_with_square,
+  set_circle_radius,
 } from './test.rs'
 
-it('returns an enum-valued enum variant field as a live projection', () => {
-  const container = make_boundary_enum_container(10, 20, 30)
-  if (container.type !== 'occupied') throw new Error('expected the occupied variant')
-  const projected = container.value
+it('returns Drawing::Selected.shape as a live projection', () => {
+  const drawing = make_selected_drawing(10, 20, 30)
+  if (drawing.type !== 'selected') throw new Error('expected Drawing::Selected')
+  const projected = drawing.shape
 
-  replace_boundary_enum_with_second(projected, 40, 50)
+  replace_with_square(projected, 30, 40, 50)
 
-  expect(container.value.type).toBe('second')
-  if (container.value.type !== 'second') throw new Error('expected the second variant')
-  expect(container.value.shared).toBe(40)
-  expect(container.value.child.value).toBe(50)
+  expect(projected.type).toBe('square')
+  expect(drawing.shape.type).toBe('square')
+  if (drawing.shape.type !== 'square') throw new Error('expected Shape::Square')
+  expect(drawing.shape.layer).toBe(40)
+  expect(drawing.shape.center.x).toBe(50)
 })
 
-it('returns repeated enum-valued enum field getters for the same Rust field', () => {
-  const container = make_boundary_enum_container(10, 20, 30)
-  if (container.type !== 'occupied') throw new Error('expected the occupied variant')
+it('returns repeated Drawing::Selected.shape getters for the same Rust field', () => {
+  const drawing = make_selected_drawing(10, 20, 30)
+  if (drawing.type !== 'selected') throw new Error('expected Drawing::Selected')
 
-  expect(container.value).toBe(container.value)
+  expect(drawing.shape).toBe(drawing.shape)
 })
 
-it('sets an enum-valued enum field by cloning the assigned wrapper', () => {
-  const container = make_boundary_enum_container(1, 2, 3)
-  const replacement = make_first_boundary_enum(10, 20, 30)
-  if (container.type !== 'occupied') throw new Error('expected the occupied variant')
+it('clones a Shape assigned to Drawing::Selected.shape', () => {
+  const drawing = make_selected_drawing(1, 2, 3)
+  const replacement = make_circle(10, 20, 30)
+  if (drawing.type !== 'selected') throw new Error('expected Drawing::Selected')
 
-  container.value = replacement
-  set_boundary_enum_unique(replacement, 99)
+  drawing.shape = replacement
+  set_circle_radius(replacement, 99)
 
-  if (container.value.type !== 'first') throw new Error('expected the first variant')
-  expect(container.value.unique).toBe(10)
-  if (replacement.type !== 'first') throw new Error('expected the first variant')
-  expect(replacement.unique).toBe(99)
+  if (drawing.shape.type !== 'circle') throw new Error('expected Shape::Circle')
+  expect(drawing.shape.radius).toBe(10)
+  if (replacement.type !== 'circle') throw new Error('expected Shape::Circle')
+  expect(replacement.radius).toBe(99)
 })
 
-it('detaches an existing enum projection when the enum field is replaced', () => {
-  const container = make_boundary_enum_container(1, 2, 3)
-  if (container.type !== 'occupied') throw new Error('expected the occupied variant')
-  const oldValue = container.value
+it('detaches the old Shape projection when Drawing::Selected.shape is replaced', () => {
+  const drawing = make_selected_drawing(1, 2, 3)
+  if (drawing.type !== 'selected') throw new Error('expected Drawing::Selected')
+  const oldShape = drawing.shape
 
-  container.value = make_first_boundary_enum(10, 20, 30)
-  set_boundary_enum_unique(oldValue, 99)
+  drawing.shape = make_circle(10, 20, 30)
+  set_circle_radius(oldShape, 99)
 
-  if (oldValue.type !== 'first') throw new Error('expected the first variant')
-  expect(oldValue.unique).toBe(99)
-  if (container.value.type !== 'first') throw new Error('expected the first variant')
-  expect(container.value.unique).toBe(10)
+  if (oldShape.type !== 'circle') throw new Error('expected Shape::Circle')
+  expect(oldShape.radius).toBe(99)
+  if (drawing.shape.type !== 'circle') throw new Error('expected Shape::Circle')
+  expect(drawing.shape.radius).toBe(10)
 })

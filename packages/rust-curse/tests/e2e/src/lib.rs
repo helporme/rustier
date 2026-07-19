@@ -10,6 +10,8 @@ pub mod enum_fields_struct;
 pub mod enum_inactive_fields_throws;
 #[path = "enum-inactive-projection-throws/test.rs"]
 pub mod enum_inactive_projection_throws;
+#[path = "enum-mixed/test.rs"]
+pub mod enum_mixed;
 #[path = "enum-readonly-field-throws/test.rs"]
 pub mod enum_readonly_field_throws;
 #[path = "enum-shared-fields/test.rs"]
@@ -52,3 +54,5 @@ pub mod struct_fields_primitive;
 pub mod struct_fields_string;
 #[path = "struct-fields-struct/test.rs"]
 pub mod struct_fields_struct;
+#[path = "struct-mixed/test.rs"]
+pub mod struct_mixed;

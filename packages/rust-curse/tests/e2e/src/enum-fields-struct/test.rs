@@ -1,58 +1,60 @@
+/// A position projected through a shape variant.
 #[derive(Clone)]
-pub struct ChildStruct {
-    pub value: i32,
+pub struct Point {
+    pub position: i32,
 }
 
+/// A geometric shape with variant-specific fields.
 #[derive(Clone)]
-pub enum BoundaryEnum {
-    First {
-        unique: i32,
-        shared: i32,
-        child: ChildStruct,
+pub enum Shape {
+    Circle {
+        radius: i32,
+        layer: i32,
+        center: Point,
     },
-    Second {
-        shared: i32,
-        child: ChildStruct,
+    Square {
+        layer: i32,
+        center: Point,
     },
-    Third,
+    Hidden,
 }
 
-/// Returns a cloneable child struct.
-pub fn make_child_struct(value: i32) -> ChildStruct {
-    ChildStruct { value }
+/// Returns a point at the given position.
+pub fn point(position: i32) -> Point {
+    Point { position }
 }
 
-/// Returns the first variant of the boundary enum.
-pub fn make_first_boundary_enum(unique: i32, shared: i32, child: i32) -> BoundaryEnum {
-    BoundaryEnum::First {
-        unique,
-        shared,
-        child: ChildStruct { value: child },
+/// Returns a circle with the given radius, layer, and center position.
+pub fn circle(radius: i32, layer: i32, center: i32) -> Shape {
+    Shape::Circle {
+        radius,
+        layer,
+        center: Point { position: center },
     }
 }
 
-/// Reads a child value through a shared reference.
-pub fn child_value(child: &ChildStruct) -> i32 {
-    child.value
+/// Reads a point position through a shared reference.
+pub fn point_position(point: &Point) -> i32 {
+    point.position
 }
 
-/// Mutates a child value through a mutable reference.
-pub fn set_child_value(child: &mut ChildStruct, value: i32) {
-    child.value = value;
+/// Sets a point position through a mutable reference.
+pub fn set_point_position(point: &mut Point, position: i32) {
+    point.position = position;
 }
 
-/// Mutates an owned child clone and returns it.
-pub fn mutate_owned_child(mut child: ChildStruct, new_value: i32) -> ChildStruct {
-    child.value = new_value;
-    child
+/// Moves an owned point clone to a new position and returns it.
+pub fn move_owned_point(mut point: Point, new_position: i32) -> Point {
+    point.position = new_position;
+    point
 }
 
-/// Copies a child value into the active child field of an enum.
-pub fn copy_child_to_boundary_enum_child(source: &ChildStruct, target: &mut BoundaryEnum) {
+/// Copies a point position into the center of the active shape variant.
+pub fn copy_point_to_shape_center(source: &Point, target: &mut Shape) {
     match target {
-        BoundaryEnum::First { child, .. } | BoundaryEnum::Second { child, .. } => {
-            child.value = source.value;
+        Shape::Circle { center, .. } | Shape::Square { center, .. } => {
+            center.position = source.position;
         }
-        BoundaryEnum::Third => {}
+        Shape::Hidden => {}
     }
 }

@@ -1,23 +1,26 @@
+/// A point stored as the center of a visible shape.
 #[derive(Clone)]
-pub struct ChildStruct {
-    pub value: i32,
+pub struct Point {
+    pub x: i32,
 }
 
+/// A shape with fields that are unavailable while it is hidden.
 #[derive(Clone)]
-pub enum BoundaryEnum {
-    First {
-        unique: i32,
-        shared: i32,
-        child: ChildStruct,
+pub enum Shape {
+    Circle {
+        radius: i32,
+        layer: i32,
+        center: Point,
     },
-    Second {
-        shared: i32,
-        child: ChildStruct,
+    Square {
+        side: i32,
+        layer: i32,
+        center: Point,
     },
-    Third,
+    Hidden,
 }
 
-/// Returns the fieldless third variant of the boundary enum.
-pub fn make_third_boundary_enum() -> BoundaryEnum {
-    BoundaryEnum::Third
+/// Returns a hidden shape with no active data fields.
+pub fn make_hidden() -> Shape {
+    Shape::Hidden
 }

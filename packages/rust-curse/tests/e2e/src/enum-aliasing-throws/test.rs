@@ -1,57 +1,57 @@
+/// A point projected from a shape variant.
 #[derive(Clone)]
-pub struct ChildStruct {
-    pub value: i32,
+pub struct Point {
+    pub x: i32,
 }
 
+/// A shape used to verify aliasing checks across enum wrappers and projected fields.
 #[derive(Clone)]
-pub enum BoundaryEnum {
-    First {
-        unique: i32,
-        shared: i32,
-        child: ChildStruct,
+pub enum Shape {
+    Circle {
+        radius: i32,
+        layer: i32,
+        center: Point,
     },
-    Second {
-        shared: i32,
-        child: ChildStruct,
+    Square {
+        side: i32,
+        layer: i32,
+        center: Point,
     },
-    Third,
+    Hidden,
 }
 
-/// Returns the first variant of the boundary enum.
-pub fn make_first_boundary_enum(unique: i32, shared: i32, child: i32) -> BoundaryEnum {
-    BoundaryEnum::First {
-        unique,
-        shared,
-        child: ChildStruct { value: child },
+/// Returns a circle with the supplied radius, layer, and center coordinate.
+pub fn make_circle(radius: i32, layer: i32, center_x: i32) -> Shape {
+    Shape::Circle {
+        radius,
+        layer,
+        center: Point { x: center_x },
     }
 }
 
-/// Mutates two enum values through independent mutable references.
-pub fn set_two_boundary_enums(first: &mut BoundaryEnum, second: &mut BoundaryEnum) {
-    *first = BoundaryEnum::Third;
-    *second = BoundaryEnum::Third;
+/// Mutates two shapes through independent mutable references.
+pub fn hide_two_shapes(first: &mut Shape, second: &mut Shape) {
+    *first = Shape::Hidden;
+    *second = Shape::Hidden;
 }
 
-/// Clones a shared enum value into a separately borrowed mutable enum value.
-pub fn copy_boundary_enum(source: &BoundaryEnum, target: &mut BoundaryEnum) {
+/// Clones a shared shape into a separately borrowed mutable shape.
+pub fn copy_shape(source: &Shape, target: &mut Shape) {
     *target = source.clone();
 }
 
-/// Reads an enum while mutating one of its projected child fields.
-pub fn boundary_enum_and_child_value(
-    parent: &BoundaryEnum,
-    projected_child: &mut ChildStruct,
-) -> i32 {
-    projected_child.value += 1;
+/// Reads a shape while mutating one of its projected centers.
+pub fn read_shape_and_mutate_center(parent: &Shape, projected_center: &mut Point) -> i32 {
+    projected_center.x += 1;
 
     match parent {
-        BoundaryEnum::First { child, .. } | BoundaryEnum::Second { child, .. } => child.value,
-        BoundaryEnum::Third => 0,
+        Shape::Circle { center, .. } | Shape::Square { center, .. } => center.x,
+        Shape::Hidden => 0,
     }
 }
 
-/// Reads one child while mutating another.
-pub fn read_and_mutate_child(read: &ChildStruct, mutate: &mut ChildStruct) -> i32 {
-    mutate.value += 1;
-    read.value
+/// Reads one center while mutating another.
+pub fn read_and_mutate_center(read: &Point, mutate: &mut Point) -> i32 {
+    mutate.x += 1;
+    read.x
 }

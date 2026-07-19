@@ -1,32 +1,32 @@
 import { expect, it } from 'vitest'
 import {
-  boundary_enum_shared,
-  make_boundary_enum_container,
-  make_boundary_enum_holder,
-  make_unit_shape,
+  make_canvas,
+  make_rgb_color,
+  make_selected_drawing,
+  read_shape_layer,
 } from './test.rs'
 
-it('throws when a different enum type is passed to a function', () => {
-  const other = make_unit_shape()
+it('throws when actual Color::Rgb is passed to a function expecting Shape', () => {
+  const color = make_rgb_color(10, 20, 30)
 
-  expect(() => boundary_enum_shared(other as never)).toThrow()
+  expect(() => read_shape_layer(color as never)).toThrow()
 })
 
-it('throws when a different enum type is assigned to a struct field', () => {
-  const holder = make_boundary_enum_holder(10, 20, 30)
-  const other = make_unit_shape()
+it('throws when actual Color::Rgb is assigned to Canvas.shape of expected type Shape', () => {
+  const canvas = make_canvas(10, 20, 30)
+  const color = make_rgb_color(40, 50, 60)
 
   expect(() => {
-    holder.value = other as never
+    canvas.shape = color as never
   }).toThrow()
 })
 
-it('throws when a different enum type is assigned to an enum variant field', () => {
-  const container = make_boundary_enum_container(10, 20, 30)
-  const other = make_unit_shape()
-  if (container.type !== 'occupied') throw new Error('expected the occupied variant')
+it('throws when actual Color::Rgb is assigned to Drawing::Selected.shape of expected type Shape', () => {
+  const drawing = make_selected_drawing(10, 20, 30)
+  const color = make_rgb_color(40, 50, 60)
+  if (drawing.type !== 'selected') throw new Error('expected Drawing::Selected')
 
   expect(() => {
-    container.value = other as never
+    drawing.shape = color as never
   }).toThrow()
 })

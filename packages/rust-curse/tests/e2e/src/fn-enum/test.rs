@@ -1,60 +1,67 @@
+/// Represents a point on the horizontal axis used as a shape center.
 #[derive(Clone)]
-pub struct ChildStruct {
-    pub value: i32,
+pub struct Point {
+    pub x: i32,
 }
 
+/// Represents a geometric shape passed across the JavaScript bridge.
 #[derive(Clone)]
-pub enum BoundaryEnum {
-    First {
-        unique: i32,
-        shared: i32,
-        child: ChildStruct,
+pub enum Shape {
+    Circle {
+        radius: i32,
+        layer: i32,
+        center: Point,
     },
-    Second {
-        shared: i32,
-        child: ChildStruct,
+    Square {
+        layer: i32,
+        center: Point,
     },
-    Third,
+    Hidden,
 }
 
-/// Returns the first variant of the boundary enum.
-pub fn make_first_boundary_enum(unique: i32, shared: i32, child: i32) -> BoundaryEnum {
-    BoundaryEnum::First {
-        unique,
-        shared,
-        child: ChildStruct { value: child },
+/// Constructs a circle with the provided radius, layer, and horizontal center position.
+pub fn circle(radius: i32, layer: i32, center_x: i32) -> Shape {
+    Shape::Circle {
+        radius,
+        layer,
+        center: Point { x: center_x },
     }
 }
 
-/// Reads the shared field through a shared enum reference.
-pub fn boundary_enum_shared(value: &BoundaryEnum) -> i32 {
-    match value {
-        BoundaryEnum::First { shared, .. } | BoundaryEnum::Second { shared, .. } => *shared,
-        BoundaryEnum::Third => 0,
+/// Reads the rendering layer through a shared shape reference.
+pub fn shape_layer(shape: &Shape) -> i32 {
+    match shape {
+        Shape::Circle { layer, .. } | Shape::Square { layer, .. } => *layer,
+        Shape::Hidden => 0,
     }
 }
 
-/// Reports whether two shared enum references point to the same Rust value.
-pub fn same_boundary_enum_refs(first: &BoundaryEnum, second: &BoundaryEnum) -> bool {
+/// Reports whether two shared shape references point to the same Rust value.
+pub fn same_shape_refs(first: &Shape, second: &Shape) -> bool {
     std::ptr::eq(first, second)
 }
 
-/// Mutates a field through a mutable enum reference.
-pub fn set_boundary_enum_unique(value: &mut BoundaryEnum, new_value: i32) {
-    if let BoundaryEnum::First { unique, .. } = value {
-        *unique = new_value;
+/// Sets a circle's radius through a mutable shape reference.
+pub fn set_circle_radius(shape: &mut Shape, radius: i32) {
+    if let Shape::Circle {
+        radius: current_radius,
+        ..
+    } = shape
+    {
+        *current_radius = radius;
     }
 }
 
-/// Mutates an owned enum clone and returns it.
-pub fn mutate_owned_boundary_enum(
-    mut value: BoundaryEnum,
-    new_unique: i32,
-    new_child: i32,
-) -> BoundaryEnum {
-    if let BoundaryEnum::First { unique, child, .. } = &mut value {
-        *unique = new_unique;
-        child.value = new_child;
+/// Resizes and repositions an owned circle clone before returning it.
+pub fn resize_owned_circle(mut shape: Shape, radius: i32, center_x: i32) -> Shape {
+    if let Shape::Circle {
+        radius: current_radius,
+        center,
+        ..
+    } = &mut shape
+    {
+        *current_radius = radius;
+        center.x = center_x;
     }
-    value
+    shape
 }

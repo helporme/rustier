@@ -1,65 +1,65 @@
 import { expect, it } from 'vitest'
 import {
-  boundary_enum_shared,
-  make_boundary_enum_holder,
-  make_first_boundary_enum,
-  replace_boundary_enum_with_second,
-  set_boundary_enum_unique,
+  canvas_with_circle,
+  circle,
+  replace_with_square,
+  set_circle_radius,
+  shape_layer,
 } from './test.rs'
 
-it('returns an enum-valued struct field as a live projection', () => {
-  const holder = make_boundary_enum_holder(10, 20, 30)
-  const projected = holder.value
+it('projects Canvas.shape as a live Shape wrapper', () => {
+  const canvas = canvas_with_circle(10, 20, 30)
+  const projectedShape = canvas.shape
 
-  replace_boundary_enum_with_second(projected, 40, 50)
+  replace_with_square(projectedShape, 40, 50)
 
-  expect(holder.value.type).toBe('second')
-  if (holder.value.type !== 'second') throw new Error('expected the second variant')
-  expect(holder.value.shared).toBe(40)
-  expect(holder.value.child.value).toBe(50)
+  expect(canvas.shape.type).toBe('square')
+  if (canvas.shape.type !== 'square') throw new Error('expected Shape::Square')
+  expect(canvas.shape.layer).toBe(40)
+  expect(canvas.shape.center.position).toBe(50)
 })
 
-it('returns repeated enum-valued struct field getters for the same Rust field', () => {
-  const holder = make_boundary_enum_holder(10, 20, 30)
+it('reuses the wrapper returned by repeated Canvas.shape getters', () => {
+  const canvas = canvas_with_circle(10, 20, 30)
 
-  expect(holder.value).toBe(holder.value)
-  expect(boundary_enum_shared(holder.value)).toBe(20)
+  expect(canvas.shape).toBe(canvas.shape)
+  expect(shape_layer(canvas.shape)).toBe(20)
 })
 
-it('composes projections through enum-valued struct fields', () => {
-  const holder = make_boundary_enum_holder(10, 20, 30)
-  const projected = holder.value
-  if (projected.type !== 'first') throw new Error('expected the first variant')
+it('composes projections through Canvas.shape and Shape::Circle.center', () => {
+  const canvas = canvas_with_circle(10, 20, 30)
+  const projectedShape = canvas.shape
+  if (projectedShape.type !== 'circle') throw new Error('expected Shape::Circle')
 
-  projected.child.value = 40
+  projectedShape.center.position = 40
 
-  const current = holder.value
-  if (current.type !== 'first') throw new Error('expected the first variant')
-  expect(current.child.value).toBe(40)
+  const currentShape = canvas.shape
+  if (currentShape.type !== 'circle') throw new Error('expected Shape::Circle')
+  expect(currentShape.center.position).toBe(40)
 })
 
-it('sets an enum-valued struct field by cloning the assigned wrapper', () => {
-  const holder = make_boundary_enum_holder(1, 2, 3)
-  const replacement = make_first_boundary_enum(10, 20, 30)
+it('sets Canvas.shape by cloning the assigned Shape wrapper', () => {
+  const canvas = canvas_with_circle(1, 2, 3)
+  const replacement = circle(10, 20, 30)
 
-  holder.value = replacement
-  set_boundary_enum_unique(replacement, 99)
+  canvas.shape = replacement
+  set_circle_radius(replacement, 99)
 
-  if (holder.value.type !== 'first') throw new Error('expected the first variant')
-  expect(holder.value.unique).toBe(10)
-  if (replacement.type !== 'first') throw new Error('expected the first variant')
-  expect(replacement.unique).toBe(99)
+  if (canvas.shape.type !== 'circle') throw new Error('expected Shape::Circle')
+  expect(canvas.shape.radius).toBe(10)
+  if (replacement.type !== 'circle') throw new Error('expected Shape::Circle')
+  expect(replacement.radius).toBe(99)
 })
 
-it('detaches an existing enum projection when the struct field is replaced', () => {
-  const holder = make_boundary_enum_holder(1, 2, 3)
-  const oldValue = holder.value
+it('detaches an existing Shape projection when Canvas.shape is replaced', () => {
+  const canvas = canvas_with_circle(1, 2, 3)
+  const oldShape = canvas.shape
 
-  holder.value = make_first_boundary_enum(10, 20, 30)
-  set_boundary_enum_unique(oldValue, 99)
+  canvas.shape = circle(10, 20, 30)
+  set_circle_radius(oldShape, 99)
 
-  if (oldValue.type !== 'first') throw new Error('expected the first variant')
-  expect(oldValue.unique).toBe(99)
-  if (holder.value.type !== 'first') throw new Error('expected the first variant')
-  expect(holder.value.unique).toBe(10)
+  if (oldShape.type !== 'circle') throw new Error('expected Shape::Circle')
+  expect(oldShape.radius).toBe(99)
+  if (canvas.shape.type !== 'circle') throw new Error('expected Shape::Circle')
+  expect(canvas.shape.radius).toBe(10)
 })

@@ -1,38 +1,40 @@
+/// Cloneable content stored by a draft document.
 #[derive(Clone)]
-pub struct ChildStruct {
+pub struct DraftContent {
     pub value: i32,
 }
 
-pub struct NonCloneChildStruct {
+/// Non-cloneable content stored by a published document.
+pub struct PublishedContent {
     pub value: i32,
 }
 
-/// Returns a cloneable child struct.
-pub fn make_child_struct(value: i32) -> ChildStruct {
-    ChildStruct { value }
+/// Returns cloneable content for assignment to a draft document.
+pub fn make_draft_content(value: i32) -> DraftContent {
+    DraftContent { value }
 }
 
-/// Mutates a non-cloneable child through a mutable reference.
-pub fn set_non_clone_child_value(child: &mut NonCloneChildStruct, value: i32) {
-    child.value = value;
+/// Mutates published content through a live projection.
+pub fn set_published_content_value(content: &mut PublishedContent, value: i32) {
+    content.value = value;
 }
 
-/// An enum whose common field is writable on one variant and readonly on another.
-pub enum MixedReadonlyEnum {
-    Writable { item: ChildStruct },
-    Readonly { item: NonCloneChildStruct },
+/// A document whose content is writable in drafts and readonly after publication.
+pub enum Document {
+    Draft { content: DraftContent },
+    Published { content: PublishedContent },
 }
 
-/// Returns the writable variant containing a cloneable child.
-pub fn make_writable_mixed_readonly_enum(value: i32) -> MixedReadonlyEnum {
-    MixedReadonlyEnum::Writable {
-        item: ChildStruct { value },
+/// Returns a draft document with cloneable content.
+pub fn make_draft_document(value: i32) -> Document {
+    Document::Draft {
+        content: DraftContent { value },
     }
 }
 
-/// Returns the readonly variant containing a non-cloneable child.
-pub fn make_readonly_mixed_readonly_enum(value: i32) -> MixedReadonlyEnum {
-    MixedReadonlyEnum::Readonly {
-        item: NonCloneChildStruct { value },
+/// Returns a published document with non-cloneable content.
+pub fn make_published_document(value: i32) -> Document {
+    Document::Published {
+        content: PublishedContent { value },
     }
 }

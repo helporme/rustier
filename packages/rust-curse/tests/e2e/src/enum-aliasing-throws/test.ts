@@ -1,36 +1,36 @@
 import { expect, it } from 'vitest'
 import {
-  boundary_enum_and_child_value,
-  copy_boundary_enum,
-  make_first_boundary_enum,
-  read_and_mutate_child,
-  set_two_boundary_enums,
+  copy_shape,
+  hide_two_shapes,
+  make_circle,
+  read_and_mutate_center,
+  read_shape_and_mutate_center,
 } from './test.rs'
 
-it('throws when the same enum is passed as two mutable references', () => {
-  const value = make_first_boundary_enum(10, 20, 30)
+it('throws when the same Circle is passed as two mutable Shape references', () => {
+  const circle = make_circle(10, 20, 30)
 
-  expect(() => set_two_boundary_enums(value, value)).toThrow()
+  expect(() => hide_two_shapes(circle, circle)).toThrow()
 })
 
-it('throws when the same enum is passed as shared and mutable references', () => {
-  const value = make_first_boundary_enum(10, 20, 30)
+it('throws when the same Circle is passed as shared and mutable Shape references', () => {
+  const circle = make_circle(10, 20, 30)
 
-  expect(() => copy_boundary_enum(value, value)).toThrow()
+  expect(() => copy_shape(circle, circle)).toThrow()
 })
 
-it('throws when an enum reference aliases a mutable projected child', () => {
-  const value = make_first_boundary_enum(10, 20, 30)
-  if (value.type !== 'first') throw new Error('expected the first variant')
+it('throws when Shape::Circle aliases its mutable center projection', () => {
+  const circle = make_circle(10, 20, 30)
+  if (circle.type !== 'circle') throw new Error('expected the Circle variant')
 
-  expect(() => boundary_enum_and_child_value(value, value.child)).toThrow()
+  expect(() => read_shape_and_mutate_center(circle, circle.center)).toThrow()
 })
 
-it('throws when repeated enum field getters alias shared and mutable references', () => {
-  const value = make_first_boundary_enum(10, 20, 30)
-  if (value.type !== 'first') throw new Error('expected the first variant')
-  const read = value.child
-  const mutate = value.child
+it('throws when repeated Circle.center getters alias shared and mutable references', () => {
+  const circle = make_circle(10, 20, 30)
+  if (circle.type !== 'circle') throw new Error('expected the Circle variant')
+  const read = circle.center
+  const mutate = circle.center
 
-  expect(() => read_and_mutate_child(read, mutate)).toThrow()
+  expect(() => read_and_mutate_center(read, mutate)).toThrow()
 })

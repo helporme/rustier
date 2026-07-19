@@ -1,40 +1,44 @@
+/// A point projected from a shape variant.
 #[derive(Clone)]
-pub struct ChildStruct {
-    pub value: i32,
+pub struct Point {
+    pub x: i32,
 }
 
+/// A shape whose active variant can be replaced through a live wrapper.
 #[derive(Clone)]
-pub enum BoundaryEnum {
-    First {
-        unique: i32,
-        shared: i32,
-        child: ChildStruct,
+pub enum Shape {
+    Circle {
+        radius: i32,
+        layer: i32,
+        center: Point,
     },
-    Second {
-        shared: i32,
-        child: ChildStruct,
+    Square {
+        side: i32,
+        layer: i32,
+        center: Point,
     },
-    Third,
+    Hidden,
 }
 
-/// Returns the first variant of the boundary enum.
-pub fn make_first_boundary_enum(unique: i32, shared: i32, child: i32) -> BoundaryEnum {
-    BoundaryEnum::First {
-        unique,
-        shared,
-        child: ChildStruct { value: child },
+/// Returns a circle with the supplied radius, layer, and center coordinate.
+pub fn make_circle(radius: i32, layer: i32, center_x: i32) -> Shape {
+    Shape::Circle {
+        radius,
+        layer,
+        center: Point { x: center_x },
     }
 }
 
-/// Replaces an enum in place with its second variant.
-pub fn replace_boundary_enum_with_second(value: &mut BoundaryEnum, shared: i32, child: i32) {
-    *value = BoundaryEnum::Second {
-        shared,
-        child: ChildStruct { value: child },
+/// Replaces a shape in place with a square.
+pub fn replace_with_square(shape: &mut Shape, side: i32, layer: i32, center_x: i32) {
+    *shape = Shape::Square {
+        side,
+        layer,
+        center: Point { x: center_x },
     };
 }
 
-/// Mutates a child value through a mutable reference.
-pub fn set_child_value(child: &mut ChildStruct, value: i32) {
-    child.value = value;
+/// Mutates the horizontal coordinate of a point through a mutable reference.
+pub fn set_point_x(point: &mut Point, x: i32) {
+    point.x = x;
 }

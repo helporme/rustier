@@ -1,69 +1,73 @@
+/// A point stored as the center of a shape.
 #[derive(Clone)]
-pub struct ChildStruct {
-    pub value: i32,
+pub struct Point {
+    pub x: i32,
 }
 
+/// The enum type expected by functions and fields in this fixture.
 #[derive(Clone)]
-pub enum BoundaryEnum {
-    First {
-        unique: i32,
-        shared: i32,
-        child: ChildStruct,
+pub enum Shape {
+    Circle {
+        radius: i32,
+        layer: i32,
+        center: Point,
     },
-    Second {
-        shared: i32,
-        child: ChildStruct,
+    Square {
+        side: i32,
+        layer: i32,
+        center: Point,
     },
-    Third,
+    Hidden,
 }
 
-/// Reads the shared field through a shared enum reference.
-pub fn boundary_enum_shared(value: &BoundaryEnum) -> i32 {
-    match value {
-        BoundaryEnum::First { shared, .. } | BoundaryEnum::Second { shared, .. } => *shared,
-        BoundaryEnum::Third => 0,
+/// Reads the layer shared by visible shape variants.
+pub fn read_shape_layer(shape: &Shape) -> i32 {
+    match shape {
+        Shape::Circle { layer, .. } | Shape::Square { layer, .. } => *layer,
+        Shape::Hidden => 0,
     }
 }
 
-/// A struct containing an enum-valued field.
+/// A canvas containing a shape-valued struct field.
 #[derive(Clone)]
-pub struct BoundaryEnumHolder {
-    pub value: BoundaryEnum,
+pub struct Canvas {
+    pub shape: Shape,
 }
 
-/// Returns a struct containing the first boundary enum variant.
-pub fn make_boundary_enum_holder(unique: i32, shared: i32, child: i32) -> BoundaryEnumHolder {
-    BoundaryEnumHolder {
-        value: BoundaryEnum::First {
-            unique,
-            shared,
-            child: ChildStruct { value: child },
+/// Returns a canvas containing a circle.
+pub fn make_canvas(radius: i32, layer: i32, center_x: i32) -> Canvas {
+    Canvas {
+        shape: Shape::Circle {
+            radius,
+            layer,
+            center: Point { x: center_x },
         },
     }
 }
 
-/// An enum containing another enum as a variant field.
-pub enum BoundaryEnumContainer {
-    Occupied { value: BoundaryEnum },
+/// A drawing containing a shape-valued enum field.
+pub enum Drawing {
+    Selected { shape: Shape },
     Empty,
 }
 
-/// Returns an enum variant containing the first boundary enum variant.
-pub fn make_boundary_enum_container(unique: i32, shared: i32, child: i32) -> BoundaryEnumContainer {
-    BoundaryEnumContainer::Occupied {
-        value: BoundaryEnum::First {
-            unique,
-            shared,
-            child: ChildStruct { value: child },
+/// Returns a drawing with a selected circle.
+pub fn make_selected_drawing(radius: i32, layer: i32, center_x: i32) -> Drawing {
+    Drawing::Selected {
+        shape: Shape::Circle {
+            radius,
+            layer,
+            center: Point { x: center_x },
         },
     }
 }
 
-pub enum Shape {
-    Unit,
+/// A non-C-like enum used as the actual wrong enum type.
+pub enum Color {
+    Rgb { red: u8, green: u8, blue: u8 },
 }
 
-/// Returns the unit variant of another enum type.
-pub fn make_unit_shape() -> Shape {
-    Shape::Unit
+/// Returns an RGB color with named component fields.
+pub fn make_rgb_color(red: u8, green: u8, blue: u8) -> Color {
+    Color::Rgb { red, green, blue }
 }

@@ -1,24 +1,24 @@
 import { expect, it } from 'vitest'
-import { make_third_boundary_enum } from './test.rs'
+import { make_hidden } from './test.rs'
 
-it('throws when reading or writing a unique field on an inactive variant', () => {
-  const value = make_third_boundary_enum()
+it('throws when reading or writing Circle.radius while Shape is Hidden', () => {
+  const shape = make_hidden()
 
-  expect(() => Reflect.get(value, 'unique')).toThrow(
+  expect(() => Reflect.get(shape, 'radius')).toThrow(
     'cannot access inactive enum variant field',
   )
-  expect(() => Reflect.set(value, 'unique', 10)).toThrow(
+  expect(() => Reflect.set(shape, 'radius', 10)).toThrow(
     'cannot access inactive enum variant field',
   )
 })
 
-it('throws when reading or writing a grouped field unavailable on the active variant', () => {
-  const value = make_third_boundary_enum()
+it('throws when reading or writing Shape.layer while Shape is Hidden', () => {
+  const shape = make_hidden()
 
-  expect(() => Reflect.get(value, 'shared')).toThrow(
-    'Field shared is not available on the active BoundaryEnum variant',
+  expect(() => Reflect.get(shape, 'layer')).toThrow(
+    'Field layer is not available on the active Shape variant',
   )
-  expect(() => Reflect.set(value, 'shared', 10)).toThrow(
-    'Field shared is not available on the active BoundaryEnum variant',
+  expect(() => Reflect.set(shape, 'layer', 10)).toThrow(
+    'Field layer is not available on the active Shape variant',
   )
 })

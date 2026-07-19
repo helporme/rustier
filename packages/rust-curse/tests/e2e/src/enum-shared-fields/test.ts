@@ -1,32 +1,32 @@
 import { expect, it } from 'vitest'
 import {
-  make_first_boundary_enum,
-  make_number_shared_field_enum,
-  make_second_boundary_enum,
-  make_text_shared_field_enum,
+  make_circle,
+  make_number_value,
+  make_square,
+  make_text_value,
 } from './test.rs'
 
-it('reads and writes fields with the same name and type on different variants', () => {
-  const first = make_first_boundary_enum(10, 20, 30)
-  const second = make_second_boundary_enum(40, 50)
-  if (first.type !== 'first') throw new Error('expected the first variant')
-  if (second.type !== 'second') throw new Error('expected the second variant')
+it('reads and writes Shape.layer on Circle and Square', () => {
+  const circle = make_circle(10, 20, 30)
+  const square = make_square(50, 40, 60)
+  if (circle.type !== 'circle') throw new Error('expected Shape::Circle')
+  if (square.type !== 'square') throw new Error('expected Shape::Square')
 
-  expect(first.shared).toBe(20)
-  expect(second.shared).toBe(40)
+  expect(circle.layer).toBe(20)
+  expect(square.layer).toBe(40)
 
-  first.shared = 60
-  second.shared = 70
+  circle.layer = 60
+  square.layer = 70
 
-  expect(first.shared).toBe(60)
-  expect(second.shared).toBe(70)
+  expect(circle.layer).toBe(60)
+  expect(square.layer).toBe(70)
 })
 
-it('reads and writes fields with the same name and different types on different variants', () => {
-  const number = make_number_shared_field_enum(10)
-  const text = make_text_shared_field_enum('initial 🦀')
-  if (number.type !== 'number') throw new Error('expected the number variant')
-  if (text.type !== 'text') throw new Error('expected the text variant')
+it('reads and writes FormValue.value as i32 for Number and String for Text', () => {
+  const number = make_number_value(10)
+  const text = make_text_value('initial 🦀')
+  if (number.type !== 'number') throw new Error('expected FormValue::Number')
+  if (text.type !== 'text') throw new Error('expected FormValue::Text')
 
   expect(number.value).toBe(10)
   expect(text.value).toBe('initial 🦀')
