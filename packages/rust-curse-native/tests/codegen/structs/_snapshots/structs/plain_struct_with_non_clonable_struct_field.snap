@@ -348,12 +348,12 @@ impl __tethered_struct__rustdoc_0test_0crate_Field {
 
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_Field")]pub struct __cursed_struct__rustdoc_0test_0crate_Field {
+#[napi(js_name = "__binding_struct__rustdoc_0test_0crate_Field")]pub struct __binding_struct__rustdoc_0test_0crate_Field {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Field>
 }
 
 #[napi]
-impl __cursed_struct__rustdoc_0test_0crate_Field {
+impl __binding_struct__rustdoc_0test_0crate_Field {
 
 }
 
@@ -471,18 +471,18 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	}
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
+#[napi(js_name = "__binding_struct__rustdoc_0test_0crate_Parent")]pub struct __binding_struct__rustdoc_0test_0crate_Parent {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Parent>
 }
 
 #[napi]
-impl __cursed_struct__rustdoc_0test_0crate_Parent {
+impl __binding_struct__rustdoc_0test_0crate_Parent {
 	#[napi(getter, js_name = "field")]
 	pub fn __getter__field(
 		&self
-	) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_Field> {
+	) -> napi::Result<__binding_struct__rustdoc_0test_0crate_Field> {
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_Field {
+			__binding_struct__rustdoc_0test_0crate_Field {
 				src:self.src.get_field()?
 			}
 		)
@@ -773,12 +773,12 @@ impl __tethered_struct__rustdoc_0test_0crate_Field {
 
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_Field")]pub struct __cursed_struct__rustdoc_0test_0crate_Field {
+#[wasm_bindgen(js_name = "__binding_struct__rustdoc_0test_0crate_Field")]pub struct __binding_struct__rustdoc_0test_0crate_Field {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Field>
 }
 
 #[wasm_bindgen]
-impl __cursed_struct__rustdoc_0test_0crate_Field {
+impl __binding_struct__rustdoc_0test_0crate_Field {
 
 }
 
@@ -896,18 +896,18 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	}
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
+#[wasm_bindgen(js_name = "__binding_struct__rustdoc_0test_0crate_Parent")]pub struct __binding_struct__rustdoc_0test_0crate_Parent {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Parent>
 }
 
 #[wasm_bindgen]
-impl __cursed_struct__rustdoc_0test_0crate_Parent {
+impl __binding_struct__rustdoc_0test_0crate_Parent {
 	#[wasm_bindgen(getter, js_name = "field")]
 	pub fn __getter__field(
 		&self
-	) -> Result<__cursed_struct__rustdoc_0test_0crate_Field, JsValue> {
+	) -> Result<__binding_struct__rustdoc_0test_0crate_Field, JsValue> {
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_Field {
+			__binding_struct__rustdoc_0test_0crate_Field {
 				src:self.src.get_field()?
 			}
 		)

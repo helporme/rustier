@@ -137,7 +137,7 @@ pub fn enum_field_binding_name_from_ir_id<'db>(
 /// Returns the Rust and JavaScript binding name for an enum IR ID.
 #[salsa::tracked(returns(ref))]
 pub fn enum_binding_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
-    format!("__cursed_enum__{}", enum_mangled_name_from_ir_id(db, id))
+    format!("__binding_enum__{}", enum_mangled_name_from_ir_id(db, id))
 }
 
 /// Returns the tethered backing struct name for an enum IR ID.

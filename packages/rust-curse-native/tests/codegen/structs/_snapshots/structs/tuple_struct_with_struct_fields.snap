@@ -418,12 +418,12 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainField {
 	}
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainField")]pub struct __cursed_struct__rustdoc_0test_0crate_PlainField {
+#[napi(js_name = "__binding_struct__rustdoc_0test_0crate_PlainField")]pub struct __binding_struct__rustdoc_0test_0crate_PlainField {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_PlainField>
 }
 
 #[napi]
-impl __cursed_struct__rustdoc_0test_0crate_PlainField {
+impl __binding_struct__rustdoc_0test_0crate_PlainField {
 	#[napi(getter, js_name = "value")]
 	pub fn __getter__value(
 		&self
@@ -556,12 +556,12 @@ impl __tethered_struct__rustdoc_0test_0crate_TupleField {
 	}
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleField")]pub struct __cursed_struct__rustdoc_0test_0crate_TupleField {
+#[napi(js_name = "__binding_struct__rustdoc_0test_0crate_TupleField")]pub struct __binding_struct__rustdoc_0test_0crate_TupleField {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_TupleField>
 }
 
 #[napi]
-impl __cursed_struct__rustdoc_0test_0crate_TupleField {
+impl __binding_struct__rustdoc_0test_0crate_TupleField {
 	#[napi(getter, js_name = "0")]
 	pub fn __getter__0(
 		&self
@@ -882,18 +882,18 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	}
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
+#[napi(js_name = "__binding_struct__rustdoc_0test_0crate_Parent")]pub struct __binding_struct__rustdoc_0test_0crate_Parent {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Parent>
 }
 
 #[napi]
-impl __cursed_struct__rustdoc_0test_0crate_Parent {
+impl __binding_struct__rustdoc_0test_0crate_Parent {
 	#[napi(getter, js_name = "0")]
 	pub fn __getter__0(
 		&self
-	) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_PlainField> {
+	) -> napi::Result<__binding_struct__rustdoc_0test_0crate_PlainField> {
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_PlainField {
+			__binding_struct__rustdoc_0test_0crate_PlainField {
 				src:self.src.get_0()?
 			}
 		)
@@ -901,7 +901,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 
 	#[napi(setter, js_name = "0")]
 	pub fn __setter__0(
-		&self, value: &__cursed_struct__rustdoc_0test_0crate_PlainField
+		&self, value: &__binding_struct__rustdoc_0test_0crate_PlainField
 	) -> napi::Result<()> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();value.src.access(
@@ -930,9 +930,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	#[napi(getter, js_name = "1")]
 	pub fn __getter__1(
 		&self
-	) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_TupleField> {
+	) -> napi::Result<__binding_struct__rustdoc_0test_0crate_TupleField> {
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_TupleField {
+			__binding_struct__rustdoc_0test_0crate_TupleField {
 				src:self.src.get_1()?
 			}
 		)
@@ -940,7 +940,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 
 	#[napi(setter, js_name = "1")]
 	pub fn __setter__1(
-		&self, value: &__cursed_struct__rustdoc_0test_0crate_TupleField
+		&self, value: &__binding_struct__rustdoc_0test_0crate_TupleField
 	) -> napi::Result<()> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();value.src.access(
@@ -1294,12 +1294,12 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainField {
 	}
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainField")]pub struct __cursed_struct__rustdoc_0test_0crate_PlainField {
+#[wasm_bindgen(js_name = "__binding_struct__rustdoc_0test_0crate_PlainField")]pub struct __binding_struct__rustdoc_0test_0crate_PlainField {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_PlainField>
 }
 
 #[wasm_bindgen]
-impl __cursed_struct__rustdoc_0test_0crate_PlainField {
+impl __binding_struct__rustdoc_0test_0crate_PlainField {
 	#[wasm_bindgen(getter, js_name = "value")]
 	pub fn __getter__value(
 		&self
@@ -1432,12 +1432,12 @@ impl __tethered_struct__rustdoc_0test_0crate_TupleField {
 	}
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleField")]pub struct __cursed_struct__rustdoc_0test_0crate_TupleField {
+#[wasm_bindgen(js_name = "__binding_struct__rustdoc_0test_0crate_TupleField")]pub struct __binding_struct__rustdoc_0test_0crate_TupleField {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_TupleField>
 }
 
 #[wasm_bindgen]
-impl __cursed_struct__rustdoc_0test_0crate_TupleField {
+impl __binding_struct__rustdoc_0test_0crate_TupleField {
 	#[wasm_bindgen(getter, js_name = "0")]
 	pub fn __getter__0(
 		&self
@@ -1758,18 +1758,18 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	}
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
+#[wasm_bindgen(js_name = "__binding_struct__rustdoc_0test_0crate_Parent")]pub struct __binding_struct__rustdoc_0test_0crate_Parent {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Parent>
 }
 
 #[wasm_bindgen]
-impl __cursed_struct__rustdoc_0test_0crate_Parent {
+impl __binding_struct__rustdoc_0test_0crate_Parent {
 	#[wasm_bindgen(getter, js_name = "0")]
 	pub fn __getter__0(
 		&self
-	) -> Result<__cursed_struct__rustdoc_0test_0crate_PlainField, JsValue> {
+	) -> Result<__binding_struct__rustdoc_0test_0crate_PlainField, JsValue> {
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_PlainField {
+			__binding_struct__rustdoc_0test_0crate_PlainField {
 				src:self.src.get_0()?
 			}
 		)
@@ -1777,7 +1777,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 
 	#[wasm_bindgen(setter, js_name = "0")]
 	pub fn __setter__0(
-		&self, value: &__cursed_struct__rustdoc_0test_0crate_PlainField
+		&self, value: &__binding_struct__rustdoc_0test_0crate_PlainField
 	) -> Result<(), JsValue> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();value.src.access(
@@ -1806,9 +1806,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	#[wasm_bindgen(getter, js_name = "1")]
 	pub fn __getter__1(
 		&self
-	) -> Result<__cursed_struct__rustdoc_0test_0crate_TupleField, JsValue> {
+	) -> Result<__binding_struct__rustdoc_0test_0crate_TupleField, JsValue> {
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_TupleField {
+			__binding_struct__rustdoc_0test_0crate_TupleField {
 				src:self.src.get_1()?
 			}
 		)
@@ -1816,7 +1816,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 
 	#[wasm_bindgen(setter, js_name = "1")]
 	pub fn __setter__1(
-		&self, value: &__cursed_struct__rustdoc_0test_0crate_TupleField
+		&self, value: &__binding_struct__rustdoc_0test_0crate_TupleField
 	) -> Result<(), JsValue> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();value.src.access(

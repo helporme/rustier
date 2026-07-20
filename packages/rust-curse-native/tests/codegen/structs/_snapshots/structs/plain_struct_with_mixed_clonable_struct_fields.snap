@@ -366,12 +366,12 @@ impl __tethered_struct__rustdoc_0test_0crate_ClonableField {
 
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_ClonableField")]pub struct __cursed_struct__rustdoc_0test_0crate_ClonableField {
+#[napi(js_name = "__binding_struct__rustdoc_0test_0crate_ClonableField")]pub struct __binding_struct__rustdoc_0test_0crate_ClonableField {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_ClonableField>
 }
 
 #[napi]
-impl __cursed_struct__rustdoc_0test_0crate_ClonableField {
+impl __binding_struct__rustdoc_0test_0crate_ClonableField {
 
 }
 
@@ -426,12 +426,12 @@ impl __tethered_struct__rustdoc_0test_0crate_NonClonableField {
 
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_NonClonableField")]pub struct __cursed_struct__rustdoc_0test_0crate_NonClonableField {
+#[napi(js_name = "__binding_struct__rustdoc_0test_0crate_NonClonableField")]pub struct __binding_struct__rustdoc_0test_0crate_NonClonableField {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_NonClonableField>
 }
 
 #[napi]
-impl __cursed_struct__rustdoc_0test_0crate_NonClonableField {
+impl __binding_struct__rustdoc_0test_0crate_NonClonableField {
 
 }
 
@@ -665,18 +665,18 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	}
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
+#[napi(js_name = "__binding_struct__rustdoc_0test_0crate_Parent")]pub struct __binding_struct__rustdoc_0test_0crate_Parent {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Parent>
 }
 
 #[napi]
-impl __cursed_struct__rustdoc_0test_0crate_Parent {
+impl __binding_struct__rustdoc_0test_0crate_Parent {
 	#[napi(getter, js_name = "clonable")]
 	pub fn __getter__clonable(
 		&self
-	) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_ClonableField> {
+	) -> napi::Result<__binding_struct__rustdoc_0test_0crate_ClonableField> {
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_ClonableField {
+			__binding_struct__rustdoc_0test_0crate_ClonableField {
 				src:self.src.get_clonable()?
 			}
 		)
@@ -684,7 +684,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 
 	#[napi(setter, js_name = "clonable")]
 	pub fn __setter__clonable(
-		&self, value: &__cursed_struct__rustdoc_0test_0crate_ClonableField
+		&self, value: &__binding_struct__rustdoc_0test_0crate_ClonableField
 	) -> napi::Result<()> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();value.src.access(
@@ -713,9 +713,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	#[napi(getter, js_name = "non_clonable")]
 	pub fn __getter__non_clonable(
 		&self
-	) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_NonClonableField> {
+	) -> napi::Result<__binding_struct__rustdoc_0test_0crate_NonClonableField> {
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_NonClonableField {
+			__binding_struct__rustdoc_0test_0crate_NonClonableField {
 				src:self.src.get_non_clonable()?
 			}
 		)
@@ -1006,12 +1006,12 @@ impl __tethered_struct__rustdoc_0test_0crate_ClonableField {
 
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_ClonableField")]pub struct __cursed_struct__rustdoc_0test_0crate_ClonableField {
+#[wasm_bindgen(js_name = "__binding_struct__rustdoc_0test_0crate_ClonableField")]pub struct __binding_struct__rustdoc_0test_0crate_ClonableField {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_ClonableField>
 }
 
 #[wasm_bindgen]
-impl __cursed_struct__rustdoc_0test_0crate_ClonableField {
+impl __binding_struct__rustdoc_0test_0crate_ClonableField {
 
 }
 
@@ -1066,12 +1066,12 @@ impl __tethered_struct__rustdoc_0test_0crate_NonClonableField {
 
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_NonClonableField")]pub struct __cursed_struct__rustdoc_0test_0crate_NonClonableField {
+#[wasm_bindgen(js_name = "__binding_struct__rustdoc_0test_0crate_NonClonableField")]pub struct __binding_struct__rustdoc_0test_0crate_NonClonableField {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_NonClonableField>
 }
 
 #[wasm_bindgen]
-impl __cursed_struct__rustdoc_0test_0crate_NonClonableField {
+impl __binding_struct__rustdoc_0test_0crate_NonClonableField {
 
 }
 
@@ -1305,18 +1305,18 @@ impl __tethered_struct__rustdoc_0test_0crate_Parent {
 	}
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_Parent")]pub struct __cursed_struct__rustdoc_0test_0crate_Parent {
+#[wasm_bindgen(js_name = "__binding_struct__rustdoc_0test_0crate_Parent")]pub struct __binding_struct__rustdoc_0test_0crate_Parent {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Parent>
 }
 
 #[wasm_bindgen]
-impl __cursed_struct__rustdoc_0test_0crate_Parent {
+impl __binding_struct__rustdoc_0test_0crate_Parent {
 	#[wasm_bindgen(getter, js_name = "clonable")]
 	pub fn __getter__clonable(
 		&self
-	) -> Result<__cursed_struct__rustdoc_0test_0crate_ClonableField, JsValue> {
+	) -> Result<__binding_struct__rustdoc_0test_0crate_ClonableField, JsValue> {
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_ClonableField {
+			__binding_struct__rustdoc_0test_0crate_ClonableField {
 				src:self.src.get_clonable()?
 			}
 		)
@@ -1324,7 +1324,7 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 
 	#[wasm_bindgen(setter, js_name = "clonable")]
 	pub fn __setter__clonable(
-		&self, value: &__cursed_struct__rustdoc_0test_0crate_ClonableField
+		&self, value: &__binding_struct__rustdoc_0test_0crate_ClonableField
 	) -> Result<(), JsValue> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();value.src.access(
@@ -1353,9 +1353,9 @@ impl __cursed_struct__rustdoc_0test_0crate_Parent {
 	#[wasm_bindgen(getter, js_name = "non_clonable")]
 	pub fn __getter__non_clonable(
 		&self
-	) -> Result<__cursed_struct__rustdoc_0test_0crate_NonClonableField, JsValue> {
+	) -> Result<__binding_struct__rustdoc_0test_0crate_NonClonableField, JsValue> {
 		Ok(
-			__cursed_struct__rustdoc_0test_0crate_NonClonableField {
+			__binding_struct__rustdoc_0test_0crate_NonClonableField {
 				src:self.src.get_non_clonable()?
 			}
 		)

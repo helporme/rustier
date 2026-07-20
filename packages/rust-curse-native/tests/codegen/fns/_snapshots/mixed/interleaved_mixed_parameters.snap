@@ -455,19 +455,19 @@ fn __cast_bool(
 	}
 }
 
-#[napi(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
-pub fn __cursed_fn__rustdoc_0test_0crate_foo(
+#[napi(js_name = "__binding_fn__rustdoc_0test_0crate_foo")]
+pub fn __binding_fn__rustdoc_0test_0crate_foo(
 	__p__number: Unknown<'_>,
-	__p__moved: &__cursed_struct__rustdoc_0test_0crate_PlainStruct,
+	__p__moved: &__binding_struct__rustdoc_0test_0crate_PlainStruct,
 	__p__text: Unknown<'_>,
-	__p__borrowed: &__cursed_struct__rustdoc_0test_0crate_TupleStruct,
+	__p__borrowed: &__binding_struct__rustdoc_0test_0crate_TupleStruct,
 	__p__borrowed_text: Unknown<'_>,
 	__p__flag: Unknown<'_>,
 	__p__mutable_text: Unknown<'_>,
-	__p__mutable: &__cursed_struct__rustdoc_0test_0crate_PlainStruct
-) -> napi::Result<__cursed_struct__rustdoc_0test_0crate_TupleStruct> {
+	__p__mutable: &__binding_struct__rustdoc_0test_0crate_PlainStruct
+) -> napi::Result<__binding_struct__rustdoc_0test_0crate_TupleStruct> {
 	Ok(
-		__cursed_struct__rustdoc_0test_0crate_TupleStruct {
+		__binding_struct__rustdoc_0test_0crate_TupleStruct {
 			src:std::rc::Rc::new(
 				__tethered_struct__rustdoc_0test_0crate_TupleStruct::new_owned(
 					{
@@ -659,12 +659,12 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+#[napi(js_name = "__binding_struct__rustdoc_0test_0crate_PlainStruct")]pub struct __binding_struct__rustdoc_0test_0crate_PlainStruct {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_PlainStruct>
 }
 
 #[napi]
-impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+impl __binding_struct__rustdoc_0test_0crate_PlainStruct {
 	#[napi(getter, js_name = "value")]
 	pub fn __getter__value(
 		&self
@@ -797,12 +797,12 @@ impl __tethered_struct__rustdoc_0test_0crate_TupleStruct {
 	}
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
+#[napi(js_name = "__binding_struct__rustdoc_0test_0crate_TupleStruct")]pub struct __binding_struct__rustdoc_0test_0crate_TupleStruct {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_TupleStruct>
 }
 
 #[napi]
-impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
+impl __binding_struct__rustdoc_0test_0crate_TupleStruct {
 	#[napi(getter, js_name = "0")]
 	pub fn __getter__0(
 		&self
@@ -1121,19 +1121,19 @@ fn __cast_bool(
 	)
 }
 
-#[wasm_bindgen(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
-pub fn __cursed_fn__rustdoc_0test_0crate_foo(
+#[wasm_bindgen(js_name = "__binding_fn__rustdoc_0test_0crate_foo")]
+pub fn __binding_fn__rustdoc_0test_0crate_foo(
 	__p__number: JsValue,
-	__p__moved: &__cursed_struct__rustdoc_0test_0crate_PlainStruct,
+	__p__moved: &__binding_struct__rustdoc_0test_0crate_PlainStruct,
 	__p__text: JsValue,
-	__p__borrowed: &__cursed_struct__rustdoc_0test_0crate_TupleStruct,
+	__p__borrowed: &__binding_struct__rustdoc_0test_0crate_TupleStruct,
 	__p__borrowed_text: JsValue,
 	__p__flag: JsValue,
 	__p__mutable_text: JsValue,
-	__p__mutable: &__cursed_struct__rustdoc_0test_0crate_PlainStruct
-) -> Result<__cursed_struct__rustdoc_0test_0crate_TupleStruct, JsValue> {
+	__p__mutable: &__binding_struct__rustdoc_0test_0crate_PlainStruct
+) -> Result<__binding_struct__rustdoc_0test_0crate_TupleStruct, JsValue> {
 	Ok(
-		__cursed_struct__rustdoc_0test_0crate_TupleStruct {
+		__binding_struct__rustdoc_0test_0crate_TupleStruct {
 			src:std::rc::Rc::new(
 				__tethered_struct__rustdoc_0test_0crate_TupleStruct::new_owned(
 					{
@@ -1325,12 +1325,12 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+#[wasm_bindgen(js_name = "__binding_struct__rustdoc_0test_0crate_PlainStruct")]pub struct __binding_struct__rustdoc_0test_0crate_PlainStruct {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_PlainStruct>
 }
 
 #[wasm_bindgen]
-impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+impl __binding_struct__rustdoc_0test_0crate_PlainStruct {
 	#[wasm_bindgen(getter, js_name = "value")]
 	pub fn __getter__value(
 		&self
@@ -1463,12 +1463,12 @@ impl __tethered_struct__rustdoc_0test_0crate_TupleStruct {
 	}
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_TupleStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_TupleStruct {
+#[wasm_bindgen(js_name = "__binding_struct__rustdoc_0test_0crate_TupleStruct")]pub struct __binding_struct__rustdoc_0test_0crate_TupleStruct {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_TupleStruct>
 }
 
 #[wasm_bindgen]
-impl __cursed_struct__rustdoc_0test_0crate_TupleStruct {
+impl __binding_struct__rustdoc_0test_0crate_TupleStruct {
 	#[wasm_bindgen(getter, js_name = "0")]
 	pub fn __getter__0(
 		&self

@@ -325,12 +325,12 @@ impl __tethered_struct__rustdoc_0test_0crate_UnitStruct {
 
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_UnitStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_UnitStruct {
+#[wasm_bindgen(js_name = "__binding_struct__rustdoc_0test_0crate_UnitStruct")]pub struct __binding_struct__rustdoc_0test_0crate_UnitStruct {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_UnitStruct>
 }
 
 #[wasm_bindgen]
-impl __cursed_struct__rustdoc_0test_0crate_UnitStruct {
+impl __binding_struct__rustdoc_0test_0crate_UnitStruct {
 
 }
 ```

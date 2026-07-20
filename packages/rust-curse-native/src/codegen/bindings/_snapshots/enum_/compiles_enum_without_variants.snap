@@ -87,12 +87,12 @@ impl __tethered_struct__rustdoc_0test_0crate_Empty {
 
 }
 
-#[napi(js_name = "__cursed_enum__rustdoc_0test_0crate_Empty")]pub struct __cursed_enum__rustdoc_0test_0crate_Empty {
+#[napi(js_name = "__binding_enum__rustdoc_0test_0crate_Empty")]pub struct __binding_enum__rustdoc_0test_0crate_Empty {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Empty>
 }
 
 #[napi]
-impl __cursed_enum__rustdoc_0test_0crate_Empty {
+impl __binding_enum__rustdoc_0test_0crate_Empty {
 	#[napi(js_name = "__type")]
 	pub fn __type(
 		&self
@@ -170,12 +170,12 @@ impl __tethered_struct__rustdoc_0test_0crate_Empty {
 
 }
 
-#[wasm_bindgen(js_name = "__cursed_enum__rustdoc_0test_0crate_Empty")]pub struct __cursed_enum__rustdoc_0test_0crate_Empty {
+#[wasm_bindgen(js_name = "__binding_enum__rustdoc_0test_0crate_Empty")]pub struct __binding_enum__rustdoc_0test_0crate_Empty {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Empty>
 }
 
 #[wasm_bindgen]
-impl __cursed_enum__rustdoc_0test_0crate_Empty {
+impl __binding_enum__rustdoc_0test_0crate_Empty {
 	#[wasm_bindgen(js_name = "__type")]
 	pub fn __type(
 		&self

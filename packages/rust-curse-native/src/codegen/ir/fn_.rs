@@ -53,11 +53,11 @@ pub struct Fn<'db> {
 #[salsa::tracked]
 impl<'db> Fn<'db> {
     /// Returns the name of the binding function, e.g.
-    /// `__cursed_fn__std_mem_drop`
+    /// `__binding_fn__std_mem_drop`
     #[salsa::tracked(returns(ref))]
     pub fn bindings_name(self, db: &'db dyn Db) -> String {
         let path = self.id(db).path(db);
-        format!("__cursed_fn__{}", mangle_path(path))
+        format!("__binding_fn__{}", mangle_path(path))
     }
 
     /// Returns the name of the function, e.g. `drop` for `std::mem::drop`.

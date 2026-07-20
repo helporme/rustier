@@ -41,7 +41,7 @@ impl<'db> ShapeField<'db> {
 #[salsa::tracked]
 impl<'db> Struct<'db> {
     /// Returns the name of the binding struct, e.g.
-    /// `__cursed_struct__std_mem_Drop`
+    /// `__binding_struct__std_mem_Drop`
     pub fn binding_name(&self, db: &'db dyn Db) -> &'db str {
         struct_binding_name_from_ir_id(db, self.id(db))
     }
@@ -93,7 +93,7 @@ pub fn struct_mangled_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> St
     mangle_path(&summary.path)
 }
 
-/// Returns the binding name of the struct e.g. `__cursed_struct__std_mem_Drop`
+/// Returns the binding name of the struct e.g. `__binding_struct__std_mem_Drop`
 /// for a rustdoc id pointing to the struct.
 #[salsa::tracked(returns(ref))]
 pub fn struct_binding_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
@@ -105,7 +105,7 @@ pub fn struct_binding_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> St
         .expect("Struct not found in a rustdoc crate");
 
     assert_eq!(summary.kind, ItemKind::Struct);
-    format!("__cursed_struct__{}", mangle_path(&summary.path))
+    format!("__binding_struct__{}", mangle_path(&summary.path))
 }
 
 /// Returns the handle name of the struct e.g. `__tethered_struct__std_mem_Drop`

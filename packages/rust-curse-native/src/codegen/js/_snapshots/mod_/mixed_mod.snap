@@ -36,7 +36,7 @@ import {
 } from './models.rs';
 
 import {
-	__cursed_fn__rustdoc_0test_0crate_mixed
+	__binding_fn__rustdoc_0test_0crate_mixed
 } from 'path/to/bindings';
 
 export function mixed (
@@ -73,7 +73,7 @@ export function mixed (
 	 __p__external = __p__external.__get_binding();
 
 	return External.__from_binding(
-		__cursed_fn__rustdoc_0test_0crate_mixed(
+		__binding_fn__rustdoc_0test_0crate_mixed(
 			__p__number,
 			__p__text,
 			__p__local,

@@ -282,8 +282,8 @@ fn __cast_u32(
 	)
 }
 
-#[napi(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
-pub fn __cursed_fn__rustdoc_0test_0crate_foo(
+#[napi(js_name = "__binding_fn__rustdoc_0test_0crate_foo")]
+pub fn __binding_fn__rustdoc_0test_0crate_foo(
 	__p__a: Unknown<'_>,
 	__p__d: Unknown<'_>,
 	__p__e: Unknown<'_>,
@@ -543,8 +543,8 @@ fn __cast_u32(
 	)
 }
 
-#[wasm_bindgen(js_name = "__cursed_fn__rustdoc_0test_0crate_foo")]
-pub fn __cursed_fn__rustdoc_0test_0crate_foo(
+#[wasm_bindgen(js_name = "__binding_fn__rustdoc_0test_0crate_foo")]
+pub fn __binding_fn__rustdoc_0test_0crate_foo(
 	__p__a: JsValue,
 	__p__d: JsValue,
 	__p__e: JsValue,

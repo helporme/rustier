@@ -26,7 +26,7 @@ import {
 } from './parent.rs';
 
 import {
-	__cursed_fn__rustdoc_0test_0crate_foo
+	__binding_fn__rustdoc_0test_0crate_foo
 } from 'path/to/bindings';
 
 export function foo (
@@ -50,7 +50,7 @@ export function foo (
 	 __p__c = __p__c.__get_binding();
 
 	return Foo.__from_binding(
-		__cursed_fn__rustdoc_0test_0crate_foo(
+		__binding_fn__rustdoc_0test_0crate_foo(
 			__p__a,
 			__p__b,
 			__p__c

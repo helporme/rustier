@@ -368,12 +368,12 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 }
 
-#[wasm_bindgen(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+#[wasm_bindgen(js_name = "__binding_struct__rustdoc_0test_0crate_PlainStruct")]pub struct __binding_struct__rustdoc_0test_0crate_PlainStruct {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_PlainStruct>
 }
 
 #[wasm_bindgen]
-impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+impl __binding_struct__rustdoc_0test_0crate_PlainStruct {
 	#[wasm_bindgen(getter, js_name = "supported")]
 	pub fn __getter__supported(
 		&self
@@ -739,12 +739,12 @@ impl __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 	}
 }
 
-#[napi(js_name = "__cursed_struct__rustdoc_0test_0crate_PlainStruct")]pub struct __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+#[napi(js_name = "__binding_struct__rustdoc_0test_0crate_PlainStruct")]pub struct __binding_struct__rustdoc_0test_0crate_PlainStruct {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_PlainStruct>
 }
 
 #[napi]
-impl __cursed_struct__rustdoc_0test_0crate_PlainStruct {
+impl __binding_struct__rustdoc_0test_0crate_PlainStruct {
 	#[napi(getter, js_name = "supported")]
 	pub fn __getter__supported(
 		&self
