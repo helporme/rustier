@@ -49,14 +49,7 @@ pub fn compile_facade_class_for_enum<'db>(
     fragment(move |p| {
         let groups = group_enum_fields(db, enum_);
 
-        let type_tags_array = frag!([{
-            comma_list(
-                enum_
-                    .variants(db)
-                    .iter()
-                    .map(|variant| frag!({ doubles(variant.js_tag_name(db)) })),
-            )
-        }]);
+        let type_tags_array = frag!([{ comma_list(enum_.js_tag_names(db).iter().map(doubles)) }]);
 
         let private_cached_fields = fragment(|p| {
             for group in &groups {
@@ -82,7 +75,7 @@ pub fn compile_facade_class_for_enum<'db>(
                 #_binding;@
                 {private_cached_fields}@
 
-                get type()~{{
+                get ~{enum_.js_tag_field_name(db)}()~{{
                     return ~{enum_.name(db)}.#_types[this.#_binding.__type()];
                 }}@@
 
@@ -601,6 +594,43 @@ mod tests {
                         locked: Readonly,
                     },
                     Third,
+                }
+            };
+
+            JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
+            compile_test_enum(&db, "Example")
+        });
+    }
+
+    #[test]
+    fn type_field_renames_discriminant() {
+        assert_snap!({
+            @lang: "js";
+
+            let mut db = test_db! {
+                pub enum Example {
+                    Value { r#type: String },
+                }
+            };
+
+            JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
+            compile_test_enum(&db, "Example")
+        });
+    }
+
+    #[test]
+    fn colliding_variant_tags_preserve_rust_names() {
+        assert_snap!({
+            @lang: "js";
+
+            let mut db = test_db! {
+                #[allow(non_camel_case_types)]
+                pub enum Example {
+                    a,
+                    A,
+                    B,
+                    b_,
+                    C
                 }
             };
 

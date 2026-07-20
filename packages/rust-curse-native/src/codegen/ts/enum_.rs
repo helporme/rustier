@@ -23,11 +23,16 @@ use crate::{
 #[salsa::tracked(returns(ref))]
 pub fn compile_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
     let variants = fragment(move |printer| {
-        for (index, variant) in enum_.variants(db).iter().enumerate() {
+        for (index, (variant, tag_name)) in enum_
+            .variants(db)
+            .iter()
+            .zip(enum_.js_tag_names(db))
+            .enumerate()
+        {
             if index > 0 {
                 blank().apply(printer);
             }
-            compile_variant(db, *variant).apply(printer);
+            compile_variant(db, *variant, enum_.js_tag_field_name(db), tag_name).apply(printer);
         }
         ";".apply(printer);
     });
@@ -88,10 +93,15 @@ pub fn compile_enum_required_imports<'db>(
     }
 }
 
-fn compile_variant<'db>(db: &'db dyn Db, variant: EnumVariant<'db>) -> impl FragmentOnce + 'db {
+fn compile_variant<'db>(
+    db: &'db dyn Db,
+    variant: EnumVariant<'db>,
+    tag_field_name: &'db str,
+    tag_name: &'db str,
+) -> impl FragmentOnce + 'db {
     let fields = variant.fields(db);
     let properties = fragment(move |printer| {
-        frag!(readonly type:~{doubles(variant.js_tag_name(db))};).apply(printer);
+        frag!(readonly ~{tag_field_name}:~{doubles(tag_name)};).apply(printer);
 
         for field in fields {
             blank().apply(printer);
@@ -180,6 +190,41 @@ mod tests {
             };
 
             compile_test_enum(&db, "Shape")
+        });
+    }
+
+    #[test]
+    fn type_field_renames_discriminant() {
+        assert_snap!({
+            @lang: "js";
+
+            let db = test_db! {
+                pub enum Example {
+                    Value { r#type: String },
+                }
+            };
+
+            compile_test_enum(&db, "Example")
+        });
+    }
+
+    #[test]
+    fn colliding_variant_tags_preserve_rust_names() {
+        assert_snap!({
+            @lang: "js";
+
+            let db = test_db! {
+                #[allow(non_camel_case_types)]
+                pub enum Example {
+                    a,
+                    A,
+                    B,
+                    b_,
+                    C
+                }
+            };
+
+            compile_test_enum(&db, "Example")
         });
     }
 }

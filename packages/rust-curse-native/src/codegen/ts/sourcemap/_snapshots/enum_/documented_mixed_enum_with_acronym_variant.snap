@@ -35,13 +35,13 @@ TypeScript:
   4 | 	export type Plain =
   5 | 		/** An acronym-prefixed request. */
   6 | 		| {
-  7 | 			readonly type: "httpRequest";
+  7 | 			readonly type: "HTTPRequest";
   8 | 			/** A field name repeated by the next variant. */
   9 | 			response_code: number;
  10 | 		}
  11 | 		/** A title-cased request with the same generated tag. */
  12 | 		| {
- 13 | 			readonly type: "httpRequest";
+ 13 | 			readonly type: "HttpRequest";
  14 | 			/** A repeated field name. */
  15 | 			response_code: number;
  16 | 		}

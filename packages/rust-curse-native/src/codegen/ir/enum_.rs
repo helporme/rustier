@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use rustdoc_types::ItemKind;
 
 use crate::codegen::{
@@ -51,16 +53,6 @@ pub struct EnumVariant<'db> {
     pub docs: Option<String>,
 }
 
-#[salsa::tracked]
-impl<'db> EnumVariant<'db> {
-    /// Returns the lower-camel-case tag used to discriminate this variant in
-    /// JavaScript.
-    #[salsa::tracked(returns(ref))]
-    pub fn js_tag_name(self, db: &'db dyn crate::codegen::db::Db) -> String {
-        to_camel_case(self.name(db))
-    }
-}
-
 impl<'db> EnumVariant<'db> {
     /// Iterates over this variant's public lowered fields in declaration order.
     pub fn fields(
@@ -83,7 +75,52 @@ pub struct Enum<'db> {
     pub docs: Option<String>,
 }
 
+#[salsa::tracked]
 impl<'db> Enum<'db> {
+    /// Returns JavaScript discriminant tags in variant declaration order.
+    #[salsa::tracked(returns(ref))]
+    pub fn js_tag_names(self, db: &'db dyn Db) -> Vec<String> {
+        let camel_case_names = self
+            .variants(db)
+            .iter()
+            .map(|variant| to_camel_case(variant.name(db)))
+            .collect::<Vec<_>>();
+        let mut occurrences = BTreeMap::new();
+
+        for name in &camel_case_names {
+            *occurrences.entry(name.as_str()).or_insert(0) += 1;
+        }
+
+        // declash the `http` variant and `Http` variant by preserving
+        // their original names
+        self.variants(db)
+            .iter()
+            .zip(&camel_case_names)
+            .map(|(variant, camel_case_name)| {
+                if occurrences[camel_case_name.as_str()] > 1 {
+                    variant.name(db).clone()
+                } else {
+                    camel_case_name.clone()
+                }
+            })
+            .collect()
+    }
+}
+
+impl<'db> Enum<'db> {
+    /// Returns the JavaScript discriminant field name for this enum.
+    pub fn js_tag_field_name(&self, db: &'db dyn Db) -> &'static str {
+        if self
+            .variants(db)
+            .iter()
+            .any(|variant| variant.fields(db).any(|field| field.name(db) == "type"))
+        {
+            "$type"
+        } else {
+            "type"
+        }
+    }
+
     /// Returns the name of the binding struct for this enum.
     pub fn binding_name(&self, db: &'db dyn Db) -> &'db str {
         enum_binding_name_from_ir_id(db, self.id(db))

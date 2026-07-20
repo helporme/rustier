@@ -6,7 +6,9 @@ use thiserror::Error;
 
 use crate::codegen::db::Db;
 
+mod enum_js_name_collisions;
 mod f32_percission_los;
+pub use enum_js_name_collisions::EnumJsNameCollision;
 pub use f32_percission_los::F32PrecisionLoss;
 
 /// Runs all checks and returns their diagnostics.
@@ -19,6 +21,12 @@ pub fn check(db: &dyn Db) -> Vec<Check> {
         .iter()
         .cloned()
         .map(Check::from)
+        .chain(
+            enum_js_name_collisions::check_enum_js_name_collisions(db)
+                .iter()
+                .cloned()
+                .map(Check::from),
+        )
         .collect()
 }
 
@@ -28,4 +36,8 @@ pub enum Check {
     #[error(transparent)]
     #[diagnostic(transparent)]
     F32PrecisionLoss(#[from] F32PrecisionLoss),
+
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    EnumJsNameCollision(#[from] EnumJsNameCollision),
 }

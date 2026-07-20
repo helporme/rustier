@@ -99,18 +99,22 @@ pub fn compile_enum_mappings<'db>(
         unreachable!()
     };
     let crate_body = enum_rustdoc_id.crate_body(db);
+    let tag_prefix = match enum_.js_tag_field_name(db) {
+        "$type" => "\t\t\treadonly $type: \"",
+        "type" => "\t\t\treadonly type: \"",
+        _ => unreachable!(),
+    };
     let mut variant_start_line = plain_line + 1;
 
-    for (variant, variant_id) in enum_.variants(db).iter().zip(&enum_def.variants) {
+    for ((variant, variant_id), tag_name) in enum_
+        .variants(db)
+        .iter()
+        .zip(&enum_def.variants)
+        .zip(enum_.js_tag_names(db))
+    {
         let variant_id = crate_body.id(db, *variant_id);
-        let tag_line = find_name_line(
-            generated,
-            variant_start_line,
-            "\t\t\treadonly type: \"",
-            variant.js_tag_name(db),
-            "\";",
-        )
-        .expect("compiled TypeScript enum variant discriminant should exist");
+        let tag_line = find_name_line(generated, variant_start_line, tag_prefix, tag_name, "\";")
+            .expect("compiled TypeScript enum variant discriminant should exist");
         variant_start_line = tag_line + 1;
 
         if let Some(original) = original_location(db, variant_id) {
@@ -236,6 +240,19 @@ mod tests {
 
             compile_test_enum(db, "Shape", 4)
         });
+    }
+
+    #[test]
+    fn enum_with_type_field_uses_renamed_discriminant() {
+        let db = test_db! {
+            pub enum Example {
+                Value { r#type: String },
+            }
+        };
+
+        let compiled = compile_test_enum(db, "Example", 0);
+
+        assert!(compiled.contains("readonly $type: \"value\";"));
     }
 
     #[test]

@@ -1,0 +1,67 @@
+---
+source: src/codegen/js/enum_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::js::enum_::tests::colliding_variant_tags_preserve_rust_names
+```
+
+## Source
+
+```rs
+let mut db = test_db! {
+    #[allow(non_camel_case_types)] pub enum Example { a, A, B, b_, C }
+};
+JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
+compile_test_enum(&db, "Example")
+```
+
+## Output
+
+```js
+
+
+export class Example {
+	static #_types =["a",
+	"A",
+	"b",
+	"b_",
+	"c"];
+	static #_construction_token = Symbol();
+	#_binding;
+
+	get type() {
+		return Example.#_types[this.#_binding.__type()];
+	}
+
+
+
+	constructor(
+		token
+	) {
+		if(
+			token !== Example.#_construction_token
+		) {
+			throw new TypeError(
+				"Rust-backed enums cannot be constructed directly"
+			);
+		}
+	}
+
+	static __from_binding(
+		binding
+	) {
+		const obj = new Example(
+			 Example.#_construction_token
+		);
+		obj.#_binding = binding;
+		return obj;
+	}
+
+	__get_binding() {
+		return this.#_binding;
+	}
+}
+```

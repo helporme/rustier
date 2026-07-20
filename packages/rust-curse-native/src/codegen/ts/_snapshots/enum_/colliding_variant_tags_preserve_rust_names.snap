@@ -1,0 +1,48 @@
+---
+source: src/codegen/ts/enum_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::ts::enum_::tests::colliding_variant_tags_preserve_rust_names
+```
+
+## Source
+
+```rs
+let mut db = test_db! {
+    #[allow(non_camel_case_types)] pub enum Example { a, A, B, b_, C }
+};
+compile_test_enum(&db, "Example")
+```
+
+## Output
+
+```js
+export type Example = Example.Instance & Example.Plain;
+
+export namespace Example {
+	export type Plain =
+		| {
+			readonly type: "a";
+		}
+		| {
+			readonly type: "A";
+		}
+		| {
+			readonly type: "b";
+		}
+		| {
+			readonly type: "b_";
+		}
+		| {
+			readonly type: "c";
+		};
+
+	export class Instance {
+		private __rust_curse_brand: never;
+		private constructor();
+	}
+}
+```
