@@ -119,7 +119,7 @@ mod tests {
         let db = test_db! {
             #[allow(non_camel_case_types)]
             pub enum Example {
-                http,
+                http {},
                 Http,
             }
         };

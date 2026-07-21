@@ -45,11 +45,6 @@ pub struct EnumVariant<'db> {
     pub shape: Shape<'db>,
     #[tracked]
     #[returns(ref)]
-    /// The discriminant value of this variant as number between [`i128::MIN`]
-    /// and [`u128::MAX`], if any.
-    pub discriminant: Option<String>,
-    #[tracked]
-    #[returns(ref)]
     pub docs: Option<String>,
 }
 

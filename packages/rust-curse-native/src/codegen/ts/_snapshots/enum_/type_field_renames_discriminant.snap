@@ -11,7 +11,7 @@ codegen::ts::enum_::tests::type_field_renames_discriminant
 ## Source
 
 ```rs
-let mut db = test_db! {
+let db = test_db! {
     pub enum Example { Value { r#type : String }, }
 };
 compile_test_enum(&db, "Example")

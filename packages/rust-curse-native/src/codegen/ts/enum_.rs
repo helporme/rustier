@@ -135,12 +135,15 @@ mod tests {
         db::DbImpl,
         fragment::{FragmentPrint, spaced},
         js::imports::compile_import_stmt,
-        rustdoc::enum_::lower_enum,
+        rustdoc::enum_::{LoweredEnum, lower_enum},
         test::{assert_snap, test_db},
     };
 
     fn compile_test_enum(db: &DbImpl, enum_name: &str) -> String {
-        let enum_ = lower_enum(db, db.rustdoc_id(enum_name)).unwrap();
+        let enum_ = match lower_enum(db, db.rustdoc_id(enum_name)).unwrap() {
+            LoweredEnum::Enum(enum_) => enum_,
+            LoweredEnum::CLikeEnum(_) => panic!("test requires a data-carrying enum"),
+        };
         let mut imports = BTreeSet::new();
         compile_enum_required_imports(db, enum_, &mut imports);
 
@@ -201,26 +204,6 @@ mod tests {
             let db = test_db! {
                 pub enum Example {
                     Value { r#type: String },
-                }
-            };
-
-            compile_test_enum(&db, "Example")
-        });
-    }
-
-    #[test]
-    fn colliding_variant_tags_preserve_rust_names() {
-        assert_snap!({
-            @lang: "js";
-
-            let db = test_db! {
-                #[allow(non_camel_case_types)]
-                pub enum Example {
-                    a,
-                    A,
-                    B,
-                    b_,
-                    C
                 }
             };
 

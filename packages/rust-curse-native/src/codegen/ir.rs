@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+pub mod c_like_enum;
 pub mod enum_;
 pub mod fn_;
 pub mod mangle;

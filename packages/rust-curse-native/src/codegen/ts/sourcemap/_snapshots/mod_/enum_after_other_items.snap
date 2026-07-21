@@ -18,7 +18,7 @@ let db = test_db! {
     r" The first choice emitted after functions and structs."] pub enum FirstChoice {
     Imported { external : models::External }, } #[doc =
     r" The second choice preserves enum declaration order."] pub enum SecondChoice {
-    Empty, }
+    Empty {}, }
 };
 compile_test_mod(db, "")
 ```

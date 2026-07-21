@@ -1,11 +1,13 @@
 use miette::Diagnostic;
-use rustdoc_types::{ItemEnum, ItemKind};
+use rustdoc_types::{ItemEnum, ItemKind, VariantKind};
 use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
+    diag::DiagAccumulateExt as _,
     ir::{
         IrId,
+        c_like_enum::{CLikeEnum, CLikeEnumVariant},
         enum_::{Enum, EnumVariant},
         span::{SourceCode, Span},
     },
@@ -15,12 +17,18 @@ use crate::codegen::{
     },
 };
 
-/// Lowers the rustdoc enum to the IR enum.
+#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq, salsa::Update)]
+pub enum LoweredEnum<'db> {
+    Enum(Enum<'db>),
+    CLikeEnum(CLikeEnum<'db>),
+}
+
+/// Lowers a rustdoc enum to either a data-carrying or C-like IR enum.
 #[salsa::tracked]
 pub fn lower_enum<'db>(
     db: &'db dyn Db,
     id: RustdocId<'db>,
-) -> Result<Enum<'db>, Box<EnumLowerError>> {
+) -> Result<LoweredEnum<'db>, Box<EnumLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);
 
@@ -33,14 +41,43 @@ pub fn lower_enum<'db>(
     assert_eq!(item_summary.kind, ItemKind::Enum);
 
     let mut causes = Vec::new();
-
     if !def.generics.params.is_empty() {
         causes.push(EnumLowerCause::UnsupportedGeneric);
     }
-
     if def.has_stripped_variants {
         causes.push(EnumLowerCause::StrippedVariants);
     }
+
+    let is_c_like = def.variants.iter().all(|variant_id| {
+        let variant_item = crate_body
+            .index
+            .get(variant_id)
+            .expect("enum variant must be present in the rustdoc index");
+        let ItemEnum::Variant(variant) = &variant_item.inner else {
+            unreachable!()
+        };
+
+        matches!(variant.kind, VariantKind::Plain)
+    });
+
+    if is_c_like {
+        lower_c_like_enum(db, id, causes).map(LoweredEnum::CLikeEnum)
+    } else {
+        lower_data_carrying_enum(db, id, causes).map(LoweredEnum::Enum)
+    }
+}
+
+fn lower_data_carrying_enum<'db>(
+    db: &'db dyn Db,
+    id: RustdocId<'db>,
+    mut causes: Vec<EnumLowerCause>,
+) -> Result<Enum<'db>, Box<EnumLowerError>> {
+    let item = id.item(db);
+    let crate_body = id.crate_body(db);
+    let def = match &item.inner {
+        ItemEnum::Enum(def) => def,
+        _ => unreachable!(),
+    };
 
     let mut variants = Vec::new();
     for variant_id in &def.variants {
@@ -51,19 +88,75 @@ pub fn lower_enum<'db>(
     }
 
     if !causes.is_empty() {
-        let crate_ = id.crate_(db);
-        return Err(Box::new(EnumLowerError::Skipped {
-            enum_fqn: item_summary.path.join("::"),
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
-            causes,
-        }));
+        return Err(enum_lower_error(db, id, causes));
     }
 
-    let docs = item.docs.clone();
+    let item_summary = crate_body.paths.get(&item.id).unwrap();
     let id = IrId::new(db, &item_summary.path);
+    Ok(Enum::new(db, id, variants, item.docs.clone()))
+}
 
-    Ok(Enum::new(db, id, variants, docs))
+fn lower_c_like_enum<'db>(
+    db: &'db dyn Db,
+    id: RustdocId<'db>,
+    causes: Vec<EnumLowerCause>,
+) -> Result<CLikeEnum<'db>, Box<EnumLowerError>> {
+    if !causes.is_empty() {
+        return Err(enum_lower_error(db, id, causes));
+    }
+
+    let item = id.item(db);
+    let crate_body = id.crate_body(db);
+    let def = match &item.inner {
+        ItemEnum::Enum(def) => def,
+        _ => unreachable!(),
+    };
+
+    let variants = def
+        .variants
+        .iter()
+        .map(|variant_id| {
+            let variant_item = crate_body
+                .index
+                .get(variant_id)
+                .expect("enum variant must be present in the rustdoc index");
+            let variant = match &variant_item.inner {
+                ItemEnum::Variant(variant) => variant,
+                _ => unreachable!(),
+            };
+            let name = variant_item
+                .name
+                .clone()
+                .expect("enum variant must have a name");
+            let discriminant = variant
+                .discriminant
+                .as_ref()
+                .map(|discriminant| discriminant.value.clone());
+
+            CLikeEnumVariant::new(db, name, discriminant, variant_item.docs.clone())
+        })
+        .collect();
+
+    let item_summary = crate_body.paths.get(&item.id).unwrap();
+    let id = IrId::new(db, &item_summary.path);
+    Ok(CLikeEnum::new(db, id, variants, item.docs.clone()))
+}
+
+fn enum_lower_error(
+    db: &dyn Db,
+    id: RustdocId<'_>,
+    causes: Vec<EnumLowerCause>,
+) -> Box<EnumLowerError> {
+    let item = id.item(db);
+    let item_summary = id.crate_body(db).paths.get(&item.id).unwrap();
+    let crate_ = id.crate_(db);
+
+    Box::new(EnumLowerError::Skipped {
+        enum_fqn: item_summary.path.join("::"),
+        source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
+        span: crate_.read_span_opt(item.span.as_ref()),
+        causes,
+    })
 }
 
 /// Lowers a rustdoc enum variant to an IR enum variant.
@@ -93,14 +186,20 @@ fn lower_variant<'db>(
         }));
     }
 
+    if !matches!(def.kind, VariantKind::Plain) && def.discriminant.is_some() {
+        let crate_ = id.crate_(db);
+        IgnoredNonUnitVariantDiscriminant {
+            variant_fqn: item_summary.path.join("::"),
+            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
+            span: crate_.read_span_opt(item.span.as_ref()),
+        }
+        .accumulate(db);
+    }
+
     let name = item.name.clone().expect("enum variant must have a name");
-    let discriminant = def
-        .discriminant
-        .as_ref()
-        .map(|discriminant| discriminant.value.clone());
     let docs = item.docs.clone();
 
-    Ok(EnumVariant::new(db, name, shape, discriminant, docs))
+    Ok(EnumVariant::new(db, name, shape, docs))
 }
 
 /// Returns whether the enum implements [`Clone`].
@@ -134,6 +233,22 @@ pub fn is_enum_clonable<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> bool {
 
         trait_summary.path == ["core", "clone", "Clone"]
     })
+}
+
+/// Warns that an explicit discriminant on a data-carrying variant is not
+/// represented in IR.
+#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
+#[error("the discriminant assigned to non-unit enum variant \"{variant_fqn}\" is ignored")]
+#[diagnostic(
+    code(rust_curse::ignored_non_unit_variant_discriminant),
+    severity(Warning)
+)]
+pub struct IgnoredNonUnitVariantDiscriminant {
+    variant_fqn: String,
+    #[source_code]
+    source_code: SourceCode,
+    #[label]
+    span: Option<Span>,
 }
 
 /// An error that prevents a rustdoc enum from being lowered to IR.
@@ -199,7 +314,7 @@ mod tests {
     use miette::Diagnostic;
 
     use super::*;
-    use crate::codegen::{db::DbImpl, test::test_db};
+    use crate::codegen::{db::DbImpl, diag::Diag, test::test_db};
 
     fn lower_test_enum(db: &DbImpl) -> Box<EnumLowerError> {
         lower_enum(db, db.rustdoc_id("TestEnum")).expect_err("enum lowering must fail")
@@ -294,6 +409,70 @@ mod tests {
         assert_eq!(
             diagnostic_code(field_causes[0]),
             "rust_curse::unsupported_primitive"
+        );
+    }
+
+    #[test]
+    fn lowers_unit_only_enum_to_c_like_enum() {
+        let db = test_db! {
+            #[repr(i16)]
+            pub enum TestEnum {
+                /// Uses the implicit discriminant.
+                Default,
+                Negative = -2,
+                Positive = 3,
+            }
+        };
+
+        let lowered = lower_enum(&db, db.rustdoc_id("TestEnum")).unwrap();
+        let LoweredEnum::CLikeEnum(enum_) = lowered else {
+            panic!("unit-only enum must lower to CLikeEnum");
+        };
+
+        assert_eq!(
+            enum_
+                .variants(&db)
+                .iter()
+                .map(|variant| variant.name(&db).as_str())
+                .collect::<Vec<_>>(),
+            ["Default", "Negative", "Positive"]
+        );
+        assert_eq!(
+            enum_
+                .variants(&db)
+                .iter()
+                .map(|variant| variant.discriminant(&db).as_deref())
+                .collect::<Vec<_>>(),
+            [None, Some("-2"), Some("3")]
+        );
+        assert_eq!(
+            enum_.variants(&db)[0].docs(&db).as_deref(),
+            Some("Uses the implicit discriminant.")
+        );
+    }
+
+    #[test]
+    fn warns_and_ignores_non_unit_variant_discriminant() {
+        let db = test_db! {
+            #[repr(u8)]
+            pub enum TestEnum {
+                Unit = 1,
+                Data(u8) = 2,
+            }
+        };
+        let id = db.rustdoc_id("TestEnum");
+
+        let lowered = lower_enum(&db, id).unwrap();
+        let LoweredEnum::Enum(enum_) = lowered else {
+            panic!("data-carrying enum must lower to Enum");
+        };
+        assert_eq!(enum_.variants(&db).len(), 2);
+
+        let diagnostics = lower_enum::accumulated::<Diag>(&db, id);
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostic_code(diagnostics[0].inner.as_ref()),
+            "rust_curse::ignored_non_unit_variant_discriminant"
         );
     }
 }

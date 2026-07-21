@@ -310,63 +310,23 @@ mod tests {
     use super::*;
     use crate::codegen::{
         api::{Api, ApiKind, WasmTarget},
+        db::DbImpl,
         fragment::FragmentPrint,
-        rustdoc::enum_::lower_enum,
+        rustdoc::{
+            RustdocId,
+            enum_::{EnumLowerError, LoweredEnum, lower_enum as lower_ir_enum},
+        },
         test::{assert_snap, test_db},
     };
 
-    #[test]
-    fn compiles_enum_without_variants() {
-        assert_snap!({
-            let mut db = test_db! {
-                pub enum Empty {}
-            };
-
-            Api::set(&mut db, ApiKind::Node);
-            let enum_ = lower_enum(&db, db.rustdoc_id("Empty")).unwrap();
-            let node = compile_binding_enum(&db, enum_).to_string();
-            syn::parse_file(&node).expect("generated Node enum bindings must be valid Rust syntax");
-
-            Api::set(
-                &mut db,
-                ApiKind::Wasm {
-                    target: WasmTarget::Web,
-                },
-            );
-            let enum_ = lower_enum(&db, db.rustdoc_id("Empty")).unwrap();
-            let wasm = compile_binding_enum(&db, enum_).to_string();
-            syn::parse_file(&wasm).expect("generated Wasm enum bindings must be valid Rust syntax");
-
-            ("// Node\n", node, "\n\n// Wasm\n", wasm).print()
-        });
-    }
-
-    #[test]
-    fn compiles_enum_with_unit_variant() {
-        assert_snap!({
-            let mut db = test_db! {
-                pub enum Example {
-                    Unit,
-                }
-            };
-
-            Api::set(&mut db, ApiKind::Node);
-            let enum_ = lower_enum(&db, db.rustdoc_id("Example")).unwrap();
-            let node = compile_binding_enum(&db, enum_).to_string();
-            syn::parse_file(&node).expect("generated Node enum bindings must be valid Rust syntax");
-
-            Api::set(
-                &mut db,
-                ApiKind::Wasm {
-                    target: WasmTarget::Web,
-                },
-            );
-            let enum_ = lower_enum(&db, db.rustdoc_id("Example")).unwrap();
-            let wasm = compile_binding_enum(&db, enum_).to_string();
-            syn::parse_file(&wasm).expect("generated Wasm enum bindings must be valid Rust syntax");
-
-            ("// Node\n", node, "\n\n// Wasm\n", wasm).print()
-        });
+    fn lower_enum<'db>(
+        db: &'db DbImpl,
+        id: RustdocId<'db>,
+    ) -> Result<Enum<'db>, Box<EnumLowerError>> {
+        match lower_ir_enum(db, id)? {
+            LoweredEnum::Enum(enum_) => Ok(enum_),
+            LoweredEnum::CLikeEnum(_) => panic!("test requires a data-carrying enum"),
+        }
     }
 
     #[test]

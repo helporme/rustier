@@ -193,14 +193,17 @@ mod tests {
     use super::*;
     use crate::codegen::{
         db::DbImpl,
-        rustdoc::enum_::lower_enum,
+        rustdoc::enum_::{LoweredEnum, lower_enum},
         test::{assert_snap, test_db},
         ts::sourcemap::test::snapshot_mappings,
     };
 
     fn compile_test_enum(db: DbImpl, path: &str, generated_line: usize) -> String {
         let rustdoc_id = db.rustdoc_id(path);
-        let enum_ = lower_enum(&db, rustdoc_id).unwrap();
+        let enum_ = match lower_enum(&db, rustdoc_id).unwrap() {
+            LoweredEnum::Enum(enum_) => enum_,
+            LoweredEnum::CLikeEnum(_) => panic!("test requires a data-carrying enum"),
+        };
         let generated = compile_enum(&db, enum_);
         let mappings = compile_enum_mappings(&db, enum_, generated_line);
 
@@ -253,18 +256,5 @@ mod tests {
         let compiled = compile_test_enum(db, "Example", 0);
 
         assert!(compiled.contains("readonly $type: \"value\";"));
-    }
-
-    #[test]
-    fn empty_enum() {
-        assert_snap!({
-            @lang: "text";
-
-            let db = test_db! {
-                pub enum Never {}
-            };
-
-            compile_test_enum(db, "Never", 0)
-        });
     }
 }

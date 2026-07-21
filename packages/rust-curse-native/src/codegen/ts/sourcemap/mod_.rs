@@ -266,7 +266,7 @@ mod tests {
 
                 /// The second choice preserves enum declaration order.
                 pub enum SecondChoice {
-                    Empty,
+                    Empty {},
                 }
             };
 

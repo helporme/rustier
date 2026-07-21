@@ -3,8 +3,13 @@ use rustdoc_types::{ItemEnum, ItemKind};
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::{IrId, enum_::Enum, fn_::Fn, mod_::Mod, struct_::Struct},
-    rustdoc::{RustdocCrates, RustdocId, enum_::lower_enum, fn_::lower_fn, struct_::lower_struct},
+    ir::{IrId, c_like_enum::CLikeEnum, enum_::Enum, fn_::Fn, mod_::Mod, struct_::Struct},
+    rustdoc::{
+        RustdocCrates, RustdocId,
+        enum_::{LoweredEnum, lower_enum},
+        fn_::lower_fn,
+        struct_::lower_struct,
+    },
 };
 
 /// Returns all rustdoc module IDs available in all crates.
@@ -107,9 +112,32 @@ pub fn lower_mod_structs<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Struct
     structs
 }
 
-/// Lowers the enums defined inside the given rustdoc module to the IR enums.
+/// Lowers the data-carrying enums defined inside the given rustdoc module.
 #[salsa::tracked(returns(ref))]
 pub fn lower_mod_enums<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Enum<'db>> {
+    lower_mod_enum_items(db, id)
+        .iter()
+        .filter_map(|enum_| match enum_ {
+            LoweredEnum::Enum(enum_) => Some(*enum_),
+            LoweredEnum::CLikeEnum(_) => None,
+        })
+        .collect()
+}
+
+/// Lowers the C-like enums defined inside the given rustdoc module.
+#[salsa::tracked(returns(ref))]
+pub fn lower_mod_c_like_enums<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<CLikeEnum<'db>> {
+    lower_mod_enum_items(db, id)
+        .iter()
+        .filter_map(|enum_| match enum_ {
+            LoweredEnum::Enum(_) => None,
+            LoweredEnum::CLikeEnum(enum_) => Some(*enum_),
+        })
+        .collect()
+}
+
+#[salsa::tracked(returns(ref))]
+fn lower_mod_enum_items<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<LoweredEnum<'db>> {
     let item = id.item(db);
     let crate_ = id.crate_body(db);
 
@@ -158,4 +186,38 @@ pub fn lower_mod_submods<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Mod<'d
     }
 
     mods
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::codegen::test::{TEST_CRATE_NAME, test_db};
+
+    #[test]
+    fn separates_data_carrying_and_c_like_enums() {
+        let db = test_db! {
+            pub enum ColorKind {
+                Rgb,
+                Hsv = 2,
+                Cmyk,
+            }
+
+            pub enum Value {
+                Empty,
+                Number(i32),
+            }
+        };
+        let root = db.rustdoc_id("");
+
+        let enums = lower_mod_enums(&db, root);
+        assert_eq!(enums.len(), 1);
+        assert_eq!(enums[0].id(&db).path(&db), &[TEST_CRATE_NAME, "Value"]);
+
+        let c_like_enums = lower_mod_c_like_enums(&db, root);
+        assert_eq!(c_like_enums.len(), 1);
+        assert_eq!(
+            c_like_enums[0].id(&db).path(&db),
+            &[TEST_CRATE_NAME, "ColorKind"]
+        );
+    }
 }

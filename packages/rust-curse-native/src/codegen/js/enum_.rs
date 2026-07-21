@@ -435,12 +435,15 @@ mod tests {
         db::DbImpl,
         fragment::{FragmentPrint, spaced},
         js::{JsCodegenPaths, imports::compile_import_stmt},
-        rustdoc::enum_::lower_enum,
+        rustdoc::enum_::{LoweredEnum, lower_enum},
         test::{assert_snap, test_db},
     };
 
     fn compile_test_enum(db: &DbImpl, enum_name: &str) -> String {
-        let enum_ = lower_enum(db, db.rustdoc_id(enum_name)).unwrap();
+        let enum_ = match lower_enum(db, db.rustdoc_id(enum_name)).unwrap() {
+            LoweredEnum::Enum(enum_) => enum_,
+            LoweredEnum::CLikeEnum(_) => panic!("test requires a data-carrying enum"),
+        };
         let mut imports = BTreeSet::new();
         compile_facade_class_for_enum_required_imports(db, enum_, &mut imports);
         let imports = spaced(
@@ -454,36 +457,6 @@ mod tests {
             {compile_facade_class_for_enum(db, enum_)}
         )
         .print()
-    }
-
-    #[test]
-    fn empty_enum() {
-        assert_snap!({
-            @lang: "js";
-
-            let mut db = test_db! {
-                pub enum Empty {}
-            };
-
-            JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
-            compile_test_enum(&db, "Empty")
-        });
-    }
-
-    #[test]
-    fn enum_with_unit_variant() {
-        assert_snap!({
-            @lang: "js";
-
-            let mut db = test_db! {
-                pub enum Example {
-                    Unit,
-                }
-            };
-
-            JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
-            compile_test_enum(&db, "Example")
-        });
     }
 
     #[test]
@@ -610,27 +583,6 @@ mod tests {
             let mut db = test_db! {
                 pub enum Example {
                     Value { r#type: String },
-                }
-            };
-
-            JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
-            compile_test_enum(&db, "Example")
-        });
-    }
-
-    #[test]
-    fn colliding_variant_tags_preserve_rust_names() {
-        assert_snap!({
-            @lang: "js";
-
-            let mut db = test_db! {
-                #[allow(non_camel_case_types)]
-                pub enum Example {
-                    a,
-                    A,
-                    B,
-                    b_,
-                    C
                 }
             };
 
