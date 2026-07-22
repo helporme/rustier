@@ -99,6 +99,10 @@ impl Primitive {
     }
 }
 
+// note: adding new variants here means that type must be properly handled in
+// all parts of the codebase _at once_. It's effectively impossible to add
+// step-by-step support for some new variant without todo!() panics which
+// disable tests. Maybe it's a good thing, but I am not entirely sure.
 /// A type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum Type<'db> {
