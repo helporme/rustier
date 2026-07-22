@@ -9,9 +9,8 @@ use crate::{
         fragment::{Fragment, FragmentOnce, doubles, fragment},
         ir::{IrId, enum_::enum_name_from_ir_id, struct_::struct_name_from_ir_id, type_::Type},
         js::{
-            enum_::compile_facade_class_from_binding_expr_required_imports as compile_enum_facade_from_binding_expr_required_imports,
-            imports::Import,
-            struct_::compile_facade_class_from_binding_expr_required_imports as compile_struct_facade_from_binding_expr_required_imports,
+            enum_::compile_enum_facade_from_binding_expr_required_imports, imports::Import,
+            struct_::compile_struct_facade_from_binding_expr_required_imports,
         },
     },
     frag,

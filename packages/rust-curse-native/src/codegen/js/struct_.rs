@@ -214,8 +214,8 @@ pub fn compile_facade_class_for_struct_required_imports<'db>(
 /// Compiles an expression that wraps a binding class in its facade class.
 ///
 /// Requires imports added by
-/// [`compile_facade_class_from_binding_expr_required_imports`] to be in scope.
-pub fn compile_facade_class_from_binding_expr<'db>(
+/// [`compile_struct_facade_from_binding_expr_required_imports`] to be in scope.
+pub fn compile_struct_facade_from_binding_expr<'db>(
     db: &'db dyn Db,
     struct_id: IrId<'db>,
     binding_class_expr: impl FragmentOnce,
@@ -223,8 +223,8 @@ pub fn compile_facade_class_from_binding_expr<'db>(
     frag!({ struct_name_from_ir_id(db, struct_id) }.__from_binding({ binding_class_expr }))
 }
 
-/// Adds imports required by [`compile_facade_class_from_binding_expr`].
-pub fn compile_facade_class_from_binding_expr_required_imports<'db>(
+/// Adds imports required by [`compile_struct_facade_from_binding_expr`].
+pub fn compile_struct_facade_from_binding_expr_required_imports<'db>(
     db: &'db dyn Db,
     active_mod_id: IrId<'db>,
     struct_id: IrId<'db>,
@@ -246,7 +246,7 @@ pub fn compile_facade_class_from_binding_expr_required_imports<'db>(
 }
 
 /// Compiles an expression that unwraps a facade class into its binding class.
-pub fn compile_binding_class_from_facade_expr(
+pub fn compile_binding_struct_from_facade_expr(
     facade_class_expr: impl FragmentOnce,
 ) -> impl FragmentOnce {
     frag!({ facade_class_expr }.__get_binding())

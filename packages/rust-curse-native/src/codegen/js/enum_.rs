@@ -389,8 +389,8 @@ fn compile_unavailable_field_error<'db>(
 /// Compiles an expression that wraps a binding class in its enum facade class.
 ///
 /// Requires imports added by
-/// [`compile_facade_class_from_binding_expr_required_imports`] to be in scope.
-pub fn compile_facade_class_from_binding_expr<'db>(
+/// [`compile_enum_facade_from_binding_expr_required_imports`] to be in scope.
+pub fn compile_enum_facade_from_binding_expr<'db>(
     db: &'db dyn Db,
     enum_id: IrId<'db>,
     binding_class_expr: impl FragmentOnce,
@@ -398,8 +398,8 @@ pub fn compile_facade_class_from_binding_expr<'db>(
     frag!({ enum_name_from_ir_id(db, enum_id) }.__from_binding({ binding_class_expr }))
 }
 
-/// Adds imports required by [`compile_facade_class_from_binding_expr`].
-pub fn compile_facade_class_from_binding_expr_required_imports<'db>(
+/// Adds imports required by [`compile_enum_facade_from_binding_expr`].
+pub fn compile_enum_facade_from_binding_expr_required_imports<'db>(
     db: &'db dyn Db,
     active_mod_id: IrId<'db>,
     enum_id: IrId<'db>,
@@ -422,7 +422,7 @@ pub fn compile_facade_class_from_binding_expr_required_imports<'db>(
 
 /// Compiles an expression that unwraps an enum facade class into its binding
 /// class.
-pub fn compile_binding_class_from_facade_expr(
+pub fn compile_binding_enum_from_facade_expr(
     facade_class_expr: impl FragmentOnce,
 ) -> impl FragmentOnce {
     frag!({ facade_class_expr }.__get_binding())

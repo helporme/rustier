@@ -6,15 +6,13 @@ use crate::codegen::{
     ir::{IrId, type_::Type},
     js::{
         enum_::{
-            compile_binding_class_from_facade_expr as compile_binding_enum_from_facade_expr,
-            compile_facade_class_from_binding_expr as compile_enum_facade_from_binding_expr,
-            compile_facade_class_from_binding_expr_required_imports as compile_enum_facade_from_binding_expr_required_imports,
+            compile_binding_enum_from_facade_expr, compile_enum_facade_from_binding_expr,
+            compile_enum_facade_from_binding_expr_required_imports,
         },
         imports::Import,
         struct_::{
-            compile_binding_class_from_facade_expr as compile_binding_struct_from_facade_expr,
-            compile_facade_class_from_binding_expr as compile_struct_facade_from_binding_expr,
-            compile_facade_class_from_binding_expr_required_imports as compile_struct_facade_from_binding_expr_required_imports,
+            compile_binding_struct_from_facade_expr, compile_struct_facade_from_binding_expr,
+            compile_struct_facade_from_binding_expr_required_imports,
         },
     },
 };
