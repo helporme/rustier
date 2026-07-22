@@ -13,15 +13,22 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment, spaced},
         ir::type_::{Primitive, Type},
-        rustdoc::mod_::{all_mod_ids, lower_mod_fns},
+        rustdoc::mod_::{all_mod_ids, lower_mod_enums, lower_mod_fns, lower_mod_structs},
     },
     frag,
 };
 
-/// Compiles all cast helper functions required by public Rust functions and
-/// structs.
+/// Compiles all cast helper functions required by public Rust functions,
+/// structs, and enums.
 #[salsa::tracked(returns(ref))]
 pub fn compile_cast_fns(db: &dyn Db) -> String {
+    let types = collect_cast_types(db);
+    let casted_fns = spaced(types.iter().map(|ty| compile_cast_fn(db, *ty)));
+    casted_fns.print()
+}
+
+/// Collects cast target types used by public functions, structs, and enums.
+fn collect_cast_types<'db>(db: &'db dyn Db) -> Vec<Type<'db>> {
     let mut seen = HashSet::new();
     let mut types = Vec::new();
 
@@ -31,10 +38,23 @@ pub fn compile_cast_fns(db: &dyn Db) -> String {
                 collect_cast_type(param.type_(db), &mut seen, &mut types);
             }
         }
+
+        for struct_ in lower_mod_structs(db, *mod_id) {
+            for field in struct_.fields(db) {
+                collect_cast_type(field.type_(db), &mut seen, &mut types);
+            }
+        }
+
+        for enum_ in lower_mod_enums(db, *mod_id) {
+            for variant in enum_.variants(db) {
+                for field in variant.fields(db) {
+                    collect_cast_type(field.type_(db), &mut seen, &mut types);
+                }
+            }
+        }
     }
 
-    let casted_fns = spaced(types.iter().map(|ty| compile_cast_fn(db, *ty)));
-    casted_fns.print()
+    types
 }
 
 /// Collects a cast target type and any wider helper types it depends on.
@@ -188,4 +208,288 @@ fn compile_unsigned_integer_cast_body(primitive: Primitive) -> impl FragmentOnce
 
         Ok(value as ~{type_name})
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::codegen::{
+        api::{Api, ApiKind, WasmTarget},
+        db::DbImpl,
+        fragment::FragmentPrint,
+        test::{assert_snap, test_db},
+    };
+
+    #[test]
+    fn collects_no_cast_types_from_function_without_arguments() {
+        let db = test_db! {
+            pub fn example() {}
+        };
+
+        assert_eq!(collect_cast_types(&db), vec![]);
+    }
+
+    #[test]
+    fn collects_one_cast_type_from_function_with_one_argument() {
+        let db = test_db! {
+            pub fn example(value: bool) {}
+        };
+
+        assert_eq!(
+            collect_cast_types(&db),
+            vec![Type::Primitive(Primitive::Boolean)]
+        );
+    }
+
+    #[test]
+    fn collects_two_cast_types_from_function_with_two_different_arguments() {
+        let db = test_db! {
+            pub fn example(enabled: bool, text: String) {}
+        };
+
+        assert_eq!(
+            collect_cast_types(&db),
+            vec![Type::Primitive(Primitive::Boolean), Type::String]
+        );
+    }
+
+    #[test]
+    fn collects_no_cast_types_from_plain_struct_without_fields() {
+        let db = test_db! {
+            pub struct Example {}
+        };
+
+        assert_eq!(collect_cast_types(&db), vec![]);
+    }
+
+    #[test]
+    fn collects_one_cast_type_from_plain_struct_with_one_field() {
+        let db = test_db! {
+            pub struct Example {
+                pub enabled: bool,
+            }
+        };
+
+        assert_eq!(
+            collect_cast_types(&db),
+            vec![Type::Primitive(Primitive::Boolean)]
+        );
+    }
+
+    #[test]
+    fn collects_two_cast_types_from_plain_struct_with_two_different_fields() {
+        let db = test_db! {
+            pub struct Example {
+                pub enabled: bool,
+                pub text: String,
+            }
+        };
+
+        assert_eq!(
+            collect_cast_types(&db),
+            vec![Type::Primitive(Primitive::Boolean), Type::String]
+        );
+    }
+
+    #[test]
+    fn collects_no_cast_types_from_tuple_struct_without_fields() {
+        let db = test_db! {
+            pub struct Example();
+        };
+
+        assert_eq!(collect_cast_types(&db), vec![]);
+    }
+
+    #[test]
+    fn collects_one_cast_type_from_tuple_struct_with_one_field() {
+        let db = test_db! {
+            pub struct Example(pub bool);
+        };
+
+        assert_eq!(
+            collect_cast_types(&db),
+            vec![Type::Primitive(Primitive::Boolean)]
+        );
+    }
+
+    #[test]
+    fn collects_two_cast_types_from_tuple_struct_with_two_different_fields() {
+        let db = test_db! {
+            pub struct Example(pub bool, pub String);
+        };
+
+        assert_eq!(
+            collect_cast_types(&db),
+            vec![Type::Primitive(Primitive::Boolean), Type::String]
+        );
+    }
+
+    #[test]
+    fn collects_no_cast_types_from_plain_enum_variant_without_fields() {
+        let db = test_db! {
+            pub enum Example {
+                Value {},
+            }
+        };
+
+        assert_eq!(collect_cast_types(&db), vec![]);
+    }
+
+    #[test]
+    fn collects_one_cast_type_from_plain_enum_variant_with_one_field() {
+        let db = test_db! {
+            pub enum Example {
+                Value { enabled: bool },
+            }
+        };
+
+        assert_eq!(
+            collect_cast_types(&db),
+            vec![Type::Primitive(Primitive::Boolean)]
+        );
+    }
+
+    #[test]
+    fn collects_two_cast_types_from_plain_enum_variant_with_two_different_fields() {
+        let db = test_db! {
+            pub enum Example {
+                Value { enabled: bool, text: String },
+            }
+        };
+
+        assert_eq!(
+            collect_cast_types(&db),
+            vec![Type::Primitive(Primitive::Boolean), Type::String]
+        );
+    }
+
+    #[test]
+    fn collects_no_cast_types_from_tuple_enum_variant_without_fields() {
+        let db = test_db! {
+            pub enum Example {
+                Value(),
+            }
+        };
+
+        assert_eq!(collect_cast_types(&db), vec![]);
+    }
+
+    #[test]
+    fn collects_one_cast_type_from_tuple_enum_variant_with_one_field() {
+        let db = test_db! {
+            pub enum Example {
+                Value(bool),
+            }
+        };
+
+        assert_eq!(
+            collect_cast_types(&db),
+            vec![Type::Primitive(Primitive::Boolean)]
+        );
+    }
+
+    #[test]
+    fn collects_two_cast_types_from_tuple_enum_variant_with_two_different_fields() {
+        let db = test_db! {
+            pub enum Example {
+                Value(bool, String),
+            }
+        };
+
+        assert_eq!(
+            collect_cast_types(&db),
+            vec![Type::Primitive(Primitive::Boolean), Type::String]
+        );
+    }
+
+    #[test]
+    fn collects_cast_types_from_function_struct_and_enum() {
+        let db = test_db! {
+            pub fn example(value: bool) {}
+
+            pub struct Struct {
+                pub text: String,
+            }
+
+            pub enum Enum {
+                Value(f64),
+            }
+        };
+
+        assert_eq!(
+            collect_cast_types(&db),
+            vec![
+                Type::Primitive(Primitive::Boolean),
+                Type::String,
+                Type::Primitive(Primitive::f64),
+            ]
+        );
+    }
+
+    #[test]
+    fn deduplicates_cast_types_from_function_struct_and_enum() {
+        let db = test_db! {
+            pub fn example(value: bool) {}
+
+            pub struct Struct {
+                pub value: bool,
+            }
+
+            pub enum Enum {
+                Value(bool),
+            }
+        };
+
+        assert_eq!(
+            collect_cast_types(&db),
+            vec![Type::Primitive(Primitive::Boolean)]
+        );
+    }
+
+    #[test]
+    fn collects_no_cast_types_from_empty_module() {
+        let db = test_db! {};
+
+        assert_eq!(collect_cast_types(&db), vec![]);
+    }
+
+    macro_rules! cast_fn_snapshot_test {
+        ($name:ident, $type_:expr) => {
+            #[test]
+            fn $name() {
+                assert_snap!({
+                    let mut db = DbImpl::default();
+
+                    Api::set(&mut db, ApiKind::Node);
+                    let node = compile_cast_fn(&db, $type_).print();
+                    syn::parse_file(&node)
+                        .expect("generated Node cast function must be valid Rust syntax");
+
+                    Api::set(
+                        &mut db,
+                        ApiKind::Wasm {
+                            target: WasmTarget::Web,
+                        },
+                    );
+                    let wasm = compile_cast_fn(&db, $type_).print();
+                    syn::parse_file(&wasm)
+                        .expect("generated Wasm cast function must be valid Rust syntax");
+
+                    ("// Node\n", node, "\n\n// Wasm\n", wasm).print()
+                });
+            }
+        };
+    }
+
+    cast_fn_snapshot_test!(compiles_bool_cast_fn, Type::Primitive(Primitive::Boolean));
+    cast_fn_snapshot_test!(compiles_char_cast_fn, Type::Primitive(Primitive::Char));
+    cast_fn_snapshot_test!(compiles_i8_cast_fn, Type::Primitive(Primitive::i8));
+    cast_fn_snapshot_test!(compiles_u8_cast_fn, Type::Primitive(Primitive::u8));
+    cast_fn_snapshot_test!(compiles_i16_cast_fn, Type::Primitive(Primitive::i16));
+    cast_fn_snapshot_test!(compiles_u16_cast_fn, Type::Primitive(Primitive::u16));
+    cast_fn_snapshot_test!(compiles_i32_cast_fn, Type::Primitive(Primitive::i32));
+    cast_fn_snapshot_test!(compiles_u32_cast_fn, Type::Primitive(Primitive::u32));
+    cast_fn_snapshot_test!(compiles_f32_cast_fn, Type::Primitive(Primitive::f32));
+    cast_fn_snapshot_test!(compiles_f64_cast_fn, Type::Primitive(Primitive::f64));
+    cast_fn_snapshot_test!(compiles_string_cast_fn, Type::String);
 }
