@@ -36,33 +36,43 @@ export class Example {
 
 	get [0](){
 		const binding = this.#_binding["__Tuple__0"];
-		return this.#_Tuple_0 ??= Point.__from_binding(
-			binding
-		);
+		if(
+			this.#_Tuple_0 === undefined || this.#_Tuple_0 === null
+		) {
+			this.#_Tuple_0 = Point.__from_binding(
+				binding
+			);
+		}
+		return this.#_Tuple_0;
 	}
 
 	set [0](
 		value
 	){
-		if(
-			!(
-				 value instanceof Point
-			)
-		) {
-			throw new TypeError(
-				"Expected a value of type \"Point\", but value of type \"" + typeof value + "\" was passed: \"" + String(
-					value
-				) + "\""
-			);
+		{
+			const __facade_value = value;
+			if(
+				!(
+					 __facade_value instanceof Point
+				)
+			) {
+				throw new TypeError(
+					"Expected a value of type \"Point\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+						__facade_value
+					) + "\""
+				);
+			}
+			this.#_binding["__Tuple__0"] = __facade_value.__get_binding();
 		}
-		this.#_binding["__Tuple__0"] = value.__get_binding();
 		this.#_Tuple_0 = Point.__from_binding(
 			this.#_binding["__Tuple__0"]
 		);
 	}
 
 	get [1](){
-		return this.#_binding["__Tuple__1"];
+		let value;
+		value = this.#_binding["__Tuple__1"];
+		return value;
 	}
 
 	set [1](
@@ -72,7 +82,9 @@ export class Example {
 	}
 
 	get [2](){
-		return this.#_binding["__Tuple__2"];
+		let value;
+		value = this.#_binding["__Tuple__2"];
+		return value;
 	}
 
 	set [2](

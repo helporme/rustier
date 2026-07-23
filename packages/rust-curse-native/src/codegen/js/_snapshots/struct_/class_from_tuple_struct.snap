@@ -37,18 +37,21 @@ export class Foo {
 	set [0](
 		value
 	){
-		if(
-			!(
-				 value instanceof Baz
-			)
-		) {
-			throw new TypeError(
-				"Expected a value of type \"Baz\", but value of type \"" + typeof value + "\" was passed: \"" + String(
-					value
-				) + "\""
-			);
+		{
+			const __facade_value = value;
+			if(
+				!(
+					 __facade_value instanceof Baz
+				)
+			) {
+				throw new TypeError(
+					"Expected a value of type \"Baz\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+						__facade_value
+					) + "\""
+				);
+			}
+			this.#_binding[0] = __facade_value.__get_binding();
 		}
-		this.#_binding[0] = value.__get_binding();
 		this.#_0 = Baz.__from_binding(
 			this.#_binding[0]
 		);
@@ -59,7 +62,9 @@ export class Foo {
 	}
 
 	get [2](){
-		return this.#_binding[2];
+		let value;
+		value = this.#_binding[2];
+		return value;
 	}
 
 	set [2](

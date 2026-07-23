@@ -12,15 +12,12 @@ use crate::{
         },
         js::{
             boundary::{
-                compile_js_binding_value_to_facade_expr,
-                compile_js_binding_value_to_facade_expr_required_imports,
-                compile_js_facade_value_to_binding_expr,
+                compile_js_binding_value_to_facade_stmt,
+                compile_js_binding_value_to_facade_stmt_required_imports,
+                compile_js_facade_value_to_binding_stmt,
+                compile_js_facade_value_to_binding_stmt_required_imports,
             },
             imports::{Import, ImportFrom},
-            validation::{
-                compile_js_facade_value_validation_stmt,
-                compile_js_facade_value_validation_stmt_required_imports,
-            },
         },
     },
     frag,
@@ -79,11 +76,14 @@ pub fn compile_facade_class_for_struct<'a>(
                 Type::Primitive(_) | Type::Str | Type::String => {
                     frag!(
                         get ~[{field_name.clone()}]() {{
-                            return ~{compile_js_binding_value_to_facade_expr(
+                            let value;@
+                            {compile_js_binding_value_to_facade_stmt(
                                 db,
                                 field.type_(db),
                                 binding_field_expr(),
-                            )};
+                                frag!(value),
+                            )}@
+                            return value;
                         }}
                     )
                     .apply(p);
@@ -98,20 +98,18 @@ pub fn compile_facade_class_for_struct<'a>(
                 Type::Struct(_) | Type::Enum(_) => {
                     frag!(@@
                         set ~[{field_name.clone()}](value) {{
-                            {compile_js_facade_value_validation_stmt(
+                            {compile_js_facade_value_to_binding_stmt(
                                 db,
                                 field.type_(db),
                                 frag!(value),
+                                binding_field_expr(),
                             )}@
-                            {binding_field_expr()}~ = ~{compile_js_facade_value_to_binding_expr(
-                                field.type_(db),
-                                frag!(value),
-                            )};@
-                            {cached_field_expr}~ = ~{compile_js_binding_value_to_facade_expr(
+                            {compile_js_binding_value_to_facade_stmt(
                                 db,
                                 field.type_(db),
                                 binding_field_expr(),
-                            )};
+                                cached_field_expr,
+                            )}
                         }}
                     )
                     .apply(p);
@@ -119,10 +117,12 @@ pub fn compile_facade_class_for_struct<'a>(
                 Type::Primitive(_) | Type::Str | Type::String => {
                     frag!(@@
                         set ~[{field_name}](value) {{
-                            {binding_field_expr()}~ = ~{compile_js_facade_value_to_binding_expr(
+                            {compile_js_facade_value_to_binding_stmt(
+                                db,
                                 field.type_(db),
                                 frag!(value),
-                            )};
+                                binding_field_expr(),
+                            )}
                         }}
                     )
                     .apply(p);
@@ -148,11 +148,12 @@ pub fn compile_facade_class_for_struct<'a>(
             let cached_field_expr = frag!(obj.#_{field.name(db)});
 
             frag!(
-                {cached_field_expr}~ = ~{compile_js_binding_value_to_facade_expr(
+                {compile_js_binding_value_to_facade_stmt(
                     db,
                     field.type_(db),
                     frag!(binding[{field_name}]),
-                )};@
+                    cached_field_expr,
+                )}@
             )
             .apply(p);
         }
@@ -193,7 +194,7 @@ pub fn compile_facade_class_for_struct_required_imports<'db>(
     let active_mod_id = struct_.id(db).get_parent_mod_id(db).unwrap();
 
     for field in struct_.fields(db).iter() {
-        compile_js_binding_value_to_facade_expr_required_imports(
+        compile_js_binding_value_to_facade_stmt_required_imports(
             db,
             active_mod_id,
             field.type_(db),
@@ -201,7 +202,7 @@ pub fn compile_facade_class_for_struct_required_imports<'db>(
         );
 
         if !field.is_readonly(db) {
-            compile_js_facade_value_validation_stmt_required_imports(
+            compile_js_facade_value_to_binding_stmt_required_imports(
                 db,
                 active_mod_id,
                 field.type_(db),

@@ -45,34 +45,41 @@ export function mixed (
 	__p__local,
 	__p__external
 ) {
-	 __p__number = __p__number;
-	 __p__text = __p__text;
-	if(
-		!(
-			 __p__local instanceof Local
-		)
-	) {
-		throw new TypeError(
-			"Expected a value of type \"Local\", but value of type \"" + typeof __p__local + "\" was passed: \"" + String(
-				__p__local
-			) + "\""
-		);
+	__p__number = __p__number;
+	__p__text = __p__text;
+	{
+		const __facade_value = __p__local;
+		if(
+			!(
+				 __facade_value instanceof Local
+			)
+		) {
+			throw new TypeError(
+				"Expected a value of type \"Local\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+					__facade_value
+				) + "\""
+			);
+		}
+		__p__local = __facade_value.__get_binding();
 	}
-	 __p__local = __p__local.__get_binding();
-	if(
-		!(
-			 __p__external instanceof External
-		)
-	) {
-		throw new TypeError(
-			"Expected a value of type \"External\", but value of type \"" + typeof __p__external + "\" was passed: \"" + String(
-				__p__external
-			) + "\""
-		);
+	{
+		const __facade_value = __p__external;
+		if(
+			!(
+				 __facade_value instanceof External
+			)
+		) {
+			throw new TypeError(
+				"Expected a value of type \"External\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+					__facade_value
+				) + "\""
+			);
+		}
+		__p__external = __facade_value.__get_binding();
 	}
-	 __p__external = __p__external.__get_binding();
 
-	return External.__from_binding(
+	let result;
+	result = External.__from_binding(
 		__binding_fn__rustdoc_0test_0crate_mixed(
 			__p__number,
 			__p__text,
@@ -80,6 +87,7 @@ export function mixed (
 			__p__external
 		)
 	);
+	return result;
 }
 
 export class Local {
@@ -122,7 +130,9 @@ export class Mixed {
 	#_external;
 
 	get ["number"](){
-		return this.#_binding["number"];
+		let value;
+		value = this.#_binding["number"];
+		return value;
 	}
 
 	set ["number"](
@@ -132,7 +142,9 @@ export class Mixed {
 	}
 
 	get ["text"](){
-		return this.#_binding["text"];
+		let value;
+		value = this.#_binding["text"];
+		return value;
 	}
 
 	set ["text"](
@@ -148,18 +160,21 @@ export class Mixed {
 	set ["local"](
 		value
 	){
-		if(
-			!(
-				 value instanceof Local
-			)
-		) {
-			throw new TypeError(
-				"Expected a value of type \"Local\", but value of type \"" + typeof value + "\" was passed: \"" + String(
-					value
-				) + "\""
-			);
+		{
+			const __facade_value = value;
+			if(
+				!(
+					 __facade_value instanceof Local
+				)
+			) {
+				throw new TypeError(
+					"Expected a value of type \"Local\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+						__facade_value
+					) + "\""
+				);
+			}
+			this.#_binding["local"] = __facade_value.__get_binding();
 		}
-		this.#_binding["local"] = value.__get_binding();
 		this.#_local = Local.__from_binding(
 			this.#_binding["local"]
 		);
@@ -172,18 +187,21 @@ export class Mixed {
 	set ["external"](
 		value
 	){
-		if(
-			!(
-				 value instanceof External
-			)
-		) {
-			throw new TypeError(
-				"Expected a value of type \"External\", but value of type \"" + typeof value + "\" was passed: \"" + String(
-					value
-				) + "\""
-			);
+		{
+			const __facade_value = value;
+			if(
+				!(
+					 __facade_value instanceof External
+				)
+			) {
+				throw new TypeError(
+					"Expected a value of type \"External\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+						__facade_value
+					) + "\""
+				);
+			}
+			this.#_binding["external"] = __facade_value.__get_binding();
 		}
-		this.#_binding["external"] = value.__get_binding();
 		this.#_external = External.__from_binding(
 			this.#_binding["external"]
 		);
@@ -238,26 +256,34 @@ export class LocalEnum {
 
 	get ["local"](){
 		const binding = this.#_binding["__Named__local"];
-		return this.#_Named_local ??= Local.__from_binding(
-			binding
-		);
+		if(
+			this.#_Named_local === undefined || this.#_Named_local === null
+		) {
+			this.#_Named_local = Local.__from_binding(
+				binding
+			);
+		}
+		return this.#_Named_local;
 	}
 
 	set ["local"](
 		value
 	){
-		if(
-			!(
-				 value instanceof Local
-			)
-		) {
-			throw new TypeError(
-				"Expected a value of type \"Local\", but value of type \"" + typeof value + "\" was passed: \"" + String(
-					value
-				) + "\""
-			);
+		{
+			const __facade_value = value;
+			if(
+				!(
+					 __facade_value instanceof Local
+				)
+			) {
+				throw new TypeError(
+					"Expected a value of type \"Local\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+						__facade_value
+					) + "\""
+				);
+			}
+			this.#_binding["__Named__local"] = __facade_value.__get_binding();
 		}
-		this.#_binding["__Named__local"] = value.__get_binding();
 		this.#_Named_local = Local.__from_binding(
 			this.#_binding["__Named__local"]
 		);
@@ -265,26 +291,34 @@ export class LocalEnum {
 
 	get ["external"](){
 		const binding = this.#_binding["__Named__external"];
-		return this.#_Named_external ??= External.__from_binding(
-			binding
-		);
+		if(
+			this.#_Named_external === undefined || this.#_Named_external === null
+		) {
+			this.#_Named_external = External.__from_binding(
+				binding
+			);
+		}
+		return this.#_Named_external;
 	}
 
 	set ["external"](
 		value
 	){
-		if(
-			!(
-				 value instanceof External
-			)
-		) {
-			throw new TypeError(
-				"Expected a value of type \"External\", but value of type \"" + typeof value + "\" was passed: \"" + String(
-					value
-				) + "\""
-			);
+		{
+			const __facade_value = value;
+			if(
+				!(
+					 __facade_value instanceof External
+				)
+			) {
+				throw new TypeError(
+					"Expected a value of type \"External\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+						__facade_value
+					) + "\""
+				);
+			}
+			this.#_binding["__Named__external"] = __facade_value.__get_binding();
 		}
-		this.#_binding["__Named__external"] = value.__get_binding();
 		this.#_Named_external = External.__from_binding(
 			this.#_binding["__Named__external"]
 		);
@@ -292,26 +326,34 @@ export class LocalEnum {
 
 	get [0](){
 		const binding = this.#_binding["__Tuple__0"];
-		return this.#_Tuple_0 ??= ExternalKind.__from_binding(
-			binding
-		);
+		if(
+			this.#_Tuple_0 === undefined || this.#_Tuple_0 === null
+		) {
+			this.#_Tuple_0 = ExternalKind.__from_binding(
+				binding
+			);
+		}
+		return this.#_Tuple_0;
 	}
 
 	set [0](
 		value
 	){
-		if(
-			!(
-				 value instanceof ExternalKind
-			)
-		) {
-			throw new TypeError(
-				"Expected a value of type \"ExternalKind\", but value of type \"" + typeof value + "\" was passed: \"" + String(
-					value
-				) + "\""
-			);
+		{
+			const __facade_value = value;
+			if(
+				!(
+					 __facade_value instanceof ExternalKind
+				)
+			) {
+				throw new TypeError(
+					"Expected a value of type \"ExternalKind\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+						__facade_value
+					) + "\""
+				);
+			}
+			this.#_binding["__Tuple__0"] = __facade_value.__get_binding();
 		}
-		this.#_binding["__Tuple__0"] = value.__get_binding();
 		this.#_Tuple_0 = ExternalKind.__from_binding(
 			this.#_binding["__Tuple__0"]
 		);

@@ -34,27 +34,32 @@ export function foo (
 	__p__b,
 	__p__c
 ) {
-	 __p__a = __p__a;
-	 __p__b = __p__b;
-	if(
-		!(
-			 __p__c instanceof Foo
-		)
-	) {
-		throw new TypeError(
-			"Expected a value of type \"Foo\", but value of type \"" + typeof __p__c + "\" was passed: \"" + String(
-				__p__c
-			) + "\""
-		);
+	__p__a = __p__a;
+	__p__b = __p__b;
+	{
+		const __facade_value = __p__c;
+		if(
+			!(
+				 __facade_value instanceof Foo
+			)
+		) {
+			throw new TypeError(
+				"Expected a value of type \"Foo\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+					__facade_value
+				) + "\""
+			);
+		}
+		__p__c = __facade_value.__get_binding();
 	}
-	 __p__c = __p__c.__get_binding();
 
-	return Foo.__from_binding(
+	let result;
+	result = Foo.__from_binding(
 		__binding_fn__rustdoc_0test_0crate_foo(
 			__p__a,
 			__p__b,
 			__p__c
 		)
 	);
+	return result;
 }
 ```

@@ -51,14 +51,21 @@ export class Example {
 			type_ === 0
 		){
 			const binding = this.#_binding["__First__value"];
-			return this.#_First_value ??= ExternalPoint.__from_binding(
-				binding
-			);
+			if(
+				this.#_First_value === undefined || this.#_First_value === null
+			) {
+				this.#_First_value = ExternalPoint.__from_binding(
+					binding
+				);
+			}
+			return this.#_First_value;
 		}
 		if(
 			type_ === 1
 		){
-			return this.#_binding["__Second__value"];
+			let value;
+			value = this.#_binding["__Second__value"];
+			return value;
 		}
 		throw new TypeError(
 			"Field value is not available on the active Example variant"
@@ -72,18 +79,21 @@ export class Example {
 		if(
 			type_ === 0
 		){
-			if(
-				!(
-					 value instanceof ExternalPoint
-				)
-			) {
-				throw new TypeError(
-					"Expected a value of type \"ExternalPoint\", but value of type \"" + typeof value + "\" was passed: \"" + String(
-						value
-					) + "\""
-				);
+			{
+				const __facade_value = value;
+				if(
+					!(
+						 __facade_value instanceof ExternalPoint
+					)
+				) {
+					throw new TypeError(
+						"Expected a value of type \"ExternalPoint\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+							__facade_value
+						) + "\""
+					);
+				}
+				this.#_binding["__First__value"] = __facade_value.__get_binding();
 			}
-			this.#_binding["__First__value"] = value.__get_binding();
 			this.#_First_value = ExternalPoint.__from_binding(
 				this.#_binding["__First__value"]
 			);
@@ -106,17 +116,27 @@ export class Example {
 			type_ === 0
 		){
 			const binding = this.#_binding["__First__mixed"];
-			return this.#_First_mixed ??= Point.__from_binding(
-				binding
-			);
+			if(
+				this.#_First_mixed === undefined || this.#_First_mixed === null
+			) {
+				this.#_First_mixed = Point.__from_binding(
+					binding
+				);
+			}
+			return this.#_First_mixed;
 		}
 		if(
 			type_ === 1
 		){
 			const binding = this.#_binding["__Second__mixed"];
-			return this.#_Second_mixed ??= Readonly.__from_binding(
-				binding
-			);
+			if(
+				this.#_Second_mixed === undefined || this.#_Second_mixed === null
+			) {
+				this.#_Second_mixed = Readonly.__from_binding(
+					binding
+				);
+			}
+			return this.#_Second_mixed;
 		}
 		throw new TypeError(
 			"Field mixed is not available on the active Example variant"
@@ -130,18 +150,21 @@ export class Example {
 		if(
 			type_ === 0
 		){
-			if(
-				!(
-					 value instanceof Point
-				)
-			) {
-				throw new TypeError(
-					"Expected a value of type \"Point\", but value of type \"" + typeof value + "\" was passed: \"" + String(
-						value
-					) + "\""
-				);
+			{
+				const __facade_value = value;
+				if(
+					!(
+						 __facade_value instanceof Point
+					)
+				) {
+					throw new TypeError(
+						"Expected a value of type \"Point\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+							__facade_value
+						) + "\""
+					);
+				}
+				this.#_binding["__First__mixed"] = __facade_value.__get_binding();
 			}
-			this.#_binding["__First__mixed"] = value.__get_binding();
 			this.#_First_mixed = Point.__from_binding(
 				this.#_binding["__First__mixed"]
 			);
@@ -165,17 +188,27 @@ export class Example {
 			type_ === 0
 		){
 			const binding = this.#_binding["__First__locked"];
-			return this.#_First_locked ??= Readonly.__from_binding(
-				binding
-			);
+			if(
+				this.#_First_locked === undefined || this.#_First_locked === null
+			) {
+				this.#_First_locked = Readonly.__from_binding(
+					binding
+				);
+			}
+			return this.#_First_locked;
 		}
 		if(
 			type_ === 1
 		){
 			const binding = this.#_binding["__Second__locked"];
-			return this.#_Second_locked ??= Readonly.__from_binding(
-				binding
-			);
+			if(
+				this.#_Second_locked === undefined || this.#_Second_locked === null
+			) {
+				this.#_Second_locked = Readonly.__from_binding(
+					binding
+				);
+			}
+			return this.#_Second_locked;
 		}
 		throw new TypeError(
 			"Field locked is not available on the active Example variant"

@@ -27,8 +27,10 @@ import {
 export function foo (
 
 ) {
-	return __binding_fn__rustdoc_0test_0crate_foo(
+	let result;
+	result = __binding_fn__rustdoc_0test_0crate_foo(
 
 	);
+	return result;
 }
 ```

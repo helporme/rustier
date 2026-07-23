@@ -32,10 +32,12 @@ import {
 export function foo (
 
 ) {
-	return Foo.__from_binding(
+	let result;
+	result = Foo.__from_binding(
 		__binding_fn__rustdoc_0test_0crate_foo(
 
 		)
 	);
+	return result;
 }
 ```

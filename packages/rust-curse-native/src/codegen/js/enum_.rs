@@ -12,15 +12,12 @@ use crate::{
         },
         js::{
             boundary::{
-                compile_js_binding_value_to_facade_expr,
-                compile_js_binding_value_to_facade_expr_required_imports,
-                compile_js_facade_value_to_binding_expr,
+                compile_js_binding_value_to_facade_stmt,
+                compile_js_binding_value_to_facade_stmt_required_imports,
+                compile_js_facade_value_to_binding_stmt,
+                compile_js_facade_value_to_binding_stmt_required_imports,
             },
             imports::{Import, ImportFrom},
-            validation::{
-                compile_js_facade_value_validation_stmt,
-                compile_js_facade_value_validation_stmt_required_imports,
-            },
         },
     },
     frag,
@@ -115,7 +112,7 @@ pub fn compile_facade_class_for_enum_required_imports<'db>(
         for field in variant.fields(db) {
             let field_type = field.type_(db);
 
-            compile_js_binding_value_to_facade_expr_required_imports(
+            compile_js_binding_value_to_facade_stmt_required_imports(
                 db,
                 active_mod_id,
                 field_type,
@@ -123,7 +120,7 @@ pub fn compile_facade_class_for_enum_required_imports<'db>(
             );
 
             if !field.is_readonly(db) {
-                compile_js_facade_value_validation_stmt_required_imports(
+                compile_js_facade_value_to_binding_stmt_required_imports(
                     db,
                     active_mod_id,
                     field_type,
@@ -283,21 +280,31 @@ fn compile_field_read_stmt<'db>(
         Type::Struct(_) | Type::Enum(_) => {
             frag!(
                 const binding = ~{compile_enum_binding_field_expr(db, occurrence)};@
-                return ~{compile_cached_facade_field_expr(db, occurrence)}~ ??= ~{compile_js_binding_value_to_facade_expr(
-                    db,
-                    field_type,
-                    frag!(binding),
-                )};
+                if (
+                    {compile_cached_facade_field_expr(db, occurrence)}~ === undefined ||~
+                    {compile_cached_facade_field_expr(db, occurrence)}~ === null
+                ) ~{{
+                    {compile_js_binding_value_to_facade_stmt(
+                        db,
+                        field_type,
+                        frag!(binding),
+                        compile_cached_facade_field_expr(db, occurrence),
+                    )}@
+                }}@
+                return ~{compile_cached_facade_field_expr(db, occurrence)};
             )
             .apply(p);
         }
         Type::Primitive(_) | Type::Str | Type::String => {
             frag!(
-                return ~{compile_js_binding_value_to_facade_expr(
+                let value;@
+                {compile_js_binding_value_to_facade_stmt(
                     db,
                     field_type,
                     compile_enum_binding_field_expr(db, occurrence),
-                )};
+                    frag!(value),
+                )}@
+                return value;
             )
             .apply(p);
         }
@@ -312,32 +319,24 @@ fn compile_field_assignment_stmt<'db>(
     let has_cached_facade = matches!(field_type, Type::Struct(_) | Type::Enum(_));
 
     fragment(move |p| {
-        if has_cached_facade {
-            frag!(
-                {compile_js_facade_value_validation_stmt(
-                    db,
-                    field_type,
-                    frag!(value),
-                )}@
-            )
-            .apply(p);
-        }
-
-        frag!(
-            {compile_enum_binding_field_expr(db, occurrence)}~ = ~{compile_js_facade_value_to_binding_expr(
+        frag!({
+            compile_js_facade_value_to_binding_stmt(
+                db,
                 field_type,
                 frag!(value),
-            )};
-        )
+                compile_enum_binding_field_expr(db, occurrence),
+            )
+        })
         .apply(p);
 
         if has_cached_facade {
             frag!(@
-                {compile_cached_facade_field_expr(db, occurrence)}~ = ~{compile_js_binding_value_to_facade_expr(
+                {compile_js_binding_value_to_facade_stmt(
                     db,
                     field_type,
                     compile_enum_binding_field_expr(db, occurrence),
-                )};
+                    compile_cached_facade_field_expr(db, occurrence),
+                )}
             )
             .apply(p);
         }

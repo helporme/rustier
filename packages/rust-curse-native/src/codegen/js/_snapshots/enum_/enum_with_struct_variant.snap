@@ -36,33 +36,43 @@ export class Example {
 
 	get ["point"](){
 		const binding = this.#_binding["__Struct__point"];
-		return this.#_Struct_point ??= Point.__from_binding(
-			binding
-		);
+		if(
+			this.#_Struct_point === undefined || this.#_Struct_point === null
+		) {
+			this.#_Struct_point = Point.__from_binding(
+				binding
+			);
+		}
+		return this.#_Struct_point;
 	}
 
 	set ["point"](
 		value
 	){
-		if(
-			!(
-				 value instanceof Point
-			)
-		) {
-			throw new TypeError(
-				"Expected a value of type \"Point\", but value of type \"" + typeof value + "\" was passed: \"" + String(
-					value
-				) + "\""
-			);
+		{
+			const __facade_value = value;
+			if(
+				!(
+					 __facade_value instanceof Point
+				)
+			) {
+				throw new TypeError(
+					"Expected a value of type \"Point\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+						__facade_value
+					) + "\""
+				);
+			}
+			this.#_binding["__Struct__point"] = __facade_value.__get_binding();
 		}
-		this.#_binding["__Struct__point"] = value.__get_binding();
 		this.#_Struct_point = Point.__from_binding(
 			this.#_binding["__Struct__point"]
 		);
 	}
 
 	get ["label"](){
-		return this.#_binding["__Struct__label"];
+		let value;
+		value = this.#_binding["__Struct__label"];
+		return value;
 	}
 
 	set ["label"](
@@ -72,7 +82,9 @@ export class Example {
 	}
 
 	get ["count"](){
-		return this.#_binding["__Struct__count"];
+		let value;
+		value = this.#_binding["__Struct__count"];
+		return value;
 	}
 
 	set ["count"](

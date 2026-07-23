@@ -33,7 +33,9 @@ export class Example {
 	}
 
 	get ["type"](){
-		return this.#_binding["__Value__type"];
+		let value;
+		value = this.#_binding["__Value__type"];
+		return value;
 	}
 
 	set ["type"](

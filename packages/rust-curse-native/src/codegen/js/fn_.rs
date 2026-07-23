@@ -4,18 +4,15 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, comma_list, fragment},
-        ir::{fn_::Fn, type_::Type},
+        ir::fn_::Fn,
         js::{
             boundary::{
-                compile_js_binding_value_to_facade_expr,
-                compile_js_binding_value_to_facade_expr_required_imports,
-                compile_js_facade_value_to_binding_expr,
+                compile_js_binding_value_to_facade_stmt,
+                compile_js_binding_value_to_facade_stmt_required_imports,
+                compile_js_facade_value_to_binding_stmt,
+                compile_js_facade_value_to_binding_stmt_required_imports,
             },
             imports::{Import, ImportFrom},
-            validation::{
-                compile_js_facade_value_validation_stmt,
-                compile_js_facade_value_validation_stmt_required_imports,
-            },
         },
     },
     frag,
@@ -28,22 +25,13 @@ use crate::{
 pub fn compile_facade_fn<'a>(db: &'a dyn Db, fn_: Fn<'a>) -> impl FragmentOnce + 'a {
     let param_conv = fragment(move |p| {
         for param in fn_.params(db).iter() {
-            match param.type_(db) {
-                Type::Struct(_) | Type::Enum(_) => {
-                    frag!(
-                        {compile_js_facade_value_validation_stmt(
-                            db,
-                            param.type_(db),
-                            param.binding_name(db),
-                        )}@
-                    )
-                    .apply(p);
-                }
-                Type::Primitive(_) | Type::Str | Type::String => {}
-            }
-
             frag!(
-                ~{param.binding_name(db)}~ = ~{compile_js_facade_value_to_binding_expr(param.type_(db), param.binding_name(db))};@
+                {compile_js_facade_value_to_binding_stmt(
+                    db,
+                    param.type_(db),
+                    param.binding_name(db),
+                    param.binding_name(db),
+                )}@
             )
             .apply(p);
         }
@@ -55,8 +43,16 @@ pub fn compile_facade_fn<'a>(db: &'a dyn Db, fn_: Fn<'a>) -> impl FragmentOnce +
     let body_stmt = fragment(move |p| match fn_.return_type(db) {
         Some(return_type) => {
             frag!(
-                return ~{compile_js_binding_value_to_facade_expr(db, return_type, binding_fn_call_expr)};
-            ).apply(p);
+                let result;@
+                {compile_js_binding_value_to_facade_stmt(
+                    db,
+                    return_type,
+                    binding_fn_call_expr,
+                    frag!(result),
+                )}@
+                return result;
+            )
+            .apply(p);
         }
         None => {
             frag!(
@@ -88,7 +84,7 @@ pub fn compile_facade_fn_required_imports<'db>(
     let active_mod_id = fn_.id(db).get_parent_mod_id(db).unwrap();
 
     for param in fn_.params(db).iter() {
-        compile_js_facade_value_validation_stmt_required_imports(
+        compile_js_facade_value_to_binding_stmt_required_imports(
             db,
             active_mod_id,
             param.type_(db),
@@ -97,7 +93,7 @@ pub fn compile_facade_fn_required_imports<'db>(
     }
 
     if let Some(return_type) = fn_.return_type(db) {
-        compile_js_binding_value_to_facade_expr_required_imports(
+        compile_js_binding_value_to_facade_stmt_required_imports(
             db,
             active_mod_id,
             return_type,
