@@ -11,7 +11,7 @@ use crate::{
                 compile_boundary_out_from_tethered_struct_expr, compile_boundary_out_type,
             },
             tethering::{
-                ClonedField, TetheredField, TetheredStruct, TetheredStructField,
+                ClonedField, TetheredField, TetheredStructField, TetheringStruct,
                 compile_tethered_struct, compile_tethered_struct_get_field_expr,
                 compile_tethered_struct_set_field_stmt,
             },
@@ -72,7 +72,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
     });
 
     frag!(
-        {compile_tethered_struct(TetheredStruct {
+        {compile_tethered_struct(TetheringStruct {
             source_type: struct_.fqn(db),
             name: struct_.tethered_name(db),
             fields: tethered_fields,

@@ -62,35 +62,35 @@
 //!
 //! Teathered struct is a struct that is compiled specifically for a source
 //! struct and can be initalized from:
-//!  - an owned value, so `TetheredPoint` will be crated like
-//!    `TetheredPoint::new_owned(Point::new(1,2))`.
-//!  - a projection, so `TetheredPoint` will be crated like
-//!    `TetheredPoint::from_projection(Projection::new(line, |line|
+//!  - an owned value, so `TetheringPoint` will be crated like
+//!    `TetheringPoint::new_owned(Point::new(1,2))`.
+//!  - a projection, so `TetheringPoint` will be crated like
+//!    `TetheringPoint::from_projection(Projection::new(line, |line|
 //!    &line.start))`.
 //!
 //! It's not a real code, but fine example.
 //!
-//! Now, for each struct we generate a tethered struct with internal structure
+//! Now, for each struct we generate a tethering struct with internal structure
 //! like this:
 //! ```text
-//! struct TetheredPoint {
+//! struct TetheringPoint {
 //!     src: ProjectionOrOwned<Point>,
 //! }
-//! // impl of TetheredPoint ommited for brevity
+//! // impl of TetheringPoint ommited for brevity
 //!
-//! struct TetheredLine {
+//! struct TetheringLine {
 //!     src: ProjectionOrOwned<Line>,
 //! }
 //!
-//! impl TetheredLine {
-//!     pub fn get_start(&self) -> TetheredPoint {
+//! impl TetheringLine {
+//!     pub fn get_start(&self) -> TetheringPoint {
 //!         // access field via reference projection or just directly in case it's owned value
 //!         self.src.access(|src| {
-//!             TetheredPoint::from_projection(Projection::new(src, |src| &src.start))
+//!             TetheringPoint::from_projection(Projection::new(src, |src| &src.start))
 //!         })
 //!     }
 //!
-//!     pub fn set_start(&mut self, point: TetheredPoint) {
+//!     pub fn set_start(&mut self, point: TetheringPoint) {
 //!         self.src.access_mut(|src| {
 //!             point.src.access(|point| {
 //!                 src.start = point.into_owned();
@@ -115,13 +115,13 @@
 //! will update the struct stored in `start` variable to point to `(-20, 13)`,
 //! since both `line.start` and `start` are practically accessing the same
 //! memory. To circumvent it, in setter, when setting a value, we first
-//! check if there is any previously returned `TetheredPoint` value holded
+//! check if there is any previously returned `TetheringPoint` value holded
 //! by JavaScript, and if so, we replace the underlying projection of the
-//! `TetheredPoint` with the owned value of the `Line.start` value before
+//! `TetheringPoint` with the owned value of the `Line.start` value before
 //! overwriting it.
 //!
 //! In practice the code differs and have much more nuances, but the idea is
-//! unchanged. Tethered structs is a internal mechanism used to support
+//! unchanged. Tethering structs is a internal mechanism used to support
 //! codegen, and because of that, it doesn't have nor should have any dependency
 //! on IR.
 
@@ -134,7 +134,7 @@ use crate::{
     frag,
 };
 
-/// Compiles the API-specific supporting code used by generated tethered
+/// Compiles the API-specific supporting code used by generated tethering
 /// structs.
 pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
     let api = Api::get(db);
@@ -266,16 +266,16 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
     )
 }
 
-/// A tethered struct. See the module-level documentation for more details.
-pub struct TetheredStruct<'a, FQN, Fields>
+/// A tethering struct. See the module-level documentation for more details.
+pub struct TetheringStruct<'a, FQN, Fields>
 where
     FQN: Fragment,
 {
-    /// Source type for which the tethered struct is generated.
+    /// Source type for which the tethering struct is generated.
     pub source_type: FQN,
-    /// Mangled name of the generated tethered struct.
+    /// Mangled name of the generated tethering struct.
     pub name: &'a str,
-    /// Source fields exposed by the tethered struct.
+    /// Source fields exposed by the tethering struct.
     pub fields: Fields,
 }
 
@@ -287,7 +287,7 @@ where
 {
     /// A field that holds a primitive-like value that is cloned when read.
     Cloned(ClonedField<'a, FQN, GetRefExpr, GetMutExpr>),
-    /// A field that holds a value represented by another tethered struct.
+    /// A field that holds a value represented by another tethering struct.
     TetheredStruct(TetheredStructField<'a, FQN, GetRefExpr, GetMutExpr>),
 }
 
@@ -318,7 +318,7 @@ where
     pub get_mut_expr: GetMutExpr,
     /// The type of this field on source type.
     pub source_type: FQN,
-    /// The name of the tethered struct generated for this field source type.
+    /// The name of the tethering struct generated for this field source type.
     pub tethered_name: FQN,
     /// Whether to generate a setter for this value.
     pub with_setter: bool,
@@ -336,7 +336,7 @@ pub fn compile_tethered_struct<
     GetMutExpr,
     MutExpr,
 >(
-    struct_: TetheredStruct<'a, StructFQN, Fields>,
+    struct_: TetheringStruct<'a, StructFQN, Fields>,
 ) -> impl FragmentOnce + 'a
 where
     StructFQN: Fragment + 'a,
@@ -472,7 +472,7 @@ pub fn compile_tethering_struct_from_source_expr<'a>(
 /// Compiles a call to a generated tethered field getter.
 ///
 /// Expression is of:
-///  - Rc of tethered struct type in case field holds tetherable source type
+///  - Rc of tethering struct type in case field holds tetherable source type
 ///  - A source type otherwise
 ///
 /// The expression must be inserted into a scope that returns the
@@ -487,7 +487,7 @@ pub fn compile_tethered_struct_get_field_expr<'a>(
 /// Compiles a call to a generated tethered field setter.
 ///
 /// Value should be of:
-///  - Rc of tethered struct type in case field holds tetherable source type
+///  - Rc of tethering struct type in case field holds tetherable source type
 ///  - A source type otherwise
 ///
 /// The statement must be inserted into a scope that returns the
@@ -725,7 +725,7 @@ mod tests {
         assert_snap!({
             let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 0] = [];
 
-            compile_tethered_struct(TetheredStruct {
+            compile_tethered_struct(TetheringStruct {
                 source_type: "crate::Empty",
                 name: "__tethered_empty",
                 fields,
@@ -745,7 +745,7 @@ mod tests {
                     source_type: "u32",
                 })];
 
-            compile_tethered_struct(TetheredStruct {
+            compile_tethered_struct(TetheringStruct {
                 source_type: "crate::Parent",
                 name: "__tethered_parent",
                 fields,
@@ -767,7 +767,7 @@ mod tests {
                     with_setter: true,
                 })];
 
-            compile_tethered_struct(TetheredStruct {
+            compile_tethered_struct(TetheringStruct {
                 source_type: "crate::Parent",
                 name: "__tethered_parent",
                 fields,
@@ -804,7 +804,7 @@ mod tests {
                 }),
             ];
 
-            compile_tethered_struct(TetheredStruct {
+            compile_tethered_struct(TetheringStruct {
                 source_type: "crate::Parent",
                 name: "__tethered_parent",
                 fields,
