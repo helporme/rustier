@@ -7,7 +7,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{Fragment, FragmentOnce, doubles, fragment},
-        ir::{IrId, enum_::enum_name_from_ir_id, struct_::struct_name_from_ir_id, type_::Type},
+        ir::{IrId, struct_::struct_name_from_ir_id, type_::Type},
         js::{
             enum_::compile_enum_facade_from_binding_expr_required_imports, imports::Import,
             struct_::compile_struct_facade_from_binding_expr_required_imports,
@@ -26,7 +26,7 @@ pub fn compile_js_facade_value_validation_stmt<'db>(
     fragment(move |p| {
         let type_name = match facade_value_type {
             Type::Struct(struct_id) => struct_name_from_ir_id(db, struct_id),
-            Type::Enum(enum_id) => enum_name_from_ir_id(db, enum_id),
+            Type::Enum(enum_id) => enum_id.name(db),
             Type::Primitive(_) | Type::Str | Type::String => return,
         };
         let message_start = doubles((

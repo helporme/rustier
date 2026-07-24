@@ -6,7 +6,7 @@ use crate::{
         fragment::{FragmentOnce, comma_list, doubles, fragment, spaced},
         ir::{
             IrId,
-            enum_::{Enum, EnumVariant, enum_field_binding_name_from_ir_id, enum_name_from_ir_id},
+            enum_::{Enum, EnumId, EnumVariant},
             shape::ShapeField,
             type_::Type,
         },
@@ -106,7 +106,7 @@ pub fn compile_facade_class_for_enum_required_imports<'db>(
     enum_: Enum<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {
-    let active_mod_id = enum_.id(db).get_parent_mod_id(db).unwrap();
+    let active_mod_id = enum_.id(db).parent_mod_id(db).unwrap();
 
     for variant in enum_.variants(db) {
         for field in variant.fields(db) {
@@ -365,7 +365,7 @@ fn compile_enum_binding_field_expr<'db>(
     db: &'db dyn Db,
     occurrence: EnumFieldOccurrence<'db>,
 ) -> impl FragmentOnce + 'db {
-    let binding_name = enum_field_binding_name_from_ir_id(db, occurrence.variant, occurrence.field);
+    let binding_name = occurrence.field.enum_binding_name(db, occurrence.variant);
     frag!(this.#_binding[{doubles(binding_name)}])
 }
 
@@ -391,27 +391,27 @@ fn compile_unavailable_field_error<'db>(
 /// [`compile_enum_facade_from_binding_expr_required_imports`] to be in scope.
 pub fn compile_enum_facade_from_binding_expr<'db>(
     db: &'db dyn Db,
-    enum_id: IrId<'db>,
+    enum_id: EnumId<'db>,
     binding_class_expr: impl FragmentOnce,
 ) -> impl FragmentOnce {
-    frag!({ enum_name_from_ir_id(db, enum_id) }.__from_binding({ binding_class_expr }))
+    frag!({ enum_id.name(db) }.__from_binding({ binding_class_expr }))
 }
 
 /// Adds imports required by [`compile_enum_facade_from_binding_expr`].
 pub fn compile_enum_facade_from_binding_expr_required_imports<'db>(
     db: &'db dyn Db,
     active_mod_id: IrId<'db>,
-    enum_id: IrId<'db>,
+    enum_id: EnumId<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {
-    let enum_mod_id = enum_id.get_parent_mod_id(db).unwrap();
+    let enum_mod_id = enum_id.parent_mod_id(db).unwrap();
 
     if active_mod_id == enum_mod_id {
         return;
     }
 
     imports.insert(Import {
-        item: enum_name_from_ir_id(db, enum_id),
+        item: enum_id.name(db),
         from: ImportFrom::RelativeToMod {
             from: active_mod_id,
             to: enum_mod_id,

@@ -5,7 +5,6 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, fragment},
         ir::{
-            enum_::enum_name_from_ir_id,
             shape::ShapeField,
             struct_::{Struct, struct_name_from_ir_id},
             type_::Type,
@@ -55,15 +54,15 @@ pub fn compile_struct_required_imports<'db>(
     struct_: Struct<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {
-    let active_mod_id = struct_.id(db).get_parent_mod_id(db).unwrap();
+    let active_mod_id = struct_.id(db).parent_mod_id(db).unwrap();
 
     for field in struct_.fields(db).iter() {
         let (type_id, type_name) = match field.type_(db) {
             Type::Struct(struct_id) => (struct_id, struct_name_from_ir_id(db, struct_id)),
-            Type::Enum(enum_id) => (enum_id, enum_name_from_ir_id(db, enum_id)),
+            Type::Enum(enum_id) => (enum_id.inner(db), enum_id.name(db)),
             Type::Primitive(_) | Type::Str | Type::String => continue,
         };
-        let type_mod_id = type_id.get_parent_mod_id(db).unwrap();
+        let type_mod_id = type_id.parent_mod_id(db).unwrap();
 
         if active_mod_id != type_mod_id {
             imports.insert(Import {

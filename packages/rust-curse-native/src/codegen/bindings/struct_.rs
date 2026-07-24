@@ -20,7 +20,6 @@ use crate::{
         fragment::{FragmentOnce, FragmentPrint, fragment, spaced},
         ir::{
             IrId,
-            enum_::enum_tethered_name_from_ir_id,
             shape::ShapeField,
             struct_::{Struct, struct_binding_name_from_ir_id, struct_tethered_name_from_ir_id},
             type_::Type,
@@ -46,12 +45,20 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
             move |source: &'static str| frag!(__tethering::AccessResult::Ok(&mut ~{source}.{name}));
 
         match type_ {
-            Type::Struct(id) | Type::Enum(id) => {
-                let tethered_name = match type_ {
-                    Type::Struct(_) => struct_tethered_name_from_ir_id(db, id),
-                    Type::Enum(_) => enum_tethered_name_from_ir_id(db, id),
-                    Type::Primitive(_) | Type::Str | Type::String => unreachable!(),
-                };
+            Type::Struct(id) => {
+                let tethered_name = struct_tethered_name_from_ir_id(db, id);
+
+                TetheredField::TetheredStruct(TetheredStructField {
+                    name,
+                    get_ref_expr,
+                    get_mut_expr,
+                    source_type: type_.rs_name(db),
+                    tethered_name,
+                    with_setter: !field.is_readonly(db),
+                })
+            }
+            Type::Enum(enum_id) => {
+                let tethered_name = enum_id.tethered_name(db);
 
                 TetheredField::TetheredStruct(TetheredStructField {
                     name,

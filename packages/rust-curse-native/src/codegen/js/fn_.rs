@@ -81,7 +81,7 @@ pub fn compile_facade_fn_required_imports<'db>(
         from: ImportFrom::Bindings,
     });
 
-    let active_mod_id = fn_.id(db).get_parent_mod_id(db).unwrap();
+    let active_mod_id = fn_.id(db).parent_mod_id(db).unwrap();
 
     for param in fn_.params(db).iter() {
         compile_js_facade_value_to_binding_stmt_required_imports(

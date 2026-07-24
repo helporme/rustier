@@ -1,7 +1,6 @@
 use rust_curse::codegen::{
     db::Db,
     ir::{
-        enum_::enum_fqn_from_ir_id,
         fn_::{Fn, FnParam},
         mod_::Mod,
         shape::{Shape, ShapeField},
@@ -70,7 +69,7 @@ impl<'db> DebugRender<'db> for Type<'db> {
             Type::Str => "str".to_string(),
             Type::String => "String".to_string(),
             Type::Struct(id) => struct_fqn_from_ir_id(db, *id).to_owned(),
-            Type::Enum(id) => enum_fqn_from_ir_id(db, *id).to_owned(),
+            Type::Enum(id) => id.fqn(db).to_owned(),
         }
     }
 }

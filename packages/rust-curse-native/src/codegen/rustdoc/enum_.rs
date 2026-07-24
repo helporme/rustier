@@ -8,7 +8,7 @@ use crate::codegen::{
     ir::{
         IrId,
         c_like_enum::{CLikeEnum, CLikeEnumVariant},
-        enum_::{Enum, EnumVariant},
+        enum_::{Enum, EnumId, EnumVariant},
         span::{SourceCode, Span},
     },
     rustdoc::{
@@ -92,7 +92,8 @@ fn lower_data_carrying_enum<'db>(
     }
 
     let item_summary = crate_body.paths.get(&item.id).unwrap();
-    let id = IrId::new(db, &item_summary.path);
+    let id = EnumId::new(db, IrId::new(db, &item_summary.path));
+
     Ok(Enum::new(db, id, variants, item.docs.clone()))
 }
 

@@ -191,7 +191,7 @@ pub fn compile_facade_class_for_struct_required_imports<'db>(
     struct_: Struct<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {
-    let active_mod_id = struct_.id(db).get_parent_mod_id(db).unwrap();
+    let active_mod_id = struct_.id(db).parent_mod_id(db).unwrap();
 
     for field in struct_.fields(db).iter() {
         compile_js_binding_value_to_facade_stmt_required_imports(
@@ -231,7 +231,7 @@ pub fn compile_struct_facade_from_binding_expr_required_imports<'db>(
     struct_id: IrId<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {
-    let struct_mod_id = struct_id.get_parent_mod_id(db).unwrap();
+    let struct_mod_id = struct_id.parent_mod_id(db).unwrap();
 
     if active_mod_id == struct_mod_id {
         return;

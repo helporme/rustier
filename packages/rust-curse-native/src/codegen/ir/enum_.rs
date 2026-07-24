@@ -10,28 +10,91 @@ use crate::codegen::{
         shape::{Shape, ShapeField},
         type_::Type,
     },
+    rustdoc::RustdocId,
 };
 
+#[salsa::interned(debug)]
+#[derive(Ord, PartialOrd)]
+pub struct EnumId<'db> {
+    #[returns(copy)]
+    pub inner: IrId<'db>,
+}
+
 #[salsa::tracked]
-impl<'db> ShapeField<'db> {
-    /// Returns the enum variant field binding getter function name, e.g.
-    /// `__getter__Circle__radius`.
+impl<'db> EnumId<'db> {
+    /// Enum fully qualified name, e.g. `core::option::Option`.
     #[salsa::tracked(returns(ref))]
-    pub fn getter_binding_name_on_enum(self, db: &'db dyn Db, variant: EnumVariant<'db>) -> String {
-        format!(
-            "__getter{}",
-            enum_field_binding_name_from_ir_id(db, variant, self)
-        )
+    pub fn fqn(self, db: &'db dyn Db) -> String {
+        let id = self.rustdoc_id(db);
+        let summary = id
+            .crate_body(db)
+            .paths
+            .get(&id.idx(db))
+            .expect("Enum not found in a rustdoc crate");
+
+        assert_eq!(summary.kind, ItemKind::Enum);
+        summary.path.join("::")
     }
 
-    /// Returns the enum variant field binding setter function name, e.g.
-    /// `__setter__Circle__radius`.
+    /// Unqualified enum name, e.g. `Option`.
     #[salsa::tracked(returns(ref))]
-    pub fn setter_binding_name_on_enum(self, db: &'db dyn Db, variant: EnumVariant<'db>) -> String {
-        format!(
-            "__setter{}",
-            enum_field_binding_name_from_ir_id(db, variant, self)
-        )
+    pub fn name(self, db: &'db dyn Db) -> String {
+        let id = self.rustdoc_id(db);
+        let summary = id
+            .crate_body(db)
+            .paths
+            .get(&id.idx(db))
+            .expect("Enum not found in a rustdoc crate");
+
+        assert_eq!(summary.kind, ItemKind::Enum);
+        summary
+            .path
+            .last()
+            .expect("Enum must have a name")
+            .to_string()
+    }
+
+    /// Mangled fully qualified name, e.g. `core__option__Option`.
+    #[salsa::tracked(returns(ref))]
+    pub fn mangled_fqn(self, db: &'db dyn Db) -> String {
+        let id = self.rustdoc_id(db);
+        let summary = id
+            .crate_body(db)
+            .paths
+            .get(&id.idx(db))
+            .expect("Enum not found in a rustdoc crate");
+
+        assert_eq!(summary.kind, ItemKind::Enum);
+        mangle_path(&summary.path)
+    }
+
+    /// Binding mangled name, e.g. `__binding_enum__core__option__Option`.
+    #[salsa::tracked(returns(ref))]
+    pub fn binding_name(self, db: &'db dyn Db) -> String {
+        format!("__binding_enum__{}", self.mangled_fqn(db))
+    }
+
+    /// Paired tethering struct name, e.g.
+    /// `__tethered_struct__core__option__Option`.
+    #[salsa::tracked(returns(ref))]
+    pub fn tethered_name(self, db: &'db dyn Db) -> String {
+        format!("__tethered_struct__{}", self.mangled_fqn(db))
+    }
+
+    /// Returns the rustdoc ID for this enum.
+    pub fn rustdoc_id(self, db: &'db dyn Db) -> RustdocId<'db> {
+        self.inner(db).rustdoc_id(db)
+    }
+
+    /// Returns the path to this enum.
+    pub fn path(self, db: &'db dyn Db) -> &'db [String] {
+        self.inner(db).path(db)
+    }
+
+    /// Returns the parent module ID of this item, or `None` if the item
+    /// is a top-level module.
+    pub fn parent_mod_id(self, db: &'db dyn Db) -> Option<IrId<'db>> {
+        self.inner(db).parent_mod_id(db)
     }
 }
 
@@ -61,7 +124,7 @@ impl<'db> EnumVariant<'db> {
 /// A lowered Rust enum and its variants.
 #[salsa::tracked(debug)]
 pub struct Enum<'db> {
-    pub id: IrId<'db>,
+    pub id: EnumId<'db>,
     #[tracked]
     #[returns(ref)]
     pub variants: Vec<EnumVariant<'db>>,
@@ -100,9 +163,7 @@ impl<'db> Enum<'db> {
             })
             .collect()
     }
-}
 
-impl<'db> Enum<'db> {
     /// Returns the JavaScript discriminant field name for this enum.
     pub fn js_tag_field_name(&self, db: &'db dyn Db) -> &'static str {
         if self
@@ -118,22 +179,22 @@ impl<'db> Enum<'db> {
 
     /// Returns the name of the binding struct for this enum.
     pub fn binding_name(&self, db: &'db dyn Db) -> &'db str {
-        enum_binding_name_from_ir_id(db, self.id(db))
+        self.id(db).binding_name(db)
     }
 
     /// Returns the name of the tethered backing struct for this enum.
     pub fn tethered_name(&self, db: &'db dyn Db) -> &'db str {
-        enum_tethered_name_from_ir_id(db, self.id(db))
+        self.id(db).tethered_name(db)
     }
 
     /// Returns the enum name, e.g. `Shape` for `geometry::Shape`.
     pub fn name(&self, db: &'db dyn Db) -> &'db str {
-        enum_name_from_ir_id(db, self.id(db))
+        self.id(db).name(db)
     }
 
     /// Returns the fully qualified enum name, e.g. `geometry::Shape`.
     pub fn fqn(&self, db: &'db dyn Db) -> &'db str {
-        enum_fqn_from_ir_id(db, self.id(db))
+        self.id(db).fqn(db)
     }
 
     /// Returns the enum as a [`Type`].
@@ -142,73 +203,26 @@ impl<'db> Enum<'db> {
     }
 }
 
-/// Returns the mangled enum name for an IR ID.
-#[salsa::tracked(returns(ref))]
-pub fn enum_mangled_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
-    let id = id.rustdoc_id(db);
-    let summary = id
-        .crate_body(db)
-        .paths
-        .get(&id.idx(db))
-        .expect("Enum not found in a rustdoc crate");
+// todo: move to variant?
+#[salsa::tracked]
+impl<'db> ShapeField<'db> {
+    /// Returns the enum variant field binding getter function name, e.g.
+    /// `__getter__Circle__radius`.
+    #[salsa::tracked(returns(ref))]
+    pub fn getter_binding_name_on_enum(self, db: &'db dyn Db, variant: EnumVariant<'db>) -> String {
+        format!("__getter{}", self.enum_binding_name(db, variant))
+    }
 
-    assert_eq!(summary.kind, ItemKind::Enum);
-    mangle_path(&summary.path)
-}
+    /// Returns the enum variant field binding setter function name, e.g.
+    /// `__setter__Circle__radius`.
+    #[salsa::tracked(returns(ref))]
+    pub fn setter_binding_name_on_enum(self, db: &'db dyn Db, variant: EnumVariant<'db>) -> String {
+        format!("__setter{}", self.enum_binding_name(db, variant))
+    }
 
-/// Returns the variant-mangled binding name for an enum variant field.
-#[salsa::tracked(returns(ref))]
-pub fn enum_field_binding_name_from_ir_id<'db>(
-    db: &'db dyn Db,
-    variant: EnumVariant<'db>,
-    field: ShapeField<'db>,
-) -> String {
-    format!("__{}__{}", variant.name(db), field.name(db))
-}
-
-/// Returns the Rust and JavaScript binding name for an enum IR ID.
-#[salsa::tracked(returns(ref))]
-pub fn enum_binding_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
-    format!("__binding_enum__{}", enum_mangled_name_from_ir_id(db, id))
-}
-
-/// Returns the tethered backing struct name for an enum IR ID.
-#[salsa::tracked(returns(ref))]
-pub fn enum_tethered_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
-    format!(
-        "__tethered_struct__{}",
-        enum_mangled_name_from_ir_id(db, id)
-    )
-}
-
-/// Returns the fully qualified enum name for an IR ID.
-#[salsa::tracked(returns(ref))]
-pub fn enum_fqn_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
-    let id = id.rustdoc_id(db);
-    let summary = id
-        .crate_body(db)
-        .paths
-        .get(&id.idx(db))
-        .expect("Enum not found in a rustdoc crate");
-
-    assert_eq!(summary.kind, ItemKind::Enum);
-    summary.path.join("::")
-}
-
-/// Returns the unqualified enum name for an IR ID.
-#[salsa::tracked(returns(ref))]
-pub fn enum_name_from_ir_id<'db>(db: &'db dyn Db, id: IrId<'db>) -> String {
-    let id = id.rustdoc_id(db);
-    let summary = id
-        .crate_body(db)
-        .paths
-        .get(&id.idx(db))
-        .expect("Enum not found in a rustdoc crate");
-
-    assert_eq!(summary.kind, ItemKind::Enum);
-    summary
-        .path
-        .last()
-        .expect("Enum must have a name")
-        .to_string()
+    /// Binding mangled name for a field, e.g. `__Circle__radius`.
+    #[salsa::tracked(returns(ref))]
+    pub fn enum_binding_name(self, db: &'db dyn Db, variant: EnumVariant<'db>) -> String {
+        format!("__{}__{}", variant.name(db), self.name(db))
+    }
 }

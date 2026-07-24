@@ -17,7 +17,6 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment},
         ir::{
-            enum_::{enum_binding_name_from_ir_id, enum_tethered_name_from_ir_id},
             fn_::{FnParam, ParamMode},
             struct_::{struct_binding_name_from_ir_id, struct_tethered_name_from_ir_id},
             type_::{Primitive, Type},
@@ -352,7 +351,7 @@ pub fn compile_boundary_in_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> impl Fra
             | Type::Str
             | Type::String => api.js_type(db).apply(p),
             Type::Struct(id) => frag!(&{ struct_binding_name_from_ir_id(db, id) }).apply(p),
-            Type::Enum(id) => frag!(&{ enum_binding_name_from_ir_id(db, id) }).apply(p),
+            Type::Enum(id) => frag!(&{ id.binding_name(db) }).apply(p),
         }
     })
 }
@@ -401,10 +400,8 @@ pub fn compile_boundary_out_from_source_type_expr<'db>(
                 .apply(p);
             }
             Type::Enum(id) => {
-                let tethered_enum = compile_tethering_struct_from_source_expr(
-                    enum_tethered_name_from_ir_id(db, id),
-                    in_expr,
-                );
+                let tethered_enum =
+                    compile_tethering_struct_from_source_expr(id.tethered_name(db), in_expr);
 
                 compile_boundary_out_from_tethered_struct_expr(db, tethered_enum, Type::Enum(id))
                     .apply(p);
@@ -459,6 +456,6 @@ pub fn compile_boundary_out_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> &'db st
             "str cannot be returned from the function, since functions cannot return references"
         ),
         Type::Struct(id) => struct_binding_name_from_ir_id(db, id),
-        Type::Enum(id) => enum_binding_name_from_ir_id(db, id),
+        Type::Enum(id) => id.binding_name(db),
     }
 }

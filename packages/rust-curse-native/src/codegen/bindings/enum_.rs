@@ -19,11 +19,7 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment, spaced},
         ir::{
-            IrId,
-            enum_::{
-                Enum, EnumVariant, enum_binding_name_from_ir_id,
-                enum_field_binding_name_from_ir_id, enum_tethered_name_from_ir_id,
-            },
+            enum_::{Enum, EnumId, EnumVariant},
             shape::{Shape, ShapeField},
             struct_::struct_tethered_name_from_ir_id,
             type_::Type,
@@ -38,19 +34,27 @@ use crate::{
 pub fn compile_binding_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
     let tethered_fields = enum_.variants(db).iter().copied().flat_map(move |variant| {
         variant.fields(db).map(move |field| {
-            let name = enum_field_binding_name_from_ir_id(db, variant, field);
+            let name = field.enum_binding_name(db, variant);
             let type_ = field.type_(db);
             let get_expr = move |source: &'static str| {
                 compile_variant_field_access_expr(db, enum_, variant, field, source)
             };
 
             match type_ {
-                Type::Struct(id) | Type::Enum(id) => {
-                    let tethered_name = match type_ {
-                        Type::Struct(_) => struct_tethered_name_from_ir_id(db, id),
-                        Type::Enum(_) => enum_tethered_name_from_ir_id(db, id),
-                        Type::Primitive(_) | Type::Str | Type::String => unreachable!(),
-                    };
+                Type::Struct(id) => {
+                    let tethered_name = struct_tethered_name_from_ir_id(db, id);
+
+                    TetheredField::TetheredStruct(TetheredStructField {
+                        name,
+                        get_ref_expr: get_expr,
+                        get_mut_expr: get_expr,
+                        source_type: type_.rs_name(db),
+                        tethered_name,
+                        with_setter: !field.is_readonly(db),
+                    })
+                }
+                Type::Enum(id) => {
+                    let tethered_name = id.tethered_name(db);
 
                     TetheredField::TetheredStruct(TetheredStructField {
                         name,
@@ -177,7 +181,7 @@ fn compile_field_getter<'db>(
         ApiKind::Wasm { .. } => "#[wasm_bindgen(getter, js_name = ",
         ApiKind::Node => "#[napi(getter, js_name = ",
     };
-    let name = enum_field_binding_name_from_ir_id(db, variant, field);
+    let name = field.enum_binding_name(db, variant);
     let getter_name = field.getter_binding_name_on_enum(db, variant);
     let field_type = field.type_(db);
     let result_type = api.result_type(db, compile_boundary_out_type(db, field_type));
@@ -211,7 +215,7 @@ fn compile_field_setter<'db>(
         ApiKind::Wasm { .. } => "#[wasm_bindgen(setter, js_name = ",
         ApiKind::Node => "#[napi(setter, js_name = ",
     };
-    let name = enum_field_binding_name_from_ir_id(db, variant, field);
+    let name = field.enum_binding_name(db, variant);
     let setter_name = field.setter_binding_name_on_enum(db, variant);
     let param_type_name = compile_boundary_in_type(db, field.type_(db));
     let result_type = api.result_type(db, "()");
@@ -298,10 +302,10 @@ fn compile_variant_field_access_expr<'db>(
 /// Compiles an expression that wraps a tethered enum in its binding struct.
 pub fn compile_binding_enum_from_tethered_expr<'db>(
     db: &'db dyn Db,
-    id: IrId<'db>,
+    enum_id: EnumId<'db>,
     tethered_struct_expr: impl FragmentOnce + 'db,
 ) -> impl FragmentOnce + 'db {
-    let binding_name = enum_binding_name_from_ir_id(db, id);
+    let binding_name = enum_id.binding_name(db);
     frag!({binding_name}~{{ src: {tethered_struct_expr} }})
 }
 

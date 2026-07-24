@@ -6,6 +6,7 @@ use crate::codegen::{
     db::Db,
     ir::{
         IrId,
+        enum_::EnumId,
         type_::{Primitive, Type as IrType},
     },
     rustdoc::{CrateExt, RustdocType},
@@ -51,9 +52,9 @@ pub fn lower_type<'db>(
                     &summary.path,
                 ))))
             } else if summary.kind == ItemKind::Enum && crate_.index.contains_key(&path.id) {
-                Ok(LoweredType::Moved(IrType::Enum(IrId::new(
+                Ok(LoweredType::Moved(IrType::Enum(EnumId::new(
                     db,
-                    &summary.path,
+                    IrId::new(db, &summary.path),
                 ))))
             } else {
                 Err(vec![TypeLowerError::UnsupportedType {

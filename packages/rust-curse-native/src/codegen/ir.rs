@@ -46,7 +46,7 @@ impl<'db> IrId<'db> {
     /// Returns the parent module ID of this item, or `None` if the item
     /// is a top-level module.
     #[salsa::tracked]
-    pub fn get_parent_mod_id(self, db: &'db dyn Db) -> Option<IrId<'db>> {
+    pub fn parent_mod_id(self, db: &'db dyn Db) -> Option<IrId<'db>> {
         let path = self.path(db);
         if path.len() <= 1 {
             return None;

@@ -21,7 +21,7 @@ let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 1] = [
         with_setter: true,
     }),
 ];
-compile_tethered_struct(TetheredStruct {
+compile_tethered_struct(TetheringStruct {
         source_type: "crate::Parent",
         name: "__tethered_parent",
         fields,
