@@ -11,7 +11,7 @@ use crate::{
                 compile_boundary_out_from_tethered_struct_expr, compile_boundary_out_type,
             },
             tethering::{
-                ClonedField, TetheredField, TetheredStructField, TetheringStruct,
+                ClonedField, TetheredField, TetheredStructField, TetheredType, TetheringStruct,
                 compile_tethered_struct, compile_tethered_struct_get_field_expr,
                 compile_tethered_struct_set_field_stmt,
             },
@@ -27,6 +27,44 @@ use crate::{
     },
     frag,
 };
+
+#[salsa::tracked]
+impl<'db> StructId<'db> {
+    /// Binding mangled name, e.g. `__binding_struct__std__mem__Drop`.
+    #[salsa::tracked(returns(ref))]
+    pub fn binding_name(self, db: &'db dyn Db) -> String {
+        format!("__binding_struct__{}", self.mangled_fqn(db))
+    }
+
+    /// Paired tethering struct name, e.g.
+    /// `__tethered_struct__std__mem__Drop`.
+    #[salsa::tracked(returns(ref))]
+    pub fn tethering_struct_name(self, db: &'db dyn Db) -> String {
+        format!("__tethered_struct__{}", self.mangled_fqn(db))
+    }
+
+    /// Converts struct into a [`TetheredType`].
+    pub fn into_tethered_type(self, db: &'db dyn Db) -> TetheredType<'db> {
+        TetheredType {
+            tethering_struct_name: self.tethering_struct_name(db),
+            binding_name: self.binding_name(db),
+        }
+    }
+}
+
+impl<'db> Struct<'db> {
+    /// Returns the name of the binding struct, e.g.
+    /// `__binding_struct__std_mem_Drop`
+    pub fn binding_name(&self, db: &'db dyn Db) -> &'db str {
+        self.id(db).binding_name(db)
+    }
+
+    /// Paired tethering struct name, e.g.
+    /// `__tethered_struct__std__mem__Drop`.
+    pub fn tethering_struct_name(&self, db: &'db dyn Db) -> &'db str {
+        self.id(db).tethering_struct_name(db)
+    }
+}
 
 /// Compiles a Rust struct into its tethered backing struct and public binding
 /// wrapper.
@@ -45,7 +83,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
 
         match type_ {
             Type::Struct(id) => {
-                let tethered_name = id.tethered_name(db);
+                let tethered_name = id.tethering_struct_name(db);
 
                 TetheredField::TetheredStruct(TetheredStructField {
                     name,
@@ -57,7 +95,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
                 })
             }
             Type::Enum(enum_id) => {
-                let tethered_name = enum_id.tethered_name(db);
+                let tethered_name = enum_id.tethering_struct_name(db);
 
                 TetheredField::TetheredStruct(TetheredStructField {
                     name,
@@ -80,7 +118,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
     frag!(
         {compile_tethered_struct(TetheringStruct {
             source_type: struct_.fqn(db),
-            name: struct_.tethered_name(db),
+            name: struct_.tethering_struct_name(db),
             fields: tethered_fields,
         })}@@
         {compile_wrapper_struct(db, struct_)}@@
@@ -104,7 +142,7 @@ fn compile_wrapper_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl Fr
     frag!(
         {api.struct_header(db, struct_)}
         pub struct ~{struct_.binding_name(db)}~{{
-            src: std::rc::Rc<{struct_.tethered_name(db)}>
+            src: std::rc::Rc<{struct_.tethering_struct_name(db)}>
         }}
     )
 }

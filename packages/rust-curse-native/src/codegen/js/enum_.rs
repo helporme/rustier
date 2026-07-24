@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
     codegen::{
@@ -7,6 +7,7 @@ use crate::{
         ir::{
             IrId,
             enum_::{Enum, EnumId, EnumVariant},
+            mangle::to_camel_case,
             shape::ShapeField,
             type_::Type,
         },
@@ -22,6 +23,51 @@ use crate::{
     },
     frag,
 };
+
+#[salsa::tracked]
+impl<'db> Enum<'db> {
+    /// Returns JavaScript discriminant tags in variant declaration order.
+    #[salsa::tracked(returns(ref))]
+    pub fn js_tag_names(self, db: &'db dyn Db) -> Vec<String> {
+        let camel_case_names = self
+            .variants(db)
+            .iter()
+            .map(|variant| to_camel_case(variant.name(db)))
+            .collect::<Vec<_>>();
+        let mut occurrences = BTreeMap::new();
+
+        for name in &camel_case_names {
+            *occurrences.entry(name.as_str()).or_insert(0) += 1;
+        }
+
+        // declash the `http` variant and `Http` variant by preserving
+        // their original names
+        self.variants(db)
+            .iter()
+            .zip(&camel_case_names)
+            .map(|(variant, camel_case_name)| {
+                if occurrences[camel_case_name.as_str()] > 1 {
+                    variant.name(db).clone()
+                } else {
+                    camel_case_name.clone()
+                }
+            })
+            .collect()
+    }
+
+    /// Returns the JavaScript discriminant field name for this enum.
+    pub fn js_tag_field_name(&self, db: &'db dyn Db) -> &'static str {
+        if self
+            .variants(db)
+            .iter()
+            .any(|variant| variant.fields(db).any(|field| field.name(db) == "type"))
+        {
+            "$type"
+        } else {
+            "type"
+        }
+    }
+}
 
 #[derive(Clone, Copy)]
 struct EnumFieldOccurrence<'db> {

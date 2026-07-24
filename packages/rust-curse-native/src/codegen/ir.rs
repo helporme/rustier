@@ -12,23 +12,40 @@ pub mod type_;
 
 use crate::codegen::{
     db::Db,
+    ir::mangle::mangle_path,
     rustdoc::{RustdocCrates, RustdocId},
 };
 
+/// Identifies a lowered Rust item by its fully qualified path.
 #[salsa::interned(debug)]
 #[derive(Ord, PartialOrd)]
 pub struct IrId<'db> {
-    /// Fully qualified path to the item, e.g. [`std`, `mem`, `drop`]
+    /// Fully qualified item path, e.g. `["geometry", "Point"]`.
     #[returns(ref)]
     pub path: Vec<String>,
 }
 
 #[salsa::tracked]
 impl<'db> IrId<'db> {
-    /// Returns the fully qualified path to the item, e.g. `std::mem::drop`.
+    /// Returns the fully qualified item name, e.g. `geometry::Point`.
     #[salsa::tracked(returns(ref))]
     pub fn fqn(self, db: &'db dyn Db) -> String {
         self.path(db).join("::")
+    }
+
+    /// Returns the unqualified item name, e.g. `Point`.
+    #[salsa::tracked(returns(ref))]
+    pub fn name(self, db: &'db dyn Db) -> String {
+        self.path(db)
+            .last()
+            .expect("Item must have a name")
+            .to_string()
+    }
+
+    /// Returns the mangled fully qualified item name, e.g. `geometry_Point`.
+    #[salsa::tracked(returns(ref))]
+    pub fn mangled_fqn(self, db: &'db dyn Db) -> String {
+        mangle_path(self.path(db))
     }
 
     /// Returns the [`RustdocId`] matching this item, or panics if no match is
@@ -43,8 +60,8 @@ impl<'db> IrId<'db> {
             .unwrap_or_else(|| panic!("no rustdoc item for `{}`", self.path(db).join("::")))
     }
 
-    /// Returns the parent module ID of this item, or `None` if the item
-    /// is a top-level module.
+    /// Returns the parent module ID, or `None` if this ID has no parent path
+    /// segment.
     #[salsa::tracked]
     pub fn parent_mod_id(self, db: &'db dyn Db) -> Option<IrId<'db>> {
         let path = self.path(db);

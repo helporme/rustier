@@ -11,7 +11,7 @@ use crate::{
                 compile_boundary_out_from_tethered_struct_expr, compile_boundary_out_type,
             },
             tethering::{
-                ClonedField, TetheredField, TetheredStructField, TetheringStruct,
+                ClonedField, TetheredField, TetheredStructField, TetheredType, TetheringStruct,
                 compile_tethered_struct, compile_tethered_struct_get_field_expr,
                 compile_tethered_struct_set_field_stmt,
             },
@@ -27,6 +27,67 @@ use crate::{
     frag,
 };
 
+#[salsa::tracked]
+impl<'db> EnumId<'db> {
+    /// Binding mangled name, e.g. `__binding_enum__core__option__Option`.
+    #[salsa::tracked(returns(ref))]
+    pub fn binding_name(self, db: &'db dyn Db) -> String {
+        format!("__binding_enum__{}", self.mangled_fqn(db))
+    }
+
+    /// Paired tethering struct name, e.g.
+    /// `__tethered_struct__core__option__Option`.
+    #[salsa::tracked(returns(ref))]
+    pub fn tethering_struct_name(self, db: &'db dyn Db) -> String {
+        format!("__tethered_struct__{}", self.mangled_fqn(db))
+    }
+
+    /// Converts struct into a [`TetheredType`].
+    pub fn into_tethered_type(self, db: &'db dyn Db) -> TetheredType<'db> {
+        TetheredType {
+            tethering_struct_name: self.tethering_struct_name(db),
+            binding_name: self.binding_name(db),
+        }
+    }
+}
+
+impl<'db> Enum<'db> {
+    /// Returns the name of the binding struct for this enum.
+    pub fn binding_name(&self, db: &'db dyn Db) -> &'db str {
+        self.id(db).binding_name(db)
+    }
+
+    /// Paired tethering struct name, e.g.
+    /// `__tethered_struct__core__option__Option`.
+    pub fn tethering_struct_name(&self, db: &'db dyn Db) -> &'db str {
+        self.id(db).tethering_struct_name(db)
+    }
+}
+
+// todo: move to variant?
+#[salsa::tracked]
+impl<'db> ShapeField<'db> {
+    /// Returns the enum variant field binding getter function name, e.g.
+    /// `__getter__Circle__radius`.
+    #[salsa::tracked(returns(ref))]
+    pub fn getter_binding_name_on_enum(self, db: &'db dyn Db, variant: EnumVariant<'db>) -> String {
+        format!("__getter{}", self.enum_binding_name(db, variant))
+    }
+
+    /// Returns the enum variant field binding setter function name, e.g.
+    /// `__setter__Circle__radius`.
+    #[salsa::tracked(returns(ref))]
+    pub fn setter_binding_name_on_enum(self, db: &'db dyn Db, variant: EnumVariant<'db>) -> String {
+        format!("__setter{}", self.enum_binding_name(db, variant))
+    }
+
+    /// Binding mangled name for a field, e.g. `__Circle__radius`.
+    #[salsa::tracked(returns(ref))]
+    pub fn enum_binding_name(self, db: &'db dyn Db, variant: EnumVariant<'db>) -> String {
+        format!("__{}__{}", variant.name(db), self.name(db))
+    }
+}
+
 /// Compiles a Rust enum into its tethered backing struct and public binding
 /// wrapper.
 #[salsa::tracked(returns(ref))]
@@ -41,7 +102,7 @@ pub fn compile_binding_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
 
             match type_ {
                 Type::Struct(id) => {
-                    let tethered_name = id.tethered_name(db);
+                    let tethered_name = id.tethering_struct_name(db);
 
                     TetheredField::TetheredStruct(TetheredStructField {
                         name,
@@ -53,7 +114,7 @@ pub fn compile_binding_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
                     })
                 }
                 Type::Enum(id) => {
-                    let tethered_name = id.tethered_name(db);
+                    let tethered_name = id.tethering_struct_name(db);
 
                     TetheredField::TetheredStruct(TetheredStructField {
                         name,
@@ -79,7 +140,7 @@ pub fn compile_binding_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
     frag!(
         {compile_tethered_struct(TetheringStruct {
             source_type: enum_.fqn(db),
-            name: enum_.tethered_name(db),
+            name: enum_.tethering_struct_name(db),
             fields: tethered_fields,
         })}@@
         {compile_wrapper_struct(db, enum_)}@@
@@ -99,7 +160,7 @@ fn compile_wrapper_struct<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl Fragme
     frag!(
         {header}{doubles(binding_name)}{")]"}
         pub struct ~{binding_name}~{{
-            src: std::rc::Rc<{enum_.tethered_name(db)}>
+            src: std::rc::Rc<{enum_.tethering_struct_name(db)}>
         }}
     )
 }

@@ -10,8 +10,27 @@ use crate::codegen::{
     },
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, comma_list, frag, fragment},
-    ir::fn_::Fn,
+    ir::fn_::{Fn, FnParam},
 };
+
+#[salsa::tracked]
+impl<'db> Fn<'db> {
+    /// Returns the name of the binding function, e.g.
+    /// `__binding_fn__std_mem_drop`
+    #[salsa::tracked(returns(ref))]
+    pub fn bindings_name(self, db: &'db dyn Db) -> String {
+        format!("__binding_fn__{}", self.mangled_fqn(db))
+    }
+}
+
+#[salsa::tracked]
+impl<'db> FnParam<'db> {
+    /// Returns the binding name of the parameter, e.g. `__p__foo`.
+    #[salsa::tracked(returns(ref))]
+    pub fn binding_name(self, db: &'db dyn Db) -> String {
+        format!("__p__{}", self.name(db))
+    }
+}
 
 /// Compiles a function into a binding function.
 #[salsa::tracked(returns(ref))]

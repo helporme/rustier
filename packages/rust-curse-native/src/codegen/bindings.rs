@@ -5,6 +5,7 @@ pub mod fn_;
 pub mod mod_;
 pub mod struct_;
 pub mod tethering;
+pub mod type_;
 
 use crate::codegen::{
     api::Api,

@@ -386,8 +386,10 @@ pub fn compile_boundary_out_from_source_type_expr<'db>(
                 "str cannot be returned from the function, since functions cannot return references"
             ),
             Type::Struct(id) => {
-                let tethered_struct =
-                    compile_tethering_struct_from_source_expr(id.tethered_name(db), in_expr);
+                let tethered_struct = compile_tethering_struct_from_source_expr(
+                    id.tethering_struct_name(db),
+                    in_expr,
+                );
 
                 compile_boundary_out_from_tethered_struct_expr(
                     db,
@@ -397,8 +399,10 @@ pub fn compile_boundary_out_from_source_type_expr<'db>(
                 .apply(p);
             }
             Type::Enum(id) => {
-                let tethered_enum =
-                    compile_tethering_struct_from_source_expr(id.tethered_name(db), in_expr);
+                let tethered_enum = compile_tethering_struct_from_source_expr(
+                    id.tethering_struct_name(db),
+                    in_expr,
+                );
 
                 compile_boundary_out_from_tethered_struct_expr(db, tethered_enum, Type::Enum(id))
                     .apply(p);
