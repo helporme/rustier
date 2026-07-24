@@ -18,7 +18,6 @@ use crate::{
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment},
         ir::{
             fn_::{FnParam, ParamMode},
-            struct_::{struct_binding_name_from_ir_id, struct_tethered_name_from_ir_id},
             type_::{Primitive, Type},
         },
     },
@@ -350,7 +349,7 @@ pub fn compile_boundary_in_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> impl Fra
             )
             | Type::Str
             | Type::String => api.js_type(db).apply(p),
-            Type::Struct(id) => frag!(&{ struct_binding_name_from_ir_id(db, id) }).apply(p),
+            Type::Struct(id) => frag!(&{ id.binding_name(db) }).apply(p),
             Type::Enum(id) => frag!(&{ id.binding_name(db) }).apply(p),
         }
     })
@@ -387,10 +386,8 @@ pub fn compile_boundary_out_from_source_type_expr<'db>(
                 "str cannot be returned from the function, since functions cannot return references"
             ),
             Type::Struct(id) => {
-                let tethered_struct = compile_tethering_struct_from_source_expr(
-                    struct_tethered_name_from_ir_id(db, id),
-                    in_expr,
-                );
+                let tethered_struct =
+                    compile_tethering_struct_from_source_expr(id.tethered_name(db), in_expr);
 
                 compile_boundary_out_from_tethered_struct_expr(
                     db,
@@ -455,7 +452,7 @@ pub fn compile_boundary_out_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> &'db st
         Type::Str => unreachable!(
             "str cannot be returned from the function, since functions cannot return references"
         ),
-        Type::Struct(id) => struct_binding_name_from_ir_id(db, id),
+        Type::Struct(id) => id.binding_name(db),
         Type::Enum(id) => id.binding_name(db),
     }
 }

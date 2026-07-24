@@ -7,6 +7,7 @@ use crate::codegen::{
     ir::{
         IrId,
         enum_::EnumId,
+        struct_::StructId,
         type_::{Primitive, Type as IrType},
     },
     rustdoc::{CrateExt, RustdocType},
@@ -47,9 +48,9 @@ pub fn lower_type<'db>(
             if summary.path == ["alloc", "string", "String"] {
                 Ok(LoweredType::Moved(IrType::String))
             } else if summary.kind == ItemKind::Struct && crate_.index.contains_key(&path.id) {
-                Ok(LoweredType::Moved(IrType::Struct(IrId::new(
+                Ok(LoweredType::Moved(IrType::Struct(StructId::new(
                     db,
-                    &summary.path,
+                    IrId::new(db, &summary.path),
                 ))))
             } else if summary.kind == ItemKind::Enum && crate_.index.contains_key(&path.id) {
                 Ok(LoweredType::Moved(IrType::Enum(EnumId::new(

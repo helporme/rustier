@@ -7,7 +7,7 @@ use crate::{
         ir::{
             IrId,
             shape::Shape,
-            struct_::{Struct, struct_name_from_ir_id},
+            struct_::{Struct, StructId},
             type_::Type,
         },
         js::{
@@ -218,17 +218,17 @@ pub fn compile_facade_class_for_struct_required_imports<'db>(
 /// [`compile_struct_facade_from_binding_expr_required_imports`] to be in scope.
 pub fn compile_struct_facade_from_binding_expr<'db>(
     db: &'db dyn Db,
-    struct_id: IrId<'db>,
+    struct_id: StructId<'db>,
     binding_class_expr: impl FragmentOnce,
 ) -> impl FragmentOnce {
-    frag!({ struct_name_from_ir_id(db, struct_id) }.__from_binding({ binding_class_expr }))
+    frag!({ struct_id.name(db) }.__from_binding({ binding_class_expr }))
 }
 
 /// Adds imports required by [`compile_struct_facade_from_binding_expr`].
 pub fn compile_struct_facade_from_binding_expr_required_imports<'db>(
     db: &'db dyn Db,
     active_mod_id: IrId<'db>,
-    struct_id: IrId<'db>,
+    struct_id: StructId<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {
     let struct_mod_id = struct_id.parent_mod_id(db).unwrap();
@@ -238,7 +238,7 @@ pub fn compile_struct_facade_from_binding_expr_required_imports<'db>(
     }
 
     imports.insert(Import {
-        item: struct_name_from_ir_id(db, struct_id),
+        item: struct_id.name(db),
         from: ImportFrom::RelativeToMod {
             from: active_mod_id,
             to: struct_mod_id,

@@ -1,10 +1,6 @@
 use crate::codegen::{
     db::Db,
-    ir::{
-        IrId,
-        enum_::EnumId,
-        struct_::{struct_binding_name_from_ir_id, struct_fqn_from_ir_id, struct_name_from_ir_id},
-    },
+    ir::{enum_::EnumId, struct_::StructId},
 };
 
 /// A primitive type.
@@ -109,7 +105,7 @@ pub enum Type<'db> {
     Primitive(Primitive),
     Str,
     String,
-    Struct(IrId<'db>),
+    Struct(StructId<'db>),
     Enum(EnumId<'db>),
 }
 
@@ -131,7 +127,7 @@ impl<'db> Type<'db> {
             Type::Primitive(primitive) => primitive.rs_name(),
             Type::Str => "str",
             Type::String => "String",
-            Type::Struct(id) => struct_fqn_from_ir_id(db, *id),
+            Type::Struct(id) => id.fqn(db),
             Type::Enum(id) => id.fqn(db),
         }
     }
@@ -155,7 +151,7 @@ impl<'db> Type<'db> {
         match self {
             Type::Primitive(primitive) => primitive.ts_name().to_owned(),
             Type::Str | Type::String => "string".to_owned(),
-            Type::Struct(id) => struct_name_from_ir_id(db, *id).to_owned(),
+            Type::Struct(id) => id.name(db).to_owned(),
             Type::Enum(id) => id.name(db).to_owned(),
         }
     }
@@ -183,7 +179,7 @@ impl<'db> Type<'db> {
             Type::Primitive(primitive) => primitive.cast_fn_name().to_owned(),
             Type::Str | Type::String => "__cast_String".to_owned(),
             // todo: never produced actaully
-            Type::Struct(id) => format!("__cast_{}", struct_binding_name_from_ir_id(db, *id)),
+            Type::Struct(id) => format!("__cast_{}", id.binding_name(db)),
             Type::Enum(id) => format!("__cast_{}", id.binding_name(db)),
         }
     }

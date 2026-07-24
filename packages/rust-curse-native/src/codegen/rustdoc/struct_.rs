@@ -8,7 +8,7 @@ use crate::codegen::{
     ir::{
         IrId,
         span::{SourceCode, Span},
-        struct_::Struct,
+        struct_::{Struct, StructId},
     },
     rustdoc::{
         RustdocId,
@@ -63,7 +63,7 @@ pub fn lower_struct<'db>(
     }
 
     let docs = item.docs.clone();
-    let id = IrId::new(db, &item_summary.path);
+    let id = StructId::new(db, IrId::new(db, &item_summary.path));
 
     Ok(Struct::new(db, id, shape, docs))
 }

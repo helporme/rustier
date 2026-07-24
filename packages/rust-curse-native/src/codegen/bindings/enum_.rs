@@ -21,7 +21,6 @@ use crate::{
         ir::{
             enum_::{Enum, EnumId, EnumVariant},
             shape::{Shape, ShapeField},
-            struct_::struct_tethered_name_from_ir_id,
             type_::Type,
         },
     },
@@ -42,7 +41,7 @@ pub fn compile_binding_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
 
             match type_ {
                 Type::Struct(id) => {
-                    let tethered_name = struct_tethered_name_from_ir_id(db, id);
+                    let tethered_name = id.tethered_name(db);
 
                     TetheredField::TetheredStruct(TetheredStructField {
                         name,

@@ -19,9 +19,8 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, fragment, spaced},
         ir::{
-            IrId,
             shape::ShapeField,
-            struct_::{Struct, struct_binding_name_from_ir_id, struct_tethered_name_from_ir_id},
+            struct_::{Struct, StructId},
             type_::Type,
         },
         rustdoc::mod_::{all_mod_ids, lower_mod_enums, lower_mod_structs},
@@ -46,7 +45,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
 
         match type_ {
             Type::Struct(id) => {
-                let tethered_name = struct_tethered_name_from_ir_id(db, id);
+                let tethered_name = id.tethered_name(db);
 
                 TetheredField::TetheredStruct(TetheredStructField {
                     name,
@@ -193,9 +192,9 @@ pub fn compile_binding_struct_get_tethered_expr<'a>(
 /// Compiles an expression that wraps a tethered struct in its binding struct.
 pub fn compile_binding_struct_from_tethered_expr<'db>(
     db: &'db dyn Db,
-    id: IrId<'db>,
+    id: StructId<'db>,
     tethered_struct_expr: impl FragmentOnce + 'db,
 ) -> impl FragmentOnce + 'db {
-    let binding_name = struct_binding_name_from_ir_id(db, id);
+    let binding_name = id.binding_name(db);
     frag!({binding_name}~{{ src: {tethered_struct_expr} }})
 }

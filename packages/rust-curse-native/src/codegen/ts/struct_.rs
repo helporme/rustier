@@ -4,11 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, fragment},
-        ir::{
-            shape::ShapeField,
-            struct_::{Struct, struct_name_from_ir_id},
-            type_::Type,
-        },
+        ir::{shape::ShapeField, struct_::Struct, type_::Type},
         js::imports::{Import, ImportFrom},
         ts::jsdoc::compile_jsdoc,
     },
@@ -58,7 +54,7 @@ pub fn compile_struct_required_imports<'db>(
 
     for field in struct_.fields(db).iter() {
         let (type_id, type_name) = match field.type_(db) {
-            Type::Struct(struct_id) => (struct_id, struct_name_from_ir_id(db, struct_id)),
+            Type::Struct(struct_id) => (struct_id.inner(db), struct_id.name(db)),
             Type::Enum(enum_id) => (enum_id.inner(db), enum_id.name(db)),
             Type::Primitive(_) | Type::Str | Type::String => continue,
         };
