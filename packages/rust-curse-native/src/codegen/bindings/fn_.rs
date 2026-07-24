@@ -4,13 +4,13 @@
 use crate::codegen::{
     api::Api,
     bindings::boundary::{
-        BoundaryInExpr, compile_boundary_in_to_source_type_expr,
+        BoundaryInExpr, BoundaryMode, compile_boundary_in_to_source_type_expr,
         compile_boundary_in_to_source_type_stmt, compile_boundary_in_type,
         compile_boundary_out_from_source_type_expr, compile_boundary_out_type,
     },
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, comma_list, frag, fragment},
-    ir::fn_::{Fn, FnParam},
+    ir::fn_::{Fn, FnParam, ParamMode},
 };
 
 #[salsa::tracked]
@@ -29,6 +29,23 @@ impl<'db> FnParam<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn binding_name(self, db: &'db dyn Db) -> String {
         format!("__p__{}", self.name(db))
+    }
+}
+
+impl<'db> BoundaryInExpr<'db> {
+    /// Converts a [`FnParam`] to a [`BoundaryInExpr`] using the parameter's
+    /// binding name as both `in_expr` and `out_var_name`.
+    pub fn from_param(db: &'db dyn Db, param: FnParam<'db>) -> Self {
+        Self {
+            in_expr: param.binding_name(db),
+            out_var_name: param.binding_name(db),
+            type_: param.type_(db),
+            mode: match param.mode(db) {
+                ParamMode::Ref => BoundaryMode::Ref,
+                ParamMode::Mut => BoundaryMode::Mut,
+                ParamMode::Move => BoundaryMode::Move,
+            },
+        }
     }
 }
 

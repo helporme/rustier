@@ -16,10 +16,7 @@ use crate::{
         },
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment},
-        ir::{
-            fn_::{FnParam, ParamMode},
-            type_::{Primitive, Type},
-        },
+        ir::type_::{Primitive, Type},
     },
     frag,
 };
@@ -43,23 +40,6 @@ pub struct BoundaryInExpr<'db> {
     pub type_: Type<'db>,
     /// Whether the expression type is a mutable reference.
     pub mode: BoundaryMode,
-}
-
-impl<'db> BoundaryInExpr<'db> {
-    /// Converts a [`FnParam`] to a [`BoundaryInExpr`] using the parameter's
-    /// binding name as both `in_expr` and `out_var_name`.
-    pub fn from_param(db: &'db dyn Db, param: FnParam<'db>) -> Self {
-        Self {
-            in_expr: param.binding_name(db),
-            out_var_name: param.binding_name(db),
-            type_: param.type_(db),
-            mode: match param.mode(db) {
-                ParamMode::Ref => BoundaryMode::Ref,
-                ParamMode::Mut => BoundaryMode::Mut,
-                ParamMode::Move => BoundaryMode::Move,
-            },
-        }
-    }
 }
 
 /// Compiles an expression that converts each given expression to the source
