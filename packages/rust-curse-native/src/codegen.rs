@@ -2,6 +2,7 @@
 
 pub mod api;
 pub mod bindings;
+pub mod cast;
 pub mod check;
 pub mod db;
 pub mod diag;

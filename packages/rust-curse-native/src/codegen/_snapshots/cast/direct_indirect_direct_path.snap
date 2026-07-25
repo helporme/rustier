@@ -1,0 +1,40 @@
+---
+source: src/codegen/cast.rs
+expression: body
+---
+## Test
+
+```text
+codegen::cast::tests::direct_indirect_direct_path
+```
+
+## Source
+
+```rs
+HappyCastGraph::compile_cast(Cast {
+        db: &db,
+        from,
+        to,
+        in_expr: frag!(source()),
+        access: "consume(value);",
+    })
+    .print()
+```
+
+## Output
+
+```rs
+let value = source();
+let value = direct(
+	value
+);
+{
+	let value = indirect(
+		value
+	);
+	let value = direct(
+		value
+	);
+	consume(value);
+}
+```
