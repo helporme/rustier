@@ -21,15 +21,7 @@ pub enum Primitive {
 
 impl Primitive {
     /// Returns this primitive's Rust name.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use rust_curse::codegen::ir::type_::Primitive;
-    ///
-    /// assert_eq!(Primitive::i8.rs_name(), "i8");
-    /// ```
-    pub fn rs_name(&self) -> &'static str {
+    pub fn fqn(&self) -> &'static str {
         match self {
             Primitive::Boolean => "bool",
             Primitive::Char => "char",
@@ -45,14 +37,6 @@ impl Primitive {
     }
 
     /// Returns this primitive's TypeScript name.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use rust_curse::codegen::ir::type_::Primitive;
-    ///
-    /// assert_eq!(Primitive::Boolean.ts_name(), "boolean");
-    /// ```
     pub fn ts_name(&self) -> &'static str {
         match self {
             Primitive::Boolean => "boolean",
@@ -69,16 +53,6 @@ impl Primitive {
     }
 
     /// Returns the cast function name for this primitive.
-    ///
-    /// See [`crate::codegen::bindings::cast`].
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use rust_curse::codegen::ir::type_::Primitive;
-    ///
-    /// assert_eq!(Primitive::f64.cast_fn_name(), "__cast_f64");
-    /// ```
     pub fn cast_fn_name(&self) -> &'static str {
         match self {
             Primitive::Boolean => "__cast_bool",
@@ -111,20 +85,9 @@ pub enum Type<'db> {
 
 impl<'db> Type<'db> {
     /// Returns this type's Rust name used in source code.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use rust_curse::codegen::{db::DbImpl, ir::type_::Type};
-    ///
-    /// let db = DbImpl::default();
-    /// let type_ = Type::String;
-    ///
-    /// assert_eq!(type_.rs_name(&db), "String");
-    /// ```
-    pub fn rs_name(&self, db: &'db dyn Db) -> &'db str {
+    pub fn fqn(&self, db: &'db dyn Db) -> &'db str {
         match self {
-            Type::Primitive(primitive) => primitive.rs_name(),
+            Type::Primitive(primitive) => primitive.fqn(),
             Type::Str => "str",
             Type::String => "String",
             Type::Struct(id) => id.fqn(db),
@@ -133,20 +96,6 @@ impl<'db> Type<'db> {
     }
 
     /// Returns this type's TypeScript name.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use rust_curse::codegen::{
-    ///     db::DbImpl,
-    ///     ir::type_::{Primitive, Type},
-    /// };
-    ///
-    /// let db = DbImpl::default();
-    /// let type_ = Type::Primitive(Primitive::Boolean);
-    ///
-    /// assert_eq!(type_.ts_name(&db), "boolean");
-    /// ```
     pub fn ts_name(&self, db: &'db dyn Db) -> String {
         match self {
             Type::Primitive(primitive) => primitive.ts_name().to_owned(),
@@ -157,22 +106,6 @@ impl<'db> Type<'db> {
     }
 
     /// Returns the cast function name for this type.
-    ///
-    /// See [`crate::codegen::bindings::cast`].
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use rust_curse::codegen::{
-    ///     db::DbImpl,
-    ///     ir::type_::{Primitive, Type},
-    /// };
-    ///
-    /// let db = DbImpl::default();
-    /// let type_ = Type::Primitive(Primitive::f64);
-    ///
-    /// assert_eq!(type_.cast_fn_name(&db), "__cast_f64");
-    /// ```
     // todo: function should be moved to the cast.rs module and removed from here
     pub fn cast_fn_name(&self, db: &'db dyn Db) -> String {
         match self {

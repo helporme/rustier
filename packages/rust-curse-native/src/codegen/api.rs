@@ -68,32 +68,85 @@ impl Api {
         }
     }
 
-    /// Returns the API-specific body for casting a JavaScript value to `bool`.
-    ///
-    /// The expression must be inserted into a scope returning this API's result
-    /// type because some backends generate `?` operations.
+    /// Returns an API-error expression for casting a JavaScript value to
+    /// `bool`.
     pub fn cast_to_bool(self, db: &dyn Db) -> impl FragmentOnce {
         self.cast_to_primitive(db, "bool", "as_bool", "Boolean")
     }
 
-    /// Returns the API-specific body for casting a JavaScript value to
+    /// Returns an API-error expression for casting a JavaScript value to
     /// `String`.
-    ///
-    /// The expression must be inserted into a scope returning this API's result
-    /// type because some backends generate `?` operations.
     pub fn cast_to_string(self, db: &dyn Db) -> impl FragmentOnce {
         self.cast_to_primitive(db, "String", "as_string", "String")
     }
 
-    /// Returns the API-specific body for casting a JavaScript value to `f64`.
-    ///
-    /// The expression must be inserted into a scope returning this API's result
-    /// type because some backends generate `?` operations.
+    /// Returns an API-error expression for casting a JavaScript value to `f64`.
     pub fn cast_to_f64(self, db: &dyn Db) -> impl FragmentOnce {
         self.cast_to_primitive(db, "f64", "as_f64", "Number")
     }
 
+    /// Returns a string-error expression for the legacy JavaScript-to-`bool`
+    /// cast function.
+    pub(crate) fn cast_to_bool_with_string_error(self, db: &dyn Db) -> impl FragmentOnce {
+        self.cast_to_primitive_with_string_error(db, "bool", "as_bool", "Boolean")
+    }
+
+    /// Returns a string-error expression for the legacy JavaScript-to-`String`
+    /// cast function.
+    pub(crate) fn cast_to_string_with_string_error(self, db: &dyn Db) -> impl FragmentOnce {
+        self.cast_to_primitive_with_string_error(db, "String", "as_string", "String")
+    }
+
+    /// Returns a string-error expression for the legacy JavaScript-to-`f64`
+    /// cast function.
+    pub(crate) fn cast_to_f64_with_string_error(self, db: &dyn Db) -> impl FragmentOnce {
+        self.cast_to_primitive_with_string_error(db, "f64", "as_f64", "Number")
+    }
+
     fn cast_to_primitive(
+        self,
+        db: &dyn Db,
+        rust_type: &'static str,
+        wasm_accessor: &'static str,
+        node_value_type: &'static str,
+    ) -> impl FragmentOnce {
+        let kind = self.kind(db);
+        let wasm_error = self.error(
+            db,
+            frag!({ doubles(("cannot cast value to ", rust_type)) }.to_string()),
+        );
+        let node_get_type_error = self.error(db, "err.reason");
+        let node_cast_error = self.error(
+            db,
+            frag!({ doubles(("cannot cast value to ", rust_type)) }.to_string()),
+        );
+        let node_value_type_error = self.error(
+            db,
+            frag!({ doubles(("cannot cast value to ", rust_type)) }.to_string()),
+        );
+
+        fragment(move |p| {
+            match kind {
+            ApiKind::Wasm { .. } => frag!(
+                value.{wasm_accessor}().ok_or_else(||~{wasm_error})
+            )
+            .apply(p),
+            ApiKind::Node => frag!(
+                if value.get_type().map_err(|err|~{node_get_type_error})?~ == ValueType::{node_value_type}~{{
+                    unsafe~{{
+                        value.cast::<{rust_type}>()
+                    }}.map_err(|_|~{node_cast_error})
+                }}@
+                else~{{
+                    Err({node_value_type_error})
+                }}
+            )
+            .apply(p),
+        }
+        })
+    }
+
+    fn cast_to_primitive_with_string_error(
         self,
         db: &dyn Db,
         rust_type: &'static str,

@@ -10,10 +10,67 @@ use std::{collections::HashSet, fmt::Debug, hash::Hash};
 use crate::{
     codegen::{
         db::Db,
-        fragment::{FragmentOnce, Printer, fragment},
+        fragment::{FragmentOnce, fragment},
     },
     frag,
 };
+
+/// Defines a cast rule that produces its target as an expression.
+pub trait DirectCastRule<'db, From: 'db, To: 'db>: Sized + 'db {
+    /// Returns the immediate source type from which this rule can produce `to`.
+    fn predecessor(self, db: &'db dyn Db, to: To) -> Option<From>;
+
+    /// Compiles an expression that converts `in_expr` from `from` to `to`.
+    fn compile(
+        self,
+        db: &'db dyn Db,
+        from: From,
+        to: To,
+        in_expr: impl FragmentOnce + 'db,
+    ) -> impl FragmentOnce + 'db;
+}
+
+/// Defines a cast rule that controls the scope of the remaining cast pipeline.
+pub trait IndirectCastRule<'db, From: 'db, To: 'db>: Sized + 'db {
+    /// Returns the immediate source type from which this rule can produce `to`.
+    fn predecessor(self, db: &'db dyn Db, to: To) -> Option<From>;
+
+    /// Compiles a conversion and invokes `continue_with` with its result bound
+    /// as `value`.
+    fn compile(
+        self,
+        db: &'db dyn Db,
+        from: From,
+        to: To,
+        in_expr: impl FragmentOnce + 'db,
+        continue_with: impl FragmentOnce + 'db,
+    ) -> impl FragmentOnce + 'db;
+}
+
+impl<'db, From: 'db, To: 'db, Rule> IndirectCastRule<'db, From, To> for Rule
+where
+    Rule: DirectCastRule<'db, From, To>,
+{
+    fn predecessor(self, db: &'db dyn Db, to: To) -> Option<From> {
+        DirectCastRule::predecessor(self, db, to)
+    }
+
+    fn compile(
+        self,
+        db: &'db dyn Db,
+        from: From,
+        to: To,
+        in_expr: impl FragmentOnce + 'db,
+        continue_with: impl FragmentOnce + 'db,
+    ) -> impl FragmentOnce + 'db {
+        let cast_expr = DirectCastRule::compile(self, db, from, to, in_expr);
+
+        frag!(
+            let value = ~{cast_expr};@
+            {continue_with}
+        )
+    }
+}
 
 /// Statically dispatches topology queries and compilation for a closed cast
 /// graph.
@@ -149,42 +206,6 @@ where
     })
 }
 
-/// Applies a direct cast compiler and shadows `value` with its result.
-pub fn apply_direct_cast<'db, From, To, Expr, Continue, Output>(
-    db: &'db dyn Db,
-    from: From,
-    to: To,
-    in_expr: Expr,
-    continue_with: Continue,
-    compile: impl FnOnce(&'db dyn Db, From, To, Expr) -> Output,
-    printer: &mut Printer,
-) where
-    Output: FragmentOnce + 'db,
-    Continue: FragmentOnce + 'db,
-{
-    let cast_expr = compile(db, from, to, in_expr);
-    frag!(
-        let value = ~{cast_expr};@
-        {continue_with}
-    )
-    .apply(printer);
-}
-
-/// Applies an indirect cast compiler that controls the continuation's scope.
-pub fn apply_indirect_cast<'db, From, To, Expr, Continue, Output>(
-    db: &'db dyn Db,
-    from: From,
-    to: To,
-    in_expr: Expr,
-    continue_with: Continue,
-    compile: impl FnOnce(&'db dyn Db, From, To, Expr, Continue) -> Output,
-    printer: &mut Printer,
-) where
-    Output: FragmentOnce + 'db,
-{
-    compile(db, from, to, in_expr, continue_with).apply(printer);
-}
-
 /// A request to compile a cast from `from` to `to` and expose the result as
 /// `value` to `access`.
 pub struct Cast<'db, From, To, Expr, Access> {
@@ -216,11 +237,9 @@ macro_rules! define_cast_graph {
             rules {
                 $(
                     $rule_variant:ident {
-                        kind: $kind:ident,
+                        rule: $rule:expr,
                         from: $from_variant:ident,
-                        to: $to_variant:ident,
-                        predecessor: $predecessor:path,
-                        compile: $compile:path $(,)?
+                        to: $to_variant:ident $(,)?
                     }
                 )* $(,)?
             }
@@ -228,6 +247,9 @@ macro_rules! define_cast_graph {
     ) => {
         #[allow(non_snake_case)]
         $vis mod $graph {
+            #[allow(unused_imports)]
+            use super::*;
+
             /// A concrete node in the generated cast graph.
             #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
             pub enum CastType<$db> {
@@ -277,7 +299,12 @@ macro_rules! define_cast_graph {
                             (
                                 Self::Rule::$rule_variant,
                                 CastType::$to_variant(to),
-                            ) => $predecessor(db, to).map(CastType::$from_variant),
+                            ) => $crate::codegen::cast::IndirectCastRule::predecessor(
+                                $rule,
+                                db,
+                                to,
+                            )
+                            .map(CastType::$from_variant),
                         )*
                         _ => None,
                     }
@@ -303,16 +330,16 @@ macro_rules! define_cast_graph {
                                     CastType::$from_variant(from),
                                     CastType::$to_variant(to),
                                 ) => {
-                                    $crate::define_cast_graph!(@compile_rule
-                                        $kind,
-                                        $compile,
-                                        db,
-                                        from,
-                                        to,
-                                        in_expr,
-                                        continue_with,
-                                        p
-                                    );
+                                    let compiled =
+                                        $crate::codegen::cast::IndirectCastRule::compile(
+                                            $rule,
+                                            db,
+                                            from,
+                                            to,
+                                            in_expr,
+                                            continue_with,
+                                        );
+                                    $crate::codegen::fragment::FragmentOnce::apply(compiled, p);
                                 }
                             )*
                             _ => panic!(
@@ -360,55 +387,13 @@ macro_rules! define_cast_graph {
             }
         }
     };
-
-    (@compile_rule
-        direct,
-        $compile:path,
-        $db:expr,
-        $from:expr,
-        $to:expr,
-        $in_expr:expr,
-        $continue_with:expr,
-        $printer:expr
-    ) => {{
-        $crate::codegen::cast::apply_direct_cast(
-            $db,
-            $from,
-            $to,
-            $in_expr,
-            $continue_with,
-            $compile,
-            $printer,
-        );
-    }};
-
-    (@compile_rule
-        indirect,
-        $compile:path,
-        $db:expr,
-        $from:expr,
-        $to:expr,
-        $in_expr:expr,
-        $continue_with:expr,
-        $printer:expr
-    ) => {{
-        $crate::codegen::cast::apply_indirect_cast(
-            $db,
-            $from,
-            $to,
-            $in_expr,
-            $continue_with,
-            $compile,
-            $printer,
-        );
-    }};
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
         codegen::{
-            cast::{Cast, CastPathStep},
+            cast::{Cast, CastPathStep, DirectCastRule, IndirectCastRule},
             db::{Db, DbImpl},
             fragment::{FragmentOnce, FragmentPrint},
             test::assert_snap,
@@ -478,36 +463,46 @@ mod tests {
         })
     }
 
-    fn direct_predecessor(_db: &dyn Db, to: HappyType) -> Option<HappyType> {
-        predecessor(to, CastKind::Direct)
+    struct DirectRule;
+
+    impl<'db> DirectCastRule<'db, HappyType, HappyType> for DirectRule {
+        fn predecessor(self, _db: &'db dyn Db, to: HappyType) -> Option<HappyType> {
+            predecessor(to, CastKind::Direct)
+        }
+
+        fn compile(
+            self,
+            _db: &'db dyn Db,
+            _from: HappyType,
+            _to: HappyType,
+            in_expr: impl FragmentOnce + 'db,
+        ) -> impl FragmentOnce + 'db {
+            frag!(direct({ in_expr }))
+        }
     }
 
-    fn indirect_predecessor(_db: &dyn Db, to: HappyType) -> Option<HappyType> {
-        predecessor(to, CastKind::Indirect)
-    }
+    struct IndirectRule;
 
-    fn compile_direct<'db>(
-        _db: &'db dyn Db,
-        _from: HappyType,
-        _to: HappyType,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
-        frag!(direct({ in_expr }))
-    }
+    impl<'db> IndirectCastRule<'db, HappyType, HappyType> for IndirectRule {
+        fn predecessor(self, _db: &'db dyn Db, to: HappyType) -> Option<HappyType> {
+            predecessor(to, CastKind::Indirect)
+        }
 
-    fn compile_indirect<'db>(
-        _db: &'db dyn Db,
-        _from: HappyType,
-        _to: HappyType,
-        in_expr: impl FragmentOnce + 'db,
-        continue_with: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
-        frag!(
-            {{
-                let value = indirect({in_expr});@
-                {continue_with}@
-            }}
-        )
+        fn compile(
+            self,
+            _db: &'db dyn Db,
+            _from: HappyType,
+            _to: HappyType,
+            in_expr: impl FragmentOnce + 'db,
+            continue_with: impl FragmentOnce + 'db,
+        ) -> impl FragmentOnce + 'db {
+            frag!(
+                {{
+                    let value = indirect({in_expr});@
+                    {continue_with}@
+                }}
+            )
+        }
     }
 
     define_cast_graph! {
@@ -518,19 +513,15 @@ mod tests {
 
             rules {
                 Direct {
-                    kind: direct,
+                    rule: DirectRule,
                     from: HappyType,
                     to: HappyType,
-                    predecessor: super::direct_predecessor,
-                    compile: super::compile_direct,
                 }
 
                 Indirect {
-                    kind: indirect,
+                    rule: IndirectRule,
                     from: HappyType,
                     to: HappyType,
-                    predecessor: super::indirect_predecessor,
-                    compile: super::compile_indirect,
                 }
             }
         }
@@ -623,25 +614,25 @@ mod tests {
         Standalone,
     }
 
-    fn cycle_a_to_b_predecessor(_db: &dyn Db, to: EdgeType) -> Option<EdgeType> {
-        (to == EdgeType::CycleB).then_some(EdgeType::CycleA)
+    struct EdgeRule {
+        from: EdgeType,
+        to: EdgeType,
     }
 
-    fn cycle_b_to_c_predecessor(_db: &dyn Db, to: EdgeType) -> Option<EdgeType> {
-        (to == EdgeType::CycleC).then_some(EdgeType::CycleB)
-    }
+    impl<'db> DirectCastRule<'db, EdgeType, EdgeType> for EdgeRule {
+        fn predecessor(self, _db: &'db dyn Db, to: EdgeType) -> Option<EdgeType> {
+            (to == self.to).then_some(self.from)
+        }
 
-    fn cycle_c_to_a_predecessor(_db: &dyn Db, to: EdgeType) -> Option<EdgeType> {
-        (to == EdgeType::CycleA).then_some(EdgeType::CycleC)
-    }
-
-    fn compile_edge<'db>(
-        _db: &'db dyn Db,
-        _from: EdgeType,
-        _to: EdgeType,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
-        frag!({ in_expr })
+        fn compile(
+            self,
+            _db: &'db dyn Db,
+            _from: EdgeType,
+            _to: EdgeType,
+            in_expr: impl FragmentOnce + 'db,
+        ) -> impl FragmentOnce + 'db {
+            frag!({ in_expr })
+        }
     }
 
     define_cast_graph! {
@@ -652,27 +643,30 @@ mod tests {
 
             rules {
                 CycleAToB {
-                    kind: direct,
+                    rule: EdgeRule {
+                        from: EdgeType::CycleA,
+                        to: EdgeType::CycleB,
+                    },
                     from: EdgeType,
                     to: EdgeType,
-                    predecessor: super::cycle_a_to_b_predecessor,
-                    compile: super::compile_edge,
                 }
 
                 CycleBToC {
-                    kind: direct,
+                    rule: EdgeRule {
+                        from: EdgeType::CycleB,
+                        to: EdgeType::CycleC,
+                    },
                     from: EdgeType,
                     to: EdgeType,
-                    predecessor: super::cycle_b_to_c_predecessor,
-                    compile: super::compile_edge,
                 }
 
                 CycleCToA {
-                    kind: direct,
+                    rule: EdgeRule {
+                        from: EdgeType::CycleC,
+                        to: EdgeType::CycleA,
+                    },
                     from: EdgeType,
                     to: EdgeType,
-                    predecessor: super::cycle_c_to_a_predecessor,
-                    compile: super::compile_edge,
                 }
             }
         }

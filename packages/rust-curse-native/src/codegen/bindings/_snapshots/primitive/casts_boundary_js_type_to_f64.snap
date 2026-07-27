@@ -1,0 +1,66 @@
+---
+source: src/codegen/bindings/primitive.rs
+expression: body
+---
+## Test
+
+```text
+codegen::bindings::primitive::tests::casts_boundary_js_type_to_f64
+```
+
+## Source
+
+```rs
+let from = BoundaryJsType;
+let to = BoundaryType {
+    inner: Type::Primitive(Primitive::f64),
+    mode: AccessMode::Owned,
+};
+snapshot_for_apis(|db| {
+    DirectCastRule::compile(CastBoundaryJsTypeToF64Rule, db, from, to, "input")
+        .print()
+})
+```
+
+## Output
+
+```rs
+// Node
+{
+	let value = input;
+	(
+		if value.get_type().map_err(
+			|err| napi::Error::from_reason(
+				err.reason
+			)
+		)? == ValueType::Number {
+			unsafe {
+				value.cast::<f64>()
+			}.map_err(
+				|_| napi::Error::from_reason(
+					"cannot cast value to f64".to_string()
+				)
+			)
+		}
+		else {
+			Err(
+				napi::Error::from_reason(
+					"cannot cast value to f64".to_string()
+				)
+			)
+		}
+	)?
+}
+
+// Wasm
+{
+	let value = input;
+	(
+		value.as_f64().ok_or_else(
+			|| JsValue::from_str(
+				&"cannot cast value to f64".to_string()
+			)
+		)
+	)?
+}
+```

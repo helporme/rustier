@@ -1,0 +1,35 @@
+---
+source: src/codegen/bindings/primitive.rs
+expression: body
+---
+## Test
+
+```text
+codegen::bindings::primitive::tests::casts_string_to_str_ref
+```
+
+## Source
+
+```rs
+let from = BoundaryType {
+    inner: Type::String,
+    mode: AccessMode::Owned,
+};
+let to = BoundaryType {
+    inner: Type::Str,
+    mode: AccessMode::Ref,
+};
+snapshot_for_apis(|db| {
+    DirectCastRule::compile(CastStringToStrRefRule, db, from, to, "input").print()
+})
+```
+
+## Output
+
+```rs
+// Node
+input.as_str()
+
+// Wasm
+input.as_str()
+```

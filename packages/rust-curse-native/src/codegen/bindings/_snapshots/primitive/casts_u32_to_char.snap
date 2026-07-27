@@ -1,0 +1,57 @@
+---
+source: src/codegen/bindings/primitive.rs
+expression: body
+---
+## Test
+
+```text
+codegen::bindings::primitive::tests::casts_u32_to_char
+```
+
+## Source
+
+```rs
+let from = BoundaryType {
+    inner: Type::Primitive(Primitive::u32),
+    mode: AccessMode::Owned,
+};
+let to = BoundaryType {
+    inner: Type::Primitive(Primitive::Char),
+    mode: AccessMode::Owned,
+};
+snapshot_for_apis(|db| {
+    DirectCastRule::compile(CastU32ToCharRule, db, from, to, "input").print()
+})
+```
+
+## Output
+
+```rs
+// Node
+{
+	let value = input;
+	char::from_u32(
+		value
+	).ok_or_else(
+		|| napi::Error::from_reason(
+			format!(
+				"cannot cast {value} to char"
+			)
+		)
+	)?
+}
+
+// Wasm
+{
+	let value = input;
+	char::from_u32(
+		value
+	).ok_or_else(
+		|| JsValue::from_str(
+			&format!(
+				"cannot cast {value} to char"
+			)
+		)
+	)?
+}
+```

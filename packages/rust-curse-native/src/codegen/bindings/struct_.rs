@@ -47,7 +47,7 @@ impl<'db> StructId<'db> {
     pub fn into_tethered_type(self, db: &'db dyn Db) -> TetheredType<'db> {
         TetheredType {
             tethering_struct_name: self.tethering_struct_name(db),
-            binding_name: self.binding_name(db),
+            source_type_fqn: self.fqn(db),
         }
     }
 }
@@ -89,7 +89,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
                     name,
                     get_ref_expr,
                     get_mut_expr,
-                    source_type: type_.rs_name(db),
+                    source_type: type_.fqn(db),
                     tethered_name,
                     with_setter: !field.is_readonly(db),
                 })
@@ -101,7 +101,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
                     name,
                     get_ref_expr,
                     get_mut_expr,
-                    source_type: type_.rs_name(db),
+                    source_type: type_.fqn(db),
                     tethered_name,
                     with_setter: !field.is_readonly(db),
                 })
@@ -110,7 +110,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
                 name,
                 get_ref_expr,
                 get_mut_expr,
-                source_type: type_.rs_name(db),
+                source_type: type_.fqn(db),
             }),
         }
     });

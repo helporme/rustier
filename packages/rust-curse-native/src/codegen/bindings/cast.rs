@@ -110,7 +110,7 @@ fn compile_cast_fn<'db>(db: &'db dyn Db, type_: Type<'db>) -> impl FragmentOnce 
 /// Compiles the successful `Result` type of a cast function.
 fn compile_cast_res<'db>(type_: Type<'db>) -> &'db str {
     match type_ {
-        Type::Primitive(primitive) => primitive.rs_name(),
+        Type::Primitive(primitive) => primitive.fqn(),
         Type::Str | Type::String => "String",
         Type::Struct(_) | Type::Enum(_) => unreachable!(),
     }
@@ -122,9 +122,9 @@ fn compile_cast_body<'db>(db: &'db dyn Db, type_: Type<'db>) -> impl FragmentOnc
         let api = Api::get(db);
 
         match type_ {
-            Type::Primitive(Primitive::Boolean) => api.cast_to_bool(db).apply(p),
+            Type::Primitive(Primitive::Boolean) => api.cast_to_bool_with_string_error(db).apply(p),
             Type::Primitive(Primitive::Char) => compile_char_cast_body().apply(p),
-            Type::Str | Type::String => api.cast_to_string(db).apply(p),
+            Type::Str | Type::String => api.cast_to_string_with_string_error(db).apply(p),
             Type::Primitive(Primitive::i8) => {
                 compile_signed_integer_cast_body(Primitive::i8).apply(p)
             }
@@ -144,7 +144,7 @@ fn compile_cast_body<'db>(db: &'db dyn Db, type_: Type<'db>) -> impl FragmentOnc
                 compile_unsigned_integer_cast_body(Primitive::u32).apply(p)
             }
             Type::Primitive(Primitive::f32) => compile_f32_cast_body().apply(p),
-            Type::Primitive(Primitive::f64) => api.cast_to_f64(db).apply(p),
+            Type::Primitive(Primitive::f64) => api.cast_to_f64_with_string_error(db).apply(p),
             Type::Struct(_) | Type::Enum(_) => unreachable!(),
         }
     })
@@ -163,7 +163,7 @@ fn compile_char_cast_body() -> impl FragmentOnce {
 /// Compiles a cast body that converts a JavaScript number into a Rust `f32`.
 fn compile_f32_cast_body() -> impl FragmentOnce {
     let f64_cast_fn = Primitive::f64.cast_fn_name();
-    let type_name = Primitive::f32.rs_name();
+    let type_name = Primitive::f32.fqn();
 
     frag!(
         let type_name = ~{doubles(type_name)};@
@@ -176,7 +176,7 @@ fn compile_f32_cast_body() -> impl FragmentOnce {
 /// integer.
 fn compile_signed_integer_cast_body(primitive: Primitive) -> impl FragmentOnce {
     let f64_cast_fn = Primitive::f64.cast_fn_name();
-    let type_name = primitive.rs_name();
+    let type_name = primitive.fqn();
 
     frag!(
         let type_name = ~{doubles(type_name)};@
@@ -195,7 +195,7 @@ fn compile_signed_integer_cast_body(primitive: Primitive) -> impl FragmentOnce {
 /// integer.
 fn compile_unsigned_integer_cast_body(primitive: Primitive) -> impl FragmentOnce {
     let f64_cast_fn = Primitive::f64.cast_fn_name();
-    let type_name = primitive.rs_name();
+    let type_name = primitive.fqn();
 
     frag! (
         let type_name = ~{doubles(type_name)};@

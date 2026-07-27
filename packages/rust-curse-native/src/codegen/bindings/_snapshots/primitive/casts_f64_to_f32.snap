@@ -1,0 +1,39 @@
+---
+source: src/codegen/bindings/primitive.rs
+expression: body
+---
+## Test
+
+```text
+codegen::bindings::primitive::tests::casts_f64_to_f32
+```
+
+## Source
+
+```rs
+let from = BoundaryType {
+    inner: Type::Primitive(Primitive::f64),
+    mode: AccessMode::Owned,
+};
+let to = BoundaryType {
+    inner: Type::Primitive(Primitive::f32),
+    mode: AccessMode::Owned,
+};
+snapshot_for_apis(|db| {
+    DirectCastRule::compile(CastF64ToF32Rule, db, from, to, "input").print()
+})
+```
+
+## Output
+
+```rs
+// Node
+{
+	input as f32
+}
+
+// Wasm
+{
+	input as f32
+}
+```

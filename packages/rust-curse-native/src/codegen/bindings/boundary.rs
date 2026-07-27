@@ -14,12 +14,87 @@ use crate::{
                 compile_tethering_struct_from_source_expr,
             },
         },
+        cast::DirectCastRule,
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment},
         ir::type_::{Primitive, Type},
     },
     frag,
 };
+
+/// JavaScript type. Actual runtime type is specified by
+/// [`crate::codegen::api::Api::js_type`]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub struct BoundaryJsType;
+
+/// Type that crosses the boundary between JavaScript and Rust.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub struct BoundaryType<'db> {
+    /// Source-level type represented at the boundary.
+    pub inner: Type<'db>,
+    /// Access mode used to pass the value.
+    pub mode: AccessMode,
+}
+
+/// Specifies a borrowing mode of the value for casting.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
+pub enum AccessMode {
+    Ref,
+    Mut,
+    Owned,
+}
+
+/// Borrows an owned boundary value by shared reference.
+pub struct CastOwnedTypeToRefTypeRule;
+
+impl<'db> DirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastOwnedTypeToRefTypeRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<BoundaryType<'db>> {
+        if to.mode == AccessMode::Ref {
+            Some(BoundaryType {
+                inner: to.inner,
+                mode: AccessMode::Owned,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn compile(
+        self,
+        _db: &'db dyn Db,
+        _from: BoundaryType<'db>,
+        _to: BoundaryType<'db>,
+        in_expr: impl FragmentOnce + 'db,
+    ) -> impl FragmentOnce + 'db {
+        frag!(&{ in_expr })
+    }
+}
+
+/// Borrows an owned boundary value by mutable reference.
+pub struct CastOwnedTypeToMutTypeRule;
+
+impl<'db> DirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastOwnedTypeToMutTypeRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<BoundaryType<'db>> {
+        if to.mode == AccessMode::Mut {
+            Some(BoundaryType {
+                inner: to.inner,
+                mode: AccessMode::Owned,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn compile(
+        self,
+        _db: &'db dyn Db,
+        _from: BoundaryType<'db>,
+        _to: BoundaryType<'db>,
+        in_expr: impl FragmentOnce + 'db,
+    ) -> impl FragmentOnce + 'db {
+        frag!(&mut { in_expr })
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum BoundaryMode {
@@ -226,7 +301,7 @@ fn compile_boundary_conversion_stmt_via_cast<'db>(
             {
                 doubles((
                     "Expected Rust `",
-                    expr.type_.rs_name(db),
+                    expr.type_.fqn(db),
                     "` from a JavaScript ",
                     expr.type_.ts_name(db),
                     ": {}",

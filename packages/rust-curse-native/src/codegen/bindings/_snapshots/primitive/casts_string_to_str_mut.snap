@@ -1,0 +1,51 @@
+---
+source: src/codegen/bindings/primitive.rs
+expression: body
+---
+## Test
+
+```text
+codegen::bindings::primitive::tests::casts_string_to_str_mut
+```
+
+## Source
+
+```rs
+let from = BoundaryType {
+    inner: Type::String,
+    mode: AccessMode::Owned,
+};
+let to = BoundaryType {
+    inner: Type::Str,
+    mode: AccessMode::Mut,
+};
+snapshot_for_apis(|db| {
+    IndirectCastRule::compile(
+            CastStringToStrMutRule,
+            db,
+            from,
+            to,
+            "input",
+            fragment(|p| "consume(value);".apply(p)),
+        )
+        .print()
+})
+```
+
+## Output
+
+```rs
+// Node
+{
+	let mut value = input;
+	let value = value.as_mut_str();
+	consume(value);
+}
+
+// Wasm
+{
+	let mut value = input;
+	let value = value.as_mut_str();
+	consume(value);
+}
+```
