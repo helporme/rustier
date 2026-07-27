@@ -1,12 +1,11 @@
 use crate::{
     codegen::bindings::{
         primitive::{
-            CastBoundaryJsTypeToBoolRule, CastBoundaryJsTypeToF64Rule,
-            CastBoundaryJsTypeToStringRule, CastF64ToF32Rule, CastF64ToSignedIntRule,
-            CastF64ToUnsignedIntRule, CastStringToStrMutRule, CastStringToStrRefRule,
-            CastU32ToCharRule,
+            CastF64ToF32Rule, CastF64ToSignedIntRule, CastF64ToUnsignedIntRule,
+            CastJsAnyToBoolRule, CastJsAnyToF64Rule, CastJsAnyToStringRule, CastStringToStrMutRule,
+            CastStringToStrRefRule, CastU32ToCharRule,
         },
-        type_::{CastOwnedTypeToMutTypeRule, CastOwnedTypeToRefTypeRule, JsType, SourceType},
+        type_::{BoundaryType, CastOwnedTypeToMutTypeRule, CastOwnedTypeToRefTypeRule, SourceType},
     },
     define_cast_graph,
 };
@@ -14,64 +13,64 @@ use crate::{
 define_cast_graph! {
     pub BindingsCastGraph<'db> {
         types {
-            BoundaryJsType(JsType),
-            BoundaryType(SourceType<'db>)
+            BoundaryType(BoundaryType<'db>),
+            SourceType(SourceType<'db>)
         }
         rules {
             OwnedTypeToRefType {
                 rule: CastOwnedTypeToRefTypeRule,
-                from: BoundaryType,
-                to: BoundaryType,
+                from: SourceType,
+                to: SourceType,
             }
             OwnedTypeToMutType {
                 rule: CastOwnedTypeToMutTypeRule,
+                from: SourceType,
+                to: SourceType,
+            }
+            JsAnyToF64 {
+                rule: CastJsAnyToF64Rule,
                 from: BoundaryType,
-                to: BoundaryType,
+                to: SourceType,
             }
-            BoundaryJsTypeToF64 {
-                rule: CastBoundaryJsTypeToF64Rule,
-                from: BoundaryJsType,
-                to: BoundaryType,
+            JsAnyToBool {
+                rule: CastJsAnyToBoolRule,
+                from: BoundaryType,
+                to: SourceType,
             }
-            BoundaryJsTypeToBool {
-                rule: CastBoundaryJsTypeToBoolRule,
-                from: BoundaryJsType,
-                to: BoundaryType,
-            }
-            BoundaryJsTypeToString {
-                rule: CastBoundaryJsTypeToStringRule,
-                from: BoundaryJsType,
-                to: BoundaryType,
+            JsAnyToString {
+                rule: CastJsAnyToStringRule,
+                from: BoundaryType,
+                to: SourceType,
             }
             F64ToSignedInt {
                 rule: CastF64ToSignedIntRule,
-                from: BoundaryType,
-                to: BoundaryType,
+                from: SourceType,
+                to: SourceType,
             }
             F64ToUnsignedInt {
                 rule: CastF64ToUnsignedIntRule,
-                from: BoundaryType,
-                to: BoundaryType,
+                from: SourceType,
+                to: SourceType,
             }
             U32ToChar {
                 rule: CastU32ToCharRule,
-                from: BoundaryType,
-                to: BoundaryType,
+                from: SourceType,
+                to: SourceType,
             }
             F64ToF32 {
                 rule: CastF64ToF32Rule,
-                from: BoundaryType,
-                to: BoundaryType,
+                from: SourceType,
+                to: SourceType,
             }
             StringToStrRef {
                 rule: CastStringToStrRefRule,
-                from: BoundaryType,
-                to: BoundaryType,
+                from: SourceType,
+                to: SourceType,
             }
             StringToStrMut {
                 rule: CastStringToStrMutRule,
-                from: BoundaryType,
-                to: BoundaryType,
+                from: SourceType,
+                to: SourceType,
             }
         }
     }

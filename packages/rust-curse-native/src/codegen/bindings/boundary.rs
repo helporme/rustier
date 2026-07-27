@@ -14,7 +14,6 @@ use crate::{
                 compile_tethering_struct_from_source_expr,
             },
         },
-        cast::DirectCastRule,
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment},
         ir::type_::{Primitive, Type},

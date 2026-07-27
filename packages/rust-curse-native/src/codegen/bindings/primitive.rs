@@ -1,7 +1,7 @@
 use crate::{
     codegen::{
         api::Api,
-        bindings::type_::{JsType, PassMode, SourceType},
+        bindings::type_::{BoundaryType, PassMode, SourceType},
         cast::{DirectCastRule, IndirectCastRule},
         db::Db,
         fragment::{FragmentOnce, doubles},
@@ -155,21 +155,21 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToF32
 }
 
 /// Casts an API-specific JavaScript boundary value to an owned `f64`.
-pub struct CastBoundaryJsTypeToF64Rule;
+pub struct CastJsAnyToF64Rule;
 
-impl<'db> DirectCastRule<'db, JsType, SourceType<'db>> for CastBoundaryJsTypeToF64Rule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<JsType> {
+impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyToF64Rule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
         (to == SourceType {
             value: Type::Primitive(Primitive::f64),
             mode: PassMode::Owned,
         })
-        .then_some(JsType)
+        .then_some(BoundaryType::JsAny)
     }
 
     fn compile(
         self,
         db: &'db dyn Db,
-        _from: JsType,
+        _from: BoundaryType<'db>,
         _to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
@@ -183,21 +183,21 @@ impl<'db> DirectCastRule<'db, JsType, SourceType<'db>> for CastBoundaryJsTypeToF
 }
 
 /// Casts an API-specific JavaScript boundary value to an owned `bool`.
-pub struct CastBoundaryJsTypeToBoolRule;
+pub struct CastJsAnyToBoolRule;
 
-impl<'db> DirectCastRule<'db, JsType, SourceType<'db>> for CastBoundaryJsTypeToBoolRule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<JsType> {
+impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyToBoolRule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
         (to == SourceType {
             value: Type::Primitive(Primitive::Boolean),
             mode: PassMode::Owned,
         })
-        .then_some(JsType)
+        .then_some(BoundaryType::JsAny)
     }
 
     fn compile(
         self,
         db: &'db dyn Db,
-        _from: JsType,
+        _from: BoundaryType<'db>,
         _to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
@@ -211,21 +211,21 @@ impl<'db> DirectCastRule<'db, JsType, SourceType<'db>> for CastBoundaryJsTypeToB
 }
 
 /// Casts an API-specific JavaScript boundary value to an owned `String`.
-pub struct CastBoundaryJsTypeToStringRule;
+pub struct CastJsAnyToStringRule;
 
-impl<'db> DirectCastRule<'db, JsType, SourceType<'db>> for CastBoundaryJsTypeToStringRule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<JsType> {
+impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyToStringRule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
         (to == SourceType {
             value: Type::String,
             mode: PassMode::Owned,
         })
-        .then_some(JsType)
+        .then_some(BoundaryType::JsAny)
     }
 
     fn compile(
         self,
         db: &'db dyn Db,
-        _from: JsType,
+        _from: BoundaryType<'db>,
         _to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
@@ -395,8 +395,8 @@ mod tests {
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_f64,
-        CastBoundaryJsTypeToF64Rule,
-        JsType,
+        CastJsAnyToF64Rule,
+        BoundaryType::JsAny,
         SourceType {
             value: Type::Primitive(Primitive::f64),
             mode: PassMode::Owned,
@@ -404,8 +404,8 @@ mod tests {
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_bool,
-        CastBoundaryJsTypeToBoolRule,
-        JsType,
+        CastJsAnyToBoolRule,
+        BoundaryType::JsAny,
         SourceType {
             value: Type::Primitive(Primitive::Boolean),
             mode: PassMode::Owned,
@@ -413,8 +413,8 @@ mod tests {
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_string,
-        CastBoundaryJsTypeToStringRule,
-        JsType,
+        CastJsAnyToStringRule,
+        BoundaryType::JsAny,
         SourceType {
             value: Type::String,
             mode: PassMode::Owned,
