@@ -11,10 +11,10 @@ codegen::bindings::primitive::tests::casts_boundary_js_type_to_f64
 ## Source
 
 ```rs
-let from = BoundaryJsType;
-let to = BoundaryType {
-    inner: Type::Primitive(Primitive::f64),
-    mode: AccessMode::Owned,
+let from = JsType;
+let to = SourceType {
+    value: Type::Primitive(Primitive::f64),
+    mode: PassMode::Owned,
 };
 snapshot_for_apis(|db| {
     DirectCastRule::compile(CastBoundaryJsTypeToF64Rule, db, from, to, "input")

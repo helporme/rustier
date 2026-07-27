@@ -11,13 +11,13 @@ codegen::bindings::primitive::tests::casts_string_to_str_ref
 ## Source
 
 ```rs
-let from = BoundaryType {
-    inner: Type::String,
-    mode: AccessMode::Owned,
+let from = SourceType {
+    value: Type::String,
+    mode: PassMode::Owned,
 };
-let to = BoundaryType {
-    inner: Type::Str,
-    mode: AccessMode::Ref,
+let to = SourceType {
+    value: Type::Str,
+    mode: PassMode::Ref,
 };
 snapshot_for_apis(|db| {
     DirectCastRule::compile(CastStringToStrRefRule, db, from, to, "input").print()

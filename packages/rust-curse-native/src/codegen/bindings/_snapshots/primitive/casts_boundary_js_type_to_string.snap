@@ -11,10 +11,10 @@ codegen::bindings::primitive::tests::casts_boundary_js_type_to_string
 ## Source
 
 ```rs
-let from = BoundaryJsType;
-let to = BoundaryType {
-    inner: Type::String,
-    mode: AccessMode::Owned,
+let from = JsType;
+let to = SourceType {
+    value: Type::String,
+    mode: PassMode::Owned,
 };
 snapshot_for_apis(|db| {
     DirectCastRule::compile(CastBoundaryJsTypeToStringRule, db, from, to, "input")

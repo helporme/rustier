@@ -1,14 +1,12 @@
 use crate::{
     codegen::bindings::{
-        boundary::{
-            BoundaryJsType, BoundaryType, CastOwnedTypeToMutTypeRule, CastOwnedTypeToRefTypeRule,
-        },
         primitive::{
             CastBoundaryJsTypeToBoolRule, CastBoundaryJsTypeToF64Rule,
             CastBoundaryJsTypeToStringRule, CastF64ToF32Rule, CastF64ToSignedIntRule,
             CastF64ToUnsignedIntRule, CastStringToStrMutRule, CastStringToStrRefRule,
             CastU32ToCharRule,
         },
+        type_::{CastOwnedTypeToMutTypeRule, CastOwnedTypeToRefTypeRule, JsType, SourceType},
     },
     define_cast_graph,
 };
@@ -16,8 +14,8 @@ use crate::{
 define_cast_graph! {
     pub BindingsCastGraph<'db> {
         types {
-            BoundaryJsType(BoundaryJsType),
-            BoundaryType(BoundaryType<'db>)
+            BoundaryJsType(JsType),
+            BoundaryType(SourceType<'db>)
         }
         rules {
             OwnedTypeToRefType {

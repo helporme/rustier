@@ -1,7 +1,7 @@
 use crate::{
     codegen::{
         api::Api,
-        bindings::boundary::{AccessMode, BoundaryJsType, BoundaryType},
+        bindings::type_::{JsType, PassMode, SourceType},
         cast::{DirectCastRule, IndirectCastRule},
         db::Db,
         fragment::{FragmentOnce, doubles},
@@ -13,27 +13,27 @@ use crate::{
 /// Casts an owned boundary `f64` to any supported signed integer type.
 pub struct CastF64ToSignedIntRule;
 
-impl<'db> DirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastF64ToSignedIntRule {
-    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<BoundaryType<'db>> {
-        (to.mode == AccessMode::Owned
+impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToSignedIntRule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
+        (to.mode == PassMode::Owned
             && matches!(
-                to.inner,
+                to.value,
                 Type::Primitive(Primitive::i8 | Primitive::i16 | Primitive::i32)
             ))
-        .then_some(BoundaryType {
-            inner: Type::Primitive(Primitive::f64),
-            mode: AccessMode::Owned,
+        .then_some(SourceType {
+            value: Type::Primitive(Primitive::f64),
+            mode: PassMode::Owned,
         })
     }
 
     fn compile(
         self,
         db: &'db dyn Db,
-        _from: BoundaryType<'db>,
-        to: BoundaryType<'db>,
+        _from: SourceType<'db>,
+        to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
-        let type_name = to.inner.fqn(db);
+        let type_name = to.value.fqn(db);
         let api = Api::get(db);
 
         frag!({{
@@ -56,27 +56,27 @@ impl<'db> DirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastF64T
 /// Casts an owned boundary `f64` to any supported unsigned integer type.
 pub struct CastF64ToUnsignedIntRule;
 
-impl<'db> DirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastF64ToUnsignedIntRule {
-    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<BoundaryType<'db>> {
-        (to.mode == AccessMode::Owned
+impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToUnsignedIntRule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
+        (to.mode == PassMode::Owned
             && matches!(
-                to.inner,
+                to.value,
                 Type::Primitive(Primitive::u8 | Primitive::u16 | Primitive::u32)
             ))
-        .then_some(BoundaryType {
-            inner: Type::Primitive(Primitive::f64),
-            mode: AccessMode::Owned,
+        .then_some(SourceType {
+            value: Type::Primitive(Primitive::f64),
+            mode: PassMode::Owned,
         })
     }
 
     fn compile(
         self,
         db: &'db dyn Db,
-        _from: BoundaryType<'db>,
-        to: BoundaryType<'db>,
+        _from: SourceType<'db>,
+        to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
-        let type_name = to.inner.fqn(db);
+        let type_name = to.value.fqn(db);
         let api = Api::get(db);
 
         frag!({{
@@ -99,23 +99,23 @@ impl<'db> DirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastF64T
 /// Casts an owned boundary `u32` to a `char`.
 pub struct CastU32ToCharRule;
 
-impl<'db> DirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastU32ToCharRule {
-    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<BoundaryType<'db>> {
-        (to == BoundaryType {
-            inner: Type::Primitive(Primitive::Char),
-            mode: AccessMode::Owned,
+impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastU32ToCharRule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
+        (to == SourceType {
+            value: Type::Primitive(Primitive::Char),
+            mode: PassMode::Owned,
         })
-        .then_some(BoundaryType {
-            inner: Type::Primitive(Primitive::u32),
-            mode: AccessMode::Owned,
+        .then_some(SourceType {
+            value: Type::Primitive(Primitive::u32),
+            mode: PassMode::Owned,
         })
     }
 
     fn compile(
         self,
         db: &'db dyn Db,
-        _from: BoundaryType<'db>,
-        _to: BoundaryType<'db>,
+        _from: SourceType<'db>,
+        _to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
         let api = Api::get(db);
@@ -131,23 +131,23 @@ impl<'db> DirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastU32T
 /// Casts an owned boundary `f64` to an `f32`.
 pub struct CastF64ToF32Rule;
 
-impl<'db> DirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastF64ToF32Rule {
-    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<BoundaryType<'db>> {
-        (to == BoundaryType {
-            inner: Type::Primitive(Primitive::f32),
-            mode: AccessMode::Owned,
+impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToF32Rule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
+        (to == SourceType {
+            value: Type::Primitive(Primitive::f32),
+            mode: PassMode::Owned,
         })
-        .then_some(BoundaryType {
-            inner: Type::Primitive(Primitive::f64),
-            mode: AccessMode::Owned,
+        .then_some(SourceType {
+            value: Type::Primitive(Primitive::f64),
+            mode: PassMode::Owned,
         })
     }
 
     fn compile(
         self,
         _db: &'db dyn Db,
-        _from: BoundaryType<'db>,
-        _to: BoundaryType<'db>,
+        _from: SourceType<'db>,
+        _to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
         frag!({{ {in_expr}~as f32 }})
@@ -157,20 +157,20 @@ impl<'db> DirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastF64T
 /// Casts an API-specific JavaScript boundary value to an owned `f64`.
 pub struct CastBoundaryJsTypeToF64Rule;
 
-impl<'db> DirectCastRule<'db, BoundaryJsType, BoundaryType<'db>> for CastBoundaryJsTypeToF64Rule {
-    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<BoundaryJsType> {
-        (to == BoundaryType {
-            inner: Type::Primitive(Primitive::f64),
-            mode: AccessMode::Owned,
+impl<'db> DirectCastRule<'db, JsType, SourceType<'db>> for CastBoundaryJsTypeToF64Rule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<JsType> {
+        (to == SourceType {
+            value: Type::Primitive(Primitive::f64),
+            mode: PassMode::Owned,
         })
-        .then_some(BoundaryJsType)
+        .then_some(JsType)
     }
 
     fn compile(
         self,
         db: &'db dyn Db,
-        _from: BoundaryJsType,
-        _to: BoundaryType<'db>,
+        _from: JsType,
+        _to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
         let cast_expr = Api::get(db).cast_to_f64(db);
@@ -185,20 +185,20 @@ impl<'db> DirectCastRule<'db, BoundaryJsType, BoundaryType<'db>> for CastBoundar
 /// Casts an API-specific JavaScript boundary value to an owned `bool`.
 pub struct CastBoundaryJsTypeToBoolRule;
 
-impl<'db> DirectCastRule<'db, BoundaryJsType, BoundaryType<'db>> for CastBoundaryJsTypeToBoolRule {
-    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<BoundaryJsType> {
-        (to == BoundaryType {
-            inner: Type::Primitive(Primitive::Boolean),
-            mode: AccessMode::Owned,
+impl<'db> DirectCastRule<'db, JsType, SourceType<'db>> for CastBoundaryJsTypeToBoolRule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<JsType> {
+        (to == SourceType {
+            value: Type::Primitive(Primitive::Boolean),
+            mode: PassMode::Owned,
         })
-        .then_some(BoundaryJsType)
+        .then_some(JsType)
     }
 
     fn compile(
         self,
         db: &'db dyn Db,
-        _from: BoundaryJsType,
-        _to: BoundaryType<'db>,
+        _from: JsType,
+        _to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
         let cast_expr = Api::get(db).cast_to_bool(db);
@@ -213,22 +213,20 @@ impl<'db> DirectCastRule<'db, BoundaryJsType, BoundaryType<'db>> for CastBoundar
 /// Casts an API-specific JavaScript boundary value to an owned `String`.
 pub struct CastBoundaryJsTypeToStringRule;
 
-impl<'db> DirectCastRule<'db, BoundaryJsType, BoundaryType<'db>>
-    for CastBoundaryJsTypeToStringRule
-{
-    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<BoundaryJsType> {
-        (to == BoundaryType {
-            inner: Type::String,
-            mode: AccessMode::Owned,
+impl<'db> DirectCastRule<'db, JsType, SourceType<'db>> for CastBoundaryJsTypeToStringRule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<JsType> {
+        (to == SourceType {
+            value: Type::String,
+            mode: PassMode::Owned,
         })
-        .then_some(BoundaryJsType)
+        .then_some(JsType)
     }
 
     fn compile(
         self,
         db: &'db dyn Db,
-        _from: BoundaryJsType,
-        _to: BoundaryType<'db>,
+        _from: JsType,
+        _to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
         let cast_expr = Api::get(db).cast_to_string(db);
@@ -243,23 +241,23 @@ impl<'db> DirectCastRule<'db, BoundaryJsType, BoundaryType<'db>>
 /// Borrows an owned boundary `String` as `&str`.
 pub struct CastStringToStrRefRule;
 
-impl<'db> DirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastStringToStrRefRule {
-    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<BoundaryType<'db>> {
-        (to == BoundaryType {
-            inner: Type::Str,
-            mode: AccessMode::Ref,
+impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastStringToStrRefRule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
+        (to == SourceType {
+            value: Type::Str,
+            mode: PassMode::Ref,
         })
-        .then_some(BoundaryType {
-            inner: Type::String,
-            mode: AccessMode::Owned,
+        .then_some(SourceType {
+            value: Type::String,
+            mode: PassMode::Owned,
         })
     }
 
     fn compile(
         self,
         _db: &'db dyn Db,
-        _from: BoundaryType<'db>,
-        _to: BoundaryType<'db>,
+        _from: SourceType<'db>,
+        _to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
         frag!({ in_expr }.as_str())
@@ -269,23 +267,23 @@ impl<'db> DirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastStri
 /// Borrows an owned boundary `String` as `&mut str` for the continuation.
 pub struct CastStringToStrMutRule;
 
-impl<'db> IndirectCastRule<'db, BoundaryType<'db>, BoundaryType<'db>> for CastStringToStrMutRule {
-    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<BoundaryType<'db>> {
-        (to == BoundaryType {
-            inner: Type::Str,
-            mode: AccessMode::Mut,
+impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastStringToStrMutRule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
+        (to == SourceType {
+            value: Type::Str,
+            mode: PassMode::Mut,
         })
-        .then_some(BoundaryType {
-            inner: Type::String,
-            mode: AccessMode::Owned,
+        .then_some(SourceType {
+            value: Type::String,
+            mode: PassMode::Owned,
         })
     }
 
     fn compile(
         self,
         _db: &'db dyn Db,
-        _from: BoundaryType<'db>,
-        _to: BoundaryType<'db>,
+        _from: SourceType<'db>,
+        _to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
         continue_with: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
@@ -350,101 +348,101 @@ mod tests {
     direct_cast_snapshot_test!(
         casts_f64_to_signed_int,
         CastF64ToSignedIntRule,
-        BoundaryType {
-            inner: Type::Primitive(Primitive::f64),
-            mode: AccessMode::Owned,
+        SourceType {
+            value: Type::Primitive(Primitive::f64),
+            mode: PassMode::Owned,
         },
-        BoundaryType {
-            inner: Type::Primitive(Primitive::i32),
-            mode: AccessMode::Owned,
+        SourceType {
+            value: Type::Primitive(Primitive::i32),
+            mode: PassMode::Owned,
         }
     );
     direct_cast_snapshot_test!(
         casts_f64_to_unsigned_int,
         CastF64ToUnsignedIntRule,
-        BoundaryType {
-            inner: Type::Primitive(Primitive::f64),
-            mode: AccessMode::Owned,
+        SourceType {
+            value: Type::Primitive(Primitive::f64),
+            mode: PassMode::Owned,
         },
-        BoundaryType {
-            inner: Type::Primitive(Primitive::u32),
-            mode: AccessMode::Owned,
+        SourceType {
+            value: Type::Primitive(Primitive::u32),
+            mode: PassMode::Owned,
         }
     );
     direct_cast_snapshot_test!(
         casts_u32_to_char,
         CastU32ToCharRule,
-        BoundaryType {
-            inner: Type::Primitive(Primitive::u32),
-            mode: AccessMode::Owned,
+        SourceType {
+            value: Type::Primitive(Primitive::u32),
+            mode: PassMode::Owned,
         },
-        BoundaryType {
-            inner: Type::Primitive(Primitive::Char),
-            mode: AccessMode::Owned,
+        SourceType {
+            value: Type::Primitive(Primitive::Char),
+            mode: PassMode::Owned,
         }
     );
     direct_cast_snapshot_test!(
         casts_f64_to_f32,
         CastF64ToF32Rule,
-        BoundaryType {
-            inner: Type::Primitive(Primitive::f64),
-            mode: AccessMode::Owned,
+        SourceType {
+            value: Type::Primitive(Primitive::f64),
+            mode: PassMode::Owned,
         },
-        BoundaryType {
-            inner: Type::Primitive(Primitive::f32),
-            mode: AccessMode::Owned,
+        SourceType {
+            value: Type::Primitive(Primitive::f32),
+            mode: PassMode::Owned,
         }
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_f64,
         CastBoundaryJsTypeToF64Rule,
-        BoundaryJsType,
-        BoundaryType {
-            inner: Type::Primitive(Primitive::f64),
-            mode: AccessMode::Owned,
+        JsType,
+        SourceType {
+            value: Type::Primitive(Primitive::f64),
+            mode: PassMode::Owned,
         }
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_bool,
         CastBoundaryJsTypeToBoolRule,
-        BoundaryJsType,
-        BoundaryType {
-            inner: Type::Primitive(Primitive::Boolean),
-            mode: AccessMode::Owned,
+        JsType,
+        SourceType {
+            value: Type::Primitive(Primitive::Boolean),
+            mode: PassMode::Owned,
         }
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_string,
         CastBoundaryJsTypeToStringRule,
-        BoundaryJsType,
-        BoundaryType {
-            inner: Type::String,
-            mode: AccessMode::Owned,
+        JsType,
+        SourceType {
+            value: Type::String,
+            mode: PassMode::Owned,
         }
     );
     direct_cast_snapshot_test!(
         casts_string_to_str_ref,
         CastStringToStrRefRule,
-        BoundaryType {
-            inner: Type::String,
-            mode: AccessMode::Owned,
+        SourceType {
+            value: Type::String,
+            mode: PassMode::Owned,
         },
-        BoundaryType {
-            inner: Type::Str,
-            mode: AccessMode::Ref,
+        SourceType {
+            value: Type::Str,
+            mode: PassMode::Ref,
         }
     );
 
     #[test]
     fn casts_string_to_str_mut() {
         assert_snap!({
-            let from = BoundaryType {
-                inner: Type::String,
-                mode: AccessMode::Owned,
+            let from = SourceType {
+                value: Type::String,
+                mode: PassMode::Owned,
             };
-            let to = BoundaryType {
-                inner: Type::Str,
-                mode: AccessMode::Mut,
+            let to = SourceType {
+                value: Type::Str,
+                mode: PassMode::Mut,
             };
 
             snapshot_for_apis(|db| {

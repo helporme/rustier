@@ -73,7 +73,20 @@ impl Primitive {
 // all parts of the codebase _at once_. It's effectively impossible to add
 // step-by-step support for some new variant without todo!() panics which
 // disable tests. Maybe it's a good thing, but I am not entirely sure.
-/// A type.
+
+/// A type as represented by rust-curse.
+///
+/// Each variant describes a Rust type category that rust-curse handles
+/// differently during binding generation. This is not a full Rust type model
+/// like [rustdoc_types::Type], but every value can be mapped back to its
+/// source Rust type.
+///
+/// For example, String has its own variant even though it is a struct,
+/// because rust-curse maps it directly to JavaScript string, while other
+/// structs are mapped to generated classes.
+///
+/// It also means that there is no "ref" or "mut ref" variant, since rust-curse
+/// doesn't really support refs in all cases.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum Type<'db> {
     Primitive(Primitive),

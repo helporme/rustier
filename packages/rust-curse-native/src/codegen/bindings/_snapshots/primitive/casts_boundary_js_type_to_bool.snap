@@ -11,10 +11,10 @@ codegen::bindings::primitive::tests::casts_boundary_js_type_to_bool
 ## Source
 
 ```rs
-let from = BoundaryJsType;
-let to = BoundaryType {
-    inner: Type::Primitive(Primitive::Boolean),
-    mode: AccessMode::Owned,
+let from = JsType;
+let to = SourceType {
+    value: Type::Primitive(Primitive::Boolean),
+    mode: PassMode::Owned,
 };
 snapshot_for_apis(|db| {
     DirectCastRule::compile(CastBoundaryJsTypeToBoolRule, db, from, to, "input")
