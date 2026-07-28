@@ -11,16 +11,20 @@ codegen::bindings::primitive::tests::casts_string_to_str_ref
 ## Source
 
 ```rs
-let from = SourceType {
-    value: Type::String,
-    mode: PassMode::Owned,
-};
-let to = SourceType {
-    value: Type::Str,
-    mode: PassMode::Ref,
+let from = SourceType::String;
+let to = SourceType::Ref {
+    is_mutable: false,
+    inner: Box::new(SourceType::Str),
 };
 snapshot_for_apis(|db| {
-    DirectCastRule::compile(CastStringToStrRefRule, db, from, to, "input").print()
+    DirectCastRule::compile(
+            CastStringToStrRefRule,
+            db,
+            from.clone(),
+            to.clone(),
+            "input",
+        )
+        .print()
 })
 ```
 

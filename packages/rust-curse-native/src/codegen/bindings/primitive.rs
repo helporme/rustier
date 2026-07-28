@@ -1,11 +1,10 @@
 use crate::{
     codegen::{
         api::Api,
-        bindings::type_::{BoundaryType, PassMode, SourceType},
+        bindings::type_::{BoundaryType, SourceType},
         cast::{DirectCastRule, IndirectCastRule},
         db::Db,
         fragment::{FragmentOnce, doubles},
-        ir::type_::{Primitive, Type},
     },
     frag,
 };
@@ -15,15 +14,7 @@ pub struct CastF64ToSignedIntRule;
 
 impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToSignedIntRule {
     fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        (to.mode == PassMode::Owned
-            && matches!(
-                to.value,
-                Type::Primitive(Primitive::i8 | Primitive::i16 | Primitive::i32)
-            ))
-        .then_some(SourceType {
-            value: Type::Primitive(Primitive::f64),
-            mode: PassMode::Owned,
-        })
+        matches!(to, SourceType::i8 | SourceType::i16 | SourceType::i32).then_some(SourceType::f64)
     }
 
     fn compile(
@@ -33,7 +24,12 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToSig
         to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
-        let type_name = to.value.fqn(db);
+        let type_name = match to {
+            SourceType::i8 => "i8",
+            SourceType::i16 => "i16",
+            SourceType::i32 => "i32",
+            _ => unreachable!("signed integer cast requires a signed integer target"),
+        };
         let api = Api::get(db);
 
         frag!({{
@@ -58,15 +54,7 @@ pub struct CastF64ToUnsignedIntRule;
 
 impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToUnsignedIntRule {
     fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        (to.mode == PassMode::Owned
-            && matches!(
-                to.value,
-                Type::Primitive(Primitive::u8 | Primitive::u16 | Primitive::u32)
-            ))
-        .then_some(SourceType {
-            value: Type::Primitive(Primitive::f64),
-            mode: PassMode::Owned,
-        })
+        matches!(to, SourceType::u8 | SourceType::u16 | SourceType::u32).then_some(SourceType::f64)
     }
 
     fn compile(
@@ -76,7 +64,12 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToUns
         to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
-        let type_name = to.value.fqn(db);
+        let type_name = match to {
+            SourceType::u8 => "u8",
+            SourceType::u16 => "u16",
+            SourceType::u32 => "u32",
+            _ => unreachable!("unsigned integer cast requires an unsigned integer target"),
+        };
         let api = Api::get(db);
 
         frag!({{
@@ -101,14 +94,7 @@ pub struct CastU32ToCharRule;
 
 impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastU32ToCharRule {
     fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        (to == SourceType {
-            value: Type::Primitive(Primitive::Char),
-            mode: PassMode::Owned,
-        })
-        .then_some(SourceType {
-            value: Type::Primitive(Primitive::u32),
-            mode: PassMode::Owned,
-        })
+        (to == SourceType::char).then_some(SourceType::u32)
     }
 
     fn compile(
@@ -133,14 +119,7 @@ pub struct CastF64ToF32Rule;
 
 impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToF32Rule {
     fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        (to == SourceType {
-            value: Type::Primitive(Primitive::f32),
-            mode: PassMode::Owned,
-        })
-        .then_some(SourceType {
-            value: Type::Primitive(Primitive::f64),
-            mode: PassMode::Owned,
-        })
+        (to == SourceType::f32).then_some(SourceType::f64)
     }
 
     fn compile(
@@ -159,11 +138,7 @@ pub struct CastJsAnyToF64Rule;
 
 impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyToF64Rule {
     fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
-        (to == SourceType {
-            value: Type::Primitive(Primitive::f64),
-            mode: PassMode::Owned,
-        })
-        .then_some(BoundaryType::JsAny)
+        (to == SourceType::f64).then_some(BoundaryType::JsAny)
     }
 
     fn compile(
@@ -187,11 +162,7 @@ pub struct CastJsAnyToBoolRule;
 
 impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyToBoolRule {
     fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
-        (to == SourceType {
-            value: Type::Primitive(Primitive::Boolean),
-            mode: PassMode::Owned,
-        })
-        .then_some(BoundaryType::JsAny)
+        (to == SourceType::bool).then_some(BoundaryType::JsAny)
     }
 
     fn compile(
@@ -215,11 +186,7 @@ pub struct CastJsAnyToStringRule;
 
 impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyToStringRule {
     fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
-        (to == SourceType {
-            value: Type::String,
-            mode: PassMode::Owned,
-        })
-        .then_some(BoundaryType::JsAny)
+        (to == SourceType::String).then_some(BoundaryType::JsAny)
     }
 
     fn compile(
@@ -243,14 +210,11 @@ pub struct CastStringToStrRefRule;
 
 impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastStringToStrRefRule {
     fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        (to == SourceType {
-            value: Type::Str,
-            mode: PassMode::Ref,
+        (to == SourceType::Ref {
+            is_mutable: false,
+            inner: Box::new(SourceType::Str),
         })
-        .then_some(SourceType {
-            value: Type::String,
-            mode: PassMode::Owned,
-        })
+        .then_some(SourceType::String)
     }
 
     fn compile(
@@ -269,14 +233,11 @@ pub struct CastStringToStrMutRule;
 
 impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastStringToStrMutRule {
     fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        (to == SourceType {
-            value: Type::Str,
-            mode: PassMode::Mut,
+        (to == SourceType::Ref {
+            is_mutable: true,
+            inner: Box::new(SourceType::Str),
         })
-        .then_some(SourceType {
-            value: Type::String,
-            mode: PassMode::Owned,
-        })
+        .then_some(SourceType::String)
     }
 
     fn compile(
@@ -338,7 +299,8 @@ mod tests {
                     let to = $to;
 
                     snapshot_for_apis(|db| {
-                        DirectCastRule::compile($rule, db, from, to, "input").print()
+                        DirectCastRule::compile($rule, db, from.clone(), to.clone(), "input")
+                            .print()
                     })
                 });
             }
@@ -348,109 +310,70 @@ mod tests {
     direct_cast_snapshot_test!(
         casts_f64_to_signed_int,
         CastF64ToSignedIntRule,
-        SourceType {
-            value: Type::Primitive(Primitive::f64),
-            mode: PassMode::Owned,
-        },
-        SourceType {
-            value: Type::Primitive(Primitive::i32),
-            mode: PassMode::Owned,
-        }
+        SourceType::f64,
+        SourceType::i32
     );
     direct_cast_snapshot_test!(
         casts_f64_to_unsigned_int,
         CastF64ToUnsignedIntRule,
-        SourceType {
-            value: Type::Primitive(Primitive::f64),
-            mode: PassMode::Owned,
-        },
-        SourceType {
-            value: Type::Primitive(Primitive::u32),
-            mode: PassMode::Owned,
-        }
+        SourceType::f64,
+        SourceType::u32
     );
     direct_cast_snapshot_test!(
         casts_u32_to_char,
         CastU32ToCharRule,
-        SourceType {
-            value: Type::Primitive(Primitive::u32),
-            mode: PassMode::Owned,
-        },
-        SourceType {
-            value: Type::Primitive(Primitive::Char),
-            mode: PassMode::Owned,
-        }
+        SourceType::u32,
+        SourceType::char
     );
     direct_cast_snapshot_test!(
         casts_f64_to_f32,
         CastF64ToF32Rule,
-        SourceType {
-            value: Type::Primitive(Primitive::f64),
-            mode: PassMode::Owned,
-        },
-        SourceType {
-            value: Type::Primitive(Primitive::f32),
-            mode: PassMode::Owned,
-        }
+        SourceType::f64,
+        SourceType::f32
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_f64,
         CastJsAnyToF64Rule,
         BoundaryType::JsAny,
-        SourceType {
-            value: Type::Primitive(Primitive::f64),
-            mode: PassMode::Owned,
-        }
+        SourceType::f64
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_bool,
         CastJsAnyToBoolRule,
         BoundaryType::JsAny,
-        SourceType {
-            value: Type::Primitive(Primitive::Boolean),
-            mode: PassMode::Owned,
-        }
+        SourceType::bool
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_string,
         CastJsAnyToStringRule,
         BoundaryType::JsAny,
-        SourceType {
-            value: Type::String,
-            mode: PassMode::Owned,
-        }
+        SourceType::String
     );
     direct_cast_snapshot_test!(
         casts_string_to_str_ref,
         CastStringToStrRefRule,
-        SourceType {
-            value: Type::String,
-            mode: PassMode::Owned,
-        },
-        SourceType {
-            value: Type::Str,
-            mode: PassMode::Ref,
+        SourceType::String,
+        SourceType::Ref {
+            is_mutable: false,
+            inner: Box::new(SourceType::Str),
         }
     );
 
     #[test]
     fn casts_string_to_str_mut() {
         assert_snap!({
-            let from = SourceType {
-                value: Type::String,
-                mode: PassMode::Owned,
-            };
-            let to = SourceType {
-                value: Type::Str,
-                mode: PassMode::Mut,
+            let from = SourceType::String;
+            let to = SourceType::Ref {
+                is_mutable: true,
+                inner: Box::new(SourceType::Str),
             };
 
             snapshot_for_apis(|db| {
                 IndirectCastRule::compile(
                     CastStringToStrMutRule,
                     db,
-                    from,
-                    to,
+                    from.clone(),
+                    to.clone(),
                     "input",
                     fragment(|p| "consume(value);".apply(p)),
                 )

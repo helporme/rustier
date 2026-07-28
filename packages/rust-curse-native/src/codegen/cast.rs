@@ -76,7 +76,7 @@ where
 /// graph.
 pub trait CastGraph<'db> {
     /// Unified representation of every concrete type in the graph.
-    type Type: Copy + Debug + Eq + Hash + 'db;
+    type Type: Clone + Debug + Eq + Hash + 'db;
 
     /// Stable identifier of a cast rule.
     type Rule: Copy + Debug + Eq + 'static;
@@ -102,7 +102,7 @@ pub trait CastGraph<'db> {
 }
 
 /// One concrete rule application in a cast path.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, salsa::Update)]
+#[derive(Clone, Debug, PartialEq, Eq, salsa::Update)]
 pub struct CastPathStep<Type, Rule> {
     pub rule: Rule,
     pub from: Type,
@@ -122,7 +122,7 @@ where
     let mut steps = Vec::new();
 
     assert!(
-        find_cast_path_from::<Graph>(db, from, to, &mut visited, &mut steps),
+        find_cast_path_from::<Graph>(db, from.clone(), to.clone(), &mut visited, &mut steps),
         "cannot cast from `{from:?}` to `{to:?}`: no cast path exists",
     );
 
@@ -143,16 +143,16 @@ where
         return true;
     }
 
-    if !visited.insert(current) {
+    if !visited.insert(current.clone()) {
         return false;
     }
 
     for &rule in Graph::RULES {
-        let Some(predecessor) = Graph::predecessor(db, rule, current) else {
+        let Some(predecessor) = Graph::predecessor(db, rule, current.clone()) else {
             continue;
         };
 
-        if find_cast_path_from::<Graph>(db, from, predecessor, visited, steps) {
+        if find_cast_path_from::<Graph>(db, from.clone(), predecessor.clone(), visited, steps) {
             steps.push(CastPathStep {
                 rule,
                 from: predecessor,
@@ -195,14 +195,21 @@ where
     Access: FragmentOnce + 'db,
 {
     fragment(move |printer| {
-        let Some((&step, remaining)) = remaining.split_first() else {
+        let Some((step, remaining)) = remaining.split_first() else {
             access.apply(printer);
             return;
         };
 
         let continue_with = compile_cast_steps::<Graph, _>(db, remaining, access);
-        Graph::compile_step(db, step.rule, step.from, step.to, "value", continue_with)
-            .apply(printer);
+        Graph::compile_step(
+            db,
+            step.rule,
+            step.from.clone(),
+            step.to.clone(),
+            "value",
+            continue_with,
+        )
+        .apply(printer);
     })
 }
 
@@ -245,13 +252,13 @@ macro_rules! define_cast_graph {
             }
         }
     ) => {
-        #[allow(non_snake_case)]
+        #[allow(non_snake_case, clippy::drop_non_drop)]
         $vis mod $graph {
             #[allow(unused_imports)]
             use super::*;
 
             /// A concrete node in the generated cast graph.
-            #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+            #[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
             pub enum CastType<$db> {
                 $(
                     $type_variant($type_ty),
@@ -323,6 +330,9 @@ macro_rules! define_cast_graph {
                     Continue: $crate::codegen::fragment::FragmentOnce + $db,
                 {
                     $crate::codegen::fragment::fragment(move |p| {
+                        let debug_from = from.clone();
+                        let debug_to = to.clone();
+
                         match (rule, from, to) {
                             $(
                                 (
@@ -343,7 +353,7 @@ macro_rules! define_cast_graph {
                                 }
                             )*
                             _ => panic!(
-                                "cast path contains endpoints incompatible with rule `{rule:?}`: `{from:?}` -> `{to:?}`"
+                                "cast path contains endpoints incompatible with rule `{rule:?}`: `{debug_from:?}` -> `{debug_to:?}`"
                             ),
                         }
                     })
@@ -534,10 +544,10 @@ mod tests {
     ) {
         assert_eq!(path.len(), rules.len());
 
-        for (index, (&step, &rule)) in path.iter().zip(rules).enumerate() {
+        for (index, (step, &rule)) in path.iter().zip(rules).enumerate() {
             assert_eq!(
                 step,
-                CastPathStep {
+                &CastPathStep {
                     rule,
                     from: HappyType {
                         scenario,

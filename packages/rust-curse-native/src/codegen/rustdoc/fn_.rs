@@ -160,13 +160,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
 
     let id = FnId::new(
         db,
-        ItemId::new(
-            db,
-            ItemPath {
-                segments: item_summary.path.clone(),
-            },
-            ItemKind::Fn,
-        ),
+        ItemId::new(db, ItemPath::new(db, &item_summary.path), ItemKind::Fn),
     )
     .expect("newly created function item must have function kind");
 

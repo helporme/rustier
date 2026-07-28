@@ -12,12 +12,16 @@ codegen::bindings::primitive::tests::casts_boundary_js_type_to_bool
 
 ```rs
 let from = BoundaryType::JsAny;
-let to = SourceType {
-    value: Type::Primitive(Primitive::Boolean),
-    mode: PassMode::Owned,
-};
+let to = SourceType::bool;
 snapshot_for_apis(|db| {
-    DirectCastRule::compile(CastJsAnyToBoolRule, db, from, to, "input").print()
+    DirectCastRule::compile(
+            CastJsAnyToBoolRule,
+            db,
+            from.clone(),
+            to.clone(),
+            "input",
+        )
+        .print()
 })
 ```
 

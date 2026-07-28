@@ -12,12 +12,16 @@ codegen::bindings::primitive::tests::casts_boundary_js_type_to_f64
 
 ```rs
 let from = BoundaryType::JsAny;
-let to = SourceType {
-    value: Type::Primitive(Primitive::f64),
-    mode: PassMode::Owned,
-};
+let to = SourceType::f64;
 snapshot_for_apis(|db| {
-    DirectCastRule::compile(CastJsAnyToF64Rule, db, from, to, "input").print()
+    DirectCastRule::compile(
+            CastJsAnyToF64Rule,
+            db,
+            from.clone(),
+            to.clone(),
+            "input",
+        )
+        .print()
 })
 ```
 

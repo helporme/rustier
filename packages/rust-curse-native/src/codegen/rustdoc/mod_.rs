@@ -56,13 +56,7 @@ pub fn lower_mod<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Mod<'db> {
     assert_eq!(item_summary.kind, RItemKind::Module);
     let id = ModId::new(
         db,
-        ItemId::new(
-            db,
-            ItemPath {
-                segments: item_summary.path.clone(),
-            },
-            ItemKind::Mod,
-        ),
+        ItemId::new(db, ItemPath::new(db, &item_summary.path), ItemKind::Mod),
     )
     .expect("newly created module item must have module kind");
 
@@ -236,8 +230,8 @@ mod tests {
         let c_like_enums = lower_mod_c_like_enums(&db, root);
         assert_eq!(c_like_enums.len(), 1);
         assert_eq!(
-            c_like_enums[0].id(&db).path(&db).segments,
-            &[TEST_CRATE_NAME, "ColorKind"]
+            c_like_enums[0].id(&db).fqn(&db),
+            &format!("{TEST_CRATE_NAME}::ColorKind")
         );
     }
 }

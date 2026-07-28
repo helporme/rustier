@@ -11,20 +11,17 @@ codegen::bindings::primitive::tests::casts_string_to_str_mut
 ## Source
 
 ```rs
-let from = SourceType {
-    value: Type::String,
-    mode: PassMode::Owned,
-};
-let to = SourceType {
-    value: Type::Str,
-    mode: PassMode::Mut,
+let from = SourceType::String;
+let to = SourceType::Ref {
+    is_mutable: true,
+    inner: Box::new(SourceType::Str),
 };
 snapshot_for_apis(|db| {
     IndirectCastRule::compile(
             CastStringToStrMutRule,
             db,
-            from,
-            to,
+            from.clone(),
+            to.clone(),
             "input",
             fragment(|p| "consume(value);".apply(p)),
         )

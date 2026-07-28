@@ -94,13 +94,7 @@ fn lower_data_carrying_enum<'db>(
     let item_summary = crate_body.paths.get(&item.id).unwrap();
     let id = EnumId::new(
         db,
-        ItemId::new(
-            db,
-            ItemPath {
-                segments: item_summary.path.clone(),
-            },
-            ItemKind::Enum,
-        ),
+        ItemId::new(db, ItemPath::new(db, &item_summary.path), ItemKind::Enum),
     )
     .expect("newly created enum item must have enum kind");
 
@@ -149,13 +143,7 @@ fn lower_c_like_enum<'db>(
         .collect();
 
     let item_summary = crate_body.paths.get(&item.id).unwrap();
-    let id = ItemId::new(
-        db,
-        ItemPath {
-            segments: item_summary.path.clone(),
-        },
-        ItemKind::Enum,
-    );
+    let id = ItemId::new(db, ItemPath::new(db, &item_summary.path), ItemKind::Enum);
     Ok(CLikeEnum::new(db, id, variants, item.docs.clone()))
 }
 

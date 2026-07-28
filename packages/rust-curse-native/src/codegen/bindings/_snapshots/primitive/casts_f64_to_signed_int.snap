@@ -11,16 +11,17 @@ codegen::bindings::primitive::tests::casts_f64_to_signed_int
 ## Source
 
 ```rs
-let from = SourceType {
-    value: Type::Primitive(Primitive::f64),
-    mode: PassMode::Owned,
-};
-let to = SourceType {
-    value: Type::Primitive(Primitive::i32),
-    mode: PassMode::Owned,
-};
+let from = SourceType::f64;
+let to = SourceType::i32;
 snapshot_for_apis(|db| {
-    DirectCastRule::compile(CastF64ToSignedIntRule, db, from, to, "input").print()
+    DirectCastRule::compile(
+            CastF64ToSignedIntRule,
+            db,
+            from.clone(),
+            to.clone(),
+            "input",
+        )
+        .print()
 })
 ```
 

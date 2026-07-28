@@ -51,13 +51,7 @@ pub fn lower_type<'db>(
                 Ok(LoweredType::Moved(IrType::Struct(
                     StructId::new(
                         db,
-                        ItemId::new(
-                            db,
-                            ItemPath {
-                                segments: summary.path.clone(),
-                            },
-                            ItemKind::Struct,
-                        ),
+                        ItemId::new(db, ItemPath::new(db, &summary.path), ItemKind::Struct),
                     )
                     .expect("newly created struct item must have struct kind"),
                 )))
@@ -65,13 +59,7 @@ pub fn lower_type<'db>(
                 Ok(LoweredType::Moved(IrType::Enum(
                     EnumId::new(
                         db,
-                        ItemId::new(
-                            db,
-                            ItemPath {
-                                segments: summary.path.clone(),
-                            },
-                            ItemKind::Enum,
-                        ),
+                        ItemId::new(db, ItemPath::new(db, &summary.path), ItemKind::Enum),
                     )
                     .expect("newly created enum item must have enum kind"),
                 )))

@@ -81,7 +81,8 @@ impl DbImpl {
             segments.extend(path.split("::").map(str::to_string));
         }
 
-        RustdocId::find_by_path(self, &ItemPath { segments }).expect("no rustdoc item found")
+        RustdocId::find_by_path(self, &ItemPath::new(self, &segments))
+            .expect("no rustdoc item found")
     }
 }
 

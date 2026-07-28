@@ -12,12 +12,16 @@ codegen::bindings::primitive::tests::casts_boundary_js_type_to_string
 
 ```rs
 let from = BoundaryType::JsAny;
-let to = SourceType {
-    value: Type::String,
-    mode: PassMode::Owned,
-};
+let to = SourceType::String;
 snapshot_for_apis(|db| {
-    DirectCastRule::compile(CastJsAnyToStringRule, db, from, to, "input").print()
+    DirectCastRule::compile(
+            CastJsAnyToStringRule,
+            db,
+            from.clone(),
+            to.clone(),
+            "input",
+        )
+        .print()
 })
 ```
 

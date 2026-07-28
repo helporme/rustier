@@ -1,8 +1,9 @@
 use crate::codegen::{db::Db, ir::mod_::ModId, mangle::mangle_path};
 
 /// Fully qualified item path.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
-pub struct ItemPath {
+#[salsa::interned(debug)]
+pub struct ItemPath<'db> {
+    #[returns(ref)]
     pub segments: Vec<String>,
 }
 
@@ -21,7 +22,7 @@ pub enum ItemKind {
 pub struct ItemId<'db> {
     /// Fully qualified item path.
     #[returns(ref)]
-    pub path: ItemPath,
+    pub path: ItemPath<'db>,
     /// The kind of the item.
     #[returns(copy)]
     pub kind: ItemKind,
@@ -32,14 +33,14 @@ impl<'db> ItemId<'db> {
     /// Returns the fully qualified item name, e.g. `geometry::Point`.
     #[salsa::tracked(returns(ref))]
     pub fn fqn(self, db: &'db dyn Db) -> String {
-        self.path(db).segments.join("::")
+        self.path(db).segments(db).join("::")
     }
 
     /// Returns the unqualified item name, e.g. `Point`.
     #[salsa::tracked(returns(ref))]
     pub fn name(self, db: &'db dyn Db) -> String {
         self.path(db)
-            .segments
+            .segments(db)
             .last()
             .expect("Item must have a name")
             .to_string()
@@ -48,14 +49,14 @@ impl<'db> ItemId<'db> {
     /// Returns the mangled fully qualified item name, e.g. `geometry_Point`.
     #[salsa::tracked(returns(ref))]
     pub fn mangled_fqn(self, db: &'db dyn Db) -> String {
-        mangle_path(&self.path(db).segments)
+        mangle_path(self.path(db).segments(db))
     }
 
     /// Returns the parent module ID, or `None` if this ID has no parent path
     /// segment.
     #[salsa::tracked]
     pub fn parent_mod_id(self, db: &'db dyn Db) -> Option<ModId<'db>> {
-        let segments = &self.path(db).segments;
+        let segments = &self.path(db).segments(db);
 
         if segments.len() <= 1 {
             return None;
@@ -70,9 +71,7 @@ impl<'db> ItemId<'db> {
                 db,
                 ItemId::new(
                     db,
-                    ItemPath {
-                        segments: segments[..segments.len() - 1].to_vec(),
-                    },
+                    ItemPath::new(db, segments[..segments.len() - 1].to_vec()),
                     ItemKind::Mod,
                 ),
             )

@@ -125,9 +125,7 @@ impl<'db> RustdocId<'db> {
 
         ItemId::new(
             db,
-            ItemPath {
-                segments: ritem.path.clone(),
-            },
+            ItemPath::new(db, &ritem.path),
             ItemKind::from(ritem.kind),
         )
     }
@@ -142,17 +140,14 @@ impl<'db> ItemId<'db> {
         let backmap = rustdoc_backmap(db);
 
         // todo: remove panic
-        *backmap.get(self.path(db)).unwrap_or_else(|| {
-            panic!(
-                "no rustdoc item for `{}`",
-                self.path(db).segments.join("::")
-            )
-        })
+        *backmap
+            .get(self.path(db))
+            .unwrap_or_else(|| panic!("no rustdoc item for `{}`", self.fqn(db)))
     }
 }
 
 #[salsa::tracked(returns(ref))]
-fn rustdoc_backmap<'db>(db: &'db dyn Db) -> HashMap<ItemPath, RustdocId<'db>> {
+fn rustdoc_backmap<'db>(db: &'db dyn Db) -> HashMap<ItemPath<'db>, RustdocId<'db>> {
     let rustdoc = RustdocCrates::get(db);
 
     let mut backmap = HashMap::new();
@@ -164,9 +159,7 @@ fn rustdoc_backmap<'db>(db: &'db dyn Db) -> HashMap<ItemPath, RustdocId<'db>> {
             }
 
             backmap.insert(
-                ItemPath {
-                    segments: item_summary.path.clone(),
-                },
+                ItemPath::new(db, &item_summary.path),
                 RustdocId::new(db, *idx, crate_name),
             );
         }

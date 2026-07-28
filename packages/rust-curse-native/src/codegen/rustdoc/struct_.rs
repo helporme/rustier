@@ -65,13 +65,7 @@ pub fn lower_struct<'db>(
     let docs = item.docs.clone();
     let id = StructId::new(
         db,
-        ItemId::new(
-            db,
-            ItemPath {
-                segments: item_summary.path.clone(),
-            },
-            ItemKind::Struct,
-        ),
+        ItemId::new(db, ItemPath::new(db, &item_summary.path), ItemKind::Struct),
     )
     .expect("newly created struct item must have struct kind");
 

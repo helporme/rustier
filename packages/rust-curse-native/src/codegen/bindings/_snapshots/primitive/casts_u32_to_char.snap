@@ -11,16 +11,11 @@ codegen::bindings::primitive::tests::casts_u32_to_char
 ## Source
 
 ```rs
-let from = SourceType {
-    value: Type::Primitive(Primitive::u32),
-    mode: PassMode::Owned,
-};
-let to = SourceType {
-    value: Type::Primitive(Primitive::Char),
-    mode: PassMode::Owned,
-};
+let from = SourceType::u32;
+let to = SourceType::char;
 snapshot_for_apis(|db| {
-    DirectCastRule::compile(CastU32ToCharRule, db, from, to, "input").print()
+    DirectCastRule::compile(CastU32ToCharRule, db, from.clone(), to.clone(), "input")
+        .print()
 })
 ```
 
