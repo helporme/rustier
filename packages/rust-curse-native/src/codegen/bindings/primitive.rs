@@ -133,6 +133,78 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToF32
     }
 }
 
+/// Casts an owned source `char` to a boundary `u32`.
+pub struct CastCharToU32BoundaryRule;
+
+impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastCharToU32BoundaryRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
+        (to == BoundaryType::u32).then_some(SourceType::char)
+    }
+
+    fn compile(
+        self,
+        _db: &'db dyn Db,
+        _from: SourceType<'db>,
+        _to: BoundaryType<'db>,
+        in_expr: impl FragmentOnce + 'db,
+    ) -> impl FragmentOnce + 'db {
+        frag!({{ {in_expr}~as u32 }})
+    }
+}
+
+/// Casts an owned source `f32` to a boundary `f64`.
+pub struct CastF32ToF64BoundaryRule;
+
+impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastF32ToF64BoundaryRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
+        (to == BoundaryType::f64).then_some(SourceType::f32)
+    }
+
+    fn compile(
+        self,
+        _db: &'db dyn Db,
+        _from: SourceType<'db>,
+        _to: BoundaryType<'db>,
+        in_expr: impl FragmentOnce + 'db,
+    ) -> impl FragmentOnce + 'db {
+        frag!({{ {in_expr}~as f64 }})
+    }
+}
+
+/// Passes an owned primitive source value to its identical boundary type.
+pub struct CastPrimitiveToSameBoundaryRule;
+
+impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
+    for CastPrimitiveToSameBoundaryRule
+{
+    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
+        match to {
+            BoundaryType::bool => Some(SourceType::bool),
+            BoundaryType::i8 => Some(SourceType::i8),
+            BoundaryType::u8 => Some(SourceType::u8),
+            BoundaryType::i16 => Some(SourceType::i16),
+            BoundaryType::u16 => Some(SourceType::u16),
+            BoundaryType::i32 => Some(SourceType::i32),
+            BoundaryType::u32 => Some(SourceType::u32),
+            BoundaryType::f64 => Some(SourceType::f64),
+            BoundaryType::f32
+            | BoundaryType::String
+            | BoundaryType::JsAny
+            | BoundaryType::Item { .. } => None,
+        }
+    }
+
+    fn compile(
+        self,
+        _db: &'db dyn Db,
+        _from: SourceType<'db>,
+        _to: BoundaryType<'db>,
+        in_expr: impl FragmentOnce + 'db,
+    ) -> impl FragmentOnce + 'db {
+        in_expr
+    }
+}
+
 /// Casts an API-specific JavaScript boundary value to an owned `f64`.
 pub struct CastJsAnyToF64Rule;
 
@@ -330,6 +402,24 @@ mod tests {
         CastF64ToF32Rule,
         SourceType::f64,
         SourceType::f32
+    );
+    direct_cast_snapshot_test!(
+        casts_char_to_u32_boundary,
+        CastCharToU32BoundaryRule,
+        SourceType::char,
+        BoundaryType::u32
+    );
+    direct_cast_snapshot_test!(
+        casts_f32_to_f64_boundary,
+        CastF32ToF64BoundaryRule,
+        SourceType::f32,
+        BoundaryType::f64
+    );
+    direct_cast_snapshot_test!(
+        passes_primitive_to_same_boundary,
+        CastPrimitiveToSameBoundaryRule,
+        SourceType::i32,
+        BoundaryType::i32
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_f64,

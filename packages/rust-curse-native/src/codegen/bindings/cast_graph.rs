@@ -1,10 +1,12 @@
 use crate::{
     codegen::bindings::{
         primitive::{
-            CastF64ToF32Rule, CastF64ToSignedIntRule, CastF64ToUnsignedIntRule,
-            CastJsAnyToBoolRule, CastJsAnyToF64Rule, CastJsAnyToStringRule, CastStringToStrMutRule,
-            CastStringToStrRefRule, CastU32ToCharRule,
+            CastCharToU32BoundaryRule, CastF32ToF64BoundaryRule, CastF64ToF32Rule,
+            CastF64ToSignedIntRule, CastF64ToUnsignedIntRule, CastJsAnyToBoolRule,
+            CastJsAnyToF64Rule, CastJsAnyToStringRule, CastPrimitiveToSameBoundaryRule,
+            CastStringToStrMutRule, CastStringToStrRefRule, CastU32ToCharRule,
         },
+        struct_::{CastStructBoundaryTypeToBorrowedSourceType, CastStructSourceTypeToBoundaryType},
         type_::{BoundaryType, CastOwnedTypeToMutTypeRule, CastOwnedTypeToRefTypeRule, SourceType},
     },
     define_cast_graph,
@@ -62,6 +64,21 @@ define_cast_graph! {
                 from: SourceType,
                 to: SourceType,
             }
+            CharToU32Boundary {
+                rule: CastCharToU32BoundaryRule,
+                from: SourceType,
+                to: BoundaryType,
+            }
+            F32ToF64Boundary {
+                rule: CastF32ToF64BoundaryRule,
+                from: SourceType,
+                to: BoundaryType,
+            }
+            PrimitiveToSameBoundary {
+                rule: CastPrimitiveToSameBoundaryRule,
+                from: SourceType,
+                to: BoundaryType,
+            }
             StringToStrRef {
                 rule: CastStringToStrRefRule,
                 from: SourceType,
@@ -71,6 +88,16 @@ define_cast_graph! {
                 rule: CastStringToStrMutRule,
                 from: SourceType,
                 to: SourceType,
+            }
+            StructBoundaryTypeToBorrowedSourceType {
+                rule: CastStructBoundaryTypeToBorrowedSourceType,
+                from: BoundaryType,
+                to: SourceType,
+            }
+            StructSourceTypeToBoundaryType {
+                rule: CastStructSourceTypeToBoundaryType,
+                from: SourceType,
+                to: BoundaryType,
             }
        }
     }

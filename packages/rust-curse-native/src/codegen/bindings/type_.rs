@@ -55,7 +55,7 @@ pub enum BoundaryType<'db> {
     JsAny,
     /// Generated item (like struct) used exclusively to pass values across the
     /// boundary.
-    Generated {
+    Item {
         /// The target item for which a boundary type is generated.
         target: ItemId<'db>,
     },
@@ -66,8 +66,8 @@ impl<'db> Type<'db> {
     pub fn boundary_in(self, _db: &'db dyn Db) -> BoundaryType<'db> {
         match self {
             Type::Primitive(_) | Type::String | Type::Str => BoundaryType::JsAny,
-            Type::Struct(id) => BoundaryType::Generated { target: id.into() },
-            Type::Enum(id) => BoundaryType::Generated { target: id.into() },
+            Type::Struct(id) => BoundaryType::Item { target: id.into() },
+            Type::Enum(id) => BoundaryType::Item { target: id.into() },
         }
     }
 
@@ -83,8 +83,8 @@ impl<'db> Type<'db> {
             Type::Primitive(Primitive::u32) | Type::Primitive(Primitive::Char) => BoundaryType::u32,
             Type::Primitive(Primitive::f64) | Type::Primitive(Primitive::f32) => BoundaryType::f64,
             Type::String => BoundaryType::String,
-            Type::Struct(id) => BoundaryType::Generated { target: id.into() },
-            Type::Enum(id) => BoundaryType::Generated { target: id.into() },
+            Type::Struct(id) => BoundaryType::Item { target: id.into() },
+            Type::Enum(id) => BoundaryType::Item { target: id.into() },
             Type::Str => unreachable!("str cannot be returned"),
         }
     }

@@ -4,6 +4,9 @@
 //!
 //! This module doesn't define the graph itself, but provides a
 //! [`define_cast_graph`] macro for doing so.
+//!
+//! "Cast" doesn't neccessary mean the number casting. It's any operation that
+//! converts one type to another.
 
 use std::{collections::HashSet, fmt::Debug, hash::Hash};
 

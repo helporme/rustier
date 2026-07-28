@@ -1,0 +1,37 @@
+---
+source: src/codegen/bindings/struct_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::bindings::struct_::tests::casts_owned_struct_source_type_to_boundary_type
+```
+
+## Source
+
+```rs
+let db = DbImpl::default();
+let path = ItemPath::new(&db, vec!["crate".into(), "Item".into()]);
+let target = ItemId::new(&db, path, ItemKind::Struct);
+DirectCastRule::compile(
+        CastStructSourceTypeToBoundaryType,
+        &db,
+        SourceType::Item(path),
+        BoundaryType::Item { target },
+        "input",
+    )
+    .print()
+```
+
+## Output
+
+```rs
+__binding_struct__crate_Item {
+	src:std::rc::Rc::new(
+		__tethered_struct__crate_Item::new_owned(
+			input
+		)
+	)
+}
+```

@@ -1,0 +1,42 @@
+---
+source: src/codegen/bindings/struct_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::bindings::struct_::tests::casts_struct_boundary_type_to_mutable_source_ref
+```
+
+## Source
+
+```rs
+let db = DbImpl::default();
+let path = ItemPath::new(&db, vec!["crate".into(), "Item".into()]);
+let target = ItemId::new(&db, path, ItemKind::Struct);
+IndirectCastRule::compile(
+        CastStructBoundaryTypeToBorrowedSourceType,
+        &db,
+        BoundaryType::Item { target },
+        SourceType::Ref {
+            is_mutable: true,
+            inner: Box::new(SourceType::Item(path)),
+        },
+        "input",
+        "consume(value);",
+    )
+    .print()
+```
+
+## Output
+
+```rs
+input.src.access_mut(
+	&mut |value| {
+		consume(value);
+		Ok(
+			()
+		)
+	}
+)?;
+```

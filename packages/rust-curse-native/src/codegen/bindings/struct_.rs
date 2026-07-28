@@ -13,13 +13,16 @@ use crate::{
             tethering::{
                 ClonedField, TetheredField, TetheredStructField, TetheringStruct,
                 compile_tethered_struct, compile_tethered_struct_get_field_expr,
-                compile_tethered_struct_set_field_stmt,
+                compile_tethered_struct_mut_access_stmt, compile_tethered_struct_ref_access_stmt,
+                compile_tethered_struct_set_field_stmt, compile_tethering_struct_from_source_expr,
             },
+            type_::{BoundaryType, SourceType},
         },
+        cast::{DirectCastRule, IndirectCastRule},
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, fragment, spaced},
         ir::{
-            item::ItemId,
+            item::{ItemId, ItemKind},
             shape::ShapeField,
             struct_::{Struct, StructId},
             type_::Type,
@@ -235,4 +238,170 @@ pub fn compile_binding_struct_from_tethered_expr<'db>(
 ) -> impl FragmentOnce + 'db {
     let binding_name = id.binding_name(db);
     frag!({binding_name}~{{ src: {tethered_struct_expr} }})
+}
+
+/// Casts a generated struct boundary value to a borrowed source struct.
+pub struct CastStructBoundaryTypeToBorrowedSourceType;
+
+impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
+    for CastStructBoundaryTypeToBorrowedSourceType
+{
+    fn predecessor(self, db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
+        match to {
+            SourceType::Ref { inner, .. } => match *inner {
+                SourceType::Item(path) => Some(BoundaryType::Item {
+                    target: ItemId::new(db, path, ItemKind::Struct),
+                }),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    fn compile(
+        self,
+        db: &'db dyn Db,
+        from: BoundaryType<'db>,
+        to: SourceType<'db>,
+        in_expr: impl FragmentOnce + 'db,
+        continue_with: impl FragmentOnce + 'db,
+    ) -> impl FragmentOnce + 'db {
+        let SourceType::Ref { is_mutable, inner } = to else {
+            unreachable!()
+        };
+        let SourceType::Item(path) = *inner else {
+            unreachable!()
+        };
+        let BoundaryType::Item { target } = from else {
+            unreachable!()
+        };
+
+        assert_eq!(
+            *target.path(db),
+            path,
+            "struct boundary cast source and target items must match"
+        );
+
+        let tethered = compile_binding_struct_get_tethered_expr(in_expr);
+        fragment(move |printer| {
+            if is_mutable {
+                compile_tethered_struct_mut_access_stmt(tethered, "value", continue_with)
+                    .apply(printer);
+            } else {
+                compile_tethered_struct_ref_access_stmt(tethered, "value", continue_with)
+                    .apply(printer);
+            }
+        })
+    }
+}
+
+/// Casts an owned source struct to its generated boundary type.
+pub struct CastStructSourceTypeToBoundaryType;
+
+impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
+    for CastStructSourceTypeToBoundaryType
+{
+    fn predecessor(self, db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
+        match to {
+            BoundaryType::Item { target } => {
+                StructId::new(db, target).map(|_| SourceType::Item(*target.path(db)))
+            }
+            _ => None,
+        }
+    }
+
+    fn compile(
+        self,
+        db: &'db dyn Db,
+        from: SourceType<'db>,
+        to: BoundaryType<'db>,
+        in_expr: impl FragmentOnce + 'db,
+    ) -> impl FragmentOnce + 'db {
+        let SourceType::Item(path) = from else {
+            unreachable!("struct boundary casts require an owned item source");
+        };
+        let BoundaryType::Item { target } = to else {
+            unreachable!("struct boundary casts require a generated boundary target");
+        };
+        let struct_id = StructId::new(db, target)
+            .expect("struct boundary casts require a generated struct boundary type");
+
+        assert_eq!(
+            path,
+            *target.path(db),
+            "struct boundary cast source and target items must match"
+        );
+
+        let tethered =
+            compile_tethering_struct_from_source_expr(struct_id.tethering_struct_name(db), in_expr);
+        compile_binding_struct_from_tethered_expr(db, struct_id, tethered)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::codegen::{db::DbImpl, ir::item::ItemPath, test::assert_snap};
+
+    #[test]
+    fn casts_struct_boundary_type_to_shared_source_ref() {
+        assert_snap!({
+            let db = DbImpl::default();
+            let path = ItemPath::new(&db, vec!["crate".into(), "Item".into()]);
+            let target = ItemId::new(&db, path, ItemKind::Struct);
+
+            IndirectCastRule::compile(
+                CastStructBoundaryTypeToBorrowedSourceType,
+                &db,
+                BoundaryType::Item { target },
+                SourceType::Ref {
+                    is_mutable: false,
+                    inner: Box::new(SourceType::Item(path)),
+                },
+                "input",
+                "consume(value);",
+            )
+            .print()
+        });
+    }
+
+    #[test]
+    fn casts_struct_boundary_type_to_mutable_source_ref() {
+        assert_snap!({
+            let db = DbImpl::default();
+            let path = ItemPath::new(&db, vec!["crate".into(), "Item".into()]);
+            let target = ItemId::new(&db, path, ItemKind::Struct);
+
+            IndirectCastRule::compile(
+                CastStructBoundaryTypeToBorrowedSourceType,
+                &db,
+                BoundaryType::Item { target },
+                SourceType::Ref {
+                    is_mutable: true,
+                    inner: Box::new(SourceType::Item(path)),
+                },
+                "input",
+                "consume(value);",
+            )
+            .print()
+        });
+    }
+
+    #[test]
+    fn casts_owned_struct_source_type_to_boundary_type() {
+        assert_snap!({
+            let db = DbImpl::default();
+            let path = ItemPath::new(&db, vec!["crate".into(), "Item".into()]);
+            let target = ItemId::new(&db, path, ItemKind::Struct);
+
+            DirectCastRule::compile(
+                CastStructSourceTypeToBoundaryType,
+                &db,
+                SourceType::Item(path),
+                BoundaryType::Item { target },
+                "input",
+            )
+            .print()
+        });
+    }
 }
