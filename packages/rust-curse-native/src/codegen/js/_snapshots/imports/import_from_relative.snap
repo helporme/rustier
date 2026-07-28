@@ -17,25 +17,28 @@ let db = test_db! {
     } @ file : "deeply/nested/baz.rs"; pub mod deeply { pub mod nested { pub struct
     Baz; } }
 };
+let foo = ModId::new(&db, db.item_id("foo")).unwrap();
+let bar = ModId::new(&db, db.item_id("bar")).unwrap();
+let nested = ModId::new(&db, db.item_id("deeply::nested")).unwrap();
 let import_same = Import {
     item: "Bar",
     from: ImportFrom::RelativeToMod {
-        from: db.item_id("foo"),
-        to: db.item_id("bar"),
+        from: foo,
+        to: bar,
     },
 };
 let import_forward = Import {
     item: "Baz",
     from: ImportFrom::RelativeToMod {
-        from: db.item_id("foo"),
-        to: db.item_id("deeply::nested"),
+        from: foo,
+        to: nested,
     },
 };
 let import_backward = Import {
     item: "Baz",
     from: ImportFrom::RelativeToMod {
-        from: db.item_id("deeply::nested"),
-        to: db.item_id("foo"),
+        from: nested,
+        to: foo,
     },
 };
 frag!(

@@ -4,8 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, fragment},
-        ir::item::ItemId,
-        ir::type_::Type,
+        ir::{mod_::ModId, type_::Type},
         js::{
             enum_::{
                 compile_binding_enum_from_facade_expr, compile_enum_facade_from_binding_expr,
@@ -54,7 +53,7 @@ pub fn compile_js_binding_value_to_facade_stmt<'db>(
 /// Adds the imports required by [`compile_js_binding_value_to_facade_stmt`].
 pub fn compile_js_binding_value_to_facade_stmt_required_imports<'db>(
     db: &'db dyn Db,
-    active_mod_id: ItemId<'db>,
+    active_mod_id: ModId<'db>,
     binding_value_type: Type<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {
@@ -125,7 +124,7 @@ pub fn compile_js_facade_value_to_binding_stmt<'db>(
 /// [`compile_js_facade_value_to_binding_stmt`].
 pub fn compile_js_facade_value_to_binding_stmt_required_imports<'db>(
     db: &'db dyn Db,
-    active_mod_id: ItemId<'db>,
+    active_mod_id: ModId<'db>,
     facade_value_type: Type<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {

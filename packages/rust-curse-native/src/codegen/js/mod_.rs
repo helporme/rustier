@@ -6,7 +6,7 @@ use crate::codegen::{
     api::Api,
     db::Db,
     fragment::{FragmentPrint, frag, spaced},
-    ir::item::ItemId,
+    ir::{item::ItemId, mod_::ModId},
     js::{
         JsCodegenPaths,
         enum_::{compile_facade_class_for_enum, compile_facade_class_for_enum_required_imports},
@@ -21,8 +21,12 @@ use crate::codegen::{
 
 /// Compiles all supported items declared by a Rust module into its facade
 /// JavaScript file.
+pub fn compile_js_file<'db>(db: &'db dyn Db, mod_id: ModId<'db>) -> &'db String {
+    compile_js_file_tracked(db, mod_id.into())
+}
+
 #[salsa::tracked(returns(ref))]
-pub fn compile_js_file<'db>(db: &'db dyn Db, mod_id: ItemId<'db>) -> String {
+fn compile_js_file_tracked<'db>(db: &'db dyn Db, mod_id: ItemId<'db>) -> String {
     let js_codegen_paths = JsCodegenPaths::get(db);
 
     let fns = lower_mod_fns(db, mod_id.rustdoc_id(db));
@@ -82,7 +86,9 @@ mod tests {
         Api::set(&mut db, ApiKind::Node);
         JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
 
-        compile_js_file(&db, db.item_id("")).to_string()
+        let mod_id =
+            ModId::new(&db, db.item_id("")).expect("the test database root item must be a module");
+        compile_js_file(&db, mod_id).to_string()
     }
 
     #[test]

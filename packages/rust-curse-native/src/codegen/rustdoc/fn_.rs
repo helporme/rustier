@@ -7,7 +7,7 @@ use crate::codegen::{
     diag::DiagAccumulateExt as _,
     ir::item::{ItemId, ItemKind, ItemPath},
     ir::{
-        fn_::{Fn, FnParam, ParamMode},
+        fn_::{Fn, FnId, FnParam, ParamMode},
         span::{SourceCode, Span},
         type_::Type,
     },
@@ -158,13 +158,17 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
         }));
     }
 
-    let id = ItemId::new(
+    let id = FnId::new(
         db,
-        ItemPath {
-            segments: item_summary.path.clone(),
-        },
-        ItemKind::Fn,
-    );
+        ItemId::new(
+            db,
+            ItemPath {
+                segments: item_summary.path.clone(),
+            },
+            ItemKind::Fn,
+        ),
+    )
+    .expect("newly created function item must have function kind");
 
     Ok(Fn::new(db, id, params, ret_type, item.docs.clone()))
 }

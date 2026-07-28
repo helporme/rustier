@@ -1,4 +1,12 @@
-use crate::codegen::{db::Db, ir::item::ItemId, ir::type_::Type};
+use crate::codegen::{
+    db::Db,
+    ir::{
+        item::{ItemKind, define_item_id},
+        type_::Type,
+    },
+};
+
+define_item_id!(FnId, ItemKind::Fn, "Identifies a lowered Rust function.");
 
 /// How a parameter is passed to a function.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
@@ -22,7 +30,7 @@ pub struct FnParam<'db> {
 /// A function.
 #[salsa::tracked(debug)]
 pub struct Fn<'db> {
-    pub id: ItemId<'db>,
+    pub id: FnId<'db>,
     #[tracked]
     #[returns(ref)]
     pub params: Vec<FnParam<'db>>,

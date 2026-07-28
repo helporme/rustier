@@ -7,8 +7,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{Fragment, FragmentOnce, doubles, fragment},
-        ir::item::ItemId,
-        ir::type_::Type,
+        ir::{mod_::ModId, type_::Type},
         js::{
             enum_::compile_enum_facade_from_binding_expr_required_imports, imports::Import,
             struct_::compile_struct_facade_from_binding_expr_required_imports,
@@ -50,7 +49,7 @@ pub fn compile_js_facade_value_validation_stmt<'db>(
 /// Adds imports required by [`compile_js_facade_value_validation_stmt`].
 pub fn compile_js_facade_value_validation_stmt_required_imports<'db>(
     db: &'db dyn Db,
-    active_mod_id: ItemId<'db>,
+    active_mod_id: ModId<'db>,
     facade_value_type: Type<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {

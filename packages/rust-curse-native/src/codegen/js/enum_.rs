@@ -4,9 +4,9 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, comma_list, doubles, fragment, spaced},
-        ir::item::ItemId,
         ir::{
             enum_::{Enum, EnumId, EnumVariant},
+            mod_::ModId,
             shape::ShapeField,
             type_::Type,
         },
@@ -446,7 +446,7 @@ pub fn compile_enum_facade_from_binding_expr<'db>(
 /// Adds imports required by [`compile_enum_facade_from_binding_expr`].
 pub fn compile_enum_facade_from_binding_expr_required_imports<'db>(
     db: &'db dyn Db,
-    active_mod_id: ItemId<'db>,
+    active_mod_id: ModId<'db>,
     enum_id: EnumId<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {

@@ -4,7 +4,13 @@ use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
     ir::item::{ItemId, ItemKind, ItemPath},
-    ir::{c_like_enum::CLikeEnum, enum_::Enum, fn_::Fn, mod_::Mod, struct_::Struct},
+    ir::{
+        c_like_enum::CLikeEnum,
+        enum_::Enum,
+        fn_::Fn,
+        mod_::{Mod, ModId},
+        struct_::Struct,
+    },
     rustdoc::{
         RustdocCrates, RustdocId,
         enum_::{LoweredEnum, lower_enum},
@@ -48,13 +54,17 @@ pub fn lower_mod<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Mod<'db> {
 
     let item_summary = crate_.paths.get(&item.id).unwrap();
     assert_eq!(item_summary.kind, RItemKind::Module);
-    let id = ItemId::new(
+    let id = ModId::new(
         db,
-        ItemPath {
-            segments: item_summary.path.clone(),
-        },
-        ItemKind::Mod,
-    );
+        ItemId::new(
+            db,
+            ItemPath {
+                segments: item_summary.path.clone(),
+            },
+            ItemKind::Mod,
+        ),
+    )
+    .expect("newly created module item must have module kind");
 
     let docs = item.docs.clone();
 
