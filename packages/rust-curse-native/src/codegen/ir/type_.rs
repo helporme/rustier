@@ -88,6 +88,7 @@ impl Primitive {
 /// It also means that there is no "ref" or "mut ref" variant, since rust-curse
 /// doesn't really support refs in all cases.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+// todo: rename to IrType
 pub enum Type<'db> {
     Primitive(Primitive),
     Str,

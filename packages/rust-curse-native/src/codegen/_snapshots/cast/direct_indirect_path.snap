@@ -11,13 +11,16 @@ codegen::cast::tests::direct_indirect_path
 ## Source
 
 ```rs
-HappyCastGraph::compile_cast(Cast {
-        db: &db,
-        from,
-        to,
-        in_expr: frag!(source()),
-        access: "consume(value);",
-    })
+HappyCastGraph::compile_cast(
+        &db,
+        Cast {
+            from,
+            to,
+            in_expr: frag!(source()),
+            out_var_name: "out",
+        },
+        frag!(consume(out);),
+    )
     .print()
 ```
 
@@ -32,6 +35,9 @@ let value = direct(
 	let value = indirect(
 		value
 	);
-	consume(value);
+	let out = value;
+	consume(
+		out
+	);
 }
 ```

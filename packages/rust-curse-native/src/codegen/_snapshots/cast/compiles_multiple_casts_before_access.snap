@@ -1,0 +1,53 @@
+---
+source: src/codegen/cast.rs
+expression: body
+---
+## Test
+
+```text
+codegen::cast::tests::compiles_multiple_casts_before_access
+```
+
+## Source
+
+```rs
+HappyCastGraph::compile_casts(
+        &db,
+        [
+            Cast {
+                from: direct_from,
+                to: direct_to,
+                in_expr: frag!(source_one()),
+                out_var_name: "out",
+            },
+            Cast {
+                from: indirect_from,
+                to: indirect_to,
+                in_expr: frag!(source_two()),
+                out_var_name: "out2",
+            },
+        ],
+        frag!(consume(out + out2);),
+    )
+    .print()
+```
+
+## Output
+
+```rs
+let value = source_one();
+let value = direct(
+	value
+);
+let out = value;
+let value = source_two();
+{
+	let value = indirect(
+		value
+	);
+	let out2 = value;
+	consume(
+		out + out2
+	);
+}
+```
