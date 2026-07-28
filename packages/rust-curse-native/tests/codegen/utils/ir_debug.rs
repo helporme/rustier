@@ -49,7 +49,7 @@ impl<'db> DebugRender<'db> for Mod<'db> {
         if structs.is_empty() {
             return format!(
                 "ModDef {{\n    id: {:?},{docs}\n    fns: {fns},\n    submods: {submods},\n}}",
-                self.id(db).path(db).join("::"),
+                self.id(db).fqn(db)
             );
         }
 
@@ -57,7 +57,7 @@ impl<'db> DebugRender<'db> for Mod<'db> {
 
         format!(
             "ModDef {{\n    id: {:?},{docs}\n    fns: {fns},\n    structs: {structs},\n    submods: {submods},\n}}",
-            self.id(db).path(db).join("::"),
+            self.id(db).fqn(db)
         )
     }
 }

@@ -11,7 +11,7 @@ use crate::{
                 compile_boundary_out_from_tethered_struct_expr, compile_boundary_out_type,
             },
             tethering::{
-                ClonedField, TetheredField, TetheredStructField, TetheredType, TetheringStruct,
+                ClonedField, TetheredField, TetheredStructField, TetheringStruct,
                 compile_tethered_struct, compile_tethered_struct_get_field_expr,
                 compile_tethered_struct_set_field_stmt,
             },
@@ -40,14 +40,6 @@ impl<'db> EnumId<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn tethering_struct_name(self, db: &'db dyn Db) -> String {
         format!("__tethered_struct__{}", self.mangled_fqn(db))
-    }
-
-    /// Converts struct into a [`TetheredType`].
-    pub fn into_tethered_type(self, db: &'db dyn Db) -> TetheredType<'db> {
-        TetheredType {
-            tethering_struct_name: self.tethering_struct_name(db),
-            source_type_fqn: self.fqn(db),
-        }
     }
 }
 
@@ -237,10 +229,6 @@ fn compile_field_getter<'db>(
     field: ShapeField<'db>,
 ) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
-    let header = match api.kind(db) {
-        ApiKind::Wasm { .. } => "#[wasm_bindgen(getter, js_name = ",
-        ApiKind::Node => "#[napi(getter, js_name = ",
-    };
     let name = field.enum_binding_name(db, variant);
     let getter_name = field.getter_binding_name_on_enum(db, variant);
     let field_type = field.type_(db);
@@ -258,7 +246,7 @@ fn compile_field_getter<'db>(
     });
 
     frag!(
-        {header}{doubles(name)}{")]"}@
+        {api.field_getter_header(db, name)}@
         pub fn ~{getter_name}(&self)~ -> ~{result_type}~{{
             Ok({output})
         }}
@@ -271,10 +259,6 @@ fn compile_field_setter<'db>(
     field: ShapeField<'db>,
 ) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
-    let header = match api.kind(db) {
-        ApiKind::Wasm { .. } => "#[wasm_bindgen(setter, js_name = ",
-        ApiKind::Node => "#[napi(setter, js_name = ",
-    };
     let name = field.enum_binding_name(db, variant);
     let setter_name = field.setter_binding_name_on_enum(db, variant);
     let param_type_name = compile_boundary_in_type(db, field.type_(db));
@@ -288,7 +272,7 @@ fn compile_field_setter<'db>(
     let set_tethered_field = compile_tethered_struct_set_field_stmt(frag!(self.src), name, "value");
 
     frag!(
-        {header}{doubles(name)}{")]"}@
+        {api.field_setter_header(db, name)}@
         pub fn ~{setter_name}(&self, value: ~{param_type_name})~ -> ~{result_type}~{{
             let value = ~{compile_boundary_in_to_source_type_expr(db, [value], "value")};@
             {set_tethered_field}

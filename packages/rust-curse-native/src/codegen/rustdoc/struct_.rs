@@ -1,15 +1,15 @@
 use miette::Diagnostic;
-use rustdoc_types::{ItemEnum, ItemKind};
+use rustdoc_types::{ItemEnum, ItemKind as RItemKind};
 use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt,
     ir::{
-        IrId,
         span::{SourceCode, Span},
         struct_::{Struct, StructId},
     },
+    item::{ItemId, ItemKind, ItemPath},
     rustdoc::{
         RustdocId,
         shape::{RustdocShape, ShapeFieldLowerError, lower_shape},
@@ -31,7 +31,7 @@ pub fn lower_struct<'db>(
     };
 
     let item_summary = crate_body.paths.get(&item.id).unwrap();
-    assert_eq!(item_summary.kind, ItemKind::Struct);
+    assert_eq!(item_summary.kind, RItemKind::Struct);
 
     let mut causes = Vec::new();
 
@@ -63,7 +63,16 @@ pub fn lower_struct<'db>(
     }
 
     let docs = item.docs.clone();
-    let id = StructId::new(db, IrId::new(db, &item_summary.path));
+    let id = StructId::new(
+        db,
+        ItemId::new(
+            db,
+            ItemPath {
+                segments: item_summary.path.clone(),
+            },
+            ItemKind::Struct,
+        ),
+    );
 
     Ok(Struct::new(db, id, shape, docs))
 }

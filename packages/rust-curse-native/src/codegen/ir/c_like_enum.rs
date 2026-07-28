@@ -1,4 +1,4 @@
-use crate::codegen::ir::IrId;
+use crate::codegen::item::ItemId;
 
 /// A lowered fieldless enum variant and its optional explicit discriminant.
 #[salsa::tracked(debug)]
@@ -18,7 +18,7 @@ pub struct CLikeEnumVariant<'db> {
 /// A lowered Rust enum that contains only unit variants.
 #[salsa::tracked(debug)]
 pub struct CLikeEnum<'db> {
-    pub id: IrId<'db>,
+    pub id: ItemId<'db>,
     #[tracked]
     #[returns(ref)]
     pub variants: Vec<CLikeEnumVariant<'db>>,

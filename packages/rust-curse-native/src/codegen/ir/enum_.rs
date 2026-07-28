@@ -1,18 +1,15 @@
 use crate::codegen::{
     db::Db,
-    ir::{
-        IrId,
-        shape::{Shape, ShapeField},
-    },
+    ir::shape::{Shape, ShapeField},
+    item::ItemId,
     rustdoc::RustdocId,
 };
 
-/// Identifies a lowered Rust enum.
 #[salsa::interned(debug)]
 #[derive(Ord, PartialOrd)]
 pub struct EnumId<'db> {
     #[returns(copy)]
-    pub inner: IrId<'db>,
+    pub inner: ItemId<'db>,
 }
 
 impl<'db> EnumId<'db> {
@@ -37,14 +34,9 @@ impl<'db> EnumId<'db> {
         self.inner(db).rustdoc_id(db)
     }
 
-    /// Returns the fully qualified enum path, e.g. `["geometry", "Shape"]`.
-    pub fn path(self, db: &'db dyn Db) -> &'db [String] {
-        self.inner(db).path(db)
-    }
-
     /// Returns the parent module ID, or `None` if this ID has no parent path
     /// segment.
-    pub fn parent_mod_id(self, db: &'db dyn Db) -> Option<IrId<'db>> {
+    pub fn parent_mod_id(self, db: &'db dyn Db) -> Option<ItemId<'db>> {
         self.inner(db).parent_mod_id(db)
     }
 }

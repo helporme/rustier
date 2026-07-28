@@ -1,7 +1,13 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{
+    collections::{BTreeMap, HashMap},
+    path::PathBuf,
+};
 
-use crate::codegen::db::{Db, DbImpl};
-use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, Type};
+use crate::codegen::{
+    db::{Db, DbImpl},
+    item::{ItemId, ItemKind, ItemPath},
+};
+use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, ItemKind as RItemKind, Type};
 use salsa::Setter;
 
 pub mod enum_;
@@ -11,6 +17,7 @@ pub mod shape;
 pub mod struct_;
 pub mod type_;
 
+/// Parsed rustdoc crates used as input for code generation.
 #[salsa::input(singleton)]
 pub struct RustdocCrates {
     #[returns(ref)]
@@ -81,7 +88,14 @@ pub struct RustdocId<'db> {
     pub crate_name: String,
 }
 
+#[salsa::tracked]
 impl<'db> RustdocId<'db> {
+    /// Find the rustdoc item corresponding to the given path, if one exists.
+    pub fn find_by_path(db: &'db dyn Db, path: &ItemPath) -> Option<Self> {
+        let backmap = rustdoc_backmap(db);
+        backmap.get(path).copied()
+    }
+
     /// Find the rustdoc item corresponding to this ID, from the crate stored in
     /// database.
     pub fn item(&self, db: &'db dyn Db) -> &RItem {
@@ -102,6 +116,74 @@ impl<'db> RustdocId<'db> {
     /// Find the crate where this item with this id is defined.
     pub fn crate_body(&self, db: &'db dyn Db) -> &'db RCrate {
         &self.crate_(db).body
+    }
+
+    #[salsa::tracked]
+    pub fn item_id(self, db: &'db dyn Db) -> ItemId<'db> {
+        let crate_ = self.crate_body(db);
+        let ritem = crate_.paths.get(&self.idx(db)).unwrap();
+
+        ItemId::new(
+            db,
+            ItemPath {
+                segments: ritem.path.clone(),
+            },
+            ItemKind::from(ritem.kind),
+        )
+    }
+}
+
+#[salsa::tracked]
+impl<'db> ItemId<'db> {
+    /// Returns the [`RustdocId`] matching this item, or panics if no match is
+    /// found.
+    #[salsa::tracked]
+    pub fn rustdoc_id(self, db: &'db dyn Db) -> RustdocId<'db> {
+        let backmap = rustdoc_backmap(db);
+
+        // todo: remove panic
+        *backmap.get(self.path(db)).unwrap_or_else(|| {
+            panic!(
+                "no rustdoc item for `{}`",
+                self.path(db).segments.join("::")
+            )
+        })
+    }
+}
+
+#[salsa::tracked(returns(ref))]
+fn rustdoc_backmap<'db>(db: &'db dyn Db) -> HashMap<ItemPath, RustdocId<'db>> {
+    let rustdoc = RustdocCrates::get(db);
+
+    let mut backmap = HashMap::new();
+
+    for (crate_name, crate_) in rustdoc.crates(db) {
+        for (idx, item_summary) in &crate_.body.paths {
+            if !crate_.body.index.contains_key(idx) {
+                continue;
+            }
+
+            backmap.insert(
+                ItemPath {
+                    segments: item_summary.path.clone(),
+                },
+                RustdocId::new(db, *idx, crate_name),
+            );
+        }
+    }
+
+    backmap
+}
+
+impl From<RItemKind> for ItemKind {
+    fn from(value: RItemKind) -> Self {
+        match value {
+            RItemKind::Struct => ItemKind::Struct,
+            RItemKind::Enum => ItemKind::Enum,
+            RItemKind::Module => ItemKind::Mod,
+            RItemKind::Function => ItemKind::Fn,
+            _ => unreachable!(),
+        }
     }
 }
 

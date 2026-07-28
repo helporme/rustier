@@ -2,7 +2,8 @@ use rustdoc_types::ItemEnum;
 
 use crate::codegen::{
     db::Db,
-    ir::{IrId, type_::Type},
+    ir::type_::Type,
+    item::ItemId,
     rustdoc::{
         CrateExt, RustdocId,
         shape::{RustdocShape, lower_shape},
@@ -28,7 +29,7 @@ impl<'db> ShapeField<'db> {
     /// Returns the rustdoc ID of this field under the given parent struct or
     /// enum.
     #[salsa::tracked(returns(copy))]
-    pub fn rustdoc_id(self, db: &'db dyn Db, parent_id: IrId<'db>) -> RustdocId<'db> {
+    pub fn rustdoc_id(self, db: &'db dyn Db, parent_id: ItemId<'db>) -> RustdocId<'db> {
         let parent_rustdoc_id = parent_id.rustdoc_id(db);
         let parent_item = parent_rustdoc_id.item(db);
         let crate_body = parent_rustdoc_id.crate_body(db);

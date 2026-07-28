@@ -20,22 +20,22 @@ let db = test_db! {
 let import_same = Import {
     item: "Bar",
     from: ImportFrom::RelativeToMod {
-        from: db.ir_id("foo"),
-        to: db.ir_id("bar"),
+        from: db.item_id("foo"),
+        to: db.item_id("bar"),
     },
 };
 let import_forward = Import {
     item: "Baz",
     from: ImportFrom::RelativeToMod {
-        from: db.ir_id("foo"),
-        to: db.ir_id("deeply::nested"),
+        from: db.item_id("foo"),
+        to: db.item_id("deeply::nested"),
     },
 };
 let import_backward = Import {
     item: "Baz",
     from: ImportFrom::RelativeToMod {
-        from: db.ir_id("deeply::nested"),
-        to: db.ir_id("foo"),
+        from: db.item_id("deeply::nested"),
+        to: db.item_id("foo"),
     },
 };
 frag!(

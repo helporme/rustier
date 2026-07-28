@@ -134,15 +134,6 @@ use crate::{
     frag,
 };
 
-/// Type that uses tethering
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct TetheredType<'db> {
-    /// Name of the [tethering struct][`TetheringStruct`].
-    pub tethering_struct_name: &'db str,
-    /// FQN of the source type.
-    pub source_type_fqn: &'db str,
-}
-
 /// Compiles the API-specific supporting code used by generated tethering
 /// structs.
 pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {

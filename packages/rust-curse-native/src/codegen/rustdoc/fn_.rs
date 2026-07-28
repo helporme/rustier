@@ -1,16 +1,16 @@
 use miette::Diagnostic;
-use rustdoc_types::{Abi, ItemEnum, ItemKind};
+use rustdoc_types::{Abi, ItemEnum, ItemKind as RItemKind};
 use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
     ir::{
-        IrId,
         fn_::{Fn, FnParam, ParamMode},
         span::{SourceCode, Span},
         type_::Type,
     },
+    item::{ItemId, ItemKind, ItemPath},
     rustdoc::{
         CrateExt, RustdocId,
         enum_::is_enum_clonable,
@@ -33,7 +33,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
     assert!(def.has_body, "trait/extern functions cannot be lowerd");
 
     let item_summary = crate_body.paths.get(&item.id).unwrap();
-    assert_eq!(item_summary.kind, ItemKind::Function);
+    assert_eq!(item_summary.kind, RItemKind::Function);
 
     let mut causes = Vec::new();
 
@@ -90,14 +90,14 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
                 Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
                     causes.push(FnLowerError::NonClonableMovedStructParam {
                         name: name.clone(),
-                        struct_fqn: struct_id.path(db).join("::"),
+                        struct_fqn: struct_id.fqn(db).to_owned(),
                     });
                     continue;
                 }
                 Type::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
                     causes.push(FnLowerError::NonClonableMovedEnumParam {
                         name: name.clone(),
-                        enum_fqn: enum_id.path(db).join("::"),
+                        enum_fqn: enum_id.fqn(db).to_owned(),
                     });
                     continue;
                 }
@@ -158,7 +158,13 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
         }));
     }
 
-    let id = IrId::new(db, &item_summary.path);
+    let id = ItemId::new(
+        db,
+        ItemPath {
+            segments: item_summary.path.clone(),
+        },
+        ItemKind::Fn,
+    );
 
     Ok(Fn::new(db, id, params, ret_type, item.docs.clone()))
 }

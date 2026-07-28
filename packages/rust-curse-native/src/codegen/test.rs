@@ -8,7 +8,11 @@
 // the private code and better rustdoc examples. It might be horrible idea to
 // create a temp crate per unit test, but how do I know if I won't try?
 
-use crate::codegen::{db::DbImpl, ir::IrId, rustdoc::RustdocId};
+use crate::codegen::{
+    db::DbImpl,
+    item::{ItemId, ItemPath},
+    rustdoc::RustdocId,
+};
 pub use crate::test_db;
 
 #[doc(hidden)]
@@ -33,7 +37,8 @@ macro_rules! rust_source {
 }
 
 impl DbImpl {
-    /// Returns the IR ID for an item at a path relative to the test crate root.
+    /// Returns the item ID for an item at a path relative to the test crate
+    /// root.
     ///
     /// An empty path returns the test crate's root ID.
     ///
@@ -48,13 +53,8 @@ impl DbImpl {
     /// let root = db.ir_id("");
     /// assert_eq!(root.path(&db), &["rustdoc_test_crate"]);
     /// ```
-    pub fn ir_id(&self, path: &str) -> IrId<'_> {
-        let mut segments = vec![TEST_CRATE_NAME.to_string()];
-        if !path.is_empty() {
-            segments.extend(path.split("::").map(str::to_string));
-        }
-
-        IrId::new(self, segments)
+    pub fn item_id(&self, path: &str) -> ItemId<'_> {
+        self.rustdoc_id(path).item_id(self)
     }
 
     /// Returns the rustdoc ID for an item at `path`, panicking if it does not
@@ -76,7 +76,12 @@ impl DbImpl {
     /// assert_eq!(id.item(&db).name.as_deref(), Some("item"));
     /// ```
     pub fn rustdoc_id(&self, path: &str) -> RustdocId<'_> {
-        self.ir_id(path).rustdoc_id(self)
+        let mut segments = vec![TEST_CRATE_NAME.to_string()];
+        if !path.is_empty() {
+            segments.extend(path.split("::").map(str::to_string));
+        }
+
+        RustdocId::find_by_path(self, &ItemPath { segments }).expect("no rustdoc item found")
     }
 }
 

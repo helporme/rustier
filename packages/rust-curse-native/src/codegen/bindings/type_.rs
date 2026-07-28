@@ -5,11 +5,8 @@ use crate::{
         cast::DirectCastRule,
         db::Db,
         fragment::FragmentOnce,
-        ir::{
-            enum_::EnumId,
-            struct_::StructId,
-            type_::{Primitive, Type},
-        },
+        ir::type_::{Primitive, Type},
+        item::ItemId,
     },
     frag,
 };
@@ -45,10 +42,8 @@ pub enum BoundaryType<'db> {
     f64,
     f32,
     String,
-    /// The boundary type generated for a struct.
-    GeneratedForStruct(StructId<'db>),
-    /// The boundary type generated for an enum.
-    GeneratedForEnum(EnumId<'db>),
+    /// Path to the type for which a generated boundary type is available.
+    Generated(ItemId<'db>),
     /// JavaScript "any" type. Actual runtime type is specified by
     /// [`crate::codegen::api::Api::js_type`]
     JsAny,
@@ -118,16 +113,16 @@ impl<'db> Type<'db> {
     }
 
     /// Gets the fully qualified name of the type used as a boundary-in type.
-    pub fn boundary_in(self) -> BoundaryType<'db> {
+    pub fn boundary_in(self, db: &'db dyn Db) -> BoundaryType<'db> {
         match self {
             Type::Primitive(_) | Type::String | Type::Str => BoundaryType::JsAny,
-            Type::Struct(id) => BoundaryType::GeneratedForStruct(id),
-            Type::Enum(id) => BoundaryType::GeneratedForEnum(id),
+            Type::Struct(id) => BoundaryType::Generated(id.inner(db)),
+            Type::Enum(id) => BoundaryType::Generated(id.inner(db)),
         }
     }
 
     /// Gets the fully qualified name of the type used as a boundary-out type.
-    pub fn boundary_out(self) -> BoundaryType<'db> {
+    pub fn boundary_out(self, db: &'db dyn Db) -> BoundaryType<'db> {
         match self {
             Type::Primitive(Primitive::Boolean) => BoundaryType::bool,
             Type::Primitive(Primitive::i8) => BoundaryType::i8,
@@ -138,8 +133,8 @@ impl<'db> Type<'db> {
             Type::Primitive(Primitive::u32) | Type::Primitive(Primitive::Char) => BoundaryType::u32,
             Type::Primitive(Primitive::f64) | Type::Primitive(Primitive::f32) => BoundaryType::f64,
             Type::String => BoundaryType::String,
-            Type::Struct(id) => BoundaryType::GeneratedForStruct(id),
-            Type::Enum(id) => BoundaryType::GeneratedForEnum(id),
+            Type::Struct(id) => BoundaryType::Generated(id.inner(db)),
+            Type::Enum(id) => BoundaryType::Generated(id.inner(db)),
             Type::Str => unreachable!("str cannot be returned"),
         }
     }

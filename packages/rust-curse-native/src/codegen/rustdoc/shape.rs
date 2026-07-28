@@ -139,10 +139,10 @@ fn lower_tuple_shape_field<'db>(
     let name = index.to_string();
     let readonly_parent_fqn = match field_type {
         Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
-            Some(struct_id.path(db).join("::"))
+            Some(struct_id.fqn(db).to_owned())
         }
         Type::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
-            Some(enum_id.path(db).join("::"))
+            Some(enum_id.fqn(db).to_owned())
         }
         _ => None,
     };
@@ -183,10 +183,10 @@ fn lower_plain_shape_field<'db>(
 
     let readonly_parent_fqn = match field_type {
         Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
-            Some(struct_id.path(db).join("::"))
+            Some(struct_id.fqn(db).to_owned())
         }
         Type::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
-            Some(enum_id.path(db).join("::"))
+            Some(enum_id.fqn(db).to_owned())
         }
         _ => None,
     };

@@ -5,7 +5,7 @@ use salsa::Setter;
 use crate::codegen::{
     db::Db,
     fragment::{FragmentOnce, doubles, frag, fragment, singles},
-    ir::{fn_::Fn, shape::ShapeField, struct_::Struct},
+    ir::{fn_::Fn, struct_::Struct},
 };
 
 /// Active binding API used for generated Rust and JavaScript glue code.
@@ -207,32 +207,32 @@ impl Api {
         frag!({header}{doubles(_struct.binding_name(db))}{")]"})
     }
 
-    /// Returns the getter header for this API.
-    pub fn field_getter_header<'db>(
+    /// Returns the getter header for a field with the given JavaScript name.
+    pub fn field_getter_header<'a>(
         self,
-        db: &'db dyn Db,
-        field: ShapeField<'db>,
-    ) -> impl FragmentOnce + 'db {
+        db: &dyn Db,
+        name: impl FragmentOnce + 'a,
+    ) -> impl FragmentOnce + 'a {
         let header = match self.kind(db) {
             ApiKind::Wasm { .. } => "#[wasm_bindgen(getter, js_name = ",
             ApiKind::Node => "#[napi(getter, js_name = ",
         };
 
-        frag!({header}{doubles(field.name(db))}{")]"})
+        frag!({header}{doubles(name)}{")]"})
     }
 
-    /// Returns the setter header for this API.
-    pub fn field_setter_header<'db>(
+    /// Returns the setter header for a field with the given JavaScript name.
+    pub fn field_setter_header<'a>(
         self,
-        db: &'db dyn Db,
-        field: ShapeField<'db>,
-    ) -> impl FragmentOnce + 'db {
+        db: &dyn Db,
+        name: impl FragmentOnce + 'a,
+    ) -> impl FragmentOnce + 'a {
         let header = match self.kind(db) {
             ApiKind::Wasm { .. } => "#[wasm_bindgen(setter, js_name = ",
             ApiKind::Node => "#[napi(setter, js_name = ",
         };
 
-        frag!({header}{doubles(field.name(db))}{")]"})
+        frag!({header}{doubles(name)}{")]"})
     }
 
     /// Returns the error type for this API.

@@ -5,10 +5,8 @@ use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
-    ir::{
-        mangle::to_camel_case,
-        span::{SourceCode, Span},
-    },
+    ir::span::{SourceCode, Span},
+    mangle::to_camel_case,
     rustdoc::mod_::{all_mod_ids, lower_mod_enums},
 };
 

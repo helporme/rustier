@@ -6,7 +6,7 @@ use crate::codegen::{
     api::Api,
     db::Db,
     fragment::{FragmentPrint, frag, spaced},
-    ir::IrId,
+    item::ItemId,
     js::{
         JsCodegenPaths,
         enum_::{compile_facade_class_for_enum, compile_facade_class_for_enum_required_imports},
@@ -22,7 +22,7 @@ use crate::codegen::{
 /// Compiles all supported items declared by a Rust module into its facade
 /// JavaScript file.
 #[salsa::tracked(returns(ref))]
-pub fn compile_js_file<'db>(db: &'db dyn Db, mod_id: IrId<'db>) -> String {
+pub fn compile_js_file<'db>(db: &'db dyn Db, mod_id: ItemId<'db>) -> String {
     let js_codegen_paths = JsCodegenPaths::get(db);
 
     let fns = lower_mod_fns(db, mod_id.rustdoc_id(db));
@@ -82,7 +82,7 @@ mod tests {
         Api::set(&mut db, ApiKind::Node);
         JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
 
-        compile_js_file(&db, db.ir_id("")).to_string()
+        compile_js_file(&db, db.item_id("")).to_string()
     }
 
     #[test]

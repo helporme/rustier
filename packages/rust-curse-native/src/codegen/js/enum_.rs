@@ -5,12 +5,11 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, comma_list, doubles, fragment, spaced},
         ir::{
-            IrId,
             enum_::{Enum, EnumId, EnumVariant},
-            mangle::to_camel_case,
             shape::ShapeField,
             type_::Type,
         },
+        item::ItemId,
         js::{
             boundary::{
                 compile_js_binding_value_to_facade_stmt,
@@ -20,6 +19,7 @@ use crate::{
             },
             imports::{Import, ImportFrom},
         },
+        mangle::to_camel_case,
     },
     frag,
 };
@@ -446,7 +446,7 @@ pub fn compile_enum_facade_from_binding_expr<'db>(
 /// Adds imports required by [`compile_enum_facade_from_binding_expr`].
 pub fn compile_enum_facade_from_binding_expr_required_imports<'db>(
     db: &'db dyn Db,
-    active_mod_id: IrId<'db>,
+    active_mod_id: ItemId<'db>,
     enum_id: EnumId<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {

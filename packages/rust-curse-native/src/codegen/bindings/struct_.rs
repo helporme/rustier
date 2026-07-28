@@ -11,7 +11,7 @@ use crate::{
                 compile_boundary_out_from_tethered_struct_expr, compile_boundary_out_type,
             },
             tethering::{
-                ClonedField, TetheredField, TetheredStructField, TetheredType, TetheringStruct,
+                ClonedField, TetheredField, TetheredStructField, TetheringStruct,
                 compile_tethered_struct, compile_tethered_struct_get_field_expr,
                 compile_tethered_struct_set_field_stmt,
             },
@@ -41,14 +41,6 @@ impl<'db> StructId<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn tethering_struct_name(self, db: &'db dyn Db) -> String {
         format!("__tethered_struct__{}", self.mangled_fqn(db))
-    }
-
-    /// Converts struct into a [`TetheredType`].
-    pub fn into_tethered_type(self, db: &'db dyn Db) -> TetheredType<'db> {
-        TetheredType {
-            tethering_struct_name: self.tethering_struct_name(db),
-            source_type_fqn: self.fqn(db),
-        }
     }
 }
 
@@ -186,7 +178,7 @@ fn compile_field_getter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl Fr
     });
 
     frag!(
-        {api.field_getter_header(db, field)}@
+        {api.field_getter_header(db, field.name(db))}@
         pub fn ~{getter_name}(&self)~ -> ~{result_type}~ {{
             Ok({output})
         }}
@@ -210,7 +202,7 @@ fn compile_field_setter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl Fr
         compile_tethered_struct_set_field_stmt(frag!(self.src), field.name(db), "value");
 
     frag!(
-        {api.field_setter_header(db, field)}@
+        {api.field_setter_header(db, field.name(db))}@
         pub fn ~{setter_name}(&self, value: ~{param_type_name})~ -> ~{result_type}~ {{
             let value = ~{compile_boundary_in_to_source_type_expr(db, [value], "value")};@
             {set_tethered_field}

@@ -1,15 +1,15 @@
 use miette::Diagnostic;
-use rustdoc_types::{ItemKind, Type};
+use rustdoc_types::{ItemKind as RItemKind, Type};
 use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
     ir::{
-        IrId,
         enum_::EnumId,
         struct_::StructId,
         type_::{Primitive, Type as IrType},
     },
+    item::{ItemId, ItemKind, ItemPath},
     rustdoc::{CrateExt, RustdocType},
 };
 
@@ -47,15 +47,27 @@ pub fn lower_type<'db>(
 
             if summary.path == ["alloc", "string", "String"] {
                 Ok(LoweredType::Moved(IrType::String))
-            } else if summary.kind == ItemKind::Struct && crate_.index.contains_key(&path.id) {
+            } else if summary.kind == RItemKind::Struct && crate_.index.contains_key(&path.id) {
                 Ok(LoweredType::Moved(IrType::Struct(StructId::new(
                     db,
-                    IrId::new(db, &summary.path),
+                    ItemId::new(
+                        db,
+                        ItemPath {
+                            segments: summary.path.clone(),
+                        },
+                        ItemKind::Struct,
+                    ),
                 ))))
-            } else if summary.kind == ItemKind::Enum && crate_.index.contains_key(&path.id) {
+            } else if summary.kind == RItemKind::Enum && crate_.index.contains_key(&path.id) {
                 Ok(LoweredType::Moved(IrType::Enum(EnumId::new(
                     db,
-                    IrId::new(db, &summary.path),
+                    ItemId::new(
+                        db,
+                        ItemPath {
+                            segments: summary.path.clone(),
+                        },
+                        ItemKind::Enum,
+                    ),
                 ))))
             } else {
                 Err(vec![TypeLowerError::UnsupportedType {

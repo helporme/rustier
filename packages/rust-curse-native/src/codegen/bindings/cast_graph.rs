@@ -72,6 +72,6 @@ define_cast_graph! {
                 from: SourceType,
                 to: SourceType,
             }
-        }
+       }
     }
 }

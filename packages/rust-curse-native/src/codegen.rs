@@ -8,7 +8,9 @@ pub mod db;
 pub mod diag;
 pub mod fragment;
 pub mod ir;
+pub mod item;
 pub mod js;
+pub mod mangle;
 pub mod rustdoc;
 pub mod ts;
 

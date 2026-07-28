@@ -1,9 +1,7 @@
 use crate::codegen::{
     db::Db,
-    ir::{
-        IrId,
-        shape::{Shape, ShapeField},
-    },
+    ir::shape::{Shape, ShapeField},
+    item::ItemId,
     rustdoc::RustdocId,
 };
 
@@ -12,7 +10,7 @@ use crate::codegen::{
 #[derive(Ord, PartialOrd)]
 pub struct StructId<'db> {
     #[returns(copy)]
-    pub inner: IrId<'db>,
+    pub inner: ItemId<'db>,
 }
 
 impl<'db> StructId<'db> {
@@ -37,14 +35,9 @@ impl<'db> StructId<'db> {
         self.inner(db).rustdoc_id(db)
     }
 
-    /// Returns the fully qualified struct path, e.g. `["geometry", "Point"]`.
-    pub fn path(self, db: &'db dyn Db) -> &'db [String] {
-        self.inner(db).path(db)
-    }
-
     /// Returns the parent module ID, or `None` if this ID has no parent path
     /// segment.
-    pub fn parent_mod_id(self, db: &'db dyn Db) -> Option<IrId<'db>> {
+    pub fn parent_mod_id(self, db: &'db dyn Db) -> Option<ItemId<'db>> {
         self.inner(db).parent_mod_id(db)
     }
 }

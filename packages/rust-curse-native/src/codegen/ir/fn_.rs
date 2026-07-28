@@ -1,7 +1,4 @@
-use crate::codegen::{
-    db::Db,
-    ir::{IrId, mangle::mangle_path, type_::Type},
-};
+use crate::codegen::{db::Db, ir::type_::Type, item::ItemId};
 
 /// How a parameter is passed to a function.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
@@ -25,7 +22,7 @@ pub struct FnParam<'db> {
 /// A function.
 #[salsa::tracked(debug)]
 pub struct Fn<'db> {
-    pub id: IrId<'db>,
+    pub id: ItemId<'db>,
     #[tracked]
     #[returns(ref)]
     pub params: Vec<FnParam<'db>>,
@@ -45,7 +42,7 @@ pub struct Fn<'db> {
 impl<'db> Fn<'db> {
     /// Returns the name of the function, e.g. `drop` for `std::mem::drop`.
     pub fn name(&self, db: &'db dyn Db) -> &'db str {
-        self.id(db).path(db).last().expect("fn must have a name")
+        self.id(db).name(db)
     }
 
     /// Returns the fully qualified name of the function, e.g.
@@ -55,8 +52,7 @@ impl<'db> Fn<'db> {
     }
 
     /// Mangled fully qualified name, e.g. `std__mem__Drop`.
-    #[salsa::tracked(returns(ref))]
-    pub fn mangled_fqn(self, db: &'db dyn Db) -> String {
-        mangle_path(self.id(db).path(db))
+    pub fn mangled_fqn(self, db: &'db dyn Db) -> &'db String {
+        self.id(db).mangled_fqn(db)
     }
 }

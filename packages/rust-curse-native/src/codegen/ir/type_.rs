@@ -94,6 +94,18 @@ pub enum Type<'db> {
     String,
     Struct(StructId<'db>),
     Enum(EnumId<'db>),
+    // ClikeEnum
+    // Vec
+    // HashMap
+    // Option
+    // Result
+    // PathBuf
+    // Path
+    // OsString
+    // OsStr
+    // Callback
+    // Tuple
+    // Slice
 }
 
 impl<'db> Type<'db> {

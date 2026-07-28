@@ -1,16 +1,16 @@
 use miette::Diagnostic;
-use rustdoc_types::{ItemEnum, ItemKind, VariantKind};
+use rustdoc_types::{ItemEnum, ItemKind as RsItemKind, VariantKind};
 use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
     ir::{
-        IrId,
         c_like_enum::{CLikeEnum, CLikeEnumVariant},
         enum_::{Enum, EnumId, EnumVariant},
         span::{SourceCode, Span},
     },
+    item::{ItemId, ItemKind, ItemPath},
     rustdoc::{
         CrateExt, RustdocId,
         shape::{RustdocShape, ShapeFieldLowerError, lower_shape},
@@ -38,7 +38,7 @@ pub fn lower_enum<'db>(
     };
 
     let item_summary = crate_body.paths.get(&item.id).unwrap();
-    assert_eq!(item_summary.kind, ItemKind::Enum);
+    assert_eq!(item_summary.kind, RsItemKind::Enum);
 
     let mut causes = Vec::new();
     if !def.generics.params.is_empty() {
@@ -92,7 +92,16 @@ fn lower_data_carrying_enum<'db>(
     }
 
     let item_summary = crate_body.paths.get(&item.id).unwrap();
-    let id = EnumId::new(db, IrId::new(db, &item_summary.path));
+    let id = EnumId::new(
+        db,
+        ItemId::new(
+            db,
+            ItemPath {
+                segments: item_summary.path.clone(),
+            },
+            ItemKind::Enum,
+        ),
+    );
 
     Ok(Enum::new(db, id, variants, item.docs.clone()))
 }
@@ -139,7 +148,13 @@ fn lower_c_like_enum<'db>(
         .collect();
 
     let item_summary = crate_body.paths.get(&item.id).unwrap();
-    let id = IrId::new(db, &item_summary.path);
+    let id = ItemId::new(
+        db,
+        ItemPath {
+            segments: item_summary.path.clone(),
+        },
+        ItemKind::Enum,
+    );
     Ok(CLikeEnum::new(db, id, variants, item.docs.clone()))
 }
 
@@ -174,7 +189,7 @@ fn lower_variant<'db>(
     };
 
     let item_summary = crate_body.paths.get(&item.id).unwrap();
-    assert_eq!(item_summary.kind, ItemKind::Variant);
+    assert_eq!(item_summary.kind, RsItemKind::Variant);
 
     let (shape, skipped_fields) = lower_shape(db, id, RustdocShape::from(&def.kind));
     if !skipped_fields.is_empty() {

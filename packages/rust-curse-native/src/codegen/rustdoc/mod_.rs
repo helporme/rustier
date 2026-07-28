@@ -1,9 +1,10 @@
-use rustdoc_types::{ItemEnum, ItemKind};
+use rustdoc_types::{ItemEnum, ItemKind as RItemKind};
 
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::{IrId, c_like_enum::CLikeEnum, enum_::Enum, fn_::Fn, mod_::Mod, struct_::Struct},
+    ir::{c_like_enum::CLikeEnum, enum_::Enum, fn_::Fn, mod_::Mod, struct_::Struct},
+    item::{ItemId, ItemKind, ItemPath},
     rustdoc::{
         RustdocCrates, RustdocId,
         enum_::{LoweredEnum, lower_enum},
@@ -25,7 +26,7 @@ pub fn all_mod_ids<'db>(db: &'db dyn Db) -> Vec<RustdocId<'db>> {
             .paths
             .iter()
             .filter(|(id, item_summary)| {
-                item_summary.kind == ItemKind::Module && crate_.body.index.contains_key(id)
+                item_summary.kind == RItemKind::Module && crate_.body.index.contains_key(id)
             })
             .collect::<Vec<_>>();
 
@@ -46,8 +47,14 @@ pub fn lower_mod<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Mod<'db> {
     let crate_ = id.crate_body(db);
 
     let item_summary = crate_.paths.get(&item.id).unwrap();
-    assert_eq!(item_summary.kind, ItemKind::Module);
-    let id = IrId::new(db, &item_summary.path);
+    assert_eq!(item_summary.kind, RItemKind::Module);
+    let id = ItemId::new(
+        db,
+        ItemPath {
+            segments: item_summary.path.clone(),
+        },
+        ItemKind::Mod,
+    );
 
     let docs = item.docs.clone();
 
@@ -211,12 +218,15 @@ mod tests {
 
         let enums = lower_mod_enums(&db, root);
         assert_eq!(enums.len(), 1);
-        assert_eq!(enums[0].id(&db).path(&db), &[TEST_CRATE_NAME, "Value"]);
+        assert_eq!(
+            enums[0].id(&db).fqn(&db),
+            &format!("{TEST_CRATE_NAME}::Value")
+        );
 
         let c_like_enums = lower_mod_c_like_enums(&db, root);
         assert_eq!(c_like_enums.len(), 1);
         assert_eq!(
-            c_like_enums[0].id(&db).path(&db),
+            c_like_enums[0].id(&db).path(&db).segments,
             &[TEST_CRATE_NAME, "ColorKind"]
         );
     }
