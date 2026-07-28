@@ -167,7 +167,7 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastF32ToF
         _to: BoundaryType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
-        frag!({{ {in_expr}~as f64 }})
+        frag!({ in_expr } as f64)
     }
 }
 
@@ -179,6 +179,7 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
 {
     fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
         match to {
+            BoundaryType::String => Some(SourceType::String),
             BoundaryType::bool => Some(SourceType::bool),
             BoundaryType::i8 => Some(SourceType::i8),
             BoundaryType::u8 => Some(SourceType::u8),
@@ -187,10 +188,7 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
             BoundaryType::i32 => Some(SourceType::i32),
             BoundaryType::u32 => Some(SourceType::u32),
             BoundaryType::f64 => Some(SourceType::f64),
-            BoundaryType::f32
-            | BoundaryType::String
-            | BoundaryType::JsAny
-            | BoundaryType::Item { .. } => None,
+            BoundaryType::f32 | BoundaryType::JsAny | BoundaryType::Item { .. } => None,
         }
     }
 

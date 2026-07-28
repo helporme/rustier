@@ -17,7 +17,7 @@ let target = ItemId::new(&db, path, ItemKind::Struct);
 DirectCastRule::compile(
         CastStructSourceTypeToBoundaryType,
         &db,
-        SourceType::Item(path),
+        SourceType::Item { target },
         BoundaryType::Item { target },
         "input",
     )

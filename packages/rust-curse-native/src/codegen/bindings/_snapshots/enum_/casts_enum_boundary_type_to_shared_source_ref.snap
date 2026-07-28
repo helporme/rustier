@@ -1,0 +1,42 @@
+---
+source: src/codegen/bindings/enum_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::bindings::enum_::tests::casts_enum_boundary_type_to_shared_source_ref
+```
+
+## Source
+
+```rs
+let db = DbImpl::default();
+let path = ItemPath::new(&db, vec!["crate".into(), "Example".into()]);
+let target = ItemId::new(&db, path, ItemKind::Enum);
+IndirectCastRule::compile(
+        CastEnumBoundaryTypeToBorrowedSourceType,
+        &db,
+        BoundaryType::Item { target },
+        SourceType::Ref {
+            is_mutable: false,
+            inner: Box::new(SourceType::Item { target }),
+        },
+        "input",
+        "consume(value);",
+    )
+    .print()
+```
+
+## Output
+
+```rs
+input.src.access(
+	&mut |value| {
+		consume(value);
+		Ok(
+			()
+		)
+	}
+)?;
+```

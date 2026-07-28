@@ -249,9 +249,9 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
     fn predecessor(self, db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
         match to {
             SourceType::Ref { inner, .. } => match *inner {
-                SourceType::Item(path) => Some(BoundaryType::Item {
-                    target: ItemId::new(db, path, ItemKind::Struct),
-                }),
+                SourceType::Item { target: id } if id.kind(db) == ItemKind::Struct => {
+                    Some(BoundaryType::Item { target: id })
+                }
                 _ => None,
             },
             _ => None,
@@ -260,7 +260,7 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
 
     fn compile(
         self,
-        db: &'db dyn Db,
+        _db: &'db dyn Db,
         from: BoundaryType<'db>,
         to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
@@ -269,7 +269,10 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
         let SourceType::Ref { is_mutable, inner } = to else {
             unreachable!()
         };
-        let SourceType::Item(path) = *inner else {
+        let SourceType::Item {
+            target: source_target,
+        } = *inner
+        else {
             unreachable!()
         };
         let BoundaryType::Item { target } = from else {
@@ -277,8 +280,7 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
         };
 
         assert_eq!(
-            *target.path(db),
-            path,
+            target, source_target,
             "struct boundary cast source and target items must match"
         );
 
@@ -295,6 +297,57 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
     }
 }
 
+/// Casts a generated struct boundary value to an owned source struct by cloning
+/// it.
+pub struct CastStructBoundaryTypeToOwnedSourceType;
+
+impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
+    for CastStructBoundaryTypeToOwnedSourceType
+{
+    fn predecessor(self, db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
+        match to {
+            SourceType::Item { target } if target.kind(db) == ItemKind::Struct => {
+                Some(BoundaryType::Item { target })
+            }
+            _ => None,
+        }
+    }
+
+    fn compile(
+        self,
+        _db: &'db dyn Db,
+        from: BoundaryType<'db>,
+        to: SourceType<'db>,
+        in_expr: impl FragmentOnce + 'db,
+        continue_with: impl FragmentOnce + 'db,
+    ) -> impl FragmentOnce + 'db {
+        let BoundaryType::Item { target } = from else {
+            unreachable!("struct boundary casts require a generated boundary type");
+        };
+        let SourceType::Item {
+            target: source_target,
+        } = to
+        else {
+            unreachable!("owned struct boundary casts require an item target");
+        };
+
+        assert_eq!(
+            target, source_target,
+            "struct boundary cast source and target items must match"
+        );
+
+        let tethered = compile_binding_struct_get_tethered_expr(in_expr);
+        compile_tethered_struct_ref_access_stmt(
+            tethered,
+            "value",
+            frag!(
+                let value = value.clone();@
+                {continue_with}
+            ),
+        )
+    }
+}
+
 /// Casts an owned source struct to its generated boundary type.
 pub struct CastStructSourceTypeToBoundaryType;
 
@@ -304,7 +357,7 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
     fn predecessor(self, db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
         match to {
             BoundaryType::Item { target } => {
-                StructId::new(db, target).map(|_| SourceType::Item(*target.path(db)))
+                StructId::new(db, target).map(|_| SourceType::Item { target })
             }
             _ => None,
         }
@@ -317,18 +370,21 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
         to: BoundaryType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
-        let SourceType::Item(path) = from else {
+        let SourceType::Item {
+            target: source_target,
+        } = from
+        else {
             unreachable!("struct boundary casts require an owned item source");
         };
         let BoundaryType::Item { target } = to else {
             unreachable!("struct boundary casts require a generated boundary target");
         };
+
         let struct_id = StructId::new(db, target)
             .expect("struct boundary casts require a generated struct boundary type");
 
         assert_eq!(
-            path,
-            *target.path(db),
+            source_target, target,
             "struct boundary cast source and target items must match"
         );
 
@@ -341,7 +397,11 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::codegen::{db::DbImpl, ir::item::ItemPath, test::assert_snap};
+    use crate::codegen::{
+        db::DbImpl,
+        ir::item::{ItemKind, ItemPath},
+        test::assert_snap,
+    };
 
     #[test]
     fn casts_struct_boundary_type_to_shared_source_ref() {
@@ -356,7 +416,7 @@ mod tests {
                 BoundaryType::Item { target },
                 SourceType::Ref {
                     is_mutable: false,
-                    inner: Box::new(SourceType::Item(path)),
+                    inner: Box::new(SourceType::Item { target }),
                 },
                 "input",
                 "consume(value);",
@@ -378,8 +438,27 @@ mod tests {
                 BoundaryType::Item { target },
                 SourceType::Ref {
                     is_mutable: true,
-                    inner: Box::new(SourceType::Item(path)),
+                    inner: Box::new(SourceType::Item { target }),
                 },
+                "input",
+                "consume(value);",
+            )
+            .print()
+        });
+    }
+
+    #[test]
+    fn casts_struct_boundary_type_to_owned_source_type() {
+        assert_snap!({
+            let db = DbImpl::default();
+            let path = ItemPath::new(&db, vec!["crate".into(), "Item".into()]);
+            let target = ItemId::new(&db, path, ItemKind::Struct);
+
+            IndirectCastRule::compile(
+                CastStructBoundaryTypeToOwnedSourceType,
+                &db,
+                BoundaryType::Item { target },
+                SourceType::Item { target },
                 "input",
                 "consume(value);",
             )
@@ -397,7 +476,7 @@ mod tests {
             DirectCastRule::compile(
                 CastStructSourceTypeToBoundaryType,
                 &db,
-                SourceType::Item(path),
+                SourceType::Item { target },
                 BoundaryType::Item { target },
                 "input",
             )

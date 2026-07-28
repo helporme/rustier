@@ -1,0 +1,40 @@
+---
+source: src/codegen/bindings/struct_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::bindings::struct_::tests::casts_struct_boundary_type_to_owned_source_type
+```
+
+## Source
+
+```rs
+let db = DbImpl::default();
+let path = ItemPath::new(&db, vec!["crate".into(), "Item".into()]);
+let target = ItemId::new(&db, path, ItemKind::Struct);
+IndirectCastRule::compile(
+        CastStructBoundaryTypeToOwnedSourceType,
+        &db,
+        BoundaryType::Item { target },
+        SourceType::Item { target },
+        "input",
+        "consume(value);",
+    )
+    .print()
+```
+
+## Output
+
+```rs
+input.src.access(
+	&mut |value| {
+		let value = value.clone();
+		consume(value);
+		Ok(
+			()
+		)
+	}
+)?;
+```

@@ -6,7 +6,7 @@ use crate::{
         db::Db,
         fragment::FragmentOnce,
         ir::{
-            item::{ItemId, ItemPath},
+            item::ItemId,
             type_::{Primitive, Type},
         },
     },
@@ -29,11 +29,38 @@ pub enum SourceType<'db> {
     f32,
     Str,
     String,
-    Item(ItemPath<'db>),
+    Item {
+        target: ItemId<'db>,
+    },
     Ref {
         is_mutable: bool,
         inner: Box<SourceType<'db>>,
     },
+}
+
+impl<'db> SourceType<'db> {
+    /// Whether this type supports automatic casting from owned type to
+    /// reference type using simple `&expr` or `&mut expr` borrowing
+    /// expressions.
+    pub fn allows_generic_borrowing_cast(&self) -> bool {
+        match self {
+            SourceType::bool
+            | SourceType::char
+            | SourceType::i8
+            | SourceType::u8
+            | SourceType::i16
+            | SourceType::u16
+            | SourceType::i32
+            | SourceType::u32
+            | SourceType::f64
+            | SourceType::f32
+            | SourceType::Str
+            | SourceType::String
+            | SourceType::Ref { .. } // technically it's unused since double refs are not supported by ir
+            => true,
+            SourceType::Item { .. } => false,
+        }
+    }
 }
 
 /// A type that is passed across the boundary using active [`Api`] bindings.
@@ -91,16 +118,14 @@ impl<'db> Type<'db> {
 }
 
 /// A rule to cast an owned source type to a reference source type.
-pub struct CastOwnedTypeToRefTypeRule;
+pub struct CastOwnedTypeToBorrowedTypeRule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastOwnedTypeToRefTypeRule {
+impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>>
+    for CastOwnedTypeToBorrowedTypeRule
+{
     fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
         match to {
-            SourceType::Ref {
-                is_mutable: false,
-                inner,
-                ..
-            } => Some(*inner),
+            SourceType::Ref { inner, .. } if inner.allows_generic_borrowing_cast() => Some(*inner),
             _ => None,
         }
     }
@@ -109,35 +134,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastOwnedTyp
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
-        _to: SourceType<'db>,
+        to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
-        frag!(&{ in_expr })
-    }
-}
+        let SourceType::Ref { is_mutable, .. } = to else {
+            unreachable!()
+        };
 
-/// A rule to cast an owned source type to a mutable source type.
-pub struct CastOwnedTypeToMutTypeRule;
-
-impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastOwnedTypeToMutTypeRule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        match to {
-            SourceType::Ref {
-                is_mutable: true,
-                inner,
-                ..
-            } => Some(*inner),
-            _ => None,
+        if is_mutable {
+            frag!(&mut { in_expr })
+        } else {
+            frag!(&{ in_expr })
         }
-    }
-
-    fn compile(
-        self,
-        _db: &'db dyn Db,
-        _from: SourceType<'db>,
-        _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
-        frag!(&mut { in_expr })
     }
 }

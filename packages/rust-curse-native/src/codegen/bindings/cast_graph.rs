@@ -1,13 +1,20 @@
 use crate::{
     codegen::bindings::{
+        enum_::{
+            CastEnumBoundaryTypeToBorrowedSourceType, CastEnumBoundaryTypeToOwnedSourceType,
+            CastEnumSourceTypeToBoundaryType,
+        },
         primitive::{
             CastCharToU32BoundaryRule, CastF32ToF64BoundaryRule, CastF64ToF32Rule,
             CastF64ToSignedIntRule, CastF64ToUnsignedIntRule, CastJsAnyToBoolRule,
             CastJsAnyToF64Rule, CastJsAnyToStringRule, CastPrimitiveToSameBoundaryRule,
             CastStringToStrMutRule, CastStringToStrRefRule, CastU32ToCharRule,
         },
-        struct_::{CastStructBoundaryTypeToBorrowedSourceType, CastStructSourceTypeToBoundaryType},
-        type_::{BoundaryType, CastOwnedTypeToMutTypeRule, CastOwnedTypeToRefTypeRule, SourceType},
+        struct_::{
+            CastStructBoundaryTypeToBorrowedSourceType, CastStructBoundaryTypeToOwnedSourceType,
+            CastStructSourceTypeToBoundaryType,
+        },
+        type_::{BoundaryType, CastOwnedTypeToBorrowedTypeRule, SourceType},
     },
     define_cast_graph,
 };
@@ -19,13 +26,28 @@ define_cast_graph! {
             SourceType(SourceType<'db>)
         }
         rules {
-            OwnedTypeToRefType {
-                rule: CastOwnedTypeToRefTypeRule,
-                from: SourceType,
+            StructBoundaryTypeToBorrowedSourceType {
+                rule: CastStructBoundaryTypeToBorrowedSourceType,
+                from: BoundaryType,
                 to: SourceType,
             }
-            OwnedTypeToMutType {
-                rule: CastOwnedTypeToMutTypeRule,
+            EnumBoundaryTypeToBorrowedSourceType {
+                rule: CastEnumBoundaryTypeToBorrowedSourceType,
+                from: BoundaryType,
+                to: SourceType,
+            }
+            StructBoundaryTypeToOwnedSourceType {
+                rule: CastStructBoundaryTypeToOwnedSourceType,
+                from: BoundaryType,
+                to: SourceType,
+            }
+            EnumBoundaryTypeToOwnedSourceType {
+                rule: CastEnumBoundaryTypeToOwnedSourceType,
+                from: BoundaryType,
+                to: SourceType,
+            }
+            OwnedTypeToBorrowedType {
+                rule: CastOwnedTypeToBorrowedTypeRule,
                 from: SourceType,
                 to: SourceType,
             }
@@ -89,13 +111,13 @@ define_cast_graph! {
                 from: SourceType,
                 to: SourceType,
             }
-            StructBoundaryTypeToBorrowedSourceType {
-                rule: CastStructBoundaryTypeToBorrowedSourceType,
-                from: BoundaryType,
-                to: SourceType,
-            }
             StructSourceTypeToBoundaryType {
                 rule: CastStructSourceTypeToBoundaryType,
+                from: SourceType,
+                to: BoundaryType,
+            }
+            EnumSourceTypeToBoundaryType {
+                rule: CastEnumSourceTypeToBoundaryType,
                 from: SourceType,
                 to: BoundaryType,
             }

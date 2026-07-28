@@ -1,0 +1,37 @@
+---
+source: src/codegen/bindings/enum_.rs
+expression: body
+---
+## Test
+
+```text
+codegen::bindings::enum_::tests::casts_owned_enum_source_type_to_boundary_type
+```
+
+## Source
+
+```rs
+let db = DbImpl::default();
+let path = ItemPath::new(&db, vec!["crate".into(), "Example".into()]);
+let target = ItemId::new(&db, path, ItemKind::Enum);
+DirectCastRule::compile(
+        CastEnumSourceTypeToBoundaryType,
+        &db,
+        SourceType::Item { target },
+        BoundaryType::Item { target },
+        "input",
+    )
+    .print()
+```
+
+## Output
+
+```rs
+__binding_enum__crate_Example {
+	src:std::rc::Rc::new(
+		__tethered_struct__crate_Example::new_owned(
+			input
+		)
+	)
+}
+```

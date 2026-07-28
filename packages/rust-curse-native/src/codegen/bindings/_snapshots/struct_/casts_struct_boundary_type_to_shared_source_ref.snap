@@ -20,7 +20,7 @@ IndirectCastRule::compile(
         BoundaryType::Item { target },
         SourceType::Ref {
             is_mutable: false,
-            inner: Box::new(SourceType::Item(path)),
+            inner: Box::new(SourceType::Item { target }),
         },
         "input",
         "consume(value);",
