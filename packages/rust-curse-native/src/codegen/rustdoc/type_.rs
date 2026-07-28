@@ -4,12 +4,12 @@ use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
+    ir::item::{ItemId, ItemKind, ItemPath},
     ir::{
         enum_::EnumId,
         struct_::StructId,
         type_::{Primitive, Type as IrType},
     },
-    item::{ItemId, ItemKind, ItemPath},
     rustdoc::{CrateExt, RustdocType},
 };
 
@@ -48,27 +48,33 @@ pub fn lower_type<'db>(
             if summary.path == ["alloc", "string", "String"] {
                 Ok(LoweredType::Moved(IrType::String))
             } else if summary.kind == RItemKind::Struct && crate_.index.contains_key(&path.id) {
-                Ok(LoweredType::Moved(IrType::Struct(StructId::new(
-                    db,
-                    ItemId::new(
+                Ok(LoweredType::Moved(IrType::Struct(
+                    StructId::new(
                         db,
-                        ItemPath {
-                            segments: summary.path.clone(),
-                        },
-                        ItemKind::Struct,
-                    ),
-                ))))
+                        ItemId::new(
+                            db,
+                            ItemPath {
+                                segments: summary.path.clone(),
+                            },
+                            ItemKind::Struct,
+                        ),
+                    )
+                    .expect("newly created struct item must have struct kind"),
+                )))
             } else if summary.kind == RItemKind::Enum && crate_.index.contains_key(&path.id) {
-                Ok(LoweredType::Moved(IrType::Enum(EnumId::new(
-                    db,
-                    ItemId::new(
+                Ok(LoweredType::Moved(IrType::Enum(
+                    EnumId::new(
                         db,
-                        ItemPath {
-                            segments: summary.path.clone(),
-                        },
-                        ItemKind::Enum,
-                    ),
-                ))))
+                        ItemId::new(
+                            db,
+                            ItemPath {
+                                segments: summary.path.clone(),
+                            },
+                            ItemKind::Enum,
+                        ),
+                    )
+                    .expect("newly created enum item must have enum kind"),
+                )))
             } else {
                 Err(vec![TypeLowerError::UnsupportedType {
                     type_: type_.clone(),

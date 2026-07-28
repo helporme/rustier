@@ -5,12 +5,12 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
+    ir::item::{ItemId, ItemKind, ItemPath},
     ir::{
         c_like_enum::{CLikeEnum, CLikeEnumVariant},
         enum_::{Enum, EnumId, EnumVariant},
         span::{SourceCode, Span},
     },
-    item::{ItemId, ItemKind, ItemPath},
     rustdoc::{
         CrateExt, RustdocId,
         shape::{RustdocShape, ShapeFieldLowerError, lower_shape},
@@ -101,7 +101,8 @@ fn lower_data_carrying_enum<'db>(
             },
             ItemKind::Enum,
         ),
-    );
+    )
+    .expect("newly created enum item must have enum kind");
 
     Ok(Enum::new(db, id, variants, item.docs.clone()))
 }

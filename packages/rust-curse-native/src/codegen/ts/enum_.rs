@@ -6,6 +6,7 @@ use crate::{
         fragment::{FragmentOnce, FragmentPrint, blank, curlies, doubles, fragment, idented},
         ir::{
             enum_::{Enum, EnumVariant},
+            item::ItemId,
             shape::Shape,
             type_::Type,
         },
@@ -72,9 +73,9 @@ pub fn compile_enum_required_imports<'db>(
 
     for variant in enum_.variants(db) {
         for field in variant.fields(db) {
-            let (type_id, type_name) = match field.type_(db) {
-                Type::Struct(struct_id) => (struct_id.inner(db), struct_id.name(db)),
-                Type::Enum(enum_id) => (enum_id.inner(db), enum_id.name(db)),
+            let (type_id, type_name): (ItemId<'db>, _) = match field.type_(db) {
+                Type::Struct(struct_id) => (struct_id.into(), struct_id.name(db)),
+                Type::Enum(enum_id) => (enum_id.into(), enum_id.name(db)),
                 Type::Primitive(_) | Type::Str | Type::String => continue,
             };
             let type_mod_id = type_id.parent_mod_id(db).unwrap();

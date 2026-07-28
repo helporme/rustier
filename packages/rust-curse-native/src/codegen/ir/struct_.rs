@@ -1,46 +1,16 @@
 use crate::codegen::{
     db::Db,
-    ir::shape::{Shape, ShapeField},
-    item::ItemId,
-    rustdoc::RustdocId,
+    ir::{
+        item::{ItemKind, define_item_id},
+        shape::{Shape, ShapeField},
+    },
 };
 
-/// Identifies a lowered Rust struct.
-#[salsa::interned(debug)]
-#[derive(Ord, PartialOrd)]
-pub struct StructId<'db> {
-    #[returns(copy)]
-    pub inner: ItemId<'db>,
-}
-
-impl<'db> StructId<'db> {
-    /// Returns the fully qualified struct name, e.g. `geometry::Point`.
-    pub fn fqn(self, db: &'db dyn Db) -> &'db String {
-        self.inner(db).fqn(db)
-    }
-
-    /// Returns the unqualified struct name, e.g. `Point`.
-    pub fn name(self, db: &'db dyn Db) -> &'db String {
-        self.inner(db).name(db)
-    }
-
-    /// Returns the mangled fully qualified struct name, e.g. `geometry_Point`.
-    pub fn mangled_fqn(self, db: &'db dyn Db) -> &'db String {
-        self.inner(db).mangled_fqn(db)
-    }
-
-    /// Returns the [`RustdocId`] matching this struct, or panics if no match is
-    /// found.
-    pub fn rustdoc_id(self, db: &'db dyn Db) -> RustdocId<'db> {
-        self.inner(db).rustdoc_id(db)
-    }
-
-    /// Returns the parent module ID, or `None` if this ID has no parent path
-    /// segment.
-    pub fn parent_mod_id(self, db: &'db dyn Db) -> Option<ItemId<'db>> {
-        self.inner(db).parent_mod_id(db)
-    }
-}
+define_item_id!(
+    StructId,
+    ItemKind::Struct,
+    "Identifies a lowered Rust struct."
+);
 
 /// A lowered Rust struct and its fields.
 #[salsa::tracked(debug)]

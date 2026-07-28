@@ -455,6 +455,29 @@ fn __cast_bool(
 	}
 }
 
+fn __cast_i32(
+	value: Unknown<'_>
+)-> Result<i32, String> {
+	let type_name = "i32";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as i32
+	)
+}
+
 #[napi(js_name = "__binding_fn__rustdoc_0test_0crate_foo")]
 pub fn __binding_fn__rustdoc_0test_0crate_foo(
 	__p__number: Unknown<'_>,
@@ -1118,6 +1141,29 @@ fn __cast_bool(
 )-> Result<bool, String> {
 	value.as_bool().ok_or_else(
 		|| "cannot cast value to bool".to_string()
+	)
+}
+
+fn __cast_i32(
+	value: JsValue
+)-> Result<i32, String> {
+	let type_name = "i32";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as i32
 	)
 }
 

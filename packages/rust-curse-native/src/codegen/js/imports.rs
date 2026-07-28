@@ -2,7 +2,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, fragment, singles},
-        item::ItemId,
+        ir::item::ItemId,
         js::JsCodegenPaths,
     },
     frag,

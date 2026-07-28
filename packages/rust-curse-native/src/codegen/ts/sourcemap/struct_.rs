@@ -59,7 +59,7 @@ pub fn compile_struct_mappings<'db>(
             .expect("compiled TypeScript class field declaration should exist");
         field_start_line = field_line + 1;
 
-        let Some(original) = original_location(db, field.rustdoc_id(db, struct_.id(db).inner(db)))
+        let Some(original) = original_location(db, field.rustdoc_id(db, struct_.id(db).into()))
         else {
             continue;
         };

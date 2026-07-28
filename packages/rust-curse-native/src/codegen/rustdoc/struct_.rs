@@ -5,11 +5,11 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt,
+    ir::item::{ItemId, ItemKind, ItemPath},
     ir::{
         span::{SourceCode, Span},
         struct_::{Struct, StructId},
     },
-    item::{ItemId, ItemKind, ItemPath},
     rustdoc::{
         RustdocId,
         shape::{RustdocShape, ShapeFieldLowerError, lower_shape},
@@ -72,7 +72,8 @@ pub fn lower_struct<'db>(
             },
             ItemKind::Struct,
         ),
-    );
+    )
+    .expect("newly created struct item must have struct kind");
 
     Ok(Struct::new(db, id, shape, docs))
 }

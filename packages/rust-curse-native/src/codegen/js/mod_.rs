@@ -6,7 +6,7 @@ use crate::codegen::{
     api::Api,
     db::Db,
     fragment::{FragmentPrint, frag, spaced},
-    item::ItemId,
+    ir::item::ItemId,
     js::{
         JsCodegenPaths,
         enum_::{compile_facade_class_for_enum, compile_facade_class_for_enum_required_imports},

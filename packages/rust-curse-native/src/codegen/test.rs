@@ -10,7 +10,7 @@
 
 use crate::codegen::{
     db::DbImpl,
-    item::{ItemId, ItemPath},
+    ir::item::{ItemId, ItemPath},
     rustdoc::RustdocId,
 };
 pub use crate::test_db;

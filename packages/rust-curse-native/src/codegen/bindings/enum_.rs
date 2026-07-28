@@ -20,6 +20,7 @@ use crate::{
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment, spaced},
         ir::{
             enum_::{Enum, EnumId, EnumVariant},
+            item::ItemId,
             shape::{Shape, ShapeField},
             type_::Type,
         },
@@ -27,20 +28,27 @@ use crate::{
     frag,
 };
 
-#[salsa::tracked]
 impl<'db> EnumId<'db> {
-    /// Binding mangled name, e.g. `__binding_enum__core__option__Option`.
-    #[salsa::tracked(returns(ref))]
-    pub fn binding_name(self, db: &'db dyn Db) -> String {
-        format!("__binding_enum__{}", self.mangled_fqn(db))
+    /// Returns the binding mangled name, e.g.
+    /// `__binding_enum__core__option__Option`.
+    pub fn binding_name(self, db: &'db dyn Db) -> &'db String {
+        binding_name(db, self.into())
     }
 
-    /// Paired tethering struct name, e.g.
-    /// `__tethered_struct__core__option__Option`.
-    #[salsa::tracked(returns(ref))]
-    pub fn tethering_struct_name(self, db: &'db dyn Db) -> String {
-        format!("__tethered_struct__{}", self.mangled_fqn(db))
+    /// Returns the paired tethering struct name.
+    pub fn tethering_struct_name(self, db: &'db dyn Db) -> &'db String {
+        tethering_struct_name(db, self.into())
     }
+}
+
+#[salsa::tracked(returns(ref))]
+fn binding_name<'db>(db: &'db dyn Db, id: ItemId<'db>) -> String {
+    format!("__binding_enum__{}", id.mangled_fqn(db))
+}
+
+#[salsa::tracked(returns(ref))]
+fn tethering_struct_name<'db>(db: &'db dyn Db, id: ItemId<'db>) -> String {
+    format!("__tethered_struct__{}", id.mangled_fqn(db))
 }
 
 impl<'db> Enum<'db> {

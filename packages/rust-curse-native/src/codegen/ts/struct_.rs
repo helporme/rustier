@@ -53,9 +53,10 @@ pub fn compile_struct_required_imports<'db>(
     let active_mod_id = struct_.id(db).parent_mod_id(db).unwrap();
 
     for field in struct_.fields(db).iter() {
-        let (type_id, type_name) = match field.type_(db) {
-            Type::Struct(struct_id) => (struct_id.inner(db), struct_id.name(db)),
-            Type::Enum(enum_id) => (enum_id.inner(db), enum_id.name(db)),
+        let (type_id, type_name): (crate::codegen::ir::item::ItemId<'db>, _) = match field.type_(db)
+        {
+            Type::Struct(struct_id) => (struct_id.into(), struct_id.name(db)),
+            Type::Enum(enum_id) => (enum_id.into(), enum_id.name(db)),
             Type::Primitive(_) | Type::Str | Type::String => continue,
         };
         let type_mod_id = type_id.parent_mod_id(db).unwrap();

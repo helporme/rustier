@@ -1,4 +1,4 @@
-use crate::codegen::item::ItemId;
+use crate::codegen::ir::item::ItemId;
 
 /// A lowered fieldless enum variant and its optional explicit discriminant.
 #[salsa::tracked(debug)]

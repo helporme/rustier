@@ -1,4 +1,4 @@
-use crate::codegen::{db::Db, ir::type_::Type, item::ItemId};
+use crate::codegen::{db::Db, ir::item::ItemId, ir::type_::Type};
 
 /// How a parameter is passed to a function.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]

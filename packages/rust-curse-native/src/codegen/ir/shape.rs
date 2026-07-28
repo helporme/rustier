@@ -2,8 +2,8 @@ use rustdoc_types::ItemEnum;
 
 use crate::codegen::{
     db::Db,
+    ir::item::ItemId,
     ir::type_::Type,
-    item::ItemId,
     rustdoc::{
         CrateExt, RustdocId,
         shape::{RustdocShape, lower_shape},

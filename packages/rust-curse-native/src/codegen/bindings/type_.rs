@@ -5,8 +5,8 @@ use crate::{
         cast::DirectCastRule,
         db::Db,
         fragment::FragmentOnce,
+        ir::item::ItemId,
         ir::type_::{Primitive, Type},
-        item::ItemId,
     },
     frag,
 };
@@ -113,16 +113,16 @@ impl<'db> Type<'db> {
     }
 
     /// Gets the fully qualified name of the type used as a boundary-in type.
-    pub fn boundary_in(self, db: &'db dyn Db) -> BoundaryType<'db> {
+    pub fn boundary_in(self, _db: &'db dyn Db) -> BoundaryType<'db> {
         match self {
             Type::Primitive(_) | Type::String | Type::Str => BoundaryType::JsAny,
-            Type::Struct(id) => BoundaryType::Generated(id.inner(db)),
-            Type::Enum(id) => BoundaryType::Generated(id.inner(db)),
+            Type::Struct(id) => BoundaryType::Generated(id.into()),
+            Type::Enum(id) => BoundaryType::Generated(id.into()),
         }
     }
 
     /// Gets the fully qualified name of the type used as a boundary-out type.
-    pub fn boundary_out(self, db: &'db dyn Db) -> BoundaryType<'db> {
+    pub fn boundary_out(self, _db: &'db dyn Db) -> BoundaryType<'db> {
         match self {
             Type::Primitive(Primitive::Boolean) => BoundaryType::bool,
             Type::Primitive(Primitive::i8) => BoundaryType::i8,
@@ -133,8 +133,8 @@ impl<'db> Type<'db> {
             Type::Primitive(Primitive::u32) | Type::Primitive(Primitive::Char) => BoundaryType::u32,
             Type::Primitive(Primitive::f64) | Type::Primitive(Primitive::f32) => BoundaryType::f64,
             Type::String => BoundaryType::String,
-            Type::Struct(id) => BoundaryType::Generated(id.inner(db)),
-            Type::Enum(id) => BoundaryType::Generated(id.inner(db)),
+            Type::Struct(id) => BoundaryType::Generated(id.into()),
+            Type::Enum(id) => BoundaryType::Generated(id.into()),
             Type::Str => unreachable!("str cannot be returned"),
         }
     }

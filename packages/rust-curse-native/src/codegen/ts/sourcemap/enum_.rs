@@ -158,8 +158,7 @@ pub fn compile_enum_mappings<'db>(
             .expect("compiled TypeScript enum variant field should exist");
             variant_start_line = field_line + 1;
 
-            let Some(original) =
-                original_location(db, field.rustdoc_id(db, enum_.id(db).inner(db)))
+            let Some(original) = original_location(db, field.rustdoc_id(db, enum_.id(db).into()))
             else {
                 continue;
             };

@@ -101,6 +101,7 @@ export class PlainStruct {
 #![allow(
 	non_camel_case_types, non_snake_case
 )]
+use napi::bindgen_prelude::{Unknown, ValueType};
 use napi_derive::napi;
 
 #[allow(
@@ -326,6 +327,182 @@ mod __tethering {
 	}
 }
 use __tethering::Accessor as _;
+
+fn __cast_bool(
+	value: Unknown<'_>
+)-> Result<bool, String> {
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::Boolean {
+		unsafe {
+			value.cast::<bool>()
+		}.map_err(
+			|_| "cannot cast value to bool".to_string()
+		)
+	}
+	else {
+		Err(
+			"cannot cast value to bool".to_string()
+		)
+	}
+}
+
+fn __cast_f64(
+	value: Unknown<'_>
+)-> Result<f64, String> {
+	if value.get_type().map_err(
+		|err| err.reason
+	)? == ValueType::Number {
+		unsafe {
+			value.cast::<f64>()
+		}.map_err(
+			|_| "cannot cast value to f64".to_string()
+		)
+	}
+	else {
+		Err(
+			"cannot cast value to f64".to_string()
+		)
+	}
+}
+
+fn __cast_i8(
+	value: Unknown<'_>
+)-> Result<i8, String> {
+	let type_name = "i8";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < i8::MIN as f64 || value > i8::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as i8
+	)
+}
+
+fn __cast_i16(
+	value: Unknown<'_>
+)-> Result<i16, String> {
+	let type_name = "i16";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < i16::MIN as f64 || value > i16::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as i16
+	)
+}
+
+fn __cast_i32(
+	value: Unknown<'_>
+)-> Result<i32, String> {
+	let type_name = "i32";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as i32
+	)
+}
+
+fn __cast_u8(
+	value: Unknown<'_>
+)-> Result<u8, String> {
+	let type_name = "u8";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < 0 as f64 || value > u8::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as u8
+	)
+}
+
+fn __cast_u16(
+	value: Unknown<'_>
+)-> Result<u16, String> {
+	let type_name = "u16";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < 0 as f64 || value > u16::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as u16
+	)
+}
+
+fn __cast_u32(
+	value: Unknown<'_>
+)-> Result<u32, String> {
+	let type_name = "u32";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as u32
+	)
+}
 
 struct __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 	src: __tethering::SourceSlot<rustdoc_test_crate::PlainStruct>,
@@ -1264,6 +1441,160 @@ mod __tethering {
 	}
 }
 use __tethering::Accessor as _;
+
+fn __cast_bool(
+	value: JsValue
+)-> Result<bool, String> {
+	value.as_bool().ok_or_else(
+		|| "cannot cast value to bool".to_string()
+	)
+}
+
+fn __cast_f64(
+	value: JsValue
+)-> Result<f64, String> {
+	value.as_f64().ok_or_else(
+		|| "cannot cast value to f64".to_string()
+	)
+}
+
+fn __cast_i8(
+	value: JsValue
+)-> Result<i8, String> {
+	let type_name = "i8";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < i8::MIN as f64 || value > i8::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as i8
+	)
+}
+
+fn __cast_i16(
+	value: JsValue
+)-> Result<i16, String> {
+	let type_name = "i16";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < i16::MIN as f64 || value > i16::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as i16
+	)
+}
+
+fn __cast_i32(
+	value: JsValue
+)-> Result<i32, String> {
+	let type_name = "i32";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as i32
+	)
+}
+
+fn __cast_u8(
+	value: JsValue
+)-> Result<u8, String> {
+	let type_name = "u8";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < 0 as f64 || value > u8::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as u8
+	)
+}
+
+fn __cast_u16(
+	value: JsValue
+)-> Result<u16, String> {
+	let type_name = "u16";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < 0 as f64 || value > u16::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as u16
+	)
+}
+
+fn __cast_u32(
+	value: JsValue
+)-> Result<u32, String> {
+	let type_name = "u32";
+	let value = __cast_f64(
+		value
+	).map_err(
+		|_| format!(
+			"cannot cast value to {type_name}"
+		)
+	)?;
+	if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64 {
+		return Err(
+			format!(
+				"cannot cast {value} to {type_name}"
+			)
+		);
+	}
+	Ok(
+		value as u32
+	)
+}
 
 struct __tethered_struct__rustdoc_0test_0crate_PlainStruct {
 	src: __tethering::SourceSlot<rustdoc_test_crate::PlainStruct>,

@@ -5,7 +5,7 @@ use std::{
 
 use crate::codegen::{
     db::{Db, DbImpl},
-    item::{ItemId, ItemKind, ItemPath},
+    ir::item::{ItemId, ItemKind, ItemPath},
 };
 use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, ItemKind as RItemKind, Type};
 use salsa::Setter;

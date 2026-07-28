@@ -4,12 +4,12 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, doubles, fragment, spaced},
+        ir::item::ItemId,
         ir::{
             shape::Shape,
             struct_::{Struct, StructId},
             type_::Type,
         },
-        item::ItemId,
         js::{
             boundary::{
                 compile_js_binding_value_to_facade_stmt,

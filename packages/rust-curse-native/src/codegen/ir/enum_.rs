@@ -1,45 +1,12 @@
 use crate::codegen::{
     db::Db,
-    ir::shape::{Shape, ShapeField},
-    item::ItemId,
-    rustdoc::RustdocId,
+    ir::{
+        item::{ItemKind, define_item_id},
+        shape::{Shape, ShapeField},
+    },
 };
 
-#[salsa::interned(debug)]
-#[derive(Ord, PartialOrd)]
-pub struct EnumId<'db> {
-    #[returns(copy)]
-    pub inner: ItemId<'db>,
-}
-
-impl<'db> EnumId<'db> {
-    /// Returns the fully qualified enum name, e.g. `geometry::Shape`.
-    pub fn fqn(self, db: &'db dyn Db) -> &'db String {
-        self.inner(db).fqn(db)
-    }
-
-    /// Returns the unqualified enum name, e.g. `Shape`.
-    pub fn name(self, db: &'db dyn Db) -> &'db String {
-        self.inner(db).name(db)
-    }
-
-    /// Returns the mangled fully qualified enum name, e.g. `geometry_Shape`.
-    pub fn mangled_fqn(self, db: &'db dyn Db) -> &'db String {
-        self.inner(db).mangled_fqn(db)
-    }
-
-    /// Returns the [`RustdocId`] matching this enum, or panics if no match is
-    /// found.
-    pub fn rustdoc_id(self, db: &'db dyn Db) -> RustdocId<'db> {
-        self.inner(db).rustdoc_id(db)
-    }
-
-    /// Returns the parent module ID, or `None` if this ID has no parent path
-    /// segment.
-    pub fn parent_mod_id(self, db: &'db dyn Db) -> Option<ItemId<'db>> {
-        self.inner(db).parent_mod_id(db)
-    }
-}
+define_item_id!(EnumId, ItemKind::Enum, "Identifies a lowered Rust enum.");
 
 /// A lowered enum variant and its field layout.
 #[salsa::tracked(debug)]

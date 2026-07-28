@@ -4,8 +4,8 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, fragment},
+        ir::item::ItemId,
         ir::type_::Type,
-        item::ItemId,
         js::{
             enum_::{
                 compile_binding_enum_from_facade_expr, compile_enum_facade_from_binding_expr,
