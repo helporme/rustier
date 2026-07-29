@@ -12,6 +12,7 @@ pub struct ItemPath<'db> {
 pub enum ItemKind {
     Struct,
     Enum,
+    CLikeEnum,
     Mod,
     Fn,
 }

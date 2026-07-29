@@ -5,10 +5,10 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::item::{ItemId, ItemKind, ItemPath},
     ir::{
-        c_like_enum::{CLikeEnum, CLikeEnumVariant},
+        c_like_enum::{CLikeEnum, CLikeEnumId, CLikeEnumVariant},
         enum_::{Enum, EnumId, EnumVariant},
+        item::{ItemId, ItemKind, ItemPath},
         span::{SourceCode, Span},
     },
     rustdoc::{
@@ -144,6 +144,7 @@ fn lower_c_like_enum<'db>(
 
     let item_summary = crate_body.paths.get(&item.id).unwrap();
     let id = ItemId::new(db, ItemPath::new(db, &item_summary.path), ItemKind::Enum);
+    let id = CLikeEnumId::new(db, id).unwrap();
     Ok(CLikeEnum::new(db, id, variants, item.docs.clone()))
 }
 
