@@ -6,12 +6,13 @@ use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt,
     ir::{
+        item::ItemIdExt as _,
         shape::{Shape, ShapeField},
         span::{SourceCode, Span},
         type_::Type,
     },
     rustdoc::{
-        CrateExt, RustdocId,
+        CrateExt, ItemIdExt, RustdocId,
         enum_::is_enum_clonable,
         type_::{LoweredType, TypeLowerError, lower_type},
     },

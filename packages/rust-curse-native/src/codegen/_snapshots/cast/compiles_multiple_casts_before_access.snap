@@ -11,7 +11,7 @@ codegen::cast::tests::compiles_multiple_casts_before_access
 ## Source
 
 ```rs
-HappyCastGraph::compile_casts(
+HappyCastGraph::compile_casts_stmt(
         &db,
         [
             Cast {

@@ -1,7 +1,7 @@
 use crate::codegen::{
     db::Db,
     ir::{
-        item::{ItemKind, define_item_id},
+        item::{IntoItemId, ItemId, ItemKind, define_item_id},
         type_::Type,
     },
 };
@@ -34,10 +34,6 @@ pub struct Fn<'db> {
     #[tracked]
     #[returns(ref)]
     pub params: Vec<FnParam<'db>>,
-    /// The return type of the function, if any.
-    ///
-    /// Returned type cannot be a reference, so there is no [`ParamMode`]
-    /// alternative for it.
     #[tracked]
     #[returns(copy)]
     pub return_type: Option<Type<'db>>,
@@ -46,21 +42,8 @@ pub struct Fn<'db> {
     pub docs: Option<String>,
 }
 
-#[salsa::tracked]
-impl<'db> Fn<'db> {
-    /// Returns the name of the function, e.g. `drop` for `std::mem::drop`.
-    pub fn name(&self, db: &'db dyn Db) -> &'db str {
-        self.id(db).name(db)
-    }
-
-    /// Returns the fully qualified name of the function, e.g.
-    /// `std::mem::drop`.
-    pub fn fqn(self, db: &'db dyn Db) -> &'db String {
-        self.id(db).fqn(db)
-    }
-
-    /// Mangled fully qualified name, e.g. `std__mem__Drop`.
-    pub fn mangled_fqn(self, db: &'db dyn Db) -> &'db String {
-        self.id(db).mangled_fqn(db)
+impl<'db> IntoItemId<'db> for Fn<'db> {
+    fn into_item_id(self, db: &'db dyn Db) -> ItemId<'db> {
+        self.id(db).into()
     }
 }

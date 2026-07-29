@@ -5,14 +5,14 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::item::{ItemId, ItemKind, ItemPath},
     ir::{
         fn_::{Fn, FnId, FnParam, ParamMode},
+        item::{ItemId, ItemIdExt as _, ItemKind, ItemPath},
         span::{SourceCode, Span},
         type_::Type,
     },
     rustdoc::{
-        CrateExt, RustdocId,
+        CrateExt, ItemIdExt as _, RustdocId,
         enum_::is_enum_clonable,
         shape::is_struct_clonable,
         type_::{LoweredType, TypeLowerError, lower_type},

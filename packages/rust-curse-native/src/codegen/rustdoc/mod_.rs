@@ -202,7 +202,10 @@ pub fn lower_mod_submods<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Mod<'d
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::codegen::test::{TEST_CRATE_NAME, test_db};
+    use crate::codegen::{
+        ir::item::ItemIdExt as _,
+        test::{TEST_CRATE_NAME, test_db},
+    };
 
     #[test]
     fn separates_data_carrying_and_c_like_enums() {

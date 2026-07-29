@@ -11,7 +11,7 @@ codegen::cast::tests::one_direct_step
 ## Source
 
 ```rs
-HappyCastGraph::compile_cast(
+HappyCastGraph::compile_cast_stmt(
         &db,
         Cast {
             from,

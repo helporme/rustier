@@ -1,7 +1,7 @@
 use crate::codegen::{
     db::Db,
     ir::{
-        item::{ItemKind, define_item_id},
+        item::{ItemIdExt as _, ItemKind, define_item_id},
         shape::{Shape, ShapeField},
     },
 };

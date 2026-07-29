@@ -396,20 +396,25 @@ fn __cast_String(
 	}
 }
 
-#[napi(js_name = "__binding_fn__rustdoc_0test_0crate_foo")]
-pub fn __binding_fn__rustdoc_0test_0crate_foo(
-	__p__moved: &__binding_struct__rustdoc_0test_0crate_PlainStruct,
-	__p__borrowed: &__binding_struct__rustdoc_0test_0crate_TupleStruct,
-	__p__mutable: &__binding_struct__rustdoc_0test_0crate_PlainStruct
+#[napi(js_name = "__fn__rustdoc_0test_0crate_foo")]
+pub fn __fn__rustdoc_0test_0crate_foo(
+	__p__moved: rustdoc_test_crate::PlainStruct,
+	__p__borrowed: rustdoc_test_crate::TupleStruct,
+	__p__mutable: rustdoc_test_crate::PlainStruct
 ) -> napi::Result<()> {
-	__p__mutable.src.access_mut(
-		&mut |__p__mutable| {
-			__p__borrowed.src.access(
-				&mut |__p__borrowed| {
-					__p__moved.src.access(
-						&mut |__p__moved| {
-							let __p__moved = __p__moved.clone();
-
+	let value = __p__moved;
+	value.src.access(
+		&mut |value| {
+			let value = value.clone();
+			let __p__moved = value;
+			let value = __p__borrowed;
+			value.src.access(
+				&mut |value| {
+					let __p__borrowed = value;
+					let value = __p__mutable;
+					value.src.access_mut(
+						&mut |value| {
+							let __p__mutable = value;
 							rustdoc_test_crate::foo(
 								__p__moved,
 								__p__borrowed,
@@ -983,20 +988,25 @@ fn __cast_String(
 	)
 }
 
-#[wasm_bindgen(js_name = "__binding_fn__rustdoc_0test_0crate_foo")]
-pub fn __binding_fn__rustdoc_0test_0crate_foo(
-	__p__moved: &__binding_struct__rustdoc_0test_0crate_PlainStruct,
-	__p__borrowed: &__binding_struct__rustdoc_0test_0crate_TupleStruct,
-	__p__mutable: &__binding_struct__rustdoc_0test_0crate_PlainStruct
+#[wasm_bindgen(js_name = "__fn__rustdoc_0test_0crate_foo")]
+pub fn __fn__rustdoc_0test_0crate_foo(
+	__p__moved: rustdoc_test_crate::PlainStruct,
+	__p__borrowed: rustdoc_test_crate::TupleStruct,
+	__p__mutable: rustdoc_test_crate::PlainStruct
 ) -> Result<(), JsValue> {
-	__p__mutable.src.access_mut(
-		&mut |__p__mutable| {
-			__p__borrowed.src.access(
-				&mut |__p__borrowed| {
-					__p__moved.src.access(
-						&mut |__p__moved| {
-							let __p__moved = __p__moved.clone();
-
+	let value = __p__moved;
+	value.src.access(
+		&mut |value| {
+			let value = value.clone();
+			let __p__moved = value;
+			let value = __p__borrowed;
+			value.src.access(
+				&mut |value| {
+					let __p__borrowed = value;
+					let value = __p__mutable;
+					value.src.access_mut(
+						&mut |value| {
+							let __p__mutable = value;
 							rustdoc_test_crate::foo(
 								__p__moved,
 								__p__borrowed,

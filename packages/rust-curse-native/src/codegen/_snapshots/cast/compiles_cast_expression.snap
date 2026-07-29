@@ -1,0 +1,46 @@
+---
+source: src/codegen/cast.rs
+expression: body
+---
+## Test
+
+```text
+codegen::cast::tests::compiles_cast_expression
+```
+
+## Source
+
+```rs
+HappyCastGraph::compile_cast_expr(
+        &db,
+        Cast {
+            from,
+            to,
+            in_expr: frag!(source()),
+            out_var_name: "out",
+        },
+        frag!(consume(out)),
+    )
+    .print()
+```
+
+## Output
+
+```rs
+{
+	let mut result = std::mem::MaybeUninit::uninit();
+	{
+		let value = source();
+		let value = direct(
+			value
+		);
+		let out = value;
+		result.write(consume(
+			out
+		));
+	}
+	unsafe {
+		result.assume_init()
+	}
+}
+```

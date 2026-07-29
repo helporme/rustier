@@ -21,13 +21,13 @@ compile_test_fn(db)
 
 ```js
 import {
-	__binding_fn__rustdoc_0test_0crate_foo
+	__ext_rustdoc_0test_0crate_foo
 } from 'path/to/bindings';
 
 export function foo (
 
 ) {
-	__binding_fn__rustdoc_0test_0crate_foo(
+	__ext_rustdoc_0test_0crate_foo(
 
 	);
 }

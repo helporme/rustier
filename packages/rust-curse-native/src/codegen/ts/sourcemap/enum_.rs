@@ -5,7 +5,7 @@ use rustdoc_types::ItemEnum;
 use crate::codegen::{
     db::Db,
     ir::{enum_::Enum, shape::Shape},
-    rustdoc::CrateExt,
+    rustdoc::{CrateExt, ItemIdExt as _},
     ts::{
         enum_::compile_enum,
         sourcemap::{

@@ -1,6 +1,6 @@
 use crate::codegen::{
     db::Db,
-    ir::{enum_::EnumId, struct_::StructId},
+    ir::{enum_::EnumId, item::ItemIdExt as _, struct_::StructId},
 };
 
 /// A primitive type.

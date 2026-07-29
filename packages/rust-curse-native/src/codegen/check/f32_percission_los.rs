@@ -11,7 +11,10 @@ use crate::codegen::{
         struct_::Struct,
         type_::{Primitive, Type},
     },
-    rustdoc::mod_::{all_mod_ids, lower_mod_enums, lower_mod_fns, lower_mod_structs},
+    rustdoc::{
+        ItemIdExt as _,
+        mod_::{all_mod_ids, lower_mod_enums, lower_mod_fns, lower_mod_structs},
+    },
 };
 
 /// Emits warnings for exported items that pass f32 values across the JS

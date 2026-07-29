@@ -14,7 +14,7 @@ use crate::{
             CastStructBoundaryTypeToBorrowedSourceType, CastStructBoundaryTypeToOwnedSourceType,
             CastStructSourceTypeToBoundaryType,
         },
-        type_::{BoundaryType, CastOwnedTypeToBorrowedTypeRule, SourceType},
+        type_::{CastOwnedTypeToBorrowedTypeRule, ExternType, SourceType},
     },
     define_cast_graph,
 };
@@ -22,28 +22,28 @@ use crate::{
 define_cast_graph! {
     pub BindingsCastGraph<'db> {
         types {
-            BoundaryType(BoundaryType<'db>),
+            ExternType(ExternType<'db>),
             SourceType(SourceType<'db>)
         }
         rules {
             StructBoundaryTypeToBorrowedSourceType {
                 rule: CastStructBoundaryTypeToBorrowedSourceType,
-                from: BoundaryType,
+                from: ExternType,
                 to: SourceType,
             }
             EnumBoundaryTypeToBorrowedSourceType {
                 rule: CastEnumBoundaryTypeToBorrowedSourceType,
-                from: BoundaryType,
+                from: ExternType,
                 to: SourceType,
             }
             StructBoundaryTypeToOwnedSourceType {
                 rule: CastStructBoundaryTypeToOwnedSourceType,
-                from: BoundaryType,
+                from: ExternType,
                 to: SourceType,
             }
             EnumBoundaryTypeToOwnedSourceType {
                 rule: CastEnumBoundaryTypeToOwnedSourceType,
-                from: BoundaryType,
+                from: ExternType,
                 to: SourceType,
             }
             OwnedTypeToBorrowedType {
@@ -53,17 +53,17 @@ define_cast_graph! {
             }
             JsAnyToF64 {
                 rule: CastJsAnyToF64Rule,
-                from: BoundaryType,
+                from: ExternType,
                 to: SourceType,
             }
             JsAnyToBool {
                 rule: CastJsAnyToBoolRule,
-                from: BoundaryType,
+                from: ExternType,
                 to: SourceType,
             }
             JsAnyToString {
                 rule: CastJsAnyToStringRule,
-                from: BoundaryType,
+                from: ExternType,
                 to: SourceType,
             }
             F64ToSignedInt {
@@ -89,17 +89,17 @@ define_cast_graph! {
             CharToU32Boundary {
                 rule: CastCharToU32BoundaryRule,
                 from: SourceType,
-                to: BoundaryType,
+                to: ExternType,
             }
             F32ToF64Boundary {
                 rule: CastF32ToF64BoundaryRule,
                 from: SourceType,
-                to: BoundaryType,
+                to: ExternType,
             }
             PrimitiveToSameBoundary {
                 rule: CastPrimitiveToSameBoundaryRule,
                 from: SourceType,
-                to: BoundaryType,
+                to: ExternType,
             }
             StringToStrRef {
                 rule: CastStringToStrRefRule,
@@ -114,12 +114,12 @@ define_cast_graph! {
             StructSourceTypeToBoundaryType {
                 rule: CastStructSourceTypeToBoundaryType,
                 from: SourceType,
-                to: BoundaryType,
+                to: ExternType,
             }
             EnumSourceTypeToBoundaryType {
                 rule: CastEnumSourceTypeToBoundaryType,
                 from: SourceType,
-                to: BoundaryType,
+                to: ExternType,
             }
        }
     }

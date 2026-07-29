@@ -5,7 +5,7 @@ use salsa::Setter;
 use crate::codegen::{
     db::Db,
     fragment::{FragmentOnce, doubles, frag, fragment, singles},
-    ir::{fn_::Fn, struct_::Struct},
+    ir::{fn_::Fn, item::ItemIdExt, struct_::Struct},
 };
 
 /// Active binding API used for generated Rust and JavaScript glue code.
@@ -183,7 +183,7 @@ impl Api {
             ApiKind::Node => "#[napi(js_name = ",
         };
 
-        frag!({header}{doubles(_fn.bindings_name(db))}{")]"})
+        frag!({header}{doubles(_fn.extern_name(db))}{")]"})
     }
 
     pub fn impl_header(&self, db: &dyn Db) -> &'static str {

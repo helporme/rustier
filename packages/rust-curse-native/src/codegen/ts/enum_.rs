@@ -6,7 +6,7 @@ use crate::{
         fragment::{FragmentOnce, FragmentPrint, blank, curlies, doubles, fragment, idented},
         ir::{
             enum_::{Enum, EnumVariant},
-            item::ItemId,
+            item::{ItemId, ItemIdExt as _},
             shape::Shape,
             type_::Type,
         },

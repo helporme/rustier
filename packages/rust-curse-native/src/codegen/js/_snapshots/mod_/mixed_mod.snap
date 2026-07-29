@@ -36,7 +36,7 @@ import {
 } from './models.rs';
 
 import {
-	__binding_fn__rustdoc_0test_0crate_mixed
+	__ext_rustdoc_0test_0crate_mixed
 } from 'path/to/bindings';
 
 export function mixed (
@@ -80,7 +80,7 @@ export function mixed (
 
 	let result;
 	result = External.__from_binding(
-		__binding_fn__rustdoc_0test_0crate_mixed(
+		__ext_rustdoc_0test_0crate_mixed(
 			__p__number,
 			__p__text,
 			__p__local,

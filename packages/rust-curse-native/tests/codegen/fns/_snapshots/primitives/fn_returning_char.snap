@@ -48,12 +48,25 @@ ModDef {
 )]
 use napi_derive::napi;
 
-#[napi(js_name = "__binding_fn__rustdoc_0test_0crate_foo")]
-pub fn __binding_fn__rustdoc_0test_0crate_foo(
+#[napi(js_name = "__fn__rustdoc_0test_0crate_foo")]
+pub fn __fn__rustdoc_0test_0crate_foo(
 
 ) -> napi::Result<u32> {
 	Ok(
-		rustdoc_test_crate::foo()as u32
+		{
+			let mut result = std::mem::MaybeUninit::uninit();
+			{
+				let value = rustdoc_test_crate::foo();
+				let value = {
+					value as u32
+				};
+				let result = value;
+				result.write();
+			}
+			unsafe {
+				result.assume_init()
+			}
+		}
 	)
 }
 ```
@@ -66,12 +79,25 @@ pub fn __binding_fn__rustdoc_0test_0crate_foo(
 )]
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(js_name = "__binding_fn__rustdoc_0test_0crate_foo")]
-pub fn __binding_fn__rustdoc_0test_0crate_foo(
+#[wasm_bindgen(js_name = "__fn__rustdoc_0test_0crate_foo")]
+pub fn __fn__rustdoc_0test_0crate_foo(
 
 ) -> Result<u32, JsValue> {
 	Ok(
-		rustdoc_test_crate::foo()as u32
+		{
+			let mut result = std::mem::MaybeUninit::uninit();
+			{
+				let value = rustdoc_test_crate::foo();
+				let value = {
+					value as u32
+				};
+				let result = value;
+				result.write();
+			}
+			unsafe {
+				result.assume_init()
+			}
+		}
 	)
 }
 ```

@@ -52,6 +52,12 @@ impl<'db> ItemId<'db> {
         mangle_path(self.path(db).segments(db))
     }
 
+    /// Returns the item's exported JavaScript name.
+    #[salsa::tracked(returns(ref))]
+    pub fn extern_name(self, db: &'db dyn Db) -> String {
+        format!("__ext_{}", self.mangled_fqn(db))
+    }
+
     /// Returns the parent module ID, or `None` if this ID has no parent path
     /// segment.
     #[salsa::tracked]
@@ -80,36 +86,49 @@ impl<'db> ItemId<'db> {
     }
 }
 
-/// Provides shared item ID operations for types convertible into [`ItemId`].
+/// A trait for converting an item into an [`ItemId`].
+pub trait IntoItemId<'db> {
+    fn into_item_id(self, db: &'db dyn Db) -> ItemId<'db>;
+}
+
+/// Provides common item ID operations over [`ItemId`].
 pub trait ItemIdExt<'db> {
-    /// Returns the fully qualified item name, e.g. `geometry::Point`.
+    /// Fully qualified item name, e.g. `kitties::FluffyCat`.
     fn fqn(self, db: &'db dyn Db) -> &'db String;
 
-    /// Returns the unqualified item name, e.g. `Point`.
+    /// Unqualified item name, e.g. `FluffyCat`.
     fn name(self, db: &'db dyn Db) -> &'db String;
 
-    /// Returns the mangled fully qualified item name, e.g. `geometry_Point`.
+    /// Mangled fully qualified item name, e.g. `kitties_FluffyCat`.
     fn mangled_fqn(self, db: &'db dyn Db) -> &'db String;
 
-    /// Returns the parent module ID, or `None` when the item has no parent.
+    /// Item's exported JavaScript name.
+    fn extern_name(self, db: &'db dyn Db) -> &'db String;
+
+    // todo: move to the ir/mod.rs
+    /// Parent module ID, or `None` when the item has no parent.
     fn parent_mod_id(self, db: &'db dyn Db) -> Option<ModId<'db>>;
 }
 
-impl<'db, T: Into<ItemId<'db>>> ItemIdExt<'db> for T {
+impl<'db, T: IntoItemId<'db>> ItemIdExt<'db> for T {
     fn fqn(self, db: &'db dyn Db) -> &'db String {
-        self.into().fqn(db)
+        self.into_item_id(db).fqn(db)
     }
 
     fn name(self, db: &'db dyn Db) -> &'db String {
-        self.into().name(db)
+        self.into_item_id(db).name(db)
     }
 
     fn mangled_fqn(self, db: &'db dyn Db) -> &'db String {
-        self.into().mangled_fqn(db)
+        self.into_item_id(db).mangled_fqn(db)
+    }
+
+    fn extern_name(self, db: &'db dyn Db) -> &'db String {
+        self.into_item_id(db).extern_name(db)
     }
 
     fn parent_mod_id(self, db: &'db dyn Db) -> Option<ModId<'db>> {
-        self.into().parent_mod_id(db)
+        self.into_item_id(db).parent_mod_id(db)
     }
 }
 
@@ -125,6 +144,15 @@ macro_rules! define_item_id {
             }
         }
 
+        impl<'db> $crate::codegen::ir::item::IntoItemId<'db> for $name<'db> {
+            fn into_item_id(
+                self,
+                _db: &'db dyn $crate::codegen::db::Db,
+            ) -> $crate::codegen::ir::item::ItemId<'db> {
+                self.0
+            }
+        }
+
         impl<'db> $name<'db> {
             /// Creates an ID when the inner item has the expected kind.
             pub fn new(
@@ -136,37 +164,6 @@ macro_rules! define_item_id {
                 } else {
                     None
                 }
-            }
-
-            /// Returns the fully qualified item name.
-            pub fn fqn(self, db: &'db dyn $crate::codegen::db::Db) -> &'db String {
-                self.0.fqn(db)
-            }
-
-            /// Returns the unqualified item name.
-            pub fn name(self, db: &'db dyn $crate::codegen::db::Db) -> &'db String {
-                self.0.name(db)
-            }
-
-            /// Returns the mangled fully qualified item name.
-            pub fn mangled_fqn(self, db: &'db dyn $crate::codegen::db::Db) -> &'db String {
-                self.0.mangled_fqn(db)
-            }
-
-            /// Returns the rustdoc ID matching this item.
-            pub fn rustdoc_id(
-                self,
-                db: &'db dyn $crate::codegen::db::Db,
-            ) -> $crate::codegen::rustdoc::RustdocId<'db> {
-                self.0.rustdoc_id(db)
-            }
-
-            /// Returns the parent module ID, if this item has a parent path segment.
-            pub fn parent_mod_id(
-                self,
-                db: &'db dyn $crate::codegen::db::Db,
-            ) -> Option<$crate::codegen::ir::mod_::ModId<'db>> {
-                self.0.parent_mod_id(db)
             }
         }
     };

@@ -3,6 +3,7 @@
 use crate::codegen::{
     db::Db,
     ir::{shape::Shape, struct_::Struct},
+    rustdoc::ItemIdExt as _,
     ts::{
         sourcemap::{
             Mapping,

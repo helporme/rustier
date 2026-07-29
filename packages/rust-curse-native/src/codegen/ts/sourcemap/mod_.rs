@@ -6,6 +6,7 @@ use serde::Serialize;
 
 use crate::codegen::{
     db::Db,
+    ir::item::ItemIdExt,
     rustdoc::{
         RustdocId,
         mod_::{lower_mod_enums, lower_mod_fns, lower_mod_structs},

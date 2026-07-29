@@ -6,7 +6,7 @@ use rust_curse::codegen::{
     db::Db,
     diag::Diag,
     rustdoc::{
-        RustdocId,
+        ItemIdExt as _, RustdocId,
         mod_::{lower_mod, lower_mod_enums, lower_mod_fns, lower_mod_structs, lower_mod_submods},
     },
 };

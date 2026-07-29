@@ -26,7 +26,7 @@ import {
 } from './models.rs';
 
 import {
-	__binding_fn__rustdoc_0test_0crate_foo
+	__ext_rustdoc_0test_0crate_foo
 } from 'path/to/bindings';
 
 export function foo (
@@ -34,7 +34,7 @@ export function foo (
 ) {
 	let result;
 	result = Foo.__from_binding(
-		__binding_fn__rustdoc_0test_0crate_foo(
+		__ext_rustdoc_0test_0crate_foo(
 
 		)
 	);

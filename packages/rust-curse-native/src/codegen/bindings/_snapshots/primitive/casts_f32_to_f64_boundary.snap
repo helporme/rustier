@@ -12,7 +12,7 @@ codegen::bindings::primitive::tests::casts_f32_to_f64_boundary
 
 ```rs
 let from = SourceType::f32;
-let to = BoundaryType::f64;
+let to = ExternType::f64;
 snapshot_for_apis(|db| {
     DirectCastRule::compile(
             CastF32ToF64BoundaryRule,
@@ -29,12 +29,8 @@ snapshot_for_apis(|db| {
 
 ```rs
 // Node
-{
-	input as f64
-}
+input as f64
 
 // Wasm
-{
-	input as f64
-}
+input as f64
 ```

@@ -17,7 +17,7 @@ let target = ItemId::new(&db, path, ItemKind::Struct);
 IndirectCastRule::compile(
         CastStructBoundaryTypeToOwnedSourceType,
         &db,
-        BoundaryType::Item { target },
+        ExternType::Item { target },
         SourceType::Item { target },
         "input",
         "consume(value);",

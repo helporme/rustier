@@ -2,8 +2,9 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, fragment, singles},
-        ir::mod_::ModId,
+        ir::{item::ItemIdExt as _, mod_::ModId},
         js::JsCodegenPaths,
+        rustdoc::ItemIdExt as _,
     },
     frag,
 };

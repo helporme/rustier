@@ -7,7 +7,10 @@ use crate::codegen::{
     db::Db,
     ir::span::{SourceCode, Span},
     mangle::to_camel_case,
-    rustdoc::mod_::{all_mod_ids, lower_mod_enums},
+    rustdoc::{
+        ItemIdExt as _,
+        mod_::{all_mod_ids, lower_mod_enums},
+    },
 };
 
 /// Emits warnings for enum names that require collision-avoidance in the

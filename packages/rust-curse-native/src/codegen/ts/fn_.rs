@@ -4,7 +4,11 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, IntoFnFragment, Printer, comma_list},
-        ir::{fn_::Fn, item::ItemId, type_::Type},
+        ir::{
+            fn_::Fn,
+            item::{ItemId, ItemIdExt},
+            type_::Type,
+        },
         js::imports::{Import, ImportFrom},
         ts::jsdoc::compile_jsdoc,
     },

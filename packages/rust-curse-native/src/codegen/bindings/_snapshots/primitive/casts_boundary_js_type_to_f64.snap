@@ -11,7 +11,7 @@ codegen::bindings::primitive::tests::casts_boundary_js_type_to_f64
 ## Source
 
 ```rs
-let from = BoundaryType::JsAny;
+let from = ExternType::JsAny;
 let to = SourceType::f64;
 snapshot_for_apis(|db| {
     DirectCastRule::compile(

@@ -5,6 +5,7 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, doubles, fragment, spaced},
         ir::{
+            item::ItemIdExt as _,
             mod_::ModId,
             shape::Shape,
             struct_::{Struct, StructId},

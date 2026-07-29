@@ -16,7 +16,7 @@ use crate::{
                 compile_tethered_struct_mut_access_stmt, compile_tethered_struct_ref_access_stmt,
                 compile_tethered_struct_set_field_stmt, compile_tethering_struct_from_source_expr,
             },
-            type_::{BoundaryType, SourceType},
+            type_::{ExternType, SourceType},
         },
         cast::{DirectCastRule, IndirectCastRule},
         db::Db,
@@ -243,14 +243,14 @@ pub fn compile_binding_struct_from_tethered_expr<'db>(
 /// Casts a generated struct boundary value to a borrowed source struct.
 pub struct CastStructBoundaryTypeToBorrowedSourceType;
 
-impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
+impl<'db> IndirectCastRule<'db, ExternType<'db>, SourceType<'db>>
     for CastStructBoundaryTypeToBorrowedSourceType
 {
-    fn predecessor(self, db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
+    fn predecessor(self, db: &'db dyn Db, to: SourceType<'db>) -> Option<ExternType<'db>> {
         match to {
             SourceType::Ref { inner, .. } => match *inner {
                 SourceType::Item { target: id } if id.kind(db) == ItemKind::Struct => {
-                    Some(BoundaryType::Item { target: id })
+                    Some(ExternType::Item { target: id })
                 }
                 _ => None,
             },
@@ -261,7 +261,7 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
     fn compile(
         self,
         _db: &'db dyn Db,
-        from: BoundaryType<'db>,
+        from: ExternType<'db>,
         to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
         continue_with: impl FragmentOnce + 'db,
@@ -275,7 +275,7 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
         else {
             unreachable!()
         };
-        let BoundaryType::Item { target } = from else {
+        let ExternType::Item { target } = from else {
             unreachable!()
         };
 
@@ -301,13 +301,13 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
 /// it.
 pub struct CastStructBoundaryTypeToOwnedSourceType;
 
-impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
+impl<'db> IndirectCastRule<'db, ExternType<'db>, SourceType<'db>>
     for CastStructBoundaryTypeToOwnedSourceType
 {
-    fn predecessor(self, db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
+    fn predecessor(self, db: &'db dyn Db, to: SourceType<'db>) -> Option<ExternType<'db>> {
         match to {
             SourceType::Item { target } if target.kind(db) == ItemKind::Struct => {
-                Some(BoundaryType::Item { target })
+                Some(ExternType::Item { target })
             }
             _ => None,
         }
@@ -316,12 +316,12 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
     fn compile(
         self,
         _db: &'db dyn Db,
-        from: BoundaryType<'db>,
+        from: ExternType<'db>,
         to: SourceType<'db>,
         in_expr: impl FragmentOnce + 'db,
         continue_with: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
-        let BoundaryType::Item { target } = from else {
+        let ExternType::Item { target } = from else {
             unreachable!("struct boundary casts require a generated boundary type");
         };
         let SourceType::Item {
@@ -351,12 +351,12 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
 /// Casts an owned source struct to its generated boundary type.
 pub struct CastStructSourceTypeToBoundaryType;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
+impl<'db> DirectCastRule<'db, SourceType<'db>, ExternType<'db>>
     for CastStructSourceTypeToBoundaryType
 {
-    fn predecessor(self, db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
+    fn predecessor(self, db: &'db dyn Db, to: ExternType<'db>) -> Option<SourceType<'db>> {
         match to {
-            BoundaryType::Item { target } => {
+            ExternType::Item { target } => {
                 StructId::new(db, target).map(|_| SourceType::Item { target })
             }
             _ => None,
@@ -367,7 +367,7 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
         self,
         db: &'db dyn Db,
         from: SourceType<'db>,
-        to: BoundaryType<'db>,
+        to: ExternType<'db>,
         in_expr: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
         let SourceType::Item {
@@ -376,7 +376,7 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
         else {
             unreachable!("struct boundary casts require an owned item source");
         };
-        let BoundaryType::Item { target } = to else {
+        let ExternType::Item { target } = to else {
             unreachable!("struct boundary casts require a generated boundary target");
         };
 
@@ -413,7 +413,7 @@ mod tests {
             IndirectCastRule::compile(
                 CastStructBoundaryTypeToBorrowedSourceType,
                 &db,
-                BoundaryType::Item { target },
+                ExternType::Item { target },
                 SourceType::Ref {
                     is_mutable: false,
                     inner: Box::new(SourceType::Item { target }),
@@ -435,7 +435,7 @@ mod tests {
             IndirectCastRule::compile(
                 CastStructBoundaryTypeToBorrowedSourceType,
                 &db,
-                BoundaryType::Item { target },
+                ExternType::Item { target },
                 SourceType::Ref {
                     is_mutable: true,
                     inner: Box::new(SourceType::Item { target }),
@@ -457,7 +457,7 @@ mod tests {
             IndirectCastRule::compile(
                 CastStructBoundaryTypeToOwnedSourceType,
                 &db,
-                BoundaryType::Item { target },
+                ExternType::Item { target },
                 SourceType::Item { target },
                 "input",
                 "consume(value);",
@@ -477,7 +477,7 @@ mod tests {
                 CastStructSourceTypeToBoundaryType,
                 &db,
                 SourceType::Item { target },
-                BoundaryType::Item { target },
+                ExternType::Item { target },
                 "input",
             )
             .print()

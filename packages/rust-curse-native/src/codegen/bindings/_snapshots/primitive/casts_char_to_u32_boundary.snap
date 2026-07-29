@@ -12,7 +12,7 @@ codegen::bindings::primitive::tests::casts_char_to_u32_boundary
 
 ```rs
 let from = SourceType::char;
-let to = BoundaryType::u32;
+let to = ExternType::u32;
 snapshot_for_apis(|db| {
     DirectCastRule::compile(
             CastCharToU32BoundaryRule,

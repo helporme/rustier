@@ -4,7 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, fragment},
-        ir::{shape::ShapeField, struct_::Struct, type_::Type},
+        ir::{item::ItemIdExt as _, shape::ShapeField, struct_::Struct, type_::Type},
         js::imports::{Import, ImportFrom},
         ts::jsdoc::compile_jsdoc,
     },

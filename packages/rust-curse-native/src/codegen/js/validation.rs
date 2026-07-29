@@ -7,7 +7,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{Fragment, FragmentOnce, doubles, fragment},
-        ir::{mod_::ModId, type_::Type},
+        ir::{item::ItemIdExt as _, mod_::ModId, type_::Type},
         js::{
             enum_::compile_enum_facade_from_binding_expr_required_imports, imports::Import,
             struct_::compile_struct_facade_from_binding_expr_required_imports,

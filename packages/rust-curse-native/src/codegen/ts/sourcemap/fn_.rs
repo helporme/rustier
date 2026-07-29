@@ -2,7 +2,8 @@
 
 use crate::codegen::{
     db::Db,
-    ir::fn_::Fn,
+    ir::{fn_::Fn, item::ItemIdExt},
+    rustdoc::ItemIdExt as _,
     ts::sourcemap::{Mapping, mappings::original_location},
 };
 

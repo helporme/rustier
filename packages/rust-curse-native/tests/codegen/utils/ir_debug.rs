@@ -2,12 +2,16 @@ use rust_curse::codegen::{
     db::Db,
     ir::{
         fn_::{Fn, FnParam},
+        item::ItemIdExt,
         mod_::Mod,
         shape::{Shape, ShapeField},
         struct_::Struct,
         type_::{Primitive, Type},
     },
-    rustdoc::mod_::{lower_mod_fns, lower_mod_structs, lower_mod_submods},
+    rustdoc::{
+        ItemIdExt as _,
+        mod_::{lower_mod_fns, lower_mod_structs, lower_mod_submods},
+    },
 };
 
 /// Renders the item as a debug human-readable string.

@@ -11,7 +11,7 @@ codegen::cast::tests::indirect_indirect_path
 ## Source
 
 ```rs
-HappyCastGraph::compile_cast(
+HappyCastGraph::compile_cast_stmt(
         &db,
         Cast {
             from,

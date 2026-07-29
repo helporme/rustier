@@ -5,7 +5,7 @@ use std::{
 
 use crate::codegen::{
     db::{Db, DbImpl},
-    ir::item::{ItemId, ItemKind, ItemPath},
+    ir::item::{IntoItemId, ItemId, ItemKind, ItemPath},
 };
 use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, ItemKind as RItemKind, Type};
 use salsa::Setter;
@@ -143,6 +143,17 @@ impl<'db> ItemId<'db> {
         *backmap
             .get(self.path(db))
             .unwrap_or_else(|| panic!("no rustdoc item for `{}`", self.fqn(db)))
+    }
+}
+
+/// Provides common item ID operations over [`ItemId`].
+pub trait ItemIdExt<'db> {
+    fn rustdoc_id(self, db: &'db dyn Db) -> RustdocId<'db>;
+}
+
+impl<'db, T: IntoItemId<'db>> ItemIdExt<'db> for T {
+    fn rustdoc_id(self, db: &'db dyn Db) -> RustdocId<'db> {
+        self.into_item_id(db).rustdoc_id(db)
     }
 }
 
