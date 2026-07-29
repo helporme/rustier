@@ -1,7 +1,7 @@
 use crate::codegen::{
     db::Db,
     ir::{
-        item::{ItemIdExt as _, ItemKind, define_item_id},
+        item::{IntoItemId, ItemId, ItemKind, define_item_id},
         shape::{Shape, ShapeField},
     },
 };
@@ -24,6 +24,22 @@ pub struct Struct<'db> {
     pub docs: Option<String>,
 }
 
+impl<'db> IntoItemId<'db> for Struct<'db> {
+    fn into_item_id(self, db: &'db dyn Db) -> ItemId<'db> {
+        self.id(db).into()
+    }
+}
+
+#[salsa::tracked]
+impl<'db> Struct<'db> {
+    /// Returns the public lowered fields in declaration order.
+    #[salsa::tracked(returns(ref))]
+    pub fn fields(self, db: &'db dyn Db) -> Vec<ShapeField<'db>> {
+        // todo: make .fields() a tracked function instead of this wrapper
+        self.shape(db).fields().collect()
+    }
+}
+
 #[salsa::tracked]
 impl<'db> ShapeField<'db> {
     /// Returns the struct field binding getter function name, e.g.
@@ -38,25 +54,5 @@ impl<'db> ShapeField<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn setter_binding_name_on_struct(self, db: &'db dyn Db) -> String {
         format!("__setter__{}", self.name(db))
-    }
-}
-
-#[salsa::tracked]
-impl<'db> Struct<'db> {
-    /// Returns the unqualified struct name, e.g. `Point`.
-    pub fn name(&self, db: &'db dyn Db) -> &'db str {
-        self.id(db).name(db)
-    }
-
-    /// Returns the fully qualified struct name, e.g. `geometry::Point`.
-    pub fn fqn(&self, db: &'db dyn Db) -> &'db str {
-        self.id(db).fqn(db)
-    }
-
-    /// Returns the public lowered fields in declaration order.
-    #[salsa::tracked(returns(ref))]
-    pub fn fields(self, db: &'db dyn Db) -> Vec<ShapeField<'db>> {
-        // todo: make .fields() a tracked function instead of this wrapper
-        self.shape(db).fields().collect()
     }
 }

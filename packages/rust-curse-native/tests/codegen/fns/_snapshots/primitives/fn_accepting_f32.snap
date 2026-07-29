@@ -90,40 +90,19 @@ fn __cast_f32(
 	)
 }
 
-#[napi(js_name = "__fn__rustdoc_0test_0crate_foo")]
-pub fn __fn__rustdoc_0test_0crate_foo(
-	__p__value: f64
+#[napi(js_name = "__ext_rustdoc_0test_0crate_foo")]
+pub fn __ext_rustdoc_0test_0crate_foo(
+	__p__value: Unknown<'_>
 ) -> napi::Result<()> {
-	let value = __p__value;
-	let value = {
-		let value = value;
-		(
-			if value.get_type().map_err(
-				|err| napi::Error::from_reason(
-					err.reason
-				)
-			)? == ValueType::Number {
-				unsafe {
-					value.cast::<f64>()
-				}.map_err(
-					|_| napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-			else {
-				Err(
-					napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-		)?
-	};
-	let value = {
-		value as f32
-	};
-	let __p__value = value;
+	let __p__value = __cast_f32(
+		__p__value
+	).map_err(
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `f32` from a JavaScript number: {}", err
+			)
+		)
+	)?;
 	rustdoc_test_crate::foo(
 		__p__value
 	);
@@ -165,25 +144,19 @@ fn __cast_f32(
 	)
 }
 
-#[wasm_bindgen(js_name = "__fn__rustdoc_0test_0crate_foo")]
-pub fn __fn__rustdoc_0test_0crate_foo(
-	__p__value: f64
+#[wasm_bindgen(js_name = "__ext_rustdoc_0test_0crate_foo")]
+pub fn __ext_rustdoc_0test_0crate_foo(
+	__p__value: JsValue
 ) -> Result<(), JsValue> {
-	let value = __p__value;
-	let value = {
-		let value = value;
-		(
-			value.as_f64().ok_or_else(
-				|| JsValue::from_str(
-					&"cannot cast value to f64".to_string()
-				)
+	let __p__value = __cast_f32(
+		__p__value
+	).map_err(
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `f32` from a JavaScript number: {}", err
 			)
-		)?
-	};
-	let value = {
-		value as f32
-	};
-	let __p__value = value;
+		)
+	)?;
 	rustdoc_test_crate::foo(
 		__p__value
 	);

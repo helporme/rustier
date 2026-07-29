@@ -8,25 +8,6 @@ use crate::codegen::{
 
 define_item_id!(FnId, ItemKind::Fn, "Identifies a lowered Rust function.");
 
-/// How a parameter is passed to a function.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
-pub enum ParamMode {
-    Ref,
-    Mut,
-    Move,
-}
-
-/// A function parameter.
-#[salsa::tracked(debug)]
-pub struct FnParam<'db> {
-    #[returns(ref)]
-    pub name: String,
-    #[tracked]
-    pub type_: Type<'db>,
-    #[returns(copy)]
-    pub mode: ParamMode,
-}
-
 /// A function.
 #[salsa::tracked(debug)]
 pub struct Fn<'db> {
@@ -46,4 +27,22 @@ impl<'db> IntoItemId<'db> for Fn<'db> {
     fn into_item_id(self, db: &'db dyn Db) -> ItemId<'db> {
         self.id(db).into()
     }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
+pub enum PassingMode {
+    Ref,
+    Mut,
+    Move,
+}
+
+/// A function parameter.
+#[salsa::tracked(debug)]
+pub struct FnParam<'db> {
+    #[returns(ref)]
+    pub name: String,
+    #[tracked]
+    pub type_: Type<'db>,
+    #[returns(copy)]
+    pub mode: PassingMode,
 }

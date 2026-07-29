@@ -23,7 +23,7 @@ use crate::{
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment, spaced},
         ir::{
             enum_::{Enum, EnumId, EnumVariant},
-            item::{ItemId, ItemKind},
+            item::{ItemId, ItemIdExt as _, ItemKind},
             shape::{Shape, ShapeField},
             type_::Type,
         },

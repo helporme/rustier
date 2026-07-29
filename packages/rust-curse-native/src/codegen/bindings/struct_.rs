@@ -22,7 +22,7 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, fragment, spaced},
         ir::{
-            item::{ItemId, ItemKind},
+            item::{ItemId, ItemIdExt as _, ItemKind},
             shape::ShapeField,
             struct_::{Struct, StructId},
             type_::Type,

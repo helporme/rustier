@@ -1,12 +1,30 @@
 use crate::codegen::{
     db::Db,
     ir::{
-        item::{ItemIdExt as _, ItemKind, define_item_id},
+        item::{IntoItemId, ItemId, ItemKind, define_item_id},
         shape::{Shape, ShapeField},
     },
 };
 
 define_item_id!(EnumId, ItemKind::Enum, "Identifies a lowered Rust enum.");
+
+/// A lowered Rust enum and its variants.
+#[salsa::tracked(debug)]
+pub struct Enum<'db> {
+    pub id: EnumId<'db>,
+    #[tracked]
+    #[returns(ref)]
+    pub variants: Vec<EnumVariant<'db>>,
+    #[tracked]
+    #[returns(ref)]
+    pub docs: Option<String>,
+}
+
+impl<'db> IntoItemId<'db> for Enum<'db> {
+    fn into_item_id(self, db: &'db dyn Db) -> ItemId<'db> {
+        self.id(db).into()
+    }
+}
 
 /// A lowered enum variant and its field layout.
 #[salsa::tracked(debug)]
@@ -28,29 +46,5 @@ impl<'db> EnumVariant<'db> {
         db: &'db dyn crate::codegen::db::Db,
     ) -> impl Iterator<Item = ShapeField<'db>> + Clone + 'db {
         self.shape(db).fields()
-    }
-}
-
-/// A lowered Rust enum and its variants.
-#[salsa::tracked(debug)]
-pub struct Enum<'db> {
-    pub id: EnumId<'db>,
-    #[tracked]
-    #[returns(ref)]
-    pub variants: Vec<EnumVariant<'db>>,
-    #[tracked]
-    #[returns(ref)]
-    pub docs: Option<String>,
-}
-
-impl<'db> Enum<'db> {
-    /// Returns the unqualified enum name, e.g. `Shape`.
-    pub fn name(&self, db: &'db dyn Db) -> &'db str {
-        self.id(db).name(db)
-    }
-
-    /// Returns the fully qualified enum name, e.g. `geometry::Shape`.
-    pub fn fqn(&self, db: &'db dyn Db) -> &'db str {
-        self.id(db).fqn(db)
     }
 }

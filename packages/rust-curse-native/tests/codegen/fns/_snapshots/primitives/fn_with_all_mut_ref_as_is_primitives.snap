@@ -282,325 +282,89 @@ fn __cast_u32(
 	)
 }
 
-#[napi(js_name = "__fn__rustdoc_0test_0crate_foo")]
-pub fn __fn__rustdoc_0test_0crate_foo(
-	__p__a: bool,
-	__p__d: i8,
-	__p__e: i16,
-	__p__f: i32,
-	__p__g: u8,
-	__p__h: u16,
-	__p__i: u32,
-	__p__k: f64
+#[napi(js_name = "__ext_rustdoc_0test_0crate_foo")]
+pub fn __ext_rustdoc_0test_0crate_foo(
+	__p__a: Unknown<'_>,
+	__p__d: Unknown<'_>,
+	__p__e: Unknown<'_>,
+	__p__f: Unknown<'_>,
+	__p__g: Unknown<'_>,
+	__p__h: Unknown<'_>,
+	__p__i: Unknown<'_>,
+	__p__k: Unknown<'_>
 ) -> napi::Result<()> {
-	let value = __p__a;
-	let value = {
-		let value = value;
-		(
-			if value.get_type().map_err(
-				|err| napi::Error::from_reason(
-					err.reason
-				)
-			)? == ValueType::Boolean {
-				unsafe {
-					value.cast::<bool>()
-				}.map_err(
-					|_| napi::Error::from_reason(
-						"cannot cast value to bool".to_string()
-					)
-				)
-			}
-			else {
-				Err(
-					napi::Error::from_reason(
-						"cannot cast value to bool".to_string()
-					)
-				)
-			}
-		)?
-	};
-	let value = &mutvalue;
-	let __p__a = value;
-	let value = __p__d;
-	let value = {
-		let value = value;
-		(
-			if value.get_type().map_err(
-				|err| napi::Error::from_reason(
-					err.reason
-				)
-			)? == ValueType::Number {
-				unsafe {
-					value.cast::<f64>()
-				}.map_err(
-					|_| napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-			else {
-				Err(
-					napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-		)?
-	};
-	let value = {
-		let type_name = "i8";
-		let value = value;
-		if value.trunc() != value || value < i8::MIN as f64 || value > i8::MAX as f64 {
-			return Err(
-				napi::Error::from_reason(
-					format!(
-						"cannot cast {value} to {type_name}"
-					)
-				)
-			);
-		}
-		value as i8
-	};
-	let value = &mutvalue;
-	let __p__d = value;
-	let value = __p__e;
-	let value = {
-		let value = value;
-		(
-			if value.get_type().map_err(
-				|err| napi::Error::from_reason(
-					err.reason
-				)
-			)? == ValueType::Number {
-				unsafe {
-					value.cast::<f64>()
-				}.map_err(
-					|_| napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-			else {
-				Err(
-					napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-		)?
-	};
-	let value = {
-		let type_name = "i16";
-		let value = value;
-		if value.trunc() != value || value < i16::MIN as f64 || value > i16::MAX as f64 {
-			return Err(
-				napi::Error::from_reason(
-					format!(
-						"cannot cast {value} to {type_name}"
-					)
-				)
-			);
-		}
-		value as i16
-	};
-	let value = &mutvalue;
-	let __p__e = value;
-	let value = __p__f;
-	let value = {
-		let value = value;
-		(
-			if value.get_type().map_err(
-				|err| napi::Error::from_reason(
-					err.reason
-				)
-			)? == ValueType::Number {
-				unsafe {
-					value.cast::<f64>()
-				}.map_err(
-					|_| napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-			else {
-				Err(
-					napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-		)?
-	};
-	let value = {
-		let type_name = "i32";
-		let value = value;
-		if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64 {
-			return Err(
-				napi::Error::from_reason(
-					format!(
-						"cannot cast {value} to {type_name}"
-					)
-				)
-			);
-		}
-		value as i32
-	};
-	let value = &mutvalue;
-	let __p__f = value;
-	let value = __p__g;
-	let value = {
-		let value = value;
-		(
-			if value.get_type().map_err(
-				|err| napi::Error::from_reason(
-					err.reason
-				)
-			)? == ValueType::Number {
-				unsafe {
-					value.cast::<f64>()
-				}.map_err(
-					|_| napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-			else {
-				Err(
-					napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-		)?
-	};
-	let value = {
-		let type_name = "u8";
-		let value = value;
-		if value.trunc() != value || value < 0 as f64 || value > u8::MAX as f64 {
-			return Err(
-				napi::Error::from_reason(
-					format!(
-						"cannot cast {value} to {type_name}"
-					)
-				)
-			);
-		}
-		value as u8
-	};
-	let value = &mutvalue;
-	let __p__g = value;
-	let value = __p__h;
-	let value = {
-		let value = value;
-		(
-			if value.get_type().map_err(
-				|err| napi::Error::from_reason(
-					err.reason
-				)
-			)? == ValueType::Number {
-				unsafe {
-					value.cast::<f64>()
-				}.map_err(
-					|_| napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-			else {
-				Err(
-					napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-		)?
-	};
-	let value = {
-		let type_name = "u16";
-		let value = value;
-		if value.trunc() != value || value < 0 as f64 || value > u16::MAX as f64 {
-			return Err(
-				napi::Error::from_reason(
-					format!(
-						"cannot cast {value} to {type_name}"
-					)
-				)
-			);
-		}
-		value as u16
-	};
-	let value = &mutvalue;
-	let __p__h = value;
-	let value = __p__i;
-	let value = {
-		let value = value;
-		(
-			if value.get_type().map_err(
-				|err| napi::Error::from_reason(
-					err.reason
-				)
-			)? == ValueType::Number {
-				unsafe {
-					value.cast::<f64>()
-				}.map_err(
-					|_| napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-			else {
-				Err(
-					napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-		)?
-	};
-	let value = {
-		let type_name = "u32";
-		let value = value;
-		if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64 {
-			return Err(
-				napi::Error::from_reason(
-					format!(
-						"cannot cast {value} to {type_name}"
-					)
-				)
-			);
-		}
-		value as u32
-	};
-	let value = &mutvalue;
-	let __p__i = value;
-	let value = __p__k;
-	let value = {
-		let value = value;
-		(
-			if value.get_type().map_err(
-				|err| napi::Error::from_reason(
-					err.reason
-				)
-			)? == ValueType::Number {
-				unsafe {
-					value.cast::<f64>()
-				}.map_err(
-					|_| napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-			else {
-				Err(
-					napi::Error::from_reason(
-						"cannot cast value to f64".to_string()
-					)
-				)
-			}
-		)?
-	};
-	let value = &mutvalue;
-	let __p__k = value;
+	let __p__a = &mut __cast_bool(
+		__p__a
+	).map_err(
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `bool` from a JavaScript boolean: {}", err
+			)
+		)
+	)?;
+	let __p__d = &mut __cast_i8(
+		__p__d
+	).map_err(
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `i8` from a JavaScript number: {}", err
+			)
+		)
+	)?;
+	let __p__e = &mut __cast_i16(
+		__p__e
+	).map_err(
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `i16` from a JavaScript number: {}", err
+			)
+		)
+	)?;
+	let __p__f = &mut __cast_i32(
+		__p__f
+	).map_err(
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `i32` from a JavaScript number: {}", err
+			)
+		)
+	)?;
+	let __p__g = &mut __cast_u8(
+		__p__g
+	).map_err(
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `u8` from a JavaScript number: {}", err
+			)
+		)
+	)?;
+	let __p__h = &mut __cast_u16(
+		__p__h
+	).map_err(
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `u16` from a JavaScript number: {}", err
+			)
+		)
+	)?;
+	let __p__i = &mut __cast_u32(
+		__p__i
+	).map_err(
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `u32` from a JavaScript number: {}", err
+			)
+		)
+	)?;
+	let __p__k = &mut __cast_f64(
+		__p__k
+	).map_err(
+		|err| napi::Error::from_reason(
+			format!(
+				"Expected Rust `f64` from a JavaScript number: {}", err
+			)
+		)
+	)?;
 	rustdoc_test_crate::foo(
 		__p__a,
 		__p__d,
@@ -779,205 +543,89 @@ fn __cast_u32(
 	)
 }
 
-#[wasm_bindgen(js_name = "__fn__rustdoc_0test_0crate_foo")]
-pub fn __fn__rustdoc_0test_0crate_foo(
-	__p__a: bool,
-	__p__d: i8,
-	__p__e: i16,
-	__p__f: i32,
-	__p__g: u8,
-	__p__h: u16,
-	__p__i: u32,
-	__p__k: f64
+#[wasm_bindgen(js_name = "__ext_rustdoc_0test_0crate_foo")]
+pub fn __ext_rustdoc_0test_0crate_foo(
+	__p__a: JsValue,
+	__p__d: JsValue,
+	__p__e: JsValue,
+	__p__f: JsValue,
+	__p__g: JsValue,
+	__p__h: JsValue,
+	__p__i: JsValue,
+	__p__k: JsValue
 ) -> Result<(), JsValue> {
-	let value = __p__a;
-	let value = {
-		let value = value;
-		(
-			value.as_bool().ok_or_else(
-				|| JsValue::from_str(
-					&"cannot cast value to bool".to_string()
-				)
+	let __p__a = &mut __cast_bool(
+		__p__a
+	).map_err(
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `bool` from a JavaScript boolean: {}", err
 			)
-		)?
-	};
-	let value = &mutvalue;
-	let __p__a = value;
-	let value = __p__d;
-	let value = {
-		let value = value;
-		(
-			value.as_f64().ok_or_else(
-				|| JsValue::from_str(
-					&"cannot cast value to f64".to_string()
-				)
+		)
+	)?;
+	let __p__d = &mut __cast_i8(
+		__p__d
+	).map_err(
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `i8` from a JavaScript number: {}", err
 			)
-		)?
-	};
-	let value = {
-		let type_name = "i8";
-		let value = value;
-		if value.trunc() != value || value < i8::MIN as f64 || value > i8::MAX as f64 {
-			return Err(
-				JsValue::from_str(
-					&format!(
-						"cannot cast {value} to {type_name}"
-					)
-				)
-			);
-		}
-		value as i8
-	};
-	let value = &mutvalue;
-	let __p__d = value;
-	let value = __p__e;
-	let value = {
-		let value = value;
-		(
-			value.as_f64().ok_or_else(
-				|| JsValue::from_str(
-					&"cannot cast value to f64".to_string()
-				)
+		)
+	)?;
+	let __p__e = &mut __cast_i16(
+		__p__e
+	).map_err(
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `i16` from a JavaScript number: {}", err
 			)
-		)?
-	};
-	let value = {
-		let type_name = "i16";
-		let value = value;
-		if value.trunc() != value || value < i16::MIN as f64 || value > i16::MAX as f64 {
-			return Err(
-				JsValue::from_str(
-					&format!(
-						"cannot cast {value} to {type_name}"
-					)
-				)
-			);
-		}
-		value as i16
-	};
-	let value = &mutvalue;
-	let __p__e = value;
-	let value = __p__f;
-	let value = {
-		let value = value;
-		(
-			value.as_f64().ok_or_else(
-				|| JsValue::from_str(
-					&"cannot cast value to f64".to_string()
-				)
+		)
+	)?;
+	let __p__f = &mut __cast_i32(
+		__p__f
+	).map_err(
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `i32` from a JavaScript number: {}", err
 			)
-		)?
-	};
-	let value = {
-		let type_name = "i32";
-		let value = value;
-		if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64 {
-			return Err(
-				JsValue::from_str(
-					&format!(
-						"cannot cast {value} to {type_name}"
-					)
-				)
-			);
-		}
-		value as i32
-	};
-	let value = &mutvalue;
-	let __p__f = value;
-	let value = __p__g;
-	let value = {
-		let value = value;
-		(
-			value.as_f64().ok_or_else(
-				|| JsValue::from_str(
-					&"cannot cast value to f64".to_string()
-				)
+		)
+	)?;
+	let __p__g = &mut __cast_u8(
+		__p__g
+	).map_err(
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `u8` from a JavaScript number: {}", err
 			)
-		)?
-	};
-	let value = {
-		let type_name = "u8";
-		let value = value;
-		if value.trunc() != value || value < 0 as f64 || value > u8::MAX as f64 {
-			return Err(
-				JsValue::from_str(
-					&format!(
-						"cannot cast {value} to {type_name}"
-					)
-				)
-			);
-		}
-		value as u8
-	};
-	let value = &mutvalue;
-	let __p__g = value;
-	let value = __p__h;
-	let value = {
-		let value = value;
-		(
-			value.as_f64().ok_or_else(
-				|| JsValue::from_str(
-					&"cannot cast value to f64".to_string()
-				)
+		)
+	)?;
+	let __p__h = &mut __cast_u16(
+		__p__h
+	).map_err(
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `u16` from a JavaScript number: {}", err
 			)
-		)?
-	};
-	let value = {
-		let type_name = "u16";
-		let value = value;
-		if value.trunc() != value || value < 0 as f64 || value > u16::MAX as f64 {
-			return Err(
-				JsValue::from_str(
-					&format!(
-						"cannot cast {value} to {type_name}"
-					)
-				)
-			);
-		}
-		value as u16
-	};
-	let value = &mutvalue;
-	let __p__h = value;
-	let value = __p__i;
-	let value = {
-		let value = value;
-		(
-			value.as_f64().ok_or_else(
-				|| JsValue::from_str(
-					&"cannot cast value to f64".to_string()
-				)
+		)
+	)?;
+	let __p__i = &mut __cast_u32(
+		__p__i
+	).map_err(
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `u32` from a JavaScript number: {}", err
 			)
-		)?
-	};
-	let value = {
-		let type_name = "u32";
-		let value = value;
-		if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64 {
-			return Err(
-				JsValue::from_str(
-					&format!(
-						"cannot cast {value} to {type_name}"
-					)
-				)
-			);
-		}
-		value as u32
-	};
-	let value = &mutvalue;
-	let __p__i = value;
-	let value = __p__k;
-	let value = {
-		let value = value;
-		(
-			value.as_f64().ok_or_else(
-				|| JsValue::from_str(
-					&"cannot cast value to f64".to_string()
-				)
+		)
+	)?;
+	let __p__k = &mut __cast_f64(
+		__p__k
+	).map_err(
+		|err| JsValue::from_str(
+			&format!(
+				"Expected Rust `f64` from a JavaScript number: {}", err
 			)
-		)?
-	};
-	let value = &mutvalue;
-	let __p__k = value;
+		)
+	)?;
 	rustdoc_test_crate::foo(
 		__p__a,
 		__p__d,

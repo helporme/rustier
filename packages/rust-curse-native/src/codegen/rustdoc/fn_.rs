@@ -6,7 +6,7 @@ use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
     ir::{
-        fn_::{Fn, FnId, FnParam, ParamMode},
+        fn_::{Fn, FnId, FnParam, PassingMode},
         item::{ItemId, ItemIdExt as _, ItemKind, ItemPath},
         span::{SourceCode, Span},
         type_::Type,
@@ -74,18 +74,18 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
         };
 
         let (type_, mode) = match lowered {
-            LoweredType::Moved(type_) => (type_, ParamMode::Move),
+            LoweredType::Moved(type_) => (type_, PassingMode::Move),
             LoweredType::Borrowed { type_, is_mutable } => (
                 type_,
                 if is_mutable {
-                    ParamMode::Mut
+                    PassingMode::Mut
                 } else {
-                    ParamMode::Ref
+                    PassingMode::Ref
                 },
             ),
         };
 
-        if mode == ParamMode::Move {
+        if mode == PassingMode::Move {
             match type_ {
                 Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
                     causes.push(FnLowerError::NonClonableMovedStructParam {
@@ -106,7 +106,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
             }
         }
 
-        if mode == ParamMode::Mut {
+        if mode == PassingMode::Mut {
             match type_ {
                 Type::Primitive(_) => {
                     let crate_ = id.crate_(db);

@@ -445,176 +445,85 @@ fn __cast_i32(
 	)
 }
 
-#[napi(js_name = "__fn__rustdoc_0test_0crate_foo")]
-pub fn __fn__rustdoc_0test_0crate_foo(
-	__p__moved_plain: rustdoc_test_crate::PlainStruct,
-	__p__moved_tuple: rustdoc_test_crate::TupleStruct,
-	__p__mutable: rustdoc_test_crate::PlainStruct,
-	__p__text: String,
-	__p__borrowed_text: String,
-	__p__mutable_text: String,
-	__p__borrowed: rustdoc_test_crate::TupleStruct,
-	__p__number: i32
-) -> napi::Result<rustdoc_test_crate::TupleStruct> {
+#[napi(js_name = "__ext_rustdoc_0test_0crate_foo")]
+pub fn __ext_rustdoc_0test_0crate_foo(
+	__p__moved_plain: &__binding_struct__rustdoc_0test_0crate_PlainStruct,
+	__p__moved_tuple: &__binding_struct__rustdoc_0test_0crate_TupleStruct,
+	__p__mutable: &__binding_struct__rustdoc_0test_0crate_PlainStruct,
+	__p__text: Unknown<'_>,
+	__p__borrowed_text: Unknown<'_>,
+	__p__mutable_text: Unknown<'_>,
+	__p__borrowed: &__binding_struct__rustdoc_0test_0crate_TupleStruct,
+	__p__number: Unknown<'_>
+) -> napi::Result<__binding_struct__rustdoc_0test_0crate_TupleStruct> {
 	Ok(
-		{
-			let mut result = std::mem::MaybeUninit::uninit();
-			{
-				let value = {
-					let mut result = std::mem::MaybeUninit::uninit();
+		__binding_struct__rustdoc_0test_0crate_TupleStruct {
+			src:std::rc::Rc::new(
+				__tethered_struct__rustdoc_0test_0crate_TupleStruct::new_owned(
 					{
-						let value = __p__moved_plain;
-						value.src.access(
-							&mut |value| {
-								let value = value.clone();
-								let __p__moved_plain = value;
-								let value = __p__moved_tuple;
-								value.src.access(
-									&mut |value| {
-										let value = value.clone();
-										let __p__moved_tuple = value;
-										let value = __p__mutable;
-										value.src.access_mut(
-											&mut |value| {
-												let __p__mutable = value;
-												let value = __p__text;
-												let value = {
-													let value = value;
-													(
-														if value.get_type().map_err(
-															|err| napi::Error::from_reason(
-																err.reason
+						let mut result = std::mem::MaybeUninit::uninit();let __p__text = __cast_String(
+							__p__text
+						).map_err(
+							|err| napi::Error::from_reason(
+								format!(
+									"Expected Rust `String` from a JavaScript string: {}", err
+								)
+							)
+						)?;
+						let mut __p__text = Some(
+							__p__text
+						);
+						let __p__borrowed_text = & __cast_String(
+							__p__borrowed_text
+						).map_err(
+							|err| napi::Error::from_reason(
+								format!(
+									"Expected Rust `String` from a JavaScript string: {}", err
+								)
+							)
+						)?;
+						let __p__mutable_text = &mut __cast_String(
+							__p__mutable_text
+						).map_err(
+							|err| napi::Error::from_reason(
+								format!(
+									"Expected Rust `String` from a JavaScript string: {}", err
+								)
+							)
+						)?;
+						let __p__number = __cast_i32(
+							__p__number
+						).map_err(
+							|err| napi::Error::from_reason(
+								format!(
+									"Expected Rust `i32` from a JavaScript number: {}", err
+								)
+							)
+						)?;
+						__p__borrowed.src.access(
+							&mut |__p__borrowed| {
+								__p__mutable.src.access_mut(
+									&mut |__p__mutable| {
+										__p__moved_tuple.src.access(
+											&mut |__p__moved_tuple| {
+												__p__moved_plain.src.access(
+													&mut |__p__moved_plain| {
+														let __p__moved_plain = __p__moved_plain.clone();
+														let __p__moved_tuple = __p__moved_tuple.clone();
+														let __p__text = __p__text.take().unwrap();
+
+														result.write(
+															rustdoc_test_crate::foo(
+																__p__moved_plain,
+																__p__moved_tuple,
+																__p__mutable,
+																__p__text,
+																__p__borrowed_text,
+																__p__mutable_text,
+																__p__borrowed,
+																__p__number
 															)
-														)? == ValueType::String {
-															unsafe {
-																value.cast::<String>()
-															}.map_err(
-																|_| napi::Error::from_reason(
-																	"cannot cast value to String".to_string()
-																)
-															)
-														}
-														else {
-															Err(
-																napi::Error::from_reason(
-																	"cannot cast value to String".to_string()
-																)
-															)
-														}
-													)?
-												};
-												let __p__text = value;
-												let value = __p__borrowed_text;
-												let value = {
-													let value = value;
-													(
-														if value.get_type().map_err(
-															|err| napi::Error::from_reason(
-																err.reason
-															)
-														)? == ValueType::String {
-															unsafe {
-																value.cast::<String>()
-															}.map_err(
-																|_| napi::Error::from_reason(
-																	"cannot cast value to String".to_string()
-																)
-															)
-														}
-														else {
-															Err(
-																napi::Error::from_reason(
-																	"cannot cast value to String".to_string()
-																)
-															)
-														}
-													)?
-												};
-												let value = &value;
-												let __p__borrowed_text = value;
-												let value = __p__mutable_text;
-												let value = {
-													let value = value;
-													(
-														if value.get_type().map_err(
-															|err| napi::Error::from_reason(
-																err.reason
-															)
-														)? == ValueType::String {
-															unsafe {
-																value.cast::<String>()
-															}.map_err(
-																|_| napi::Error::from_reason(
-																	"cannot cast value to String".to_string()
-																)
-															)
-														}
-														else {
-															Err(
-																napi::Error::from_reason(
-																	"cannot cast value to String".to_string()
-																)
-															)
-														}
-													)?
-												};
-												let value = &mutvalue;
-												let __p__mutable_text = value;
-												let value = __p__borrowed;
-												value.src.access(
-													&mut |value| {
-														let __p__borrowed = value;
-														let value = __p__number;
-														let value = {
-															let value = value;
-															(
-																if value.get_type().map_err(
-																	|err| napi::Error::from_reason(
-																		err.reason
-																	)
-																)? == ValueType::Number {
-																	unsafe {
-																		value.cast::<f64>()
-																	}.map_err(
-																		|_| napi::Error::from_reason(
-																			"cannot cast value to f64".to_string()
-																		)
-																	)
-																}
-																else {
-																	Err(
-																		napi::Error::from_reason(
-																			"cannot cast value to f64".to_string()
-																		)
-																	)
-																}
-															)?
-														};
-														let value = {
-															let type_name = "i32";
-															let value = value;
-															if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64 {
-																return Err(
-																	napi::Error::from_reason(
-																		format!(
-																			"cannot cast {value} to {type_name}"
-																		)
-																	)
-																);
-															}
-															value as i32
-														};
-														let __p__number = value;
-														result.write(rustdoc_test_crate::foo(
-															__p__moved_plain,
-															__p__moved_tuple,
-															__p__mutable,
-															__p__text,
-															__p__borrowed_text,
-															__p__mutable_text,
-															__p__borrowed,
-															__p__number
-														));
+														);
 														Ok(
 															()
 														)
@@ -635,24 +544,12 @@ pub fn __fn__rustdoc_0test_0crate_foo(
 								)
 							}
 						)?;
+						unsafe {
+							result.assume_init()
+						}
 					}
-					unsafe {
-						result.assume_init()
-					}
-				};
-				let value = __binding_struct__rustdoc_0test_0crate_TupleStruct {
-					src:std::rc::Rc::new(
-						__tethered_struct__rustdoc_0test_0crate_TupleStruct::new_owned(
-							value
-						)
-					)
-				};
-				let result = value;
-				result.write();
-			}
-			unsafe {
-				result.assume_init()
-			}
+				)
+			)
 		}
 	)
 }
@@ -1205,116 +1102,85 @@ fn __cast_i32(
 	)
 }
 
-#[wasm_bindgen(js_name = "__fn__rustdoc_0test_0crate_foo")]
-pub fn __fn__rustdoc_0test_0crate_foo(
-	__p__moved_plain: rustdoc_test_crate::PlainStruct,
-	__p__moved_tuple: rustdoc_test_crate::TupleStruct,
-	__p__mutable: rustdoc_test_crate::PlainStruct,
-	__p__text: String,
-	__p__borrowed_text: String,
-	__p__mutable_text: String,
-	__p__borrowed: rustdoc_test_crate::TupleStruct,
-	__p__number: i32
-) -> Result<rustdoc_test_crate::TupleStruct, JsValue> {
+#[wasm_bindgen(js_name = "__ext_rustdoc_0test_0crate_foo")]
+pub fn __ext_rustdoc_0test_0crate_foo(
+	__p__moved_plain: &__binding_struct__rustdoc_0test_0crate_PlainStruct,
+	__p__moved_tuple: &__binding_struct__rustdoc_0test_0crate_TupleStruct,
+	__p__mutable: &__binding_struct__rustdoc_0test_0crate_PlainStruct,
+	__p__text: JsValue,
+	__p__borrowed_text: JsValue,
+	__p__mutable_text: JsValue,
+	__p__borrowed: &__binding_struct__rustdoc_0test_0crate_TupleStruct,
+	__p__number: JsValue
+) -> Result<__binding_struct__rustdoc_0test_0crate_TupleStruct, JsValue> {
 	Ok(
-		{
-			let mut result = std::mem::MaybeUninit::uninit();
-			{
-				let value = {
-					let mut result = std::mem::MaybeUninit::uninit();
+		__binding_struct__rustdoc_0test_0crate_TupleStruct {
+			src:std::rc::Rc::new(
+				__tethered_struct__rustdoc_0test_0crate_TupleStruct::new_owned(
 					{
-						let value = __p__moved_plain;
-						value.src.access(
-							&mut |value| {
-								let value = value.clone();
-								let __p__moved_plain = value;
-								let value = __p__moved_tuple;
-								value.src.access(
-									&mut |value| {
-										let value = value.clone();
-										let __p__moved_tuple = value;
-										let value = __p__mutable;
-										value.src.access_mut(
-											&mut |value| {
-												let __p__mutable = value;
-												let value = __p__text;
-												let value = {
-													let value = value;
-													(
-														value.as_string().ok_or_else(
-															|| JsValue::from_str(
-																&"cannot cast value to String".to_string()
+						let mut result = std::mem::MaybeUninit::uninit();let __p__text = __cast_String(
+							__p__text
+						).map_err(
+							|err| JsValue::from_str(
+								&format!(
+									"Expected Rust `String` from a JavaScript string: {}", err
+								)
+							)
+						)?;
+						let mut __p__text = Some(
+							__p__text
+						);
+						let __p__borrowed_text = & __cast_String(
+							__p__borrowed_text
+						).map_err(
+							|err| JsValue::from_str(
+								&format!(
+									"Expected Rust `String` from a JavaScript string: {}", err
+								)
+							)
+						)?;
+						let __p__mutable_text = &mut __cast_String(
+							__p__mutable_text
+						).map_err(
+							|err| JsValue::from_str(
+								&format!(
+									"Expected Rust `String` from a JavaScript string: {}", err
+								)
+							)
+						)?;
+						let __p__number = __cast_i32(
+							__p__number
+						).map_err(
+							|err| JsValue::from_str(
+								&format!(
+									"Expected Rust `i32` from a JavaScript number: {}", err
+								)
+							)
+						)?;
+						__p__borrowed.src.access(
+							&mut |__p__borrowed| {
+								__p__mutable.src.access_mut(
+									&mut |__p__mutable| {
+										__p__moved_tuple.src.access(
+											&mut |__p__moved_tuple| {
+												__p__moved_plain.src.access(
+													&mut |__p__moved_plain| {
+														let __p__moved_plain = __p__moved_plain.clone();
+														let __p__moved_tuple = __p__moved_tuple.clone();
+														let __p__text = __p__text.take().unwrap();
+
+														result.write(
+															rustdoc_test_crate::foo(
+																__p__moved_plain,
+																__p__moved_tuple,
+																__p__mutable,
+																__p__text,
+																__p__borrowed_text,
+																__p__mutable_text,
+																__p__borrowed,
+																__p__number
 															)
-														)
-													)?
-												};
-												let __p__text = value;
-												let value = __p__borrowed_text;
-												let value = {
-													let value = value;
-													(
-														value.as_string().ok_or_else(
-															|| JsValue::from_str(
-																&"cannot cast value to String".to_string()
-															)
-														)
-													)?
-												};
-												let value = &value;
-												let __p__borrowed_text = value;
-												let value = __p__mutable_text;
-												let value = {
-													let value = value;
-													(
-														value.as_string().ok_or_else(
-															|| JsValue::from_str(
-																&"cannot cast value to String".to_string()
-															)
-														)
-													)?
-												};
-												let value = &mutvalue;
-												let __p__mutable_text = value;
-												let value = __p__borrowed;
-												value.src.access(
-													&mut |value| {
-														let __p__borrowed = value;
-														let value = __p__number;
-														let value = {
-															let value = value;
-															(
-																value.as_f64().ok_or_else(
-																	|| JsValue::from_str(
-																		&"cannot cast value to f64".to_string()
-																	)
-																)
-															)?
-														};
-														let value = {
-															let type_name = "i32";
-															let value = value;
-															if value.trunc() != value || value < i32::MIN as f64 || value > i32::MAX as f64 {
-																return Err(
-																	JsValue::from_str(
-																		&format!(
-																			"cannot cast {value} to {type_name}"
-																		)
-																	)
-																);
-															}
-															value as i32
-														};
-														let __p__number = value;
-														result.write(rustdoc_test_crate::foo(
-															__p__moved_plain,
-															__p__moved_tuple,
-															__p__mutable,
-															__p__text,
-															__p__borrowed_text,
-															__p__mutable_text,
-															__p__borrowed,
-															__p__number
-														));
+														);
 														Ok(
 															()
 														)
@@ -1335,24 +1201,12 @@ pub fn __fn__rustdoc_0test_0crate_foo(
 								)
 							}
 						)?;
+						unsafe {
+							result.assume_init()
+						}
 					}
-					unsafe {
-						result.assume_init()
-					}
-				};
-				let value = __binding_struct__rustdoc_0test_0crate_TupleStruct {
-					src:std::rc::Rc::new(
-						__tethered_struct__rustdoc_0test_0crate_TupleStruct::new_owned(
-							value
-						)
-					)
-				};
-				let result = value;
-				result.write();
-			}
-			unsafe {
-				result.assume_init()
-			}
+				)
+			)
 		}
 	)
 }

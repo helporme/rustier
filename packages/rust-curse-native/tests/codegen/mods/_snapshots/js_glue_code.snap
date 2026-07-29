@@ -22,17 +22,17 @@ for `rustdoc_test_crate`:
 ```js
 
 import {
-	__fn__rustdoc_0test_0crate_a_0fn
+	__ext_rustdoc_0test_0crate_a_0fn
 } from 'bindings.js';
 
 import {
-	__fn__rustdoc_0test_0crate_b_0fn
+	__ext_rustdoc_0test_0crate_b_0fn
 } from 'bindings.js';
 
 export function a_fn (
 
 ) {
-	__fn__rustdoc_0test_0crate_a_0fn(
+	__ext_rustdoc_0test_0crate_a_0fn(
 
 	);
 }
@@ -40,7 +40,7 @@ export function a_fn (
 export function b_fn (
 
 ) {
-	__fn__rustdoc_0test_0crate_b_0fn(
+	__ext_rustdoc_0test_0crate_b_0fn(
 
 	);
 }
@@ -54,17 +54,17 @@ for `rustdoc_test_crate`:
 import init from 'bindings.js';
 await init();
 import {
-	__fn__rustdoc_0test_0crate_a_0fn
+	__ext_rustdoc_0test_0crate_a_0fn
 } from 'bindings.js';
 
 import {
-	__fn__rustdoc_0test_0crate_b_0fn
+	__ext_rustdoc_0test_0crate_b_0fn
 } from 'bindings.js';
 
 export function a_fn (
 
 ) {
-	__fn__rustdoc_0test_0crate_a_0fn(
+	__ext_rustdoc_0test_0crate_a_0fn(
 
 	);
 }
@@ -72,7 +72,7 @@ export function a_fn (
 export function b_fn (
 
 ) {
-	__fn__rustdoc_0test_0crate_b_0fn(
+	__ext_rustdoc_0test_0crate_b_0fn(
 
 	);
 }

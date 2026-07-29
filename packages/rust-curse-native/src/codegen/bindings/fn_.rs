@@ -11,7 +11,7 @@ use crate::codegen::{
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, comma_list, frag, fragment},
     ir::{
-        fn_::{Fn, FnParam, ParamMode},
+        fn_::{Fn, FnParam, PassingMode},
         item::ItemIdExt as _,
     },
 };
@@ -34,9 +34,9 @@ impl<'db> BoundaryInExpr<'db> {
             out_var_name: param.binding_name(db),
             type_: param.type_(db),
             mode: match param.mode(db) {
-                ParamMode::Ref => BoundaryMode::Ref,
-                ParamMode::Mut => BoundaryMode::Mut,
-                ParamMode::Move => BoundaryMode::Move,
+                PassingMode::Ref => BoundaryMode::Ref,
+                PassingMode::Mut => BoundaryMode::Mut,
+                PassingMode::Move => BoundaryMode::Move,
             },
         }
     }

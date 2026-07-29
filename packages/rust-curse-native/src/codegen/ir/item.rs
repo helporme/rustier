@@ -20,7 +20,7 @@ pub enum ItemKind {
 #[salsa::interned(debug)]
 #[derive(Ord, PartialOrd)]
 pub struct ItemId<'db> {
-    /// Fully qualified item path.
+    /// Fully qualified item path including a crate name.
     #[returns(ref)]
     pub path: ItemPath<'db>,
     /// The kind of the item.
