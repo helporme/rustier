@@ -11,28 +11,15 @@ codegen::cast::tests::one_direct_step
 ## Source
 
 ```rs
-HappyCastGraph::compile_cast_stmt(
-        &db,
-        Cast {
-            from,
-            to,
-            in_expr: frag!(source()),
-            out_var_name: "out",
-        },
-        frag!(consume(out);),
-    )
-    .print()
+HappyCastGraph::compile_cast(&db, from, to, frag!(source()), Sink).print()
 ```
 
 ## Output
 
 ```rs
-let value = source();
-let value = direct(
-	value
-);
-let out = value;
-consume(
-	out
-);
+sink(
+	direct(
+		source()
+	)
+)
 ```

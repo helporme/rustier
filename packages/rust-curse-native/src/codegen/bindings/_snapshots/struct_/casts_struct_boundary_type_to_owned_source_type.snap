@@ -17,10 +17,10 @@ let target = ItemId::new(&db, path, ItemKind::Struct);
 IndirectCastRule::compile(
         CastStructBoundaryTypeToOwnedSourceType,
         &db,
-        ExternType::Item { target },
+        BoundaryType::Item { target },
         SourceType::Item { target },
         "input",
-        "consume(value);",
+        Consume,
     )
     .print()
 ```
@@ -30,8 +30,9 @@ IndirectCastRule::compile(
 ```rs
 input.src.access(
 	&mut |value| {
-		let value = value.clone();
-		consume(value);
+		consume(
+			value.clone()
+		);
 		Ok(
 			()
 		)

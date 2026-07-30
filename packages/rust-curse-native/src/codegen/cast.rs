@@ -1,21 +1,23 @@
-//! A module for defining a graph of "cast" operations from one type to another.
-//! Using the cast graph, you can cast an expression to another type in case
-//! there is a path between the input expression type and the target type.
+//! A module for defining a graph of cast operations from one type to another.
+//!
+//! A cast graph consists of small independent cast rules
+//! ([direct](DirectCastRule) or [indirect](IndirectCastRule)). These rules form
+//! the edges of a directed graph, where a cast between two types is possible
+//! if there exists a reflexive transitive path between them.
+//!
+//! For example, having 3 cast rules "A -> B", "B -> C", and "C -> D",
+//! a cast from type "A" to "D" is possible by applying in order "A -> B", "B ->
+//! C", and "C -> D".
 //!
 //! This module doesn't define the graph itself, but provides a
-//! [`define_cast_graph`] macro for doing so.
-//!
-//! "Cast" doesn't neccessary mean the number casting. It's any operation that
-//! converts one type to another.
+//! [`define_cast_graph`] macro for doing so. The module also doesn't assume a
+//! target language, so it can be used for both Rust and JS code.
 
 use std::{collections::HashSet, fmt::Debug, hash::Hash};
 
-use crate::{
-    codegen::{
-        db::Db,
-        fragment::{FragmentOnce, fragment},
-    },
-    frag,
+use crate::codegen::{
+    db::Db,
+    fragment::{FragmentOnce, Printer, fragment},
 };
 
 /// Defines a cast rule that produces its target as an expression.
@@ -24,13 +26,16 @@ pub trait DirectCastRule<'db, From: 'db, To: 'db>: Sized + 'db {
     fn predecessor(self, db: &'db dyn Db, to: To) -> Option<From>;
 
     /// Compiles an expression that converts `in_expr` from `from` to `to`.
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         from: From,
         to: To,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db;
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment;
 }
 
 /// Defines a cast rule that controls the scope of the remaining cast pipeline.
@@ -38,41 +43,19 @@ pub trait IndirectCastRule<'db, From: 'db, To: 'db>: Sized + 'db {
     /// Returns the immediate source type from which this rule can produce `to`.
     fn predecessor(self, db: &'db dyn Db, to: To) -> Option<From>;
 
-    /// Compiles a conversion and invokes `continue_with` with its result bound
-    /// as `value`.
-    fn compile(
+    /// Compiles a conversion and invokes `continue_with` with its result.
+    fn compile<'fragment, Expr, Continue>(
         self,
         db: &'db dyn Db,
         from: From,
         to: To,
-        in_expr: impl FragmentOnce + 'db,
-        continue_with: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db;
-}
-
-impl<'db, From: 'db, To: 'db, Rule> IndirectCastRule<'db, From, To> for Rule
-where
-    Rule: DirectCastRule<'db, From, To>,
-{
-    fn predecessor(self, db: &'db dyn Db, to: To) -> Option<From> {
-        DirectCastRule::predecessor(self, db, to)
-    }
-
-    fn compile(
-        self,
-        db: &'db dyn Db,
-        from: From,
-        to: To,
-        in_expr: impl FragmentOnce + 'db,
-        continue_with: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
-        let cast_expr = DirectCastRule::compile(self, db, from, to, in_expr);
-
-        frag!(
-            let value = ~{cast_expr};@
-            {continue_with}
-        )
-    }
+        in_expr: Expr,
+        continue_with: Continue,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+        Continue: CastContinuation<'db>;
 }
 
 /// Statically dispatches topology queries and compilation for a closed cast
@@ -91,17 +74,29 @@ pub trait CastGraph<'db> {
     fn predecessor(db: &'db dyn Db, rule: Self::Rule, to: Self::Type) -> Option<Self::Type>;
 
     /// Compiles one instantiated cast step around its continuation.
-    fn compile_step<Expr, Continue>(
+    fn compile_step<'fragment, Expr, Continue>(
         db: &'db dyn Db,
         rule: Self::Rule,
         from: Self::Type,
         to: Self::Type,
         in_expr: Expr,
         continue_with: Continue,
-    ) -> impl FragmentOnce + 'db
+    ) -> impl FragmentOnce + 'fragment
     where
-        Expr: FragmentOnce + 'db,
-        Continue: FragmentOnce + 'db;
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+        Continue: CastContinuation<'db>;
+}
+
+/// Defines how code generation proceeds after a cast rule produces an
+/// expression.
+pub trait CastContinuation<'db>: Sized + 'db {
+    /// Uses `out_expr` as the input to the next cast rule or the final
+    /// operation.
+    fn compile<'fragment, Expr>(self, out_expr: Expr) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment;
 }
 
 /// One concrete rule application in a cast path.
@@ -113,6 +108,7 @@ pub struct CastPathStep<Type, Rule> {
 }
 
 /// Finds the concrete cast steps between two types in a graph.
+#[doc(hidden)] // used only from the macro
 pub fn find_cast_path<'db, Graph>(
     db: &'db dyn Db,
     from: Graph::Type,
@@ -168,61 +164,83 @@ where
     false
 }
 
-/// Compiles a previously planned cast and exposes its result as `value`.
-pub fn compile_cast_path<'db, Graph, Expr, Access>(
+/// Compiles a previously planned cast into a target-specific continuation.
+#[doc(hidden)] // used only from the macro
+pub fn compile_cast_path<'db, Graph, Expr, Continue>(
     db: &'db dyn Db,
     in_expr: Expr,
-    access: Access,
+    continue_with: Continue,
     path: &'db [CastPathStep<Graph::Type, Graph::Rule>],
 ) -> impl FragmentOnce + 'db
 where
     Graph: CastGraph<'db> + 'db,
     Expr: FragmentOnce + 'db,
-    Access: FragmentOnce + 'db,
+    Continue: CastContinuation<'db>,
 {
-    let steps = compile_cast_steps::<Graph, _>(db, path, access);
-
-    frag!(
-        let value = ~{in_expr};@
-        {steps}
-    )
+    CastPathContinuation::<Graph, Continue> {
+        db,
+        remaining: path,
+        continue_with,
+    }
+    .compile(in_expr)
 }
 
-fn compile_cast_steps<'db, Graph, Access>(
+/// Continues compilation through the remaining steps of one cast path.
+struct CastPathContinuation<'db, Graph, Continue>
+where
+    Graph: CastGraph<'db>,
+{
     db: &'db dyn Db,
     remaining: &'db [CastPathStep<Graph::Type, Graph::Rule>],
-    access: Access,
-) -> impl FragmentOnce + 'db
-where
-    Graph: CastGraph<'db> + 'db,
-    Access: FragmentOnce + 'db,
-{
-    fragment(move |printer| {
-        let Some((step, remaining)) = remaining.split_first() else {
-            access.apply(printer);
-            return;
-        };
-
-        let continue_with = compile_cast_steps::<Graph, _>(db, remaining, access);
-        Graph::compile_step(
-            db,
-            step.rule,
-            step.from.clone(),
-            step.to.clone(),
-            "value",
-            continue_with,
-        )
-        .apply(printer);
-    })
+    continue_with: Continue,
 }
 
-/// A request to compile a cast from `from` to `to` and bind its result to
-/// `out_var_name`.
-pub struct Cast<'db, From, To, Expr> {
-    pub from: From,
-    pub to: To,
-    pub in_expr: Expr,
-    pub out_var_name: &'db str,
+impl<'db, Graph, Continue> CastContinuation<'db> for CastPathContinuation<'db, Graph, Continue>
+where
+    Graph: CastGraph<'db> + 'db,
+    Continue: CastContinuation<'db>,
+{
+    fn compile<'fragment, Expr>(self, in_expr: Expr) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
+        let Self {
+            db,
+            remaining,
+            continue_with,
+        } = self;
+
+        fragment(move |printer| {
+            let Some((step, remaining)) = remaining.split_first() else {
+                continue_with.compile(in_expr).apply(printer);
+                return;
+            };
+
+            let mut in_expr = Some(in_expr);
+            let mut render_in_expr = |printer: &mut Printer| {
+                in_expr
+                    .take()
+                    .expect("cast expression must only be applied once")
+                    .apply(printer);
+            };
+            let in_expr = fragment(&mut render_in_expr as &mut dyn FnMut(&mut Printer));
+
+            Graph::compile_step(
+                db,
+                step.rule,
+                step.from.clone(),
+                step.to.clone(),
+                in_expr,
+                Self {
+                    db,
+                    remaining,
+                    continue_with,
+                },
+            )
+            .apply(printer);
+        })
+    }
 }
 
 /// Defines a closed cast graph using typed predecessor and compile functions.
@@ -232,10 +250,8 @@ pub struct Cast<'db, From, To, Expr> {
 /// - `CastRuleId`: enum of all rules;
 /// - `Graph`: static [`CastGraph`] dispatcher;
 /// - `find_cast_path`: Salsa-tracked backwards path query;
-/// - `compile_cast_stmt` and `compile_casts_stmt`: compile casts before a
-///   statement;
-/// - `compile_cast_expr` and `compile_casts_expr`: compile casts before an
-///   expression.
+/// - `compile_cast`: compiles a target-neutral cast request into a
+///   continuation.
 #[macro_export]
 macro_rules! define_cast_graph {
     (
@@ -246,12 +262,22 @@ macro_rules! define_cast_graph {
                 ),* $(,)?
             }
 
-            rules {
+            direct_rules {
                 $(
-                    $rule_variant:ident {
-                        rule: $rule:expr,
-                        from: $from_variant:ident,
-                        to: $to_variant:ident $(,)?
+                    $direct_rule_variant:ident {
+                        rule: $direct_rule:expr,
+                        from: $direct_from_variant:ident,
+                        to: $direct_to_variant:ident $(,)?
+                    }
+                )* $(,)?
+            }
+
+            indirect_rules {
+                $(
+                    $indirect_rule_variant:ident {
+                        rule: $indirect_rule:expr,
+                        from: $indirect_from_variant:ident,
+                        to: $indirect_to_variant:ident $(,)?
                     }
                 )* $(,)?
             }
@@ -284,7 +310,10 @@ macro_rules! define_cast_graph {
             #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
             pub enum CastRuleId {
                 $(
-                    $rule_variant,
+                    $direct_rule_variant,
+                )*
+                $(
+                    $indirect_rule_variant,
                 )*
             }
 
@@ -297,7 +326,10 @@ macro_rules! define_cast_graph {
 
                 const RULES: &'static [Self::Rule] = &[
                     $(
-                        Self::Rule::$rule_variant,
+                        Self::Rule::$direct_rule_variant,
+                    )*
+                    $(
+                        Self::Rule::$indirect_rule_variant,
                     )*
                 ];
 
@@ -309,52 +341,84 @@ macro_rules! define_cast_graph {
                     match (rule, to) {
                         $(
                             (
-                                Self::Rule::$rule_variant,
-                                CastType::$to_variant(to),
-                            ) => $crate::codegen::cast::IndirectCastRule::predecessor(
-                                $rule,
+                                Self::Rule::$direct_rule_variant,
+                                CastType::$direct_to_variant(to),
+                            ) => $crate::codegen::cast::DirectCastRule::predecessor(
+                                $direct_rule,
                                 db,
                                 to,
                             )
-                            .map(CastType::$from_variant),
+                            .map(CastType::$direct_from_variant),
+                        )*
+                        $(
+                            (
+                                Self::Rule::$indirect_rule_variant,
+                                CastType::$indirect_to_variant(to),
+                            ) => $crate::codegen::cast::IndirectCastRule::predecessor(
+                                $indirect_rule,
+                                db,
+                                to,
+                            )
+                            .map(CastType::$indirect_from_variant),
                         )*
                         _ => None,
                     }
                 }
 
-                fn compile_step<Expr, Continue>(
+                fn compile_step<'fragment, Expr, Continue>(
                     db: &$db dyn $crate::codegen::db::Db,
                     rule: Self::Rule,
                     from: Self::Type,
                     to: Self::Type,
                     in_expr: Expr,
                     continue_with: Continue,
-                ) -> impl $crate::codegen::fragment::FragmentOnce + $db
+                ) -> impl $crate::codegen::fragment::FragmentOnce + 'fragment
                 where
-                    Expr: $crate::codegen::fragment::FragmentOnce + $db,
-                    Continue: $crate::codegen::fragment::FragmentOnce + $db,
+                    $db: 'fragment,
+                    Expr: $crate::codegen::fragment::FragmentOnce + 'fragment,
+                    Continue: $crate::codegen::cast::CastContinuation<$db>,
                 {
-                    $crate::codegen::fragment::fragment(move |p| {
+                    $crate::codegen::fragment::fragment(move |printer| {
                         let debug_from = from.clone();
                         let debug_to = to.clone();
 
                         match (rule, from, to) {
                             $(
                                 (
-                                    Self::Rule::$rule_variant,
-                                    CastType::$from_variant(from),
-                                    CastType::$to_variant(to),
+                                    Self::Rule::$direct_rule_variant,
+                                    CastType::$direct_from_variant(from),
+                                    CastType::$direct_to_variant(to),
                                 ) => {
-                                    let compiled =
-                                        $crate::codegen::cast::IndirectCastRule::compile(
-                                            $rule,
+                                    let out_expr =
+                                        $crate::codegen::cast::DirectCastRule::compile(
+                                            $direct_rule,
                                             db,
                                             from,
                                             to,
                                             in_expr,
-                                            continue_with,
                                         );
-                                    $crate::codegen::fragment::FragmentOnce::apply(compiled, p);
+                                    $crate::codegen::cast::CastContinuation::compile(
+                                        continue_with,
+                                        out_expr,
+                                    )
+                                    .apply(printer);
+                                }
+                            )*
+                            $(
+                                (
+                                    Self::Rule::$indirect_rule_variant,
+                                    CastType::$indirect_from_variant(from),
+                                    CastType::$indirect_to_variant(to),
+                                ) => {
+                                    $crate::codegen::cast::IndirectCastRule::compile(
+                                        $indirect_rule,
+                                        db,
+                                        from,
+                                        to,
+                                        in_expr,
+                                        continue_with,
+                                    )
+                                    .apply(printer);
                                 }
                             )*
                             _ => panic!(
@@ -366,6 +430,7 @@ macro_rules! define_cast_graph {
             }
 
             /// Finds the unique path from `from` to `to`.
+            #[doc(hidden)]
             #[salsa::tracked(returns(ref))]
             pub fn find_cast_path<$db>(
                 db: &$db dyn $crate::codegen::db::Db,
@@ -377,154 +442,30 @@ macro_rules! define_cast_graph {
                 $crate::codegen::cast::find_cast_path::<self::Graph>(db, from, to)
             }
 
-            struct CompileCastStmts<$db, Casts, AccessStmt> {
-                db: &$db dyn $crate::codegen::db::Db,
-                casts: Casts,
-                access_stmt: AccessStmt,
-            }
-
-            impl<$db, Casts, From, To, Expr, AccessStmt>
-                $crate::codegen::fragment::FragmentOnce
-                for CompileCastStmts<$db, Casts, AccessStmt>
-            where
-                Casts: ::std::iter::Iterator<
-                        Item = $crate::codegen::cast::Cast<$db, From, To, Expr>,
-                    > + $db,
-                From: ::std::convert::Into<self::CastType<$db>> + $db,
-                To: ::std::convert::Into<self::CastType<$db>> + $db,
-                Expr: $crate::codegen::fragment::FragmentOnce + $db,
-                AccessStmt: $crate::codegen::fragment::FragmentOnce + $db,
-            {
-                fn apply(
-                    mut self,
-                    printer: &mut $crate::codegen::fragment::Printer,
-                ) {
-                    let ::std::option::Option::Some(cast) = self.casts.next() else {
-                        $crate::codegen::fragment::FragmentOnce::apply(
-                            self.access_stmt,
-                            printer,
-                        );
-                        return;
-                    };
-
-                    let from = cast.from.into();
-                    let to = cast.to.into();
-                    let path = self::find_cast_path(self.db, from, to);
-                    let remaining = Self {
-                        db: self.db,
-                        casts: self.casts,
-                        access_stmt: self.access_stmt,
-                    };
-                    let continue_with = (
-                        "let ",
-                        cast.out_var_name,
-                        " = value;\n",
-                        remaining,
-                    );
-                    let compiled = $crate::codegen::cast::compile_cast_path::<
-                        self::Graph,
-                        _,
-                        _,
-                    >(self.db, cast.in_expr, continue_with, path);
-
-                    $crate::codegen::fragment::FragmentOnce::apply(compiled, printer);
-                }
-            }
-
-            /// Compiles one cast and exposes its named output to `access_stmt`.
+            /// Compiles one cast request into a target-specific continuation.
+            #[doc(hidden)]
             #[allow(dead_code)]
-            pub fn compile_cast_stmt<$db, From, To, Expr, AccessStmt>(
+            pub fn compile_cast<$db, From, To, Expr, Continue>(
                 db: &$db dyn $crate::codegen::db::Db,
-                cast: $crate::codegen::cast::Cast<$db, From, To, Expr>,
-                access_stmt: AccessStmt,
+                from: From,
+                to: To,
+                in_expr: Expr,
+                continue_with: Continue,
             ) -> impl $crate::codegen::fragment::FragmentOnce + $db
             where
                 From: ::std::convert::Into<self::CastType<$db>> + $db,
                 To: ::std::convert::Into<self::CastType<$db>> + $db,
                 Expr: $crate::codegen::fragment::FragmentOnce + $db,
-                AccessStmt: $crate::codegen::fragment::FragmentOnce + $db,
+                Continue: $crate::codegen::cast::CastContinuation<$db>,
             {
-                self::compile_casts_stmt(db, [cast], access_stmt)
-            }
+                let path = self::find_cast_path(db, from.into(), to.into());
 
-            /// Compiles each cast and exposes all named outputs to `access_stmt`.
-            #[allow(dead_code)]
-            pub fn compile_casts_stmt<$db, Casts, From, To, Expr, AccessStmt>(
-                db: &$db dyn $crate::codegen::db::Db,
-                casts: Casts,
-                access_stmt: AccessStmt,
-            ) -> impl $crate::codegen::fragment::FragmentOnce + $db
-            where
-                Casts: ::std::iter::IntoIterator<
-                        Item = $crate::codegen::cast::Cast<$db, From, To, Expr>,
-                    > + $db,
-                Casts::IntoIter: $db,
-                From: ::std::convert::Into<self::CastType<$db>> + $db,
-                To: ::std::convert::Into<self::CastType<$db>> + $db,
-                Expr: $crate::codegen::fragment::FragmentOnce + $db,
-                AccessStmt: $crate::codegen::fragment::FragmentOnce + $db,
-            {
-                CompileCastStmts {
+                $crate::codegen::cast::compile_cast_path::<self::Graph, _, _>(
                     db,
-                    casts: casts.into_iter(),
-                    access_stmt,
-                }
-            }
-
-            /// Compiles one cast and returns the value of `access_expr`.
-            #[allow(dead_code)]
-            pub fn compile_cast_expr<$db, From, To, Expr, AccessExpr>(
-                db: &$db dyn $crate::codegen::db::Db,
-                cast: $crate::codegen::cast::Cast<$db, From, To, Expr>,
-                access_expr: AccessExpr,
-            ) -> impl $crate::codegen::fragment::FragmentOnce + $db
-            where
-                From: ::std::convert::Into<self::CastType<$db>> + $db,
-                To: ::std::convert::Into<self::CastType<$db>> + $db,
-                Expr: $crate::codegen::fragment::FragmentOnce + $db,
-                AccessExpr: $crate::codegen::fragment::FragmentOnce + $db,
-            {
-                self::compile_casts_expr(db, [cast], access_expr)
-            }
-
-            /// Compiles each cast and returns the value of `access_expr`.
-            #[allow(dead_code)]
-            pub fn compile_casts_expr<$db, Casts, From, To, Expr, AccessExpr>(
-                db: &$db dyn $crate::codegen::db::Db,
-                casts: Casts,
-                access_expr: AccessExpr,
-            ) -> impl $crate::codegen::fragment::FragmentOnce + $db
-            where
-                Casts: ::std::iter::IntoIterator<
-                        Item = $crate::codegen::cast::Cast<$db, From, To, Expr>,
-                    > + $db,
-                Casts::IntoIter: $db,
-                From: ::std::convert::Into<self::CastType<$db>> + $db,
-                To: ::std::convert::Into<self::CastType<$db>> + $db,
-                Expr: $crate::codegen::fragment::FragmentOnce + $db,
-                AccessExpr: $crate::codegen::fragment::FragmentOnce + $db,
-            {
-                $crate::codegen::fragment::fragment(move |printer| {
-                    let mut casts = casts.into_iter().peekable();
-                    if casts.peek().is_none() {
-                        $crate::codegen::fragment::FragmentOnce::apply(
-                            access_expr,
-                            printer,
-                        );
-                        return;
-                    }
-
-                    let access_stmt = ("result.write(", access_expr, ");");
-                    let cast_stmts = self::compile_casts_stmt(db, casts, access_stmt);
-                    let compiled = $crate::codegen::fragment::curlies((
-                        "let mut result = std::mem::MaybeUninit::uninit();\n",
-                        $crate::codegen::fragment::curlies(cast_stmts),
-                        "\nunsafe ",
-                        $crate::codegen::fragment::curlies("result.assume_init()"),
-                    ));
-
-                    $crate::codegen::fragment::FragmentOnce::apply(compiled, printer);
-                })
+                    in_expr,
+                    continue_with,
+                    path,
+                )
             }
         }
     };
@@ -534,7 +475,7 @@ macro_rules! define_cast_graph {
 mod tests {
     use crate::{
         codegen::{
-            cast::{Cast, CastPathStep, DirectCastRule, IndirectCastRule},
+            cast::{CastContinuation, CastPathStep, DirectCastRule, IndirectCastRule},
             db::{Db, DbImpl},
             fragment::{FragmentOnce, FragmentPrint},
             test::assert_snap,
@@ -611,13 +552,17 @@ mod tests {
             predecessor(to, CastKind::Direct)
         }
 
-        fn compile(
+        fn compile<'fragment, Expr>(
             self,
             _db: &'db dyn Db,
             _from: HappyType,
             _to: HappyType,
-            in_expr: impl FragmentOnce + 'db,
-        ) -> impl FragmentOnce + 'db {
+            in_expr: Expr,
+        ) -> impl FragmentOnce + 'fragment
+        where
+            'db: 'fragment,
+            Expr: FragmentOnce + 'fragment,
+        {
             frag!(direct({ in_expr }))
         }
     }
@@ -629,20 +574,32 @@ mod tests {
             predecessor(to, CastKind::Indirect)
         }
 
-        fn compile(
+        fn compile<'fragment, Expr, Continue>(
             self,
             _db: &'db dyn Db,
             _from: HappyType,
             _to: HappyType,
-            in_expr: impl FragmentOnce + 'db,
-            continue_with: impl FragmentOnce + 'db,
-        ) -> impl FragmentOnce + 'db {
-            frag!(
-                {{
-                    let value = indirect({in_expr});@
-                    {continue_with}@
-                }}
-            )
+            in_expr: Expr,
+            continue_with: Continue,
+        ) -> impl FragmentOnce + 'fragment
+        where
+            'db: 'fragment,
+            Expr: FragmentOnce + 'fragment,
+            Continue: CastContinuation<'db>,
+        {
+            continue_with.compile(frag!(indirect({ in_expr })))
+        }
+    }
+
+    struct Sink;
+
+    impl<'db> CastContinuation<'db> for Sink {
+        fn compile<'fragment, Expr>(self, out_expr: Expr) -> impl FragmentOnce + 'fragment
+        where
+            'db: 'fragment,
+            Expr: FragmentOnce + 'fragment,
+        {
+            frag!(sink({ out_expr }))
         }
     }
 
@@ -652,13 +609,15 @@ mod tests {
                 HappyType(super::HappyType),
             }
 
-            rules {
+            direct_rules {
                 Direct {
                     rule: DirectRule,
                     from: HappyType,
                     to: HappyType,
                 }
+            }
 
+            indirect_rules {
                 Indirect {
                     rule: IndirectRule,
                     from: HappyType,
@@ -711,15 +670,12 @@ mod tests {
                 );
 
                 assert_snap!({
-                    HappyCastGraph::compile_cast_stmt(
+                    HappyCastGraph::compile_cast(
                         &db,
-                        Cast {
-                            from,
-                            to,
-                            in_expr: frag!(source()),
-                            out_var_name: "out",
-                        },
-                        frag!(consume(out);),
+                        from,
+                        to,
+                        frag!(source()),
+                        Sink,
                     )
                     .print()
                 });
@@ -748,100 +704,6 @@ mod tests {
         [Indirect, Direct, Indirect]
     );
 
-    #[test]
-    fn compiles_multiple_casts_before_access() {
-        let db = DbImpl::default();
-        let direct_from = HappyType::start(HappyScenario::OneDirect);
-        let direct_to = HappyType::end(HappyScenario::OneDirect);
-        let indirect_from = HappyType::start(HappyScenario::OneIndirect);
-        let indirect_to = HappyType::end(HappyScenario::OneIndirect);
-
-        assert_snap!({
-            HappyCastGraph::compile_casts_stmt(
-                &db,
-                [
-                    Cast {
-                        from: direct_from,
-                        to: direct_to,
-                        in_expr: frag!(source_one()),
-                        out_var_name: "out",
-                    },
-                    Cast {
-                        from: indirect_from,
-                        to: indirect_to,
-                        in_expr: frag!(source_two()),
-                        out_var_name: "out2",
-                    },
-                ],
-                frag!(consume(out + out2);),
-            )
-            .print()
-        });
-    }
-
-    #[test]
-    fn compiles_cast_expression() {
-        let db = DbImpl::default();
-        let from = HappyType::start(HappyScenario::OneDirect);
-        let to = HappyType::end(HappyScenario::OneDirect);
-
-        assert_snap!({
-            HappyCastGraph::compile_cast_expr(
-                &db,
-                Cast {
-                    from,
-                    to,
-                    in_expr: frag!(source()),
-                    out_var_name: "out",
-                },
-                frag!(consume(out)),
-            )
-            .print()
-        });
-    }
-
-    #[test]
-    fn empty_casts_expression_is_access_expression() {
-        let db = DbImpl::default();
-        let casts = std::iter::empty::<Cast<'_, HappyType, HappyType, &str>>();
-
-        assert_eq!(
-            HappyCastGraph::compile_casts_expr(&db, casts, "source()").print(),
-            "source()",
-        );
-    }
-
-    #[test]
-    fn compiles_multiple_cast_expressions() {
-        let db = DbImpl::default();
-        let direct_from = HappyType::start(HappyScenario::OneDirect);
-        let direct_to = HappyType::end(HappyScenario::OneDirect);
-        let indirect_from = HappyType::start(HappyScenario::OneIndirect);
-        let indirect_to = HappyType::end(HappyScenario::OneIndirect);
-
-        assert_snap!({
-            HappyCastGraph::compile_casts_expr(
-                &db,
-                [
-                    Cast {
-                        from: direct_from,
-                        to: direct_to,
-                        in_expr: frag!(source_one()),
-                        out_var_name: "out",
-                    },
-                    Cast {
-                        from: indirect_from,
-                        to: indirect_to,
-                        in_expr: frag!(source_two()),
-                        out_var_name: "out2",
-                    },
-                ],
-                frag!(consume(out + out2)),
-            )
-            .print()
-        });
-    }
-
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
     pub enum EdgeType {
         CycleA,
@@ -862,14 +724,18 @@ mod tests {
             (to == self.to).then_some(self.from)
         }
 
-        fn compile(
+        fn compile<'fragment, Expr>(
             self,
             _db: &'db dyn Db,
             _from: EdgeType,
             _to: EdgeType,
-            in_expr: impl FragmentOnce + 'db,
-        ) -> impl FragmentOnce + 'db {
-            frag!({ in_expr })
+            in_expr: Expr,
+        ) -> impl FragmentOnce + 'fragment
+        where
+            'db: 'fragment,
+            Expr: FragmentOnce + 'fragment,
+        {
+            in_expr
         }
     }
 
@@ -879,7 +745,7 @@ mod tests {
                 EdgeType(super::EdgeType),
             }
 
-            rules {
+            direct_rules {
                 CycleAToB {
                     rule: EdgeRule {
                         from: EdgeType::CycleA,
@@ -907,6 +773,8 @@ mod tests {
                     to: EdgeType,
                 }
             }
+
+            indirect_rules {}
         }
     }
 

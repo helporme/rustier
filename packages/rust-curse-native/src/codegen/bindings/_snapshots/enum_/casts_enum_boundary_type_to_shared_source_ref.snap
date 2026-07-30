@@ -17,13 +17,13 @@ let target = ItemId::new(&db, path, ItemKind::Enum);
 IndirectCastRule::compile(
         CastEnumBoundaryTypeToBorrowedSourceType,
         &db,
-        ExternType::Item { target },
+        BoundaryType::Item { target },
         SourceType::Ref {
             is_mutable: false,
             inner: Box::new(SourceType::Item { target }),
         },
         "input",
-        "consume(value);",
+        Consume,
     )
     .print()
 ```
@@ -33,7 +33,9 @@ IndirectCastRule::compile(
 ```rs
 input.src.access(
 	&mut |value| {
-		consume(value);
+		consume(
+			value
+		);
 		Ok(
 			()
 		)

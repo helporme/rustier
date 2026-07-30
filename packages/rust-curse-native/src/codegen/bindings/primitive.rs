@@ -1,8 +1,8 @@
 use crate::{
     codegen::{
         api::Api,
-        bindings::type_::{ExternType, SourceType},
-        cast::{DirectCastRule, IndirectCastRule},
+        bindings::type_::{BoundaryType, SourceType},
+        cast::{CastContinuation, DirectCastRule, IndirectCastRule},
         db::Db,
         fragment::{FragmentOnce, doubles},
     },
@@ -17,13 +17,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToSig
         matches!(to, SourceType::i8 | SourceType::i16 | SourceType::i32).then_some(SourceType::f64)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: SourceType<'db>,
         to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let type_name = match to {
             SourceType::i8 => "i8",
             SourceType::i16 => "i16",
@@ -57,13 +61,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToUns
         matches!(to, SourceType::u8 | SourceType::u16 | SourceType::u32).then_some(SourceType::f64)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: SourceType<'db>,
         to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let type_name = match to {
             SourceType::u8 => "u8",
             SourceType::u16 => "u16",
@@ -97,13 +105,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastU32ToCha
         (to == SourceType::char).then_some(SourceType::u32)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: SourceType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let api = Api::get(db);
         let error_expr = api.error(db, frag!(format!("cannot cast {value} to char")));
 
@@ -122,13 +134,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToF32
         (to == SourceType::f32).then_some(SourceType::f64)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         frag!({{ {in_expr}~as f32 }})
     }
 }
@@ -136,69 +152,81 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToF32
 /// Casts an owned source `char` to a boundary `u32`.
 pub struct CastCharToU32BoundaryRule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, ExternType<'db>> for CastCharToU32BoundaryRule {
-    fn predecessor(self, _db: &'db dyn Db, to: ExternType<'db>) -> Option<SourceType<'db>> {
-        (to == ExternType::u32).then_some(SourceType::char)
+impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastCharToU32BoundaryRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
+        (to == BoundaryType::u32).then_some(SourceType::char)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
-        _to: ExternType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
-        frag!({{ {in_expr}~ as u32 }})
+        _to: BoundaryType<'db>,
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
+        frag!({{ {in_expr}~as u32 }})
     }
 }
 
 /// Casts an owned source `f32` to a boundary `f64`.
 pub struct CastF32ToF64BoundaryRule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, ExternType<'db>> for CastF32ToF64BoundaryRule {
-    fn predecessor(self, _db: &'db dyn Db, to: ExternType<'db>) -> Option<SourceType<'db>> {
-        (to == ExternType::f64).then_some(SourceType::f32)
+impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastF32ToF64BoundaryRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
+        (to == BoundaryType::f64).then_some(SourceType::f32)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
-        _to: ExternType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
-        frag!({ in_expr }~ as f64)
+        _to: BoundaryType<'db>,
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
+        frag!({in_expr}~as f64)
     }
 }
 
 /// Passes an owned primitive source value to its identical boundary type.
 pub struct CastPrimitiveToSameBoundaryRule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, ExternType<'db>>
+impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
     for CastPrimitiveToSameBoundaryRule
 {
-    fn predecessor(self, _db: &'db dyn Db, to: ExternType<'db>) -> Option<SourceType<'db>> {
+    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
         match to {
-            ExternType::String => Some(SourceType::String),
-            ExternType::bool => Some(SourceType::bool),
-            ExternType::i8 => Some(SourceType::i8),
-            ExternType::u8 => Some(SourceType::u8),
-            ExternType::i16 => Some(SourceType::i16),
-            ExternType::u16 => Some(SourceType::u16),
-            ExternType::i32 => Some(SourceType::i32),
-            ExternType::u32 => Some(SourceType::u32),
-            ExternType::f64 => Some(SourceType::f64),
-            ExternType::f32 | ExternType::JsAny | ExternType::Item { .. } => None,
+            BoundaryType::String => Some(SourceType::String),
+            BoundaryType::bool => Some(SourceType::bool),
+            BoundaryType::i8 => Some(SourceType::i8),
+            BoundaryType::u8 => Some(SourceType::u8),
+            BoundaryType::i16 => Some(SourceType::i16),
+            BoundaryType::u16 => Some(SourceType::u16),
+            BoundaryType::i32 => Some(SourceType::i32),
+            BoundaryType::u32 => Some(SourceType::u32),
+            BoundaryType::f64 => Some(SourceType::f64),
+            BoundaryType::f32 | BoundaryType::JsAny | BoundaryType::Item { .. } => None,
         }
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
-        _to: ExternType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        _to: BoundaryType<'db>,
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         in_expr
     }
 }
@@ -206,18 +234,22 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, ExternType<'db>>
 /// Casts an API-specific JavaScript boundary value to an owned `f64`.
 pub struct CastJsAnyToF64Rule;
 
-impl<'db> DirectCastRule<'db, ExternType<'db>, SourceType<'db>> for CastJsAnyToF64Rule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<ExternType<'db>> {
-        (to == SourceType::f64).then_some(ExternType::JsAny)
+impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyToF64Rule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
+        (to == SourceType::f64).then_some(BoundaryType::JsAny)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: ExternType<'db>,
+        _from: BoundaryType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let cast_expr = Api::get(db).cast_to_f64(db);
 
         frag!({{
@@ -230,18 +262,22 @@ impl<'db> DirectCastRule<'db, ExternType<'db>, SourceType<'db>> for CastJsAnyToF
 /// Casts an API-specific JavaScript boundary value to an owned `bool`.
 pub struct CastJsAnyToBoolRule;
 
-impl<'db> DirectCastRule<'db, ExternType<'db>, SourceType<'db>> for CastJsAnyToBoolRule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<ExternType<'db>> {
-        (to == SourceType::bool).then_some(ExternType::JsAny)
+impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyToBoolRule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
+        (to == SourceType::bool).then_some(BoundaryType::JsAny)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: ExternType<'db>,
+        _from: BoundaryType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let cast_expr = Api::get(db).cast_to_bool(db);
 
         frag!({{
@@ -254,18 +290,22 @@ impl<'db> DirectCastRule<'db, ExternType<'db>, SourceType<'db>> for CastJsAnyToB
 /// Casts an API-specific JavaScript boundary value to an owned `String`.
 pub struct CastJsAnyToStringRule;
 
-impl<'db> DirectCastRule<'db, ExternType<'db>, SourceType<'db>> for CastJsAnyToStringRule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<ExternType<'db>> {
-        (to == SourceType::String).then_some(ExternType::JsAny)
+impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyToStringRule {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
+        (to == SourceType::String).then_some(BoundaryType::JsAny)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: ExternType<'db>,
+        _from: BoundaryType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let cast_expr = Api::get(db).cast_to_string(db);
 
         frag!({{
@@ -287,13 +327,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastStringTo
         .then_some(SourceType::String)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         frag!({ in_expr }.as_str())
     }
 }
@@ -310,14 +354,21 @@ impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastString
         .then_some(SourceType::String)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-        continue_with: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+        continue_with: Continue,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+        Continue: CastContinuation<'db>,
+    {
+        let continue_with = continue_with.compile("value");
+
         frag!({{
             let mut value = ~{in_expr};@
             let value = value.as_mut_str();@
@@ -330,8 +381,9 @@ impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastString
 mod tests {
     use crate::codegen::{
         api::{Api, ApiKind, WasmTarget},
+        bindings::cast_graph::test::Consume,
         db::DbImpl,
-        fragment::{FragmentPrint, fragment},
+        fragment::FragmentPrint,
         test::assert_snap,
     };
 
@@ -405,36 +457,36 @@ mod tests {
         casts_char_to_u32_boundary,
         CastCharToU32BoundaryRule,
         SourceType::char,
-        ExternType::u32
+        BoundaryType::u32
     );
     direct_cast_snapshot_test!(
         casts_f32_to_f64_boundary,
         CastF32ToF64BoundaryRule,
         SourceType::f32,
-        ExternType::f64
+        BoundaryType::f64
     );
     direct_cast_snapshot_test!(
         passes_primitive_to_same_boundary,
         CastPrimitiveToSameBoundaryRule,
         SourceType::i32,
-        ExternType::i32
+        BoundaryType::i32
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_f64,
         CastJsAnyToF64Rule,
-        ExternType::JsAny,
+        BoundaryType::JsAny,
         SourceType::f64
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_bool,
         CastJsAnyToBoolRule,
-        ExternType::JsAny,
+        BoundaryType::JsAny,
         SourceType::bool
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_string,
         CastJsAnyToStringRule,
-        ExternType::JsAny,
+        BoundaryType::JsAny,
         SourceType::String
     );
     direct_cast_snapshot_test!(
@@ -463,7 +515,7 @@ mod tests {
                     from.clone(),
                     to.clone(),
                     "input",
-                    fragment(|p| "consume(value);".apply(p)),
+                    Consume,
                 )
                 .print()
             })

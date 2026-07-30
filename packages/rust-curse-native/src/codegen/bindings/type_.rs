@@ -67,7 +67,7 @@ impl<'db> SourceType<'db> {
 /// A type that is passed across the boundary using active [`Api`] bindings.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
 #[allow(non_camel_case_types)]
-pub enum ExternType<'db> {
+pub enum BoundaryType<'db> {
     bool,
     i8,
     u8,
@@ -89,49 +89,49 @@ pub enum ExternType<'db> {
     },
 }
 
-impl<'db> ExternType<'db> {
+impl<'db> BoundaryType<'db> {
     pub fn fqn(self, db: &'db dyn Db) -> &'db str {
         match self {
-            ExternType::bool => "bool",
-            ExternType::i8 => "i8",
-            ExternType::u8 => "u8",
-            ExternType::i16 => "i16",
-            ExternType::u16 => "u16",
-            ExternType::i32 => "i32",
-            ExternType::u32 => "u32",
-            ExternType::f64 => "f64",
-            ExternType::f32 => "f32",
-            ExternType::String => "String",
-            ExternType::JsAny => Api::get(db).js_type(db),
-            ExternType::Item { target } => target.extern_name(db),
+            BoundaryType::bool => "bool",
+            BoundaryType::i8 => "i8",
+            BoundaryType::u8 => "u8",
+            BoundaryType::i16 => "i16",
+            BoundaryType::u16 => "u16",
+            BoundaryType::i32 => "i32",
+            BoundaryType::u32 => "u32",
+            BoundaryType::f64 => "f64",
+            BoundaryType::f32 => "f32",
+            BoundaryType::String => "String",
+            BoundaryType::JsAny => Api::get(db).js_type(db),
+            BoundaryType::Item { target } => target.extern_name(db),
         }
     }
 }
 
 impl<'db> Type<'db> {
     /// Gets the [`BoundaryType`] used to accept this type from the JavaScript.
-    pub fn boundary_in(self) -> ExternType<'db> {
+    pub fn boundary_in(self) -> BoundaryType<'db> {
         match self {
-            Type::Primitive(_) | Type::String | Type::Str => ExternType::JsAny,
-            Type::Struct(id) => ExternType::Item { target: id.into() },
-            Type::Enum(id) => ExternType::Item { target: id.into() },
+            Type::Primitive(_) | Type::String | Type::Str => BoundaryType::JsAny,
+            Type::Struct(id) => BoundaryType::Item { target: id.into() },
+            Type::Enum(id) => BoundaryType::Item { target: id.into() },
         }
     }
 
     /// Gets the [`BoundaryType`] used to return this type to the JavaScript.
-    pub fn boundary_out(self) -> ExternType<'db> {
+    pub fn boundary_out(self) -> BoundaryType<'db> {
         match self {
-            Type::Primitive(Primitive::Boolean) => ExternType::bool,
-            Type::Primitive(Primitive::i8) => ExternType::i8,
-            Type::Primitive(Primitive::u8) => ExternType::u8,
-            Type::Primitive(Primitive::i16) => ExternType::i16,
-            Type::Primitive(Primitive::u16) => ExternType::u16,
-            Type::Primitive(Primitive::i32) => ExternType::i32,
-            Type::Primitive(Primitive::u32) | Type::Primitive(Primitive::Char) => ExternType::u32,
-            Type::Primitive(Primitive::f64) | Type::Primitive(Primitive::f32) => ExternType::f64,
-            Type::String => ExternType::String,
-            Type::Struct(id) => ExternType::Item { target: id.into() },
-            Type::Enum(id) => ExternType::Item { target: id.into() },
+            Type::Primitive(Primitive::Boolean) => BoundaryType::bool,
+            Type::Primitive(Primitive::i8) => BoundaryType::i8,
+            Type::Primitive(Primitive::u8) => BoundaryType::u8,
+            Type::Primitive(Primitive::i16) => BoundaryType::i16,
+            Type::Primitive(Primitive::u16) => BoundaryType::u16,
+            Type::Primitive(Primitive::i32) => BoundaryType::i32,
+            Type::Primitive(Primitive::u32) | Type::Primitive(Primitive::Char) => BoundaryType::u32,
+            Type::Primitive(Primitive::f64) | Type::Primitive(Primitive::f32) => BoundaryType::f64,
+            Type::String => BoundaryType::String,
+            Type::Struct(id) => BoundaryType::Item { target: id.into() },
+            Type::Enum(id) => BoundaryType::Item { target: id.into() },
             Type::Str => unreachable!("str cannot be returned"),
         }
     }
@@ -174,13 +174,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>>
         }
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let SourceType::Ref { is_mutable, .. } = to else {
             unreachable!()
         };

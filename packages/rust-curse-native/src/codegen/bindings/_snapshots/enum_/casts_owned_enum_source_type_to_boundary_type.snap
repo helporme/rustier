@@ -18,7 +18,7 @@ DirectCastRule::compile(
         CastEnumSourceTypeToBoundaryType,
         &db,
         SourceType::Item { target },
-        ExternType::Item { target },
+        BoundaryType::Item { target },
         "input",
     )
     .print()

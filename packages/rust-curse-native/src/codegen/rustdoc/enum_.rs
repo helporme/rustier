@@ -143,7 +143,11 @@ fn lower_c_like_enum<'db>(
         .collect();
 
     let item_summary = crate_body.paths.get(&item.id).unwrap();
-    let id = ItemId::new(db, ItemPath::new(db, &item_summary.path), ItemKind::Enum);
+    let id = ItemId::new(
+        db,
+        ItemPath::new(db, &item_summary.path),
+        ItemKind::CLikeEnum,
+    );
     let id = CLikeEnumId::new(db, id).unwrap();
     Ok(CLikeEnum::new(db, id, variants, item.docs.clone()))
 }

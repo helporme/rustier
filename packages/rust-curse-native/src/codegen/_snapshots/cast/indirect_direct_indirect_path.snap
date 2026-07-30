@@ -11,38 +11,19 @@ codegen::cast::tests::indirect_direct_indirect_path
 ## Source
 
 ```rs
-HappyCastGraph::compile_cast_stmt(
-        &db,
-        Cast {
-            from,
-            to,
-            in_expr: frag!(source()),
-            out_var_name: "out",
-        },
-        frag!(consume(out);),
-    )
-    .print()
+HappyCastGraph::compile_cast(&db, from, to, frag!(source()), Sink).print()
 ```
 
 ## Output
 
 ```rs
-let value = source();
-{
-	let value = indirect(
-		value
-	);
-	let value = direct(
-		value
-	);
-	{
-		let value = indirect(
-			value
-		);
-		let out = value;
-		consume(
-			out
-		);
-	}
-}
+sink(
+	indirect(
+		direct(
+			indirect(
+				source()
+			)
+		)
+	)
+)
 ```
