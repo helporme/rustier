@@ -29,8 +29,12 @@ snapshot_for_apis(|db| {
 
 ```rs
 // Node
-input as f64
+(
+	input
+) as f64
 
 // Wasm
-input as f64
+(
+	input
+) as f64
 ```

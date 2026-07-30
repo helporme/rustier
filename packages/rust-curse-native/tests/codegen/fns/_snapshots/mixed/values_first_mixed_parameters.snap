@@ -435,87 +435,207 @@ pub fn __ext_rustdoc_0test_0crate_foo(
 	__p__borrowed_text: Unknown<'_>,
 	__p__mutable_text: Unknown<'_>,
 	__p__number: Unknown<'_>,
-	__p__moved: &__binding_struct__rustdoc_0test_0crate_TupleStruct,
-	__p__mutable: &__binding_struct__rustdoc_0test_0crate_PlainStruct,
-	__p__borrowed: &__binding_struct__rustdoc_0test_0crate_PlainStruct
-) -> napi::Result<__binding_struct__rustdoc_0test_0crate_PlainStruct> {
+	__p__moved: &__ext_rustdoc_0test_0crate_TupleStruct,
+	__p__mutable: &__ext_rustdoc_0test_0crate_PlainStruct,
+	__p__borrowed: &__ext_rustdoc_0test_0crate_PlainStruct
+) -> napi::Result<__ext_rustdoc_0test_0crate_PlainStruct> {
 	Ok(
 		__binding_struct__rustdoc_0test_0crate_PlainStruct {
 			src:std::rc::Rc::new(
 				__tethered_struct__rustdoc_0test_0crate_PlainStruct::new_owned(
 					{
-						let mut result = std::mem::MaybeUninit::uninit();let __p__text = & __cast_String(
-							__p__text
-						).map_err(
-							|err| napi::Error::from_reason(
-								format!(
-									"Expected Rust `str` from a JavaScript string: {}", err
-								)
-							)
-						)?;
-						let __p__borrowed_text = & __cast_String(
-							__p__borrowed_text
-						).map_err(
-							|err| napi::Error::from_reason(
-								format!(
-									"Expected Rust `String` from a JavaScript string: {}", err
-								)
-							)
-						)?;
-						let __p__mutable_text = &mut __cast_String(
-							__p__mutable_text
-						).map_err(
-							|err| napi::Error::from_reason(
-								format!(
-									"Expected Rust `String` from a JavaScript string: {}", err
-								)
-							)
-						)?;
-						let __p__number = __cast_f64(
-							__p__number
-						).map_err(
-							|err| napi::Error::from_reason(
-								format!(
-									"Expected Rust `f64` from a JavaScript number: {}", err
-								)
-							)
-						)?;
-						__p__borrowed.src.access(
-							&mut |__p__borrowed| {
-								__p__mutable.src.access_mut(
-									&mut |__p__mutable| {
-										__p__moved.src.access(
-											&mut |__p__moved| {
-												let __p__moved = __p__moved.clone();
-
-												result.write(
-													rustdoc_test_crate::foo(
-														__p__text,
-														__p__borrowed_text,
-														__p__mutable_text,
-														__p__number,
-														__p__moved,
-														__p__mutable,
-														__p__borrowed
-													)
-												);
-												Ok(
-													()
-												)
-											}
-										)?;
-										Ok(
-											()
+						{
+							let mut value = {
+								let value = __p__text;
+								(
+									if value.get_type().map_err(
+										|err| napi::Error::from_reason(
+											err.reason
+										)
+									)? == ValueType::String {
+										unsafe {
+											value.cast::<String>()
+										}.map_err(
+											|_| napi::Error::from_reason(
+												"cannot cast value to String".to_string()
+											)
 										)
 									}
-								)?;
-								Ok(
-									()
-								)
+									else {
+										Err(
+											napi::Error::from_reason(
+												"cannot cast value to String".to_string()
+											)
+										)
+									}
+								)?
+							};
+							let value = value.as_str();
+							let __p__text = value;
+							{
+								let mut value ={
+									let value = __p__borrowed_text;
+									(
+										if value.get_type().map_err(
+											|err| napi::Error::from_reason(
+												err.reason
+											)
+										)? == ValueType::String {
+											unsafe {
+												value.cast::<String>()
+											}.map_err(
+												|_| napi::Error::from_reason(
+													"cannot cast value to String".to_string()
+												)
+											)
+										}
+										else {
+											Err(
+												napi::Error::from_reason(
+													"cannot cast value to String".to_string()
+												)
+											)
+										}
+									)?
+								};let __p__borrowed_text = &value;
+								{
+									let mut value ={
+										let value = __p__mutable_text;
+										(
+											if value.get_type().map_err(
+												|err| napi::Error::from_reason(
+													err.reason
+												)
+											)? == ValueType::String {
+												unsafe {
+													value.cast::<String>()
+												}.map_err(
+													|_| napi::Error::from_reason(
+														"cannot cast value to String".to_string()
+													)
+												)
+											}
+											else {
+												Err(
+													napi::Error::from_reason(
+														"cannot cast value to String".to_string()
+													)
+												)
+											}
+										)?
+									};let __p__mutable_text = &mut value;
+									{
+										let __p__number = {
+											let value = __p__number;
+											(
+												if value.get_type().map_err(
+													|err| napi::Error::from_reason(
+														err.reason
+													)
+												)? == ValueType::Number {
+													unsafe {
+														value.cast::<f64>()
+													}.map_err(
+														|_| napi::Error::from_reason(
+															"cannot cast value to f64".to_string()
+														)
+													)
+												}
+												else {
+													Err(
+														napi::Error::from_reason(
+															"cannot cast value to f64".to_string()
+														)
+													)
+												}
+											)?
+										};
+										{
+											let mut __cast_expr_result = std::mem::MaybeUninit::uninit();
+											__p__moved.src.access(
+												&mut |value| {
+													let __p__moved = value.clone();
+													__cast_expr_result.write(
+														{
+															let mut __cast_expr_result = std::mem::MaybeUninit::uninit();
+															__p__mutable.src.access(
+																&mut |value| {
+																	__binding_struct__rustdoc_0test_0crate_PlainStruct {
+																		src:std::rc::Rc::new(
+																			__tethered_struct__rustdoc_0test_0crate_PlainStruct::new_owned(
+																				value.clone()
+																			)
+																		)
+																	}.src.access_mut(
+																		&mut |value| {
+																			let __p__mutable = value;
+																			__cast_expr_result.write(
+																				{
+																					let mut __cast_expr_result = std::mem::MaybeUninit::uninit();
+																					__p__borrowed.src.access(
+																						&mut |value| {
+																							__binding_struct__rustdoc_0test_0crate_PlainStruct {
+																								src:std::rc::Rc::new(
+																									__tethered_struct__rustdoc_0test_0crate_PlainStruct::new_owned(
+																										value.clone()
+																									)
+																								)
+																							}.src.access(
+																								&mut |value| {
+																									let __p__borrowed = value;
+																									__cast_expr_result.write(
+																										rustdoc_test_crate::foo(
+																											__p__text,
+																											__p__borrowed_text,
+																											__p__mutable_text,
+																											__p__number,
+																											__p__moved,
+																											__p__mutable,
+																											__p__borrowed
+																										)
+																									);
+																									Ok(
+																										()
+																									)
+																								}
+																							)?;
+																							Ok(
+																								()
+																							)
+																						}
+																					)?;
+																					unsafe {
+																						__cast_expr_result.assume_init()
+																					}
+																				}
+																			);
+																			Ok(
+																				()
+																			)
+																		}
+																	)?;
+																	Ok(
+																		()
+																	)
+																}
+															)?;
+															unsafe {
+																__cast_expr_result.assume_init()
+															}
+														}
+													);
+													Ok(
+														()
+													)
+												}
+											)?;
+											unsafe {
+												__cast_expr_result.assume_init()
+											}
+										}
+									}
+								}
 							}
-						)?;
-						unsafe {
-							result.assume_init()
 						}
 					}
 				)
@@ -1078,87 +1198,147 @@ pub fn __ext_rustdoc_0test_0crate_foo(
 	__p__borrowed_text: JsValue,
 	__p__mutable_text: JsValue,
 	__p__number: JsValue,
-	__p__moved: &__binding_struct__rustdoc_0test_0crate_TupleStruct,
-	__p__mutable: &__binding_struct__rustdoc_0test_0crate_PlainStruct,
-	__p__borrowed: &__binding_struct__rustdoc_0test_0crate_PlainStruct
-) -> Result<__binding_struct__rustdoc_0test_0crate_PlainStruct, JsValue> {
+	__p__moved: &__ext_rustdoc_0test_0crate_TupleStruct,
+	__p__mutable: &__ext_rustdoc_0test_0crate_PlainStruct,
+	__p__borrowed: &__ext_rustdoc_0test_0crate_PlainStruct
+) -> Result<__ext_rustdoc_0test_0crate_PlainStruct, JsValue> {
 	Ok(
 		__binding_struct__rustdoc_0test_0crate_PlainStruct {
 			src:std::rc::Rc::new(
 				__tethered_struct__rustdoc_0test_0crate_PlainStruct::new_owned(
 					{
-						let mut result = std::mem::MaybeUninit::uninit();let __p__text = & __cast_String(
-							__p__text
-						).map_err(
-							|err| JsValue::from_str(
-								&format!(
-									"Expected Rust `str` from a JavaScript string: {}", err
-								)
-							)
-						)?;
-						let __p__borrowed_text = & __cast_String(
-							__p__borrowed_text
-						).map_err(
-							|err| JsValue::from_str(
-								&format!(
-									"Expected Rust `String` from a JavaScript string: {}", err
-								)
-							)
-						)?;
-						let __p__mutable_text = &mut __cast_String(
-							__p__mutable_text
-						).map_err(
-							|err| JsValue::from_str(
-								&format!(
-									"Expected Rust `String` from a JavaScript string: {}", err
-								)
-							)
-						)?;
-						let __p__number = __cast_f64(
-							__p__number
-						).map_err(
-							|err| JsValue::from_str(
-								&format!(
-									"Expected Rust `f64` from a JavaScript number: {}", err
-								)
-							)
-						)?;
-						__p__borrowed.src.access(
-							&mut |__p__borrowed| {
-								__p__mutable.src.access_mut(
-									&mut |__p__mutable| {
-										__p__moved.src.access(
-											&mut |__p__moved| {
-												let __p__moved = __p__moved.clone();
-
-												result.write(
-													rustdoc_test_crate::foo(
-														__p__text,
-														__p__borrowed_text,
-														__p__mutable_text,
-														__p__number,
-														__p__moved,
-														__p__mutable,
-														__p__borrowed
-													)
-												);
-												Ok(
-													()
-												)
-											}
-										)?;
-										Ok(
-											()
+						{
+							let mut value = {
+								let value = __p__text;
+								(
+									value.as_string().ok_or_else(
+										|| JsValue::from_str(
+											&"cannot cast value to String".to_string()
 										)
+									)
+								)?
+							};
+							let value = value.as_str();
+							let __p__text = value;
+							{
+								let mut value ={
+									let value = __p__borrowed_text;
+									(
+										value.as_string().ok_or_else(
+											|| JsValue::from_str(
+												&"cannot cast value to String".to_string()
+											)
+										)
+									)?
+								};let __p__borrowed_text = &value;
+								{
+									let mut value ={
+										let value = __p__mutable_text;
+										(
+											value.as_string().ok_or_else(
+												|| JsValue::from_str(
+													&"cannot cast value to String".to_string()
+												)
+											)
+										)?
+									};let __p__mutable_text = &mut value;
+									{
+										let __p__number = {
+											let value = __p__number;
+											(
+												value.as_f64().ok_or_else(
+													|| JsValue::from_str(
+														&"cannot cast value to f64".to_string()
+													)
+												)
+											)?
+										};
+										{
+											let mut __cast_expr_result = std::mem::MaybeUninit::uninit();
+											__p__moved.src.access(
+												&mut |value| {
+													let __p__moved = value.clone();
+													__cast_expr_result.write(
+														{
+															let mut __cast_expr_result = std::mem::MaybeUninit::uninit();
+															__p__mutable.src.access(
+																&mut |value| {
+																	__binding_struct__rustdoc_0test_0crate_PlainStruct {
+																		src:std::rc::Rc::new(
+																			__tethered_struct__rustdoc_0test_0crate_PlainStruct::new_owned(
+																				value.clone()
+																			)
+																		)
+																	}.src.access_mut(
+																		&mut |value| {
+																			let __p__mutable = value;
+																			__cast_expr_result.write(
+																				{
+																					let mut __cast_expr_result = std::mem::MaybeUninit::uninit();
+																					__p__borrowed.src.access(
+																						&mut |value| {
+																							__binding_struct__rustdoc_0test_0crate_PlainStruct {
+																								src:std::rc::Rc::new(
+																									__tethered_struct__rustdoc_0test_0crate_PlainStruct::new_owned(
+																										value.clone()
+																									)
+																								)
+																							}.src.access(
+																								&mut |value| {
+																									let __p__borrowed = value;
+																									__cast_expr_result.write(
+																										rustdoc_test_crate::foo(
+																											__p__text,
+																											__p__borrowed_text,
+																											__p__mutable_text,
+																											__p__number,
+																											__p__moved,
+																											__p__mutable,
+																											__p__borrowed
+																										)
+																									);
+																									Ok(
+																										()
+																									)
+																								}
+																							)?;
+																							Ok(
+																								()
+																							)
+																						}
+																					)?;
+																					unsafe {
+																						__cast_expr_result.assume_init()
+																					}
+																				}
+																			);
+																			Ok(
+																				()
+																			)
+																		}
+																	)?;
+																	Ok(
+																		()
+																	)
+																}
+															)?;
+															unsafe {
+																__cast_expr_result.assume_init()
+															}
+														}
+													);
+													Ok(
+														()
+													)
+												}
+											)?;
+											unsafe {
+												__cast_expr_result.assume_init()
+											}
+										}
 									}
-								)?;
-								Ok(
-									()
-								)
+								}
 							}
-						)?;
-						unsafe {
-							result.assume_init()
 						}
 					}
 				)

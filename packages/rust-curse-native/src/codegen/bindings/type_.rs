@@ -3,9 +3,9 @@
 use crate::{
     codegen::{
         api::Api,
-        cast::DirectCastRule,
+        cast::{CastContinuation, IndirectCastRule},
         db::Db,
-        fragment::FragmentOnce,
+        fragment::{FragmentOnce, fragment},
         ir::{
             item::ItemId,
             type_::{Primitive, Type},
@@ -65,7 +65,7 @@ impl<'db> SourceType<'db> {
 }
 
 /// A type that is passed across the boundary using active [`Api`] bindings.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
 #[allow(non_camel_case_types)]
 pub enum BoundaryType<'db> {
     bool,
@@ -87,24 +87,27 @@ pub enum BoundaryType<'db> {
         /// The target item for which a boundary type is generated.
         target: ItemId<'db>,
     },
+    Ref(Box<BoundaryType<'db>>),
 }
 
 impl<'db> BoundaryType<'db> {
-    pub fn fqn(self, db: &'db dyn Db) -> &'db str {
-        match self {
-            BoundaryType::bool => "bool",
-            BoundaryType::i8 => "i8",
-            BoundaryType::u8 => "u8",
-            BoundaryType::i16 => "i16",
-            BoundaryType::u16 => "u16",
-            BoundaryType::i32 => "i32",
-            BoundaryType::u32 => "u32",
-            BoundaryType::f64 => "f64",
-            BoundaryType::f32 => "f32",
-            BoundaryType::String => "String",
-            BoundaryType::JsAny => Api::get(db).js_type(db),
-            BoundaryType::Item { target } => target.extern_name(db),
-        }
+    /// The name of this type used to accept it from the JavaScript.
+    pub fn decl(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+        fragment(move |p| match self {
+            BoundaryType::bool => "bool".apply(p),
+            BoundaryType::i8 => "i8".apply(p),
+            BoundaryType::u8 => "u8".apply(p),
+            BoundaryType::i16 => "i16".apply(p),
+            BoundaryType::u16 => "u16".apply(p),
+            BoundaryType::i32 => "i32".apply(p),
+            BoundaryType::u32 => "u32".apply(p),
+            BoundaryType::f64 => "f64".apply(p),
+            BoundaryType::f32 => "f32".apply(p),
+            BoundaryType::String => "String".apply(p),
+            BoundaryType::JsAny => Api::get(db).js_type(db).apply(p),
+            BoundaryType::Item { target } => target.extern_name(db).apply(p),
+            BoundaryType::Ref(inner) => frag!(&{ inner.decl(db) }).apply(p),
+        })
     }
 }
 
@@ -113,8 +116,10 @@ impl<'db> Type<'db> {
     pub fn boundary_in(self) -> BoundaryType<'db> {
         match self {
             Type::Primitive(_) | Type::String | Type::Str => BoundaryType::JsAny,
-            Type::Struct(id) => BoundaryType::Item { target: id.into() },
-            Type::Enum(id) => BoundaryType::Item { target: id.into() },
+            Type::Struct(id) => {
+                BoundaryType::Ref(Box::new(BoundaryType::Item { target: id.into() }))
+            }
+            Type::Enum(id) => BoundaryType::Ref(Box::new(BoundaryType::Item { target: id.into() })),
         }
     }
 
@@ -164,7 +169,7 @@ impl<'db> Type<'db> {
 /// A rule to cast an owned source type to a reference source type.
 pub struct CastOwnedTypeToBorrowedTypeRule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>>
+impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>>
     for CastOwnedTypeToBorrowedTypeRule
 {
     fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
@@ -174,25 +179,33 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>>
         }
     }
 
-    fn compile<'fragment, Expr>(
+    fn compile<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         to: SourceType<'db>,
         in_expr: Expr,
+        continue_with: Continue,
     ) -> impl FragmentOnce + 'fragment
     where
         'db: 'fragment,
         Expr: FragmentOnce + 'fragment,
+        Continue: CastContinuation<'db>,
     {
         let SourceType::Ref { is_mutable, .. } = to else {
             unreachable!()
         };
 
-        if is_mutable {
-            frag!(&mut { in_expr })
+        let borrowing = if is_mutable {
+            frag!(&mut value)
         } else {
-            frag!(&{ in_expr })
-        }
+            frag!(&value)
+        };
+        let continue_with = continue_with.compile(borrowing);
+
+        frag!(
+            let mut value = {in_expr};
+            {continue_with}
+        )
     }
 }

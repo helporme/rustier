@@ -78,15 +78,31 @@ fn __cast_String(
 pub fn __ext_rustdoc_0test_0crate_foo(
 	__p___: Unknown<'_>
 ) -> napi::Result<()> {
-	let __p___ = & __cast_String(
-		__p___
-	).map_err(
-		|err| napi::Error::from_reason(
-			format!(
-				"Expected Rust `String` from a JavaScript string: {}", err
-			)
-		)
-	)?;
+	let mut value ={
+		let value = __p___;
+		(
+			if value.get_type().map_err(
+				|err| napi::Error::from_reason(
+					err.reason
+				)
+			)? == ValueType::String {
+				unsafe {
+					value.cast::<String>()
+				}.map_err(
+					|_| napi::Error::from_reason(
+						"cannot cast value to String".to_string()
+					)
+				)
+			}
+			else {
+				Err(
+					napi::Error::from_reason(
+						"cannot cast value to String".to_string()
+					)
+				)
+			}
+		)?
+	};let __p___ = &value;
 	rustdoc_test_crate::foo(
 		__p___
 	);
@@ -116,15 +132,16 @@ fn __cast_String(
 pub fn __ext_rustdoc_0test_0crate_foo(
 	__p___: JsValue
 ) -> Result<(), JsValue> {
-	let __p___ = & __cast_String(
-		__p___
-	).map_err(
-		|err| JsValue::from_str(
-			&format!(
-				"Expected Rust `String` from a JavaScript string: {}", err
+	let mut value ={
+		let value = __p___;
+		(
+			value.as_string().ok_or_else(
+				|| JsValue::from_str(
+					&"cannot cast value to String".to_string()
+				)
 			)
-		)
-	)?;
+		)?
+	};let __p___ = &value;
 	rustdoc_test_crate::foo(
 		__p___
 	);

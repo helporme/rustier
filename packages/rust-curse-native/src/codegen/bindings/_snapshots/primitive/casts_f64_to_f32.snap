@@ -23,12 +23,12 @@ snapshot_for_apis(|db| {
 
 ```rs
 // Node
-{
-	input as f32
-}
+(
+	input
+) as f32
 
 // Wasm
-{
-	input as f32
-}
+(
+	input
+) as f32
 ```

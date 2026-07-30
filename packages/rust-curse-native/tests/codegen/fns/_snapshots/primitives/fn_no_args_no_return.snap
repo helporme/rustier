@@ -50,7 +50,6 @@ use napi_derive::napi;
 pub fn __ext_rustdoc_0test_0crate_foo(
 
 ) -> napi::Result<()> {
-
 	rustdoc_test_crate::foo();
 	Ok(
 		()
@@ -70,7 +69,6 @@ use wasm_bindgen::prelude::*;
 pub fn __ext_rustdoc_0test_0crate_foo(
 
 ) -> Result<(), JsValue> {
-
 	rustdoc_test_crate::foo();
 	Ok(
 		()

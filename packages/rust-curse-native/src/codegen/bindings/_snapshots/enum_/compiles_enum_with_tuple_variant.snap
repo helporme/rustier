@@ -372,12 +372,12 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 	}
 }
 
-#[napi(js_name = "__binding_enum__rustdoc_0test_0crate_Example")]pub struct __binding_enum__rustdoc_0test_0crate_Example {
+#[napi(js_name = "__ext_rustdoc_0test_0crate_Example")]pub struct __ext_rustdoc_0test_0crate_Example {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Example>
 }
 
 #[napi]
-impl __binding_enum__rustdoc_0test_0crate_Example {
+impl __ext_rustdoc_0test_0crate_Example {
 	#[napi(js_name = "__type")]
 	pub fn __type(
 		&self
@@ -406,9 +406,9 @@ impl __binding_enum__rustdoc_0test_0crate_Example {
 	#[napi(getter, js_name = "__Tuple__0")]
 	pub fn __getter__Tuple__0(
 		&self
-	) -> napi::Result<__binding_struct__rustdoc_0test_0crate_Point> {
+	) -> napi::Result<__ext_rustdoc_0test_0crate_Point> {
 		Ok(
-			__binding_struct__rustdoc_0test_0crate_Point {
+			__ext_rustdoc_0test_0crate_Point {
 				src:self.src.get___Tuple__0()?
 			}
 		)
@@ -416,7 +416,7 @@ impl __binding_enum__rustdoc_0test_0crate_Example {
 
 	#[napi(setter, js_name = "__Tuple__0")]
 	pub fn __setter__Tuple__0(
-		&self, value: &__binding_struct__rustdoc_0test_0crate_Point
+		&self, value: &__ext_rustdoc_0test_0crate_Point
 	) -> napi::Result<()> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();value.src.access(
@@ -853,12 +853,12 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 	}
 }
 
-#[wasm_bindgen(js_name = "__binding_enum__rustdoc_0test_0crate_Example")]pub struct __binding_enum__rustdoc_0test_0crate_Example {
+#[wasm_bindgen(js_name = "__ext_rustdoc_0test_0crate_Example")]pub struct __ext_rustdoc_0test_0crate_Example {
 	src: std::rc::Rc<__tethered_struct__rustdoc_0test_0crate_Example>
 }
 
 #[wasm_bindgen]
-impl __binding_enum__rustdoc_0test_0crate_Example {
+impl __ext_rustdoc_0test_0crate_Example {
 	#[wasm_bindgen(js_name = "__type")]
 	pub fn __type(
 		&self
@@ -887,9 +887,9 @@ impl __binding_enum__rustdoc_0test_0crate_Example {
 	#[wasm_bindgen(getter, js_name = "__Tuple__0")]
 	pub fn __getter__Tuple__0(
 		&self
-	) -> Result<__binding_struct__rustdoc_0test_0crate_Point, JsValue> {
+	) -> Result<__ext_rustdoc_0test_0crate_Point, JsValue> {
 		Ok(
-			__binding_struct__rustdoc_0test_0crate_Point {
+			__ext_rustdoc_0test_0crate_Point {
 				src:self.src.get___Tuple__0()?
 			}
 		)
@@ -897,7 +897,7 @@ impl __binding_enum__rustdoc_0test_0crate_Example {
 
 	#[wasm_bindgen(setter, js_name = "__Tuple__0")]
 	pub fn __setter__Tuple__0(
-		&self, value: &__binding_struct__rustdoc_0test_0crate_Point
+		&self, value: &__ext_rustdoc_0test_0crate_Point
 	) -> Result<(), JsValue> {
 		let value = {
 			let mut result = std::mem::MaybeUninit::uninit();value.src.access(

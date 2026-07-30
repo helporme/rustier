@@ -17,12 +17,13 @@ let to = SourceType::Ref {
     inner: Box::new(SourceType::Str),
 };
 snapshot_for_apis(|db| {
-    DirectCastRule::compile(
+    IndirectCastRule::compile(
             CastStringToStrRefRule,
             db,
             from.clone(),
             to.clone(),
             "input",
+            Consume,
         )
         .print()
 })
@@ -32,8 +33,20 @@ snapshot_for_apis(|db| {
 
 ```rs
 // Node
-input.as_str()
+{
+	let mut value = input;
+	let value = value.as_str();
+	consume(
+		value
+	);
+}
 
 // Wasm
-input.as_str()
+{
+	let mut value = input;
+	let value = value.as_str();
+	consume(
+		value
+	);
+}
 ```

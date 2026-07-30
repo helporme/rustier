@@ -204,7 +204,7 @@ impl Api {
             ApiKind::Node => "#[napi(js_name = ",
         };
 
-        frag!({header}{doubles(_struct.binding_name(db))}{")]"})
+        frag!({header}{doubles(_struct.extern_name(db))}{")]"})
     }
 
     /// Returns the getter header for a field with the given JavaScript name.

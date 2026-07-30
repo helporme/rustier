@@ -138,8 +138,8 @@ impl<'db> Type<'db> {
             Type::Primitive(primitive) => primitive.cast_fn_name().to_owned(),
             Type::Str | Type::String => "__cast_String".to_owned(),
             // todo: never produced actaully
-            Type::Struct(id) => format!("__cast_{}", id.binding_name(db)),
-            Type::Enum(id) => format!("__cast_{}", id.binding_name(db)),
+            Type::Struct(id) => format!("__cast_{}", id.extern_name(db)),
+            Type::Enum(id) => format!("__cast_{}", id.extern_name(db)),
         }
     }
 }

@@ -3,10 +3,9 @@
 
 use crate::codegen::{
     api::Api,
-    bindings::boundary::{
-        BoundaryInExpr, BoundaryMode, compile_boundary_in_to_source_type_expr,
-        compile_boundary_in_to_source_type_stmt, compile_boundary_in_type,
-        compile_boundary_out_from_source_type_expr, compile_boundary_out_type,
+    bindings::{
+        cast_graph::{Cast, compile_cast_expr, compile_casts_expr, compile_casts_stmt},
+        type_::SourceType,
     },
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, comma_list, frag, fragment},
@@ -23,21 +22,19 @@ impl<'db> FnParam<'db> {
     pub fn binding_name(self, db: &'db dyn Db) -> String {
         format!("__p__{}", self.name(db))
     }
-}
 
-impl<'db> BoundaryInExpr<'db> {
-    /// Converts a [`FnParam`] to a [`BoundaryInExpr`] using the parameter's
-    /// binding name as both `in_expr` and `out_var_name`.
-    pub fn from_param(db: &'db dyn Db, param: FnParam<'db>) -> Self {
-        Self {
-            in_expr: param.binding_name(db),
-            out_var_name: param.binding_name(db),
-            type_: param.type_(db),
-            mode: match param.mode(db) {
-                PassingMode::Ref => BoundaryMode::Ref,
-                PassingMode::Mut => BoundaryMode::Mut,
-                PassingMode::Move => BoundaryMode::Move,
+    /// Source type of the parameter.
+    pub fn source_type(self, db: &'db dyn Db) -> SourceType<'db> {
+        match self.mode(db) {
+            PassingMode::Ref => SourceType::Ref {
+                is_mutable: false,
+                inner: Box::new(self.type_(db).source_type_owned()),
             },
+            PassingMode::Mut => SourceType::Ref {
+                is_mutable: true,
+                inner: Box::new(self.type_(db).source_type_owned()),
+            },
+            PassingMode::Move => self.type_(db).source_type_owned(),
         }
     }
 }
@@ -46,10 +43,10 @@ impl<'db> BoundaryInExpr<'db> {
 #[salsa::tracked(returns(ref))]
 pub fn compile_binding_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
     let api = Api::get(db);
-    let result_type = match fn_.return_type(db) {
-        Some(type_) => api.result_type(db, compile_boundary_out_type(db, type_)),
-        None => api.result_type(db, "()"),
-    };
+    let result_type = fragment(|p| match fn_.return_type(db) {
+        Some(type_) => api.result_type(db, type_.boundary_out().decl(db)).apply(p),
+        None => api.result_type(db, "()").apply(p),
+    });
 
     frag!(
         {api.fn_header(db, fn_)}@
@@ -65,7 +62,7 @@ fn compile_binding_fn_params<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragmen
         comma_list(fn_.params(db).iter().map(|param| {
             frag!(
                 {param.binding_name(db)}:~
-                {compile_boundary_in_type(db, param.type_(db))}
+                {param.type_(db).boundary_in().decl(db)}
             )
         }))
     })
@@ -76,28 +73,35 @@ fn compile_binding_fn_params<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragmen
 /// expressions.
 fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentOnce + 'db {
     fragment(move |p| {
-        let params_as_input_exprs = fn_
-            .params(db)
-            .iter()
-            .map(|param| BoundaryInExpr::from_param(db, *param));
+        let cast_param_to_source_types = fn_.params(db).iter().map(|param| Cast {
+            from: param.type_(db).boundary_in(),
+            to: param.source_type(db),
+            in_expr: param.binding_name(db),
+            out_var_name: param.binding_name(db),
+        });
 
         match fn_.return_type(db) {
-            Some(type_) => {
-                let fn_call_expr = compile_boundary_in_to_source_type_expr(
+            Some(ret_type) => {
+                let result_expr = compile_casts_expr(
                     db,
-                    params_as_input_exprs,
-                    compile_src_fn_call_stmt(db, fn_),
+                    cast_param_to_source_types,
+                    compile_src_fn_call_expr(db, fn_),
                 );
-                let conversion_expr =
-                    compile_boundary_out_from_source_type_expr(db, fn_call_expr, type_);
 
-                frag!(Ok({ conversion_expr })).apply(p);
+                let casted_result_expr = compile_cast_expr(
+                    db,
+                    ret_type.source_type_owned(),
+                    ret_type.boundary_out(),
+                    result_expr,
+                );
+
+                frag!(Ok({ casted_result_expr })).apply(p);
             }
             None => {
-                let fn_call_stmt = compile_boundary_in_to_source_type_stmt(
+                let fn_call_stmt = compile_casts_stmt(
                     db,
-                    params_as_input_exprs,
-                    frag!({compile_src_fn_call_stmt(db, fn_)};),
+                    cast_param_to_source_types,
+                    frag!({compile_src_fn_call_expr(db, fn_)};),
                 );
 
                 frag!(
@@ -113,7 +117,7 @@ fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentO
 /// Compiles a function into a call statement of the function.
 ///
 /// Assumes the binding parameter variables present in the scope.
-fn compile_src_fn_call_stmt<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentOnce + 'db {
+fn compile_src_fn_call_expr<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentOnce + 'db {
     let params = fragment(move |printer| {
         if fn_.params(db).is_empty() {
             "()".apply(printer);

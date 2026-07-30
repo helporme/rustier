@@ -343,7 +343,7 @@ fn __cast_i32(
 #[napi(js_name = "__ext_rustdoc_0test_0crate_foo")]
 pub fn __ext_rustdoc_0test_0crate_foo(
 
-) -> napi::Result<__binding_struct__rustdoc_0test_0crate_PlainStruct> {
+) -> napi::Result<__ext_rustdoc_0test_0crate_PlainStruct> {
 	Ok(
 		__binding_struct__rustdoc_0test_0crate_PlainStruct {
 			src:std::rc::Rc::new(
@@ -760,7 +760,7 @@ fn __cast_i32(
 #[wasm_bindgen(js_name = "__ext_rustdoc_0test_0crate_foo")]
 pub fn __ext_rustdoc_0test_0crate_foo(
 
-) -> Result<__binding_struct__rustdoc_0test_0crate_PlainStruct, JsValue> {
+) -> Result<__ext_rustdoc_0test_0crate_PlainStruct, JsValue> {
 	Ok(
 		__binding_struct__rustdoc_0test_0crate_PlainStruct {
 			src:std::rc::Rc::new(

@@ -27,7 +27,7 @@ DirectCastRule::compile(
 ## Output
 
 ```rs
-__binding_enum__crate_Example {
+__ext_crate_Example {
 	src:std::rc::Rc::new(
 		__tethered_struct__crate_Example::new_owned(
 			input

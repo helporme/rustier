@@ -145,7 +145,7 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToF32
         'db: 'fragment,
         Expr: FragmentOnce + 'fragment,
     {
-        frag!({{ {in_expr}~as f32 }})
+        frag!(({in_expr})~as f32)
     }
 }
 
@@ -168,7 +168,7 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastCharTo
         'db: 'fragment,
         Expr: FragmentOnce + 'fragment,
     {
-        frag!({{ {in_expr}~as u32 }})
+        frag!(({in_expr})~as u32)
     }
 }
 
@@ -191,7 +191,7 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastF32ToF
         'db: 'fragment,
         Expr: FragmentOnce + 'fragment,
     {
-        frag!({in_expr}~as f64)
+        frag!(({in_expr})~as f64)
     }
 }
 
@@ -212,7 +212,10 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
             BoundaryType::i32 => Some(SourceType::i32),
             BoundaryType::u32 => Some(SourceType::u32),
             BoundaryType::f64 => Some(SourceType::f64),
-            BoundaryType::f32 | BoundaryType::JsAny | BoundaryType::Item { .. } => None,
+            BoundaryType::f32
+            | BoundaryType::JsAny
+            | BoundaryType::Item { .. }
+            | BoundaryType::Ref { .. } => None,
         }
     }
 
@@ -318,7 +321,7 @@ impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyT
 /// Borrows an owned boundary `String` as `&str`.
 pub struct CastStringToStrRefRule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastStringToStrRefRule {
+impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastStringToStrRefRule {
     fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
         (to == SourceType::Ref {
             is_mutable: false,
@@ -327,18 +330,26 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastStringTo
         .then_some(SourceType::String)
     }
 
-    fn compile<'fragment, Expr>(
+    fn compile<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         _to: SourceType<'db>,
         in_expr: Expr,
+        continue_with: Continue,
     ) -> impl FragmentOnce + 'fragment
     where
         'db: 'fragment,
         Expr: FragmentOnce + 'fragment,
+        Continue: CastContinuation<'db>,
     {
-        frag!({ in_expr }.as_str())
+        let continue_with = continue_with.compile("value");
+
+        frag!({{
+            let mut value = ~{in_expr};@
+            let value = value.as_str();@
+            {continue_with}
+        }})
     }
 }
 
@@ -489,15 +500,29 @@ mod tests {
         BoundaryType::JsAny,
         SourceType::String
     );
-    direct_cast_snapshot_test!(
-        casts_string_to_str_ref,
-        CastStringToStrRefRule,
-        SourceType::String,
-        SourceType::Ref {
-            is_mutable: false,
-            inner: Box::new(SourceType::Str),
-        }
-    );
+
+    #[test]
+    fn casts_string_to_str_ref() {
+        assert_snap!({
+            let from = SourceType::String;
+            let to = SourceType::Ref {
+                is_mutable: false,
+                inner: Box::new(SourceType::Str),
+            };
+
+            snapshot_for_apis(|db| {
+                IndirectCastRule::compile(
+                    CastStringToStrRefRule,
+                    db,
+                    from.clone(),
+                    to.clone(),
+                    "input",
+                    Consume,
+                )
+                .print()
+            })
+        });
+    }
 
     #[test]
     fn casts_string_to_str_mut() {

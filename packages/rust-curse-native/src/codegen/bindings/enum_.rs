@@ -32,21 +32,10 @@ use crate::{
 };
 
 impl<'db> EnumId<'db> {
-    /// Returns the binding mangled name, e.g.
-    /// `__binding_enum__core__option__Option`.
-    pub fn binding_name(self, db: &'db dyn Db) -> &'db String {
-        binding_name(db, self.into())
-    }
-
     /// Returns the paired tethering struct name.
     pub fn tethering_struct_name(self, db: &'db dyn Db) -> &'db String {
         tethering_struct_name(db, self.into())
     }
-}
-
-#[salsa::tracked(returns(ref))]
-fn binding_name<'db>(db: &'db dyn Db, id: ItemId<'db>) -> String {
-    format!("__binding_enum__{}", id.mangled_fqn(db))
 }
 
 #[salsa::tracked(returns(ref))]
@@ -55,11 +44,6 @@ fn tethering_struct_name<'db>(db: &'db dyn Db, id: ItemId<'db>) -> String {
 }
 
 impl<'db> Enum<'db> {
-    /// Returns the name of the binding struct for this enum.
-    pub fn binding_name(&self, db: &'db dyn Db) -> &'db str {
-        self.id(db).binding_name(db)
-    }
-
     /// Paired tethering struct name, e.g.
     /// `__tethered_struct__core__option__Option`.
     pub fn tethering_struct_name(&self, db: &'db dyn Db) -> &'db str {
@@ -158,11 +142,11 @@ fn compile_wrapper_struct<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl Fragme
         ApiKind::Wasm { .. } => "#[wasm_bindgen(js_name = ",
         ApiKind::Node => "#[napi(js_name = ",
     };
-    let binding_name = enum_.binding_name(db);
+    let extern_name = enum_.extern_name(db);
 
     frag!(
-        {header}{doubles(binding_name)}{")]"}
-        pub struct ~{binding_name}~{{
+        {header}{doubles(extern_name)}{")]"}
+        pub struct ~{extern_name}~{{
             src: std::rc::Rc<{enum_.tethering_struct_name(db)}>
         }}
     )
@@ -184,7 +168,7 @@ fn compile_wrapper_impl<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl Fragment
 
     frag!(
         {api.impl_header(db)}@
-        impl~{enum_.binding_name(db)}~{{
+        impl~{enum_.extern_name(db)}~{{
             {compile_type_method(db, enum_)}@@
 
             {fields}
@@ -360,8 +344,8 @@ pub fn compile_binding_enum_from_tethered_expr<'db>(
     enum_id: EnumId<'db>,
     tethered_struct_expr: impl FragmentOnce + 'db,
 ) -> impl FragmentOnce + 'db {
-    let binding_name = enum_id.binding_name(db);
-    frag!({binding_name}~{{ src: {tethered_struct_expr} }})
+    let extern_name = enum_id.extern_name(db);
+    frag!({extern_name}~{{ src: {tethered_struct_expr} }})
 }
 
 /// Casts a generated enum boundary value to a borrowed source enum.
@@ -436,7 +420,7 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
     fn predecessor(self, db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
         match to {
             SourceType::Item { target } if target.kind(db) == ItemKind::Enum => {
-                Some(BoundaryType::Item { target })
+                Some(BoundaryType::Ref(Box::new(BoundaryType::Item { target })))
             }
             _ => None,
         }
@@ -455,8 +439,11 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
         Expr: FragmentOnce + 'fragment,
         Continue: CastContinuation<'db>,
     {
-        let BoundaryType::Item { target } = from else {
-            unreachable!("enum boundary casts require a generated boundary type");
+        let BoundaryType::Ref(target) = from else {
+            unreachable!("enum boundary casts require a generated boundary ref type");
+        };
+        let BoundaryType::Item { target } = *target else {
+            unreachable!("enum boundary casts require a generated boundary ref type");
         };
         let SourceType::Item {
             target: source_target,

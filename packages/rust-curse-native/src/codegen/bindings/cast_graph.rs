@@ -84,16 +84,6 @@ define_cast_graph! {
                 from: SourceType,
                 to: BoundaryType,
             }
-            OwnedTypeToBorrowedType {
-                rule: CastOwnedTypeToBorrowedTypeRule,
-                from: SourceType,
-                to: SourceType,
-            }
-            StringToStrRef {
-                rule: CastStringToStrRefRule,
-                from: SourceType,
-                to: SourceType,
-            }
             StructSourceTypeToBoundaryType {
                 rule: CastStructSourceTypeToBoundaryType,
                 from: SourceType,
@@ -107,6 +97,11 @@ define_cast_graph! {
         }
 
         indirect_rules {
+            OwnedTypeToBorrowedType {
+                rule: CastOwnedTypeToBorrowedTypeRule,
+                from: SourceType,
+                to: SourceType,
+            }
             StructBoundaryTypeToBorrowedSourceType {
                 rule: CastStructBoundaryTypeToBorrowedSourceType,
                 from: BoundaryType,
@@ -125,6 +120,11 @@ define_cast_graph! {
             EnumBoundaryTypeToOwnedSourceType {
                 rule: CastEnumBoundaryTypeToOwnedSourceType,
                 from: BoundaryType,
+                to: SourceType,
+            }
+            StringToStrRef {
+                rule: CastStringToStrRefRule,
+                from: SourceType,
                 to: SourceType,
             }
             StringToStrMut {
@@ -220,21 +220,58 @@ where
 }
 
 /// Compiles one named cast around a Rust expression and captures its result.
-pub fn compile_cast_expr<'db, From, To, Expr, Inner>(
+pub fn compile_cast_expr<'db, From, To, Expr>(
     db: &'db dyn Db,
-    cast: Cast<'db, From, To, Expr>,
-    inner_expr: Inner,
+    from: From,
+    to: To,
+    expr: Expr,
 ) -> impl FragmentOnce + 'db
 where
     From: Into<BindingsCastGraph::CastType<'db>> + 'db,
     To: Into<BindingsCastGraph::CastType<'db>> + 'db,
     Expr: FragmentOnce + 'db,
-    Inner: FragmentOnce + 'db,
 {
-    compile_casts_expr(db, [cast], inner_expr)
+    let from = from.into();
+    let to = to.into();
+    let uses_indirect_rule = BindingsCastGraph::find_cast_path(db, from.clone(), to.clone())
+        .iter()
+        .any(|step| {
+            matches!(
+                step.rule,
+                BindingsCastGraph::CastRuleId::StructBoundaryTypeToBorrowedSourceType
+                    | BindingsCastGraph::CastRuleId::EnumBoundaryTypeToBorrowedSourceType
+                    | BindingsCastGraph::CastRuleId::StructBoundaryTypeToOwnedSourceType
+                    | BindingsCastGraph::CastRuleId::EnumBoundaryTypeToOwnedSourceType
+                    | BindingsCastGraph::CastRuleId::StringToStrMut
+            )
+        });
+
+    fragment(move |printer| {
+        if uses_indirect_rule {
+            frag!({{
+                let mut __cast_expr_result = std::mem::MaybeUninit::uninit();@
+                {BindingsCastGraph::compile_cast(
+                    db,
+                    from,
+                    to,
+                    expr,
+                    WriteCastOutput {
+                        out_var_name: "__cast_expr_result",
+                    },
+                )}@
+                unsafe~{{
+                    __cast_expr_result.assume_init()
+                }}
+            }})
+            .apply(printer);
+        } else {
+            BindingsCastGraph::compile_cast(db, from, to, expr, ReturnCastOutput).apply(printer);
+        }
+    })
 }
 
-/// Compiles named casts around a Rust expression and captures its result.
+/// Compiles named casts around a Rust expression and captures its result only
+/// when an indirect cast scopes the expression.
 pub fn compile_casts_expr<'db, Casts, From, To, Expr, Inner>(
     db: &'db dyn Db,
     casts: Casts,
@@ -248,16 +285,114 @@ where
     Expr: FragmentOnce + 'db,
     Inner: FragmentOnce + 'db,
 {
-    fragment(move |printer| {
-        frag!({{
-            let mut result = std::mem::MaybeUninit::uninit();@
-            {compile_casts_stmt(db, casts, frag!(result.write({inner_expr});))}@
-            unsafe~{{
-                result.assume_init()
-            }}
-        }})
-        .apply(printer);
-    })
+    CompileCastsExpr {
+        db,
+        casts: casts.into_iter(),
+        inner_expr,
+    }
+}
+
+/// Sequences expression casts and captures only continuations scoped by an
+/// indirect cast.
+struct CompileCastsExpr<'db, Casts, Inner> {
+    db: &'db dyn Db,
+    casts: Casts,
+    inner_expr: Inner,
+}
+
+impl<'db, Casts, From, To, Expr, Inner> FragmentOnce for CompileCastsExpr<'db, Casts, Inner>
+where
+    Casts: Iterator<Item = Cast<'db, From, To, Expr>> + 'db,
+    From: Into<BindingsCastGraph::CastType<'db>> + 'db,
+    To: Into<BindingsCastGraph::CastType<'db>> + 'db,
+    Expr: FragmentOnce + 'db,
+    Inner: FragmentOnce + 'db,
+{
+    fn apply(mut self, printer: &mut Printer) {
+        let Some(cast) = self.casts.next() else {
+            self.inner_expr.apply(printer);
+            return;
+        };
+
+        let Cast {
+            from,
+            to,
+            in_expr,
+            out_var_name,
+        } = cast;
+        let from = from.into();
+        let to = to.into();
+        let uses_indirect_rule =
+            BindingsCastGraph::find_cast_path(self.db, from.clone(), to.clone())
+                .iter()
+                .any(|step| {
+                    matches!(
+                        step.rule,
+                        BindingsCastGraph::CastRuleId::StructBoundaryTypeToBorrowedSourceType
+                            | BindingsCastGraph::CastRuleId::EnumBoundaryTypeToBorrowedSourceType
+                            | BindingsCastGraph::CastRuleId::StructBoundaryTypeToOwnedSourceType
+                            | BindingsCastGraph::CastRuleId::EnumBoundaryTypeToOwnedSourceType
+                            | BindingsCastGraph::CastRuleId::StringToStrMut
+                    )
+                });
+        let remaining = Self {
+            db: self.db,
+            casts: self.casts,
+            inner_expr: self.inner_expr,
+        };
+        let cast = Cast {
+            from,
+            to,
+            in_expr,
+            out_var_name,
+        };
+
+        if uses_indirect_rule {
+            frag!({{
+                let mut __cast_expr_result = std::mem::MaybeUninit::uninit();@
+                {compile_cast_stmt(
+                    self.db,
+                    cast,
+                    frag!(__cast_expr_result.write({remaining});),
+                )}@
+                unsafe~{{
+                    __cast_expr_result.assume_init()
+                }}
+            }})
+            .apply(printer);
+        } else {
+            frag!({ { { compile_cast_stmt(self.db, cast, remaining) } } }).apply(printer);
+        }
+    }
+}
+
+/// Returns a direct cast's output as the compiled expression.
+struct ReturnCastOutput;
+
+impl<'db> CastContinuation<'db> for ReturnCastOutput {
+    fn compile<'fragment, Expr>(self, out_expr: Expr) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
+        out_expr
+    }
+}
+
+/// Writes a scoped cast's output into an expression result slot.
+struct WriteCastOutput<'db> {
+    out_var_name: &'db str,
+}
+
+impl<'db> CastContinuation<'db> for WriteCastOutput<'db> {
+    fn compile<'fragment, Expr>(self, out_expr: Expr) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
+        let out_var_name = self.out_var_name;
+        frag!({out_var_name}.write({out_expr});)
+    }
 }
 
 /// Binds a cast result before compiling the remaining Rust statements.

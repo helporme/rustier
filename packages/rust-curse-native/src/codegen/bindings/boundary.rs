@@ -16,7 +16,10 @@ use crate::{
         },
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment},
-        ir::type_::{Primitive, Type},
+        ir::{
+            item::ItemIdExt,
+            type_::{Primitive, Type},
+        },
     },
     frag,
 };
@@ -329,8 +332,8 @@ pub fn compile_boundary_in_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> impl Fra
             )
             | Type::Str
             | Type::String => api.js_type(db).apply(p),
-            Type::Struct(id) => frag!(&{ id.binding_name(db) }).apply(p),
-            Type::Enum(id) => frag!(&{ id.binding_name(db) }).apply(p),
+            Type::Struct(id) => frag!(&{ id.extern_name(db) }).apply(p),
+            Type::Enum(id) => frag!(&{ id.extern_name(db) }).apply(p),
         }
     })
 }
@@ -436,7 +439,7 @@ pub fn compile_boundary_out_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> &'db st
         Type::Str => unreachable!(
             "str cannot be returned from the function, since functions cannot return references"
         ),
-        Type::Struct(id) => id.binding_name(db),
-        Type::Enum(id) => id.binding_name(db),
+        Type::Struct(id) => id.extern_name(db),
+        Type::Enum(id) => id.extern_name(db),
     }
 }

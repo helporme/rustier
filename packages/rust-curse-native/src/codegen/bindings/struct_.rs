@@ -33,12 +33,6 @@ use crate::{
 };
 
 impl<'db> StructId<'db> {
-    /// Returns the binding mangled name, e.g.
-    /// `__binding_struct__std__mem__Drop`.
-    pub fn binding_name(self, db: &'db dyn Db) -> &'db String {
-        binding_name(db, self.into())
-    }
-
     /// Returns the paired tethering struct name.
     pub fn tethering_struct_name(self, db: &'db dyn Db) -> &'db String {
         tethering_struct_name(db, self.into())
@@ -56,12 +50,6 @@ fn tethering_struct_name<'db>(db: &'db dyn Db, id: ItemId<'db>) -> String {
 }
 
 impl<'db> Struct<'db> {
-    /// Returns the name of the binding struct, e.g.
-    /// `__binding_struct__std_mem_Drop`
-    pub fn binding_name(&self, db: &'db dyn Db) -> &'db str {
-        self.id(db).binding_name(db)
-    }
-
     /// Paired tethering struct name, e.g.
     /// `__tethered_struct__std__mem__Drop`.
     pub fn tethering_struct_name(&self, db: &'db dyn Db) -> &'db str {
@@ -144,7 +132,7 @@ fn compile_wrapper_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl Fr
 
     frag!(
         {api.struct_header(db, struct_)}
-        pub struct ~{struct_.binding_name(db)}~{{
+        pub struct ~{struct_.extern_name(db)}~{{
             src: std::rc::Rc<{struct_.tethering_struct_name(db)}>
         }}
     )
@@ -165,7 +153,7 @@ fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl Frag
 
     frag!(
         {api.impl_header(db)}@
-        impl~{struct_.binding_name(db)}~{{
+        impl~{struct_.extern_name(db)}~{{
             {fields}
         }}
     )
@@ -236,8 +224,8 @@ pub fn compile_binding_struct_from_tethered_expr<'db>(
     id: StructId<'db>,
     tethered_struct_expr: impl FragmentOnce + 'db,
 ) -> impl FragmentOnce + 'db {
-    let binding_name = id.binding_name(db);
-    frag!({binding_name}~{{ src: {tethered_struct_expr} }})
+    let extern_name = id.extern_name(db);
+    frag!({extern_name}~{{ src: {tethered_struct_expr} }})
 }
 
 /// Casts a generated struct boundary value to a borrowed source struct.
@@ -313,7 +301,7 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
     fn predecessor(self, db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
         match to {
             SourceType::Item { target } if target.kind(db) == ItemKind::Struct => {
-                Some(BoundaryType::Item { target })
+                Some(BoundaryType::Ref(Box::new(BoundaryType::Item { target })))
             }
             _ => None,
         }
@@ -332,8 +320,11 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
         Expr: FragmentOnce + 'fragment,
         Continue: CastContinuation<'db>,
     {
-        let BoundaryType::Item { target } = from else {
-            unreachable!("struct boundary casts require a generated boundary type");
+        let BoundaryType::Ref(target) = from else {
+            unreachable!("struct boundary casts require a generated boundary type ref");
+        };
+        let BoundaryType::Item { target } = *target else {
+            unreachable!("struct boundary casts require a generated boundary type ref");
         };
         let SourceType::Item {
             target: source_target,
