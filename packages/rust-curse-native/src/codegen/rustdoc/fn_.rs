@@ -8,7 +8,7 @@ use crate::codegen::{
     ir::{
         fn_::{Fn, FnId, FnParam, PassingMode},
         item::{ItemId, ItemIdExt as _, ItemKind, ItemPath},
-        type_::Type,
+        type_::IrType,
     },
     rustdoc::{
         CrateExt, ItemIdExt as _, RustdocId,
@@ -87,28 +87,28 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
 
         if mode == PassingMode::Move {
             match type_ {
-                Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
+                IrType::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
                     causes.push(FnLowerError::NonClonableMovedStructParam {
                         name: name.clone(),
                         struct_fqn: struct_id.fqn(db).to_owned(),
                     });
                     continue;
                 }
-                Type::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
+                IrType::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
                     causes.push(FnLowerError::NonClonableMovedEnumParam {
                         name: name.clone(),
                         enum_fqn: enum_id.fqn(db).to_owned(),
                     });
                     continue;
                 }
-                Type::Primitive(_) | Type::Str | Type::String | Type::Struct(_) | Type::Enum(_) => {
+                IrType::Primitive(_) | IrType::Str | IrType::String | IrType::Struct(_) | IrType::Enum(_) => {
                 }
             }
         }
 
         if mode == PassingMode::Mut {
             match type_ {
-                Type::Primitive(_) => {
+                IrType::Primitive(_) => {
                     let crate_ = id.crate_(db);
                     let source_code = item
                         .span
@@ -123,7 +123,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
                     }
                     .accumulate(db);
                 }
-                Type::Str | Type::String => {
+                IrType::Str | IrType::String => {
                     let crate_ = id.crate_(db);
                     let source_code = item
                         .span
@@ -138,7 +138,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
                     }
                     .accumulate(db);
                 }
-                Type::Struct(_) | Type::Enum(_) => {}
+                IrType::Struct(_) | IrType::Enum(_) => {}
             }
         }
 

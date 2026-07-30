@@ -6,7 +6,7 @@ use crate::codegen::{
 /// A primitive type.
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
-pub enum Primitive {
+pub enum IrPrimitive {
     Boolean,
     Char,
     i8,
@@ -19,52 +19,52 @@ pub enum Primitive {
     f64,
 }
 
-impl Primitive {
+impl IrPrimitive {
     /// Returns this primitive's Rust name.
     pub fn fqn(&self) -> &'static str {
         match self {
-            Primitive::Boolean => "bool",
-            Primitive::Char => "char",
-            Primitive::i8 => "i8",
-            Primitive::u8 => "u8",
-            Primitive::i16 => "i16",
-            Primitive::u16 => "u16",
-            Primitive::i32 => "i32",
-            Primitive::u32 => "u32",
-            Primitive::f32 => "f32",
-            Primitive::f64 => "f64",
+            IrPrimitive::Boolean => "bool",
+            IrPrimitive::Char => "char",
+            IrPrimitive::i8 => "i8",
+            IrPrimitive::u8 => "u8",
+            IrPrimitive::i16 => "i16",
+            IrPrimitive::u16 => "u16",
+            IrPrimitive::i32 => "i32",
+            IrPrimitive::u32 => "u32",
+            IrPrimitive::f32 => "f32",
+            IrPrimitive::f64 => "f64",
         }
     }
 
     /// Returns this primitive's TypeScript name.
     pub fn ts_name(&self) -> &'static str {
         match self {
-            Primitive::Boolean => "boolean",
-            Primitive::Char
-            | Primitive::i8
-            | Primitive::u8
-            | Primitive::i16
-            | Primitive::u16
-            | Primitive::i32
-            | Primitive::u32
-            | Primitive::f32
-            | Primitive::f64 => "number",
+            IrPrimitive::Boolean => "boolean",
+            IrPrimitive::Char
+            | IrPrimitive::i8
+            | IrPrimitive::u8
+            | IrPrimitive::i16
+            | IrPrimitive::u16
+            | IrPrimitive::i32
+            | IrPrimitive::u32
+            | IrPrimitive::f32
+            | IrPrimitive::f64 => "number",
         }
     }
 
     /// Returns the cast function name for this primitive.
     pub fn cast_fn_name(&self) -> &'static str {
         match self {
-            Primitive::Boolean => "__cast_bool",
-            Primitive::Char => "__cast_char",
-            Primitive::i8 => "__cast_i8",
-            Primitive::u8 => "__cast_u8",
-            Primitive::i16 => "__cast_i16",
-            Primitive::u16 => "__cast_u16",
-            Primitive::i32 => "__cast_i32",
-            Primitive::u32 => "__cast_u32",
-            Primitive::f32 => "__cast_f32",
-            Primitive::f64 => "__cast_f64",
+            IrPrimitive::Boolean => "__cast_bool",
+            IrPrimitive::Char => "__cast_char",
+            IrPrimitive::i8 => "__cast_i8",
+            IrPrimitive::u8 => "__cast_u8",
+            IrPrimitive::i16 => "__cast_i16",
+            IrPrimitive::u16 => "__cast_u16",
+            IrPrimitive::i32 => "__cast_i32",
+            IrPrimitive::u32 => "__cast_u32",
+            IrPrimitive::f32 => "__cast_f32",
+            IrPrimitive::f64 => "__cast_f64",
         }
     }
 }
@@ -89,8 +89,8 @@ impl Primitive {
 /// doesn't really support refs in all cases.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 // todo: rename to IrType
-pub enum Type<'db> {
-    Primitive(Primitive),
+pub enum IrType<'db> {
+    Primitive(IrPrimitive),
     Str,
     String,
     Struct(StructId<'db>),
@@ -109,25 +109,25 @@ pub enum Type<'db> {
     // Slice
 }
 
-impl<'db> Type<'db> {
+impl<'db> IrType<'db> {
     /// Returns this type's Rust name used in source code.
     pub fn fqn(&self, db: &'db dyn Db) -> &'db str {
         match self {
-            Type::Primitive(primitive) => primitive.fqn(),
-            Type::Str => "str",
-            Type::String => "String",
-            Type::Struct(id) => id.fqn(db),
-            Type::Enum(id) => id.fqn(db),
+            IrType::Primitive(primitive) => primitive.fqn(),
+            IrType::Str => "str",
+            IrType::String => "String",
+            IrType::Struct(id) => id.fqn(db),
+            IrType::Enum(id) => id.fqn(db),
         }
     }
 
     /// Returns this type's TypeScript name.
     pub fn ts_name(&self, db: &'db dyn Db) -> String {
         match self {
-            Type::Primitive(primitive) => primitive.ts_name().to_owned(),
-            Type::Str | Type::String => "string".to_owned(),
-            Type::Struct(id) => id.name(db).to_owned(),
-            Type::Enum(id) => id.name(db).to_owned(),
+            IrType::Primitive(primitive) => primitive.ts_name().to_owned(),
+            IrType::Str | IrType::String => "string".to_owned(),
+            IrType::Struct(id) => id.name(db).to_owned(),
+            IrType::Enum(id) => id.name(db).to_owned(),
         }
     }
 
@@ -135,11 +135,11 @@ impl<'db> Type<'db> {
     // todo: function should be moved to the cast.rs module and removed from here
     pub fn cast_fn_name(&self, db: &'db dyn Db) -> String {
         match self {
-            Type::Primitive(primitive) => primitive.cast_fn_name().to_owned(),
-            Type::Str | Type::String => "__cast_String".to_owned(),
+            IrType::Primitive(primitive) => primitive.cast_fn_name().to_owned(),
+            IrType::Str | IrType::String => "__cast_String".to_owned(),
             // todo: never produced actaully
-            Type::Struct(id) => format!("__cast_{}", id.extern_name(db)),
-            Type::Enum(id) => format!("__cast_{}", id.extern_name(db)),
+            IrType::Struct(id) => format!("__cast_{}", id.extern_name(db)),
+            IrType::Enum(id) => format!("__cast_{}", id.extern_name(db)),
         }
     }
 }

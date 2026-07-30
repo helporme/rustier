@@ -8,7 +8,7 @@ use crate::codegen::{
     ir::{
         enum_::EnumId,
         struct_::StructId,
-        type_::{Primitive, Type as IrType},
+        type_::{IrPrimitive, IrType},
     },
     rustdoc::{CrateExt, RustdocType},
 };
@@ -108,17 +108,17 @@ pub fn lower_type<'db>(
 
 fn lower_primitive<'db>(name: &str) -> Option<IrType<'db>> {
     let type_ = match name {
-        "bool" => IrType::Primitive(Primitive::Boolean),
-        "char" => IrType::Primitive(Primitive::Char),
+        "bool" => IrType::Primitive(IrPrimitive::Boolean),
+        "char" => IrType::Primitive(IrPrimitive::Char),
         "str" => IrType::Str,
-        "i8" => IrType::Primitive(Primitive::i8),
-        "i16" => IrType::Primitive(Primitive::i16),
-        "i32" => IrType::Primitive(Primitive::i32),
-        "u8" => IrType::Primitive(Primitive::u8),
-        "u16" => IrType::Primitive(Primitive::u16),
-        "u32" => IrType::Primitive(Primitive::u32),
-        "f32" => IrType::Primitive(Primitive::f32),
-        "f64" => IrType::Primitive(Primitive::f64),
+        "i8" => IrType::Primitive(IrPrimitive::i8),
+        "i16" => IrType::Primitive(IrPrimitive::i16),
+        "i32" => IrType::Primitive(IrPrimitive::i32),
+        "u8" => IrType::Primitive(IrPrimitive::u8),
+        "u16" => IrType::Primitive(IrPrimitive::u16),
+        "u32" => IrType::Primitive(IrPrimitive::u32),
+        "f32" => IrType::Primitive(IrPrimitive::f32),
+        "f64" => IrType::Primitive(IrPrimitive::f64),
         _ => return None,
     };
 

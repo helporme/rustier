@@ -8,7 +8,7 @@ use crate::codegen::{
     ir::{
         item::ItemIdExt as _,
         shape::{Shape, ShapeField},
-        type_::Type,
+        type_::IrType,
     },
     rustdoc::{
         CrateExt, ItemIdExt, RustdocId,
@@ -145,10 +145,10 @@ fn lower_tuple_shape_field<'db>(
 
     let name = index.to_string();
     let readonly_parent_fqn = match field_type {
-        Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
+        IrType::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
             Some(struct_id.fqn(db).to_owned())
         }
-        Type::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
+        IrType::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
             Some(enum_id.fqn(db).to_owned())
         }
         _ => None,
@@ -201,10 +201,10 @@ fn lower_plain_shape_field<'db>(
     })?;
 
     let readonly_parent_fqn = match field_type {
-        Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
+        IrType::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
             Some(struct_id.fqn(db).to_owned())
         }
-        Type::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
+        IrType::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
             Some(enum_id.fqn(db).to_owned())
         }
         _ => None,
@@ -270,7 +270,7 @@ pub fn is_struct_clonable<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> bool {
 fn lower_shape_field_type<'db>(
     db: &'db dyn Db,
     id: RustdocId<'db>,
-) -> Result<Type<'db>, Vec<TypeLowerError>> {
+) -> Result<IrType<'db>, Vec<TypeLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);
 

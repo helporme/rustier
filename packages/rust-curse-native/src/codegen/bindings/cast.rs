@@ -12,7 +12,7 @@ use crate::{
         api::Api,
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment, spaced},
-        ir::type_::{Primitive, Type},
+        ir::type_::{IrPrimitive, IrType},
         rustdoc::mod_::{all_mod_ids, lower_mod_enums, lower_mod_fns, lower_mod_structs},
     },
     frag,
@@ -28,7 +28,7 @@ pub fn compile_cast_fns(db: &dyn Db) -> String {
 }
 
 /// Collects cast target types used by public functions, structs, and enums.
-fn collect_cast_types<'db>(db: &'db dyn Db) -> Vec<Type<'db>> {
+fn collect_cast_types<'db>(db: &'db dyn Db) -> Vec<IrType<'db>> {
     let mut seen = HashSet::new();
     let mut types = Vec::new();
 
@@ -59,45 +59,45 @@ fn collect_cast_types<'db>(db: &'db dyn Db) -> Vec<Type<'db>> {
 
 /// Collects a cast target type and any wider helper types it depends on.
 fn collect_cast_type<'db>(
-    type_: Type<'db>,
-    seen: &mut HashSet<Type<'db>>,
-    types: &mut Vec<Type<'db>>,
+    type_: IrType<'db>,
+    seen: &mut HashSet<IrType<'db>>,
+    types: &mut Vec<IrType<'db>>,
 ) {
     if !seen.insert(type_) {
         return;
     }
 
     match type_ {
-        Type::Str => {
-            collect_cast_type(Type::String, seen, types);
+        IrType::Str => {
+            collect_cast_type(IrType::String, seen, types);
             return; // no need for both str and string, we generate one cast fn
             // for both
         }
-        Type::Primitive(Primitive::Char) => {
+        IrType::Primitive(IrPrimitive::Char) => {
             // char is casted to/from u32 when passing a js boundary
-            collect_cast_type(Type::Primitive(Primitive::u32), seen, types);
+            collect_cast_type(IrType::Primitive(IrPrimitive::u32), seen, types);
         }
-        Type::Primitive(
-            Primitive::i8
-            | Primitive::i16
-            | Primitive::i32
-            | Primitive::u8
-            | Primitive::u16
-            | Primitive::u32
-            | Primitive::f32,
+        IrType::Primitive(
+            IrPrimitive::i8
+            | IrPrimitive::i16
+            | IrPrimitive::i32
+            | IrPrimitive::u8
+            | IrPrimitive::u16
+            | IrPrimitive::u32
+            | IrPrimitive::f32,
         ) => {
             // all "normal" numbers are casted from f64 when passing js border
-            collect_cast_type(Type::Primitive(Primitive::f64), seen, types);
+            collect_cast_type(IrType::Primitive(IrPrimitive::f64), seen, types);
         }
-        Type::Primitive(Primitive::Boolean | Primitive::f64) | Type::String => {}
-        Type::Struct(_) | Type::Enum(_) => return,
+        IrType::Primitive(IrPrimitive::Boolean | IrPrimitive::f64) | IrType::String => {}
+        IrType::Struct(_) | IrType::Enum(_) => return,
     }
 
     types.push(type_);
 }
 
 /// Compiles a cast helper function for the given type.
-fn compile_cast_fn<'db>(db: &'db dyn Db, type_: Type<'db>) -> impl FragmentOnce + 'db {
+fn compile_cast_fn<'db>(db: &'db dyn Db, type_: IrType<'db>) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
 
     frag!(
@@ -108,51 +108,53 @@ fn compile_cast_fn<'db>(db: &'db dyn Db, type_: Type<'db>) -> impl FragmentOnce 
 }
 
 /// Compiles the successful `Result` type of a cast function.
-fn compile_cast_res<'db>(type_: Type<'db>) -> &'db str {
+fn compile_cast_res<'db>(type_: IrType<'db>) -> &'db str {
     match type_ {
-        Type::Primitive(primitive) => primitive.fqn(),
-        Type::Str | Type::String => "String",
-        Type::Struct(_) | Type::Enum(_) => unreachable!(),
+        IrType::Primitive(primitive) => primitive.fqn(),
+        IrType::Str | IrType::String => "String",
+        IrType::Struct(_) | IrType::Enum(_) => unreachable!(),
     }
 }
 
 /// Compiles the body of a cast function.
-fn compile_cast_body<'db>(db: &'db dyn Db, type_: Type<'db>) -> impl FragmentOnce + 'db {
+fn compile_cast_body<'db>(db: &'db dyn Db, type_: IrType<'db>) -> impl FragmentOnce + 'db {
     fragment(move |p| {
         let api = Api::get(db);
 
         match type_ {
-            Type::Primitive(Primitive::Boolean) => api.cast_to_bool_with_string_error(db).apply(p),
-            Type::Primitive(Primitive::Char) => compile_char_cast_body().apply(p),
-            Type::Str | Type::String => api.cast_to_string_with_string_error(db).apply(p),
-            Type::Primitive(Primitive::i8) => {
-                compile_signed_integer_cast_body(Primitive::i8).apply(p)
+            IrType::Primitive(IrPrimitive::Boolean) => {
+                api.cast_to_bool_with_string_error(db).apply(p)
             }
-            Type::Primitive(Primitive::u8) => {
-                compile_unsigned_integer_cast_body(Primitive::u8).apply(p)
+            IrType::Primitive(IrPrimitive::Char) => compile_char_cast_body().apply(p),
+            IrType::Str | IrType::String => api.cast_to_string_with_string_error(db).apply(p),
+            IrType::Primitive(IrPrimitive::i8) => {
+                compile_signed_integer_cast_body(IrPrimitive::i8).apply(p)
             }
-            Type::Primitive(Primitive::i16) => {
-                compile_signed_integer_cast_body(Primitive::i16).apply(p)
+            IrType::Primitive(IrPrimitive::u8) => {
+                compile_unsigned_integer_cast_body(IrPrimitive::u8).apply(p)
             }
-            Type::Primitive(Primitive::u16) => {
-                compile_unsigned_integer_cast_body(Primitive::u16).apply(p)
+            IrType::Primitive(IrPrimitive::i16) => {
+                compile_signed_integer_cast_body(IrPrimitive::i16).apply(p)
             }
-            Type::Primitive(Primitive::i32) => {
-                compile_signed_integer_cast_body(Primitive::i32).apply(p)
+            IrType::Primitive(IrPrimitive::u16) => {
+                compile_unsigned_integer_cast_body(IrPrimitive::u16).apply(p)
             }
-            Type::Primitive(Primitive::u32) => {
-                compile_unsigned_integer_cast_body(Primitive::u32).apply(p)
+            IrType::Primitive(IrPrimitive::i32) => {
+                compile_signed_integer_cast_body(IrPrimitive::i32).apply(p)
             }
-            Type::Primitive(Primitive::f32) => compile_f32_cast_body().apply(p),
-            Type::Primitive(Primitive::f64) => api.cast_to_f64_with_string_error(db).apply(p),
-            Type::Struct(_) | Type::Enum(_) => unreachable!(),
+            IrType::Primitive(IrPrimitive::u32) => {
+                compile_unsigned_integer_cast_body(IrPrimitive::u32).apply(p)
+            }
+            IrType::Primitive(IrPrimitive::f32) => compile_f32_cast_body().apply(p),
+            IrType::Primitive(IrPrimitive::f64) => api.cast_to_f64_with_string_error(db).apply(p),
+            IrType::Struct(_) | IrType::Enum(_) => unreachable!(),
         }
     })
 }
 
 /// Compiles a cast body that converts a JavaScript number into a Rust `char`.
 fn compile_char_cast_body() -> impl FragmentOnce {
-    let u32_cast_fn = Primitive::u32.cast_fn_name();
+    let u32_cast_fn = IrPrimitive::u32.cast_fn_name();
 
     frag!(
         let value = ~{u32_cast_fn}(value).map_err(|_| "cannot cast value to char".to_string())?;
@@ -162,8 +164,8 @@ fn compile_char_cast_body() -> impl FragmentOnce {
 
 /// Compiles a cast body that converts a JavaScript number into a Rust `f32`.
 fn compile_f32_cast_body() -> impl FragmentOnce {
-    let f64_cast_fn = Primitive::f64.cast_fn_name();
-    let type_name = Primitive::f32.fqn();
+    let f64_cast_fn = IrPrimitive::f64.cast_fn_name();
+    let type_name = IrPrimitive::f32.fqn();
 
     frag!(
         let type_name = ~{doubles(type_name)};@
@@ -174,8 +176,8 @@ fn compile_f32_cast_body() -> impl FragmentOnce {
 
 /// Compiles a cast body that converts a JavaScript number into a signed Rust
 /// integer.
-fn compile_signed_integer_cast_body(primitive: Primitive) -> impl FragmentOnce {
-    let f64_cast_fn = Primitive::f64.cast_fn_name();
+fn compile_signed_integer_cast_body(primitive: IrPrimitive) -> impl FragmentOnce {
+    let f64_cast_fn = IrPrimitive::f64.cast_fn_name();
     let type_name = primitive.fqn();
 
     frag!(
@@ -193,8 +195,8 @@ fn compile_signed_integer_cast_body(primitive: Primitive) -> impl FragmentOnce {
 
 /// Compiles a cast body that converts a JavaScript number into an unsigned Rust
 /// integer.
-fn compile_unsigned_integer_cast_body(primitive: Primitive) -> impl FragmentOnce {
-    let f64_cast_fn = Primitive::f64.cast_fn_name();
+fn compile_unsigned_integer_cast_body(primitive: IrPrimitive) -> impl FragmentOnce {
+    let f64_cast_fn = IrPrimitive::f64.cast_fn_name();
     let type_name = primitive.fqn();
 
     frag! (
@@ -237,7 +239,7 @@ mod tests {
 
         assert_eq!(
             collect_cast_types(&db),
-            vec![Type::Primitive(Primitive::Boolean)]
+            vec![IrType::Primitive(IrPrimitive::Boolean)]
         );
     }
 
@@ -249,7 +251,7 @@ mod tests {
 
         assert_eq!(
             collect_cast_types(&db),
-            vec![Type::Primitive(Primitive::Boolean), Type::String]
+            vec![IrType::Primitive(IrPrimitive::Boolean), IrType::String]
         );
     }
 
@@ -272,7 +274,7 @@ mod tests {
 
         assert_eq!(
             collect_cast_types(&db),
-            vec![Type::Primitive(Primitive::Boolean)]
+            vec![IrType::Primitive(IrPrimitive::Boolean)]
         );
     }
 
@@ -287,7 +289,7 @@ mod tests {
 
         assert_eq!(
             collect_cast_types(&db),
-            vec![Type::Primitive(Primitive::Boolean), Type::String]
+            vec![IrType::Primitive(IrPrimitive::Boolean), IrType::String]
         );
     }
 
@@ -308,7 +310,7 @@ mod tests {
 
         assert_eq!(
             collect_cast_types(&db),
-            vec![Type::Primitive(Primitive::Boolean)]
+            vec![IrType::Primitive(IrPrimitive::Boolean)]
         );
     }
 
@@ -320,7 +322,7 @@ mod tests {
 
         assert_eq!(
             collect_cast_types(&db),
-            vec![Type::Primitive(Primitive::Boolean), Type::String]
+            vec![IrType::Primitive(IrPrimitive::Boolean), IrType::String]
         );
     }
 
@@ -345,7 +347,7 @@ mod tests {
 
         assert_eq!(
             collect_cast_types(&db),
-            vec![Type::Primitive(Primitive::Boolean)]
+            vec![IrType::Primitive(IrPrimitive::Boolean)]
         );
     }
 
@@ -359,7 +361,7 @@ mod tests {
 
         assert_eq!(
             collect_cast_types(&db),
-            vec![Type::Primitive(Primitive::Boolean), Type::String]
+            vec![IrType::Primitive(IrPrimitive::Boolean), IrType::String]
         );
     }
 
@@ -384,7 +386,7 @@ mod tests {
 
         assert_eq!(
             collect_cast_types(&db),
-            vec![Type::Primitive(Primitive::Boolean)]
+            vec![IrType::Primitive(IrPrimitive::Boolean)]
         );
     }
 
@@ -398,7 +400,7 @@ mod tests {
 
         assert_eq!(
             collect_cast_types(&db),
-            vec![Type::Primitive(Primitive::Boolean), Type::String]
+            vec![IrType::Primitive(IrPrimitive::Boolean), IrType::String]
         );
     }
 
@@ -419,9 +421,9 @@ mod tests {
         assert_eq!(
             collect_cast_types(&db),
             vec![
-                Type::Primitive(Primitive::Boolean),
-                Type::String,
-                Type::Primitive(Primitive::f64),
+                IrType::Primitive(IrPrimitive::Boolean),
+                IrType::String,
+                IrType::Primitive(IrPrimitive::f64),
             ]
         );
     }
@@ -442,7 +444,7 @@ mod tests {
 
         assert_eq!(
             collect_cast_types(&db),
-            vec![Type::Primitive(Primitive::Boolean)]
+            vec![IrType::Primitive(IrPrimitive::Boolean)]
         );
     }
 
@@ -481,15 +483,18 @@ mod tests {
         };
     }
 
-    cast_fn_snapshot_test!(compiles_bool_cast_fn, Type::Primitive(Primitive::Boolean));
-    cast_fn_snapshot_test!(compiles_char_cast_fn, Type::Primitive(Primitive::Char));
-    cast_fn_snapshot_test!(compiles_i8_cast_fn, Type::Primitive(Primitive::i8));
-    cast_fn_snapshot_test!(compiles_u8_cast_fn, Type::Primitive(Primitive::u8));
-    cast_fn_snapshot_test!(compiles_i16_cast_fn, Type::Primitive(Primitive::i16));
-    cast_fn_snapshot_test!(compiles_u16_cast_fn, Type::Primitive(Primitive::u16));
-    cast_fn_snapshot_test!(compiles_i32_cast_fn, Type::Primitive(Primitive::i32));
-    cast_fn_snapshot_test!(compiles_u32_cast_fn, Type::Primitive(Primitive::u32));
-    cast_fn_snapshot_test!(compiles_f32_cast_fn, Type::Primitive(Primitive::f32));
-    cast_fn_snapshot_test!(compiles_f64_cast_fn, Type::Primitive(Primitive::f64));
-    cast_fn_snapshot_test!(compiles_string_cast_fn, Type::String);
+    cast_fn_snapshot_test!(
+        compiles_bool_cast_fn,
+        IrType::Primitive(IrPrimitive::Boolean)
+    );
+    cast_fn_snapshot_test!(compiles_char_cast_fn, IrType::Primitive(IrPrimitive::Char));
+    cast_fn_snapshot_test!(compiles_i8_cast_fn, IrType::Primitive(IrPrimitive::i8));
+    cast_fn_snapshot_test!(compiles_u8_cast_fn, IrType::Primitive(IrPrimitive::u8));
+    cast_fn_snapshot_test!(compiles_i16_cast_fn, IrType::Primitive(IrPrimitive::i16));
+    cast_fn_snapshot_test!(compiles_u16_cast_fn, IrType::Primitive(IrPrimitive::u16));
+    cast_fn_snapshot_test!(compiles_i32_cast_fn, IrType::Primitive(IrPrimitive::i32));
+    cast_fn_snapshot_test!(compiles_u32_cast_fn, IrType::Primitive(IrPrimitive::u32));
+    cast_fn_snapshot_test!(compiles_f32_cast_fn, IrType::Primitive(IrPrimitive::f32));
+    cast_fn_snapshot_test!(compiles_f64_cast_fn, IrType::Primitive(IrPrimitive::f64));
+    cast_fn_snapshot_test!(compiles_string_cast_fn, IrType::String);
 }

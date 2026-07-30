@@ -6,7 +6,7 @@ use rust_curse::codegen::{
         mod_::Mod,
         shape::{Shape, ShapeField},
         struct_::Struct,
-        type_::{Primitive, Type},
+        type_::{IrPrimitive, IrType},
     },
     rustdoc::{
         ItemIdExt as _,
@@ -66,31 +66,31 @@ impl<'db> DebugRender<'db> for Mod<'db> {
     }
 }
 
-impl<'db> DebugRender<'db> for Type<'db> {
+impl<'db> DebugRender<'db> for IrType<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         match self {
-            Type::Primitive(primitive) => primitive.render(db),
-            Type::Str => "str".to_string(),
-            Type::String => "String".to_string(),
-            Type::Struct(id) => id.fqn(db).to_owned(),
-            Type::Enum(id) => id.fqn(db).to_owned(),
+            IrType::Primitive(primitive) => primitive.render(db),
+            IrType::Str => "str".to_string(),
+            IrType::String => "String".to_string(),
+            IrType::Struct(id) => id.fqn(db).to_owned(),
+            IrType::Enum(id) => id.fqn(db).to_owned(),
         }
     }
 }
 
-impl<'db> DebugRender<'db> for Primitive {
+impl<'db> DebugRender<'db> for IrPrimitive {
     fn render(&self, _db: &'db dyn Db) -> String {
         match self {
-            Primitive::Boolean => "bool",
-            Primitive::Char => "char",
-            Primitive::i8 => "i8",
-            Primitive::u8 => "u8",
-            Primitive::i16 => "i16",
-            Primitive::u16 => "u16",
-            Primitive::i32 => "i32",
-            Primitive::u32 => "u32",
-            Primitive::f32 => "f32",
-            Primitive::f64 => "f64",
+            IrPrimitive::Boolean => "bool",
+            IrPrimitive::Char => "char",
+            IrPrimitive::i8 => "i8",
+            IrPrimitive::u8 => "u8",
+            IrPrimitive::i16 => "i16",
+            IrPrimitive::u16 => "u16",
+            IrPrimitive::i32 => "i32",
+            IrPrimitive::u32 => "u32",
+            IrPrimitive::f32 => "f32",
+            IrPrimitive::f64 => "f64",
         }
         .to_string()
     }

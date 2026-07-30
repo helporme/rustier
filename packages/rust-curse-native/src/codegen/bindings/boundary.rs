@@ -18,7 +18,7 @@ use crate::{
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment},
         ir::{
             item::ItemIdExt,
-            type_::{Primitive, Type},
+            type_::{IrPrimitive, IrType},
         },
     },
     frag,
@@ -40,7 +40,7 @@ pub struct BoundaryInExpr<'db> {
     /// Name of the variable to which the converted value will be assigned.
     pub out_var_name: &'db str,
     /// Type of the expression.
-    pub type_: Type<'db>,
+    pub type_: IrType<'db>,
     /// Whether the expression type is a mutable reference.
     pub mode: BoundaryMode,
 }
@@ -129,18 +129,21 @@ where
     let exprs = exprs.into_iter();
     let will_use_tethering_closures = exprs
         .clone()
-        .any(|expr| matches!(expr.type_, Type::Struct(_) | Type::Enum(_)));
+        .any(|expr| matches!(expr.type_, IrType::Struct(_) | IrType::Enum(_)));
 
     let cast_exprs = exprs.clone();
     let cast_stmts = fragment(move |p| {
         for expr in cast_exprs {
-            if !matches!(expr.type_, Type::Struct(_) | Type::Enum(_)) {
+            if !matches!(expr.type_, IrType::Struct(_) | IrType::Enum(_)) {
                 frag!({compile_boundary_conversion_stmt_via_cast(db, expr)}@).apply(p);
 
                 // When tethering closures are used, wrap moved strings in `Some`
                 // so they can be taken without violating the FnMut contract.
                 if will_use_tethering_closures
-                    && matches!((expr.type_, expr.mode), (Type::String, BoundaryMode::Move))
+                    && matches!(
+                        (expr.type_, expr.mode),
+                        (IrType::String, BoundaryMode::Move)
+                    )
                 {
                     frag!(
                         let mut ~{expr.out_var_name}~ = Some({expr.out_var_name});@
@@ -159,7 +162,9 @@ where
             //
             // Clone inside the closure so the source value is not moved out of a
             // callback that implements FnMut rather than FnOnce.
-            if let (Type::Struct(_) | Type::Enum(_), BoundaryMode::Move) = (expr.type_, expr.mode) {
+            if let (IrType::Struct(_) | IrType::Enum(_), BoundaryMode::Move) =
+                (expr.type_, expr.mode)
+            {
                 frag!(
                     let ~{expr.out_var_name}~ = ~{expr.out_var_name}.clone();@
                 )
@@ -169,7 +174,10 @@ where
             // When tethering closures are used, unwrap strings at the innermost
             // point so moving them does not violate the FnMut contract.
             if will_use_tethering_closures
-                && matches!((expr.type_, expr.mode), (Type::String, BoundaryMode::Move))
+                && matches!(
+                    (expr.type_, expr.mode),
+                    (IrType::String, BoundaryMode::Move)
+                )
             {
                 frag!(
                     let ~{expr.out_var_name}~ = ~{expr.out_var_name}.take().unwrap();@
@@ -187,11 +195,11 @@ where
 
     for expr in exprs.clone() {
         match expr.type_ {
-            Type::Struct(_) | Type::Enum(_) => {
+            IrType::Struct(_) | IrType::Enum(_) => {
                 tethering_expr =
                     compile_boundary_in_struct_conversion_stmt(expr, tethering_expr).print();
             }
-            Type::Primitive(_) | Type::Str | Type::String => {}
+            IrType::Primitive(_) | IrType::Str | IrType::String => {}
         }
     }
 
@@ -219,7 +227,7 @@ fn compile_boundary_conversion_stmt_via_cast<'db>(
     db: &'db dyn Db,
     expr: BoundaryInExpr<'db>,
 ) -> impl FragmentOnce + 'db {
-    assert!(!matches!(expr.type_, Type::Struct(_) | Type::Enum(_)));
+    assert!(!matches!(expr.type_, IrType::Struct(_) | IrType::Enum(_)));
 
     let api = Api::get(db);
 
@@ -272,7 +280,7 @@ fn compile_boundary_in_struct_conversion_stmt<'db>(
     expr: BoundaryInExpr<'db>,
     inner_expr: impl FragmentOnce + 'db,
 ) -> impl FragmentOnce + 'db {
-    assert!(matches!(expr.type_, Type::Struct(_) | Type::Enum(_)));
+    assert!(matches!(expr.type_, IrType::Struct(_) | IrType::Enum(_)));
 
     let tethered_struct = compile_boundary_in_to_tethered_struct_expr(expr.in_expr, expr.type_);
 
@@ -296,13 +304,13 @@ fn compile_boundary_in_struct_conversion_stmt<'db>(
 /// ```
 pub fn compile_boundary_in_to_tethered_struct_expr<'db>(
     boundary_expr: impl FragmentOnce + 'db,
-    boundary_type: Type<'db>,
+    boundary_type: IrType<'db>,
 ) -> impl FragmentOnce + 'db {
     fragment(move |p| match boundary_type {
-        Type::Struct(_) | Type::Enum(_) => {
+        IrType::Struct(_) | IrType::Enum(_) => {
             compile_binding_struct_get_tethered_expr(boundary_expr).apply(p);
         }
-        Type::Primitive(_) | Type::Str | Type::String => unreachable!(),
+        IrType::Primitive(_) | IrType::Str | IrType::String => unreachable!(),
     })
 }
 
@@ -313,27 +321,27 @@ pub fn compile_boundary_in_to_tethered_struct_expr<'db>(
 ///
 /// For example, `Type::Primitive(Primitive::i32)` is compiled to `"JsValue"`
 /// for active wasm api (see [`crate::codegen::api::Api::js_type`]).
-pub fn compile_boundary_in_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> impl FragmentOnce + 'db {
+pub fn compile_boundary_in_type<'db>(db: &'db dyn Db, ty: IrType<'db>) -> impl FragmentOnce + 'db {
     fragment(move |p| {
         let api = Api::get(db);
 
         match ty {
-            Type::Primitive(
-                Primitive::Boolean
-                | Primitive::i8
-                | Primitive::u8
-                | Primitive::u16
-                | Primitive::i16
-                | Primitive::i32
-                | Primitive::u32
-                | Primitive::f32
-                | Primitive::f64
-                | Primitive::Char,
+            IrType::Primitive(
+                IrPrimitive::Boolean
+                | IrPrimitive::i8
+                | IrPrimitive::u8
+                | IrPrimitive::u16
+                | IrPrimitive::i16
+                | IrPrimitive::i32
+                | IrPrimitive::u32
+                | IrPrimitive::f32
+                | IrPrimitive::f64
+                | IrPrimitive::Char,
             )
-            | Type::Str
-            | Type::String => api.js_type(db).apply(p),
-            Type::Struct(id) => frag!(&{ id.extern_name(db) }).apply(p),
-            Type::Enum(id) => frag!(&{ id.extern_name(db) }).apply(p),
+            | IrType::Str
+            | IrType::String => api.js_type(db).apply(p),
+            IrType::Struct(id) => frag!(&{ id.extern_name(db) }).apply(p),
+            IrType::Enum(id) => frag!(&{ id.extern_name(db) }).apply(p),
         }
     })
 }
@@ -347,28 +355,28 @@ pub fn compile_boundary_in_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> impl Fra
 pub fn compile_boundary_out_from_source_type_expr<'db>(
     db: &'db dyn Db,
     in_expr: impl FragmentOnce + 'db,
-    in_expr_type: Type<'db>,
+    in_expr_type: IrType<'db>,
 ) -> impl FragmentOnce + 'db {
     fragment(move |p| {
         match in_expr_type {
-            Type::Primitive(Primitive::Char) => frag!({ in_expr } as u32).apply(p),
-            Type::Primitive(Primitive::f32) => frag!({ in_expr } as f64).apply(p),
+            IrType::Primitive(IrPrimitive::Char) => frag!({ in_expr } as u32).apply(p),
+            IrType::Primitive(IrPrimitive::f32) => frag!({ in_expr } as f64).apply(p),
             // can be returned as-is, since all APIs are supporting it natively
-            Type::Primitive(
-                Primitive::Boolean
-                | Primitive::i8
-                | Primitive::u8
-                | Primitive::i16
-                | Primitive::u16
-                | Primitive::i32
-                | Primitive::u32
-                | Primitive::f64,
+            IrType::Primitive(
+                IrPrimitive::Boolean
+                | IrPrimitive::i8
+                | IrPrimitive::u8
+                | IrPrimitive::i16
+                | IrPrimitive::u16
+                | IrPrimitive::i32
+                | IrPrimitive::u32
+                | IrPrimitive::f64,
             )
-            | Type::String => in_expr.apply(p),
-            Type::Str => unreachable!(
+            | IrType::String => in_expr.apply(p),
+            IrType::Str => unreachable!(
                 "str cannot be returned from the function, since functions cannot return references"
             ),
-            Type::Struct(id) => {
+            IrType::Struct(id) => {
                 let tethered_struct = compile_tethering_struct_from_source_expr(
                     id.tethering_struct_name(db),
                     in_expr,
@@ -377,17 +385,17 @@ pub fn compile_boundary_out_from_source_type_expr<'db>(
                 compile_boundary_out_from_tethered_struct_expr(
                     db,
                     tethered_struct,
-                    Type::Struct(id),
+                    IrType::Struct(id),
                 )
                 .apply(p);
             }
-            Type::Enum(id) => {
+            IrType::Enum(id) => {
                 let tethered_enum = compile_tethering_struct_from_source_expr(
                     id.tethering_struct_name(db),
                     in_expr,
                 );
 
-                compile_boundary_out_from_tethered_struct_expr(db, tethered_enum, Type::Enum(id))
+                compile_boundary_out_from_tethered_struct_expr(db, tethered_enum, IrType::Enum(id))
                     .apply(p);
             }
         }
@@ -406,16 +414,16 @@ pub fn compile_boundary_out_from_source_type_expr<'db>(
 pub fn compile_boundary_out_from_tethered_struct_expr<'db>(
     db: &'db dyn Db,
     tethered_struct_expr: impl FragmentOnce + 'db,
-    tethered_struct_type: Type<'db>,
+    tethered_struct_type: IrType<'db>,
 ) -> impl FragmentOnce + 'db {
     fragment(move |p| match tethered_struct_type {
-        Type::Struct(id) => {
+        IrType::Struct(id) => {
             compile_binding_struct_from_tethered_expr(db, id, tethered_struct_expr).apply(p);
         }
-        Type::Enum(id) => {
+        IrType::Enum(id) => {
             compile_binding_enum_from_tethered_expr(db, id, tethered_struct_expr).apply(p);
         }
-        Type::Primitive(_) | Type::Str | Type::String => unreachable!(),
+        IrType::Primitive(_) | IrType::Str | IrType::String => unreachable!(),
     })
 }
 
@@ -425,21 +433,21 @@ pub fn compile_boundary_out_from_tethered_struct_expr<'db>(
 /// [`compile_boundary_out_from_source_type_expr`].
 ///
 /// For example, `Type::Primitive(Primitive::i32)` is compiled to `"i32"`.
-pub fn compile_boundary_out_type<'db>(db: &'db dyn Db, ty: Type<'db>) -> &'db str {
+pub fn compile_boundary_out_type<'db>(db: &'db dyn Db, ty: IrType<'db>) -> &'db str {
     match ty {
-        Type::Primitive(Primitive::Boolean) => "bool",
-        Type::Primitive(Primitive::i8) => "i8",
-        Type::Primitive(Primitive::u8) => "u8",
-        Type::Primitive(Primitive::i16) => "i16",
-        Type::Primitive(Primitive::u16) => "u16",
-        Type::Primitive(Primitive::i32) => "i32",
-        Type::Primitive(Primitive::u32) | Type::Primitive(Primitive::Char) => "u32",
-        Type::Primitive(Primitive::f64) | Type::Primitive(Primitive::f32) => "f64",
-        Type::String => "String",
-        Type::Str => unreachable!(
+        IrType::Primitive(IrPrimitive::Boolean) => "bool",
+        IrType::Primitive(IrPrimitive::i8) => "i8",
+        IrType::Primitive(IrPrimitive::u8) => "u8",
+        IrType::Primitive(IrPrimitive::i16) => "i16",
+        IrType::Primitive(IrPrimitive::u16) => "u16",
+        IrType::Primitive(IrPrimitive::i32) => "i32",
+        IrType::Primitive(IrPrimitive::u32) | IrType::Primitive(IrPrimitive::Char) => "u32",
+        IrType::Primitive(IrPrimitive::f64) | IrType::Primitive(IrPrimitive::f32) => "f64",
+        IrType::String => "String",
+        IrType::Str => unreachable!(
             "str cannot be returned from the function, since functions cannot return references"
         ),
-        Type::Struct(id) => id.extern_name(db),
-        Type::Enum(id) => id.extern_name(db),
+        IrType::Struct(id) => id.extern_name(db),
+        IrType::Enum(id) => id.extern_name(db),
     }
 }

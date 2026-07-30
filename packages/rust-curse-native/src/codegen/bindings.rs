@@ -1,3 +1,4 @@
+pub mod bir;
 pub mod boundary;
 pub mod cast;
 mod cast_graph;
@@ -7,7 +8,6 @@ pub mod mod_;
 pub mod primitive;
 pub mod struct_;
 pub mod tethering;
-pub mod type_;
 
 use crate::codegen::{
     api::Api,

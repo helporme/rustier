@@ -3,6 +3,7 @@
 use crate::{
     codegen::{
         bindings::{
+            bir::{BirBoundaryType, BirSourceType},
             enum_::{
                 CastEnumBoundaryTypeToBorrowedSourceType, CastEnumBoundaryTypeToOwnedSourceType,
                 CastEnumSourceTypeToBoundaryType,
@@ -17,9 +18,8 @@ use crate::{
                 CastStructBoundaryTypeToBorrowedSourceType,
                 CastStructBoundaryTypeToOwnedSourceType, CastStructSourceTypeToBoundaryType,
             },
-            type_::{BoundaryType, CastOwnedTypeToBorrowedTypeRule, SourceType},
         },
-        cast::CastContinuation,
+        cast::{CastContinuation, IndirectCastRule},
         db::Db,
         fragment::{FragmentOnce, Printer, fragment},
     },
@@ -29,8 +29,8 @@ use crate::{
 define_cast_graph! {
     pub BindingsCastGraph<'db> {
         types {
-            BoundaryType(BoundaryType<'db>),
-            SourceType(SourceType<'db>),
+            BoundaryType(BirBoundaryType<'db>),
+            SourceType(BirSourceType<'db>),
         }
 
         direct_rules {
@@ -417,6 +417,52 @@ where
 
         frag!(
             let ~{out_var_name}~ = ~{out_expr};@
+            {continue_with}
+        )
+    }
+}
+
+/// A rule to cast an owned source type to a reference source type.
+pub struct CastOwnedTypeToBorrowedTypeRule;
+
+impl<'db> IndirectCastRule<'db, BirSourceType<'db>, BirSourceType<'db>>
+    for CastOwnedTypeToBorrowedTypeRule
+{
+    fn predecessor(self, _db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirSourceType<'db>> {
+        match to {
+            BirSourceType::Ref { inner, .. } if inner.allows_generic_borrowing_cast() => {
+                Some(*inner)
+            }
+            _ => None,
+        }
+    }
+
+    fn compile<'fragment, Expr, Continue>(
+        self,
+        _db: &'db dyn Db,
+        _from: BirSourceType<'db>,
+        to: BirSourceType<'db>,
+        in_expr: Expr,
+        continue_with: Continue,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+        Continue: CastContinuation<'db>,
+    {
+        let BirSourceType::Ref { is_mutable, .. } = to else {
+            unreachable!()
+        };
+
+        let borrowing = if is_mutable {
+            frag!(&mut value)
+        } else {
+            frag!(&value)
+        };
+        let continue_with = continue_with.compile(borrowing);
+
+        frag!(
+            let mut value = {in_expr};
             {continue_with}
         )
     }

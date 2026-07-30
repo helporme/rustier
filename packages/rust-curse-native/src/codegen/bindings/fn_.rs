@@ -4,8 +4,8 @@
 use crate::codegen::{
     api::Api,
     bindings::{
+        bir::BirSourceType,
         cast_graph::{Cast, compile_cast_expr, compile_casts_expr, compile_casts_stmt},
-        type_::SourceType,
     },
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, comma_list, frag, fragment},
@@ -24,13 +24,13 @@ impl<'db> FnParam<'db> {
     }
 
     /// Source type of the parameter.
-    pub fn source_type(self, db: &'db dyn Db) -> SourceType<'db> {
+    pub fn source_type(self, db: &'db dyn Db) -> BirSourceType<'db> {
         match self.mode(db) {
-            PassingMode::Ref => SourceType::Ref {
+            PassingMode::Ref => BirSourceType::Ref {
                 is_mutable: false,
                 inner: Box::new(self.type_(db).source_type_owned()),
             },
-            PassingMode::Mut => SourceType::Ref {
+            PassingMode::Mut => BirSourceType::Ref {
                 is_mutable: true,
                 inner: Box::new(self.type_(db).source_type_owned()),
             },

@@ -5,6 +5,7 @@ use crate::{
     codegen::{
         api::Api,
         bindings::{
+            bir::{BirBoundaryType, BirSourceType},
             boundary::{
                 BoundaryInExpr, BoundaryMode, compile_boundary_in_to_source_type_expr,
                 compile_boundary_in_type, compile_boundary_out_from_source_type_expr,
@@ -16,7 +17,6 @@ use crate::{
                 compile_tethered_struct_mut_access_stmt, compile_tethered_struct_ref_access_stmt,
                 compile_tethered_struct_set_field_stmt, compile_tethering_struct_from_source_expr,
             },
-            type_::{BoundaryType, SourceType},
         },
         cast::{CastContinuation, DirectCastRule, IndirectCastRule},
         db::Db,
@@ -25,7 +25,7 @@ use crate::{
             item::{ItemId, ItemIdExt as _, ItemKind},
             shape::ShapeField,
             struct_::{Struct, StructId},
-            type_::Type,
+            type_::IrType,
         },
         rustdoc::mod_::{all_mod_ids, lower_mod_enums, lower_mod_structs},
     },
@@ -73,7 +73,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
             move |source: &'static str| frag!(__tethering::AccessResult::Ok(&mut ~{source}.{name}));
 
         match type_ {
-            Type::Struct(id) => {
+            IrType::Struct(id) => {
                 let tethered_name = id.tethering_struct_name(db);
 
                 TetheredField::TetheredStruct(TetheredStructField {
@@ -85,7 +85,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
                     with_setter: !field.is_readonly(db),
                 })
             }
-            Type::Enum(enum_id) => {
+            IrType::Enum(enum_id) => {
                 let tethered_name = enum_id.tethering_struct_name(db);
 
                 TetheredField::TetheredStruct(TetheredStructField {
@@ -97,12 +97,14 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
                     with_setter: !field.is_readonly(db),
                 })
             }
-            Type::Primitive(_) | Type::Str | Type::String => TetheredField::Cloned(ClonedField {
-                name,
-                get_ref_expr,
-                get_mut_expr,
-                source_type: type_.fqn(db),
-            }),
+            IrType::Primitive(_) | IrType::Str | IrType::String => {
+                TetheredField::Cloned(ClonedField {
+                    name,
+                    get_ref_expr,
+                    get_mut_expr,
+                    source_type: type_.fqn(db),
+                })
+            }
         }
     });
 
@@ -168,10 +170,10 @@ fn compile_field_getter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl Fr
 
     let tethered_value = compile_tethered_struct_get_field_expr(frag!(self.src), field.name(db));
     let output = fragment(move |p| match field_type {
-        Type::Struct(_) | Type::Enum(_) => {
+        IrType::Struct(_) | IrType::Enum(_) => {
             compile_boundary_out_from_tethered_struct_expr(db, tethered_value, field_type).apply(p);
         }
-        Type::Primitive(_) | Type::Str | Type::String => {
+        IrType::Primitive(_) | IrType::Str | IrType::String => {
             compile_boundary_out_from_source_type_expr(db, tethered_value, field_type).apply(p);
         }
     });
@@ -231,14 +233,14 @@ pub fn compile_binding_struct_from_tethered_expr<'db>(
 /// Casts a generated struct boundary value to a borrowed source struct.
 pub struct CastStructBoundaryTypeToBorrowedSourceType;
 
-impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
+impl<'db> IndirectCastRule<'db, BirBoundaryType<'db>, BirSourceType<'db>>
     for CastStructBoundaryTypeToBorrowedSourceType
 {
-    fn predecessor(self, db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
+    fn predecessor(self, db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirBoundaryType<'db>> {
         match to {
-            SourceType::Ref { inner, .. } => match *inner {
-                SourceType::Item { target: id } if id.kind(db) == ItemKind::Struct => {
-                    Some(BoundaryType::Item { target: id })
+            BirSourceType::Ref { inner, .. } => match *inner {
+                BirSourceType::Item { target: id } if id.kind(db) == ItemKind::Struct => {
+                    Some(BirBoundaryType::Item { target: id })
                 }
                 _ => None,
             },
@@ -249,8 +251,8 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
     fn compile<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
-        from: BoundaryType<'db>,
-        to: SourceType<'db>,
+        from: BirBoundaryType<'db>,
+        to: BirSourceType<'db>,
         in_expr: Expr,
         continue_with: Continue,
     ) -> impl FragmentOnce + 'fragment
@@ -259,16 +261,16 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
         Expr: FragmentOnce + 'fragment,
         Continue: CastContinuation<'db>,
     {
-        let SourceType::Ref { is_mutable, inner } = to else {
+        let BirSourceType::Ref { is_mutable, inner } = to else {
             unreachable!()
         };
-        let SourceType::Item {
+        let BirSourceType::Item {
             target: source_target,
         } = *inner
         else {
             unreachable!()
         };
-        let BoundaryType::Item { target } = from else {
+        let BirBoundaryType::Item { target } = from else {
             unreachable!()
         };
 
@@ -295,13 +297,15 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
 /// it.
 pub struct CastStructBoundaryTypeToOwnedSourceType;
 
-impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
+impl<'db> IndirectCastRule<'db, BirBoundaryType<'db>, BirSourceType<'db>>
     for CastStructBoundaryTypeToOwnedSourceType
 {
-    fn predecessor(self, db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
+    fn predecessor(self, db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirBoundaryType<'db>> {
         match to {
-            SourceType::Item { target } if target.kind(db) == ItemKind::Struct => {
-                Some(BoundaryType::Ref(Box::new(BoundaryType::Item { target })))
+            BirSourceType::Item { target } if target.kind(db) == ItemKind::Struct => {
+                Some(BirBoundaryType::Ref(Box::new(BirBoundaryType::Item {
+                    target,
+                })))
             }
             _ => None,
         }
@@ -310,8 +314,8 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
     fn compile<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
-        from: BoundaryType<'db>,
-        to: SourceType<'db>,
+        from: BirBoundaryType<'db>,
+        to: BirSourceType<'db>,
         in_expr: Expr,
         continue_with: Continue,
     ) -> impl FragmentOnce + 'fragment
@@ -320,13 +324,13 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
         Expr: FragmentOnce + 'fragment,
         Continue: CastContinuation<'db>,
     {
-        let BoundaryType::Ref(target) = from else {
+        let BirBoundaryType::Ref(target) = from else {
             unreachable!("struct boundary casts require a generated boundary type ref");
         };
-        let BoundaryType::Item { target } = *target else {
+        let BirBoundaryType::Item { target } = *target else {
             unreachable!("struct boundary casts require a generated boundary type ref");
         };
-        let SourceType::Item {
+        let BirSourceType::Item {
             target: source_target,
         } = to
         else {
@@ -350,13 +354,13 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
 /// Casts an owned source struct to its generated boundary type.
 pub struct CastStructSourceTypeToBoundaryType;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
+impl<'db> DirectCastRule<'db, BirSourceType<'db>, BirBoundaryType<'db>>
     for CastStructSourceTypeToBoundaryType
 {
-    fn predecessor(self, db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
+    fn predecessor(self, db: &'db dyn Db, to: BirBoundaryType<'db>) -> Option<BirSourceType<'db>> {
         match to {
-            BoundaryType::Item { target } => {
-                StructId::new(db, target).map(|_| SourceType::Item { target })
+            BirBoundaryType::Item { target } => {
+                StructId::new(db, target).map(|_| BirSourceType::Item { target })
             }
             _ => None,
         }
@@ -365,21 +369,21 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
     fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        from: SourceType<'db>,
-        to: BoundaryType<'db>,
+        from: BirSourceType<'db>,
+        to: BirBoundaryType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
         'db: 'fragment,
         Expr: FragmentOnce + 'fragment,
     {
-        let SourceType::Item {
+        let BirSourceType::Item {
             target: source_target,
         } = from
         else {
             unreachable!("struct boundary casts require an owned item source");
         };
-        let BoundaryType::Item { target } = to else {
+        let BirBoundaryType::Item { target } = to else {
             unreachable!("struct boundary casts require a generated boundary target");
         };
 
@@ -417,10 +421,10 @@ mod tests {
             IndirectCastRule::compile(
                 CastStructBoundaryTypeToBorrowedSourceType,
                 &db,
-                BoundaryType::Item { target },
-                SourceType::Ref {
+                BirBoundaryType::Item { target },
+                BirSourceType::Ref {
                     is_mutable: false,
-                    inner: Box::new(SourceType::Item { target }),
+                    inner: Box::new(BirSourceType::Item { target }),
                 },
                 "input",
                 Consume,
@@ -439,10 +443,10 @@ mod tests {
             IndirectCastRule::compile(
                 CastStructBoundaryTypeToBorrowedSourceType,
                 &db,
-                BoundaryType::Item { target },
-                SourceType::Ref {
+                BirBoundaryType::Item { target },
+                BirSourceType::Ref {
                     is_mutable: true,
-                    inner: Box::new(SourceType::Item { target }),
+                    inner: Box::new(BirSourceType::Item { target }),
                 },
                 "input",
                 Consume,
@@ -461,8 +465,8 @@ mod tests {
             IndirectCastRule::compile(
                 CastStructBoundaryTypeToOwnedSourceType,
                 &db,
-                BoundaryType::Item { target },
-                SourceType::Item { target },
+                BirBoundaryType::Item { target },
+                BirSourceType::Item { target },
                 "input",
                 Consume,
             )
@@ -480,8 +484,8 @@ mod tests {
             DirectCastRule::compile(
                 CastStructSourceTypeToBoundaryType,
                 &db,
-                SourceType::Item { target },
-                BoundaryType::Item { target },
+                BirSourceType::Item { target },
+                BirBoundaryType::Item { target },
                 "input",
             )
             .print()

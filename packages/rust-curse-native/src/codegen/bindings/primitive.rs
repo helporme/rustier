@@ -1,7 +1,7 @@
 use crate::{
     codegen::{
         api::Api,
-        bindings::type_::{BoundaryType, SourceType},
+        bindings::bir::{BirBoundaryType, BirSourceType},
         cast::{CastContinuation, DirectCastRule, IndirectCastRule},
         db::Db,
         fragment::{FragmentOnce, doubles},
@@ -12,16 +12,20 @@ use crate::{
 /// Casts an owned boundary `f64` to any supported signed integer type.
 pub struct CastF64ToSignedIntRule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToSignedIntRule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        matches!(to, SourceType::i8 | SourceType::i16 | SourceType::i32).then_some(SourceType::f64)
+impl<'db> DirectCastRule<'db, BirSourceType<'db>, BirSourceType<'db>> for CastF64ToSignedIntRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirSourceType<'db>> {
+        matches!(
+            to,
+            BirSourceType::i8 | BirSourceType::i16 | BirSourceType::i32
+        )
+        .then_some(BirSourceType::f64)
     }
 
     fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: SourceType<'db>,
-        to: SourceType<'db>,
+        _from: BirSourceType<'db>,
+        to: BirSourceType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -29,9 +33,9 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToSig
         Expr: FragmentOnce + 'fragment,
     {
         let type_name = match to {
-            SourceType::i8 => "i8",
-            SourceType::i16 => "i16",
-            SourceType::i32 => "i32",
+            BirSourceType::i8 => "i8",
+            BirSourceType::i16 => "i16",
+            BirSourceType::i32 => "i32",
             _ => unreachable!("signed integer cast requires a signed integer target"),
         };
         let api = Api::get(db);
@@ -56,16 +60,20 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToSig
 /// Casts an owned boundary `f64` to any supported unsigned integer type.
 pub struct CastF64ToUnsignedIntRule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToUnsignedIntRule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        matches!(to, SourceType::u8 | SourceType::u16 | SourceType::u32).then_some(SourceType::f64)
+impl<'db> DirectCastRule<'db, BirSourceType<'db>, BirSourceType<'db>> for CastF64ToUnsignedIntRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirSourceType<'db>> {
+        matches!(
+            to,
+            BirSourceType::u8 | BirSourceType::u16 | BirSourceType::u32
+        )
+        .then_some(BirSourceType::f64)
     }
 
     fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: SourceType<'db>,
-        to: SourceType<'db>,
+        _from: BirSourceType<'db>,
+        to: BirSourceType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -73,9 +81,9 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToUns
         Expr: FragmentOnce + 'fragment,
     {
         let type_name = match to {
-            SourceType::u8 => "u8",
-            SourceType::u16 => "u16",
-            SourceType::u32 => "u32",
+            BirSourceType::u8 => "u8",
+            BirSourceType::u16 => "u16",
+            BirSourceType::u32 => "u32",
             _ => unreachable!("unsigned integer cast requires an unsigned integer target"),
         };
         let api = Api::get(db);
@@ -100,16 +108,16 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToUns
 /// Casts an owned boundary `u32` to a `char`.
 pub struct CastU32ToCharRule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastU32ToCharRule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        (to == SourceType::char).then_some(SourceType::u32)
+impl<'db> DirectCastRule<'db, BirSourceType<'db>, BirSourceType<'db>> for CastU32ToCharRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirSourceType<'db>> {
+        (to == BirSourceType::char).then_some(BirSourceType::u32)
     }
 
     fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: SourceType<'db>,
-        _to: SourceType<'db>,
+        _from: BirSourceType<'db>,
+        _to: BirSourceType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -129,16 +137,16 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastU32ToCha
 /// Casts an owned boundary `f64` to an `f32`.
 pub struct CastF64ToF32Rule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToF32Rule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        (to == SourceType::f32).then_some(SourceType::f64)
+impl<'db> DirectCastRule<'db, BirSourceType<'db>, BirSourceType<'db>> for CastF64ToF32Rule {
+    fn predecessor(self, _db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirSourceType<'db>> {
+        (to == BirSourceType::f32).then_some(BirSourceType::f64)
     }
 
     fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
-        _from: SourceType<'db>,
-        _to: SourceType<'db>,
+        _from: BirSourceType<'db>,
+        _to: BirSourceType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -152,16 +160,18 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToF32
 /// Casts an owned source `char` to a boundary `u32`.
 pub struct CastCharToU32BoundaryRule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastCharToU32BoundaryRule {
-    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
-        (to == BoundaryType::u32).then_some(SourceType::char)
+impl<'db> DirectCastRule<'db, BirSourceType<'db>, BirBoundaryType<'db>>
+    for CastCharToU32BoundaryRule
+{
+    fn predecessor(self, _db: &'db dyn Db, to: BirBoundaryType<'db>) -> Option<BirSourceType<'db>> {
+        (to == BirBoundaryType::u32).then_some(BirSourceType::char)
     }
 
     fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
-        _from: SourceType<'db>,
-        _to: BoundaryType<'db>,
+        _from: BirSourceType<'db>,
+        _to: BirBoundaryType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -175,16 +185,18 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastCharTo
 /// Casts an owned source `f32` to a boundary `f64`.
 pub struct CastF32ToF64BoundaryRule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastF32ToF64BoundaryRule {
-    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
-        (to == BoundaryType::f64).then_some(SourceType::f32)
+impl<'db> DirectCastRule<'db, BirSourceType<'db>, BirBoundaryType<'db>>
+    for CastF32ToF64BoundaryRule
+{
+    fn predecessor(self, _db: &'db dyn Db, to: BirBoundaryType<'db>) -> Option<BirSourceType<'db>> {
+        (to == BirBoundaryType::f64).then_some(BirSourceType::f32)
     }
 
     fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
-        _from: SourceType<'db>,
-        _to: BoundaryType<'db>,
+        _from: BirSourceType<'db>,
+        _to: BirBoundaryType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -198,32 +210,32 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastF32ToF
 /// Passes an owned primitive source value to its identical boundary type.
 pub struct CastPrimitiveToSameBoundaryRule;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
+impl<'db> DirectCastRule<'db, BirSourceType<'db>, BirBoundaryType<'db>>
     for CastPrimitiveToSameBoundaryRule
 {
-    fn predecessor(self, _db: &'db dyn Db, to: BoundaryType<'db>) -> Option<SourceType<'db>> {
+    fn predecessor(self, _db: &'db dyn Db, to: BirBoundaryType<'db>) -> Option<BirSourceType<'db>> {
         match to {
-            BoundaryType::String => Some(SourceType::String),
-            BoundaryType::bool => Some(SourceType::bool),
-            BoundaryType::i8 => Some(SourceType::i8),
-            BoundaryType::u8 => Some(SourceType::u8),
-            BoundaryType::i16 => Some(SourceType::i16),
-            BoundaryType::u16 => Some(SourceType::u16),
-            BoundaryType::i32 => Some(SourceType::i32),
-            BoundaryType::u32 => Some(SourceType::u32),
-            BoundaryType::f64 => Some(SourceType::f64),
-            BoundaryType::f32
-            | BoundaryType::JsAny
-            | BoundaryType::Item { .. }
-            | BoundaryType::Ref { .. } => None,
+            BirBoundaryType::String => Some(BirSourceType::String),
+            BirBoundaryType::bool => Some(BirSourceType::bool),
+            BirBoundaryType::i8 => Some(BirSourceType::i8),
+            BirBoundaryType::u8 => Some(BirSourceType::u8),
+            BirBoundaryType::i16 => Some(BirSourceType::i16),
+            BirBoundaryType::u16 => Some(BirSourceType::u16),
+            BirBoundaryType::i32 => Some(BirSourceType::i32),
+            BirBoundaryType::u32 => Some(BirSourceType::u32),
+            BirBoundaryType::f64 => Some(BirSourceType::f64),
+            BirBoundaryType::f32
+            | BirBoundaryType::JsAny
+            | BirBoundaryType::Item { .. }
+            | BirBoundaryType::Ref { .. } => None,
         }
     }
 
     fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
-        _from: SourceType<'db>,
-        _to: BoundaryType<'db>,
+        _from: BirSourceType<'db>,
+        _to: BirBoundaryType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -237,16 +249,16 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
 /// Casts an API-specific JavaScript boundary value to an owned `f64`.
 pub struct CastJsAnyToF64Rule;
 
-impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyToF64Rule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
-        (to == SourceType::f64).then_some(BoundaryType::JsAny)
+impl<'db> DirectCastRule<'db, BirBoundaryType<'db>, BirSourceType<'db>> for CastJsAnyToF64Rule {
+    fn predecessor(self, _db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirBoundaryType<'db>> {
+        (to == BirSourceType::f64).then_some(BirBoundaryType::JsAny)
     }
 
     fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: BoundaryType<'db>,
-        _to: SourceType<'db>,
+        _from: BirBoundaryType<'db>,
+        _to: BirSourceType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -265,16 +277,16 @@ impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyT
 /// Casts an API-specific JavaScript boundary value to an owned `bool`.
 pub struct CastJsAnyToBoolRule;
 
-impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyToBoolRule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
-        (to == SourceType::bool).then_some(BoundaryType::JsAny)
+impl<'db> DirectCastRule<'db, BirBoundaryType<'db>, BirSourceType<'db>> for CastJsAnyToBoolRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirBoundaryType<'db>> {
+        (to == BirSourceType::bool).then_some(BirBoundaryType::JsAny)
     }
 
     fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: BoundaryType<'db>,
-        _to: SourceType<'db>,
+        _from: BirBoundaryType<'db>,
+        _to: BirSourceType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -293,16 +305,16 @@ impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyT
 /// Casts an API-specific JavaScript boundary value to an owned `String`.
 pub struct CastJsAnyToStringRule;
 
-impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyToStringRule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<BoundaryType<'db>> {
-        (to == SourceType::String).then_some(BoundaryType::JsAny)
+impl<'db> DirectCastRule<'db, BirBoundaryType<'db>, BirSourceType<'db>> for CastJsAnyToStringRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirBoundaryType<'db>> {
+        (to == BirSourceType::String).then_some(BirBoundaryType::JsAny)
     }
 
     fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: BoundaryType<'db>,
-        _to: SourceType<'db>,
+        _from: BirBoundaryType<'db>,
+        _to: BirSourceType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -321,20 +333,20 @@ impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyT
 /// Borrows an owned boundary `String` as `&str`.
 pub struct CastStringToStrRefRule;
 
-impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastStringToStrRefRule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        (to == SourceType::Ref {
+impl<'db> IndirectCastRule<'db, BirSourceType<'db>, BirSourceType<'db>> for CastStringToStrRefRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirSourceType<'db>> {
+        (to == BirSourceType::Ref {
             is_mutable: false,
-            inner: Box::new(SourceType::Str),
+            inner: Box::new(BirSourceType::Str),
         })
-        .then_some(SourceType::String)
+        .then_some(BirSourceType::String)
     }
 
     fn compile<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
-        _from: SourceType<'db>,
-        _to: SourceType<'db>,
+        _from: BirSourceType<'db>,
+        _to: BirSourceType<'db>,
         in_expr: Expr,
         continue_with: Continue,
     ) -> impl FragmentOnce + 'fragment
@@ -356,20 +368,20 @@ impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastString
 /// Borrows an owned boundary `String` as `&mut str` for the continuation.
 pub struct CastStringToStrMutRule;
 
-impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastStringToStrMutRule {
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
-        (to == SourceType::Ref {
+impl<'db> IndirectCastRule<'db, BirSourceType<'db>, BirSourceType<'db>> for CastStringToStrMutRule {
+    fn predecessor(self, _db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirSourceType<'db>> {
+        (to == BirSourceType::Ref {
             is_mutable: true,
-            inner: Box::new(SourceType::Str),
+            inner: Box::new(BirSourceType::Str),
         })
-        .then_some(SourceType::String)
+        .then_some(BirSourceType::String)
     }
 
     fn compile<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
-        _from: SourceType<'db>,
-        _to: SourceType<'db>,
+        _from: BirSourceType<'db>,
+        _to: BirSourceType<'db>,
         in_expr: Expr,
         continue_with: Continue,
     ) -> impl FragmentOnce + 'fragment
@@ -443,71 +455,71 @@ mod tests {
     direct_cast_snapshot_test!(
         casts_f64_to_signed_int,
         CastF64ToSignedIntRule,
-        SourceType::f64,
-        SourceType::i32
+        BirSourceType::f64,
+        BirSourceType::i32
     );
     direct_cast_snapshot_test!(
         casts_f64_to_unsigned_int,
         CastF64ToUnsignedIntRule,
-        SourceType::f64,
-        SourceType::u32
+        BirSourceType::f64,
+        BirSourceType::u32
     );
     direct_cast_snapshot_test!(
         casts_u32_to_char,
         CastU32ToCharRule,
-        SourceType::u32,
-        SourceType::char
+        BirSourceType::u32,
+        BirSourceType::char
     );
     direct_cast_snapshot_test!(
         casts_f64_to_f32,
         CastF64ToF32Rule,
-        SourceType::f64,
-        SourceType::f32
+        BirSourceType::f64,
+        BirSourceType::f32
     );
     direct_cast_snapshot_test!(
         casts_char_to_u32_boundary,
         CastCharToU32BoundaryRule,
-        SourceType::char,
-        BoundaryType::u32
+        BirSourceType::char,
+        BirBoundaryType::u32
     );
     direct_cast_snapshot_test!(
         casts_f32_to_f64_boundary,
         CastF32ToF64BoundaryRule,
-        SourceType::f32,
-        BoundaryType::f64
+        BirSourceType::f32,
+        BirBoundaryType::f64
     );
     direct_cast_snapshot_test!(
         passes_primitive_to_same_boundary,
         CastPrimitiveToSameBoundaryRule,
-        SourceType::i32,
-        BoundaryType::i32
+        BirSourceType::i32,
+        BirBoundaryType::i32
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_f64,
         CastJsAnyToF64Rule,
-        BoundaryType::JsAny,
-        SourceType::f64
+        BirBoundaryType::JsAny,
+        BirSourceType::f64
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_bool,
         CastJsAnyToBoolRule,
-        BoundaryType::JsAny,
-        SourceType::bool
+        BirBoundaryType::JsAny,
+        BirSourceType::bool
     );
     direct_cast_snapshot_test!(
         casts_boundary_js_type_to_string,
         CastJsAnyToStringRule,
-        BoundaryType::JsAny,
-        SourceType::String
+        BirBoundaryType::JsAny,
+        BirSourceType::String
     );
 
     #[test]
     fn casts_string_to_str_ref() {
         assert_snap!({
-            let from = SourceType::String;
-            let to = SourceType::Ref {
+            let from = BirSourceType::String;
+            let to = BirSourceType::Ref {
                 is_mutable: false,
-                inner: Box::new(SourceType::Str),
+                inner: Box::new(BirSourceType::Str),
             };
 
             snapshot_for_apis(|db| {
@@ -527,10 +539,10 @@ mod tests {
     #[test]
     fn casts_string_to_str_mut() {
         assert_snap!({
-            let from = SourceType::String;
-            let to = SourceType::Ref {
+            let from = BirSourceType::String;
+            let to = BirSourceType::Ref {
                 is_mutable: true,
-                inner: Box::new(SourceType::Str),
+                inner: Box::new(BirSourceType::Str),
             };
 
             snapshot_for_apis(|db| {

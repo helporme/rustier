@@ -9,7 +9,7 @@ use crate::{
             item::ItemIdExt as _,
             mod_::ModId,
             shape::ShapeField,
-            type_::Type,
+            type_::IrType,
         },
         js::{
             boundary::{
@@ -98,7 +98,7 @@ pub fn compile_facade_class_for_enum<'db>(
         let private_cached_fields = fragment(|p| {
             for group in &groups {
                 for occurrence in &group.occurrences {
-                    if matches!(occurrence.field.type_(db), Type::Struct(_) | Type::Enum(_)) {
+                    if matches!(occurrence.field.type_(db), IrType::Struct(_) | IrType::Enum(_)) {
                         frag!(#_{occurrence.variant.name(db)}_{occurrence.field.name(db)};@)
                             .apply(p);
                     }
@@ -324,7 +324,7 @@ fn compile_field_read_stmt<'db>(
     let field_type = occurrence.field.type_(db);
 
     fragment(move |p| match field_type {
-        Type::Struct(_) | Type::Enum(_) => {
+        IrType::Struct(_) | IrType::Enum(_) => {
             frag!(
                 const binding = ~{compile_enum_binding_field_expr(db, occurrence)};@
                 if (
@@ -342,7 +342,7 @@ fn compile_field_read_stmt<'db>(
             )
             .apply(p);
         }
-        Type::Primitive(_) | Type::Str | Type::String => {
+        IrType::Primitive(_) | IrType::Str | IrType::String => {
             frag!(
                 let value;@
                 {compile_js_binding_value_to_facade_stmt(
@@ -363,7 +363,7 @@ fn compile_field_assignment_stmt<'db>(
     occurrence: EnumFieldOccurrence<'db>,
 ) -> impl FragmentOnce + 'db {
     let field_type = occurrence.field.type_(db);
-    let has_cached_facade = matches!(field_type, Type::Struct(_) | Type::Enum(_));
+    let has_cached_facade = matches!(field_type, IrType::Struct(_) | IrType::Enum(_));
 
     fragment(move |p| {
         frag!({
