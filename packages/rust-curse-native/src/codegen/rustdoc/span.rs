@@ -25,14 +25,13 @@ pub trait RustdocSpanExt {
 
 impl RustdocSpanExt for rustdoc_types::Span {
     fn lower(&self, crate_: &Crate) -> Span {
-        let filename = if self.filename.is_absolute() {
-            self.filename.clone()
-        } else {
-            crate_.dir.join(&self.filename)
-        };
-
         Span {
-            filename,
+            abs_path: if self.filename.is_absolute() {
+                self.filename.clone()
+            } else {
+                crate_.dir.join(&self.filename)
+            },
+            src_path: self.filename.clone(),
             begin: self.begin,
             end: self.end,
         }

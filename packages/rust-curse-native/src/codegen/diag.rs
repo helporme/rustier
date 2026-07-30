@@ -51,7 +51,7 @@ impl Span {
     /// Converts this row/column span into a byte-offset Miette span by loading
     /// its source file.
     pub fn diag_span(&self, db: &dyn Db) -> DiagSpan {
-        let Ok(source_file) = db.source_file(self.filename.as_path()) else {
+        let Ok(source_file) = db.source_file(self.abs_path.as_path()) else {
             return (0, 0).into();
         };
 
@@ -61,12 +61,12 @@ impl Span {
     /// Loads this span's source file and materializes a Miette-compatible
     /// source wrapper.
     pub fn diag_source(&self, db: &dyn Db) -> DiagSource {
-        let Ok(source_file) = db.source_file(self.filename.as_path()) else {
+        let Ok(source_file) = db.source_file(self.abs_path.as_path()) else {
             return DiagSource::not_available();
         };
 
         DiagSource(Some(NamedSource::new(
-            source_file.path(db).display().to_string(),
+            self.src_path.display().to_string(),
             source_file.contents(db),
         )))
     }
@@ -83,25 +83,22 @@ fn row_col_range_to_diag_span(
 }
 
 fn line_col_to_byte_offset(source: &str, (row, column): (usize, usize)) -> usize {
-    let target_row = row.max(1);
-    let target_column = column.max(1);
-    let mut row_start = 0;
+    let mut lines = source.split_inclusive('\n');
+    let row_start = lines
+        .by_ref()
+        .take(row.saturating_sub(1))
+        .map(str::len)
+        .sum::<usize>();
+    let Some(line) = lines.next() else {
+        return source.len();
+    };
+    let text = line.trim_end_matches(['\n', '\r']);
 
-    for (index, line) in source.split_inclusive('\n').enumerate() {
-        if index + 1 != target_row {
-            row_start += line.len();
-            continue;
-        }
-
-        let text = line.trim_end_matches(['\n', '\r']);
-        return row_start
-            + text
-                .char_indices()
-                .nth(target_column.saturating_sub(1))
-                .map_or(text.len(), |(byte, _)| byte);
-    }
-
-    source.len()
+    row_start
+        + text
+            .char_indices()
+            .nth(column.saturating_sub(1))
+            .map_or(text.len(), |(byte, _)| byte)
 }
 
 #[derive(Clone, Copy)]
