@@ -5,11 +5,12 @@ use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
-    ir::span::{SourceCode, Span},
+    diag::{DiagSource, DiagSpan},
     mangle::to_camel_case,
     rustdoc::{
         ItemIdExt as _,
         mod_::{all_mod_ids, lower_mod_enums},
+        span::RustdocSpanExt as _,
     },
 };
 
@@ -36,8 +37,12 @@ pub fn check_enum_js_name_collisions(db: &dyn Db) -> Vec<EnumJsNameCollision> {
             let id = enum_.id(db).rustdoc_id(db);
             let item = id.item(db);
             let crate_ = id.crate_(db);
-            let source_code = crate_.read_source_code_for_span_opt(item.span.as_ref());
-            let span = crate_.read_span_opt(item.span.as_ref());
+            let source_code: DiagSource = item
+                .span
+                .as_ref()
+                .map(|span| span.diag_source(db, crate_))
+                .into();
+            let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
 
             if has_type_field_collision {
                 diags.push(EnumJsNameCollision::TypeField {
@@ -68,9 +73,9 @@ pub enum EnumJsNameCollision {
     )]
     TypeField {
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
     },
 
     #[error(
@@ -83,9 +88,9 @@ pub enum EnumJsNameCollision {
     )]
     VariantTags {
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
     },
 }
 

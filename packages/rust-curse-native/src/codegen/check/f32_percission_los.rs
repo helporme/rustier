@@ -3,17 +3,18 @@ use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
+    diag::{DiagSource, DiagSpan},
     ir::{
         enum_::Enum,
         fn_::Fn,
         shape::Shape,
-        span::{SourceCode, Span},
         struct_::Struct,
         type_::{Primitive, Type},
     },
     rustdoc::{
         ItemIdExt as _,
         mod_::{all_mod_ids, lower_mod_enums, lower_mod_fns, lower_mod_structs},
+        span::RustdocSpanExt as _,
     },
 };
 
@@ -57,11 +58,14 @@ fn check_f32_percission_los_fn(db: &dyn Db, fn_: Fn<'_>) -> Option<F32PrecisionL
         let id = fn_.id(db).rustdoc_id(db);
         let item = id.item(db);
         let crate_ = id.crate_(db);
+        let source_code = item
+            .span
+            .as_ref()
+            .map(|span| span.diag_source(db, crate_))
+            .into();
+        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
 
-        return Some(F32PrecisionLoss {
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
-        });
+        return Some(F32PrecisionLoss { source_code, span });
     }
 
     None
@@ -83,11 +87,14 @@ fn check_f32_percission_los_struct(db: &dyn Db, struct_: Struct<'_>) -> Option<F
         let id = struct_.id(db).rustdoc_id(db);
         let item = id.item(db);
         let crate_ = id.crate_(db);
+        let source_code = item
+            .span
+            .as_ref()
+            .map(|span| span.diag_source(db, crate_))
+            .into();
+        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
 
-        return Some(F32PrecisionLoss {
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
-        });
+        return Some(F32PrecisionLoss { source_code, span });
     }
 
     None
@@ -104,11 +111,14 @@ fn check_f32_percission_los_enum(db: &dyn Db, enum_: Enum<'_>) -> Option<F32Prec
         let id = enum_.id(db).rustdoc_id(db);
         let item = id.item(db);
         let crate_ = id.crate_(db);
+        let source_code = item
+            .span
+            .as_ref()
+            .map(|span| span.diag_source(db, crate_))
+            .into();
+        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
 
-        return Some(F32PrecisionLoss {
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
-        });
+        return Some(F32PrecisionLoss { source_code, span });
     }
 
     None
@@ -124,9 +134,9 @@ fn check_f32_percission_los_enum(db: &dyn Db, enum_: Enum<'_>) -> Option<F32Prec
 )]
 pub struct F32PrecisionLoss {
     #[source_code]
-    source_code: SourceCode,
+    source_code: DiagSource,
     #[label]
-    span: Option<Span>,
+    span: Option<DiagSpan>,
 }
 
 #[cfg(test)]

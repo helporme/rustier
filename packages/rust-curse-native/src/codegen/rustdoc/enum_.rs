@@ -4,16 +4,16 @@ use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
-    diag::DiagAccumulateExt as _,
+    diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
     ir::{
         c_like_enum::{CLikeEnum, CLikeEnumId, CLikeEnumVariant},
         enum_::{Enum, EnumId, EnumVariant},
         item::{ItemId, ItemKind, ItemPath},
-        span::{SourceCode, Span},
     },
     rustdoc::{
         CrateExt, RustdocId,
         shape::{RustdocShape, ShapeFieldLowerError, lower_shape},
+        span::RustdocSpanExt as _,
     },
 };
 
@@ -156,11 +156,17 @@ fn enum_lower_error(
     let item = id.item(db);
     let item_summary = id.crate_body(db).paths.get(&item.id).unwrap();
     let crate_ = id.crate_(db);
+    let source_code = item
+        .span
+        .as_ref()
+        .map(|span| span.diag_source(db, crate_))
+        .into();
+    let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
 
     Box::new(EnumLowerError::Skipped {
         enum_fqn: item_summary.path.join("::"),
-        source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-        span: crate_.read_span_opt(item.span.as_ref()),
+        source_code,
+        span,
         causes,
     })
 }
@@ -184,20 +190,32 @@ fn lower_variant<'db>(
     let (shape, skipped_fields) = lower_shape(db, id, RustdocShape::from(&def.kind));
     if !skipped_fields.is_empty() {
         let crate_ = id.crate_(db);
+        let source_code = item
+            .span
+            .as_ref()
+            .map(|span| span.diag_source(db, crate_))
+            .into();
+        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
         return Err(Box::new(EnumVariantLowerError::FieldsSkipped {
             variant_fqn: item_summary.path.join("::"),
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
+            source_code,
+            span,
             causes: skipped_fields,
         }));
     }
 
     if !matches!(def.kind, VariantKind::Plain) && def.discriminant.is_some() {
         let crate_ = id.crate_(db);
+        let source_code = item
+            .span
+            .as_ref()
+            .map(|span| span.diag_source(db, crate_))
+            .into();
+        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
         IgnoredNonUnitVariantDiscriminant {
             variant_fqn: item_summary.path.join("::"),
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
+            source_code,
+            span,
         }
         .accumulate(db);
     }
@@ -252,9 +270,9 @@ pub fn is_enum_clonable<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> bool {
 pub struct IgnoredNonUnitVariantDiscriminant {
     variant_fqn: String,
     #[source_code]
-    source_code: SourceCode,
+    source_code: DiagSource,
     #[label]
-    span: Option<Span>,
+    span: Option<DiagSpan>,
 }
 
 /// An error that prevents a rustdoc enum from being lowered to IR.
@@ -265,9 +283,9 @@ pub enum EnumLowerError {
     Skipped {
         enum_fqn: String,
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
         #[related]
         causes: Vec<EnumLowerCause>,
     },
@@ -307,9 +325,9 @@ pub enum EnumVariantLowerError {
     FieldsSkipped {
         variant_fqn: String,
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
         #[related]
         causes: Vec<ShapeFieldLowerError>,
     },

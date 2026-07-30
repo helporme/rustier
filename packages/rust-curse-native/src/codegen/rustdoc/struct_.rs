@@ -4,15 +4,15 @@ use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
-    diag::DiagAccumulateExt,
-    ir::item::{ItemId, ItemKind, ItemPath},
+    diag::{DiagAccumulateExt, DiagSource, DiagSpan},
     ir::{
-        span::{SourceCode, Span},
+        item::{ItemId, ItemKind, ItemPath},
         struct_::{Struct, StructId},
     },
     rustdoc::{
         RustdocId,
         shape::{RustdocShape, ShapeFieldLowerError, lower_shape},
+        span::RustdocSpanExt as _,
     },
 };
 
@@ -41,10 +41,16 @@ pub fn lower_struct<'db>(
 
     if !causes.is_empty() {
         let crate_ = id.crate_(db);
+        let source_code = item
+            .span
+            .as_ref()
+            .map(|span| span.diag_source(db, crate_))
+            .into();
+        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
         return Err(Box::new(StructLowerError::Skipped {
             struct_fqn: item_summary.path.join("::"),
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
+            source_code,
+            span,
             causes,
         }));
     }
@@ -53,10 +59,16 @@ pub fn lower_struct<'db>(
 
     if !field_skipped_causes.is_empty() {
         let crate_ = id.crate_(db);
+        let source_code = item
+            .span
+            .as_ref()
+            .map(|span| span.diag_source(db, crate_))
+            .into();
+        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
         StructLowerError::FieldsSkipped {
             struct_fqn: item_summary.path.join("::"),
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
+            source_code,
+            span,
             causes: field_skipped_causes,
         }
         .accumulate(db);
@@ -79,9 +91,9 @@ pub enum StructLowerError {
     Skipped {
         struct_fqn: String,
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
         #[related]
         causes: Vec<StructLowerError>,
     },
@@ -91,9 +103,9 @@ pub enum StructLowerError {
     FieldsSkipped {
         struct_fqn: String,
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
         #[related]
         causes: Vec<ShapeFieldLowerError>,
     },

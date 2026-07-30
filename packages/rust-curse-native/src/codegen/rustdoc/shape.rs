@@ -4,16 +4,16 @@ use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
-    diag::DiagAccumulateExt,
+    diag::{DiagAccumulateExt, DiagSource, DiagSpan},
     ir::{
         item::ItemIdExt as _,
         shape::{Shape, ShapeField},
-        span::{SourceCode, Span},
         type_::Type,
     },
     rustdoc::{
         CrateExt, ItemIdExt, RustdocId,
         enum_::is_enum_clonable,
+        span::RustdocSpanExt as _,
         type_::{LoweredType, TypeLowerError, lower_type},
     },
 };
@@ -130,9 +130,15 @@ fn lower_tuple_shape_field<'db>(
     let item = id.item(db);
     let field_type = lower_shape_field_type(db, id).map_err(|causes| {
         let crate_ = id.crate_(db);
+        let source_code = item
+            .span
+            .as_ref()
+            .map(|span| span.diag_source(db, crate_))
+            .into();
+        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
         ShapeFieldLowerError::TupleFieldSkipped {
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
+            source_code,
+            span,
             causes,
         }
     })?;
@@ -151,10 +157,16 @@ fn lower_tuple_shape_field<'db>(
 
     if let Some(parent_fqn) = readonly_parent_fqn {
         let crate_ = id.crate_(db);
+        let source_code = item
+            .span
+            .as_ref()
+            .map(|span| span.diag_source(db, crate_))
+            .into();
+        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
         ShapeFieldReadonly::Tuple {
             parent_fqn,
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
+            source_code,
+            span,
         }
         .accumulate(db);
     }
@@ -174,10 +186,16 @@ fn lower_plain_shape_field<'db>(
 
     let field_type = lower_shape_field_type(db, id).map_err(|causes| {
         let crate_ = id.crate_(db);
+        let source_code = item
+            .span
+            .as_ref()
+            .map(|span| span.diag_source(db, crate_))
+            .into();
+        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
         ShapeFieldLowerError::PlainFieldSkipped {
             field_name: name.clone(),
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
+            source_code,
+            span,
             causes,
         }
     })?;
@@ -195,11 +213,17 @@ fn lower_plain_shape_field<'db>(
 
     if let Some(parent_fqn) = readonly_parent_fqn {
         let crate_ = id.crate_(db);
+        let source_code = item
+            .span
+            .as_ref()
+            .map(|span| span.diag_source(db, crate_))
+            .into();
+        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
         ShapeFieldReadonly::Plain {
             field_name: name.clone(),
             parent_fqn,
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
+            source_code,
+            span,
         }
         .accumulate(db);
     }
@@ -280,9 +304,9 @@ pub enum ShapeFieldReadonly {
         field_name: String,
         parent_fqn: String,
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
     },
 
     #[error("the field is readonly in JS because \"{parent_fqn}\" does not implement `Clone`")]
@@ -296,9 +320,9 @@ pub enum ShapeFieldReadonly {
     Tuple {
         parent_fqn: String,
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
     },
 }
 
@@ -309,9 +333,9 @@ pub enum ShapeFieldLowerError {
     PlainFieldSkipped {
         field_name: String,
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
         #[related]
         causes: Vec<TypeLowerError>,
     },
@@ -320,9 +344,9 @@ pub enum ShapeFieldLowerError {
     #[diagnostic(code(rust_curse::skipped_field), severity(Warning))]
     TupleFieldSkipped {
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
         #[related]
         causes: Vec<TypeLowerError>,
     },

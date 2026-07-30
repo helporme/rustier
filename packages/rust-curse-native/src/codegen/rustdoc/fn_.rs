@@ -4,17 +4,17 @@ use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
-    diag::DiagAccumulateExt as _,
+    diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
     ir::{
         fn_::{Fn, FnId, FnParam, PassingMode},
         item::{ItemId, ItemIdExt as _, ItemKind, ItemPath},
-        span::{SourceCode, Span},
         type_::Type,
     },
     rustdoc::{
         CrateExt, ItemIdExt as _, RustdocId,
         enum_::is_enum_clonable,
         shape::is_struct_clonable,
+        span::RustdocSpanExt as _,
         type_::{LoweredType, TypeLowerError, lower_type},
     },
 };
@@ -110,19 +110,31 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
             match type_ {
                 Type::Primitive(_) => {
                     let crate_ = id.crate_(db);
+                    let source_code = item
+                        .span
+                        .as_ref()
+                        .map(|span| span.diag_source(db, crate_))
+                        .into();
+                    let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
                     FnLowerError::PrimitiveMutRefIgnored {
                         name: name.clone(),
-                        source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-                        span: crate_.read_span_opt(item.span.as_ref()),
+                        source_code,
+                        span,
                     }
                     .accumulate(db);
                 }
                 Type::Str | Type::String => {
                     let crate_ = id.crate_(db);
+                    let source_code = item
+                        .span
+                        .as_ref()
+                        .map(|span| span.diag_source(db, crate_))
+                        .into();
+                    let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
                     FnLowerError::StringMutRefIgnored {
                         name: name.clone(),
-                        source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-                        span: crate_.read_span_opt(item.span.as_ref()),
+                        source_code,
+                        span,
                     }
                     .accumulate(db);
                 }
@@ -150,10 +162,16 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
 
     if !causes.is_empty() {
         let crate_ = id.crate_(db);
+        let source_code = item
+            .span
+            .as_ref()
+            .map(|span| span.diag_source(db, crate_))
+            .into();
+        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
         return Err(Box::new(FnLowerError::Skipped {
             fn_fqn: item_summary.path.join("::"),
-            source_code: crate_.read_source_code_for_span_opt(item.span.as_ref()),
-            span: crate_.read_span_opt(item.span.as_ref()),
+            source_code,
+            span,
             causes,
         }));
     }
@@ -175,9 +193,9 @@ pub enum FnLowerError {
         /// The fully qualified name of the function being lowered.
         fn_fqn: String,
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
         #[related]
         causes: Vec<FnLowerError>,
     },
@@ -278,9 +296,9 @@ pub enum FnLowerError {
         /// The name of the parameter that has an ignored mutable reference.
         name: String,
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
     },
 
     #[error("the mutable reference to the string parameter `{name}` does not propagate changes")]
@@ -295,8 +313,8 @@ pub enum FnLowerError {
         /// The name of the parameter that has an ignored mutable reference.
         name: String,
         #[source_code]
-        source_code: SourceCode,
+        source_code: DiagSource,
         #[label]
-        span: Option<Span>,
+        span: Option<DiagSpan>,
     },
 }
