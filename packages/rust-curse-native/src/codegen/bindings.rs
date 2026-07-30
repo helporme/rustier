@@ -1,6 +1,6 @@
 pub mod boundary;
 pub mod cast;
-pub mod cast_graph;
+mod cast_graph;
 pub mod enum_;
 pub mod fn_;
 pub mod mod_;

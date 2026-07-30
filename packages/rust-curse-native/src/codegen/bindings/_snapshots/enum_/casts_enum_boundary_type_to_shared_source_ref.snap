@@ -23,7 +23,7 @@ IndirectCastRule::compile(
             inner: Box::new(SourceType::Item { target }),
         },
         "input",
-        "consume(value);",
+        Consume,
     )
     .print()
 ```
@@ -33,7 +33,9 @@ IndirectCastRule::compile(
 ```rs
 input.src.access(
 	&mut |value| {
-		consume(value);
+		consume(
+			value
+		);
 		Ok(
 			()
 		)

@@ -2,7 +2,7 @@ use crate::{
     codegen::{
         api::Api,
         bindings::type_::{BoundaryType, SourceType},
-        cast::{DirectCastRule, IndirectCastRule},
+        cast::{CastContinuation, DirectCastRule, IndirectCastRule},
         db::Db,
         fragment::{FragmentOnce, doubles},
     },
@@ -17,13 +17,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToSig
         matches!(to, SourceType::i8 | SourceType::i16 | SourceType::i32).then_some(SourceType::f64)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: SourceType<'db>,
         to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let type_name = match to {
             SourceType::i8 => "i8",
             SourceType::i16 => "i16",
@@ -57,13 +61,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToUns
         matches!(to, SourceType::u8 | SourceType::u16 | SourceType::u32).then_some(SourceType::f64)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: SourceType<'db>,
         to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let type_name = match to {
             SourceType::u8 => "u8",
             SourceType::u16 => "u16",
@@ -97,13 +105,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastU32ToCha
         (to == SourceType::char).then_some(SourceType::u32)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: SourceType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let api = Api::get(db);
         let error_expr = api.error(db, frag!(format!("cannot cast {value} to char")));
 
@@ -122,13 +134,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastF64ToF32
         (to == SourceType::f32).then_some(SourceType::f64)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         frag!({{ {in_expr}~as f32 }})
     }
 }
@@ -141,13 +157,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastCharTo
         (to == BoundaryType::u32).then_some(SourceType::char)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         _to: BoundaryType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         frag!({{ {in_expr}~as u32 }})
     }
 }
@@ -160,14 +180,18 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>> for CastF32ToF
         (to == BoundaryType::f64).then_some(SourceType::f32)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         _to: BoundaryType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
-        frag!({ in_expr } as f64)
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
+        frag!({in_expr}~as f64)
     }
 }
 
@@ -192,13 +216,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
         }
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         _to: BoundaryType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         in_expr
     }
 }
@@ -211,13 +239,17 @@ impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyT
         (to == SourceType::f64).then_some(BoundaryType::JsAny)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: BoundaryType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let cast_expr = Api::get(db).cast_to_f64(db);
 
         frag!({{
@@ -235,13 +267,17 @@ impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyT
         (to == SourceType::bool).then_some(BoundaryType::JsAny)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: BoundaryType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let cast_expr = Api::get(db).cast_to_bool(db);
 
         frag!({{
@@ -259,13 +295,17 @@ impl<'db> DirectCastRule<'db, BoundaryType<'db>, SourceType<'db>> for CastJsAnyT
         (to == SourceType::String).then_some(BoundaryType::JsAny)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: BoundaryType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let cast_expr = Api::get(db).cast_to_string(db);
 
         frag!({{
@@ -287,13 +327,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastStringTo
         .then_some(SourceType::String)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         frag!({ in_expr }.as_str())
     }
 }
@@ -310,14 +354,21 @@ impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastString
         .then_some(SourceType::String)
     }
 
-    fn compile(
+    fn compile<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         _to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-        continue_with: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+        continue_with: Continue,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+        Continue: CastContinuation<'db>,
+    {
+        let continue_with = continue_with.compile("value");
+
         frag!({{
             let mut value = ~{in_expr};@
             let value = value.as_mut_str();@
@@ -330,8 +381,9 @@ impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>> for CastString
 mod tests {
     use crate::codegen::{
         api::{Api, ApiKind, WasmTarget},
+        bindings::cast_graph::test::Consume,
         db::DbImpl,
-        fragment::{FragmentPrint, fragment},
+        fragment::FragmentPrint,
         test::assert_snap,
     };
 
@@ -463,7 +515,7 @@ mod tests {
                     from.clone(),
                     to.clone(),
                     "input",
-                    fragment(|p| "consume(value);".apply(p)),
+                    Consume,
                 )
                 .print()
             })

@@ -23,7 +23,7 @@ snapshot_for_apis(|db| {
             from.clone(),
             to.clone(),
             "input",
-            fragment(|p| "consume(value);".apply(p)),
+            Consume,
         )
         .print()
 })
@@ -36,13 +36,17 @@ snapshot_for_apis(|db| {
 {
 	let mut value = input;
 	let value = value.as_mut_str();
-	consume(value);
+	consume(
+		value
+	);
 }
 
 // Wasm
 {
 	let mut value = input;
 	let value = value.as_mut_str();
-	consume(value);
+	consume(
+		value
+	);
 }
 ```

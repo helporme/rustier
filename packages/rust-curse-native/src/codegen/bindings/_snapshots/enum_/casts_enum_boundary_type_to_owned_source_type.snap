@@ -20,7 +20,7 @@ IndirectCastRule::compile(
         BoundaryType::Item { target },
         SourceType::Item { target },
         "input",
-        "consume(value);",
+        Consume,
     )
     .print()
 ```
@@ -30,8 +30,9 @@ IndirectCastRule::compile(
 ```rs
 input.src.access(
 	&mut |value| {
-		let value = value.clone();
-		consume(value);
+		consume(
+			value.clone()
+		);
 		Ok(
 			()
 		)

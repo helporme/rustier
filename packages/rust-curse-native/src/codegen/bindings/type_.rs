@@ -130,13 +130,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, SourceType<'db>>
         }
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: SourceType<'db>,
         to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let SourceType::Ref { is_mutable, .. } = to else {
             unreachable!()
         };

@@ -18,7 +18,7 @@ use crate::{
             },
             type_::{BoundaryType, SourceType},
         },
-        cast::{DirectCastRule, IndirectCastRule},
+        cast::{CastContinuation, DirectCastRule, IndirectCastRule},
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, fragment, spaced},
         ir::{
@@ -258,14 +258,19 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
         }
     }
 
-    fn compile(
+    fn compile<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
         from: BoundaryType<'db>,
         to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-        continue_with: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+        continue_with: Continue,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+        Continue: CastContinuation<'db>,
+    {
         let SourceType::Ref { is_mutable, inner } = to else {
             unreachable!()
         };
@@ -285,6 +290,7 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
         );
 
         let tethered = compile_binding_struct_get_tethered_expr(in_expr);
+        let continue_with = continue_with.compile("value");
         fragment(move |printer| {
             if is_mutable {
                 compile_tethered_struct_mut_access_stmt(tethered, "value", continue_with)
@@ -313,14 +319,19 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
         }
     }
 
-    fn compile(
+    fn compile<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
         from: BoundaryType<'db>,
         to: SourceType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-        continue_with: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+        continue_with: Continue,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+        Continue: CastContinuation<'db>,
+    {
         let BoundaryType::Item { target } = from else {
             unreachable!("struct boundary casts require a generated boundary type");
         };
@@ -340,10 +351,7 @@ impl<'db> IndirectCastRule<'db, BoundaryType<'db>, SourceType<'db>>
         compile_tethered_struct_ref_access_stmt(
             tethered,
             "value",
-            frag!(
-                let value = value.clone();@
-                {continue_with}
-            ),
+            continue_with.compile(frag!(value.clone())),
         )
     }
 }
@@ -363,13 +371,17 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
         }
     }
 
-    fn compile(
+    fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         from: SourceType<'db>,
         to: BoundaryType<'db>,
-        in_expr: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
         let SourceType::Item {
             target: source_target,
         } = from
@@ -398,6 +410,7 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, BoundaryType<'db>>
 mod tests {
     use super::*;
     use crate::codegen::{
+        bindings::cast_graph::test::Consume,
         db::DbImpl,
         ir::item::{ItemKind, ItemPath},
         test::assert_snap,
@@ -419,7 +432,7 @@ mod tests {
                     inner: Box::new(SourceType::Item { target }),
                 },
                 "input",
-                "consume(value);",
+                Consume,
             )
             .print()
         });
@@ -441,7 +454,7 @@ mod tests {
                     inner: Box::new(SourceType::Item { target }),
                 },
                 "input",
-                "consume(value);",
+                Consume,
             )
             .print()
         });
@@ -460,7 +473,7 @@ mod tests {
                 BoundaryType::Item { target },
                 SourceType::Item { target },
                 "input",
-                "consume(value);",
+                Consume,
             )
             .print()
         });
