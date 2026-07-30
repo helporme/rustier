@@ -11,8 +11,8 @@ codegen::bindings::primitive::tests::casts_f64_to_signed_int
 ## Source
 
 ```rs
-let from = SourceType::f64;
-let to = SourceType::i32;
+let from = BirSourceType::f64;
+let to = BirSourceType::i32;
 snapshot_for_apis(|db| {
     DirectCastRule::compile(
             CastF64ToSignedIntRule,

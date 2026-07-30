@@ -11,6 +11,9 @@ codegen::bindings::tethering::tests::compiles_tethered_struct_tethered_struct_fi
 ## Source
 
 ```rs
+let db = test_db! {
+    pub struct Child; pub struct Parent { pub child : Child, }
+};
 let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 1] = [
     TetheredField::TetheredStruct(TetheredStructField {
         name: "child",
@@ -21,27 +24,31 @@ let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 1] = [
         with_setter: true,
     }),
 ];
-compile_tethered_struct(TetheringStruct {
-        source_type: "crate::Parent",
-        name: "__tethered_parent",
-        fields,
-    })
+compile_tethered_struct(
+        &db,
+        TetheringStruct {
+            source_type: BirSourceType::Item {
+                target: db.item_id("Parent"),
+            },
+            fields,
+        },
+    )
     .print()
 ```
 
 ## Output
 
 ```rs
-struct __tethered_parent {
-	src: __tethering::SourceSlot<crate::Parent>,
+struct __tethering__rustdoc_0test_0crate_Parent {
+	src: __tethering::SourceSlot<rustdoc_test_crate::Parent>,
 	__c__child: std::cell::RefCell<Option<std::rc::Weak<__tethered_child>>>,
 }
 
-impl __tethering::Accessor<crate::Parent> for __tethered_parent {
+impl __tethering::Accessor<rustdoc_test_crate::Parent> for __tethering__rustdoc_0test_0crate_Parent {
 	fn access(
 		&self,
 		f: &mut dyn FnMut(
-			&crate::Parent
+			&rustdoc_test_crate::Parent
 		)-> __tethering::AccessResult<()>,
 	)-> __tethering::AccessResult<()> {
 		self.src.access(
@@ -52,7 +59,7 @@ impl __tethering::Accessor<crate::Parent> for __tethered_parent {
 	fn access_mut(
 		&self,
 		f: &mut dyn FnMut(
-			&mut crate::Parent
+			&mut rustdoc_test_crate::Parent
 		)-> __tethering::AccessResult<()>,
 	)-> __tethering::AccessResult<()> {
 		self.src.access_mut(
@@ -61,11 +68,11 @@ impl __tethering::Accessor<crate::Parent> for __tethered_parent {
 	}
 }
 
-impl __tethered_parent {
+impl __tethering__rustdoc_0test_0crate_Parent {
 	pub fn new_owned(
-		input: crate::Parent
+		input: rustdoc_test_crate::Parent
 	) -> Self {
-		__tethered_parent {
+		__tethering__rustdoc_0test_0crate_Parent {
 			src: __tethering::SourceSlot::owned(
 				input
 			),
@@ -76,9 +83,9 @@ impl __tethered_parent {
 	}
 
 	pub fn new_projected(
-		accessor: std::rc::Rc<dyn __tethering::Accessor<crate::Parent>>
+		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Parent>>
 	)-> Self {
-		__tethered_parent {
+		__tethering__rustdoc_0test_0crate_Parent {
 			src: __tethering::SourceSlot::projected(
 				accessor
 			),

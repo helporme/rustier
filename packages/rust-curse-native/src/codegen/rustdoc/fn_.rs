@@ -101,8 +101,11 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
                     });
                     continue;
                 }
-                IrType::Primitive(_) | IrType::Str | IrType::String | IrType::Struct(_) | IrType::Enum(_) => {
-                }
+                IrType::Primitive(_)
+                | IrType::Str
+                | IrType::String
+                | IrType::Struct(_)
+                | IrType::Enum(_) => {}
             }
         }
 

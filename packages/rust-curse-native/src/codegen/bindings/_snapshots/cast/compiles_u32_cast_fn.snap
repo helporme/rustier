@@ -13,7 +13,7 @@ codegen::bindings::cast::tests::compiles_u32_cast_fn
 ```rs
 let mut db = DbImpl::default();
 Api::set(&mut db, ApiKind::Node);
-let node = compile_cast_fn(&db, Type::Primitive(Primitive::u32)).print();
+let node = compile_cast_fn(&db, IrType::Primitive(IrPrimitive::u32)).print();
 syn::parse_file(&node)
     .expect("generated Node cast function must be valid Rust syntax");
 Api::set(
@@ -22,7 +22,7 @@ Api::set(
         target: WasmTarget::Web,
     },
 );
-let wasm = compile_cast_fn(&db, Type::Primitive(Primitive::u32)).print();
+let wasm = compile_cast_fn(&db, IrType::Primitive(IrPrimitive::u32)).print();
 syn::parse_file(&wasm)
     .expect("generated Wasm cast function must be valid Rust syntax");
 ("// Node\n", node, "\n\n// Wasm\n", wasm).print()

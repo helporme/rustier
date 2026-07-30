@@ -13,9 +13,9 @@ use crate::{
             },
             tethering::{
                 ClonedField, TetheredField, TetheredStructField, TetheringStruct,
-                compile_tethered_struct, compile_tethered_struct_get_field_expr,
-                compile_tethered_struct_mut_access_stmt, compile_tethered_struct_ref_access_stmt,
-                compile_tethered_struct_set_field_stmt, compile_tethering_struct_from_source_expr,
+                compile_tethered_struct, compile_tethering_struct_from_source_expr,
+                compile_tethering_struct_get_field_expr, compile_tethering_struct_mut_access_stmt,
+                compile_tethering_struct_ref_access_stmt, compile_tethering_struct_set_field_stmt,
             },
         },
         cast::{CastContinuation, DirectCastRule, IndirectCastRule},
@@ -124,12 +124,15 @@ pub fn compile_binding_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
         })
     });
 
+    let tethering_struct = TetheringStruct {
+        source_type: BirSourceType::Item {
+            target: enum_.id(db).into(),
+        },
+        fields: tethered_fields,
+    };
+
     frag!(
-        {compile_tethered_struct(TetheringStruct {
-            source_type: enum_.fqn(db),
-            name: enum_.tethering_struct_name(db),
-            fields: tethered_fields,
-        })}@@
+        {compile_tethered_struct(db, tethering_struct)}@@
         {compile_wrapper_struct(db, enum_)}@@
         {compile_wrapper_impl(db, enum_)}
     )
@@ -228,7 +231,7 @@ fn compile_field_getter<'db>(
     let getter_name = field.getter_binding_name_on_enum(db, variant);
     let field_type = field.type_(db);
     let result_type = api.result_type(db, compile_boundary_out_type(db, field_type));
-    let tethered_value = compile_tethered_struct_get_field_expr(frag!(self.src), name);
+    let tethered_value = compile_tethering_struct_get_field_expr(frag!(self.src), name);
     let output = fragment(move |printer| match field_type {
         IrType::Struct(_) | IrType::Enum(_) => {
             compile_boundary_out_from_tethered_struct_expr(db, tethered_value, field_type)
@@ -264,7 +267,8 @@ fn compile_field_setter<'db>(
         type_: field.type_(db),
         mode: BoundaryMode::Move,
     };
-    let set_tethered_field = compile_tethered_struct_set_field_stmt(frag!(self.src), name, "value");
+    let set_tethered_field =
+        compile_tethering_struct_set_field_stmt(frag!(self.src), name, "value");
 
     frag!(
         {api.field_setter_header(db, name)}@
@@ -401,10 +405,10 @@ impl<'db> IndirectCastRule<'db, BirBoundaryType<'db>, BirSourceType<'db>>
         let continue_with = continue_with.compile("value");
         fragment(move |printer| {
             if is_mutable {
-                compile_tethered_struct_mut_access_stmt(tethered, "value", continue_with)
+                compile_tethering_struct_mut_access_stmt(tethered, "value", continue_with)
                     .apply(printer);
             } else {
-                compile_tethered_struct_ref_access_stmt(tethered, "value", continue_with)
+                compile_tethering_struct_ref_access_stmt(tethered, "value", continue_with)
                     .apply(printer);
             }
         })
@@ -459,7 +463,7 @@ impl<'db> IndirectCastRule<'db, BirBoundaryType<'db>, BirSourceType<'db>>
             "enum boundary cast source and target items must match"
         );
 
-        compile_tethered_struct_ref_access_stmt(
+        compile_tethering_struct_ref_access_stmt(
             frag!({ in_expr }.src),
             "value",
             continue_with.compile(frag!(value.clone())),

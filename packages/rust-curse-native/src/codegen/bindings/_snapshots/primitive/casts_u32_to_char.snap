@@ -11,8 +11,8 @@ codegen::bindings::primitive::tests::casts_u32_to_char
 ## Source
 
 ```rs
-let from = SourceType::u32;
-let to = SourceType::char;
+let from = BirSourceType::u32;
+let to = BirSourceType::char;
 snapshot_for_apis(|db| {
     DirectCastRule::compile(CastU32ToCharRule, db, from.clone(), to.clone(), "input")
         .print()

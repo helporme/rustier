@@ -128,6 +128,7 @@
 use crate::{
     codegen::{
         api::Api,
+        bindings::bir::BirSourceType,
         db::Db,
         fragment::{Fragment, FragmentOnce, doubles, fragment, spaced},
     },
@@ -266,15 +267,16 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
     )
 }
 
+impl<'a> BirSourceType<'a> {
+    pub fn tethered_struct_name(&self, db: &dyn Db) -> impl FragmentOnce {
+        frag!(__tethering__{self.mangled_name(db)})
+    }
+}
+
 /// A tethering struct. See the module-level documentation for more details.
-pub struct TetheringStruct<'a, FQN, Fields>
-where
-    FQN: Fragment,
-{
+pub struct TetheringStruct<'a, Fields> {
     /// Source type for which the tethering struct is generated.
-    pub source_type: FQN,
-    /// Mangled name of the generated tethering struct.
-    pub name: &'a str,
+    pub source_type: BirSourceType<'a>,
     /// Source fields exposed by the tethering struct.
     pub fields: Fields,
 }
@@ -326,23 +328,14 @@ where
 
 /// Compiles a [`TetheredStruct`]. See the module-level documentation for more
 /// details.
-pub fn compile_tethered_struct<
-    'a,
-    StructFQN,
-    Fields,
-    FieldFQN,
-    GetRefExpr,
-    RefExpr,
-    GetMutExpr,
-    MutExpr,
->(
-    struct_: TetheringStruct<'a, StructFQN, Fields>,
-) -> impl FragmentOnce + 'a
+pub fn compile_tethered_struct<'db, Fields, FieldFQN, GetRefExpr, RefExpr, GetMutExpr, MutExpr>(
+    db: &'db dyn Db,
+    struct_: TetheringStruct<'db, Fields>,
+) -> impl FragmentOnce + 'db
 where
-    StructFQN: Fragment + 'a,
-    Fields: IntoIterator<Item = TetheredField<'a, FieldFQN, GetRefExpr, GetMutExpr>> + 'a,
+    Fields: IntoIterator<Item = TetheredField<'db, FieldFQN, GetRefExpr, GetMutExpr>> + 'db,
     Fields::IntoIter: Clone,
-    FieldFQN: Fragment + 'a,
+    FieldFQN: Fragment + 'db,
     GetRefExpr: Fn(&'static str) -> RefExpr,
     RefExpr: FragmentOnce,
     GetMutExpr: Fn(&'static str) -> MutExpr,
@@ -350,8 +343,6 @@ where
 {
     fragment(move |p| {
         let fields = struct_.fields.into_iter();
-        let source_type = &struct_.source_type;
-        let name = struct_.name;
 
         let cache_field_definitions = {
             let fields = fields.clone();
@@ -417,38 +408,41 @@ where
             })
         }));
 
+        let name = || struct_.source_type.tethered_struct_name(db);
+        let source_type = || struct_.source_type.fqn_decl(db);
+
         frag!(
-            struct ~{name}~{{
-                src: __tethering::SourceSlot<{source_type}>,@
+            struct ~{name()}~{{
+                src: __tethering::SourceSlot<{source_type()}>,@
                 {cache_field_definitions}
             }}@@
 
-            impl __tethering::Accessor<{source_type}> for ~{name}~{{
+            impl __tethering::Accessor<{source_type()}> for ~{name()}~{{
                 fn access(
                     &self,@
-                    f: &mut dyn FnMut(&{source_type}) -> __tethering::AccessResult<()>,@
+                    f: &mut dyn FnMut(&{source_type()}) -> __tethering::AccessResult<()>,@
                 ) -> __tethering::AccessResult<()>~{{
                     self.src.access(f)
                 }}@@
 
                 fn access_mut(
                     &self,@
-                    f: &mut dyn FnMut(&mut~{source_type}) -> __tethering::AccessResult<()>,@
+                    f: &mut dyn FnMut(&mut ~{source_type()}) -> __tethering::AccessResult<()>,@
                 ) -> __tethering::AccessResult<()>~{{
                     self.src.access_mut(f)
                 }}
             }}@@
 
-            impl ~{name}~{{
-                pub fn new_owned(input: ~{source_type})~ -> Self ~{{
-                    {name}~{{
+            impl ~{name()}~{{
+                pub fn new_owned(input: ~{source_type()})~ -> Self ~{{
+                    {name()}~{{
                         src: __tethering::SourceSlot::owned(input),@
                         {owned_cache_initializers}
                     }}
                 }}@@
 
-                pub fn new_projected(accessor: std::rc::Rc<dyn __tethering::Accessor<{source_type}>>) -> Self~{{
-                    {name}~{{
+                pub fn new_projected(accessor: std::rc::Rc<dyn __tethering::Accessor<{source_type()}>>) -> Self~{{
+                    {name()}~{{
                         src: __tethering::SourceSlot::projected(accessor),@
                         {projected_cache_initializers}
                     }}
@@ -477,7 +471,7 @@ pub fn compile_tethering_struct_from_source_expr<'a>(
 ///
 /// The expression must be inserted into a scope that returns the
 /// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
-pub fn compile_tethered_struct_get_field_expr<'a>(
+pub fn compile_tethering_struct_get_field_expr<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,
 ) -> impl FragmentOnce + 'a {
@@ -492,7 +486,7 @@ pub fn compile_tethered_struct_get_field_expr<'a>(
 ///
 /// The statement must be inserted into a scope that returns the
 /// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
-pub fn compile_tethered_struct_set_field_stmt<'a>(
+pub fn compile_tethering_struct_set_field_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,
     value: impl FragmentOnce + 'a,
@@ -505,7 +499,7 @@ pub fn compile_tethered_struct_set_field_stmt<'a>(
 ///
 /// The statement must be inserted into a scope that returns the
 /// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
-pub fn compile_tethered_struct_ref_access_stmt<'a>(
+pub fn compile_tethering_struct_ref_access_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     out_var: &'a str,
     in_stmt: impl FragmentOnce + 'a,
@@ -523,7 +517,7 @@ pub fn compile_tethered_struct_ref_access_stmt<'a>(
 ///
 /// The statement must be inserted into a scope that returns the
 /// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
-pub fn compile_tethered_struct_mut_access_stmt<'a>(
+pub fn compile_tethering_struct_mut_access_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     out_var: &'a str,
     in_stmt: impl FragmentOnce + 'a,
@@ -716,20 +710,30 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::codegen::{fragment::FragmentPrint as _, test::assert_snap};
+    use crate::{
+        codegen::{fragment::FragmentPrint as _, test::assert_snap},
+        test_db,
+    };
 
     type FieldExpr = fn(&'static str) -> String;
 
     #[test]
     fn compiles_tethered_struct_empty() {
         assert_snap!({
+            let db = test_db! {
+                pub struct Empty;
+            };
             let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 0] = [];
 
-            compile_tethered_struct(TetheringStruct {
-                source_type: "crate::Empty",
-                name: "__tethered_empty",
-                fields,
-            })
+            compile_tethered_struct(
+                &db,
+                TetheringStruct {
+                    source_type: BirSourceType::Item {
+                        target: db.item_id("Empty"),
+                    },
+                    fields,
+                },
+            )
             .print()
         });
     }
@@ -737,6 +741,11 @@ mod tests {
     #[test]
     fn compiles_tethered_struct_cloned_field() {
         assert_snap!({
+            let db = test_db! {
+                pub struct Parent {
+                    pub count: u32,
+                }
+            };
             let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 1] =
                 [TetheredField::Cloned(ClonedField {
                     name: "count",
@@ -745,11 +754,15 @@ mod tests {
                     source_type: "u32",
                 })];
 
-            compile_tethered_struct(TetheringStruct {
-                source_type: "crate::Parent",
-                name: "__tethered_parent",
-                fields,
-            })
+            compile_tethered_struct(
+                &db,
+                TetheringStruct {
+                    source_type: BirSourceType::Item {
+                        target: db.item_id("Parent"),
+                    },
+                    fields,
+                },
+            )
             .print()
         });
     }
@@ -757,6 +770,12 @@ mod tests {
     #[test]
     fn compiles_tethered_struct_tethered_struct_field() {
         assert_snap!({
+            let db = test_db! {
+                pub struct Child;
+                pub struct Parent {
+                    pub child: Child,
+                }
+            };
             let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 1] =
                 [TetheredField::TetheredStruct(TetheredStructField {
                     name: "child",
@@ -767,11 +786,15 @@ mod tests {
                     with_setter: true,
                 })];
 
-            compile_tethered_struct(TetheringStruct {
-                source_type: "crate::Parent",
-                name: "__tethered_parent",
-                fields,
-            })
+            compile_tethered_struct(
+                &db,
+                TetheringStruct {
+                    source_type: BirSourceType::Item {
+                        target: db.item_id("Parent"),
+                    },
+                    fields,
+                },
+            )
             .print()
         });
     }
@@ -779,6 +802,16 @@ mod tests {
     #[test]
     fn compiles_tethered_struct_mixed() {
         assert_snap!({
+            let db = test_db! {
+                pub struct Child;
+                pub struct ReadonlyChild;
+                pub struct Parent {
+                    pub count: u32,
+                    pub child: Child,
+                    pub readonly_child: ReadonlyChild,
+                }
+            };
+
             let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 3] = [
                 TetheredField::Cloned(ClonedField {
                     name: "count",
@@ -804,11 +837,15 @@ mod tests {
                 }),
             ];
 
-            compile_tethered_struct(TetheringStruct {
-                source_type: "crate::Parent",
-                name: "__tethered_parent",
-                fields,
-            })
+            compile_tethered_struct(
+                &db,
+                TetheringStruct {
+                    source_type: BirSourceType::Item {
+                        target: db.item_id("Parent"),
+                    },
+                    fields,
+                },
+            )
             .print()
         });
     }

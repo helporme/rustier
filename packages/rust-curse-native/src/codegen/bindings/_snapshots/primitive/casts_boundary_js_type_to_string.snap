@@ -11,8 +11,8 @@ codegen::bindings::primitive::tests::casts_boundary_js_type_to_string
 ## Source
 
 ```rs
-let from = BoundaryType::JsAny;
-let to = SourceType::String;
+let from = BirBoundaryType::JsAny;
+let to = BirSourceType::String;
 snapshot_for_apis(|db| {
     DirectCastRule::compile(
             CastJsAnyToStringRule,

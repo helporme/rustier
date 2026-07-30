@@ -98,7 +98,10 @@ pub fn compile_facade_class_for_enum<'db>(
         let private_cached_fields = fragment(|p| {
             for group in &groups {
                 for occurrence in &group.occurrences {
-                    if matches!(occurrence.field.type_(db), IrType::Struct(_) | IrType::Enum(_)) {
+                    if matches!(
+                        occurrence.field.type_(db),
+                        IrType::Struct(_) | IrType::Enum(_)
+                    ) {
                         frag!(#_{occurrence.variant.name(db)}_{occurrence.field.name(db)};@)
                             .apply(p);
                     }

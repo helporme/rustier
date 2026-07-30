@@ -10,8 +10,8 @@ use crate::{
                 compile_binding_struct_from_tethered_expr, compile_binding_struct_get_tethered_expr,
             },
             tethering::{
-                compile_tethered_struct_mut_access_stmt, compile_tethered_struct_ref_access_stmt,
                 compile_tethering_struct_from_source_expr,
+                compile_tethering_struct_mut_access_stmt, compile_tethering_struct_ref_access_stmt,
             },
         },
         db::Db,
@@ -286,11 +286,11 @@ fn compile_boundary_in_struct_conversion_stmt<'db>(
 
     fragment(move |p| match expr.mode {
         BoundaryMode::Ref | BoundaryMode::Move => {
-            compile_tethered_struct_ref_access_stmt(tethered_struct, expr.out_var_name, inner_expr)
+            compile_tethering_struct_ref_access_stmt(tethered_struct, expr.out_var_name, inner_expr)
                 .apply(p)
         }
         BoundaryMode::Mut => {
-            compile_tethered_struct_mut_access_stmt(tethered_struct, expr.out_var_name, inner_expr)
+            compile_tethering_struct_mut_access_stmt(tethered_struct, expr.out_var_name, inner_expr)
                 .apply(p)
         }
     })

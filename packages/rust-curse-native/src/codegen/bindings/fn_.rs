@@ -44,7 +44,9 @@ impl<'db> FnParam<'db> {
 pub fn compile_binding_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
     let api = Api::get(db);
     let result_type = fragment(|p| match fn_.return_type(db) {
-        Some(type_) => api.result_type(db, type_.boundary_out().decl(db)).apply(p),
+        Some(type_) => api
+            .result_type(db, type_.boundary_out().fqn_decl(db))
+            .apply(p),
         None => api.result_type(db, "()").apply(p),
     });
 
@@ -62,7 +64,7 @@ fn compile_binding_fn_params<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragmen
         comma_list(fn_.params(db).iter().map(|param| {
             frag!(
                 {param.binding_name(db)}:~
-                {param.type_(db).boundary_in().decl(db)}
+                {param.type_(db).boundary_in().fqn_decl(db)}
             )
         }))
     })

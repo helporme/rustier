@@ -37,12 +37,12 @@ syn::parse_file(&wasm)
 
 ```rs
 // Node
-struct __tethered_struct__rustdoc_0test_0crate_Example {
+struct __tethering__rustdoc_0test_0crate_Example {
 	src: __tethering::SourceSlot<rustdoc_test_crate::Example>,
 	__c____Struct__point: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_Point>>>,
 }
 
-impl __tethering::Accessor<rustdoc_test_crate::Example> for __tethered_struct__rustdoc_0test_0crate_Example {
+impl __tethering::Accessor<rustdoc_test_crate::Example> for __tethering__rustdoc_0test_0crate_Example {
 	fn access(
 		&self,
 		f: &mut dyn FnMut(
@@ -66,11 +66,11 @@ impl __tethering::Accessor<rustdoc_test_crate::Example> for __tethered_struct__r
 	}
 }
 
-impl __tethered_struct__rustdoc_0test_0crate_Example {
+impl __tethering__rustdoc_0test_0crate_Example {
 	pub fn new_owned(
 		input: rustdoc_test_crate::Example
 	) -> Self {
-		__tethered_struct__rustdoc_0test_0crate_Example {
+		__tethering__rustdoc_0test_0crate_Example {
 			src: __tethering::SourceSlot::owned(
 				input
 			),
@@ -83,7 +83,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 	pub fn new_projected(
 		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Example>>
 	)-> Self {
-		__tethered_struct__rustdoc_0test_0crate_Example {
+		__tethering__rustdoc_0test_0crate_Example {
 			src: __tethering::SourceSlot::projected(
 				accessor
 			),
@@ -518,12 +518,12 @@ impl __ext_rustdoc_0test_0crate_Example {
 }
 
 // Wasm
-struct __tethered_struct__rustdoc_0test_0crate_Example {
+struct __tethering__rustdoc_0test_0crate_Example {
 	src: __tethering::SourceSlot<rustdoc_test_crate::Example>,
 	__c____Struct__point: std::cell::RefCell<Option<std::rc::Weak<__tethered_struct__rustdoc_0test_0crate_Point>>>,
 }
 
-impl __tethering::Accessor<rustdoc_test_crate::Example> for __tethered_struct__rustdoc_0test_0crate_Example {
+impl __tethering::Accessor<rustdoc_test_crate::Example> for __tethering__rustdoc_0test_0crate_Example {
 	fn access(
 		&self,
 		f: &mut dyn FnMut(
@@ -547,11 +547,11 @@ impl __tethering::Accessor<rustdoc_test_crate::Example> for __tethered_struct__r
 	}
 }
 
-impl __tethered_struct__rustdoc_0test_0crate_Example {
+impl __tethering__rustdoc_0test_0crate_Example {
 	pub fn new_owned(
 		input: rustdoc_test_crate::Example
 	) -> Self {
-		__tethered_struct__rustdoc_0test_0crate_Example {
+		__tethering__rustdoc_0test_0crate_Example {
 			src: __tethering::SourceSlot::owned(
 				input
 			),
@@ -564,7 +564,7 @@ impl __tethered_struct__rustdoc_0test_0crate_Example {
 	pub fn new_projected(
 		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Example>>
 	)-> Self {
-		__tethered_struct__rustdoc_0test_0crate_Example {
+		__tethering__rustdoc_0test_0crate_Example {
 			src: __tethering::SourceSlot::projected(
 				accessor
 			),

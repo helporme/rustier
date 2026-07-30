@@ -11,8 +11,8 @@ codegen::bindings::primitive::tests::casts_f64_to_unsigned_int
 ## Source
 
 ```rs
-let from = SourceType::f64;
-let to = SourceType::u32;
+let from = BirSourceType::f64;
+let to = BirSourceType::u32;
 snapshot_for_apis(|db| {
     DirectCastRule::compile(
             CastF64ToUnsignedIntRule,

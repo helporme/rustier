@@ -11,10 +11,10 @@ codegen::bindings::primitive::tests::casts_string_to_str_ref
 ## Source
 
 ```rs
-let from = SourceType::String;
-let to = SourceType::Ref {
+let from = BirSourceType::String;
+let to = BirSourceType::Ref {
     is_mutable: false,
-    inner: Box::new(SourceType::Str),
+    inner: Box::new(BirSourceType::Str),
 };
 snapshot_for_apis(|db| {
     IndirectCastRule::compile(

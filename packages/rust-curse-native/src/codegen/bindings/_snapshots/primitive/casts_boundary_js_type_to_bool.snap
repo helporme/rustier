@@ -11,8 +11,8 @@ codegen::bindings::primitive::tests::casts_boundary_js_type_to_bool
 ## Source
 
 ```rs
-let from = BoundaryType::JsAny;
-let to = SourceType::bool;
+let from = BirBoundaryType::JsAny;
+let to = BirSourceType::bool;
 snapshot_for_apis(|db| {
     DirectCastRule::compile(
             CastJsAnyToBoolRule,

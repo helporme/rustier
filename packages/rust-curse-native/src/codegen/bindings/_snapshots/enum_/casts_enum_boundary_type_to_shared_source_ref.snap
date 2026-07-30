@@ -17,10 +17,10 @@ let target = ItemId::new(&db, path, ItemKind::Enum);
 IndirectCastRule::compile(
         CastEnumBoundaryTypeToBorrowedSourceType,
         &db,
-        BoundaryType::Item { target },
-        SourceType::Ref {
+        BirBoundaryType::Item { target },
+        BirSourceType::Ref {
             is_mutable: false,
-            inner: Box::new(SourceType::Item { target }),
+            inner: Box::new(BirSourceType::Item { target }),
         },
         "input",
         Consume,

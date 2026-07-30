@@ -11,8 +11,8 @@ codegen::bindings::primitive::tests::passes_primitive_to_same_boundary
 ## Source
 
 ```rs
-let from = SourceType::i32;
-let to = BoundaryType::i32;
+let from = BirSourceType::i32;
+let to = BirBoundaryType::i32;
 snapshot_for_apis(|db| {
     DirectCastRule::compile(
             CastPrimitiveToSameBoundaryRule,

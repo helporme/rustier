@@ -39,6 +39,28 @@ pub enum BirSourceType<'db> {
 }
 
 impl<'db> BirSourceType<'db> {
+    pub fn fqn_decl(&self, db: &dyn Db) -> impl FragmentOnce {
+        fragment(move |p| match self {
+            BirSourceType::bool => "bool".apply(p),
+            BirSourceType::i8 => "i8".apply(p),
+            BirSourceType::u8 => "u8".apply(p),
+            BirSourceType::i16 => "i16".apply(p),
+            BirSourceType::u16 => "u16".apply(p),
+            BirSourceType::i32 => "i32".apply(p),
+            BirSourceType::u32 => "u32".apply(p),
+            BirSourceType::f64 => "f64".apply(p),
+            BirSourceType::f32 => "f32".apply(p),
+            BirSourceType::char => "char".apply(p),
+            BirSourceType::Str => "str".apply(p),
+            BirSourceType::String => "String".apply(p),
+            BirSourceType::Item { target } => target.fqn(db).apply(p),
+            BirSourceType::Ref { is_mutable, inner } => {
+                let prefix = if *is_mutable { "&mut " } else { "&" };
+                frag!({prefix}{inner.fqn_decl(db)}).apply(p)
+            }
+        })
+    }
+
     /// A mangled name of the source type.
     pub fn mangled_name(&self, db: &dyn Db) -> impl FragmentOnce {
         fragment(|p| match self {
@@ -114,7 +136,7 @@ pub enum BirBoundaryType<'db> {
 
 impl<'db> BirBoundaryType<'db> {
     /// Redners the type as type declaration syntax.
-    pub fn decl(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+    pub fn fqn_decl(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
         fragment(move |p| match self {
             BirBoundaryType::bool => "bool".apply(p),
             BirBoundaryType::i8 => "i8".apply(p),
@@ -128,7 +150,7 @@ impl<'db> BirBoundaryType<'db> {
             BirBoundaryType::String => "String".apply(p),
             BirBoundaryType::JsAny => Api::get(db).js_type(db).apply(p),
             BirBoundaryType::Item { target } => target.extern_name(db).apply(p),
-            BirBoundaryType::Ref(inner) => frag!(&{ inner.decl(db) }).apply(p),
+            BirBoundaryType::Ref(inner) => frag!(&{ inner.fqn_decl(db) }).apply(p),
         })
     }
 }

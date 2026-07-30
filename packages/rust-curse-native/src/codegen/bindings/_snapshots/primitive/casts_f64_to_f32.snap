@@ -11,8 +11,8 @@ codegen::bindings::primitive::tests::casts_f64_to_f32
 ## Source
 
 ```rs
-let from = SourceType::f64;
-let to = SourceType::f32;
+let from = BirSourceType::f64;
+let to = BirSourceType::f32;
 snapshot_for_apis(|db| {
     DirectCastRule::compile(CastF64ToF32Rule, db, from.clone(), to.clone(), "input")
         .print()
