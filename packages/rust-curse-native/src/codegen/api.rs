@@ -52,14 +52,6 @@ impl Api {
         }
     }
 
-    /// Returns extra prelude code required by generated cast functions.
-    pub fn cast_prelude(&self, db: &dyn Db) -> Option<&'static str> {
-        match self.kind(db) {
-            ApiKind::Wasm { .. } => None,
-            ApiKind::Node => Some("use napi::bindgen_prelude::{Unknown, ValueType};\n"),
-        }
-    }
-
     /// Returns the Rust boundary type used for incoming JavaScript values.
     pub fn js_type(&self, db: &dyn Db) -> &'static str {
         match self.kind(db) {
@@ -87,19 +79,19 @@ impl Api {
 
     /// Returns a string-error expression for the legacy JavaScript-to-`bool`
     /// cast function.
-    pub(crate) fn cast_to_bool_with_string_error(self, db: &dyn Db) -> impl FragmentOnce {
+    pub fn cast_to_bool_with_string_error(self, db: &dyn Db) -> impl FragmentOnce {
         self.cast_to_primitive_with_string_error(db, "bool", "as_bool", "Boolean")
     }
 
     /// Returns a string-error expression for the legacy JavaScript-to-`String`
     /// cast function.
-    pub(crate) fn cast_to_string_with_string_error(self, db: &dyn Db) -> impl FragmentOnce {
+    pub fn cast_to_string_with_string_error(self, db: &dyn Db) -> impl FragmentOnce {
         self.cast_to_primitive_with_string_error(db, "String", "as_string", "String")
     }
 
     /// Returns a string-error expression for the legacy JavaScript-to-`f64`
     /// cast function.
-    pub(crate) fn cast_to_f64_with_string_error(self, db: &dyn Db) -> impl FragmentOnce {
+    pub fn cast_to_f64_with_string_error(self, db: &dyn Db) -> impl FragmentOnce {
         self.cast_to_primitive_with_string_error(db, "f64", "as_f64", "Number")
     }
 
@@ -175,6 +167,23 @@ impl Api {
             .apply(p),
         })
     }
+
+    pub fn header_renamed<'db>(
+        self,
+        db: &'db dyn Db,
+        name: impl FragmentOnce + 'db,
+    ) -> impl FragmentOnce + 'db {
+        let api_name = match self.kind(db) {
+            ApiKind::Wasm { .. } => "wasm_bindgen",
+            ApiKind::Node => "napi",
+        };
+
+        frag!(
+            #[{api_name}(js_name = {doubles(name)})]
+        )
+    }
+
+    // todo: del others
 
     /// Returns the function header for this API.
     pub fn fn_header<'db>(self, db: &'db dyn Db, _fn: Fn<'db>) -> impl FragmentOnce + 'db {

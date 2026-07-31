@@ -1,6 +1,10 @@
 use crate::codegen::{
     db::Db,
-    ir::{enum_::EnumId, item::ItemIdExt as _, struct_::StructId},
+    ir::{
+        enum_::EnumId,
+        item::{IntoItemId, ItemIdExt as _, ItemKind},
+        struct_::StructId,
+    },
 };
 
 /// A primitive type.
@@ -140,6 +144,24 @@ impl<'db> IrType<'db> {
             // todo: never produced actaully
             IrType::Struct(id) => format!("__cast_{}", id.extern_name(db)),
             IrType::Enum(id) => format!("__cast_{}", id.extern_name(db)),
+        }
+    }
+}
+
+pub trait ItemIdExt<'db> {
+    fn into_ir_type(self, db: &'db dyn Db) -> IrType<'db>;
+}
+
+impl<'db, T: IntoItemId<'db>> ItemIdExt<'db> for T {
+    fn into_ir_type(self, db: &'db dyn Db) -> IrType<'db> {
+        let item_id = self.into_item_id(db);
+
+        match item_id.kind(db) {
+            ItemKind::Struct => IrType::Struct(StructId::new(db, item_id).unwrap()),
+            ItemKind::Enum => IrType::Enum(EnumId::new(db, item_id).unwrap()),
+            ItemKind::CLikeEnum => IrType::Enum(EnumId::new(db, item_id).unwrap()),
+            ItemKind::Mod => IrType::Enum(EnumId::new(db, item_id).unwrap()),
+            ItemKind::Fn => IrType::Enum(EnumId::new(db, item_id).unwrap()),
         }
     }
 }

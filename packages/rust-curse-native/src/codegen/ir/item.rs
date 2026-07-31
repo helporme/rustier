@@ -156,6 +156,7 @@ macro_rules! define_item_id {
 
         impl<'db> $name<'db> {
             /// Creates an ID when the inner item has the expected kind.
+            // todo: rename or change to something more useful
             pub fn new(
                 db: &'db dyn $crate::codegen::db::Db,
                 inner: $crate::codegen::ir::item::ItemId<'db>,

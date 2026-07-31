@@ -6,7 +6,7 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, fragment},
         ir::{
-            item::ItemId,
+            item::{ItemId, ItemKind},
             type_::{IrPrimitive, IrType},
         },
     },
@@ -104,6 +104,31 @@ impl<'db> BirSourceType<'db> {
             | BirSourceType::Ref { .. } // technically it's unused since double refs are not supported by ir
             => true,
             BirSourceType::Item { .. } => false,
+        }
+    }
+
+    /// Whether this type is using
+    /// [`TetheringStruct`](super::tethering::TetheringStruct) for it's
+    /// runtime representation.
+    pub fn is_tethered(&self, db: &dyn Db) -> bool {
+        match self {
+            BirSourceType::Item { target } => match target.kind(db) {
+                ItemKind::Struct | ItemKind::Enum => true,
+                ItemKind::CLikeEnum | ItemKind::Mod | ItemKind::Fn => false,
+            },
+            BirSourceType::bool
+            | BirSourceType::char
+            | BirSourceType::i8
+            | BirSourceType::u8
+            | BirSourceType::i16
+            | BirSourceType::u16
+            | BirSourceType::i32
+            | BirSourceType::u32
+            | BirSourceType::f64
+            | BirSourceType::f32
+            | BirSourceType::Str
+            | BirSourceType::String
+            | BirSourceType::Ref { .. } => false,
         }
     }
 }

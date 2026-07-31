@@ -5,8 +5,8 @@ use crate::{
         bindings::{
             bir::{BirBoundaryType, BirSourceType},
             enum_::{
-                CastEnumBoundaryTypeToBorrowedSourceType, CastEnumBoundaryTypeToOwnedSourceType,
-                CastEnumSourceTypeToBoundaryType,
+                CastEnumBoundaryTypeToTetheringStructType,
+                CastTetheringStructTypeToEnumBoundaryType,
             },
             primitive::{
                 CastCharToU32BoundaryRule, CastF32ToF64BoundaryRule, CastF64ToF32Rule,
@@ -15,8 +15,12 @@ use crate::{
                 CastStringToStrMutRule, CastStringToStrRefRule, CastU32ToCharRule,
             },
             struct_::{
-                CastStructBoundaryTypeToBorrowedSourceType,
-                CastStructBoundaryTypeToOwnedSourceType, CastStructSourceTypeToBoundaryType,
+                CastStructBoundaryTypeToTetheringStructType,
+                CastTetheringStructTypeToStructBoundaryType,
+            },
+            tethering::{
+                CastSourceTypeToTetheringStructType, CastTetheringStructTypeToBorrowedSourceType,
+                CastTetheringStructTypeToOwnedSourceType, TetheringStructType,
             },
         },
         cast::{CastContinuation, IndirectCastRule},
@@ -31,6 +35,7 @@ define_cast_graph! {
         types {
             BoundaryType(BirBoundaryType<'db>),
             SourceType(BirSourceType<'db>),
+            TetheringStructType(TetheringStructType<'db>),
         }
 
         direct_rules {
@@ -84,14 +89,29 @@ define_cast_graph! {
                 from: SourceType,
                 to: BoundaryType,
             }
-            StructSourceTypeToBoundaryType {
-                rule: CastStructSourceTypeToBoundaryType,
+            SourceTypeToTetheringStructType {
+                rule: CastSourceTypeToTetheringStructType,
                 from: SourceType,
+                to: TetheringStructType,
+            }
+            StructBoundaryTypeToTetheringStructType {
+                rule: CastStructBoundaryTypeToTetheringStructType,
+                from: BoundaryType,
+                to: TetheringStructType,
+            }
+            EnumBoundaryTypeToTetheringStructType {
+                rule: CastEnumBoundaryTypeToTetheringStructType,
+                from: BoundaryType,
+                to: TetheringStructType,
+            }
+            TetheringStructTypeToStructBoundaryType {
+                rule: CastTetheringStructTypeToStructBoundaryType,
+                from: TetheringStructType,
                 to: BoundaryType,
             }
-            EnumSourceTypeToBoundaryType {
-                rule: CastEnumSourceTypeToBoundaryType,
-                from: SourceType,
+            TetheringStructTypeToEnumBoundaryType {
+                rule: CastTetheringStructTypeToEnumBoundaryType,
+                from: TetheringStructType,
                 to: BoundaryType,
             }
         }
@@ -102,26 +122,6 @@ define_cast_graph! {
                 from: SourceType,
                 to: SourceType,
             }
-            StructBoundaryTypeToBorrowedSourceType {
-                rule: CastStructBoundaryTypeToBorrowedSourceType,
-                from: BoundaryType,
-                to: SourceType,
-            }
-            EnumBoundaryTypeToBorrowedSourceType {
-                rule: CastEnumBoundaryTypeToBorrowedSourceType,
-                from: BoundaryType,
-                to: SourceType,
-            }
-            StructBoundaryTypeToOwnedSourceType {
-                rule: CastStructBoundaryTypeToOwnedSourceType,
-                from: BoundaryType,
-                to: SourceType,
-            }
-            EnumBoundaryTypeToOwnedSourceType {
-                rule: CastEnumBoundaryTypeToOwnedSourceType,
-                from: BoundaryType,
-                to: SourceType,
-            }
             StringToStrRef {
                 rule: CastStringToStrRefRule,
                 from: SourceType,
@@ -130,6 +130,16 @@ define_cast_graph! {
             StringToStrMut {
                 rule: CastStringToStrMutRule,
                 from: SourceType,
+                to: SourceType,
+            }
+            TetheringStructTypeToBorrowedSourceType {
+                rule: CastTetheringStructTypeToBorrowedSourceType,
+                from: TetheringStructType,
+                to: SourceType,
+            }
+            TetheringStructTypeToOwnedSourceType {
+                rule: CastTetheringStructTypeToOwnedSourceType,
+                from: TetheringStructType,
                 to: SourceType,
             }
         }
@@ -235,16 +245,7 @@ where
     let to = to.into();
     let uses_indirect_rule = BindingsCastGraph::find_cast_path(db, from.clone(), to.clone())
         .iter()
-        .any(|step| {
-            matches!(
-                step.rule,
-                BindingsCastGraph::CastRuleId::StructBoundaryTypeToBorrowedSourceType
-                    | BindingsCastGraph::CastRuleId::EnumBoundaryTypeToBorrowedSourceType
-                    | BindingsCastGraph::CastRuleId::StructBoundaryTypeToOwnedSourceType
-                    | BindingsCastGraph::CastRuleId::EnumBoundaryTypeToOwnedSourceType
-                    | BindingsCastGraph::CastRuleId::StringToStrMut
-            )
-        });
+        .any(|step| step.rule.is_indirect());
 
     fragment(move |printer| {
         if uses_indirect_rule {
@@ -322,19 +323,12 @@ where
         } = cast;
         let from = from.into();
         let to = to.into();
+
         let uses_indirect_rule =
             BindingsCastGraph::find_cast_path(self.db, from.clone(), to.clone())
                 .iter()
-                .any(|step| {
-                    matches!(
-                        step.rule,
-                        BindingsCastGraph::CastRuleId::StructBoundaryTypeToBorrowedSourceType
-                            | BindingsCastGraph::CastRuleId::EnumBoundaryTypeToBorrowedSourceType
-                            | BindingsCastGraph::CastRuleId::StructBoundaryTypeToOwnedSourceType
-                            | BindingsCastGraph::CastRuleId::EnumBoundaryTypeToOwnedSourceType
-                            | BindingsCastGraph::CastRuleId::StringToStrMut
-                    )
-                });
+                .any(|step| step.rule.is_indirect());
+
         let remaining = Self {
             db: self.db,
             casts: self.casts,

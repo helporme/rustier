@@ -247,7 +247,7 @@ where
 ///
 /// The macro generates:
 /// - `CastType<'db>`: enum of all graph node families;
-/// - `CastRuleId`: enum of all rules;
+/// - `CastRuleId`: enum of all rules with their direct/indirect classification;
 /// - `Graph`: static [`CastGraph`] dispatcher;
 /// - `find_cast_path`: Salsa-tracked backwards path query;
 /// - `compile_cast`: compiles a target-neutral cast request into a
@@ -315,6 +315,21 @@ macro_rules! define_cast_graph {
                 $(
                     $indirect_rule_variant,
                 )*
+            }
+
+            impl CastRuleId {
+                /// Returns whether this rule controls the scope of its continuation.
+                #[allow(dead_code)]
+                pub const fn is_indirect(self) -> bool {
+                    match self {
+                        $(
+                            Self::$direct_rule_variant => false,
+                        )*
+                        $(
+                            Self::$indirect_rule_variant => true,
+                        )*
+                    }
+                }
             }
 
             /// Static dispatcher for the generated graph.
@@ -667,6 +682,16 @@ mod tests {
                     path,
                     HappyScenario::$scenario,
                     &[$(HappyCastGraph::CastRuleId::$rule),+],
+                );
+                assert_eq!(
+                    path.iter()
+                        .map(|step| step.rule.is_indirect())
+                        .collect::<Vec<_>>(),
+                    HappyScenario::$scenario
+                        .cast_kinds()
+                        .iter()
+                        .map(|kind| *kind == CastKind::Indirect)
+                        .collect::<Vec<_>>(),
                 );
 
                 assert_snap!({

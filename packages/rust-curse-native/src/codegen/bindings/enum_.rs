@@ -6,50 +6,24 @@ use crate::{
         api::{Api, ApiKind},
         bindings::{
             bir::{BirBoundaryType, BirSourceType},
-            boundary::{
-                BoundaryInExpr, BoundaryMode, compile_boundary_in_to_source_type_expr,
-                compile_boundary_in_type, compile_boundary_out_from_source_type_expr,
-                compile_boundary_out_from_tethered_struct_expr, compile_boundary_out_type,
-            },
+            cast_graph::{Cast, compile_cast_expr, compile_cast_stmt},
             tethering::{
-                ClonedField, TetheredField, TetheredStructField, TetheringStruct,
-                compile_tethered_struct, compile_tethering_struct_from_source_expr,
-                compile_tethering_struct_get_field_expr, compile_tethering_struct_mut_access_stmt,
-                compile_tethering_struct_ref_access_stmt, compile_tethering_struct_set_field_stmt,
+                TetheringStruct, TetheringStructType, compile_tethered_struct,
+                compile_tethering_struct_get_field_expr, compile_tethering_struct_set_field_stmt,
             },
         },
-        cast::{CastContinuation, DirectCastRule, IndirectCastRule},
+        cast::DirectCastRule,
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment, spaced},
         ir::{
             enum_::{Enum, EnumId, EnumVariant},
-            item::{ItemId, ItemIdExt as _, ItemKind},
+            item::{ItemIdExt as _, ItemKind},
             shape::{Shape, ShapeField},
-            type_::IrType,
+            type_::{IrType, ItemIdExt},
         },
     },
     frag,
 };
-
-impl<'db> EnumId<'db> {
-    /// Returns the paired tethering struct name.
-    pub fn tethering_struct_name(self, db: &'db dyn Db) -> &'db String {
-        tethering_struct_name(db, self.into())
-    }
-}
-
-#[salsa::tracked(returns(ref))]
-fn tethering_struct_name<'db>(db: &'db dyn Db, id: ItemId<'db>) -> String {
-    format!("__tethered_struct__{}", id.mangled_fqn(db))
-}
-
-impl<'db> Enum<'db> {
-    /// Paired tethering struct name, e.g.
-    /// `__tethered_struct__core__option__Option`.
-    pub fn tethering_struct_name(&self, db: &'db dyn Db) -> &'db str {
-        self.id(db).tethering_struct_name(db)
-    }
-}
 
 // todo: move to variant?
 #[salsa::tracked]
@@ -81,46 +55,11 @@ impl<'db> ShapeField<'db> {
 pub fn compile_binding_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
     let tethered_fields = enum_.variants(db).iter().copied().flat_map(move |variant| {
         variant.fields(db).map(move |field| {
-            let name = field.enum_binding_name(db, variant);
-            let type_ = field.type_(db);
             let get_expr = move |source: &'static str| {
                 compile_variant_field_access_expr(db, enum_, variant, field, source)
             };
 
-            match type_ {
-                IrType::Struct(id) => {
-                    let tethered_name = id.tethering_struct_name(db);
-
-                    TetheredField::TetheredStruct(TetheredStructField {
-                        name,
-                        get_ref_expr: get_expr,
-                        get_mut_expr: get_expr,
-                        source_type: type_.fqn(db),
-                        tethered_name,
-                        with_setter: !field.is_readonly(db),
-                    })
-                }
-                IrType::Enum(id) => {
-                    let tethered_name = id.tethering_struct_name(db);
-
-                    TetheredField::TetheredStruct(TetheredStructField {
-                        name,
-                        get_ref_expr: get_expr,
-                        get_mut_expr: get_expr,
-                        source_type: type_.fqn(db),
-                        tethered_name,
-                        with_setter: !field.is_readonly(db),
-                    })
-                }
-                IrType::Primitive(_) | IrType::Str | IrType::String => {
-                    TetheredField::Cloned(ClonedField {
-                        name,
-                        get_ref_expr: get_expr,
-                        get_mut_expr: get_expr,
-                        source_type: type_.fqn(db),
-                    })
-                }
-            }
+            field.to_tethered_field(db, get_expr, get_expr)
         })
     });
 
@@ -141,18 +80,21 @@ pub fn compile_binding_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
 
 fn compile_wrapper_struct<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl FragmentOnce + 'db {
     let api = Api::get(db);
-    let header = match api.kind(db) {
-        ApiKind::Wasm { .. } => "#[wasm_bindgen(js_name = ",
-        ApiKind::Node => "#[napi(js_name = ",
-    };
     let extern_name = enum_.extern_name(db);
 
-    frag!(
-        {header}{doubles(extern_name)}{")]"}
-        pub struct ~{extern_name}~{{
-            src: std::rc::Rc<{enum_.tethering_struct_name(db)}>
-        }}
-    )
+    fragment(move |p| {
+        let header = api.header_renamed(db, enum_.extern_name(db));
+        let tethering_type = enum_.into_ir_type(db).source_type_owned();
+        let tethering_type_name = tethering_type.tethering_struct_name(db);
+
+        frag!(
+            {header}
+            pub struct ~{extern_name}~{{
+                src: std::rc::Rc<{tethering_type_name}>
+            }}
+        )
+        .apply(p);
+    })
 }
 
 fn compile_wrapper_impl<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl FragmentOnce + 'db {
@@ -173,7 +115,6 @@ fn compile_wrapper_impl<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl Fragment
         {api.impl_header(db)}@
         impl~{enum_.extern_name(db)}~{{
             {compile_type_method(db, enum_)}@@
-
             {fields}
         }}
     )
@@ -230,16 +171,22 @@ fn compile_field_getter<'db>(
     let name = field.enum_binding_name(db, variant);
     let getter_name = field.getter_binding_name_on_enum(db, variant);
     let field_type = field.type_(db);
-    let result_type = api.result_type(db, compile_boundary_out_type(db, field_type));
-    let tethered_value = compile_tethering_struct_get_field_expr(frag!(self.src), name);
-    let output = fragment(move |printer| match field_type {
-        IrType::Struct(_) | IrType::Enum(_) => {
-            compile_boundary_out_from_tethered_struct_expr(db, tethered_value, field_type)
-                .apply(printer);
-        }
-        IrType::Primitive(_) | IrType::Str | IrType::String => {
-            compile_boundary_out_from_source_type_expr(db, tethered_value, field_type)
-                .apply(printer);
+
+    let result_type = api.result_type(db, field_type.boundary_out().fqn_decl(db));
+
+    let field_value = compile_tethering_struct_get_field_expr(frag!(self.src), name);
+    let output = fragment(move |p| {
+        let source_type = field_type.source_type_owned();
+        if source_type.is_tethered(db) {
+            compile_cast_expr(
+                db,
+                TetheringStructType { source_type },
+                field_type.boundary_out(),
+                field_value,
+            )
+            .apply(p)
+        } else {
+            compile_cast_expr(db, source_type, field_type.boundary_out(), field_value).apply(p)
         }
     });
 
@@ -259,21 +206,28 @@ fn compile_field_setter<'db>(
     let api = Api::get(db);
     let name = field.enum_binding_name(db, variant);
     let setter_name = field.setter_binding_name_on_enum(db, variant);
-    let param_type_name = compile_boundary_in_type(db, field.type_(db));
     let result_type = api.result_type(db, "()");
-    let value = BoundaryInExpr {
-        in_expr: "value",
-        out_var_name: "value",
-        type_: field.type_(db),
-        mode: BoundaryMode::Move,
-    };
+
+    let boundary_in_type = field.type_(db).boundary_in();
+    let source_type = field.type_(db).source_type_owned();
+
     let set_tethered_field =
         compile_tethering_struct_set_field_stmt(frag!(self.src), name, "value");
 
+    let set_tethered_field = compile_cast_stmt(
+        db,
+        Cast {
+            from: boundary_in_type.clone(),
+            to: source_type,
+            in_expr: "value",
+            out_var_name: "value",
+        },
+        set_tethered_field,
+    );
+
     frag!(
         {api.field_setter_header(db, name)}@
-        pub fn ~{setter_name}(&self, value: ~{param_type_name})~ -> ~{result_type}~{{
-            let value = ~{compile_boundary_in_to_source_type_expr(db, [value], "value")};@
+        pub fn ~{setter_name}(&self, value: ~{boundary_in_type.fqn_decl(db)})~ -> ~{result_type}~{{
             {set_tethered_field}
             Ok(())
         }}
@@ -342,145 +296,56 @@ fn compile_variant_field_access_expr<'db>(
     })
 }
 
-/// Compiles an expression that wraps a tethered enum in its binding struct.
-pub fn compile_binding_enum_from_tethered_expr<'db>(
-    db: &'db dyn Db,
-    enum_id: EnumId<'db>,
-    tethered_struct_expr: impl FragmentOnce + 'db,
-) -> impl FragmentOnce + 'db {
-    let extern_name = enum_id.extern_name(db);
-    frag!({extern_name}~{{ src: {tethered_struct_expr} }})
-}
+/// Casts a generated struct boundary value to a tethering struct type.
+pub struct CastEnumBoundaryTypeToTetheringStructType;
 
-/// Casts a generated enum boundary value to a borrowed source enum.
-pub struct CastEnumBoundaryTypeToBorrowedSourceType;
-
-impl<'db> IndirectCastRule<'db, BirBoundaryType<'db>, BirSourceType<'db>>
-    for CastEnumBoundaryTypeToBorrowedSourceType
+impl<'db> DirectCastRule<'db, BirBoundaryType<'db>, TetheringStructType<'db>>
+    for CastEnumBoundaryTypeToTetheringStructType
 {
-    fn predecessor(self, db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirBoundaryType<'db>> {
-        match to {
-            BirSourceType::Ref { inner, .. } => match *inner {
-                BirSourceType::Item { target } if target.kind(db) == ItemKind::Enum => {
-                    Some(BirBoundaryType::Item { target })
-                }
-                _ => None,
-            },
-            _ => None,
-        }
-    }
-
-    fn compile<'fragment, Expr, Continue>(
+    fn predecessor(
         self,
-        _db: &'db dyn Db,
-        from: BirBoundaryType<'db>,
-        to: BirSourceType<'db>,
-        in_expr: Expr,
-        continue_with: Continue,
-    ) -> impl FragmentOnce + 'fragment
-    where
-        'db: 'fragment,
-        Expr: FragmentOnce + 'fragment,
-        Continue: CastContinuation<'db>,
-    {
-        let BirBoundaryType::Item { target } = from else {
-            unreachable!("enum boundary casts require a generated boundary type");
-        };
-        let BirSourceType::Ref { is_mutable, inner } = to else {
-            unreachable!("enum boundary casts require a borrowed source target");
-        };
-        let BirSourceType::Item {
-            target: source_target,
-        } = *inner
-        else {
-            unreachable!("enum boundary casts require a borrowed item target");
-        };
-
-        assert_eq!(
-            target, source_target,
-            "enum boundary cast source and target items must match"
-        );
-
-        let tethered = frag!({ in_expr }.src);
-        let continue_with = continue_with.compile("value");
-        fragment(move |printer| {
-            if is_mutable {
-                compile_tethering_struct_mut_access_stmt(tethered, "value", continue_with)
-                    .apply(printer);
-            } else {
-                compile_tethering_struct_ref_access_stmt(tethered, "value", continue_with)
-                    .apply(printer);
-            }
-        })
-    }
-}
-
-/// Casts a generated enum boundary value to an owned source enum by cloning it.
-pub struct CastEnumBoundaryTypeToOwnedSourceType;
-
-impl<'db> IndirectCastRule<'db, BirBoundaryType<'db>, BirSourceType<'db>>
-    for CastEnumBoundaryTypeToOwnedSourceType
-{
-    fn predecessor(self, db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirBoundaryType<'db>> {
-        match to {
+        db: &'db dyn Db,
+        to: TetheringStructType<'db>,
+    ) -> Option<BirBoundaryType<'db>> {
+        match to.source_type {
             BirSourceType::Item { target } if target.kind(db) == ItemKind::Enum => {
-                Some(BirBoundaryType::Ref(Box::new(BirBoundaryType::Item {
-                    target,
-                })))
+                Some(IrType::Enum(EnumId::new(db, target).unwrap()).boundary_in())
             }
             _ => None,
         }
     }
 
-    fn compile<'fragment, Expr, Continue>(
+    fn compile<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
-        from: BirBoundaryType<'db>,
-        to: BirSourceType<'db>,
+        _from: BirBoundaryType<'db>,
+        _to: TetheringStructType<'db>,
         in_expr: Expr,
-        continue_with: Continue,
     ) -> impl FragmentOnce + 'fragment
     where
         'db: 'fragment,
         Expr: FragmentOnce + 'fragment,
-        Continue: CastContinuation<'db>,
     {
-        let BirBoundaryType::Ref(target) = from else {
-            unreachable!("enum boundary casts require a generated boundary ref type");
-        };
-        let BirBoundaryType::Item { target } = *target else {
-            unreachable!("enum boundary casts require a generated boundary ref type");
-        };
-        let BirSourceType::Item {
-            target: source_target,
-        } = to
-        else {
-            unreachable!("owned enum boundary casts require an item target");
-        };
-
-        assert_eq!(
-            target, source_target,
-            "enum boundary cast source and target items must match"
-        );
-
-        compile_tethering_struct_ref_access_stmt(
-            frag!({ in_expr }.src),
-            "value",
-            continue_with.compile(frag!(value.clone())),
-        )
+        frag!({ in_expr }.src)
     }
 }
 
-/// Casts an owned source enum to its generated boundary type.
-pub struct CastEnumSourceTypeToBoundaryType;
+/// Casts a generated struct boundary value to a tethering struct type.
+pub struct CastTetheringStructTypeToEnumBoundaryType;
 
-impl<'db> DirectCastRule<'db, BirSourceType<'db>, BirBoundaryType<'db>>
-    for CastEnumSourceTypeToBoundaryType
+impl<'db> DirectCastRule<'db, TetheringStructType<'db>, BirBoundaryType<'db>>
+    for CastTetheringStructTypeToEnumBoundaryType
 {
-    fn predecessor(self, db: &'db dyn Db, to: BirBoundaryType<'db>) -> Option<BirSourceType<'db>> {
+    fn predecessor(
+        self,
+        db: &'db dyn Db,
+        to: BirBoundaryType<'db>,
+    ) -> Option<TetheringStructType<'db>> {
         match to {
-            BirBoundaryType::Item { target } => {
-                EnumId::new(db, target).map(|_| BirSourceType::Item { target })
+            BirBoundaryType::Item { target } if target.kind(db) == ItemKind::Enum => {
+                Some(TetheringStructType {
+                    source_type: BirSourceType::Item { target },
+                })
             }
             _ => None,
         }
@@ -489,7 +354,7 @@ impl<'db> DirectCastRule<'db, BirSourceType<'db>, BirBoundaryType<'db>>
     fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        from: BirSourceType<'db>,
+        _from: TetheringStructType<'db>,
         to: BirBoundaryType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
@@ -497,245 +362,10 @@ impl<'db> DirectCastRule<'db, BirSourceType<'db>, BirBoundaryType<'db>>
         'db: 'fragment,
         Expr: FragmentOnce + 'fragment,
     {
-        let BirSourceType::Item {
-            target: source_target,
-        } = from
-        else {
-            unreachable!("enum boundary casts require an owned item source");
-        };
         let BirBoundaryType::Item { target } = to else {
             unreachable!("enum boundary casts require a generated boundary target");
         };
-        let enum_id = EnumId::new(db, target)
-            .expect("enum boundary casts require a generated enum boundary type");
 
-        assert_eq!(
-            source_target, target,
-            "enum boundary cast source and target items must match"
-        );
-
-        let tethered =
-            compile_tethering_struct_from_source_expr(enum_id.tethering_struct_name(db), in_expr);
-        compile_binding_enum_from_tethered_expr(db, enum_id, tethered)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::codegen::{
-        api::{Api, ApiKind, WasmTarget},
-        bindings::cast_graph::test::Consume,
-        db::DbImpl,
-        fragment::FragmentPrint,
-        ir::item::{ItemKind, ItemPath},
-        rustdoc::{
-            RustdocId,
-            enum_::{EnumLowerError, LoweredEnum, lower_enum as lower_ir_enum},
-        },
-        test::{assert_snap, test_db},
-    };
-
-    fn lower_enum<'db>(
-        db: &'db DbImpl,
-        id: RustdocId<'db>,
-    ) -> Result<Enum<'db>, Box<EnumLowerError>> {
-        match lower_ir_enum(db, id)? {
-            LoweredEnum::Enum(enum_) => Ok(enum_),
-            LoweredEnum::CLikeEnum(_) => panic!("test requires a data-carrying enum"),
-        }
-    }
-
-    #[test]
-    fn compiles_enum_with_tuple_variant() {
-        assert_snap!({
-            let mut db = test_db! {
-                #[derive(Clone)]
-                pub struct Point {
-                    pub x: f64,
-                    pub y: f64,
-                }
-
-                pub enum Example {
-                    Tuple(Point, String, i32),
-                }
-            };
-
-            Api::set(&mut db, ApiKind::Node);
-            let enum_ = lower_enum(&db, db.rustdoc_id("Example")).unwrap();
-            let node = compile_binding_enum(&db, enum_).to_string();
-            syn::parse_file(&node).expect("generated Node enum bindings must be valid Rust syntax");
-
-            Api::set(
-                &mut db,
-                ApiKind::Wasm {
-                    target: WasmTarget::Web,
-                },
-            );
-            let enum_ = lower_enum(&db, db.rustdoc_id("Example")).unwrap();
-            let wasm = compile_binding_enum(&db, enum_).to_string();
-            syn::parse_file(&wasm).expect("generated Wasm enum bindings must be valid Rust syntax");
-
-            ("// Node\n", node, "\n\n// Wasm\n", wasm).print()
-        });
-    }
-
-    #[test]
-    fn compiles_enum_with_struct_variant() {
-        assert_snap!({
-            let mut db = test_db! {
-                #[derive(Clone)]
-                pub struct Point {
-                    pub x: f64,
-                    pub y: f64,
-                }
-
-                pub enum Example {
-                    Struct {
-                        point: Point,
-                        label: String,
-                        count: i32,
-                    },
-                }
-            };
-
-            Api::set(&mut db, ApiKind::Node);
-            let enum_ = lower_enum(&db, db.rustdoc_id("Example")).unwrap();
-            let node = compile_binding_enum(&db, enum_).to_string();
-            syn::parse_file(&node).expect("generated Node enum bindings must be valid Rust syntax");
-
-            Api::set(
-                &mut db,
-                ApiKind::Wasm {
-                    target: WasmTarget::Web,
-                },
-            );
-            let enum_ = lower_enum(&db, db.rustdoc_id("Example")).unwrap();
-            let wasm = compile_binding_enum(&db, enum_).to_string();
-            syn::parse_file(&wasm).expect("generated Wasm enum bindings must be valid Rust syntax");
-
-            ("// Node\n", node, "\n\n// Wasm\n", wasm).print()
-        });
-    }
-
-    #[test]
-    fn compiles_mixed_enum() {
-        assert_snap!({
-            let mut db = test_db! {
-                #[derive(Clone)]
-                pub struct Point {
-                    pub x: f64,
-                    pub y: f64,
-                }
-
-                pub enum Example {
-                    Unit,
-                    Tuple(Point, String, i32),
-                    Struct {
-                        point: Point,
-                        label: String,
-                        count: i32,
-                    },
-                }
-            };
-
-            Api::set(&mut db, ApiKind::Node);
-            let enum_ = lower_enum(&db, db.rustdoc_id("Example")).unwrap();
-            let node = compile_binding_enum(&db, enum_).to_string();
-            syn::parse_file(&node).expect("generated Node enum bindings must be valid Rust syntax");
-
-            Api::set(
-                &mut db,
-                ApiKind::Wasm {
-                    target: WasmTarget::Web,
-                },
-            );
-            let enum_ = lower_enum(&db, db.rustdoc_id("Example")).unwrap();
-            let wasm = compile_binding_enum(&db, enum_).to_string();
-            syn::parse_file(&wasm).expect("generated Wasm enum bindings must be valid Rust syntax");
-
-            ("// Node\n", node, "\n\n// Wasm\n", wasm).print()
-        });
-    }
-
-    #[test]
-    fn casts_enum_boundary_type_to_shared_source_ref() {
-        assert_snap!({
-            let db = DbImpl::default();
-            let path = ItemPath::new(&db, vec!["crate".into(), "Example".into()]);
-            let target = ItemId::new(&db, path, ItemKind::Enum);
-
-            IndirectCastRule::compile(
-                CastEnumBoundaryTypeToBorrowedSourceType,
-                &db,
-                BirBoundaryType::Item { target },
-                BirSourceType::Ref {
-                    is_mutable: false,
-                    inner: Box::new(BirSourceType::Item { target }),
-                },
-                "input",
-                Consume,
-            )
-            .print()
-        });
-    }
-
-    #[test]
-    fn casts_enum_boundary_type_to_mutable_source_ref() {
-        assert_snap!({
-            let db = DbImpl::default();
-            let path = ItemPath::new(&db, vec!["crate".into(), "Example".into()]);
-            let target = ItemId::new(&db, path, ItemKind::Enum);
-
-            IndirectCastRule::compile(
-                CastEnumBoundaryTypeToBorrowedSourceType,
-                &db,
-                BirBoundaryType::Item { target },
-                BirSourceType::Ref {
-                    is_mutable: true,
-                    inner: Box::new(BirSourceType::Item { target }),
-                },
-                "input",
-                Consume,
-            )
-            .print()
-        });
-    }
-
-    #[test]
-    fn casts_enum_boundary_type_to_owned_source_type() {
-        assert_snap!({
-            let db = DbImpl::default();
-            let path = ItemPath::new(&db, vec!["crate".into(), "Example".into()]);
-            let target = ItemId::new(&db, path, ItemKind::Enum);
-
-            IndirectCastRule::compile(
-                CastEnumBoundaryTypeToOwnedSourceType,
-                &db,
-                BirBoundaryType::Item { target },
-                BirSourceType::Item { target },
-                "input",
-                Consume,
-            )
-            .print()
-        });
-    }
-
-    #[test]
-    fn casts_owned_enum_source_type_to_boundary_type() {
-        assert_snap!({
-            let db = DbImpl::default();
-            let path = ItemPath::new(&db, vec!["crate".into(), "Example".into()]);
-            let target = ItemId::new(&db, path, ItemKind::Enum);
-
-            DirectCastRule::compile(
-                CastEnumSourceTypeToBoundaryType,
-                &db,
-                BirSourceType::Item { target },
-                BirBoundaryType::Item { target },
-                "input",
-            )
-            .print()
-        });
+        frag!({target.extern_name(db)}~{{ src: {in_expr} }})
     }
 }
