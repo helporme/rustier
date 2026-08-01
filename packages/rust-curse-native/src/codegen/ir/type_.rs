@@ -92,50 +92,33 @@ impl IrPrimitive {
 /// It also means that there is no "ref" or "mut ref" variant, since rust-curse
 /// doesn't really support refs in all cases.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
-// todo: rename to IrType
-pub enum IrType<'db> {
+pub enum Type<'db> {
     Primitive(IrPrimitive),
     Str,
     String,
     Struct(StructId<'db>),
     Enum(EnumId<'db>),
-    // ClikeEnum
-    // Vec
-    // HashMap
-    // Option
-    // Result
-    // PathBuf
-    // Path
-    // OsString
-    // OsStr
-    // Callback
-    // Tuple
-    // Slice,
-    // Box,
-    // Rc
-    // RefCell
-    // HashMap
 }
 
-impl<'db> IrType<'db> {
+impl<'db> Type<'db> {
     /// Returns this type's Rust name used in source code.
     pub fn fqn(&self, db: &'db dyn Db) -> &'db str {
         match self {
-            IrType::Primitive(primitive) => primitive.fqn(),
-            IrType::Str => "str",
-            IrType::String => "String",
-            IrType::Struct(id) => id.fqn(db),
-            IrType::Enum(id) => id.fqn(db),
+            Type::Primitive(primitive) => primitive.fqn(),
+            Type::Str => "str",
+            Type::String => "String",
+            Type::Struct(id) => id.fqn(db),
+            Type::Enum(id) => id.fqn(db),
         }
     }
 
     /// Returns this type's TypeScript name.
     pub fn ts_name(&self, db: &'db dyn Db) -> String {
         match self {
-            IrType::Primitive(primitive) => primitive.ts_name().to_owned(),
-            IrType::Str | IrType::String => "string".to_owned(),
-            IrType::Struct(id) => id.name(db).to_owned(),
-            IrType::Enum(id) => id.name(db).to_owned(),
+            Type::Primitive(primitive) => primitive.ts_name().to_owned(),
+            Type::Str | Type::String => "string".to_owned(),
+            Type::Struct(id) => id.name(db).to_owned(),
+            Type::Enum(id) => id.name(db).to_owned(),
         }
     }
 
@@ -143,29 +126,29 @@ impl<'db> IrType<'db> {
     // todo: function should be moved to the cast.rs module and removed from here
     pub fn cast_fn_name(&self, db: &'db dyn Db) -> String {
         match self {
-            IrType::Primitive(primitive) => primitive.cast_fn_name().to_owned(),
-            IrType::Str | IrType::String => "__cast_String".to_owned(),
+            Type::Primitive(primitive) => primitive.cast_fn_name().to_owned(),
+            Type::Str | Type::String => "__cast_String".to_owned(),
             // todo: never produced actaully
-            IrType::Struct(id) => format!("__cast_{}", id.extern_name(db)),
-            IrType::Enum(id) => format!("__cast_{}", id.extern_name(db)),
+            Type::Struct(id) => format!("__cast_{}", id.extern_name(db)),
+            Type::Enum(id) => format!("__cast_{}", id.extern_name(db)),
         }
     }
 }
 
 pub trait ItemIdExt<'db> {
-    fn into_ir_type(self, db: &'db dyn Db) -> IrType<'db>;
+    fn into_ir_type(self, db: &'db dyn Db) -> Type<'db>;
 }
 
 impl<'db, T: IntoItemId<'db>> ItemIdExt<'db> for T {
-    fn into_ir_type(self, db: &'db dyn Db) -> IrType<'db> {
+    fn into_ir_type(self, db: &'db dyn Db) -> Type<'db> {
         let item_id = self.into_item_id(db);
 
         match item_id.kind(db) {
-            ItemKind::Struct => IrType::Struct(StructId::new(db, item_id).unwrap()),
-            ItemKind::Enum => IrType::Enum(EnumId::new(db, item_id).unwrap()),
-            ItemKind::CLikeEnum => IrType::Enum(EnumId::new(db, item_id).unwrap()),
-            ItemKind::Mod => IrType::Enum(EnumId::new(db, item_id).unwrap()),
-            ItemKind::Fn => IrType::Enum(EnumId::new(db, item_id).unwrap()),
+            ItemKind::Struct => Type::Struct(StructId::new(db, item_id).unwrap()),
+            ItemKind::Enum => Type::Enum(EnumId::new(db, item_id).unwrap()),
+            ItemKind::CLikeEnum => Type::Enum(EnumId::new(db, item_id).unwrap()),
+            ItemKind::Mod => Type::Enum(EnumId::new(db, item_id).unwrap()),
+            ItemKind::Fn => Type::Enum(EnumId::new(db, item_id).unwrap()),
         }
     }
 }

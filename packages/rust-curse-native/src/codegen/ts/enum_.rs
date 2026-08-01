@@ -8,7 +8,7 @@ use crate::{
             enum_::{Enum, EnumVariant},
             item::{ItemId, ItemIdExt as _},
             shape::Shape,
-            type_::IrType,
+            type_::Type,
         },
         js::imports::{Import, ImportFrom},
         ts::jsdoc::compile_jsdoc,
@@ -74,9 +74,9 @@ pub fn compile_enum_required_imports<'db>(
     for variant in enum_.variants(db) {
         for field in variant.fields(db) {
             let (type_id, type_name): (ItemId<'db>, _) = match field.type_(db) {
-                IrType::Struct(struct_id) => (struct_id.into(), struct_id.name(db)),
-                IrType::Enum(enum_id) => (enum_id.into(), enum_id.name(db)),
-                IrType::Primitive(_) | IrType::Str | IrType::String => continue,
+                Type::Struct(struct_id) => (struct_id.into(), struct_id.name(db)),
+                Type::Enum(enum_id) => (enum_id.into(), enum_id.name(db)),
+                Type::Primitive(_) | Type::Str | Type::String => continue,
             };
             let type_mod_id = type_id.parent_mod_id(db).unwrap();
 

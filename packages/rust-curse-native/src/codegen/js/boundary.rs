@@ -4,7 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, fragment},
-        ir::{mod_::ModId, type_::IrType},
+        ir::{mod_::ModId, type_::Type},
         js::{
             enum_::{
                 compile_binding_enum_from_facade_expr, compile_enum_facade_from_binding_expr,
@@ -33,18 +33,18 @@ use crate::{
 /// [`compile_js_binding_value_to_facade_stmt_required_imports`] to be in scope.
 pub fn compile_js_binding_value_to_facade_stmt<'db>(
     db: &'db dyn Db,
-    binding_value_type: IrType<'db>,
+    binding_value_type: Type<'db>,
     binding_value_expr: impl FragmentOnce + 'db,
     out_var_name: impl FragmentOnce + 'db,
 ) -> impl FragmentOnce + 'db {
     let facade_value_expr = fragment(move |p| match binding_value_type {
-        IrType::Struct(struct_id) => {
+        Type::Struct(struct_id) => {
             compile_struct_facade_from_binding_expr(db, struct_id, binding_value_expr).apply(p);
         }
-        IrType::Enum(enum_id) => {
+        Type::Enum(enum_id) => {
             compile_enum_facade_from_binding_expr(db, enum_id, binding_value_expr).apply(p);
         }
-        IrType::Primitive(_) | IrType::Str | IrType::String => binding_value_expr.apply(p),
+        Type::Primitive(_) | Type::Str | Type::String => binding_value_expr.apply(p),
     });
 
     frag!({out_var_name}~ = ~{facade_value_expr};)
@@ -54,11 +54,11 @@ pub fn compile_js_binding_value_to_facade_stmt<'db>(
 pub fn compile_js_binding_value_to_facade_stmt_required_imports<'db>(
     db: &'db dyn Db,
     active_mod_id: ModId<'db>,
-    binding_value_type: IrType<'db>,
+    binding_value_type: Type<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {
     match binding_value_type {
-        IrType::Struct(struct_id) => {
+        Type::Struct(struct_id) => {
             compile_struct_facade_from_binding_expr_required_imports(
                 db,
                 active_mod_id,
@@ -66,7 +66,7 @@ pub fn compile_js_binding_value_to_facade_stmt_required_imports<'db>(
                 imports,
             );
         }
-        IrType::Enum(enum_id) => {
+        Type::Enum(enum_id) => {
             compile_enum_facade_from_binding_expr_required_imports(
                 db,
                 active_mod_id,
@@ -74,7 +74,7 @@ pub fn compile_js_binding_value_to_facade_stmt_required_imports<'db>(
                 imports,
             );
         }
-        IrType::Primitive(_) | IrType::Str | IrType::String => {}
+        Type::Primitive(_) | Type::Str | Type::String => {}
     }
 }
 
@@ -87,22 +87,22 @@ pub fn compile_js_binding_value_to_facade_stmt_required_imports<'db>(
 /// [`compile_js_facade_value_to_binding_stmt_required_imports`] to be in scope.
 pub fn compile_js_facade_value_to_binding_stmt<'db>(
     db: &'db dyn Db,
-    facade_value_type: IrType<'db>,
+    facade_value_type: Type<'db>,
     facade_value_expr: impl FragmentOnce + 'db,
     out_var_name: impl FragmentOnce + 'db,
 ) -> impl FragmentOnce + 'db {
     const FACADE_VALUE: &str = "__facade_value";
 
     fragment(move |p| match facade_value_type {
-        IrType::Struct(_) | IrType::Enum(_) => {
+        Type::Struct(_) | Type::Enum(_) => {
             let binding_value_expr = fragment(move |p| match facade_value_type {
-                IrType::Struct(_) => {
+                Type::Struct(_) => {
                     compile_binding_struct_from_facade_expr(FACADE_VALUE).apply(p);
                 }
-                IrType::Enum(_) => {
+                Type::Enum(_) => {
                     compile_binding_enum_from_facade_expr(FACADE_VALUE).apply(p);
                 }
-                IrType::Primitive(_) | IrType::Str | IrType::String => unreachable!(),
+                Type::Primitive(_) | Type::Str | Type::String => unreachable!(),
             });
 
             frag!(
@@ -114,7 +114,7 @@ pub fn compile_js_facade_value_to_binding_stmt<'db>(
             )
             .apply(p);
         }
-        IrType::Primitive(_) | IrType::Str | IrType::String => {
+        Type::Primitive(_) | Type::Str | Type::String => {
             frag!({out_var_name}~ = ~{facade_value_expr};).apply(p);
         }
     })
@@ -125,7 +125,7 @@ pub fn compile_js_facade_value_to_binding_stmt<'db>(
 pub fn compile_js_facade_value_to_binding_stmt_required_imports<'db>(
     db: &'db dyn Db,
     active_mod_id: ModId<'db>,
-    facade_value_type: IrType<'db>,
+    facade_value_type: Type<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {
     compile_js_facade_value_validation_stmt_required_imports(

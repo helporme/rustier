@@ -2,7 +2,7 @@ use crate::codegen::{
     db::Db,
     ir::{
         item::{IntoItemId, ItemId, ItemKind, define_item_id},
-        type_::IrType,
+        type_::Type,
     },
 };
 
@@ -17,7 +17,7 @@ pub struct Fn<'db> {
     pub params: Vec<FnParam<'db>>,
     #[tracked]
     #[returns(copy)]
-    pub return_type: Option<IrType<'db>>,
+    pub return_type: Option<Type<'db>>,
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,
@@ -42,7 +42,7 @@ pub struct FnParam<'db> {
     #[returns(ref)]
     pub name: String,
     #[tracked]
-    pub type_: IrType<'db>,
+    pub type_: Type<'db>,
     #[returns(copy)]
     pub mode: PassingMode,
 }

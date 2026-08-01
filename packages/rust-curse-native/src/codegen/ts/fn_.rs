@@ -7,7 +7,7 @@ use crate::{
         ir::{
             fn_::Fn,
             item::{ItemId, ItemIdExt},
-            type_::IrType,
+            type_::Type,
         },
         js::imports::{Import, ImportFrom},
         ts::jsdoc::compile_jsdoc,
@@ -62,9 +62,9 @@ pub fn compile_fn_required_imports<'db>(
         .chain(fn_.return_type(db))
     {
         let (type_id, type_name): (ItemId<'db>, _) = match type_ {
-            IrType::Struct(struct_id) => (struct_id.into(), struct_id.name(db)),
-            IrType::Enum(enum_id) => (enum_id.into(), enum_id.name(db)),
-            IrType::Primitive(_) | IrType::Str | IrType::String => continue,
+            Type::Struct(struct_id) => (struct_id.into(), struct_id.name(db)),
+            Type::Enum(enum_id) => (enum_id.into(), enum_id.name(db)),
+            Type::Primitive(_) | Type::Str | Type::String => continue,
         };
         let type_mod_id = type_id.parent_mod_id(db).unwrap();
 

@@ -2,12 +2,12 @@ use crate::{
     codegen::{
         api::Api,
         bindings::{
-            bir::BirSourceType,
+            bir::SourceType,
             cast_graph::{BindingsCastCompiler, Cast},
         },
         db::Db,
         fragment::{FragmentOnce, comma_list, fragment},
-        ir::{fn_::PassingMode, type_::IrType},
+        ir::{fn_::PassingMode, type_::Type},
     },
     frag,
 };
@@ -16,27 +16,27 @@ use crate::{
 pub struct ExternFn<'db, Params, SourceExpr> {
     pub name: &'db str,
     pub params: Params,
-    pub return_type: Option<IrType<'db>>,
+    pub return_type: Option<Type<'db>>,
     pub source_expr: SourceExpr,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct ExternFnParam<'db> {
     pub name: &'db str,
-    pub type_: IrType<'db>,
+    pub type_: Type<'db>,
     pub mode: PassingMode,
     pub is_self: bool,
 }
 
 impl<'db> ExternFnParam<'db> {
     /// Source type of the parameter.
-    pub fn source_type(&self) -> BirSourceType<'db> {
+    pub fn source_type(&self) -> SourceType<'db> {
         match self.mode {
-            PassingMode::Ref => BirSourceType::Ref {
+            PassingMode::Ref => SourceType::Ref {
                 is_mutable: false,
                 inner: Box::new(self.type_.source_type_owned()),
             },
-            PassingMode::Mut => BirSourceType::Ref {
+            PassingMode::Mut => SourceType::Ref {
                 is_mutable: true,
                 inner: Box::new(self.type_.source_type_owned()),
             },
@@ -74,7 +74,7 @@ where
     let return_type = fn_.return_type;
     let result_type = fragment(move |p| match return_type {
         Some(type_) => api
-            .result_type(db, type_.boundary_out().fqn_decl(db))
+            .result_type(db, type_.extern_out().fqn_decl(db))
             .apply(p),
         None => api.result_type(db, "()").apply(p),
     });
@@ -103,7 +103,7 @@ where
                 }
             } else {
                 frag!(
-                    {param.arg_name()}: ~{param.type_.boundary_in().fqn_decl(db)}
+                    {param.arg_name()}: ~{param.type_.extern_in().fqn_decl(db)}
                 )
                 .apply(p);
             }
@@ -118,7 +118,7 @@ fn compile_extern_fn_body<'db, CastCompiler, Params, SourceExpr>(
     db: &'db dyn Db,
     cast_compiler: CastCompiler,
     params: Params,
-    return_type: Option<IrType<'db>>,
+    return_type: Option<Type<'db>>,
     source_expr: SourceExpr,
 ) -> impl FragmentOnce + 'db
 where
@@ -128,7 +128,7 @@ where
 {
     fragment(move |p| {
         let cast_param_to_source_types = params.map(|param| Cast {
-            from: param.type_.boundary_in(),
+            from: param.type_.extern_in(),
             to: param.source_type(),
             in_expr: param.arg_name(),
             out_var_name: param.name,
@@ -145,7 +145,7 @@ where
                 let casted_result_expr = cast_compiler.compile_cast_expr(
                     db,
                     ret_type.source_type_owned(),
-                    ret_type.boundary_out(),
+                    ret_type.extern_out(),
                     result_expr,
                 );
 
@@ -203,7 +203,7 @@ mod tests {
                 let fn_ = ExternFn {
                     name: "test_fn",
                     params,
-                    return_type: Some(IrType::Primitive(IrPrimitive::f64)),
+                    return_type: Some(Type::Primitive(IrPrimitive::f64)),
                     source_expr: "source()",
                 };
 
@@ -219,7 +219,7 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg",
-                    type_: IrType::Primitive(IrPrimitive::f64),
+                    type_: Type::Primitive(IrPrimitive::f64),
                     mode: PassingMode::Move,
                     is_self: false,
                 }];
@@ -243,7 +243,7 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg",
-                    type_: IrType::Primitive(IrPrimitive::f64),
+                    type_: Type::Primitive(IrPrimitive::f64),
                     mode: PassingMode::Move,
                     is_self: false,
                 }];
@@ -251,7 +251,7 @@ mod tests {
                 let fn_ = ExternFn {
                     name: "test_fn",
                     params,
-                    return_type: Some(IrType::Primitive(IrPrimitive::f64)),
+                    return_type: Some(Type::Primitive(IrPrimitive::f64)),
                     source_expr: "source(arg)",
                 };
 
@@ -267,12 +267,12 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg1",
-                    type_: IrType::Primitive(IrPrimitive::f64),
+                    type_: Type::Primitive(IrPrimitive::f64),
                     mode: PassingMode::Move,
                     is_self: false,
                 }, ExternFnParam {
                     name: "arg2",
-                    type_: IrType::Primitive(IrPrimitive::f64),
+                    type_: Type::Primitive(IrPrimitive::f64),
                     mode: PassingMode::Ref,
                     is_self: false,
                 }];
@@ -296,12 +296,12 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg1",
-                    type_: IrType::Primitive(IrPrimitive::f64),
+                    type_: Type::Primitive(IrPrimitive::f64),
                     mode: PassingMode::Move,
                     is_self: false,
                 }, ExternFnParam {
                     name: "arg2",
-                    type_: IrType::Primitive(IrPrimitive::f64),
+                    type_: Type::Primitive(IrPrimitive::f64),
                     mode: PassingMode::Ref,
                     is_self: false,
                 }];
@@ -309,7 +309,7 @@ mod tests {
                 let fn_ = ExternFn {
                     name: "test_fn",
                     params,
-                    return_type: Some(IrType::Primitive(IrPrimitive::f64)),
+                    return_type: Some(Type::Primitive(IrPrimitive::f64)),
                     source_expr: "source(arg1, arg2)",
                 };
 
@@ -325,7 +325,7 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg",
-                    type_: IrType::Primitive(IrPrimitive::f64),
+                    type_: Type::Primitive(IrPrimitive::f64),
                     mode: PassingMode::Move,
                     is_self: true,
                 }];
@@ -349,7 +349,7 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg",
-                    type_: IrType::Primitive(IrPrimitive::f64),
+                    type_: Type::Primitive(IrPrimitive::f64),
                     mode: PassingMode::Ref,
                     is_self: true,
                 }];
@@ -373,7 +373,7 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg",
-                    type_: IrType::Primitive(IrPrimitive::f64),
+                    type_: Type::Primitive(IrPrimitive::f64),
                     mode: PassingMode::Mut,
                     is_self: true,
                 }];
@@ -397,12 +397,12 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg",
-                    type_: IrType::Primitive(IrPrimitive::f64),
+                    type_: Type::Primitive(IrPrimitive::f64),
                     mode: PassingMode::Move,
                     is_self: true,
                 }, ExternFnParam {
                     name: "arg2",
-                    type_: IrType::Primitive(IrPrimitive::f64),
+                    type_: Type::Primitive(IrPrimitive::f64),
                     mode: PassingMode::Ref,
                     is_self: false,
                 }];

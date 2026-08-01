@@ -8,7 +8,7 @@ use crate::codegen::{
     ir::{
         enum_::EnumId,
         struct_::StructId,
-        type_::{IrPrimitive, IrType},
+        type_::{IrPrimitive, Type as IrType},
     },
     rustdoc::{CrateExt, RustdocType},
 };

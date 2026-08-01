@@ -9,7 +9,7 @@ use crate::codegen::{
         fn_::Fn,
         shape::Shape,
         struct_::Struct,
-        type_::{IrPrimitive, IrType},
+        type_::{IrPrimitive, Type},
     },
     rustdoc::{
         ItemIdExt as _,
@@ -51,8 +51,8 @@ fn check_f32_percission_los_fn(db: &dyn Db, fn_: Fn<'_>) -> Option<F32PrecisionL
     let has_f32_param = fn_
         .params(db)
         .iter()
-        .any(|param| param.type_(db) == IrType::Primitive(IrPrimitive::f32));
-    let has_f32_return = fn_.return_type(db) == Some(IrType::Primitive(IrPrimitive::f32));
+        .any(|param| param.type_(db) == Type::Primitive(IrPrimitive::f32));
+    let has_f32_return = fn_.return_type(db) == Some(Type::Primitive(IrPrimitive::f32));
 
     if has_f32_param || has_f32_return {
         let id = fn_.id(db).rustdoc_id(db);
@@ -77,10 +77,10 @@ fn check_f32_percission_los_struct(db: &dyn Db, struct_: Struct<'_>) -> Option<F
         Shape::Tuple(fields) => fields
             .iter()
             .flatten()
-            .any(|field| field.type_(db) == IrType::Primitive(IrPrimitive::f32)),
+            .any(|field| field.type_(db) == Type::Primitive(IrPrimitive::f32)),
         Shape::Plain { fields, .. } => fields
             .iter()
-            .any(|field| field.type_(db) == IrType::Primitive(IrPrimitive::f32)),
+            .any(|field| field.type_(db) == Type::Primitive(IrPrimitive::f32)),
     };
 
     if has_f32_field {
@@ -104,7 +104,7 @@ fn check_f32_percission_los_enum(db: &dyn Db, enum_: Enum<'_>) -> Option<F32Prec
     let has_f32_field = enum_.variants(db).iter().any(|variant| {
         variant
             .fields(db)
-            .any(|field| field.type_(db) == IrType::Primitive(IrPrimitive::f32))
+            .any(|field| field.type_(db) == Type::Primitive(IrPrimitive::f32))
     });
 
     if has_f32_field {

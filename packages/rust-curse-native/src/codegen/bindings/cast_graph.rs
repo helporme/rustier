@@ -3,7 +3,7 @@
 use crate::{
     codegen::{
         bindings::{
-            bir::{BirBoundaryType, BirSourceType},
+            bir::{ExternType, SourceType},
             extern_class::{
                 CastClassBoundaryTypeToTetheringStructType,
                 CastTetheringStructTypeToClassBoundaryType,
@@ -29,8 +29,8 @@ use crate::{
 define_cast_graph! {
     pub BindingsCast<'db> {
         types {
-            BoundaryType(BirBoundaryType<'db>),
-            SourceType(BirSourceType<'db>),
+            BoundaryType(ExternType<'db>),
+            SourceType(SourceType<'db>),
             TetheringStructType(TetheringStructType<'db>),
         }
 
@@ -531,14 +531,12 @@ where
 /// A rule to cast an owned source type to a reference source type.
 pub struct CastOwnedTypeToBorrowedTypeRule;
 
-impl<'db> IndirectCastRule<'db, BirSourceType<'db>, BirSourceType<'db>>
+impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>>
     for CastOwnedTypeToBorrowedTypeRule
 {
-    fn predecessor(self, _db: &'db dyn Db, to: BirSourceType<'db>) -> Option<BirSourceType<'db>> {
+    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
         match to {
-            BirSourceType::Ref { inner, .. } if inner.allows_generic_borrowing_cast() => {
-                Some(*inner)
-            }
+            SourceType::Ref { inner, .. } if inner.allows_generic_borrowing_cast() => Some(*inner),
             _ => None,
         }
     }
@@ -546,8 +544,8 @@ impl<'db> IndirectCastRule<'db, BirSourceType<'db>, BirSourceType<'db>>
     fn compile<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
-        _from: BirSourceType<'db>,
-        to: BirSourceType<'db>,
+        _from: SourceType<'db>,
+        to: SourceType<'db>,
         in_expr: Expr,
         continue_with: Continue,
     ) -> impl FragmentOnce + 'fragment
@@ -556,7 +554,7 @@ impl<'db> IndirectCastRule<'db, BirSourceType<'db>, BirSourceType<'db>>
         Expr: FragmentOnce + 'fragment,
         Continue: CastContinuation<'db>,
     {
-        let BirSourceType::Ref { is_mutable, .. } = to else {
+        let SourceType::Ref { is_mutable, .. } = to else {
             unreachable!()
         };
 

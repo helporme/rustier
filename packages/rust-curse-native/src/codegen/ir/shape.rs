@@ -3,7 +3,7 @@ use rustdoc_types::ItemEnum;
 use crate::codegen::{
     db::Db,
     ir::item::ItemId,
-    ir::type_::IrType,
+    ir::type_::Type,
     rustdoc::{
         CrateExt, RustdocId,
         shape::{RustdocShape, lower_shape},
@@ -16,7 +16,7 @@ pub struct ShapeField<'db> {
     #[returns(ref)]
     pub name: String,
     #[tracked]
-    pub type_: IrType<'db>,
+    pub type_: Type<'db>,
     #[tracked]
     pub is_readonly: bool,
     #[tracked]

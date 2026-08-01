@@ -6,7 +6,7 @@ use rust_curse::codegen::{
         mod_::Mod,
         shape::{Shape, ShapeField},
         struct_::Struct,
-        type_::{IrPrimitive, IrType},
+        type_::{IrPrimitive, Type},
     },
     rustdoc::{
         ItemIdExt as _,
@@ -66,14 +66,14 @@ impl<'db> DebugRender<'db> for Mod<'db> {
     }
 }
 
-impl<'db> DebugRender<'db> for IrType<'db> {
+impl<'db> DebugRender<'db> for Type<'db> {
     fn render(&self, db: &'db dyn Db) -> String {
         match self {
-            IrType::Primitive(primitive) => primitive.render(db),
-            IrType::Str => "str".to_string(),
-            IrType::String => "String".to_string(),
-            IrType::Struct(id) => id.fqn(db).to_owned(),
-            IrType::Enum(id) => id.fqn(db).to_owned(),
+            Type::Primitive(primitive) => primitive.render(db),
+            Type::Str => "str".to_string(),
+            Type::String => "String".to_string(),
+            Type::Struct(id) => id.fqn(db).to_owned(),
+            Type::Enum(id) => id.fqn(db).to_owned(),
         }
     }
 }

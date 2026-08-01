@@ -18,7 +18,7 @@ use crate::{
             fn_::PassingMode,
             item::{IntoItemId as _, ItemIdExt as _},
             shape::{Shape, ShapeField},
-            type_::{IrPrimitive, IrType},
+            type_::{IrPrimitive, Type},
         },
     },
     frag,
@@ -182,11 +182,11 @@ fn compile_type_method<'db>(
         name: "__type",
         params: [ExternFnParam {
             name: "src",
-            type_: IrType::Enum(enum_.id(db)),
+            type_: Type::Enum(enum_.id(db)),
             mode: PassingMode::Ref,
             is_self: true,
         }],
-        return_type: Some(IrType::Primitive(IrPrimitive::u32)),
+        return_type: Some(Type::Primitive(IrPrimitive::u32)),
         source_expr: expr,
     }
 }

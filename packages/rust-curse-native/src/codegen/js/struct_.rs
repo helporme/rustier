@@ -9,7 +9,7 @@ use crate::{
             mod_::ModId,
             shape::Shape,
             struct_::{Struct, StructId},
-            type_::IrType,
+            type_::Type,
         },
         js::{
             boundary::{
@@ -46,8 +46,8 @@ pub fn compile_facade_class_for_struct<'a>(
             .iter()
             .copied()
             .filter(|field| match field.type_(db) {
-                IrType::Struct(_) | IrType::Enum(_) => true,
-                IrType::Primitive(_) | IrType::Str | IrType::String => false,
+                Type::Struct(_) | Type::Enum(_) => true,
+                Type::Primitive(_) | Type::Str | Type::String => false,
             })
         {
             frag!(#_{field.name(db)};@).apply(p);
@@ -66,7 +66,7 @@ pub fn compile_facade_class_for_struct<'a>(
 
         fragment(move |p| {
             match field.type_(db) {
-                IrType::Struct(_) | IrType::Enum(_) => {
+                Type::Struct(_) | Type::Enum(_) => {
                     frag!(
                         get ~[{field_name.clone()}]() {{
                             return ~{cached_field_expr};
@@ -74,7 +74,7 @@ pub fn compile_facade_class_for_struct<'a>(
                     )
                     .apply(p);
                 }
-                IrType::Primitive(_) | IrType::Str | IrType::String => {
+                Type::Primitive(_) | Type::Str | Type::String => {
                     frag!(
                         get ~[{field_name.clone()}]() {{
                             let value;@
@@ -96,7 +96,7 @@ pub fn compile_facade_class_for_struct<'a>(
             }
 
             match field.type_(db) {
-                IrType::Struct(_) | IrType::Enum(_) => {
+                Type::Struct(_) | Type::Enum(_) => {
                     frag!(@@
                         set ~[{field_name.clone()}](value) {{
                             {compile_js_facade_value_to_binding_stmt(
@@ -115,7 +115,7 @@ pub fn compile_facade_class_for_struct<'a>(
                     )
                     .apply(p);
                 }
-                IrType::Primitive(_) | IrType::Str | IrType::String => {
+                Type::Primitive(_) | Type::Str | Type::String => {
                     frag!(@@
                         set ~[{field_name}](value) {{
                             {compile_js_facade_value_to_binding_stmt(
@@ -137,8 +137,8 @@ pub fn compile_facade_class_for_struct<'a>(
             .fields(db)
             .iter()
             .filter(|field| match field.type_(db) {
-                IrType::Struct(_) | IrType::Enum(_) => true,
-                IrType::Primitive(_) | IrType::Str | IrType::String => false,
+                Type::Struct(_) | Type::Enum(_) => true,
+                Type::Primitive(_) | Type::Str | Type::String => false,
             })
         {
             let field_name = fragment(|p| match shape {
