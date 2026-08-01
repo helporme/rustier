@@ -1,5 +1,5 @@
 ---
-source: src/codegen/bindings/fn_.rs
+source: src/codegen/bindings/extern_free_fn.rs
 expression: snapshot
 ---
 # Source
@@ -22,11 +22,11 @@ pub fn __ext_rustdoc_0test_0crate_test_0fn(
             .from("SourceType(i32)")
             .to("BoundaryType(i32)")
             .an({
-                let __p__value = cast
+                let value = cast
                     .from("BoundaryType(JsAny)")
                     .to("SourceType(i32)")
                     .an(__p__value);
-                rustdoc_test_crate::test_fn(__p__value)
+                rustdoc_test_crate::test_fn(value)
             }),
     )
 }
@@ -41,11 +41,11 @@ pub fn __ext_rustdoc_0test_0crate_test_0fn(__p__value: JsValue) -> Result<i32, J
             .from("SourceType(i32)")
             .to("BoundaryType(i32)")
             .an({
-                let __p__value = cast
+                let value = cast
                     .from("BoundaryType(JsAny)")
                     .to("SourceType(i32)")
                     .an(__p__value);
-                rustdoc_test_crate::test_fn(__p__value)
+                rustdoc_test_crate::test_fn(value)
             }),
     )
 }

@@ -30,14 +30,14 @@ import {
 } from 'path/to/bindings';
 
 export function foo (
-	__p__a,
-	__p__b,
-	__p__c
+	a,
+	b,
+	c
 ) {
-	__p__a = __p__a;
-	__p__b = __p__b;
+	a = a;
+	b = b;
 	{
-		const __facade_value = __p__c;
+		const __facade_value = c;
 		if(
 			!(
 				 __facade_value instanceof Foo
@@ -49,15 +49,15 @@ export function foo (
 				) + "\""
 			);
 		}
-		__p__c = __facade_value.__get_binding();
+		c = __facade_value.__get_binding();
 	}
 
 	let result;
 	result = Foo.__from_binding(
 		__ext_rustdoc_0test_0crate_foo(
-			__p__a,
-			__p__b,
-			__p__c
+			a,
+			b,
+			c
 		)
 	);
 	return result;

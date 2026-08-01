@@ -1,7 +1,9 @@
 mod bir;
 mod cast_graph;
+mod class;
 mod enum_;
-mod fn_;
+mod extern_fn;
+mod extern_free_fn;
 mod mod_;
 mod primitive;
 mod shape;

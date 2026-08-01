@@ -316,9 +316,9 @@ pub struct TetheringStructField<'a, GetRefExpr, GetMutExpr> {
     pub with_setter: bool,
 }
 
-/// Compiles a [`TetheredStruct`]. See the module-level documentation for more
+/// Compiles a [`TetheringStruct`]. See the module-level documentation for more
 /// details.
-pub fn compile_tethered_struct<'db, Fields, GetRefExpr, RefExpr, GetMutExpr, MutExpr>(
+pub fn compile_tethering_struct<'db, Fields, GetRefExpr, RefExpr, GetMutExpr, MutExpr>(
     db: &'db dyn Db,
     struct_: TetheringStruct<'db, Fields>,
 ) -> impl FragmentOnce + 'db
@@ -809,7 +809,7 @@ mod tests {
             };
             let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 0] = [];
 
-            compile_tethered_struct(
+            compile_tethering_struct(
                 &db,
                 TetheringStruct {
                     source_type: BirSourceType::Item {
@@ -838,7 +838,7 @@ mod tests {
                     source_type: BirSourceType::u32,
                 })];
 
-            compile_tethered_struct(
+            compile_tethering_struct(
                 &db,
                 TetheringStruct {
                     source_type: BirSourceType::Item {
@@ -871,7 +871,7 @@ mod tests {
                     with_setter: true,
                 })];
 
-            compile_tethered_struct(
+            compile_tethering_struct(
                 &db,
                 TetheringStruct {
                     source_type: BirSourceType::Item {
@@ -924,7 +924,7 @@ mod tests {
                 }),
             ];
 
-            compile_tethered_struct(
+            compile_tethering_struct(
                 &db,
                 TetheringStruct {
                     source_type: BirSourceType::Item {

@@ -1,5 +1,5 @@
 ---
-source: src/codegen/bindings/fn_.rs
+source: src/codegen/bindings/extern_free_fn.rs
 expression: snapshot
 ---
 # Source
@@ -16,15 +16,15 @@ pub fn __ext_rustdoc_0test_0crate_test_0fn(
     __p___direct: Unknown<'_>,
     __p___non_direct: Unknown<'_>,
 ) -> napi::Result<()> {
-    let __p___direct = cast
+    let _direct = cast
         .from("BoundaryType(JsAny)")
         .to("SourceType(i32)")
         .an(__p___direct);
-    let __p___non_direct = cast
+    let _non_direct = cast
         .from("BoundaryType(JsAny)")
         .to("SourceType(Ref { is_mutable: false, inner: i32 })")
         .an(__p___non_direct);
-    rustdoc_test_crate::test_fn(__p___direct, __p___non_direct);
+    rustdoc_test_crate::test_fn(_direct, _non_direct);
     Ok(())
 }
 ```
@@ -36,15 +36,15 @@ pub fn __ext_rustdoc_0test_0crate_test_0fn(
     __p___direct: JsValue,
     __p___non_direct: JsValue,
 ) -> Result<(), JsValue> {
-    let __p___direct = cast
+    let _direct = cast
         .from("BoundaryType(JsAny)")
         .to("SourceType(i32)")
         .an(__p___direct);
-    let __p___non_direct = cast
+    let _non_direct = cast
         .from("BoundaryType(JsAny)")
         .to("SourceType(Ref { is_mutable: false, inner: i32 })")
         .an(__p___non_direct);
-    rustdoc_test_crate::test_fn(__p___direct, __p___non_direct);
+    rustdoc_test_crate::test_fn(_direct, _non_direct);
     Ok(())
 }
 ```

@@ -2,7 +2,8 @@
 
 use crate::codegen::{
     bindings::{
-        enum_::compile_binding_enum, fn_::compile_binding_fn, struct_::compile_binding_struct,
+        enum_::compile_binding_enum, extern_free_fn::compile_binding_fn,
+        struct_::compile_binding_struct,
     },
     db::Db,
     fragment::{FragmentPrint, spaced},

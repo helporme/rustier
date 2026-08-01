@@ -29,15 +29,15 @@ pub fn compile_facade_fn<'a>(db: &'a dyn Db, fn_: Fn<'a>) -> impl FragmentOnce +
                 {compile_js_facade_value_to_binding_stmt(
                     db,
                     param.type_(db),
-                    param.binding_name(db),
-                    param.binding_name(db),
+                    param.name(db),
+                    param.name(db),
                 )}@
             )
             .apply(p);
         }
     });
 
-    let params = move || comma_list(fn_.params(db).iter().map(|param| param.binding_name(db)));
+    let params = move || comma_list(fn_.params(db).iter().map(|param| param.name(db)));
     let binding_fn_call_expr = frag!({ fn_.extern_name(db) }({ params() }));
 
     let body_stmt = fragment(move |p| match fn_.return_type(db) {

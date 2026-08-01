@@ -8,7 +8,7 @@ use crate::{
             bir::{BirBoundaryType, BirSourceType},
             cast_graph::{BindingsCast, BindingsCastCompiler, Cast},
             tethering::{
-                TetheringStruct, TetheringStructType, compile_tethered_struct,
+                TetheringStruct, TetheringStructType, compile_tethering_struct,
                 compile_tethering_struct_get_field_expr, compile_tethering_struct_set_field_stmt,
             },
         },
@@ -82,7 +82,7 @@ where
     };
 
     frag!(
-        {compile_tethered_struct(db, tethering_struct)}@@
+        {compile_tethering_struct(db, tethering_struct)}@@
         {compile_wrapper_struct(db, enum_)}@@
         {compile_wrapper_impl(db, cast_compiler, enum_)}
     )

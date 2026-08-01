@@ -25,7 +25,7 @@ let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 1] = [
         with_setter: true,
     }),
 ];
-compile_tethered_struct(
+compile_tethering_struct(
         &db,
         TetheringStruct {
             source_type: BirSourceType::Item {

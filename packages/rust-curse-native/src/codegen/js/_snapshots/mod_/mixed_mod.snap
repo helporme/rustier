@@ -40,15 +40,15 @@ import {
 } from 'path/to/bindings';
 
 export function mixed (
-	__p__number,
-	__p__text,
-	__p__local,
-	__p__external
+	number,
+	text,
+	local,
+	external
 ) {
-	__p__number = __p__number;
-	__p__text = __p__text;
+	number = number;
+	text = text;
 	{
-		const __facade_value = __p__local;
+		const __facade_value = local;
 		if(
 			!(
 				 __facade_value instanceof Local
@@ -60,10 +60,10 @@ export function mixed (
 				) + "\""
 			);
 		}
-		__p__local = __facade_value.__get_binding();
+		local = __facade_value.__get_binding();
 	}
 	{
-		const __facade_value = __p__external;
+		const __facade_value = external;
 		if(
 			!(
 				 __facade_value instanceof External
@@ -75,16 +75,16 @@ export function mixed (
 				) + "\""
 			);
 		}
-		__p__external = __facade_value.__get_binding();
+		external = __facade_value.__get_binding();
 	}
 
 	let result;
 	result = External.__from_binding(
 		__ext_rustdoc_0test_0crate_mixed(
-			__p__number,
-			__p__text,
-			__p__local,
-			__p__external
+			number,
+			text,
+			local,
+			external
 		)
 	);
 	return result;

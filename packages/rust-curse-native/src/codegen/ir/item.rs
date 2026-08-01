@@ -92,6 +92,12 @@ pub trait IntoItemId<'db> {
     fn into_item_id(self, db: &'db dyn Db) -> ItemId<'db>;
 }
 
+impl<'db> IntoItemId<'db> for ItemId<'db> {
+    fn into_item_id(self, _db: &'db dyn Db) -> ItemId<'db> {
+        self
+    }
+}
+
 /// Provides common item ID operations over [`ItemId`].
 pub trait ItemIdExt<'db> {
     /// Fully qualified item name, e.g. `kitties::FluffyCat`.

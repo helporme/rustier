@@ -1,5 +1,5 @@
 ---
-source: src/codegen/bindings/fn_.rs
+source: src/codegen/bindings/extern_free_fn.rs
 expression: snapshot
 ---
 # Source
@@ -23,15 +23,15 @@ pub fn __ext_rustdoc_0test_0crate_test_0fn(
             .from("SourceType(i32)")
             .to("BoundaryType(i32)")
             .an({
-                let __p__direct = cast
+                let direct = cast
                     .from("BoundaryType(JsAny)")
                     .to("SourceType(i32)")
                     .an(__p__direct);
-                let __p__non_direct = cast
+                let non_direct = cast
                     .from("BoundaryType(JsAny)")
                     .to("SourceType(Ref { is_mutable: false, inner: i32 })")
                     .an(__p__non_direct);
-                rustdoc_test_crate::test_fn(__p__direct, __p__non_direct)
+                rustdoc_test_crate::test_fn(direct, non_direct)
             }),
     )
 }
@@ -49,15 +49,15 @@ pub fn __ext_rustdoc_0test_0crate_test_0fn(
             .from("SourceType(i32)")
             .to("BoundaryType(i32)")
             .an({
-                let __p__direct = cast
+                let direct = cast
                     .from("BoundaryType(JsAny)")
                     .to("SourceType(i32)")
                     .an(__p__direct);
-                let __p__non_direct = cast
+                let non_direct = cast
                     .from("BoundaryType(JsAny)")
                     .to("SourceType(Ref { is_mutable: false, inner: i32 })")
                     .an(__p__non_direct);
-                rustdoc_test_crate::test_fn(__p__direct, __p__non_direct)
+                rustdoc_test_crate::test_fn(direct, non_direct)
             }),
     )
 }

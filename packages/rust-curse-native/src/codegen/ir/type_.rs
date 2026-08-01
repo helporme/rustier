@@ -110,7 +110,11 @@ pub enum IrType<'db> {
     // OsStr
     // Callback
     // Tuple
-    // Slice
+    // Slice,
+    // Box,
+    // Rc
+    // RefCell
+    // HashMap
 }
 
 impl<'db> IrType<'db> {

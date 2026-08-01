@@ -1,0 +1,36 @@
+---
+source: src/codegen/bindings/method.rs
+expression: snapshot
+---
+# Source
+
+```rust
+fn noop() {}
+```
+
+# Compiled
+## Node
+```rust
+#[napi(js_name = "test_fn")]
+pub fn test_fn(&mut self) -> napi::Result<()> {
+    let arg = cast
+        .from("BoundaryType(JsAny)")
+        .to("SourceType(Ref { is_mutable: true, inner: f64 })")
+        .an(self);
+    source(arg);
+    Ok(())
+}
+```
+
+## Wasm
+```rust
+#[wasm_bindgen(js_name = "test_fn")]
+pub fn test_fn(&mut self) -> Result<(), JsValue> {
+    let arg = cast
+        .from("BoundaryType(JsAny)")
+        .to("SourceType(Ref { is_mutable: true, inner: f64 })")
+        .an(self);
+    source(arg);
+    Ok(())
+}
+```

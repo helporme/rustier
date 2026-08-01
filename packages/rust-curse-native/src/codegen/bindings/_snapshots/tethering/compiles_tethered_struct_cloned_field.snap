@@ -22,7 +22,7 @@ let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 1] = [
         source_type: BirSourceType::u32,
     }),
 ];
-compile_tethered_struct(
+compile_tethering_struct(
         &db,
         TetheringStruct {
             source_type: BirSourceType::Item {

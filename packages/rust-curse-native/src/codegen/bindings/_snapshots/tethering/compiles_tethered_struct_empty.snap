@@ -15,7 +15,7 @@ let db = test_db! {
     pub struct Empty;
 };
 let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 0] = [];
-compile_tethered_struct(
+compile_tethering_struct(
         &db,
         TetheringStruct {
             source_type: BirSourceType::Item {
