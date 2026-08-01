@@ -794,100 +794,103 @@ impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, SourceType<'db>>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        codegen::{fragment::FragmentPrint as _, test::assert_snap},
-        test_db,
-    };
+    use crate::{assert_rust_snap, codegen::fragment::FragmentPrint as _};
 
     type FieldExpr = fn(&'static str) -> String;
 
     #[test]
     fn compiles_tethered_struct_empty() {
-        assert_snap!({
-            let db = test_db! {
+        assert_rust_snap! {
+            source: {
                 pub struct Empty;
-            };
-            let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 0] = [];
+            },
+            expression: |db, p| {
+                let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 0] = [];
 
-            compile_tethering_struct(
-                &db,
-                TetheringStruct {
-                    source_type: SourceType::Item {
-                        target: db.item_id("Empty"),
+                compile_tethering_struct(
+                    db,
+                    TetheringStruct {
+                        source_type: SourceType::Item {
+                            target: db.item_id("Empty"),
+                        },
+                        fields,
                     },
-                    fields,
-                },
-            )
-            .print()
-        });
+                )
+                .apply(p);
+            },
+        }
     }
 
     #[test]
     fn compiles_tethered_struct_cloned_field() {
-        assert_snap!({
-            let db = test_db! {
+        assert_rust_snap! {
+            source: {
                 pub struct Parent {
                     pub count: u32,
                 }
-            };
-            let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 1] =
-                [TetheredField::Cloned(ClonedField {
-                    name: "count",
-                    get_ref_expr: |source| frag!(Ok(&{ source }.count)).print(),
-                    get_mut_expr: |source| frag!(Ok(&mut ~{ source }.count)).print(),
-                    source_type: SourceType::u32,
-                })];
+            },
+            expression: |db, p| {
+                let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 1] =
+                    [TetheredField::Cloned(ClonedField {
+                        name: "count",
+                        get_ref_expr: |source| frag!(Ok(&{ source }.count)).print(),
+                        get_mut_expr: |source| frag!(Ok(&mut ~{ source }.count)).print(),
+                        source_type: SourceType::u32,
+                    })];
 
-            compile_tethering_struct(
-                &db,
-                TetheringStruct {
-                    source_type: SourceType::Item {
-                        target: db.item_id("Parent"),
+                compile_tethering_struct(
+                    db,
+                    TetheringStruct {
+                        source_type: SourceType::Item {
+                            target: db.item_id("Parent"),
+                        },
+                        fields,
                     },
-                    fields,
-                },
-            )
-            .print()
-        });
+                )
+                .apply(p);
+            },
+        }
     }
 
     #[test]
     fn compiles_tethered_struct_tethered_struct_field() {
-        assert_snap!({
-            let db = test_db! {
+        assert_rust_snap! {
+            source: {
                 pub struct Child;
                 pub struct Parent {
                     pub child: Child,
                 }
-            };
-            let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 1] =
-                [TetheredField::TetheringStruct(TetheringStructField {
-                    name: "child",
-                    get_ref_expr: |source| frag!(Ok(&{ source }.child)).print(),
-                    get_mut_expr: |source| frag!(Ok(&mut ~{ source }.child)).print(),
-                    source_type: SourceType::Item {
-                        target: db.item_id("Child"),
-                    },
-                    with_setter: true,
-                })];
+            },
+            expression: |db, p| {
+                let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 1] =
+                    [TetheredField::TetheringStruct(TetheringStructField {
+                        name: "child",
+                        get_ref_expr: |source| frag!(Ok(&{ source }.child)).print(),
+                        get_mut_expr: |source| frag!(Ok(&mut ~{ source }.child)).print(),
+                        source_type: SourceType::Item {
+                            target: db.item_id("Child"),
+                        },
+                        with_setter: true,
+                    })];
 
-            compile_tethering_struct(
-                &db,
-                TetheringStruct {
-                    source_type: SourceType::Item {
-                        target: db.item_id("Parent"),
+                compile_tethering_struct(
+                    db,
+                    TetheringStruct {
+                        source_type: SourceType::Item {
+                            target: db.item_id("Parent"),
+                        },
+                        fields,
                     },
-                    fields,
-                },
-            )
-            .print()
-        });
+                )
+                .apply(p);
+            },
+        }
     }
 
     #[test]
     fn compiles_tethered_struct_mixed() {
-        assert_snap!({
-            let db = test_db! {
+        assert_rust_snap! {
+            source: {
                 pub struct Child;
                 pub struct ReadonlyChild;
                 pub struct Parent {
@@ -895,45 +898,46 @@ mod tests {
                     pub child: Child,
                     pub readonly_child: ReadonlyChild,
                 }
-            };
+            },
+            expression: |db, p| {
+                let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 3] = [
+                    TetheredField::Cloned(ClonedField {
+                        name: "count",
+                        get_ref_expr: |source| frag!(Ok(&{ source }.count)).print(),
+                        get_mut_expr: |source| frag!(Ok(&mut ~{ source }.count)).print(),
+                        source_type: SourceType::u32,
+                    }),
+                    TetheredField::TetheringStruct(TetheringStructField {
+                        name: "child",
+                        get_ref_expr: |source| frag!(Ok(&{ source }.child)).print(),
+                        get_mut_expr: |source| frag!(Ok(&mut ~{ source }.child)).print(),
+                        source_type: SourceType::Item {
+                            target: db.item_id("Child"),
+                        },
+                        with_setter: true,
+                    }),
+                    TetheredField::TetheringStruct(TetheringStructField {
+                        name: "readonly_child",
+                        get_ref_expr: |source| frag!(Ok(&{ source }.readonly_child)).print(),
+                        get_mut_expr: |source| frag!(Ok(&mut ~{ source }.readonly_child)).print(),
+                        source_type: SourceType::Item {
+                            target: db.item_id("ReadonlyChild"),
+                        },
+                        with_setter: false,
+                    }),
+                ];
 
-            let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 3] = [
-                TetheredField::Cloned(ClonedField {
-                    name: "count",
-                    get_ref_expr: |source| frag!(Ok(&{ source }.count)).print(),
-                    get_mut_expr: |source| frag!(Ok(&mut ~{ source }.count)).print(),
-                    source_type: SourceType::u32,
-                }),
-                TetheredField::TetheringStruct(TetheringStructField {
-                    name: "child",
-                    get_ref_expr: |source| frag!(Ok(&{ source }.child)).print(),
-                    get_mut_expr: |source| frag!(Ok(&mut ~{ source }.child)).print(),
-                    source_type: SourceType::Item {
-                        target: db.item_id("Child"),
+                compile_tethering_struct(
+                    db,
+                    TetheringStruct {
+                        source_type: SourceType::Item {
+                            target: db.item_id("Parent"),
+                        },
+                        fields,
                     },
-                    with_setter: true,
-                }),
-                TetheredField::TetheringStruct(TetheringStructField {
-                    name: "readonly_child",
-                    get_ref_expr: |source| frag!(Ok(&{ source }.readonly_child)).print(),
-                    get_mut_expr: |source| frag!(Ok(&mut ~{ source }.readonly_child)).print(),
-                    source_type: SourceType::Item {
-                        target: db.item_id("ReadonlyChild"),
-                    },
-                    with_setter: false,
-                }),
-            ];
-
-            compile_tethering_struct(
-                &db,
-                TetheringStruct {
-                    source_type: SourceType::Item {
-                        target: db.item_id("Parent"),
-                    },
-                    fields,
-                },
-            )
-            .print()
-        });
+                )
+                .apply(p);
+            },
+        }
     }
 }

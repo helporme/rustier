@@ -579,23 +579,10 @@ pub mod test {
     use crate::{
         codegen::{
             bindings::cast_graph::BindingsCastCompiler,
-            cast::CastContinuation,
             fragment::{FragmentOnce, Printer, fragment},
         },
         frag,
     };
-
-    pub struct Consume;
-
-    impl<'db> CastContinuation<'db> for Consume {
-        fn compile<'fragment, Expr>(self, out_expr: Expr) -> impl FragmentOnce + 'fragment
-        where
-            'db: 'fragment,
-            Expr: FragmentOnce + 'fragment,
-        {
-            frag!(consume({out_expr});)
-        }
-    }
 
     /// Compiles visible fake cast expressions for testing binding code
     /// generation.

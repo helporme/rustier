@@ -222,6 +222,18 @@ mod tests {
     }
 
     test_enum!(
+        unit_tuple_variant,
+        pub enum Test {
+            Tuple(),
+        }
+    );
+    test_enum!(
+        unit_plain_variant,
+        pub enum Test {
+            Plain {},
+        }
+    );
+    test_enum!(
         tuple_variant,
         pub enum Test {
             Tuple(u32),

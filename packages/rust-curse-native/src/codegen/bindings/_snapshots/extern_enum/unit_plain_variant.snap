@@ -1,0 +1,140 @@
+---
+source: src/codegen/bindings/extern_enum.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub enum Test {
+    Plain {},
+}
+```
+
+# Compiled
+## Node
+```rust
+struct __tethering__rustdoc_0test_0crate_Test {
+    src: __tethering::SourceSlot<rustdoc_test_crate::Test>,
+}
+impl __tethering::Accessor<rustdoc_test_crate::Test>
+for __tethering__rustdoc_0test_0crate_Test {
+    fn access(
+        &self,
+        f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access(f)
+    }
+    fn access_mut(
+        &self,
+        f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut(f)
+    }
+}
+impl __tethering__rustdoc_0test_0crate_Test {
+    pub fn new_owned(input: rustdoc_test_crate::Test) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Test>>,
+    ) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+}
+#[napi(js_name = "__ext_rustdoc_0test_0crate_Test")]
+pub struct __ext_rustdoc_0test_0crate_Test {
+    src: std::rc::Rc<__tethering__rustdoc_0test_0crate_Test>,
+}
+#[napi]
+impl __ext_rustdoc_0test_0crate_Test {}
+#[napi]
+impl __ext_rustdoc_0test_0crate_Test {
+    #[napi(js_name = "__type")]
+    pub fn __type(&self) -> napi::Result<u32> {
+        Ok(
+            cast
+                .from("SourceType(u32)")
+                .to("BoundaryType(u32)")
+                .an({
+                    let src = cast
+                        .from("BoundaryType(Ref(Item { target: ItemId(Id(1800)) }))")
+                        .to(
+                            "SourceType(Ref { is_mutable: false, inner: Item { target: ItemId(Id(1800)) } })",
+                        )
+                        .an(self);
+                    match src {
+                        rustdoc_test_crate::Test::Plain { .. } => 0u32,
+                    }
+                }),
+        )
+    }
+}
+```
+
+## Wasm
+```rust
+struct __tethering__rustdoc_0test_0crate_Test {
+    src: __tethering::SourceSlot<rustdoc_test_crate::Test>,
+}
+impl __tethering::Accessor<rustdoc_test_crate::Test>
+for __tethering__rustdoc_0test_0crate_Test {
+    fn access(
+        &self,
+        f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access(f)
+    }
+    fn access_mut(
+        &self,
+        f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut(f)
+    }
+}
+impl __tethering__rustdoc_0test_0crate_Test {
+    pub fn new_owned(input: rustdoc_test_crate::Test) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Test>>,
+    ) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+}
+#[wasm_bindgen(js_name = "__ext_rustdoc_0test_0crate_Test")]
+pub struct __ext_rustdoc_0test_0crate_Test {
+    src: std::rc::Rc<__tethering__rustdoc_0test_0crate_Test>,
+}
+#[wasm_bindgen]
+impl __ext_rustdoc_0test_0crate_Test {}
+#[wasm_bindgen]
+impl __ext_rustdoc_0test_0crate_Test {
+    #[wasm_bindgen(js_name = "__type")]
+    pub fn __type(&self) -> Result<u32, JsValue> {
+        Ok(
+            cast
+                .from("SourceType(u32)")
+                .to("BoundaryType(u32)")
+                .an({
+                    let src = cast
+                        .from("BoundaryType(Ref(Item { target: ItemId(Id(1800)) }))")
+                        .to(
+                            "SourceType(Ref { is_mutable: false, inner: Item { target: ItemId(Id(1800)) } })",
+                        )
+                        .an(self);
+                    match src {
+                        rustdoc_test_crate::Test::Plain { .. } => 0u32,
+                    }
+                }),
+        )
+    }
+}
+```

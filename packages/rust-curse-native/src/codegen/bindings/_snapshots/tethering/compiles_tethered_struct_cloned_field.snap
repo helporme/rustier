@@ -1,133 +1,128 @@
 ---
 source: src/codegen/bindings/tethering.rs
-expression: body
+expression: snapshot
 ---
-## Test
+# Source
 
-```text
-codegen::bindings::tethering::tests::compiles_tethered_struct_cloned_field
+```rust
+pub struct Parent {
+    pub count: u32,
+}
 ```
 
-## Source
-
-```rs
-let db = test_db! {
-    pub struct Parent { pub count : u32, }
-};
-let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 1] = [
-    TetheredField::Cloned(ClonedField {
-        name: "count",
-        get_ref_expr: |source| frag!(Ok(& { source } .count)).print(),
-        get_mut_expr: |source| frag!(Ok(& mut ~ { source } .count)).print(),
-        source_type: BirSourceType::u32,
-    }),
-];
-compile_tethering_struct(
-        &db,
-        TetheringStruct {
-            source_type: BirSourceType::Item {
-                target: db.item_id("Parent"),
-            },
-            fields,
-        },
-    )
-    .print()
-```
-
-## Output
-
-```rs
+# Compiled
+## Node
+```rust
 struct __tethering__rustdoc_0test_0crate_Parent {
-	src: __tethering::SourceSlot<rustdoc_test_crate::Parent>,
+    src: __tethering::SourceSlot<rustdoc_test_crate::Parent>,
 }
-
-impl __tethering::Accessor<rustdoc_test_crate::Parent> for __tethering__rustdoc_0test_0crate_Parent {
-	fn access(
-		&self,
-		f: &mut dyn FnMut(
-			&rustdoc_test_crate::Parent
-		)-> __tethering::AccessResult<()>,
-	)-> __tethering::AccessResult<()> {
-		self.src.access(
-			f
-		)
-	}
-
-	fn access_mut(
-		&self,
-		f: &mut dyn FnMut(
-			&mut rustdoc_test_crate::Parent
-		)-> __tethering::AccessResult<()>,
-	)-> __tethering::AccessResult<()> {
-		self.src.access_mut(
-			f
-		)
-	}
+impl __tethering::Accessor<rustdoc_test_crate::Parent>
+for __tethering__rustdoc_0test_0crate_Parent {
+    fn access(
+        &self,
+        f: &mut dyn FnMut(&rustdoc_test_crate::Parent) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access(f)
+    }
+    fn access_mut(
+        &self,
+        f: &mut dyn FnMut(
+            &mut rustdoc_test_crate::Parent,
+        ) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut(f)
+    }
 }
-
 impl __tethering__rustdoc_0test_0crate_Parent {
-	pub fn new_owned(
-		input: rustdoc_test_crate::Parent
-	) -> Self {
-		__tethering__rustdoc_0test_0crate_Parent {
-			src: __tethering::SourceSlot::owned(
-				input
-			),
-		}
-	}
+    pub fn new_owned(input: rustdoc_test_crate::Parent) -> Self {
+        __tethering__rustdoc_0test_0crate_Parent {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Parent>>,
+    ) -> Self {
+        __tethering__rustdoc_0test_0crate_Parent {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+    pub fn get_count(&self) -> __tethering::AccessResult<u32> {
+        let mut result = std::mem::MaybeUninit::uninit();
+        self.access(
+            &mut |src| {
+                result.write(Ok(&src.count)?.clone());
+                Ok(())
+            },
+        )?;
+        Ok(unsafe { result.assume_init() })
+    }
+    pub fn set_count(&self, value: u32) -> __tethering::AccessResult<()> {
+        let mut value = Some(value);
+        self.access_mut(
+            &mut |src| {
+                *Ok(&mut src.count)? = value.take().unwrap();
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
+}
+```
 
-	pub fn new_projected(
-		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Parent>>
-	)-> Self {
-		__tethering__rustdoc_0test_0crate_Parent {
-			src: __tethering::SourceSlot::projected(
-				accessor
-			),
-		}
-	}
-
-	pub fn get_count(
-		&self
-	)-> __tethering::AccessResult<u32> {
-		let mut result = std::mem::MaybeUninit::uninit();
-		self.access(
-			&mut |src| {
-				result.write(
-					Ok(
-						&src.count
-					)?.clone()
-				);
-				Ok(
-					()
-				)
-			}
-		)?;
-		Ok(
-			unsafe {
-				result.assume_init()
-			}
-		)
-	}
-
-	pub fn set_count(
-		&self, value: u32
-	)-> __tethering::AccessResult<()> {
-		let mut value = Some(
-			value
-		);
-		self.access_mut(
-			&mut |src| {
-				*Ok(
-					&mut src.count
-				)? = value.take().unwrap();
-				Ok(
-					()
-				)
-			}
-		)?;
-		Ok(
-			()
-		)
-	}
+## Wasm
+```rust
+struct __tethering__rustdoc_0test_0crate_Parent {
+    src: __tethering::SourceSlot<rustdoc_test_crate::Parent>,
+}
+impl __tethering::Accessor<rustdoc_test_crate::Parent>
+for __tethering__rustdoc_0test_0crate_Parent {
+    fn access(
+        &self,
+        f: &mut dyn FnMut(&rustdoc_test_crate::Parent) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access(f)
+    }
+    fn access_mut(
+        &self,
+        f: &mut dyn FnMut(
+            &mut rustdoc_test_crate::Parent,
+        ) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut(f)
+    }
+}
+impl __tethering__rustdoc_0test_0crate_Parent {
+    pub fn new_owned(input: rustdoc_test_crate::Parent) -> Self {
+        __tethering__rustdoc_0test_0crate_Parent {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Parent>>,
+    ) -> Self {
+        __tethering__rustdoc_0test_0crate_Parent {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+    pub fn get_count(&self) -> __tethering::AccessResult<u32> {
+        let mut result = std::mem::MaybeUninit::uninit();
+        self.access(
+            &mut |src| {
+                result.write(Ok(&src.count)?.clone());
+                Ok(())
+            },
+        )?;
+        Ok(unsafe { result.assume_init() })
+    }
+    pub fn set_count(&self, value: u32) -> __tethering::AccessResult<()> {
+        let mut value = Some(value);
+        self.access_mut(
+            &mut |src| {
+                *Ok(&mut src.count)? = value.take().unwrap();
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
 }
 ```

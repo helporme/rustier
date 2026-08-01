@@ -1,83 +1,86 @@
 ---
 source: src/codegen/bindings/tethering.rs
-expression: body
+expression: snapshot
 ---
-## Test
+# Source
 
-```text
-codegen::bindings::tethering::tests::compiles_tethered_struct_empty
+```rust
+pub struct Empty;
 ```
 
-## Source
-
-```rs
-let db = test_db! {
-    pub struct Empty;
-};
-let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 0] = [];
-compile_tethering_struct(
-        &db,
-        TetheringStruct {
-            source_type: BirSourceType::Item {
-                target: db.item_id("Empty"),
-            },
-            fields,
-        },
-    )
-    .print()
-```
-
-## Output
-
-```rs
+# Compiled
+## Node
+```rust
 struct __tethering__rustdoc_0test_0crate_Empty {
-	src: __tethering::SourceSlot<rustdoc_test_crate::Empty>,
+    src: __tethering::SourceSlot<rustdoc_test_crate::Empty>,
 }
-
-impl __tethering::Accessor<rustdoc_test_crate::Empty> for __tethering__rustdoc_0test_0crate_Empty {
-	fn access(
-		&self,
-		f: &mut dyn FnMut(
-			&rustdoc_test_crate::Empty
-		)-> __tethering::AccessResult<()>,
-	)-> __tethering::AccessResult<()> {
-		self.src.access(
-			f
-		)
-	}
-
-	fn access_mut(
-		&self,
-		f: &mut dyn FnMut(
-			&mut rustdoc_test_crate::Empty
-		)-> __tethering::AccessResult<()>,
-	)-> __tethering::AccessResult<()> {
-		self.src.access_mut(
-			f
-		)
-	}
+impl __tethering::Accessor<rustdoc_test_crate::Empty>
+for __tethering__rustdoc_0test_0crate_Empty {
+    fn access(
+        &self,
+        f: &mut dyn FnMut(&rustdoc_test_crate::Empty) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access(f)
+    }
+    fn access_mut(
+        &self,
+        f: &mut dyn FnMut(
+            &mut rustdoc_test_crate::Empty,
+        ) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut(f)
+    }
 }
-
 impl __tethering__rustdoc_0test_0crate_Empty {
-	pub fn new_owned(
-		input: rustdoc_test_crate::Empty
-	) -> Self {
-		__tethering__rustdoc_0test_0crate_Empty {
-			src: __tethering::SourceSlot::owned(
-				input
-			),
-		}
-	}
+    pub fn new_owned(input: rustdoc_test_crate::Empty) -> Self {
+        __tethering__rustdoc_0test_0crate_Empty {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Empty>>,
+    ) -> Self {
+        __tethering__rustdoc_0test_0crate_Empty {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+}
+```
 
-	pub fn new_projected(
-		accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Empty>>
-	)-> Self {
-		__tethering__rustdoc_0test_0crate_Empty {
-			src: __tethering::SourceSlot::projected(
-				accessor
-			),
-		}
-	}
-
+## Wasm
+```rust
+struct __tethering__rustdoc_0test_0crate_Empty {
+    src: __tethering::SourceSlot<rustdoc_test_crate::Empty>,
+}
+impl __tethering::Accessor<rustdoc_test_crate::Empty>
+for __tethering__rustdoc_0test_0crate_Empty {
+    fn access(
+        &self,
+        f: &mut dyn FnMut(&rustdoc_test_crate::Empty) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access(f)
+    }
+    fn access_mut(
+        &self,
+        f: &mut dyn FnMut(
+            &mut rustdoc_test_crate::Empty,
+        ) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut(f)
+    }
+}
+impl __tethering__rustdoc_0test_0crate_Empty {
+    pub fn new_owned(input: rustdoc_test_crate::Empty) -> Self {
+        __tethering__rustdoc_0test_0crate_Empty {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Empty>>,
+    ) -> Self {
+        __tethering__rustdoc_0test_0crate_Empty {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
 }
 ```
