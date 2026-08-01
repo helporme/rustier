@@ -1,0 +1,39 @@
+---
+source: src/codegen/bindings/cast_graph.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct ExampleStruct;
+#[derive(Clone)]
+pub enum ExampleEnum {
+    Variant,
+}
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    let output = __ext_rustdoc_0test_0crate_ExampleStruct {
+        src: std::rc::Rc::new(
+            __tethering__rustdoc_0test_0crate_ExampleStruct::new_owned(input),
+        ),
+    };
+    consume(output);
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    let output = __ext_rustdoc_0test_0crate_ExampleStruct {
+        src: std::rc::Rc::new(
+            __tethering__rustdoc_0test_0crate_ExampleStruct::new_owned(input),
+        ),
+    };
+    consume(output);
+}
+```

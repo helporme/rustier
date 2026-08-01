@@ -1,0 +1,41 @@
+---
+source: src/codegen/bindings/cast_graph.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct ExampleStruct;
+#[derive(Clone)]
+pub enum ExampleEnum {
+    Variant,
+}
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    let output = ({
+        let value = input;
+        char::from_u32(value)
+            .ok_or_else(|| napi::Error::from_reason(
+                format!("cannot cast {value} to char"),
+            ))?
+    }) as u32;
+    consume(output);
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    let output = ({
+        let value = input;
+        char::from_u32(value)
+            .ok_or_else(|| JsValue::from_str(&format!("cannot cast {value} to char")))?
+    }) as u32;
+    consume(output);
+}
+```

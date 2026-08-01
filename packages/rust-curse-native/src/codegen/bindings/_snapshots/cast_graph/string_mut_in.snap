@@ -1,0 +1,52 @@
+---
+source: src/codegen/bindings/cast_graph.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct ExampleStruct;
+#[derive(Clone)]
+pub enum ExampleEnum {
+    Variant,
+}
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    let mut value = {
+        let value = input;
+        (if value.get_type().map_err(|err| napi::Error::from_reason(err.reason))?
+            == ValueType::String
+        {
+            unsafe { value.cast::<String>() }
+                .map_err(|_| napi::Error::from_reason(
+                    "cannot cast value to String".to_string(),
+                ))
+        } else {
+            Err(napi::Error::from_reason("cannot cast value to String".to_string()))
+        })?
+    };
+    let output = &mut value;
+    consume(output);
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    let mut value = {
+        let value = input;
+        (value
+            .as_string()
+            .ok_or_else(|| JsValue::from_str(
+                &"cannot cast value to String".to_string(),
+            )))?
+    };
+    let output = &mut value;
+    consume(output);
+}
+```

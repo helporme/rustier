@@ -724,3 +724,397 @@ pub mod test {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Cast, compile_cast_stmt};
+    use crate::{
+        assert_rust_snap,
+        codegen::{
+            bindings::bir::SourceType,
+            fragment::FragmentOnce as _,
+            ir::type_::{IrPrimitive as Primitive, ItemIdExt as _, Type},
+        },
+        frag,
+    };
+
+    macro_rules! cast_snapshot {
+        (
+            name: $name:ident,
+            from: |$from_db:ident| $from:expr,
+            to: |$to_db:ident| $to:expr $(,)?
+        ) => {
+            #[test]
+            fn $name() {
+                assert_rust_snap! {
+                    source: {
+                        #[derive(Clone)]
+                        pub struct ExampleStruct;
+
+                        #[derive(Clone)]
+                        pub enum ExampleEnum {
+                            Variant,
+                        }
+                    },
+                    expression: |__db, printer| {
+                        let __db = &*__db;
+                        let from = {
+                            let $from_db = __db;
+                            $from
+                        };
+                        let to = {
+                            let $to_db = __db;
+                            $to
+                        };
+
+                        frag!(
+                            fn cast(input: ())~{{
+                                {compile_cast_stmt(
+                                    __db,
+                                    Cast {
+                                        from,
+                                        to,
+                                        in_expr: "input",
+                                        out_var_name: "output",
+                                    },
+                                    frag!(consume(output);),
+                                )}
+                            }}
+                        )
+                        .apply(printer);
+                    },
+                }
+            }
+        };
+    }
+
+    cast_snapshot! {
+        name: bool_in,
+        from: |_db| Type::Primitive(Primitive::Boolean).extern_in(),
+        to: |_db| Type::Primitive(Primitive::Boolean).source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: bool_ref_in,
+        from: |_db| Type::Primitive(Primitive::Boolean).extern_in(),
+        to: |_db| Type::Primitive(Primitive::Boolean).source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: bool_mut_in,
+        from: |_db| Type::Primitive(Primitive::Boolean).extern_in(),
+        to: |_db| Type::Primitive(Primitive::Boolean).source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: bool_out,
+        from: |_db| Type::Primitive(Primitive::Boolean).source_type_owned(),
+        to: |_db| Type::Primitive(Primitive::Boolean).extern_out(),
+    }
+
+    cast_snapshot! {
+        name: char_in,
+        from: |_db| Type::Primitive(Primitive::Char).extern_in(),
+        to: |_db| Type::Primitive(Primitive::Char).source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: char_ref_in,
+        from: |_db| Type::Primitive(Primitive::Char).extern_in(),
+        to: |_db| Type::Primitive(Primitive::Char).source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: char_mut_in,
+        from: |_db| Type::Primitive(Primitive::Char).extern_in(),
+        to: |_db| Type::Primitive(Primitive::Char).source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: char_out,
+        from: |_db| Type::Primitive(Primitive::Char).source_type_owned(),
+        to: |_db| Type::Primitive(Primitive::Char).extern_out(),
+    }
+
+    cast_snapshot! {
+        name: i8_in,
+        from: |_db| Type::Primitive(Primitive::i8).extern_in(),
+        to: |_db| Type::Primitive(Primitive::i8).source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: i8_ref_in,
+        from: |_db| Type::Primitive(Primitive::i8).extern_in(),
+        to: |_db| Type::Primitive(Primitive::i8).source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: i8_mut_in,
+        from: |_db| Type::Primitive(Primitive::i8).extern_in(),
+        to: |_db| Type::Primitive(Primitive::i8).source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: i8_out,
+        from: |_db| Type::Primitive(Primitive::i8).source_type_owned(),
+        to: |_db| Type::Primitive(Primitive::i8).extern_out(),
+    }
+
+    cast_snapshot! {
+        name: u8_in,
+        from: |_db| Type::Primitive(Primitive::u8).extern_in(),
+        to: |_db| Type::Primitive(Primitive::u8).source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: u8_ref_in,
+        from: |_db| Type::Primitive(Primitive::u8).extern_in(),
+        to: |_db| Type::Primitive(Primitive::u8).source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: u8_mut_in,
+        from: |_db| Type::Primitive(Primitive::u8).extern_in(),
+        to: |_db| Type::Primitive(Primitive::u8).source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: u8_out,
+        from: |_db| Type::Primitive(Primitive::u8).source_type_owned(),
+        to: |_db| Type::Primitive(Primitive::u8).extern_out(),
+    }
+
+    cast_snapshot! {
+        name: i16_in,
+        from: |_db| Type::Primitive(Primitive::i16).extern_in(),
+        to: |_db| Type::Primitive(Primitive::i16).source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: i16_ref_in,
+        from: |_db| Type::Primitive(Primitive::i16).extern_in(),
+        to: |_db| Type::Primitive(Primitive::i16).source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: i16_mut_in,
+        from: |_db| Type::Primitive(Primitive::i16).extern_in(),
+        to: |_db| Type::Primitive(Primitive::i16).source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: i16_out,
+        from: |_db| Type::Primitive(Primitive::i16).source_type_owned(),
+        to: |_db| Type::Primitive(Primitive::i16).extern_out(),
+    }
+
+    cast_snapshot! {
+        name: u16_in,
+        from: |_db| Type::Primitive(Primitive::u16).extern_in(),
+        to: |_db| Type::Primitive(Primitive::u16).source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: u16_ref_in,
+        from: |_db| Type::Primitive(Primitive::u16).extern_in(),
+        to: |_db| Type::Primitive(Primitive::u16).source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: u16_mut_in,
+        from: |_db| Type::Primitive(Primitive::u16).extern_in(),
+        to: |_db| Type::Primitive(Primitive::u16).source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: u16_out,
+        from: |_db| Type::Primitive(Primitive::u16).source_type_owned(),
+        to: |_db| Type::Primitive(Primitive::u16).extern_out(),
+    }
+
+    cast_snapshot! {
+        name: i32_in,
+        from: |_db| Type::Primitive(Primitive::i32).extern_in(),
+        to: |_db| Type::Primitive(Primitive::i32).source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: i32_ref_in,
+        from: |_db| Type::Primitive(Primitive::i32).extern_in(),
+        to: |_db| Type::Primitive(Primitive::i32).source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: i32_mut_in,
+        from: |_db| Type::Primitive(Primitive::i32).extern_in(),
+        to: |_db| Type::Primitive(Primitive::i32).source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: i32_out,
+        from: |_db| Type::Primitive(Primitive::i32).source_type_owned(),
+        to: |_db| Type::Primitive(Primitive::i32).extern_out(),
+    }
+
+    cast_snapshot! {
+        name: u32_in,
+        from: |_db| Type::Primitive(Primitive::u32).extern_in(),
+        to: |_db| Type::Primitive(Primitive::u32).source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: u32_ref_in,
+        from: |_db| Type::Primitive(Primitive::u32).extern_in(),
+        to: |_db| Type::Primitive(Primitive::u32).source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: u32_mut_in,
+        from: |_db| Type::Primitive(Primitive::u32).extern_in(),
+        to: |_db| Type::Primitive(Primitive::u32).source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: u32_out,
+        from: |_db| Type::Primitive(Primitive::u32).source_type_owned(),
+        to: |_db| Type::Primitive(Primitive::u32).extern_out(),
+    }
+
+    cast_snapshot! {
+        name: f32_in,
+        from: |_db| Type::Primitive(Primitive::f32).extern_in(),
+        to: |_db| Type::Primitive(Primitive::f32).source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: f32_ref_in,
+        from: |_db| Type::Primitive(Primitive::f32).extern_in(),
+        to: |_db| Type::Primitive(Primitive::f32).source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: f32_mut_in,
+        from: |_db| Type::Primitive(Primitive::f32).extern_in(),
+        to: |_db| Type::Primitive(Primitive::f32).source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: f32_out,
+        from: |_db| Type::Primitive(Primitive::f32).source_type_owned(),
+        to: |_db| Type::Primitive(Primitive::f32).extern_out(),
+    }
+
+    cast_snapshot! {
+        name: f64_in,
+        from: |_db| Type::Primitive(Primitive::f64).extern_in(),
+        to: |_db| Type::Primitive(Primitive::f64).source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: f64_ref_in,
+        from: |_db| Type::Primitive(Primitive::f64).extern_in(),
+        to: |_db| Type::Primitive(Primitive::f64).source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: f64_mut_in,
+        from: |_db| Type::Primitive(Primitive::f64).extern_in(),
+        to: |_db| Type::Primitive(Primitive::f64).source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: f64_out,
+        from: |_db| Type::Primitive(Primitive::f64).source_type_owned(),
+        to: |_db| Type::Primitive(Primitive::f64).extern_out(),
+    }
+
+    cast_snapshot! {
+        name: str_in,
+        from: |_db| Type::Str.extern_in(),
+        to: |_db| SourceType::Str.into_ref(),
+    }
+
+    cast_snapshot! {
+        name: str_ref_in,
+        from: |_db| Type::Str.extern_in(),
+        to: |_db| SourceType::Str.into_ref(),
+    }
+
+    cast_snapshot! {
+        name: str_mut_in,
+        from: |_db| Type::Str.extern_in(),
+        to: |_db| SourceType::Str.into_mut(),
+    }
+
+    cast_snapshot! {
+        name: string_in,
+        from: |_db| Type::String.extern_in(),
+        to: |_db| Type::String.source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: string_ref_in,
+        from: |_db| Type::String.extern_in(),
+        to: |_db| Type::String.source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: string_mut_in,
+        from: |_db| Type::String.extern_in(),
+        to: |_db| Type::String.source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: string_out,
+        from: |_db| Type::String.source_type_owned(),
+        to: |_db| Type::String.extern_out(),
+    }
+
+    cast_snapshot! {
+        name: struct_in,
+        from: |db| db.item_id("ExampleStruct").into_ir_type(db).extern_in(),
+        to: |db| db.item_id("ExampleStruct").into_ir_type(db).source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: struct_ref_in,
+        from: |db| db.item_id("ExampleStruct").into_ir_type(db).extern_in(),
+        to: |db| db.item_id("ExampleStruct").into_ir_type(db).source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: struct_mut_in,
+        from: |db| db.item_id("ExampleStruct").into_ir_type(db).extern_in(),
+        to: |db| db.item_id("ExampleStruct").into_ir_type(db).source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: struct_out,
+        from: |db| db.item_id("ExampleStruct").into_ir_type(db).source_type_owned(),
+        to: |db| db.item_id("ExampleStruct").into_ir_type(db).extern_out(),
+    }
+
+    cast_snapshot! {
+        name: enum_in,
+        from: |db| db.item_id("ExampleEnum").into_ir_type(db).extern_in(),
+        to: |db| db.item_id("ExampleEnum").into_ir_type(db).source_type_owned(),
+    }
+
+    cast_snapshot! {
+        name: enum_ref_in,
+        from: |db| db.item_id("ExampleEnum").into_ir_type(db).extern_in(),
+        to: |db| db.item_id("ExampleEnum").into_ir_type(db).source_type_owned().into_ref(),
+    }
+
+    cast_snapshot! {
+        name: enum_mut_in,
+        from: |db| db.item_id("ExampleEnum").into_ir_type(db).extern_in(),
+        to: |db| db.item_id("ExampleEnum").into_ir_type(db).source_type_owned().into_mut(),
+    }
+
+    cast_snapshot! {
+        name: enum_out,
+        from: |db| db.item_id("ExampleEnum").into_ir_type(db).source_type_owned(),
+        to: |db| db.item_id("ExampleEnum").into_ir_type(db).extern_out(),
+    }
+}

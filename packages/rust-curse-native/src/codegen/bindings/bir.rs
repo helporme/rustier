@@ -40,6 +40,22 @@ pub enum SourceType<'db> {
 }
 
 impl<'db> SourceType<'db> {
+    /// Converts this source type into a shared reference type.
+    pub fn into_ref(self) -> SourceType<'db> {
+        SourceType::Ref {
+            is_mutable: false,
+            inner: Box::new(self),
+        }
+    }
+
+    /// Converts this source type into a mutable reference type.
+    pub fn into_mut(self) -> SourceType<'db> {
+        SourceType::Ref {
+            is_mutable: true,
+            inner: Box::new(self),
+        }
+    }
+
     /// Renders this source type as a fully qualified Rust type declaration.
     pub fn fqn_decl(&self, db: &dyn Db) -> impl FragmentOnce {
         fragment(move |p| match self {
