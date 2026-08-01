@@ -6,7 +6,7 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, fragment},
         ir::{
-            item::{ItemId, ItemKind},
+            item::ItemId,
             type_::{IrPrimitive, IrType},
         },
     },
@@ -84,6 +84,8 @@ impl<'db> BirSourceType<'db> {
         })
     }
 
+    // todo: move the following methods to IrType
+
     /// Whether this type supports automatic casting from owned type to
     /// reference type using simple `&expr` or `&mut expr` borrowing
     /// expressions.
@@ -106,31 +108,6 @@ impl<'db> BirSourceType<'db> {
             BirSourceType::Item { .. } => false,
         }
     }
-
-    /// Whether this type is using
-    /// [`TetheringStruct`](super::tethering::TetheringStruct) for it's
-    /// runtime representation.
-    pub fn is_tethered(&self, db: &dyn Db) -> bool {
-        match self {
-            BirSourceType::Item { target } => match target.kind(db) {
-                ItemKind::Struct | ItemKind::Enum => true,
-                ItemKind::CLikeEnum | ItemKind::Mod | ItemKind::Fn => false,
-            },
-            BirSourceType::bool
-            | BirSourceType::char
-            | BirSourceType::i8
-            | BirSourceType::u8
-            | BirSourceType::i16
-            | BirSourceType::u16
-            | BirSourceType::i32
-            | BirSourceType::u32
-            | BirSourceType::f64
-            | BirSourceType::f32
-            | BirSourceType::Str
-            | BirSourceType::String
-            | BirSourceType::Ref { .. } => false,
-        }
-    }
 }
 
 /// A type that is exposed to the JavaScript.
@@ -145,7 +122,6 @@ pub enum BirBoundaryType<'db> {
     i32,
     u32,
     f64,
-    f32,
     String,
     /// JavaScript "any" type. Actual runtime type is specified by
     /// [`crate::codegen::api::Api::js_type`]
@@ -171,7 +147,6 @@ impl<'db> BirBoundaryType<'db> {
             BirBoundaryType::i32 => "i32".apply(p),
             BirBoundaryType::u32 => "u32".apply(p),
             BirBoundaryType::f64 => "f64".apply(p),
-            BirBoundaryType::f32 => "f32".apply(p),
             BirBoundaryType::String => "String".apply(p),
             BirBoundaryType::JsAny => Api::get(db).js_type(db).apply(p),
             BirBoundaryType::Item { target } => target.extern_name(db).apply(p),
@@ -183,7 +158,7 @@ impl<'db> BirBoundaryType<'db> {
 impl<'db> IrType<'db> {
     /// Gets the [`BirBoundaryType`] used to accept this type from the
     /// JavaScript.
-    pub fn boundary_in(self) -> BirBoundaryType<'db> {
+    pub(super) fn boundary_in(self) -> BirBoundaryType<'db> {
         match self {
             IrType::Primitive(_) | IrType::String | IrType::Str => BirBoundaryType::JsAny,
             IrType::Struct(id) => {
@@ -196,7 +171,7 @@ impl<'db> IrType<'db> {
     }
 
     /// Gets the [`BirBoundaryType`] used to return this type to the JavaScript.
-    pub fn boundary_out(self) -> BirBoundaryType<'db> {
+    pub(super) fn boundary_out(self) -> BirBoundaryType<'db> {
         match self {
             IrType::Primitive(IrPrimitive::Boolean) => BirBoundaryType::bool,
             IrType::Primitive(IrPrimitive::i8) => BirBoundaryType::i8,
@@ -218,7 +193,7 @@ impl<'db> IrType<'db> {
     }
 
     /// Returns the owned source type of the ir type.
-    pub fn source_type_owned(self) -> BirSourceType<'db> {
+    pub(super) fn source_type_owned(self) -> BirSourceType<'db> {
         match self {
             IrType::Primitive(IrPrimitive::Boolean) => BirSourceType::bool,
             IrType::Primitive(IrPrimitive::Char) => BirSourceType::char,
@@ -239,5 +214,23 @@ impl<'db> IrType<'db> {
                 target: enum_id.into(),
             },
         }
+    }
+
+    /// Whether this item is using [`ExternClass`](super::class::ExternClass)
+    /// for it's compilation.
+    pub(super) fn uses_class(self) -> bool {
+        match self {
+            IrType::Struct(_) | IrType::Enum(_) => true,
+            IrType::Primitive(_) | IrType::Str | IrType::String => false,
+        }
+    }
+
+    /// Whether this type is using
+    /// [`TetheringStruct`](super::tethering::TetheringStruct) for it's
+    /// compilation
+    pub(super) fn uses_tethering(self) -> bool {
+        // ExternClass is a wrapper around tethering so it's always uses the
+        // tethering struct for compilation
+        self.uses_class()
     }
 }

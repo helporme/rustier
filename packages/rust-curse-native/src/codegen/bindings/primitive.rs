@@ -224,10 +224,9 @@ impl<'db> DirectCastRule<'db, BirSourceType<'db>, BirBoundaryType<'db>>
             BirBoundaryType::i32 => Some(BirSourceType::i32),
             BirBoundaryType::u32 => Some(BirSourceType::u32),
             BirBoundaryType::f64 => Some(BirSourceType::f64),
-            BirBoundaryType::f32
-            | BirBoundaryType::JsAny
-            | BirBoundaryType::Item { .. }
-            | BirBoundaryType::Ref { .. } => None,
+            BirBoundaryType::JsAny | BirBoundaryType::Item { .. } | BirBoundaryType::Ref { .. } => {
+                None
+            }
         }
     }
 

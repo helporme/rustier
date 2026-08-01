@@ -65,7 +65,7 @@ pub fn compile_extern_fn<'db, CastCompiler, Params, SourceExpr>(
 ) -> impl FragmentOnce + 'db
 where
     CastCompiler: BindingsCastCompiler<'db> + Clone + 'db,
-    Params: IntoIterator<Item = ExternFnParam<'db>> + Clone + 'db,
+    Params: IntoIterator<Item = ExternFnParam<'db>> + 'db,
     Params::IntoIter: Clone + 'db,
     SourceExpr: FragmentOnce + 'db,
 {

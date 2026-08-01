@@ -1,0 +1,226 @@
+---
+source: src/codegen/bindings/extern_struct.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Test(pub u32, pub String);
+```
+
+# Compiled
+## Node
+```rust
+struct __tethering__rustdoc_0test_0crate_Test {
+    src: __tethering::SourceSlot<rustdoc_test_crate::Test>,
+}
+impl __tethering::Accessor<rustdoc_test_crate::Test>
+for __tethering__rustdoc_0test_0crate_Test {
+    fn access(
+        &self,
+        f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access(f)
+    }
+    fn access_mut(
+        &self,
+        f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut(f)
+    }
+}
+impl __tethering__rustdoc_0test_0crate_Test {
+    pub fn new_owned(input: rustdoc_test_crate::Test) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Test>>,
+    ) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+    pub fn get_0(&self) -> __tethering::AccessResult<u32> {
+        let mut result = std::mem::MaybeUninit::uninit();
+        self.access(
+            &mut |src| {
+                result.write(__tethering::AccessResult::Ok(&src.0)?.clone());
+                Ok(())
+            },
+        )?;
+        Ok(unsafe { result.assume_init() })
+    }
+    pub fn set_0(&self, value: u32) -> __tethering::AccessResult<()> {
+        let mut value = Some(value);
+        self.access_mut(
+            &mut |src| {
+                *__tethering::AccessResult::Ok(&mut src.0)? = value.take().unwrap();
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
+    pub fn get_1(&self) -> __tethering::AccessResult<String> {
+        let mut result = std::mem::MaybeUninit::uninit();
+        self.access(
+            &mut |src| {
+                result.write(__tethering::AccessResult::Ok(&src.1)?.clone());
+                Ok(())
+            },
+        )?;
+        Ok(unsafe { result.assume_init() })
+    }
+    pub fn set_1(&self, value: String) -> __tethering::AccessResult<()> {
+        let mut value = Some(value);
+        self.access_mut(
+            &mut |src| {
+                *__tethering::AccessResult::Ok(&mut src.1)? = value.take().unwrap();
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
+}
+#[napi(js_name = "__ext_rustdoc_0test_0crate_Test")]
+pub struct __ext_rustdoc_0test_0crate_Test {
+    src: std::rc::Rc<__tethering__rustdoc_0test_0crate_Test>,
+}
+#[napi]
+impl __ext_rustdoc_0test_0crate_Test {
+    #[napi(getter, js_name = "0")]
+    pub fn get_0(&self) -> napi::Result<u32> {
+        Ok(cast.from("SourceType(u32)").to("BoundaryType(u32)").an(self.src.get_0()?))
+    }
+    #[napi(setter, js_name = "0")]
+    pub fn set_0(&self, value: Unknown<'_>) -> napi::Result<()> {
+        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        self.src.set_0(value)?;
+        Ok(())
+    }
+    #[napi(getter, js_name = "1")]
+    pub fn get_1(&self) -> napi::Result<String> {
+        Ok(
+            cast
+                .from("SourceType(String)")
+                .to("BoundaryType(String)")
+                .an(self.src.get_1()?),
+        )
+    }
+    #[napi(setter, js_name = "1")]
+    pub fn set_1(&self, value: Unknown<'_>) -> napi::Result<()> {
+        let value = cast.from("BoundaryType(JsAny)").to("SourceType(String)").an(value);
+        self.src.set_1(value)?;
+        Ok(())
+    }
+}
+```
+
+## Wasm
+```rust
+struct __tethering__rustdoc_0test_0crate_Test {
+    src: __tethering::SourceSlot<rustdoc_test_crate::Test>,
+}
+impl __tethering::Accessor<rustdoc_test_crate::Test>
+for __tethering__rustdoc_0test_0crate_Test {
+    fn access(
+        &self,
+        f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access(f)
+    }
+    fn access_mut(
+        &self,
+        f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut(f)
+    }
+}
+impl __tethering__rustdoc_0test_0crate_Test {
+    pub fn new_owned(input: rustdoc_test_crate::Test) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Test>>,
+    ) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+    pub fn get_0(&self) -> __tethering::AccessResult<u32> {
+        let mut result = std::mem::MaybeUninit::uninit();
+        self.access(
+            &mut |src| {
+                result.write(__tethering::AccessResult::Ok(&src.0)?.clone());
+                Ok(())
+            },
+        )?;
+        Ok(unsafe { result.assume_init() })
+    }
+    pub fn set_0(&self, value: u32) -> __tethering::AccessResult<()> {
+        let mut value = Some(value);
+        self.access_mut(
+            &mut |src| {
+                *__tethering::AccessResult::Ok(&mut src.0)? = value.take().unwrap();
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
+    pub fn get_1(&self) -> __tethering::AccessResult<String> {
+        let mut result = std::mem::MaybeUninit::uninit();
+        self.access(
+            &mut |src| {
+                result.write(__tethering::AccessResult::Ok(&src.1)?.clone());
+                Ok(())
+            },
+        )?;
+        Ok(unsafe { result.assume_init() })
+    }
+    pub fn set_1(&self, value: String) -> __tethering::AccessResult<()> {
+        let mut value = Some(value);
+        self.access_mut(
+            &mut |src| {
+                *__tethering::AccessResult::Ok(&mut src.1)? = value.take().unwrap();
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
+}
+#[wasm_bindgen(js_name = "__ext_rustdoc_0test_0crate_Test")]
+pub struct __ext_rustdoc_0test_0crate_Test {
+    src: std::rc::Rc<__tethering__rustdoc_0test_0crate_Test>,
+}
+#[wasm_bindgen]
+impl __ext_rustdoc_0test_0crate_Test {
+    #[wasm_bindgen(getter, js_name = "0")]
+    pub fn get_0(&self) -> Result<u32, JsValue> {
+        Ok(cast.from("SourceType(u32)").to("BoundaryType(u32)").an(self.src.get_0()?))
+    }
+    #[wasm_bindgen(setter, js_name = "0")]
+    pub fn set_0(&self, value: JsValue) -> Result<(), JsValue> {
+        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        self.src.set_0(value)?;
+        Ok(())
+    }
+    #[wasm_bindgen(getter, js_name = "1")]
+    pub fn get_1(&self) -> Result<String, JsValue> {
+        Ok(
+            cast
+                .from("SourceType(String)")
+                .to("BoundaryType(String)")
+                .an(self.src.get_1()?),
+        )
+    }
+    #[wasm_bindgen(setter, js_name = "1")]
+    pub fn set_1(&self, value: JsValue) -> Result<(), JsValue> {
+        let value = cast.from("BoundaryType(JsAny)").to("SourceType(String)").an(value);
+        self.src.set_1(value)?;
+        Ok(())
+    }
+}
+```

@@ -2,8 +2,8 @@
 
 use crate::codegen::{
     bindings::{
-        enum_::compile_binding_enum, extern_free_fn::compile_binding_fn,
-        struct_::compile_binding_struct,
+        extern_enum::compile_extern_enum, extern_free_fn::compile_free_fn,
+        extern_struct::compile_extern_struct,
     },
     db::Db,
     fragment::{FragmentPrint, spaced},
@@ -22,13 +22,13 @@ pub fn compile_mod(db: &dyn Db, mod_id: RustdocId<'_>) -> String {
 
     spaced(
         fns.iter()
-            .map(|fn_| compile_binding_fn(db, *fn_))
+            .map(|fn_| compile_free_fn(db, *fn_))
             .chain(
                 structs
                     .iter()
-                    .map(|struct_| compile_binding_struct(db, *struct_)),
+                    .map(|struct_| compile_extern_struct(db, *struct_)),
             )
-            .chain(enums.iter().map(|enum_| compile_binding_enum(db, *enum_))),
+            .chain(enums.iter().map(|enum_| compile_extern_enum(db, *enum_))),
     )
     .print()
 }

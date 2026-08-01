@@ -2,14 +2,16 @@ use crate::{
     codegen::{
         api::Api,
         bindings::{
-            bir::BirSourceType,
-            cast_graph::{BindingsCast, BindingsCastCompiler, Cast},
+            bir::{BirBoundaryType, BirSourceType},
+            cast_graph::{BindingsCastCompiler, Cast},
+            extern_fn::{ExternFn, ExternFnParam, compile_extern_fn},
             tethering::{
                 ClonedField, TetheredField, TetheringStruct, TetheringStructField,
                 TetheringStructType, compile_tethering_struct,
                 compile_tethering_struct_get_field_expr, compile_tethering_struct_set_field_stmt,
             },
         },
+        cast::DirectCastRule,
         db::Db,
         fragment::{FragmentOnce, FragmentPrint as _, fragment, spaced},
         ir::{
@@ -28,7 +30,8 @@ pub struct ExternClass<'db, Fields> {
 
 #[derive(Clone, Debug)]
 pub struct ExternClassField<'db, GetRefExpr, GetMutExpr> {
-    pub name: &'db str,
+    pub extern_name: &'db str,
+    pub source_name: &'db str,
     pub type_: IrType<'db>,
     pub is_readonly: bool,
     pub get_ref_expr: GetRefExpr,
@@ -37,15 +40,12 @@ pub struct ExternClassField<'db, GetRefExpr, GetMutExpr> {
 
 impl<'db, GetRefExpr, GetMutExpr> ExternClassField<'db, GetRefExpr, GetMutExpr> {
     /// Converts this field to a [`TetheredField`] of the tethering struct.
-    pub fn into_tethered_field(
-        self,
-        db: &'db dyn Db,
-    ) -> TetheredField<'db, GetRefExpr, GetMutExpr> {
+    pub fn into_tethered_field(self) -> TetheredField<'db, GetRefExpr, GetMutExpr> {
         let source_type = self.type_.source_type_owned();
 
-        if source_type.is_tethered(db) {
+        if self.type_.uses_tethering() {
             TetheredField::TetheringStruct(TetheringStructField {
-                name: self.name,
+                name: self.source_name,
                 get_ref_expr: self.get_ref_expr,
                 get_mut_expr: self.get_mut_expr,
                 source_type,
@@ -53,7 +53,7 @@ impl<'db, GetRefExpr, GetMutExpr> ExternClassField<'db, GetRefExpr, GetMutExpr> 
             })
         } else {
             TetheredField::Cloned(ClonedField {
-                name: self.name,
+                name: self.source_name,
                 get_ref_expr: self.get_ref_expr,
                 get_mut_expr: self.get_mut_expr,
                 source_type,
@@ -62,30 +62,7 @@ impl<'db, GetRefExpr, GetMutExpr> ExternClassField<'db, GetRefExpr, GetMutExpr> 
     }
 }
 
-pub fn compile_extern_class<'db, Fields, GetRefExpr, GetMutExpr, RefExpr, MutExpr>(
-    db: &'db dyn Db,
-    class: ExternClass<'db, Fields>,
-) -> String
-where
-    Fields: IntoIterator<Item = ExternClassField<'db, GetRefExpr, GetMutExpr>> + 'db,
-    Fields::IntoIter: Clone,
-    GetRefExpr: Fn(&'static str) -> RefExpr + Clone + 'db,
-    GetMutExpr: Fn(&'static str) -> MutExpr + Clone + 'db,
-    RefExpr: FragmentOnce,
-    MutExpr: FragmentOnce,
-{
-    compile_extern_class_with(db, BindingsCast::Graph, class)
-}
-
-pub fn compile_extern_class_with<
-    'db,
-    CastCompiler,
-    Fields,
-    GetRefExpr,
-    GetMutExpr,
-    RefExpr,
-    MutExpr,
->(
+pub fn compile_extern_class<'db, CastCompiler, Fields, GetRefExpr, GetMutExpr, RefExpr, MutExpr>(
     db: &'db dyn Db,
     cast_compiler: CastCompiler,
     class: ExternClass<'db, Fields>,
@@ -96,12 +73,12 @@ where
     Fields::IntoIter: Clone,
     GetRefExpr: Fn(&'static str) -> RefExpr + Clone + 'db,
     GetMutExpr: Fn(&'static str) -> MutExpr + Clone + 'db,
-    RefExpr: FragmentOnce,
-    MutExpr: FragmentOnce,
+    RefExpr: FragmentOnce + 'db,
+    MutExpr: FragmentOnce + 'db,
 {
     let fields = class.fields.into_iter();
 
-    let tethered_fields = fields.clone().map(|field| field.into_tethered_field(db));
+    let tethered_fields = fields.clone().map(|field| field.into_tethered_field());
 
     let tethering_struct = TetheringStruct {
         source_type: BirSourceType::Item {
@@ -113,7 +90,7 @@ where
     frag!(
         {compile_tethering_struct(db, tethering_struct)}@@
         {compile_extern_class_struct(db, class.source_item_id)}@@
-        {compile_class_impl(db, cast_compiler, class.source_item_id, fields)}
+        {compile_class_impl_for_fields(db, cast_compiler.clone(), class.source_item_id, fields)}
     )
     .print()
 }
@@ -140,7 +117,7 @@ fn compile_extern_class_struct<'db>(
     })
 }
 
-fn compile_class_impl<'db, CastCompiler, Fields, GetRefExpr, GetMutExpr>(
+fn compile_class_impl_for_fields<'db, CastCompiler, Fields, GetRefExpr, GetMutExpr>(
     db: &'db dyn Db,
     cast_compiler: CastCompiler,
     source_item_id: ItemId<'db>,
@@ -186,11 +163,11 @@ where
     let field_type = field.type_;
     let result_type = api.result_type(db, field_type.boundary_out().fqn_decl(db));
 
-    let field_value = compile_tethering_struct_get_field_expr(frag!(self.src), field.name);
+    let field_value = compile_tethering_struct_get_field_expr(frag!(self.src), field.source_name);
 
     let output = fragment(move |p| {
         let field_source_type = field_type.source_type_owned();
-        if field_source_type.is_tethered(db) {
+        if field_type.uses_tethering() {
             cast_compiler
                 .compile_cast_expr(
                     db,
@@ -214,8 +191,8 @@ where
     });
 
     frag!(
-        {api.field_getter_header(db, field.name)}@
-        pub fn ~get_{field.name}(&self)~ -> ~{result_type}~ {{
+        {api.field_getter_header(db, field.extern_name)}@
+        pub fn ~get_{field.extern_name}(&self)~ -> ~{result_type}~ {{
             Ok({output})
         }}
     )
@@ -236,7 +213,7 @@ where
     let field_source_type = field.type_.source_type_owned();
 
     let set_tethered_field =
-        compile_tethering_struct_set_field_stmt(frag!(self.src), field.name, "value");
+        compile_tethering_struct_set_field_stmt(frag!(self.src), field.source_name, "value");
 
     fragment(move |p| {
         let set_tethered_field = cast_compiler.compile_cast_stmt(
@@ -251,11 +228,115 @@ where
         );
 
         frag!(
-            {api.field_setter_header(db, field.name)}@
-            pub fn ~set_{field.name}(&self, value: ~{field_boundary_in_type.fqn_decl(db)})~ -> ~{result_type}~ {{
+            {api.field_setter_header(db, field.extern_name)}@
+            pub fn ~set_{field.extern_name}(&self, value: ~{field_boundary_in_type.fqn_decl(db)})~ -> ~{result_type}~ {{
                 {set_tethered_field}
                 Ok(())
             }}
         ).apply(p);
     })
+}
+
+// todo: somehow merge into one function
+pub fn compile_extern_class_fns<'db, CastCompiler, Fns, SourceExpr, Params>(
+    db: &'db dyn Db,
+    cast_compiler: CastCompiler,
+    source_item_id: ItemId<'db>,
+    fns: Fns,
+) -> impl FragmentOnce + 'db
+where
+    CastCompiler: BindingsCastCompiler<'db> + Clone + 'db,
+    Fns: IntoIterator<Item = ExternFn<'db, Params, SourceExpr>> + 'db,
+    SourceExpr: FragmentOnce + 'db,
+    Params: IntoIterator<Item = ExternFnParam<'db>> + 'db,
+    Params::IntoIter: Clone,
+{
+    let api = Api::get(db);
+    let fns = spaced(
+        fns.into_iter()
+            .map(move |fn_| compile_extern_fn(db, cast_compiler.clone(), fn_)),
+    );
+
+    frag!(
+        {api.impl_header(db)}@
+        impl~{source_item_id.extern_name(db)}~{{
+            {fns}
+        }}
+    )
+}
+
+pub struct CastClassBoundaryTypeToTetheringStructType;
+
+impl<'db> DirectCastRule<'db, BirBoundaryType<'db>, TetheringStructType<'db>>
+    for CastClassBoundaryTypeToTetheringStructType
+{
+    fn predecessor(
+        self,
+        db: &'db dyn Db,
+        to: TetheringStructType<'db>,
+    ) -> Option<BirBoundaryType<'db>> {
+        if let BirSourceType::Item { target } = to.source_type {
+            let ir_type = target.into_ir_type(db);
+            if ir_type.uses_class() {
+                Some(ir_type.boundary_in())
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn compile<'fragment, Expr>(
+        self,
+        _db: &'db dyn Db,
+        _from: BirBoundaryType<'db>,
+        _to: TetheringStructType<'db>,
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
+        frag!({ in_expr }.src)
+    }
+}
+
+pub struct CastTetheringStructTypeToClassBoundaryType;
+
+impl<'db> DirectCastRule<'db, TetheringStructType<'db>, BirBoundaryType<'db>>
+    for CastTetheringStructTypeToClassBoundaryType
+{
+    fn predecessor(
+        self,
+        db: &'db dyn Db,
+        to: BirBoundaryType<'db>,
+    ) -> Option<TetheringStructType<'db>> {
+        match to {
+            BirBoundaryType::Item { target } if target.into_ir_type(db).uses_class() => {
+                Some(TetheringStructType {
+                    source_type: BirSourceType::Item { target },
+                })
+            }
+            _ => None,
+        }
+    }
+
+    fn compile<'fragment, Expr>(
+        self,
+        db: &'db dyn Db,
+        _from: TetheringStructType<'db>,
+        to: BirBoundaryType<'db>,
+        in_expr: Expr,
+    ) -> impl FragmentOnce + 'fragment
+    where
+        'db: 'fragment,
+        Expr: FragmentOnce + 'fragment,
+    {
+        let BirBoundaryType::Item { target } = to else {
+            unreachable!();
+        };
+
+        frag!({target.extern_name(db)}~{{ src: {in_expr} }})
+    }
 }

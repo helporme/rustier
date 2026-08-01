@@ -48,11 +48,11 @@ impl<'db> FnParam<'db> {
 
 /// Compiles a function into a binding function.
 #[salsa::tracked(returns(ref))]
-pub fn compile_binding_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
-    compile_binding_fn_with(db, BindingsCast::Graph, fn_)
+pub fn compile_free_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
+    compile_free_fn_with(db, BindingsCast::Graph, fn_)
 }
 
-fn compile_binding_fn_with<'db, CastCompiler>(
+fn compile_free_fn_with<'db, CastCompiler>(
     db: &'db dyn Db,
     cast_compiler: CastCompiler,
     fn_: Fn<'db>,
@@ -88,7 +88,7 @@ mod tests {
         codegen::{bindings::cast_graph::test::TestCastCompiler, rustdoc::fn_::lower_fn},
     };
 
-    macro_rules! test_binding_fn {
+    macro_rules! test_fn {
         ($name:ident, $($source:tt)*) => {
             #[test]
             fn $name() {
@@ -96,37 +96,37 @@ mod tests {
                     source: { $($source)* },
                     expression: |db, p| {
                         let fn_ = lower_fn(db, db.rustdoc_id("test_fn")).unwrap();
-                        compile_binding_fn_with(db, TestCastCompiler, fn_).apply(p);
+                        compile_free_fn_with(db, TestCastCompiler, fn_).apply(p);
                     },
                 }
             }
         };
     }
 
-    test_binding_fn!(zero_args_without_return, pub fn test_fn() {});
+    test_fn!(zero_args_without_return, pub fn test_fn() {});
 
-    test_binding_fn!(
+    test_fn!(
         zero_args_with_return,
         pub fn test_fn() -> i32 {
             0
         }
     );
 
-    test_binding_fn!(one_arg_without_return, pub fn test_fn(_value: i32) {});
+    test_fn!(one_arg_without_return, pub fn test_fn(_value: i32) {});
 
-    test_binding_fn!(
+    test_fn!(
         one_arg_with_return,
         pub fn test_fn(value: i32) -> i32 {
             value
         }
     );
 
-    test_binding_fn!(
+    test_fn!(
         two_args_without_return,
         pub fn test_fn(_direct: i32, _non_direct: &i32) {}
     );
 
-    test_binding_fn!(
+    test_fn!(
         two_args_with_return,
         pub fn test_fn(direct: i32, non_direct: &i32) -> i32 {
             direct + non_direct

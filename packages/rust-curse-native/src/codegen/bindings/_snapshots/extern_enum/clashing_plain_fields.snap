@@ -1,0 +1,389 @@
+---
+source: src/codegen/bindings/extern_enum.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub enum Test {
+    Plain1 { field: u32 },
+    Plain2 { field: i32 },
+}
+```
+
+# Compiled
+## Node
+```rust
+struct __tethering__rustdoc_0test_0crate_Test {
+    src: __tethering::SourceSlot<rustdoc_test_crate::Test>,
+}
+impl __tethering::Accessor<rustdoc_test_crate::Test>
+for __tethering__rustdoc_0test_0crate_Test {
+    fn access(
+        &self,
+        f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access(f)
+    }
+    fn access_mut(
+        &self,
+        f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut(f)
+    }
+}
+impl __tethering__rustdoc_0test_0crate_Test {
+    pub fn new_owned(input: rustdoc_test_crate::Test) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Test>>,
+    ) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+    pub fn get_field(&self) -> __tethering::AccessResult<u32> {
+        let mut result = std::mem::MaybeUninit::uninit();
+        self.access(
+            &mut |src| {
+                result
+                    .write(
+                        match src {
+                            rustdoc_test_crate::Test::Plain1 { field: field, .. } => {
+                                Ok(field)
+                            }
+                            _ => {
+                                Err(
+                                    napi::Error::from_reason(
+                                        "cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain1::field`"
+                                            .to_string(),
+                                    ),
+                                )
+                            }
+                        }?
+                            .clone(),
+                    );
+                Ok(())
+            },
+        )?;
+        Ok(unsafe { result.assume_init() })
+    }
+    pub fn set_field(&self, value: u32) -> __tethering::AccessResult<()> {
+        let mut value = Some(value);
+        self.access_mut(
+            &mut |src| {
+                *match src {
+                    rustdoc_test_crate::Test::Plain1 { field: field, .. } => Ok(field),
+                    _ => {
+                        Err(
+                            napi::Error::from_reason(
+                                "cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain1::field`"
+                                    .to_string(),
+                            ),
+                        )
+                    }
+                }? = value.take().unwrap();
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
+    pub fn get_field(&self) -> __tethering::AccessResult<i32> {
+        let mut result = std::mem::MaybeUninit::uninit();
+        self.access(
+            &mut |src| {
+                result
+                    .write(
+                        match src {
+                            rustdoc_test_crate::Test::Plain2 { field: field, .. } => {
+                                Ok(field)
+                            }
+                            _ => {
+                                Err(
+                                    napi::Error::from_reason(
+                                        "cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain2::field`"
+                                            .to_string(),
+                                    ),
+                                )
+                            }
+                        }?
+                            .clone(),
+                    );
+                Ok(())
+            },
+        )?;
+        Ok(unsafe { result.assume_init() })
+    }
+    pub fn set_field(&self, value: i32) -> __tethering::AccessResult<()> {
+        let mut value = Some(value);
+        self.access_mut(
+            &mut |src| {
+                *match src {
+                    rustdoc_test_crate::Test::Plain2 { field: field, .. } => Ok(field),
+                    _ => {
+                        Err(
+                            napi::Error::from_reason(
+                                "cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain2::field`"
+                                    .to_string(),
+                            ),
+                        )
+                    }
+                }? = value.take().unwrap();
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
+}
+#[napi(js_name = "__ext_rustdoc_0test_0crate_Test")]
+pub struct __ext_rustdoc_0test_0crate_Test {
+    src: std::rc::Rc<__tethering__rustdoc_0test_0crate_Test>,
+}
+#[napi]
+impl __ext_rustdoc_0test_0crate_Test {
+    #[napi(getter, js_name = "__Plain1__field")]
+    pub fn get___Plain1__field(&self) -> napi::Result<u32> {
+        Ok(
+            cast
+                .from("SourceType(u32)")
+                .to("BoundaryType(u32)")
+                .an(self.src.get_field()?),
+        )
+    }
+    #[napi(setter, js_name = "__Plain1__field")]
+    pub fn set___Plain1__field(&self, value: Unknown<'_>) -> napi::Result<()> {
+        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        self.src.set_field(value)?;
+        Ok(())
+    }
+    #[napi(getter, js_name = "__Plain2__field")]
+    pub fn get___Plain2__field(&self) -> napi::Result<i32> {
+        Ok(
+            cast
+                .from("SourceType(i32)")
+                .to("BoundaryType(i32)")
+                .an(self.src.get_field()?),
+        )
+    }
+    #[napi(setter, js_name = "__Plain2__field")]
+    pub fn set___Plain2__field(&self, value: Unknown<'_>) -> napi::Result<()> {
+        let value = cast.from("BoundaryType(JsAny)").to("SourceType(i32)").an(value);
+        self.src.set_field(value)?;
+        Ok(())
+    }
+}
+#[napi]
+impl __ext_rustdoc_0test_0crate_Test {
+    #[napi(js_name = "__type")]
+    pub fn __type(&self) -> napi::Result<u32> {
+        Ok(
+            cast
+                .from("SourceType(u32)")
+                .to("BoundaryType(u32)")
+                .an({
+                    let src = cast
+                        .from("BoundaryType(Ref(Item { target: ItemId(Id(2000)) }))")
+                        .to(
+                            "SourceType(Ref { is_mutable: false, inner: Item { target: ItemId(Id(2000)) } })",
+                        )
+                        .an(self);
+                    match src {
+                        rustdoc_test_crate::Test::Plain1 { .. } => 0u32,
+                        rustdoc_test_crate::Test::Plain2 { .. } => 1u32,
+                    }
+                }),
+        )
+    }
+}
+```
+
+## Wasm
+```rust
+struct __tethering__rustdoc_0test_0crate_Test {
+    src: __tethering::SourceSlot<rustdoc_test_crate::Test>,
+}
+impl __tethering::Accessor<rustdoc_test_crate::Test>
+for __tethering__rustdoc_0test_0crate_Test {
+    fn access(
+        &self,
+        f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access(f)
+    }
+    fn access_mut(
+        &self,
+        f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut(f)
+    }
+}
+impl __tethering__rustdoc_0test_0crate_Test {
+    pub fn new_owned(input: rustdoc_test_crate::Test) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Test>>,
+    ) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+    pub fn get_field(&self) -> __tethering::AccessResult<u32> {
+        let mut result = std::mem::MaybeUninit::uninit();
+        self.access(
+            &mut |src| {
+                result
+                    .write(
+                        match src {
+                            rustdoc_test_crate::Test::Plain1 { field: field, .. } => {
+                                Ok(field)
+                            }
+                            _ => {
+                                Err(
+                                    JsValue::from_str(
+                                        &"cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain1::field`"
+                                            .to_string(),
+                                    ),
+                                )
+                            }
+                        }?
+                            .clone(),
+                    );
+                Ok(())
+            },
+        )?;
+        Ok(unsafe { result.assume_init() })
+    }
+    pub fn set_field(&self, value: u32) -> __tethering::AccessResult<()> {
+        let mut value = Some(value);
+        self.access_mut(
+            &mut |src| {
+                *match src {
+                    rustdoc_test_crate::Test::Plain1 { field: field, .. } => Ok(field),
+                    _ => {
+                        Err(
+                            JsValue::from_str(
+                                &"cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain1::field`"
+                                    .to_string(),
+                            ),
+                        )
+                    }
+                }? = value.take().unwrap();
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
+    pub fn get_field(&self) -> __tethering::AccessResult<i32> {
+        let mut result = std::mem::MaybeUninit::uninit();
+        self.access(
+            &mut |src| {
+                result
+                    .write(
+                        match src {
+                            rustdoc_test_crate::Test::Plain2 { field: field, .. } => {
+                                Ok(field)
+                            }
+                            _ => {
+                                Err(
+                                    JsValue::from_str(
+                                        &"cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain2::field`"
+                                            .to_string(),
+                                    ),
+                                )
+                            }
+                        }?
+                            .clone(),
+                    );
+                Ok(())
+            },
+        )?;
+        Ok(unsafe { result.assume_init() })
+    }
+    pub fn set_field(&self, value: i32) -> __tethering::AccessResult<()> {
+        let mut value = Some(value);
+        self.access_mut(
+            &mut |src| {
+                *match src {
+                    rustdoc_test_crate::Test::Plain2 { field: field, .. } => Ok(field),
+                    _ => {
+                        Err(
+                            JsValue::from_str(
+                                &"cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain2::field`"
+                                    .to_string(),
+                            ),
+                        )
+                    }
+                }? = value.take().unwrap();
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
+}
+#[wasm_bindgen(js_name = "__ext_rustdoc_0test_0crate_Test")]
+pub struct __ext_rustdoc_0test_0crate_Test {
+    src: std::rc::Rc<__tethering__rustdoc_0test_0crate_Test>,
+}
+#[wasm_bindgen]
+impl __ext_rustdoc_0test_0crate_Test {
+    #[wasm_bindgen(getter, js_name = "__Plain1__field")]
+    pub fn get___Plain1__field(&self) -> Result<u32, JsValue> {
+        Ok(
+            cast
+                .from("SourceType(u32)")
+                .to("BoundaryType(u32)")
+                .an(self.src.get_field()?),
+        )
+    }
+    #[wasm_bindgen(setter, js_name = "__Plain1__field")]
+    pub fn set___Plain1__field(&self, value: JsValue) -> Result<(), JsValue> {
+        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        self.src.set_field(value)?;
+        Ok(())
+    }
+    #[wasm_bindgen(getter, js_name = "__Plain2__field")]
+    pub fn get___Plain2__field(&self) -> Result<i32, JsValue> {
+        Ok(
+            cast
+                .from("SourceType(i32)")
+                .to("BoundaryType(i32)")
+                .an(self.src.get_field()?),
+        )
+    }
+    #[wasm_bindgen(setter, js_name = "__Plain2__field")]
+    pub fn set___Plain2__field(&self, value: JsValue) -> Result<(), JsValue> {
+        let value = cast.from("BoundaryType(JsAny)").to("SourceType(i32)").an(value);
+        self.src.set_field(value)?;
+        Ok(())
+    }
+}
+#[wasm_bindgen]
+impl __ext_rustdoc_0test_0crate_Test {
+    #[wasm_bindgen(js_name = "__type")]
+    pub fn __type(&self) -> Result<u32, JsValue> {
+        Ok(
+            cast
+                .from("SourceType(u32)")
+                .to("BoundaryType(u32)")
+                .an({
+                    let src = cast
+                        .from("BoundaryType(Ref(Item { target: ItemId(Id(2000)) }))")
+                        .to(
+                            "SourceType(Ref { is_mutable: false, inner: Item { target: ItemId(Id(2000)) } })",
+                        )
+                        .an(self);
+                    match src {
+                        rustdoc_test_crate::Test::Plain1 { .. } => 0u32,
+                        rustdoc_test_crate::Test::Plain2 { .. } => 1u32,
+                    }
+                }),
+        )
+    }
+}
+```

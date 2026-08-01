@@ -4,19 +4,15 @@ use crate::{
     codegen::{
         bindings::{
             bir::{BirBoundaryType, BirSourceType},
-            enum_::{
-                CastEnumBoundaryTypeToTetheringStructType,
-                CastTetheringStructTypeToEnumBoundaryType,
+            extern_class::{
+                CastClassBoundaryTypeToTetheringStructType,
+                CastTetheringStructTypeToClassBoundaryType,
             },
             primitive::{
                 CastCharToU32BoundaryRule, CastF32ToF64BoundaryRule, CastF64ToF32Rule,
                 CastF64ToSignedIntRule, CastF64ToUnsignedIntRule, CastJsAnyToBoolRule,
                 CastJsAnyToF64Rule, CastJsAnyToStringRule, CastPrimitiveToSameBoundaryRule,
                 CastStringToStrMutRule, CastStringToStrRefRule, CastU32ToCharRule,
-            },
-            struct_::{
-                CastStructBoundaryTypeToTetheringStructType,
-                CastTetheringStructTypeToStructBoundaryType,
             },
             tethering::{
                 CastSourceTypeToTetheringStructType, CastTetheringStructTypeToBorrowedSourceType,
@@ -94,25 +90,15 @@ define_cast_graph! {
                 from: SourceType,
                 to: TetheringStructType,
             }
-            StructBoundaryTypeToTetheringStructType {
-                rule: CastStructBoundaryTypeToTetheringStructType,
+            ClassBoundaryTypeToTetheringStructType {
+                rule: CastClassBoundaryTypeToTetheringStructType,
                 from: BoundaryType,
-                to: TetheringStructType,
+                to: TetheringStructType
             }
-            EnumBoundaryTypeToTetheringStructType {
-                rule: CastEnumBoundaryTypeToTetheringStructType,
-                from: BoundaryType,
-                to: TetheringStructType,
-            }
-            TetheringStructTypeToStructBoundaryType {
-                rule: CastTetheringStructTypeToStructBoundaryType,
+            TetheringStructTypeToClassBoundaryType {
+                rule: CastTetheringStructTypeToClassBoundaryType,
                 from: TetheringStructType,
-                to: BoundaryType,
-            }
-            TetheringStructTypeToEnumBoundaryType {
-                rule: CastTetheringStructTypeToEnumBoundaryType,
-                from: TetheringStructType,
-                to: BoundaryType,
+                to: BoundaryType
             }
         }
 
