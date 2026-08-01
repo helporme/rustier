@@ -54,3 +54,12 @@ When a function returns a `Result`, its error type should represent all errors t
 ### Useful docstrings
 
 Add docstring comments to all non-trivial public functions, structs, traits and modules. Dostring should be a one sentence summary of what is the purpose of the function/struct/trait/module.
+
+
+## Rust visibility
+
+An item's effective visibility is already limited by its least-visible ancestor. When an item should be visible everywhere its containing module is visible, declare the item as `pub` instead of redundantly repeating the module's restriction. For example, use `pub struct Item` inside a `pub(crate) mod`, not `pub(crate) struct Item`.
+
+### Do not violate the module boundaries
+
+There is always obvious hierarchy between moduels. For example, rustdoc lowers to the ir, so it _knows_ about ir, but ir does not know about rustdoc, so when adding methods that convert something from rustdoc to ir, you must add a method under rustdoc module (like into_ir_* or lower_*), but NOT to the ir module (like from_ir_*).

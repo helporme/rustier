@@ -333,6 +333,7 @@ macro_rules! define_cast_graph {
             }
 
             /// Static dispatcher for the generated graph.
+            #[derive(Copy, Clone)]
             pub struct Graph;
 
             impl<$db> $crate::codegen::cast::CastGraph<$db> for Graph {

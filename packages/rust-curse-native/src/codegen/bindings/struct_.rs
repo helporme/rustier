@@ -6,7 +6,7 @@ use crate::{
         api::Api,
         bindings::{
             bir::{BirBoundaryType, BirSourceType},
-            cast_graph::{Cast, compile_cast_expr, compile_cast_stmt},
+            cast_graph::{BindingsCast, BindingsCastCompiler, Cast},
             tethering::{
                 TetheringStruct, TetheringStructType, compile_tethered_struct,
                 compile_tethering_struct_get_field_expr, compile_tethering_struct_set_field_stmt,
@@ -29,7 +29,18 @@ use crate::{
 /// Compiles a Rust struct into its tethered backing struct and public binding
 /// wrapper.
 #[salsa::tracked(returns(ref))]
-pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
+pub fn compile_binding_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> String {
+    compile_binding_struct_with(db, BindingsCast::Graph, struct_)
+}
+
+fn compile_binding_struct_with<'db, CastCompiler>(
+    db: &'db dyn Db,
+    cast_compiler: CastCompiler,
+    struct_: Struct<'db>,
+) -> String
+where
+    CastCompiler: BindingsCastCompiler<'db> + Clone + 'db,
+{
     let tethered_fields = struct_.fields(db).iter().map(|field| {
         let name = field.name(db);
 
@@ -53,7 +64,7 @@ pub fn compile_binding_struct(db: &dyn Db, struct_: Struct<'_>) -> String {
     frag!(
         {compile_tethered_struct(db, tethering_struct)}@@
         {compile_wrapper_struct(db, struct_)}@@
-        {compile_wrapper_impl(db, struct_)}
+        {compile_wrapper_impl(db, cast_compiler, struct_)}
     )
     .print()
 }
@@ -84,15 +95,24 @@ fn compile_wrapper_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl Fr
     })
 }
 
-fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl FragmentOnce + 'db {
+fn compile_wrapper_impl<'db, CastCompiler>(
+    db: &'db dyn Db,
+    cast_compiler: CastCompiler,
+    struct_: Struct<'db>,
+) -> impl FragmentOnce + 'db
+where
+    CastCompiler: BindingsCastCompiler<'db> + Clone + 'db,
+{
     let api = Api::get(db);
 
     let fields = spaced(struct_.fields(db).iter().copied().map(move |field| {
+        let cast_compiler = cast_compiler.clone();
+
         fragment(move |p| {
-            frag!({compile_field_getter(db, field)}@).apply(p);
+            frag!({compile_field_getter(db, cast_compiler.clone(), field)}@).apply(p);
 
             if !field.is_readonly(db) {
-                frag!(@{compile_field_setter(db, field)}).apply(p);
+                frag!(@{compile_field_setter(db, cast_compiler, field)}).apply(p);
             }
         })
     }));
@@ -106,7 +126,14 @@ fn compile_wrapper_impl<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> impl Frag
 }
 
 /// Compiles the public binding getter for a source struct field.
-fn compile_field_getter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl FragmentOnce + 'db {
+fn compile_field_getter<'db, CastCompiler>(
+    db: &'db dyn Db,
+    cast_compiler: CastCompiler,
+    field: ShapeField<'db>,
+) -> impl FragmentOnce + 'db
+where
+    CastCompiler: BindingsCastCompiler<'db> + 'db,
+{
     let api = Api::get(db);
     let getter_name = field.getter_binding_name_on_struct(db);
     let field_type = field.type_(db);
@@ -117,23 +144,25 @@ fn compile_field_getter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl Fr
     let output = fragment(move |p| {
         let field_source_type = field_type.source_type_owned();
         if field_source_type.is_tethered(db) {
-            compile_cast_expr(
-                db,
-                TetheringStructType {
-                    source_type: field_source_type,
-                },
-                field_type.boundary_out(),
-                field_value,
-            )
-            .apply(p);
+            cast_compiler
+                .compile_cast_expr(
+                    db,
+                    TetheringStructType {
+                        source_type: field_source_type,
+                    },
+                    field_type.boundary_out(),
+                    field_value,
+                )
+                .apply(p);
         } else {
-            compile_cast_expr(
-                db,
-                field_source_type,
-                field_type.boundary_out(),
-                field_value,
-            )
-            .apply(p);
+            cast_compiler
+                .compile_cast_expr(
+                    db,
+                    field_source_type,
+                    field_type.boundary_out(),
+                    field_value,
+                )
+                .apply(p);
         }
     });
 
@@ -146,7 +175,14 @@ fn compile_field_getter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl Fr
 }
 
 /// Compiles the public binding setter for a source struct field.
-fn compile_field_setter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl FragmentOnce + 'db {
+fn compile_field_setter<'db, CastCompiler>(
+    db: &'db dyn Db,
+    cast_compiler: CastCompiler,
+    field: ShapeField<'db>,
+) -> impl FragmentOnce + 'db
+where
+    CastCompiler: BindingsCastCompiler<'db> + 'db,
+{
     let api = Api::get(db);
 
     let setter_name = field.setter_binding_name_on_struct(db);
@@ -158,7 +194,7 @@ fn compile_field_setter<'db>(db: &'db dyn Db, field: ShapeField<'db>) -> impl Fr
         compile_tethering_struct_set_field_stmt(frag!(self.src), field.name(db), "value");
 
     fragment(move |p| {
-        let set_tethered_field = compile_cast_stmt(
+        let set_tethered_field = cast_compiler.compile_cast_stmt(
             db,
             Cast {
                 from: field_boundary_in_type.clone(),

@@ -31,7 +31,7 @@ use crate::{
 };
 
 define_cast_graph! {
-    pub BindingsCastGraph<'db> {
+    pub BindingsCast<'db> {
         types {
             BoundaryType(BirBoundaryType<'db>),
             SourceType(BirSourceType<'db>),
@@ -154,6 +154,67 @@ pub struct Cast<'db, From, To, Expr> {
     pub out_var_name: &'db str,
 }
 
+/// Compiles cast fragments for generated Rust bindings.
+pub trait BindingsCastCompiler<'db> {
+    /// Compiles one cast into a named Rust binding before `inner_stmt`.
+    fn compile_cast_stmt<From, To, Expr, Continue>(
+        self,
+        db: &'db dyn Db,
+        cast: Cast<'db, From, To, Expr>,
+        inner_stmt: Continue,
+    ) -> impl FragmentOnce + 'db
+    where
+        From: Into<BindingsCast::CastType<'db>> + 'db,
+        To: Into<BindingsCast::CastType<'db>> + 'db,
+        Expr: FragmentOnce + 'db,
+        Continue: FragmentOnce + 'db;
+
+    /// Compiles multiple named casts in order before `inner_stmt`.
+    fn compile_casts_stmt<Casts, From, To, Expr, Continue>(
+        self,
+        db: &'db dyn Db,
+        casts: Casts,
+        inner_stmt: Continue,
+    ) -> impl FragmentOnce + 'db
+    where
+        Casts: IntoIterator<Item = Cast<'db, From, To, Expr>> + 'db,
+        Casts::IntoIter: 'db,
+        From: Into<BindingsCast::CastType<'db>> + 'db,
+        To: Into<BindingsCast::CastType<'db>> + 'db,
+        Expr: FragmentOnce + 'db,
+        Continue: FragmentOnce + 'db;
+
+    /// Compiles one named cast around a Rust expression and captures its
+    /// result.
+    fn compile_cast_expr<From, To, Expr>(
+        self,
+        db: &'db dyn Db,
+        from: From,
+        to: To,
+        expr: Expr,
+    ) -> impl FragmentOnce + 'db
+    where
+        From: Into<BindingsCast::CastType<'db>> + 'db,
+        To: Into<BindingsCast::CastType<'db>> + 'db,
+        Expr: FragmentOnce + 'db;
+
+    /// Compiles named casts around a Rust expression and captures its result
+    /// only when an indirect cast scopes the expression.
+    fn compile_casts_expr<Casts, From, To, Expr, Inner>(
+        self,
+        db: &'db dyn Db,
+        casts: Casts,
+        inner_expr: Inner,
+    ) -> impl FragmentOnce + 'db
+    where
+        Casts: IntoIterator<Item = Cast<'db, From, To, Expr>> + 'db,
+        Casts::IntoIter: 'db,
+        From: Into<BindingsCast::CastType<'db>> + 'db,
+        To: Into<BindingsCast::CastType<'db>> + 'db,
+        Expr: FragmentOnce + 'db,
+        Inner: FragmentOnce + 'db;
+}
+
 /// Compiles one cast into a named Rust binding before `inner_stmt`.
 pub fn compile_cast_stmt<'db, From, To, Expr, Continue>(
     db: &'db dyn Db,
@@ -161,12 +222,12 @@ pub fn compile_cast_stmt<'db, From, To, Expr, Continue>(
     inner_stmt: Continue,
 ) -> impl FragmentOnce + 'db
 where
-    From: Into<BindingsCastGraph::CastType<'db>> + 'db,
-    To: Into<BindingsCastGraph::CastType<'db>> + 'db,
+    From: Into<BindingsCast::CastType<'db>> + 'db,
+    To: Into<BindingsCast::CastType<'db>> + 'db,
     Expr: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    BindingsCastGraph::compile_cast(
+    BindingsCast::compile_cast(
         db,
         cast.from,
         cast.to,
@@ -187,8 +248,8 @@ pub fn compile_casts_stmt<'db, Casts, From, To, Expr, Continue>(
 where
     Casts: IntoIterator<Item = Cast<'db, From, To, Expr>> + 'db,
     Casts::IntoIter: 'db,
-    From: Into<BindingsCastGraph::CastType<'db>> + 'db,
-    To: Into<BindingsCastGraph::CastType<'db>> + 'db,
+    From: Into<BindingsCast::CastType<'db>> + 'db,
+    To: Into<BindingsCast::CastType<'db>> + 'db,
     Expr: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
@@ -209,8 +270,8 @@ struct CompileCastsStmt<'db, Casts, Continue> {
 impl<'db, Casts, From, To, Expr, Continue> FragmentOnce for CompileCastsStmt<'db, Casts, Continue>
 where
     Casts: Iterator<Item = Cast<'db, From, To, Expr>> + 'db,
-    From: Into<BindingsCastGraph::CastType<'db>> + 'db,
-    To: Into<BindingsCastGraph::CastType<'db>> + 'db,
+    From: Into<BindingsCast::CastType<'db>> + 'db,
+    To: Into<BindingsCast::CastType<'db>> + 'db,
     Expr: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
@@ -237,13 +298,13 @@ pub fn compile_cast_expr<'db, From, To, Expr>(
     expr: Expr,
 ) -> impl FragmentOnce + 'db
 where
-    From: Into<BindingsCastGraph::CastType<'db>> + 'db,
-    To: Into<BindingsCastGraph::CastType<'db>> + 'db,
+    From: Into<BindingsCast::CastType<'db>> + 'db,
+    To: Into<BindingsCast::CastType<'db>> + 'db,
     Expr: FragmentOnce + 'db,
 {
     let from = from.into();
     let to = to.into();
-    let uses_indirect_rule = BindingsCastGraph::find_cast_path(db, from.clone(), to.clone())
+    let uses_indirect_rule = BindingsCast::find_cast_path(db, from.clone(), to.clone())
         .iter()
         .any(|step| step.rule.is_indirect());
 
@@ -251,7 +312,7 @@ where
         if uses_indirect_rule {
             frag!({{
                 let mut __cast_expr_result = std::mem::MaybeUninit::uninit();@
-                {BindingsCastGraph::compile_cast(
+                {BindingsCast::compile_cast(
                     db,
                     from,
                     to,
@@ -266,7 +327,7 @@ where
             }})
             .apply(printer);
         } else {
-            BindingsCastGraph::compile_cast(db, from, to, expr, ReturnCastOutput).apply(printer);
+            BindingsCast::compile_cast(db, from, to, expr, ReturnCastOutput).apply(printer);
         }
     })
 }
@@ -281,8 +342,8 @@ pub fn compile_casts_expr<'db, Casts, From, To, Expr, Inner>(
 where
     Casts: IntoIterator<Item = Cast<'db, From, To, Expr>> + 'db,
     Casts::IntoIter: 'db,
-    From: Into<BindingsCastGraph::CastType<'db>> + 'db,
-    To: Into<BindingsCastGraph::CastType<'db>> + 'db,
+    From: Into<BindingsCast::CastType<'db>> + 'db,
+    To: Into<BindingsCast::CastType<'db>> + 'db,
     Expr: FragmentOnce + 'db,
     Inner: FragmentOnce + 'db,
 {
@@ -290,6 +351,72 @@ where
         db,
         casts: casts.into_iter(),
         inner_expr,
+    }
+}
+
+impl<'db> BindingsCastCompiler<'db> for BindingsCast::Graph {
+    fn compile_cast_stmt<From, To, Expr, Continue>(
+        self,
+        db: &'db dyn Db,
+        cast: Cast<'db, From, To, Expr>,
+        inner_stmt: Continue,
+    ) -> impl FragmentOnce + 'db
+    where
+        From: Into<BindingsCast::CastType<'db>> + 'db,
+        To: Into<BindingsCast::CastType<'db>> + 'db,
+        Expr: FragmentOnce + 'db,
+        Continue: FragmentOnce + 'db,
+    {
+        compile_cast_stmt(db, cast, inner_stmt)
+    }
+
+    fn compile_casts_stmt<Casts, From, To, Expr, Continue>(
+        self,
+        db: &'db dyn Db,
+        casts: Casts,
+        inner_stmt: Continue,
+    ) -> impl FragmentOnce + 'db
+    where
+        Casts: IntoIterator<Item = Cast<'db, From, To, Expr>> + 'db,
+        Casts::IntoIter: 'db,
+        From: Into<BindingsCast::CastType<'db>> + 'db,
+        To: Into<BindingsCast::CastType<'db>> + 'db,
+        Expr: FragmentOnce + 'db,
+        Continue: FragmentOnce + 'db,
+    {
+        compile_casts_stmt(db, casts, inner_stmt)
+    }
+
+    fn compile_cast_expr<From, To, Expr>(
+        self,
+        db: &'db dyn Db,
+        from: From,
+        to: To,
+        expr: Expr,
+    ) -> impl FragmentOnce + 'db
+    where
+        From: Into<BindingsCast::CastType<'db>> + 'db,
+        To: Into<BindingsCast::CastType<'db>> + 'db,
+        Expr: FragmentOnce + 'db,
+    {
+        compile_cast_expr(db, from, to, expr)
+    }
+
+    fn compile_casts_expr<Casts, From, To, Expr, Inner>(
+        self,
+        db: &'db dyn Db,
+        casts: Casts,
+        inner_expr: Inner,
+    ) -> impl FragmentOnce + 'db
+    where
+        Casts: IntoIterator<Item = Cast<'db, From, To, Expr>> + 'db,
+        Casts::IntoIter: 'db,
+        From: Into<BindingsCast::CastType<'db>> + 'db,
+        To: Into<BindingsCast::CastType<'db>> + 'db,
+        Expr: FragmentOnce + 'db,
+        Inner: FragmentOnce + 'db,
+    {
+        compile_casts_expr(db, casts, inner_expr)
     }
 }
 
@@ -304,8 +431,8 @@ struct CompileCastsExpr<'db, Casts, Inner> {
 impl<'db, Casts, From, To, Expr, Inner> FragmentOnce for CompileCastsExpr<'db, Casts, Inner>
 where
     Casts: Iterator<Item = Cast<'db, From, To, Expr>> + 'db,
-    From: Into<BindingsCastGraph::CastType<'db>> + 'db,
-    To: Into<BindingsCastGraph::CastType<'db>> + 'db,
+    From: Into<BindingsCast::CastType<'db>> + 'db,
+    To: Into<BindingsCast::CastType<'db>> + 'db,
     Expr: FragmentOnce + 'db,
     Inner: FragmentOnce + 'db,
 {
@@ -324,10 +451,9 @@ where
         let from = from.into();
         let to = to.into();
 
-        let uses_indirect_rule =
-            BindingsCastGraph::find_cast_path(self.db, from.clone(), to.clone())
-                .iter()
-                .any(|step| step.rule.is_indirect());
+        let uses_indirect_rule = BindingsCast::find_cast_path(self.db, from.clone(), to.clone())
+            .iter()
+            .any(|step| step.rule.is_indirect());
 
         let remaining = Self {
             db: self.db,
@@ -464,8 +590,14 @@ impl<'db> IndirectCastRule<'db, BirSourceType<'db>, BirSourceType<'db>>
 
 #[cfg(test)]
 pub mod test {
+    use std::fmt::{Debug, Write as _};
+
     use crate::{
-        codegen::{cast::CastContinuation, fragment::FragmentOnce},
+        codegen::{
+            bindings::cast_graph::BindingsCastCompiler,
+            cast::CastContinuation,
+            fragment::{FragmentOnce, Printer, fragment},
+        },
         frag,
     };
 
@@ -478,6 +610,133 @@ pub mod test {
             Expr: FragmentOnce + 'fragment,
         {
             frag!(consume({out_expr});)
+        }
+    }
+
+    /// Compiles visible fake cast expressions for testing binding code
+    /// generation.
+    #[derive(Copy, Clone)]
+    pub struct TestCastCompiler;
+
+    struct DebugString<T>(T);
+
+    impl<T> FragmentOnce for DebugString<T>
+    where
+        T: Debug,
+    {
+        fn apply(self, printer: &mut Printer) {
+            let debug = format!("{:?}", self.0);
+            write!(printer, "{debug:?}").expect("writing to source printer cannot fail");
+        }
+    }
+
+    fn compile_test_cast_expr<'db, From, To, Expr>(
+        from: From,
+        to: To,
+        expr: Expr,
+    ) -> impl FragmentOnce + 'db
+    where
+        From: Into<super::BindingsCast::CastType<'db>> + 'db,
+        To: Into<super::BindingsCast::CastType<'db>> + 'db,
+        Expr: FragmentOnce + 'db,
+    {
+        let from = DebugString(from.into());
+        let to = DebugString(to.into());
+
+        frag!(cast.from({ from }).to({ to }).an({ expr }))
+    }
+
+    impl<'db> BindingsCastCompiler<'db> for TestCastCompiler {
+        fn compile_cast_stmt<From, To, Expr, Continue>(
+            self,
+            _db: &'db dyn crate::codegen::db::Db,
+            cast: super::Cast<'db, From, To, Expr>,
+            inner_stmt: Continue,
+        ) -> impl FragmentOnce + 'db
+        where
+            From: Into<super::BindingsCast::CastType<'db>> + 'db,
+            To: Into<super::BindingsCast::CastType<'db>> + 'db,
+            Expr: FragmentOnce + 'db,
+            Continue: FragmentOnce + 'db,
+        {
+            let cast_expr = compile_test_cast_expr(cast.from, cast.to, cast.in_expr);
+
+            frag!(
+                let ~{cast.out_var_name}~ = {cast_expr};@
+                {inner_stmt}
+            )
+        }
+
+        fn compile_casts_stmt<Casts, From, To, Expr, Continue>(
+            self,
+            _db: &'db dyn crate::codegen::db::Db,
+            casts: Casts,
+            inner_stmt: Continue,
+        ) -> impl FragmentOnce + 'db
+        where
+            Casts: IntoIterator<Item = super::Cast<'db, From, To, Expr>> + 'db,
+            Casts::IntoIter: 'db,
+            From: Into<super::BindingsCast::CastType<'db>> + 'db,
+            To: Into<super::BindingsCast::CastType<'db>> + 'db,
+            Expr: FragmentOnce + 'db,
+            Continue: FragmentOnce + 'db,
+        {
+            fragment(move |printer| {
+                for cast in casts {
+                    let cast_expr = compile_test_cast_expr(cast.from, cast.to, cast.in_expr);
+                    frag!(let ~{cast.out_var_name}~ = {cast_expr};@).apply(printer);
+                }
+
+                inner_stmt.apply(printer);
+            })
+        }
+
+        fn compile_cast_expr<From, To, Expr>(
+            self,
+            _db: &'db dyn crate::codegen::db::Db,
+            from: From,
+            to: To,
+            expr: Expr,
+        ) -> impl FragmentOnce + 'db
+        where
+            From: Into<super::BindingsCast::CastType<'db>> + 'db,
+            To: Into<super::BindingsCast::CastType<'db>> + 'db,
+            Expr: FragmentOnce + 'db,
+        {
+            compile_test_cast_expr(from, to, expr)
+        }
+
+        fn compile_casts_expr<Casts, From, To, Expr, Inner>(
+            self,
+            _db: &'db dyn crate::codegen::db::Db,
+            casts: Casts,
+            inner_expr: Inner,
+        ) -> impl FragmentOnce + 'db
+        where
+            Casts: IntoIterator<Item = super::Cast<'db, From, To, Expr>> + 'db,
+            Casts::IntoIter: 'db,
+            From: Into<super::BindingsCast::CastType<'db>> + 'db,
+            To: Into<super::BindingsCast::CastType<'db>> + 'db,
+            Expr: FragmentOnce + 'db,
+            Inner: FragmentOnce + 'db,
+        {
+            fragment(move |printer| {
+                let mut casts = casts.into_iter();
+                let Some(first_cast) = casts.next() else {
+                    inner_expr.apply(printer);
+                    return;
+                };
+                let cast_exprs = fragment(move |printer| {
+                    for cast in std::iter::once(first_cast).chain(casts) {
+                        let cast_expr = compile_test_cast_expr(cast.from, cast.to, cast.in_expr);
+                        frag!(let ~{cast.out_var_name}~ = {cast_expr};@).apply(printer);
+                    }
+
+                    inner_expr.apply(printer);
+                });
+
+                frag!({ { { cast_exprs } } }).apply(printer);
+            })
         }
     }
 }

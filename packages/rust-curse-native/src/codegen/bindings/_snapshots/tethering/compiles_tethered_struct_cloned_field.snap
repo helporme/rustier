@@ -14,12 +14,12 @@ codegen::bindings::tethering::tests::compiles_tethered_struct_cloned_field
 let db = test_db! {
     pub struct Parent { pub count : u32, }
 };
-let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 1] = [
+let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 1] = [
     TetheredField::Cloned(ClonedField {
         name: "count",
         get_ref_expr: |source| frag!(Ok(& { source } .count)).print(),
         get_mut_expr: |source| frag!(Ok(& mut ~ { source } .count)).print(),
-        source_type: "u32",
+        source_type: BirSourceType::u32,
     }),
 ];
 compile_tethered_struct(

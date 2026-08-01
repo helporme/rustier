@@ -6,7 +6,7 @@ use crate::{
         api::{Api, ApiKind},
         bindings::{
             bir::{BirBoundaryType, BirSourceType},
-            cast_graph::{Cast, compile_cast_expr, compile_cast_stmt},
+            cast_graph::{BindingsCast, BindingsCastCompiler, Cast},
             tethering::{
                 TetheringStruct, TetheringStructType, compile_tethered_struct,
                 compile_tethering_struct_get_field_expr, compile_tethering_struct_set_field_stmt,
@@ -53,6 +53,17 @@ impl<'db> ShapeField<'db> {
 /// wrapper.
 #[salsa::tracked(returns(ref))]
 pub fn compile_binding_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
+    compile_binding_enum_with(db, BindingsCast::Graph, enum_)
+}
+
+fn compile_binding_enum_with<'db, CastCompiler>(
+    db: &'db dyn Db,
+    cast_compiler: CastCompiler,
+    enum_: Enum<'db>,
+) -> String
+where
+    CastCompiler: BindingsCastCompiler<'db> + Clone + 'db,
+{
     let tethered_fields = enum_.variants(db).iter().copied().flat_map(move |variant| {
         variant.fields(db).map(move |field| {
             let get_expr = move |source: &'static str| {
@@ -73,7 +84,7 @@ pub fn compile_binding_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> String {
     frag!(
         {compile_tethered_struct(db, tethering_struct)}@@
         {compile_wrapper_struct(db, enum_)}@@
-        {compile_wrapper_impl(db, enum_)}
+        {compile_wrapper_impl(db, cast_compiler, enum_)}
     )
     .print()
 }
@@ -97,15 +108,28 @@ fn compile_wrapper_struct<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl Fragme
     })
 }
 
-fn compile_wrapper_impl<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl FragmentOnce + 'db {
+fn compile_wrapper_impl<'db, CastCompiler>(
+    db: &'db dyn Db,
+    cast_compiler: CastCompiler,
+    enum_: Enum<'db>,
+) -> impl FragmentOnce + 'db
+where
+    CastCompiler: BindingsCastCompiler<'db> + Clone + 'db,
+{
     let api = Api::get(db);
     let fields = spaced(enum_.variants(db).iter().copied().flat_map(move |variant| {
+        let cast_compiler = cast_compiler.clone();
+
         variant.fields(db).map(move |field| {
+            let cast_compiler = cast_compiler.clone();
+
             fragment(move |printer| {
-                frag!({compile_field_getter(db, variant, field)}@).apply(printer);
+                frag!({compile_field_getter(db, cast_compiler.clone(), variant, field)}@)
+                    .apply(printer);
 
                 if !field.is_readonly(db) {
-                    frag!(@{compile_field_setter(db, variant, field)}).apply(printer);
+                    frag!(@{compile_field_setter(db, cast_compiler, variant, field)})
+                        .apply(printer);
                 }
             })
         })
@@ -162,11 +186,15 @@ fn compile_type_method<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> impl FragmentO
     )
 }
 
-fn compile_field_getter<'db>(
+fn compile_field_getter<'db, CastCompiler>(
     db: &'db dyn Db,
+    cast_compiler: CastCompiler,
     variant: EnumVariant<'db>,
     field: ShapeField<'db>,
-) -> impl FragmentOnce + 'db {
+) -> impl FragmentOnce + 'db
+where
+    CastCompiler: BindingsCastCompiler<'db> + 'db,
+{
     let api = Api::get(db);
     let name = field.enum_binding_name(db, variant);
     let getter_name = field.getter_binding_name_on_enum(db, variant);
@@ -178,15 +206,18 @@ fn compile_field_getter<'db>(
     let output = fragment(move |p| {
         let source_type = field_type.source_type_owned();
         if source_type.is_tethered(db) {
-            compile_cast_expr(
-                db,
-                TetheringStructType { source_type },
-                field_type.boundary_out(),
-                field_value,
-            )
-            .apply(p)
+            cast_compiler
+                .compile_cast_expr(
+                    db,
+                    TetheringStructType { source_type },
+                    field_type.boundary_out(),
+                    field_value,
+                )
+                .apply(p)
         } else {
-            compile_cast_expr(db, source_type, field_type.boundary_out(), field_value).apply(p)
+            cast_compiler
+                .compile_cast_expr(db, source_type, field_type.boundary_out(), field_value)
+                .apply(p)
         }
     });
 
@@ -198,11 +229,15 @@ fn compile_field_getter<'db>(
     )
 }
 
-fn compile_field_setter<'db>(
+fn compile_field_setter<'db, CastCompiler>(
     db: &'db dyn Db,
+    cast_compiler: CastCompiler,
     variant: EnumVariant<'db>,
     field: ShapeField<'db>,
-) -> impl FragmentOnce + 'db {
+) -> impl FragmentOnce + 'db
+where
+    CastCompiler: BindingsCastCompiler<'db> + 'db,
+{
     let api = Api::get(db);
     let name = field.enum_binding_name(db, variant);
     let setter_name = field.setter_binding_name_on_enum(db, variant);
@@ -214,7 +249,7 @@ fn compile_field_setter<'db>(
     let set_tethered_field =
         compile_tethering_struct_set_field_stmt(frag!(self.src), name, "value");
 
-    let set_tethered_field = compile_cast_stmt(
+    let set_tethered_field = cast_compiler.compile_cast_stmt(
         db,
         Cast {
             from: boundary_in_type.clone(),

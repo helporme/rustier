@@ -8,6 +8,10 @@ mod shape;
 mod struct_;
 mod tethering;
 
+#[cfg(test)]
+#[doc(hidden)]
+pub mod test;
+
 use crate::codegen::{
     bindings::{
         mod_::compile_mod, struct_::is_using_tethering, tethering::compile_tethering_prelude,

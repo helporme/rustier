@@ -5,7 +5,7 @@ use crate::codegen::{
     api::Api,
     bindings::{
         bir::BirSourceType,
-        cast_graph::{Cast, compile_cast_expr, compile_casts_expr, compile_casts_stmt},
+        cast_graph::{BindingsCast, BindingsCastCompiler, Cast},
     },
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, comma_list, frag, fragment},
@@ -42,6 +42,17 @@ impl<'db> FnParam<'db> {
 /// Compiles a function into a binding function.
 #[salsa::tracked(returns(ref))]
 pub fn compile_binding_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
+    compile_binding_fn_with(db, BindingsCast::Graph, fn_)
+}
+
+fn compile_binding_fn_with<'db, CastCompiler>(
+    db: &'db dyn Db,
+    cast_compiler: CastCompiler,
+    fn_: Fn<'db>,
+) -> String
+where
+    CastCompiler: BindingsCastCompiler<'db> + Clone + 'db,
+{
     let api = Api::get(db);
     let result_type = fragment(|p| match fn_.return_type(db) {
         Some(type_) => api
@@ -53,7 +64,7 @@ pub fn compile_binding_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
     frag!(
         {api.fn_header(db, fn_)}@
         pub fn ~{fn_.extern_name(db)}({compile_binding_fn_params(db, fn_)})~ -> ~{result_type}~ {{
-            {compile_binding_fn_body(db, fn_)}
+            {compile_binding_fn_body(db, cast_compiler, fn_)}
         }}
     )
     .print()
@@ -73,7 +84,14 @@ fn compile_binding_fn_params<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragmen
 /// Compiles a binding function body for a function returning the active
 /// [`crate::codegen::api::Api::result_type`] type, allowing generated `?`
 /// expressions.
-fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentOnce + 'db {
+fn compile_binding_fn_body<'db, CastCompiler>(
+    db: &'db dyn Db,
+    cast_compiler: CastCompiler,
+    fn_: Fn<'db>,
+) -> impl FragmentOnce + 'db
+where
+    CastCompiler: BindingsCastCompiler<'db> + Clone + 'db,
+{
     fragment(move |p| {
         let cast_param_to_source_types = fn_.params(db).iter().map(|param| Cast {
             from: param.type_(db).boundary_in(),
@@ -84,13 +102,13 @@ fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentO
 
         match fn_.return_type(db) {
             Some(ret_type) => {
-                let result_expr = compile_casts_expr(
+                let result_expr = cast_compiler.clone().compile_casts_expr(
                     db,
                     cast_param_to_source_types,
                     compile_src_fn_call_expr(db, fn_),
                 );
 
-                let casted_result_expr = compile_cast_expr(
+                let casted_result_expr = cast_compiler.compile_cast_expr(
                     db,
                     ret_type.source_type_owned(),
                     ret_type.boundary_out(),
@@ -100,7 +118,7 @@ fn compile_binding_fn_body<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl FragmentO
                 frag!(Ok({ casted_result_expr })).apply(p);
             }
             None => {
-                let fn_call_stmt = compile_casts_stmt(
+                let fn_call_stmt = cast_compiler.compile_casts_stmt(
                     db,
                     cast_param_to_source_types,
                     frag!({compile_src_fn_call_expr(db, fn_)};),
@@ -130,4 +148,58 @@ fn compile_src_fn_call_expr<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> impl Fragment
     });
 
     frag!({fn_.fqn(db)}{params})
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        assert_rust_snap,
+        codegen::{bindings::cast_graph::test::TestCastCompiler, rustdoc::fn_::lower_fn},
+    };
+
+    macro_rules! test_binding_fn {
+        ($name:ident, $($source:tt)*) => {
+            #[test]
+            fn $name() {
+                assert_rust_snap! {
+                    source: { $($source)* },
+                    expression: |db, p| {
+                        let fn_ = lower_fn(db, db.rustdoc_id("test_fn")).unwrap();
+                        compile_binding_fn_with(db, TestCastCompiler, fn_).apply(p);
+                    },
+                }
+            }
+        };
+    }
+
+    test_binding_fn!(zero_args_without_return, pub fn test_fn() {});
+
+    test_binding_fn!(
+        zero_args_with_return,
+        pub fn test_fn() -> i32 {
+            0
+        }
+    );
+
+    test_binding_fn!(one_arg_without_return, pub fn test_fn(_value: i32) {});
+
+    test_binding_fn!(
+        one_arg_with_return,
+        pub fn test_fn(value: i32) -> i32 {
+            value
+        }
+    );
+
+    test_binding_fn!(
+        two_args_without_return,
+        pub fn test_fn(_direct: i32, _non_direct: &i32) {}
+    );
+
+    test_binding_fn!(
+        two_args_with_return,
+        pub fn test_fn(direct: i32, non_direct: &i32) -> i32 {
+            direct + non_direct
+        }
+    );
 }

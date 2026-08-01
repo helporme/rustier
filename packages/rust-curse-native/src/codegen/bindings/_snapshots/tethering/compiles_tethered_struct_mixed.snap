@@ -15,27 +15,29 @@ let db = test_db! {
     pub struct Child; pub struct ReadonlyChild; pub struct Parent { pub count : u32,
     pub child : Child, pub readonly_child : ReadonlyChild, }
 };
-let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 3] = [
+let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 3] = [
     TetheredField::Cloned(ClonedField {
         name: "count",
         get_ref_expr: |source| frag!(Ok(& { source } .count)).print(),
         get_mut_expr: |source| frag!(Ok(& mut ~ { source } .count)).print(),
-        source_type: "u32",
+        source_type: BirSourceType::u32,
     }),
-    TetheredField::TetheredStruct(TetheredStructField {
+    TetheredField::TetheringStruct(TetheringStructField {
         name: "child",
         get_ref_expr: |source| frag!(Ok(& { source } .child)).print(),
         get_mut_expr: |source| frag!(Ok(& mut ~ { source } .child)).print(),
-        source_type: "crate::Child",
-        tethered_name: "__tethered_child",
+        source_type: BirSourceType::Item {
+            target: db.item_id("Child"),
+        },
         with_setter: true,
     }),
-    TetheredField::TetheredStruct(TetheredStructField {
+    TetheredField::TetheringStruct(TetheringStructField {
         name: "readonly_child",
         get_ref_expr: |source| frag!(Ok(& { source } .readonly_child)).print(),
         get_mut_expr: |source| frag!(Ok(& mut ~ { source } .readonly_child)).print(),
-        source_type: "crate::ReadonlyChild",
-        tethered_name: "__tethered_readonly_child",
+        source_type: BirSourceType::Item {
+            target: db.item_id("ReadonlyChild"),
+        },
         with_setter: false,
     }),
 ];
@@ -56,8 +58,8 @@ compile_tethered_struct(
 ```rs
 struct __tethering__rustdoc_0test_0crate_Parent {
 	src: __tethering::SourceSlot<rustdoc_test_crate::Parent>,
-	__c__child: std::cell::RefCell<Option<std::rc::Weak<__tethered_child>>>,
-	__c__readonly_child: std::cell::RefCell<Option<std::rc::Weak<__tethered_readonly_child>>>,
+	__c__child: std::cell::RefCell<Option<std::rc::Weak<__tethering__rustdoc_0test_0crate_Child>>>,
+	__c__readonly_child: std::cell::RefCell<Option<std::rc::Weak<__tethering__rustdoc_0test_0crate_ReadonlyChild>>>,
 }
 
 impl __tethering::Accessor<rustdoc_test_crate::Parent> for __tethering__rustdoc_0test_0crate_Parent {
@@ -163,7 +165,7 @@ impl __tethering__rustdoc_0test_0crate_Parent {
 
 	pub fn get_child(
 		self: &std::rc::Rc<Self>,
-	)-> __tethering::AccessResult<std::rc::Rc<__tethered_child>> {
+	)-> __tethering::AccessResult<std::rc::Rc<__tethering__rustdoc_0test_0crate_Child>> {
 		self.access(
 			&mut |parent| {
 				Ok(
@@ -187,7 +189,7 @@ impl __tethering__rustdoc_0test_0crate_Parent {
 			);
 		}
 
-		let field_access: std::rc::Rc<dyn __tethering::Accessor<crate::Child>> = std::rc::Rc::new(
+		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Child>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
 				get: |parent| Ok(
@@ -200,7 +202,7 @@ impl __tethering__rustdoc_0test_0crate_Parent {
 		);
 
 		let tethered = std::rc::Rc::new(
-			__tethered_child::new_projected(
+			__tethering__rustdoc_0test_0crate_Child::new_projected(
 				field_access
 			)
 		);
@@ -219,7 +221,7 @@ impl __tethering__rustdoc_0test_0crate_Parent {
 	}
 
 	pub fn set_child(
-		&self, value: crate::Child
+		&self, value: rustdoc_test_crate::Child
 	)-> __tethering::AccessResult<()> {
 		self.access_mut(
 			&mut |src| {
@@ -272,7 +274,7 @@ impl __tethering__rustdoc_0test_0crate_Parent {
 
 	pub fn get_readonly_child(
 		self: &std::rc::Rc<Self>,
-	)-> __tethering::AccessResult<std::rc::Rc<__tethered_readonly_child>> {
+	)-> __tethering::AccessResult<std::rc::Rc<__tethering__rustdoc_0test_0crate_ReadonlyChild>> {
 		self.access(
 			&mut |parent| {
 				Ok(
@@ -296,7 +298,7 @@ impl __tethering__rustdoc_0test_0crate_Parent {
 			);
 		}
 
-		let field_access: std::rc::Rc<dyn __tethering::Accessor<crate::ReadonlyChild>> = std::rc::Rc::new(
+		let field_access: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::ReadonlyChild>> = std::rc::Rc::new(
 			__tethering::FieldAccess {
 				parent: self.clone(),
 				get: |parent| Ok(
@@ -309,7 +311,7 @@ impl __tethering__rustdoc_0test_0crate_Parent {
 		);
 
 		let tethered = std::rc::Rc::new(
-			__tethered_readonly_child::new_projected(
+			__tethering__rustdoc_0test_0crate_ReadonlyChild::new_projected(
 				field_access
 			)
 		);

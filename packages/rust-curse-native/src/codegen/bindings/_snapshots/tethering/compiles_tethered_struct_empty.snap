@@ -14,7 +14,7 @@ codegen::bindings::tethering::tests::compiles_tethered_struct_empty
 let db = test_db! {
     pub struct Empty;
 };
-let fields: [TetheredField<'_, &'static str, FieldExpr, FieldExpr>; 0] = [];
+let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 0] = [];
 compile_tethered_struct(
         &db,
         TetheringStruct {
