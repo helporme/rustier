@@ -5,13 +5,14 @@ use crate::codegen::{
     diag::DiagAccumulateExt as _,
     ir::{CLikeEnum, Enum, Fn, Mod, ModId, Struct},
     ir::{Item as IrItem, ItemId, ItemKind, ItemPath},
-    rustdoc::{
-        RustdocCrates, RustdocId,
-        enum_::{LoweredEnum, lower_enum},
-        fn_::lower_fn,
-        span::RustdocSpanExt as _,
-        struct_::lower_struct,
-    },
+    rustdoc::{RustdocCrates, RustdocId},
+};
+
+use super::{
+    enums::{LoweredEnum, lower_enum},
+    fns::lower_fn,
+    spans::RustdocSpanExt as _,
+    structs::lower_struct,
 };
 
 /// Returns all rustdoc module IDs available in all crates.

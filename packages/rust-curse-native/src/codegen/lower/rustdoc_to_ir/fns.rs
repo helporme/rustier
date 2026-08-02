@@ -6,13 +6,14 @@ use crate::codegen::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
     ir::{Fn, FnId, FnParam, ItemId, ItemIdExt as _, ItemKind, ItemPath, PassingMode, Type},
-    rustdoc::{
-        CrateExt, ItemIdExt as _, RustdocId,
-        enum_::is_enum_clonable,
-        shape::is_struct_clonable,
-        span::RustdocSpanExt as _,
-        type_::{LoweredType, TypeLowerError, lower_type},
-    },
+    rustdoc::{CrateExt, ItemIdExt as _, RustdocId},
+};
+
+use super::{
+    enums::is_enum_clonable,
+    shapes::is_struct_clonable,
+    spans::RustdocSpanExt as _,
+    types::{LoweredType, TypeLowerError, lower_type},
 };
 
 /// Lowers the rustdoc function.

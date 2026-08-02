@@ -121,7 +121,7 @@ mod tests {
     use super::*;
     use crate::codegen::{
         db::DbImpl,
-        rustdoc::mod_::lower_mod,
+        lower::rustdoc_to_ir::mods::lower_mod,
         test::{assert_snap, test_db},
         ts::sourcemap::test::{normalize_mappings, normalize_source, numbered_lines},
     };

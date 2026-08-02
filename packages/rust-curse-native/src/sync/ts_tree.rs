@@ -8,7 +8,7 @@ use miette::Diagnostic;
 use tracing::{debug, info, trace};
 
 use crate::{
-    codegen::{self, diag::Diag, rustdoc::mod_::lower_mods},
+    codegen::{self, diag::Diag, lower::rustdoc_to_ir::mods::lower_mods},
     sync::file::write_if_changed,
 };
 

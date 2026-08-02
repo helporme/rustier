@@ -19,7 +19,7 @@ use crate::codegen::{
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, frag, fragment, spaced},
     ir::Mod,
-    rustdoc::mod_::lower_mods,
+    lower::rustdoc_to_ir::mods::lower_mods,
 };
 
 /// Compiles bindings from the active lowered modules using the active

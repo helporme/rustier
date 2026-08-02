@@ -9,6 +9,7 @@ pub mod diag;
 pub mod fragment;
 mod ir;
 pub mod js;
+pub mod lower;
 mod mangle;
 pub mod rustdoc;
 pub mod ts;

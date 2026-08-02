@@ -52,7 +52,7 @@ mod tests {
         assert_rust_snap,
         codegen::{
             bindings::cast_graph::test::TestCastCompiler, fragment::FragmentOnce,
-            rustdoc::struct_::lower_struct,
+            lower::rustdoc_to_ir::structs::lower_struct,
         },
     };
 

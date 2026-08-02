@@ -44,7 +44,7 @@ mod tests {
     use super::*;
     use crate::codegen::{
         db::DbImpl,
-        rustdoc::mod_::lower_mods,
+        lower::rustdoc_to_ir::mods::lower_mods,
         test::{TEST_CRATE_NAME, assert_snap, test_db},
         ts::{fn_::compile_fn, sourcemap::test::snapshot_mappings},
     };

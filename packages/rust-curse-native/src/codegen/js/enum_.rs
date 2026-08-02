@@ -486,7 +486,7 @@ mod tests {
         db::DbImpl,
         fragment::{FragmentPrint, spaced},
         js::{JsCodegenPaths, imports::compile_import_stmt},
-        rustdoc::enum_::{LoweredEnum, lower_enum},
+        lower::rustdoc_to_ir::enums::{LoweredEnum, lower_enum},
         test::{assert_snap, test_db},
     };
 

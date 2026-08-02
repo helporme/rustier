@@ -6,12 +6,13 @@ use crate::codegen::{
     db::Db,
     diag::{DiagAccumulateExt, DiagSource, DiagSpan},
     ir::{ItemIdExt as _, Shape, ShapeField, Type},
-    rustdoc::{
-        CrateExt, ItemIdExt as _, RustdocId,
-        enum_::is_enum_clonable,
-        span::RustdocSpanExt as _,
-        type_::{LoweredType, TypeLowerError, lower_type},
-    },
+    rustdoc::{CrateExt, ItemIdExt as _, RustdocId},
+};
+
+use super::{
+    enums::is_enum_clonable,
+    spans::RustdocSpanExt as _,
+    types::{LoweredType, TypeLowerError, lower_type},
 };
 
 /// A borrowed rustdoc field layout that can originate from a struct or enum

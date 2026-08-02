@@ -65,7 +65,7 @@ mod tests {
         api::{Api, ApiKind},
         db::DbImpl,
         js::JsCodegenPaths,
-        rustdoc::mod_::lower_mod,
+        lower::rustdoc_to_ir::mods::lower_mod,
         test::{assert_snap, test_db},
     };
 

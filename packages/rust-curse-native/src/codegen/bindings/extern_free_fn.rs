@@ -82,7 +82,9 @@ mod tests {
     use super::*;
     use crate::{
         assert_rust_snap,
-        codegen::{bindings::cast_graph::test::TestCastCompiler, rustdoc::fn_::lower_fn},
+        codegen::{
+            bindings::cast_graph::test::TestCastCompiler, lower::rustdoc_to_ir::fns::lower_fn,
+        },
     };
 
     macro_rules! test_fn {

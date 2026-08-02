@@ -10,14 +10,6 @@ use crate::codegen::{
 use rustdoc_types::{Crate as RCrate, Id as RId, Item as RItem, ItemKind as RItemKind, Type};
 use salsa::Setter;
 
-pub mod enum_;
-pub mod fn_;
-pub mod mod_;
-pub mod shape;
-pub mod span;
-pub mod struct_;
-pub mod type_;
-
 /// Parsed rustdoc crates used as input for code generation.
 #[salsa::input(singleton)]
 pub struct RustdocCrates {

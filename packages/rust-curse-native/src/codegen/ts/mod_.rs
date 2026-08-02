@@ -66,7 +66,7 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_: Mod<'db>) -> String {
 mod tests {
     use super::*;
     use crate::codegen::{
-        rustdoc::mod_::lower_mod,
+        lower::rustdoc_to_ir::mods::lower_mod,
         test::{assert_snap, test_db},
     };
 

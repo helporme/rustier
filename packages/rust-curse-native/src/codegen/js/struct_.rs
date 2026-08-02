@@ -299,7 +299,7 @@ mod tests {
         db::DbImpl,
         fragment::{FragmentPrint, spaced},
         js::{JsCodegenPaths, imports::compile_import_stmt},
-        rustdoc::struct_::lower_struct,
+        lower::rustdoc_to_ir::structs::lower_struct,
         test::{assert_snap, test_db},
     };
 

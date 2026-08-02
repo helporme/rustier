@@ -27,7 +27,7 @@ use crate::{
         self,
         db::DbImpl,
         diag::{Diag, Theme},
-        rustdoc::mod_::lower_mods,
+        lower::rustdoc_to_ir::mods::lower_mods,
     },
     sync::{SyncCrateOps, SyncTsTreeOpts, sync_crate, sync_ts_tree},
     tools::{self, node::BuildOutput as NodeBuildOutput, wasm::BuildOutput as WasmBuildOutput},

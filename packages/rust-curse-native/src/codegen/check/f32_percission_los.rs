@@ -121,7 +121,7 @@ pub struct F32PrecisionLoss {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::codegen::{rustdoc::mod_::lower_mods, test::test_db};
+    use crate::codegen::{lower::rustdoc_to_ir::mods::lower_mods, test::test_db};
 
     fn assert_f32_precision_loss(db: &dyn Db) {
         let modules = lower_mods(db);

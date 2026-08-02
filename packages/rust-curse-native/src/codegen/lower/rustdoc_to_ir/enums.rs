@@ -9,11 +9,12 @@ use crate::codegen::{
         CLikeEnum, CLikeEnumId, CLikeEnumVariant, Enum, EnumId, EnumVariant, ItemId, ItemKind,
         ItemPath,
     },
-    rustdoc::{
-        CrateExt, RustdocId,
-        shape::{RustdocShape, ShapeFieldLowerError, lower_shape},
-        span::RustdocSpanExt as _,
-    },
+    rustdoc::{CrateExt, RustdocId},
+};
+
+use super::{
+    shapes::{RustdocShape, ShapeFieldLowerError, lower_shape},
+    spans::RustdocSpanExt as _,
 };
 
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq, salsa::Update)]

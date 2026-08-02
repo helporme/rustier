@@ -92,7 +92,7 @@ pub enum EnumJsNameCollision {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::codegen::{rustdoc::mod_::lower_mods, test::test_db};
+    use crate::codegen::{lower::rustdoc_to_ir::mods::lower_mods, test::test_db};
 
     fn diagnostic_codes(db: &dyn Db) -> Vec<String> {
         let modules = lower_mods(db);

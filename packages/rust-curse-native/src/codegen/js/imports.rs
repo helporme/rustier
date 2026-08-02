@@ -6,7 +6,7 @@ use crate::{
         fragment::{FragmentOnce, fragment, singles},
         ir::{ItemId, ItemIdExt as _, ModId},
         js::JsCodegenPaths,
-        rustdoc::mod_::lower_mod,
+        lower::rustdoc_to_ir::mods::lower_mod,
     },
     frag,
 };

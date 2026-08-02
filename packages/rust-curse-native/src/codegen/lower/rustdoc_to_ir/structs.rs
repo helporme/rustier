@@ -6,11 +6,12 @@ use crate::codegen::{
     db::Db,
     diag::{DiagAccumulateExt, DiagSource, DiagSpan},
     ir::{ItemId, ItemKind, ItemPath, Struct, StructId},
-    rustdoc::{
-        RustdocId,
-        shape::{RustdocShape, ShapeFieldLowerError, lower_shape},
-        span::RustdocSpanExt as _,
-    },
+    rustdoc::RustdocId,
+};
+
+use super::{
+    shapes::{RustdocShape, ShapeFieldLowerError, lower_shape},
+    spans::RustdocSpanExt as _,
 };
 
 /// Lowers the rustdoc struct to the IR struct.

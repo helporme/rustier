@@ -199,7 +199,7 @@ mod tests {
         codegen::{
             bindings::cast_graph::test::TestCastCompiler,
             fragment::FragmentOnce,
-            rustdoc::enum_::{LoweredEnum, lower_enum},
+            lower::rustdoc_to_ir::enums::{LoweredEnum, lower_enum},
         },
     };
 
