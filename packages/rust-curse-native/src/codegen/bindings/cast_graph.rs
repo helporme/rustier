@@ -715,7 +715,7 @@ mod tests {
         assert_rust_snap,
         codegen::{
             bindings::bir::SourceType,
-            fragment::{FragmentOnce as _, FragmentPrint as _},
+            fragment::FragmentOnce as _,
             ir::type_::{IrPrimitive as Primitive, ItemIdExt as _, Type},
         },
         frag,
