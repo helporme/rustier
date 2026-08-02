@@ -13,7 +13,11 @@
 //! [`define_cast_graph`] macro for doing so. The module also doesn't assume a
 //! target language, so it can be used for both Rust and JS code.
 
-use std::{collections::HashSet, fmt::Debug, hash::Hash};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    fmt::Debug,
+    hash::Hash,
+};
 
 use crate::codegen::{
     db::Db,
@@ -117,51 +121,53 @@ pub fn find_cast_path<'db, Graph>(
 where
     Graph: CastGraph<'db>,
 {
-    let mut visited = HashSet::new();
-    let mut steps = Vec::new();
-
-    assert!(
-        find_cast_path_from::<Graph>(db, from.clone(), to.clone(), &mut visited, &mut steps),
-        "cannot cast from `{from:?}` to `{to:?}`: no cast path exists",
-    );
-
-    steps
-}
-
-fn find_cast_path_from<'db, Graph>(
-    db: &'db dyn Db,
-    from: Graph::Type,
-    current: Graph::Type,
-    visited: &mut HashSet<Graph::Type>,
-    steps: &mut Vec<CastPathStep<Graph::Type, Graph::Rule>>,
-) -> bool
-where
-    Graph: CastGraph<'db>,
-{
-    if current == from {
-        return true;
+    if from == to {
+        return Vec::new();
     }
 
-    if !visited.insert(current.clone()) {
-        return false;
-    }
+    let mut visited = HashSet::from([to.clone()]);
+    let mut pending = VecDeque::from([to.clone()]);
+    let mut steps_by_from = HashMap::new();
 
-    for &rule in Graph::RULES {
-        let Some(predecessor) = Graph::predecessor(db, rule, current.clone()) else {
-            continue;
-        };
+    while let Some(current) = pending.pop_front() {
+        for &rule in Graph::RULES {
+            let Some(predecessor) = Graph::predecessor(db, rule, current.clone()) else {
+                continue;
+            };
 
-        if find_cast_path_from::<Graph>(db, from.clone(), predecessor.clone(), visited, steps) {
-            steps.push(CastPathStep {
-                rule,
-                from: predecessor,
-                to: current,
-            });
-            return true;
+            if !visited.insert(predecessor.clone()) {
+                continue;
+            }
+
+            steps_by_from.insert(
+                predecessor.clone(),
+                CastPathStep {
+                    rule,
+                    from: predecessor.clone(),
+                    to: current.clone(),
+                },
+            );
+
+            if predecessor == from {
+                let mut steps = Vec::new();
+                let mut current = from;
+
+                while current != to {
+                    let step = steps_by_from
+                        .remove(&current)
+                        .expect("every visited cast type except the target has a successor step");
+                    current = step.to.clone();
+                    steps.push(step);
+                }
+
+                return steps;
+            }
+
+            pending.push_back(predecessor);
         }
     }
 
-    false
+    panic!("cannot cast from `{from:?}` to `{to:?}`: no cast path exists");
 }
 
 /// Compiles a previously planned cast into a target-specific continuation.
@@ -445,7 +451,7 @@ macro_rules! define_cast_graph {
                 }
             }
 
-            /// Finds the unique path from `from` to `to`.
+            /// Finds a shortest path from `from` to `to`, using rule order to break equal-length ties.
             #[doc(hidden)]
             #[salsa::tracked(returns(ref))]
             pub fn find_cast_path<$db>(
@@ -738,6 +744,13 @@ mod tests {
         DisconnectedFrom,
         DisconnectedTo,
         Standalone,
+        ShortestFrom,
+        ShortestIntermediate,
+        ShortestTo,
+        EqualFrom,
+        EqualEarlierIntermediate,
+        EqualLaterIntermediate,
+        EqualTo,
     }
 
     struct EdgeRule {
@@ -772,6 +785,69 @@ mod tests {
             }
 
             direct_rules {
+                LongerPathFirstStep {
+                    rule: EdgeRule {
+                        from: EdgeType::ShortestFrom,
+                        to: EdgeType::ShortestIntermediate,
+                    },
+                    from: EdgeType,
+                    to: EdgeType,
+                }
+
+                LongerPathSecondStep {
+                    rule: EdgeRule {
+                        from: EdgeType::ShortestIntermediate,
+                        to: EdgeType::ShortestTo,
+                    },
+                    from: EdgeType,
+                    to: EdgeType,
+                }
+
+                DirectShortestPath {
+                    rule: EdgeRule {
+                        from: EdgeType::ShortestFrom,
+                        to: EdgeType::ShortestTo,
+                    },
+                    from: EdgeType,
+                    to: EdgeType,
+                }
+
+                EqualEarlierFirstStep {
+                    rule: EdgeRule {
+                        from: EdgeType::EqualFrom,
+                        to: EdgeType::EqualEarlierIntermediate,
+                    },
+                    from: EdgeType,
+                    to: EdgeType,
+                }
+
+                EqualEarlierSecondStep {
+                    rule: EdgeRule {
+                        from: EdgeType::EqualEarlierIntermediate,
+                        to: EdgeType::EqualTo,
+                    },
+                    from: EdgeType,
+                    to: EdgeType,
+                }
+
+                EqualLaterFirstStep {
+                    rule: EdgeRule {
+                        from: EdgeType::EqualFrom,
+                        to: EdgeType::EqualLaterIntermediate,
+                    },
+                    from: EdgeType,
+                    to: EdgeType,
+                }
+
+                EqualLaterSecondStep {
+                    rule: EdgeRule {
+                        from: EdgeType::EqualLaterIntermediate,
+                        to: EdgeType::EqualTo,
+                    },
+                    from: EdgeType,
+                    to: EdgeType,
+                }
+
                 CycleAToB {
                     rule: EdgeRule {
                         from: EdgeType::CycleA,
@@ -802,6 +878,51 @@ mod tests {
 
             indirect_rules {}
         }
+    }
+
+    #[test]
+    fn direct_path_wins_over_earlier_longer_path() {
+        let db = DbImpl::default();
+        let path = EdgeCastGraph::find_cast_path(
+            &db,
+            EdgeType::ShortestFrom.into(),
+            EdgeType::ShortestTo.into(),
+        );
+
+        assert_eq!(
+            path.as_slice(),
+            &[CastPathStep {
+                rule: EdgeCastGraph::CastRuleId::DirectShortestPath,
+                from: EdgeType::ShortestFrom.into(),
+                to: EdgeType::ShortestTo.into(),
+            }],
+        );
+    }
+
+    #[test]
+    fn rule_order_breaks_equal_length_tie() {
+        let db = DbImpl::default();
+        let path = EdgeCastGraph::find_cast_path(
+            &db,
+            EdgeType::EqualFrom.into(),
+            EdgeType::EqualTo.into(),
+        );
+
+        assert_eq!(
+            path.as_slice(),
+            &[
+                CastPathStep {
+                    rule: EdgeCastGraph::CastRuleId::EqualEarlierFirstStep,
+                    from: EdgeType::EqualFrom.into(),
+                    to: EdgeType::EqualEarlierIntermediate.into(),
+                },
+                CastPathStep {
+                    rule: EdgeCastGraph::CastRuleId::EqualEarlierSecondStep,
+                    from: EdgeType::EqualEarlierIntermediate.into(),
+                    to: EdgeType::EqualTo.into(),
+                },
+            ],
+        );
     }
 
     #[test]
