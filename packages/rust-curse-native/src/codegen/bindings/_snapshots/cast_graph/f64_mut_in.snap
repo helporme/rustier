@@ -17,7 +17,7 @@ pub enum ExampleEnum {
 ## Node
 ```rust
 fn cast(input: ()) {
-    let mut value = {
+    let mut __cast_owned_value = {
         let value = input;
         (if value.get_type().map_err(|err| napi::Error::from_reason(err.reason))?
             == ValueType::Number
@@ -30,7 +30,7 @@ fn cast(input: ()) {
             Err(napi::Error::from_reason("cannot cast value to f64".to_string()))
         })?
     };
-    let output = &mut value;
+    let output = &mut __cast_owned_value;
     consume(output);
 }
 ```
@@ -38,13 +38,13 @@ fn cast(input: ()) {
 ## Wasm
 ```rust
 fn cast(input: ()) {
-    let mut value = {
+    let mut __cast_owned_value = {
         let value = input;
         (value
             .as_f64()
             .ok_or_else(|| JsValue::from_str(&"cannot cast value to f64".to_string())))?
     };
-    let output = &mut value;
+    let output = &mut __cast_owned_value;
     consume(output);
 }
 ```

@@ -17,7 +17,7 @@ pub enum ExampleEnum {
 ## Node
 ```rust
 fn cast(input: ()) {
-    let mut value = {
+    let mut __cast_owned_value = {
         let type_name = "i32";
         let value = {
             let value = input;
@@ -39,7 +39,7 @@ fn cast(input: ()) {
         }
         value as i32
     };
-    let output = &mut value;
+    let output = &mut __cast_owned_value;
     consume(output);
 }
 ```
@@ -47,7 +47,7 @@ fn cast(input: ()) {
 ## Wasm
 ```rust
 fn cast(input: ()) {
-    let mut value = {
+    let mut __cast_owned_value = {
         let type_name = "i32";
         let value = {
             let value = input;
@@ -64,7 +64,7 @@ fn cast(input: ()) {
         }
         value as i32
     };
-    let output = &mut value;
+    let output = &mut __cast_owned_value;
     consume(output);
 }
 ```

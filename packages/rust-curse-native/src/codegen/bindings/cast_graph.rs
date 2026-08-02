@@ -555,14 +555,14 @@ impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>>
         };
 
         let borrowing = if is_mutable {
-            frag!(&mut value)
+            frag!(&mut __cast_owned_value)
         } else {
-            frag!(&value)
+            frag!(&__cast_owned_value)
         };
         let continue_with = continue_with.compile(borrowing);
 
         frag!(
-            let mut value = {in_expr};
+            let mut __cast_owned_value = {in_expr};
             {continue_with}
         )
     }
@@ -715,7 +715,7 @@ mod tests {
         assert_rust_snap,
         codegen::{
             bindings::bir::SourceType,
-            fragment::FragmentOnce as _,
+            fragment::{FragmentOnce as _, FragmentPrint as _},
             ir::type_::{IrPrimitive as Primitive, ItemIdExt as _, Type},
         },
         frag,

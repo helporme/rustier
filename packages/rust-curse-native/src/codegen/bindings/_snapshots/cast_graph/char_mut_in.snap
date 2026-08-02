@@ -17,7 +17,7 @@ pub enum ExampleEnum {
 ## Node
 ```rust
 fn cast(input: ()) {
-    let mut value = {
+    let mut __cast_owned_value = {
         let value = {
             let type_name = "u32";
             let value = {
@@ -47,7 +47,7 @@ fn cast(input: ()) {
                 format!("cannot cast {value} to char"),
             ))?
     };
-    let output = &mut value;
+    let output = &mut __cast_owned_value;
     consume(output);
 }
 ```
@@ -55,7 +55,7 @@ fn cast(input: ()) {
 ## Wasm
 ```rust
 fn cast(input: ()) {
-    let mut value = {
+    let mut __cast_owned_value = {
         let value = {
             let type_name = "u32";
             let value = {
@@ -76,7 +76,7 @@ fn cast(input: ()) {
         char::from_u32(value)
             .ok_or_else(|| JsValue::from_str(&format!("cannot cast {value} to char")))?
     };
-    let output = &mut value;
+    let output = &mut __cast_owned_value;
     consume(output);
 }
 ```
