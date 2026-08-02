@@ -31,7 +31,6 @@ pub struct ExternClass<'db, Fields> {
 #[derive(Clone, Debug)]
 pub struct ExternClassField<'db, GetRefExpr, GetMutExpr> {
     pub extern_name: &'db str,
-    pub source_name: &'db str,
     pub type_: Type<'db>,
     pub is_readonly: bool,
     pub get_ref_expr: GetRefExpr,
@@ -45,7 +44,7 @@ impl<'db, GetRefExpr, GetMutExpr> ExternClassField<'db, GetRefExpr, GetMutExpr> 
 
         if self.type_.uses_tethering() {
             TetheredField::TetheringStruct(TetheringStructField {
-                name: self.source_name,
+                name: self.extern_name,
                 get_ref_expr: self.get_ref_expr,
                 get_mut_expr: self.get_mut_expr,
                 source_type,
@@ -53,7 +52,7 @@ impl<'db, GetRefExpr, GetMutExpr> ExternClassField<'db, GetRefExpr, GetMutExpr> 
             })
         } else {
             TetheredField::Cloned(ClonedField {
-                name: self.source_name,
+                name: self.extern_name,
                 get_ref_expr: self.get_ref_expr,
                 get_mut_expr: self.get_mut_expr,
                 source_type,
@@ -163,7 +162,7 @@ where
     let field_type = field.type_;
     let result_type = api.result_type(db, field_type.extern_out().fqn_decl(db));
 
-    let field_value = compile_tethering_struct_get_field_expr(frag!(self.src), field.source_name);
+    let field_value = compile_tethering_struct_get_field_expr(frag!(self.src), field.extern_name);
 
     let output = fragment(move |p| {
         let field_source_type = field_type.source_type_owned();
@@ -208,7 +207,7 @@ where
     let field_source_type = field.type_.source_type_owned();
 
     let set_tethered_field =
-        compile_tethering_struct_set_field_stmt(frag!(self.src), field.source_name, "value");
+        compile_tethering_struct_set_field_stmt(frag!(self.src), field.extern_name, "value");
 
     fragment(move |p| {
         let set_tethered_field = cast_compiler.compile_cast_stmt(

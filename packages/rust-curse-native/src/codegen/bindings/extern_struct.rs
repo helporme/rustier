@@ -31,7 +31,6 @@ where
 {
     let fields = struct_.fields(db).iter().map(move |field| ExternClassField {
         extern_name: field.name(db),
-        source_name: field.name(db),
         type_: field.type_(db),
         is_readonly: field.is_readonly(db),
         get_ref_expr: move |source: &'static str| frag!(__tethering::AccessResult::Ok(&{source}.{field.name(db)})),

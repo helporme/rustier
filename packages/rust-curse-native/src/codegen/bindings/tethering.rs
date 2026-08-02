@@ -202,13 +202,10 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
                 let mut f = Some(f);@
                 let mut result = None;@
                 self.access_dyn(&mut |value|~{{
-                    result = Some(
-                        f.take()
-                            .expect("accessor callback must only be invoked once")(value)?,
-                    );@
+                    result = Some(f.take().unwrap()(value)?);@
                     Ok(())
                 }})?;@
-                Ok(result.expect("successful access must invoke its callback"))
+                Ok(result.unwrap())
             }}@@
 
             /// Invokes `f` exactly once when exclusive access succeeds.@
@@ -219,13 +216,10 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
                 let mut f = Some(f);@
                 let mut result = None;@
                 self.access_mut_dyn(&mut |value|~{{
-                    result = Some(
-                        f.take()
-                            .expect("accessor callback must only be invoked once")(value)?,
-                    );@
+                    result = Some(f.take().unwrap()(value)?);@
                     Ok(())
                 }})?;@
-                Ok(result.expect("successful access must invoke its callback"))
+                Ok(result.unwrap())
             }}
         }}@@
 

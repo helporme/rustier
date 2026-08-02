@@ -19,17 +19,17 @@ struct __tethering__rustdoc_0test_0crate_Test {
 }
 impl __tethering::Accessor<rustdoc_test_crate::Test>
 for __tethering__rustdoc_0test_0crate_Test {
-    fn access(
+    fn access_dyn(
         &self,
         f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
-        self.src.access(f)
+        self.src.access_dyn(f)
     }
-    fn access_mut(
+    fn access_mut_dyn(
         &self,
         f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
-        self.src.access_mut(f)
+        self.src.access_mut_dyn(f)
     }
 }
 impl __tethering__rustdoc_0test_0crate_Test {
@@ -45,95 +45,69 @@ impl __tethering__rustdoc_0test_0crate_Test {
             src: __tethering::SourceSlot::projected(accessor),
         }
     }
-    pub fn get_field(&self) -> __tethering::AccessResult<String> {
-        let mut result = std::mem::MaybeUninit::uninit();
-        self.access(
-            &mut |src| {
-                result
-                    .write(
-                        match src {
-                            rustdoc_test_crate::Test::Plain { field: field, .. } => {
-                                Ok(field)
-                            }
-                            _ => {
-                                Err(
-                                    napi::Error::from_reason(
-                                        "cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain::field`"
-                                            .to_string(),
-                                    ),
-                                )
-                            }
-                        }?
-                            .clone(),
-                    );
-                Ok(())
-            },
-        )?;
-        Ok(unsafe { result.assume_init() })
+    pub fn get___Plain__field(&self) -> __tethering::AccessResult<String> {
+        self.access(|src| Ok(
+            match src {
+                rustdoc_test_crate::Test::Plain { field: field, .. } => Ok(field),
+                _ => {
+                    Err(
+                        napi::Error::from_reason(
+                            "cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain::field`"
+                                .to_string(),
+                        ),
+                    )
+                }
+            }?
+                .clone(),
+        ))
     }
-    pub fn set_field(&self, value: String) -> __tethering::AccessResult<()> {
-        let mut value = Some(value);
-        self.access_mut(
-            &mut |src| {
-                *match src {
-                    rustdoc_test_crate::Test::Plain { field: field, .. } => Ok(field),
-                    _ => {
-                        Err(
-                            napi::Error::from_reason(
-                                "cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain::field`"
-                                    .to_string(),
-                            ),
-                        )
-                    }
-                }? = value.take().unwrap();
-                Ok(())
-            },
-        )?;
-        Ok(())
+    pub fn set___Plain__field(&self, value: String) -> __tethering::AccessResult<()> {
+        self.access_mut(|src| {
+            *match src {
+                rustdoc_test_crate::Test::Plain { field: field, .. } => Ok(field),
+                _ => {
+                    Err(
+                        napi::Error::from_reason(
+                            "cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain::field`"
+                                .to_string(),
+                        ),
+                    )
+                }
+            }? = value;
+            Ok(())
+        })
     }
-    pub fn get_0(&self) -> __tethering::AccessResult<i32> {
-        let mut result = std::mem::MaybeUninit::uninit();
-        self.access(
-            &mut |src| {
-                result
-                    .write(
-                        match src {
-                            rustdoc_test_crate::Test::Tuple(field, ..) => Ok(field),
-                            _ => {
-                                Err(
-                                    napi::Error::from_reason(
-                                        "cannot access inactive enum variant field `rustdoc_test_crate::Test::Tuple::0`"
-                                            .to_string(),
-                                    ),
-                                )
-                            }
-                        }?
-                            .clone(),
-                    );
-                Ok(())
-            },
-        )?;
-        Ok(unsafe { result.assume_init() })
+    pub fn get___Tuple__0(&self) -> __tethering::AccessResult<i32> {
+        self.access(|src| Ok(
+            match src {
+                rustdoc_test_crate::Test::Tuple(field, ..) => Ok(field),
+                _ => {
+                    Err(
+                        napi::Error::from_reason(
+                            "cannot access inactive enum variant field `rustdoc_test_crate::Test::Tuple::0`"
+                                .to_string(),
+                        ),
+                    )
+                }
+            }?
+                .clone(),
+        ))
     }
-    pub fn set_0(&self, value: i32) -> __tethering::AccessResult<()> {
-        let mut value = Some(value);
-        self.access_mut(
-            &mut |src| {
-                *match src {
-                    rustdoc_test_crate::Test::Tuple(field, ..) => Ok(field),
-                    _ => {
-                        Err(
-                            napi::Error::from_reason(
-                                "cannot access inactive enum variant field `rustdoc_test_crate::Test::Tuple::0`"
-                                    .to_string(),
-                            ),
-                        )
-                    }
-                }? = value.take().unwrap();
-                Ok(())
-            },
-        )?;
-        Ok(())
+    pub fn set___Tuple__0(&self, value: i32) -> __tethering::AccessResult<()> {
+        self.access_mut(|src| {
+            *match src {
+                rustdoc_test_crate::Test::Tuple(field, ..) => Ok(field),
+                _ => {
+                    Err(
+                        napi::Error::from_reason(
+                            "cannot access inactive enum variant field `rustdoc_test_crate::Test::Tuple::0`"
+                                .to_string(),
+                        ),
+                    )
+                }
+            }? = value;
+            Ok(())
+        })
     }
 }
 #[napi(js_name = "__ext_rustdoc_0test_0crate_Test")]
@@ -148,23 +122,28 @@ impl __ext_rustdoc_0test_0crate_Test {
             cast
                 .from("SourceType(String)")
                 .to("BoundaryType(String)")
-                .an(self.src.get_field()?),
+                .an(self.src.get___Plain__field()?),
         )
     }
     #[napi(setter, js_name = "__Plain__field")]
     pub fn set___Plain__field(&self, value: Unknown<'_>) -> napi::Result<()> {
         let value = cast.from("BoundaryType(JsAny)").to("SourceType(String)").an(value);
-        self.src.set_field(value)?;
+        self.src.set___Plain__field(value)?;
         Ok(())
     }
     #[napi(getter, js_name = "__Tuple__0")]
     pub fn get___Tuple__0(&self) -> napi::Result<i32> {
-        Ok(cast.from("SourceType(i32)").to("BoundaryType(i32)").an(self.src.get_0()?))
+        Ok(
+            cast
+                .from("SourceType(i32)")
+                .to("BoundaryType(i32)")
+                .an(self.src.get___Tuple__0()?),
+        )
     }
     #[napi(setter, js_name = "__Tuple__0")]
     pub fn set___Tuple__0(&self, value: Unknown<'_>) -> napi::Result<()> {
         let value = cast.from("BoundaryType(JsAny)").to("SourceType(i32)").an(value);
-        self.src.set_0(value)?;
+        self.src.set___Tuple__0(value)?;
         Ok(())
     }
 }
@@ -200,17 +179,17 @@ struct __tethering__rustdoc_0test_0crate_Test {
 }
 impl __tethering::Accessor<rustdoc_test_crate::Test>
 for __tethering__rustdoc_0test_0crate_Test {
-    fn access(
+    fn access_dyn(
         &self,
         f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
-        self.src.access(f)
+        self.src.access_dyn(f)
     }
-    fn access_mut(
+    fn access_mut_dyn(
         &self,
         f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
-        self.src.access_mut(f)
+        self.src.access_mut_dyn(f)
     }
 }
 impl __tethering__rustdoc_0test_0crate_Test {
@@ -226,95 +205,69 @@ impl __tethering__rustdoc_0test_0crate_Test {
             src: __tethering::SourceSlot::projected(accessor),
         }
     }
-    pub fn get_field(&self) -> __tethering::AccessResult<String> {
-        let mut result = std::mem::MaybeUninit::uninit();
-        self.access(
-            &mut |src| {
-                result
-                    .write(
-                        match src {
-                            rustdoc_test_crate::Test::Plain { field: field, .. } => {
-                                Ok(field)
-                            }
-                            _ => {
-                                Err(
-                                    JsValue::from_str(
-                                        &"cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain::field`"
-                                            .to_string(),
-                                    ),
-                                )
-                            }
-                        }?
-                            .clone(),
-                    );
-                Ok(())
-            },
-        )?;
-        Ok(unsafe { result.assume_init() })
+    pub fn get___Plain__field(&self) -> __tethering::AccessResult<String> {
+        self.access(|src| Ok(
+            match src {
+                rustdoc_test_crate::Test::Plain { field: field, .. } => Ok(field),
+                _ => {
+                    Err(
+                        JsValue::from_str(
+                            &"cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain::field`"
+                                .to_string(),
+                        ),
+                    )
+                }
+            }?
+                .clone(),
+        ))
     }
-    pub fn set_field(&self, value: String) -> __tethering::AccessResult<()> {
-        let mut value = Some(value);
-        self.access_mut(
-            &mut |src| {
-                *match src {
-                    rustdoc_test_crate::Test::Plain { field: field, .. } => Ok(field),
-                    _ => {
-                        Err(
-                            JsValue::from_str(
-                                &"cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain::field`"
-                                    .to_string(),
-                            ),
-                        )
-                    }
-                }? = value.take().unwrap();
-                Ok(())
-            },
-        )?;
-        Ok(())
+    pub fn set___Plain__field(&self, value: String) -> __tethering::AccessResult<()> {
+        self.access_mut(|src| {
+            *match src {
+                rustdoc_test_crate::Test::Plain { field: field, .. } => Ok(field),
+                _ => {
+                    Err(
+                        JsValue::from_str(
+                            &"cannot access inactive enum variant field `rustdoc_test_crate::Test::Plain::field`"
+                                .to_string(),
+                        ),
+                    )
+                }
+            }? = value;
+            Ok(())
+        })
     }
-    pub fn get_0(&self) -> __tethering::AccessResult<i32> {
-        let mut result = std::mem::MaybeUninit::uninit();
-        self.access(
-            &mut |src| {
-                result
-                    .write(
-                        match src {
-                            rustdoc_test_crate::Test::Tuple(field, ..) => Ok(field),
-                            _ => {
-                                Err(
-                                    JsValue::from_str(
-                                        &"cannot access inactive enum variant field `rustdoc_test_crate::Test::Tuple::0`"
-                                            .to_string(),
-                                    ),
-                                )
-                            }
-                        }?
-                            .clone(),
-                    );
-                Ok(())
-            },
-        )?;
-        Ok(unsafe { result.assume_init() })
+    pub fn get___Tuple__0(&self) -> __tethering::AccessResult<i32> {
+        self.access(|src| Ok(
+            match src {
+                rustdoc_test_crate::Test::Tuple(field, ..) => Ok(field),
+                _ => {
+                    Err(
+                        JsValue::from_str(
+                            &"cannot access inactive enum variant field `rustdoc_test_crate::Test::Tuple::0`"
+                                .to_string(),
+                        ),
+                    )
+                }
+            }?
+                .clone(),
+        ))
     }
-    pub fn set_0(&self, value: i32) -> __tethering::AccessResult<()> {
-        let mut value = Some(value);
-        self.access_mut(
-            &mut |src| {
-                *match src {
-                    rustdoc_test_crate::Test::Tuple(field, ..) => Ok(field),
-                    _ => {
-                        Err(
-                            JsValue::from_str(
-                                &"cannot access inactive enum variant field `rustdoc_test_crate::Test::Tuple::0`"
-                                    .to_string(),
-                            ),
-                        )
-                    }
-                }? = value.take().unwrap();
-                Ok(())
-            },
-        )?;
-        Ok(())
+    pub fn set___Tuple__0(&self, value: i32) -> __tethering::AccessResult<()> {
+        self.access_mut(|src| {
+            *match src {
+                rustdoc_test_crate::Test::Tuple(field, ..) => Ok(field),
+                _ => {
+                    Err(
+                        JsValue::from_str(
+                            &"cannot access inactive enum variant field `rustdoc_test_crate::Test::Tuple::0`"
+                                .to_string(),
+                        ),
+                    )
+                }
+            }? = value;
+            Ok(())
+        })
     }
 }
 #[wasm_bindgen(js_name = "__ext_rustdoc_0test_0crate_Test")]
@@ -329,23 +282,28 @@ impl __ext_rustdoc_0test_0crate_Test {
             cast
                 .from("SourceType(String)")
                 .to("BoundaryType(String)")
-                .an(self.src.get_field()?),
+                .an(self.src.get___Plain__field()?),
         )
     }
     #[wasm_bindgen(setter, js_name = "__Plain__field")]
     pub fn set___Plain__field(&self, value: JsValue) -> Result<(), JsValue> {
         let value = cast.from("BoundaryType(JsAny)").to("SourceType(String)").an(value);
-        self.src.set_field(value)?;
+        self.src.set___Plain__field(value)?;
         Ok(())
     }
     #[wasm_bindgen(getter, js_name = "__Tuple__0")]
     pub fn get___Tuple__0(&self) -> Result<i32, JsValue> {
-        Ok(cast.from("SourceType(i32)").to("BoundaryType(i32)").an(self.src.get_0()?))
+        Ok(
+            cast
+                .from("SourceType(i32)")
+                .to("BoundaryType(i32)")
+                .an(self.src.get___Tuple__0()?),
+        )
     }
     #[wasm_bindgen(setter, js_name = "__Tuple__0")]
     pub fn set___Tuple__0(&self, value: JsValue) -> Result<(), JsValue> {
         let value = cast.from("BoundaryType(JsAny)").to("SourceType(i32)").an(value);
-        self.src.set_0(value)?;
+        self.src.set___Tuple__0(value)?;
         Ok(())
     }
 }

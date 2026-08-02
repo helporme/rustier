@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 7716255d08f70582d4bcd1c6c73c0e99ca632574ab34abad6b816047113adf51 # shrinks to program = Program { items: [Mod(Module { name: "module_0", items: [Mod(Module { name: "module_0", items: [Mod(Module { name: "module_0", items: [Enum(Enum { name: "Type0", variants: [EnumVariant { name: "Variant0", shape: Tuple([Primitive("bool")]) }] })] })] })] })] }

@@ -16,17 +16,17 @@ struct __tethering__rustdoc_0test_0crate_Test {
 }
 impl __tethering::Accessor<rustdoc_test_crate::Test>
 for __tethering__rustdoc_0test_0crate_Test {
-    fn access(
+    fn access_dyn(
         &self,
         f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
-        self.src.access(f)
+        self.src.access_dyn(f)
     }
-    fn access_mut(
+    fn access_mut_dyn(
         &self,
         f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
-        self.src.access_mut(f)
+        self.src.access_mut_dyn(f)
     }
 }
 impl __tethering__rustdoc_0test_0crate_Test {
@@ -58,17 +58,17 @@ struct __tethering__rustdoc_0test_0crate_Test {
 }
 impl __tethering::Accessor<rustdoc_test_crate::Test>
 for __tethering__rustdoc_0test_0crate_Test {
-    fn access(
+    fn access_dyn(
         &self,
         f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
-        self.src.access(f)
+        self.src.access_dyn(f)
     }
-    fn access_mut(
+    fn access_mut_dyn(
         &self,
         f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
-        self.src.access_mut(f)
+        self.src.access_mut_dyn(f)
     }
 }
 impl __tethering__rustdoc_0test_0crate_Test {

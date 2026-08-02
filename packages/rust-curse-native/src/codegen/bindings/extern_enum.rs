@@ -56,7 +56,6 @@ where
 
             ExternClassField {
                 extern_name: field.extern_name(db, variant),
-                source_name: field.name(db),
                 type_: field.type_(db),
                 is_readonly: field.is_readonly(db),
                 get_ref_expr: get_expr,
@@ -64,9 +63,6 @@ where
             }
         })
     });
-
-    // todo:
-    //  3. type
 
     let extern_class = ExternClass {
         source_item_id: enum_.into_item_id(db),

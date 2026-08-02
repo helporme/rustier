@@ -307,7 +307,7 @@ where
                         out_var_name: "__cast_expr_result",
                     },
                 )}@
-                __cast_expr_result.expect("successful indirect cast must produce a result")
+                __cast_expr_result.unwrap()
             }})
             .apply(printer);
         } else {
@@ -459,7 +459,7 @@ where
                     cast,
                     frag!(__cast_expr_result = Some({remaining});),
                 )}@
-                __cast_expr_result.expect("successful indirect cast must produce a result")
+                __cast_expr_result.unwrap()
             }})
             .apply(printer);
         } else {
