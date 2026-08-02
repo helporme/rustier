@@ -5,11 +5,7 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
-    ir::{
-        fn_::{Fn, FnId, FnParam, PassingMode},
-        item::{ItemId, ItemIdExt as _, ItemKind, ItemPath},
-        type_::Type,
-    },
+    ir::{Fn, FnId, FnParam, ItemId, ItemIdExt as _, ItemKind, ItemPath, PassingMode, Type},
     rustdoc::{
         CrateExt, ItemIdExt as _, RustdocId,
         enum_::is_enum_clonable,
@@ -101,14 +97,35 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
                     });
                     continue;
                 }
-                Type::Primitive(_) | Type::Str | Type::String | Type::Struct(_) | Type::Enum(_) => {
-                }
+                Type::bool
+                | Type::char
+                | Type::i8
+                | Type::u8
+                | Type::i16
+                | Type::u16
+                | Type::i32
+                | Type::u32
+                | Type::f32
+                | Type::f64
+                | Type::Str
+                | Type::String
+                | Type::Struct(_)
+                | Type::Enum(_) => {}
             }
         }
 
         if mode == PassingMode::Mut {
             match type_ {
-                Type::Primitive(_) => {
+                Type::bool
+                | Type::char
+                | Type::i8
+                | Type::u8
+                | Type::i16
+                | Type::u16
+                | Type::i32
+                | Type::u32
+                | Type::f32
+                | Type::f64 => {
                     let crate_ = id.crate_(db);
                     let source_code = item
                         .span

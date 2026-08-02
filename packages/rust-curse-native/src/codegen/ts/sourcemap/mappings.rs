@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::codegen::ir::span::Span;
+use crate::codegen::ir::Span;
 
 /// A single source map mapping before source and name indexes are assigned.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]

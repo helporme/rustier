@@ -7,7 +7,7 @@ pub mod check;
 pub mod db;
 pub mod diag;
 pub mod fragment;
-pub mod ir;
+mod ir;
 pub mod js;
 mod mangle;
 pub mod rustdoc;

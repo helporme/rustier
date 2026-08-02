@@ -3,14 +3,8 @@ use rustdoc_types::{ItemEnum, ItemKind as RItemKind};
 use crate::codegen::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::item::{Item as IrItem, ItemId, ItemKind, ItemPath},
-    ir::{
-        c_like_enum::CLikeEnum,
-        enum_::Enum,
-        fn_::Fn,
-        mod_::{Mod, ModId},
-        struct_::Struct,
-    },
+    ir::{CLikeEnum, Enum, Fn, Mod, ModId, Struct},
+    ir::{Item as IrItem, ItemId, ItemKind, ItemPath},
     rustdoc::{
         RustdocCrates, RustdocId,
         enum_::{LoweredEnum, lower_enum},
@@ -258,7 +252,7 @@ mod tests {
     use super::*;
     use crate::codegen::{
         diag::Diag,
-        ir::item::ItemIdExt as _,
+        ir::ItemIdExt as _,
         test::{TEST_CRATE_NAME, test_db},
     };
 

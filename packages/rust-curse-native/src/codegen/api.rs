@@ -5,7 +5,7 @@ use salsa::Setter;
 use crate::codegen::{
     db::Db,
     fragment::{FragmentOnce, doubles, frag, fragment, singles},
-    ir::{fn_::Fn, item::ItemIdExt, struct_::Struct},
+    ir::{Fn, ItemIdExt, Struct},
 };
 
 /// Active binding API used for generated Rust and JavaScript glue code.

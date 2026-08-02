@@ -7,7 +7,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{Fragment, FragmentOnce, doubles, fragment},
-        ir::{item::ItemIdExt as _, mod_::ModId, type_::Type},
+        ir::{ItemIdExt as _, ModId, Type},
         js::{
             enum_::compile_enum_facade_from_binding_expr_required_imports, imports::Import,
             struct_::compile_struct_facade_from_binding_expr_required_imports,
@@ -27,7 +27,18 @@ pub fn compile_js_facade_value_validation_stmt<'db>(
         let type_name = match facade_value_type {
             Type::Struct(struct_id) => struct_id.name(db),
             Type::Enum(enum_id) => enum_id.name(db),
-            Type::Primitive(_) | Type::Str | Type::String => return,
+            Type::bool
+            | Type::char
+            | Type::i8
+            | Type::u8
+            | Type::i16
+            | Type::u16
+            | Type::i32
+            | Type::u32
+            | Type::f32
+            | Type::f64
+            | Type::Str
+            | Type::String => return,
         };
         let message_start = doubles((
             r#"Expected a value of type \""#,
@@ -70,6 +81,17 @@ pub fn compile_js_facade_value_validation_stmt_required_imports<'db>(
                 imports,
             );
         }
-        Type::Primitive(_) | Type::Str | Type::String => {}
+        Type::bool
+        | Type::char
+        | Type::i8
+        | Type::u8
+        | Type::i16
+        | Type::u16
+        | Type::i32
+        | Type::u32
+        | Type::f32
+        | Type::f64
+        | Type::Str
+        | Type::String => {}
     }
 }

@@ -5,7 +5,7 @@ use std::{fmt, panic::RefUnwindSafe, sync::Arc};
 use miette::{Diagnostic, GraphicalReportHandler, GraphicalTheme, NamedSource};
 use salsa::Accumulator;
 
-use crate::codegen::{db::Db, ir::span::Span};
+use crate::codegen::{db::Db, ir::Span};
 
 /// Source code materialized from a lazily loaded source file for Miette.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, salsa::Update)]

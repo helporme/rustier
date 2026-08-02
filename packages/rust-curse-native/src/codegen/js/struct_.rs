@@ -4,13 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, doubles, fragment, spaced},
-        ir::{
-            item::ItemIdExt as _,
-            mod_::ModId,
-            shape::Shape,
-            struct_::{Struct, StructId},
-            type_::Type,
-        },
+        ir::{ItemIdExt as _, ModId, Shape, Struct, StructId, Type},
         js::{
             boundary::{
                 compile_js_binding_value_to_facade_stmt,
@@ -47,7 +41,18 @@ pub fn compile_facade_class_for_struct<'a>(
             .copied()
             .filter(|field| match field.type_(db) {
                 Type::Struct(_) | Type::Enum(_) => true,
-                Type::Primitive(_) | Type::Str | Type::String => false,
+                Type::bool
+                | Type::char
+                | Type::i8
+                | Type::u8
+                | Type::i16
+                | Type::u16
+                | Type::i32
+                | Type::u32
+                | Type::f32
+                | Type::f64
+                | Type::Str
+                | Type::String => false,
             })
         {
             frag!(#_{field.name(db)};@).apply(p);
@@ -74,7 +79,18 @@ pub fn compile_facade_class_for_struct<'a>(
                     )
                     .apply(p);
                 }
-                Type::Primitive(_) | Type::Str | Type::String => {
+                Type::bool
+                | Type::char
+                | Type::i8
+                | Type::u8
+                | Type::i16
+                | Type::u16
+                | Type::i32
+                | Type::u32
+                | Type::f32
+                | Type::f64
+                | Type::Str
+                | Type::String => {
                     frag!(
                         get ~[{field_name.clone()}]() {{
                             let value;@
@@ -115,7 +131,18 @@ pub fn compile_facade_class_for_struct<'a>(
                     )
                     .apply(p);
                 }
-                Type::Primitive(_) | Type::Str | Type::String => {
+                Type::bool
+                | Type::char
+                | Type::i8
+                | Type::u8
+                | Type::i16
+                | Type::u16
+                | Type::i32
+                | Type::u32
+                | Type::f32
+                | Type::f64
+                | Type::Str
+                | Type::String => {
                     frag!(@@
                         set ~[{field_name}](value) {{
                             {compile_js_facade_value_to_binding_stmt(
@@ -138,7 +165,18 @@ pub fn compile_facade_class_for_struct<'a>(
             .iter()
             .filter(|field| match field.type_(db) {
                 Type::Struct(_) | Type::Enum(_) => true,
-                Type::Primitive(_) | Type::Str | Type::String => false,
+                Type::bool
+                | Type::char
+                | Type::i8
+                | Type::u8
+                | Type::i16
+                | Type::u16
+                | Type::i32
+                | Type::u32
+                | Type::f32
+                | Type::f64
+                | Type::Str
+                | Type::String => false,
             })
         {
             let field_name = fragment(|p| match shape {

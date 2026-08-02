@@ -716,7 +716,7 @@ mod tests {
         codegen::{
             bindings::bir::SourceType,
             fragment::FragmentOnce as _,
-            ir::type_::{IrPrimitive as Primitive, ItemIdExt as _, Type},
+            ir::{IntoIrTypeExt as _, Type},
         },
         frag,
     };
@@ -773,242 +773,242 @@ mod tests {
 
     cast_snapshot! {
         name: bool_in,
-        from: |_db| Type::Primitive(Primitive::Boolean).extern_in(),
-        to: |_db| Type::Primitive(Primitive::Boolean).source_type_owned(),
+        from: |_db| Type::bool.extern_in(),
+        to: |_db| Type::bool.source_type_owned(),
     }
 
     cast_snapshot! {
         name: bool_ref_in,
-        from: |_db| Type::Primitive(Primitive::Boolean).extern_in(),
-        to: |_db| Type::Primitive(Primitive::Boolean).source_type_owned().into_ref(),
+        from: |_db| Type::bool.extern_in(),
+        to: |_db| Type::bool.source_type_owned().into_ref(),
     }
 
     cast_snapshot! {
         name: bool_mut_in,
-        from: |_db| Type::Primitive(Primitive::Boolean).extern_in(),
-        to: |_db| Type::Primitive(Primitive::Boolean).source_type_owned().into_mut(),
+        from: |_db| Type::bool.extern_in(),
+        to: |_db| Type::bool.source_type_owned().into_mut(),
     }
 
     cast_snapshot! {
         name: bool_out,
-        from: |_db| Type::Primitive(Primitive::Boolean).source_type_owned(),
-        to: |_db| Type::Primitive(Primitive::Boolean).extern_out(),
+        from: |_db| Type::bool.source_type_owned(),
+        to: |_db| Type::bool.extern_out(),
     }
 
     cast_snapshot! {
         name: char_in,
-        from: |_db| Type::Primitive(Primitive::Char).extern_in(),
-        to: |_db| Type::Primitive(Primitive::Char).source_type_owned(),
+        from: |_db| Type::char.extern_in(),
+        to: |_db| Type::char.source_type_owned(),
     }
 
     cast_snapshot! {
         name: char_ref_in,
-        from: |_db| Type::Primitive(Primitive::Char).extern_in(),
-        to: |_db| Type::Primitive(Primitive::Char).source_type_owned().into_ref(),
+        from: |_db| Type::char.extern_in(),
+        to: |_db| Type::char.source_type_owned().into_ref(),
     }
 
     cast_snapshot! {
         name: char_mut_in,
-        from: |_db| Type::Primitive(Primitive::Char).extern_in(),
-        to: |_db| Type::Primitive(Primitive::Char).source_type_owned().into_mut(),
+        from: |_db| Type::char.extern_in(),
+        to: |_db| Type::char.source_type_owned().into_mut(),
     }
 
     cast_snapshot! {
         name: char_out,
-        from: |_db| Type::Primitive(Primitive::Char).source_type_owned(),
-        to: |_db| Type::Primitive(Primitive::Char).extern_out(),
+        from: |_db| Type::char.source_type_owned(),
+        to: |_db| Type::char.extern_out(),
     }
 
     cast_snapshot! {
         name: i8_in,
-        from: |_db| Type::Primitive(Primitive::i8).extern_in(),
-        to: |_db| Type::Primitive(Primitive::i8).source_type_owned(),
+        from: |_db| Type::i8.extern_in(),
+        to: |_db| Type::i8.source_type_owned(),
     }
 
     cast_snapshot! {
         name: i8_ref_in,
-        from: |_db| Type::Primitive(Primitive::i8).extern_in(),
-        to: |_db| Type::Primitive(Primitive::i8).source_type_owned().into_ref(),
+        from: |_db| Type::i8.extern_in(),
+        to: |_db| Type::i8.source_type_owned().into_ref(),
     }
 
     cast_snapshot! {
         name: i8_mut_in,
-        from: |_db| Type::Primitive(Primitive::i8).extern_in(),
-        to: |_db| Type::Primitive(Primitive::i8).source_type_owned().into_mut(),
+        from: |_db| Type::i8.extern_in(),
+        to: |_db| Type::i8.source_type_owned().into_mut(),
     }
 
     cast_snapshot! {
         name: i8_out,
-        from: |_db| Type::Primitive(Primitive::i8).source_type_owned(),
-        to: |_db| Type::Primitive(Primitive::i8).extern_out(),
+        from: |_db| Type::i8.source_type_owned(),
+        to: |_db| Type::i8.extern_out(),
     }
 
     cast_snapshot! {
         name: u8_in,
-        from: |_db| Type::Primitive(Primitive::u8).extern_in(),
-        to: |_db| Type::Primitive(Primitive::u8).source_type_owned(),
+        from: |_db| Type::u8.extern_in(),
+        to: |_db| Type::u8.source_type_owned(),
     }
 
     cast_snapshot! {
         name: u8_ref_in,
-        from: |_db| Type::Primitive(Primitive::u8).extern_in(),
-        to: |_db| Type::Primitive(Primitive::u8).source_type_owned().into_ref(),
+        from: |_db| Type::u8.extern_in(),
+        to: |_db| Type::u8.source_type_owned().into_ref(),
     }
 
     cast_snapshot! {
         name: u8_mut_in,
-        from: |_db| Type::Primitive(Primitive::u8).extern_in(),
-        to: |_db| Type::Primitive(Primitive::u8).source_type_owned().into_mut(),
+        from: |_db| Type::u8.extern_in(),
+        to: |_db| Type::u8.source_type_owned().into_mut(),
     }
 
     cast_snapshot! {
         name: u8_out,
-        from: |_db| Type::Primitive(Primitive::u8).source_type_owned(),
-        to: |_db| Type::Primitive(Primitive::u8).extern_out(),
+        from: |_db| Type::u8.source_type_owned(),
+        to: |_db| Type::u8.extern_out(),
     }
 
     cast_snapshot! {
         name: i16_in,
-        from: |_db| Type::Primitive(Primitive::i16).extern_in(),
-        to: |_db| Type::Primitive(Primitive::i16).source_type_owned(),
+        from: |_db| Type::i16.extern_in(),
+        to: |_db| Type::i16.source_type_owned(),
     }
 
     cast_snapshot! {
         name: i16_ref_in,
-        from: |_db| Type::Primitive(Primitive::i16).extern_in(),
-        to: |_db| Type::Primitive(Primitive::i16).source_type_owned().into_ref(),
+        from: |_db| Type::i16.extern_in(),
+        to: |_db| Type::i16.source_type_owned().into_ref(),
     }
 
     cast_snapshot! {
         name: i16_mut_in,
-        from: |_db| Type::Primitive(Primitive::i16).extern_in(),
-        to: |_db| Type::Primitive(Primitive::i16).source_type_owned().into_mut(),
+        from: |_db| Type::i16.extern_in(),
+        to: |_db| Type::i16.source_type_owned().into_mut(),
     }
 
     cast_snapshot! {
         name: i16_out,
-        from: |_db| Type::Primitive(Primitive::i16).source_type_owned(),
-        to: |_db| Type::Primitive(Primitive::i16).extern_out(),
+        from: |_db| Type::i16.source_type_owned(),
+        to: |_db| Type::i16.extern_out(),
     }
 
     cast_snapshot! {
         name: u16_in,
-        from: |_db| Type::Primitive(Primitive::u16).extern_in(),
-        to: |_db| Type::Primitive(Primitive::u16).source_type_owned(),
+        from: |_db| Type::u16.extern_in(),
+        to: |_db| Type::u16.source_type_owned(),
     }
 
     cast_snapshot! {
         name: u16_ref_in,
-        from: |_db| Type::Primitive(Primitive::u16).extern_in(),
-        to: |_db| Type::Primitive(Primitive::u16).source_type_owned().into_ref(),
+        from: |_db| Type::u16.extern_in(),
+        to: |_db| Type::u16.source_type_owned().into_ref(),
     }
 
     cast_snapshot! {
         name: u16_mut_in,
-        from: |_db| Type::Primitive(Primitive::u16).extern_in(),
-        to: |_db| Type::Primitive(Primitive::u16).source_type_owned().into_mut(),
+        from: |_db| Type::u16.extern_in(),
+        to: |_db| Type::u16.source_type_owned().into_mut(),
     }
 
     cast_snapshot! {
         name: u16_out,
-        from: |_db| Type::Primitive(Primitive::u16).source_type_owned(),
-        to: |_db| Type::Primitive(Primitive::u16).extern_out(),
+        from: |_db| Type::u16.source_type_owned(),
+        to: |_db| Type::u16.extern_out(),
     }
 
     cast_snapshot! {
         name: i32_in,
-        from: |_db| Type::Primitive(Primitive::i32).extern_in(),
-        to: |_db| Type::Primitive(Primitive::i32).source_type_owned(),
+        from: |_db| Type::i32.extern_in(),
+        to: |_db| Type::i32.source_type_owned(),
     }
 
     cast_snapshot! {
         name: i32_ref_in,
-        from: |_db| Type::Primitive(Primitive::i32).extern_in(),
-        to: |_db| Type::Primitive(Primitive::i32).source_type_owned().into_ref(),
+        from: |_db| Type::i32.extern_in(),
+        to: |_db| Type::i32.source_type_owned().into_ref(),
     }
 
     cast_snapshot! {
         name: i32_mut_in,
-        from: |_db| Type::Primitive(Primitive::i32).extern_in(),
-        to: |_db| Type::Primitive(Primitive::i32).source_type_owned().into_mut(),
+        from: |_db| Type::i32.extern_in(),
+        to: |_db| Type::i32.source_type_owned().into_mut(),
     }
 
     cast_snapshot! {
         name: i32_out,
-        from: |_db| Type::Primitive(Primitive::i32).source_type_owned(),
-        to: |_db| Type::Primitive(Primitive::i32).extern_out(),
+        from: |_db| Type::i32.source_type_owned(),
+        to: |_db| Type::i32.extern_out(),
     }
 
     cast_snapshot! {
         name: u32_in,
-        from: |_db| Type::Primitive(Primitive::u32).extern_in(),
-        to: |_db| Type::Primitive(Primitive::u32).source_type_owned(),
+        from: |_db| Type::u32.extern_in(),
+        to: |_db| Type::u32.source_type_owned(),
     }
 
     cast_snapshot! {
         name: u32_ref_in,
-        from: |_db| Type::Primitive(Primitive::u32).extern_in(),
-        to: |_db| Type::Primitive(Primitive::u32).source_type_owned().into_ref(),
+        from: |_db| Type::u32.extern_in(),
+        to: |_db| Type::u32.source_type_owned().into_ref(),
     }
 
     cast_snapshot! {
         name: u32_mut_in,
-        from: |_db| Type::Primitive(Primitive::u32).extern_in(),
-        to: |_db| Type::Primitive(Primitive::u32).source_type_owned().into_mut(),
+        from: |_db| Type::u32.extern_in(),
+        to: |_db| Type::u32.source_type_owned().into_mut(),
     }
 
     cast_snapshot! {
         name: u32_out,
-        from: |_db| Type::Primitive(Primitive::u32).source_type_owned(),
-        to: |_db| Type::Primitive(Primitive::u32).extern_out(),
+        from: |_db| Type::u32.source_type_owned(),
+        to: |_db| Type::u32.extern_out(),
     }
 
     cast_snapshot! {
         name: f32_in,
-        from: |_db| Type::Primitive(Primitive::f32).extern_in(),
-        to: |_db| Type::Primitive(Primitive::f32).source_type_owned(),
+        from: |_db| Type::f32.extern_in(),
+        to: |_db| Type::f32.source_type_owned(),
     }
 
     cast_snapshot! {
         name: f32_ref_in,
-        from: |_db| Type::Primitive(Primitive::f32).extern_in(),
-        to: |_db| Type::Primitive(Primitive::f32).source_type_owned().into_ref(),
+        from: |_db| Type::f32.extern_in(),
+        to: |_db| Type::f32.source_type_owned().into_ref(),
     }
 
     cast_snapshot! {
         name: f32_mut_in,
-        from: |_db| Type::Primitive(Primitive::f32).extern_in(),
-        to: |_db| Type::Primitive(Primitive::f32).source_type_owned().into_mut(),
+        from: |_db| Type::f32.extern_in(),
+        to: |_db| Type::f32.source_type_owned().into_mut(),
     }
 
     cast_snapshot! {
         name: f32_out,
-        from: |_db| Type::Primitive(Primitive::f32).source_type_owned(),
-        to: |_db| Type::Primitive(Primitive::f32).extern_out(),
+        from: |_db| Type::f32.source_type_owned(),
+        to: |_db| Type::f32.extern_out(),
     }
 
     cast_snapshot! {
         name: f64_in,
-        from: |_db| Type::Primitive(Primitive::f64).extern_in(),
-        to: |_db| Type::Primitive(Primitive::f64).source_type_owned(),
+        from: |_db| Type::f64.extern_in(),
+        to: |_db| Type::f64.source_type_owned(),
     }
 
     cast_snapshot! {
         name: f64_ref_in,
-        from: |_db| Type::Primitive(Primitive::f64).extern_in(),
-        to: |_db| Type::Primitive(Primitive::f64).source_type_owned().into_ref(),
+        from: |_db| Type::f64.extern_in(),
+        to: |_db| Type::f64.source_type_owned().into_ref(),
     }
 
     cast_snapshot! {
         name: f64_mut_in,
-        from: |_db| Type::Primitive(Primitive::f64).extern_in(),
-        to: |_db| Type::Primitive(Primitive::f64).source_type_owned().into_mut(),
+        from: |_db| Type::f64.extern_in(),
+        to: |_db| Type::f64.source_type_owned().into_mut(),
     }
 
     cast_snapshot! {
         name: f64_out,
-        from: |_db| Type::Primitive(Primitive::f64).source_type_owned(),
-        to: |_db| Type::Primitive(Primitive::f64).extern_out(),
+        from: |_db| Type::f64.source_type_owned(),
+        to: |_db| Type::f64.extern_out(),
     }
 
     cast_snapshot! {

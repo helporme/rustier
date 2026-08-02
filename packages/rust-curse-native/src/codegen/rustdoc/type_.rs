@@ -4,12 +4,8 @@ use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
-    ir::item::{ItemId, ItemKind, ItemPath},
-    ir::{
-        enum_::EnumId,
-        struct_::StructId,
-        type_::{IrPrimitive, Type as IrType},
-    },
+    ir::{EnumId, StructId, Type as IrType},
+    ir::{ItemId, ItemKind, ItemPath},
     rustdoc::{CrateExt, RustdocType},
 };
 
@@ -108,17 +104,17 @@ pub fn lower_type<'db>(
 
 fn lower_primitive<'db>(name: &str) -> Option<IrType<'db>> {
     let type_ = match name {
-        "bool" => IrType::Primitive(IrPrimitive::Boolean),
-        "char" => IrType::Primitive(IrPrimitive::Char),
+        "bool" => IrType::bool,
+        "char" => IrType::char,
         "str" => IrType::Str,
-        "i8" => IrType::Primitive(IrPrimitive::i8),
-        "i16" => IrType::Primitive(IrPrimitive::i16),
-        "i32" => IrType::Primitive(IrPrimitive::i32),
-        "u8" => IrType::Primitive(IrPrimitive::u8),
-        "u16" => IrType::Primitive(IrPrimitive::u16),
-        "u32" => IrType::Primitive(IrPrimitive::u32),
-        "f32" => IrType::Primitive(IrPrimitive::f32),
-        "f64" => IrType::Primitive(IrPrimitive::f64),
+        "i8" => IrType::i8,
+        "i16" => IrType::i16,
+        "i32" => IrType::i32,
+        "u8" => IrType::u8,
+        "u16" => IrType::u16,
+        "u32" => IrType::u32,
+        "f32" => IrType::f32,
+        "f64" => IrType::f64,
         _ => return None,
     };
 

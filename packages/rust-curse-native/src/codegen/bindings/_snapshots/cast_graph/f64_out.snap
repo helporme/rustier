@@ -17,7 +17,7 @@ pub enum ExampleEnum {
 ## Node
 ```rust
 fn cast(input: ()) {
-    let output = ((input) as f32) as f64;
+    let output = input;
     consume(output);
 }
 ```
@@ -25,7 +25,7 @@ fn cast(input: ()) {
 ## Wasm
 ```rust
 fn cast(input: ()) {
-    let output = ((input) as f32) as f64;
+    let output = input;
     consume(output);
 }
 ```

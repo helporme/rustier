@@ -7,7 +7,7 @@ use crate::{
         },
         db::Db,
         fragment::{FragmentOnce, comma_list, fragment},
-        ir::{fn_::PassingMode, type_::Type},
+        ir::{PassingMode, Type},
     },
     frag,
 };
@@ -171,10 +171,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        assert_rust_snap,
-        codegen::{bindings::cast_graph::test::TestCastCompiler, ir::type_::IrPrimitive},
-    };
+    use crate::{assert_rust_snap, codegen::bindings::cast_graph::test::TestCastCompiler};
 
     #[test]
     fn zero_args_without_return() {
@@ -203,7 +200,7 @@ mod tests {
                 let fn_ = ExternFn {
                     name: "test_fn",
                     params,
-                    return_type: Some(Type::Primitive(IrPrimitive::f64)),
+                    return_type: Some(Type::f64),
                     source_expr: "source()",
                 };
 
@@ -219,7 +216,7 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg",
-                    type_: Type::Primitive(IrPrimitive::f64),
+                    type_: Type::f64,
                     mode: PassingMode::Move,
                     is_self: false,
                 }];
@@ -243,7 +240,7 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg",
-                    type_: Type::Primitive(IrPrimitive::f64),
+                    type_: Type::f64,
                     mode: PassingMode::Move,
                     is_self: false,
                 }];
@@ -251,7 +248,7 @@ mod tests {
                 let fn_ = ExternFn {
                     name: "test_fn",
                     params,
-                    return_type: Some(Type::Primitive(IrPrimitive::f64)),
+                    return_type: Some(Type::f64),
                     source_expr: "source(arg)",
                 };
 
@@ -267,12 +264,12 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg1",
-                    type_: Type::Primitive(IrPrimitive::f64),
+                    type_: Type::f64,
                     mode: PassingMode::Move,
                     is_self: false,
                 }, ExternFnParam {
                     name: "arg2",
-                    type_: Type::Primitive(IrPrimitive::f64),
+                    type_: Type::f64,
                     mode: PassingMode::Ref,
                     is_self: false,
                 }];
@@ -296,12 +293,12 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg1",
-                    type_: Type::Primitive(IrPrimitive::f64),
+                    type_: Type::f64,
                     mode: PassingMode::Move,
                     is_self: false,
                 }, ExternFnParam {
                     name: "arg2",
-                    type_: Type::Primitive(IrPrimitive::f64),
+                    type_: Type::f64,
                     mode: PassingMode::Ref,
                     is_self: false,
                 }];
@@ -309,7 +306,7 @@ mod tests {
                 let fn_ = ExternFn {
                     name: "test_fn",
                     params,
-                    return_type: Some(Type::Primitive(IrPrimitive::f64)),
+                    return_type: Some(Type::f64),
                     source_expr: "source(arg1, arg2)",
                 };
 
@@ -325,7 +322,7 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg",
-                    type_: Type::Primitive(IrPrimitive::f64),
+                    type_: Type::f64,
                     mode: PassingMode::Move,
                     is_self: true,
                 }];
@@ -349,7 +346,7 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg",
-                    type_: Type::Primitive(IrPrimitive::f64),
+                    type_: Type::f64,
                     mode: PassingMode::Ref,
                     is_self: true,
                 }];
@@ -373,7 +370,7 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg",
-                    type_: Type::Primitive(IrPrimitive::f64),
+                    type_: Type::f64,
                     mode: PassingMode::Mut,
                     is_self: true,
                 }];
@@ -397,12 +394,12 @@ mod tests {
             expression: |db, p| {
                 let params = [ExternFnParam {
                     name: "arg",
-                    type_: Type::Primitive(IrPrimitive::f64),
+                    type_: Type::f64,
                     mode: PassingMode::Move,
                     is_self: true,
                 }, ExternFnParam {
                     name: "arg2",
-                    type_: Type::Primitive(IrPrimitive::f64),
+                    type_: Type::f64,
                     mode: PassingMode::Ref,
                     is_self: false,
                 }];

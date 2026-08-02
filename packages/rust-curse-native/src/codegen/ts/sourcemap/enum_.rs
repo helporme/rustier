@@ -2,7 +2,7 @@
 
 use crate::codegen::{
     db::Db,
-    ir::{enum_::Enum, item::ItemIdExt, shape::Shape},
+    ir::{Enum, ItemIdExt, Shape},
     ts::{
         enum_::compile_enum,
         sourcemap::{

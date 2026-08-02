@@ -4,7 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, fragment},
-        ir::{mod_::ModId, type_::Type},
+        ir::{ModId, Type},
         js::{
             enum_::{
                 compile_binding_enum_from_facade_expr, compile_enum_facade_from_binding_expr,
@@ -44,7 +44,18 @@ pub fn compile_js_binding_value_to_facade_stmt<'db>(
         Type::Enum(enum_id) => {
             compile_enum_facade_from_binding_expr(db, enum_id, binding_value_expr).apply(p);
         }
-        Type::Primitive(_) | Type::Str | Type::String => binding_value_expr.apply(p),
+        Type::bool
+        | Type::char
+        | Type::i8
+        | Type::u8
+        | Type::i16
+        | Type::u16
+        | Type::i32
+        | Type::u32
+        | Type::f32
+        | Type::f64
+        | Type::Str
+        | Type::String => binding_value_expr.apply(p),
     });
 
     frag!({out_var_name}~ = ~{facade_value_expr};)
@@ -74,7 +85,18 @@ pub fn compile_js_binding_value_to_facade_stmt_required_imports<'db>(
                 imports,
             );
         }
-        Type::Primitive(_) | Type::Str | Type::String => {}
+        Type::bool
+        | Type::char
+        | Type::i8
+        | Type::u8
+        | Type::i16
+        | Type::u16
+        | Type::i32
+        | Type::u32
+        | Type::f32
+        | Type::f64
+        | Type::Str
+        | Type::String => {}
     }
 }
 
@@ -102,7 +124,18 @@ pub fn compile_js_facade_value_to_binding_stmt<'db>(
                 Type::Enum(_) => {
                     compile_binding_enum_from_facade_expr(FACADE_VALUE).apply(p);
                 }
-                Type::Primitive(_) | Type::Str | Type::String => unreachable!(),
+                Type::bool
+                | Type::char
+                | Type::i8
+                | Type::u8
+                | Type::i16
+                | Type::u16
+                | Type::i32
+                | Type::u32
+                | Type::f32
+                | Type::f64
+                | Type::Str
+                | Type::String => unreachable!(),
             });
 
             frag!(
@@ -114,7 +147,18 @@ pub fn compile_js_facade_value_to_binding_stmt<'db>(
             )
             .apply(p);
         }
-        Type::Primitive(_) | Type::Str | Type::String => {
+        Type::bool
+        | Type::char
+        | Type::i8
+        | Type::u8
+        | Type::i16
+        | Type::u16
+        | Type::i32
+        | Type::u32
+        | Type::f32
+        | Type::f64
+        | Type::Str
+        | Type::String => {
             frag!({out_var_name}~ = ~{facade_value_expr};).apply(p);
         }
     })

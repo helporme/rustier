@@ -17,13 +17,7 @@ pub enum ExampleEnum {
 ## Node
 ```rust
 fn cast(input: ()) {
-    let output = ({
-        let value = input;
-        char::from_u32(value)
-            .ok_or_else(|| napi::Error::from_reason(
-                format!("cannot cast {value} to char"),
-            ))?
-    }) as u32;
+    let output = input;
     consume(output);
 }
 ```
@@ -31,11 +25,7 @@ fn cast(input: ()) {
 ## Wasm
 ```rust
 fn cast(input: ()) {
-    let output = ({
-        let value = input;
-        char::from_u32(value)
-            .ok_or_else(|| JsValue::from_str(&format!("cannot cast {value} to char")))?
-    }) as u32;
+    let output = input;
     consume(output);
 }
 ```

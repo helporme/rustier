@@ -14,11 +14,8 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment},
         ir::{
-            enum_::{Enum, EnumVariant},
-            fn_::PassingMode,
-            item::{IntoItemId as _, ItemIdExt as _},
-            shape::{Shape, ShapeField},
-            type_::{IrPrimitive, Type},
+            Enum, EnumVariant, IntoItemId as _, ItemIdExt as _, PassingMode, Shape, ShapeField,
+            Type,
         },
     },
     frag,
@@ -189,7 +186,7 @@ fn compile_type_method<'db>(
             mode: PassingMode::Ref,
             is_self: true,
         }],
-        return_type: Some(Type::Primitive(IrPrimitive::u32)),
+        return_type: Some(Type::u32),
         source_expr: expr,
     }
 }

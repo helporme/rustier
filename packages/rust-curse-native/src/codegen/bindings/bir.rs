@@ -6,10 +6,7 @@ use crate::{
         api::Api,
         db::Db,
         fragment::{FragmentOnce, fragment},
-        ir::{
-            item::ItemId,
-            type_::{IrPrimitive, Type},
-        },
+        ir::{ItemId, Type},
     },
     frag,
 };
@@ -179,7 +176,18 @@ impl<'db> Type<'db> {
     /// type.
     pub(super) fn extern_in(self) -> ExternType<'db> {
         match self {
-            Type::Primitive(_) | Type::String | Type::Str => ExternType::JsAny,
+            Type::bool
+            | Type::char
+            | Type::i8
+            | Type::u8
+            | Type::i16
+            | Type::u16
+            | Type::i32
+            | Type::u32
+            | Type::f32
+            | Type::f64
+            | Type::String
+            | Type::Str => ExternType::JsAny,
             Type::Struct(id) => ExternType::Ref(Box::new(ExternType::Item { target: id.into() })),
             Type::Enum(id) => ExternType::Ref(Box::new(ExternType::Item { target: id.into() })),
         }
@@ -188,18 +196,14 @@ impl<'db> Type<'db> {
     /// Returns the external type used to return this type to JavaScript.
     pub(super) fn extern_out(self) -> ExternType<'db> {
         match self {
-            Type::Primitive(IrPrimitive::Boolean) => ExternType::bool,
-            Type::Primitive(IrPrimitive::i8) => ExternType::i8,
-            Type::Primitive(IrPrimitive::u8) => ExternType::u8,
-            Type::Primitive(IrPrimitive::i16) => ExternType::i16,
-            Type::Primitive(IrPrimitive::u16) => ExternType::u16,
-            Type::Primitive(IrPrimitive::i32) => ExternType::i32,
-            Type::Primitive(IrPrimitive::u32) | Type::Primitive(IrPrimitive::Char) => {
-                ExternType::u32
-            }
-            Type::Primitive(IrPrimitive::f64) | Type::Primitive(IrPrimitive::f32) => {
-                ExternType::f64
-            }
+            Type::bool => ExternType::bool,
+            Type::i8 => ExternType::i8,
+            Type::u8 => ExternType::u8,
+            Type::i16 => ExternType::i16,
+            Type::u16 => ExternType::u16,
+            Type::i32 => ExternType::i32,
+            Type::u32 | Type::char => ExternType::u32,
+            Type::f64 | Type::f32 => ExternType::f64,
             Type::String => ExternType::String,
             Type::Struct(id) => ExternType::Item { target: id.into() },
             Type::Enum(id) => ExternType::Item { target: id.into() },
@@ -210,16 +214,16 @@ impl<'db> Type<'db> {
     /// Returns the owned source type corresponding to this IR type.
     pub(super) fn source_type_owned(self) -> SourceType<'db> {
         match self {
-            Type::Primitive(IrPrimitive::Boolean) => SourceType::bool,
-            Type::Primitive(IrPrimitive::Char) => SourceType::char,
-            Type::Primitive(IrPrimitive::i8) => SourceType::i8,
-            Type::Primitive(IrPrimitive::u8) => SourceType::u8,
-            Type::Primitive(IrPrimitive::i16) => SourceType::i16,
-            Type::Primitive(IrPrimitive::u16) => SourceType::u16,
-            Type::Primitive(IrPrimitive::i32) => SourceType::i32,
-            Type::Primitive(IrPrimitive::u32) => SourceType::u32,
-            Type::Primitive(IrPrimitive::f32) => SourceType::f32,
-            Type::Primitive(IrPrimitive::f64) => SourceType::f64,
+            Type::bool => SourceType::bool,
+            Type::char => SourceType::char,
+            Type::i8 => SourceType::i8,
+            Type::u8 => SourceType::u8,
+            Type::i16 => SourceType::i16,
+            Type::u16 => SourceType::u16,
+            Type::i32 => SourceType::i32,
+            Type::u32 => SourceType::u32,
+            Type::f32 => SourceType::f32,
+            Type::f64 => SourceType::f64,
             Type::Str => SourceType::Str,
             Type::String => SourceType::String,
             Type::Struct(struct_id) => SourceType::Item {
@@ -236,7 +240,18 @@ impl<'db> Type<'db> {
     pub(super) fn uses_class(self) -> bool {
         match self {
             Type::Struct(_) | Type::Enum(_) => true,
-            Type::Primitive(_) | Type::Str | Type::String => false,
+            Type::bool
+            | Type::char
+            | Type::i8
+            | Type::u8
+            | Type::i16
+            | Type::u16
+            | Type::i32
+            | Type::u32
+            | Type::f32
+            | Type::f64
+            | Type::Str
+            | Type::String => false,
         }
     }
 

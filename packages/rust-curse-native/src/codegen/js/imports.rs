@@ -4,10 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, fragment, singles},
-        ir::{
-            item::{ItemId, ItemIdExt as _},
-            mod_::ModId,
-        },
+        ir::{ItemId, ItemIdExt as _, ModId},
         js::JsCodegenPaths,
         rustdoc::mod_::lower_mod,
     },

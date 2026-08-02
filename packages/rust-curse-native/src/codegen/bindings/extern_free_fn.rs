@@ -8,10 +8,7 @@ use crate::codegen::{
     },
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, comma_list, frag, fragment},
-    ir::{
-        fn_::{Fn, FnParam},
-        item::ItemIdExt as _,
-    },
+    ir::{Fn, FnParam, ItemIdExt as _},
 };
 
 impl<'db> Fn<'db> {

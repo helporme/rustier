@@ -7,7 +7,7 @@ use crate::codegen::{
     },
     db::Db,
     fragment::{FragmentPrint, spaced},
-    ir::mod_::Mod,
+    ir::Mod,
 };
 
 /// Compiles all items inside the module to bindings code.

@@ -6,9 +6,8 @@ use crate::codegen::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
     ir::{
-        c_like_enum::{CLikeEnum, CLikeEnumId, CLikeEnumVariant},
-        enum_::{Enum, EnumId, EnumVariant},
-        item::{ItemId, ItemKind, ItemPath},
+        CLikeEnum, CLikeEnumId, CLikeEnumVariant, Enum, EnumId, EnumVariant, ItemId, ItemKind,
+        ItemPath,
     },
     rustdoc::{
         CrateExt, RustdocId,

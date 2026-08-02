@@ -1,7 +1,7 @@
 use crate::codegen::{
     db::Db,
     diag::{DiagSource, DiagSpan},
-    ir::span::Span,
+    ir::Span,
     rustdoc::Crate,
 };
 

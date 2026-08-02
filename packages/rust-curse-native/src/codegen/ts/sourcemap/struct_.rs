@@ -2,7 +2,7 @@
 
 use crate::codegen::{
     db::Db,
-    ir::{item::ItemIdExt as _, shape::Shape, struct_::Struct},
+    ir::{ItemIdExt as _, Shape, Struct},
     ts::{
         sourcemap::{
             Mapping,

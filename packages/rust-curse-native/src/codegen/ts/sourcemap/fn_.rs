@@ -2,7 +2,7 @@
 
 use crate::codegen::{
     db::Db,
-    ir::{fn_::Fn, item::ItemIdExt},
+    ir::{Fn, ItemIdExt},
     ts::sourcemap::{Mapping, mappings::original_location},
 };
 

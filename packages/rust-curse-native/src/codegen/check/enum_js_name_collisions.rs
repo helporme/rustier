@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::{DiagSource, DiagSpan},
-    ir::mod_::Mod,
+    ir::Mod,
     mangle::to_camel_case,
 };
 

@@ -5,11 +5,7 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::{DiagAccumulateExt, DiagSource, DiagSpan},
-    ir::{
-        item::ItemIdExt as _,
-        shape::{Shape, ShapeField},
-        type_::Type,
-    },
+    ir::{ItemIdExt as _, Shape, ShapeField, Type},
     rustdoc::{
         CrateExt, ItemIdExt as _, RustdocId,
         enum_::is_enum_clonable,

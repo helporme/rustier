@@ -14,10 +14,7 @@ use crate::{
         cast::DirectCastRule,
         db::Db,
         fragment::{FragmentOnce, FragmentPrint as _, fragment, spaced},
-        ir::{
-            item::ItemId,
-            type_::{ItemIdExt as _, Type},
-        },
+        ir::{IntoIrTypeExt as _, ItemId, Type},
     },
     frag,
 };

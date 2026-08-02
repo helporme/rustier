@@ -4,7 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, comma_list, fragment},
-        ir::{fn_::Fn, item::ItemIdExt as _},
+        ir::{Fn, ItemIdExt as _},
         js::{
             boundary::{
                 compile_js_binding_value_to_facade_stmt,

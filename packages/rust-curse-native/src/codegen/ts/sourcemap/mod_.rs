@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use crate::codegen::{
     db::Db,
-    ir::{item::ItemIdExt, mod_::Mod},
+    ir::{ItemIdExt, Mod},
     ts::{
         mod_::compile_mod as compile_ts_mod,
         sourcemap::{

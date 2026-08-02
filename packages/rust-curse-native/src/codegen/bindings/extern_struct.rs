@@ -9,7 +9,7 @@ use crate::{
         },
         db::Db,
         fragment::FragmentPrint,
-        ir::{item::IntoItemId, struct_::Struct},
+        ir::{IntoItemId, Struct},
     },
     frag,
 };

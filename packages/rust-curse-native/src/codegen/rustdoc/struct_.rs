@@ -5,10 +5,7 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::{DiagAccumulateExt, DiagSource, DiagSpan},
-    ir::{
-        item::{ItemId, ItemKind, ItemPath},
-        struct_::{Struct, StructId},
-    },
+    ir::{ItemId, ItemKind, ItemPath, Struct, StructId},
     rustdoc::{
         RustdocId,
         shape::{RustdocShape, ShapeFieldLowerError, lower_shape},

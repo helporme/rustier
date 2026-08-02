@@ -18,7 +18,7 @@ use crate::codegen::{
     bindings::{mod_::compile_mod, tethering::compile_tethering_prelude},
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, frag, fragment, spaced},
-    ir::mod_::Mod,
+    ir::Mod,
     rustdoc::mod_::lower_mods,
 };
 

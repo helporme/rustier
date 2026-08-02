@@ -4,13 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, comma_list, doubles, fragment, spaced},
-        ir::{
-            enum_::{Enum, EnumId, EnumVariant},
-            item::ItemIdExt as _,
-            mod_::ModId,
-            shape::ShapeField,
-            type_::Type,
-        },
+        ir::{Enum, EnumId, EnumVariant, ItemIdExt as _, ModId, ShapeField, Type},
         js::{
             boundary::{
                 compile_js_binding_value_to_facade_stmt,
@@ -342,7 +336,18 @@ fn compile_field_read_stmt<'db>(
             )
             .apply(p);
         }
-        Type::Primitive(_) | Type::Str | Type::String => {
+        Type::bool
+        | Type::char
+        | Type::i8
+        | Type::u8
+        | Type::i16
+        | Type::u16
+        | Type::i32
+        | Type::u32
+        | Type::f32
+        | Type::f64
+        | Type::Str
+        | Type::String => {
             frag!(
                 let value;@
                 {compile_js_binding_value_to_facade_stmt(

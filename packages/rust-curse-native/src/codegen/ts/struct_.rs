@@ -4,7 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, fragment},
-        ir::{item::ItemIdExt as _, shape::ShapeField, struct_::Struct, type_::Type},
+        ir::{ItemIdExt as _, ShapeField, Struct, Type},
         js::imports::{Import, ImportFrom},
         ts::jsdoc::compile_jsdoc,
     },
@@ -53,11 +53,21 @@ pub fn compile_struct_required_imports<'db>(
     let active_mod_id = struct_.id(db).parent_mod_id(db).unwrap();
 
     for field in struct_.fields(db).iter() {
-        let (type_id, type_name): (crate::codegen::ir::item::ItemId<'db>, _) = match field.type_(db)
-        {
+        let (type_id, type_name): (crate::codegen::ir::ItemId<'db>, _) = match field.type_(db) {
             Type::Struct(struct_id) => (struct_id.into(), struct_id.name(db)),
             Type::Enum(enum_id) => (enum_id.into(), enum_id.name(db)),
-            Type::Primitive(_) | Type::Str | Type::String => continue,
+            Type::bool
+            | Type::char
+            | Type::i8
+            | Type::u8
+            | Type::i16
+            | Type::u16
+            | Type::i32
+            | Type::u32
+            | Type::f32
+            | Type::f64
+            | Type::Str
+            | Type::String => continue,
         };
         let type_mod_id = type_id.parent_mod_id(db).unwrap();
 

@@ -5,7 +5,7 @@ use std::collections::BTreeSet;
 use crate::codegen::{
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, fragment, spaced},
-    ir::mod_::Mod,
+    ir::Mod,
     js::imports::compile_import_stmt,
     ts::{
         enum_::{compile_enum, compile_enum_required_imports},

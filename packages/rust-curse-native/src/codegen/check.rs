@@ -4,7 +4,7 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::codegen::{db::Db, ir::mod_::Mod};
+use crate::codegen::{db::Db, ir::Mod};
 
 mod enum_js_name_collisions;
 mod f32_percission_los;
