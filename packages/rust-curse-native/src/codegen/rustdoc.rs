@@ -134,10 +134,10 @@ impl<'db> RustdocId<'db> {
 
 #[salsa::tracked]
 impl<'db> ItemId<'db> {
-    /// Returns the [`RustdocId`] matching this item, or panics if no match is
+    /// Returns the rustdoc ID matching an IR item, or panics if no match is
     /// found.
     #[salsa::tracked]
-    pub fn rustdoc_id(self, db: &'db dyn Db) -> RustdocId<'db> {
+    pub(crate) fn rustdoc_id(self, db: &'db dyn Db) -> RustdocId<'db> {
         let backmap = rustdoc_backmap(db);
 
         // todo: remove panic

@@ -6,7 +6,7 @@ use crate::codegen::{
     api::Api,
     db::Db,
     fragment::{FragmentPrint, frag, spaced},
-    ir::{item::ItemId, mod_::ModId},
+    ir::mod_::Mod,
     js::{
         JsCodegenPaths,
         enum_::{compile_facade_class_for_enum, compile_facade_class_for_enum_required_imports},
@@ -16,32 +16,26 @@ use crate::codegen::{
             compile_facade_class_for_struct, compile_facade_class_for_struct_required_imports,
         },
     },
-    rustdoc::mod_::{lower_mod_enums, lower_mod_fns, lower_mod_structs},
 };
 
 /// Compiles all supported items declared by a Rust module into its facade
 /// JavaScript file.
-pub fn compile_js_file<'db>(db: &'db dyn Db, mod_id: ModId<'db>) -> &'db String {
-    compile_js_file_tracked(db, mod_id.into())
-}
-
-#[salsa::tracked(returns(ref))]
-fn compile_js_file_tracked<'db>(db: &'db dyn Db, mod_id: ItemId<'db>) -> String {
+pub fn compile_js_file<'db>(db: &'db dyn Db, mod_: Mod<'db>) -> String {
     let js_codegen_paths = JsCodegenPaths::get(db);
 
-    let fns = lower_mod_fns(db, mod_id.rustdoc_id(db));
-    let structs = lower_mod_structs(db, mod_id.rustdoc_id(db));
-    let enums = lower_mod_enums(db, mod_id.rustdoc_id(db));
+    let fns = mod_.fns(db);
+    let structs = mod_.structs(db);
+    let enums = mod_.enums(db);
 
     let mut imports = BTreeSet::new();
-    for fn_ in fns.iter() {
-        compile_facade_fn_required_imports(db, *fn_, &mut imports);
+    for fn_ in fns.clone() {
+        compile_facade_fn_required_imports(db, fn_, &mut imports);
     }
-    for struct_ in structs.iter() {
-        compile_facade_class_for_struct_required_imports(db, *struct_, &mut imports);
+    for struct_ in structs.clone() {
+        compile_facade_class_for_struct_required_imports(db, struct_, &mut imports);
     }
-    for enum_ in enums.iter() {
-        compile_facade_class_for_enum_required_imports(db, *enum_, &mut imports);
+    for enum_ in enums.clone() {
+        compile_facade_class_for_enum_required_imports(db, enum_, &mut imports);
     }
     let imports = spaced(
         imports
@@ -49,17 +43,9 @@ fn compile_js_file_tracked<'db>(db: &'db dyn Db, mod_id: ItemId<'db>) -> String 
             .map(|import| compile_import_stmt(db, import)),
     );
 
-    let fns = spaced(fns.iter().map(|fn_| compile_facade_fn(db, *fn_)));
-    let structs = spaced(
-        structs
-            .iter()
-            .map(|struct_| compile_facade_class_for_struct(db, *struct_)),
-    );
-    let enums = spaced(
-        enums
-            .iter()
-            .map(|enum_| compile_facade_class_for_enum(db, *enum_)),
-    );
+    let fns = spaced(fns.map(|fn_| compile_facade_fn(db, fn_)));
+    let structs = spaced(structs.map(|struct_| compile_facade_class_for_struct(db, struct_)));
+    let enums = spaced(enums.map(|enum_| compile_facade_class_for_enum(db, enum_)));
 
     let init = Api::get(db).js_mod_init(db, js_codegen_paths.generated_bindings_path(db));
     frag!(
@@ -79,6 +65,7 @@ mod tests {
         api::{Api, ApiKind},
         db::DbImpl,
         js::JsCodegenPaths,
+        rustdoc::mod_::lower_mod,
         test::{assert_snap, test_db},
     };
 
@@ -86,9 +73,8 @@ mod tests {
         Api::set(&mut db, ApiKind::Node);
         JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
 
-        let mod_id =
-            ModId::new(&db, db.item_id("")).expect("the test database root item must be a module");
-        compile_js_file(&db, mod_id).to_string()
+        let mod_ = lower_mod(&db, db.rustdoc_id(""));
+        compile_js_file(&db, mod_)
     }
 
     #[test]

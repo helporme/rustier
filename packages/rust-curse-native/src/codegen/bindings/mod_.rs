@@ -7,28 +7,20 @@ use crate::codegen::{
     },
     db::Db,
     fragment::{FragmentPrint, spaced},
-    rustdoc::{
-        RustdocId,
-        mod_::{lower_mod_enums, lower_mod_fns, lower_mod_structs},
-    },
+    ir::mod_::Mod,
 };
 
 /// Compiles all items inside the module to bindings code.
 #[salsa::tracked(returns(ref))]
-pub fn compile_mod(db: &dyn Db, mod_id: RustdocId<'_>) -> String {
-    let fns = lower_mod_fns(db, mod_id);
-    let structs = lower_mod_structs(db, mod_id);
-    let enums = lower_mod_enums(db, mod_id);
+pub fn compile_mod<'db>(db: &'db dyn Db, mod_: Mod<'db>) -> String {
+    let fns = mod_.fns(db);
+    let structs = mod_.structs(db);
+    let enums = mod_.enums(db);
 
     spaced(
-        fns.iter()
-            .map(|fn_| compile_free_fn(db, *fn_))
-            .chain(
-                structs
-                    .iter()
-                    .map(|struct_| compile_extern_struct(db, *struct_)),
-            )
-            .chain(enums.iter().map(|enum_| compile_extern_enum(db, *enum_))),
+        fns.map(|fn_| compile_free_fn(db, fn_))
+            .chain(structs.map(|struct_| compile_extern_struct(db, struct_)))
+            .chain(enums.map(|enum_| compile_extern_enum(db, enum_))),
     )
     .print()
 }

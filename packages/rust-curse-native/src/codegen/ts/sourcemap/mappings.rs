@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::codegen::{db::Db, rustdoc::RustdocId};
+use crate::codegen::ir::span::Span;
 
 /// A single source map mapping before source and name indexes are assigned.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
@@ -21,33 +21,23 @@ pub struct CompiledMappings {
     pub encoded: String,
 }
 
-/// A zero-based source location resolved from a rustdoc item span.
+/// A zero-based source location resolved from an IR span.
 pub struct OriginalLocation {
     pub source: String,
     pub line: usize,
     pub column: usize,
 }
 
-/// Resolves the beginning of a rustdoc item's span into a source-map location.
-pub fn original_location<'db>(
-    db: &'db dyn Db,
-    rustdoc_id: RustdocId<'db>,
-) -> Option<OriginalLocation> {
-    let span = rustdoc_id.item(db).span.as_ref()?;
-    let crate_ = rustdoc_id.crate_(db);
-    let source_path = if span.filename.is_absolute() {
-        span.filename.clone()
-    } else {
-        crate_.dir.join(&span.filename)
-    };
-
-    Some(OriginalLocation {
-        source: source_path
+/// Resolves the beginning of an IR span into a source-map location.
+pub fn original_location(span: &Span) -> OriginalLocation {
+    OriginalLocation {
+        source: span
+            .abs_path
             .to_string_lossy()
             .replace(std::path::MAIN_SEPARATOR, "/"),
         line: span.begin.0.saturating_sub(1),
         column: span.begin.1.saturating_sub(1),
-    })
+    }
 }
 
 /// Finds the next generated declaration whose name has exact token boundaries.

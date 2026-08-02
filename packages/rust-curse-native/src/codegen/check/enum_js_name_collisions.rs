@@ -6,22 +6,20 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::{DiagSource, DiagSpan},
+    ir::mod_::Mod,
     mangle::to_camel_case,
-    rustdoc::{
-        ItemIdExt as _,
-        mod_::{all_mod_ids, lower_mod_enums},
-        span::RustdocSpanExt as _,
-    },
 };
 
 /// Emits warnings for enum names that require collision-avoidance in the
 /// JavaScript facade.
-#[salsa::tracked(returns(ref))]
-pub fn check_enum_js_name_collisions(db: &dyn Db) -> Vec<EnumJsNameCollision> {
+pub fn check_enum_js_name_collisions<'db>(
+    db: &'db dyn Db,
+    modules: &[Mod<'db>],
+) -> Vec<EnumJsNameCollision> {
     let mut diags = Vec::new();
 
-    for mod_id in all_mod_ids(db) {
-        for enum_ in lower_mod_enums(db, *mod_id) {
+    for mod_ in modules {
+        for enum_ in mod_.enums(db) {
             let has_type_field_collision = enum_.js_tag_field_name(db) == "$type";
             let mut tags = BTreeSet::new();
             let has_variant_tag_collision = enum_
@@ -34,15 +32,12 @@ pub fn check_enum_js_name_collisions(db: &dyn Db) -> Vec<EnumJsNameCollision> {
                 continue;
             }
 
-            let id = enum_.id(db).rustdoc_id(db);
-            let item = id.item(db);
-            let crate_ = id.crate_(db);
-            let source_code: DiagSource = item
-                .span
+            let source_code: DiagSource = enum_
+                .span(db)
                 .as_ref()
-                .map(|span| span.diag_source(db, crate_))
+                .map(|span| span.diag_source(db))
                 .into();
-            let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
+            let span = enum_.span(db).as_ref().map(|span| span.diag_span(db));
 
             if has_type_field_collision {
                 diags.push(EnumJsNameCollision::TypeField {
@@ -97,10 +92,12 @@ pub enum EnumJsNameCollision {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::codegen::test::test_db;
+    use crate::codegen::{rustdoc::mod_::lower_mods, test::test_db};
 
     fn diagnostic_codes(db: &dyn Db) -> Vec<String> {
-        check_enum_js_name_collisions(db)
+        let modules = lower_mods(db);
+
+        check_enum_js_name_collisions(db, modules.as_slice())
             .iter()
             .map(|diag| diag.code().unwrap().to_string())
             .collect()

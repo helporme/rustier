@@ -7,38 +7,36 @@ use crate::codegen::{
     ir::{
         enum_::Enum,
         fn_::Fn,
+        mod_::Mod,
         shape::Shape,
         struct_::Struct,
         type_::{IrPrimitive, Type},
-    },
-    rustdoc::{
-        ItemIdExt as _,
-        mod_::{all_mod_ids, lower_mod_enums, lower_mod_fns, lower_mod_structs},
-        span::RustdocSpanExt as _,
     },
 };
 
 /// Emits warnings for exported items that pass f32 values across the JS
 /// boundary.
-#[salsa::tracked(returns(ref))]
-pub fn check_f32_percission_los(db: &dyn Db) -> Vec<F32PrecisionLoss> {
+pub fn check_f32_percission_los<'db>(
+    db: &'db dyn Db,
+    modules: &[Mod<'db>],
+) -> Vec<F32PrecisionLoss> {
     let mut diags = Vec::new();
 
-    for mod_id in all_mod_ids(db) {
-        for fn_ in lower_mod_fns(db, *mod_id) {
-            if let Some(diag) = check_f32_percission_los_fn(db, *fn_) {
+    for mod_ in modules {
+        for fn_ in mod_.fns(db) {
+            if let Some(diag) = check_f32_percission_los_fn(db, fn_) {
                 diags.push(diag);
             }
         }
 
-        for struct_ in lower_mod_structs(db, *mod_id) {
-            if let Some(diag) = check_f32_percission_los_struct(db, *struct_) {
+        for struct_ in mod_.structs(db) {
+            if let Some(diag) = check_f32_percission_los_struct(db, struct_) {
                 diags.push(diag);
             }
         }
 
-        for enum_ in lower_mod_enums(db, *mod_id) {
-            if let Some(diag) = check_f32_percission_los_enum(db, *enum_) {
+        for enum_ in mod_.enums(db) {
+            if let Some(diag) = check_f32_percission_los_enum(db, enum_) {
                 diags.push(diag);
             }
         }
@@ -55,15 +53,12 @@ fn check_f32_percission_los_fn(db: &dyn Db, fn_: Fn<'_>) -> Option<F32PrecisionL
     let has_f32_return = fn_.return_type(db) == Some(Type::Primitive(IrPrimitive::f32));
 
     if has_f32_param || has_f32_return {
-        let id = fn_.id(db).rustdoc_id(db);
-        let item = id.item(db);
-        let crate_ = id.crate_(db);
-        let source_code = item
-            .span
+        let source_code = fn_
+            .span(db)
             .as_ref()
-            .map(|span| span.diag_source(db, crate_))
+            .map(|span| span.diag_source(db))
             .into();
-        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
+        let span = fn_.span(db).as_ref().map(|span| span.diag_span(db));
 
         return Some(F32PrecisionLoss { source_code, span });
     }
@@ -84,15 +79,12 @@ fn check_f32_percission_los_struct(db: &dyn Db, struct_: Struct<'_>) -> Option<F
     };
 
     if has_f32_field {
-        let id = struct_.id(db).rustdoc_id(db);
-        let item = id.item(db);
-        let crate_ = id.crate_(db);
-        let source_code = item
-            .span
+        let source_code = struct_
+            .span(db)
             .as_ref()
-            .map(|span| span.diag_source(db, crate_))
+            .map(|span| span.diag_source(db))
             .into();
-        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
+        let span = struct_.span(db).as_ref().map(|span| span.diag_span(db));
 
         return Some(F32PrecisionLoss { source_code, span });
     }
@@ -108,15 +100,12 @@ fn check_f32_percission_los_enum(db: &dyn Db, enum_: Enum<'_>) -> Option<F32Prec
     });
 
     if has_f32_field {
-        let id = enum_.id(db).rustdoc_id(db);
-        let item = id.item(db);
-        let crate_ = id.crate_(db);
-        let source_code = item
-            .span
+        let source_code = enum_
+            .span(db)
             .as_ref()
-            .map(|span| span.diag_source(db, crate_))
+            .map(|span| span.diag_source(db))
             .into();
-        let span = item.span.as_ref().map(|span| span.diag_span(db, crate_));
+        let span = enum_.span(db).as_ref().map(|span| span.diag_span(db));
 
         return Some(F32PrecisionLoss { source_code, span });
     }
@@ -142,10 +131,11 @@ pub struct F32PrecisionLoss {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::codegen::test::test_db;
+    use crate::codegen::{rustdoc::mod_::lower_mods, test::test_db};
 
     fn assert_f32_precision_loss(db: &dyn Db) {
-        let diags = check_f32_percission_los(db);
+        let modules = lower_mods(db);
+        let diags = check_f32_percission_los(db, modules.as_slice());
 
         assert_eq!(diags.len(), 1);
         assert_eq!(

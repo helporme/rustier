@@ -1,6 +1,9 @@
 use crate::codegen::{
     db::Db,
-    ir::item::{IntoItemId, ItemId, ItemKind, define_item_id},
+    ir::{
+        item::{IntoItemId, ItemId, ItemKind, define_item_id},
+        span::Span,
+    },
 };
 
 define_item_id!(
@@ -19,6 +22,9 @@ pub struct CLikeEnum<'db> {
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,
+    #[tracked]
+    #[returns(ref)]
+    pub span: Option<Span>,
 }
 
 impl<'db> IntoItemId<'db> for CLikeEnum<'db> {
@@ -40,4 +46,7 @@ pub struct CLikeEnumVariant<'db> {
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,
+    #[tracked]
+    #[returns(ref)]
+    pub span: Option<Span>,
 }

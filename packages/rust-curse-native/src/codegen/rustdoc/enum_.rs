@@ -92,6 +92,7 @@ fn lower_data_carrying_enum<'db>(
     }
 
     let item_summary = crate_body.paths.get(&item.id).unwrap();
+    let span = item.span.as_ref().map(|span| span.lower(id.crate_(db)));
     let id = EnumId::new(
         db,
         ItemId::new(db, ItemPath::new(db, &item_summary.path), ItemKind::Enum),
@@ -103,6 +104,7 @@ fn lower_data_carrying_enum<'db>(
         id,
         variants,
         item.docs.clone(),
+        span,
         item.attrs.contains(&Attribute::NonExhaustive),
     ))
 }
@@ -144,18 +146,24 @@ fn lower_c_like_enum<'db>(
                 .as_ref()
                 .map(|discriminant| discriminant.value.clone());
 
-            CLikeEnumVariant::new(db, name, discriminant, variant_item.docs.clone())
+            let span = variant_item
+                .span
+                .as_ref()
+                .map(|span| span.lower(id.crate_(db)));
+
+            CLikeEnumVariant::new(db, name, discriminant, variant_item.docs.clone(), span)
         })
         .collect();
 
     let item_summary = crate_body.paths.get(&item.id).unwrap();
+    let span = item.span.as_ref().map(|span| span.lower(id.crate_(db)));
     let id = ItemId::new(
         db,
         ItemPath::new(db, &item_summary.path),
         ItemKind::CLikeEnum,
     );
     let id = CLikeEnumId::new(db, id).unwrap();
-    Ok(CLikeEnum::new(db, id, variants, item.docs.clone()))
+    Ok(CLikeEnum::new(db, id, variants, item.docs.clone(), span))
 }
 
 fn enum_lower_error(
@@ -232,8 +240,9 @@ fn lower_variant<'db>(
 
     let name = item.name.clone().expect("enum variant must have a name");
     let docs = item.docs.clone();
+    let span = item.span.as_ref().map(|span| span.lower(id.crate_(db)));
 
-    Ok(EnumVariant::new(db, name, shape, docs))
+    Ok(EnumVariant::new(db, name, shape, docs, span))
 }
 
 /// Returns whether the enum implements [`Clone`].

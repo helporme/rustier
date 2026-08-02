@@ -1,4 +1,4 @@
-//! Compiles rustdoc into TypeScript declarations.
+//! Compiles IR into TypeScript declarations.
 
 pub mod enum_;
 pub mod fn_;

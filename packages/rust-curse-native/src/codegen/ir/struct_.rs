@@ -3,6 +3,7 @@ use crate::codegen::{
     ir::{
         item::{IntoItemId, ItemId, ItemKind, define_item_id},
         shape::{Shape, ShapeField},
+        span::Span,
     },
 };
 
@@ -22,6 +23,9 @@ pub struct Struct<'db> {
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,
+    #[tracked]
+    #[returns(ref)]
+    pub span: Option<Span>,
 }
 
 impl<'db> IntoItemId<'db> for Struct<'db> {

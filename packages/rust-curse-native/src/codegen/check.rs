@@ -4,7 +4,7 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::codegen::db::Db;
+use crate::codegen::{db::Db, ir::mod_::Mod};
 
 mod enum_js_name_collisions;
 mod f32_percission_los;
@@ -15,16 +15,13 @@ pub use f32_percission_los::F32PrecisionLoss;
 ///
 /// The check is independent from [`crate::codegen::api::Api`], it runs
 /// only on generated IR.
-#[salsa::tracked(returns(ref))]
-pub fn check(db: &dyn Db) -> Vec<Check> {
-    f32_percission_los::check_f32_percission_los(db)
-        .iter()
-        .cloned()
+pub fn check<'db>(db: &'db dyn Db, modules: &[Mod<'db>]) -> Vec<Check> {
+    f32_percission_los::check_f32_percission_los(db, modules)
+        .into_iter()
         .map(Check::from)
         .chain(
-            enum_js_name_collisions::check_enum_js_name_collisions(db)
-                .iter()
-                .cloned()
+            enum_js_name_collisions::check_enum_js_name_collisions(db, modules)
+                .into_iter()
                 .map(Check::from),
         )
         .collect()

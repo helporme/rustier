@@ -75,13 +75,14 @@ pub fn lower_struct<'db>(
     }
 
     let docs = item.docs.clone();
+    let span = item.span.as_ref().map(|span| span.lower(id.crate_(db)));
     let id = StructId::new(
         db,
         ItemId::new(db, ItemPath::new(db, &item_summary.path), ItemKind::Struct),
     )
     .expect("newly created struct item must have struct kind");
 
-    Ok(Struct::new(db, id, shape, docs))
+    Ok(Struct::new(db, id, shape, docs, span))
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
