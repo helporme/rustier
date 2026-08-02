@@ -8,7 +8,8 @@ use miette::Diagnostic;
 use tracing::{debug, info, trace};
 
 use crate::{
-    codegen, codegen::diag::Diag, codegen::rustdoc::mod_::all_mod_ids, sync::file::write_if_changed,
+    codegen::{self, diag::Diag, rustdoc::mod_::lower_mods},
+    sync::file::write_if_changed,
 };
 
 /// Options for [`sync_ts_tree`].
@@ -51,7 +52,11 @@ pub struct SyncTsTreeOpts<'a> {
 pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<Vec<Diag>, SyncTsTreeError> {
     info!("syncing TypeScript declaration tree");
 
-    let mut diags = Vec::new();
+    let modules = lower_mods(opts.db);
+    let diags = lower_mods::accumulated::<Diag>(opts.db)
+        .into_iter()
+        .cloned()
+        .collect();
 
     ensure_dir(opts.our_dir)?;
     let src_dir = opts
@@ -69,28 +74,18 @@ pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<Vec<Diag>, SyncTsTreeErr
                 source,
             })?;
 
-    for mod_id in all_mod_ids(opts.db) {
-        let item = mod_id.item(opts.db);
-        let Some(span) = &item.span else {
-            trace!("skipping rustdoc module without a span");
+    for mod_ in modules {
+        let Some(span) = mod_.span(opts.db) else {
+            trace!("skipping IR module without a span");
             continue;
         };
 
-        let crate_ = mod_id.crate_(opts.db);
-
-        // todo: shared utility for resolving span filename abs path
-        let span_path = if span.filename.is_absolute() {
-            span.filename.clone()
-        } else {
-            crate_.dir.join(&span.filename)
-        };
-        let span_path =
-            span_path
-                .canonicalize()
-                .map_err(|source| SyncTsTreeError::CanonicalizeModulePath {
-                    path: span_path,
-                    source,
-                })?;
+        let span_path = span.abs_path.canonicalize().map_err(|source| {
+            SyncTsTreeError::CanonicalizeModulePath {
+                path: span.abs_path.clone(),
+                source,
+            }
+        })?;
 
         let relative_path = span_path.strip_prefix(&src_dir).map_err(|_| {
             SyncTsTreeError::ModuleOutsideSourceDirectory {
@@ -117,23 +112,13 @@ pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<Vec<Diag>, SyncTsTreeErr
             ensure_dir(parent)?;
         }
 
-        let mut declaration = codegen::ts::mod_::compile_mod(opts.db, *mod_id).to_string();
-        diags.extend(
-            codegen::ts::mod_::compile_mod::accumulated::<Diag>(opts.db, *mod_id)
-                .into_iter()
-                .cloned(),
-        );
+        let mut declaration = codegen::ts::mod_::compile_mod(opts.db, *mod_);
         if !declaration.is_empty() {
             declaration.push_str(&format!("\n//# sourceMappingURL={sourcemap_file_name}\n"));
         }
         write_file(output_path, declaration.as_bytes())?;
 
-        let sourcemap = codegen::ts::sourcemap::compile_mod(opts.db, *mod_id).to_string();
-        diags.extend(
-            codegen::ts::sourcemap::compile_mod::accumulated::<Diag>(opts.db, *mod_id)
-                .into_iter()
-                .cloned(),
-        );
+        let sourcemap = codegen::ts::sourcemap::compile_mod(opts.db, *mod_).to_string();
         write_file(sourcemap_path, sourcemap.as_bytes())?;
     }
 

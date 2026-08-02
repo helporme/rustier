@@ -1,4 +1,4 @@
-//! Compiles rustdoc into TypeScript declaration source maps.
+//! Compiles IR into TypeScript declaration source maps.
 
 mod enum_;
 mod fn_;

@@ -6,11 +6,7 @@ use serde::Serialize;
 
 use crate::codegen::{
     db::Db,
-    ir::item::ItemIdExt,
-    rustdoc::{
-        RustdocId,
-        mod_::{lower_mod_enums, lower_mod_fns, lower_mod_structs},
-    },
+    ir::{item::ItemIdExt, mod_::Mod},
     ts::{
         mod_::compile_mod as compile_ts_mod,
         sourcemap::{
@@ -42,17 +38,16 @@ impl fmt::Display for SourceMap {
     }
 }
 
-/// Compiles a rustdoc module id into a TypeScript declaration source map.
-#[salsa::tracked(returns(ref))]
-pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> SourceMap {
-    let item = mod_id.item(db);
-    let file = item
-        .span
+/// Compiles an IR module into a TypeScript declaration source map.
+pub fn compile_mod<'db>(db: &'db dyn Db, mod_: Mod<'db>) -> SourceMap {
+    let file = mod_
+        .span(db)
         .as_ref()
-        .and_then(|span| span.filename.file_name())
+        .and_then(|span| span.src_path.file_name())
         .map(|file_name| format!("{}.d.ts", file_name.to_string_lossy()))
         .unwrap_or_default();
-    let compiled_mappings = compile_mappings(compile_mod_mappings(db, mod_id));
+    let mappings = compile_mod_mappings(db, mod_);
+    let compiled_mappings = compile_mappings(&mappings);
 
     SourceMap {
         version: 3,
@@ -66,15 +61,14 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> SourceMap {
 
 /// Compiles all emitted items in a module into mappings at their generated
 /// locations.
-#[salsa::tracked(returns(ref))]
-pub fn compile_mod_mappings<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> Vec<Mapping> {
-    let generated = compile_ts_mod(db, mod_id);
+pub fn compile_mod_mappings<'db>(db: &'db dyn Db, mod_: Mod<'db>) -> Vec<Mapping> {
+    let generated = compile_ts_mod(db, mod_);
     let mut mappings = Vec::new();
     let mut search_line = 0;
 
-    for fn_ in lower_mod_fns(db, mod_id) {
+    for fn_ in mod_.fns(db) {
         let generated_line = find_name_line(
-            generated,
+            &generated,
             search_line,
             "export function ",
             fn_.name(db),
@@ -82,16 +76,12 @@ pub fn compile_mod_mappings<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> Vec
         )
         .expect("compiled TypeScript function declaration should exist");
         search_line = generated_line + 1;
-        mappings.extend(
-            compile_fn_mappings(db, *fn_, generated_line)
-                .iter()
-                .cloned(),
-        );
+        mappings.extend(compile_fn_mappings(db, fn_, generated_line).iter().cloned());
     }
 
-    for struct_ in lower_mod_structs(db, mod_id) {
+    for struct_ in mod_.structs(db) {
         let generated_line = find_name_line(
-            generated,
+            &generated,
             search_line,
             "export class ",
             struct_.name(db),
@@ -100,19 +90,24 @@ pub fn compile_mod_mappings<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> Vec
         .expect("compiled TypeScript class declaration should exist");
         search_line = generated_line + 1;
         mappings.extend(
-            compile_struct_mappings(db, *struct_, generated_line)
+            compile_struct_mappings(db, struct_, generated_line)
                 .iter()
                 .cloned(),
         );
     }
 
-    for enum_ in lower_mod_enums(db, mod_id) {
-        let generated_line =
-            find_name_line(generated, search_line, "export type ", enum_.name(db), " =")
-                .expect("compiled TypeScript enum type declaration should exist");
+    for enum_ in mod_.enums(db) {
+        let generated_line = find_name_line(
+            &generated,
+            search_line,
+            "export type ",
+            enum_.name(db),
+            " =",
+        )
+        .expect("compiled TypeScript enum type declaration should exist");
         search_line = generated_line + 1;
         mappings.extend(
-            compile_enum_mappings(db, *enum_, generated_line)
+            compile_enum_mappings(db, enum_, generated_line)
                 .iter()
                 .cloned(),
         );
@@ -126,6 +121,7 @@ mod tests {
     use super::*;
     use crate::codegen::{
         db::DbImpl,
+        rustdoc::mod_::lower_mod,
         test::{assert_snap, test_db},
         ts::sourcemap::test::{normalize_mappings, normalize_source, numbered_lines},
     };
@@ -133,9 +129,12 @@ mod tests {
     fn compile_test_mod(db: DbImpl, path: &str) -> String {
         let mod_id = db.rustdoc_id(path);
         let crate_dir = &mod_id.crate_(&db).dir;
-        let generated = numbered_lines(compile_ts_mod(&db, mod_id));
-        let mappings = normalize_mappings(crate_dir, compile_mod_mappings(&db, mod_id));
-        let mut source_map = compile_mod(&db, mod_id).clone();
+        let mod_ = lower_mod(&db, mod_id);
+        let generated_source = compile_ts_mod(&db, mod_);
+        let generated = numbered_lines(&generated_source);
+        let compiled_mappings = compile_mod_mappings(&db, mod_);
+        let mappings = normalize_mappings(crate_dir, &compiled_mappings);
+        let mut source_map = compile_mod(&db, mod_);
         source_map.sources = source_map
             .sources
             .iter()

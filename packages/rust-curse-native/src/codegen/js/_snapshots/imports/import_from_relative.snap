@@ -1,5 +1,6 @@
 ---
 source: src/codegen/js/imports.rs
+assertion_line: 158
 expression: body
 ---
 ## Test

@@ -3,7 +3,6 @@
 use crate::codegen::{
     db::Db,
     ir::{fn_::Fn, item::ItemIdExt},
-    rustdoc::ItemIdExt as _,
     ts::sourcemap::{Mapping, mappings::original_location},
 };
 
@@ -14,10 +13,10 @@ pub fn compile_fn_mappings<'db>(
     fn_: Fn<'db>,
     generated_line: usize,
 ) -> Vec<Mapping> {
-    let rustdoc_id = fn_.id(db).rustdoc_id(db);
-    let Some(original) = original_location(db, rustdoc_id) else {
+    let Some(span) = fn_.span(db) else {
         return Vec::new();
     };
+    let original = original_location(span);
     let name = fn_.name(db).to_string();
 
     vec![
@@ -45,14 +44,20 @@ mod tests {
     use super::*;
     use crate::codegen::{
         db::DbImpl,
-        rustdoc::fn_::lower_fn,
-        test::{assert_snap, test_db},
+        rustdoc::mod_::lower_mods,
+        test::{TEST_CRATE_NAME, assert_snap, test_db},
         ts::{fn_::compile_fn, sourcemap::test::snapshot_mappings},
     };
 
     fn compile_test_fn(db: DbImpl, path: &str, generated_line: usize) -> String {
         let rustdoc_id = db.rustdoc_id(path);
-        let fn_ = lower_fn(&db, rustdoc_id).unwrap();
+        let fqn = format!("{TEST_CRATE_NAME}::{path}");
+        let modules = lower_mods(&db);
+        let fn_ = modules
+            .iter()
+            .flat_map(|mod_| mod_.fns(&db))
+            .find(|fn_| fn_.fqn(&db) == &fqn)
+            .expect("test function should be lowered");
         let generated = compile_fn(&db, fn_);
         let mappings = compile_fn_mappings(&db, fn_, generated_line);
 

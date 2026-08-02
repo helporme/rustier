@@ -1,10 +1,15 @@
+use std::borrow::Cow;
+
 use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, fragment, singles},
-        ir::{item::ItemIdExt as _, mod_::ModId},
+        ir::{
+            item::{ItemId, ItemIdExt as _},
+            mod_::ModId,
+        },
         js::JsCodegenPaths,
-        rustdoc::ItemIdExt as _,
+        rustdoc::mod_::lower_mod,
     },
     frag,
 };
@@ -33,35 +38,36 @@ pub fn compile_import_stmt<'db>(db: &'db dyn Db, import: Import<'db>) -> impl Fr
     fragment(move |p| {
         let path = match import.from {
             ImportFrom::RelativeToMod { from, to } if from == to => return ().apply(p),
-            ImportFrom::RelativeToMod { from, to } => compile_relative_path(db, from, to)
-                .as_deref()
-                .unwrap_or_else(|| {
+            ImportFrom::RelativeToMod { from, to } => {
+                Cow::Owned(compile_relative_path(db, from, to).unwrap_or_else(|| {
                     // todo: it is hard error but it shouldn't be panic
                     panic!(
                         "failed to compile relative path from {} to {}",
                         from.fqn(db),
                         to.fqn(db)
                     )
-                }),
-            ImportFrom::Bindings => JsCodegenPaths::get(db).generated_bindings_path(db),
+                }))
+            }
+            ImportFrom::Bindings => {
+                Cow::Borrowed(JsCodegenPaths::get(db).generated_bindings_path(db).as_str())
+            }
         };
 
-        frag!(import ~{{ {import.item} }}~ from ~{singles(path)};).apply(p);
+        frag!(import ~{{ {import.item} }}~ from ~{singles(path.as_ref())};).apply(p);
     })
 }
 
-/// Compiles a relative path from one module to another using the span filename
-/// of the modules.
-#[salsa::tracked(returns(ref))]
-fn compile_relative_path<'a>(
-    db: &'a dyn Db,
-    from_mod: ModId<'a>,
-    to_mod: ModId<'a>,
+/// Compiles a relative path from one module to another using the source paths
+/// of the module spans.
+fn compile_relative_path<'db>(
+    db: &'db dyn Db,
+    from_mod: ModId<'db>,
+    to_mod: ModId<'db>,
 ) -> Option<String> {
-    let from_rustdoc_id = from_mod.rustdoc_id(db);
-    let to_rustdoc_id = to_mod.rustdoc_id(db);
-    let from_mod_path = &from_rustdoc_id.item(db).span.as_ref()?.filename;
-    let to_mod_path = &to_rustdoc_id.item(db).span.as_ref()?.filename;
+    let from_mod = lower_mod(db, ItemId::from(from_mod).rustdoc_id(db));
+    let to_mod = lower_mod(db, ItemId::from(to_mod).rustdoc_id(db));
+    let from_mod_path = &from_mod.span(db).as_ref()?.src_path;
+    let to_mod_path = &to_mod.span(db).as_ref()?.src_path;
     let mut from_components = from_mod_path.parent()?.components().peekable();
     let mut to_components = to_mod_path.components().peekable();
 
@@ -127,7 +133,6 @@ mod tests {
                 item: "baz",
                 from: ImportFrom::Bindings,
             };
-
             frag!({compile_import_stmt(&db, import)}).print()
         });
     }

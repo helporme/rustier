@@ -11,7 +11,7 @@ use crate::codegen::{
         type_::Type,
     },
     rustdoc::{
-        CrateExt, ItemIdExt, RustdocId,
+        CrateExt, ItemIdExt as _, RustdocId,
         enum_::is_enum_clonable,
         span::RustdocSpanExt as _,
         type_::{LoweredType, TypeLowerError, lower_type},
@@ -172,8 +172,16 @@ fn lower_tuple_shape_field<'db>(
     }
 
     let docs = item.docs.clone();
+    let span = item.span.as_ref().map(|span| span.lower(id.crate_(db)));
 
-    Ok(ShapeField::new(db, name, field_type, is_readonly, docs))
+    Ok(ShapeField::new(
+        db,
+        name,
+        field_type,
+        is_readonly,
+        docs,
+        span,
+    ))
 }
 
 #[salsa::tracked]
@@ -229,8 +237,16 @@ fn lower_plain_shape_field<'db>(
     }
 
     let docs = item.docs.clone();
+    let span = item.span.as_ref().map(|span| span.lower(id.crate_(db)));
 
-    Ok(ShapeField::new(db, name, field_type, is_readonly, docs))
+    Ok(ShapeField::new(
+        db,
+        name,
+        field_type,
+        is_readonly,
+        docs,
+        span,
+    ))
 }
 
 /// Returns whether the struct implements [`Clone`].

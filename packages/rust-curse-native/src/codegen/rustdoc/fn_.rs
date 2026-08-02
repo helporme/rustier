@@ -176,13 +176,14 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
         }));
     }
 
+    let span = item.span.as_ref().map(|span| span.lower(id.crate_(db)));
     let id = FnId::new(
         db,
         ItemId::new(db, ItemPath::new(db, &item_summary.path), ItemKind::Fn),
     )
     .expect("newly created function item must have function kind");
 
-    Ok(Fn::new(db, id, params, ret_type, item.docs.clone()))
+    Ok(Fn::new(db, id, params, ret_type, item.docs.clone(), span))
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]

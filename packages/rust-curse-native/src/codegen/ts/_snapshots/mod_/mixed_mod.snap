@@ -1,5 +1,6 @@
 ---
 source: src/codegen/ts/mod_.rs
+assertion_line: 87
 expression: body
 ---
 ## Test
@@ -18,7 +19,8 @@ let db = test_db! {
     Empty, Value { number : i32 }, } pub fn mixed(number : i32, text : String, local
     : Local, external : models::External,) -> models::External { external }
 };
-compile_mod(&db, db.rustdoc_id("")).to_string()
+let mod_ = lower_mod(&db, db.rustdoc_id(""));
+compile_mod(&db, mod_)
 ```
 
 ## Output

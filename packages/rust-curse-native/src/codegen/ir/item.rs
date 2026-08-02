@@ -1,4 +1,54 @@
-use crate::codegen::{db::Db, ir::mod_::ModId, mangle::mangle_path};
+use crate::codegen::{
+    db::Db,
+    ir::{
+        c_like_enum::CLikeEnum,
+        enum_::Enum,
+        fn_::Fn,
+        mod_::{Mod, ModId},
+        struct_::Struct,
+    },
+    mangle::mangle_path,
+};
+
+/// A lowered Rust item stored in the IR.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Supertype, salsa::Update)]
+pub enum Item<'db> {
+    CLikeEnum(CLikeEnum<'db>),
+    Enum(Enum<'db>),
+    Fn(Fn<'db>),
+    Mod(Mod<'db>),
+    Struct(Struct<'db>),
+}
+
+impl<'db> From<CLikeEnum<'db>> for Item<'db> {
+    fn from(value: CLikeEnum<'db>) -> Self {
+        Self::CLikeEnum(value)
+    }
+}
+
+impl<'db> From<Enum<'db>> for Item<'db> {
+    fn from(value: Enum<'db>) -> Self {
+        Self::Enum(value)
+    }
+}
+
+impl<'db> From<Fn<'db>> for Item<'db> {
+    fn from(value: Fn<'db>) -> Self {
+        Self::Fn(value)
+    }
+}
+
+impl<'db> From<Mod<'db>> for Item<'db> {
+    fn from(value: Mod<'db>) -> Self {
+        Self::Mod(value)
+    }
+}
+
+impl<'db> From<Struct<'db>> for Item<'db> {
+    fn from(value: Struct<'db>) -> Self {
+        Self::Struct(value)
+    }
+}
 
 /// Fully qualified item path.
 #[salsa::interned(debug)]
@@ -95,6 +145,18 @@ pub trait IntoItemId<'db> {
 impl<'db> IntoItemId<'db> for ItemId<'db> {
     fn into_item_id(self, _db: &'db dyn Db) -> ItemId<'db> {
         self
+    }
+}
+
+impl<'db> IntoItemId<'db> for Item<'db> {
+    fn into_item_id(self, db: &'db dyn Db) -> ItemId<'db> {
+        match self {
+            Self::CLikeEnum(item) => item.into_item_id(db),
+            Self::Enum(item) => item.into_item_id(db),
+            Self::Fn(item) => item.into_item_id(db),
+            Self::Mod(item) => item.into_item_id(db),
+            Self::Struct(item) => item.into_item_id(db),
+        }
     }
 }
 

@@ -1,11 +1,8 @@
 //! Generates source map mappings for TypeScript enum declarations.
 
-use rustdoc_types::ItemEnum;
-
 use crate::codegen::{
     db::Db,
     ir::{enum_::Enum, item::ItemIdExt, shape::Shape},
-    rustdoc::{CrateExt, ItemIdExt as _},
     ts::{
         enum_::compile_enum,
         sourcemap::{
@@ -23,10 +20,10 @@ pub fn compile_enum_mappings<'db>(
     enum_: Enum<'db>,
     generated_line: usize,
 ) -> Vec<Mapping> {
-    let enum_rustdoc_id = enum_.id(db).rustdoc_id(db);
-    let Some(enum_original) = original_location(db, enum_rustdoc_id) else {
+    let Some(span) = enum_.span(db) else {
         return Vec::new();
     };
+    let enum_original = original_location(span);
     let enum_name = enum_.name(db).to_string();
     let generated = compile_enum(db, enum_);
     let enum_type_line = find_name_line(generated, 0, "export type ", &enum_name, " =")
@@ -94,11 +91,6 @@ pub fn compile_enum_mappings<'db>(
         ]);
     }
 
-    let enum_item = enum_rustdoc_id.item(db);
-    let ItemEnum::Enum(enum_def) = &enum_item.inner else {
-        unreachable!()
-    };
-    let crate_body = enum_rustdoc_id.crate_body(db);
     let tag_prefix = match enum_.js_tag_field_name(db) {
         "$type" => "\t\t\treadonly $type: \"",
         "type" => "\t\t\treadonly type: \"",
@@ -106,18 +98,13 @@ pub fn compile_enum_mappings<'db>(
     };
     let mut variant_start_line = plain_line + 1;
 
-    for ((variant, variant_id), tag_name) in enum_
-        .variants(db)
-        .iter()
-        .zip(&enum_def.variants)
-        .zip(enum_.js_tag_names(db))
-    {
-        let variant_id = crate_body.id(db, *variant_id);
+    for (variant, tag_name) in enum_.variants(db).iter().zip(enum_.js_tag_names(db)) {
         let tag_line = find_name_line(generated, variant_start_line, tag_prefix, tag_name, "\";")
             .expect("compiled TypeScript enum variant discriminant should exist");
         variant_start_line = tag_line + 1;
 
-        if let Some(original) = original_location(db, variant_id) {
+        if let Some(span) = variant.span(db) {
+            let original = original_location(span);
             let line = generated_line + tag_line - enum_type_line;
             let name = variant.name(db).clone();
             mappings.extend([
@@ -158,10 +145,10 @@ pub fn compile_enum_mappings<'db>(
             .expect("compiled TypeScript enum variant field should exist");
             variant_start_line = field_line + 1;
 
-            let Some(original) = original_location(db, field.rustdoc_id(db, enum_.id(db).into()))
-            else {
+            let Some(span) = field.span(db) else {
                 continue;
             };
+            let original = original_location(span);
             let line = generated_line + field_line - enum_type_line;
             let name = field.name(db).clone();
             mappings.extend([
@@ -194,17 +181,20 @@ mod tests {
     use super::*;
     use crate::codegen::{
         db::DbImpl,
-        rustdoc::enum_::{LoweredEnum, lower_enum},
-        test::{assert_snap, test_db},
+        rustdoc::mod_::lower_mods,
+        test::{TEST_CRATE_NAME, assert_snap, test_db},
         ts::sourcemap::test::snapshot_mappings,
     };
 
     fn compile_test_enum(db: DbImpl, path: &str, generated_line: usize) -> String {
         let rustdoc_id = db.rustdoc_id(path);
-        let enum_ = match lower_enum(&db, rustdoc_id).unwrap() {
-            LoweredEnum::Enum(enum_) => enum_,
-            LoweredEnum::CLikeEnum(_) => panic!("test requires a data-carrying enum"),
-        };
+        let fqn = format!("{TEST_CRATE_NAME}::{path}");
+        let modules = lower_mods(&db);
+        let enum_ = modules
+            .iter()
+            .flat_map(|mod_| mod_.enums(&db))
+            .find(|enum_| enum_.fqn(&db) == &fqn)
+            .expect("test enum should be lowered");
         let generated = compile_enum(&db, enum_);
         let mappings = compile_enum_mappings(&db, enum_, generated_line);
 

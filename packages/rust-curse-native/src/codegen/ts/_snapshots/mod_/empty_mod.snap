@@ -1,5 +1,6 @@
 ---
 source: src/codegen/ts/mod_.rs
+assertion_line: 75
 expression: body
 ---
 ## Test
@@ -12,7 +13,8 @@ codegen::ts::mod_::tests::empty_mod
 
 ```rs
 let db = test_db! {};
-compile_mod(&db, db.rustdoc_id("")).to_string()
+let mod_ = lower_mod(&db, db.rustdoc_id(""));
+compile_mod(&db, mod_)
 ```
 
 ## Output

@@ -3,7 +3,6 @@
 use crate::codegen::{
     db::Db,
     ir::{item::ItemIdExt as _, shape::Shape, struct_::Struct},
-    rustdoc::ItemIdExt as _,
     ts::{
         sourcemap::{
             Mapping,
@@ -21,10 +20,10 @@ pub fn compile_struct_mappings<'db>(
     struct_: Struct<'db>,
     generated_line: usize,
 ) -> Vec<Mapping> {
-    let struct_rustdoc_id = struct_.id(db).rustdoc_id(db);
-    let Some(original) = original_location(db, struct_rustdoc_id) else {
+    let Some(span) = struct_.span(db) else {
         return Vec::new();
     };
+    let original = original_location(span);
     let name = struct_.name(db).to_string();
     let generated = compile_struct(db, struct_);
     let class_line = find_name_line(generated, 0, "export class ", &name, " {")
@@ -60,10 +59,10 @@ pub fn compile_struct_mappings<'db>(
             .expect("compiled TypeScript class field declaration should exist");
         field_start_line = field_line + 1;
 
-        let Some(original) = original_location(db, field.rustdoc_id(db, struct_.id(db).into()))
-        else {
+        let Some(span) = field.span(db) else {
             continue;
         };
+        let original = original_location(span);
 
         let generated_line = generated_line + field_line - class_line;
         let name = field.name(db).clone();
@@ -100,14 +99,20 @@ mod tests {
     use super::*;
     use crate::codegen::{
         db::DbImpl,
-        rustdoc::struct_::lower_struct,
-        test::{assert_snap, test_db},
+        rustdoc::mod_::lower_mods,
+        test::{TEST_CRATE_NAME, assert_snap, test_db},
         ts::sourcemap::test::snapshot_mappings,
     };
 
     fn compile_test_struct(db: DbImpl, path: &str, generated_line: usize) -> String {
         let rustdoc_id = db.rustdoc_id(path);
-        let struct_ = lower_struct(&db, rustdoc_id).unwrap();
+        let fqn = format!("{TEST_CRATE_NAME}::{path}");
+        let modules = lower_mods(&db);
+        let struct_ = modules
+            .iter()
+            .flat_map(|mod_| mod_.structs(&db))
+            .find(|struct_| struct_.fqn(&db) == &fqn)
+            .expect("test struct should be lowered");
         let generated = compile_struct(&db, struct_);
         let mappings = compile_struct_mappings(&db, struct_, generated_line);
 

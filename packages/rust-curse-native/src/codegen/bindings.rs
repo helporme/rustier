@@ -18,14 +18,16 @@ use crate::codegen::{
     bindings::{mod_::compile_mod, tethering::compile_tethering_prelude},
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, frag, fragment, spaced},
-    rustdoc::mod_::{all_mod_ids, lower_mod_enums, lower_mod_structs},
+    ir::mod_::Mod,
+    rustdoc::mod_::lower_mods,
 };
 
-/// Compiles the bindings using active
-/// [`crate::codegen::rustdoc::RustdocCrates`] and
+/// Compiles bindings from the active lowered modules using the active
 /// [`crate::codegen::api::Api`].
 #[salsa::tracked]
 pub fn compile_bindings(db: &dyn Db) -> String {
+    let modules = lower_mods(db);
+
     fragment(|p| {
         frag!(
             #![allow(unused_mut, dead_code, unused_imports, nonstandard_style, unreachable_patterns)]@@
@@ -34,7 +36,7 @@ pub fn compile_bindings(db: &dyn Db) -> String {
 
         Api::get(db).prelude(db).apply(p);
 
-        if is_using_tethering(db) {
+        if is_using_tethering(db, modules) {
             frag!(@@).apply(p);
             compile_tethering_prelude(db).apply(p);
         }
@@ -42,9 +44,9 @@ pub fn compile_bindings(db: &dyn Db) -> String {
         frag!(@@).apply(p);
 
         spaced(
-            all_mod_ids(db)
+            modules
                 .iter()
-                .map(|mod_id| compile_mod(db, *mod_id))
+                .map(|mod_| compile_mod(db, *mod_))
                 .filter(|compiled| !compiled.trim().is_empty()),
         )
         .apply(p);
@@ -54,10 +56,9 @@ pub fn compile_bindings(db: &dyn Db) -> String {
 
 /// Returns whether compiling any lowered struct or enum requires the tethering
 /// prelude.
-#[salsa::tracked]
-fn is_using_tethering(db: &dyn Db) -> bool {
+fn is_using_tethering<'db>(db: &'db dyn Db, modules: &[Mod<'db>]) -> bool {
     // todo: remove
-    all_mod_ids(db).iter().any(|mod_id| {
-        !lower_mod_structs(db, *mod_id).is_empty() || !lower_mod_enums(db, *mod_id).is_empty()
-    })
+    modules
+        .iter()
+        .any(|mod_| mod_.structs(db).next().is_some() || mod_.enums(db).next().is_some())
 }

@@ -1,4 +1,4 @@
-//! Compiles rustdoc into JavaScript that imports bindings.
+//! Compiles IR into JavaScript that imports bindings.
 
 pub mod boundary;
 pub mod enum_;

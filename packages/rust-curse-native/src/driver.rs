@@ -27,7 +27,7 @@ use crate::{
         self,
         db::DbImpl,
         diag::{Diag, Theme},
-        rustdoc::mod_::lower_mod,
+        rustdoc::mod_::lower_mods,
     },
     sync::{SyncCrateOps, SyncTsTreeOpts, sync_crate, sync_ts_tree},
     tools::{self, node::BuildOutput as NodeBuildOutput, wasm::BuildOutput as WasmBuildOutput},
@@ -413,7 +413,8 @@ impl Driver {
             info!(profile_name = %profile_name, "built profile");
         }
 
-        for diag in codegen::check::check(&self.db) {
+        let modules = lower_mods(&self.db);
+        for diag in codegen::check::check(&self.db, modules) {
             diags.push(
                 Diag::from(diag.clone())
                     .render(Theme::UnicodeNoColor)
@@ -485,29 +486,21 @@ impl Driver {
         debug!(module_path = %module_path.display(), "canonicalized Rust module path");
 
         // todo: build file map instaed
-        for mod_id in codegen::rustdoc::mod_::all_mod_ids(&self.db) {
-            let item = mod_id.item(&self.db);
-            let Some(span) = &item.span else {
+        let modules = lower_mods(&self.db);
+        for mod_ in modules {
+            let Some(span) = mod_.span(&self.db) else {
                 continue;
             };
-            let crate_ = mod_id.crate_(&self.db);
-            let span_path = if span.filename.is_absolute() {
-                span.filename.clone()
-            } else {
-                crate_.dir.join(&span.filename)
-            };
-            let Ok(span_path) = span_path.canonicalize() else {
-                trace!("skipping rustdoc module with non-canonicalizable span path");
+            let Ok(span_path) = span.abs_path.canonicalize() else {
+                trace!("skipping IR module with non-canonicalizable span path");
                 continue;
             };
 
-            trace!(span_path = %span_path.display(), "checking rustdoc module span path");
+            trace!(span_path = %span_path.display(), "checking IR module span path");
 
             if span_path == module_path {
                 debug!(module_path = %module_path.display(), "resolved Rust module import");
-                let mod_ = lower_mod(&self.db, *mod_id);
-                let mod_id = mod_.id(&self.db);
-                return Ok(codegen::js::mod_::compile_js_file(&self.db, mod_id).to_owned());
+                return Ok(codegen::js::mod_::compile_js_file(&self.db, *mod_));
             }
         }
 

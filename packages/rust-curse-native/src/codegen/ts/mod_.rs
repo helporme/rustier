@@ -5,11 +5,8 @@ use std::collections::BTreeSet;
 use crate::codegen::{
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, fragment, spaced},
+    ir::mod_::Mod,
     js::imports::compile_import_stmt,
-    rustdoc::{
-        RustdocId,
-        mod_::{lower_mod, lower_mod_enums, lower_mod_fns, lower_mod_structs},
-    },
     ts::{
         enum_::{compile_enum, compile_enum_required_imports},
         fn_::{compile_fn, compile_fn_required_imports},
@@ -20,22 +17,20 @@ use crate::codegen::{
 
 /// Compiles all supported items declared by a Rust module into its TypeScript
 /// declaration file.
-#[salsa::tracked(returns(ref))]
-pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> String {
-    let mod_ = lower_mod(db, mod_id);
-    let fns = lower_mod_fns(db, mod_id);
-    let structs = lower_mod_structs(db, mod_id);
-    let enums = lower_mod_enums(db, mod_id);
+pub fn compile_mod<'db>(db: &'db dyn Db, mod_: Mod<'db>) -> String {
+    let fns = mod_.fns(db);
+    let structs = mod_.structs(db);
+    let enums = mod_.enums(db);
 
     let mut imports = BTreeSet::new();
-    for fn_ in fns.iter() {
-        compile_fn_required_imports(db, *fn_, &mut imports);
+    for fn_ in fns.clone() {
+        compile_fn_required_imports(db, fn_, &mut imports);
     }
-    for struct_ in structs.iter() {
-        compile_struct_required_imports(db, *struct_, &mut imports);
+    for struct_ in structs.clone() {
+        compile_struct_required_imports(db, struct_, &mut imports);
     }
-    for enum_ in enums.iter() {
-        compile_enum_required_imports(db, *enum_, &mut imports);
+    for enum_ in enums.clone() {
+        compile_enum_required_imports(db, enum_, &mut imports);
     }
     let has_imports = !imports.is_empty();
 
@@ -58,10 +53,9 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> String {
         }
 
         spaced(
-            fns.iter()
-                .map(|fn_| compile_fn(db, *fn_))
-                .chain(structs.iter().map(|struct_| compile_struct(db, *struct_)))
-                .chain(enums.iter().map(|enum_| compile_enum(db, *enum_))),
+            fns.map(|fn_| compile_fn(db, fn_))
+                .chain(structs.map(|struct_| compile_struct(db, struct_)))
+                .chain(enums.map(|enum_| compile_enum(db, enum_))),
         )
         .apply(p);
     })
@@ -71,7 +65,10 @@ pub fn compile_mod<'db>(db: &'db dyn Db, mod_id: RustdocId<'db>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::codegen::test::{assert_snap, test_db};
+    use crate::codegen::{
+        rustdoc::mod_::lower_mod,
+        test::{assert_snap, test_db},
+    };
 
     #[test]
     fn empty_mod() {
@@ -79,8 +76,9 @@ mod tests {
             @lang: "ts";
 
             let db = test_db! {};
+            let mod_ = lower_mod(&db, db.rustdoc_id(""));
 
-            compile_mod(&db, db.rustdoc_id("")).to_string()
+            compile_mod(&db, mod_)
         });
     }
 
@@ -120,8 +118,9 @@ mod tests {
                     external
                 }
             };
+            let mod_ = lower_mod(&db, db.rustdoc_id(""));
 
-            compile_mod(&db, db.rustdoc_id("")).to_string()
+            compile_mod(&db, mod_)
         });
     }
 }
