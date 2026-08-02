@@ -22,19 +22,19 @@ struct __tethering__rustdoc_0test_0crate_Parent {
 }
 impl __tethering::Accessor<rustdoc_test_crate::Parent>
 for __tethering__rustdoc_0test_0crate_Parent {
-    fn access(
+    fn access_dyn(
         &self,
         f: &mut dyn FnMut(&rustdoc_test_crate::Parent) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
-        self.src.access(f)
+        self.src.access_dyn(f)
     }
-    fn access_mut(
+    fn access_mut_dyn(
         &self,
         f: &mut dyn FnMut(
             &mut rustdoc_test_crate::Parent,
         ) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
-        self.src.access_mut(f)
+        self.src.access_mut_dyn(f)
     }
 }
 impl __tethering__rustdoc_0test_0crate_Parent {
@@ -57,12 +57,10 @@ impl __tethering__rustdoc_0test_0crate_Parent {
     ) -> __tethering::AccessResult<
         std::rc::Rc<__tethering__rustdoc_0test_0crate_Child>,
     > {
-        self.access(
-            &mut |parent| {
-                Ok(&parent.child)?;
-                Ok(())
-            },
-        )?;
+        self.access(|parent| {
+            Ok(&parent.child)?;
+            Ok(())
+        })?;
         if let Some(tethered) = __tethering::try_borrow(&self.__c__child)?
             .as_ref()
             .and_then(std::rc::Weak::upgrade)
@@ -88,27 +86,17 @@ impl __tethering__rustdoc_0test_0crate_Parent {
         &self,
         value: rustdoc_test_crate::Child,
     ) -> __tethering::AccessResult<()> {
-        self.access_mut(
-            &mut |src| {
-                Ok(&mut src.child)?;
-                Ok(())
-            },
-        )?;
+        self.access_mut(|src| {
+            Ok(&mut src.child)?;
+            Ok(())
+        })?;
         let cached_value = __tethering::try_borrow_mut(&self.__c__child)?
             .take()
             .and_then(|tethered| tethered.upgrade());
-        let mut old_value = None;
-        let mut value = Some(value);
-        self.access_mut(
-            &mut |src| {
-                old_value = Some(
-                    std::mem::replace(Ok(&mut src.child)?, value.take().unwrap()),
-                );
-                Ok(())
-            },
-        )?;
+        let old_value = self
+            .access_mut(|src| { Ok(std::mem::replace(Ok(&mut src.child)?, value)) })?;
         if let Some(cached_value) = cached_value {
-            cached_value.src.replace_with_owned(old_value.unwrap())?;
+            cached_value.src.replace_with_owned(old_value)?;
         }
         Ok(())
     }
@@ -125,19 +113,19 @@ struct __tethering__rustdoc_0test_0crate_Parent {
 }
 impl __tethering::Accessor<rustdoc_test_crate::Parent>
 for __tethering__rustdoc_0test_0crate_Parent {
-    fn access(
+    fn access_dyn(
         &self,
         f: &mut dyn FnMut(&rustdoc_test_crate::Parent) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
-        self.src.access(f)
+        self.src.access_dyn(f)
     }
-    fn access_mut(
+    fn access_mut_dyn(
         &self,
         f: &mut dyn FnMut(
             &mut rustdoc_test_crate::Parent,
         ) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
-        self.src.access_mut(f)
+        self.src.access_mut_dyn(f)
     }
 }
 impl __tethering__rustdoc_0test_0crate_Parent {
@@ -160,12 +148,10 @@ impl __tethering__rustdoc_0test_0crate_Parent {
     ) -> __tethering::AccessResult<
         std::rc::Rc<__tethering__rustdoc_0test_0crate_Child>,
     > {
-        self.access(
-            &mut |parent| {
-                Ok(&parent.child)?;
-                Ok(())
-            },
-        )?;
+        self.access(|parent| {
+            Ok(&parent.child)?;
+            Ok(())
+        })?;
         if let Some(tethered) = __tethering::try_borrow(&self.__c__child)?
             .as_ref()
             .and_then(std::rc::Weak::upgrade)
@@ -191,27 +177,17 @@ impl __tethering__rustdoc_0test_0crate_Parent {
         &self,
         value: rustdoc_test_crate::Child,
     ) -> __tethering::AccessResult<()> {
-        self.access_mut(
-            &mut |src| {
-                Ok(&mut src.child)?;
-                Ok(())
-            },
-        )?;
+        self.access_mut(|src| {
+            Ok(&mut src.child)?;
+            Ok(())
+        })?;
         let cached_value = __tethering::try_borrow_mut(&self.__c__child)?
             .take()
             .and_then(|tethered| tethered.upgrade());
-        let mut old_value = None;
-        let mut value = Some(value);
-        self.access_mut(
-            &mut |src| {
-                old_value = Some(
-                    std::mem::replace(Ok(&mut src.child)?, value.take().unwrap()),
-                );
-                Ok(())
-            },
-        )?;
+        let old_value = self
+            .access_mut(|src| { Ok(std::mem::replace(Ok(&mut src.child)?, value)) })?;
         if let Some(cached_value) = cached_value {
-            cached_value.src.replace_with_owned(old_value.unwrap())?;
+            cached_value.src.replace_with_owned(old_value)?;
         }
         Ok(())
     }

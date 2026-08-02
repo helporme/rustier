@@ -1,5 +1,5 @@
 ---
-source: src/codegen/bindings/method.rs
+source: src/codegen/bindings/extern_fn.rs
 expression: snapshot
 ---
 # Source

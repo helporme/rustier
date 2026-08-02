@@ -33,4 +33,5 @@ napi-build = { version = "2", optional = true }
 tempfile = "3.27.0"
 insta = { version = "1", features = ["filters"] }
 prettyplease = "0.2"
+proptest = "1"
 syn = { version = "2", features = ["parsing"] }

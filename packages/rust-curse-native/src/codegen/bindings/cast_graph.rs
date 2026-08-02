@@ -297,7 +297,7 @@ where
     fragment(move |printer| {
         if uses_indirect_rule {
             frag!({{
-                let mut __cast_expr_result = std::mem::MaybeUninit::uninit();@
+                let mut __cast_expr_result = None;@
                 {BindingsCast::compile_cast(
                     db,
                     from,
@@ -307,9 +307,7 @@ where
                         out_var_name: "__cast_expr_result",
                     },
                 )}@
-                unsafe~{{
-                    __cast_expr_result.assume_init()
-                }}
+                __cast_expr_result.expect("successful indirect cast must produce a result")
             }})
             .apply(printer);
         } else {
@@ -455,15 +453,13 @@ where
 
         if uses_indirect_rule {
             frag!({{
-                let mut __cast_expr_result = std::mem::MaybeUninit::uninit();@
+                let mut __cast_expr_result = None;@
                 {compile_cast_stmt(
                     self.db,
                     cast,
-                    frag!(__cast_expr_result.write({remaining});),
+                    frag!(__cast_expr_result = Some({remaining});),
                 )}@
-                unsafe~{{
-                    __cast_expr_result.assume_init()
-                }}
+                __cast_expr_result.expect("successful indirect cast must produce a result")
             }})
             .apply(printer);
         } else {
@@ -497,7 +493,7 @@ impl<'db> CastContinuation<'db> for WriteCastOutput<'db> {
         Expr: FragmentOnce + 'fragment,
     {
         let out_var_name = self.out_var_name;
-        frag!({out_var_name}.write({out_expr});)
+        frag!({out_var_name} = Some({out_expr});)
     }
 }
 

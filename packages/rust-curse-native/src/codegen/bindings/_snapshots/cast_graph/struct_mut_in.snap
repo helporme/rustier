@@ -19,13 +19,11 @@ pub enum ExampleEnum {
 fn cast(input: ()) {
     input
         .src
-        .access_mut(
-            &mut |value| {
-                let output = value;
-                consume(output);
-                Ok(())
-            },
-        )?;
+        .access_mut(|value| {
+            let output = value;
+            consume(output);
+            Ok(())
+        })?;
 }
 ```
 
@@ -34,12 +32,10 @@ fn cast(input: ()) {
 fn cast(input: ()) {
     input
         .src
-        .access_mut(
-            &mut |value| {
-                let output = value;
-                consume(output);
-                Ok(())
-            },
-        )?;
+        .access_mut(|value| {
+            let output = value;
+            consume(output);
+            Ok(())
+        })?;
 }
 ```

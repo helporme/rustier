@@ -14,6 +14,7 @@ mod tethering;
 pub mod test;
 
 use crate::codegen::{
+    api::Api,
     bindings::{mod_::compile_mod, tethering::compile_tethering_prelude},
     db::Db,
     fragment::{FragmentOnce, FragmentPrint, frag, fragment, spaced},
@@ -26,6 +27,13 @@ use crate::codegen::{
 #[salsa::tracked]
 pub fn compile_bindings(db: &dyn Db) -> String {
     fragment(|p| {
+        frag!(
+            #![allow(unused_mut, dead_code, unused_imports, nonstandard_style, unreachable_patterns)]@@
+        )
+        .apply(p);
+
+        Api::get(db).prelude(db).apply(p);
+
         if is_using_tethering(db) {
             frag!(@@).apply(p);
             compile_tethering_prelude(db).apply(p);

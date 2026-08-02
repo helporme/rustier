@@ -172,9 +172,16 @@ fn compile_type_method<'db>(
         }
     });
 
+    let non_exhaustive_fallback = fragment(move |printer| {
+        if enum_.is_non_exhaustive(db) {
+            frag!(_ => u32::MAX,).apply(printer);
+        }
+    });
+
     let expr = frag!(
         match src~{{
             {variants}
+            {non_exhaustive_fallback}
         }}
     );
 

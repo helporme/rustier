@@ -18,6 +18,8 @@ pub struct Enum<'db> {
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,
+    #[tracked]
+    pub is_non_exhaustive: bool,
 }
 
 impl<'db> IntoItemId<'db> for Enum<'db> {

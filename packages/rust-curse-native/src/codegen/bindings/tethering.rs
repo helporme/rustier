@@ -171,21 +171,65 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
             value.try_borrow_mut().map_err(|_|~{borrow_mut_error})
         }}@@
 
+        /// Provides object-safe access to a potentially projected value.@
         pub trait Accessor<T>~{{
-            fn access(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>;@
-            fn access_mut(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>;
+            /// Invokes `f` with shared access to the value.@
+            fn access_dyn(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>;@
+            /// Invokes `f` with exclusive access to the value.@
+            fn access_mut_dyn(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>;
         }}@@
 
         impl<T> Accessor<T> for RefCell<T>~{{
-            fn access(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>~{{
+            fn access_dyn(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>~{{
                 let value = try_borrow(self)?;@
                 f(&*value)
             }}@
-            fn access_mut(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>~{{
+            fn access_mut_dyn(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>~{{
                 let mut value = try_borrow_mut(self)?;@
                 f(&mut *value)
             }}
         }}
+    );
+
+    let accessor_ext = frag!(
+        /// Adds allocation-free one-shot callbacks to every accessor.@
+        pub trait AccessorExt<T>: Accessor<T>~{{
+            /// Invokes `f` exactly once when shared access succeeds.@
+            fn access<R, F>(&self, f: F) -> AccessResult<R>@
+            where@
+                F: FnOnce(&T) -> AccessResult<R>,@
+            ~{{
+                let mut f = Some(f);@
+                let mut result = None;@
+                self.access_dyn(&mut |value|~{{
+                    result = Some(
+                        f.take()
+                            .expect("accessor callback must only be invoked once")(value)?,
+                    );@
+                    Ok(())
+                }})?;@
+                Ok(result.expect("successful access must invoke its callback"))
+            }}@@
+
+            /// Invokes `f` exactly once when exclusive access succeeds.@
+            fn access_mut<R, F>(&self, f: F) -> AccessResult<R>@
+            where@
+                F: FnOnce(&mut T) -> AccessResult<R>,@
+            ~{{
+                let mut f = Some(f);@
+                let mut result = None;@
+                self.access_mut_dyn(&mut |value|~{{
+                    result = Some(
+                        f.take()
+                            .expect("accessor callback must only be invoked once")(value)?,
+                    );@
+                    Ok(())
+                }})?;@
+                Ok(result.expect("successful access must invoke its callback"))
+            }}
+        }}@@
+
+        impl<T, A: Accessor<T> + ?Sized> AccessorExt<T> for A~{{}}
     );
 
     let source = frag!(
@@ -212,7 +256,7 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
 
     let source_accessor = frag!(
         impl<T> Accessor<T> for SourceSlot<T>~{{
-            fn access(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>~{{
+            fn access_dyn(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>~{{
                 let accessor = ~{{
                     let source = try_borrow(&self.0)?;@@
 
@@ -221,10 +265,10 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
                         Source::Projected(accessor) => Rc::clone(accessor),
                     }}
                 }};@
-                accessor.access(f)
+                accessor.access_dyn(f)
             }}@@
 
-            fn access_mut(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>~{{
+            fn access_mut_dyn(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>~{{
                 let accessor = ~{{
                     let mut source = try_borrow_mut(&self.0)?;@@
 
@@ -233,7 +277,7 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
                         Source::Projected(accessor) => Rc::clone(accessor),
                     }}
                 }};@
-                accessor.access_mut(f)
+                accessor.access_mut_dyn(f)
             }}
         }}
     );
@@ -246,11 +290,11 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
         }}@@
 
         impl<Parent: 'static, T: 'static> Accessor<T> for FieldAccess<Parent, T>~{{
-            fn access(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>~{{
-                self.parent.access(&mut |parent| f((self.get)(parent)?))
+            fn access_dyn(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>~{{
+                self.parent.access_dyn(&mut |parent| f((self.get)(parent)?))
             }}@
-            fn access_mut(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>~{{
-                self.parent.access_mut(&mut |parent| f((self.get_mut)(parent)?))
+            fn access_mut_dyn(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>~{{
+                self.parent.access_mut_dyn(&mut |parent| f((self.get_mut)(parent)?))
             }}
         }}
     );
@@ -260,11 +304,12 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
         #[allow(non_snake_case, dead_code)]@
         mod __tethering~{{
             {borrow_support}@@
+            {accessor_ext}@@
             {source}@@
             {source_accessor}@@
             {field_access}
         }}@
-        use __tethering::Accessor as _;
+        use __tethering::{Accessor as _, AccessorExt as _};
     )
 }
 
@@ -407,18 +452,18 @@ where
             }}@@
 
             impl __tethering::Accessor<{source_type()}> for ~{name()}~{{
-                fn access(
+                fn access_dyn(
                     &self,@
                     f: &mut dyn FnMut(&{source_type()}) -> __tethering::AccessResult<()>,@
                 ) -> __tethering::AccessResult<()>~{{
-                    self.src.access(f)
+                    self.src.access_dyn(f)
                 }}@@
 
-                fn access_mut(
+                fn access_mut_dyn(
                     &self,@
                     f: &mut dyn FnMut(&mut ~{source_type()}) -> __tethering::AccessResult<()>,@
                 ) -> __tethering::AccessResult<()>~{{
-                    self.src.access_mut(f)
+                    self.src.access_mut_dyn(f)
                 }}
             }}@@
 
@@ -490,14 +535,7 @@ impl<'a, GetRefExpr, GetMutExpr> ClonedField<'a, GetRefExpr, GetMutExpr> {
 
             frag!(
                 pub fn get_{self.name}(&self) -> __tethering::AccessResult<{self.source_type.fqn_decl(db)}>~{{
-                    let mut result = std::mem::MaybeUninit::uninit();@
-                    self.access(&mut |src|~{{
-                        result.write({get_ref_expr}?.clone());@
-                        Ok(())
-                    }})?;@
-                    Ok(unsafe~{{
-                        result.assume_init()
-                    }})
+                    self.access(|src| Ok({get_ref_expr}?.clone()))
                 }}
             )
             .apply(p);
@@ -514,12 +552,10 @@ impl<'a, GetRefExpr, GetMutExpr> ClonedField<'a, GetRefExpr, GetMutExpr> {
 
             frag!(
                 pub fn set_{self.name}(&self, value: ~{self.source_type.fqn_decl(db)}) -> __tethering::AccessResult<()>~{{
-                    let mut value = Some(value);@
-                    self.access_mut(&mut |src|~{{
-                        *{get_mut_expr}? = value.take().unwrap();@
+                    self.access_mut(|src|~{{
+                        *{get_mut_expr}? = value;@
                         Ok(())
-                    }})?;@
-                    Ok(())
+                    }})
                 }}
             )
             .apply(p);
@@ -549,7 +585,7 @@ impl<'a, GetRefExpr, GetMutExpr> TetheringStructField<'a, GetRefExpr, GetMutExpr
                     self: &std::rc::Rc<Self>,@
                 ) -> __tethering::AccessResult<std::rc::Rc<{tethered_name()}>>~{{
                     // Try to access the field first so we can return early if it's invalid
-                    self.access(&mut |parent|~{{
+                    self.access(|parent|~{{
                         {validate_get_ref_expr}?;@
                         Ok(())
                     }})?;@@
@@ -589,7 +625,7 @@ impl<'a, GetRefExpr, GetMutExpr> TetheringStructField<'a, GetRefExpr, GetMutExpr
             frag!(
                 pub fn set_{self.name}(&self, value: ~{source_type}) -> __tethering::AccessResult<()>~{{
                     // Try to access the field first so we can return early if it's invalid
-                    self.access_mut(&mut |src|~{{
+                    self.access_mut(|src|~{{
                         {validate_get_mut_expr}?;@
                         Ok(())
                     }})?;@@
@@ -598,19 +634,15 @@ impl<'a, GetRefExpr, GetMutExpr> TetheringStructField<'a, GetRefExpr, GetMutExpr
                         .take()
                         .and_then(|tethered| tethered.upgrade());@@
 
-                    let mut old_value = None;@
-                    let mut value = Some(value);@@
-
-                    self.access_mut(&mut |src|~{{
-                        old_value = Some(std::mem::replace(
+                    let old_value = self.access_mut(|src|~{{
+                        Ok(std::mem::replace(
                             {get_mut_expr}?,
-                            value.take().unwrap(),
-                        ));@
-                        Ok(())
+                            value,
+                        ))
                     }})?;@@
 
                     if let Some(cached_value)~= cached_value~{{
-                        cached_value.src.replace_with_owned(old_value.unwrap())?;
+                        cached_value.src.replace_with_owned(old_value)?;
                     }}@
                     Ok(())
                 }}
@@ -729,7 +761,7 @@ impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, SourceType<'db>>
         fragment(move |p| {
             if is_mutable {
                 frag!(
-                    {in_expr}.access_mut(&mut |value|~{{
+                    {in_expr}.access_mut(|value|~{{
                         {continue_with.compile("value")}@
                         Ok(())
                     }})?;
@@ -737,7 +769,7 @@ impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, SourceType<'db>>
                 .apply(p);
             } else {
                 frag!(
-                    {in_expr}.access(&mut |value|~{{
+                    {in_expr}.access(|value|~{{
                         {continue_with.compile("value")}@
                         Ok(())
                     }})?;
@@ -780,7 +812,7 @@ impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, SourceType<'db>>
     {
         fragment(move |p| {
             frag!(
-                {in_expr}.access(&mut |value|~{{
+                {in_expr}.access(|value|~{{
                     let value = value.clone();
                     {continue_with.compile("value")}@
                     Ok(())

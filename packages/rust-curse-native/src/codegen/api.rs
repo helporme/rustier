@@ -48,7 +48,7 @@ impl Api {
     pub fn prelude(&self, db: &dyn Db) -> &str {
         match self.kind(db) {
             ApiKind::Wasm { .. } => "use wasm_bindgen::prelude::*;\n",
-            ApiKind::Node => "use napi_derive::napi;\n",
+            ApiKind::Node => "use napi::{Unknown, ValueType};\nuse napi_derive::napi;\n",
         }
     }
 

@@ -209,7 +209,7 @@ pub trait FragmentOnce {
 /// assert_eq!(fragment.print(), "reusable");
 /// assert_eq!(fragment.print(), "reusable");
 /// ```
-pub trait Fragment: FragmentOnce {
+pub trait Fragment {
     /// Appends this fragment to `printer` without consuming it.
     fn apply_ref(&self, printer: &mut Printer);
 }

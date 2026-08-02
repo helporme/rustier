@@ -1,5 +1,5 @@
 use miette::Diagnostic;
-use rustdoc_types::{ItemEnum, ItemKind as RsItemKind, VariantKind};
+use rustdoc_types::{Attribute, ItemEnum, ItemKind as RsItemKind, VariantKind};
 use thiserror::Error;
 
 use crate::codegen::{
@@ -98,7 +98,13 @@ fn lower_data_carrying_enum<'db>(
     )
     .expect("newly created enum item must have enum kind");
 
-    Ok(Enum::new(db, id, variants, item.docs.clone()))
+    Ok(Enum::new(
+        db,
+        id,
+        variants,
+        item.docs.clone(),
+        item.attrs.contains(&Attribute::NonExhaustive),
+    ))
 }
 
 fn lower_c_like_enum<'db>(
