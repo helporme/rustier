@@ -4,32 +4,22 @@ use thiserror::Error;
 
 use crate::codegen::{
     db::Db,
-    ir::{EnumId, StructId, Type as IrType},
+    ir::{EnumId, StructId, Type as IrType, ValueType as IrValueType},
     ir::{ItemId, ItemKind, ItemPath},
     rustdoc::{CrateExt, RustdocType},
 };
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub enum LoweredType<'db> {
-    Moved(IrType<'db>),
-    Borrowed {
-        type_: IrType<'db>,
-        is_mutable: bool,
-    },
-}
-
 /// Lowers the rustdoc type to the IR type.
-#[salsa::tracked]
 pub fn lower_type<'db>(
     db: &'db dyn Db,
     id: RustdocType<'db>,
-) -> Result<LoweredType<'db>, Vec<TypeLowerError>> {
+) -> Result<IrType<'db>, Vec<TypeLowerError>> {
     let type_ = id.type_(db);
     let crate_ = id.crate_(db);
 
     match type_ {
         Type::Primitive(name) => match lower_primitive(name) {
-            Some(type_) => Ok(LoweredType::Moved(type_)),
+            Some(type_) => Ok(IrType::Value(type_)),
             None => Err(vec![TypeLowerError::UnsupportedPrimitive {
                 name: name.clone(),
             }]),
@@ -42,9 +32,9 @@ pub fn lower_type<'db>(
             };
 
             if summary.path == ["alloc", "string", "String"] {
-                Ok(LoweredType::Moved(IrType::String))
+                Ok(IrType::Value(IrValueType::String))
             } else if summary.kind == RItemKind::Struct && crate_.index.contains_key(&path.id) {
-                Ok(LoweredType::Moved(IrType::Struct(
+                Ok(IrType::Value(IrValueType::Struct(
                     StructId::new(
                         db,
                         ItemId::new(db, ItemPath::new(db, &summary.path), ItemKind::Struct),
@@ -52,7 +42,7 @@ pub fn lower_type<'db>(
                     .expect("newly created struct item must have struct kind"),
                 )))
             } else if summary.kind == RItemKind::Enum && crate_.index.contains_key(&path.id) {
-                Ok(LoweredType::Moved(IrType::Enum(
+                Ok(IrType::Value(IrValueType::Enum(
                     EnumId::new(
                         db,
                         ItemId::new(db, ItemPath::new(db, &summary.path), ItemKind::Enum),
@@ -77,8 +67,8 @@ pub fn lower_type<'db>(
             }
 
             let inner = match lower_type(db, crate_.ty(db, type_)) {
-                Ok(LoweredType::Moved(inner)) => Some(inner),
-                Ok(LoweredType::Borrowed { .. }) => {
+                Ok(IrType::Value(inner)) => Some(inner),
+                Ok(IrType::Borrowed { .. }) => {
                     diags.push(TypeLowerError::UnsupportedDoubleReference);
                     None
                 }
@@ -89,9 +79,9 @@ pub fn lower_type<'db>(
             };
 
             match inner {
-                Some(inner) if diags.is_empty() => Ok(LoweredType::Borrowed {
-                    type_: inner,
+                Some(inner) if diags.is_empty() => Ok(IrType::Borrowed {
                     is_mutable: *is_mutable,
+                    inner,
                 }),
                 _ => Err(diags),
             }
@@ -102,19 +92,19 @@ pub fn lower_type<'db>(
     }
 }
 
-fn lower_primitive<'db>(name: &str) -> Option<IrType<'db>> {
+fn lower_primitive<'db>(name: &str) -> Option<IrValueType<'db>> {
     let type_ = match name {
-        "bool" => IrType::bool,
-        "char" => IrType::char,
-        "str" => IrType::Str,
-        "i8" => IrType::i8,
-        "i16" => IrType::i16,
-        "i32" => IrType::i32,
-        "u8" => IrType::u8,
-        "u16" => IrType::u16,
-        "u32" => IrType::u32,
-        "f32" => IrType::f32,
-        "f64" => IrType::f64,
+        "bool" => IrValueType::bool,
+        "char" => IrValueType::char,
+        "str" => IrValueType::Str,
+        "i8" => IrValueType::i8,
+        "i16" => IrValueType::i16,
+        "i32" => IrValueType::i32,
+        "u8" => IrValueType::u8,
+        "u16" => IrValueType::u16,
+        "u32" => IrValueType::u32,
+        "f32" => IrValueType::f32,
+        "f64" => IrValueType::f64,
         _ => return None,
     };
 

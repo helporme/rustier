@@ -1,5 +1,5 @@
 ---
-source: src/codegen/bindings/method.rs
+source: src/codegen/bindings/extern_fn.rs
 expression: snapshot
 ---
 # Source
@@ -13,7 +13,7 @@ fn noop() {}
 ```rust
 #[napi(js_name = "test_fn")]
 pub fn test_fn() -> napi::Result<f64> {
-    Ok(cast.from("SourceType(f64)").to("BoundaryType(f64)").an(source()))
+    Ok(cast.from("Type(Value(f64))").to("BoundaryType(f64)").an(source()))
 }
 ```
 
@@ -21,6 +21,6 @@ pub fn test_fn() -> napi::Result<f64> {
 ```rust
 #[wasm_bindgen(js_name = "test_fn")]
 pub fn test_fn() -> Result<f64, JsValue> {
-    Ok(cast.from("SourceType(f64)").to("BoundaryType(f64)").an(source()))
+    Ok(cast.from("Type(Value(f64))").to("BoundaryType(f64)").an(source()))
 }
 ```

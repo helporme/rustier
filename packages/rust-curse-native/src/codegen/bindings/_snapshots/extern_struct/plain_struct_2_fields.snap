@@ -74,14 +74,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get_field(&self) -> napi::Result<u32> {
         Ok(
             cast
-                .from("SourceType(u32)")
+                .from("Type(Value(u32))")
                 .to("BoundaryType(u32)")
                 .an(self.src.get_field()?),
         )
     }
     #[napi(setter, js_name = "field")]
     pub fn set_field(&self, value: Unknown<'_>) -> napi::Result<()> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(u32))").an(value);
         self.src.set_field(value)?;
         Ok(())
     }
@@ -89,14 +89,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get_field2(&self) -> napi::Result<String> {
         Ok(
             cast
-                .from("SourceType(String)")
+                .from("Type(Value(String))")
                 .to("BoundaryType(String)")
                 .an(self.src.get_field2()?),
         )
     }
     #[napi(setter, js_name = "field2")]
     pub fn set_field2(&self, value: Unknown<'_>) -> napi::Result<()> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(String)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(String))").an(value);
         self.src.set_field2(value)?;
         Ok(())
     }
@@ -165,14 +165,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get_field(&self) -> Result<u32, JsValue> {
         Ok(
             cast
-                .from("SourceType(u32)")
+                .from("Type(Value(u32))")
                 .to("BoundaryType(u32)")
                 .an(self.src.get_field()?),
         )
     }
     #[wasm_bindgen(setter, js_name = "field")]
     pub fn set_field(&self, value: JsValue) -> Result<(), JsValue> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(u32))").an(value);
         self.src.set_field(value)?;
         Ok(())
     }
@@ -180,14 +180,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get_field2(&self) -> Result<String, JsValue> {
         Ok(
             cast
-                .from("SourceType(String)")
+                .from("Type(Value(String))")
                 .to("BoundaryType(String)")
                 .an(self.src.get_field2()?),
         )
     }
     #[wasm_bindgen(setter, js_name = "field2")]
     pub fn set_field2(&self, value: JsValue) -> Result<(), JsValue> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(String)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(String))").an(value);
         self.src.set_field2(value)?;
         Ok(())
     }

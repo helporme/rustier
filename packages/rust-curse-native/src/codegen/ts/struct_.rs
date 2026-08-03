@@ -4,7 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, fragment},
-        ir::{ItemIdExt as _, ShapeField, Struct, Type},
+        ir::{ItemIdExt as _, ShapeField, Struct, ValueType},
         js::imports::{Import, ImportFrom},
         ts::jsdoc::compile_jsdoc,
     },
@@ -54,20 +54,20 @@ pub fn compile_struct_required_imports<'db>(
 
     for field in struct_.fields(db).iter() {
         let (type_id, type_name): (crate::codegen::ir::ItemId<'db>, _) = match field.type_(db) {
-            Type::Struct(struct_id) => (struct_id.into(), struct_id.name(db)),
-            Type::Enum(enum_id) => (enum_id.into(), enum_id.name(db)),
-            Type::bool
-            | Type::char
-            | Type::i8
-            | Type::u8
-            | Type::i16
-            | Type::u16
-            | Type::i32
-            | Type::u32
-            | Type::f32
-            | Type::f64
-            | Type::Str
-            | Type::String => continue,
+            ValueType::Struct(struct_id) => (struct_id.into(), struct_id.name(db)),
+            ValueType::Enum(enum_id) => (enum_id.into(), enum_id.name(db)),
+            ValueType::bool
+            | ValueType::char
+            | ValueType::i8
+            | ValueType::u8
+            | ValueType::i16
+            | ValueType::u16
+            | ValueType::i32
+            | ValueType::u32
+            | ValueType::f32
+            | ValueType::f64
+            | ValueType::Str
+            | ValueType::String => continue,
         };
         let type_mod_id = type_id.parent_mod_id(db).unwrap();
 

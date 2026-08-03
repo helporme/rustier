@@ -5,14 +5,14 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::{DiagAccumulateExt, DiagSource, DiagSpan},
-    ir::{ItemIdExt as _, Shape, ShapeField, Type},
+    ir::{ItemIdExt as _, Shape, ShapeField, Type, ValueType},
     rustdoc::{CrateExt, ItemIdExt as _, RustdocId},
 };
 
 use super::{
     enums::is_enum_clonable,
     spans::RustdocSpanExt as _,
-    types::{LoweredType, TypeLowerError, lower_type},
+    types::{TypeLowerError, lower_type},
 };
 
 /// A borrowed rustdoc field layout that can originate from a struct or enum
@@ -142,10 +142,10 @@ fn lower_tuple_shape_field<'db>(
 
     let name = index.to_string();
     let readonly_parent_fqn = match field_type {
-        Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
+        ValueType::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
             Some(struct_id.fqn(db).to_owned())
         }
-        Type::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
+        ValueType::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
             Some(enum_id.fqn(db).to_owned())
         }
         _ => None,
@@ -206,10 +206,10 @@ fn lower_plain_shape_field<'db>(
     })?;
 
     let readonly_parent_fqn = match field_type {
-        Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
+        ValueType::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
             Some(struct_id.fqn(db).to_owned())
         }
-        Type::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
+        ValueType::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
             Some(enum_id.fqn(db).to_owned())
         }
         _ => None,
@@ -283,7 +283,7 @@ pub fn is_struct_clonable<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> bool {
 fn lower_shape_field_type<'db>(
     db: &'db dyn Db,
     id: RustdocId<'db>,
-) -> Result<Type<'db>, Vec<TypeLowerError>> {
+) -> Result<ValueType<'db>, Vec<TypeLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);
 
@@ -294,7 +294,7 @@ fn lower_shape_field_type<'db>(
     let field_type = crate_body.ty(db, field_type);
     let field_type = lower_type(db, field_type)?;
 
-    let LoweredType::Moved(field_type) = field_type else {
+    let Type::Value(field_type) = field_type else {
         unreachable!("field cannot be a borrowed type since generic structs are forbidden")
     };
 

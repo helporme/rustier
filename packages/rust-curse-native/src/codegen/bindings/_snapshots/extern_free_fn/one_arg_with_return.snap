@@ -19,12 +19,12 @@ pub fn __ext_rustdoc_0test_0crate_test_0fn(
 ) -> napi::Result<i32> {
     Ok(
         cast
-            .from("SourceType(i32)")
+            .from("Type(Value(i32))")
             .to("BoundaryType(i32)")
             .an({
                 let value = cast
                     .from("BoundaryType(JsAny)")
-                    .to("SourceType(i32)")
+                    .to("Type(Value(i32))")
                     .an(__p__value);
                 rustdoc_test_crate::test_fn(value)
             }),
@@ -38,12 +38,12 @@ pub fn __ext_rustdoc_0test_0crate_test_0fn(
 pub fn __ext_rustdoc_0test_0crate_test_0fn(__p__value: JsValue) -> Result<i32, JsValue> {
     Ok(
         cast
-            .from("SourceType(i32)")
+            .from("Type(Value(i32))")
             .to("BoundaryType(i32)")
             .an({
                 let value = cast
                     .from("BoundaryType(JsAny)")
-                    .to("SourceType(i32)")
+                    .to("Type(Value(i32))")
                     .an(__p__value);
                 rustdoc_test_crate::test_fn(value)
             }),

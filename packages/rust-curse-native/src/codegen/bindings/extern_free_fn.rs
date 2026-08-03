@@ -37,7 +37,6 @@ impl<'db> FnParam<'db> {
         ExternFnParam {
             name: self.name(db),
             type_: self.type_(db),
-            mode: self.mode(db),
             is_self: false,
         }
     }

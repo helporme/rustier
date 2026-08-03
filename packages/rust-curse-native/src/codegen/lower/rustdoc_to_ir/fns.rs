@@ -5,7 +5,7 @@ use thiserror::Error;
 use crate::codegen::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
-    ir::{Fn, FnId, FnParam, ItemId, ItemIdExt as _, ItemKind, ItemPath, PassingMode, Type},
+    ir::{Fn, FnId, FnParam, ItemId, ItemIdExt as _, ItemKind, ItemPath, Type, ValueType},
     rustdoc::{CrateExt, ItemIdExt as _, RustdocId},
 };
 
@@ -13,7 +13,7 @@ use super::{
     enums::is_enum_clonable,
     shapes::is_struct_clonable,
     spans::RustdocSpanExt as _,
-    types::{LoweredType, TypeLowerError, lower_type},
+    types::{TypeLowerError, lower_type},
 };
 
 /// Lowers the rustdoc function.
@@ -59,7 +59,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
     let mut params = Vec::new();
 
     for (name, ty) in &def.sig.inputs {
-        let lowered = match lower_type(db, crate_body.ty(db, ty)) {
+        let type_ = match lower_type(db, crate_body.ty(db, ty)) {
             Ok(lowered) => lowered,
             Err(diags) => {
                 causes.push(FnLowerError::UnsupportedParam {
@@ -70,63 +70,53 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
             }
         };
 
-        let (type_, mode) = match lowered {
-            LoweredType::Moved(type_) => (type_, PassingMode::Move),
-            LoweredType::Borrowed { type_, is_mutable } => (
-                type_,
-                if is_mutable {
-                    PassingMode::Mut
-                } else {
-                    PassingMode::Ref
-                },
-            ),
-        };
-
-        if mode == PassingMode::Move {
-            match type_ {
-                Type::Struct(struct_id) if !is_struct_clonable(db, struct_id.rustdoc_id(db)) => {
+        match type_ {
+            Type::Value(type_) => match type_ {
+                ValueType::Struct(struct_id)
+                    if !is_struct_clonable(db, struct_id.rustdoc_id(db)) =>
+                {
                     causes.push(FnLowerError::NonClonableMovedStructParam {
                         name: name.clone(),
                         struct_fqn: struct_id.fqn(db).to_owned(),
                     });
                     continue;
                 }
-                Type::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
+                ValueType::Enum(enum_id) if !is_enum_clonable(db, enum_id.rustdoc_id(db)) => {
                     causes.push(FnLowerError::NonClonableMovedEnumParam {
                         name: name.clone(),
                         enum_fqn: enum_id.fqn(db).to_owned(),
                     });
                     continue;
                 }
-                Type::bool
-                | Type::char
-                | Type::i8
-                | Type::u8
-                | Type::i16
-                | Type::u16
-                | Type::i32
-                | Type::u32
-                | Type::f32
-                | Type::f64
-                | Type::Str
-                | Type::String
-                | Type::Struct(_)
-                | Type::Enum(_) => {}
-            }
-        }
-
-        if mode == PassingMode::Mut {
-            match type_ {
-                Type::bool
-                | Type::char
-                | Type::i8
-                | Type::u8
-                | Type::i16
-                | Type::u16
-                | Type::i32
-                | Type::u32
-                | Type::f32
-                | Type::f64 => {
+                ValueType::bool
+                | ValueType::char
+                | ValueType::i8
+                | ValueType::u8
+                | ValueType::i16
+                | ValueType::u16
+                | ValueType::i32
+                | ValueType::u32
+                | ValueType::f32
+                | ValueType::f64
+                | ValueType::Str
+                | ValueType::String
+                | ValueType::Struct(_)
+                | ValueType::Enum(_) => {}
+            },
+            Type::Borrowed {
+                is_mutable: true,
+                inner,
+            } => match inner {
+                ValueType::bool
+                | ValueType::char
+                | ValueType::i8
+                | ValueType::u8
+                | ValueType::i16
+                | ValueType::u16
+                | ValueType::i32
+                | ValueType::u32
+                | ValueType::f32
+                | ValueType::f64 => {
                     let crate_ = id.crate_(db);
                     let source_code = item
                         .span
@@ -141,7 +131,7 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
                     }
                     .accumulate(db);
                 }
-                Type::Str | Type::String => {
+                ValueType::Str | ValueType::String => {
                     let crate_ = id.crate_(db);
                     let source_code = item
                         .span
@@ -156,18 +146,19 @@ pub fn lower_fn<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Result<Fn<'db>, Box
                     }
                     .accumulate(db);
                 }
-                Type::Struct(_) | Type::Enum(_) => {}
-            }
-        }
+                ValueType::Struct(_) | ValueType::Enum(_) => {}
+            },
+            _ => {}
+        };
 
-        params.push(FnParam::new(db, name.clone(), type_, mode));
+        params.push(FnParam::new(db, name.clone(), type_));
     }
 
     let ret_type = match &def.sig.output {
         None => None,
         Some(ty) => match lower_type(db, crate_body.ty(db, ty)) {
-            Ok(LoweredType::Moved(type_)) => Some(type_),
-            Ok(LoweredType::Borrowed { .. }) => {
+            Ok(Type::Value(type_)) => Some(type_),
+            Ok(Type::Borrowed { .. }) => {
                 causes.push(FnLowerError::BorrowedReturn);
                 None
             }

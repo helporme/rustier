@@ -128,10 +128,10 @@
 use crate::{
     codegen::{
         api::Api,
-        bindings::bir::SourceType,
         cast::{CastContinuation, DirectCastRule, IndirectCastRule},
         db::Db,
         fragment::{Fragment, FragmentOnce, doubles, fragment, spaced},
+        ir::Type,
     },
     frag,
 };
@@ -307,7 +307,7 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
     )
 }
 
-impl<'a> SourceType<'a> {
+impl<'a> Type<'a> {
     pub fn tethering_struct_name(&self, db: &dyn Db) -> impl FragmentOnce {
         frag!(__tethering__{self.mangled_name(db)})
     }
@@ -316,7 +316,7 @@ impl<'a> SourceType<'a> {
 /// A tethering struct. See the module-level documentation for more details.
 pub struct TetheringStruct<'a, Fields> {
     /// Source type for which the tethering struct is generated.
-    pub source_type: SourceType<'a>,
+    pub source_type: Type<'a>,
     /// Source fields exposed by the tethering struct.
     pub fields: Fields,
 }
@@ -338,7 +338,7 @@ pub struct ClonedField<'a, GetRefExpr, GetMutExpr> {
     /// Expression returning a fallible mutable reference to the source value.
     pub get_mut_expr: GetMutExpr,
     /// The type of this field on source type.
-    pub source_type: SourceType<'a>,
+    pub source_type: Type<'a>,
 }
 
 #[derive(Clone)]
@@ -350,7 +350,7 @@ pub struct TetheringStructField<'a, GetRefExpr, GetMutExpr> {
     /// Expression returning a fallible mutable reference to the source value.
     pub get_mut_expr: GetMutExpr,
     /// The type of this field on source type.
-    pub source_type: SourceType<'a>,
+    pub source_type: Type<'a>,
     /// Whether to generate a setter for this value.
     pub with_setter: bool,
 }
@@ -680,27 +680,23 @@ where
 #[derive(Clone, Debug, Hash, Eq, PartialEq, salsa::Update)]
 pub struct TetheringStructType<'db> {
     // A source type which tethering struct is storing.
-    pub source_type: SourceType<'db>,
+    pub source_type: Type<'db>,
 }
 
 /// Casts an owned source struct to its generated boundary type.
-pub struct CastSourceTypeToTetheringStructType;
+pub struct CastTypeToTetheringStructType;
 
-impl<'db> DirectCastRule<'db, SourceType<'db>, TetheringStructType<'db>>
-    for CastSourceTypeToTetheringStructType
+impl<'db> DirectCastRule<'db, Type<'db>, TetheringStructType<'db>>
+    for CastTypeToTetheringStructType
 {
-    fn predecessor(
-        self,
-        _db: &'db dyn Db,
-        to: TetheringStructType<'db>,
-    ) -> Option<SourceType<'db>> {
+    fn predecessor(self, _db: &'db dyn Db, to: TetheringStructType<'db>) -> Option<Type<'db>> {
         Some(to.source_type)
     }
 
     fn compile<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: SourceType<'db>,
+        _from: Type<'db>,
         to: TetheringStructType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
@@ -717,19 +713,15 @@ impl<'db> DirectCastRule<'db, SourceType<'db>, TetheringStructType<'db>>
 }
 
 /// Casts a tethering struct type to a borrowed source type.
-pub struct CastTetheringStructTypeToBorrowedSourceType;
+pub struct CastTetheringStructTypeToBorrowedType;
 
-impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, SourceType<'db>>
-    for CastTetheringStructTypeToBorrowedSourceType
+impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, Type<'db>>
+    for CastTetheringStructTypeToBorrowedType
 {
-    fn predecessor(
-        self,
-        _db: &'db dyn Db,
-        to: SourceType<'db>,
-    ) -> Option<TetheringStructType<'db>> {
+    fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<TetheringStructType<'db>> {
         match to {
-            SourceType::Ref { inner, .. } => Some(TetheringStructType {
-                source_type: *inner,
+            Type::Borrowed { inner, .. } => Some(TetheringStructType {
+                source_type: Type::Value(inner),
             }),
             _ => None,
         }
@@ -739,7 +731,7 @@ impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, SourceType<'db>>
         self,
         _db: &'db dyn Db,
         _from: TetheringStructType<'db>,
-        to: SourceType<'db>,
+        to: Type<'db>,
         in_expr: Expr,
         continue_with: Continue,
     ) -> impl FragmentOnce + 'fragment
@@ -748,7 +740,7 @@ impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, SourceType<'db>>
         Expr: FragmentOnce + 'fragment,
         Continue: CastContinuation<'db>,
     {
-        let SourceType::Ref { is_mutable, .. } = to else {
+        let Type::Borrowed { is_mutable, .. } = to else {
             unreachable!()
         };
 
@@ -775,18 +767,14 @@ impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, SourceType<'db>>
 }
 
 /// Casts a tethering struct type to a borrowed source type by cloning it.
-pub struct CastTetheringStructTypeToOwnedSourceType;
+pub struct CastTetheringStructTypeToOwnedType;
 
-impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, SourceType<'db>>
-    for CastTetheringStructTypeToOwnedSourceType
+impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, Type<'db>>
+    for CastTetheringStructTypeToOwnedType
 {
-    fn predecessor(
-        self,
-        _db: &'db dyn Db,
-        to: SourceType<'db>,
-    ) -> Option<TetheringStructType<'db>> {
+    fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<TetheringStructType<'db>> {
         match to {
-            SourceType::Ref { .. } => None,
+            Type::Borrowed { .. } => None,
             _ => Some(TetheringStructType { source_type: to }),
         }
     }
@@ -795,7 +783,7 @@ impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, SourceType<'db>>
         self,
         _db: &'db dyn Db,
         _from: TetheringStructType<'db>,
-        _to: SourceType<'db>,
+        _to: Type<'db>,
         in_expr: Expr,
         continue_with: Continue,
     ) -> impl FragmentOnce + 'fragment
@@ -820,7 +808,13 @@ impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, SourceType<'db>>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{assert_rust_snap, codegen::fragment::FragmentPrint as _};
+    use crate::{
+        assert_rust_snap,
+        codegen::{
+            fragment::FragmentPrint as _,
+            ir::{IntoIrTypeExt as _, ValueType},
+        },
+    };
 
     type FieldExpr = fn(&'static str) -> String;
 
@@ -836,9 +830,7 @@ mod tests {
                 compile_tethering_struct(
                     db,
                     TetheringStruct {
-                        source_type: SourceType::Item {
-                            target: db.item_id("Empty"),
-                        },
+                        source_type: Type::Value(db.item_id("Empty").into_ir_type(db)),
                         fields,
                     },
                 )
@@ -861,15 +853,13 @@ mod tests {
                         name: "count",
                         get_ref_expr: |source| frag!(Ok(&{ source }.count)).print(),
                         get_mut_expr: |source| frag!(Ok(&mut ~{ source }.count)).print(),
-                        source_type: SourceType::u32,
+                        source_type: Type::Value(ValueType::u32),
                     })];
 
                 compile_tethering_struct(
                     db,
                     TetheringStruct {
-                        source_type: SourceType::Item {
-                            target: db.item_id("Parent"),
-                        },
+                        source_type: Type::Value(db.item_id("Parent").into_ir_type(db)),
                         fields,
                     },
                 )
@@ -893,18 +883,14 @@ mod tests {
                         name: "child",
                         get_ref_expr: |source| frag!(Ok(&{ source }.child)).print(),
                         get_mut_expr: |source| frag!(Ok(&mut ~{ source }.child)).print(),
-                        source_type: SourceType::Item {
-                            target: db.item_id("Child"),
-                        },
+                        source_type: Type::Value(db.item_id("Child").into_ir_type(db)),
                         with_setter: true,
                     })];
 
                 compile_tethering_struct(
                     db,
                     TetheringStruct {
-                        source_type: SourceType::Item {
-                            target: db.item_id("Parent"),
-                        },
+                        source_type: Type::Value(db.item_id("Parent").into_ir_type(db)),
                         fields,
                     },
                 )
@@ -931,24 +917,20 @@ mod tests {
                         name: "count",
                         get_ref_expr: |source| frag!(Ok(&{ source }.count)).print(),
                         get_mut_expr: |source| frag!(Ok(&mut ~{ source }.count)).print(),
-                        source_type: SourceType::u32,
+                        source_type: Type::Value(ValueType::u32),
                     }),
                     TetheredField::TetheringStruct(TetheringStructField {
                         name: "child",
                         get_ref_expr: |source| frag!(Ok(&{ source }.child)).print(),
                         get_mut_expr: |source| frag!(Ok(&mut ~{ source }.child)).print(),
-                        source_type: SourceType::Item {
-                            target: db.item_id("Child"),
-                        },
+                        source_type: Type::Value(db.item_id("Child").into_ir_type(db)),
                         with_setter: true,
                     }),
                     TetheredField::TetheringStruct(TetheringStructField {
                         name: "readonly_child",
                         get_ref_expr: |source| frag!(Ok(&{ source }.readonly_child)).print(),
                         get_mut_expr: |source| frag!(Ok(&mut ~{ source }.readonly_child)).print(),
-                        source_type: SourceType::Item {
-                            target: db.item_id("ReadonlyChild"),
-                        },
+                        source_type: Type::Value(db.item_id("ReadonlyChild").into_ir_type(db)),
                         with_setter: false,
                     }),
                 ];
@@ -956,9 +938,7 @@ mod tests {
                 compile_tethering_struct(
                     db,
                     TetheringStruct {
-                        source_type: SourceType::Item {
-                            target: db.item_id("Parent"),
-                        },
+                        source_type: Type::Value(db.item_id("Parent").into_ir_type(db)),
                         fields,
                     },
                 )

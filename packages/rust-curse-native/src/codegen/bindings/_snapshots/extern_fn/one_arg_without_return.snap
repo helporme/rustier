@@ -13,7 +13,7 @@ fn noop() {}
 ```rust
 #[napi(js_name = "test_fn")]
 pub fn test_fn(__p__arg: Unknown<'_>) -> napi::Result<()> {
-    let arg = cast.from("BoundaryType(JsAny)").to("SourceType(f64)").an(__p__arg);
+    let arg = cast.from("BoundaryType(JsAny)").to("Type(Value(f64))").an(__p__arg);
     source(arg);
     Ok(())
 }
@@ -23,7 +23,7 @@ pub fn test_fn(__p__arg: Unknown<'_>) -> napi::Result<()> {
 ```rust
 #[wasm_bindgen(js_name = "test_fn")]
 pub fn test_fn(__p__arg: JsValue) -> Result<(), JsValue> {
-    let arg = cast.from("BoundaryType(JsAny)").to("SourceType(f64)").an(__p__arg);
+    let arg = cast.from("BoundaryType(JsAny)").to("Type(Value(f64))").an(__p__arg);
     source(arg);
     Ok(())
 }

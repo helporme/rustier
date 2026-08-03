@@ -1,5 +1,5 @@
 ---
-source: src/codegen/bindings/fn_.rs
+source: src/codegen/bindings/extern_free_fn.rs
 expression: snapshot
 ---
 # Source
@@ -17,7 +17,7 @@ pub fn test_fn() -> i32 {
 pub fn __ext_rustdoc_0test_0crate_test_0fn() -> napi::Result<i32> {
     Ok(
         cast
-            .from("SourceType(i32)")
+            .from("Type(Value(i32))")
             .to("BoundaryType(i32)")
             .an(rustdoc_test_crate::test_fn()),
     )
@@ -30,7 +30,7 @@ pub fn __ext_rustdoc_0test_0crate_test_0fn() -> napi::Result<i32> {
 pub fn __ext_rustdoc_0test_0crate_test_0fn() -> Result<i32, JsValue> {
     Ok(
         cast
-            .from("SourceType(i32)")
+            .from("Type(Value(i32))")
             .to("BoundaryType(i32)")
             .an(rustdoc_test_crate::test_fn()),
     )

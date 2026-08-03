@@ -15,12 +15,12 @@ fn noop() {}
 pub fn test_fn(__p__arg: Unknown<'_>) -> napi::Result<f64> {
     Ok(
         cast
-            .from("SourceType(f64)")
+            .from("Type(Value(f64))")
             .to("BoundaryType(f64)")
             .an({
                 let arg = cast
                     .from("BoundaryType(JsAny)")
-                    .to("SourceType(f64)")
+                    .to("Type(Value(f64))")
                     .an(__p__arg);
                 source(arg)
             }),
@@ -34,12 +34,12 @@ pub fn test_fn(__p__arg: Unknown<'_>) -> napi::Result<f64> {
 pub fn test_fn(__p__arg: JsValue) -> Result<f64, JsValue> {
     Ok(
         cast
-            .from("SourceType(f64)")
+            .from("Type(Value(f64))")
             .to("BoundaryType(f64)")
             .an({
                 let arg = cast
                     .from("BoundaryType(JsAny)")
-                    .to("SourceType(f64)")
+                    .to("Type(Value(f64))")
                     .an(__p__arg);
                 source(arg)
             }),

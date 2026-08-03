@@ -13,10 +13,10 @@ fn noop() {}
 ```rust
 #[napi(js_name = "test_fn")]
 pub fn test_fn(__p__arg1: Unknown<'_>, __p__arg2: Unknown<'_>) -> napi::Result<()> {
-    let arg1 = cast.from("BoundaryType(JsAny)").to("SourceType(f64)").an(__p__arg1);
+    let arg1 = cast.from("BoundaryType(JsAny)").to("Type(Value(f64))").an(__p__arg1);
     let arg2 = cast
         .from("BoundaryType(JsAny)")
-        .to("SourceType(Ref { is_mutable: false, inner: f64 })")
+        .to("Type(Borrowed { is_mutable: false, inner: f64 })")
         .an(__p__arg2);
     source(arg1, arg2);
     Ok(())
@@ -27,10 +27,10 @@ pub fn test_fn(__p__arg1: Unknown<'_>, __p__arg2: Unknown<'_>) -> napi::Result<(
 ```rust
 #[wasm_bindgen(js_name = "test_fn")]
 pub fn test_fn(__p__arg1: JsValue, __p__arg2: JsValue) -> Result<(), JsValue> {
-    let arg1 = cast.from("BoundaryType(JsAny)").to("SourceType(f64)").an(__p__arg1);
+    let arg1 = cast.from("BoundaryType(JsAny)").to("Type(Value(f64))").an(__p__arg1);
     let arg2 = cast
         .from("BoundaryType(JsAny)")
-        .to("SourceType(Ref { is_mutable: false, inner: f64 })")
+        .to("Type(Borrowed { is_mutable: false, inner: f64 })")
         .an(__p__arg2);
     source(arg1, arg2);
     Ok(())

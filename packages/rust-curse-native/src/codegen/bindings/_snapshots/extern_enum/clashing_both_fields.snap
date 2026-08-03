@@ -218,14 +218,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get___Plain1__field(&self) -> napi::Result<u32> {
         Ok(
             cast
-                .from("SourceType(u32)")
+                .from("Type(Value(u32))")
                 .to("BoundaryType(u32)")
                 .an(self.src.get___Plain1__field()?),
         )
     }
     #[napi(setter, js_name = "__Plain1__field")]
     pub fn set___Plain1__field(&self, value: Unknown<'_>) -> napi::Result<()> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(u32))").an(value);
         self.src.set___Plain1__field(value)?;
         Ok(())
     }
@@ -233,14 +233,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get___Plain1__field2(&self) -> napi::Result<i32> {
         Ok(
             cast
-                .from("SourceType(i32)")
+                .from("Type(Value(i32))")
                 .to("BoundaryType(i32)")
                 .an(self.src.get___Plain1__field2()?),
         )
     }
     #[napi(setter, js_name = "__Plain1__field2")]
     pub fn set___Plain1__field2(&self, value: Unknown<'_>) -> napi::Result<()> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(i32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(i32))").an(value);
         self.src.set___Plain1__field2(value)?;
         Ok(())
     }
@@ -248,14 +248,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get___Plain2__field(&self) -> napi::Result<i32> {
         Ok(
             cast
-                .from("SourceType(i32)")
+                .from("Type(Value(i32))")
                 .to("BoundaryType(i32)")
                 .an(self.src.get___Plain2__field()?),
         )
     }
     #[napi(setter, js_name = "__Plain2__field")]
     pub fn set___Plain2__field(&self, value: Unknown<'_>) -> napi::Result<()> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(i32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(i32))").an(value);
         self.src.set___Plain2__field(value)?;
         Ok(())
     }
@@ -263,14 +263,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get___Tuple1__0(&self) -> napi::Result<u32> {
         Ok(
             cast
-                .from("SourceType(u32)")
+                .from("Type(Value(u32))")
                 .to("BoundaryType(u32)")
                 .an(self.src.get___Tuple1__0()?),
         )
     }
     #[napi(setter, js_name = "__Tuple1__0")]
     pub fn set___Tuple1__0(&self, value: Unknown<'_>) -> napi::Result<()> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(u32))").an(value);
         self.src.set___Tuple1__0(value)?;
         Ok(())
     }
@@ -278,14 +278,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get___Tuple2__0(&self) -> napi::Result<i32> {
         Ok(
             cast
-                .from("SourceType(i32)")
+                .from("Type(Value(i32))")
                 .to("BoundaryType(i32)")
                 .an(self.src.get___Tuple2__0()?),
         )
     }
     #[napi(setter, js_name = "__Tuple2__0")]
     pub fn set___Tuple2__0(&self, value: Unknown<'_>) -> napi::Result<()> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(i32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(i32))").an(value);
         self.src.set___Tuple2__0(value)?;
         Ok(())
     }
@@ -296,13 +296,13 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn __type(&self) -> napi::Result<u32> {
         Ok(
             cast
-                .from("SourceType(u32)")
+                .from("Type(Value(u32))")
                 .to("BoundaryType(u32)")
                 .an({
                     let src = cast
                         .from("BoundaryType(Ref(Item { target: ItemId(Id(2400)) }))")
                         .to(
-                            "SourceType(Ref { is_mutable: false, inner: Item { target: ItemId(Id(2400)) } })",
+                            "Type(Borrowed { is_mutable: false, inner: Enum(EnumId(ItemId(Id(2400)))) })",
                         )
                         .an(self);
                     match src {
@@ -521,14 +521,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get___Plain1__field(&self) -> Result<u32, JsValue> {
         Ok(
             cast
-                .from("SourceType(u32)")
+                .from("Type(Value(u32))")
                 .to("BoundaryType(u32)")
                 .an(self.src.get___Plain1__field()?),
         )
     }
     #[wasm_bindgen(setter, js_name = "__Plain1__field")]
     pub fn set___Plain1__field(&self, value: JsValue) -> Result<(), JsValue> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(u32))").an(value);
         self.src.set___Plain1__field(value)?;
         Ok(())
     }
@@ -536,14 +536,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get___Plain1__field2(&self) -> Result<i32, JsValue> {
         Ok(
             cast
-                .from("SourceType(i32)")
+                .from("Type(Value(i32))")
                 .to("BoundaryType(i32)")
                 .an(self.src.get___Plain1__field2()?),
         )
     }
     #[wasm_bindgen(setter, js_name = "__Plain1__field2")]
     pub fn set___Plain1__field2(&self, value: JsValue) -> Result<(), JsValue> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(i32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(i32))").an(value);
         self.src.set___Plain1__field2(value)?;
         Ok(())
     }
@@ -551,14 +551,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get___Plain2__field(&self) -> Result<i32, JsValue> {
         Ok(
             cast
-                .from("SourceType(i32)")
+                .from("Type(Value(i32))")
                 .to("BoundaryType(i32)")
                 .an(self.src.get___Plain2__field()?),
         )
     }
     #[wasm_bindgen(setter, js_name = "__Plain2__field")]
     pub fn set___Plain2__field(&self, value: JsValue) -> Result<(), JsValue> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(i32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(i32))").an(value);
         self.src.set___Plain2__field(value)?;
         Ok(())
     }
@@ -566,14 +566,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get___Tuple1__0(&self) -> Result<u32, JsValue> {
         Ok(
             cast
-                .from("SourceType(u32)")
+                .from("Type(Value(u32))")
                 .to("BoundaryType(u32)")
                 .an(self.src.get___Tuple1__0()?),
         )
     }
     #[wasm_bindgen(setter, js_name = "__Tuple1__0")]
     pub fn set___Tuple1__0(&self, value: JsValue) -> Result<(), JsValue> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(u32))").an(value);
         self.src.set___Tuple1__0(value)?;
         Ok(())
     }
@@ -581,14 +581,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get___Tuple2__0(&self) -> Result<i32, JsValue> {
         Ok(
             cast
-                .from("SourceType(i32)")
+                .from("Type(Value(i32))")
                 .to("BoundaryType(i32)")
                 .an(self.src.get___Tuple2__0()?),
         )
     }
     #[wasm_bindgen(setter, js_name = "__Tuple2__0")]
     pub fn set___Tuple2__0(&self, value: JsValue) -> Result<(), JsValue> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(i32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(i32))").an(value);
         self.src.set___Tuple2__0(value)?;
         Ok(())
     }
@@ -599,13 +599,13 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn __type(&self) -> Result<u32, JsValue> {
         Ok(
             cast
-                .from("SourceType(u32)")
+                .from("Type(Value(u32))")
                 .to("BoundaryType(u32)")
                 .an({
                     let src = cast
                         .from("BoundaryType(Ref(Item { target: ItemId(Id(2400)) }))")
                         .to(
-                            "SourceType(Ref { is_mutable: false, inner: Item { target: ItemId(Id(2400)) } })",
+                            "Type(Borrowed { is_mutable: false, inner: Enum(EnumId(ItemId(Id(2400)))) })",
                         )
                         .an(self);
                     match src {

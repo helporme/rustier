@@ -18,11 +18,11 @@ pub fn __ext_rustdoc_0test_0crate_test_0fn(
 ) -> napi::Result<()> {
     let _direct = cast
         .from("BoundaryType(JsAny)")
-        .to("SourceType(i32)")
+        .to("Type(Value(i32))")
         .an(__p___direct);
     let _non_direct = cast
         .from("BoundaryType(JsAny)")
-        .to("SourceType(Ref { is_mutable: false, inner: i32 })")
+        .to("Type(Borrowed { is_mutable: false, inner: i32 })")
         .an(__p___non_direct);
     rustdoc_test_crate::test_fn(_direct, _non_direct);
     Ok(())
@@ -38,11 +38,11 @@ pub fn __ext_rustdoc_0test_0crate_test_0fn(
 ) -> Result<(), JsValue> {
     let _direct = cast
         .from("BoundaryType(JsAny)")
-        .to("SourceType(i32)")
+        .to("Type(Value(i32))")
         .an(__p___direct);
     let _non_direct = cast
         .from("BoundaryType(JsAny)")
-        .to("SourceType(Ref { is_mutable: false, inner: i32 })")
+        .to("Type(Borrowed { is_mutable: false, inner: i32 })")
         .an(__p___non_direct);
     rustdoc_test_crate::test_fn(_direct, _non_direct);
     Ok(())

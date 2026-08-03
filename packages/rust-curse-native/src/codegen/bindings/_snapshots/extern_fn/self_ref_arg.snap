@@ -1,5 +1,5 @@
 ---
-source: src/codegen/bindings/method.rs
+source: src/codegen/bindings/extern_fn.rs
 expression: snapshot
 ---
 # Source
@@ -15,7 +15,7 @@ fn noop() {}
 pub fn test_fn(&self) -> napi::Result<()> {
     let arg = cast
         .from("BoundaryType(JsAny)")
-        .to("SourceType(Ref { is_mutable: false, inner: f64 })")
+        .to("Type(Borrowed { is_mutable: false, inner: f64 })")
         .an(self);
     source(arg);
     Ok(())
@@ -28,7 +28,7 @@ pub fn test_fn(&self) -> napi::Result<()> {
 pub fn test_fn(&self) -> Result<(), JsValue> {
     let arg = cast
         .from("BoundaryType(JsAny)")
-        .to("SourceType(Ref { is_mutable: false, inner: f64 })")
+        .to("Type(Borrowed { is_mutable: false, inner: f64 })")
         .an(self);
     source(arg);
     Ok(())

@@ -69,11 +69,11 @@ pub struct __ext_rustdoc_0test_0crate_Test {
 impl __ext_rustdoc_0test_0crate_Test {
     #[napi(getter, js_name = "0")]
     pub fn get_0(&self) -> napi::Result<u32> {
-        Ok(cast.from("SourceType(u32)").to("BoundaryType(u32)").an(self.src.get_0()?))
+        Ok(cast.from("Type(Value(u32))").to("BoundaryType(u32)").an(self.src.get_0()?))
     }
     #[napi(setter, js_name = "0")]
     pub fn set_0(&self, value: Unknown<'_>) -> napi::Result<()> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(u32))").an(value);
         self.src.set_0(value)?;
         Ok(())
     }
@@ -81,14 +81,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get_1(&self) -> napi::Result<String> {
         Ok(
             cast
-                .from("SourceType(String)")
+                .from("Type(Value(String))")
                 .to("BoundaryType(String)")
                 .an(self.src.get_1()?),
         )
     }
     #[napi(setter, js_name = "1")]
     pub fn set_1(&self, value: Unknown<'_>) -> napi::Result<()> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(String)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(String))").an(value);
         self.src.set_1(value)?;
         Ok(())
     }
@@ -155,11 +155,11 @@ pub struct __ext_rustdoc_0test_0crate_Test {
 impl __ext_rustdoc_0test_0crate_Test {
     #[wasm_bindgen(getter, js_name = "0")]
     pub fn get_0(&self) -> Result<u32, JsValue> {
-        Ok(cast.from("SourceType(u32)").to("BoundaryType(u32)").an(self.src.get_0()?))
+        Ok(cast.from("Type(Value(u32))").to("BoundaryType(u32)").an(self.src.get_0()?))
     }
     #[wasm_bindgen(setter, js_name = "0")]
     pub fn set_0(&self, value: JsValue) -> Result<(), JsValue> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(u32))").an(value);
         self.src.set_0(value)?;
         Ok(())
     }
@@ -167,14 +167,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get_1(&self) -> Result<String, JsValue> {
         Ok(
             cast
-                .from("SourceType(String)")
+                .from("Type(Value(String))")
                 .to("BoundaryType(String)")
                 .an(self.src.get_1()?),
         )
     }
     #[wasm_bindgen(setter, js_name = "1")]
     pub fn set_1(&self, value: JsValue) -> Result<(), JsValue> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(String)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(String))").an(value);
         self.src.set_1(value)?;
         Ok(())
     }

@@ -4,7 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, doubles, fragment, spaced},
-        ir::{ItemIdExt as _, ModId, Shape, Struct, StructId, Type},
+        ir::{ItemIdExt as _, ModId, Shape, Struct, StructId, ValueType},
         js::{
             boundary::{
                 compile_js_binding_value_to_facade_stmt,
@@ -40,19 +40,19 @@ pub fn compile_facade_class_for_struct<'a>(
             .iter()
             .copied()
             .filter(|field| match field.type_(db) {
-                Type::Struct(_) | Type::Enum(_) => true,
-                Type::bool
-                | Type::char
-                | Type::i8
-                | Type::u8
-                | Type::i16
-                | Type::u16
-                | Type::i32
-                | Type::u32
-                | Type::f32
-                | Type::f64
-                | Type::Str
-                | Type::String => false,
+                ValueType::Struct(_) | ValueType::Enum(_) => true,
+                ValueType::bool
+                | ValueType::char
+                | ValueType::i8
+                | ValueType::u8
+                | ValueType::i16
+                | ValueType::u16
+                | ValueType::i32
+                | ValueType::u32
+                | ValueType::f32
+                | ValueType::f64
+                | ValueType::Str
+                | ValueType::String => false,
             })
         {
             frag!(#_{field.name(db)};@).apply(p);
@@ -71,7 +71,7 @@ pub fn compile_facade_class_for_struct<'a>(
 
         fragment(move |p| {
             match field.type_(db) {
-                Type::Struct(_) | Type::Enum(_) => {
+                ValueType::Struct(_) | ValueType::Enum(_) => {
                     frag!(
                         get ~[{field_name.clone()}]() {{
                             return ~{cached_field_expr};
@@ -79,18 +79,18 @@ pub fn compile_facade_class_for_struct<'a>(
                     )
                     .apply(p);
                 }
-                Type::bool
-                | Type::char
-                | Type::i8
-                | Type::u8
-                | Type::i16
-                | Type::u16
-                | Type::i32
-                | Type::u32
-                | Type::f32
-                | Type::f64
-                | Type::Str
-                | Type::String => {
+                ValueType::bool
+                | ValueType::char
+                | ValueType::i8
+                | ValueType::u8
+                | ValueType::i16
+                | ValueType::u16
+                | ValueType::i32
+                | ValueType::u32
+                | ValueType::f32
+                | ValueType::f64
+                | ValueType::Str
+                | ValueType::String => {
                     frag!(
                         get ~[{field_name.clone()}]() {{
                             let value;@
@@ -112,7 +112,7 @@ pub fn compile_facade_class_for_struct<'a>(
             }
 
             match field.type_(db) {
-                Type::Struct(_) | Type::Enum(_) => {
+                ValueType::Struct(_) | ValueType::Enum(_) => {
                     frag!(@@
                         set ~[{field_name.clone()}](value) {{
                             {compile_js_facade_value_to_binding_stmt(
@@ -131,18 +131,18 @@ pub fn compile_facade_class_for_struct<'a>(
                     )
                     .apply(p);
                 }
-                Type::bool
-                | Type::char
-                | Type::i8
-                | Type::u8
-                | Type::i16
-                | Type::u16
-                | Type::i32
-                | Type::u32
-                | Type::f32
-                | Type::f64
-                | Type::Str
-                | Type::String => {
+                ValueType::bool
+                | ValueType::char
+                | ValueType::i8
+                | ValueType::u8
+                | ValueType::i16
+                | ValueType::u16
+                | ValueType::i32
+                | ValueType::u32
+                | ValueType::f32
+                | ValueType::f64
+                | ValueType::Str
+                | ValueType::String => {
                     frag!(@@
                         set ~[{field_name}](value) {{
                             {compile_js_facade_value_to_binding_stmt(
@@ -164,19 +164,19 @@ pub fn compile_facade_class_for_struct<'a>(
             .fields(db)
             .iter()
             .filter(|field| match field.type_(db) {
-                Type::Struct(_) | Type::Enum(_) => true,
-                Type::bool
-                | Type::char
-                | Type::i8
-                | Type::u8
-                | Type::i16
-                | Type::u16
-                | Type::i32
-                | Type::u32
-                | Type::f32
-                | Type::f64
-                | Type::Str
-                | Type::String => false,
+                ValueType::Struct(_) | ValueType::Enum(_) => true,
+                ValueType::bool
+                | ValueType::char
+                | ValueType::i8
+                | ValueType::u8
+                | ValueType::i16
+                | ValueType::u16
+                | ValueType::i32
+                | ValueType::u32
+                | ValueType::f32
+                | ValueType::f64
+                | ValueType::Str
+                | ValueType::String => false,
             })
         {
             let field_name = fragment(|p| match shape {

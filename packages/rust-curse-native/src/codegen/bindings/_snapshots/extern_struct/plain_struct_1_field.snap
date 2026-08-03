@@ -64,14 +64,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get_field(&self) -> napi::Result<u32> {
         Ok(
             cast
-                .from("SourceType(u32)")
+                .from("Type(Value(u32))")
                 .to("BoundaryType(u32)")
                 .an(self.src.get_field()?),
         )
     }
     #[napi(setter, js_name = "field")]
     pub fn set_field(&self, value: Unknown<'_>) -> napi::Result<()> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(u32))").an(value);
         self.src.set_field(value)?;
         Ok(())
     }
@@ -131,14 +131,14 @@ impl __ext_rustdoc_0test_0crate_Test {
     pub fn get_field(&self) -> Result<u32, JsValue> {
         Ok(
             cast
-                .from("SourceType(u32)")
+                .from("Type(Value(u32))")
                 .to("BoundaryType(u32)")
                 .an(self.src.get_field()?),
         )
     }
     #[wasm_bindgen(setter, js_name = "field")]
     pub fn set_field(&self, value: JsValue) -> Result<(), JsValue> {
-        let value = cast.from("BoundaryType(JsAny)").to("SourceType(u32)").an(value);
+        let value = cast.from("BoundaryType(JsAny)").to("Type(Value(u32))").an(value);
         self.src.set_field(value)?;
         Ok(())
     }

@@ -6,121 +6,105 @@ use crate::{
         api::Api,
         db::Db,
         fragment::{FragmentOnce, fragment},
-        ir::{ItemId, Type},
+        ir::{ItemId, Type, ValueType},
     },
     frag,
 };
 
-/// A type that is accepted by the source rust code.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
-#[allow(non_camel_case_types)]
-pub enum SourceType<'db> {
-    bool,
-    char,
-    i8,
-    u8,
-    i16,
-    u16,
-    i32,
-    u32,
-    f64,
-    f32,
-    Str,
-    String,
-    Item {
-        target: ItemId<'db>,
-    },
-    Ref {
-        is_mutable: bool,
-        inner: Box<SourceType<'db>>,
-    },
-}
-
-impl<'db> SourceType<'db> {
+impl<'db> Type<'db> {
     /// Converts this source type into a shared reference type.
-    pub fn into_ref(self) -> SourceType<'db> {
-        SourceType::Ref {
+    pub(super) fn into_ref(self) -> Type<'db> {
+        Type::Borrowed {
             is_mutable: false,
-            inner: Box::new(self),
+            inner: self.deref(),
         }
     }
 
     /// Converts this source type into a mutable reference type.
-    pub fn into_mut(self) -> SourceType<'db> {
-        SourceType::Ref {
+    pub(super) fn into_mut(self) -> Type<'db> {
+        Type::Borrowed {
             is_mutable: true,
-            inner: Box::new(self),
+            inner: self.deref(),
         }
     }
 
     /// Renders this source type as a fully qualified Rust type declaration.
-    pub fn fqn_decl(&self, db: &dyn Db) -> impl FragmentOnce {
-        fragment(move |p| match self {
-            SourceType::bool => "bool".apply(p),
-            SourceType::i8 => "i8".apply(p),
-            SourceType::u8 => "u8".apply(p),
-            SourceType::i16 => "i16".apply(p),
-            SourceType::u16 => "u16".apply(p),
-            SourceType::i32 => "i32".apply(p),
-            SourceType::u32 => "u32".apply(p),
-            SourceType::f64 => "f64".apply(p),
-            SourceType::f32 => "f32".apply(p),
-            SourceType::char => "char".apply(p),
-            SourceType::Str => "str".apply(p),
-            SourceType::String => "String".apply(p),
-            SourceType::Item { target } => target.fqn(db).apply(p),
-            SourceType::Ref { is_mutable, inner } => {
-                let prefix = if *is_mutable { "&mut " } else { "&" };
-                frag!({prefix}{inner.fqn_decl(db)}).apply(p)
+    pub(super) fn fqn_decl(&self, db: &dyn Db) -> impl FragmentOnce {
+        fragment(move |p| {
+            let (prefix, value) = match self {
+                Type::Value(value) => ("", value),
+                Type::Borrowed { is_mutable, inner } => {
+                    (if *is_mutable { "&mut " } else { "&" }, inner)
+                }
+            };
+
+            prefix.apply(p);
+            match value {
+                ValueType::bool => "bool".apply(p),
+                ValueType::i8 => "i8".apply(p),
+                ValueType::u8 => "u8".apply(p),
+                ValueType::i16 => "i16".apply(p),
+                ValueType::u16 => "u16".apply(p),
+                ValueType::i32 => "i32".apply(p),
+                ValueType::u32 => "u32".apply(p),
+                ValueType::f64 => "f64".apply(p),
+                ValueType::f32 => "f32".apply(p),
+                ValueType::char => "char".apply(p),
+                ValueType::Str => "str".apply(p),
+                ValueType::String => "String".apply(p),
+                ValueType::Struct(id) => ItemId::from(*id).fqn(db).apply(p),
+                ValueType::Enum(id) => ItemId::from(*id).fqn(db).apply(p),
             }
         })
     }
 
     /// Renders this source type as a mangled identifier fragment.
-    pub fn mangled_name(&self, db: &dyn Db) -> impl FragmentOnce {
-        fragment(|p| match self {
-            SourceType::bool => "_bool".apply(p),
-            SourceType::char => "_char".apply(p),
-            SourceType::i8 => "_i8".apply(p),
-            SourceType::u8 => "_u8".apply(p),
-            SourceType::i16 => "_i16".apply(p),
-            SourceType::u16 => "_u16".apply(p),
-            SourceType::i32 => "_i32".apply(p),
-            SourceType::u32 => "_u32".apply(p),
-            SourceType::f64 => "_f64".apply(p),
-            SourceType::f32 => "_f32".apply(p),
-            SourceType::Str => "_str".apply(p),
-            SourceType::String => "_String".apply(p),
-            SourceType::Item { target } => target.mangled_fqn(db).apply(p),
-            SourceType::Ref { is_mutable, inner } => {
-                let suffix = if *is_mutable { "_mut" } else { "_ref" };
-                frag!({suffix}__{inner.mangled_name(db)}).apply(p)
+    pub(super) fn mangled_name(&self, db: &dyn Db) -> impl FragmentOnce {
+        fragment(|p| {
+            let (prefix, value) = match self {
+                Type::Value(value) => ("", value),
+                Type::Borrowed { is_mutable, inner } => {
+                    (if *is_mutable { "_mut__" } else { "_ref__" }, inner)
+                }
+            };
+
+            prefix.apply(p);
+            match value {
+                ValueType::bool => "_bool".apply(p),
+                ValueType::char => "_char".apply(p),
+                ValueType::i8 => "_i8".apply(p),
+                ValueType::u8 => "_u8".apply(p),
+                ValueType::i16 => "_i16".apply(p),
+                ValueType::u16 => "_u16".apply(p),
+                ValueType::i32 => "_i32".apply(p),
+                ValueType::u32 => "_u32".apply(p),
+                ValueType::f64 => "_f64".apply(p),
+                ValueType::f32 => "_f32".apply(p),
+                ValueType::Str => "_str".apply(p),
+                ValueType::String => "_String".apply(p),
+                ValueType::Struct(id) => ItemId::from(*id).mangled_fqn(db).apply(p),
+                ValueType::Enum(id) => ItemId::from(*id).mangled_fqn(db).apply(p),
             }
         })
     }
 
-    /// Returns whether an owned value of this type should be borrowed with a
-    /// simple `&expr` or `&mut expr` cast.
-    ///
-    /// False is usually returned for types that wish to implement borrowing in
-    /// some other way, say struct or enum.
-    pub fn allows_generic_borrowing_cast(&self) -> bool {
-        match self {
-            SourceType::bool
-            | SourceType::char
-            | SourceType::i8
-            | SourceType::u8
-            | SourceType::i16
-            | SourceType::u16
-            | SourceType::i32
-            | SourceType::u32
-            | SourceType::f64
-            | SourceType::f32
-            | SourceType::Str
-            | SourceType::String
-            | SourceType::Ref { .. } // technically it's unused since double refs are not supported by ir
-            => true,
-            SourceType::Item { .. } => false,
+    /// Returns whether an owned value of this type supports a simple borrowing
+    /// cast.
+    pub(super) fn allows_generic_borrowing_cast(&self) -> bool {
+        match self.deref() {
+            ValueType::bool
+            | ValueType::char
+            | ValueType::i8
+            | ValueType::u8
+            | ValueType::i16
+            | ValueType::u16
+            | ValueType::i32
+            | ValueType::u32
+            | ValueType::f64
+            | ValueType::f32
+            | ValueType::Str
+            | ValueType::String => true,
+            ValueType::Struct(_) | ValueType::Enum(_) => false,
         }
     }
 }
@@ -171,67 +155,47 @@ impl<'db> ExternType<'db> {
     }
 }
 
-impl<'db> Type<'db> {
+impl<'db> ValueType<'db> {
     /// Returns the external type used to receive a JavaScript value for this
     /// type.
     pub(super) fn extern_in(self) -> ExternType<'db> {
         match self {
-            Type::bool
-            | Type::char
-            | Type::i8
-            | Type::u8
-            | Type::i16
-            | Type::u16
-            | Type::i32
-            | Type::u32
-            | Type::f32
-            | Type::f64
-            | Type::String
-            | Type::Str => ExternType::JsAny,
-            Type::Struct(id) => ExternType::Ref(Box::new(ExternType::Item { target: id.into() })),
-            Type::Enum(id) => ExternType::Ref(Box::new(ExternType::Item { target: id.into() })),
+            ValueType::bool
+            | ValueType::char
+            | ValueType::i8
+            | ValueType::u8
+            | ValueType::i16
+            | ValueType::u16
+            | ValueType::i32
+            | ValueType::u32
+            | ValueType::f32
+            | ValueType::f64
+            | ValueType::String
+            | ValueType::Str => ExternType::JsAny,
+            ValueType::Struct(id) => {
+                ExternType::Ref(Box::new(ExternType::Item { target: id.into() }))
+            }
+            ValueType::Enum(id) => {
+                ExternType::Ref(Box::new(ExternType::Item { target: id.into() }))
+            }
         }
     }
 
     /// Returns the external type used to return this type to JavaScript.
     pub(super) fn extern_out(self) -> ExternType<'db> {
         match self {
-            Type::bool => ExternType::bool,
-            Type::i8 => ExternType::i8,
-            Type::u8 => ExternType::u8,
-            Type::i16 => ExternType::i16,
-            Type::u16 => ExternType::u16,
-            Type::i32 => ExternType::i32,
-            Type::u32 | Type::char => ExternType::u32,
-            Type::f64 | Type::f32 => ExternType::f64,
-            Type::String => ExternType::String,
-            Type::Struct(id) => ExternType::Item { target: id.into() },
-            Type::Enum(id) => ExternType::Item { target: id.into() },
-            Type::Str => unreachable!("str cannot be returned"),
-        }
-    }
-
-    /// Returns the owned source type corresponding to this IR type.
-    pub(super) fn source_type_owned(self) -> SourceType<'db> {
-        match self {
-            Type::bool => SourceType::bool,
-            Type::char => SourceType::char,
-            Type::i8 => SourceType::i8,
-            Type::u8 => SourceType::u8,
-            Type::i16 => SourceType::i16,
-            Type::u16 => SourceType::u16,
-            Type::i32 => SourceType::i32,
-            Type::u32 => SourceType::u32,
-            Type::f32 => SourceType::f32,
-            Type::f64 => SourceType::f64,
-            Type::Str => SourceType::Str,
-            Type::String => SourceType::String,
-            Type::Struct(struct_id) => SourceType::Item {
-                target: struct_id.into(),
-            },
-            Type::Enum(enum_id) => SourceType::Item {
-                target: enum_id.into(),
-            },
+            ValueType::bool => ExternType::bool,
+            ValueType::i8 => ExternType::i8,
+            ValueType::u8 => ExternType::u8,
+            ValueType::i16 => ExternType::i16,
+            ValueType::u16 => ExternType::u16,
+            ValueType::i32 => ExternType::i32,
+            ValueType::u32 | ValueType::char => ExternType::u32,
+            ValueType::f64 | ValueType::f32 => ExternType::f64,
+            ValueType::String => ExternType::String,
+            ValueType::Struct(id) => ExternType::Item { target: id.into() },
+            ValueType::Enum(id) => ExternType::Item { target: id.into() },
+            ValueType::Str => unreachable!("str cannot be returned"),
         }
     }
 
@@ -239,19 +203,19 @@ impl<'db> Type<'db> {
     /// [`ExternClass`](super::extern_class::ExternClass) wrapper.
     pub(super) fn uses_class(self) -> bool {
         match self {
-            Type::Struct(_) | Type::Enum(_) => true,
-            Type::bool
-            | Type::char
-            | Type::i8
-            | Type::u8
-            | Type::i16
-            | Type::u16
-            | Type::i32
-            | Type::u32
-            | Type::f32
-            | Type::f64
-            | Type::Str
-            | Type::String => false,
+            ValueType::Struct(_) | ValueType::Enum(_) => true,
+            ValueType::bool
+            | ValueType::char
+            | ValueType::i8
+            | ValueType::u8
+            | ValueType::i16
+            | ValueType::u16
+            | ValueType::i32
+            | ValueType::u32
+            | ValueType::f32
+            | ValueType::f64
+            | ValueType::Str
+            | ValueType::String => false,
         }
     }
 

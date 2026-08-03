@@ -247,7 +247,7 @@ pub struct ShapeField<'db> {
     #[returns(ref)]
     pub name: String,
     #[tracked]
-    pub type_: Type<'db>,
+    pub type_: ValueType<'db>,
     #[tracked]
     pub is_readonly: bool,
     #[tracked]
@@ -301,27 +301,10 @@ impl<'db> Shape<'db> {
     }
 }
 
-// note: adding new variants here means that type must be properly handled in
-// all parts of the codebase _at once_. It's effectively impossible to add
-// step-by-step support for some new variant without todo!() panics which
-// disable tests. Maybe it's a good thing, but I am not entirely sure.
-
-/// A type as represented by rust-curse.
-///
-/// Each variant describes a Rust type category that rust-curse handles
-/// differently during binding generation. This is not a full Rust type model
-/// like [rustdoc_types::Type], but every value can be mapped back to its
-/// source Rust type.
-///
-/// For example, String has its own variant even though it is a struct,
-/// because rust-curse maps it directly to JavaScript string, while other
-/// structs are mapped to generated classes.
-///
-/// It also means that there is no "ref" or "mut ref" variant, since rust-curse
-/// doesn't really support refs in all cases.
+/// A supported subset of Rust value types.
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub enum Type<'db> {
+pub enum ValueType<'db> {
     bool,
     char,
     i8,
@@ -338,61 +321,60 @@ pub enum Type<'db> {
     Enum(EnumId<'db>),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub enum Type<'db> {
+    Value(ValueType<'db>),
+    Borrowed {
+        is_mutable: bool,
+        // note that we do not support double refs
+        inner: ValueType<'db>,
+    },
+}
+
 impl<'db> Type<'db> {
-    /// Returns this type's Rust name used in source code.
-    pub fn fqn(&self, db: &'db dyn Db) -> &'db str {
+    pub fn deref(self) -> ValueType<'db> {
         match self {
-            Type::bool => "bool",
-            Type::char => "char",
-            Type::i8 => "i8",
-            Type::u8 => "u8",
-            Type::i16 => "i16",
-            Type::u16 => "u16",
-            Type::i32 => "i32",
-            Type::u32 => "u32",
-            Type::f32 => "f32",
-            Type::f64 => "f64",
-            Type::Str => "str",
-            Type::String => "String",
-            Type::Struct(id) => id.fqn(db),
-            Type::Enum(id) => id.fqn(db),
+            Type::Value(value) => value,
+            Type::Borrowed { inner, .. } => inner,
         }
     }
+}
 
+impl<'db> ValueType<'db> {
     /// Returns this type's TypeScript name.
     pub fn ts_name(&self, db: &'db dyn Db) -> String {
         match self {
-            Type::bool => "boolean".to_owned(),
-            Type::char
-            | Type::i8
-            | Type::u8
-            | Type::i16
-            | Type::u16
-            | Type::i32
-            | Type::u32
-            | Type::f32
-            | Type::f64 => "number".to_owned(),
-            Type::Str | Type::String => "string".to_owned(),
-            Type::Struct(id) => id.name(db).to_owned(),
-            Type::Enum(id) => id.name(db).to_owned(),
+            ValueType::bool => "boolean".to_owned(),
+            ValueType::char
+            | ValueType::i8
+            | ValueType::u8
+            | ValueType::i16
+            | ValueType::u16
+            | ValueType::i32
+            | ValueType::u32
+            | ValueType::f32
+            | ValueType::f64 => "number".to_owned(),
+            ValueType::Str | ValueType::String => "string".to_owned(),
+            ValueType::Struct(id) => id.name(db).to_owned(),
+            ValueType::Enum(id) => id.name(db).to_owned(),
         }
     }
 }
 
 pub trait IntoIrTypeExt<'db> {
-    fn into_ir_type(self, db: &'db dyn Db) -> Type<'db>;
+    fn into_ir_type(self, db: &'db dyn Db) -> ValueType<'db>;
 }
 
 impl<'db, T: IntoItemId<'db>> IntoIrTypeExt<'db> for T {
-    fn into_ir_type(self, db: &'db dyn Db) -> Type<'db> {
+    fn into_ir_type(self, db: &'db dyn Db) -> ValueType<'db> {
         let item_id = self.into_item_id(db);
 
         match item_id.kind(db) {
-            ItemKind::Struct => Type::Struct(StructId::new(db, item_id).unwrap()),
-            ItemKind::Enum => Type::Enum(EnumId::new(db, item_id).unwrap()),
-            ItemKind::CLikeEnum => Type::Enum(EnumId::new(db, item_id).unwrap()),
-            ItemKind::Mod => Type::Enum(EnumId::new(db, item_id).unwrap()),
-            ItemKind::Fn => Type::Enum(EnumId::new(db, item_id).unwrap()),
+            ItemKind::Struct => ValueType::Struct(StructId::new(db, item_id).unwrap()),
+            ItemKind::Enum => ValueType::Enum(EnumId::new(db, item_id).unwrap()),
+            ItemKind::CLikeEnum => ValueType::Enum(EnumId::new(db, item_id).unwrap()),
+            ItemKind::Mod => ValueType::Enum(EnumId::new(db, item_id).unwrap()),
+            ItemKind::Fn => ValueType::Enum(EnumId::new(db, item_id).unwrap()),
         }
     }
 }
@@ -408,7 +390,7 @@ pub struct Fn<'db> {
     pub params: Vec<FnParam<'db>>,
     #[tracked]
     #[returns(copy)]
-    pub return_type: Option<Type<'db>>,
+    pub return_type: Option<ValueType<'db>>,
     #[tracked]
     #[returns(ref)]
     pub docs: Option<String>,
@@ -423,13 +405,6 @@ impl<'db> IntoItemId<'db> for Fn<'db> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
-pub enum PassingMode {
-    Ref,
-    Mut,
-    Move,
-}
-
 /// A function parameter.
 #[salsa::tracked(debug)]
 pub struct FnParam<'db> {
@@ -437,8 +412,6 @@ pub struct FnParam<'db> {
     pub name: String,
     #[tracked]
     pub type_: Type<'db>,
-    #[returns(copy)]
-    pub mode: PassingMode,
 }
 
 define_item_id!(

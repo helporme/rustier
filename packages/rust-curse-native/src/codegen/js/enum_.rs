@@ -4,7 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, comma_list, doubles, fragment, spaced},
-        ir::{Enum, EnumId, EnumVariant, ItemIdExt as _, ModId, ShapeField, Type},
+        ir::{Enum, EnumId, EnumVariant, ItemIdExt as _, ModId, ShapeField, ValueType},
         js::{
             boundary::{
                 compile_js_binding_value_to_facade_stmt,
@@ -92,7 +92,10 @@ pub fn compile_facade_class_for_enum<'db>(
         let private_cached_fields = fragment(|p| {
             for group in &groups {
                 for occurrence in &group.occurrences {
-                    if matches!(occurrence.field.type_(db), Type::Struct(_) | Type::Enum(_)) {
+                    if matches!(
+                        occurrence.field.type_(db),
+                        ValueType::Struct(_) | ValueType::Enum(_)
+                    ) {
                         frag!(#_{occurrence.variant.name(db)}_{occurrence.field.name(db)};@)
                             .apply(p);
                     }
@@ -318,7 +321,7 @@ fn compile_field_read_stmt<'db>(
     let field_type = occurrence.field.type_(db);
 
     fragment(move |p| match field_type {
-        Type::Struct(_) | Type::Enum(_) => {
+        ValueType::Struct(_) | ValueType::Enum(_) => {
             frag!(
                 const binding = ~{compile_enum_binding_field_expr(db, occurrence)};@
                 if (
@@ -336,18 +339,18 @@ fn compile_field_read_stmt<'db>(
             )
             .apply(p);
         }
-        Type::bool
-        | Type::char
-        | Type::i8
-        | Type::u8
-        | Type::i16
-        | Type::u16
-        | Type::i32
-        | Type::u32
-        | Type::f32
-        | Type::f64
-        | Type::Str
-        | Type::String => {
+        ValueType::bool
+        | ValueType::char
+        | ValueType::i8
+        | ValueType::u8
+        | ValueType::i16
+        | ValueType::u16
+        | ValueType::i32
+        | ValueType::u32
+        | ValueType::f32
+        | ValueType::f64
+        | ValueType::Str
+        | ValueType::String => {
             frag!(
                 let value;@
                 {compile_js_binding_value_to_facade_stmt(
@@ -368,7 +371,7 @@ fn compile_field_assignment_stmt<'db>(
     occurrence: EnumFieldOccurrence<'db>,
 ) -> impl FragmentOnce + 'db {
     let field_type = occurrence.field.type_(db);
-    let has_cached_facade = matches!(field_type, Type::Struct(_) | Type::Enum(_));
+    let has_cached_facade = matches!(field_type, ValueType::Struct(_) | ValueType::Enum(_));
 
     fragment(move |p| {
         frag!({

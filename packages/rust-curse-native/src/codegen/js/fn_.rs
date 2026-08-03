@@ -28,7 +28,7 @@ pub fn compile_facade_fn<'a>(db: &'a dyn Db, fn_: Fn<'a>) -> impl FragmentOnce +
             frag!(
                 {compile_js_facade_value_to_binding_stmt(
                     db,
-                    param.type_(db),
+                    param.type_(db).deref(),
                     param.name(db),
                     param.name(db),
                 )}@
@@ -87,7 +87,7 @@ pub fn compile_facade_fn_required_imports<'db>(
         compile_js_facade_value_to_binding_stmt_required_imports(
             db,
             active_mod_id,
-            param.type_(db),
+            param.type_(db).deref(),
             imports,
         );
     }

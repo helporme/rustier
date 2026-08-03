@@ -3,7 +3,7 @@
 use crate::{
     codegen::{
         bindings::{
-            bir::{ExternType, SourceType},
+            bir::ExternType,
             extern_class::{
                 CastClassBoundaryTypeToTetheringStructType,
                 CastTetheringStructTypeToClassBoundaryType,
@@ -15,13 +15,14 @@ use crate::{
                 CastStringToStrMutRule, CastStringToStrRefRule, CastU32ToCharRule,
             },
             tethering::{
-                CastSourceTypeToTetheringStructType, CastTetheringStructTypeToBorrowedSourceType,
-                CastTetheringStructTypeToOwnedSourceType, TetheringStructType,
+                CastTetheringStructTypeToBorrowedType, CastTetheringStructTypeToOwnedType,
+                CastTypeToTetheringStructType, TetheringStructType,
             },
         },
         cast::{CastContinuation, IndirectCastRule},
         db::Db,
         fragment::{FragmentOnce, Printer, fragment},
+        ir::Type,
     },
     define_cast_graph, frag,
 };
@@ -30,7 +31,7 @@ define_cast_graph! {
     pub BindingsCast<'db> {
         types {
             BoundaryType(ExternType<'db>),
-            SourceType(SourceType<'db>),
+            Type(Type<'db>),
             TetheringStructType(TetheringStructType<'db>),
         }
 
@@ -38,56 +39,56 @@ define_cast_graph! {
             JsAnyToF64 {
                 rule: CastJsAnyToF64Rule,
                 from: BoundaryType,
-                to: SourceType,
+                to: Type,
             }
             JsAnyToBool {
                 rule: CastJsAnyToBoolRule,
                 from: BoundaryType,
-                to: SourceType,
+                to: Type,
             }
             JsAnyToString {
                 rule: CastJsAnyToStringRule,
                 from: BoundaryType,
-                to: SourceType,
+                to: Type,
             }
             F64ToSignedInt {
                 rule: CastF64ToSignedIntRule,
-                from: SourceType,
-                to: SourceType,
+                from: Type,
+                to: Type,
             }
             F64ToUnsignedInt {
                 rule: CastF64ToUnsignedIntRule,
-                from: SourceType,
-                to: SourceType,
+                from: Type,
+                to: Type,
             }
             U32ToChar {
                 rule: CastU32ToCharRule,
-                from: SourceType,
-                to: SourceType,
+                from: Type,
+                to: Type,
             }
             F64ToF32 {
                 rule: CastF64ToF32Rule,
-                from: SourceType,
-                to: SourceType,
+                from: Type,
+                to: Type,
             }
             CharToU32Boundary {
                 rule: CastCharToU32BoundaryRule,
-                from: SourceType,
+                from: Type,
                 to: BoundaryType,
             }
             F32ToF64Boundary {
                 rule: CastF32ToF64BoundaryRule,
-                from: SourceType,
+                from: Type,
                 to: BoundaryType,
             }
             PrimitiveToSameBoundary {
                 rule: CastPrimitiveToSameBoundaryRule,
-                from: SourceType,
+                from: Type,
                 to: BoundaryType,
             }
-            SourceTypeToTetheringStructType {
-                rule: CastSourceTypeToTetheringStructType,
-                from: SourceType,
+            TypeToTetheringStructType {
+                rule: CastTypeToTetheringStructType,
+                from: Type,
                 to: TetheringStructType,
             }
             ClassBoundaryTypeToTetheringStructType {
@@ -105,28 +106,28 @@ define_cast_graph! {
         indirect_rules {
             OwnedTypeToBorrowedType {
                 rule: CastOwnedTypeToBorrowedTypeRule,
-                from: SourceType,
-                to: SourceType,
+                from: Type,
+                to: Type,
             }
             StringToStrRef {
                 rule: CastStringToStrRefRule,
-                from: SourceType,
-                to: SourceType,
+                from: Type,
+                to: Type,
             }
             StringToStrMut {
                 rule: CastStringToStrMutRule,
-                from: SourceType,
-                to: SourceType,
+                from: Type,
+                to: Type,
             }
-            TetheringStructTypeToBorrowedSourceType {
-                rule: CastTetheringStructTypeToBorrowedSourceType,
+            TetheringStructTypeToBorrowedType {
+                rule: CastTetheringStructTypeToBorrowedType,
                 from: TetheringStructType,
-                to: SourceType,
+                to: Type,
             }
-            TetheringStructTypeToOwnedSourceType {
-                rule: CastTetheringStructTypeToOwnedSourceType,
+            TetheringStructTypeToOwnedType {
+                rule: CastTetheringStructTypeToOwnedType,
                 from: TetheringStructType,
-                to: SourceType,
+                to: Type,
             }
         }
     }
@@ -527,12 +528,12 @@ where
 /// A rule to cast an owned source type to a reference source type.
 pub struct CastOwnedTypeToBorrowedTypeRule;
 
-impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>>
-    for CastOwnedTypeToBorrowedTypeRule
-{
-    fn predecessor(self, _db: &'db dyn Db, to: SourceType<'db>) -> Option<SourceType<'db>> {
+impl<'db> IndirectCastRule<'db, Type<'db>, Type<'db>> for CastOwnedTypeToBorrowedTypeRule {
+    fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<Type<'db>> {
         match to {
-            SourceType::Ref { inner, .. } if inner.allows_generic_borrowing_cast() => Some(*inner),
+            Type::Borrowed { inner, .. } if Type::Value(inner).allows_generic_borrowing_cast() => {
+                Some(Type::Value(inner))
+            }
             _ => None,
         }
     }
@@ -540,8 +541,8 @@ impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>>
     fn compile<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
-        _from: SourceType<'db>,
-        to: SourceType<'db>,
+        _from: Type<'db>,
+        to: Type<'db>,
         in_expr: Expr,
         continue_with: Continue,
     ) -> impl FragmentOnce + 'fragment
@@ -550,7 +551,7 @@ impl<'db> IndirectCastRule<'db, SourceType<'db>, SourceType<'db>>
         Expr: FragmentOnce + 'fragment,
         Continue: CastContinuation<'db>,
     {
-        let SourceType::Ref { is_mutable, .. } = to else {
+        let Type::Borrowed { is_mutable, .. } = to else {
             unreachable!()
         };
 
@@ -714,9 +715,9 @@ mod tests {
     use crate::{
         assert_rust_snap,
         codegen::{
-            bindings::bir::SourceType,
             fragment::FragmentOnce as _,
-            ir::{IntoIrTypeExt as _, Type},
+            ir::Type,
+            ir::{IntoIrTypeExt as _, ValueType},
         },
         frag,
     };
@@ -773,331 +774,331 @@ mod tests {
 
     cast_snapshot! {
         name: bool_in,
-        from: |_db| Type::bool.extern_in(),
-        to: |_db| Type::bool.source_type_owned(),
+        from: |_db| ValueType::bool.extern_in(),
+        to: |_db| Type::Value(ValueType::bool),
     }
 
     cast_snapshot! {
         name: bool_ref_in,
-        from: |_db| Type::bool.extern_in(),
-        to: |_db| Type::bool.source_type_owned().into_ref(),
+        from: |_db| ValueType::bool.extern_in(),
+        to: |_db| Type::Value(ValueType::bool).into_ref(),
     }
 
     cast_snapshot! {
         name: bool_mut_in,
-        from: |_db| Type::bool.extern_in(),
-        to: |_db| Type::bool.source_type_owned().into_mut(),
+        from: |_db| ValueType::bool.extern_in(),
+        to: |_db| Type::Value(ValueType::bool).into_mut(),
     }
 
     cast_snapshot! {
         name: bool_out,
-        from: |_db| Type::bool.source_type_owned(),
-        to: |_db| Type::bool.extern_out(),
+        from: |_db| Type::Value(ValueType::bool),
+        to: |_db| ValueType::bool.extern_out(),
     }
 
     cast_snapshot! {
         name: char_in,
-        from: |_db| Type::char.extern_in(),
-        to: |_db| Type::char.source_type_owned(),
+        from: |_db| ValueType::char.extern_in(),
+        to: |_db| Type::Value(ValueType::char),
     }
 
     cast_snapshot! {
         name: char_ref_in,
-        from: |_db| Type::char.extern_in(),
-        to: |_db| Type::char.source_type_owned().into_ref(),
+        from: |_db| ValueType::char.extern_in(),
+        to: |_db| Type::Value(ValueType::char).into_ref(),
     }
 
     cast_snapshot! {
         name: char_mut_in,
-        from: |_db| Type::char.extern_in(),
-        to: |_db| Type::char.source_type_owned().into_mut(),
+        from: |_db| ValueType::char.extern_in(),
+        to: |_db| Type::Value(ValueType::char).into_mut(),
     }
 
     cast_snapshot! {
         name: char_out,
-        from: |_db| Type::char.source_type_owned(),
-        to: |_db| Type::char.extern_out(),
+        from: |_db| Type::Value(ValueType::char),
+        to: |_db| ValueType::char.extern_out(),
     }
 
     cast_snapshot! {
         name: i8_in,
-        from: |_db| Type::i8.extern_in(),
-        to: |_db| Type::i8.source_type_owned(),
+        from: |_db| ValueType::i8.extern_in(),
+        to: |_db| Type::Value(ValueType::i8),
     }
 
     cast_snapshot! {
         name: i8_ref_in,
-        from: |_db| Type::i8.extern_in(),
-        to: |_db| Type::i8.source_type_owned().into_ref(),
+        from: |_db| ValueType::i8.extern_in(),
+        to: |_db| Type::Value(ValueType::i8).into_ref(),
     }
 
     cast_snapshot! {
         name: i8_mut_in,
-        from: |_db| Type::i8.extern_in(),
-        to: |_db| Type::i8.source_type_owned().into_mut(),
+        from: |_db| ValueType::i8.extern_in(),
+        to: |_db| Type::Value(ValueType::i8).into_mut(),
     }
 
     cast_snapshot! {
         name: i8_out,
-        from: |_db| Type::i8.source_type_owned(),
-        to: |_db| Type::i8.extern_out(),
+        from: |_db| Type::Value(ValueType::i8),
+        to: |_db| ValueType::i8.extern_out(),
     }
 
     cast_snapshot! {
         name: u8_in,
-        from: |_db| Type::u8.extern_in(),
-        to: |_db| Type::u8.source_type_owned(),
+        from: |_db| ValueType::u8.extern_in(),
+        to: |_db| Type::Value(ValueType::u8),
     }
 
     cast_snapshot! {
         name: u8_ref_in,
-        from: |_db| Type::u8.extern_in(),
-        to: |_db| Type::u8.source_type_owned().into_ref(),
+        from: |_db| ValueType::u8.extern_in(),
+        to: |_db| Type::Value(ValueType::u8).into_ref(),
     }
 
     cast_snapshot! {
         name: u8_mut_in,
-        from: |_db| Type::u8.extern_in(),
-        to: |_db| Type::u8.source_type_owned().into_mut(),
+        from: |_db| ValueType::u8.extern_in(),
+        to: |_db| Type::Value(ValueType::u8).into_mut(),
     }
 
     cast_snapshot! {
         name: u8_out,
-        from: |_db| Type::u8.source_type_owned(),
-        to: |_db| Type::u8.extern_out(),
+        from: |_db| Type::Value(ValueType::u8),
+        to: |_db| ValueType::u8.extern_out(),
     }
 
     cast_snapshot! {
         name: i16_in,
-        from: |_db| Type::i16.extern_in(),
-        to: |_db| Type::i16.source_type_owned(),
+        from: |_db| ValueType::i16.extern_in(),
+        to: |_db| Type::Value(ValueType::i16),
     }
 
     cast_snapshot! {
         name: i16_ref_in,
-        from: |_db| Type::i16.extern_in(),
-        to: |_db| Type::i16.source_type_owned().into_ref(),
+        from: |_db| ValueType::i16.extern_in(),
+        to: |_db| Type::Value(ValueType::i16).into_ref(),
     }
 
     cast_snapshot! {
         name: i16_mut_in,
-        from: |_db| Type::i16.extern_in(),
-        to: |_db| Type::i16.source_type_owned().into_mut(),
+        from: |_db| ValueType::i16.extern_in(),
+        to: |_db| Type::Value(ValueType::i16).into_mut(),
     }
 
     cast_snapshot! {
         name: i16_out,
-        from: |_db| Type::i16.source_type_owned(),
-        to: |_db| Type::i16.extern_out(),
+        from: |_db| Type::Value(ValueType::i16),
+        to: |_db| ValueType::i16.extern_out(),
     }
 
     cast_snapshot! {
         name: u16_in,
-        from: |_db| Type::u16.extern_in(),
-        to: |_db| Type::u16.source_type_owned(),
+        from: |_db| ValueType::u16.extern_in(),
+        to: |_db| Type::Value(ValueType::u16),
     }
 
     cast_snapshot! {
         name: u16_ref_in,
-        from: |_db| Type::u16.extern_in(),
-        to: |_db| Type::u16.source_type_owned().into_ref(),
+        from: |_db| ValueType::u16.extern_in(),
+        to: |_db| Type::Value(ValueType::u16).into_ref(),
     }
 
     cast_snapshot! {
         name: u16_mut_in,
-        from: |_db| Type::u16.extern_in(),
-        to: |_db| Type::u16.source_type_owned().into_mut(),
+        from: |_db| ValueType::u16.extern_in(),
+        to: |_db| Type::Value(ValueType::u16).into_mut(),
     }
 
     cast_snapshot! {
         name: u16_out,
-        from: |_db| Type::u16.source_type_owned(),
-        to: |_db| Type::u16.extern_out(),
+        from: |_db| Type::Value(ValueType::u16),
+        to: |_db| ValueType::u16.extern_out(),
     }
 
     cast_snapshot! {
         name: i32_in,
-        from: |_db| Type::i32.extern_in(),
-        to: |_db| Type::i32.source_type_owned(),
+        from: |_db| ValueType::i32.extern_in(),
+        to: |_db| Type::Value(ValueType::i32),
     }
 
     cast_snapshot! {
         name: i32_ref_in,
-        from: |_db| Type::i32.extern_in(),
-        to: |_db| Type::i32.source_type_owned().into_ref(),
+        from: |_db| ValueType::i32.extern_in(),
+        to: |_db| Type::Value(ValueType::i32).into_ref(),
     }
 
     cast_snapshot! {
         name: i32_mut_in,
-        from: |_db| Type::i32.extern_in(),
-        to: |_db| Type::i32.source_type_owned().into_mut(),
+        from: |_db| ValueType::i32.extern_in(),
+        to: |_db| Type::Value(ValueType::i32).into_mut(),
     }
 
     cast_snapshot! {
         name: i32_out,
-        from: |_db| Type::i32.source_type_owned(),
-        to: |_db| Type::i32.extern_out(),
+        from: |_db| Type::Value(ValueType::i32),
+        to: |_db| ValueType::i32.extern_out(),
     }
 
     cast_snapshot! {
         name: u32_in,
-        from: |_db| Type::u32.extern_in(),
-        to: |_db| Type::u32.source_type_owned(),
+        from: |_db| ValueType::u32.extern_in(),
+        to: |_db| Type::Value(ValueType::u32),
     }
 
     cast_snapshot! {
         name: u32_ref_in,
-        from: |_db| Type::u32.extern_in(),
-        to: |_db| Type::u32.source_type_owned().into_ref(),
+        from: |_db| ValueType::u32.extern_in(),
+        to: |_db| Type::Value(ValueType::u32).into_ref(),
     }
 
     cast_snapshot! {
         name: u32_mut_in,
-        from: |_db| Type::u32.extern_in(),
-        to: |_db| Type::u32.source_type_owned().into_mut(),
+        from: |_db| ValueType::u32.extern_in(),
+        to: |_db| Type::Value(ValueType::u32).into_mut(),
     }
 
     cast_snapshot! {
         name: u32_out,
-        from: |_db| Type::u32.source_type_owned(),
-        to: |_db| Type::u32.extern_out(),
+        from: |_db| Type::Value(ValueType::u32),
+        to: |_db| ValueType::u32.extern_out(),
     }
 
     cast_snapshot! {
         name: f32_in,
-        from: |_db| Type::f32.extern_in(),
-        to: |_db| Type::f32.source_type_owned(),
+        from: |_db| ValueType::f32.extern_in(),
+        to: |_db| Type::Value(ValueType::f32),
     }
 
     cast_snapshot! {
         name: f32_ref_in,
-        from: |_db| Type::f32.extern_in(),
-        to: |_db| Type::f32.source_type_owned().into_ref(),
+        from: |_db| ValueType::f32.extern_in(),
+        to: |_db| Type::Value(ValueType::f32).into_ref(),
     }
 
     cast_snapshot! {
         name: f32_mut_in,
-        from: |_db| Type::f32.extern_in(),
-        to: |_db| Type::f32.source_type_owned().into_mut(),
+        from: |_db| ValueType::f32.extern_in(),
+        to: |_db| Type::Value(ValueType::f32).into_mut(),
     }
 
     cast_snapshot! {
         name: f32_out,
-        from: |_db| Type::f32.source_type_owned(),
-        to: |_db| Type::f32.extern_out(),
+        from: |_db| Type::Value(ValueType::f32),
+        to: |_db| ValueType::f32.extern_out(),
     }
 
     cast_snapshot! {
         name: f64_in,
-        from: |_db| Type::f64.extern_in(),
-        to: |_db| Type::f64.source_type_owned(),
+        from: |_db| ValueType::f64.extern_in(),
+        to: |_db| Type::Value(ValueType::f64),
     }
 
     cast_snapshot! {
         name: f64_ref_in,
-        from: |_db| Type::f64.extern_in(),
-        to: |_db| Type::f64.source_type_owned().into_ref(),
+        from: |_db| ValueType::f64.extern_in(),
+        to: |_db| Type::Value(ValueType::f64).into_ref(),
     }
 
     cast_snapshot! {
         name: f64_mut_in,
-        from: |_db| Type::f64.extern_in(),
-        to: |_db| Type::f64.source_type_owned().into_mut(),
+        from: |_db| ValueType::f64.extern_in(),
+        to: |_db| Type::Value(ValueType::f64).into_mut(),
     }
 
     cast_snapshot! {
         name: f64_out,
-        from: |_db| Type::f64.source_type_owned(),
-        to: |_db| Type::f64.extern_out(),
+        from: |_db| Type::Value(ValueType::f64),
+        to: |_db| ValueType::f64.extern_out(),
     }
 
     cast_snapshot! {
         name: str_in,
-        from: |_db| Type::Str.extern_in(),
-        to: |_db| SourceType::Str.into_ref(),
+        from: |_db| ValueType::Str.extern_in(),
+        to: |_db| Type::Value(ValueType::Str).into_ref(),
     }
 
     cast_snapshot! {
         name: str_ref_in,
-        from: |_db| Type::Str.extern_in(),
-        to: |_db| SourceType::Str.into_ref(),
+        from: |_db| ValueType::Str.extern_in(),
+        to: |_db| Type::Value(ValueType::Str).into_ref(),
     }
 
     cast_snapshot! {
         name: str_mut_in,
-        from: |_db| Type::Str.extern_in(),
-        to: |_db| SourceType::Str.into_mut(),
+        from: |_db| ValueType::Str.extern_in(),
+        to: |_db| Type::Value(ValueType::Str).into_mut(),
     }
 
     cast_snapshot! {
         name: string_in,
-        from: |_db| Type::String.extern_in(),
-        to: |_db| Type::String.source_type_owned(),
+        from: |_db| ValueType::String.extern_in(),
+        to: |_db| Type::Value(ValueType::String),
     }
 
     cast_snapshot! {
         name: string_ref_in,
-        from: |_db| Type::String.extern_in(),
-        to: |_db| Type::String.source_type_owned().into_ref(),
+        from: |_db| ValueType::String.extern_in(),
+        to: |_db| Type::Value(ValueType::String).into_ref(),
     }
 
     cast_snapshot! {
         name: string_mut_in,
-        from: |_db| Type::String.extern_in(),
-        to: |_db| Type::String.source_type_owned().into_mut(),
+        from: |_db| ValueType::String.extern_in(),
+        to: |_db| Type::Value(ValueType::String).into_mut(),
     }
 
     cast_snapshot! {
         name: string_out,
-        from: |_db| Type::String.source_type_owned(),
-        to: |_db| Type::String.extern_out(),
+        from: |_db| Type::Value(ValueType::String),
+        to: |_db| ValueType::String.extern_out(),
     }
 
     cast_snapshot! {
         name: struct_in,
         from: |db| db.item_id("ExampleStruct").into_ir_type(db).extern_in(),
-        to: |db| db.item_id("ExampleStruct").into_ir_type(db).source_type_owned(),
+        to: |db| Type::Value(db.item_id("ExampleStruct").into_ir_type(db)),
     }
 
     cast_snapshot! {
         name: struct_ref_in,
         from: |db| db.item_id("ExampleStruct").into_ir_type(db).extern_in(),
-        to: |db| db.item_id("ExampleStruct").into_ir_type(db).source_type_owned().into_ref(),
+        to: |db| Type::Value(db.item_id("ExampleStruct").into_ir_type(db)).into_ref(),
     }
 
     cast_snapshot! {
         name: struct_mut_in,
         from: |db| db.item_id("ExampleStruct").into_ir_type(db).extern_in(),
-        to: |db| db.item_id("ExampleStruct").into_ir_type(db).source_type_owned().into_mut(),
+        to: |db| Type::Value(db.item_id("ExampleStruct").into_ir_type(db)).into_mut(),
     }
 
     cast_snapshot! {
         name: struct_out,
-        from: |db| db.item_id("ExampleStruct").into_ir_type(db).source_type_owned(),
+        from: |db| Type::Value(db.item_id("ExampleStruct").into_ir_type(db)),
         to: |db| db.item_id("ExampleStruct").into_ir_type(db).extern_out(),
     }
 
     cast_snapshot! {
         name: enum_in,
         from: |db| db.item_id("ExampleEnum").into_ir_type(db).extern_in(),
-        to: |db| db.item_id("ExampleEnum").into_ir_type(db).source_type_owned(),
+        to: |db| Type::Value(db.item_id("ExampleEnum").into_ir_type(db)),
     }
 
     cast_snapshot! {
         name: enum_ref_in,
         from: |db| db.item_id("ExampleEnum").into_ir_type(db).extern_in(),
-        to: |db| db.item_id("ExampleEnum").into_ir_type(db).source_type_owned().into_ref(),
+        to: |db| Type::Value(db.item_id("ExampleEnum").into_ir_type(db)).into_ref(),
     }
 
     cast_snapshot! {
         name: enum_mut_in,
         from: |db| db.item_id("ExampleEnum").into_ir_type(db).extern_in(),
-        to: |db| db.item_id("ExampleEnum").into_ir_type(db).source_type_owned().into_mut(),
+        to: |db| Type::Value(db.item_id("ExampleEnum").into_ir_type(db)).into_mut(),
     }
 
     cast_snapshot! {
         name: enum_out,
-        from: |db| db.item_id("ExampleEnum").into_ir_type(db).source_type_owned(),
+        from: |db| Type::Value(db.item_id("ExampleEnum").into_ir_type(db)),
         to: |db| db.item_id("ExampleEnum").into_ir_type(db).extern_out(),
     }
 }

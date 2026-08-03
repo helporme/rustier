@@ -4,7 +4,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, IntoFnFragment, Printer, comma_list},
-        ir::{Fn, ItemId, ItemIdExt, Type},
+        ir::{Fn, ItemId, ItemIdExt, ValueType},
         js::imports::{Import, ImportFrom},
         ts::jsdoc::compile_jsdoc,
     },
@@ -16,21 +16,20 @@ use crate::{
 /// Requires imports added by [`compile_fn_required_imports`] to be in scope.
 #[salsa::tracked(returns(ref))]
 pub fn compile_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> String {
-    let params = (move |printer: &mut Printer| {
-        if fn_.params(db).is_empty() {
-            "()".apply(printer);
-        } else {
-            frag!(({
-                comma_list(
-                    fn_.params(db)
-                        .iter()
-                        .map(|param| frag!({param.name(db)}:~{param.type_(db).ts_name(db)})),
-                )
-            },))
-            .apply(printer);
-        }
-    })
-    .into_fragment();
+    let params =
+        (move |printer: &mut Printer| {
+            if fn_.params(db).is_empty() {
+                "()".apply(printer);
+            } else {
+                frag!(({
+                    comma_list(fn_.params(db).iter().map(
+                        |param| frag!({param.name(db)}:~{param.type_(db).deref().ts_name(db)}),
+                    ))
+                },))
+                .apply(printer);
+            }
+        })
+        .into_fragment();
     let return_type = match fn_.return_type(db) {
         Some(type_) => &type_.ts_name(db),
         None => "void",
@@ -54,24 +53,24 @@ pub fn compile_fn_required_imports<'db>(
     for type_ in fn_
         .params(db)
         .iter()
-        .map(|param| param.type_(db))
+        .map(|param| param.type_(db).deref())
         .chain(fn_.return_type(db))
     {
         let (type_id, type_name): (ItemId<'db>, _) = match type_ {
-            Type::Struct(struct_id) => (struct_id.into(), struct_id.name(db)),
-            Type::Enum(enum_id) => (enum_id.into(), enum_id.name(db)),
-            Type::bool
-            | Type::char
-            | Type::i8
-            | Type::u8
-            | Type::i16
-            | Type::u16
-            | Type::i32
-            | Type::u32
-            | Type::f32
-            | Type::f64
-            | Type::Str
-            | Type::String => continue,
+            ValueType::Struct(struct_id) => (struct_id.into(), struct_id.name(db)),
+            ValueType::Enum(enum_id) => (enum_id.into(), enum_id.name(db)),
+            ValueType::bool
+            | ValueType::char
+            | ValueType::i8
+            | ValueType::u8
+            | ValueType::i16
+            | ValueType::u16
+            | ValueType::i32
+            | ValueType::u32
+            | ValueType::f32
+            | ValueType::f64
+            | ValueType::Str
+            | ValueType::String => continue,
         };
         let type_mod_id = type_id.parent_mod_id(db).unwrap();
 

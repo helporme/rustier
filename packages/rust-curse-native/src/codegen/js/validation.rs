@@ -7,7 +7,7 @@ use crate::{
     codegen::{
         db::Db,
         fragment::{Fragment, FragmentOnce, doubles, fragment},
-        ir::{ItemIdExt as _, ModId, Type},
+        ir::{ItemIdExt as _, ModId, ValueType},
         js::{
             enum_::compile_enum_facade_from_binding_expr_required_imports, imports::Import,
             struct_::compile_struct_facade_from_binding_expr_required_imports,
@@ -20,25 +20,25 @@ use crate::{
 /// bindings.
 pub fn compile_js_facade_value_validation_stmt<'db>(
     db: &'db dyn Db,
-    facade_value_type: Type<'db>,
+    facade_value_type: ValueType<'db>,
     facade_value_expr: impl Fragment + 'db,
 ) -> impl FragmentOnce + 'db {
     fragment(move |p| {
         let type_name = match facade_value_type {
-            Type::Struct(struct_id) => struct_id.name(db),
-            Type::Enum(enum_id) => enum_id.name(db),
-            Type::bool
-            | Type::char
-            | Type::i8
-            | Type::u8
-            | Type::i16
-            | Type::u16
-            | Type::i32
-            | Type::u32
-            | Type::f32
-            | Type::f64
-            | Type::Str
-            | Type::String => return,
+            ValueType::Struct(struct_id) => struct_id.name(db),
+            ValueType::Enum(enum_id) => enum_id.name(db),
+            ValueType::bool
+            | ValueType::char
+            | ValueType::i8
+            | ValueType::u8
+            | ValueType::i16
+            | ValueType::u16
+            | ValueType::i32
+            | ValueType::u32
+            | ValueType::f32
+            | ValueType::f64
+            | ValueType::Str
+            | ValueType::String => return,
         };
         let message_start = doubles((
             r#"Expected a value of type \""#,
@@ -61,11 +61,11 @@ pub fn compile_js_facade_value_validation_stmt<'db>(
 pub fn compile_js_facade_value_validation_stmt_required_imports<'db>(
     db: &'db dyn Db,
     active_mod_id: ModId<'db>,
-    facade_value_type: Type<'db>,
+    facade_value_type: ValueType<'db>,
     imports: &mut BTreeSet<Import<'db>>,
 ) {
     match facade_value_type {
-        Type::Struct(struct_id) => {
+        ValueType::Struct(struct_id) => {
             compile_struct_facade_from_binding_expr_required_imports(
                 db,
                 active_mod_id,
@@ -73,7 +73,7 @@ pub fn compile_js_facade_value_validation_stmt_required_imports<'db>(
                 imports,
             );
         }
-        Type::Enum(enum_id) => {
+        ValueType::Enum(enum_id) => {
             compile_enum_facade_from_binding_expr_required_imports(
                 db,
                 active_mod_id,
@@ -81,17 +81,17 @@ pub fn compile_js_facade_value_validation_stmt_required_imports<'db>(
                 imports,
             );
         }
-        Type::bool
-        | Type::char
-        | Type::i8
-        | Type::u8
-        | Type::i16
-        | Type::u16
-        | Type::i32
-        | Type::u32
-        | Type::f32
-        | Type::f64
-        | Type::Str
-        | Type::String => {}
+        ValueType::bool
+        | ValueType::char
+        | ValueType::i8
+        | ValueType::u8
+        | ValueType::i16
+        | ValueType::u16
+        | ValueType::i32
+        | ValueType::u32
+        | ValueType::f32
+        | ValueType::f64
+        | ValueType::Str
+        | ValueType::String => {}
     }
 }

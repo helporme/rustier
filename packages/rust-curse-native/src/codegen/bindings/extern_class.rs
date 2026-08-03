@@ -2,7 +2,7 @@ use crate::{
     codegen::{
         api::Api,
         bindings::{
-            bir::{ExternType, SourceType},
+            bir::ExternType,
             cast_graph::{BindingsCastCompiler, Cast},
             extern_fn::{ExternFn, ExternFnParam, compile_extern_fn},
             tethering::{
@@ -14,7 +14,7 @@ use crate::{
         cast::DirectCastRule,
         db::Db,
         fragment::{FragmentOnce, FragmentPrint as _, fragment, spaced},
-        ir::{IntoIrTypeExt as _, ItemId, Type},
+        ir::{IntoIrTypeExt as _, ItemId, Type, ValueType},
     },
     frag,
 };
@@ -28,7 +28,7 @@ pub struct ExternClass<'db, Fields> {
 #[derive(Clone, Debug)]
 pub struct ExternClassField<'db, GetRefExpr, GetMutExpr> {
     pub extern_name: &'db str,
-    pub type_: Type<'db>,
+    pub type_: ValueType<'db>,
     pub is_readonly: bool,
     pub get_ref_expr: GetRefExpr,
     pub get_mut_expr: GetMutExpr,
@@ -37,7 +37,7 @@ pub struct ExternClassField<'db, GetRefExpr, GetMutExpr> {
 impl<'db, GetRefExpr, GetMutExpr> ExternClassField<'db, GetRefExpr, GetMutExpr> {
     /// Converts this field to a [`TetheredField`] of the tethering struct.
     pub fn into_tethered_field(self) -> TetheredField<'db, GetRefExpr, GetMutExpr> {
-        let source_type = self.type_.source_type_owned();
+        let source_type = Type::Value(self.type_);
 
         if self.type_.uses_tethering() {
             TetheredField::TetheringStruct(TetheringStructField {
@@ -77,9 +77,7 @@ where
     let tethered_fields = fields.clone().map(|field| field.into_tethered_field());
 
     let tethering_struct = TetheringStruct {
-        source_type: SourceType::Item {
-            target: class.source_item_id,
-        },
+        source_type: Type::Value(class.source_item_id.into_ir_type(db)),
         fields: tethered_fields,
     };
 
@@ -100,7 +98,7 @@ fn compile_extern_class_struct<'db>(
 
     fragment(move |p| {
         let header = api.header_renamed(db, extern_name);
-        let source_type = source_item_id.into_ir_type(db).source_type_owned();
+        let source_type = Type::Value(source_item_id.into_ir_type(db));
         let tethering_type_name = source_type.tethering_struct_name(db);
 
         frag!(
@@ -162,7 +160,7 @@ where
     let field_value = compile_tethering_struct_get_field_expr(frag!(self.src), field.extern_name);
 
     let output = fragment(move |p| {
-        let field_source_type = field_type.source_type_owned();
+        let field_source_type = Type::Value(field_type);
         if field_type.uses_tethering() {
             cast_compiler
                 .compile_cast_expr(
@@ -201,7 +199,7 @@ where
 
     let result_type = api.result_type(db, "()");
     let field_boundary_in_type = field.type_.extern_in();
-    let field_source_type = field.type_.source_type_owned();
+    let field_source_type = Type::Value(field.type_);
 
     let set_tethered_field =
         compile_tethering_struct_set_field_stmt(frag!(self.src), field.extern_name, "value");
@@ -261,9 +259,12 @@ pub struct CastClassBoundaryTypeToTetheringStructType;
 impl<'db> DirectCastRule<'db, ExternType<'db>, TetheringStructType<'db>>
     for CastClassBoundaryTypeToTetheringStructType
 {
-    fn predecessor(self, db: &'db dyn Db, to: TetheringStructType<'db>) -> Option<ExternType<'db>> {
-        if let SourceType::Item { target } = to.source_type {
-            let ir_type = target.into_ir_type(db);
+    fn predecessor(
+        self,
+        _db: &'db dyn Db,
+        to: TetheringStructType<'db>,
+    ) -> Option<ExternType<'db>> {
+        if let Type::Value(ir_type) = to.source_type {
             if ir_type.uses_class() {
                 Some(ir_type.extern_in())
             } else {
@@ -298,7 +299,7 @@ impl<'db> DirectCastRule<'db, TetheringStructType<'db>, ExternType<'db>>
         match to {
             ExternType::Item { target } if target.into_ir_type(db).uses_class() => {
                 Some(TetheringStructType {
-                    source_type: SourceType::Item { target },
+                    source_type: Type::Value(target.into_ir_type(db)),
                 })
             }
             _ => None,

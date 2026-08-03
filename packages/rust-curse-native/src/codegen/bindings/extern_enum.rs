@@ -14,8 +14,7 @@ use crate::{
         db::Db,
         fragment::{FragmentOnce, FragmentPrint, doubles, fragment},
         ir::{
-            Enum, EnumVariant, IntoItemId as _, ItemIdExt as _, PassingMode, Shape, ShapeField,
-            Type,
+            Enum, EnumVariant, IntoItemId as _, ItemIdExt as _, Shape, ShapeField, Type, ValueType,
         },
     },
     frag,
@@ -182,11 +181,10 @@ fn compile_type_method<'db>(
         name: "__type",
         params: [ExternFnParam {
             name: "src",
-            type_: Type::Enum(enum_.id(db)),
-            mode: PassingMode::Ref,
+            type_: Type::Value(ValueType::Enum(enum_.id(db))).into_ref(),
             is_self: true,
         }],
-        return_type: Some(Type::u32),
+        return_type: Some(ValueType::u32),
         source_expr: expr,
     }
 }
