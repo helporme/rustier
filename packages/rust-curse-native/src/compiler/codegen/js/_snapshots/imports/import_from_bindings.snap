@@ -1,0 +1,29 @@
+---
+source: src/compiler/codegen/js/imports.rs
+expression: body
+---
+## Test
+
+```text
+compiler::codegen::js::imports::tests::import_from_bindings
+```
+
+## Source
+
+```rs
+let mut db = test_db! {};
+JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
+let import = Import {
+    item: "baz",
+    from: ImportFrom::Bindings,
+};
+frag!({ compile_import_stmt(& db, import) }).print()
+```
+
+## Output
+
+```js
+import {
+	baz
+} from 'path/to/bindings';
+```

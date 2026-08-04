@@ -44,7 +44,7 @@ impl DbImpl {
     ///
     /// ```no_run
     /// use rust_curse::{
-    ///     codegen::api::{Api, ApiKind},
+    ///     compiler::codegen::api::{Api, ApiKind},
     ///     test_db,
     /// };
     ///
@@ -62,7 +62,7 @@ impl DbImpl {
     ///
     /// ```no_run
     /// use rust_curse::{
-    ///     codegen::api::{Api, ApiKind},
+    ///     compiler::codegen::api::{Api, ApiKind},
     ///     test_db,
     /// };
     ///

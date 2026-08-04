@@ -1,7 +1,7 @@
 use std::{fs, io::ErrorKind, path::Path};
 
 use rust_curse::compiler::{
-    api::{ApiKind, WasmTarget},
+    codegen::api::{ApiKind, WasmTarget},
     diag::Theme,
 };
 

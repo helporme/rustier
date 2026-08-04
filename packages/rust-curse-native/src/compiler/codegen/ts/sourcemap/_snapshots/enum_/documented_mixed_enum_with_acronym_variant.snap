@@ -1,0 +1,277 @@
+---
+source: src/compiler/codegen/ts/sourcemap/enum_.rs
+expression: body
+---
+## Test
+
+```text
+compiler::codegen::ts::sourcemap::enum_::tests::documented_mixed_enum_with_acronym_variant
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    pub struct Local; #[doc = r" A shape represented by several layouts."] pub enum
+    Shape { #[doc = r" An acronym-prefixed request."] HTTPRequest { #[doc =
+    r" A field name repeated by the next variant."] response_code : i32, }, #[doc =
+    r" A title-cased request with the same generated tag."] HttpRequest { #[doc =
+    r" A repeated field name."] response_code : i32, }, #[doc =
+    r" Coordinates represented by tuple fields."] Point(#[doc =
+    r" A Rust-backed value that cannot be replaced."] Local, i32,), #[doc =
+    r" A variant without fields."] Unit, }
+};
+compile_test_enum(db, "Shape", 4)
+```
+
+## Output
+
+```text
+TypeScript:
+  0 | /** A shape represented by several layouts. */
+  1 | export type Shape = Shape.Instance & Shape.Plain;
+  2 | 
+  3 | export namespace Shape {
+  4 | 	export type Plain =
+  5 | 		/** An acronym-prefixed request. */
+  6 | 		| {
+  7 | 			readonly type: "HTTPRequest";
+  8 | 			/** A field name repeated by the next variant. */
+  9 | 			response_code: number;
+ 10 | 		}
+ 11 | 		/** A title-cased request with the same generated tag. */
+ 12 | 		| {
+ 13 | 			readonly type: "HttpRequest";
+ 14 | 			/** A repeated field name. */
+ 15 | 			response_code: number;
+ 16 | 		}
+ 17 | 		/** Coordinates represented by tuple fields. */
+ 18 | 		| {
+ 19 | 			readonly type: "point";
+ 20 | 			/** A Rust-backed value that cannot be replaced. */
+ 21 | 			readonly [0]: Local;
+ 22 | 			[1]: number;
+ 23 | 		}
+ 24 | 		/** A variant without fields. */
+ 25 | 		| {
+ 26 | 			readonly type: "unit";
+ 27 | 		};
+ 28 | 
+ 29 | 	export class Instance {
+ 30 | 		private __rust_curse_brand: never;
+ 31 | 		private constructor();
+ 32 | 	}
+ 33 | }
+
+Mappings:
+[
+    Mapping {
+        generated_line: 4,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 2,
+        original_column: 0,
+        name: "Shape",
+    },
+    Mapping {
+        generated_line: 4,
+        generated_column: 12,
+        source: "src/lib.rs",
+        original_line: 2,
+        original_column: 9,
+        name: "Shape",
+    },
+    Mapping {
+        generated_line: 6,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 2,
+        original_column: 0,
+        name: "Shape",
+    },
+    Mapping {
+        generated_line: 6,
+        generated_column: 17,
+        source: "src/lib.rs",
+        original_line: 2,
+        original_column: 9,
+        name: "Shape",
+    },
+    Mapping {
+        generated_line: 7,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 2,
+        original_column: 0,
+        name: "Shape",
+    },
+    Mapping {
+        generated_line: 7,
+        generated_column: 13,
+        source: "src/lib.rs",
+        original_line: 2,
+        original_column: 9,
+        name: "Shape",
+    },
+    Mapping {
+        generated_line: 10,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 4,
+        original_column: 4,
+        name: "HTTPRequest",
+    },
+    Mapping {
+        generated_line: 10,
+        generated_column: 12,
+        source: "src/lib.rs",
+        original_line: 4,
+        original_column: 4,
+        name: "HTTPRequest",
+    },
+    Mapping {
+        generated_line: 12,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 6,
+        original_column: 8,
+        name: "response_code",
+    },
+    Mapping {
+        generated_line: 12,
+        generated_column: 3,
+        source: "src/lib.rs",
+        original_line: 6,
+        original_column: 8,
+        name: "response_code",
+    },
+    Mapping {
+        generated_line: 16,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 9,
+        original_column: 4,
+        name: "HttpRequest",
+    },
+    Mapping {
+        generated_line: 16,
+        generated_column: 12,
+        source: "src/lib.rs",
+        original_line: 9,
+        original_column: 4,
+        name: "HttpRequest",
+    },
+    Mapping {
+        generated_line: 18,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 11,
+        original_column: 8,
+        name: "response_code",
+    },
+    Mapping {
+        generated_line: 18,
+        generated_column: 3,
+        source: "src/lib.rs",
+        original_line: 11,
+        original_column: 8,
+        name: "response_code",
+    },
+    Mapping {
+        generated_line: 22,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 14,
+        original_column: 4,
+        name: "Point",
+    },
+    Mapping {
+        generated_line: 22,
+        generated_column: 12,
+        source: "src/lib.rs",
+        original_line: 14,
+        original_column: 4,
+        name: "Point",
+    },
+    Mapping {
+        generated_line: 24,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 16,
+        original_column: 8,
+        name: "0",
+    },
+    Mapping {
+        generated_line: 24,
+        generated_column: 13,
+        source: "src/lib.rs",
+        original_line: 16,
+        original_column: 8,
+        name: "0",
+    },
+    Mapping {
+        generated_line: 25,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 17,
+        original_column: 8,
+        name: "1",
+    },
+    Mapping {
+        generated_line: 25,
+        generated_column: 4,
+        source: "src/lib.rs",
+        original_line: 17,
+        original_column: 8,
+        name: "1",
+    },
+    Mapping {
+        generated_line: 29,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 20,
+        original_column: 4,
+        name: "Unit",
+    },
+    Mapping {
+        generated_line: 29,
+        generated_column: 12,
+        source: "src/lib.rs",
+        original_line: 20,
+        original_column: 4,
+        name: "Unit",
+    },
+    Mapping {
+        generated_line: 32,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 2,
+        original_column: 0,
+        name: "Shape",
+    },
+    Mapping {
+        generated_line: 32,
+        generated_column: 14,
+        source: "src/lib.rs",
+        original_line: 2,
+        original_column: 9,
+        name: "Shape",
+    },
+    Mapping {
+        generated_line: 34,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 2,
+        original_column: 0,
+        name: "Shape",
+    },
+    Mapping {
+        generated_line: 34,
+        generated_column: 10,
+        source: "src/lib.rs",
+        original_line: 2,
+        original_column: 9,
+        name: "Shape",
+    },
+]
+```

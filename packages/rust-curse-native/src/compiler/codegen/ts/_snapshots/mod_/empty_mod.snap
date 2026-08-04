@@ -1,0 +1,23 @@
+---
+source: src/compiler/codegen/ts/mod_.rs
+expression: body
+---
+## Test
+
+```text
+compiler::codegen::ts::mod_::tests::empty_mod
+```
+
+## Source
+
+```rs
+let db = test_db! {};
+let mod_ = lower_mod(&db, db.rustdoc_id(""));
+compile_mod(&db, mod_)
+```
+
+## Output
+
+```ts
+
+```

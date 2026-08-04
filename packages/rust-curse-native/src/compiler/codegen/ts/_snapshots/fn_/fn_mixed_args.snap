@@ -1,0 +1,37 @@
+---
+source: src/compiler/codegen/ts/fn_.rs
+expression: body
+---
+## Test
+
+```text
+compiler::codegen::ts::fn_::tests::fn_mixed_args
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    #[derive(Clone)] pub struct Local; @ file : "models.rs"; pub mod models {
+    #[derive(Clone)] pub struct External; } #[doc =
+    r" Accepts primitive, local, and external values."] pub fn foo(number : i32, text
+    : String, local : Local, external : models::External) {}
+};
+compile_test_fn(db)
+```
+
+## Output
+
+```ts
+import {
+	External
+} from './models.rs';
+
+/** Accepts primitive, local, and external values. */
+export function foo(
+	number: number,
+	text: string,
+	local: Local,
+	external: External,
+): void;
+```

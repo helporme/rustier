@@ -32,7 +32,7 @@ pub struct SyncTsTreeOpts<'a> {
 /// use std::path::Path;
 ///
 /// use rust_curse::{
-///     codegen::db::DbImpl,
+///     compiler::db::DbImpl,
 ///     sync::ts_tree::{SyncTsTreeOpts, sync_ts_tree},
 /// };
 ///
@@ -112,13 +112,13 @@ pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<Vec<Diag>, SyncTsTreeErr
             ensure_dir(parent)?;
         }
 
-        let mut declaration = compiler::ts::mod_::compile_mod(opts.db, *mod_);
+        let mut declaration = compiler::codegen::ts::mod_::compile_mod(opts.db, *mod_);
         if !declaration.is_empty() {
             declaration.push_str(&format!("\n//# sourceMappingURL={sourcemap_file_name}\n"));
         }
         write_file(output_path, declaration.as_bytes())?;
 
-        let sourcemap = compiler::ts::sourcemap::compile_mod(opts.db, *mod_).to_string();
+        let sourcemap = compiler::codegen::ts::sourcemap::compile_mod(opts.db, *mod_).to_string();
         write_file(sourcemap_path, sourcemap.as_bytes())?;
     }
 

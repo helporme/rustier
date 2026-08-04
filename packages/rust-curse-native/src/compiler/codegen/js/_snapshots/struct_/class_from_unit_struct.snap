@@ -1,0 +1,128 @@
+---
+source: src/compiler/codegen/js/struct_.rs
+expression: body
+---
+## Test
+
+```text
+compiler::codegen::js::struct_::tests::class_from_unit_struct
+```
+
+## Source
+
+```rs
+let mut db = test_db! {
+    pub struct Foo; pub struct Bar(); pub struct Baz {}
+};
+JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
+frag!(
+    { compile_test_struct(& db, "Foo") } @@ { compile_test_struct(& db, "Bar") } @@ {
+    compile_test_struct(& db, "Baz") }
+)
+    .print()
+```
+
+## Output
+
+```js
+
+
+export class Foo {
+	#_binding;
+	static #_construction_token = Symbol();
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== Foo.#_construction_token
+		){
+			throw new TypeError(
+				"Rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static __from_binding(
+		binding
+	){
+		const obj = new Foo(
+			 Foo.#_construction_token
+		);
+		obj.#_binding = binding;
+		return obj;
+	}
+
+	__get_binding(){
+		return this.#_binding;
+	}
+}
+
+export class Bar {
+	#_binding;
+	static #_construction_token = Symbol();
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== Bar.#_construction_token
+		){
+			throw new TypeError(
+				"Rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static __from_binding(
+		binding
+	){
+		const obj = new Bar(
+			 Bar.#_construction_token
+		);
+		obj.#_binding = binding;
+		return obj;
+	}
+
+	__get_binding(){
+		return this.#_binding;
+	}
+}
+
+export class Baz {
+	#_binding;
+	static #_construction_token = Symbol();
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== Baz.#_construction_token
+		){
+			throw new TypeError(
+				"Rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static __from_binding(
+		binding
+	){
+		const obj = new Baz(
+			 Baz.#_construction_token
+		);
+		obj.#_binding = binding;
+		return obj;
+	}
+
+	__get_binding(){
+		return this.#_binding;
+	}
+}
+```

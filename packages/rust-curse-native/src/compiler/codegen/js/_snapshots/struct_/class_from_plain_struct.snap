@@ -1,0 +1,123 @@
+---
+source: src/compiler/codegen/js/struct_.rs
+expression: body
+---
+## Test
+
+```text
+compiler::codegen::js::struct_::tests::class_from_plain_struct
+```
+
+## Source
+
+```rs
+let mut db = test_db! {
+    @ file : "baz.rs"; pub mod baz { #[derive(Clone)] pub struct Baz {} } pub struct
+    Qux {} pub struct Foo { pub x : i32, pub y : String, pub z : baz::Baz, pub v :
+    Qux, }
+};
+JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
+compile_test_struct(&db, "Foo")
+```
+
+## Output
+
+```js
+import {
+	Baz
+} from './baz.rs';
+
+export class Foo {
+	#_binding;
+	static #_construction_token = Symbol();
+	#_z;
+	#_v;
+
+	get ["x"](){
+		let value;
+		value = this.#_binding["x"];
+		return value;
+	}
+
+	set ["x"](
+		value
+	){
+		this.#_binding["x"] = value;
+	}
+
+	get ["y"](){
+		let value;
+		value = this.#_binding["y"];
+		return value;
+	}
+
+	set ["y"](
+		value
+	){
+		this.#_binding["y"] = value;
+	}
+
+	get ["z"](){
+		return this.#_z;
+	}
+
+	set ["z"](
+		value
+	){
+		{
+			const __facade_value = value;
+			if(
+				!(
+					 __facade_value instanceof Baz
+				)
+			) {
+				throw new TypeError(
+					"Expected a value of type \"Baz\", but value of type \"" + typeof __facade_value + "\" was passed: \"" + String(
+						__facade_value
+					) + "\""
+				);
+			}
+			this.#_binding["z"] = __facade_value.__get_binding();
+		}
+		this.#_z = Baz.__from_binding(
+			this.#_binding["z"]
+		);
+	}
+
+	get ["v"](){
+		return this.#_v;
+	}
+
+	constructor(
+		token
+	){
+		if(
+			token !== Foo.#_construction_token
+		){
+			throw new TypeError(
+				"Rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static __from_binding(
+		binding
+	){
+		const obj = new Foo(
+			 Foo.#_construction_token
+		);
+		obj.#_binding = binding;
+		obj.#_z = Baz.__from_binding(
+			binding["z"]
+		);
+		obj.#_v = Qux.__from_binding(
+			binding["v"]
+		);
+		return obj;
+	}
+
+	__get_binding(){
+		return this.#_binding;
+	}
+}
+```

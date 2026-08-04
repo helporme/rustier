@@ -1,0 +1,36 @@
+---
+source: src/compiler/codegen/ts/sourcemap/mod_.rs
+expression: body
+---
+## Test
+
+```text
+compiler::codegen::ts::sourcemap::mod_::tests::empty_mod
+```
+
+## Source
+
+```rs
+let db = test_db! {};
+compile_test_mod(db, "")
+```
+
+## Output
+
+```text
+TypeScript:
+
+
+Source map:
+{
+  "version": 3,
+  "file": "lib.rs.d.ts",
+  "sourceRoot": "",
+  "sources": [],
+  "names": [],
+  "mappings": ""
+}
+
+Mappings:
+[]
+```

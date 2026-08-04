@@ -135,17 +135,17 @@ enum BuildArtifacts {
 }
 
 impl ProfileOpts {
-    fn api_kind(&self) -> compiler::api::ApiKind {
+    fn api_kind(&self) -> compiler::codegen::api::ApiKind {
         match &self.target {
-            ProfileTarget::Wasm { target } => compiler::api::ApiKind::Wasm {
+            ProfileTarget::Wasm { target } => compiler::codegen::api::ApiKind::Wasm {
                 target: target.into(),
             },
-            ProfileTarget::Node => compiler::api::ApiKind::Node,
+            ProfileTarget::Node => compiler::codegen::api::ApiKind::Node,
         }
     }
 }
 
-impl From<&WasmTarget> for compiler::api::WasmTarget {
+impl From<&WasmTarget> for compiler::codegen::api::WasmTarget {
     fn from(target: &WasmTarget) -> Self {
         match target {
             WasmTarget::Web => Self::Web,
@@ -345,7 +345,7 @@ impl Driver {
                 "syncing profile crate"
             );
 
-            compiler::api::Api::set(&mut self.db, profile.api_kind());
+            compiler::codegen::api::Api::set(&mut self.db, profile.api_kind());
             sync_crate(SyncCrateOps {
                 manifest_path: &manifest_path,
                 out_dir: &profile_crate_dir,
@@ -354,7 +354,8 @@ impl Driver {
             .map_err(|source| BuildError::SyncCrate { source })?;
 
             let mut profile_diags = Vec::new();
-            for diag in compiler::bindings::compile_bindings::accumulated::<Diag>(&self.db) {
+            for diag in compiler::codegen::bindings::compile_bindings::accumulated::<Diag>(&self.db)
+            {
                 profile_diags.push(
                     diag.render(Theme::UnicodeNoColor)
                         .map_err(|source| BuildError::RenderDiagnostic { source })?,
@@ -473,8 +474,8 @@ impl Driver {
 
         trace!(src_path, "resolved profile artifact source path");
 
-        compiler::api::Api::set(&mut self.db, api_kind);
-        compiler::js::JsCodegenPaths::set(&mut self.db, src_path);
+        compiler::codegen::api::Api::set(&mut self.db, api_kind);
+        compiler::codegen::js::JsCodegenPaths::set(&mut self.db, src_path);
 
         let module_path = PathBuf::from(&file_path).canonicalize().map_err(|source| {
             ResolveError::CanonicalizeModulePath {
@@ -500,7 +501,9 @@ impl Driver {
 
             if span_path == module_path {
                 debug!(module_path = %module_path.display(), "resolved Rust module import");
-                return Ok(compiler::js::mod_::compile_js_file(&self.db, *mod_));
+                return Ok(compiler::codegen::js::mod_::compile_js_file(
+                    &self.db, *mod_,
+                ));
             }
         }
 

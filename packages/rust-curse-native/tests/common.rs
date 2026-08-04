@@ -7,8 +7,8 @@ use std::{
 
 use rust_curse::{
     compiler::{
-        api::{Api, ApiKind, WasmTarget},
-        bindings::compile_bindings,
+        codegen::api::{Api, ApiKind, WasmTarget},
+        codegen::bindings::compile_bindings,
         db::DbImpl,
         diag::Diag,
         rustdoc::{Crate, RustdocCrates},

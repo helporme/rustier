@@ -9,10 +9,10 @@ use tracing::{debug, info};
 
 use crate::{
     compiler::{
-        api::{Api, ApiKind},
-        bindings::compile_bindings,
+        codegen::api::{Api, ApiKind},
+        codegen::bindings::compile_bindings,
+        codegen::fragment::{FragmentPrint, frag},
         db::DbImpl,
-        fragment::{FragmentPrint, frag},
     },
     sync::{file::write_if_changed, manifest},
     tools::{node, workspace},
@@ -38,8 +38,8 @@ pub struct SyncCrateOps<'a> {
 /// use std::path::Path;
 ///
 /// use rust_curse::{
-///     codegen::{
-///         api::{Api, ApiKind, WasmTarget},
+///     compiler::{
+///         codegen::api::{Api, ApiKind, WasmTarget},
 ///         db::DbImpl,
 ///     },
 ///     sync::cursed_crate::{SyncCrateOps, sync_crate},

@@ -1,0 +1,47 @@
+---
+source: src/compiler/codegen/ts/sourcemap/fn_.rs
+expression: body
+---
+## Test
+
+```text
+compiler::codegen::ts::sourcemap::fn_::tests::fn_nested_in_inline_mod
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    pub mod nested { pub fn foo(value : i32) -> i32 { value } }
+};
+compile_test_fn(db, "nested::foo", 0)
+```
+
+## Output
+
+```text
+TypeScript:
+  0 | export function foo(
+  1 | 	value: number,
+  2 | ): number;
+
+Mappings:
+[
+    Mapping {
+        generated_line: 0,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 1,
+        original_column: 4,
+        name: "foo",
+    },
+    Mapping {
+        generated_line: 0,
+        generated_column: 16,
+        source: "src/lib.rs",
+        original_line: 1,
+        original_column: 11,
+        name: "foo",
+    },
+]
+```

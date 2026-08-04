@@ -25,7 +25,7 @@ impl RustdocCrates {
     /// ```
     /// use std::collections::BTreeMap;
     ///
-    /// use rust_curse::codegen::{db::DbImpl, rustdoc::RustdocCrates};
+    /// use rust_curse::compiler::{db::DbImpl, rustdoc::RustdocCrates};
     ///
     /// let mut db = DbImpl::default();
     /// RustdocCrates::set(&mut db, BTreeMap::new());

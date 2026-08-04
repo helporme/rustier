@@ -4,7 +4,7 @@ use proptest::{
     prelude::*,
     test_runner::{Config, TestCaseError, basic_result_cache},
 };
-use rust_curse::compiler::{api::ApiKind, fragment::FragmentPrint as _};
+use rust_curse::compiler::{codegen::api::ApiKind, codegen::fragment::FragmentPrint as _};
 
 #[allow(dead_code)]
 mod common;

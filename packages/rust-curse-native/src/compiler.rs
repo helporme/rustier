@@ -1,19 +1,14 @@
 //! Codegen layer
 
-pub mod api;
-pub mod bindings;
 mod bir;
-pub mod cast;
 pub mod check;
+pub mod codegen;
 pub mod db;
 pub mod diag;
-pub mod fragment;
 mod ir;
-pub mod js;
 pub mod lower;
 mod mangle;
 pub mod rustdoc;
-pub mod ts;
 
 #[cfg(test)]
 #[doc(hidden)]

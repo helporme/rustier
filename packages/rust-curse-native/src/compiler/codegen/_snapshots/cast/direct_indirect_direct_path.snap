@@ -1,0 +1,29 @@
+---
+source: src/compiler/codegen/cast.rs
+expression: body
+---
+## Test
+
+```text
+compiler::codegen::cast::tests::direct_indirect_direct_path
+```
+
+## Source
+
+```rs
+HappyCastGraph::compile_cast(&db, from, to, frag!(source()), Sink).print()
+```
+
+## Output
+
+```rs
+sink(
+	direct(
+		indirect(
+			direct(
+				source()
+			)
+		)
+	)
+)
+```

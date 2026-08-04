@@ -1,0 +1,87 @@
+---
+source: src/compiler/codegen/ts/sourcemap/struct_.rs
+expression: body
+---
+## Test
+
+```text
+compiler::codegen::ts::sourcemap::struct_::tests::documented_plain_struct
+```
+
+## Source
+
+```rs
+let db = test_db! {
+    pub struct Local; #[doc = r" Stores primitive and local values."] pub struct Foo
+    { #[doc = r" A numeric value."] pub number : i32, #[doc =
+    r" A value that cannot be replaced from JavaScript."] pub local : Local, }
+};
+compile_test_struct(db, "Foo", 1)
+```
+
+## Output
+
+```text
+TypeScript:
+  0 | /** Stores primitive and local values. */
+  1 | export class Foo {
+  2 | 	/** A numeric value. */
+  3 | 	public number: number;
+  4 | 	/** A value that cannot be replaced from JavaScript. */
+  5 | 	public readonly local: Local;
+  6 | 	private __rust_curse_brand: never;
+  7 | 	private constructor();
+  8 | }
+
+Mappings:
+[
+    Mapping {
+        generated_line: 1,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 2,
+        original_column: 0,
+        name: "Foo",
+    },
+    Mapping {
+        generated_line: 1,
+        generated_column: 13,
+        source: "src/lib.rs",
+        original_line: 2,
+        original_column: 11,
+        name: "Foo",
+    },
+    Mapping {
+        generated_line: 3,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 4,
+        original_column: 4,
+        name: "number",
+    },
+    Mapping {
+        generated_line: 3,
+        generated_column: 8,
+        source: "src/lib.rs",
+        original_line: 4,
+        original_column: 8,
+        name: "number",
+    },
+    Mapping {
+        generated_line: 5,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 6,
+        original_column: 4,
+        name: "local",
+    },
+    Mapping {
+        generated_line: 5,
+        generated_column: 17,
+        source: "src/lib.rs",
+        original_line: 6,
+        original_column: 8,
+        name: "local",
+    },
+]
+```
