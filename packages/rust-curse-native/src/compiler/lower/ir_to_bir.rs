@@ -1,7 +1,7 @@
 use crate::compiler::{
     bir::{
         BindingClass, BindingClassField, BindingFn, BindingFnBody, BindingFnParam, BindingItem,
-        BindingMod, ExternClass, ExternClassField, ExternClassKind, ExternFn, ExternFnParam,
+        Bindings, ExternClass, ExternClassField, ExternClassKind, ExternFn, ExternFnParam,
         ExternSymbol, ExternType, ExternValueType, FieldAccess, PlainClassField,
         TagDiscriminatedClassField,
     },
@@ -10,19 +10,19 @@ use crate::compiler::{
 };
 
 #[salsa::tracked(returns(ref))]
-pub fn lower_mod<'db>(db: &'db dyn Db, mod_: Mod<'db>) -> BindingMod<'db> {
-    let items = mod_
-        .items(db)
-        .iter()
-        .filter_map(|item| match item {
-            Item::Enum(enum_) => Some(BindingItem::Class(lower_enum(db, *enum_))),
-            Item::Struct(struct_) => Some(BindingItem::Class(lower_struct(db, *struct_))),
-            Item::Fn(fn_) => Some(BindingItem::Fn(lower_fn(db, *fn_))),
-            Item::Mod(_) => None,
-        })
-        .collect();
+pub fn lower_mod<'db>(db: &'db dyn Db, mod_: Mod<'db>) -> Bindings<'db> {
+    let mut items = Vec::new();
 
-    BindingMod { items }
+    for item in mod_.items(db) {
+        match item {
+            Item::Enum(enum_) => items.push(BindingItem::Class(lower_enum(db, *enum_))),
+            Item::Struct(struct_) => items.push(BindingItem::Class(lower_struct(db, *struct_))),
+            Item::Fn(fn_) => items.push(BindingItem::Fn(lower_fn(db, *fn_))),
+            Item::Mod(mod_) => items.extend(lower_mod(db, *mod_).items.iter().cloned()),
+        }
+    }
+
+    Bindings { items }
 }
 
 fn lower_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> BindingClass<'db> {
@@ -192,5 +192,47 @@ fn lower_extern_value_type<'db>(db: &'db dyn Db, type_: ValueType<'db>) -> Exter
         ValueType::Enum(id) => {
             ExternValueType::Class(ExternSymbol::new(db, id.extern_name(db).to_owned()))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compiler::{lower::rustdoc_to_ir::mods::lower_mod as lower_ir_mod, test::test_db};
+
+    #[test]
+    fn recursively_lowers_nested_mod_items() {
+        let db = test_db! {
+            pub fn root_before() {}
+
+            pub mod outer {
+                pub struct Outer;
+
+                pub mod inner {
+                    pub enum Inner {
+                        Value,
+                    }
+                }
+
+                pub fn outer_after() {}
+            }
+
+            pub struct RootAfter;
+        };
+        let root = lower_ir_mod(&db, db.rustdoc_id(""));
+        let bindings = lower_mod(&db, root);
+        let fn_count = bindings
+            .items
+            .iter()
+            .filter(|item| matches!(item, BindingItem::Fn(_)))
+            .count();
+        let class_count = bindings
+            .items
+            .iter()
+            .filter(|item| matches!(item, BindingItem::Class(_)))
+            .count();
+
+        assert_eq!(fn_count, 2);
+        assert_eq!(class_count, 3);
     }
 }

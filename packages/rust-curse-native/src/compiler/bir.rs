@@ -5,17 +5,6 @@ pub struct ExternSymbol<'db> {
     pub inner: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub struct ExternMod<'db> {
-    pub items: Vec<ExternItem<'db>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
-pub enum ExternItem<'db> {
-    Class(ExternClass<'db>),
-    Fn(ExternFn<'db>),
-}
-
 #[salsa::tracked(debug)]
 pub struct ExternClass<'db> {
     pub symbol: ExternSymbol<'db>,
@@ -109,7 +98,7 @@ pub enum ExternType<'db> {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, salsa::Update)]
-pub struct BindingMod<'db> {
+pub struct Bindings<'db> {
     pub items: Vec<BindingItem<'db>>,
 }
 
