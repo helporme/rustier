@@ -19,8 +19,7 @@ const OWNED_PRIMITIVES: &[&str] = &[
 #[derive(Debug, Clone, Copy)]
 enum DeclarationKind {
     Struct,
-    CLikeEnum,
-    DataEnum,
+    Enum,
 }
 
 #[derive(Debug, Clone)]
@@ -86,8 +85,7 @@ fn scope_items() -> BoxedStrategy<Vec<Item>> {
                 .filter_map(|(declaration_index, kind)| {
                     let is_clone = match kind {
                         DeclarationKind::Struct => true,
-                        DeclarationKind::DataEnum => false,
-                        DeclarationKind::CLikeEnum => return None,
+                        DeclarationKind::Enum => false,
                     };
                     Some(TypeSymbol {
                         declaration_index,
@@ -139,8 +137,7 @@ fn scope_items() -> BoxedStrategy<Vec<Item>> {
 fn declaration_kind() -> impl Strategy<Value = DeclarationKind> {
     prop_oneof![
         3 => Just(DeclarationKind::Struct),
-        1 => Just(DeclarationKind::CLikeEnum),
-        2 => Just(DeclarationKind::DataEnum),
+        3 => Just(DeclarationKind::Enum),
     ]
 }
 
@@ -167,13 +164,17 @@ fn declaration(
                 })
                 .boxed()
         }
-        DeclarationKind::CLikeEnum => c_like_enum(name).prop_map(Item::Enum).boxed(),
-        DeclarationKind::DataEnum => {
+        DeclarationKind::Enum => {
             let resolved_paths = preceding_symbols
                 .into_iter()
                 .map(|symbol| symbol.path)
                 .collect();
-            data_enum(name, resolved_paths).prop_map(Item::Enum).boxed()
+            prop_oneof![
+                1 => unit_enum(name.clone()),
+                2 => data_enum(name, resolved_paths),
+            ]
+            .prop_map(Item::Enum)
+            .boxed()
         }
     }
 }
@@ -279,7 +280,7 @@ fn data_variant_shape(field_type: BoxedStrategy<Type>) -> BoxedStrategy<Shape> {
     prop_oneof![tuple, struct_].boxed()
 }
 
-fn c_like_enum(name: String) -> BoxedStrategy<Enum> {
+fn unit_enum(name: String) -> BoxedStrategy<Enum> {
     (1usize..=MAX_ENUM_VARIANTS)
         .prop_map(move |variant_count| Enum {
             name: name.clone(),

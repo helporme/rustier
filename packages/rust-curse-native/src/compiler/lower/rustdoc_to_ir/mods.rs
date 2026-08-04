@@ -3,17 +3,12 @@ use rustdoc_types::{ItemEnum, ItemKind as RItemKind};
 use crate::compiler::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::{CLikeEnum, Enum, Fn, Mod, ModId, Struct},
+    ir::{Enum, Fn, Mod, ModId, Struct},
     ir::{Item as IrItem, ItemId, ItemKind, ItemPath},
     rustdoc::{RustdocCrates, RustdocId},
 };
 
-use super::{
-    enums::{LoweredEnum, lower_enum},
-    fns::lower_fn,
-    spans::RustdocSpanExt as _,
-    structs::lower_struct,
-};
+use super::{enums::lower_enum, fns::lower_fn, spans::RustdocSpanExt as _, structs::lower_struct};
 
 /// Returns all rustdoc module IDs available in all crates.
 #[salsa::tracked(returns(ref))]
@@ -101,8 +96,7 @@ fn lower_mod_item<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Option<IrItem<'db
             }
         },
         ItemEnum::Enum(_) => match lower_enum(db, id) {
-            Ok(LoweredEnum::Enum(enum_)) => Some(enum_.into()),
-            Ok(LoweredEnum::CLikeEnum(enum_)) => Some(enum_.into()),
+            Ok(enum_) => Some(enum_.into()),
             Err(diag) => {
                 diag.accumulate(db);
                 None
@@ -169,32 +163,9 @@ pub fn lower_mod_structs<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Struct
     structs
 }
 
-/// Lowers the data-carrying enums defined inside the given rustdoc module.
+/// Lowers the enums defined inside the given rustdoc module.
 #[salsa::tracked(returns(ref))]
 pub fn lower_mod_enums<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Enum<'db>> {
-    lower_mod_enum_items(db, id)
-        .iter()
-        .filter_map(|enum_| match enum_ {
-            LoweredEnum::Enum(enum_) => Some(*enum_),
-            LoweredEnum::CLikeEnum(_) => None,
-        })
-        .collect()
-}
-
-/// Lowers the C-like enums defined inside the given rustdoc module.
-#[salsa::tracked(returns(ref))]
-pub fn lower_mod_c_like_enums<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<CLikeEnum<'db>> {
-    lower_mod_enum_items(db, id)
-        .iter()
-        .filter_map(|enum_| match enum_ {
-            LoweredEnum::Enum(_) => None,
-            LoweredEnum::CLikeEnum(enum_) => Some(*enum_),
-        })
-        .collect()
-}
-
-#[salsa::tracked(returns(ref))]
-fn lower_mod_enum_items<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<LoweredEnum<'db>> {
     let item = id.item(db);
     let crate_ = id.crate_body(db);
 
@@ -209,8 +180,7 @@ fn lower_mod_enum_items<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> Vec<Lowered
         let item = crate_.index.get(item_id).unwrap();
         if matches!(item.inner, ItemEnum::Enum(_)) {
             match lower_mod_item(db, RustdocId::new(db, *item_id, id.crate_name(db).clone())) {
-                Some(IrItem::Enum(enum_)) => enums.push(LoweredEnum::Enum(enum_)),
-                Some(IrItem::CLikeEnum(enum_)) => enums.push(LoweredEnum::CLikeEnum(enum_)),
+                Some(IrItem::Enum(enum_)) => enums.push(enum_),
                 Some(_) => unreachable!(),
                 None => {}
             }
@@ -282,17 +252,16 @@ mod tests {
         let fns = lower_mod_fns(&db, root);
         let structs = lower_mod_structs(&db, root);
         let enums = lower_mod_enums(&db, root);
-        assert_eq!(enums.len(), 1);
+        assert_eq!(enums.len(), 2);
         assert_eq!(
-            enums[0].id(&db).fqn(&db),
-            &format!("{TEST_CRATE_NAME}::Value")
-        );
-
-        let c_like_enums = lower_mod_c_like_enums(&db, root);
-        assert_eq!(c_like_enums.len(), 1);
-        assert_eq!(
-            c_like_enums[0].id(&db).fqn(&db),
-            &format!("{TEST_CRATE_NAME}::ColorKind")
+            enums
+                .iter()
+                .map(|enum_| enum_.id(&db).fqn(&db).as_str())
+                .collect::<Vec<_>>(),
+            [
+                format!("{TEST_CRATE_NAME}::ColorKind"),
+                format!("{TEST_CRATE_NAME}::Value"),
+            ]
         );
 
         let submods = lower_mod_submods(&db, root);
@@ -302,9 +271,9 @@ mod tests {
             &[
                 IrItem::Mod(submods[0]),
                 IrItem::Fn(fns[0]),
-                IrItem::CLikeEnum(c_like_enums[0]),
-                IrItem::Struct(structs[0]),
                 IrItem::Enum(enums[0]),
+                IrItem::Struct(structs[0]),
+                IrItem::Enum(enums[1]),
             ]
         );
         assert_eq!(module.fns(&db).collect::<Vec<_>>(), fns.to_vec());

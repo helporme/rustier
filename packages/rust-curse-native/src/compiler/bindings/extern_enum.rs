@@ -195,9 +195,8 @@ mod tests {
     use crate::{
         assert_rust_snap,
         compiler::{
-            bindings::cast_graph::test::TestCastCompiler,
-            fragment::FragmentOnce,
-            lower::rustdoc_to_ir::enums::{LoweredEnum, lower_enum},
+            bindings::cast_graph::test::TestCastCompiler, fragment::FragmentOnce,
+            lower::rustdoc_to_ir::enums::lower_enum,
         },
     };
 
@@ -209,9 +208,6 @@ mod tests {
                     source: { $($source)* },
                     expression: |db, p| {
                         let enum_ = lower_enum(db, db.rustdoc_id("Test")).unwrap();
-                        let LoweredEnum::Enum(enum_) = enum_ else {
-                            panic!("expected non-c enum");
-                        };
                         compile_extern_enum_with(db, TestCastCompiler, enum_).apply(p);
                     },
                 }

@@ -54,7 +54,6 @@ pub struct ItemPath<'db> {
 pub enum ItemKind {
     Struct,
     Enum,
-    CLikeEnum,
     Mod,
     Fn,
 }
@@ -176,17 +175,10 @@ impl<'db, T: IntoItemId<'db>> ItemIdExt<'db> for T {
 /// A lowered Rust item stored in the IR.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Supertype, salsa::Update)]
 pub enum Item<'db> {
-    CLikeEnum(CLikeEnum<'db>),
     Enum(Enum<'db>),
     Fn(Fn<'db>),
     Mod(Mod<'db>),
     Struct(Struct<'db>),
-}
-
-impl<'db> From<CLikeEnum<'db>> for Item<'db> {
-    fn from(value: CLikeEnum<'db>) -> Self {
-        Self::CLikeEnum(value)
-    }
 }
 
 impl<'db> From<Enum<'db>> for Item<'db> {
@@ -216,7 +208,6 @@ impl<'db> From<Struct<'db>> for Item<'db> {
 impl<'db> IntoItemId<'db> for Item<'db> {
     fn into_item_id(self, db: &'db dyn Db) -> ItemId<'db> {
         match self {
-            Self::CLikeEnum(item) => item.into_item_id(db),
             Self::Enum(item) => item.into_item_id(db),
             Self::Fn(item) => item.into_item_id(db),
             Self::Mod(item) => item.into_item_id(db),
@@ -372,7 +363,6 @@ impl<'db, T: IntoItemId<'db>> IntoIrTypeExt<'db> for T {
         match item_id.kind(db) {
             ItemKind::Struct => ValueType::Struct(StructId::new(db, item_id).unwrap()),
             ItemKind::Enum => ValueType::Enum(EnumId::new(db, item_id).unwrap()),
-            ItemKind::CLikeEnum => ValueType::Enum(EnumId::new(db, item_id).unwrap()),
             ItemKind::Mod => ValueType::Enum(EnumId::new(db, item_id).unwrap()),
             ItemKind::Fn => ValueType::Enum(EnumId::new(db, item_id).unwrap()),
         }
@@ -500,51 +490,6 @@ impl<'db> EnumVariant<'db> {
     ) -> impl Iterator<Item = ShapeField<'db>> + Clone + 'db {
         self.shape(db).fields()
     }
-}
-
-define_item_id!(
-    CLikeEnumId,
-    ItemKind::CLikeEnum,
-    "Identifies a lowered Rust c-like enum."
-);
-
-/// A lowered Rust enum that contains only unit variants.
-#[salsa::tracked(debug)]
-pub struct CLikeEnum<'db> {
-    pub id: CLikeEnumId<'db>,
-    #[tracked]
-    #[returns(ref)]
-    pub variants: Vec<CLikeEnumVariant<'db>>,
-    #[tracked]
-    #[returns(ref)]
-    pub docs: Option<String>,
-    #[tracked]
-    #[returns(ref)]
-    pub span: Option<Span>,
-}
-
-impl<'db> IntoItemId<'db> for CLikeEnum<'db> {
-    fn into_item_id(self, db: &'db dyn Db) -> ItemId<'db> {
-        self.id(db).into()
-    }
-}
-
-/// A lowered fieldless enum variant and its optional explicit discriminant.
-#[salsa::tracked(debug)]
-pub struct CLikeEnumVariant<'db> {
-    #[returns(ref)]
-    pub name: String,
-    /// The discriminant value of this variant as a number between [`i128::MIN`]
-    /// and [`u128::MAX`], if any.
-    #[tracked]
-    #[returns(ref)]
-    pub discriminant: Option<String>,
-    #[tracked]
-    #[returns(ref)]
-    pub docs: Option<String>,
-    #[tracked]
-    #[returns(ref)]
-    pub span: Option<Span>,
 }
 
 define_item_id!(ModId, ItemKind::Mod, "Identifies a lowered Rust module.");

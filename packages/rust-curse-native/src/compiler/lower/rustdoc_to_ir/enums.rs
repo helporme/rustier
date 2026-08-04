@@ -5,10 +5,7 @@ use thiserror::Error;
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
-    ir::{
-        CLikeEnum, CLikeEnumId, CLikeEnumVariant, Enum, EnumId, EnumVariant, ItemId, ItemKind,
-        ItemPath,
-    },
+    ir::{Enum, EnumId, EnumVariant, ItemId, ItemKind, ItemPath},
     rustdoc::{CrateExt, RustdocId},
 };
 
@@ -17,18 +14,12 @@ use super::{
     spans::RustdocSpanExt as _,
 };
 
-#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq, salsa::Update)]
-pub enum LoweredEnum<'db> {
-    Enum(Enum<'db>),
-    CLikeEnum(CLikeEnum<'db>),
-}
-
-/// Lowers a rustdoc enum to either a data-carrying or C-like IR enum.
+/// Lowers a rustdoc enum to an IR enum.
 #[salsa::tracked]
 pub fn lower_enum<'db>(
     db: &'db dyn Db,
     id: RustdocId<'db>,
-) -> Result<LoweredEnum<'db>, Box<EnumLowerError>> {
+) -> Result<Enum<'db>, Box<EnumLowerError>> {
     let item = id.item(db);
     let crate_body = id.crate_body(db);
 
@@ -48,23 +39,7 @@ pub fn lower_enum<'db>(
         causes.push(EnumLowerCause::StrippedVariants);
     }
 
-    let is_c_like = def.variants.iter().all(|variant_id| {
-        let variant_item = crate_body
-            .index
-            .get(variant_id)
-            .expect("enum variant must be present in the rustdoc index");
-        let ItemEnum::Variant(variant) = &variant_item.inner else {
-            unreachable!()
-        };
-
-        matches!(variant.kind, VariantKind::Plain)
-    });
-
-    if is_c_like {
-        lower_c_like_enum(db, id, causes).map(LoweredEnum::CLikeEnum)
-    } else {
-        lower_data_carrying_enum(db, id, causes).map(LoweredEnum::Enum)
-    }
+    lower_data_carrying_enum(db, id, causes)
 }
 
 fn lower_data_carrying_enum<'db>(
@@ -107,63 +82,6 @@ fn lower_data_carrying_enum<'db>(
         span,
         item.attrs.contains(&Attribute::NonExhaustive),
     ))
-}
-
-fn lower_c_like_enum<'db>(
-    db: &'db dyn Db,
-    id: RustdocId<'db>,
-    causes: Vec<EnumLowerCause>,
-) -> Result<CLikeEnum<'db>, Box<EnumLowerError>> {
-    if !causes.is_empty() {
-        return Err(enum_lower_error(db, id, causes));
-    }
-
-    let item = id.item(db);
-    let crate_body = id.crate_body(db);
-    let def = match &item.inner {
-        ItemEnum::Enum(def) => def,
-        _ => unreachable!(),
-    };
-
-    let variants = def
-        .variants
-        .iter()
-        .map(|variant_id| {
-            let variant_item = crate_body
-                .index
-                .get(variant_id)
-                .expect("enum variant must be present in the rustdoc index");
-            let variant = match &variant_item.inner {
-                ItemEnum::Variant(variant) => variant,
-                _ => unreachable!(),
-            };
-            let name = variant_item
-                .name
-                .clone()
-                .expect("enum variant must have a name");
-            let discriminant = variant
-                .discriminant
-                .as_ref()
-                .map(|discriminant| discriminant.value.clone());
-
-            let span = variant_item
-                .span
-                .as_ref()
-                .map(|span| span.lower(id.crate_(db)));
-
-            CLikeEnumVariant::new(db, name, discriminant, variant_item.docs.clone(), span)
-        })
-        .collect();
-
-    let item_summary = crate_body.paths.get(&item.id).unwrap();
-    let span = item.span.as_ref().map(|span| span.lower(id.crate_(db)));
-    let id = ItemId::new(
-        db,
-        ItemPath::new(db, &item_summary.path),
-        ItemKind::CLikeEnum,
-    );
-    let id = CLikeEnumId::new(db, id).unwrap();
-    Ok(CLikeEnum::new(db, id, variants, item.docs.clone(), span))
 }
 
 fn enum_lower_error(
@@ -456,7 +374,7 @@ mod tests {
     }
 
     #[test]
-    fn lowers_unit_only_enum_to_c_like_enum() {
+    fn lowers_unit_only_enum() {
         let db = test_db! {
             #[repr(i16)]
             pub enum TestEnum {
@@ -467,10 +385,7 @@ mod tests {
             }
         };
 
-        let lowered = lower_enum(&db, db.rustdoc_id("TestEnum")).unwrap();
-        let LoweredEnum::CLikeEnum(enum_) = lowered else {
-            panic!("unit-only enum must lower to CLikeEnum");
-        };
+        let enum_ = lower_enum(&db, db.rustdoc_id("TestEnum")).unwrap();
 
         assert_eq!(
             enum_
@@ -480,13 +395,11 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["Default", "Negative", "Positive"]
         );
-        assert_eq!(
+        assert!(
             enum_
                 .variants(&db)
                 .iter()
-                .map(|variant| variant.discriminant(&db).as_deref())
-                .collect::<Vec<_>>(),
-            [None, Some("-2"), Some("3")]
+                .all(|variant| matches!(variant.shape(&db), crate::compiler::ir::Shape::Unit))
         );
         assert_eq!(
             enum_.variants(&db)[0].docs(&db).as_deref(),
@@ -505,10 +418,7 @@ mod tests {
         };
         let id = db.rustdoc_id("TestEnum");
 
-        let lowered = lower_enum(&db, id).unwrap();
-        let LoweredEnum::Enum(enum_) = lowered else {
-            panic!("data-carrying enum must lower to Enum");
-        };
+        let enum_ = lower_enum(&db, id).unwrap();
         assert_eq!(enum_.variants(&db).len(), 2);
 
         let diagnostics = lower_enum::accumulated::<Diag>(&db, id);

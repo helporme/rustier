@@ -489,15 +489,12 @@ mod tests {
         db::DbImpl,
         fragment::{FragmentPrint, spaced},
         js::{JsCodegenPaths, imports::compile_import_stmt},
-        lower::rustdoc_to_ir::enums::{LoweredEnum, lower_enum},
+        lower::rustdoc_to_ir::enums::lower_enum,
         test::{assert_snap, test_db},
     };
 
     fn compile_test_enum(db: &DbImpl, enum_name: &str) -> String {
-        let enum_ = match lower_enum(db, db.rustdoc_id(enum_name)).unwrap() {
-            LoweredEnum::Enum(enum_) => enum_,
-            LoweredEnum::CLikeEnum(_) => panic!("test requires a data-carrying enum"),
-        };
+        let enum_ = lower_enum(db, db.rustdoc_id(enum_name)).unwrap();
         let mut imports = BTreeSet::new();
         compile_facade_class_for_enum_required_imports(db, enum_, &mut imports);
         let imports = spaced(

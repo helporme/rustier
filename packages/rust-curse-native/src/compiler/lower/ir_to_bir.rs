@@ -18,7 +18,7 @@ pub fn lower_mod<'db>(db: &'db dyn Db, mod_: Mod<'db>) -> BindingMod<'db> {
             Item::Enum(enum_) => Some(BindingItem::Class(lower_enum(db, *enum_))),
             Item::Struct(struct_) => Some(BindingItem::Class(lower_struct(db, *struct_))),
             Item::Fn(fn_) => Some(BindingItem::Fn(lower_fn(db, *fn_))),
-            Item::Mod(_) | Item::CLikeEnum(_) => None,
+            Item::Mod(_) => None,
         })
         .collect();
 
