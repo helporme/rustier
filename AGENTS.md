@@ -63,3 +63,18 @@ An item's effective visibility is already limited by its least-visible ancestor.
 ### Do not violate the module boundaries
 
 There is always obvious hierarchy between moduels. For example, rustdoc lowers to the ir, so it _knows_ about ir, but ir does not know about rustdoc, so when adding methods that convert something from rustdoc to ir, you must add a method under rustdoc module (like into_ir_* or lower_*), but NOT to the ir module (like from_ir_*).
+
+### Module ordering
+
+Order members inside the module roughly as:
+1. Module docs and attributes
+2. use imports
+3. Constants and statics
+4. Everything else type-centric like this:
+ a) Type definition (struct/enum/trait etc.)
+ b) Inherent impl blocks
+ c) Trait impl blocks
+ d) Free public functions
+ e) Private helper functions
+ f) Anything else related
+6. Tests
