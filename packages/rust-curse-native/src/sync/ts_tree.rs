@@ -8,7 +8,7 @@ use miette::Diagnostic;
 use tracing::{debug, info, trace};
 
 use crate::{
-    codegen::{self, diag::Diag, lower::rustdoc_to_ir::mods::lower_mods},
+    compiler::{self, db::DbImpl, diag::Diag, lower::rustdoc_to_ir::mods::lower_mods},
     sync::file::write_if_changed,
 };
 
@@ -20,7 +20,7 @@ pub struct SyncTsTreeOpts<'a> {
     /// The source `src` directory used to calculate mirrored module paths.
     pub src_dir: &'a Path,
     /// The database for compiling TypeScript declarations.
-    pub db: &'a codegen::db::DbImpl,
+    pub db: &'a DbImpl,
 }
 
 /// Syncs a mirrored `src` tree with TypeScript declarations and source maps
@@ -112,13 +112,13 @@ pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<Vec<Diag>, SyncTsTreeErr
             ensure_dir(parent)?;
         }
 
-        let mut declaration = codegen::ts::mod_::compile_mod(opts.db, *mod_);
+        let mut declaration = compiler::ts::mod_::compile_mod(opts.db, *mod_);
         if !declaration.is_empty() {
             declaration.push_str(&format!("\n//# sourceMappingURL={sourcemap_file_name}\n"));
         }
         write_file(output_path, declaration.as_bytes())?;
 
-        let sourcemap = codegen::ts::sourcemap::compile_mod(opts.db, *mod_).to_string();
+        let sourcemap = compiler::ts::sourcemap::compile_mod(opts.db, *mod_).to_string();
         write_file(sourcemap_path, sourcemap.as_bytes())?;
     }
 

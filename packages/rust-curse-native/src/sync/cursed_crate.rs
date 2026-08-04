@@ -8,7 +8,7 @@ use thiserror::Error;
 use tracing::{debug, info};
 
 use crate::{
-    codegen::{
+    compiler::{
         api::{Api, ApiKind},
         bindings::compile_bindings,
         db::DbImpl,

@@ -1,6 +1,6 @@
 #![recursion_limit = "256"]
 
-pub mod codegen;
+pub mod compiler;
 pub mod sync;
 pub mod tools;
 

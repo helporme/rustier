@@ -1,5 +1,5 @@
 use proptest::{collection::vec, prelude::*};
-use rust_curse::{codegen::fragment::FragmentPrint as _, frag};
+use rust_curse::{compiler::fragment::FragmentPrint as _, frag};
 
 use super::program::{
     Enum, EnumVariant, Function, FunctionParam, Item, Module, Program, Shape, ShapeField, Struct,

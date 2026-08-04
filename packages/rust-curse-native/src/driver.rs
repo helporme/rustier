@@ -23,7 +23,7 @@ use tracing::{debug, info, trace};
 use tracing_subscriber::{EnvFilter, fmt::time::ChronoLocal};
 
 use crate::{
-    codegen::{
+    compiler::{
         self,
         db::DbImpl,
         diag::{Diag, Theme},
@@ -135,17 +135,17 @@ enum BuildArtifacts {
 }
 
 impl ProfileOpts {
-    fn api_kind(&self) -> codegen::api::ApiKind {
+    fn api_kind(&self) -> compiler::api::ApiKind {
         match &self.target {
-            ProfileTarget::Wasm { target } => codegen::api::ApiKind::Wasm {
+            ProfileTarget::Wasm { target } => compiler::api::ApiKind::Wasm {
                 target: target.into(),
             },
-            ProfileTarget::Node => codegen::api::ApiKind::Node,
+            ProfileTarget::Node => compiler::api::ApiKind::Node,
         }
     }
 }
 
-impl From<&WasmTarget> for codegen::api::WasmTarget {
+impl From<&WasmTarget> for compiler::api::WasmTarget {
     fn from(target: &WasmTarget) -> Self {
         match target {
             WasmTarget::Web => Self::Web,
@@ -287,13 +287,13 @@ impl Driver {
         let src_dir = package.source_package_path.join("src");
         let crates = BTreeMap::from([(
             package.source_crate_name,
-            codegen::rustdoc::Crate {
+            compiler::rustdoc::Crate {
                 body: rustdoc,
                 is_external: false,
                 dir: package.source_package_path,
             },
         )]);
-        codegen::rustdoc::RustdocCrates::set(&mut self.db, crates);
+        compiler::rustdoc::RustdocCrates::set(&mut self.db, crates);
 
         let sync_ts_tree_diags = sync_ts_tree(SyncTsTreeOpts {
             our_dir: &types_dir,
@@ -313,7 +313,7 @@ impl Driver {
 
         debug!(
             diag_count = diags.len(),
-            "rendered shared codegen diagnostics"
+            "rendered shared compiler diagnostics"
         );
 
         let wasm_bindgen_tool_bin_path =
@@ -345,7 +345,7 @@ impl Driver {
                 "syncing profile crate"
             );
 
-            codegen::api::Api::set(&mut self.db, profile.api_kind());
+            compiler::api::Api::set(&mut self.db, profile.api_kind());
             sync_crate(SyncCrateOps {
                 manifest_path: &manifest_path,
                 out_dir: &profile_crate_dir,
@@ -354,7 +354,7 @@ impl Driver {
             .map_err(|source| BuildError::SyncCrate { source })?;
 
             let mut profile_diags = Vec::new();
-            for diag in codegen::bindings::compile_bindings::accumulated::<Diag>(&self.db) {
+            for diag in compiler::bindings::compile_bindings::accumulated::<Diag>(&self.db) {
                 profile_diags.push(
                     diag.render(Theme::UnicodeNoColor)
                         .map_err(|source| BuildError::RenderDiagnostic { source })?,
@@ -363,7 +363,7 @@ impl Driver {
             debug!(
                 profile_name = %profile_name,
                 diag_count = profile_diags.len(),
-                "rendered profile codegen diagnostics"
+                "rendered profile compiler diagnostics"
             );
 
             let output_root_dir = profile_crate_dir.join("output");
@@ -414,7 +414,7 @@ impl Driver {
         }
 
         let modules = lower_mods(&self.db);
-        for diag in codegen::check::check(&self.db, modules) {
+        for diag in compiler::check::check(&self.db, modules) {
             diags.push(
                 Diag::from(diag.clone())
                     .render(Theme::UnicodeNoColor)
@@ -473,8 +473,8 @@ impl Driver {
 
         trace!(src_path, "resolved profile artifact source path");
 
-        codegen::api::Api::set(&mut self.db, api_kind);
-        codegen::js::JsCodegenPaths::set(&mut self.db, src_path);
+        compiler::api::Api::set(&mut self.db, api_kind);
+        compiler::js::JsCodegenPaths::set(&mut self.db, src_path);
 
         let module_path = PathBuf::from(&file_path).canonicalize().map_err(|source| {
             ResolveError::CanonicalizeModulePath {
@@ -500,7 +500,7 @@ impl Driver {
 
             if span_path == module_path {
                 debug!(module_path = %module_path.display(), "resolved Rust module import");
-                return Ok(codegen::js::mod_::compile_js_file(&self.db, *mod_));
+                return Ok(compiler::js::mod_::compile_js_file(&self.db, *mod_));
             }
         }
 
@@ -596,7 +596,7 @@ enum BuildError {
         source: crate::sync::SyncTsTreeError,
     },
 
-    #[error("failed to render codegen diagnostic")]
+    #[error("failed to render compiler diagnostic")]
     #[diagnostic(code(rust_curse::driver::render_diagnostic))]
     RenderDiagnostic {
         #[source]

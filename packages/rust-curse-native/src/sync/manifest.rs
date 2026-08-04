@@ -4,7 +4,7 @@ use std::path::Path;
 
 use indoc::indoc;
 
-use crate::codegen::{api::Api, db::Db, fragment::FragmentPrint};
+use crate::compiler::{api::Api, db::Db, fragment::FragmentPrint};
 
 /// Options used to render `Cargo.toml` contents for the generated cursed crate.
 pub struct ManifestOpts<'a> {
@@ -121,7 +121,7 @@ fn escape_toml(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::codegen::{
+    use crate::compiler::{
         api::{ApiKind, WasmTarget},
         db::DbImpl,
     };

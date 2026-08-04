@@ -6,7 +6,7 @@ use std::{
 };
 
 use rust_curse::{
-    codegen::{
+    compiler::{
         api::{Api, ApiKind, WasmTarget},
         bindings::compile_bindings,
         db::DbImpl,
