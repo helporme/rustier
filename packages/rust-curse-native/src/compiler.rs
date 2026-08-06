@@ -8,6 +8,7 @@ pub mod diag;
 mod ir;
 pub mod lower;
 mod mangle;
+mod rust_ir;
 pub mod rustdoc;
 
 #[cfg(test)]

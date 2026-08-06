@@ -38,7 +38,7 @@ pub fn compile_facade_fn<'a>(db: &'a dyn Db, fn_: Fn<'a>) -> impl FragmentOnce +
     });
 
     let params = move || comma_list(fn_.params(db).iter().map(|param| param.name(db)));
-    let binding_fn_call_expr = frag!({ fn_.extern_name(db) }({ params() }));
+    let binding_fn_call_expr = frag!({ fn_.symbol(db) }({ params() }));
 
     let body_stmt = fragment(move |p| match fn_.return_type(db) {
         Some(return_type) => {
@@ -77,7 +77,7 @@ pub fn compile_facade_fn_required_imports<'db>(
     imports: &mut BTreeSet<Import<'db>>,
 ) {
     imports.insert(Import {
-        item: fn_.extern_name(db),
+        item: fn_.symbol(db),
         from: ImportFrom::Bindings,
     });
 

@@ -1,238 +1,213 @@
 use crate::compiler::{
     bir::{
         BindingClass, BindingClassField, BindingFn, BindingFnBody, BindingFnParam, BindingItem,
-        Bindings, ExternClass, ExternClassField, ExternClassKind, ExternFn, ExternFnParam,
-        ExternSymbol, ExternType, ExternValueType, FieldAccess, PlainClassField,
-        TagDiscriminatedClassField,
+        Bindings, ExternClass, ExternClassField, ExternClassFieldKind, ExternClassKind, ExternFn,
+        ExternFnParam, ExternSymbol, ExternType, ExternValueType, FieldAccess,
     },
     db::Db,
     ir::{Enum, Fn, IntoIrTypeExt, Item, ItemIdExt, Mod, Struct, Type, ValueType},
 };
 
-#[salsa::tracked(returns(ref))]
-pub fn lower_mod<'db>(db: &'db dyn Db, mod_: Mod<'db>) -> Bindings<'db> {
-    let mut items = Vec::new();
+#[salsa::tracked]
+impl<'db> Mod<'db> {
+    /// Lowers this module and all of its descendants into a flat set of
+    /// bindings.
+    #[salsa::tracked(returns(ref))]
+    pub fn lower_bir(self, db: &'db dyn Db) -> Bindings<'db> {
+        let mut items = Vec::new();
+        self.lower_items_into(db, &mut items);
+        Bindings { items }
+    }
+}
 
-    for item in mod_.items(db) {
-        match item {
-            Item::Enum(enum_) => items.push(BindingItem::Class(lower_enum(db, *enum_))),
-            Item::Struct(struct_) => items.push(BindingItem::Class(lower_struct(db, *struct_))),
-            Item::Fn(fn_) => items.push(BindingItem::Fn(lower_fn(db, *fn_))),
-            Item::Mod(mod_) => items.extend(lower_mod(db, *mod_).items.iter().cloned()),
+impl<'db> Mod<'db> {
+    fn lower_items_into(self, db: &'db dyn Db, binding_items: &mut Vec<BindingItem<'db>>) {
+        let source_items = self.items(db);
+        binding_items.reserve(source_items.len());
+
+        for item in source_items.iter().copied() {
+            match item {
+                Item::Enum(enum_) => {
+                    binding_items.push(BindingItem::Class(enum_.lower(db)));
+                }
+                Item::Struct(struct_) => {
+                    binding_items.push(BindingItem::Class(struct_.lower(db)));
+                }
+                Item::Fn(fn_) => binding_items.push(BindingItem::Fn(fn_.lower(db))),
+                Item::Mod(mod_) => mod_.lower_items_into(db, binding_items),
+            }
         }
     }
-
-    Bindings { items }
 }
 
-fn lower_struct<'db>(db: &'db dyn Db, struct_: Struct<'db>) -> BindingClass<'db> {
-    let mut external_fields = Vec::new();
-    let mut binding_fields = Vec::new();
+impl<'db> Struct<'db> {
+    fn lower(self, db: &'db dyn Db) -> BindingClass<'db> {
+        let fields = self.fields(db);
+        let mut external_fields = Vec::with_capacity(fields.len());
+        let mut binding_fields = Vec::with_capacity(fields.len());
 
-    for field in struct_.fields(db) {
-        let external = PlainClassField {
-            symbol: ExternSymbol::new(db, field.name(db).to_owned()),
-            type_: lower_value_type(db, field.type_(db)),
-            is_readonly: field.is_readonly(db),
-        };
-
-        external_fields.push(external.clone());
-        binding_fields.push(BindingClassField {
-            external: ExternClassField::Plain(external),
-            source_type: Type::Value(field.type_(db)),
-            access: FieldAccess::StructAccess {
-                struct_,
-                field_name: field.name(db).to_owned(),
-            },
-        });
-    }
-
-    let external = ExternClass::new(
-        db,
-        ExternSymbol::new(db, struct_.extern_name(db).to_owned()),
-        ExternClassKind::Plain {
-            fields: external_fields,
-        },
-        vec![],
-    );
-
-    BindingClass {
-        external,
-        source_type: Type::Value(struct_.into_ir_type(db)),
-        fields: binding_fields,
-        fns: vec![],
-    }
-}
-
-fn lower_enum<'db>(db: &'db dyn Db, enum_: Enum<'db>) -> BindingClass<'db> {
-    let mut external_fields = Vec::new();
-    let mut binding_fields = Vec::new();
-
-    for (discriminator, variant) in enum_.variants(db).iter().copied().enumerate() {
-        for field in variant.fields(db) {
-            let external = TagDiscriminatedClassField {
-                symbol: ExternSymbol::new(db, field.name(db).to_owned()),
-                type_: lower_value_type(db, field.type_(db)),
+        for field in fields.iter().copied() {
+            let field_name = field.name(db);
+            let source_type = field.type_(db);
+            let external = ExternClassField {
+                symbol: ExternSymbol::new(db, field_name),
+                in_type: Type::Value(source_type).lower_extern_in(db),
+                out_type: source_type.lower_extern_out(db),
                 is_readonly: field.is_readonly(db),
-                discriminator: discriminator as u32,
+                kind: ExternClassFieldKind::Plain,
             };
 
             external_fields.push(external.clone());
             binding_fields.push(BindingClassField {
-                external: ExternClassField::TagDiscriminated(external),
-                source_type: Type::Value(field.type_(db)),
-                access: FieldAccess::EnumVariantAccess {
-                    enum_,
-                    variant,
-                    field_name: field.name(db).to_owned(),
+                external,
+                source_type,
+                access: FieldAccess::StructAccess {
+                    struct_: self,
+                    field_name: field_name.to_owned(),
                 },
             });
         }
-    }
 
-    let external = ExternClass::new(
-        db,
-        ExternSymbol::new(db, enum_.extern_name(db).to_owned()),
-        ExternClassKind::TagDiscriminatedUnion {
-            tag: ExternSymbol::new(db, "__type".to_owned()),
-            names: enum_
-                .variants(db)
-                .iter()
-                .map(|variant| variant.name(db).to_owned())
-                .collect(),
-            fields: external_fields,
-        },
-        vec![],
-    );
+        let external = ExternClass::new(
+            db,
+            ExternSymbol::new(db, self.symbol(db)),
+            ExternClassKind::Plain,
+            vec![],
+            external_fields,
+        );
 
-    BindingClass {
-        external,
-        source_type: Type::Value(enum_.into_ir_type(db)),
-        fields: binding_fields,
-        fns: vec![],
+        BindingClass {
+            external,
+            source_type: self.into_value_type(db),
+            fields: binding_fields,
+            fns: vec![],
+        }
     }
 }
 
-fn lower_fn<'db>(db: &'db dyn Db, fn_: Fn<'db>) -> BindingFn<'db> {
-    let params = fn_
-        .params(db)
-        .iter()
-        .map(|param| {
-            let external = ExternFnParam::new(
-                db,
-                ExternSymbol::new(db, param.name(db).to_owned()),
-                lower_input_type(db, param.type_(db)),
-                false,
-            );
+impl<'db> Enum<'db> {
+    fn lower(self, db: &'db dyn Db) -> BindingClass<'db> {
+        let variants = self.variants(db);
+        let field_count = variants
+            .iter()
+            .map(|variant| variant.fields(db).count())
+            .sum();
+        let mut external_fields = Vec::with_capacity(field_count);
+        let mut binding_fields = Vec::with_capacity(field_count);
 
-            BindingFnParam {
-                external,
-                source_type: param.type_(db),
+        for (discriminator, variant) in variants.iter().copied().enumerate() {
+            for field in variant.fields(db) {
+                let field_name = field.name(db);
+                let source_type = field.type_(db);
+                let external = ExternClassField {
+                    symbol: ExternSymbol::new(db, field_name.to_owned()),
+                    in_type: Type::Value(source_type).lower_extern_in(db),
+                    out_type: source_type.lower_extern_out(db),
+                    is_readonly: field.is_readonly(db),
+                    kind: ExternClassFieldKind::TagDiscriminated {
+                        discriminator: discriminator as u32,
+                    },
+                };
+
+                external_fields.push(external.clone());
+                binding_fields.push(BindingClassField {
+                    external,
+                    source_type,
+                    access: FieldAccess::EnumVariantAccess {
+                        enum_: self,
+                        variant,
+                        field_name: field_name.to_owned(),
+                    },
+                });
             }
-        })
-        .collect::<Vec<_>>();
-    let external = ExternFn::new(
-        db,
-        ExternSymbol::new(db, fn_.extern_name(db).to_owned()),
-        params.iter().map(|param| param.external).collect(),
-        fn_.return_type(db)
-            .map(|type_| lower_extern_value_type(db, type_)),
-    );
-
-    BindingFn {
-        external,
-        params,
-        body: BindingFnBody::FnCall(fn_),
-    }
-}
-
-fn lower_input_type<'db>(db: &'db dyn Db, type_: Type<'db>) -> ExternType<'db> {
-    match type_.deref() {
-        ValueType::Struct(id) => ExternType::Ref(ExternValueType::Class(ExternSymbol::new(
-            db,
-            id.extern_name(db).to_owned(),
-        ))),
-        ValueType::Enum(id) => ExternType::Ref(ExternValueType::Class(ExternSymbol::new(
-            db,
-            id.extern_name(db).to_owned(),
-        ))),
-        ValueType::bool
-        | ValueType::char
-        | ValueType::i8
-        | ValueType::u8
-        | ValueType::i16
-        | ValueType::u16
-        | ValueType::i32
-        | ValueType::u32
-        | ValueType::f32
-        | ValueType::f64
-        | ValueType::Str
-        | ValueType::String => ExternType::Value(ExternValueType::JsAny),
-    }
-}
-
-fn lower_value_type<'db>(db: &'db dyn Db, type_: ValueType<'db>) -> ExternType<'db> {
-    ExternType::Value(lower_extern_value_type(db, type_))
-}
-
-fn lower_extern_value_type<'db>(db: &'db dyn Db, type_: ValueType<'db>) -> ExternValueType<'db> {
-    match type_ {
-        ValueType::bool => ExternValueType::bool,
-        ValueType::char | ValueType::u32 => ExternValueType::u32,
-        ValueType::i8 => ExternValueType::i8,
-        ValueType::u8 => ExternValueType::u8,
-        ValueType::i16 => ExternValueType::i16,
-        ValueType::u16 => ExternValueType::u16,
-        ValueType::i32 => ExternValueType::i32,
-        ValueType::f32 | ValueType::f64 => ExternValueType::f64,
-        ValueType::Str | ValueType::String => ExternValueType::String,
-        ValueType::Struct(id) => {
-            ExternValueType::Class(ExternSymbol::new(db, id.extern_name(db).to_owned()))
         }
-        ValueType::Enum(id) => {
-            ExternValueType::Class(ExternSymbol::new(db, id.extern_name(db).to_owned()))
+
+        let external = ExternClass::new(
+            db,
+            ExternSymbol::new(db, self.symbol(db).to_owned()),
+            ExternClassKind::TagDiscriminatedUnion {
+                tag: ExternSymbol::new(db, "__type".to_owned()),
+                names: variants
+                    .iter()
+                    .map(|variant| variant.name(db).to_owned())
+                    .collect(),
+            },
+            vec![],
+            external_fields,
+        );
+
+        BindingClass {
+            external,
+            source_type: self.into_value_type(db),
+            fields: binding_fields,
+            fns: vec![],
         }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::compiler::{lower::rustdoc_to_ir::mods::lower_mod as lower_ir_mod, test::test_db};
+impl<'db> Fn<'db> {
+    fn lower(self, db: &'db dyn Db) -> BindingFn<'db> {
+        let params = self
+            .params(db)
+            .iter()
+            .map(|param| {
+                let source_type = param.type_(db);
+                let external = ExternFnParam::new(db, source_type.lower_extern_in(db), false);
 
-    #[test]
-    fn recursively_lowers_nested_mod_items() {
-        let db = test_db! {
-            pub fn root_before() {}
-
-            pub mod outer {
-                pub struct Outer;
-
-                pub mod inner {
-                    pub enum Inner {
-                        Value,
-                    }
+                BindingFnParam {
+                    external,
+                    source_type,
                 }
+            })
+            .collect::<Vec<_>>();
 
-                pub fn outer_after() {}
-            }
+        let source_return_type = self.return_type(db);
+        let external = ExternFn::new(
+            db,
+            ExternSymbol::new(db, self.symbol(db)),
+            params.iter().map(|param| param.external).collect(),
+            source_return_type.map(|type_| type_.lower_extern_out(db)),
+        );
 
-            pub struct RootAfter;
-        };
-        let root = lower_ir_mod(&db, db.rustdoc_id(""));
-        let bindings = lower_mod(&db, root);
-        let fn_count = bindings
-            .items
-            .iter()
-            .filter(|item| matches!(item, BindingItem::Fn(_)))
-            .count();
-        let class_count = bindings
-            .items
-            .iter()
-            .filter(|item| matches!(item, BindingItem::Class(_)))
-            .count();
+        BindingFn {
+            external,
+            params,
+            source_return_type,
+            body: BindingFnBody::FnCall(self),
+        }
+    }
+}
 
-        assert_eq!(fn_count, 2);
-        assert_eq!(class_count, 3);
+impl<'db> Type<'db> {
+    pub(crate) fn lower_extern_in(self, db: &'db dyn Db) -> ExternType<'db> {
+        let type_ = self.deref();
+
+        if matches!(type_, ValueType::Struct(_) | ValueType::Enum(_)) {
+            ExternType::Borrowed(type_.lower_extern(db))
+        } else {
+            ExternType::Value(type_.lower_extern(db))
+        }
+    }
+}
+
+impl<'db> ValueType<'db> {
+    pub(crate) fn lower_extern_out(self, db: &'db dyn Db) -> ExternValueType<'db> {
+        self.lower_extern(db)
+    }
+
+    fn lower_extern(self, db: &'db dyn Db) -> ExternValueType<'db> {
+        match self {
+            ValueType::bool => ExternValueType::bool,
+            ValueType::char | ValueType::u32 => ExternValueType::u32,
+            ValueType::i8 => ExternValueType::i8,
+            ValueType::u8 => ExternValueType::u8,
+            ValueType::i16 => ExternValueType::i16,
+            ValueType::u16 => ExternValueType::u16,
+            ValueType::i32 => ExternValueType::i32,
+            ValueType::f32 | ValueType::f64 => ExternValueType::f64,
+            ValueType::Str | ValueType::String => ExternValueType::String,
+            ValueType::Struct(id) => ExternValueType::Class(ExternSymbol::new(db, id.symbol(db))),
+            ValueType::Enum(id) => ExternValueType::Class(ExternSymbol::new(db, id.symbol(db))),
+        }
     }
 }

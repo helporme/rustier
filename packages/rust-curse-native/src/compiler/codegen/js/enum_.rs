@@ -420,7 +420,9 @@ fn compile_enum_binding_field_expr<'db>(
     db: &'db dyn Db,
     occurrence: EnumFieldOccurrence<'db>,
 ) -> impl FragmentOnce + 'db {
-    let binding_name = occurrence.field.extern_name(db, occurrence.variant);
+    todo!();
+    // let binding_name = occurrence.field.extern_name(db, occurrence.variant);
+    let binding_name = "todo";
     frag!(this.#_binding[{doubles(binding_name)}])
 }
 

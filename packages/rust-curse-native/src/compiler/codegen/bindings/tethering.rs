@@ -127,11 +127,13 @@
 
 use crate::{
     compiler::{
-        codegen::api::Api,
-        codegen::cast::{CastContinuation, DirectCastRule, IndirectCastRule},
-        codegen::fragment::{Fragment, FragmentOnce, doubles, fragment, spaced},
+        codegen::{
+            api::Api,
+            cast::{CastContinuation, DirectCastRule, IndirectCastRule},
+            fragment::{Fragment, FragmentOnce, doubles, fragment, spaced},
+        },
         db::Db,
-        ir::Type,
+        ir::{Type, ValueType},
     },
     frag,
 };
@@ -307,16 +309,16 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
     )
 }
 
-impl<'a> Type<'a> {
-    pub fn tethering_struct_name(&self, db: &dyn Db) -> impl FragmentOnce {
-        frag!(__tethering__{self.mangled_name(db)})
+impl<'db> ValueType<'db> {
+    pub fn tethering_struct_name(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+        frag!(__tethering__{self.symbol(db)})
     }
 }
 
 /// A tethering struct. See the module-level documentation for more details.
 pub struct TetheringStruct<'a, Fields> {
     /// Source type for which the tethering struct is generated.
-    pub source_type: Type<'a>,
+    pub source_type: ValueType<'a>,
     /// Source fields exposed by the tethering struct.
     pub fields: Fields,
 }
@@ -330,6 +332,10 @@ pub enum TetheredField<'a, GetRefExpr, GetMutExpr> {
     TetheringStruct(TetheringStructField<'a, GetRefExpr, GetMutExpr>),
 }
 
+pub trait FieldExpr {
+    fn render(&self, source: &str) -> impl FragmentOnce;
+}
+
 #[derive(Clone)]
 pub struct ClonedField<'a, GetRefExpr, GetMutExpr> {
     pub name: &'a str,
@@ -338,7 +344,7 @@ pub struct ClonedField<'a, GetRefExpr, GetMutExpr> {
     /// Expression returning a fallible mutable reference to the source value.
     pub get_mut_expr: GetMutExpr,
     /// The type of this field on source type.
-    pub source_type: Type<'a>,
+    pub source_type: ValueType<'a>,
 }
 
 #[derive(Clone)]
@@ -350,24 +356,22 @@ pub struct TetheringStructField<'a, GetRefExpr, GetMutExpr> {
     /// Expression returning a fallible mutable reference to the source value.
     pub get_mut_expr: GetMutExpr,
     /// The type of this field on source type.
-    pub source_type: Type<'a>,
+    pub source_type: ValueType<'a>,
     /// Whether to generate a setter for this value.
     pub with_setter: bool,
 }
 
-/// Compiles a [`TetheringStruct`]. See the module-level documentation for more
+/// Renders a [`TetheringStruct`]. See the module-level documentation for more
 /// details.
-pub fn compile_tethering_struct<'db, Fields, GetRefExpr, RefExpr, GetMutExpr, MutExpr>(
+pub fn render_tethering_struct<'db, Fields, GetRefExpr, GetMutExpr>(
     db: &'db dyn Db,
     struct_: TetheringStruct<'db, Fields>,
 ) -> impl FragmentOnce + 'db
 where
     Fields: IntoIterator<Item = TetheredField<'db, GetRefExpr, GetMutExpr>> + 'db,
     Fields::IntoIter: Clone,
-    GetRefExpr: Fn(&'static str) -> RefExpr,
-    RefExpr: FragmentOnce,
-    GetMutExpr: Fn(&'static str) -> MutExpr,
-    MutExpr: FragmentOnce,
+    GetRefExpr: FieldExpr,
+    GetMutExpr: FieldExpr,
 {
     fragment(move |p| {
         let fields = struct_.fields.into_iter();
@@ -423,7 +427,7 @@ where
 
         let field_methods = spaced(fields.map(|field| {
             fragment(move |p| {
-                compile_tethered_field_getter(&field, db).apply(p);
+                render_tethered_field_getter(&field, db).apply(p);
 
                 let with_setter = match &field {
                     TetheredField::Cloned(_) => true,
@@ -431,13 +435,13 @@ where
                 };
 
                 if with_setter {
-                    frag!(@@{compile_tethered_field_setter(&field, db)}).apply(p);
+                    frag!(@@{render_tethered_field_setter(&field, db)}).apply(p);
                 }
             })
         }));
 
         let name = || struct_.source_type.tethering_struct_name(db);
-        let source_type = || struct_.source_type.fqn_decl(db);
+        let source_type = || struct_.source_type.render_type_decl(db);
 
         frag!(
             struct ~{name()}~{{
@@ -483,7 +487,7 @@ where
     })
 }
 
-/// Compiles a call to a generated tethered field getter.
+/// Renders a call to a generated tethered field getter.
 ///
 /// Expression is of:
 ///  - Rc of tethering struct type in case field holds tetherable source type
@@ -491,14 +495,14 @@ where
 ///
 /// The expression must be inserted into a scope that returns the
 /// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
-pub fn compile_tethering_struct_get_field_expr<'a>(
+pub fn render_tethering_struct_get_field_expr<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,
 ) -> impl FragmentOnce + 'a {
     frag!({tethered_struct_expr}.get_{field_name}()?)
 }
 
-/// Compiles a call to a generated tethered field setter.
+/// Renders a call to a generated tethered field setter.
 ///
 /// Value should be of:
 ///  - Rc of tethering struct type in case field holds tetherable source type
@@ -506,7 +510,7 @@ pub fn compile_tethering_struct_get_field_expr<'a>(
 ///
 /// The statement must be inserted into a scope that returns the
 /// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
-pub fn compile_tethering_struct_set_field_stmt<'a>(
+pub fn render_tethering_struct_set_field_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,
     value: impl FragmentOnce + 'a,
@@ -519,16 +523,15 @@ fn cache_field_name(name: &str) -> impl Fragment + '_ {
 }
 
 impl<'a, GetRefExpr, GetMutExpr> ClonedField<'a, GetRefExpr, GetMutExpr> {
-    fn compile_getter<RefExpr>(&self, db: &'a dyn Db) -> impl FragmentOnce + '_
+    fn render_getter(&self, db: &'a dyn Db) -> impl FragmentOnce + '_
     where
-        GetRefExpr: Fn(&'static str) -> RefExpr,
-        RefExpr: FragmentOnce,
+        GetRefExpr: FieldExpr,
     {
         fragment(move |p| {
-            let get_ref_expr = (self.get_ref_expr)("src");
+            let get_ref_expr = self.get_ref_expr.render("src");
 
             frag!(
-                pub fn get_{self.name}(&self) -> __tethering::AccessResult<{self.source_type.fqn_decl(db)}>~{{
+                pub fn get_{self.name}(&self) -> __tethering::AccessResult<{self.source_type.render_type_decl(db)}>~{{
                     self.access(|src| Ok({get_ref_expr}?.clone()))
                 }}
             )
@@ -536,16 +539,15 @@ impl<'a, GetRefExpr, GetMutExpr> ClonedField<'a, GetRefExpr, GetMutExpr> {
         })
     }
 
-    fn compile_setter<MutExpr>(&self, db: &'a dyn Db) -> impl FragmentOnce + '_
+    fn render_setter(&self, db: &'a dyn Db) -> impl FragmentOnce + '_
     where
-        GetMutExpr: Fn(&'static str) -> MutExpr,
-        MutExpr: FragmentOnce,
+        GetMutExpr: FieldExpr,
     {
         fragment(move |p| {
-            let get_mut_expr = (self.get_mut_expr)("src");
+            let get_mut_expr = self.get_mut_expr.render("src");
 
             frag!(
-                pub fn set_{self.name}(&self, value: ~{self.source_type.fqn_decl(db)}) -> __tethering::AccessResult<()>~{{
+                pub fn set_{self.name}(&self, value: ~{self.source_type.render_type_decl(db)}) -> __tethering::AccessResult<()>~{{
                     self.access_mut(|src|~{{
                         *{get_mut_expr}? = value;@
                         Ok(())
@@ -558,21 +560,19 @@ impl<'a, GetRefExpr, GetMutExpr> ClonedField<'a, GetRefExpr, GetMutExpr> {
 }
 
 impl<'a, GetRefExpr, GetMutExpr> TetheringStructField<'a, GetRefExpr, GetMutExpr> {
-    fn compile_getter<RefExpr, MutExpr>(&'a self, db: &'a dyn Db) -> impl FragmentOnce + 'a
+    fn render_getter(&'a self, db: &'a dyn Db) -> impl FragmentOnce + 'a
     where
-        GetRefExpr: Fn(&'static str) -> RefExpr,
-        RefExpr: FragmentOnce,
-        GetMutExpr: Fn(&'static str) -> MutExpr,
-        MutExpr: FragmentOnce,
+        GetRefExpr: FieldExpr,
+        GetMutExpr: FieldExpr,
     {
         fragment(move |p| {
             let cache_field_name = cache_field_name(self.name);
-            let validate_get_ref_expr = (self.get_ref_expr)("parent");
-            let get_ref_expr = (self.get_ref_expr)("parent");
-            let get_mut_expr = (self.get_mut_expr)("parent");
+            let validate_get_ref_expr = self.get_ref_expr.render("parent");
+            let get_ref_expr = self.get_ref_expr.render("parent");
+            let get_mut_expr = self.get_mut_expr.render("parent");
 
             let tethered_name = || self.source_type.tethering_struct_name(db);
-            let source_type = || self.source_type.fqn_decl(db);
+            let source_type = || self.source_type.render_type_decl(db);
 
             frag!(
                 pub fn get_{self.name}(
@@ -605,16 +605,15 @@ impl<'a, GetRefExpr, GetMutExpr> TetheringStructField<'a, GetRefExpr, GetMutExpr
         })
     }
 
-    fn compile_setter<MutExpr>(&'a self, db: &'a dyn Db) -> impl FragmentOnce + 'a
+    fn render_setter(&'a self, db: &'a dyn Db) -> impl FragmentOnce + 'a
     where
-        GetMutExpr: Fn(&'static str) -> MutExpr,
-        MutExpr: FragmentOnce,
+        GetMutExpr: FieldExpr,
     {
         fragment(move |p| {
             let cache_field_name = cache_field_name(self.name);
-            let validate_get_mut_expr = (self.get_mut_expr)("src");
-            let get_mut_expr = (self.get_mut_expr)("src");
-            let source_type = self.source_type.fqn_decl(db);
+            let validate_get_mut_expr = self.get_mut_expr.render("src");
+            let get_mut_expr = self.get_mut_expr.render("src");
+            let source_type = self.source_type.render_type_decl(db);
 
             frag!(
                 pub fn set_{self.name}(&self, value: ~{source_type}) -> __tethering::AccessResult<()>~{{
@@ -646,33 +645,30 @@ impl<'a, GetRefExpr, GetMutExpr> TetheringStructField<'a, GetRefExpr, GetMutExpr
     }
 }
 
-fn compile_tethered_field_getter<'field, 'a, GetRefExpr, RefExpr, GetMutExpr, MutExpr>(
+fn render_tethered_field_getter<'field, 'a, GetRefExpr, GetMutExpr>(
     field: &'field TetheredField<'a, GetRefExpr, GetMutExpr>,
     db: &'a dyn Db,
 ) -> impl FragmentOnce + 'field
 where
-    GetRefExpr: Fn(&'static str) -> RefExpr,
-    RefExpr: FragmentOnce,
-    GetMutExpr: Fn(&'static str) -> MutExpr,
-    MutExpr: FragmentOnce,
+    GetRefExpr: FieldExpr,
+    GetMutExpr: FieldExpr,
 {
     fragment(move |p| match field {
-        TetheredField::Cloned(field) => field.compile_getter(db).apply(p),
-        TetheredField::TetheringStruct(field) => field.compile_getter(db).apply(p),
+        TetheredField::Cloned(field) => field.render_getter(db).apply(p),
+        TetheredField::TetheringStruct(field) => field.render_getter(db).apply(p),
     })
 }
 
-fn compile_tethered_field_setter<'field, 'a, GetRefExpr, GetMutExpr, MutExpr>(
+fn render_tethered_field_setter<'field, 'a, GetRefExpr, GetMutExpr>(
     field: &'field TetheredField<'a, GetRefExpr, GetMutExpr>,
     db: &'a dyn Db,
 ) -> impl FragmentOnce + 'field
 where
-    GetMutExpr: Fn(&'static str) -> MutExpr,
-    MutExpr: FragmentOnce,
+    GetMutExpr: FieldExpr,
 {
     fragment(move |p| match field {
-        TetheredField::Cloned(field) => field.compile_setter(db).apply(p),
-        TetheredField::TetheringStruct(field) => field.compile_setter(db).apply(p),
+        TetheredField::Cloned(field) => field.render_setter(db).apply(p),
+        TetheredField::TetheringStruct(field) => field.render_setter(db).apply(p),
     })
 }
 
@@ -680,7 +676,7 @@ where
 #[derive(Clone, Debug, Hash, Eq, PartialEq, salsa::Update)]
 pub struct TetheringStructType<'db> {
     // A source type which tethering struct is storing.
-    pub source_type: Type<'db>,
+    pub source_type: ValueType<'db>,
 }
 
 /// Casts an owned source struct to its generated boundary type.
@@ -690,10 +686,10 @@ impl<'db> DirectCastRule<'db, Type<'db>, TetheringStructType<'db>>
     for CastTypeToTetheringStructType
 {
     fn predecessor(self, _db: &'db dyn Db, to: TetheringStructType<'db>) -> Option<Type<'db>> {
-        Some(to.source_type)
+        Some(Type::Value(to.source_type))
     }
 
-    fn compile<'fragment, Expr>(
+    fn render<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: Type<'db>,
@@ -720,14 +716,12 @@ impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, Type<'db>>
 {
     fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<TetheringStructType<'db>> {
         match to {
-            Type::Borrowed { inner, .. } => Some(TetheringStructType {
-                source_type: Type::Value(inner),
-            }),
+            Type::Borrowed { inner, .. } => Some(TetheringStructType { source_type: inner }),
             _ => None,
         }
     }
 
-    fn compile<'fragment, Expr, Continue>(
+    fn render<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
         _from: TetheringStructType<'db>,
@@ -775,11 +769,11 @@ impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, Type<'db>>
     fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<TetheringStructType<'db>> {
         match to {
             Type::Borrowed { .. } => None,
-            _ => Some(TetheringStructType { source_type: to }),
+            Type::Value(to) => Some(TetheringStructType { source_type: to }),
         }
     }
 
-    fn compile<'fragment, Expr, Continue>(
+    fn render<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
         _from: TetheringStructType<'db>,
@@ -810,13 +804,47 @@ mod tests {
     use super::*;
     use crate::{
         assert_rust_snap,
-        compiler::{
-            codegen::fragment::FragmentPrint as _,
-            ir::{IntoIrTypeExt as _, ValueType},
-        },
+        compiler::ir::{IntoIrTypeExt as _, ValueType},
     };
 
-    type FieldExpr = fn(&'static str) -> String;
+    #[derive(Clone, Copy)]
+    struct TestFieldExpr {
+        field_name: &'static str,
+        is_mutable: bool,
+    }
+
+    impl TestFieldExpr {
+        fn shared(field_name: &'static str) -> Self {
+            Self {
+                field_name,
+                is_mutable: false,
+            }
+        }
+
+        fn mutable(field_name: &'static str) -> Self {
+            Self {
+                field_name,
+                is_mutable: true,
+            }
+        }
+    }
+
+    impl FieldExpr for TestFieldExpr {
+        fn render(&self, source: &str) -> impl FragmentOnce {
+            let Self {
+                field_name,
+                is_mutable,
+            } = *self;
+
+            fragment(move |p| {
+                if is_mutable {
+                    frag!(Ok(&mut ~{source}.{field_name})).apply(p);
+                } else {
+                    frag!(Ok(&{source}.{field_name})).apply(p);
+                }
+            })
+        }
+    }
 
     #[test]
     fn compiles_tethered_struct_empty() {
@@ -825,12 +853,12 @@ mod tests {
                 pub struct Empty;
             },
             expression: |db, p| {
-                let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 0] = [];
+                let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 0] = [];
 
-                compile_tethering_struct(
+                render_tethering_struct(
                     db,
                     TetheringStruct {
-                        source_type: Type::Value(db.item_id("Empty").into_ir_type(db)),
+                        source_type: db.item_id("Empty").into_value_type(db),
                         fields,
                     },
                 )
@@ -848,18 +876,18 @@ mod tests {
                 }
             },
             expression: |db, p| {
-                let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 1] =
+                let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 1] =
                     [TetheredField::Cloned(ClonedField {
                         name: "count",
-                        get_ref_expr: |source| frag!(Ok(&{ source }.count)).print(),
-                        get_mut_expr: |source| frag!(Ok(&mut ~{ source }.count)).print(),
-                        source_type: Type::Value(ValueType::u32),
+                        get_ref_expr: TestFieldExpr::shared("count"),
+                        get_mut_expr: TestFieldExpr::mutable("count"),
+                        source_type: ValueType::u32,
                     })];
 
-                compile_tethering_struct(
+                render_tethering_struct(
                     db,
                     TetheringStruct {
-                        source_type: Type::Value(db.item_id("Parent").into_ir_type(db)),
+                        source_type: db.item_id("Parent").into_value_type(db),
                         fields,
                     },
                 )
@@ -878,19 +906,19 @@ mod tests {
                 }
             },
             expression: |db, p| {
-                let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 1] =
+                let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 1] =
                     [TetheredField::TetheringStruct(TetheringStructField {
                         name: "child",
-                        get_ref_expr: |source| frag!(Ok(&{ source }.child)).print(),
-                        get_mut_expr: |source| frag!(Ok(&mut ~{ source }.child)).print(),
-                        source_type: Type::Value(db.item_id("Child").into_ir_type(db)),
+                        get_ref_expr: TestFieldExpr::shared("child"),
+                        get_mut_expr: TestFieldExpr::mutable("child"),
+                        source_type: db.item_id("Child").into_value_type(db),
                         with_setter: true,
                     })];
 
-                compile_tethering_struct(
+                render_tethering_struct(
                     db,
                     TetheringStruct {
-                        source_type: Type::Value(db.item_id("Parent").into_ir_type(db)),
+                        source_type: db.item_id("Parent").into_value_type(db),
                         fields,
                     },
                 )
@@ -912,33 +940,33 @@ mod tests {
                 }
             },
             expression: |db, p| {
-                let fields: [TetheredField<'_, FieldExpr, FieldExpr>; 3] = [
+                let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 3] = [
                     TetheredField::Cloned(ClonedField {
                         name: "count",
-                        get_ref_expr: |source| frag!(Ok(&{ source }.count)).print(),
-                        get_mut_expr: |source| frag!(Ok(&mut ~{ source }.count)).print(),
-                        source_type: Type::Value(ValueType::u32),
+                        get_ref_expr: TestFieldExpr::shared("count"),
+                        get_mut_expr: TestFieldExpr::mutable("count"),
+                        source_type: ValueType::u32,
                     }),
                     TetheredField::TetheringStruct(TetheringStructField {
                         name: "child",
-                        get_ref_expr: |source| frag!(Ok(&{ source }.child)).print(),
-                        get_mut_expr: |source| frag!(Ok(&mut ~{ source }.child)).print(),
-                        source_type: Type::Value(db.item_id("Child").into_ir_type(db)),
+                        get_ref_expr: TestFieldExpr::shared("child"),
+                        get_mut_expr: TestFieldExpr::mutable("child"),
+                        source_type: db.item_id("Child").into_value_type(db),
                         with_setter: true,
                     }),
                     TetheredField::TetheringStruct(TetheringStructField {
                         name: "readonly_child",
-                        get_ref_expr: |source| frag!(Ok(&{ source }.readonly_child)).print(),
-                        get_mut_expr: |source| frag!(Ok(&mut ~{ source }.readonly_child)).print(),
-                        source_type: Type::Value(db.item_id("ReadonlyChild").into_ir_type(db)),
+                        get_ref_expr: TestFieldExpr::shared("readonly_child"),
+                        get_mut_expr: TestFieldExpr::mutable("readonly_child"),
+                        source_type: db.item_id("ReadonlyChild").into_value_type(db),
                         with_setter: false,
                     }),
                 ];
 
-                compile_tethering_struct(
+                render_tethering_struct(
                     db,
                     TetheringStruct {
-                        source_type: Type::Value(db.item_id("Parent").into_ir_type(db)),
+                        source_type: db.item_id("Parent").into_value_type(db),
                         fields,
                     },
                 )

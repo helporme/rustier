@@ -23,10 +23,10 @@ pub fn to_camel_case(name: &str) -> String {
 }
 
 /// Mangles a struct/enum/mod/etc. path into a unique identiefer.
-pub fn mangle_path(path: &[String]) -> String {
+pub fn mangle_path<'a>(path: impl IntoIterator<Item = &'a String>) -> String {
     let mut mangled = String::new();
 
-    for (i, s) in path.iter().enumerate() {
+    for (i, s) in path.into_iter().enumerate() {
         if i > 0 {
             mangled.push('_');
         }

@@ -192,7 +192,7 @@ impl Api {
             ApiKind::Node => "#[napi(js_name = ",
         };
 
-        frag!({header}{doubles(_fn.extern_name(db))}{")]"})
+        frag!({header}{doubles(_fn.symbol(db))}{")]"})
     }
 
     pub fn impl_header(&self, db: &dyn Db) -> &'static str {
@@ -213,7 +213,7 @@ impl Api {
             ApiKind::Node => "#[napi(js_name = ",
         };
 
-        frag!({header}{doubles(_struct.extern_name(db))}{")]"})
+        frag!({header}{doubles(_struct.symbol(db))}{")]"})
     }
 
     /// Returns the getter header for a field with the given JavaScript name.

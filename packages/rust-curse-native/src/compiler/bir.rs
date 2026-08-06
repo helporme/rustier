@@ -1,8 +1,9 @@
-use crate::compiler::ir::{Enum, EnumVariant, Fn, Struct, Type};
+use crate::compiler::ir::{Enum, EnumVariant, Fn, Struct, Type, ValueType};
 
 #[salsa::interned(debug)]
 pub struct ExternSymbol<'db> {
-    pub inner: String,
+    #[returns(ref)]
+    pub value: String,
 }
 
 #[salsa::tracked(debug)]
@@ -14,12 +15,15 @@ pub struct ExternClass<'db> {
     #[tracked]
     #[returns(ref)]
     pub fns: Vec<ExternFn<'db>>,
+    #[tracked]
+    #[returns(ref)]
+    pub fields: Vec<ExternClassField<'db>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum ExternClassKind<'db> {
     /// A plain class.
-    Plain { fields: Vec<PlainClassField<'db>> },
+    Plain,
     /// A tag-discriminated union class, where some fields are usable only for
     /// specific tag values.
     TagDiscriminatedUnion {
@@ -27,30 +31,22 @@ pub enum ExternClassKind<'db> {
         tag: ExternSymbol<'db>,
         /// Names of the tag values.
         names: Vec<String>,
-        /// Fields for each tag value.
-        fields: Vec<TagDiscriminatedClassField<'db>>,
     },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub struct PlainClassField<'db> {
+pub struct ExternClassField<'db> {
     pub symbol: ExternSymbol<'db>,
-    pub type_: ExternType<'db>,
+    pub in_type: ExternType<'db>,
+    pub out_type: ExternValueType<'db>,
     pub is_readonly: bool,
+    pub kind: ExternClassFieldKind,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub struct TagDiscriminatedClassField<'db> {
-    pub symbol: ExternSymbol<'db>,
-    pub type_: ExternType<'db>,
-    pub is_readonly: bool,
-    pub discriminator: u32,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub enum ExternClassField<'db> {
-    Plain(PlainClassField<'db>),
-    TagDiscriminated(TagDiscriminatedClassField<'db>),
+pub enum ExternClassFieldKind {
+    Plain,
+    TagDiscriminated { discriminator: u32 },
 }
 
 #[salsa::tracked(debug)]
@@ -65,14 +61,12 @@ pub struct ExternFn<'db> {
 
 #[salsa::tracked(debug)]
 pub struct ExternFnParam<'db> {
-    pub symbol: ExternSymbol<'db>,
-    #[tracked]
     pub type_: ExternType<'db>,
     #[tracked]
     pub is_self: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 #[allow(non_camel_case_types)]
 pub enum ExternValueType<'db> {
     bool,
@@ -90,11 +84,20 @@ pub enum ExternValueType<'db> {
     Class(ExternSymbol<'db>),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, salsa::Update)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 #[allow(non_camel_case_types)]
 pub enum ExternType<'db> {
     Value(ExternValueType<'db>),
-    Ref(ExternValueType<'db>),
+    Borrowed(ExternValueType<'db>),
+}
+
+impl<'db> ExternType<'db> {
+    pub fn deref(self) -> ExternValueType<'db> {
+        match self {
+            ExternType::Value(value) => value,
+            ExternType::Borrowed(value) => value,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, salsa::Update)]
@@ -111,6 +114,7 @@ pub enum BindingItem<'db> {
 #[derive(Debug, Clone, Eq, PartialEq, Hash, salsa::Update)]
 pub struct BindingFn<'db> {
     pub external: ExternFn<'db>,
+    pub source_return_type: Option<ValueType<'db>>,
     pub params: Vec<BindingFnParam<'db>>,
     pub body: BindingFnBody<'db>,
 }
@@ -129,7 +133,7 @@ pub enum BindingFnBody<'db> {
 #[derive(Debug, Clone, Eq, PartialEq, Hash, salsa::Update)]
 pub struct BindingClass<'db> {
     pub external: ExternClass<'db>,
-    pub source_type: Type<'db>,
+    pub source_type: ValueType<'db>,
     pub fields: Vec<BindingClassField<'db>>,
     pub fns: Vec<BindingFn<'db>>,
 }
@@ -137,7 +141,7 @@ pub struct BindingClass<'db> {
 #[derive(Debug, Clone, Eq, PartialEq, Hash, salsa::Update)]
 pub struct BindingClassField<'db> {
     pub external: ExternClassField<'db>,
-    pub source_type: Type<'db>,
+    pub source_type: ValueType<'db>,
     pub access: FieldAccess<'db>,
 }
 

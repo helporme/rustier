@@ -1,9 +1,11 @@
 use crate::{
     compiler::{
-        codegen::api::Api,
-        codegen::bindings::bir::ExternType,
-        codegen::cast::{CastContinuation, DirectCastRule, IndirectCastRule},
-        codegen::fragment::{FragmentOnce, doubles},
+        bir::{ExternType, ExternValueType},
+        codegen::{
+            api::Api,
+            cast::{CastContinuation, DirectCastRule, IndirectCastRule},
+            fragment::{FragmentOnce, doubles},
+        },
         db::Db,
         ir::{Type, ValueType},
     },
@@ -22,7 +24,7 @@ impl<'db> DirectCastRule<'db, Type<'db>, Type<'db>> for CastF64ToSignedIntRule {
         .then_some(Type::Value(ValueType::f64))
     }
 
-    fn compile<'fragment, Expr>(
+    fn render<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: Type<'db>,
@@ -70,7 +72,7 @@ impl<'db> DirectCastRule<'db, Type<'db>, Type<'db>> for CastF64ToUnsignedIntRule
         .then_some(Type::Value(ValueType::f64))
     }
 
-    fn compile<'fragment, Expr>(
+    fn render<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: Type<'db>,
@@ -114,7 +116,7 @@ impl<'db> DirectCastRule<'db, Type<'db>, Type<'db>> for CastU32ToCharRule {
         (to == Type::Value(ValueType::char)).then_some(Type::Value(ValueType::u32))
     }
 
-    fn compile<'fragment, Expr>(
+    fn render<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: Type<'db>,
@@ -143,7 +145,7 @@ impl<'db> DirectCastRule<'db, Type<'db>, Type<'db>> for CastF64ToF32Rule {
         (to == Type::Value(ValueType::f32)).then_some(Type::Value(ValueType::f64))
     }
 
-    fn compile<'fragment, Expr>(
+    fn render<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: Type<'db>,
@@ -163,10 +165,10 @@ pub struct CastCharToU32BoundaryRule;
 
 impl<'db> DirectCastRule<'db, Type<'db>, ExternType<'db>> for CastCharToU32BoundaryRule {
     fn predecessor(self, _db: &'db dyn Db, to: ExternType<'db>) -> Option<Type<'db>> {
-        (to == ExternType::u32).then_some(Type::Value(ValueType::char))
+        (to == ExternType::Value(ExternValueType::u32)).then_some(Type::Value(ValueType::char))
     }
 
-    fn compile<'fragment, Expr>(
+    fn render<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: Type<'db>,
@@ -186,10 +188,10 @@ pub struct CastF32ToF64BoundaryRule;
 
 impl<'db> DirectCastRule<'db, Type<'db>, ExternType<'db>> for CastF32ToF64BoundaryRule {
     fn predecessor(self, _db: &'db dyn Db, to: ExternType<'db>) -> Option<Type<'db>> {
-        (to == ExternType::f64).then_some(Type::Value(ValueType::f32))
+        (to == ExternType::Value(ExternValueType::f64)).then_some(Type::Value(ValueType::f32))
     }
 
-    fn compile<'fragment, Expr>(
+    fn render<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: Type<'db>,
@@ -210,20 +212,23 @@ pub struct CastPrimitiveToSameBoundaryRule;
 impl<'db> DirectCastRule<'db, Type<'db>, ExternType<'db>> for CastPrimitiveToSameBoundaryRule {
     fn predecessor(self, _db: &'db dyn Db, to: ExternType<'db>) -> Option<Type<'db>> {
         match to {
-            ExternType::String => Some(Type::Value(ValueType::String)),
-            ExternType::bool => Some(Type::Value(ValueType::bool)),
-            ExternType::i8 => Some(Type::Value(ValueType::i8)),
-            ExternType::u8 => Some(Type::Value(ValueType::u8)),
-            ExternType::i16 => Some(Type::Value(ValueType::i16)),
-            ExternType::u16 => Some(Type::Value(ValueType::u16)),
-            ExternType::i32 => Some(Type::Value(ValueType::i32)),
-            ExternType::u32 => Some(Type::Value(ValueType::u32)),
-            ExternType::f64 => Some(Type::Value(ValueType::f64)),
-            ExternType::JsAny | ExternType::Item { .. } | ExternType::Ref { .. } => None,
+            ExternType::Value(value_type) => match value_type {
+                ExternValueType::String => Some(Type::Value(ValueType::String)),
+                ExternValueType::bool => Some(Type::Value(ValueType::bool)),
+                ExternValueType::i8 => Some(Type::Value(ValueType::i8)),
+                ExternValueType::u8 => Some(Type::Value(ValueType::u8)),
+                ExternValueType::i16 => Some(Type::Value(ValueType::i16)),
+                ExternValueType::u16 => Some(Type::Value(ValueType::u16)),
+                ExternValueType::i32 => Some(Type::Value(ValueType::i32)),
+                ExternValueType::u32 => Some(Type::Value(ValueType::u32)),
+                ExternValueType::f64 => Some(Type::Value(ValueType::f64)),
+                ExternValueType::JsAny | ExternValueType::Class(..) => None,
+            },
+            ExternType::Borrowed(..) => None,
         }
     }
 
-    fn compile<'fragment, Expr>(
+    fn render<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: Type<'db>,
@@ -243,10 +248,10 @@ pub struct CastJsAnyToF64Rule;
 
 impl<'db> DirectCastRule<'db, ExternType<'db>, Type<'db>> for CastJsAnyToF64Rule {
     fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<ExternType<'db>> {
-        (to == Type::Value(ValueType::f64)).then_some(ExternType::JsAny)
+        (to == Type::Value(ValueType::f64)).then_some(ExternType::Value(ExternValueType::JsAny))
     }
 
-    fn compile<'fragment, Expr>(
+    fn render<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: ExternType<'db>,
@@ -271,10 +276,10 @@ pub struct CastJsAnyToBoolRule;
 
 impl<'db> DirectCastRule<'db, ExternType<'db>, Type<'db>> for CastJsAnyToBoolRule {
     fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<ExternType<'db>> {
-        (to == Type::Value(ValueType::bool)).then_some(ExternType::JsAny)
+        (to == Type::Value(ValueType::bool)).then_some(ExternType::Value(ExternValueType::JsAny))
     }
 
-    fn compile<'fragment, Expr>(
+    fn render<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: ExternType<'db>,
@@ -299,10 +304,10 @@ pub struct CastJsAnyToStringRule;
 
 impl<'db> DirectCastRule<'db, ExternType<'db>, Type<'db>> for CastJsAnyToStringRule {
     fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<ExternType<'db>> {
-        (to == Type::Value(ValueType::String)).then_some(ExternType::JsAny)
+        (to == Type::Value(ValueType::String)).then_some(ExternType::Value(ExternValueType::JsAny))
     }
 
-    fn compile<'fragment, Expr>(
+    fn render<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         _from: ExternType<'db>,
@@ -327,10 +332,14 @@ pub struct CastStringToStrRefRule;
 
 impl<'db> IndirectCastRule<'db, Type<'db>, Type<'db>> for CastStringToStrRefRule {
     fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<Type<'db>> {
-        (to == Type::Value(ValueType::Str).into_ref()).then_some(Type::Value(ValueType::String))
+        (to == Type::Borrowed {
+            is_mutable: false,
+            inner: ValueType::Str,
+        })
+        .then_some(Type::Value(ValueType::String))
     }
 
-    fn compile<'fragment, Expr, Continue>(
+    fn render<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
         _from: Type<'db>,
@@ -358,10 +367,14 @@ pub struct CastStringToStrMutRule;
 
 impl<'db> IndirectCastRule<'db, Type<'db>, Type<'db>> for CastStringToStrMutRule {
     fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<Type<'db>> {
-        (to == Type::Value(ValueType::Str).into_mut()).then_some(Type::Value(ValueType::String))
+        (to == Type::Borrowed {
+            is_mutable: true,
+            inner: ValueType::Str,
+        })
+        .then_some(Type::Value(ValueType::String))
     }
 
-    fn compile<'fragment, Expr, Continue>(
+    fn render<'fragment, Expr, Continue>(
         self,
         _db: &'db dyn Db,
         _from: Type<'db>,

@@ -30,7 +30,7 @@ pub trait DirectCastRule<'db, From: 'db, To: 'db>: Sized + 'db {
     fn predecessor(self, db: &'db dyn Db, to: To) -> Option<From>;
 
     /// Compiles an expression that converts `in_expr` from `from` to `to`.
-    fn compile<'fragment, Expr>(
+    fn render<'fragment, Expr>(
         self,
         db: &'db dyn Db,
         from: From,
@@ -48,7 +48,7 @@ pub trait IndirectCastRule<'db, From: 'db, To: 'db>: Sized + 'db {
     fn predecessor(self, db: &'db dyn Db, to: To) -> Option<From>;
 
     /// Compiles a conversion and invokes `continue_with` with its result.
-    fn compile<'fragment, Expr, Continue>(
+    fn render<'fragment, Expr, Continue>(
         self,
         db: &'db dyn Db,
         from: From,
@@ -574,7 +574,7 @@ mod tests {
             predecessor(to, CastKind::Direct)
         }
 
-        fn compile<'fragment, Expr>(
+        fn render<'fragment, Expr>(
             self,
             _db: &'db dyn Db,
             _from: HappyType,
@@ -596,7 +596,7 @@ mod tests {
             predecessor(to, CastKind::Indirect)
         }
 
-        fn compile<'fragment, Expr, Continue>(
+        fn render<'fragment, Expr, Continue>(
             self,
             _db: &'db dyn Db,
             _from: HappyType,
@@ -763,7 +763,7 @@ mod tests {
             (to == self.to).then_some(self.from)
         }
 
-        fn compile<'fragment, Expr>(
+        fn render<'fragment, Expr>(
             self,
             _db: &'db dyn Db,
             _from: EdgeType,
