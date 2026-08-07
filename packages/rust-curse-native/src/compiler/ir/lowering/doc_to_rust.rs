@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use crate::compiler::{
     db::Db,
-    rust_ir::{AsItem, Enum, Field, Function, ItemPath, Mod, Span, Struct, Variant},
-    rustdoc::RustdocCrates,
+    ir::doc::RustdocCrates,
+    ir::rust::{AsItem, Enum, Field, Function, ItemPath, Mod, Span, Struct, Variant},
 };
 use rustdoc_types as doc;
 

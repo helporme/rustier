@@ -1,10 +1,8 @@
+use super::{ItemExt, RustdocId, RustdocSpan, fields::FieldLowerError, shapes::RustdocShape};
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
-    rust_ir::{
-        Enum, FieldParent, Mod, Shape, Variant,
-        lower::{ItemExt, RustdocId, RustdocSpan, fields::FieldLowerError, shapes::RustdocShape},
-    },
+    ir::rust::{Enum, FieldParent, Mod, Shape, Variant},
 };
 use miette::Diagnostic;
 use rustdoc_types as doc;
@@ -13,7 +11,7 @@ use thiserror::Error;
 #[salsa::tracked]
 impl<'db> Enum<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::rust_ir) fn lower(
+    pub(in crate::compiler::ir) fn lower(
         db: &'db dyn Db,
         id: RustdocId<'db>,
         parent: Mod<'db>,
@@ -56,7 +54,7 @@ impl<'db> Enum<'db> {
     }
 
     #[salsa::tracked(returns(ref))]
-    pub(in crate::compiler::rust_ir) fn lower_variants(self, db: &'db dyn Db) -> Vec<Variant<'db>> {
+    pub(in crate::compiler::ir) fn lower_variants(self, db: &'db dyn Db) -> Vec<Variant<'db>> {
         let id = self.rustdoc_id(db);
         let item = id.item(db);
 
@@ -78,7 +76,7 @@ impl<'db> Enum<'db> {
     }
 
     #[salsa::tracked]
-    pub(in crate::compiler::rust_ir) fn lower_is_non_exhaustive(self, db: &'db dyn Db) -> bool {
+    pub(in crate::compiler::ir) fn lower_is_non_exhaustive(self, db: &'db dyn Db) -> bool {
         let id = self.rustdoc_id(db);
         let item = id.item(db);
         item.attrs.contains(&doc::Attribute::NonExhaustive)
@@ -88,7 +86,7 @@ impl<'db> Enum<'db> {
 #[salsa::tracked]
 impl<'db> Variant<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::rust_ir) fn lower_shape(self, db: &'db dyn Db) -> Shape<'db> {
+    pub(in crate::compiler::ir) fn lower_shape(self, db: &'db dyn Db) -> Shape<'db> {
         let variant_id = self.rustdoc_id(db);
         let item = variant_id.item(db);
 

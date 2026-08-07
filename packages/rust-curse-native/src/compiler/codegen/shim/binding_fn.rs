@@ -1,6 +1,6 @@
 use crate::{
     compiler::{
-        bir::{BindingFn, BindingFnBody},
+        bindings_ir::{BindingFn, BindingFnBody},
         codegen::{
             api::Api,
             bindings::cast_graph::{BindingsCastCompiler, Cast},
@@ -101,7 +101,7 @@ where
                 });
 
             match (
-                self.fn_.source_return_type,
+                self.fn_.src_ret_type,
                 self.fn_.external.return_type(self.db),
             ) {
                 (Some(source_ret_type), Some(extern_ret_type)) => {

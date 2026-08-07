@@ -1,10 +1,8 @@
+use super::{ItemExt, RustdocId, RustdocSpan, RustdocType, types::TypeLowerError};
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
-    rust_ir::{
-        Field, FieldName, FieldParent, Type, ValueType,
-        lower::{ItemExt, RustdocId, RustdocSpan, RustdocType, types::TypeLowerError},
-    },
+    ir::rust::{Field, FieldName, FieldParent, Type, ValueType},
 };
 use miette::Diagnostic;
 use rustdoc_types as doc;

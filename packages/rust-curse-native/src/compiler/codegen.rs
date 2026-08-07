@@ -1,6 +1,6 @@
 pub mod api;
-pub mod bindings;
 mod cast;
 pub mod fragment;
-pub mod js;
-pub mod ts;
+pub mod shim;
+// pub mod js;
+// pub mod ts;

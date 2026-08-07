@@ -1,6 +1,6 @@
 use crate::{
     compiler::{
-        bir::{BindingClass, BindingClassField, ExternType, ExternValueType, FieldAccess},
+        bindings_ir::{BindingClass, BindingClassField, ExternType, ExternValueType, FieldAccess},
         codegen::{
             api::Api,
             bindings::{

@@ -5,7 +5,6 @@ use salsa::Setter;
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, doubles, frag, fragment, singles},
     db::Db,
-    ir::{Fn, ItemIdExt, Struct},
 };
 
 /// Active binding API used for generated Rust and JavaScript glue code.
@@ -183,37 +182,19 @@ impl Api {
         )
     }
 
-    // todo: del others
-
-    /// Returns the function header for this API.
-    pub fn fn_header<'db>(self, db: &'db dyn Db, _fn: Fn<'db>) -> impl FragmentOnce + 'db {
-        let header = match self.kind(db) {
-            ApiKind::Wasm { .. } => "#[wasm_bindgen(js_name = ",
-            ApiKind::Node => "#[napi(js_name = ",
-        };
-
-        frag!({header}{doubles(_fn.symbol(db))}{")]"})
-    }
-
-    pub fn impl_header(&self, db: &dyn Db) -> &'static str {
-        match self.kind(db) {
-            ApiKind::Wasm { .. } => "#[wasm_bindgen]",
-            ApiKind::Node => "#[napi]",
-        }
-    }
-
-    /// Returns the struct header for this API.
-    pub fn struct_header<'db>(
+    pub fn header<'db>(
         self,
         db: &'db dyn Db,
-        _struct: Struct<'db>,
+        name: impl FragmentOnce + 'db,
     ) -> impl FragmentOnce + 'db {
-        let header = match self.kind(db) {
-            ApiKind::Wasm { .. } => "#[wasm_bindgen(js_name = ",
-            ApiKind::Node => "#[napi(js_name = ",
+        let api_name = match self.kind(db) {
+            ApiKind::Wasm { .. } => "wasm_bindgen",
+            ApiKind::Node => "napi",
         };
 
-        frag!({header}{doubles(_struct.symbol(db))}{")]"})
+        frag!(
+            #[{api_name}]
+        )
     }
 
     /// Returns the getter header for a field with the given JavaScript name.
@@ -222,12 +203,14 @@ impl Api {
         db: &dyn Db,
         name: impl FragmentOnce + 'a,
     ) -> impl FragmentOnce + 'a {
-        let header = match self.kind(db) {
-            ApiKind::Wasm { .. } => "#[wasm_bindgen(getter, js_name = ",
-            ApiKind::Node => "#[napi(getter, js_name = ",
+        let api_name = match self.kind(db) {
+            ApiKind::Wasm { .. } => "wasm_bindgen",
+            ApiKind::Node => "napi",
         };
 
-        frag!({header}{doubles(name)}{")]"})
+        frag!(
+            #[{api_name}(getter, js_name = {doubles(name)})]
+        )
     }
 
     /// Returns the setter header for a field with the given JavaScript name.
@@ -236,12 +219,14 @@ impl Api {
         db: &dyn Db,
         name: impl FragmentOnce + 'a,
     ) -> impl FragmentOnce + 'a {
-        let header = match self.kind(db) {
-            ApiKind::Wasm { .. } => "#[wasm_bindgen(setter, js_name = ",
-            ApiKind::Node => "#[napi(setter, js_name = ",
+        let api_name = match self.kind(db) {
+            ApiKind::Wasm { .. } => "wasm_bindgen",
+            ApiKind::Node => "napi",
         };
 
-        frag!({header}{doubles(name)}{")]"})
+        frag!(
+            #[{api_name}(setter, js_name = {doubles(name)})]
+        )
     }
 
     /// Returns the error type for this API.

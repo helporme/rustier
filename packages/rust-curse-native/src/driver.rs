@@ -293,7 +293,7 @@ impl Driver {
                 dir: package.source_package_path,
             },
         )]);
-        compiler::rustdoc::RustdocCrates::set(&mut self.db, crates);
+        compiler::ir::doc::RustdocCrates::set(&mut self.db, crates);
 
         let sync_ts_tree_diags = sync_ts_tree(SyncTsTreeOpts {
             our_dir: &types_dir,

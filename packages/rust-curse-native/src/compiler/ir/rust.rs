@@ -3,8 +3,6 @@
 use crate::compiler::db::Db;
 use std::path::{Path, PathBuf};
 
-mod lower;
-
 #[salsa::interned(debug)]
 pub struct ItemPath<'db> {
     pub crate_: Crate<'db>,

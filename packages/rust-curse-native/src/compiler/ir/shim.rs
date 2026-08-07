@@ -1,0 +1,142 @@
+use crate::compiler::{
+    db::Db,
+    ir::{
+        ffi::{FfiClass, FfiCrate, FfiFunction, FfiParam, FfiType},
+        rust::{Crate, Enum, Field, Function, Mod, Struct, Type},
+    },
+};
+
+#[salsa::interned(debug)]
+pub struct ShimCrate<'db> {
+    pub src: Crate<'db>,
+}
+
+impl<'db> ShimCrate<'db> {
+    pub fn ffi(self, db: &'db dyn Db) -> FfiCrate<'db> {
+        FfiCrate::new(db, self)
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct ShimMod<'db> {
+    pub src: Mod<'db>,
+}
+
+#[salsa::interned(debug)]
+pub struct ShimClass<'db> {
+    pub src: ShimClassSource<'db>,
+}
+
+impl<'db> ShimClass<'db> {
+    pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
+        FfiClass::new(db, self)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &str {
+        todo!()
+    }
+
+    pub fn fields(self, db: &'db dyn Db) -> &Vec<ShimField<'db>> {
+        todo!()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
+enum ShimClassSource<'db> {
+    Struct(Struct<'db>),
+    Enum(Enum<'db>),
+}
+
+#[salsa::interned(debug)]
+pub struct ShimField<'db> {
+    pub source: Field<'db>,
+}
+
+impl<'db> ShimField<'db> {
+    pub fn name(self, db: &'db dyn Db) -> &str {
+        todo!()
+    }
+
+    pub fn getter(self, db: &'db dyn Db) -> ShimFunction<'db> {
+        todo!()
+    }
+
+    pub fn setter(self, db: &'db dyn Db) -> Option<ShimFunction<'db>> {
+        todo!()
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct ShimFunction<'db> {
+    pub source: ShimFunctionSource<'db>,
+}
+
+impl<'db> ShimFunction<'db> {
+    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
+        FfiFunction::new(db, self)
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> ShimType<'db> {
+        todo!()
+    }
+}
+
+#[salsa::tracked(debug)]
+pub struct ShimParam<'db> {
+    pub parent: ShimFunction<'db>,
+    pub idx: usize,
+    #[tracked]
+    #[returns(ref)]
+    pub name: String,
+    #[tracked]
+    pub source_type: Type<'db>,
+    #[tracked]
+    pub shim_type: ShimType<'db>,
+}
+
+impl<'db> ShimParam<'db> {
+    pub fn ffi(self, db: &'db dyn Db) -> FfiParam<'db> {
+        FfiParam::new(db, self)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
+pub enum ShimFunctionSource<'db> {
+    Function(Function<'db>),
+    Getter(Field<'db>),
+    Setter(Field<'db>),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+#[allow(non_camel_case_types)]
+pub enum ShimValueType<'db> {
+    bool,
+    i8,
+    u8,
+    i16,
+    u16,
+    i32,
+    u32,
+    f64,
+    String,
+    JsAny,
+    Class(ShimClass<'db>),
+}
+
+impl<'db> ShimValueType<'db> {
+    pub fn ffi(self, db: &'db dyn Db) -> FfiType<'db> {
+        todo!()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub enum ShimType<'db> {
+    Value(ShimValueType<'db>),
+    Borrowed(ShimValueType<'db>),
+}
+
+impl<'db> ShimType<'db> {
+    pub fn ffi(self, db: &'db dyn Db) -> FfiType<'db> {
+        todo!()
+    }
+}

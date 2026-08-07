@@ -4,13 +4,11 @@ use thiserror::Error;
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
-    rust_ir::{
-        AsItem as _, Function, Mod, Param, Type, ValueType,
-        lower::{
-            ItemExt as _, RustdocId, RustdocSpan, RustdocType, fields::is_clonable,
-            types::TypeLowerError,
-        },
-    },
+    ir::rust::{AsItem as _, Function, Mod, Param, Type, ValueType},
+};
+
+use super::{
+    ItemExt as _, RustdocId, RustdocSpan, RustdocType, fields::is_clonable, types::TypeLowerError,
 };
 
 use rustdoc_types as doc;
@@ -18,7 +16,7 @@ use rustdoc_types as doc;
 #[salsa::tracked]
 impl<'db> Function<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::rust_ir) fn lower(
+    pub(in crate::compiler::ir) fn lower(
         db: &'db dyn Db,
         id: RustdocId<'db>,
         parent: Mod<'db>,
@@ -179,10 +177,7 @@ impl<'db> Function<'db> {
     }
 
     #[salsa::tracked]
-    pub(in crate::compiler::rust_ir) fn lower_ret_type(
-        self,
-        db: &'db dyn Db,
-    ) -> Option<ValueType<'db>> {
+    pub(in crate::compiler::ir) fn lower_ret_type(self, db: &'db dyn Db) -> Option<ValueType<'db>> {
         let id = self.rustdoc_id(db);
         let item = id.item(db);
 
@@ -202,7 +197,7 @@ impl<'db> Function<'db> {
     }
 
     #[salsa::tracked(returns(ref))]
-    pub(in crate::compiler::rust_ir) fn lower_params(self, db: &'db dyn Db) -> Vec<Param<'db>> {
+    pub(in crate::compiler::ir) fn lower_params(self, db: &'db dyn Db) -> Vec<Param<'db>> {
         let id = self.rustdoc_id(db);
         let item = id.item(db);
 

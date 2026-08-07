@@ -1,17 +1,15 @@
+use super::{ItemExt, RustdocId};
 use crate::compiler::{
     db::Db,
     diag::DiagAccumulateExt,
-    rust_ir::{
-        Enum, Function, Member, Mod, ModParent, Struct,
-        lower::{ItemExt, RustdocId},
-    },
+    ir::rust::{Enum, Function, Member, Mod, ModParent, Struct},
 };
 use rustdoc_types as doc;
 
 #[salsa::tracked]
 impl<'db> Mod<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::rust_ir) fn lower(
+    pub(in crate::compiler::ir) fn lower(
         db: &'db dyn Db,
         id: RustdocId<'db>,
         parent: ModParent<'db>,
@@ -21,7 +19,7 @@ impl<'db> Mod<'db> {
     }
 
     #[salsa::tracked]
-    pub(in crate::compiler::rust_ir) fn lower_members(self, db: &'db dyn Db) -> Vec<Member<'db>> {
+    pub(in crate::compiler::ir) fn lower_members(self, db: &'db dyn Db) -> Vec<Member<'db>> {
         let id = self.rustdoc_id(db);
         let item = id.item(db);
 

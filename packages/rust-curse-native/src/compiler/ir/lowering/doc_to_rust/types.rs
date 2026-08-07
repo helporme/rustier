@@ -1,12 +1,10 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
+use super::{RustdocId, RustdocType, enums::EnumLowerError, structs::StructLowerError};
 use crate::compiler::{
     db::Db,
-    rust_ir::{
-        Enum, Mod, Struct, Type, ValueType,
-        lower::{RustdocId, RustdocType, enums::EnumLowerError, structs::StructLowerError},
-    },
+    ir::rust::{Enum, Mod, Struct, Type, ValueType},
 };
 
 use rustdoc_types as doc;

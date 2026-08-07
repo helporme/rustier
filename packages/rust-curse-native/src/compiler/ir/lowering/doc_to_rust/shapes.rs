@@ -1,14 +1,12 @@
 use rustdoc_types as doc;
 
+use super::{
+    ItemExt as _, RustdocId,
+    fields::{FieldLowerError, lower_field},
+};
 use crate::compiler::{
     db::Db,
-    rust_ir::{
-        FieldParent, Shape,
-        lower::{
-            ItemExt as _, RustdocId,
-            fields::{FieldLowerError, lower_field},
-        },
-    },
+    ir::rust::{FieldParent, Shape},
 };
 
 pub enum RustdocShape<'a> {

@@ -1,10 +1,8 @@
+use super::{ItemExt, RustdocId, RustdocSpan, fields::FieldLowerError, shapes::RustdocShape};
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt, DiagSource, DiagSpan},
-    rust_ir::{
-        AsItem as _, FieldParent, Mod, Shape, Struct,
-        lower::{ItemExt, RustdocId, RustdocSpan, fields::FieldLowerError, shapes::RustdocShape},
-    },
+    ir::rust::{AsItem as _, FieldParent, Mod, Shape, Struct},
 };
 use miette::Diagnostic;
 use rustdoc_types as doc;
@@ -13,11 +11,11 @@ use thiserror::Error;
 #[salsa::tracked]
 impl<'db> Struct<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::rust_ir) fn lower(
+    pub(in crate::compiler::ir) fn lower(
         db: &'db dyn Db,
         id: RustdocId<'db>,
         parent: Mod<'db>,
-    ) -> Result<Self, Box<StructLowerError>> {
+    ) -> Result<Struct<'db>, Box<StructLowerError>> {
         let item = id.item(db);
         let summary = id.summary(db);
 
@@ -54,7 +52,7 @@ impl<'db> Struct<'db> {
     }
 
     #[salsa::tracked]
-    pub(in crate::compiler::rust_ir) fn lower_shape(self, db: &'db dyn Db) -> Shape<'db> {
+    pub(in crate::compiler::ir) fn lower_shape(self, db: &'db dyn Db) -> Shape<'db> {
         let struct_id = self.rustdoc_id(db);
         let item = struct_id.item(db);
 

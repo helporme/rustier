@@ -1,9 +1,10 @@
 use std::path::Path;
 
+use super::RustdocId;
 use crate::compiler::{
     db::Db,
-    rust_ir::{Crate, Mod, ModParent, lower::RustdocId},
-    rustdoc::RustdocCrates,
+    ir::doc::RustdocCrates,
+    ir::rust::{Crate, Mod, ModParent},
 };
 use rustdoc_types as doc;
 
@@ -14,7 +15,7 @@ impl<'db> Crate<'db> {
         &rustdoc.crate_data(db, self.name(db)).unwrap().body
     }
 
-    pub(in crate::compiler::rust_ir) fn lower(db: &'db dyn Db, name: &str) -> Option<Self> {
+    pub(in crate::compiler::ir) fn lower(db: &'db dyn Db, name: &str) -> Option<Self> {
         let rustdoc = RustdocCrates::get(db);
 
         if rustdoc.crates(db).contains_key(name) {
@@ -24,13 +25,13 @@ impl<'db> Crate<'db> {
         }
     }
 
-    pub(in crate::compiler::rust_ir) fn lower_dir(self, db: &'db dyn Db) -> &'db Path {
+    pub(in crate::compiler::ir) fn lower_dir(self, db: &'db dyn Db) -> &'db Path {
         let rustdoc = RustdocCrates::get(db);
         &rustdoc.crate_data(db, self.name(db)).unwrap().dir
     }
 
     #[salsa::tracked]
-    pub(in crate::compiler::rust_ir) fn lower_crate_root(self, db: &'db dyn Db) -> Mod<'db> {
+    pub(in crate::compiler::ir) fn lower_crate_root(self, db: &'db dyn Db) -> Mod<'db> {
         let data = self.data(db);
 
         let id = RustdocId::new(db, self.name(db), data.root);

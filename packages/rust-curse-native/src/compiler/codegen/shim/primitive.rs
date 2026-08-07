@@ -1,6 +1,6 @@
 use crate::{
     compiler::{
-        bir::{ExternType, ExternValueType},
+        bindings_ir::{ExternType, ExternValueType},
         codegen::{
             api::Api,
             cast::{CastContinuation, DirectCastRule, IndirectCastRule},
