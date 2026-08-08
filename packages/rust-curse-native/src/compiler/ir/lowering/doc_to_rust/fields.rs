@@ -49,7 +49,7 @@ pub fn lower_field<'db>(
                 causes,
             }
         })?
-        .deref();
+        .deborrow();
 
     let is_readonly = match field_type {
         ValueType::Struct(s) => !is_clonable(db, s.rustdoc_id(db)),

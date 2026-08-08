@@ -2,7 +2,7 @@ use crate::compiler::{
     db::Db,
     ir::{
         ffi::{FfiClass, FfiCrate, FfiFunction, FfiParam, FfiType},
-        rust::{Crate, Enum, Field, Function, Mod, Struct, Type},
+        rust::{Crate, Enum, Field, Function, Mod, Struct, Type, ValueType},
     },
 };
 
@@ -27,13 +27,18 @@ pub struct ShimClass<'db> {
     pub src: ShimClassSource<'db>,
 }
 
+#[salsa::tracked]
 impl<'db> ShimClass<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
         FfiClass::new(db, self)
     }
 
-    pub fn name(self, db: &'db dyn Db) -> &str {
-        todo!()
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        match self.src(db) {
+            ShimClassSource::Struct(s) => format!("__struct__{}", s.path(db).mangled(db)),
+            ShimClassSource::Enum(e) => format!("__enum__{}", e.path(db).mangled(db)),
+        }
     }
 
     pub fn fields(self, db: &'db dyn Db) -> &Vec<ShimField<'db>> {
@@ -47,9 +52,19 @@ enum ShimClassSource<'db> {
     Enum(Enum<'db>),
 }
 
+#[salsa::tracked]
+impl<'db> ShimClassSource<'db> {
+    pub fn as_type(self) -> ValueType<'db> {
+        match self {
+            ShimClassSource::Struct(struct_) => struct_.as_type(),
+            ShimClassSource::Enum(enum_) => enum_.as_type(),
+        }
+    }
+}
+
 #[salsa::interned(debug)]
 pub struct ShimField<'db> {
-    pub source: Field<'db>,
+    pub src: Field<'db>,
 }
 
 impl<'db> ShimField<'db> {
@@ -127,6 +142,10 @@ impl<'db> ShimValueType<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiType<'db> {
         todo!()
     }
+
+    pub fn borrowed(self) -> ShimType<'db> {
+        ShimType::Borrowed(self)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
@@ -138,5 +157,16 @@ pub enum ShimType<'db> {
 impl<'db> ShimType<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiType<'db> {
         todo!()
+    }
+
+    pub fn src(self, db: &'db dyn Db) -> Type<'db> {
+        todo!()
+    }
+
+    pub fn deborrow(self) -> ShimValueType<'db> {
+        match self {
+            ShimType::Value(value_type) => value_type,
+            ShimType::Borrowed(inner) => inner,
+        }
     }
 }

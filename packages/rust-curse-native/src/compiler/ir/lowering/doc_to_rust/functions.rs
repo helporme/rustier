@@ -192,7 +192,7 @@ impl<'db> Function<'db> {
                 self.parent(db),
             )
             .expect("ret type must be lowerable otherwise fn won't be lowered")
-            .deref()
+            .deborrow()
         })
     }
 

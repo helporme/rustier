@@ -23,7 +23,7 @@ pub fn to_camel_case(name: &str) -> String {
 }
 
 /// Mangles a struct/enum/mod/etc. path into a unique identiefer.
-pub fn mangle_path<'a>(path: impl IntoIterator<Item = &'a String>) -> String {
+pub fn mangle_path<'a>(path: impl IntoIterator<Item = &'a str>) -> String {
     let mut mangled = String::new();
 
     for (i, s) in path.into_iter().enumerate() {
@@ -67,41 +67,31 @@ mod tests {
 
     #[test]
     fn mangles_empty_path_to_empty_ident() {
-        assert_eq!(mangle_path(&[]), "");
+        assert_eq!(mangle_path([]), "");
     }
 
     #[test]
     fn joins_path_segments_with_underscores() {
         assert_eq!(
-            mangle_path(&[
-                "crate".to_string(),
-                "module".to_string(),
-                "Type".to_string()
-            ]),
+            mangle_path(["crate", "module", "Type"]),
             "crate_module_Type"
         );
     }
 
     #[test]
     fn escapes_zeroes_inside_segments() {
-        assert_eq!(mangle_path(&["item0".to_string()]), "item00");
+        assert_eq!(mangle_path(["item0"]), "item00");
     }
 
     #[test]
     fn escapes_underscores_inside_segments() {
-        assert_eq!(mangle_path(&["my_mod".to_string()]), "my_0mod");
+        assert_eq!(mangle_path(["my_mod"]), "my_0mod");
     }
 
     #[test]
     fn escaped_segment_chars_do_not_collide_with_separators() {
-        assert_ne!(
-            mangle_path(&["my_mod".to_string()]),
-            mangle_path(&["my".to_string(), "mod".to_string()])
-        );
-        assert_eq!(mangle_path(&["my_mod".to_string()]), "my_0mod");
-        assert_eq!(
-            mangle_path(&["my".to_string(), "mod".to_string()]),
-            "my_mod"
-        );
+        assert_ne!(mangle_path(["my_mod"]), mangle_path(["my", "mod"]));
+        assert_eq!(mangle_path(["my_mod"]), "my_0mod");
+        assert_eq!(mangle_path(["my", "mod"]), "my_mod");
     }
 }

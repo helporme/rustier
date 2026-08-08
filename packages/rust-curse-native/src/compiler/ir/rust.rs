@@ -1,6 +1,10 @@
 // An ir of a the rust public api.
 
-use crate::compiler::db::Db;
+use crate::compiler::{
+    db::Db,
+    ir::shim::{ShimType, ShimValueType},
+    mangle::mangle_path,
+};
 use std::path::{Path, PathBuf};
 
 #[salsa::interned(debug)]
@@ -24,13 +28,16 @@ impl<'db> ItemPath<'db> {
         Self::new(db, self.crate_(db), segments)
     }
 
-    /// Returns the fully qualified item name, e.g. `geometry::Point`.
     #[salsa::tracked(returns(ref))]
     pub fn fqn(self, db: &'db dyn Db) -> String {
         self.segments(db).join("::")
     }
 
-    /// Returns the unqualified item name, e.g. `Point`.
+    #[salsa::tracked(returns(ref))]
+    pub fn mangled(self, db: &'db dyn Db) -> String {
+        mangle_path(self.segments(db).iter().map(|s| s.as_str()))
+    }
+
     #[salsa::tracked(returns(ref))]
     pub fn name(self, db: &'db dyn Db) -> String {
         self.segments(db)
@@ -139,6 +146,10 @@ impl<'db> Struct<'db> {
             .append(db, self.name(db).to_owned())
     }
 
+    pub fn as_type(self) -> ValueType<'db> {
+        ValueType::Struct(self)
+    }
+
     #[salsa::tracked(returns(ref))]
     pub fn shape(self, db: &'db dyn Db) -> Shape<'db> {
         self.lower_shape(db)
@@ -161,6 +172,10 @@ impl<'db> Enum<'db> {
         self.parent(db)
             .path(db)
             .append(db, self.name(db).to_owned())
+    }
+
+    pub fn as_type(self) -> ValueType<'db> {
+        ValueType::Enum(self)
     }
 
     fn is_non_exhaustive(self, db: &'db dyn Db) -> bool {
@@ -232,6 +247,17 @@ impl<'db> Field<'db> {
             FieldParent::Struct(struct_) => struct_.path(db).append(db, name),
             FieldParent::Variant(variant) => variant.path(db).append(db, name),
         }
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn mangled_name(self, db: &'db dyn Db) -> String {
+        let mut out = vec![];
+        if let FieldParent::Variant(variant) = self.parent(db) {
+            out.push(variant.name(db).as_ref());
+            out.push("__");
+        }
+
+        mangle_path(out)
     }
 }
 
@@ -336,6 +362,28 @@ impl<'db> ValueType<'db> {
             ValueType::Enum(e) => e.fqn(db),
         }
     }
+
+    pub fn borrowed(self) -> Type<'db> {
+        Type::Borrowed {
+            is_mutable: false,
+            inner: self,
+        }
+    }
+
+    pub fn borrowed_mut(self) -> Type<'db> {
+        Type::Borrowed {
+            is_mutable: true,
+            inner: self,
+        }
+    }
+
+    pub fn shim_in(self) -> ShimType<'db> {
+        todo!()
+    }
+
+    pub fn shim_out(self) -> ShimType<'db> {
+        todo!()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
@@ -348,11 +396,19 @@ pub enum Type<'db> {
 }
 
 impl<'db> Type<'db> {
-    pub fn deref(self) -> ValueType<'db> {
+    pub fn deborrow(self) -> ValueType<'db> {
         match self {
             Type::Value(value_type) => value_type,
             Type::Borrowed { inner, .. } => inner,
         }
+    }
+
+    pub fn shim_in(self) -> ShimType<'db> {
+        todo!()
+    }
+
+    pub fn shim_out(self) -> ShimType<'db> {
+        todo!()
     }
 }
 
