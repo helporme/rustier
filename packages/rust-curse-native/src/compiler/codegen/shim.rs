@@ -1,12 +1,22 @@
-use crate::compiler::{
-    codegen::fragment::{FragmentOnce, Printer, fragment},
-    db::Db,
-    ir::rust::{AsItem, FieldName, Type, ValueType},
+use crate::{
+    compiler::{
+        codegen::{
+            api::Api,
+            fragment::{FragmentOnce, Printer, fragment},
+        },
+        db::Db,
+        ir::{
+            rust::{AsItem, FieldName, Type, ValueType},
+            shim::{ShimType, ShimValueType},
+        },
+    },
+    frag,
 };
 
 // mod binding_fn;
 mod cast_graph;
 mod class;
+mod function;
 // mod primitive;
 mod tethering;
 
@@ -38,50 +48,48 @@ pub mod test;
 //     false
 // }
 
-// impl<'db> ExternValueType<'db> {
-//     fn render_type_decl(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
-//         fragment(move |p| match self {
-//             ExternValueType::bool => "bool".apply(p),
-//             ExternValueType::i8 => "i8".apply(p),
-//             ExternValueType::u8 => "u8".apply(p),
-//             ExternValueType::i16 => "i16".apply(p),
-//             ExternValueType::u16 => "u16".apply(p),
-//             ExternValueType::i32 => "i32".apply(p),
-//             ExternValueType::u32 => "u32".apply(p),
-//             ExternValueType::f64 => "f64".apply(p),
-//             ExternValueType::String => "String".apply(p),
-//             ExternValueType::JsAny => Api::get(db).js_type(db).apply(p),
-//             ExternValueType::Class(sym) => sym.value(db).apply(p),
-//         })
-//     }
+impl<'db> ShimValueType<'db> {
+    fn render_type_decl(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+        fragment(move |p| match self {
+            ShimValueType::bool => "bool".apply(p),
+            ShimValueType::i8 => "i8".apply(p),
+            ShimValueType::u8 => "u8".apply(p),
+            ShimValueType::i16 => "i16".apply(p),
+            ShimValueType::u16 => "u16".apply(p),
+            ShimValueType::i32 => "i32".apply(p),
+            ShimValueType::u32 => "u32".apply(p),
+            ShimValueType::f64 => "f64".apply(p),
+            ShimValueType::String => "String".apply(p),
+            ShimValueType::JsAny => Api::get(db).js_type(db).apply(p),
+            ShimValueType::Class(c) => c.symbol(db).apply(p),
+        })
+    }
 
-//     fn uses_tethering(&self) -> bool {
-//         match self {
-//             ExternValueType::Class(_) => true,
-//             ExternValueType::bool
-//             | ExternValueType::i8
-//             | ExternValueType::u8
-//             | ExternValueType::i16
-//             | ExternValueType::u16
-//             | ExternValueType::i32
-//             | ExternValueType::u32
-//             | ExternValueType::f64
-//             | ExternValueType::String
-//             | ExternValueType::JsAny => false,
-//         }
-//     }
-// }
+    fn uses_tethering(&self) -> bool {
+        match self {
+            ShimValueType::Class(_) => true,
+            ShimValueType::bool
+            | ShimValueType::i8
+            | ShimValueType::u8
+            | ShimValueType::i16
+            | ShimValueType::u16
+            | ShimValueType::i32
+            | ShimValueType::u32
+            | ShimValueType::f64
+            | ShimValueType::String
+            | ShimValueType::JsAny => false,
+        }
+    }
+}
 
-// impl<'db> ExternType<'db> {
-//     fn render_type_decl(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
-//         fragment(move |p| match self {
-//             ExternType::Value(extern_value_type) =>
-// extern_value_type.render_type_decl(db).apply(p),
-// ExternType::Borrowed(extern_value_type) => {                 frag!(&{
-// extern_value_type.render_type_decl(db) }).apply(p)             }
-//         })
-//     }
-// }
+impl<'db> ShimType<'db> {
+    fn render_type_decl(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+        fragment(move |p| match self {
+            ShimType::Value(ty) => ty.render_type_decl(db).apply(p),
+            ShimType::Borrowed(ty) => frag!(&{ ty.render_type_decl(db) }).apply(p),
+        })
+    }
+}
 
 impl<'a> FragmentOnce for &'a FieldName {
     fn apply(self, p: &mut Printer) {
@@ -93,25 +101,6 @@ impl<'a> FragmentOnce for &'a FieldName {
 }
 
 impl<'db> ValueType<'db> {
-    fn symbol(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
-        fragment(move |p| match self {
-            ValueType::bool => "_bool".apply(p),
-            ValueType::char => "_char".apply(p),
-            ValueType::i8 => "_i8".apply(p),
-            ValueType::u8 => "_u8".apply(p),
-            ValueType::i16 => "_i16".apply(p),
-            ValueType::u16 => "_u16".apply(p),
-            ValueType::i32 => "_i32".apply(p),
-            ValueType::u32 => "_u32".apply(p),
-            ValueType::f32 => "_f32".apply(p),
-            ValueType::f64 => "_f64".apply(p),
-            ValueType::Str => "_str".apply(p),
-            ValueType::String => "_String".apply(p),
-            ValueType::Struct(struct_) => struct_.symbol(db).apply(p),
-            ValueType::Enum(enum_) => enum_.symbol(db).apply(p),
-        })
-    }
-
     fn render_type_decl(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
         fragment(move |p| match self {
             ValueType::bool => "bool".apply(p),

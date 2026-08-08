@@ -13,7 +13,7 @@ use crate::{
             },
         },
         db::Db,
-        ir::shim::ShimType,
+        ir::{rust::Type, shim::ShimType},
     },
     define_cast_graph, frag,
 };
@@ -23,6 +23,7 @@ type X = CastTetheringStructTypeToClassShimType;
 define_cast_graph! {
     pub ShimCast<'db> {
         types {
+            Type(Type<'db>),
             ShimType(ShimType<'db>),
             TetheringStructType(TetheringStructType<'db>),
         }

@@ -311,7 +311,7 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
 
 impl<'db> ValueType<'db> {
     pub fn tethering_struct_name(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
-        frag!(__tethering__{self.symbol(db)})
+        frag!(__tethering__{self.shim_out(db).symbol(db)})
     }
 }
 

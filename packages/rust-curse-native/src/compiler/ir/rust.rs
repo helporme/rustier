@@ -146,13 +146,15 @@ impl<'db> Struct<'db> {
             .append(db, self.name(db).to_owned())
     }
 
-    pub fn as_type(self) -> ValueType<'db> {
-        ValueType::Struct(self)
-    }
-
     #[salsa::tracked(returns(ref))]
     pub fn shape(self, db: &'db dyn Db) -> Shape<'db> {
         self.lower_shape(db)
+    }
+}
+
+impl<'db> From<Struct<'db>> for ValueType<'db> {
+    fn from(value: Struct<'db>) -> Self {
+        ValueType::Struct(value)
     }
 }
 
@@ -174,16 +176,18 @@ impl<'db> Enum<'db> {
             .append(db, self.name(db).to_owned())
     }
 
-    pub fn as_type(self) -> ValueType<'db> {
-        ValueType::Enum(self)
-    }
-
     fn is_non_exhaustive(self, db: &'db dyn Db) -> bool {
         self.lower_is_non_exhaustive(db)
     }
 
     fn variants(self, db: &'db dyn Db) -> &Vec<Variant<'db>> {
         self.lower_variants(db)
+    }
+}
+
+impl<'db> From<Enum<'db>> for ValueType<'db> {
+    fn from(value: Enum<'db>) -> Self {
+        ValueType::Enum(value)
     }
 }
 
@@ -377,12 +381,18 @@ impl<'db> ValueType<'db> {
         }
     }
 
-    pub fn shim_in(self) -> ShimType<'db> {
+    pub fn shim_in(self, db: &'db dyn Db) -> ShimType<'db> {
         todo!()
     }
 
-    pub fn shim_out(self) -> ShimType<'db> {
+    pub fn shim_out(self, db: &'db dyn Db) -> ShimType<'db> {
         todo!()
+    }
+}
+
+impl<'db> From<ValueType<'db>> for Type<'db> {
+    fn from(value: ValueType<'db>) -> Self {
+        Type::Value(value)
     }
 }
 
@@ -403,11 +413,11 @@ impl<'db> Type<'db> {
         }
     }
 
-    pub fn shim_in(self) -> ShimType<'db> {
+    pub fn shim_in(self, db: &'db dyn Db) -> ShimType<'db> {
         todo!()
     }
 
-    pub fn shim_out(self) -> ShimType<'db> {
+    pub fn shim_out(self, db: &'db dyn Db) -> ShimType<'db> {
         todo!()
     }
 }

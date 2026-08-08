@@ -14,7 +14,7 @@ use crate::{
         },
         db::Db,
         ir::{
-            rust::{AsItem as _, FieldParent, Shape},
+            rust::{AsItem as _, FieldParent, Shape, ValueType},
             shim::{ShimClass, ShimField, ShimType, ShimValueType},
         },
     },
@@ -49,11 +49,7 @@ where
     CastCompiler: ShimCastCompiler<'db> + Clone + 'db,
 {
     fn apply(self, p: &mut Printer) {
-        frag!(
-            {self.render_tethering_struct()}@@
-            {self.render_struct()}@@
-        )
-        .apply(p);
+        self.render().apply(p);
     }
 }
 
@@ -61,6 +57,13 @@ impl<'db, CastCompiler> ClassFragment<'db, CastCompiler>
 where
     CastCompiler: ShimCastCompiler<'db> + Clone + 'db,
 {
+    fn render(&self) -> impl FragmentOnce {
+        frag!(
+            {self.render_tethering_struct()}@@
+            {self.render_struct()}@@
+        )
+    }
+
     fn render_tethering_struct<'a>(&'a self) -> impl FragmentOnce + 'a {
         let tethered_fields = self
             .class
@@ -69,7 +72,7 @@ where
             .map(|field| field.get_tethered_field(self.db));
 
         let tethering_struct = TetheringStruct {
-            source_type: self.class.src(self.db).as_type(),
+            source_type: self.class.src(self.db).into(),
             fields: tethered_fields,
         };
 
@@ -79,11 +82,8 @@ where
     fn render_struct<'a>(&'a self) -> impl FragmentOnce + 'a {
         let api = Api::get(self.db);
 
-        let tethering_type_name = self
-            .class
-            .src(self.db)
-            .as_type()
-            .tethering_struct_name(self.db);
+        let tethering_type_name =
+            ValueType::from(self.class.src(self.db)).tethering_struct_name(self.db);
 
         let symbol = self.class.ffi(self.db).symbol(self.db);
 
@@ -226,8 +226,8 @@ pub struct CastClassShimTypeToTetheringStructType;
 impl<'db> DirectCastRule<'db, ShimType<'db>, TetheringStructType<'db>>
     for CastClassShimTypeToTetheringStructType
 {
-    fn predecessor(self, _db: &'db dyn Db, to: TetheringStructType<'db>) -> Option<ShimType<'db>> {
-        let shim_type = to.source_type.shim_in();
+    fn predecessor(self, db: &'db dyn Db, to: TetheringStructType<'db>) -> Option<ShimType<'db>> {
+        let shim_type = to.source_type.shim_in(db);
         if matches!(shim_type.deborrow(), ShimValueType::Class(..)) {
             Some(shim_type)
         } else {
@@ -258,7 +258,7 @@ impl<'db> DirectCastRule<'db, TetheringStructType<'db>, ShimType<'db>>
     fn predecessor(self, db: &'db dyn Db, to: ShimType<'db>) -> Option<TetheringStructType<'db>> {
         if let ShimValueType::Class(_) = to.deborrow() {
             Some(TetheringStructType {
-                source_type: to.src(db).deborrow(),
+                source_type: to.src(db),
             })
         } else {
             None
