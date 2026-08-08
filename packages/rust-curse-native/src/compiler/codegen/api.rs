@@ -182,11 +182,7 @@ impl Api {
         )
     }
 
-    pub fn header<'db>(
-        self,
-        db: &'db dyn Db,
-        name: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
+    pub fn header<'db>(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
         let api_name = match self.kind(db) {
             ApiKind::Wasm { .. } => "wasm_bindgen",
             ApiKind::Node => "napi",

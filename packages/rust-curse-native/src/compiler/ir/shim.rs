@@ -7,6 +7,12 @@ use crate::compiler::{
 };
 
 #[salsa::interned(debug)]
+pub struct Shim<'db> {
+    #[returns(ref)]
+    pub crates: Vec<ShimCrate<'db>>,
+}
+
+#[salsa::interned(debug)]
 pub struct ShimCrate<'db> {
     pub src: Crate<'db>,
 }
@@ -15,11 +21,25 @@ impl<'db> ShimCrate<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiCrate<'db> {
         FfiCrate::new(db, self)
     }
+
+    pub fn mods(self, db: &'db dyn Db) -> &Vec<ShimMod<'db>> {
+        todo!()
+    }
 }
 
 #[salsa::interned(debug)]
 pub struct ShimMod<'db> {
     pub src: Mod<'db>,
+}
+
+impl<'db> ShimMod<'db> {
+    pub fn classes(self, db: &'db dyn Db) -> &Vec<ShimClass<'db>> {
+        todo!()
+    }
+
+    pub fn fns(self, db: &'db dyn Db) -> &Vec<ShimFunction<'db>> {
+        todo!()
+    }
 }
 
 #[salsa::interned(debug)]

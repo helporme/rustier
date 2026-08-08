@@ -2,9 +2,9 @@ use crate::{
     compiler::{
         codegen::{
             api::Api,
-            fragment::{FragmentOnce, Printer, comma_list, fragment},
+            fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, fragment},
             shim::{
-                cast_graph::{Cast, ShimCastCompiler},
+                cast_graph::{Cast, ShimCast, ShimCastCompiler},
                 tethering::{
                     TetheringStructType, render_tethering_struct_get_field_expr,
                     render_tethering_struct_set_field_stmt,
@@ -23,8 +23,14 @@ use crate::{
     frag,
 };
 
+#[salsa::tracked]
 impl<'db> ShimFunction<'db> {
-    pub fn render_with<CastCompiler>(
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn render(self, db: &'db dyn Db) -> String {
+        self.render_with(db, ShimCast::Graph).print()
+    }
+
+    pub(super) fn render_with<CastCompiler>(
         self,
         db: &'db dyn Db,
         cast_compiler: CastCompiler,

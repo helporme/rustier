@@ -6,7 +6,7 @@ use crate::{
             cast::CastContinuation,
             fragment::{FragmentOnce, Printer, fragment},
             shim::{
-                class::{
+                classes::{
                     CastClassShimTypeToTetheringStructType, CastTetheringStructTypeToClassShimType,
                 },
                 tethering::TetheringStructType,
