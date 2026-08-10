@@ -16,7 +16,7 @@ use crate::{
             rust::{AsItem as _, Type},
             shim::{
                 ShimFunction, ShimFunctionFree, ShimFunctionGetter, ShimFunctionKind,
-                ShimFunctionSetter, ShimType, ShimValueType,
+                ShimFunctionSetter, ShimType,
             },
         },
     },
@@ -144,13 +144,13 @@ where
                 free_fn.ret_type(self.db),
             ) {
                 (Some(src_ret_type), Some(shim_ret_type)) => {
-                    let result_expr = self.cast_compiler.clone().compile_casts_expr(
+                    let result_expr = self.cast_compiler.compile_casts_expr(
                         self.db,
                         cast_param_to_source_types,
                         src_fn_call_expr,
                     );
 
-                    let casted_result_expr = self.cast_compiler.clone().compile_cast_expr(
+                    let casted_result_expr = self.cast_compiler.compile_cast_expr(
                         self.db,
                         Type::from(src_ret_type),
                         ShimType::from(shim_ret_type),
@@ -179,7 +179,7 @@ where
     fn render_fn_getter_body(self, getter: ShimFunctionGetter<'db>) -> impl FragmentOnce {
         let cls_tethering_struct_expr = self.cast_compiler.compile_cast_expr(
             self.db,
-            ShimType::from(ShimValueType::from(getter.class(self.db))),
+            ShimType::from(getter.class(self.db).as_value_type(self.db)),
             TetheringStructType {
                 source_type: getter.class(self.db).src(self.db).into(),
             },
@@ -223,7 +223,7 @@ where
     fn render_fn_setter_body(self, setter: ShimFunctionSetter<'db>) -> impl FragmentOnce {
         let cls_tethering_struct_expr = self.cast_compiler.compile_cast_expr(
             self.db,
-            ShimType::from(ShimValueType::from(setter.class(self.db))),
+            ShimType::from(setter.class(self.db).as_value_type(self.db)),
             TetheringStructType {
                 source_type: setter.class(self.db).src(self.db).into(),
             },

@@ -311,7 +311,7 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
 
 impl<'db> ValueType<'db> {
     pub fn tethering_struct_name(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
-        frag!(__tethering__{self.shim_out(db).symbol(db)})
+        frag!(__tethering__{self.render_mangled_name(db)})
     }
 }
 
@@ -441,7 +441,7 @@ where
         }));
 
         let name = || struct_.source_type.tethering_struct_name(db);
-        let source_type = || struct_.source_type.render_type_decl(db);
+        let source_type = || struct_.source_type.render_fqn(db);
 
         frag!(
             struct ~{name()}~{{
@@ -531,7 +531,7 @@ impl<'a, GetRefExpr, GetMutExpr> ClonedField<'a, GetRefExpr, GetMutExpr> {
             let get_ref_expr = self.get_ref_expr.render("src");
 
             frag!(
-                pub fn get_{self.name}(&self) -> __tethering::AccessResult<{self.source_type.render_type_decl(db)}>~{{
+                pub fn get_{self.name}(&self) -> __tethering::AccessResult<{self.source_type.render_fqn(db)}>~{{
                     self.access(|src| Ok({get_ref_expr}?.clone()))
                 }}
             )
@@ -547,7 +547,7 @@ impl<'a, GetRefExpr, GetMutExpr> ClonedField<'a, GetRefExpr, GetMutExpr> {
             let get_mut_expr = self.get_mut_expr.render("src");
 
             frag!(
-                pub fn set_{self.name}(&self, value: ~{self.source_type.render_type_decl(db)}) -> __tethering::AccessResult<()>~{{
+                pub fn set_{self.name}(&self, value: ~{self.source_type.render_fqn(db)}) -> __tethering::AccessResult<()>~{{
                     self.access_mut(|src|~{{
                         *{get_mut_expr}? = value;@
                         Ok(())
@@ -572,7 +572,7 @@ impl<'a, GetRefExpr, GetMutExpr> TetheringStructField<'a, GetRefExpr, GetMutExpr
             let get_mut_expr = self.get_mut_expr.render("parent");
 
             let tethered_name = || self.source_type.tethering_struct_name(db);
-            let source_type = || self.source_type.render_type_decl(db);
+            let source_type = || self.source_type.render_fqn(db);
 
             frag!(
                 pub fn get_{self.name}(
@@ -613,7 +613,7 @@ impl<'a, GetRefExpr, GetMutExpr> TetheringStructField<'a, GetRefExpr, GetMutExpr
             let cache_field_name = cache_field_name(self.name);
             let validate_get_mut_expr = self.get_mut_expr.render("src");
             let get_mut_expr = self.get_mut_expr.render("src");
-            let source_type = self.source_type.render_type_decl(db);
+            let source_type = self.source_type.render_fqn(db);
 
             frag!(
                 pub fn set_{self.name}(&self, value: ~{source_type}) -> __tethering::AccessResult<()>~{{

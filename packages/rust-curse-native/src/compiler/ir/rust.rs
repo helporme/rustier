@@ -1,11 +1,10 @@
 // An ir of a the rust public api.
 
-use crate::compiler::{
-    db::Db,
-    ir::shim::{ShimType, ShimValueType},
-    mangle::mangle_path,
+use crate::compiler::{db::Db, mangle::mangle_path};
+use std::{
+    fmt,
+    path::{Path, PathBuf},
 };
-use std::path::{Path, PathBuf};
 
 #[salsa::interned(debug)]
 pub struct ItemPath<'db> {
@@ -146,9 +145,17 @@ impl<'db> Struct<'db> {
             .append(db, self.name(db).to_owned())
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn shape(self, db: &'db dyn Db) -> Shape<'db> {
+    pub fn shape(self, db: &'db dyn Db) -> &'db Shape<'db> {
         self.lower_shape(db)
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn fields(self, db: &'db dyn Db) -> Vec<Field<'db>> {
+        match self.shape(db) {
+            Shape::Unit => vec![],
+            Shape::Tuple(fields) => fields.into_iter().copied().flatten().collect(),
+            Shape::Plain { fields, .. } => fields.clone(),
+        }
     }
 }
 
@@ -183,6 +190,17 @@ impl<'db> Enum<'db> {
     fn variants(self, db: &'db dyn Db) -> &Vec<Variant<'db>> {
         self.lower_variants(db)
     }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn fields(self, db: &'db dyn Db) -> Vec<Field<'db>> {
+        let mut fields = vec![];
+
+        for variant in self.variants(db) {
+            fields.extend(variant.fields(db));
+        }
+
+        fields
+    }
 }
 
 impl<'db> From<Enum<'db>> for ValueType<'db> {
@@ -209,14 +227,23 @@ impl<'db> Variant<'db> {
             .append(db, self.name(db).to_owned())
     }
 
-    pub fn shape(self, db: &'db dyn Db) -> Shape<'db> {
+    pub fn shape(self, db: &'db dyn Db) -> &'db Shape<'db> {
         self.lower_shape(db)
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn fields(self, db: &'db dyn Db) -> Vec<Field<'db>> {
+        match self.shape(db) {
+            Shape::Unit => vec![],
+            Shape::Tuple(fields) => fields.into_iter().copied().flatten().collect(),
+            Shape::Plain { fields, .. } => fields.clone(),
+        }
     }
 }
 
 as_item!(Variant);
 
-#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, salsa::Update)]
 pub enum Shape<'db> {
     Unit,
     /// Tuple fields, where private or hidden fields are represented by `None`.
@@ -279,11 +306,11 @@ pub enum FieldName {
     Name(String),
 }
 
-impl FieldName {
-    pub fn to_string(&self) -> String {
+impl fmt::Display for FieldName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            FieldName::Idx(idx) => format!("{}", idx),
-            FieldName::Name(name) => name.to_owned(),
+            FieldName::Idx(idx) => write!(f, "{}", idx),
+            FieldName::Name(name) => write!(f, "{}", name),
         }
     }
 }
@@ -380,14 +407,6 @@ impl<'db> ValueType<'db> {
             inner: self,
         }
     }
-
-    pub fn shim_in(self, db: &'db dyn Db) -> ShimType<'db> {
-        todo!()
-    }
-
-    pub fn shim_out(self, db: &'db dyn Db) -> ShimType<'db> {
-        todo!()
-    }
 }
 
 impl<'db> From<ValueType<'db>> for Type<'db> {
@@ -411,14 +430,6 @@ impl<'db> Type<'db> {
             Type::Value(value_type) => value_type,
             Type::Borrowed { inner, .. } => inner,
         }
-    }
-
-    pub fn shim_in(self, db: &'db dyn Db) -> ShimType<'db> {
-        todo!()
-    }
-
-    pub fn shim_out(self, db: &'db dyn Db) -> ShimType<'db> {
-        todo!()
     }
 }
 

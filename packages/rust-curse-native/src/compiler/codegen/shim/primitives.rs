@@ -1,13 +1,15 @@
 use crate::{
     compiler::{
-        bindings_ir::{ExternType, ExternValueType},
         codegen::{
             api::Api,
             cast::{CastContinuation, DirectCastRule, IndirectCastRule},
             fragment::{FragmentOnce, doubles},
         },
         db::Db,
-        ir::{Type, ValueType},
+        ir::{
+            rust::{Type, ValueType},
+            shim::{ShimType, ShimTypeKind, ShimValueType, ShimValueTypeKind},
+        },
     },
     frag,
 };
@@ -163,16 +165,23 @@ impl<'db> DirectCastRule<'db, Type<'db>, Type<'db>> for CastF64ToF32Rule {
 /// Casts an owned source `char` to a boundary `u32`.
 pub struct CastCharToU32BoundaryRule;
 
-impl<'db> DirectCastRule<'db, Type<'db>, ExternType<'db>> for CastCharToU32BoundaryRule {
-    fn predecessor(self, _db: &'db dyn Db, to: ExternType<'db>) -> Option<Type<'db>> {
-        (to == ExternType::Value(ExternValueType::u32)).then_some(Type::Value(ValueType::char))
+impl<'db> DirectCastRule<'db, Type<'db>, ShimType<'db>> for CastCharToU32BoundaryRule {
+    fn predecessor(self, _db: &'db dyn Db, to: ShimType<'db>) -> Option<Type<'db>> {
+        (matches!(
+            to.kind,
+            ShimTypeKind::Value(ShimValueType {
+                kind: ShimValueTypeKind::u32,
+                ..
+            })
+        ))
+        .then_some(Type::Value(ValueType::char))
     }
 
     fn render<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: Type<'db>,
-        _to: ExternType<'db>,
+        _to: ShimType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -186,16 +195,23 @@ impl<'db> DirectCastRule<'db, Type<'db>, ExternType<'db>> for CastCharToU32Bound
 /// Casts an owned source `f32` to a boundary `f64`.
 pub struct CastF32ToF64BoundaryRule;
 
-impl<'db> DirectCastRule<'db, Type<'db>, ExternType<'db>> for CastF32ToF64BoundaryRule {
-    fn predecessor(self, _db: &'db dyn Db, to: ExternType<'db>) -> Option<Type<'db>> {
-        (to == ExternType::Value(ExternValueType::f64)).then_some(Type::Value(ValueType::f32))
+impl<'db> DirectCastRule<'db, Type<'db>, ShimType<'db>> for CastF32ToF64BoundaryRule {
+    fn predecessor(self, _db: &'db dyn Db, to: ShimType<'db>) -> Option<Type<'db>> {
+        matches!(
+            to.kind,
+            ShimTypeKind::Value(ShimValueType {
+                kind: ShimValueTypeKind::f64,
+                ..
+            })
+        )
+        .then_some(Type::Value(ValueType::f32))
     }
 
     fn render<'fragment, Expr>(
         self,
         _db: &'db dyn Db,
         _from: Type<'db>,
-        _to: ExternType<'db>,
+        _to: ShimType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -209,22 +225,22 @@ impl<'db> DirectCastRule<'db, Type<'db>, ExternType<'db>> for CastF32ToF64Bounda
 /// Passes an owned primitive source value to its identical boundary type.
 pub struct CastPrimitiveToSameBoundaryRule;
 
-impl<'db> DirectCastRule<'db, Type<'db>, ExternType<'db>> for CastPrimitiveToSameBoundaryRule {
-    fn predecessor(self, _db: &'db dyn Db, to: ExternType<'db>) -> Option<Type<'db>> {
-        match to {
-            ExternType::Value(value_type) => match value_type {
-                ExternValueType::String => Some(Type::Value(ValueType::String)),
-                ExternValueType::bool => Some(Type::Value(ValueType::bool)),
-                ExternValueType::i8 => Some(Type::Value(ValueType::i8)),
-                ExternValueType::u8 => Some(Type::Value(ValueType::u8)),
-                ExternValueType::i16 => Some(Type::Value(ValueType::i16)),
-                ExternValueType::u16 => Some(Type::Value(ValueType::u16)),
-                ExternValueType::i32 => Some(Type::Value(ValueType::i32)),
-                ExternValueType::u32 => Some(Type::Value(ValueType::u32)),
-                ExternValueType::f64 => Some(Type::Value(ValueType::f64)),
-                ExternValueType::JsAny | ExternValueType::Class(..) => None,
+impl<'db> DirectCastRule<'db, Type<'db>, ShimType<'db>> for CastPrimitiveToSameBoundaryRule {
+    fn predecessor(self, _db: &'db dyn Db, to: ShimType<'db>) -> Option<Type<'db>> {
+        match to.kind {
+            ShimTypeKind::Value(value_type) => match value_type.kind {
+                ShimValueTypeKind::String => Some(Type::Value(ValueType::String)),
+                ShimValueTypeKind::bool => Some(Type::Value(ValueType::bool)),
+                ShimValueTypeKind::i8 => Some(Type::Value(ValueType::i8)),
+                ShimValueTypeKind::u8 => Some(Type::Value(ValueType::u8)),
+                ShimValueTypeKind::i16 => Some(Type::Value(ValueType::i16)),
+                ShimValueTypeKind::u16 => Some(Type::Value(ValueType::u16)),
+                ShimValueTypeKind::i32 => Some(Type::Value(ValueType::i32)),
+                ShimValueTypeKind::u32 => Some(Type::Value(ValueType::u32)),
+                ShimValueTypeKind::f64 => Some(Type::Value(ValueType::f64)),
+                ShimValueTypeKind::JsAny | ShimValueTypeKind::Class(..) => None,
             },
-            ExternType::Borrowed(..) => None,
+            ShimTypeKind::Borrowed(..) => None,
         }
     }
 
@@ -232,7 +248,7 @@ impl<'db> DirectCastRule<'db, Type<'db>, ExternType<'db>> for CastPrimitiveToSam
         self,
         _db: &'db dyn Db,
         _from: Type<'db>,
-        _to: ExternType<'db>,
+        _to: ShimType<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
     where
@@ -246,15 +262,21 @@ impl<'db> DirectCastRule<'db, Type<'db>, ExternType<'db>> for CastPrimitiveToSam
 /// Casts an API-specific JavaScript boundary value to an owned `f64`.
 pub struct CastJsAnyToF64Rule;
 
-impl<'db> DirectCastRule<'db, ExternType<'db>, Type<'db>> for CastJsAnyToF64Rule {
-    fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<ExternType<'db>> {
-        (to == Type::Value(ValueType::f64)).then_some(ExternType::Value(ExternValueType::JsAny))
+impl<'db> DirectCastRule<'db, ShimType<'db>, Type<'db>> for CastJsAnyToF64Rule {
+    fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<ShimType<'db>> {
+        (to == Type::Value(ValueType::f64)).then_some(ShimType {
+            kind: ShimTypeKind::Value(ShimValueType {
+                kind: ShimValueTypeKind::f64,
+                src: to.deborrow(),
+            }),
+            src: to,
+        })
     }
 
     fn render<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: ExternType<'db>,
+        _from: ShimType<'db>,
         _to: Type<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
@@ -274,15 +296,21 @@ impl<'db> DirectCastRule<'db, ExternType<'db>, Type<'db>> for CastJsAnyToF64Rule
 /// Casts an API-specific JavaScript boundary value to an owned `bool`.
 pub struct CastJsAnyToBoolRule;
 
-impl<'db> DirectCastRule<'db, ExternType<'db>, Type<'db>> for CastJsAnyToBoolRule {
-    fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<ExternType<'db>> {
-        (to == Type::Value(ValueType::bool)).then_some(ExternType::Value(ExternValueType::JsAny))
+impl<'db> DirectCastRule<'db, ShimType<'db>, Type<'db>> for CastJsAnyToBoolRule {
+    fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<ShimType<'db>> {
+        (to == Type::Value(ValueType::bool)).then_some(ShimType {
+            kind: ShimTypeKind::Value(ShimValueType {
+                kind: ShimValueTypeKind::JsAny,
+                src: to.deborrow(),
+            }),
+            src: to,
+        })
     }
 
     fn render<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: ExternType<'db>,
+        _from: ShimType<'db>,
         _to: Type<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment
@@ -302,15 +330,21 @@ impl<'db> DirectCastRule<'db, ExternType<'db>, Type<'db>> for CastJsAnyToBoolRul
 /// Casts an API-specific JavaScript boundary value to an owned `String`.
 pub struct CastJsAnyToStringRule;
 
-impl<'db> DirectCastRule<'db, ExternType<'db>, Type<'db>> for CastJsAnyToStringRule {
-    fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<ExternType<'db>> {
-        (to == Type::Value(ValueType::String)).then_some(ExternType::Value(ExternValueType::JsAny))
+impl<'db> DirectCastRule<'db, ShimType<'db>, Type<'db>> for CastJsAnyToStringRule {
+    fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<ShimType<'db>> {
+        (to == Type::Value(ValueType::String)).then_some(ShimType {
+            kind: ShimTypeKind::Value(ShimValueType {
+                kind: ShimValueTypeKind::JsAny,
+                src: to.deborrow(),
+            }),
+            src: to,
+        })
     }
 
     fn render<'fragment, Expr>(
         self,
         db: &'db dyn Db,
-        _from: ExternType<'db>,
+        _from: ShimType<'db>,
         _to: Type<'db>,
         in_expr: Expr,
     ) -> impl FragmentOnce + 'fragment

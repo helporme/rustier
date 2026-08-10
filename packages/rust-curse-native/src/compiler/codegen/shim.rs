@@ -15,7 +15,7 @@ mod cast_graph;
 mod classes;
 mod crates;
 mod functions;
-// mod primitive;
+mod primitives;
 mod tethering;
 mod types;
 

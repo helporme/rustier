@@ -45,8 +45,9 @@ impl<'db> FacadeClass<'db> {
 pub enum FacadeClassKind<'db> {
     Plain(Vec<FacadeFieldPlain<'db>>),
     TagDiscriminated {
-        variants: Vec<FacadeFieldPlain<'db>>,
+        fields: Vec<FacadeFieldDiscriminated<'db>>,
         discriminator: FacadeFieldDiscriminator<'db>,
+        variant_names: Vec<String>,
     },
 }
 

@@ -412,7 +412,7 @@ macro_rules! define_cast_graph {
                                     CastType::$direct_to_variant(to),
                                 ) => {
                                     let out_expr =
-                                        $crate::compiler::codegen::cast::DirectCastRule::compile(
+                                        $crate::compiler::codegen::cast::DirectCastRule::render(
                                             $direct_rule,
                                             db,
                                             from,
@@ -432,7 +432,7 @@ macro_rules! define_cast_graph {
                                     CastType::$indirect_from_variant(from),
                                     CastType::$indirect_to_variant(to),
                                 ) => {
-                                    $crate::compiler::codegen::cast::IndirectCastRule::compile(
+                                    $crate::compiler::codegen::cast::IndirectCastRule::render(
                                         $indirect_rule,
                                         db,
                                         from,

@@ -4,18 +4,15 @@ use crate::{
             api::Api,
             cast::DirectCastRule,
             fragment::{FragmentOnce, FragmentPrint, Printer, doubles, fragment},
-            shim::{
-                cast_graph::{ShimCast, ShimCastCompiler},
-                tethering::{
-                    ClonedField, FieldExpr, TetheredField, TetheringStruct, TetheringStructField,
-                    TetheringStructType, render_tethering_struct,
-                },
+            shim::tethering::{
+                ClonedField, FieldExpr, TetheredField, TetheringStruct, TetheringStructField,
+                TetheringStructType, render_tethering_struct,
             },
         },
         db::Db,
         ir::{
             rust::{AsItem as _, FieldParent, Shape, ValueType},
-            shim::{ShimClass, ShimField, ShimType, ShimValueType},
+            shim::{ShimClass, ShimField, ShimType, ShimValueTypeKind},
         },
     },
     frag,
@@ -25,44 +22,22 @@ use crate::{
 impl<'db> ShimClass<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render(self, db: &'db dyn Db) -> String {
-        self.render_with(db, ShimCast::Graph).print()
-    }
-
-    pub(super) fn render_with<CastCompiler>(
-        self,
-        db: &'db dyn Db,
-        cast_compiler: CastCompiler,
-    ) -> impl FragmentOnce
-    where
-        CastCompiler: ShimCastCompiler<'db> + Clone + 'db,
-    {
-        ClassFragment {
-            class: self,
-            cast_compiler,
-            db,
-        }
+        ClassFragment { class: self, db }.print()
     }
 }
 
-struct ClassFragment<'db, CastCompiler> {
+struct ClassFragment<'db> {
     class: ShimClass<'db>,
-    cast_compiler: CastCompiler,
     db: &'db dyn Db,
 }
 
-impl<'db, CastCompiler> FragmentOnce for ClassFragment<'db, CastCompiler>
-where
-    CastCompiler: ShimCastCompiler<'db> + Clone + 'db,
-{
+impl<'db> FragmentOnce for ClassFragment<'db> {
     fn apply(self, p: &mut Printer) {
         self.render().apply(p);
     }
 }
 
-impl<'db, CastCompiler> ClassFragment<'db, CastCompiler>
-where
-    CastCompiler: ShimCastCompiler<'db> + Clone + 'db,
-{
+impl<'db> ClassFragment<'db> {
     fn render(&self) -> impl FragmentOnce {
         frag!(
             {self.render_tethering_struct()}@@
@@ -234,7 +209,7 @@ impl<'db> DirectCastRule<'db, ShimType<'db>, TetheringStructType<'db>>
 {
     fn predecessor(self, db: &'db dyn Db, to: TetheringStructType<'db>) -> Option<ShimType<'db>> {
         let shim_type = to.source_type.shim_in(db);
-        if matches!(shim_type.deborrow(), ShimValueType::Class(..)) {
+        if matches!(shim_type.deborrow().kind, ShimValueTypeKind::Class(..)) {
             Some(shim_type)
         } else {
             None
@@ -261,10 +236,10 @@ pub struct CastTetheringStructTypeToClassShimType;
 impl<'db> DirectCastRule<'db, TetheringStructType<'db>, ShimType<'db>>
     for CastTetheringStructTypeToClassShimType
 {
-    fn predecessor(self, db: &'db dyn Db, to: ShimType<'db>) -> Option<TetheringStructType<'db>> {
-        if let ShimValueType::Class(_) = to.deborrow() {
+    fn predecessor(self, _db: &'db dyn Db, to: ShimType<'db>) -> Option<TetheringStructType<'db>> {
+        if let ShimValueTypeKind::Class(_) = to.deborrow().kind {
             Some(TetheringStructType {
-                source_type: to.src(db),
+                source_type: to.deborrow().src,
             })
         } else {
             None
@@ -282,7 +257,7 @@ impl<'db> DirectCastRule<'db, TetheringStructType<'db>, ShimType<'db>>
         'db: 'fragment,
         Expr: FragmentOnce + 'fragment,
     {
-        let ShimValueType::Class(target) = to.deborrow() else {
+        let ShimValueTypeKind::Class(target) = to.deborrow().kind else {
             unreachable!();
         };
 

@@ -5,20 +5,13 @@ use crate::{
         codegen::{
             cast::CastContinuation,
             fragment::{FragmentOnce, Printer, fragment},
-            shim::{
-                classes::{
-                    CastClassShimTypeToTetheringStructType, CastTetheringStructTypeToClassShimType,
-                },
-                tethering::TetheringStructType,
-            },
+            shim::tethering::TetheringStructType,
         },
         db::Db,
         ir::{rust::Type, shim::ShimType},
     },
     define_cast_graph, frag,
 };
-
-type X = CastTetheringStructTypeToClassShimType;
 
 define_cast_graph! {
     pub ShimCast<'db> {
@@ -29,125 +22,100 @@ define_cast_graph! {
         }
         direct_rules {
             TetheringStructTypeToClassShimType {
-                rule: CastTetheringStructTypeToClassShimType,
+                rule: crate::compiler::codegen::shim::classes::CastTetheringStructTypeToClassShimType,
                 from: TetheringStructType,
                 to: ShimType,
             }
             ClassShimTypeToTetheringStructType {
-                rule: CastClassShimTypeToTetheringStructType,
+                rule: crate::compiler::codegen::shim::classes::CastClassShimTypeToTetheringStructType,
                 from: ShimType,
                 to: TetheringStructType,
             }
+            JsAnyToF64 {
+                rule: crate::compiler::codegen::shim::primitives::CastJsAnyToF64Rule,
+                from: ShimType,
+                to: Type,
+            }
+            JsAnyToBool {
+                rule: crate::compiler::codegen::shim::primitives::CastJsAnyToBoolRule,
+                from: ShimType,
+                to: Type,
+            }
+            JsAnyToString {
+                rule: crate::compiler::codegen::shim::primitives::CastJsAnyToStringRule,
+                from: ShimType,
+                to: Type,
+            }
+            F64ToSignedInt {
+                rule: crate::compiler::codegen::shim::primitives::CastF64ToSignedIntRule,
+                from: Type,
+                to: Type,
+            }
+            F64ToUnsignedInt {
+                rule: crate::compiler::codegen::shim::primitives::CastF64ToUnsignedIntRule,
+                from: Type,
+                to: Type,
+            }
+            U32ToChar {
+                rule: crate::compiler::codegen::shim::primitives::CastU32ToCharRule,
+                from: Type,
+                to: Type,
+            }
+            F64ToF32 {
+                rule: crate::compiler::codegen::shim::primitives::CastF64ToF32Rule,
+                from: Type,
+                to: Type,
+            }
+            CharToU32Boundary {
+                rule: crate::compiler::codegen::shim::primitives::CastCharToU32BoundaryRule,
+                from: Type,
+                to: ShimType,
+            }
+            F32ToF64Boundary {
+                rule: crate::compiler::codegen::shim::primitives::CastF32ToF64BoundaryRule,
+                from: Type,
+                to: ShimType,
+            }
+            PrimitiveToSameBoundary {
+                rule: crate::compiler::codegen::shim::primitives::CastPrimitiveToSameBoundaryRule,
+                from: Type,
+                to: ShimType,
+            }
+            TypeToTetheringStructType {
+                rule: crate::compiler::codegen::shim::tethering::CastTypeToTetheringStructType,
+                from: Type,
+                to: TetheringStructType,
+            }
         }
-        indirect_rules { }
+        indirect_rules {
+            OwnedTypeToBorrowedType {
+                rule: crate::compiler::codegen::shim::types::CastOwnedTypeToBorrowedTypeRule,
+                from: Type,
+                to: Type,
+            }
+            StringToStrRef {
+                rule: crate::compiler::codegen::shim::primitives::CastStringToStrRefRule,
+                from: Type,
+                to: Type,
+            }
+            StringToStrMut {
+                rule: crate::compiler::codegen::shim::primitives::CastStringToStrMutRule,
+                from: Type,
+                to: Type,
+            }
+            TetheringStructTypeToBorrowedType {
+                rule: crate::compiler::codegen::shim::tethering::CastTetheringStructTypeToBorrowedType,
+                from: TetheringStructType,
+                to: Type,
+            }
+            TetheringStructTypeToOwnedType {
+                rule: crate::compiler::codegen::shim::tethering::CastTetheringStructTypeToOwnedType,
+                from: TetheringStructType,
+                to: Type,
+            }
+        }
     }
 }
-
-// define_cast_graph! {
-//     pub ShimCast<'db> {
-//         types {
-//             BoundaryType(ExternType<'db>),
-//             Type(Type<'db>),
-//             TetheringStructType(TetheringStructType<'db>),
-//         }
-
-//         direct_rules {
-//             JsAnyToF64 {
-//                 rule: CastJsAnyToF64Rule,
-//                 from: BoundaryType,
-//                 to: Type,
-//             }
-//             JsAnyToBool {
-//                 rule: CastJsAnyToBoolRule,
-//                 from: BoundaryType,
-//                 to: Type,
-//             }
-//             JsAnyToString {
-//                 rule: CastJsAnyToStringRule,
-//                 from: BoundaryType,
-//                 to: Type,
-//             }
-//             F64ToSignedInt {
-//                 rule: CastF64ToSignedIntRule,
-//                 from: Type,
-//                 to: Type,
-//             }
-//             F64ToUnsignedInt {
-//                 rule: CastF64ToUnsignedIntRule,
-//                 from: Type,
-//                 to: Type,
-//             }
-//             U32ToChar {
-//                 rule: CastU32ToCharRule,
-//                 from: Type,
-//                 to: Type,
-//             }
-//             F64ToF32 {
-//                 rule: CastF64ToF32Rule,
-//                 from: Type,
-//                 to: Type,
-//             }
-//             CharToU32Boundary {
-//                 rule: CastCharToU32BoundaryRule,
-//                 from: Type,
-//                 to: BoundaryType,
-//             }
-//             F32ToF64Boundary {
-//                 rule: CastF32ToF64BoundaryRule,
-//                 from: Type,
-//                 to: BoundaryType,
-//             }
-//             PrimitiveToSameBoundary {
-//                 rule: CastPrimitiveToSameBoundaryRule,
-//                 from: Type,
-//                 to: BoundaryType,
-//             }
-//             TypeToTetheringStructType {
-//                 rule: CastTypeToTetheringStructType,
-//                 from: Type,
-//                 to: TetheringStructType,
-//             }
-//             ClassBoundaryTypeToTetheringStructType {
-//                 rule: CastClassExternTypeToTetheringStructType,
-//                 from: BoundaryType,
-//                 to: TetheringStructType
-//             }
-//             TetheringStructTypeToClassBoundaryType {
-//                 rule: CastTetheringStructTypeToClassExternType,
-//                 from: TetheringStructType,
-//                 to: BoundaryType
-//             }
-//         }
-
-//         indirect_rules {
-//             OwnedTypeToBorrowedType {
-//                 rule: CastOwnedTypeToBorrowedTypeRule,
-//                 from: Type,
-//                 to: Type,
-//             }
-//             StringToStrRef {
-//                 rule: CastStringToStrRefRule,
-//                 from: Type,
-//                 to: Type,
-//             }
-//             StringToStrMut {
-//                 rule: CastStringToStrMutRule,
-//                 from: Type,
-//                 to: Type,
-//             }
-//             TetheringStructTypeToBorrowedType {
-//                 rule: CastTetheringStructTypeToBorrowedType,
-//                 from: TetheringStructType,
-//                 to: Type,
-//             }
-//             TetheringStructTypeToOwnedType {
-//                 rule: CastTetheringStructTypeToOwnedType,
-//                 from: TetheringStructType,
-//                 to: Type,
-//             }
-//         }
-//     }
-// }
 
 /// A Rust cast request whose converted value is bound to `out_var_name`.
 pub struct Cast<From, To, InExpr, OutExpr> {
@@ -554,50 +522,6 @@ where
         )
     }
 }
-
-// /// A rule to cast an owned source type to a reference source type.
-// pub struct CastOwnedTypeToBorrowedTypeRule;
-
-// impl<'db> IndirectCastRule<'db, Type<'db>, Type<'db>> for
-// CastOwnedTypeToBorrowedTypeRule {     fn predecessor(self, _db: &'db dyn Db,
-// to: Type<'db>) -> Option<Type<'db>> {         match to {
-//             Type::Borrowed { inner, .. } if
-// Type::Value(inner).allows_generic_borrowing_cast() => {
-// Some(Type::Value(inner))             }
-//             _ => None,
-//         }
-//     }
-
-//     fn render<'fragment, Expr, Continue>(
-//         self,
-//         _db: &'db dyn Db,
-//         _from: Type<'db>,
-//         to: Type<'db>,
-//         in_expr: Expr,
-//         continue_with: Continue,
-//     ) -> impl FragmentOnce + 'fragment
-//     where
-//         'db: 'fragment,
-//         Expr: FragmentOnce + 'fragment,
-//         Continue: CastContinuation<'db>,
-//     {
-//         let Type::Borrowed { is_mutable, .. } = to else {
-//             unreachable!()
-//         };
-
-//         let borrowing = if is_mutable {
-//             frag!(&mut __cast_owned_value)
-//         } else {
-//             frag!(&__cast_owned_value)
-//         };
-//         let continue_with = continue_with.compile(borrowing);
-
-//         frag!(
-//             let mut __cast_owned_value = {in_expr};
-//             {continue_with}
-//         )
-//     }
-// }
 
 // #[cfg(test)]
 // pub mod test {

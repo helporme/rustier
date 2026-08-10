@@ -51,7 +51,7 @@ impl<'db> Struct<'db> {
         Ok(Self::new(db, parent, name))
     }
 
-    #[salsa::tracked]
+    #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir) fn lower_shape(self, db: &'db dyn Db) -> Shape<'db> {
         let struct_id = self.rustdoc_id(db);
         let item = struct_id.item(db);

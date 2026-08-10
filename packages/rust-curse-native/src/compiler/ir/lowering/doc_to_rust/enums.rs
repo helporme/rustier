@@ -85,7 +85,7 @@ impl<'db> Enum<'db> {
 
 #[salsa::tracked]
 impl<'db> Variant<'db> {
-    #[salsa::tracked]
+    #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir) fn lower_shape(self, db: &'db dyn Db) -> Shape<'db> {
         let variant_id = self.rustdoc_id(db);
         let item = variant_id.item(db);
