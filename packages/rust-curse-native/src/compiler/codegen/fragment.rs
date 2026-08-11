@@ -899,9 +899,9 @@ where
 /// # Auto formatting
 ///
 /// Double curly braces, parentheses, and square brackets are automatically
-/// wrapped with [`curlies`](crate::codegen::fragment::curlies),
-/// [`parens`](crate::codegen::fragment::parens), and
-/// [`squares`](crate::codegen::fragment::squares), respectively.
+/// wrapped with [`curlies`](crate::compiler::codegen::fragment::curlies),
+/// [`parens`](crate::compiler::codegen::fragment::parens), and
+/// [`squares`](crate::compiler::codegen::fragment::squares), respectively.
 ///
 /// ```
 /// # use rust_curse::compiler::codegen::fragment::{frag, FragmentPrint};
@@ -954,7 +954,7 @@ macro_rules! frag {
         frag!(@collect [
             $($parts,)*
             stringify!($($text)+),
-            $crate::codegen::fragment::curlies(frag!($($inner)*)),
+            $crate::compiler::codegen::fragment::curlies(frag!($($inner)*)),
         ] [] $($rest)*)
     };
 

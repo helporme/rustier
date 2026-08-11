@@ -19,6 +19,7 @@ pub fn to_camel_case(name: &str) -> String {
             camel_case_name.push(character);
         }
     }
+
     camel_case_name
 }
 

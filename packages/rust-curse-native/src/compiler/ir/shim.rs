@@ -1,6 +1,7 @@
 use crate::compiler::{
     db::Db,
     ir::{
+        facade::{FacadeClass, FacadeFunction, FacadeMod},
         ffi::{FfiClass, FfiCrate, FfiFunction, FfiParam, FfiType},
         rust::{Crate, Enum, Field, FieldParent, Function, Member, Mod, Struct, Type, ValueType},
     },
@@ -52,6 +53,10 @@ pub struct ShimMod<'db> {
 
 #[salsa::tracked]
 impl<'db> ShimMod<'db> {
+    pub fn facade(self, db: &'db dyn Db) -> FacadeMod<'db> {
+        FacadeMod::new(db, self)
+    }
+
     #[salsa::tracked(returns(ref))]
     pub fn classes(self, db: &'db dyn Db) -> Vec<ShimClass<'db>> {
         self.src(db)
@@ -71,10 +76,7 @@ impl<'db> ShimMod<'db> {
 
         for mem in self.src(db).members(db).iter() {
             if let Member::Function(function) = mem {
-                fns.push(ShimFunction::new(
-                    db,
-                    ShimFunctionKind::Free(ShimFunctionFree::new(db, function)),
-                ));
+                fns.push(ShimFunctionFree::new(db, function).as_fn());
             } else {
                 let cls = match mem {
                     Member::Struct(s) => Some(s.shim(db)),
@@ -83,10 +85,12 @@ impl<'db> ShimMod<'db> {
                 };
 
                 if let Some(cls) = cls {
+                    fns.extend(cls.fns(db));
+
                     for field in cls.fields(db) {
-                        fns.push(field.getter(db));
+                        fns.push(field.getter(db).as_fn());
                         if let Some(f) = field.setter(db) {
-                            fns.push(f);
+                            fns.push(f.as_fn());
                         }
                     }
                 }
@@ -108,6 +112,17 @@ impl<'db> ShimClass<'db> {
         FfiClass::new(db, self)
     }
 
+    pub fn facade(self, db: &'db dyn Db) -> FacadeClass<'db> {
+        FacadeClass::new(db, self)
+    }
+
+    pub fn parent(self, db: &'db dyn Db) -> ShimMod<'db> {
+        match self.src(db) {
+            ShimClassSource::Struct(s) => s.parent(db).shim(db),
+            ShimClassSource::Enum(e) => e.parent(db).shim(db),
+        }
+    }
+
     #[salsa::tracked(returns(ref))]
     pub fn symbol(self, db: &'db dyn Db) -> String {
         match self.src(db) {
@@ -123,7 +138,7 @@ impl<'db> ShimClass<'db> {
             ShimClassSource::Enum(e) => e.fields(db),
         };
 
-        fields.iter().map(|f| ShimField::new(db, f)).collect()
+        fields.iter().map(|f| f.shim(db)).collect()
     }
 
     pub fn as_value_type(self, db: &'db dyn Db) -> ShimValueType<'db> {
@@ -131,6 +146,17 @@ impl<'db> ShimClass<'db> {
             kind: ShimValueTypeKind::Class(self),
             src: self.src(db).into(),
         }
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn fns(self, db: &'db dyn Db) -> Vec<ShimFunction<'db>> {
+        let mut fns = vec![];
+
+        if let ShimClassSource::Enum(enum_) = self.src(db) {
+            fns.push(ShimFunctionEnumDiscriminator::new(db, enum_).as_fn());
+        }
+
+        fns
     }
 }
 
@@ -155,28 +181,24 @@ pub struct ShimField<'db> {
 }
 
 impl<'db> ShimField<'db> {
-    pub fn getter(self, db: &'db dyn Db) -> ShimFunction<'db> {
-        ShimFunction::new(
-            db,
-            ShimFunctionKind::Getter(ShimFunctionGetter::new(db, self.src(db))),
-        )
+    pub fn getter(self, db: &'db dyn Db) -> ShimFunctionGetter<'db> {
+        ShimFunctionGetter::new(db, self.src(db))
     }
 
-    pub fn setter(self, db: &'db dyn Db) -> Option<ShimFunction<'db>> {
+    pub fn setter(self, db: &'db dyn Db) -> Option<ShimFunctionSetter<'db>> {
         let src = self.src(db);
 
-        src.is_readonly(db).then(|| {
-            ShimFunction::new(
-                db,
-                ShimFunctionKind::Setter(ShimFunctionSetter::new(db, src)),
-            )
-        })
+        src.is_readonly(db)
+            .then(|| ShimFunctionSetter::new(db, src))
     }
 }
 
-#[salsa::interned(debug)]
-pub struct ShimFunction<'db> {
-    pub kind: ShimFunctionKind<'db>,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
+pub enum ShimFunction<'db> {
+    Free(ShimFunctionFree<'db>),
+    Getter(ShimFunctionGetter<'db>),
+    Setter(ShimFunctionSetter<'db>),
+    EnumDiscriminator(ShimFunctionEnumDiscriminator<'db>),
 }
 
 #[salsa::tracked]
@@ -186,46 +208,32 @@ impl<'db> ShimFunction<'db> {
     }
 
     pub fn symbol(self, db: &'db dyn Db) -> &'db str {
-        let kind = self.kind(db);
-
-        match kind {
-            ShimFunctionKind::Free(f) => f.symbol(db),
-            ShimFunctionKind::Getter(g) => g.symbol(db),
-            ShimFunctionKind::Setter(s) => s.symbol(db),
-            ShimFunctionKind::EnumDiscriminator(e) => e.symbol(db),
+        match self {
+            ShimFunction::Free(f) => f.symbol(db),
+            ShimFunction::Getter(g) => g.symbol(db),
+            ShimFunction::Setter(s) => s.symbol(db),
+            ShimFunction::EnumDiscriminator(e) => e.symbol(db),
         }
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<ShimValueType<'db>> {
-        let kind = self.kind(db);
-
-        match kind {
-            ShimFunctionKind::Free(f) => f.ret_type(db),
-            ShimFunctionKind::Getter(g) => Some(g.ret_type(db)),
-            ShimFunctionKind::Setter(_) => None,
-            ShimFunctionKind::EnumDiscriminator(d) => Some(d.ret_type()),
+        match self {
+            ShimFunction::Free(f) => f.ret_type(db),
+            ShimFunction::Getter(g) => Some(g.ret_type(db)),
+            ShimFunction::Setter(_) => None,
+            ShimFunction::EnumDiscriminator(d) => Some(d.ret_type()),
         }
     }
 
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> Vec<ShimParam<'db>> {
-        let kind = self.kind(db);
-
-        match kind {
-            ShimFunctionKind::Free(f) => f.params(db).clone(),
-            ShimFunctionKind::Getter(g) => g.params(db).to_vec(),
-            ShimFunctionKind::Setter(s) => s.params(db).to_vec(),
-            ShimFunctionKind::EnumDiscriminator(e) => e.params(db).to_vec(),
+        match self {
+            ShimFunction::Free(f) => f.params(db).clone(),
+            ShimFunction::Getter(g) => g.params(db).to_vec(),
+            ShimFunction::Setter(s) => s.params(db).to_vec(),
+            ShimFunction::EnumDiscriminator(e) => e.params(db).to_vec(),
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
-pub enum ShimFunctionKind<'db> {
-    Free(ShimFunctionFree<'db>),
-    Getter(ShimFunctionGetter<'db>),
-    Setter(ShimFunctionSetter<'db>),
-    EnumDiscriminator(ShimFunctionEnumDiscriminator<'db>),
 }
 
 #[salsa::interned(debug)]
@@ -235,9 +243,17 @@ pub struct ShimFunctionFree<'db> {
 
 #[salsa::tracked]
 impl<'db> ShimFunctionFree<'db> {
+    pub fn as_fn(self) -> ShimFunction<'db> {
+        ShimFunction::Free(self)
+    }
+
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        let fun = ShimFunction::new(db, ShimFunctionKind::Free(self));
+        let fun = self.as_fn();
         FfiFunction::new(db, fun)
+    }
+
+    pub fn facade(self, db: &'db dyn Db) -> FacadeFunction<'db> {
+        FacadeFunction::new(db, self)
     }
 
     #[salsa::tracked(returns(ref))]
@@ -252,7 +268,7 @@ impl<'db> ShimFunctionFree<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> Vec<ShimParam<'db>> {
-        let fun = ShimFunction::new(db, ShimFunctionKind::Free(self));
+        let fun = self.as_fn();
 
         self.src(db)
             .params(db)
@@ -290,8 +306,12 @@ pub struct ShimFunctionGetter<'db> {
 
 #[salsa::tracked]
 impl<'db> ShimFunctionGetter<'db> {
+    pub fn as_fn(self) -> ShimFunction<'db> {
+        ShimFunction::Getter(self)
+    }
+
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        let fun = ShimFunction::new(db, ShimFunctionKind::Getter(self));
+        let fun = self.as_fn();
         FfiFunction::new(db, fun)
     }
 
@@ -329,7 +349,7 @@ impl<'db> ShimFunctionGetter<'db> {
             FieldParent::Variant(v) => v.parent(db).into(),
         };
 
-        let fun = ShimFunction::new(db, ShimFunctionKind::Getter(self));
+        let fun = self.as_fn();
 
         [ShimParam::new(
             db,
@@ -348,8 +368,12 @@ pub struct ShimFunctionSetter<'db> {
 
 #[salsa::tracked]
 impl<'db> ShimFunctionSetter<'db> {
+    pub fn as_fn(self) -> ShimFunction<'db> {
+        ShimFunction::Setter(self)
+    }
+
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        let fun = ShimFunction::new(db, ShimFunctionKind::Setter(self));
+        let fun = self.as_fn();
         FfiFunction::new(db, fun)
     }
 
@@ -387,7 +411,7 @@ impl<'db> ShimFunctionSetter<'db> {
         };
         let value_type = field.type_(db);
 
-        let fun = ShimFunction::new(db, ShimFunctionKind::Setter(self));
+        let fun = self.as_fn();
 
         [
             ShimParam::new(db, fun, 0, src_type.into(), src_type.shim_in(db)),
@@ -403,8 +427,12 @@ pub struct ShimFunctionEnumDiscriminator<'db> {
 
 #[salsa::tracked]
 impl<'db> ShimFunctionEnumDiscriminator<'db> {
+    pub fn as_fn(self) -> ShimFunction<'db> {
+        ShimFunction::EnumDiscriminator(self)
+    }
+
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        let fun = ShimFunction::new(db, ShimFunctionKind::EnumDiscriminator(self));
+        let fun = self.as_fn();
         FfiFunction::new(db, fun)
     }
 
@@ -428,7 +456,7 @@ impl<'db> ShimFunctionEnumDiscriminator<'db> {
     #[salsa::tracked]
     pub fn params(self, db: &'db dyn Db) -> [ShimParam<'db>; 1] {
         let src = self.src(db);
-        let fun = ShimFunction::new(db, ShimFunctionKind::EnumDiscriminator(self));
+        let fun = self.as_fn();
         let src_type = Type::from(ValueType::from(src));
 
         [ShimParam::new(db, fun, 0, src_type, src_type.shim_in(db))]
@@ -569,59 +597,59 @@ impl<'db> ValueType<'db> {
         match self {
             ValueType::bool => ShimValueType {
                 kind: ShimValueTypeKind::bool,
-                src: self.into(),
+                src: self,
             },
             ValueType::char => ShimValueType {
                 kind: ShimValueTypeKind::u32,
-                src: self.into(),
+                src: self,
             },
             ValueType::i8 => ShimValueType {
                 kind: ShimValueTypeKind::i8,
-                src: self.into(),
+                src: self,
             },
             ValueType::u8 => ShimValueType {
                 kind: ShimValueTypeKind::u8,
-                src: self.into(),
+                src: self,
             },
             ValueType::i16 => ShimValueType {
                 kind: ShimValueTypeKind::i16,
-                src: self.into(),
+                src: self,
             },
             ValueType::u16 => ShimValueType {
                 kind: ShimValueTypeKind::u16,
-                src: self.into(),
+                src: self,
             },
             ValueType::i32 => ShimValueType {
                 kind: ShimValueTypeKind::i32,
-                src: self.into(),
+                src: self,
             },
             ValueType::u32 => ShimValueType {
                 kind: ShimValueTypeKind::u32,
-                src: self.into(),
+                src: self,
             },
             ValueType::f32 => ShimValueType {
                 kind: ShimValueTypeKind::f64,
-                src: self.into(),
+                src: self,
             },
             ValueType::f64 => ShimValueType {
                 kind: ShimValueTypeKind::f64,
-                src: self.into(),
+                src: self,
             },
             ValueType::Str => ShimValueType {
                 kind: ShimValueTypeKind::String,
-                src: self.into(),
+                src: self,
             },
             ValueType::String => ShimValueType {
                 kind: ShimValueTypeKind::String,
-                src: self.into(),
+                src: self,
             },
             ValueType::Struct(s) => ShimValueType {
                 kind: ShimValueTypeKind::Class(s.shim(db)),
-                src: self.into(),
+                src: self,
             },
             ValueType::Enum(e) => ShimValueType {
                 kind: ShimValueTypeKind::Class(e.shim(db)),
-                src: self.into(),
+                src: self,
             },
         }
     }

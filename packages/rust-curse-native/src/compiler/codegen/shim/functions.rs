@@ -13,9 +13,9 @@ use crate::{
         },
         db::Db,
         ir::{
-            rust::{AsItem as _, Type},
+            rust::{AsItem as _, Shape, Type},
             shim::{
-                ShimFunction, ShimFunctionFree, ShimFunctionGetter, ShimFunctionKind,
+                ShimFunction, ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimFunctionGetter,
                 ShimFunctionSetter, ShimType,
             },
         },
@@ -107,10 +107,13 @@ where
     }
 
     fn render_body(self) -> impl FragmentOnce {
-        fragment(move |p| match self.function.kind(self.db) {
-            ShimFunctionKind::Free(free_fn) => self.render_free_fn_call_body(free_fn).apply(p),
-            ShimFunctionKind::Getter(getter) => self.render_fn_getter_body(getter).apply(p),
-            ShimFunctionKind::Setter(setter) => self.render_fn_setter_body(setter).apply(p),
+        fragment(move |p| match self.function {
+            ShimFunction::Free(free_fn) => self.render_free_fn_call_body(free_fn).apply(p),
+            ShimFunction::Getter(getter) => self.render_fn_getter_body(getter).apply(p),
+            ShimFunction::Setter(setter) => self.render_fn_setter_body(setter).apply(p),
+            ShimFunction::EnumDiscriminator(discriminator) => {
+                self.render_enum_discriminator_body(discriminator).apply(p)
+            }
         })
     }
 
@@ -250,6 +253,50 @@ where
         frag!(
             {set_tethered_field_stmt}
             Ok()
+        )
+    }
+
+    fn render_enum_discriminator_body(
+        self,
+        discriminator: ShimFunctionEnumDiscriminator<'db>,
+    ) -> impl FragmentOnce {
+        let src = discriminator.src(self.db);
+        let cls_tethering_struct_expr = self.cast_compiler.compile_cast_expr(
+            self.db,
+            ShimType::from(discriminator.class(self.db).as_value_type(self.db)),
+            TetheringStructType {
+                source_type: src.into(),
+            },
+            frag!(_0),
+        );
+
+        let variants = fragment(move |p| {
+            let enum_name = src.fqn(self.db);
+
+            for (index, variant) in src.variants(self.db).iter().enumerate() {
+                let variant_name = variant.name(self.db);
+
+                match variant.shape(self.db) {
+                    Shape::Unit => {
+                        frag!({enum_name}::{variant_name}~ => {index}u32,).apply(p);
+                    }
+                    Shape::Tuple(_) => {
+                        frag!({enum_name}::{variant_name}(..) => {index}u32,).apply(p);
+                    }
+                    Shape::Plain { .. } => {
+                        frag!({enum_name}::{variant_name}~{{ .. }} => {index}u32,).apply(p);
+                    }
+                }
+            }
+        });
+
+        frag!(
+            let result = {cls_tethering_struct_expr}.access(|src|~{{
+                Ok(match src~{{
+                    {variants}
+                }})
+            }})?;@
+            Ok(result)
         )
     }
 }

@@ -1,6 +1,13 @@
 // An ir of a the rust public api.
 
-use crate::compiler::{db::Db, mangle::mangle_path};
+use crate::compiler::{
+    db::Db,
+    ir::{
+        lowering::doc_to_rust::ItemExt,
+        shim::{ShimField, ShimMod},
+    },
+    mangle::mangle_path,
+};
 use std::{
     fmt,
     path::{Path, PathBuf},
@@ -117,6 +124,18 @@ impl<'db> Mod<'db> {
     pub fn members(self, db: &'db dyn Db) -> Vec<Member<'db>> {
         self.lower_members(db)
     }
+
+    pub fn shim(self, db: &'db dyn Db) -> ShimMod<'db> {
+        ShimMod::new(db, self)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.lower_docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+        self.lower_span(db).expect("mod must have span")
+    }
 }
 
 as_item!(Mod);
@@ -153,9 +172,17 @@ impl<'db> Struct<'db> {
     pub fn fields(self, db: &'db dyn Db) -> Vec<Field<'db>> {
         match self.shape(db) {
             Shape::Unit => vec![],
-            Shape::Tuple(fields) => fields.into_iter().copied().flatten().collect(),
+            Shape::Tuple(fields) => fields.iter().copied().flatten().collect(),
             Shape::Plain { fields, .. } => fields.clone(),
         }
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.lower_docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+        self.lower_span(db).expect("struct must have span")
     }
 }
 
@@ -183,11 +210,11 @@ impl<'db> Enum<'db> {
             .append(db, self.name(db).to_owned())
     }
 
-    fn is_non_exhaustive(self, db: &'db dyn Db) -> bool {
+    pub fn is_non_exhaustive(self, db: &'db dyn Db) -> bool {
         self.lower_is_non_exhaustive(db)
     }
 
-    fn variants(self, db: &'db dyn Db) -> &Vec<Variant<'db>> {
+    pub fn variants(self, db: &'db dyn Db) -> &'db Vec<Variant<'db>> {
         self.lower_variants(db)
     }
 
@@ -200,6 +227,14 @@ impl<'db> Enum<'db> {
         }
 
         fields
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.lower_docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+        self.lower_span(db).expect("enum must have span")
     }
 }
 
@@ -235,9 +270,17 @@ impl<'db> Variant<'db> {
     pub fn fields(self, db: &'db dyn Db) -> Vec<Field<'db>> {
         match self.shape(db) {
             Shape::Unit => vec![],
-            Shape::Tuple(fields) => fields.into_iter().copied().flatten().collect(),
+            Shape::Tuple(fields) => fields.iter().copied().flatten().collect(),
             Shape::Plain { fields, .. } => fields.clone(),
         }
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.lower_docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+        self.lower_span(db).expect("variant must have span")
     }
 }
 
@@ -267,6 +310,10 @@ pub struct Field<'db> {
 
 #[salsa::tracked]
 impl<'db> Field<'db> {
+    pub fn shim(&self, db: &'db dyn Db) -> ShimField<'db> {
+        ShimField::new(db, self)
+    }
+
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         let name = match self.name(db) {
@@ -289,6 +336,14 @@ impl<'db> Field<'db> {
         }
 
         mangle_path(out)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.lower_docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+        self.lower_span(db).expect("field must have span")
     }
 }
 
@@ -331,12 +386,20 @@ impl<'db> Function<'db> {
             .append(db, self.name(db).to_owned())
     }
 
-    pub fn params(self, db: &'db dyn Db) -> &Vec<Param<'db>> {
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<Param<'db>> {
         self.lower_params(db)
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<ValueType<'db>> {
         self.lower_ret_type(db)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.lower_docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+        self.lower_span(db).expect("function must have span")
     }
 }
 

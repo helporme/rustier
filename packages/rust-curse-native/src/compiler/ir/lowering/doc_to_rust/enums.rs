@@ -109,9 +109,9 @@ impl<'db> Variant<'db> {
         let (shape, errors) = Shape::lower(db, shape, FieldParent::Variant(self));
 
         if !errors.is_empty() {
-            let span = self.span(db).as_ref().map(|span| span.diag_span(db));
+            let span = self.lower_span(db).as_ref().map(|span| span.diag_span(db));
             let source_code = self
-                .span(db)
+                .lower_span(db)
                 .as_ref()
                 .map(|span| span.diag_source(db))
                 .into();

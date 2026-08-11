@@ -16,14 +16,14 @@ pub mod shapes;
 pub mod structs;
 pub mod types;
 
-pub(super) trait ItemExt<'db>: AsItem<'db> {
+pub(in crate::compiler::ir) trait ItemExt<'db>: AsItem<'db> {
     fn kind() -> doc::ItemKind;
 
     fn rustdoc_id(self, db: &'db dyn Db) -> RustdocId {
         lookup_rustdoc_id(db, self.path(db), Self::kind())
     }
 
-    fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+    fn lower_span(self, db: &'db dyn Db) -> Option<&'db Span> {
         let id = self.rustdoc_id(db);
         let item = id.item(db);
 
@@ -33,7 +33,7 @@ pub(super) trait ItemExt<'db>: AsItem<'db> {
         })
     }
 
-    fn docs(self, db: &'db dyn Db) -> Option<&String> {
+    fn lower_docs(self, db: &'db dyn Db) -> Option<&String> {
         let id = self.rustdoc_id(db);
         let item = id.item(db);
         item.docs.as_ref()
