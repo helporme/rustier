@@ -142,22 +142,6 @@ impl<'db> ValueType<'db> {
     }
 }
 
-impl<'db> Type<'db> {
-    pub(super) fn render_type_decl(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
-        fragment(move |p| match self {
-            Type::Value(type_) => type_.render_fqn(db).apply(p),
-            Type::Borrowed { is_mutable, inner } => {
-                if is_mutable {
-                    "&mut ".apply(p)
-                } else {
-                    "&".apply(p)
-                }
-                inner.render_fqn(db).apply(p)
-            }
-        })
-    }
-}
-
 /// A rule to cast an owned source type to a reference source type.
 pub struct CastOwnedTypeToBorrowedTypeRule;
 

@@ -166,8 +166,20 @@ pub struct FacadeFunction<'db> {
 
 #[salsa::tracked]
 impl<'db> FacadeFunction<'db> {
+    pub fn name(self, db: &'db dyn Db) -> &String {
+        self.shim(db).src(db).name(db)
+    }
+
+    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
+        self.shim(db).ffi(db)
+    }
+
     #[salsa::tracked(returns(ref))]
     pub fn params(self, _db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
+        todo!()
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<FacadeType<'db>> {
         todo!()
     }
 
@@ -400,7 +412,7 @@ impl<'db> FacadeFieldDiscriminator<'db> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, salsa::Update)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
 pub enum FacadeTypeKind<'db> {
     Number,
     String,
@@ -408,7 +420,7 @@ pub enum FacadeTypeKind<'db> {
     Class(FacadeClass<'db>),
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, salsa::Update)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
 pub struct FacadeType<'db> {
     pub ffi: FfiType<'db>,
     pub kind: FacadeTypeKind<'db>,

@@ -1,12 +1,8 @@
 use crate::{
     compiler::{
-        codegen::{
-            cast::DirectCastRule,
-            fragment::{FragmentOnce, Printer},
-            js::types::FacadeFfiType,
-        },
+        codegen::{cast::DirectCastRule, fragment::FragmentOnce, js::types::FacadeFfiType},
         db::Db,
-        ir::facade::{FacadeFunction, FacadeMod, FacadeType, FacadeTypeKind},
+        ir::facade::{FacadeType, FacadeTypeKind},
     },
     frag,
 };
@@ -17,8 +13,8 @@ impl<'db> DirectCastRule<'db, FacadeType<'db>, FacadeFfiType<'db>>
     for CastFacadeClassTypeToFfiClassTypeRule
 {
     fn predecessor(self, _db: &'db dyn Db, to: FacadeFfiType<'db>) -> Option<FacadeType<'db>> {
-        match &to.facade.kind {
-            FacadeTypeKind::Class(..) => Some(to.facade),
+        match &to.inner.kind {
+            FacadeTypeKind::Class(..) => Some(to.inner),
             _ => None,
         }
     }
@@ -49,12 +45,9 @@ pub struct CastFfiClassTypeToFacadeClassTypeRule;
 impl<'db> DirectCastRule<'db, FacadeFfiType<'db>, FacadeType<'db>>
     for CastFfiClassTypeToFacadeClassTypeRule
 {
-    fn predecessor(self, db: &'db dyn Db, to: FacadeType<'db>) -> Option<FacadeFfiType<'db>> {
+    fn predecessor(self, _db: &'db dyn Db, to: FacadeType<'db>) -> Option<FacadeFfiType<'db>> {
         match to.kind {
-            FacadeTypeKind::Class(cls) => Some(FacadeFfiType {
-                ffi: cls.ffi(db).as_type(),
-                facade: to,
-            }),
+            FacadeTypeKind::Class(..) => Some(FacadeFfiType { inner: to }),
             _ => None,
         }
     }

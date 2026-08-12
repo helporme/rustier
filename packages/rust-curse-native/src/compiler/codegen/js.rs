@@ -2,5 +2,5 @@ mod cast_graph;
 mod classes;
 mod functions;
 mod imports;
-mod modules;
+pub mod modules;
 mod types;

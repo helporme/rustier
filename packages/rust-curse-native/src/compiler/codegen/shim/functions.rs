@@ -30,7 +30,7 @@ impl<'db> ShimFunction<'db> {
         self.render_with(db, ShimCast::Graph).print()
     }
 
-    pub(super) fn render_with<CastCompiler>(
+    fn render_with<CastCompiler>(
         self,
         db: &'db dyn Db,
         cast_compiler: CastCompiler,
