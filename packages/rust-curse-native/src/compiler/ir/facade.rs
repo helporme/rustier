@@ -7,7 +7,7 @@ use crate::compiler::{
     db::Db,
     inputs::CompilationMetadata,
     ir::{
-        ffi::{FfiClass, FfiFunction},
+        ffi::{FfiClass, FfiFunction, FfiType},
         rust::FieldName,
         shim::{
             ShimClass, ShimClassSource, ShimField, ShimFunction, ShimFunctionEnumDiscriminator,
@@ -167,7 +167,7 @@ pub struct FacadeFunction<'db> {
 #[salsa::tracked]
 impl<'db> FacadeFunction<'db> {
     #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
+    pub fn params(self, _db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
         todo!()
     }
 
@@ -175,8 +175,8 @@ impl<'db> FacadeFunction<'db> {
     fn imports(self, db: &'db dyn Db) -> HashSet<FacadeImportItem<'db>> {
         let mut imports = HashSet::new();
         for param in self.params(db) {
-            if let FacadeType::Class(class) = param.type_(db) {
-                imports.insert(FacadeImportItem::FacadeClass(*class));
+            if let FacadeTypeKind::Class(class) = param.type_(db).kind {
+                imports.insert(FacadeImportItem::FacadeClass(class));
             }
         }
         imports
@@ -191,7 +191,7 @@ pub struct FacadeParam<'db> {
 #[salsa::tracked]
 impl<'db> FacadeParam<'db> {
     #[salsa::tracked(returns(ref))]
-    pub fn type_(self, db: &'db dyn Db) -> FacadeType<'db> {
+    pub fn type_(self, _db: &'db dyn Db) -> FacadeType<'db> {
         todo!()
     }
 }
@@ -209,6 +209,13 @@ impl<'db> FacadeClass<'db> {
 
     pub fn parent(self, db: &'db dyn Db) -> FacadeMod<'db> {
         self.shim(db).parent(db).facade(db)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
+        match self.shim(db).src(db) {
+            ShimClassSource::Struct(s) => s.name(db),
+            ShimClassSource::Enum(e) => e.name(db),
+        }
     }
 
     #[salsa::tracked(returns(ref))]
@@ -276,7 +283,7 @@ impl<'db> FacadeClass<'db> {
             if let Some(setter) = field.ffi_setter(db) {
                 imports.insert(FacadeImportItem::FfiFunction(setter));
             }
-            if let FacadeType::Class(class) = field.type_(db) {
+            if let FacadeTypeKind::Class(class) = field.type_(db).kind {
                 imports.insert(FacadeImportItem::FacadeClass(class));
             }
         }
@@ -328,18 +335,31 @@ impl<'db> FacadeFieldPlain<'db> {
 
     pub fn type_(self, db: &'db dyn Db) -> FacadeType<'db> {
         let shim_type = self.shim(db).getter(db).ret_type(db);
+
         match shim_type.kind {
-            ShimValueTypeKind::bool => FacadeType::Boolean,
+            ShimValueTypeKind::bool => FacadeType {
+                ffi: shim_type.ffi(db),
+                kind: FacadeTypeKind::Boolean,
+            },
             ShimValueTypeKind::i8
             | ShimValueTypeKind::u8
             | ShimValueTypeKind::i16
             | ShimValueTypeKind::u16
             | ShimValueTypeKind::i32
             | ShimValueTypeKind::u32
-            | ShimValueTypeKind::f64 => FacadeType::Number,
-            ShimValueTypeKind::String => FacadeType::String,
-            ShimValueTypeKind::JsAny => FacadeType::Unknown,
-            ShimValueTypeKind::Class(class) => FacadeType::Class(class.facade(db)),
+            | ShimValueTypeKind::f64 => FacadeType {
+                ffi: shim_type.ffi(db),
+                kind: FacadeTypeKind::Number,
+            },
+            ShimValueTypeKind::String => FacadeType {
+                ffi: shim_type.ffi(db),
+                kind: FacadeTypeKind::String,
+            },
+            ShimValueTypeKind::Class(class) => FacadeType {
+                ffi: shim_type.ffi(db),
+                kind: FacadeTypeKind::Class(class.facade(db)),
+            },
+            ShimValueTypeKind::JsAny => unreachable!(),
         }
     }
 }
@@ -381,10 +401,15 @@ impl<'db> FacadeFieldDiscriminator<'db> {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, salsa::Update)]
-pub enum FacadeType<'db> {
+pub enum FacadeTypeKind<'db> {
     Number,
     String,
     Boolean,
-    Unknown,
     Class(FacadeClass<'db>),
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, salsa::Update)]
+pub struct FacadeType<'db> {
+    pub ffi: FfiType<'db>,
+    pub kind: FacadeTypeKind<'db>,
 }

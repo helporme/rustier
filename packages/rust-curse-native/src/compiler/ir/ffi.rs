@@ -1,6 +1,9 @@
 use crate::compiler::{
     db::Db,
-    ir::shim::{ShimClass, ShimCrate, ShimFunction, ShimParam},
+    ir::{
+        facade::FacadeType,
+        shim::{ShimClass, ShimCrate, ShimFunction, ShimParam},
+    },
 };
 
 #[salsa::interned(debug)]
@@ -20,6 +23,10 @@ pub struct FfiClass<'db> {
 }
 
 impl<'db> FfiClass<'db> {
+    pub fn as_type(self) -> FfiType<'db> {
+        FfiType::Class(self)
+    }
+
     pub fn symbol(self, db: &'db dyn Db) -> &str {
         todo!()
     }

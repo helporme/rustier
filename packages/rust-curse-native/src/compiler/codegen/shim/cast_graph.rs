@@ -5,10 +5,8 @@ use crate::{
         codegen::{
             cast::CastContinuation,
             fragment::{FragmentOnce, Printer, fragment},
-            shim::tethering::TetheringStructType,
         },
         db::Db,
-        ir::{rust::Type, shim::ShimType},
     },
     define_cast_graph, frag,
 };
@@ -16,9 +14,9 @@ use crate::{
 define_cast_graph! {
     pub ShimCast<'db> {
         types {
-            Type(Type<'db>),
-            ShimType(ShimType<'db>),
-            TetheringStructType(TetheringStructType<'db>),
+            Type(crate::compiler::ir::rust::Type<'db>),
+            ShimType(crate::compiler::ir::shim::ShimType<'db>),
+            TetheringStructType(crate::compiler::codegen::shim::tethering::TetheringStructType<'db>),
         }
         direct_rules {
             TetheringStructTypeToClassShimType {

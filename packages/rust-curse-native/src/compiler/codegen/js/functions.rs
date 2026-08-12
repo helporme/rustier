@@ -1,32 +1,30 @@
-use crate::{
-    compiler::{
-        codegen::fragment::{FragmentOnce, Printer, doubles, fragment},
-        db::Db,
-        inputs::CompilationMetadata,
-        ir::facade::{FacadeImportItem, FacadeMod},
-    },
-    frag,
+use crate::compiler::{
+    codegen::fragment::{FragmentOnce, Printer},
+    db::Db,
+    ir::facade::FacadeFunction,
 };
 
 #[salsa::tracked]
-impl<'db> FacadeMod<'db> {
+impl<'db> FacadeFunction<'db> {
     pub(super) fn render_with(self, db: &'db dyn Db) -> impl FragmentOnce {
-        FacadeModRenderer { mod_: self, db }
+        FacadeFunctionRenderer { function: self, db }
     }
 }
 
 #[derive(Copy, Clone)]
-struct FacadeModRenderer<'db> {
-    mod_: FacadeMod<'db>,
+struct FacadeFunctionRenderer<'db> {
+    function: FacadeFunction<'db>,
     db: &'db dyn Db,
 }
 
-impl<'db> FragmentOnce for FacadeModRenderer<'db> {
-    fn apply(self, printer: &mut Printer) {
-        todo!()
+impl<'db> FragmentOnce for FacadeFunctionRenderer<'db> {
+    fn apply(self, p: &mut Printer) {
+        self.render().apply(p);
     }
 }
 
-impl<'db> FacadeModRenderer<'db> {
-    fn render(self) -> impl FragmentOnce {}
+impl<'db> FacadeFunctionRenderer<'db> {
+    fn render(self) -> impl FragmentOnce {
+        
+    }
 }
