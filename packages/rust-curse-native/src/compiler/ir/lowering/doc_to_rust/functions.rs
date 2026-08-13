@@ -141,19 +141,16 @@ impl<'db> Function<'db> {
             };
         }
 
-        match &def.sig.output {
-            Some(ty) => {
-                match Type::lower(db, RustdocType::new(db, id.crate_name(db), ty), parent) {
-                    Ok(Type::Borrowed { .. }) => {
-                        causes.push(FnLowerError::BorrowedReturn);
-                    }
-                    Err(diags) => {
-                        causes.extend(diags.into_iter().map(FnLowerError::Type));
-                    }
-                    Ok(Type::Value(_)) => {}
+        if let Some(ty) = &def.sig.output {
+            match Type::lower(db, RustdocType::new(db, id.crate_name(db), ty), parent) {
+                Ok(Type::Borrowed { .. }) => {
+                    causes.push(FnLowerError::BorrowedReturn);
                 }
+                Err(diags) => {
+                    causes.extend(diags.into_iter().map(FnLowerError::Type));
+                }
+                Ok(Type::Value(_)) => {}
             }
-            None => {}
         };
 
         if !causes.is_empty() {

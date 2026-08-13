@@ -1,21 +1,7 @@
 use crate::compiler::{
     db::Db,
-    ir::{
-        facade::FacadeType,
-        shim::{ShimClass, ShimCrate, ShimFunction, ShimParam},
-    },
+    ir::shim::{ShimClass, ShimFunction, ShimParam},
 };
-
-#[salsa::interned(debug)]
-pub struct FfiCrate<'db> {
-    shim: ShimCrate<'db>,
-}
-
-impl<'db> FfiCrate<'db> {
-    pub fn fns(self, db: &'db dyn Db) -> &Vec<FfiFunction<'db>> {
-        todo!()
-    }
-}
 
 #[salsa::interned(debug)]
 pub struct FfiClass<'db> {
@@ -27,8 +13,8 @@ impl<'db> FfiClass<'db> {
         FfiType::Class(self)
     }
 
-    pub fn symbol(self, db: &'db dyn Db) -> &str {
-        todo!()
+    pub fn symbol(self, db: &'db dyn Db) -> &'db str {
+        self.shim(db).symbol(db)
     }
 }
 
@@ -37,17 +23,24 @@ pub struct FfiFunction<'db> {
     shim: ShimFunction<'db>,
 }
 
+#[salsa::tracked]
 impl<'db> FfiFunction<'db> {
-    pub fn symbol(self, db: &'db dyn Db) -> &str {
-        todo!()
+    pub fn symbol(self, db: &'db dyn Db) -> &'db str {
+        self.shim(db).symbol(db)
     }
 
-    pub fn params(self, db: &'db dyn Db) -> &Vec<FfiParam<'db>> {
-        todo!()
+    #[salsa::tracked(returns(ref))]
+    pub fn params(self, db: &'db dyn Db) -> Vec<FfiParam<'db>> {
+        self.shim(db)
+            .params(db)
+            .iter()
+            .copied()
+            .map(|param| param.ffi(db))
+            .collect()
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> FfiType<'db> {
-        todo!()
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<FfiType<'db>> {
+        self.shim(db).ret_type(db).map(|type_| type_.ffi(db))
     }
 }
 
@@ -58,7 +51,7 @@ pub struct FfiParam<'db> {
 
 impl<'db> FfiParam<'db> {
     pub fn type_(self, db: &'db dyn Db) -> FfiType<'db> {
-        todo!()
+        self.shim(db).type_(db).ffi(db)
     }
 }
 

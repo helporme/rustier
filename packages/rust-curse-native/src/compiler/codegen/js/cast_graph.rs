@@ -18,6 +18,16 @@ define_cast_graph! {
             FacadeFfiType(crate::compiler::codegen::js::types::FacadeFfiType<'db>),
         }
         direct_rules {
+            IdenticalFacadeTypeToFfiType {
+                rule: crate::compiler::codegen::js::types::CastIdenticalFacadeTypeToFfiTypeRule,
+                from: FacadeType,
+                to: FacadeFfiType,
+            }
+            IdenticalFfiTypeToFacadeType {
+                rule: crate::compiler::codegen::js::types::CastIdenticalFfiTypeToFacadeTypeRule,
+                from: FacadeFfiType,
+                to: FacadeType,
+            }
             FacadeClassTypeToFfiClassType {
                 rule: crate::compiler::codegen::js::classes::CastFacadeClassTypeToFfiClassTypeRule,
                 from: FacadeType,

@@ -313,6 +313,7 @@ macro_rules! define_cast_graph {
             )*
 
             /// Identifier of a registered cast rule.
+            #[allow(clippy::enum_variant_names)]
             #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
             pub enum CastRuleId {
                 $(

@@ -62,7 +62,7 @@ impl<'db> Enum<'db> {
             panic!("expected enum, got {:?}", item.inner);
         };
 
-        let variants = enum_def
+        enum_def
             .variants
             .iter()
             .map(|variant_id| {
@@ -70,9 +70,7 @@ impl<'db> Enum<'db> {
                 let variant_item = variant_id.item(db);
                 Variant::new(db, self, variant_item.name.as_ref().unwrap().to_owned())
             })
-            .collect::<Vec<_>>();
-
-        variants
+            .collect::<Vec<_>>()
     }
 
     #[salsa::tracked]

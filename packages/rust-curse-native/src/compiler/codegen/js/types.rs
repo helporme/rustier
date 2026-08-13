@@ -10,10 +10,10 @@ pub struct FacadeFfiType<'db> {
     pub inner: FacadeType<'db>,
 }
 
-pub struct CastIndenticalFacadeTypeToFfiTypeRule;
+pub struct CastIdenticalFacadeTypeToFfiTypeRule;
 
 impl<'db> DirectCastRule<'db, FacadeType<'db>, FacadeFfiType<'db>>
-    for CastIndenticalFacadeTypeToFfiTypeRule
+    for CastIdenticalFacadeTypeToFfiTypeRule
 {
     fn predecessor(self, _db: &'db dyn Db, to: FacadeFfiType<'db>) -> Option<FacadeType<'db>> {
         match to.inner.kind {
@@ -39,10 +39,10 @@ impl<'db> DirectCastRule<'db, FacadeType<'db>, FacadeFfiType<'db>>
     }
 }
 
-pub struct CastIndenticalFfiTypeToFacadeTypeRule;
+pub struct CastIdenticalFfiTypeToFacadeTypeRule;
 
 impl<'db> DirectCastRule<'db, FacadeFfiType<'db>, FacadeType<'db>>
-    for CastIndenticalFfiTypeToFacadeTypeRule
+    for CastIdenticalFfiTypeToFacadeTypeRule
 {
     fn predecessor(self, _db: &'db dyn Db, to: FacadeType<'db>) -> Option<FacadeFfiType<'db>> {
         match to.kind {

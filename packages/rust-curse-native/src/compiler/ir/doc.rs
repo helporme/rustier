@@ -26,6 +26,7 @@ impl RustdocCrates {
     ///
     /// assert!(RustdocCrates::get(&db).crates(&db).is_empty());
     /// ```
+    #[allow(dead_code)]
     pub fn set(db: &mut DbImpl, crates: BTreeMap<String, Crate>) -> Self {
         if let Some(rustdoc) = Self::try_get(db) {
             rustdoc.set_crates(db).to(crates);

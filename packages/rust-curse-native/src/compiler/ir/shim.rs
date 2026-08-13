@@ -2,7 +2,7 @@ use crate::compiler::{
     db::Db,
     ir::{
         facade::{FacadeClass, FacadeFunction, FacadeMod},
-        ffi::{FfiClass, FfiCrate, FfiFunction, FfiParam, FfiType},
+        ffi::{FfiClass, FfiFunction, FfiParam, FfiType},
         rust::{Crate, Enum, Field, FieldParent, Function, Member, Mod, Struct, Type, ValueType},
     },
 };
@@ -20,10 +20,6 @@ pub struct ShimCrate<'db> {
 
 #[salsa::tracked]
 impl<'db> ShimCrate<'db> {
-    pub fn ffi(self, db: &'db dyn Db) -> FfiCrate<'db> {
-        FfiCrate::new(db, self)
-    }
-
     #[salsa::tracked(returns(ref))]
     pub fn mods(self, db: &'db dyn Db) -> Vec<ShimMod<'db>> {
         let mut mods = vec![];

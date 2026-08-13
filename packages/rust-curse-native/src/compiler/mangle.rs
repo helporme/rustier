@@ -1,4 +1,5 @@
 /// Converts an upper-camel-case identifier to lower camel case.
+#[allow(dead_code)]
 pub fn to_camel_case(name: &str) -> String {
     let char_count = name.chars().count();
     let uppercase_count = name

@@ -1,5 +1,7 @@
 //! Test-only helpers for validating generated Rust bindings snapshots.
 
+#![allow(dead_code)]
+
 use std::{collections::BTreeMap, path::Path};
 
 use crate::compiler::{

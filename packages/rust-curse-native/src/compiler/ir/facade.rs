@@ -11,7 +11,7 @@ use crate::compiler::{
         rust::FieldName,
         shim::{
             ShimClass, ShimClassSource, ShimField, ShimFunction, ShimFunctionEnumDiscriminator,
-            ShimFunctionFree, ShimMod, ShimParam, ShimValueTypeKind,
+            ShimFunctionFree, ShimMod, ShimParam, ShimType, ShimValueTypeKind,
         },
     },
 };
@@ -36,7 +36,7 @@ impl<'db> FacadeImport<'db> {
             FacadeImportItem::FacadeClass(cls) => cls.parent(db).file_path(db),
         };
 
-        Self::compile_relative_path(&originating_from_path, &to_path)
+        Self::compile_relative_path(originating_from_path, to_path)
             .expect("relative path must exist")
     }
 
@@ -166,7 +166,7 @@ pub struct FacadeFunction<'db> {
 
 #[salsa::tracked]
 impl<'db> FacadeFunction<'db> {
-    pub fn name(self, db: &'db dyn Db) -> &String {
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
         self.shim(db).src(db).name(db)
     }
 
@@ -175,12 +175,19 @@ impl<'db> FacadeFunction<'db> {
     }
 
     #[salsa::tracked(returns(ref))]
-    pub fn params(self, _db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
-        todo!()
+    pub fn params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
+        self.shim(db)
+            .params(db)
+            .iter()
+            .copied()
+            .map(|param| FacadeParam::new(db, param))
+            .collect()
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<FacadeType<'db>> {
-        todo!()
+        self.shim(db)
+            .ret_type(db)
+            .map(|type_| ShimType::from(type_).facade(db))
     }
 
     #[salsa::tracked(returns(ref))]
@@ -203,8 +210,8 @@ pub struct FacadeParam<'db> {
 #[salsa::tracked]
 impl<'db> FacadeParam<'db> {
     #[salsa::tracked(returns(ref))]
-    pub fn type_(self, _db: &'db dyn Db) -> FacadeType<'db> {
-        todo!()
+    pub fn type_(self, db: &'db dyn Db) -> FacadeType<'db> {
+        self.shim(db).type_(db).facade(db)
     }
 }
 
@@ -346,33 +353,7 @@ impl<'db> FacadeFieldPlain<'db> {
     }
 
     pub fn type_(self, db: &'db dyn Db) -> FacadeType<'db> {
-        let shim_type = self.shim(db).getter(db).ret_type(db);
-
-        match shim_type.kind {
-            ShimValueTypeKind::bool => FacadeType {
-                ffi: shim_type.ffi(db),
-                kind: FacadeTypeKind::Boolean,
-            },
-            ShimValueTypeKind::i8
-            | ShimValueTypeKind::u8
-            | ShimValueTypeKind::i16
-            | ShimValueTypeKind::u16
-            | ShimValueTypeKind::i32
-            | ShimValueTypeKind::u32
-            | ShimValueTypeKind::f64 => FacadeType {
-                ffi: shim_type.ffi(db),
-                kind: FacadeTypeKind::Number,
-            },
-            ShimValueTypeKind::String => FacadeType {
-                ffi: shim_type.ffi(db),
-                kind: FacadeTypeKind::String,
-            },
-            ShimValueTypeKind::Class(class) => FacadeType {
-                ffi: shim_type.ffi(db),
-                kind: FacadeTypeKind::Class(class.facade(db)),
-            },
-            ShimValueTypeKind::JsAny => unreachable!(),
-        }
+        ShimType::from(self.shim(db).getter(db).ret_type(db)).facade(db)
     }
 }
 
@@ -424,4 +405,30 @@ pub enum FacadeTypeKind<'db> {
 pub struct FacadeType<'db> {
     pub ffi: FfiType<'db>,
     pub kind: FacadeTypeKind<'db>,
+}
+
+impl<'db> ShimType<'db> {
+    pub fn facade(self, db: &'db dyn Db) -> FacadeType<'db> {
+        let shim = self.deborrow();
+        let kind = match shim.kind {
+            ShimValueTypeKind::bool => FacadeTypeKind::Boolean,
+            ShimValueTypeKind::i8
+            | ShimValueTypeKind::u8
+            | ShimValueTypeKind::i16
+            | ShimValueTypeKind::u16
+            | ShimValueTypeKind::i32
+            | ShimValueTypeKind::u32
+            | ShimValueTypeKind::f64 => FacadeTypeKind::Number,
+            ShimValueTypeKind::String => FacadeTypeKind::String,
+            ShimValueTypeKind::Class(class) => FacadeTypeKind::Class(class.facade(db)),
+            ShimValueTypeKind::JsAny => {
+                return ShimType::from(self.src.shim_out(db)).facade(db);
+            }
+        };
+
+        FacadeType {
+            ffi: self.ffi(db),
+            kind,
+        }
+    }
 }

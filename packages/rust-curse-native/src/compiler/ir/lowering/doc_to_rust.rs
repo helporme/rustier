@@ -19,7 +19,7 @@ pub mod types;
 pub(in crate::compiler::ir) trait ItemExt<'db>: AsItem<'db> {
     fn kind() -> doc::ItemKind;
 
-    fn rustdoc_id(self, db: &'db dyn Db) -> RustdocId {
+    fn rustdoc_id(self, db: &'db dyn Db) -> RustdocId<'db> {
         lookup_rustdoc_id(db, self.path(db), Self::kind())
     }
 
@@ -33,7 +33,7 @@ pub(in crate::compiler::ir) trait ItemExt<'db>: AsItem<'db> {
         })
     }
 
-    fn lower_docs(self, db: &'db dyn Db) -> Option<&String> {
+    fn lower_docs(self, db: &'db dyn Db) -> Option<&'db String> {
         let id = self.rustdoc_id(db);
         let item = id.item(db);
         item.docs.as_ref()
@@ -96,10 +96,7 @@ fn lookup_rustdoc_id<'db>(
     let segments = path.segments(db);
     let lookup = RustdocIdKey::new(db, crate_name, segments, kind);
 
-    rustdoc_backmap(db)
-        .get(&lookup)
-        .map(|id| id.clone())
-        .unwrap()
+    rustdoc_backmap(db).get(&lookup).copied().unwrap()
 }
 
 #[salsa::interned]
@@ -110,27 +107,27 @@ struct RustdocIdKey {
 }
 
 #[salsa::interned]
-struct RustdocId {
+pub(in crate::compiler::ir) struct RustdocId {
     #[returns(ref)]
     pub crate_name: String,
     pub inner: doc::Id,
 }
 
 impl<'db> RustdocId<'db> {
-    pub fn item(self, db: &'db dyn Db) -> &doc::Item {
+    pub fn item(self, db: &'db dyn Db) -> &'db doc::Item {
         let crate_ = self.crate_(db);
         let id = self.inner(db);
 
         crate_.index.get(&id).unwrap()
     }
 
-    pub fn summary(self, db: &'db dyn Db) -> &doc::ItemSummary {
+    pub fn summary(self, db: &'db dyn Db) -> &'db doc::ItemSummary {
         let crate_ = self.crate_(db);
         let id = self.inner(db);
         crate_.paths.get(&id).unwrap()
     }
 
-    pub fn crate_(self, db: &'db dyn Db) -> &doc::Crate {
+    pub fn crate_(self, db: &'db dyn Db) -> &'db doc::Crate {
         let rustdoc = RustdocCrates::get(db);
 
         // Crate must exist in input rustdoc, otherwise it won't be requested;

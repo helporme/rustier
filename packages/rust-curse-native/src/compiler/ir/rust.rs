@@ -56,10 +56,6 @@ impl<'db> ItemPath<'db> {
 pub trait AsItem<'db>: Sized {
     fn path(self, db: &'db dyn Db) -> ItemPath<'db>;
 
-    fn name(self, db: &'db dyn Db) -> &'db str {
-        self.path(db).name(db)
-    }
-
     fn fqn(self, db: &'db dyn Db) -> &'db str {
         self.path(db).fqn(db)
     }
