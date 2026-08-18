@@ -1,0 +1,35 @@
+---
+source: src/compiler/codegen/shim/cast.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct ExampleStruct;
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    {
+        let output = std::rc::Rc::new(
+            __tethering__rustdoc_0test_0crate_ExampleStruct::new_owned(input),
+        );
+        consume(output);
+    }
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    {
+        let output = std::rc::Rc::new(
+            __tethering__rustdoc_0test_0crate_ExampleStruct::new_owned(input),
+        );
+        consume(output);
+    }
+}
+```

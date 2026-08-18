@@ -127,13 +127,10 @@
 
 use crate::{
     compiler::{
-        codegen::{
-            cast::{CastContinuation, DirectCastRule, IndirectCastRule},
-            fragment::{Fragment, FragmentOnce, doubles, fragment, spaced},
-        },
+        codegen::fragment::{Fragment, FragmentOnce, doubles, fragment, spaced},
         db::Db,
         inputs::Api,
-        ir::rust::{Type, ValueType},
+        ir::rust::ValueType,
     },
     frag,
 };
@@ -143,16 +140,12 @@ use crate::{
 pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
     let api = Api::get(db);
     let access_result = api.result_type("T");
-    let borrow_error = api.error(
-        frag!(
-            { doubles("cannot access a tethered value while it is mutably borrowed") }.to_string()
-        ),
-    );
-    let borrow_mut_error = api.error(
-        frag!(
-            { doubles("cannot mutably access a tethered value while it is borrowed") }.to_string()
-        ),
-    );
+    let borrow_error = api.error(frag!(
+        { doubles("cannot access a tethered value while it is mutably borrowed") }.to_string()
+    ));
+    let borrow_mut_error = api.error(frag!(
+        { doubles("cannot mutably access a tethered value while it is borrowed") }.to_string()
+    ));
 
     let borrow_support = frag!(
         use super::*;@
@@ -671,130 +664,10 @@ where
 }
 
 /// A type of [`TetheringStruct`] that is used for casting.
-#[derive(Clone, Debug, Hash, Eq, PartialEq, salsa::Update)]
+#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq, salsa::Update)]
 pub struct TetheringStructType<'db> {
     // A source type which tethering struct is storing.
     pub source_type: ValueType<'db>,
-}
-
-/// Casts an owned source struct to its generated boundary type.
-pub struct CastTypeToTetheringStructType;
-
-impl<'db> DirectCastRule<'db, Type<'db>, TetheringStructType<'db>>
-    for CastTypeToTetheringStructType
-{
-    fn predecessor(self, _db: &'db dyn Db, to: TetheringStructType<'db>) -> Option<Type<'db>> {
-        Some(Type::Value(to.source_type))
-    }
-
-    fn render<'fragment, Expr>(
-        self,
-        db: &'db dyn Db,
-        _from: Type<'db>,
-        to: TetheringStructType<'db>,
-        in_expr: Expr,
-    ) -> impl FragmentOnce + 'fragment
-    where
-        'db: 'fragment,
-        Expr: FragmentOnce + 'fragment,
-    {
-        fragment(move |p| {
-            let tethering_struct_name = to.source_type.tethering_struct_name(db);
-            // TODO: remove rc
-            frag!(std::rc::Rc::new({tethering_struct_name}::new_owned({in_expr}))).apply(p)
-        })
-    }
-}
-
-/// Casts a tethering struct type to a borrowed source type.
-pub struct CastTetheringStructTypeToBorrowedType;
-
-impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, Type<'db>>
-    for CastTetheringStructTypeToBorrowedType
-{
-    fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<TetheringStructType<'db>> {
-        match to {
-            Type::Borrowed { inner, .. } => Some(TetheringStructType { source_type: inner }),
-            _ => None,
-        }
-    }
-
-    fn render<'fragment, Expr, Continue>(
-        self,
-        _db: &'db dyn Db,
-        _from: TetheringStructType<'db>,
-        to: Type<'db>,
-        in_expr: Expr,
-        continue_with: Continue,
-    ) -> impl FragmentOnce + 'fragment
-    where
-        'db: 'fragment,
-        Expr: FragmentOnce + 'fragment,
-        Continue: CastContinuation<'db>,
-    {
-        let Type::Borrowed { is_mutable, .. } = to else {
-            unreachable!()
-        };
-
-        fragment(move |p| {
-            if is_mutable {
-                frag!(
-                    {in_expr}.access_mut(|value|~{{
-                        {continue_with.compile("value")}@
-                        Ok(())
-                    }})?;
-                )
-                .apply(p);
-            } else {
-                frag!(
-                    {in_expr}.access(|value|~{{
-                        {continue_with.compile("value")}@
-                        Ok(())
-                    }})?;
-                )
-                .apply(p);
-            }
-        })
-    }
-}
-
-/// Casts a tethering struct type to a borrowed source type by cloning it.
-pub struct CastTetheringStructTypeToOwnedType;
-
-impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, Type<'db>>
-    for CastTetheringStructTypeToOwnedType
-{
-    fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<TetheringStructType<'db>> {
-        match to {
-            Type::Borrowed { .. } => None,
-            Type::Value(to) => Some(TetheringStructType { source_type: to }),
-        }
-    }
-
-    fn render<'fragment, Expr, Continue>(
-        self,
-        _db: &'db dyn Db,
-        _from: TetheringStructType<'db>,
-        _to: Type<'db>,
-        in_expr: Expr,
-        continue_with: Continue,
-    ) -> impl FragmentOnce + 'fragment
-    where
-        'db: 'fragment,
-        Expr: FragmentOnce + 'fragment,
-        Continue: CastContinuation<'db>,
-    {
-        fragment(move |p| {
-            frag!(
-                {in_expr}.access(|value|~{{
-                    let value = value.clone();
-                    {continue_with.compile("value")}@
-                    Ok(())
-                }})?;
-            )
-            .apply(p);
-        })
-    }
 }
 
 #[cfg(test)]

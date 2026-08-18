@@ -1,0 +1,49 @@
+---
+source: src/compiler/codegen/shim/cast.rs
+expression: snapshot
+---
+# Source
+
+```rust
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    {
+        let output = {
+            let type_name = "u16";
+            let value = input;
+            if value.trunc() != value || value < 0 as f64 || value > u16::MAX as f64 {
+                return Err(
+                    napi::Error::from_reason(
+                        format!("cannot cast {value} to {type_name}"),
+                    ),
+                );
+            }
+            value as u16
+        };
+        consume(output);
+    }
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    {
+        let output = {
+            let type_name = "u16";
+            let value = input;
+            if value.trunc() != value || value < 0 as f64 || value > u16::MAX as f64 {
+                return Err(
+                    JsValue::from_str(&format!("cannot cast {value} to {type_name}")),
+                );
+            }
+            value as u16
+        };
+        consume(output);
+    }
+}
+```

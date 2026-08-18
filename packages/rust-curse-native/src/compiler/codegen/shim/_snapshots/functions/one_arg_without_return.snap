@@ -12,14 +12,11 @@ pub fn test_fn(_value: i32) {}
 ## Node
 ```rust
 #[napi(js_name = "__fn__free__rustdoc_0test_0crate_test_0fn")]
-pub fn __fn__free__rustdoc_0test_0crate_test_0fn(_0: Unknown<'_>) -> napi::Result<()> {
-    let _0 = cast
-        .from(
-            "ShimType(ShimType { kind: Value(ShimValueType { kind: JsAny, src: i32 }), src: Value(i32) })",
-        )
-        .to("Type(Value(i32))")
-        .an(_0);
-    rustdoc_test_crate::test_fn(_0);
+pub fn __fn__free__rustdoc_0test_0crate_test_0fn(_0: f64) -> napi::Result<()> {
+    {
+        let _0 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_0);
+        rustdoc_test_crate::test_fn(_0);
+    }
     Ok(())
 }
 ```
@@ -27,14 +24,11 @@ pub fn __fn__free__rustdoc_0test_0crate_test_0fn(_0: Unknown<'_>) -> napi::Resul
 ## Wasm
 ```rust
 #[wasm_bindgen(js_name = "__fn__free__rustdoc_0test_0crate_test_0fn")]
-pub fn __fn__free__rustdoc_0test_0crate_test_0fn(_0: JsValue) -> Result<(), JsValue> {
-    let _0 = cast
-        .from(
-            "ShimType(ShimType { kind: Value(ShimValueType { kind: JsAny, src: i32 }), src: Value(i32) })",
-        )
-        .to("Type(Value(i32))")
-        .an(_0);
-    rustdoc_test_crate::test_fn(_0);
+pub fn __fn__free__rustdoc_0test_0crate_test_0fn(_0: f64) -> Result<(), JsValue> {
+    {
+        let _0 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_0);
+        rustdoc_test_crate::test_fn(_0);
+    }
     Ok(())
 }
 ```

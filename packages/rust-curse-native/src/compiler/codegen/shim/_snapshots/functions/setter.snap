@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
+assertion_line: 402
 expression: snapshot
 ---
 # Source
@@ -16,22 +17,19 @@ pub struct Test {
 #[napi(js_name = "__fn__setter__rustdoc_0test_0crate_Test__field")]
 pub fn __fn__setter__rustdoc_0test_0crate_Test__field(
     _0: &__struct__rustdoc_0test_0crate_Test,
-    _1: Unknown<'_>,
+    _1: f64,
 ) -> napi::Result<()> {
-    let value = cast
-        .from(
-            "ShimType(ShimType { kind: Value(ShimValueType { kind: JsAny, src: i32 }), src: Value(i32) })",
-        )
-        .to("Type(Value(i32))")
-        .an(_1);
-    cast.from(
-            "ShimType(ShimType { kind: Borrowed(ShimValueType { kind: Class(ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) }), src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) }), src: Value(Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" })) })",
-        )
-        .to(
-            "TetheringStructType(TetheringStructType { source_type: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
-        )
-        .an(_0)
-        .set_field(value)?;
+    {
+        let value = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_1);
+        cast.from(
+                "Shim(Class { is_borrowed: true, inner: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } })",
+            )
+            .to(
+                "Tethered(TetheringStructType { source_type: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
+            )
+            .an(_0)
+            .set_field(value)?;
+    }
     Ok(())
 }
 ```
@@ -41,22 +39,19 @@ pub fn __fn__setter__rustdoc_0test_0crate_Test__field(
 #[wasm_bindgen(js_name = "__fn__setter__rustdoc_0test_0crate_Test__field")]
 pub fn __fn__setter__rustdoc_0test_0crate_Test__field(
     _0: &__struct__rustdoc_0test_0crate_Test,
-    _1: JsValue,
+    _1: f64,
 ) -> Result<(), JsValue> {
-    let value = cast
-        .from(
-            "ShimType(ShimType { kind: Value(ShimValueType { kind: JsAny, src: i32 }), src: Value(i32) })",
-        )
-        .to("Type(Value(i32))")
-        .an(_1);
-    cast.from(
-            "ShimType(ShimType { kind: Borrowed(ShimValueType { kind: Class(ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) }), src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) }), src: Value(Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" })) })",
-        )
-        .to(
-            "TetheringStructType(TetheringStructType { source_type: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
-        )
-        .an(_0)
-        .set_field(value)?;
+    {
+        let value = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_1);
+        cast.from(
+                "Shim(Class { is_borrowed: true, inner: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } })",
+            )
+            .to(
+                "Tethered(TetheringStructType { source_type: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
+            )
+            .an(_0)
+            .set_field(value)?;
+    }
     Ok(())
 }
 ```

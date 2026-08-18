@@ -1,0 +1,31 @@
+---
+source: src/compiler/codegen/shim/cast.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct ExampleStruct;
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    {
+        let output = input;
+        consume(output);
+    }
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    {
+        let output = input;
+        consume(output);
+    }
+}
+```

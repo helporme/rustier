@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
+assertion_line: 394
 expression: snapshot
 ---
 # Source
@@ -16,20 +17,18 @@ pub struct Test {
 #[napi(js_name = "__fn__getter__rustdoc_0test_0crate_Test__field")]
 pub fn __fn__getter__rustdoc_0test_0crate_Test__field(
     _0: &__struct__rustdoc_0test_0crate_Test,
-) -> napi::Result<i32> {
+) -> napi::Result<f64> {
     Ok(
         cast
-            .from("Type(Value(i32))")
-            .to(
-                "ShimType(ShimType { kind: Value(ShimValueType { kind: i32, src: i32 }), src: Value(i32) })",
-            )
+            .from("Rust(Value(i32))")
+            .to("Shim(f64)")
             .an(
                 cast
                     .from(
-                        "ShimType(ShimType { kind: Borrowed(ShimValueType { kind: Class(ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) }), src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) }), src: Value(Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" })) })",
+                        "Shim(Class { is_borrowed: true, inner: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } })",
                     )
                     .to(
-                        "TetheringStructType(TetheringStructType { source_type: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
+                        "Tethered(TetheringStructType { source_type: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
                     )
                     .an(_0)
                     .get_field()?,
@@ -43,20 +42,18 @@ pub fn __fn__getter__rustdoc_0test_0crate_Test__field(
 #[wasm_bindgen(js_name = "__fn__getter__rustdoc_0test_0crate_Test__field")]
 pub fn __fn__getter__rustdoc_0test_0crate_Test__field(
     _0: &__struct__rustdoc_0test_0crate_Test,
-) -> Result<i32, JsValue> {
+) -> Result<f64, JsValue> {
     Ok(
         cast
-            .from("Type(Value(i32))")
-            .to(
-                "ShimType(ShimType { kind: Value(ShimValueType { kind: i32, src: i32 }), src: Value(i32) })",
-            )
+            .from("Rust(Value(i32))")
+            .to("Shim(f64)")
             .an(
                 cast
                     .from(
-                        "ShimType(ShimType { kind: Borrowed(ShimValueType { kind: Class(ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) }), src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) }), src: Value(Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" })) })",
+                        "Shim(Class { is_borrowed: true, inner: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } })",
                     )
                     .to(
-                        "TetheringStructType(TetheringStructType { source_type: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
+                        "Tethered(TetheringStructType { source_type: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
                     )
                     .an(_0)
                     .get_field()?,

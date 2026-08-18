@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
+assertion_line: 410
 expression: snapshot
 ---
 # Source
@@ -18,13 +19,13 @@ pub enum Test {
 #[napi(js_name = "__fn__disc__rustdoc_0test_0crate_Test")]
 pub fn __fn__disc__rustdoc_0test_0crate_Test(
     _0: &__enum__rustdoc_0test_0crate_Test,
-) -> napi::Result<u32> {
+) -> napi::Result<f64> {
     let result = cast
         .from(
-            "ShimType(ShimType { kind: Borrowed(ShimValueType { kind: Class(ShimClass { src: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) }), src: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) }), src: Value(Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" })) })",
+            "Shim(Class { is_borrowed: true, inner: ShimClass { src: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } })",
         )
         .to(
-            "TetheringStructType(TetheringStructType { source_type: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
+            "Tethered(TetheringStructType { source_type: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
         )
         .an(_0)
         .access(|src| {
@@ -45,13 +46,13 @@ pub fn __fn__disc__rustdoc_0test_0crate_Test(
 #[wasm_bindgen(js_name = "__fn__disc__rustdoc_0test_0crate_Test")]
 pub fn __fn__disc__rustdoc_0test_0crate_Test(
     _0: &__enum__rustdoc_0test_0crate_Test,
-) -> Result<u32, JsValue> {
+) -> Result<f64, JsValue> {
     let result = cast
         .from(
-            "ShimType(ShimType { kind: Borrowed(ShimValueType { kind: Class(ShimClass { src: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) }), src: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) }), src: Value(Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" })) })",
+            "Shim(Class { is_borrowed: true, inner: ShimClass { src: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } })",
         )
         .to(
-            "TetheringStructType(TetheringStructType { source_type: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
+            "Tethered(TetheringStructType { source_type: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
         )
         .an(_0)
         .access(|src| {

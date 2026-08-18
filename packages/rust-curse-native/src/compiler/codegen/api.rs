@@ -65,13 +65,16 @@ impl Api {
         wasm_accessor: &'static str,
         node_value_type: &'static str,
     ) -> impl FragmentOnce {
-        let wasm_error =
-            self.error(frag!({ doubles(("cannot cast value to ", rust_type)) }.to_string()));
+        let wasm_error = self.error(frag!(
+            { doubles(("cannot cast value to ", rust_type)) }.to_string()
+        ));
         let node_get_type_error = self.error("err.reason");
-        let node_cast_error =
-            self.error(frag!({ doubles(("cannot cast value to ", rust_type)) }.to_string()));
-        let node_value_type_error =
-            self.error(frag!({ doubles(("cannot cast value to ", rust_type)) }.to_string()));
+        let node_cast_error = self.error(frag!(
+            { doubles(("cannot cast value to ", rust_type)) }.to_string()
+        ));
+        let node_value_type_error = self.error(frag!(
+            { doubles(("cannot cast value to ", rust_type)) }.to_string()
+        ));
 
         fragment(move |p| {
             match self {
@@ -121,10 +124,7 @@ impl Api {
         })
     }
 
-    pub fn header_renamed<'a>(
-        self,
-        name: impl FragmentOnce + 'a,
-    ) -> impl FragmentOnce + 'a {
+    pub fn header_renamed<'a>(self, name: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         let api_name = match self {
             Api::Wasm { .. } => "wasm_bindgen",
             Api::Node => "napi",
@@ -147,10 +147,7 @@ impl Api {
     }
 
     /// Returns the getter header for a field with the given JavaScript name.
-    pub fn field_getter_header<'a>(
-        self,
-        name: impl FragmentOnce + 'a,
-    ) -> impl FragmentOnce + 'a {
+    pub fn field_getter_header<'a>(self, name: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         let api_name = match self {
             Api::Wasm { .. } => "wasm_bindgen",
             Api::Node => "napi",
@@ -162,10 +159,7 @@ impl Api {
     }
 
     /// Returns the setter header for a field with the given JavaScript name.
-    pub fn field_setter_header<'a>(
-        self,
-        name: impl FragmentOnce + 'a,
-    ) -> impl FragmentOnce + 'a {
+    pub fn field_setter_header<'a>(self, name: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         let api_name = match self {
             Api::Wasm { .. } => "wasm_bindgen",
             Api::Node => "napi",
