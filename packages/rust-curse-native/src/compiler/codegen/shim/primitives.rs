@@ -1,11 +1,11 @@
 use crate::{
     compiler::{
         codegen::{
-            api::Api,
             cast::{CastContinuation, DirectCastRule, IndirectCastRule},
             fragment::{FragmentOnce, doubles},
         },
         db::Db,
+        inputs::Api,
         ir::{
             rust::{Type, ValueType},
             shim::{ShimType, ShimTypeKind, ShimValueType, ShimValueTypeKind},
@@ -51,7 +51,7 @@ impl<'db> DirectCastRule<'db, Type<'db>, Type<'db>> for CastF64ToSignedIntRule {
 
             if value.trunc()~ != value || value < ~{type_name}::MIN as f64 || value > ~{type_name}::MAX as f64 ~{{
                 return Err({
-                    api.error(db, frag!(
+                    api.error(frag!(
                         format!("cannot cast {value} to {type_name}")
                     ))
                 });
@@ -99,7 +99,7 @@ impl<'db> DirectCastRule<'db, Type<'db>, Type<'db>> for CastF64ToUnsignedIntRule
 
             if value.trunc()~ != value || value < 0 as f64 || value > ~{type_name}::MAX as f64 ~{{
                 return Err({
-                    api.error(db, frag!(
+                    api.error(frag!(
                         format!("cannot cast {value} to {type_name}")
                     ))
                 });
@@ -130,7 +130,7 @@ impl<'db> DirectCastRule<'db, Type<'db>, Type<'db>> for CastU32ToCharRule {
         Expr: FragmentOnce + 'fragment,
     {
         let api = Api::get(db);
-        let error_expr = api.error(db, frag!(format!("cannot cast {value} to char")));
+        let error_expr = api.error(frag!(format!("cannot cast {value} to char")));
 
         frag!({{
             let value = ~{in_expr};@
@@ -284,7 +284,7 @@ impl<'db> DirectCastRule<'db, ShimType<'db>, Type<'db>> for CastJsAnyToF64Rule {
         'db: 'fragment,
         Expr: FragmentOnce + 'fragment,
     {
-        let cast_expr = Api::get(db).cast_to_f64(db);
+        let cast_expr = Api::get(db).cast_to_f64();
 
         frag!({{
             let value = ~{in_expr};@
@@ -318,7 +318,7 @@ impl<'db> DirectCastRule<'db, ShimType<'db>, Type<'db>> for CastJsAnyToBoolRule 
         'db: 'fragment,
         Expr: FragmentOnce + 'fragment,
     {
-        let cast_expr = Api::get(db).cast_to_bool(db);
+        let cast_expr = Api::get(db).cast_to_bool();
 
         frag!({{
             let value = ~{in_expr};@
@@ -352,7 +352,7 @@ impl<'db> DirectCastRule<'db, ShimType<'db>, Type<'db>> for CastJsAnyToStringRul
         'db: 'fragment,
         Expr: FragmentOnce + 'fragment,
     {
-        let cast_expr = Api::get(db).cast_to_string(db);
+        let cast_expr = Api::get(db).cast_to_string();
 
         frag!({{
             let value = ~{in_expr};@

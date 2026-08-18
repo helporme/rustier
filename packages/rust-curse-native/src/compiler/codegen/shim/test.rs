@@ -6,7 +6,7 @@ use std::{collections::BTreeMap, path::Path};
 
 use crate::compiler::{
     db::DbImpl,
-    ir::doc::{Crate, RustdocCrates},
+    inputs::{Crate, RustdocCrates},
 };
 
 /// Name of the temporary source crate created by [`test_db!`].
@@ -185,10 +185,7 @@ macro_rules! assert_rust_snap {
         expression: |$db:ident, $printer:ident| $expression:block $(,)?
     ) => {{
         let mut __node_db = $crate::test_db! { $($source)* };
-        $crate::compiler::codegen::api::Api::set(
-            &mut __node_db,
-            $crate::compiler::codegen::api::ApiKind::Node,
-        );
+        $crate::compiler::inputs::Api::set(&mut __node_db, $crate::compiler::inputs::Api::Node);
         let __node = $crate::compiler::codegen::fragment::FragmentPrint::print(
             $crate::compiler::codegen::fragment::fragment(|$printer| {
                 let $db = &mut __node_db;
@@ -197,10 +194,10 @@ macro_rules! assert_rust_snap {
         );
 
         let mut __wasm_db = $crate::test_db! { $($source)* };
-        $crate::compiler::codegen::api::Api::set(
+        $crate::compiler::inputs::Api::set(
             &mut __wasm_db,
-            $crate::compiler::codegen::api::ApiKind::Wasm {
-                target: $crate::compiler::codegen::api::WasmTarget::Web,
+            $crate::compiler::inputs::Api::Wasm {
+                target: $crate::compiler::inputs::WasmTarget::Web,
             },
         );
         let __wasm = $crate::compiler::codegen::fragment::FragmentPrint::print(

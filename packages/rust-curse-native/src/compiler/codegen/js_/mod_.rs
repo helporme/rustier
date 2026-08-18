@@ -3,10 +3,8 @@
 use std::collections::BTreeSet;
 
 use crate::compiler::{
-    codegen::api::Api,
     codegen::fragment::{FragmentPrint, frag, spaced},
     codegen::js::{
-        JsCodegenPaths,
         enum_::{compile_facade_class_for_enum, compile_facade_class_for_enum_required_imports},
         fn_::{compile_facade_fn, compile_facade_fn_required_imports},
         imports::compile_import_stmt,
@@ -15,6 +13,7 @@ use crate::compiler::{
         },
     },
     db::Db,
+    inputs::{Api, JsCodegenPaths},
     ir::Mod,
 };
 
@@ -47,7 +46,7 @@ pub fn compile_js_file<'db>(db: &'db dyn Db, mod_: Mod<'db>) -> String {
     let structs = spaced(structs.map(|struct_| compile_facade_class_for_struct(db, struct_)));
     let enums = spaced(enums.map(|enum_| compile_facade_class_for_enum(db, enum_)));
 
-    let init = Api::get(db).js_mod_init(db, js_codegen_paths.generated_bindings_path(db));
+    let init = Api::get(db).js_mod_init(js_codegen_paths.generated_bindings_path(db));
     frag!(
         {init}@
         {imports}@@
@@ -62,15 +61,14 @@ pub fn compile_js_file<'db>(db: &'db dyn Db, mod_: Mod<'db>) -> String {
 mod tests {
     use super::*;
     use crate::compiler::{
-        codegen::api::{Api, ApiKind},
-        codegen::js::JsCodegenPaths,
         db::DbImpl,
+        inputs::{Api, JsCodegenPaths},
         lower::rustdoc_to_ir::mods::lower_mod,
         test::{assert_snap, test_db},
     };
 
     fn compile_test_mod(mut db: DbImpl) -> String {
-        Api::set(&mut db, ApiKind::Node);
+        Api::set(&mut db, Api::Node);
         JsCodegenPaths::set(&mut db, "path/to/bindings".to_owned());
 
         let mod_ = lower_mod(&db, db.rustdoc_id(""));

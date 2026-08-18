@@ -13,7 +13,7 @@ pub use f32_percission_los::F32PrecisionLoss;
 
 /// Runs all checks and returns their diagnostics.
 ///
-/// The check is independent from [`crate::codegen::api::Api`], it runs
+/// The check is independent from [`crate::compiler::inputs::Api`], it runs
 /// only on generated IR.
 pub fn check<'db>(db: &'db dyn Db, modules: &[Mod<'db>]) -> Vec<Check> {
     f32_percission_los::check_f32_percission_los(db, modules)

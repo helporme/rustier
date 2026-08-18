@@ -128,11 +128,11 @@
 use crate::{
     compiler::{
         codegen::{
-            api::Api,
             cast::{CastContinuation, DirectCastRule, IndirectCastRule},
             fragment::{Fragment, FragmentOnce, doubles, fragment, spaced},
         },
         db::Db,
+        inputs::Api,
         ir::rust::{Type, ValueType},
     },
     frag,
@@ -142,15 +142,13 @@ use crate::{
 /// structs.
 pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
     let api = Api::get(db);
-    let access_result = api.result_type(db, "T");
+    let access_result = api.result_type("T");
     let borrow_error = api.error(
-        db,
         frag!(
             { doubles("cannot access a tethered value while it is mutably borrowed") }.to_string()
         ),
     );
     let borrow_mut_error = api.error(
-        db,
         frag!(
             { doubles("cannot mutably access a tethered value while it is borrowed") }.to_string()
         ),
@@ -494,7 +492,7 @@ where
 ///  - A source type otherwise
 ///
 /// The expression must be inserted into a scope that returns the
-/// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
+/// [`crate::compiler::inputs::Api`] result type because it uses `?`.
 pub fn render_tethering_struct_get_field_expr<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,
@@ -509,7 +507,7 @@ pub fn render_tethering_struct_get_field_expr<'a>(
 ///  - A source type otherwise
 ///
 /// The statement must be inserted into a scope that returns the
-/// [`crate::codegen::api::Api::result_type`] type because it uses `?`.
+/// [`crate::compiler::inputs::Api`] result type because it uses `?`.
 pub fn render_tethering_struct_set_field_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,

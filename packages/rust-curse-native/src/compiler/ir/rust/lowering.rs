@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::compiler::{
     db::Db,
-    ir::doc::RustdocCrates,
+    inputs::RustdocCrates,
     ir::rust::{AsItem, Enum, Field, Function, ItemPath, Mod, Span, Struct, Variant},
 };
 use rustdoc_types as doc;

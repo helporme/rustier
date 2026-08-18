@@ -489,11 +489,12 @@ mod tests {
     use super::*;
     use crate::compiler::{
         codegen::fragment::{FragmentPrint, spaced},
-        codegen::js::{JsCodegenPaths, imports::compile_import_stmt},
         db::DbImpl,
+        inputs::JsCodegenPaths,
         lower::rustdoc_to_ir::enums::lower_enum,
         test::{assert_snap, test_db},
     };
+    use crate::compiler::codegen::js::imports::compile_import_stmt;
 
     fn compile_test_enum(db: &DbImpl, enum_name: &str) -> String {
         let enum_ = lower_enum(db, db.rustdoc_id(enum_name)).unwrap();

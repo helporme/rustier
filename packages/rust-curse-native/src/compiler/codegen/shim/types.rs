@@ -1,11 +1,11 @@
 use crate::{
     compiler::{
         codegen::{
-            api::Api,
             cast::{CastContinuation, IndirectCastRule},
             fragment::{FragmentOnce, Printer, fragment},
         },
         db::Db,
+        inputs::Api,
         ir::{
             rust::{AsItem, FieldName, Type, ValueType},
             shim::{ShimType, ShimTypeKind, ShimValueType, ShimValueTypeKind},
@@ -26,7 +26,7 @@ impl<'db> ShimValueType<'db> {
             ShimValueTypeKind::u32 => "u32".apply(p),
             ShimValueTypeKind::f64 => "f64".apply(p),
             ShimValueTypeKind::String => "String".apply(p),
-            ShimValueTypeKind::JsAny => Api::get(db).js_type(db).apply(p),
+            ShimValueTypeKind::JsAny => Api::get(db).js_type().apply(p),
             ShimValueTypeKind::Class(c) => c.symbol(db).apply(p),
         })
     }

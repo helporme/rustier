@@ -1,7 +1,6 @@
 use crate::{
     compiler::{
         codegen::{
-            api::Api,
             cast::DirectCastRule,
             fragment::{FragmentOnce, FragmentPrint, Printer, doubles, fragment},
             shim::tethering::{
@@ -10,6 +9,7 @@ use crate::{
             },
         },
         db::Db,
+        inputs::Api,
         ir::{
             rust::{AsItem as _, FieldParent, Shape, ValueType},
             shim::{ShimClass, ShimField, ShimType, ShimValueTypeKind},
@@ -69,7 +69,7 @@ impl<'db> ClassFragment<'db> {
         let symbol = self.class.ffi(self.db).symbol(self.db);
 
         frag!(
-            {api.header_renamed(self.db, symbol)}
+            {api.header_renamed(symbol)}
             pub struct ~{symbol}~{{
                 src: std::rc::Rc<{tethering_type_name}>
             }}
@@ -157,7 +157,7 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
                     }
                     .to_string()
                 );
-                let error = Api::get(db).error(db, reason);
+                let error = Api::get(db).error(reason);
                 let enum_name = enum_.fqn(db);
                 let variant_name = variant.name(db);
 

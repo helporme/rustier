@@ -3,7 +3,7 @@ use std::path::Path;
 use super::RustdocId;
 use crate::compiler::{
     db::Db,
-    ir::doc::RustdocCrates,
+    inputs::RustdocCrates,
     ir::rust::{Crate, Mod, ModParent},
 };
 use rustdoc_types as doc;

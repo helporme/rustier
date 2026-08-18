@@ -135,17 +135,17 @@ enum BuildArtifacts {
 }
 
 impl ProfileOpts {
-    fn api_kind(&self) -> compiler::codegen::api::ApiKind {
+    fn api(&self) -> compiler::inputs::Api {
         match &self.target {
-            ProfileTarget::Wasm { target } => compiler::codegen::api::ApiKind::Wasm {
+            ProfileTarget::Wasm { target } => compiler::inputs::Api::Wasm {
                 target: target.into(),
             },
-            ProfileTarget::Node => compiler::codegen::api::ApiKind::Node,
+            ProfileTarget::Node => compiler::inputs::Api::Node,
         }
     }
 }
 
-impl From<&WasmTarget> for compiler::codegen::api::WasmTarget {
+impl From<&WasmTarget> for compiler::inputs::WasmTarget {
     fn from(target: &WasmTarget) -> Self {
         match target {
             WasmTarget::Web => Self::Web,
@@ -287,13 +287,13 @@ impl Driver {
         let src_dir = package.source_package_path.join("src");
         let crates = BTreeMap::from([(
             package.source_crate_name,
-            compiler::rustdoc::Crate {
+            compiler::inputs::Crate {
                 body: rustdoc,
                 is_external: false,
                 dir: package.source_package_path,
             },
         )]);
-        compiler::ir::doc::RustdocCrates::set(&mut self.db, crates);
+        compiler::inputs::RustdocCrates::set(&mut self.db, crates);
 
         let sync_ts_tree_diags = sync_ts_tree(SyncTsTreeOpts {
             our_dir: &types_dir,
@@ -345,7 +345,7 @@ impl Driver {
                 "syncing profile crate"
             );
 
-            compiler::codegen::api::Api::set(&mut self.db, profile.api_kind());
+            compiler::inputs::Api::set(&mut self.db, profile.api());
             sync_crate(SyncCrateOps {
                 manifest_path: &manifest_path,
                 out_dir: &profile_crate_dir,
@@ -453,14 +453,14 @@ impl Driver {
     fn _resolve(&mut self, profile_name: &str, file_path: String) -> Result<String, ResolveError> {
         debug!(profile_name, file_path, "resolving Rust module import");
 
-        let api_kind = self
+        let api = self
             .opts
             .profiles
             .get(profile_name)
             .ok_or_else(|| ResolveError::UnknownProfile {
                 profile_name: profile_name.to_string(),
             })?
-            .api_kind();
+            .api();
 
         let artifacts = self.profile_builds.get(profile_name).ok_or_else(|| {
             ResolveError::MissingProfileBuildArtifacts {
@@ -474,8 +474,8 @@ impl Driver {
 
         trace!(src_path, "resolved profile artifact source path");
 
-        compiler::codegen::api::Api::set(&mut self.db, api_kind);
-        compiler::codegen::js::JsCodegenPaths::set(&mut self.db, src_path);
+        compiler::inputs::Api::set(&mut self.db, api);
+        compiler::inputs::JsCodegenPaths::set(&mut self.db, src_path);
 
         let module_path = PathBuf::from(&file_path).canonicalize().map_err(|source| {
             ResolveError::CanonicalizeModulePath {

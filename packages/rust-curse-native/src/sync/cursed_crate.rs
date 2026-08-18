@@ -9,10 +9,10 @@ use tracing::{debug, info};
 
 use crate::{
     compiler::{
-        codegen::api::{Api, ApiKind},
         codegen::bindings::compile_bindings,
         codegen::fragment::{FragmentPrint, frag},
         db::DbImpl,
+        inputs::{Api, WasmTarget},
     },
     sync::{file::write_if_changed, manifest},
     tools::{node, workspace},
@@ -39,8 +39,8 @@ pub struct SyncCrateOps<'a> {
 ///
 /// use rust_curse::{
 ///     compiler::{
-///         codegen::api::{Api, ApiKind, WasmTarget},
 ///         db::DbImpl,
+///         inputs::{Api, WasmTarget},
 ///     },
 ///     sync::cursed_crate::{SyncCrateOps, sync_crate},
 /// };
@@ -48,7 +48,7 @@ pub struct SyncCrateOps<'a> {
 /// let mut db = DbImpl::default();
 /// Api::set(
 ///     &mut db,
-///     ApiKind::Wasm {
+///     Api::Wasm {
 ///         target: WasmTarget::Web,
 ///     },
 /// );
@@ -111,7 +111,7 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
     changed |= write_file(opts.out_dir.join("Cargo.toml"), manifest)?;
     changed |= write_file(src_dir.join("lib.rs"), bindings)?;
 
-    if let Some(build_script_body) = api.build_script_body(opts.db) {
+    if let Some(build_script_body) = api.build_script_body() {
         debug!("writing generated build script");
         let build_script = frag!(
             fn main()~{{
@@ -123,7 +123,7 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
         changed |= write_file(opts.out_dir.join("build.rs"), build_script)?;
     }
 
-    if api.kind(opts.db) == ApiKind::Node {
+    if api == Api::Node {
         debug!("ensuring generated Node crate compatibility");
         changed |= node::ensure_node_compat(opts.out_dir)
             .map_err(|source| SyncCrateError::EnsureNodeCompat { source })?;

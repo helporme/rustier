@@ -5,9 +5,8 @@ use std::{fmt, panic::RefUnwindSafe, sync::Arc};
 use miette::{Diagnostic, GraphicalReportHandler, GraphicalTheme, NamedSource};
 use salsa::Accumulator;
 
-use crate::compiler::{db::Db, ir::rust::Span};
+use crate::compiler::{db::Db, inputs::SourceFiles, ir::rust::Span};
 
-/// Source code materialized from a lazily loaded source file for Miette.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, salsa::Update)]
 pub struct DiagSource(Option<NamedSource<Arc<str>>>);
 
@@ -51,7 +50,7 @@ impl Span {
     /// Converts this row/column span into a byte-offset Miette span by loading
     /// its source file.
     pub fn diag_span(&self, db: &dyn Db) -> DiagSpan {
-        let Ok(source_file) = db.source_file(self.abs_path.as_path()) else {
+        let Ok(source_file) = SourceFiles::read(db, self.abs_path.as_path()) else {
             return (0, 0).into();
         };
 
@@ -61,7 +60,7 @@ impl Span {
     /// Loads this span's source file and materializes a Miette-compatible
     /// source wrapper.
     pub fn diag_source(&self, db: &dyn Db) -> DiagSource {
-        let Ok(source_file) = db.source_file(self.abs_path.as_path()) else {
+        let Ok(source_file) = SourceFiles::read(db, self.abs_path.as_path()) else {
             return DiagSource::not_available();
         };
 
@@ -108,9 +107,6 @@ pub enum Theme {
 }
 
 /// Diagnostic that can be accumulated into a salsa database.
-///
-/// It cannot be directly returned from the tracked function (for example, in
-/// Result). Better return original diagnostic type instead.
 #[salsa::accumulator]
 #[derive(Clone)]
 pub struct Diag {
@@ -145,7 +141,7 @@ impl Diag {
 
 /// Extension trait for [`Diagnostic`] values that can be accumulated as
 /// [`Diag`] into a salsa database.
-pub trait DiagAccumulateExt {
+pub(super) trait DiagAccumulateExt {
     fn accumulate<Db>(self, db: &Db)
     where
         Db: ?Sized + salsa::Database;

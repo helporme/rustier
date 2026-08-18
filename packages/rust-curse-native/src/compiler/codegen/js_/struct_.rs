@@ -297,8 +297,9 @@ mod tests {
     use super::*;
     use crate::compiler::{
         codegen::fragment::{FragmentPrint, spaced},
-        codegen::js::{JsCodegenPaths, imports::compile_import_stmt},
+        codegen::js::imports::compile_import_stmt,
         db::DbImpl,
+        inputs::JsCodegenPaths,
         lower::rustdoc_to_ir::structs::lower_struct,
         test::{assert_snap, test_db},
     };

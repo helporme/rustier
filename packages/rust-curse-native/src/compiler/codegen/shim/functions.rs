@@ -1,7 +1,6 @@
 use crate::{
     compiler::{
         codegen::{
-            api::Api,
             fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, fragment},
             shim::{
                 cast_graph::{Cast, ShimCast, ShimCastCompiler},
@@ -12,6 +11,7 @@ use crate::{
             },
         },
         db::Db,
+        inputs::Api,
         ir::{
             rust::{AsItem as _, Shape, Type},
             shim::{
@@ -73,16 +73,16 @@ where
 
         let result_type = fragment(move |p| match ret_type {
             Some(type_) => api
-                .result_type(self.db, type_.render_type_decl(self.db))
+                .result_type(type_.render_type_decl(self.db))
                 .apply(p),
 
-            None => api.result_type(self.db, "()").apply(p),
+            None => api.result_type("()").apply(p),
         });
 
         let symbol = self.function.symbol(self.db);
 
         frag!(
-            {api.header_renamed(self.db, symbol)}@
+            {api.header_renamed(symbol)}@
             pub fn ~{symbol}({self.render_params()})~ -> ~{result_type}~ {{
                 {self.render_body()}
             }}
