@@ -1,3 +1,11 @@
+//! Intermediate representation of the API actually exposed to JavaScript.
+//!
+//! It represents an actual and complete api that JavaScript receives from the
+//! rust code. All other generated JavaScript code is a "facade" on top of it.
+
+pub mod ext;
+mod lowering;
+
 use crate::compiler::{
     db::Db,
     ir::shim::{ShimClass, ShimFunction, ShimParam},
@@ -23,24 +31,17 @@ pub struct FfiFunction<'db> {
     shim: ShimFunction<'db>,
 }
 
-#[salsa::tracked]
 impl<'db> FfiFunction<'db> {
     pub fn symbol(self, db: &'db dyn Db) -> &'db str {
         self.shim(db).symbol(db)
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> Vec<FfiParam<'db>> {
-        self.shim(db)
-            .params(db)
-            .iter()
-            .copied()
-            .map(|param| param.ffi(db))
-            .collect()
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<FfiParam<'db>> {
+        self.lower_params(db)
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<FfiType<'db>> {
-        self.shim(db).ret_type(db).map(|type_| type_.ffi(db))
+        self.lower_ret_type(db)
     }
 }
 
@@ -51,21 +52,15 @@ pub struct FfiParam<'db> {
 
 impl<'db> FfiParam<'db> {
     pub fn type_(self, db: &'db dyn Db) -> FfiType<'db> {
-        self.shim(db).type_(db).ffi(db)
+        self.lower_type(db)
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 #[allow(non_camel_case_types)]
 pub enum FfiType<'db> {
-    bool,
-    i8,
-    u8,
-    i16,
-    u16,
-    i32,
-    u32,
-    f64,
-    String,
+    boolean,
+    string,
+    number,
     Class(FfiClass<'db>),
 }

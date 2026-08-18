@@ -182,7 +182,7 @@ where
     fn render_fn_getter_body(self, getter: ShimFunctionGetter<'db>) -> impl FragmentOnce {
         let cls_tethering_struct_expr = self.cast_compiler.compile_cast_expr(
             self.db,
-            ShimType::from(getter.class(self.db).as_value_type(self.db)),
+            getter.class_param_type(self.db),
             TetheringStructType {
                 source_type: getter.class(self.db).src(self.db).into(),
             },
@@ -202,7 +202,7 @@ where
                     .compile_cast_expr(
                         self.db,
                         TetheringStructType {
-                            source_type: getter.src(self.db).type_(self.db),
+                            source_type: getter.src(self.db).value_type(self.db),
                         },
                         ShimType::from(ret_type),
                         field_tethering_value_expr,
@@ -212,7 +212,7 @@ where
                 self.cast_compiler
                     .compile_cast_expr(
                         self.db,
-                        Type::from(getter.src(self.db).type_(self.db)),
+                        Type::from(getter.src(self.db).value_type(self.db)),
                         ShimType::from(ret_type),
                         field_tethering_value_expr,
                     )
@@ -226,7 +226,7 @@ where
     fn render_fn_setter_body(self, setter: ShimFunctionSetter<'db>) -> impl FragmentOnce {
         let cls_tethering_struct_expr = self.cast_compiler.compile_cast_expr(
             self.db,
-            ShimType::from(setter.class(self.db).as_value_type(self.db)),
+            setter.class_1st_param_type(self.db),
             TetheringStructType {
                 source_type: setter.class(self.db).src(self.db).into(),
             },
@@ -242,8 +242,8 @@ where
         let set_tethered_field_stmt = self.cast_compiler.compile_cast_stmt(
             self.db,
             Cast {
-                from: setter.set_type(self.db),
-                to: Type::Value(setter.src(self.db).type_(self.db)),
+                from: setter.value_2nd_param(self.db),
+                to: Type::Value(setter.src(self.db).value_type(self.db)),
                 in_expr: frag!(_1),
                 out_var_name: frag!(value),
             },
@@ -252,7 +252,7 @@ where
 
         frag!(
             {set_tethered_field_stmt}
-            Ok()
+            Ok(())
         )
     }
 
@@ -263,7 +263,7 @@ where
         let src = discriminator.src(self.db);
         let cls_tethering_struct_expr = self.cast_compiler.compile_cast_expr(
             self.db,
-            ShimType::from(discriminator.class(self.db).as_value_type(self.db)),
+            discriminator.params(self.db)[0].type_(self.db),
             TetheringStructType {
                 source_type: src.into(),
             },
@@ -299,4 +299,121 @@ where
             Ok(result)
         )
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        assert_rust_snap,
+        compiler::{
+            codegen::shim::{cast_graph::test::TestCastCompiler, test::TEST_CRATE_NAME},
+            ir::rust::Crate,
+        },
+    };
+
+    fn find_test_function<'db>(
+        db: &'db dyn Db,
+        predicate: impl Fn(ShimFunction<'db>) -> bool,
+    ) -> ShimFunction<'db> {
+        let root = Crate::by(db, TEST_CRATE_NAME)
+            .expect("test crate should be lowered")
+            .root(db)
+            .shim(db);
+
+        root.fns(db)
+            .iter()
+            .copied()
+            .find(|function| predicate(*function))
+            .expect("fixture should lower the requested shim function")
+    }
+
+    macro_rules! test_function {
+        ($name:ident, $variant:pat, $($source:tt)*) => {
+            #[test]
+            fn $name() {
+                assert_rust_snap! {
+                    source: { $($source)* },
+                    expression: |db, printer| {
+                        let db: &dyn Db = &*db;
+                        let function = find_test_function(db, |function| {
+                            matches!(function, $variant)
+                        });
+
+                        function
+                            .render_with(db, TestCastCompiler)
+                            .apply(printer);
+                    },
+                }
+            }
+        };
+    }
+
+    test_function!(
+        zero_args_without_return,
+        ShimFunction::Free(_),
+        pub fn test_fn() {}
+    );
+
+    test_function!(
+        zero_args_with_return,
+        ShimFunction::Free(_),
+        pub fn test_fn() -> i32 {
+            0
+        }
+    );
+
+    test_function!(
+        one_arg_without_return,
+        ShimFunction::Free(_),
+        pub fn test_fn(_value: i32) {}
+    );
+
+    test_function!(
+        one_arg_with_return,
+        ShimFunction::Free(_),
+        pub fn test_fn(value: i32) -> i32 {
+            value
+        }
+    );
+
+    test_function!(
+        two_args_without_return,
+        ShimFunction::Free(_),
+        pub fn test_fn(_direct: i32, _borrowed: &i32) {}
+    );
+
+    test_function!(
+        two_args_with_return,
+        ShimFunction::Free(_),
+        pub fn test_fn(direct: i32, borrowed: &i32) -> i32 {
+            direct + borrowed
+        }
+    );
+
+    test_function!(
+        getter,
+        ShimFunction::Getter(_),
+        pub struct Test {
+            pub field: i32,
+        }
+    );
+
+    test_function!(
+        setter,
+        ShimFunction::Setter(_),
+        pub struct Test {
+            pub field: i32,
+        }
+    );
+
+    test_function!(
+        enum_discriminator,
+        ShimFunction::EnumDiscriminator(_),
+        pub enum Test {
+            Unit,
+            Tuple(i32),
+            Plain { field: i32 },
+        }
+    );
 }

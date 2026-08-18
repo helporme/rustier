@@ -1,0 +1,37 @@
+---
+source: src/compiler/codegen/shim/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct ExampleStruct;
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    input
+        .src
+        .access(|value| {
+            let output = value;
+            consume(output);
+            Ok(())
+        })?;
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    input
+        .src
+        .access(|value| {
+            let output = value;
+            consume(output);
+            Ok(())
+        })?;
+}
+```

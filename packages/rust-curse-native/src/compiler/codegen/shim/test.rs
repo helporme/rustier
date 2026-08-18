@@ -226,3 +226,64 @@ macro_rules! assert_rust_snap {
         });
     }};
 }
+
+macro_rules! cast_snapshot {
+    (
+        name: $name:ident,
+        source: { $($source:tt)* },
+        from: |$from_db:ident| $from:expr,
+        to: |$to_db:ident| $to:expr $(,)?
+    ) => {
+        #[test]
+        fn $name() {
+            use $crate::frag;
+
+            $crate::assert_rust_snap! {
+                source: { $($source)* },
+                expression: |__db, __printer| {
+                    let __db: &dyn $crate::compiler::db::Db = &*__db;
+                    let __from = {
+                        let $from_db: &dyn $crate::compiler::db::Db = __db;
+                        $from
+                    };
+                    let __to = {
+                        let $to_db: &dyn $crate::compiler::db::Db = __db;
+                        $to
+                    };
+
+                    $crate::compiler::codegen::fragment::FragmentOnce::apply(
+                        $crate::frag!(
+                            fn cast(input: ())~{{
+                                {$crate::compiler::codegen::shim::cast_graph::compile_cast_stmt(
+                                    __db,
+                                    $crate::compiler::codegen::shim::cast_graph::Cast {
+                                        from: __from,
+                                        to: __to,
+                                        in_expr: "input",
+                                        out_var_name: "output",
+                                    },
+                                    $crate::frag!(consume(output);),
+                                )}
+                            }}
+                        ),
+                        __printer,
+                    );
+                },
+            }
+        }
+    };
+    (
+        name: $name:ident,
+        from: |$from_db:ident| $from:expr,
+        to: |$to_db:ident| $to:expr $(,)?
+    ) => {
+        $crate::compiler::codegen::shim::test::cast_snapshot! {
+            name: $name,
+            source: {},
+            from: |$from_db| $from,
+            to: |$to_db| $to,
+        }
+    };
+}
+
+pub(super) use cast_snapshot;

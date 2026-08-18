@@ -1,89 +1,43 @@
+//! Intermediate representation used to generate the ergonomic JavaScript API
+//! presented to users ("facade").
+//!
+//! Facade entities reference the FFI functions and classes that perform the
+//! actual calls across the Rust-JavaScript boundary. In other words, this IR
+//! describes how JavaScript code should be rendered over the lower-level API
+//! represented by the FFI IR.
+
+pub mod ext;
+mod lowering;
+
 use std::{
     collections::{HashMap, HashSet},
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use crate::compiler::{
     db::Db,
-    inputs::CompilationMetadata,
     ir::{
-        ffi::{FfiClass, FfiFunction, FfiType},
+        ffi::{FfiClass, FfiFunction},
         rust::FieldName,
         shim::{
-            ShimClass, ShimClassSource, ShimField, ShimFunction, ShimFunctionEnumDiscriminator,
-            ShimFunctionFree, ShimMod, ShimParam, ShimType, ShimValueTypeKind,
+            ShimClass, ShimClassSource, ShimField, ShimFunctionEnumDiscriminator, ShimFunctionFree,
+            ShimMod, ShimParam,
         },
     },
 };
 
+/// Carries the importing module so its generated import path can be relative.
 #[salsa::tracked(debug)]
 pub struct FacadeImport<'db> {
+    /// The module where the import statement will be emitted.
     pub originating_from: FacadeMod<'db>,
     pub item: FacadeImportItem<'db>,
 }
 
-#[salsa::tracked]
 impl<'db> FacadeImport<'db> {
-    #[salsa::tracked(returns(ref))]
-    pub fn path(self, db: &dyn Db) -> String {
-        let metadata = CompilationMetadata::get(db);
-
-        let originating_from_path = self.originating_from(db).file_path(db);
-        let to_path = match self.item(db) {
-            FacadeImportItem::FfiFunction(_) | FacadeImportItem::FfiClass(_) => {
-                &metadata.js_ffi_path
-            }
-            FacadeImportItem::FacadeClass(cls) => cls.parent(db).file_path(db),
-        };
-
-        Self::compile_relative_path(originating_from_path, to_path)
-            .expect("relative path must exist")
-    }
-
-    fn compile_relative_path(from_mod_path: &Path, to_mod_path: &Path) -> Option<String> {
-        let mut from_components = from_mod_path.parent()?.components().peekable();
-        let mut to_components = to_mod_path.components().peekable();
-
-        while matches!(
-            (from_components.peek(), to_components.peek()),
-            (Some(from), Some(to)) if from == to
-        ) {
-            from_components.next();
-            to_components.next();
-        }
-
-        if from_components.clone().any(|component| {
-            matches!(
-                component,
-                std::path::Component::Prefix(_) | std::path::Component::RootDir
-            )
-        }) || to_components.clone().any(|component| {
-            matches!(
-                component,
-                std::path::Component::Prefix(_) | std::path::Component::RootDir
-            )
-        }) {
-            return None;
-        }
-
-        let mut path = String::new();
-        let parent_count = from_components.count();
-        if parent_count == 0 {
-            path.push_str("./");
-        } else {
-            for _ in 0..parent_count {
-                path.push_str("../");
-            }
-        }
-
-        for (index, component) in to_components.enumerate() {
-            if index > 0 {
-                path.push('/');
-            }
-            path.push_str(&component.as_os_str().to_string_lossy());
-        }
-
-        Some(path)
+    /// Resolves the imported item relative to the module emitting the import.
+    pub fn path(self, db: &'db dyn Db) -> &'db str {
+        self.lower_path(db)
     }
 }
 
@@ -109,53 +63,21 @@ pub struct FacadeMod<'db> {
     shim: ShimMod<'db>,
 }
 
-#[salsa::tracked]
 impl<'db> FacadeMod<'db> {
-    #[salsa::tracked(returns(ref))]
-    pub fn fns(self, db: &'db dyn Db) -> Vec<FacadeFunction<'db>> {
-        self.shim(db)
-            .fns(db)
-            .iter()
-            .filter_map(|fun| match fun {
-                ShimFunction::Free(free) => Some(free.facade(db)),
-                _ => None,
-            })
-            .collect()
+    pub fn fns(self, db: &'db dyn Db) -> &'db Vec<FacadeFunction<'db>> {
+        self.lower_fns(db)
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn classes(self, db: &'db dyn Db) -> Vec<FacadeClass<'db>> {
-        self.shim(db)
-            .classes(db)
-            .iter()
-            .map(|c| c.facade(db))
-            .collect()
+    pub fn classes(self, db: &'db dyn Db) -> &'db Vec<FacadeClass<'db>> {
+        self.lower_classes(db)
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn imports(self, db: &'db dyn Db) -> HashSet<FacadeImport<'db>> {
-        let mut items = HashSet::new();
-
-        for fun in self.fns(db) {
-            items.extend(fun.imports(db).iter().copied());
-        }
-
-        for cls in self.classes(db) {
-            items.extend(cls.imports(db).iter().copied());
-        }
-
-        items
-            .into_iter()
-            .map(|i| FacadeImport::new(db, self, i))
-            .collect()
+    pub fn imports(self, db: &'db dyn Db) -> &'db HashSet<FacadeImport<'db>> {
+        self.lower_imports(db)
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn file_path(self, db: &'db dyn Db) -> PathBuf {
-        let metadata = CompilationMetadata::get(db);
-
-        let span = self.shim(db).src(db).span(db);
-        metadata.js_mods_root_path.join(&span.src_path)
+    pub fn file_path(self, db: &'db dyn Db) -> &'db PathBuf {
+        self.lower_file_path(db)
     }
 }
 
@@ -164,7 +86,6 @@ pub struct FacadeFunction<'db> {
     shim: ShimFunctionFree<'db>,
 }
 
-#[salsa::tracked]
 impl<'db> FacadeFunction<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db String {
         self.shim(db).src(db).name(db)
@@ -174,31 +95,16 @@ impl<'db> FacadeFunction<'db> {
         self.shim(db).ffi(db)
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
-        self.shim(db)
-            .params(db)
-            .iter()
-            .copied()
-            .map(|param| FacadeParam::new(db, param))
-            .collect()
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<FacadeParam<'db>> {
+        self.lower_params(db)
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<FacadeType<'db>> {
-        self.shim(db)
-            .ret_type(db)
-            .map(|type_| ShimType::from(type_).facade(db))
+        self.lower_ret_type(db)
     }
 
-    #[salsa::tracked(returns(ref))]
-    fn imports(self, db: &'db dyn Db) -> HashSet<FacadeImportItem<'db>> {
-        let mut imports = HashSet::new();
-        for param in self.params(db) {
-            if let FacadeTypeKind::Class(class) = param.type_(db).kind {
-                imports.insert(FacadeImportItem::FacadeClass(class));
-            }
-        }
-        imports
+    pub(super) fn imports(self, db: &'db dyn Db) -> &'db HashSet<FacadeImportItem<'db>> {
+        self.lower_imports(db)
     }
 }
 
@@ -207,11 +113,9 @@ pub struct FacadeParam<'db> {
     shim: ShimParam<'db>,
 }
 
-#[salsa::tracked]
 impl<'db> FacadeParam<'db> {
-    #[salsa::tracked(returns(ref))]
     pub fn type_(self, db: &'db dyn Db) -> FacadeType<'db> {
-        self.shim(db).type_(db).facade(db)
+        self.lower_type(db)
     }
 }
 
@@ -220,7 +124,6 @@ pub struct FacadeClass<'db> {
     shim: ShimClass<'db>,
 }
 
-#[salsa::tracked]
 impl<'db> FacadeClass<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
         self.shim(db).ffi(db)
@@ -237,103 +140,27 @@ impl<'db> FacadeClass<'db> {
         }
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn fields(self, db: &'db dyn Db) -> Vec<FacadeField<'db>> {
-        let shim = self.shim(db);
-
-        match shim.src(db) {
-            ShimClassSource::Struct(..) => shim
-                .fields(db)
-                .iter()
-                .map(|field| FacadeFieldPlain::new(db, field).as_field())
-                .collect(),
-
-            ShimClassSource::Enum(enum_) => {
-                let mut groups: HashMap<&'db FieldName, HashMap<u32, FacadeFieldPlain<'db>>> =
-                    HashMap::new();
-
-                for (variant_idx, variant) in enum_.variants(db).iter().enumerate() {
-                    for field in variant.fields(db) {
-                        let name = field.name(db);
-                        let group = groups.entry(name).or_default();
-                        group
-                            .entry(variant_idx as u32)
-                            .or_insert_with(|| FacadeFieldPlain::new(db, field.shim(db)));
-                    }
-                }
-
-                let mut fields = groups
-                    .into_iter()
-                    .map(|(name, sub)| {
-                        FacadeFieldDiscriminated::new(db, self, name.to_owned(), sub).as_field()
-                    })
-                    .collect::<Vec<_>>();
-
-                let variant_names = enum_
-                    .variants(db)
-                    .iter()
-                    .map(|v| v.name(db).to_owned())
-                    .collect::<Vec<_>>();
-
-                fields.push(
-                    FacadeFieldDiscriminator::new(
-                        db,
-                        ShimFunctionEnumDiscriminator::new(db, enum_),
-                        variant_names,
-                    )
-                    .as_field(),
-                );
-
-                fields
-            }
-        }
+    pub fn fields(self, db: &'db dyn Db) -> &'db Vec<FacadeField<'db>> {
+        self.lower_fields(db)
     }
 
-    #[salsa::tracked(returns(ref))]
-    fn imports(self, db: &'db dyn Db) -> HashSet<FacadeImportItem<'db>> {
-        let mut imports = HashSet::new();
-
-        fn insert_plain_field_imports<'db>(
-            db: &'db dyn Db,
-            field: &FacadeFieldPlain<'db>,
-            imports: &mut HashSet<FacadeImportItem<'db>>,
-        ) {
-            imports.insert(FacadeImportItem::FfiFunction(field.ffi_getter(db)));
-            if let Some(setter) = field.ffi_setter(db) {
-                imports.insert(FacadeImportItem::FfiFunction(setter));
-            }
-            if let FacadeTypeKind::Class(class) = field.type_(db).kind {
-                imports.insert(FacadeImportItem::FacadeClass(class));
-            }
-        }
-
-        for field in self.fields(db) {
-            match field {
-                FacadeField::Plain(f) => insert_plain_field_imports(db, f, &mut imports),
-                FacadeField::Discriminated(f) => {
-                    for sub in f.sub(db).values() {
-                        insert_plain_field_imports(db, sub, &mut imports);
-                    }
-                }
-                FacadeField::Discriminator(f) => {
-                    imports.insert(FacadeImportItem::FfiFunction(f.ffi(db)));
-                }
-            }
-        }
-
-        imports.insert(FacadeImportItem::FfiClass(self.ffi(db)));
-
-        imports
+    pub(super) fn imports(self, db: &'db dyn Db) -> &'db HashSet<FacadeImportItem<'db>> {
+        self.lower_imports(db)
     }
 }
 
+/// A JavaScript-facing field, including enum-specific and synthetic fields.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, salsa::Update, salsa::Supertype)]
 pub enum FacadeField<'db> {
+    /// Has one representation independent of any enum variant.
     Plain(FacadeFieldPlain<'db>),
+    /// Selects a variant-specific representation using an enum discriminator.
     Discriminated(FacadeFieldDiscriminated<'db>),
+    /// Exposes an enum's active variant as a synthetic field.
     Discriminator(FacadeFieldDiscriminator<'db>),
 }
 
+/// A field whose representation does not vary by enum variant.
 #[salsa::interned(debug)]
 pub struct FacadeFieldPlain<'db> {
     shim: ShimField<'db>,
@@ -342,6 +169,10 @@ pub struct FacadeFieldPlain<'db> {
 impl<'db> FacadeFieldPlain<'db> {
     pub fn as_field(self) -> FacadeField<'db> {
         FacadeField::Plain(self)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db FieldName {
+        self.shim(db).src(db).name(db)
     }
 
     pub fn ffi_setter(self, db: &'db dyn Db) -> Option<FfiFunction<'db>> {
@@ -353,82 +184,60 @@ impl<'db> FacadeFieldPlain<'db> {
     }
 
     pub fn type_(self, db: &'db dyn Db) -> FacadeType<'db> {
-        ShimType::from(self.shim(db).getter(db).ret_type(db)).facade(db)
+        self.lower_type(db)
     }
 }
 
+/// Groups same-named enum fields whose representation differs between variants.
 #[salsa::tracked(debug)]
 pub struct FacadeFieldDiscriminated<'db> {
     parent: FacadeClass<'db>,
+    /// The JavaScript-facing name shared by the variant-specific fields.
     #[returns(ref)]
     pub name: FieldName,
+    /// Maps discriminator values to their variant-specific field accessors.
     #[returns(ref)]
     #[tracked]
     pub sub: HashMap<u32, FacadeFieldPlain<'db>>,
 }
 
-#[salsa::tracked]
 impl<'db> FacadeFieldDiscriminated<'db> {
     pub fn as_field(self) -> FacadeField<'db> {
         FacadeField::Discriminated(self)
     }
 }
 
+/// A synthetic field exposing which variant of an enum is active.
 #[salsa::tracked(debug)]
 pub struct FacadeFieldDiscriminator<'db> {
     shim: ShimFunctionEnumDiscriminator<'db>,
+    /// Maps each numeric discriminator to the corresponding variant name by
+    /// index.
     #[returns(ref)]
     #[tracked]
     pub variant_names: Vec<String>,
 }
 
-#[salsa::tracked]
 impl<'db> FacadeFieldDiscriminator<'db> {
     pub fn as_field(self) -> FacadeField<'db> {
         FacadeField::Discriminator(self)
     }
 
-    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
+    /// The discriminator is emitted as a `type` property in JavaScript.
+    pub fn name(self) -> &'db str {
+        "type"
+    }
+
+    pub fn ffi_getter(self, db: &'db dyn Db) -> FfiFunction<'db> {
         self.shim(db).ffi(db)
     }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
-pub enum FacadeTypeKind<'db> {
-    Number,
-    String,
-    Boolean,
+#[allow(non_camel_case_types)]
+pub enum FacadeType<'db> {
+    boolean,
+    string,
+    number,
     Class(FacadeClass<'db>),
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
-pub struct FacadeType<'db> {
-    pub ffi: FfiType<'db>,
-    pub kind: FacadeTypeKind<'db>,
-}
-
-impl<'db> ShimType<'db> {
-    pub fn facade(self, db: &'db dyn Db) -> FacadeType<'db> {
-        let shim = self.deborrow();
-        let kind = match shim.kind {
-            ShimValueTypeKind::bool => FacadeTypeKind::Boolean,
-            ShimValueTypeKind::i8
-            | ShimValueTypeKind::u8
-            | ShimValueTypeKind::i16
-            | ShimValueTypeKind::u16
-            | ShimValueTypeKind::i32
-            | ShimValueTypeKind::u32
-            | ShimValueTypeKind::f64 => FacadeTypeKind::Number,
-            ShimValueTypeKind::String => FacadeTypeKind::String,
-            ShimValueTypeKind::Class(class) => FacadeTypeKind::Class(class.facade(db)),
-            ShimValueTypeKind::JsAny => {
-                return ShimType::from(self.src.shim_out(db)).facade(db);
-            }
-        };
-
-        FacadeType {
-            ffi: self.ffi(db),
-            kind,
-        }
-    }
 }

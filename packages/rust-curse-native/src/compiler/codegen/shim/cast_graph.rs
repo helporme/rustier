@@ -7,6 +7,10 @@ use crate::{
             fragment::{FragmentOnce, Printer, fragment},
         },
         db::Db,
+        ir::{
+            rust::ValueType,
+            shim::{ShimTypeKind, ShimValueTypeKind},
+        },
     },
     define_cast_graph, frag,
 };
@@ -115,6 +119,40 @@ define_cast_graph! {
     }
 }
 
+fn normalize_cast_source<'db>(
+    db: &'db dyn Db,
+    from: ShimCast::CastType<'db>,
+) -> ShimCast::CastType<'db> {
+    let ShimCast::CastType::ShimType(from_type) = from else {
+        return from;
+    };
+    if !matches!(
+        from_type.kind,
+        ShimTypeKind::Value(value_type) if value_type.kind == ShimValueTypeKind::JsAny
+    ) {
+        return from_type.into();
+    }
+
+    // API parameters retain their Rust provenance, but all numeric inputs enter
+    // through one JavaScript-number node (and likewise for bool and string).
+    let canonical_source = match from_type.src.deborrow() {
+        ValueType::bool => ValueType::bool,
+        ValueType::Str | ValueType::String => ValueType::String,
+        ValueType::char
+        | ValueType::i8
+        | ValueType::u8
+        | ValueType::i16
+        | ValueType::u16
+        | ValueType::i32
+        | ValueType::u32
+        | ValueType::f32
+        | ValueType::f64 => ValueType::f64,
+        ValueType::Struct(_) | ValueType::Enum(_) => return from_type.into(),
+    };
+
+    canonical_source.shim_in(db).into()
+}
+
 /// A Rust cast request whose converted value is bound to `out_var_name`.
 pub struct Cast<From, To, InExpr, OutExpr> {
     pub from: From,
@@ -200,9 +238,11 @@ where
     OutExpr: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
+    let from = normalize_cast_source(db, cast.from.into());
+
     ShimCast::compile_cast(
         db,
-        cast.from,
+        from,
         cast.to,
         cast.in_expr,
         BindCastOutput {
@@ -278,7 +318,7 @@ where
     To: Into<ShimCast::CastType<'db>> + 'db,
     Expr: FragmentOnce + 'db,
 {
-    let from = from.into();
+    let from = normalize_cast_source(db, from.into());
     let to = to.into();
     let uses_indirect_rule = ShimCast::find_cast_path(db, from.clone(), to.clone())
         .iter()
@@ -428,7 +468,7 @@ where
             in_expr,
             out_var_name,
         } = cast;
-        let from = from.into();
+        let from = normalize_cast_source(self.db, from.into());
         let to = to.into();
 
         let uses_indirect_rule = ShimCast::find_cast_path(self.db, from.clone(), to.clone())
@@ -518,5 +558,160 @@ where
             let ~{out_var_name}~ = ~{out_expr};@
             {continue_with}
         )
+    }
+}
+
+#[cfg(test)]
+pub(super) mod test {
+    use std::fmt::{Debug, Write as _};
+
+    use crate::{
+        compiler::{
+            codegen::fragment::{FragmentOnce, Printer, fragment},
+            db::Db,
+        },
+        frag,
+    };
+
+    use super::{Cast, ShimCast, ShimCastCompiler};
+
+    /// Compiles visible fake cast expressions for generator snapshot tests.
+    #[derive(Copy, Clone)]
+    pub struct TestCastCompiler;
+
+    struct DebugString<'db, T> {
+        db: &'db dyn Db,
+        value: T,
+    }
+
+    impl<T> FragmentOnce for DebugString<'_, T>
+    where
+        T: Debug,
+    {
+        fn apply(self, printer: &mut Printer) {
+            let debug = salsa::attach(self.db, || format!("{:?}", self.value));
+            write!(printer, "{debug:?}").expect("writing to source printer cannot fail");
+        }
+    }
+
+    fn compile_test_cast_expr<'db, From, To, Expr>(
+        db: &'db dyn Db,
+        from: From,
+        to: To,
+        expr: Expr,
+    ) -> impl FragmentOnce + 'db
+    where
+        From: Into<ShimCast::CastType<'db>> + 'db,
+        To: Into<ShimCast::CastType<'db>> + 'db,
+        Expr: FragmentOnce + 'db,
+    {
+        let from = DebugString {
+            db,
+            value: from.into(),
+        };
+        let to = DebugString {
+            db,
+            value: to.into(),
+        };
+
+        frag!(cast.from({ from }).to({ to }).an({ expr }))
+    }
+
+    impl<'db> ShimCastCompiler<'db> for TestCastCompiler {
+        fn compile_cast_stmt<From, To, InExpr, OutExpr, Continue>(
+            self,
+            db: &'db dyn Db,
+            cast: Cast<From, To, InExpr, OutExpr>,
+            inner_stmt: Continue,
+        ) -> impl FragmentOnce + 'db
+        where
+            From: Into<ShimCast::CastType<'db>> + 'db,
+            To: Into<ShimCast::CastType<'db>> + 'db,
+            InExpr: FragmentOnce + 'db,
+            OutExpr: FragmentOnce + 'db,
+            Continue: FragmentOnce + 'db,
+        {
+            let cast_expr = compile_test_cast_expr(db, cast.from, cast.to, cast.in_expr);
+
+            frag!(
+                let ~{cast.out_var_name}~ = {cast_expr};@
+                {inner_stmt}
+            )
+        }
+
+        fn compile_casts_stmt<Casts, From, To, InExpr, OutExpr, Continue>(
+            self,
+            db: &'db dyn Db,
+            casts: Casts,
+            inner_stmt: Continue,
+        ) -> impl FragmentOnce + 'db
+        where
+            Casts: IntoIterator<Item = Cast<From, To, InExpr, OutExpr>> + 'db,
+            Casts::IntoIter: 'db,
+            From: Into<ShimCast::CastType<'db>> + 'db,
+            To: Into<ShimCast::CastType<'db>> + 'db,
+            InExpr: FragmentOnce + 'db,
+            OutExpr: FragmentOnce + 'db,
+            Continue: FragmentOnce + 'db,
+        {
+            fragment(move |printer| {
+                for cast in casts {
+                    let cast_expr = compile_test_cast_expr(db, cast.from, cast.to, cast.in_expr);
+                    frag!(let ~{cast.out_var_name}~ = {cast_expr};@).apply(printer);
+                }
+
+                inner_stmt.apply(printer);
+            })
+        }
+
+        fn compile_cast_expr<From, To, Expr>(
+            self,
+            db: &'db dyn Db,
+            from: From,
+            to: To,
+            expr: Expr,
+        ) -> impl FragmentOnce + 'db
+        where
+            From: Into<ShimCast::CastType<'db>> + 'db,
+            To: Into<ShimCast::CastType<'db>> + 'db,
+            Expr: FragmentOnce + 'db,
+        {
+            compile_test_cast_expr(db, from, to, expr)
+        }
+
+        fn compile_casts_expr<Casts, From, To, InExpr, OutExpr, Inner>(
+            self,
+            db: &'db dyn Db,
+            casts: Casts,
+            inner_expr: Inner,
+        ) -> impl FragmentOnce + 'db
+        where
+            Casts: IntoIterator<Item = Cast<From, To, InExpr, OutExpr>> + 'db,
+            Casts::IntoIter: 'db,
+            From: Into<ShimCast::CastType<'db>> + 'db,
+            To: Into<ShimCast::CastType<'db>> + 'db,
+            InExpr: FragmentOnce + 'db,
+            OutExpr: FragmentOnce + 'db,
+            Inner: FragmentOnce + 'db,
+        {
+            fragment(move |printer| {
+                let mut casts = casts.into_iter();
+                let Some(first_cast) = casts.next() else {
+                    inner_expr.apply(printer);
+                    return;
+                };
+                let cast_exprs = fragment(move |printer| {
+                    for cast in std::iter::once(first_cast).chain(casts) {
+                        let cast_expr =
+                            compile_test_cast_expr(db, cast.from, cast.to, cast.in_expr);
+                        frag!(let ~{cast.out_var_name}~ = {cast_expr};@).apply(printer);
+                    }
+
+                    inner_expr.apply(printer);
+                });
+
+                frag!({ { { cast_exprs } } }).apply(printer);
+            })
+        }
     }
 }

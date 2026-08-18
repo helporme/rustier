@@ -1,0 +1,110 @@
+---
+source: src/compiler/codegen/shim/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Test {
+    pub field: u32,
+}
+```
+
+# Compiled
+## Node
+```rust
+struct __tethering__rustdoc_0test_0crate_Test {
+    src: __tethering::SourceSlot<rustdoc_test_crate::Test>,
+}
+impl __tethering::Accessor<rustdoc_test_crate::Test>
+for __tethering__rustdoc_0test_0crate_Test {
+    fn access_dyn(
+        &self,
+        f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_dyn(f)
+    }
+    fn access_mut_dyn(
+        &self,
+        f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut_dyn(f)
+    }
+}
+impl __tethering__rustdoc_0test_0crate_Test {
+    pub fn new_owned(input: rustdoc_test_crate::Test) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Test>>,
+    ) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+    pub fn get_field(&self) -> __tethering::AccessResult<u32> {
+        self.access(|src| Ok(__tethering::AccessResult::Ok(&src.field)?.clone()))
+    }
+    pub fn set_field(&self, value: u32) -> __tethering::AccessResult<()> {
+        self.access_mut(|src| {
+            *__tethering::AccessResult::Ok(&mut src.field)? = value;
+            Ok(())
+        })
+    }
+}
+#[napi(js_name = "__struct__rustdoc_0test_0crate_Test")]
+pub struct __struct__rustdoc_0test_0crate_Test {
+    src: std::rc::Rc<__tethering__rustdoc_0test_0crate_Test>,
+}
+```
+
+## Wasm
+```rust
+struct __tethering__rustdoc_0test_0crate_Test {
+    src: __tethering::SourceSlot<rustdoc_test_crate::Test>,
+}
+impl __tethering::Accessor<rustdoc_test_crate::Test>
+for __tethering__rustdoc_0test_0crate_Test {
+    fn access_dyn(
+        &self,
+        f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_dyn(f)
+    }
+    fn access_mut_dyn(
+        &self,
+        f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut_dyn(f)
+    }
+}
+impl __tethering__rustdoc_0test_0crate_Test {
+    pub fn new_owned(input: rustdoc_test_crate::Test) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Test>>,
+    ) -> Self {
+        __tethering__rustdoc_0test_0crate_Test {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+    pub fn get_field(&self) -> __tethering::AccessResult<u32> {
+        self.access(|src| Ok(__tethering::AccessResult::Ok(&src.field)?.clone()))
+    }
+    pub fn set_field(&self, value: u32) -> __tethering::AccessResult<()> {
+        self.access_mut(|src| {
+            *__tethering::AccessResult::Ok(&mut src.field)? = value;
+            Ok(())
+        })
+    }
+}
+#[wasm_bindgen(js_name = "__struct__rustdoc_0test_0crate_Test")]
+pub struct __struct__rustdoc_0test_0crate_Test {
+    src: std::rc::Rc<__tethering__rustdoc_0test_0crate_Test>,
+}
+```

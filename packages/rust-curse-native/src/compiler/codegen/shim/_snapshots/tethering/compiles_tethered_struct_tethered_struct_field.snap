@@ -1,5 +1,5 @@
 ---
-source: src/codegen/bindings/tethering.rs
+source: src/compiler/codegen/shim/tethering.rs
 expression: snapshot
 ---
 # Source

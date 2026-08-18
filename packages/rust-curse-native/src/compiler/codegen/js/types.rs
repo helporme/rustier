@@ -1,7 +1,7 @@
 use crate::compiler::{
     codegen::{cast::DirectCastRule, fragment::FragmentOnce},
     db::Db,
-    ir::facade::{FacadeType, FacadeTypeKind},
+    ir::facade::{FacadeType},
 };
 
 /// A type that represents a FFIType for casting purposes.
@@ -17,10 +17,8 @@ impl<'db> DirectCastRule<'db, FacadeType<'db>, FacadeFfiType<'db>>
 {
     fn predecessor(self, _db: &'db dyn Db, to: FacadeFfiType<'db>) -> Option<FacadeType<'db>> {
         match to.inner.kind {
-            FacadeTypeKind::Number | FacadeTypeKind::String | FacadeTypeKind::Boolean => {
-                Some(to.inner)
-            }
-            FacadeTypeKind::Class(..) => None,
+            FacadeType::Number | FacadeType::String | FacadeType::Boolean => Some(to.inner),
+            FacadeType::Class(..) => None,
         }
     }
 
@@ -46,10 +44,10 @@ impl<'db> DirectCastRule<'db, FacadeFfiType<'db>, FacadeType<'db>>
 {
     fn predecessor(self, _db: &'db dyn Db, to: FacadeType<'db>) -> Option<FacadeFfiType<'db>> {
         match to.kind {
-            FacadeTypeKind::Number | FacadeTypeKind::String | FacadeTypeKind::Boolean => {
+            FacadeType::Number | FacadeType::String | FacadeType::Boolean => {
                 Some(FacadeFfiType { inner: to })
             }
-            FacadeTypeKind::Class(_) => None,
+            FacadeType::Class(_) => None,
         }
     }
 

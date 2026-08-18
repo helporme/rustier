@@ -266,7 +266,7 @@ impl<'db> DirectCastRule<'db, ShimType<'db>, Type<'db>> for CastJsAnyToF64Rule {
     fn predecessor(self, _db: &'db dyn Db, to: Type<'db>) -> Option<ShimType<'db>> {
         (to == Type::Value(ValueType::f64)).then_some(ShimType {
             kind: ShimTypeKind::Value(ShimValueType {
-                kind: ShimValueTypeKind::f64,
+                kind: ShimValueTypeKind::JsAny,
                 src: to.deborrow(),
             }),
             src: to,
@@ -428,5 +428,293 @@ impl<'db> IndirectCastRule<'db, Type<'db>, Type<'db>> for CastStringToStrMutRule
             let value = value.as_mut_str();@
             {continue_with}
         }})
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::test::cast_snapshot;
+    use super::{ShimType, Type, ValueType};
+
+    cast_snapshot! {
+        name: bool_in,
+        from: |db| ValueType::bool.shim_in(db),
+        to: |_db| Type::Value(ValueType::bool),
+    }
+
+    cast_snapshot! {
+        name: bool_ref_in,
+        from: |db| ValueType::bool.shim_in(db),
+        to: |_db| ValueType::bool.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: bool_mut_in,
+        from: |db| ValueType::bool.shim_in(db),
+        to: |_db| ValueType::bool.borrowed_mut(),
+    }
+
+    cast_snapshot! {
+        name: bool_out,
+        from: |_db| Type::Value(ValueType::bool),
+        to: |db| ShimType::from(ValueType::bool.shim_out(db)),
+    }
+
+    cast_snapshot! {
+        name: char_in,
+        from: |db| ValueType::char.shim_in(db),
+        to: |_db| Type::Value(ValueType::char),
+    }
+
+    cast_snapshot! {
+        name: char_ref_in,
+        from: |db| ValueType::char.shim_in(db),
+        to: |_db| ValueType::char.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: char_mut_in,
+        from: |db| ValueType::char.shim_in(db),
+        to: |_db| ValueType::char.borrowed_mut(),
+    }
+
+    cast_snapshot! {
+        name: char_out,
+        from: |_db| Type::Value(ValueType::char),
+        to: |db| ShimType::from(ValueType::char.shim_out(db)),
+    }
+
+    cast_snapshot! {
+        name: i8_in,
+        from: |db| ValueType::i8.shim_in(db),
+        to: |_db| Type::Value(ValueType::i8),
+    }
+
+    cast_snapshot! {
+        name: i8_ref_in,
+        from: |db| ValueType::i8.shim_in(db),
+        to: |_db| ValueType::i8.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: i8_mut_in,
+        from: |db| ValueType::i8.shim_in(db),
+        to: |_db| ValueType::i8.borrowed_mut(),
+    }
+
+    cast_snapshot! {
+        name: i8_out,
+        from: |_db| Type::Value(ValueType::i8),
+        to: |db| ShimType::from(ValueType::i8.shim_out(db)),
+    }
+
+    cast_snapshot! {
+        name: u8_in,
+        from: |db| ValueType::u8.shim_in(db),
+        to: |_db| Type::Value(ValueType::u8),
+    }
+
+    cast_snapshot! {
+        name: u8_ref_in,
+        from: |db| ValueType::u8.shim_in(db),
+        to: |_db| ValueType::u8.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: u8_mut_in,
+        from: |db| ValueType::u8.shim_in(db),
+        to: |_db| ValueType::u8.borrowed_mut(),
+    }
+
+    cast_snapshot! {
+        name: u8_out,
+        from: |_db| Type::Value(ValueType::u8),
+        to: |db| ShimType::from(ValueType::u8.shim_out(db)),
+    }
+
+    cast_snapshot! {
+        name: i16_in,
+        from: |db| ValueType::i16.shim_in(db),
+        to: |_db| Type::Value(ValueType::i16),
+    }
+
+    cast_snapshot! {
+        name: i16_ref_in,
+        from: |db| ValueType::i16.shim_in(db),
+        to: |_db| ValueType::i16.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: i16_mut_in,
+        from: |db| ValueType::i16.shim_in(db),
+        to: |_db| ValueType::i16.borrowed_mut(),
+    }
+
+    cast_snapshot! {
+        name: i16_out,
+        from: |_db| Type::Value(ValueType::i16),
+        to: |db| ShimType::from(ValueType::i16.shim_out(db)),
+    }
+
+    cast_snapshot! {
+        name: u16_in,
+        from: |db| ValueType::u16.shim_in(db),
+        to: |_db| Type::Value(ValueType::u16),
+    }
+
+    cast_snapshot! {
+        name: u16_ref_in,
+        from: |db| ValueType::u16.shim_in(db),
+        to: |_db| ValueType::u16.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: u16_mut_in,
+        from: |db| ValueType::u16.shim_in(db),
+        to: |_db| ValueType::u16.borrowed_mut(),
+    }
+
+    cast_snapshot! {
+        name: u16_out,
+        from: |_db| Type::Value(ValueType::u16),
+        to: |db| ShimType::from(ValueType::u16.shim_out(db)),
+    }
+
+    cast_snapshot! {
+        name: i32_in,
+        from: |db| ValueType::i32.shim_in(db),
+        to: |_db| Type::Value(ValueType::i32),
+    }
+
+    cast_snapshot! {
+        name: i32_ref_in,
+        from: |db| ValueType::i32.shim_in(db),
+        to: |_db| ValueType::i32.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: i32_mut_in,
+        from: |db| ValueType::i32.shim_in(db),
+        to: |_db| ValueType::i32.borrowed_mut(),
+    }
+
+    cast_snapshot! {
+        name: i32_out,
+        from: |_db| Type::Value(ValueType::i32),
+        to: |db| ShimType::from(ValueType::i32.shim_out(db)),
+    }
+
+    cast_snapshot! {
+        name: u32_in,
+        from: |db| ValueType::u32.shim_in(db),
+        to: |_db| Type::Value(ValueType::u32),
+    }
+
+    cast_snapshot! {
+        name: u32_ref_in,
+        from: |db| ValueType::u32.shim_in(db),
+        to: |_db| ValueType::u32.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: u32_mut_in,
+        from: |db| ValueType::u32.shim_in(db),
+        to: |_db| ValueType::u32.borrowed_mut(),
+    }
+
+    cast_snapshot! {
+        name: u32_out,
+        from: |_db| Type::Value(ValueType::u32),
+        to: |db| ShimType::from(ValueType::u32.shim_out(db)),
+    }
+
+    cast_snapshot! {
+        name: f32_in,
+        from: |db| ValueType::f32.shim_in(db),
+        to: |_db| Type::Value(ValueType::f32),
+    }
+
+    cast_snapshot! {
+        name: f32_ref_in,
+        from: |db| ValueType::f32.shim_in(db),
+        to: |_db| ValueType::f32.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: f32_mut_in,
+        from: |db| ValueType::f32.shim_in(db),
+        to: |_db| ValueType::f32.borrowed_mut(),
+    }
+
+    cast_snapshot! {
+        name: f32_out,
+        from: |_db| Type::Value(ValueType::f32),
+        to: |db| ShimType::from(ValueType::f32.shim_out(db)),
+    }
+
+    cast_snapshot! {
+        name: f64_in,
+        from: |db| ValueType::f64.shim_in(db),
+        to: |_db| Type::Value(ValueType::f64),
+    }
+
+    cast_snapshot! {
+        name: f64_ref_in,
+        from: |db| ValueType::f64.shim_in(db),
+        to: |_db| ValueType::f64.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: f64_mut_in,
+        from: |db| ValueType::f64.shim_in(db),
+        to: |_db| ValueType::f64.borrowed_mut(),
+    }
+
+    cast_snapshot! {
+        name: f64_out,
+        from: |_db| Type::Value(ValueType::f64),
+        to: |db| ShimType::from(ValueType::f64.shim_out(db)),
+    }
+
+    cast_snapshot! {
+        name: str_in,
+        from: |db| ValueType::Str.shim_in(db),
+        to: |_db| ValueType::Str.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: str_ref_in,
+        from: |db| ValueType::Str.shim_in(db),
+        to: |_db| ValueType::Str.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: str_mut_in,
+        from: |db| ValueType::Str.shim_in(db),
+        to: |_db| ValueType::Str.borrowed_mut(),
+    }
+
+    cast_snapshot! {
+        name: string_in,
+        from: |db| ValueType::String.shim_in(db),
+        to: |_db| Type::Value(ValueType::String),
+    }
+
+    cast_snapshot! {
+        name: string_ref_in,
+        from: |db| ValueType::String.shim_in(db),
+        to: |_db| ValueType::String.borrowed(),
+    }
+
+    cast_snapshot! {
+        name: string_mut_in,
+        from: |db| ValueType::String.shim_in(db),
+        to: |_db| ValueType::String.borrowed_mut(),
+    }
+
+    cast_snapshot! {
+        name: string_out,
+        from: |_db| Type::Value(ValueType::String),
+        to: |db| ShimType::from(ValueType::String.shim_out(db)),
     }
 }

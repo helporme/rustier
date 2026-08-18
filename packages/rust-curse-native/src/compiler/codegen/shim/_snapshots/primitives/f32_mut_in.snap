@@ -1,0 +1,44 @@
+---
+source: src/compiler/codegen/shim/primitives.rs
+expression: snapshot
+---
+# Source
+
+```rust
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    let mut __cast_owned_value = ({
+        let value = input;
+        (if value.get_type().map_err(|err| napi::Error::from_reason(err.reason))?
+            == ValueType::Number
+        {
+            unsafe { value.cast::<f64>() }
+                .map_err(|_| napi::Error::from_reason(
+                    "cannot cast value to f64".to_string(),
+                ))
+        } else {
+            Err(napi::Error::from_reason("cannot cast value to f64".to_string()))
+        })?
+    }) as f32;
+    let output = &mut __cast_owned_value;
+    consume(output);
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    let mut __cast_owned_value = ({
+        let value = input;
+        (value
+            .as_f64()
+            .ok_or_else(|| JsValue::from_str(&"cannot cast value to f64".to_string())))?
+    }) as f32;
+    let output = &mut __cast_owned_value;
+    consume(output);
+}
+```

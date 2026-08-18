@@ -799,177 +799,203 @@ impl<'db> IndirectCastRule<'db, TetheringStructType<'db>, Type<'db>>
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::assert_rust_snap;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        assert_rust_snap,
+        compiler::{
+            codegen::shim::test::TEST_CRATE_NAME,
+            ir::rust::{Crate, Member},
+        },
+    };
 
-//     #[derive(Clone, Copy)]
-//     struct TestFieldExpr {
-//         field_name: &'static str,
-//         is_mutable: bool,
-//     }
+    fn test_value_type<'db>(db: &'db dyn Db, name: &str) -> ValueType<'db> {
+        let crate_ = Crate::by(db, TEST_CRATE_NAME).expect("test crate should be lowered");
 
-//     impl TestFieldExpr {
-//         fn shared(field_name: &'static str) -> Self {
-//             Self {
-//                 field_name,
-//                 is_mutable: false,
-//             }
-//         }
+        crate_
+            .root(db)
+            .members(db)
+            .iter()
+            .find_map(|member| match member {
+                Member::Struct(struct_) if struct_.name(db) == name => {
+                    Some(ValueType::Struct(*struct_))
+                }
+                Member::Enum(enum_) if enum_.name(db) == name => Some(ValueType::Enum(*enum_)),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("test value type `{name}` should be a root member"))
+    }
 
-//         fn mutable(field_name: &'static str) -> Self {
-//             Self {
-//                 field_name,
-//                 is_mutable: true,
-//             }
-//         }
-//     }
+    #[derive(Clone, Copy)]
+    struct TestFieldExpr {
+        field_name: &'static str,
+        is_mutable: bool,
+    }
 
-//     impl FieldExpr for TestFieldExpr {
-//         fn render(&self, source: &str) -> impl FragmentOnce {
-//             let Self {
-//                 field_name,
-//                 is_mutable,
-//             } = *self;
+    impl TestFieldExpr {
+        fn shared(field_name: &'static str) -> Self {
+            Self {
+                field_name,
+                is_mutable: false,
+            }
+        }
 
-//             fragment(move |p| {
-//                 if is_mutable {
-//                     frag!(Ok(&mut ~{source}.{field_name})).apply(p);
-//                 } else {
-//                     frag!(Ok(&{source}.{field_name})).apply(p);
-//                 }
-//             })
-//         }
-//     }
+        fn mutable(field_name: &'static str) -> Self {
+            Self {
+                field_name,
+                is_mutable: true,
+            }
+        }
+    }
 
-//     #[test]
-//     fn compiles_tethered_struct_empty() {
-//         assert_rust_snap! {
-//             source: {
-//                 pub struct Empty;
-//             },
-//             expression: |db, p| {
-//                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>;
-// 0] = [];
+    impl FieldExpr for TestFieldExpr {
+        fn render(&self, source: &str) -> impl FragmentOnce {
+            let Self {
+                field_name,
+                is_mutable,
+            } = *self;
 
-//                 render_tethering_struct(
-//                     db,
-//                     TetheringStruct {
-//                         source_type: db.item_id("Empty").into_value_type(db),
-//                         fields,
-//                     },
-//                 )
-//                 .apply(p);
-//             },
-//         }
-//     }
+            fragment(move |p| {
+                if is_mutable {
+                    frag!(Ok(&mut ~{source}.{field_name})).apply(p);
+                } else {
+                    frag!(Ok(&{source}.{field_name})).apply(p);
+                }
+            })
+        }
+    }
 
-//     #[test]
-//     fn compiles_tethered_struct_cloned_field() {
-//         assert_rust_snap! {
-//             source: {
-//                 pub struct Parent {
-//                     pub count: u32,
-//                 }
-//             },
-//             expression: |db, p| {
-//                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>;
-// 1] =                     [TetheredField::Cloned(ClonedField {
-//                         name: "count",
-//                         get_ref_expr: TestFieldExpr::shared("count"),
-//                         get_mut_expr: TestFieldExpr::mutable("count"),
-//                         source_type: ValueType::u32,
-//                     })];
+    #[test]
+    fn compiles_tethered_struct_empty() {
+        assert_rust_snap! {
+            source: {
+                pub struct Empty;
+            },
+            expression: |db, p| {
+                let db: &dyn Db = &*db;
+                let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 0] = [];
 
-//                 render_tethering_struct(
-//                     db,
-//                     TetheringStruct {
-//                         source_type:
-// db.item_id("Parent").into_value_type(db),                         fields,
-//                     },
-//                 )
-//                 .apply(p);
-//             },
-//         }
-//     }
+                render_tethering_struct(
+                    db,
+                    TetheringStruct {
+                        source_type: test_value_type(db, "Empty"),
+                        fields,
+                    },
+                )
+                .apply(p);
+            },
+        }
+    }
 
-//     #[test]
-//     fn compiles_tethered_struct_tethered_struct_field() {
-//         assert_rust_snap! {
-//             source: {
-//                 pub struct Child;
-//                 pub struct Parent {
-//                     pub child: Child,
-//                 }
-//             },
-//             expression: |db, p| {
-//                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>;
-// 1] =                     [TetheredField::TetheringStruct(TetheringStructField
-// {                         name: "child",
-//                         get_ref_expr: TestFieldExpr::shared("child"),
-//                         get_mut_expr: TestFieldExpr::mutable("child"),
-//                         source_type: db.item_id("Child").into_value_type(db),
-//                         with_setter: true,
-//                     })];
+    #[test]
+    fn compiles_tethered_struct_cloned_field() {
+        assert_rust_snap! {
+            source: {
+                pub struct Parent {
+                    pub count: u32,
+                }
+            },
+            expression: |db, p| {
+                let db: &dyn Db = &*db;
+                let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 1] =
+                    [TetheredField::Cloned(ClonedField {
+                        name: "count",
+                        get_ref_expr: TestFieldExpr::shared("count"),
+                        get_mut_expr: TestFieldExpr::mutable("count"),
+                        source_type: ValueType::u32,
+                    })];
 
-//                 render_tethering_struct(
-//                     db,
-//                     TetheringStruct {
-//                         source_type:
-// db.item_id("Parent").into_value_type(db),                         fields,
-//                     },
-//                 )
-//                 .apply(p);
-//             },
-//         }
-//     }
+                render_tethering_struct(
+                    db,
+                    TetheringStruct {
+                        source_type: test_value_type(db, "Parent"),
+                        fields,
+                    },
+                )
+                .apply(p);
+            },
+        }
+    }
 
-//     #[test]
-//     fn compiles_tethered_struct_mixed() {
-//         assert_rust_snap! {
-//             source: {
-//                 pub struct Child;
-//                 pub struct ReadonlyChild;
-//                 pub struct Parent {
-//                     pub count: u32,
-//                     pub child: Child,
-//                     pub readonly_child: ReadonlyChild,
-//                 }
-//             },
-//             expression: |db, p| {
-//                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>;
-// 3] = [                     TetheredField::Cloned(ClonedField {
-//                         name: "count",
-//                         get_ref_expr: TestFieldExpr::shared("count"),
-//                         get_mut_expr: TestFieldExpr::mutable("count"),
-//                         source_type: ValueType::u32,
-//                     }),
-//                     TetheredField::TetheringStruct(TetheringStructField {
-//                         name: "child",
-//                         get_ref_expr: TestFieldExpr::shared("child"),
-//                         get_mut_expr: TestFieldExpr::mutable("child"),
-//                         source_type: db.item_id("Child").into_value_type(db),
-//                         with_setter: true,
-//                     }),
-//                     TetheredField::TetheringStruct(TetheringStructField {
-//                         name: "readonly_child",
-//                         get_ref_expr:
-// TestFieldExpr::shared("readonly_child"),
-// get_mut_expr: TestFieldExpr::mutable("readonly_child"),
-// source_type: db.item_id("ReadonlyChild").into_value_type(db),
-// with_setter: false,                     }),
-//                 ];
+    #[test]
+    fn compiles_tethered_struct_tethered_struct_field() {
+        assert_rust_snap! {
+            source: {
+                pub struct Child;
+                pub struct Parent {
+                    pub child: Child,
+                }
+            },
+            expression: |db, p| {
+                let db: &dyn Db = &*db;
+                let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 1] =
+                    [TetheredField::TetheringStruct(TetheringStructField {
+                        name: "child",
+                        get_ref_expr: TestFieldExpr::shared("child"),
+                        get_mut_expr: TestFieldExpr::mutable("child"),
+                        source_type: test_value_type(db, "Child"),
+                        with_setter: true,
+                    })];
 
-//                 render_tethering_struct(
-//                     db,
-//                     TetheringStruct {
-//                         source_type:
-// db.item_id("Parent").into_value_type(db),                         fields,
-//                     },
-//                 )
-//                 .apply(p);
-//             },
-//         }
-//     }
-// }
+                render_tethering_struct(
+                    db,
+                    TetheringStruct {
+                        source_type: test_value_type(db, "Parent"),
+                        fields,
+                    },
+                )
+                .apply(p);
+            },
+        }
+    }
+
+    #[test]
+    fn compiles_tethered_struct_mixed() {
+        assert_rust_snap! {
+            source: {
+                pub struct Child;
+                pub struct ReadonlyChild;
+                pub struct Parent {
+                    pub count: u32,
+                    pub child: Child,
+                    pub readonly_child: ReadonlyChild,
+                }
+            },
+            expression: |db, p| {
+                let db: &dyn Db = &*db;
+                let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 3] = [
+                    TetheredField::Cloned(ClonedField {
+                        name: "count",
+                        get_ref_expr: TestFieldExpr::shared("count"),
+                        get_mut_expr: TestFieldExpr::mutable("count"),
+                        source_type: ValueType::u32,
+                    }),
+                    TetheredField::TetheringStruct(TetheringStructField {
+                        name: "child",
+                        get_ref_expr: TestFieldExpr::shared("child"),
+                        get_mut_expr: TestFieldExpr::mutable("child"),
+                        source_type: test_value_type(db, "Child"),
+                        with_setter: true,
+                    }),
+                    TetheredField::TetheringStruct(TetheringStructField {
+                        name: "readonly_child",
+                        get_ref_expr: TestFieldExpr::shared("readonly_child"),
+                        get_mut_expr: TestFieldExpr::mutable("readonly_child"),
+                        source_type: test_value_type(db, "ReadonlyChild"),
+                        with_setter: false,
+                    }),
+                ];
+
+                render_tethering_struct(
+                    db,
+                    TetheringStruct {
+                        source_type: test_value_type(db, "Parent"),
+                        fields,
+                    },
+                )
+                .apply(p);
+            },
+        }
+    }
+}

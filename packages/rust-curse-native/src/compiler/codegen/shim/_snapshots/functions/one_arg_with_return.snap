@@ -1,0 +1,58 @@
+---
+source: src/compiler/codegen/shim/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub fn test_fn(value: i32) -> i32 {
+    value
+}
+```
+
+# Compiled
+## Node
+```rust
+#[napi(js_name = "__fn__free__rustdoc_0test_0crate_test_0fn")]
+pub fn __fn__free__rustdoc_0test_0crate_test_0fn(_0: Unknown<'_>) -> napi::Result<i32> {
+    Ok(
+        cast
+            .from("Type(Value(i32))")
+            .to(
+                "ShimType(ShimType { kind: Value(ShimValueType { kind: i32, src: i32 }), src: Value(i32) })",
+            )
+            .an({
+                let _0 = cast
+                    .from(
+                        "ShimType(ShimType { kind: Value(ShimValueType { kind: JsAny, src: i32 }), src: Value(i32) })",
+                    )
+                    .to("Type(Value(i32))")
+                    .an(_0);
+                rustdoc_test_crate::test_fn(_0)
+            }),
+    )
+}
+```
+
+## Wasm
+```rust
+#[wasm_bindgen(js_name = "__fn__free__rustdoc_0test_0crate_test_0fn")]
+pub fn __fn__free__rustdoc_0test_0crate_test_0fn(_0: JsValue) -> Result<i32, JsValue> {
+    Ok(
+        cast
+            .from("Type(Value(i32))")
+            .to(
+                "ShimType(ShimType { kind: Value(ShimValueType { kind: i32, src: i32 }), src: Value(i32) })",
+            )
+            .an({
+                let _0 = cast
+                    .from(
+                        "ShimType(ShimType { kind: Value(ShimValueType { kind: JsAny, src: i32 }), src: Value(i32) })",
+                    )
+                    .to("Type(Value(i32))")
+                    .an(_0);
+                rustdoc_test_crate::test_fn(_0)
+            }),
+    )
+}
+```

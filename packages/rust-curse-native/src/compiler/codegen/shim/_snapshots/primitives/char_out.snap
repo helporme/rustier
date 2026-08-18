@@ -1,0 +1,25 @@
+---
+source: src/compiler/codegen/shim/primitives.rs
+expression: snapshot
+---
+# Source
+
+```rust
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    let output = (input) as u32;
+    consume(output);
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    let output = (input) as u32;
+    consume(output);
+}
+```

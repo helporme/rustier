@@ -1,13 +1,9 @@
-// An ir of a the rust public api.
+//! Intermediate representation for the supported subset of Rust's public API.
 
-use crate::compiler::{
-    db::Db,
-    ir::{
-        lowering::doc_to_rust::ItemExt,
-        shim::{ShimField, ShimMod},
-    },
-    mangle::mangle_path,
-};
+mod lowering;
+
+use self::lowering::ItemExt;
+use crate::compiler::{db::Db, mangle::mangle_path};
 use std::{
     fmt,
     path::{Path, PathBuf},
@@ -121,10 +117,6 @@ impl<'db> Mod<'db> {
         self.lower_members(db)
     }
 
-    pub fn shim(self, db: &'db dyn Db) -> ShimMod<'db> {
-        ShimMod::new(db, self)
-    }
-
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
         self.lower_docs(db)
     }
@@ -164,6 +156,7 @@ impl<'db> Struct<'db> {
         self.lower_shape(db)
     }
 
+    /// Flattens the shape while omitting private or hidden tuple-field slots.
     #[salsa::tracked(returns(ref))]
     pub fn fields(self, db: &'db dyn Db) -> Vec<Field<'db>> {
         match self.shape(db) {
@@ -182,9 +175,9 @@ impl<'db> Struct<'db> {
     }
 }
 
-impl<'db> From<Struct<'db>> for ValueType<'db> {
-    fn from(value: Struct<'db>) -> Self {
-        ValueType::Struct(value)
+impl<'db> AsValueType<'db> for Struct<'db> {
+    fn as_value_type(self) -> ValueType<'db> {
+        ValueType::Struct(self)
     }
 }
 
@@ -214,6 +207,7 @@ impl<'db> Enum<'db> {
         self.lower_variants(db)
     }
 
+    /// Concatenates each variant's visible fields in variant order.
     #[salsa::tracked(returns(ref))]
     pub fn fields(self, db: &'db dyn Db) -> Vec<Field<'db>> {
         let mut fields = vec![];
@@ -234,9 +228,9 @@ impl<'db> Enum<'db> {
     }
 }
 
-impl<'db> From<Enum<'db>> for ValueType<'db> {
-    fn from(value: Enum<'db>) -> Self {
-        ValueType::Enum(value)
+impl<'db> AsValueType<'db> for Enum<'db> {
+    fn as_value_type(self) -> ValueType<'db> {
+        ValueType::Enum(self)
     }
 }
 
@@ -262,6 +256,7 @@ impl<'db> Variant<'db> {
         self.lower_shape(db)
     }
 
+    /// Flattens the shape while omitting private or hidden tuple-field slots.
     #[salsa::tracked(returns(ref))]
     pub fn fields(self, db: &'db dyn Db) -> Vec<Field<'db>> {
         match self.shape(db) {
@@ -289,6 +284,7 @@ pub enum Shape<'db> {
     Tuple(Vec<Option<Field<'db>>>),
     Plain {
         fields: Vec<Field<'db>>,
+        /// Whether private or hidden fields were omitted.
         has_stripped_fields: bool,
     },
 }
@@ -299,17 +295,14 @@ pub struct Field<'db> {
     #[returns(ref)]
     pub name: FieldName,
     #[tracked]
-    pub type_: ValueType<'db>,
+    pub value_type: ValueType<'db>,
+    /// Whether generated bindings must prohibit writes to the field.
     #[tracked]
     pub is_readonly: bool,
 }
 
 #[salsa::tracked]
 impl<'db> Field<'db> {
-    pub fn shim(&self, db: &'db dyn Db) -> ShimField<'db> {
-        ShimField::new(db, self)
-    }
-
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         let name = match self.name(db) {
@@ -323,15 +316,15 @@ impl<'db> Field<'db> {
         }
     }
 
+    /// Enum-variant fields are prefixed with their variant to avoid collisions.
     #[salsa::tracked(returns(ref))]
     pub fn mangled_name(self, db: &'db dyn Db) -> String {
-        let mut out = vec![];
-        if let FieldParent::Variant(variant) = self.parent(db) {
-            out.push(variant.name(db).as_ref());
-            out.push("__");
+        match self.parent(db) {
+            FieldParent::Struct(_) => self.name(db).to_string(),
+            FieldParent::Variant(variant) => {
+                format!("__{}__{}", variant.name(db), self.name(db))
+            }
         }
-
-        mangle_path(out)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
@@ -466,11 +459,25 @@ impl<'db> ValueType<'db> {
             inner: self,
         }
     }
+
+    pub fn as_type(self) -> Type<'db> {
+        Type::Value(self)
+    }
 }
 
 impl<'db> From<ValueType<'db>> for Type<'db> {
     fn from(value: ValueType<'db>) -> Self {
         Type::Value(value)
+    }
+}
+
+pub trait AsValueType<'db> {
+    fn as_value_type(self) -> ValueType<'db>;
+}
+
+impl<'db, T: AsValueType<'db>> From<T> for ValueType<'db> {
+    fn from(value: T) -> Self {
+        value.as_value_type()
     }
 }
 
@@ -492,14 +499,28 @@ impl<'db> Type<'db> {
     }
 }
 
+pub trait AsType<'db> {
+    fn as_type(self) -> Type<'db>;
+}
+
+impl<'db, T: AsValueType<'db>> AsType<'db> for T {
+    fn as_type(self) -> Type<'db> {
+        Type::Value(self.as_value_type())
+    }
+}
+
+impl<'db, T: AsType<'db>> From<T> for Type<'db> {
+    fn from(value: T) -> Self {
+        value.as_type()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
 pub struct Span {
-    /// The absolute path to the source file.
     pub abs_path: PathBuf,
-    /// The path rechable from the crate root.
+    /// The path reachable from the crate root.
     ///
-    /// It might be a relative path if the span is pointing to the file
-    /// inside the "main" crate, or an absolute path otherwise.
+    /// This may be relative for files in the main crate and absolute otherwise.
     pub src_path: PathBuf,
     pub begin: (usize, usize),
     pub end: (usize, usize),
