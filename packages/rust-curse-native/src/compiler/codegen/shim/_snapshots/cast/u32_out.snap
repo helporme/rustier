@@ -1,0 +1,29 @@
+---
+source: src/compiler/codegen/shim/cast.rs
+expression: snapshot
+---
+# Source
+
+```rust
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    {
+        let output = (input) as f64;
+        consume(output);
+    }
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    {
+        let output = (input) as f64;
+        consume(output);
+    }
+}
+```

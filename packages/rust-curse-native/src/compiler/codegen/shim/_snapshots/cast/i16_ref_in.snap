@@ -1,0 +1,55 @@
+---
+source: src/compiler/codegen/shim/cast.rs
+expression: snapshot
+---
+# Source
+
+```rust
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    {
+        let mut __cast_owned_value = {
+            let type_name = "i16";
+            let value = input;
+            if value.trunc() != value || value < i16::MIN as f64
+                || value > i16::MAX as f64
+            {
+                return Err(
+                    napi::Error::from_reason(
+                        format!("cannot cast {value} to {type_name}"),
+                    ),
+                );
+            }
+            value as i16
+        };
+        let output = &__cast_owned_value;
+        consume(output);
+    }
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    {
+        let mut __cast_owned_value = {
+            let type_name = "i16";
+            let value = input;
+            if value.trunc() != value || value < i16::MIN as f64
+                || value > i16::MAX as f64
+            {
+                return Err(
+                    JsValue::from_str(&format!("cannot cast {value} to {type_name}")),
+                );
+            }
+            value as i16
+        };
+        let output = &__cast_owned_value;
+        consume(output);
+    }
+}
+```

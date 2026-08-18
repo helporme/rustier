@@ -1,0 +1,35 @@
+---
+source: src/compiler/codegen/shim/cast.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub enum ExampleEnum {
+    Variant,
+}
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    std::rc::Rc::clone(&input.src)
+        .access(|value| Ok({
+            let output = value;
+            consume(output);
+        }))?
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    std::rc::Rc::clone(&input.src)
+        .access(|value| Ok({
+            let output = value;
+            consume(output);
+        }))?
+}
+```

@@ -11,11 +11,10 @@ use crate::{
     frag,
 };
 
-mod cast_graph;
+mod cast;
 mod classes;
 mod crates;
 mod functions;
-mod primitives;
 mod tethering;
 mod types;
 
