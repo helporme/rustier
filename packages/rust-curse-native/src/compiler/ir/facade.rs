@@ -1,10 +1,4 @@
-//! Intermediate representation used to generate the ergonomic JavaScript API
-//! presented to users ("facade").
-//!
-//! Facade entities reference the FFI functions and classes that perform the
-//! actual calls across the Rust-JavaScript boundary. In other words, this IR
-//! describes how JavaScript code should be rendered over the lower-level API
-//! represented by the FFI IR.
+//! Intermediate representation used to generate the JavaScript API.
 
 pub mod ext;
 mod lowering;

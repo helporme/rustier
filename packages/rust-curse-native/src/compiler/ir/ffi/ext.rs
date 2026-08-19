@@ -1,10 +1,10 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        ffi::{FfiClass, FfiFunction, FfiParam, FfiType},
+        ffi::{FfiClass, FfiFunction, FfiParam},
         shim::{
             ShimClass, ShimFunction, ShimFunctionEnumDiscriminator, ShimFunctionFree,
-            ShimFunctionGetter, ShimFunctionSetter, ShimParam, ShimType,
+            ShimFunctionGetter, ShimFunctionSetter, ShimParam,
         },
     },
 };
@@ -48,16 +48,5 @@ impl<'db> ShimFunctionEnumDiscriminator<'db> {
 impl<'db> ShimParam<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiParam<'db> {
         FfiParam::new(db, self)
-    }
-}
-
-impl<'db> ShimType<'db> {
-    pub(super) fn lower_ffi(self, db: &'db dyn Db) -> FfiType<'db> {
-        match self {
-            ShimType::f64 => FfiType::number,
-            ShimType::String => FfiType::string,
-            ShimType::bool => FfiType::boolean,
-            ShimType::Class { inner, .. } => FfiType::Class(inner.ffi(db)),
-        }
     }
 }

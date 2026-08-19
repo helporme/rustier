@@ -1,0 +1,70 @@
+---
+source: src/compiler/codegen/ts/modules.rs
+expression: snapshot
+---
+# Source
+
+```rust
+@file: "models.rs"; pub mod models { #[derive(Clone)] pub struct External; }
+pub struct Local; #[doc = r" A shape represented by one of several layouts."]
+pub enum Shape
+{
+    #[doc = r" A circle with named fields."] Circle
+    {
+        #[doc = r" The circle radius."] radius: f64,
+        #[doc = r" A local Rust-backed value."] local: Local,
+        #[doc = r" An imported Rust-backed value."] external:
+        models::External,
+    }, #[doc = r" Coordinates represented by tuple fields."] Point(i32, i32),
+    #[doc = r" A variant without fields."] Unit,
+    #[doc = r" Checks acronym conversion."] HTTPRequest,
+}```
+
+# Compiled
+
+```ts
+import type {
+	External
+} from './models.rs';
+
+export class Local {
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+/** A shape represented by one of several layouts. */
+export type Shape = Shape.Instance & Shape.Plain;
+
+export namespace Shape {
+	export type Plain =
+		/** A circle with named fields. */
+		| {
+			readonly type: "circle";
+			/** The circle radius. */
+			radius: number;
+			/** A local Rust-backed value. */
+			readonly local: Local;
+			/** An imported Rust-backed value. */
+			external: External;
+		}
+		/** Coordinates represented by tuple fields. */
+		| {
+			readonly type: "point";
+			[0]: number;
+			[1]: number;
+		}
+		/** A variant without fields. */
+		| {
+			readonly type: "unit";
+		}
+		/** Checks acronym conversion. */
+		| {
+			readonly type: "httpRequest";
+		};
+
+	export class Instance {
+		private __rust_curse_brand: never;
+		private constructor();
+	}
+}
+```

@@ -1,7 +1,7 @@
 use crate::compiler::codegen::fragment::{FragmentOnce, fragment};
 
 /// Compiles optional Rust documentation into a TypeScript JSDoc comment.
-pub fn compile_jsdoc(docs: Option<&str>) -> impl FragmentOnce + '_ {
+pub fn render_jsdoc(docs: Option<&str>) -> impl FragmentOnce + '_ {
     fragment(move |p| {
         let Some(docs) = docs else {
             return;

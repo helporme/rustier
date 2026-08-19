@@ -4,7 +4,7 @@ use thiserror::Error;
 use super::{RustdocId, RustdocType, enums::EnumLowerError, structs::StructLowerError};
 use crate::compiler::{
     db::Db,
-    ir::rust::{Enum, Mod, Struct, Type, ValueType},
+    ir::rust::{Enum, Mod, ModParent, Struct, Type, ValueType},
 };
 
 use rustdoc_types as doc;
@@ -39,7 +39,7 @@ impl<'db> Type<'db> {
                     && crate_.index.contains_key(&path.id)
                 {
                     let id = RustdocId::new(db, crate_name, path.id);
-                    let struct_ = Struct::lower(db, id, parent);
+                    let struct_ = Struct::lower(db, id, declaring_mod(db, parent, &summary.path));
                     match struct_ {
                         Ok(s) => Ok(Type::Value(ValueType::Struct(s))),
                         Err(e) => Err(vec![TypeLowerError::StructLowerError(*e)]),
@@ -47,7 +47,7 @@ impl<'db> Type<'db> {
                 } else if summary.kind == doc::ItemKind::Enum && crate_.index.contains_key(&path.id)
                 {
                     let id = RustdocId::new(db, crate_name, path.id);
-                    let enum_ = Enum::lower(db, id, parent);
+                    let enum_ = Enum::lower(db, id, declaring_mod(db, parent, &summary.path));
                     match enum_ {
                         Ok(e) => Ok(Type::Value(ValueType::Enum(e))),
                         Err(e) => Err(vec![TypeLowerError::EnumLowerError(*e)]),
@@ -95,6 +95,16 @@ impl<'db> Type<'db> {
             }]),
         }
     }
+}
+
+fn declaring_mod<'db>(db: &'db dyn Db, active_mod: Mod<'db>, path: &[String]) -> Mod<'db> {
+    let mut mod_ = active_mod.path(db).crate_(db).root(db);
+
+    for segment in path.iter().skip(1).take(path.len().saturating_sub(2)) {
+        mod_ = Mod::new(db, ModParent::Mod(mod_), segment);
+    }
+
+    mod_
 }
 
 fn lower_primitive<'db>(name: &str) -> Option<ValueType<'db>> {

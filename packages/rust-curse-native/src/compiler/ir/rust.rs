@@ -299,6 +299,12 @@ pub struct Field<'db> {
     /// Whether generated bindings must prohibit writes to the field.
     #[tracked]
     pub is_readonly: bool,
+    #[returns(ref)]
+    #[tracked]
+    pub docs: Option<String>,
+    #[returns(ref)]
+    #[tracked]
+    pub span: Option<Span>,
 }
 
 #[salsa::tracked]
@@ -325,14 +331,6 @@ impl<'db> Field<'db> {
                 format!("__{}__{}", variant.name(db), self.name(db))
             }
         }
-    }
-
-    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.lower_docs(db)
-    }
-
-    pub fn span(self, db: &'db dyn Db) -> &'db Span {
-        self.lower_span(db).expect("field must have span")
     }
 }
 

@@ -1,0 +1,62 @@
+---
+source: src/compiler/codegen/ts/modules.rs
+expression: snapshot
+---
+# Source
+
+```rust
+@file: "models.rs"; pub mod models { #[derive(Clone)] pub struct External; }
+#[derive(Clone)] pub struct Local; pub struct Mixed
+{
+    pub number: i32, pub text: String, pub local: Local, pub external:
+    models::External,
+} pub enum Choice { Empty, Value { number: i32 }, } pub fn
+mixed(number: i32, text: String, local: Local, external: models::External,) ->
+models::External { external }```
+
+# Compiled
+
+```ts
+import type {
+	External
+} from './models.rs';
+
+export function mixed(
+	number: number,
+	text: string,
+	local: Local,
+	external: External,
+): External;
+
+export class Local {
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+export class Mixed {
+	public number: number;
+	public text: string;
+	public local: Local;
+	public external: External;
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+export type Choice = Choice.Instance & Choice.Plain;
+
+export namespace Choice {
+	export type Plain =
+		| {
+			readonly type: "empty";
+		}
+		| {
+			readonly type: "value";
+			number: number;
+		};
+
+	export class Instance {
+		private __rust_curse_brand: never;
+		private constructor();
+	}
+}
+```

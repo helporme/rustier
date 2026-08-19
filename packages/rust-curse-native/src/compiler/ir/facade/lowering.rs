@@ -1,19 +1,20 @@
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use crate::compiler::{
     db::Db,
     inputs::CompilationMetadata,
     ir::{
+        common::compile_relative_path,
         facade::{
             FacadeClass, FacadeClassKind, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
             FacadeFieldPlain, FacadeFunction, FacadeImport, FacadeImportItem, FacadeMod,
             FacadeParam, FacadeType,
         },
         rust::FieldName,
-        shim::{ShimClassSource, ShimFunction, ShimFunctionEnumDiscriminator},
+        shim::{ShimClassSource, ShimFunction, ShimFunctionEnumDiscriminator, ShimType},
     },
     mangle::to_camel_case,
 };
@@ -270,50 +271,15 @@ impl<'db> FacadeFieldPlain<'db> {
     }
 }
 
-fn compile_relative_path(from_mod_path: &Path, to_mod_path: &Path) -> Option<String> {
-    let mut from_components = from_mod_path.parent()?.components().peekable();
-    let mut to_components = to_mod_path.components().peekable();
-
-    while matches!(
-        (from_components.peek(), to_components.peek()),
-        (Some(from), Some(to)) if from == to
-    ) {
-        from_components.next();
-        to_components.next();
-    }
-
-    if from_components.clone().any(|component| {
-        matches!(
-            component,
-            std::path::Component::Prefix(_) | std::path::Component::RootDir
-        )
-    }) || to_components.clone().any(|component| {
-        matches!(
-            component,
-            std::path::Component::Prefix(_) | std::path::Component::RootDir
-        )
-    }) {
-        return None;
-    }
-
-    let mut path = String::new();
-    let parent_count = from_components.count();
-    if parent_count == 0 {
-        path.push_str("./");
-    } else {
-        for _ in 0..parent_count {
-            path.push_str("../");
+impl<'db> ShimType<'db> {
+    pub(super) fn lower_facade(self, db: &'db dyn Db) -> FacadeType<'db> {
+        match self {
+            ShimType::f64 => FacadeType::number,
+            ShimType::String => FacadeType::string,
+            ShimType::bool => FacadeType::boolean,
+            ShimType::Class { inner, .. } => FacadeType::Class(inner.facade(db)),
         }
     }
-
-    for (index, component) in to_components.enumerate() {
-        if index > 0 {
-            path.push('/');
-        }
-        path.push_str(&component.as_os_str().to_string_lossy());
-    }
-
-    Some(path)
 }
 
 #[cfg(test)]

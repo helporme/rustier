@@ -70,7 +70,15 @@ pub fn lower_field<'db>(
         .accumulate(db);
     }
 
-    Ok(Field::new(db, parent, name, field_type, is_readonly))
+    Ok(Field::new(
+        db,
+        parent,
+        name,
+        field_type,
+        is_readonly,
+        item.docs.clone(),
+        span,
+    ))
 }
 
 #[salsa::tracked]

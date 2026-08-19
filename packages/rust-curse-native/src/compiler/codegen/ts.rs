@@ -1,8 +1,9 @@
 //! Compiles IR into TypeScript declarations.
 
-pub mod enum_;
-pub mod fn_;
+mod classes;
+mod functions;
 pub mod jsdoc;
-pub mod mod_;
-pub mod sourcemap;
-pub mod struct_;
+mod modules;
+#[cfg(test)]
+mod test;
+mod types;
