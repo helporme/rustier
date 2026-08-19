@@ -1,40 +1,69 @@
 //! Module for running checks on IR for spotting common (but not critical)
 //! mistakes and pitfalls when using rust-curse.
 
-use miette::Diagnostic;
-use thiserror::Error;
-
-use crate::compiler::{db::Db, ir::Mod};
+use crate::compiler::{
+    db::Db,
+    diag::Diag,
+    ir::rust::{Crate, Member, Mod},
+};
 
 mod enum_js_name_collisions;
-mod f32_percission_los;
-pub use enum_js_name_collisions::EnumJsNameCollision;
-pub use f32_percission_los::F32PrecisionLoss;
+mod f32_precision_loss;
 
-/// Runs all checks and returns their diagnostics.
-///
-/// The check is independent from [`crate::compiler::inputs::Api`], it runs
-/// only on generated IR.
-pub fn check<'db>(db: &'db dyn Db, modules: &[Mod<'db>]) -> Vec<Check> {
-    f32_percission_los::check_f32_percission_los(db, modules)
-        .into_iter()
-        .map(Check::from)
-        .chain(
-            enum_js_name_collisions::check_enum_js_name_collisions(db, modules)
-                .into_iter()
-                .map(Check::from),
-        )
-        .collect()
+impl<'db> Crate<'db> {
+    pub fn check(self, db: &'db dyn Db) -> Vec<&'db Diag> {
+        accumulate_checks::accumulated::<Diag>(db, self)
+    }
 }
 
-/// A diagnostic emitted by an IR check.
-#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
-pub enum Check {
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    F32PrecisionLoss(#[from] F32PrecisionLoss),
+#[salsa::tracked]
+fn accumulate_checks<'db>(db: &'db dyn Db, crate_: Crate<'db>) {
+    crate_.root(db).check(db);
+}
 
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    EnumJsNameCollision(#[from] EnumJsNameCollision),
+#[salsa::tracked]
+impl<'db> Mod<'db> {
+    #[salsa::tracked]
+    fn check(self, db: &'db dyn Db) {
+        for member in self.members(db) {
+            match member {
+                Member::Struct(struct_) => struct_.check_f32_precision_loss(db),
+                Member::Enum(enum_) => {
+                    enum_.check_f32_precision_loss(db);
+                    enum_.check_js_name_collisions(db);
+                }
+                Member::Function(function) => function.check_f32_precision_loss(db),
+                Member::Mod(mod_) => mod_.check(db),
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Crate, Db};
+    use crate::{compiler::test::TEST_CRATE_NAME, test_db};
+
+    pub(super) fn diagnostic_codes(db: &dyn Db) -> Vec<String> {
+        let crate_ = Crate::by(db, TEST_CRATE_NAME).expect("test crate should be lowered");
+
+        crate_
+            .check(db)
+            .iter()
+            .filter_map(|diag| diag.inner.code().map(|code| code.to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn checks_nested_modules() {
+        let db = test_db! {
+            pub mod measurements {
+                pub fn read() -> f32 {
+                    1.25
+                }
+            }
+        };
+
+        assert_eq!(diagnostic_codes(&db), ["rust_curse::f32_precision_loss"]);
+    }
 }

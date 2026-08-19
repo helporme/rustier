@@ -1,6 +1,6 @@
 //! Codegen layer
 
-// pub mod check;
+pub(crate) mod check;
 pub mod codegen;
 pub mod db;
 pub mod diag;

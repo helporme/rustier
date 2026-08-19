@@ -1,61 +1,52 @@
-use std::collections::BTreeSet;
-
 use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::compiler::{
     db::Db,
-    diag::{DiagSource, DiagSpan},
-    ir::Mod,
+    diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
+    ir::{facade::FacadeClassKind, rust::Enum},
     mangle::to_camel_case,
 };
 
-/// Emits warnings for enum names that require collision-avoidance in the
-/// JavaScript facade.
-pub fn check_enum_js_name_collisions<'db>(
-    db: &'db dyn Db,
-    modules: &[Mod<'db>],
-) -> Vec<EnumJsNameCollision> {
-    let mut diags = Vec::new();
+#[salsa::tracked]
+impl<'db> Enum<'db> {
+    #[salsa::tracked]
+    pub(super) fn check_js_name_collisions(self, db: &'db dyn Db) {
+        let facade = self.shim(db).facade(db);
+        let FacadeClassKind::DiscriminatedUnion { discriminator, .. } = facade.kind(db) else {
+            unreachable!();
+        };
 
-    for mod_ in modules {
-        for enum_ in mod_.enums(db) {
-            let has_type_field_collision = enum_.js_tag_field_name(db) == "$type";
-            let mut tags = BTreeSet::new();
-            let has_variant_tag_collision = enum_
-                .variants(db)
-                .iter()
-                .map(|variant| to_camel_case(variant.name(db)))
-                .any(|tag| !tags.insert(tag));
+        let has_type_field_collision = discriminator.name(db) == "$type";
+        let expected_variant_names = self
+            .variants(db)
+            .iter()
+            .map(|variant| to_camel_case(variant.name(db)))
+            .collect::<Vec<_>>();
+        let has_variant_tag_collision = discriminator.variant_names(db) != &expected_variant_names;
 
-            if !has_type_field_collision && !has_variant_tag_collision {
-                continue;
+        if !has_type_field_collision && !has_variant_tag_collision {
+            return;
+        }
+
+        let source_span = self.span(db);
+        let source_code = source_span.diag_source(db);
+        let span = source_span.diag_span(db);
+
+        if has_type_field_collision {
+            EnumJsNameCollision::TypeField {
+                source_code: source_code.clone(),
+                span,
             }
+            .accumulate(db);
+        }
 
-            let source_code: DiagSource = enum_
-                .span(db)
-                .as_ref()
-                .map(|span| span.diag_source(db))
-                .into();
-            let span = enum_.span(db).as_ref().map(|span| span.diag_span(db));
-
-            if has_type_field_collision {
-                diags.push(EnumJsNameCollision::TypeField {
-                    source_code: source_code.clone(),
-                    span,
-                });
-            }
-
-            if has_variant_tag_collision {
-                diags.push(EnumJsNameCollision::VariantTags { source_code, span });
-            }
+        if has_variant_tag_collision {
+            EnumJsNameCollision::VariantTags { source_code, span }.accumulate(db);
         }
     }
-
-    diags
 }
 
-/// Warning emitted when enum names collide in the generated JavaScript API.
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 pub enum EnumJsNameCollision {
     #[error(
@@ -70,7 +61,7 @@ pub enum EnumJsNameCollision {
         #[source_code]
         source_code: DiagSource,
         #[label]
-        span: Option<DiagSpan>,
+        span: DiagSpan,
     },
 
     #[error(
@@ -78,30 +69,20 @@ pub enum EnumJsNameCollision {
     )]
     #[diagnostic(
         code(rust_curse::enum_variant_tag_collision),
-        help("use a different field name to avoid this collision"),
+        help("use a different variant name to avoid this collision"),
         severity(Warning)
     )]
     VariantTags {
         #[source_code]
         source_code: DiagSource,
         #[label]
-        span: Option<DiagSpan>,
+        span: DiagSpan,
     },
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::compiler::{lower::rustdoc_to_ir::mods::lower_mods, test::test_db};
-
-    fn diagnostic_codes(db: &dyn Db) -> Vec<String> {
-        let modules = lower_mods(db);
-
-        check_enum_js_name_collisions(db, modules.as_slice())
-            .iter()
-            .map(|diag| diag.code().unwrap().to_string())
-            .collect()
-    }
+    use crate::{compiler::check::tests::diagnostic_codes, test_db};
 
     #[test]
     fn warns_when_type_field_conflicts_with_discriminant() {
@@ -130,6 +111,25 @@ mod tests {
         assert_eq!(
             diagnostic_codes(&db),
             ["rust_curse::enum_variant_tag_collision"]
+        );
+    }
+
+    #[test]
+    fn emits_both_collision_diagnostics_in_stable_order() {
+        let db = test_db! {
+            #[allow(non_camel_case_types)]
+            pub enum Example {
+                http { r#type: String },
+                Http,
+            }
+        };
+
+        assert_eq!(
+            diagnostic_codes(&db),
+            [
+                "rust_curse::enum_type_field_collision",
+                "rust_curse::enum_variant_tag_collision",
+            ]
         );
     }
 
