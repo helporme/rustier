@@ -19,7 +19,6 @@ mod tethering;
 mod types;
 
 #[cfg(test)]
-#[doc(hidden)]
 mod test;
 
 #[salsa::tracked]

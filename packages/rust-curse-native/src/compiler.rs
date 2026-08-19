@@ -7,3 +7,6 @@ pub mod diag;
 pub mod inputs;
 mod ir;
 mod mangle;
+
+#[cfg(test)]
+pub(crate) mod test;

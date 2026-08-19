@@ -1,0 +1,43 @@
+---
+source: src/compiler/codegen/js/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Test;
+pub fn test_fn(value: Test) -> Test {
+    value
+}
+```
+
+# Compiled
+
+```js
+export function test_fn (
+	_0
+) {
+	{
+		const __0 = cast.from(
+			"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } }))"
+		).to(
+			"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } }))"
+		).an(
+			_0
+		);
+		{
+			const result = cast.from(
+				"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } }))"
+			).to(
+				"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } }))"
+			).an(
+				__fn__free__rustdoc_0test_0crate_test_0fn(
+					__0
+				)
+			);
+			return result;
+		}
+	}
+}
+```

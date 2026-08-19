@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     path::{Path, PathBuf},
 };
 
@@ -8,13 +8,14 @@ use crate::compiler::{
     inputs::CompilationMetadata,
     ir::{
         facade::{
-            FacadeClass, FacadeField, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
+            FacadeClass, FacadeClassKind, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
             FacadeFieldPlain, FacadeFunction, FacadeImport, FacadeImportItem, FacadeMod,
             FacadeParam, FacadeType,
         },
         rust::FieldName,
         shim::{ShimClassSource, ShimFunction, ShimFunctionEnumDiscriminator},
     },
+    mangle::to_camel_case,
 };
 
 #[salsa::tracked]
@@ -125,51 +126,49 @@ impl<'db> FacadeParam<'db> {
 #[salsa::tracked]
 impl<'db> FacadeClass<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn lower_fields(self, db: &'db dyn Db) -> Vec<FacadeField<'db>> {
+    pub(super) fn lower_kind(self, db: &'db dyn Db) -> FacadeClassKind<'db> {
         let shim = self.shim(db);
 
         match shim.src(db) {
-            ShimClassSource::Struct(_) => shim
-                .fields(db)
-                .iter()
-                .map(|field| FacadeFieldPlain::new(db, field).as_field())
-                .collect(),
+            ShimClassSource::Struct(_) => FacadeClassKind::Plain {
+                fields: shim
+                    .fields(db)
+                    .iter()
+                    .map(|field| FacadeFieldPlain::new(db, field))
+                    .collect(),
+            },
             ShimClassSource::Enum(enum_) => {
-                let mut groups: HashMap<&'db FieldName, HashMap<u32, FacadeFieldPlain<'db>>> =
-                    HashMap::new();
+                let mut groups: Vec<(FieldName, BTreeMap<u32, FacadeFieldPlain<'db>>)> = vec![];
 
                 for (variant_idx, variant) in enum_.variants(db).iter().enumerate() {
                     for field in variant.fields(db) {
-                        groups
-                            .entry(field.name(db))
-                            .or_default()
-                            .entry(variant_idx as u32)
+                        let name = field.name(db);
+                        let sub = if let Some((_, sub)) =
+                            groups.iter_mut().find(|(group_name, _)| group_name == name)
+                        {
+                            sub
+                        } else {
+                            groups.push((name.clone(), BTreeMap::new()));
+                            &mut groups.last_mut().expect("field group was just inserted").1
+                        };
+
+                        sub.entry(variant_idx as u32)
                             .or_insert_with(|| FacadeFieldPlain::new(db, field.shim(db)));
                     }
                 }
 
-                let mut fields = groups
+                let fields = groups
                     .into_iter()
-                    .map(|(name, sub)| {
-                        FacadeFieldDiscriminated::new(db, self, name.to_owned(), sub).as_field()
-                    })
+                    .map(|(name, sub)| FacadeFieldDiscriminated::new(db, self, name, sub))
                     .collect::<Vec<_>>();
-                let variant_names = enum_
-                    .variants(db)
-                    .iter()
-                    .map(|variant| variant.name(db).to_owned())
-                    .collect();
 
-                fields.push(
-                    FacadeFieldDiscriminator::new(
+                FacadeClassKind::DiscriminatedUnion {
+                    fields,
+                    discriminator: FacadeFieldDiscriminator::new(
                         db,
                         ShimFunctionEnumDiscriminator::new(db, enum_),
-                        variant_names,
-                    )
-                    .as_field(),
-                );
-
-                fields
+                    ),
+                }
             }
         }
     }
@@ -192,22 +191,75 @@ impl<'db> FacadeClass<'db> {
             }
         }
 
-        for field in self.fields(db) {
-            match field {
-                FacadeField::Plain(field) => insert_plain_field_imports(db, *field, &mut imports),
-                FacadeField::Discriminated(field) => {
+        match self.kind(db) {
+            FacadeClassKind::Plain { fields } => {
+                for field in fields {
+                    insert_plain_field_imports(db, *field, &mut imports);
+                }
+            }
+            FacadeClassKind::DiscriminatedUnion {
+                fields,
+                discriminator,
+            } => {
+                for field in fields {
                     for sub in field.sub(db).values() {
                         insert_plain_field_imports(db, *sub, &mut imports);
                     }
                 }
-                FacadeField::Discriminator(field) => {
-                    imports.insert(FacadeImportItem::FfiFunction(field.ffi_getter(db)));
-                }
+
+                imports.insert(FacadeImportItem::FfiFunction(discriminator.ffi_getter(db)));
             }
         }
 
         imports.insert(FacadeImportItem::FfiClass(self.ffi(db)));
         imports
+    }
+}
+
+#[salsa::tracked]
+impl<'db> FacadeFieldDiscriminator<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_name(self, db: &'db dyn Db) -> String {
+        let enum_ = self.shim(db).src(db);
+
+        if enum_.variants(db).iter().any(|variant| {
+            variant
+                .fields(db)
+                .iter()
+                .any(|field| matches!(field.name(db), FieldName::Name(name) if name == "type"))
+        }) {
+            "$type".to_owned()
+        } else {
+            "type".to_owned()
+        }
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_variant_names(self, db: &'db dyn Db) -> Vec<String> {
+        let enum_ = self.shim(db).src(db);
+        let camel_case_names = enum_
+            .variants(db)
+            .iter()
+            .map(|variant| to_camel_case(variant.name(db)))
+            .collect::<Vec<_>>();
+        let mut occurrences = HashMap::new();
+
+        for name in &camel_case_names {
+            *occurrences.entry(name.clone()).or_insert(0) += 1;
+        }
+
+        enum_
+            .variants(db)
+            .iter()
+            .zip(camel_case_names)
+            .map(|(variant, camel_case_name)| {
+                if occurrences[&camel_case_name] > 1 {
+                    variant.name(db).to_owned()
+                } else {
+                    camel_case_name
+                }
+            })
+            .collect()
     }
 }
 
@@ -262,4 +314,71 @@ fn compile_relative_path(from_mod_path: &Path, to_mod_path: &Path) -> Option<Str
     }
 
     Some(path)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::compiler::{
+        db::DbImpl,
+        ir::{
+            facade::{FacadeClass, FacadeClassKind},
+            rust::Crate,
+        },
+        test::{TEST_CRATE_NAME, build_test_db, format_rust_source},
+    };
+
+    #[test]
+    fn enum_variant_tags_use_lower_camel_case_and_preserve_collisions() {
+        let db = build_db(stringify! {
+            pub enum Test {
+                FirstVariant,
+                HTTPRequest,
+                HttpRequest,
+            }
+        });
+        let class = only_facade_class(&db);
+        let FacadeClassKind::DiscriminatedUnion { discriminator, .. } = class.kind(&db) else {
+            panic!("enum should lower to a discriminated union");
+        };
+
+        assert_eq!(
+            discriminator.variant_names(&db),
+            &["firstVariant", "HTTPRequest", "HttpRequest"]
+        );
+        assert_eq!(discriminator.name(&db), "type");
+    }
+
+    #[test]
+    fn enum_discriminator_avoids_a_real_type_field() {
+        let db = build_db(stringify! {
+            pub enum Test {
+                Variant {
+                    r#type: u32,
+                },
+            }
+        });
+        let class = only_facade_class(&db);
+        let FacadeClassKind::DiscriminatedUnion { discriminator, .. } = class.kind(&db) else {
+            panic!("enum should lower to a discriminated union");
+        };
+
+        assert_eq!(discriminator.name(&db), "$type");
+    }
+
+    fn build_db(source: &str) -> DbImpl {
+        build_test_db(format_rust_source(source), &[])
+    }
+
+    fn only_facade_class(db: &DbImpl) -> FacadeClass<'_> {
+        let root = Crate::by(db, TEST_CRATE_NAME)
+            .expect("test crate should be lowered")
+            .root(db)
+            .shim(db)
+            .facade(db);
+        let [class] = root.classes(db).as_slice() else {
+            panic!("test crate root should contain exactly one facade class");
+        };
+
+        *class
+    }
 }

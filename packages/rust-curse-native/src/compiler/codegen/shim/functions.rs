@@ -307,8 +307,7 @@ mod tests {
     use crate::{
         assert_rust_snap,
         compiler::{
-            codegen::shim::{cast::test::TestCastRenderer, test::TEST_CRATE_NAME},
-            ir::rust::Crate,
+            codegen::shim::cast::test::TestCastRenderer, ir::rust::Crate, test::TEST_CRATE_NAME,
         },
     };
 

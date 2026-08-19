@@ -1,0 +1,52 @@
+---
+source: src/compiler/codegen/js/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub fn test_fn(direct: i32, borrowed: &i32) -> i32 {
+    direct + borrowed
+}
+```
+
+# Compiled
+
+```js
+export function test_fn (
+	_0,
+	_1
+) {
+	{
+		const __0 = cast.from(
+			"Facade(number)"
+		).to(
+			"Ffi(number)"
+		).an(
+			_0
+		);
+		{
+			const __1 = cast.from(
+				"Facade(number)"
+			).to(
+				"Ffi(number)"
+			).an(
+				_1
+			);
+			{
+				const result = cast.from(
+					"Ffi(number)"
+				).to(
+					"Facade(number)"
+				).an(
+					__fn__free__rustdoc_0test_0crate_test_0fn(
+						__0,
+						__1
+					)
+				);
+				return result;
+			}
+		}
+	}
+}
+```

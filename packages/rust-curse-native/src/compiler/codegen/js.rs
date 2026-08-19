@@ -1,6 +1,8 @@
-mod cast_graph;
+mod cast;
 mod classes;
 mod functions;
 mod imports;
 pub mod modules;
-mod types;
+
+#[cfg(test)]
+mod test;

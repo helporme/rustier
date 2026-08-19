@@ -1,0 +1,33 @@
+---
+source: src/compiler/codegen/js/cast.rs
+expression: snapshot
+---
+# Source
+
+```rust
+```
+
+# Compiled
+
+```js
+function cast(
+	input
+) {
+	{
+		const __cast_input = input;
+		if(
+			typeof __cast_input !== "boolean"
+		) {
+			throw new TypeError(
+				"Expected a value of type \"boolean\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+					__cast_input
+				) + "\""
+			);
+		}
+		const output = __cast_input;
+		consume(
+			output
+		);
+	}
+}
+```

@@ -10,7 +10,7 @@ pub mod ext;
 mod lowering;
 
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashSet},
     path::PathBuf,
 };
 
@@ -140,8 +140,8 @@ impl<'db> FacadeClass<'db> {
         }
     }
 
-    pub fn fields(self, db: &'db dyn Db) -> &'db Vec<FacadeField<'db>> {
-        self.lower_fields(db)
+    pub fn kind(self, db: &'db dyn Db) -> &'db FacadeClassKind<'db> {
+        self.lower_kind(db)
     }
 
     pub(super) fn imports(self, db: &'db dyn Db) -> &'db HashSet<FacadeImportItem<'db>> {
@@ -149,15 +149,16 @@ impl<'db> FacadeClass<'db> {
     }
 }
 
-/// A JavaScript-facing field, including enum-specific and synthetic fields.
-#[derive(Debug, Copy, Clone, Eq, PartialEq, salsa::Update, salsa::Supertype)]
-pub enum FacadeField<'db> {
-    /// Has one representation independent of any enum variant.
-    Plain(FacadeFieldPlain<'db>),
-    /// Selects a variant-specific representation using an enum discriminator.
-    Discriminated(FacadeFieldDiscriminated<'db>),
-    /// Exposes an enum's active variant as a synthetic field.
-    Discriminator(FacadeFieldDiscriminator<'db>),
+/// The structural shape of a JavaScript facade class.
+#[derive(Debug, Clone, Eq, PartialEq, salsa::Update)]
+pub enum FacadeClassKind<'db> {
+    Plain {
+        fields: Vec<FacadeFieldPlain<'db>>,
+    },
+    DiscriminatedUnion {
+        fields: Vec<FacadeFieldDiscriminated<'db>>,
+        discriminator: FacadeFieldDiscriminator<'db>,
+    },
 }
 
 /// A field whose representation does not vary by enum variant.
@@ -167,10 +168,6 @@ pub struct FacadeFieldPlain<'db> {
 }
 
 impl<'db> FacadeFieldPlain<'db> {
-    pub fn as_field(self) -> FacadeField<'db> {
-        FacadeField::Plain(self)
-    }
-
     pub fn name(self, db: &'db dyn Db) -> &'db FieldName {
         self.shim(db).src(db).name(db)
     }
@@ -198,34 +195,22 @@ pub struct FacadeFieldDiscriminated<'db> {
     /// Maps discriminator values to their variant-specific field accessors.
     #[returns(ref)]
     #[tracked]
-    pub sub: HashMap<u32, FacadeFieldPlain<'db>>,
-}
-
-impl<'db> FacadeFieldDiscriminated<'db> {
-    pub fn as_field(self) -> FacadeField<'db> {
-        FacadeField::Discriminated(self)
-    }
+    pub sub: BTreeMap<u32, FacadeFieldPlain<'db>>,
 }
 
 /// A synthetic field exposing which variant of an enum is active.
-#[salsa::tracked(debug)]
+#[salsa::interned(debug)]
 pub struct FacadeFieldDiscriminator<'db> {
     shim: ShimFunctionEnumDiscriminator<'db>,
-    /// Maps each numeric discriminator to the corresponding variant name by
-    /// index.
-    #[returns(ref)]
-    #[tracked]
-    pub variant_names: Vec<String>,
 }
 
 impl<'db> FacadeFieldDiscriminator<'db> {
-    pub fn as_field(self) -> FacadeField<'db> {
-        FacadeField::Discriminator(self)
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
+        self.lower_name(db)
     }
 
-    /// The discriminator is emitted as a `type` property in JavaScript.
-    pub fn name(self) -> &'db str {
-        "type"
+    pub fn variant_names(self, db: &'db dyn Db) -> &'db Vec<String> {
+        self.lower_variant_names(db)
     }
 
     pub fn ffi_getter(self, db: &'db dyn Db) -> FfiFunction<'db> {

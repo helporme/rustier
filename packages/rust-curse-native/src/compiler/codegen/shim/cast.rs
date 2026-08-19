@@ -371,12 +371,13 @@ pub mod test {
 #[cfg(test)]
 mod tests {
     use crate::compiler::{
-        codegen::shim::{test::TEST_CRATE_NAME, tethering::TetheringStructType},
+        codegen::shim::tethering::TetheringStructType,
         db::Db,
         ir::{
             rust::{Crate, Member, Type, ValueType},
             shim::ShimType,
         },
+        test::TEST_CRATE_NAME,
     };
 
     macro_rules! cast_snapshot {

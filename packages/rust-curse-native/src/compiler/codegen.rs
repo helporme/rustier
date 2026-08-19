@@ -1,5 +1,5 @@
 pub mod api;
 pub mod fragment;
-// mod js;
+mod js;
 mod shim;
 // pub mod ts;

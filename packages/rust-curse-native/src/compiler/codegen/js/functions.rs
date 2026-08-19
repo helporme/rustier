@@ -2,10 +2,7 @@ use crate::{
     compiler::{
         codegen::{
             fragment::{FragmentOnce, FragmentPrint, Printer, comma_list, fragment},
-            js::{
-                cast_graph::{Cast, FacadeCast, FacadeCastCompiler},
-                types::FacadeFfiType,
-            },
+            js::cast::{Cast, CastRenderer, Renderer},
         },
         db::Db,
         ir::facade::FacadeFunction,
@@ -17,56 +14,54 @@ use crate::{
 impl<'db> FacadeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render(self, db: &'db dyn Db) -> String {
-        self.render_with(db, FacadeCast::Graph).print()
+        self.render_with(db, Renderer).print()
     }
 
-    fn render_with<CastCompiler>(
-        self,
-        db: &'db dyn Db,
-        cast_compiler: CastCompiler,
-    ) -> impl FragmentOnce
+    fn render_with<Casts>(self, db: &'db dyn Db, casts: Casts) -> impl FragmentOnce
     where
-        CastCompiler: FacadeCastCompiler<'db> + Copy + Clone + 'db,
+        Casts: CastRenderer<'db> + Copy + Clone + 'db,
     {
         FacadeFunctionRenderer {
             function: self,
             db,
-            cast_compiler,
+            casts,
         }
     }
 }
 
 #[derive(Copy, Clone)]
-struct FacadeFunctionRenderer<'db, CastCompiler> {
+struct FacadeFunctionRenderer<'db, Casts> {
     function: FacadeFunction<'db>,
     db: &'db dyn Db,
-    cast_compiler: CastCompiler,
+    casts: Casts,
 }
 
-impl<'db, CastCompiler> FragmentOnce for FacadeFunctionRenderer<'db, CastCompiler>
+impl<'db, Casts> FragmentOnce for FacadeFunctionRenderer<'db, Casts>
 where
-    CastCompiler: FacadeCastCompiler<'db> + Copy + Clone + 'db,
+    Casts: CastRenderer<'db> + Copy + Clone + 'db,
 {
     fn apply(self, p: &mut Printer) {
         self.render().apply(p);
     }
 }
 
-impl<'db, CastCompiler> FacadeFunctionRenderer<'db, CastCompiler>
+impl<'db, Casts> FacadeFunctionRenderer<'db, Casts>
 where
-    CastCompiler: FacadeCastCompiler<'db> + Copy + Clone + 'db,
+    Casts: CastRenderer<'db> + Copy + Clone + 'db,
 {
     fn render(self) -> impl FragmentOnce {
         let name = self.function.name(self.db);
+        let ffi_ret_type = self.function.ffi(self.db).ret_type(self.db);
+        let facade_ret_type = self.function.ret_type(self.db);
 
-        let body = fragment(move |p| match self.function.ret_type(self.db) {
-            Some(ret_type) => {
+        let body = fragment(move |p| match (ffi_ret_type, facade_ret_type) {
+            (Some(ffi_ret_type), Some(facade_ret_type)) => {
                 self.render_param_casts({
-                    self.cast_compiler.compile_cast_stmt(
+                    self.casts.render_stmt(
                         self.db,
                         Cast {
-                            from: FacadeFfiType { inner: ret_type },
-                            to: ret_type,
+                            from: ffi_ret_type,
+                            to: facade_ret_type,
                             in_expr: self.render_call_expr(),
                             out_var_name: "result",
                         },
@@ -75,10 +70,11 @@ where
                 })
                 .apply(p);
             }
-            None => {
+            (None, None) => {
                 let call_stmt = frag!({ self.render_call_expr()};);
                 self.render_param_casts(call_stmt).apply(p);
             }
+            _ => unreachable!(),
         });
 
         frag!(
@@ -99,23 +95,21 @@ where
     }
 
     fn render_param_casts(self, continuation: impl FragmentOnce + 'db) -> impl FragmentOnce + 'db {
+        let ffi_params = self.function.ffi(self.db).params(self.db);
         let param_casts = self
             .function
             .params(self.db)
             .iter()
+            .zip(ffi_params)
             .enumerate()
-            .map(|(i, param)| {
-                let type_ = *param.type_(self.db);
-                Cast {
-                    from: type_,
-                    to: FacadeFfiType { inner: type_ },
-                    in_expr: Self::param_name(i),
-                    out_var_name: Self::casted_param_name(i),
-                }
+            .map(|(i, (param, ffi_param))| Cast {
+                from: param.type_(self.db),
+                to: ffi_param.type_(self.db),
+                in_expr: Self::param_name(i),
+                out_var_name: Self::casted_param_name(i),
             });
 
-        self.cast_compiler
-            .compile_casts_stmt(self.db, param_casts, continuation)
+        self.casts.render_many(self.db, param_casts, continuation)
     }
 
     fn render_call_expr(self) -> impl FragmentOnce {
@@ -128,7 +122,7 @@ where
                 .map(|(i, _)| Self::casted_param_name(i)),
         );
 
-        frag!({ ffi_fn_symbol }({ params }));
+        frag!({ ffi_fn_symbol }({ params }))
     }
 
     fn param_name(i: usize) -> impl FragmentOnce {
@@ -138,4 +132,81 @@ where
     fn casted_param_name(i: usize) -> impl FragmentOnce {
         frag!(__ { i })
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        assert_js_snap,
+        compiler::{
+            codegen::{fragment::FragmentOnce as _, js::cast::test::TestCastRenderer},
+            ir::rust::Crate,
+            test::TEST_CRATE_NAME,
+        },
+    };
+
+    macro_rules! test_function {
+        ($name:ident, { $($source:tt)* }) => {
+            #[test]
+            fn $name() {
+                assert_js_snap! {
+                    source: { $($source)* },
+                    expression: |db, printer| {
+                        let db = &*db;
+                        let root = Crate::by(db, TEST_CRATE_NAME)
+                            .expect("test crate should be lowered")
+                            .root(db)
+                            .shim(db)
+                            .facade(db);
+                        let [function] = root.fns(db).as_slice() else {
+                            panic!("test crate root should contain exactly one facade function");
+                        };
+
+                        function
+                            .render_with(db, TestCastRenderer)
+                            .apply(printer);
+                    },
+                }
+            }
+        };
+    }
+
+    test_function!(zero_args_without_return, {
+        pub fn test_fn() {}
+    });
+
+    test_function!(zero_args_with_return, {
+        pub fn test_fn() -> i32 {
+            0
+        }
+    });
+
+    test_function!(one_arg_without_return, {
+        pub fn test_fn(_value: i32) {}
+    });
+
+    test_function!(one_arg_with_return, {
+        pub fn test_fn(value: i32) -> i32 {
+            value
+        }
+    });
+
+    test_function!(two_args_without_return, {
+        pub fn test_fn(_direct: i32, _borrowed: &i32) {}
+    });
+
+    test_function!(two_args_with_return, {
+        pub fn test_fn(direct: i32, borrowed: &i32) -> i32 {
+            direct + borrowed
+        }
+    });
+
+    test_function!(class_argument_and_return, {
+        #[derive(Clone)]
+        pub struct Test;
+
+        pub fn test_fn(value: Test) -> Test {
+            value
+        }
+    });
 }
