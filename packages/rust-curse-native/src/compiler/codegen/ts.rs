@@ -2,8 +2,9 @@
 
 mod classes;
 mod functions;
-pub mod jsdoc;
+mod jsdoc;
 mod modules;
+mod types;
+
 #[cfg(test)]
 mod test;
-mod types;
