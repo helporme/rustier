@@ -40,3 +40,54 @@ impl<'db> DecalFunction<'db> {
         .print()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        assert_ts_snap,
+        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Crate, test::TEST_CRATE_NAME},
+    };
+
+    macro_rules! test_function {
+        ($name:ident, $function_name:literal, { $($source:tt)* }) => {
+            #[test]
+            fn $name() {
+                assert_ts_snap! {
+                    source: { $($source)* },
+                    expression: |db, p| {
+                        let db = &*db;
+                        let root = Crate::by(db, TEST_CRATE_NAME)
+                            .expect("test crate should be lowered")
+                            .root(db)
+                            .shim(db)
+                            .decals(db);
+                        let function = root
+                            .fns(db)
+                            .iter()
+                            .find(|function| function.name(db) == $function_name)
+                            .expect("test function should be lowered");
+
+                        function.render_ts(db).apply(p);
+                    },
+                }
+            }
+        };
+    }
+
+    test_function!(empty_function, "empty", {
+        pub fn empty() {}
+    });
+
+    test_function!(documented_mixed_signature, "transform", {
+        #[derive(Clone)]
+        pub struct Input;
+
+        #[derive(Clone)]
+        pub struct Output;
+
+        /// Transforms several JavaScript-compatible values.
+        pub fn transform(enabled: bool, label: String, amount: i32, input: Input) -> Output {
+            unimplemented!()
+        }
+    });
+}

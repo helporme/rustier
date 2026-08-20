@@ -17,13 +17,18 @@ impl<'db> DecalMod<'db> {
         let imports = self.ts_imports(db);
         let has_imports = !imports.is_empty();
         let functions = self.fns(db).iter().map(|function| function.render_ts(db));
-        let plain_classes = self.classes(db).iter().filter_map(|class| {
-            matches!(class.kind(db), DecalClassKind::Plain { .. }).then(|| class.render_ts(db))
-        });
-        let discriminated_classes = self.classes(db).iter().filter_map(|class| {
-            matches!(class.kind(db), DecalClassKind::DiscriminatedUnion { .. })
-                .then(|| class.render_ts(db))
-        });
+
+        let plain_classes = self
+            .classes(db)
+            .iter()
+            .filter(|&class| matches!(class.kind(db), DecalClassKind::Plain { .. }))
+            .map(|class| class.render_ts(db));
+
+        let discriminated_classes = self
+            .classes(db)
+            .iter()
+            .filter(|&class| matches!(class.kind(db), DecalClassKind::DiscriminatedUnion { .. }))
+            .map(|class| class.render_ts(db));
 
         fragment(move |p| {
             spaced(imports.into_iter().map(|(name, path)| {

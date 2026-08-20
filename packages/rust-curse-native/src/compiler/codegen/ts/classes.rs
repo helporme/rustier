@@ -115,11 +115,18 @@ impl<'db> DecalVariant<'db> {
 
 impl<'db> DecalField<'db> {
     fn render_ts(self, db: &'db dyn Db, is_class_field: bool) -> impl FragmentOnce + 'db {
-        let visibility = is_class_field.then_some("public ").unwrap_or_default();
-        let readonly = self
-            .is_readonly(db)
-            .then_some("readonly ")
-            .unwrap_or_default();
+        let visibility = if is_class_field {
+            "public "
+        } else {
+            Default::default()
+        };
+
+        let readonly = if self.is_readonly(db) {
+            "readonly "
+        } else {
+            Default::default()
+        };
+
         let name = fragment(move |p| {
             let name = self.name(db);
             match name {
@@ -143,4 +150,89 @@ fn brand() -> impl FragmentOnce {
         private __rust_curse_brand: never;@
         private constructor();
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        assert_ts_snap,
+        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Crate, test::TEST_CRATE_NAME},
+    };
+
+    macro_rules! test_class {
+        ($name:ident, $class_name:literal, { $($source:tt)* }) => {
+            #[test]
+            fn $name() {
+                assert_ts_snap! {
+                    source: { $($source)* },
+                    expression: |db, p| {
+                        let db = &*db;
+                        let root = Crate::by(db, TEST_CRATE_NAME)
+                            .expect("test crate should be lowered")
+                            .root(db)
+                            .shim(db)
+                            .decals(db);
+                        let class = root
+                            .classes(db)
+                            .iter()
+                            .find(|class| class.name(db) == $class_name)
+                            .expect("test class should be lowered");
+
+                        class.render_ts(db).apply(p);
+                    },
+                }
+            }
+        };
+    }
+
+    test_class!(unit_class, "Empty", {
+        pub struct Empty;
+    });
+
+    test_class!(documented_plain_class, "Record", {
+        pub struct Local;
+
+        /// Stores primitive and Rust-backed values.
+        pub struct Record {
+            /// A writable numeric value.
+            pub number: i32,
+            /// A value that cannot be replaced from JavaScript.
+            pub local: Local,
+        }
+    });
+
+    test_class!(tuple_class_with_private_field, "Tuple", {
+        pub struct Local;
+
+        pub struct Tuple(pub i32, String, pub Local);
+    });
+
+    test_class!(documented_discriminated_union, "Shape", {
+        pub struct Local;
+
+        /// A shape represented by several layouts.
+        pub enum Shape {
+            /// An acronym-prefixed request.
+            HTTPRequest {
+                /// A numeric response code.
+                response_code: i32,
+            },
+            /// A title-cased request with a colliding JavaScript tag.
+            HttpRequest { response_code: i32 },
+            /// Coordinates represented by tuple fields.
+            Point(
+                /// A Rust-backed value.
+                Local,
+                i32,
+            ),
+            /// A variant without fields.
+            Unit,
+        }
+    });
+
+    test_class!(renamed_discriminator, "Example", {
+        pub enum Example {
+            Value { r#type: String },
+        }
+    });
 }

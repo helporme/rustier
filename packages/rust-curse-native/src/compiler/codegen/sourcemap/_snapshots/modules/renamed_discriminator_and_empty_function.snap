@@ -1,0 +1,262 @@
+---
+source: src/compiler/codegen/sourcemap/modules.rs
+expression: snapshot
+---
+TypeScript:
+  0 | export function empty(): void;
+  1 | 
+  2 | export type Example = Example.Instance & Example.Plain;
+  3 | 
+  4 | export namespace Example {
+  5 | 	export type Plain =
+  6 | 		| {
+  7 | 			readonly $type: "value";
+  8 | 			type: string;
+  9 | 		};
+ 10 | 
+ 11 | 	export class Instance {
+ 12 | 		private __rust_curse_brand: never;
+ 13 | 		private constructor();
+ 14 | 	}
+ 15 | }
+ 16 | 
+ 17 | export type Never = Never.Instance & Never.Plain;
+ 18 | 
+ 19 | export namespace Never {
+ 20 | 	export type Plain =never;
+ 21 | 
+ 22 | 	export class Instance {
+ 23 | 		private __rust_curse_brand: never;
+ 24 | 		private constructor();
+ 25 | 	}
+ 26 | }
+
+Source map:
+{
+  "version": 3,
+  "file": "lib.rs.d.ts",
+  "sourceRoot": "",
+  "sources": [
+    "src/lib.rs"
+  ],
+  "names": [
+    "empty",
+    "Example",
+    "Value",
+    "type",
+    "Never"
+  ],
+  "mappings": "AAIAA,gBAAOA;;AAJPC,YAASA;;AAATA,iBAASA;AAATA,aAASA;;AACLC,YAAAA;AAAQC,GAAAA;;;AADZF,cAASA;;AAATA,UAASA;;;;AAGTG,YAASA;;AAATA,iBAASA;AAATA,aAASA;;AAATA,cAASA;;AAATA,UAASA"
+}
+
+Mappings:
+[
+    Mapping {
+        generated_line: 0,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 4,
+        original_column: 0,
+        name: "empty",
+    },
+    Mapping {
+        generated_line: 0,
+        generated_column: 16,
+        source: "src/lib.rs",
+        original_line: 4,
+        original_column: 7,
+        name: "empty",
+    },
+    Mapping {
+        generated_line: 2,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 0,
+        original_column: 0,
+        name: "Example",
+    },
+    Mapping {
+        generated_line: 2,
+        generated_column: 12,
+        source: "src/lib.rs",
+        original_line: 0,
+        original_column: 9,
+        name: "Example",
+    },
+    Mapping {
+        generated_line: 4,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 0,
+        original_column: 0,
+        name: "Example",
+    },
+    Mapping {
+        generated_line: 4,
+        generated_column: 17,
+        source: "src/lib.rs",
+        original_line: 0,
+        original_column: 9,
+        name: "Example",
+    },
+    Mapping {
+        generated_line: 5,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 0,
+        original_column: 0,
+        name: "Example",
+    },
+    Mapping {
+        generated_line: 5,
+        generated_column: 13,
+        source: "src/lib.rs",
+        original_line: 0,
+        original_column: 9,
+        name: "Example",
+    },
+    Mapping {
+        generated_line: 7,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 1,
+        original_column: 4,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 7,
+        generated_column: 12,
+        source: "src/lib.rs",
+        original_line: 1,
+        original_column: 4,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 8,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 1,
+        original_column: 12,
+        name: "type",
+    },
+    Mapping {
+        generated_line: 8,
+        generated_column: 3,
+        source: "src/lib.rs",
+        original_line: 1,
+        original_column: 12,
+        name: "type",
+    },
+    Mapping {
+        generated_line: 11,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 0,
+        original_column: 0,
+        name: "Example",
+    },
+    Mapping {
+        generated_line: 11,
+        generated_column: 14,
+        source: "src/lib.rs",
+        original_line: 0,
+        original_column: 9,
+        name: "Example",
+    },
+    Mapping {
+        generated_line: 13,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 0,
+        original_column: 0,
+        name: "Example",
+    },
+    Mapping {
+        generated_line: 13,
+        generated_column: 10,
+        source: "src/lib.rs",
+        original_line: 0,
+        original_column: 9,
+        name: "Example",
+    },
+    Mapping {
+        generated_line: 17,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 0,
+        name: "Never",
+    },
+    Mapping {
+        generated_line: 17,
+        generated_column: 12,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 9,
+        name: "Never",
+    },
+    Mapping {
+        generated_line: 19,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 0,
+        name: "Never",
+    },
+    Mapping {
+        generated_line: 19,
+        generated_column: 17,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 9,
+        name: "Never",
+    },
+    Mapping {
+        generated_line: 20,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 0,
+        name: "Never",
+    },
+    Mapping {
+        generated_line: 20,
+        generated_column: 13,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 9,
+        name: "Never",
+    },
+    Mapping {
+        generated_line: 22,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 0,
+        name: "Never",
+    },
+    Mapping {
+        generated_line: 22,
+        generated_column: 14,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 9,
+        name: "Never",
+    },
+    Mapping {
+        generated_line: 24,
+        generated_column: 0,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 0,
+        name: "Never",
+    },
+    Mapping {
+        generated_line: 24,
+        generated_column: 10,
+        source: "src/lib.rs",
+        original_line: 3,
+        original_column: 9,
+        name: "Never",
+    },
+]

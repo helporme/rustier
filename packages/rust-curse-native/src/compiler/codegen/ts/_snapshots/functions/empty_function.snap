@@ -1,0 +1,15 @@
+---
+source: src/compiler/codegen/ts/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub fn empty() {}
+```
+
+# Compiled
+
+```ts
+export function empty(): void;
+```

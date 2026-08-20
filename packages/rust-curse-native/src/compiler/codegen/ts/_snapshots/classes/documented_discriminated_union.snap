@@ -1,0 +1,65 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Local;
+/// A shape represented by several layouts.
+pub enum Shape {
+    /// An acronym-prefixed request.
+    HTTPRequest {
+        /// A numeric response code.
+        response_code: i32,
+    },
+    /// A title-cased request with a colliding JavaScript tag.
+    HttpRequest { response_code: i32 },
+    /// Coordinates represented by tuple fields.
+    Point(
+        /// A Rust-backed value.
+        Local,
+        i32,
+    ),
+    /// A variant without fields.
+    Unit,
+}
+```
+
+# Compiled
+
+```ts
+/** A shape represented by several layouts. */
+export type Shape = Shape.Instance & Shape.Plain;
+
+export namespace Shape {
+	export type Plain =
+		/** An acronym-prefixed request. */
+		| {
+			readonly type: "HTTPRequest";
+			/** A numeric response code. */
+			response_code: number;
+		}
+		/** A title-cased request with a colliding JavaScript tag. */
+		| {
+			readonly type: "HttpRequest";
+			response_code: number;
+		}
+		/** Coordinates represented by tuple fields. */
+		| {
+			readonly type: "point";
+			/** A Rust-backed value. */
+			readonly [0]: Local;
+			[1]: number;
+		}
+		/** A variant without fields. */
+		| {
+			readonly type: "unit";
+		};
+
+	export class Instance {
+		private __rust_curse_brand: never;
+		private constructor();
+	}
+}
+```

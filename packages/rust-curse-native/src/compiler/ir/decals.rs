@@ -8,7 +8,7 @@ use std::{collections::HashSet, path::PathBuf};
 use crate::compiler::{
     db::Db,
     ir::{
-        rust::{Field, FieldName, Variant},
+        rust::{Field, FieldName, Span, Variant},
         shim::{
             ShimClass, ShimClassSource, ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimMod,
             ShimParam,
@@ -38,6 +38,10 @@ impl<'db> DecalMod<'db> {
         self.shim(db).src(db).docs(db)
     }
 
+    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+        self.shim(db).src(db).span(db)
+    }
+
     pub fn fns(self, db: &'db dyn Db) -> &'db Vec<DecalFunction<'db>> {
         self.lower_fns(db)
     }
@@ -63,6 +67,10 @@ pub struct DecalFunction<'db> {
 impl<'db> DecalFunction<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db String {
         self.shim(db).src(db).name(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+        self.shim(db).src(db).span(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
@@ -123,6 +131,13 @@ impl<'db> DecalClass<'db> {
         }
     }
 
+    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+        match self.shim(db).src(db) {
+            ShimClassSource::Struct(struct_) => struct_.span(db),
+            ShimClassSource::Enum(enum_) => enum_.span(db),
+        }
+    }
+
     pub fn kind(self, db: &'db dyn Db) -> &'db DecalClassKind<'db> {
         self.lower_kind(db)
     }
@@ -148,6 +163,14 @@ pub struct DecalVariant<'db> {
 }
 
 impl<'db> DecalVariant<'db> {
+    pub fn source_name(self, db: &'db dyn Db) -> &'db String {
+        self.src(db).name(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+        self.src(db).span(db)
+    }
+
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
         self.src(db).docs(db)
     }
@@ -165,6 +188,10 @@ pub struct DecalField<'db> {
 impl<'db> DecalField<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db FieldName {
         self.src(db).name(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.src(db).span(db).as_ref()
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {

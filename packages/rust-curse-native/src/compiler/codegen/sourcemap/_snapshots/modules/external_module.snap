@@ -1,0 +1,80 @@
+---
+source: src/compiler/codegen/sourcemap/modules.rs
+expression: snapshot
+---
+TypeScript:
+  0 | export function first(): void;
+  1 | 
+  2 | export class Value {
+  3 | 	public number: number;
+  4 | 	private __rust_curse_brand: never;
+  5 | 	private constructor();
+  6 | }
+
+Source map:
+{
+  "version": 3,
+  "file": "items.rs.d.ts",
+  "sourceRoot": "",
+  "sources": [
+    "src/nested/items.rs"
+  ],
+  "names": [
+    "first",
+    "Value",
+    "number"
+  ],
+  "mappings": "AAAAA,gBAAOA;;AACPC,aAAWA;AACPC,QAAIA"
+}
+
+Mappings:
+[
+    Mapping {
+        generated_line: 0,
+        generated_column: 0,
+        source: "src/nested/items.rs",
+        original_line: 0,
+        original_column: 0,
+        name: "first",
+    },
+    Mapping {
+        generated_line: 0,
+        generated_column: 16,
+        source: "src/nested/items.rs",
+        original_line: 0,
+        original_column: 7,
+        name: "first",
+    },
+    Mapping {
+        generated_line: 2,
+        generated_column: 0,
+        source: "src/nested/items.rs",
+        original_line: 1,
+        original_column: 0,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 2,
+        generated_column: 13,
+        source: "src/nested/items.rs",
+        original_line: 1,
+        original_column: 11,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 3,
+        generated_column: 0,
+        source: "src/nested/items.rs",
+        original_line: 2,
+        original_column: 4,
+        name: "number",
+    },
+    Mapping {
+        generated_line: 3,
+        generated_column: 8,
+        source: "src/nested/items.rs",
+        original_line: 2,
+        original_column: 8,
+        name: "number",
+    },
+]

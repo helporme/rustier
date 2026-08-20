@@ -1,0 +1,28 @@
+---
+source: src/compiler/codegen/ts/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Input;
+#[derive(Clone)]
+pub struct Output;
+/// Transforms several JavaScript-compatible values.
+pub fn transform(enabled: bool, label: String, amount: i32, input: Input) -> Output {
+    unimplemented!()
+}
+```
+
+# Compiled
+
+```ts
+/** Transforms several JavaScript-compatible values. */
+export function transform(
+	enabled: boolean,
+	label: string,
+	amount: number,
+	input: Input,
+): Output;
+```

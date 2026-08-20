@@ -1,0 +1,19 @@
+---
+source: src/compiler/codegen/sourcemap/modules.rs
+expression: snapshot
+---
+TypeScript:
+
+
+Source map:
+{
+  "version": 3,
+  "file": "lib.rs.d.ts",
+  "sourceRoot": "",
+  "sources": [],
+  "names": [],
+  "mappings": ""
+}
+
+Mappings:
+[]
