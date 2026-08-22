@@ -27,13 +27,13 @@ pub struct ManifestOpts<'a> {
 /// ```
 /// use rust_curse::{
 ///     compiler::{
-///         db::DbImpl,
+///         db::RootDatabase,
 ///         inputs::{Platform, WasmTarget},
 ///     },
 ///     sync::manifest::{ManifestOpts, render_manifest},
 /// };
 ///
-/// let mut db = DbImpl::default();
+/// let mut db = RootDatabase::default();
 /// Platform::set(
 ///     &mut db,
 ///     Platform::Wasm {
@@ -122,7 +122,7 @@ fn escape_toml(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use crate::compiler::{
-        db::DbImpl,
+        db::RootDatabase,
         inputs::{Platform, WasmTarget},
     };
 
@@ -207,8 +207,8 @@ mod tests {
         }
     }
 
-    fn db(platform: Platform) -> DbImpl {
-        let mut db = DbImpl::default();
+    fn db(platform: Platform) -> RootDatabase {
+        let mut db = RootDatabase::default();
         Platform::set(&mut db, platform);
         db
     }

@@ -5,7 +5,7 @@
 use std::collections::BTreeMap;
 
 use crate::compiler::{
-    db::DbImpl,
+    db::RootDatabase,
     inputs::{Crate, RustdocCrates},
 };
 
@@ -24,7 +24,7 @@ pub fn format_rust_source(source: &str) -> String {
 /// Builds a code generation database from root source and additional module
 /// files.
 #[doc(hidden)]
-pub fn build_test_db(source: String, files: &[(&str, String)]) -> DbImpl {
+pub fn build_test_db(source: String, files: &[(&str, String)]) -> RootDatabase {
     let fixture_dir = tempfile::tempdir().expect("create test crate tempdir");
     let crate_dir = fixture_dir.path().to_path_buf();
     let src_dir = crate_dir.join("src");
@@ -70,7 +70,7 @@ pub fn build_test_db(source: String, files: &[(&str, String)]) -> DbImpl {
         },
     )]);
 
-    let mut db = DbImpl::default();
+    let mut db = RootDatabase::default();
     RustdocCrates::set(&mut db, crates);
 
     // Source files are read lazily by diagnostics and sourcemap queries, so
@@ -79,7 +79,7 @@ pub fn build_test_db(source: String, files: &[(&str, String)]) -> DbImpl {
     db
 }
 
-/// Creates a [`DbImpl`] containing rustdoc inputs for inline Rust code.
+/// Creates a [`RootDatabase`] containing rustdoc inputs for inline Rust code.
 #[macro_export]
 macro_rules! test_db {
     (

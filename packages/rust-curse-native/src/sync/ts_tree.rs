@@ -8,7 +8,7 @@ use miette::Diagnostic;
 use tracing::{debug, info, trace};
 
 use crate::{
-    compiler::{self, db::DbImpl, diag::Diag, lower::rustdoc_to_ir::mods::lower_mods},
+    compiler::{self, db::RootDatabase, diag::Diag, lower::rustdoc_to_ir::mods::lower_mods},
     sync::file::write_if_changed,
 };
 
@@ -20,7 +20,7 @@ pub struct SyncTsTreeOpts<'a> {
     /// The source `src` directory used to calculate mirrored module paths.
     pub src_dir: &'a Path,
     /// The database for compiling TypeScript declarations.
-    pub db: &'a DbImpl,
+    pub db: &'a RootDatabase,
 }
 
 /// Syncs a mirrored `src` tree with TypeScript declarations and source maps
@@ -32,14 +32,14 @@ pub struct SyncTsTreeOpts<'a> {
 /// use std::path::Path;
 ///
 /// use rust_curse::{
-///     compiler::db::DbImpl,
+///     compiler::db::RootDatabase,
 ///     sync::ts_tree::{SyncTsTreeOpts, sync_ts_tree},
 /// };
 ///
 /// sync_ts_tree(SyncTsTreeOpts {
 ///     our_dir: Path::new(".rust-curse/ts"),
 ///     src_dir: Path::new("src"),
-///     db: &DbImpl::default(),
+///     db: &RootDatabase::default(),
 /// })?;
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())

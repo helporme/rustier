@@ -11,7 +11,7 @@ use crate::{
     compiler::{
         codegen::bindings::compile_bindings,
         codegen::fragment::{FragmentPrint, frag},
-        db::DbImpl,
+        db::RootDatabase,
         inputs::{Platform, WasmTarget},
     },
     sync::{file::write_if_changed, manifest},
@@ -27,7 +27,7 @@ pub struct SyncCrateOps<'a> {
     /// e.g. ".rust-curse/crates/"
     pub out_dir: &'a Path,
     /// The database for compiling bindings.
-    pub db: &'a DbImpl,
+    pub db: &'a RootDatabase,
 }
 
 /// Syncs a generated cursed crate for a source crate.
@@ -39,13 +39,13 @@ pub struct SyncCrateOps<'a> {
 ///
 /// use rust_curse::{
 ///     compiler::{
-///         db::DbImpl,
+///         db::RootDatabase,
 ///         inputs::{Platform, WasmTarget},
 ///     },
 ///     sync::cursed_crate::{SyncCrateOps, sync_crate},
 /// };
 ///
-/// let mut db = DbImpl::default();
+/// let mut db = RootDatabase::default();
 /// Platform::set(
 ///     &mut db,
 ///     Platform::Wasm {

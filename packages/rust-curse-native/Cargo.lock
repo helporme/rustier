@@ -464,6 +464,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dissimilar"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aeda16ab4059c5fd2a83f2b9c9e9c981327b18aa8e3b313f7e6563799d4f093e"
+
+[[package]]
 name = "dragonbox_ecma"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -928,6 +934,16 @@ dependencies = [
  "anstyle",
  "clap",
  "escape8259",
+]
+
+[[package]]
+name = "line-index"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e27e0ed5a392a7f5ba0b3808a2afccff16c64933312c84b57618b49d1209bd2"
+dependencies = [
+ "nohash-hasher",
+ "text-size",
 ]
 
 [[package]]
@@ -1415,6 +1431,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
+name = "perf-event"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4d6393d9238342159080d79b78cb59c67399a8e7ecfa5d410bd614169e4e823"
+dependencies = [
+ "libc",
+ "perf-event-open-sys",
+]
+
+[[package]]
+name = "perf-event-open-sys"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c44fb1c7651a45a3652c4afc6e754e40b3d6e6556f1487e2b230bfc4f33c2a8"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "petgraph"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1864,6 +1899,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "ra_ap_ide_db"
+version = "0.0.345"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e115dd3fec8ce8fdef865a65b5edee47e0c7373c07d945e4eba7e199612e285c"
+dependencies = [
+ "arrayvec",
+ "bitflags",
+ "cov-mark",
+ "crossbeam-channel",
+ "either",
+ "fst",
+ "itertools",
+ "line-index",
+ "memchr",
+ "nohash-hasher",
+ "ra_ap_base_db",
+ "ra_ap_hir",
+ "ra_ap_macros",
+ "ra_ap_parser",
+ "ra_ap_profile",
+ "ra_ap_span",
+ "ra_ap_stdx",
+ "ra_ap_syntax",
+ "ra_ap_test_fixture",
+ "ra_ap_test_utils",
+ "ra_ap_vfs",
+ "rayon",
+ "rustc-hash 2.1.1",
+ "salsa",
+ "smallvec",
+ "tracing",
+ "triomphe",
+]
+
+[[package]]
 name = "ra_ap_intern"
 version = "0.0.345"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1934,6 +2004,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ra_ap_profile"
+version = "0.0.345"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7cf107b80fd69bb87b8af29ba48999f0a2e66e43b8172b2f76e3d459c5ad963"
+dependencies = [
+ "libc",
+ "perf-event",
+ "windows-sys",
+]
+
+[[package]]
 name = "ra_ap_span"
 version = "0.0.345"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1998,6 +2079,38 @@ dependencies = [
  "ra_ap_syntax",
  "ra_ap_tt",
  "rustc-hash 2.1.1",
+]
+
+[[package]]
+name = "ra_ap_test_fixture"
+version = "0.0.345"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a58820353f06fb61992d4663682d75d8889636df2f233c10317801897d09a5f"
+dependencies = [
+ "ra_ap_base_db",
+ "ra_ap_cfg",
+ "ra_ap_hir_expand",
+ "ra_ap_intern",
+ "ra_ap_paths",
+ "ra_ap_span",
+ "ra_ap_stdx",
+ "ra_ap_test_utils",
+ "ra_ap_tt",
+ "triomphe",
+]
+
+[[package]]
+name = "ra_ap_test_utils"
+version = "0.0.345"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8269a0f2978fcbbfca13623121f05d9e23edf3248a5d604690289f04c76c5c4"
+dependencies = [
+ "dissimilar",
+ "ra_ap_paths",
+ "ra_ap_profile",
+ "ra_ap_stdx",
+ "rustc-hash 2.1.1",
+ "text-size",
 ]
 
 [[package]]
@@ -2160,6 +2273,7 @@ dependencies = [
  "prettyplease",
  "proptest",
  "ra_ap_hir",
+ "ra_ap_ide_db",
  "rustdoc-types",
  "salsa",
  "serde",

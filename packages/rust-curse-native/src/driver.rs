@@ -25,7 +25,7 @@ use tracing_subscriber::{EnvFilter, fmt::time::ChronoLocal};
 use crate::{
     compiler::{
         self,
-        db::DbImpl,
+        db::RootDatabase,
         diag::{Diag, Theme},
         lower::rustdoc_to_ir::mods::lower_mods,
     },
@@ -181,7 +181,7 @@ impl From<&BuildArtifacts> for BuildArtifact {
 #[napi]
 pub struct Driver {
     opts: DriverOpts,
-    db: DbImpl,
+    db: RootDatabase,
     profile_builds: HashMap<String, BuildArtifacts>,
     build_version: u64,
 }
@@ -201,7 +201,7 @@ impl Driver {
 
         Self {
             opts,
-            db: DbImpl::default(),
+            db: RootDatabase::default(),
             profile_builds: HashMap::new(),
             build_version: 0,
         }

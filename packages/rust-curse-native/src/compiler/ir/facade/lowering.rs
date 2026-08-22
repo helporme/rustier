@@ -282,7 +282,7 @@ impl<'db> ShimType<'db> {
 #[cfg(test)]
 mod tests {
     use crate::compiler::{
-        db::DbImpl,
+        db::RootDatabase,
         ir::{
             facade::{FacadeClass, FacadeClassKind},
             rust::Crate,
@@ -328,11 +328,11 @@ mod tests {
         assert_eq!(discriminator.name(&db), "$type");
     }
 
-    fn build_db(source: &str) -> DbImpl {
+    fn build_db(source: &str) -> RootDatabase {
         build_test_db(format_rust_source(source), &[])
     }
 
-    fn only_facade_class(db: &DbImpl) -> FacadeClass<'_> {
+    fn only_facade_class(db: &RootDatabase) -> FacadeClass<'_> {
         let root = Crate::by(db, TEST_CRATE_NAME)
             .expect("test crate should be lowered")
             .root(db)

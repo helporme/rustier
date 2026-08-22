@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::compiler::{
     codegen::sourcemap::mappings::Mapping,
-    db::DbImpl,
+    db::RootDatabase,
     inputs::{FfiLayout, Platform},
     ir::{
         decals::DecalMod,
@@ -24,7 +24,7 @@ struct TestSourceMap {
     mappings: String,
 }
 
-pub fn configure_db(db: &mut DbImpl) {
+pub fn configure_db(db: &mut RootDatabase) {
     Platform::set(db, Platform::Node);
     FfiLayout::set(
         db,
@@ -34,7 +34,7 @@ pub fn configure_db(db: &mut DbImpl) {
     );
 }
 
-pub fn root_decals<'db>(db: &'db DbImpl) -> DecalMod<'db> {
+pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalMod<'db> {
     Crate::by(db, TEST_CRATE_NAME)
         .expect("test crate should be lowered")
         .root(db)
@@ -42,7 +42,7 @@ pub fn root_decals<'db>(db: &'db DbImpl) -> DecalMod<'db> {
         .decals(db)
 }
 
-pub fn decals_by_path<'db>(db: &'db DbImpl, path: &str) -> DecalMod<'db> {
+pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalMod<'db> {
     let mut module = Crate::by(db, TEST_CRATE_NAME)
         .expect("test crate should be lowered")
         .root(db);
@@ -61,7 +61,7 @@ pub fn decals_by_path<'db>(db: &'db DbImpl, path: &str) -> DecalMod<'db> {
     module.shim(db).decals(db)
 }
 
-pub fn snapshot_module(db: &DbImpl, module: DecalMod<'_>) -> String {
+pub fn snapshot_module(db: &RootDatabase, module: DecalMod<'_>) -> String {
     let crate_dir = Crate::by(db, TEST_CRATE_NAME)
         .expect("test crate should be lowered")
         .dir(db);

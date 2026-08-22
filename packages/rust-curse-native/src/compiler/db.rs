@@ -1,16 +1,8 @@
-/// Concrete code generation database.
-#[salsa::db]
-#[derive(Clone, Default)]
-pub struct DbImpl {
-    storage: salsa::Storage<Self>,
-}
-
-#[salsa::db]
-impl salsa::Database for DbImpl {}
+pub use ra_ap_ide_db::RootDatabase;
 
 /// Salsa database used by code generation queries.
 #[salsa::db]
-pub trait Db: salsa::Database {}
+pub trait Db: ra_ap_hir::db::HirDatabase {}
 
 #[salsa::db]
-impl Db for DbImpl {}
+impl Db for RootDatabase {}

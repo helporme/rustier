@@ -9,7 +9,7 @@ use rust_curse::{
     compiler::{
         codegen::api::{Api, ApiKind, WasmTarget},
         codegen::bindings::compile_bindings,
-        db::DbImpl,
+        db::RootDatabase,
         diag::Diag,
         rustdoc::{Crate, RustdocCrates},
     },
@@ -121,7 +121,7 @@ impl ProgramCompiler {
                 dir: workspace.source_dir.clone(),
             },
         )]);
-        let mut db = DbImpl::default();
+        let mut db = RootDatabase::default();
         RustdocCrates::set(&mut db, crates);
 
         let mut diagnostics = Vec::new();
