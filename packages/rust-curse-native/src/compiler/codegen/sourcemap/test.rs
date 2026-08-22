@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::compiler::{
     codegen::sourcemap::mappings::Mapping,
     db::DbImpl,
-    inputs::{Api, CompilationMetadata},
+    inputs::{FfiLayout, Platform},
     ir::{
         decals::DecalMod,
         rust::{Crate, Member},
@@ -25,13 +25,11 @@ struct TestSourceMap {
 }
 
 pub fn configure_db(db: &mut DbImpl) {
-    Api::set(db, Api::Node);
-    CompilationMetadata::set(
+    Platform::set(db, Platform::Node);
+    FfiLayout::set(
         db,
-        CompilationMetadata {
-            bin_path: std::path::PathBuf::new(),
-            js_ffi_path: std::path::PathBuf::from("ffi.js"),
-            js_mods_root_path: std::path::PathBuf::new(),
+        FfiLayout {
+            ffi_js_file: std::path::PathBuf::from("ffi.js"),
         },
     );
 }

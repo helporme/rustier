@@ -43,9 +43,9 @@ macro_rules! assert_js_snap {
         expression: |$db:ident, $printer:ident| $expression:block $(,)?
     ) => {{
         let mut __db = $crate::test_db! { $($source)* };
-        $crate::compiler::inputs::Api::set(
+        $crate::compiler::inputs::Platform::set(
             &mut __db,
-            $crate::compiler::inputs::Api::Node,
+            $crate::compiler::inputs::Platform::Node,
         );
         let __compiled = $crate::compiler::codegen::fragment::FragmentPrint::print(
             $crate::compiler::codegen::fragment::fragment(|$printer| {

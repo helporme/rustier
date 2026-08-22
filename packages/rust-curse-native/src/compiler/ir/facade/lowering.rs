@@ -5,7 +5,7 @@ use std::{
 
 use crate::compiler::{
     db::Db,
-    inputs::CompilationMetadata,
+    inputs::FfiLayout,
     ir::{
         common::compile_relative_path,
         facade::{
@@ -23,12 +23,10 @@ use crate::compiler::{
 impl<'db> FacadeImport<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_path(self, db: &'db dyn Db) -> String {
-        let metadata = CompilationMetadata::get(db);
+        let layout = FfiLayout::get(db);
         let originating_from_path = self.originating_from(db).file_path(db);
         let to_path = match self.item(db) {
-            FacadeImportItem::FfiFunction(_) | FacadeImportItem::FfiClass(_) => {
-                &metadata.js_ffi_path
-            }
+            FacadeImportItem::FfiFunction(_) | FacadeImportItem::FfiClass(_) => &layout.ffi_js_file,
             FacadeImportItem::FacadeClass(class) => class.parent(db).file_path(db),
         };
 
@@ -79,9 +77,8 @@ impl<'db> FacadeMod<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_file_path(self, db: &'db dyn Db) -> PathBuf {
-        let metadata = CompilationMetadata::get(db);
         let span = self.shim(db).src(db).span(db);
-        metadata.js_mods_root_path.join(&span.src_path)
+        span.abs_path.clone()
     }
 }
 

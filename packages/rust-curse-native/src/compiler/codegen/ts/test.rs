@@ -41,16 +41,14 @@ macro_rules! assert_ts_snap {
         expression: |$db:ident, $printer:ident| $expression:block $(,)?
     ) => {{
         let mut __db = $crate::test_db! { $($source)* };
-        $crate::compiler::inputs::Api::set(
+        $crate::compiler::inputs::Platform::set(
             &mut __db,
-            $crate::compiler::inputs::Api::Node,
+            $crate::compiler::inputs::Platform::Node,
         );
-        $crate::compiler::inputs::CompilationMetadata::set(
+        $crate::compiler::inputs::FfiLayout::set(
             &mut __db,
-            $crate::compiler::inputs::CompilationMetadata {
-                bin_path: ::std::path::PathBuf::new(),
-                js_ffi_path: ::std::path::PathBuf::from("ffi.js"),
-                js_mods_root_path: ::std::path::PathBuf::new(),
+            $crate::compiler::inputs::FfiLayout {
+                ffi_js_file: ::std::path::PathBuf::from("ffi.js"),
             },
         );
         let __compiled = $crate::compiler::codegen::fragment::FragmentPrint::print(

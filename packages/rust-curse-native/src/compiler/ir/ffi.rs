@@ -1,6 +1,6 @@
 //! Intermediate representation of the API actually exposed to JavaScript.
 //!
-//! It represents an actual and complete api that JavaScript receives from the
+//! It represents an actual and complete API that JavaScript receives from the
 //! rust code. All other generated JavaScript code is a "facade" on top of it.
 
 pub mod ext;

@@ -1,7 +1,7 @@
 //! Driver for the Rust curse building. Generally ressembles the vitest plugin.
 //!
-//! I have no idea what api it should have nor I can plan it ahead, once I will
-//! acome up with the api good enough to be used by the
+//! I have no idea what API it should have nor I can plan it ahead, once I will
+//! acome up with the API good enough to be used by the
 //! vite/rollup/rolldown/tsdown/custom-cli -- I will refactor this. For now
 //! this is a dump of everything.
 //!
@@ -135,12 +135,12 @@ enum BuildArtifacts {
 }
 
 impl ProfileOpts {
-    fn api(&self) -> compiler::inputs::Api {
+    fn platform(&self) -> compiler::inputs::Platform {
         match &self.target {
-            ProfileTarget::Wasm { target } => compiler::inputs::Api::Wasm {
+            ProfileTarget::Wasm { target } => compiler::inputs::Platform::Wasm {
                 target: target.into(),
             },
-            ProfileTarget::Node => compiler::inputs::Api::Node,
+            ProfileTarget::Node => compiler::inputs::Platform::Node,
         }
     }
 }
@@ -345,7 +345,7 @@ impl Driver {
                 "syncing profile crate"
             );
 
-            compiler::inputs::Api::set(&mut self.db, profile.api());
+            compiler::inputs::Platform::set(&mut self.db, profile.platform());
             sync_crate(SyncCrateOps {
                 manifest_path: &manifest_path,
                 out_dir: &profile_crate_dir,
@@ -453,14 +453,14 @@ impl Driver {
     fn _resolve(&mut self, profile_name: &str, file_path: String) -> Result<String, ResolveError> {
         debug!(profile_name, file_path, "resolving Rust module import");
 
-        let api = self
+        let platform = self
             .opts
             .profiles
             .get(profile_name)
             .ok_or_else(|| ResolveError::UnknownProfile {
                 profile_name: profile_name.to_string(),
             })?
-            .api();
+            .platform();
 
         let artifacts = self.profile_builds.get(profile_name).ok_or_else(|| {
             ResolveError::MissingProfileBuildArtifacts {
@@ -474,7 +474,7 @@ impl Driver {
 
         trace!(src_path, "resolved profile artifact source path");
 
-        compiler::inputs::Api::set(&mut self.db, api);
+        compiler::inputs::Platform::set(&mut self.db, platform);
         compiler::inputs::JsCodegenPaths::set(&mut self.db, src_path);
 
         let module_path = PathBuf::from(&file_path).canonicalize().map_err(|source| {

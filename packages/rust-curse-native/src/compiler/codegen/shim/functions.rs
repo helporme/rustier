@@ -11,7 +11,7 @@ use crate::{
             },
         },
         db::Db,
-        inputs::Api,
+        inputs::Platform,
         ir::{
             rust::{AsItem as _, Shape, Type},
             shim::{
@@ -67,20 +67,22 @@ where
     CastCompiler: CastRenderer<'db> + Copy + Clone + 'db,
 {
     fn render(self) -> impl FragmentOnce {
-        let api = Api::get(self.db);
+        let platform = Platform::get(self.db);
 
         let ret_type = self.function.ret_type(self.db);
 
         let result_type = fragment(move |p| match ret_type {
-            Some(type_) => api.result_type(type_.render_type_decl(self.db)).apply(p),
+            Some(type_) => platform
+                .result_type(type_.render_type_decl(self.db))
+                .apply(p),
 
-            None => api.result_type("()").apply(p),
+            None => platform.result_type("()").apply(p),
         });
 
         let symbol = self.function.symbol(self.db);
 
         frag!(
-            {api.header_renamed(symbol)}@
+            {platform.header_renamed(symbol)}@
             pub fn ~{symbol}({self.render_params()})~ -> ~{result_type}~ {{
                 {self.render_body()}
             }}

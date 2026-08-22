@@ -1,12 +1,10 @@
-//! Codegen layer
-
-pub(crate) mod check;
-pub mod codegen;
-pub mod db;
-pub mod diag;
-pub mod inputs;
+mod check;
+mod codegen;
+mod db;
+mod diag;
+mod inputs;
 mod ir;
 mod mangle;
 
 #[cfg(test)]
-pub(crate) mod test;
+mod test;

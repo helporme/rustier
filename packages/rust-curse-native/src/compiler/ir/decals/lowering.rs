@@ -5,7 +5,6 @@ use std::{
 
 use crate::compiler::{
     db::Db,
-    inputs::CompilationMetadata,
     ir::{
         common::compile_relative_path,
         decals::{
@@ -97,9 +96,8 @@ impl<'db> DecalMod<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_file_path(self, db: &'db dyn Db) -> PathBuf {
-        let metadata = CompilationMetadata::get(db);
         let span = self.shim(db).src(db).span(db);
-        metadata.js_mods_root_path.join(&span.src_path)
+        span.abs_path.clone()
     }
 }
 

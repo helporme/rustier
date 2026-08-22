@@ -2,7 +2,7 @@ use crate::{
     compiler::{
         codegen::fragment::{FragmentOnce, doubles, fragment},
         db::Db,
-        inputs::Api,
+        inputs::Platform,
         ir::rust::{Type, ValueType},
     },
     frag,
@@ -85,7 +85,7 @@ where
         ValueType::i32 => "i32",
         _ => unreachable!("signed integer cast requires a signed integer target"),
     };
-    let api = Api::get(db);
+    let platform = Platform::get(db);
 
     frag!({{
         let type_name = ~{doubles(type_name)};@
@@ -93,7 +93,7 @@ where
 
         if value.trunc()~ != value || value < ~{type_name}::MIN as f64 || value > ~{type_name}::MAX as f64 ~{{
             return Err({
-                api.error(frag!(
+                platform.error(frag!(
                     format!("cannot cast {value} to {type_name}")
                 ))
             });
@@ -117,7 +117,7 @@ where
         ValueType::u32 => "u32",
         _ => unreachable!("unsigned integer cast requires an unsigned integer target"),
     };
-    let api = Api::get(db);
+    let platform = Platform::get(db);
 
     frag!({{
         let type_name = ~{doubles(type_name)};@
@@ -125,7 +125,7 @@ where
 
         if value.trunc()~ != value || value < 0 as f64 || value > ~{type_name}::MAX as f64 ~{{
             return Err({
-                api.error(frag!(
+                platform.error(frag!(
                     format!("cannot cast {value} to {type_name}")
                 ))
             });
@@ -140,8 +140,8 @@ where
     InExpr: FragmentOnce + 'db,
 {
     let as_u32 = render_f64_to_unsigned_expr(db, ValueType::u32, in_expr);
-    let api = Api::get(db);
-    let error_expr = api.error(frag!(format!("cannot cast {value} to char")));
+    let platform = Platform::get(db);
+    let error_expr = platform.error(frag!(format!("cannot cast {value} to char")));
 
     frag!({{
         let value = {as_u32};@

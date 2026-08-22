@@ -1,42 +1,43 @@
-//! All api-specific code generation utilities.
+//! All platform-specific code generation utilities.
 
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, doubles, frag, fragment, singles},
-    inputs::{Api, WasmTarget},
+    inputs::{Platform, WasmTarget},
 };
 
 // todo: split it on multiple files?
 
-impl Api {
-    /// Returns the prelude code for this API.
+impl Platform {
+    /// Returns the prelude code for this platform.
     pub fn prelude(&self) -> &str {
         match self {
-            Api::Wasm { .. } => "use wasm_bindgen::prelude::*;\n",
-            Api::Node => "use napi::{Unknown, ValueType};\nuse napi_derive::napi;\n",
+            Platform::Wasm { .. } => "use wasm_bindgen::prelude::*;\n",
+            Platform::Node => "use napi::{Unknown, ValueType};\nuse napi_derive::napi;\n",
         }
     }
 
     /// Returns the Rust boundary type used for incoming JavaScript values.
     pub fn js_type(&self) -> &'static str {
         match self {
-            Api::Wasm { .. } => "JsValue",
-            Api::Node => "Unknown<'_>",
+            Platform::Wasm { .. } => "JsValue",
+            Platform::Node => "Unknown<'_>",
         }
     }
 
-    /// Returns an API-error expression for casting a JavaScript value to
-    /// `bool`.
+    /// Returns a platform-specific error expression for casting a JavaScript
+    /// value to `bool`.
     pub fn cast_to_bool(self) -> impl FragmentOnce {
         self.cast_to_primitive("bool", "as_bool", "Boolean")
     }
 
-    /// Returns an API-error expression for casting a JavaScript value to
-    /// `String`.
+    /// Returns a platform-specific error expression for casting a JavaScript
+    /// value to `String`.
     pub fn cast_to_string(self) -> impl FragmentOnce {
         self.cast_to_primitive("String", "as_string", "String")
     }
 
-    /// Returns an API-error expression for casting a JavaScript value to `f64`.
+    /// Returns a platform-specific error expression for casting a JavaScript
+    /// value to `f64`.
     pub fn cast_to_f64(self) -> impl FragmentOnce {
         self.cast_to_primitive("f64", "as_f64", "Number")
     }
@@ -78,11 +79,11 @@ impl Api {
 
         fragment(move |p| {
             match self {
-            Api::Wasm { .. } => frag!(
+            Platform::Wasm { .. } => frag!(
                 value.{wasm_accessor}().ok_or_else(||~{wasm_error})
             )
             .apply(p),
-            Api::Node => frag!(
+            Platform::Node => frag!(
                 if value.get_type().map_err(|err|~{node_get_type_error})?~ == ValueType::{node_value_type}~{{
                     unsafe~{{
                         value.cast::<{rust_type}>()
@@ -104,13 +105,13 @@ impl Api {
         node_value_type: &'static str,
     ) -> impl FragmentOnce {
         fragment(move |p| match self {
-            Api::Wasm { .. } => frag!(
+            Platform::Wasm { .. } => frag!(
                 value.{wasm_accessor}().ok_or_else(||~
                     {doubles(("cannot cast value to ", rust_type))}.to_string()
                 )
             )
             .apply(p),
-            Api::Node => frag!(
+            Platform::Node => frag!(
                 if value.get_type().map_err(|err| err.reason)?~ == ValueType::{node_value_type}~{{
                     unsafe~{{
                         value.cast::<{rust_type}>()
@@ -125,85 +126,86 @@ impl Api {
     }
 
     pub fn header_renamed<'a>(self, name: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
-        let api_name = match self {
-            Api::Wasm { .. } => "wasm_bindgen",
-            Api::Node => "napi",
+        let platform_attr = match self {
+            Platform::Wasm { .. } => "wasm_bindgen",
+            Platform::Node => "napi",
         };
 
         frag!(
-            #[{api_name}(js_name = {doubles(name)})]
+            #[{platform_attr}(js_name = {doubles(name)})]
         )
     }
 
     pub fn header(self) -> impl FragmentOnce {
-        let api_name = match self {
-            Api::Wasm { .. } => "wasm_bindgen",
-            Api::Node => "napi",
+        let platform_attr = match self {
+            Platform::Wasm { .. } => "wasm_bindgen",
+            Platform::Node => "napi",
         };
 
         frag!(
-            #[{api_name}]
+            #[{platform_attr}]
         )
     }
 
     /// Returns the getter header for a field with the given JavaScript name.
     pub fn field_getter_header<'a>(self, name: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
-        let api_name = match self {
-            Api::Wasm { .. } => "wasm_bindgen",
-            Api::Node => "napi",
+        let platform_attr = match self {
+            Platform::Wasm { .. } => "wasm_bindgen",
+            Platform::Node => "napi",
         };
 
         frag!(
-            #[{api_name}(getter, js_name = {doubles(name)})]
+            #[{platform_attr}(getter, js_name = {doubles(name)})]
         )
     }
 
     /// Returns the setter header for a field with the given JavaScript name.
     pub fn field_setter_header<'a>(self, name: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
-        let api_name = match self {
-            Api::Wasm { .. } => "wasm_bindgen",
-            Api::Node => "napi",
+        let platform_attr = match self {
+            Platform::Wasm { .. } => "wasm_bindgen",
+            Platform::Node => "napi",
         };
 
         frag!(
-            #[{api_name}(setter, js_name = {doubles(name)})]
+            #[{platform_attr}(setter, js_name = {doubles(name)})]
         )
     }
 
-    /// Returns the error type for this API.
+    /// Returns the error type for this platform.
     pub fn result_type<'a>(self, ok_type: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         fragment(move |p| match self {
-            Api::Wasm { .. } => frag!(Result<{ok_type}, JsValue>).apply(p),
-            Api::Node => frag!(napi::Result<{ ok_type }>).apply(p),
+            Platform::Wasm { .. } => frag!(Result<{ok_type}, JsValue>).apply(p),
+            Platform::Node => frag!(napi::Result<{ ok_type }>).apply(p),
         })
     }
 
     /// Returns an error expression with the given reason.
     pub fn error<'a>(self, reason: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         fragment(move |p| match self {
-            Api::Wasm { .. } => frag!(JsValue::from_str(&{ reason })).apply(p),
-            Api::Node => frag!(napi::Error::from_reason({ reason })).apply(p),
+            Platform::Wasm { .. } => frag!(JsValue::from_str(&{ reason })).apply(p),
+            Platform::Node => frag!(napi::Error::from_reason({ reason })).apply(p),
         })
     }
 
-    /// Returns the contents of `fn main` for this API's build script, if any.
+    /// Returns the contents of `fn main` for this platform's build script, if
+    /// any.
     pub fn build_script_body(&self) -> Option<&'static str> {
         match self {
-            Api::Wasm { .. } => None,
-            Api::Node => Some("napi_build::setup();"),
+            Platform::Wasm { .. } => None,
+            Platform::Node => Some("napi_build::setup();"),
         }
     }
 
-    /// Returns whether this API needs a generated Cargo build script.
+    /// Returns whether this platform needs a generated Cargo build script.
     pub fn needs_build_script(&self) -> bool {
         self.build_script_body().is_some()
     }
 
-    /// Returns the Cargo manifest dependencies required by this API.
+    /// Returns the Cargo manifest dependencies required by this platform.
     pub fn manifest_deps(self) -> Option<impl FragmentOnce> {
         Some(fragment(move |p| match self {
-            Api::Wasm { .. } => frag!({ r#"wasm-bindgen = "0.2""# }).apply(p),
-            Api::Node => frag!(
+            Platform::Wasm { .. } => frag!({ r#"wasm-bindgen = "0.2""# }).apply(p),
+            Platform::Node => frag!(
                 {r#"napi = { version = "3", features = ["napi10"] }"#}@
                 {r#"napi-derive = { version = "3" }"#}
             )
@@ -211,7 +213,7 @@ impl Api {
         }))
     }
 
-    /// Returns the Cargo manifest build dependencies required by this API.
+    /// Returns the Cargo manifest build dependencies required by this platform.
     pub fn manifest_build_deps(self) -> Option<impl FragmentOnce> {
         let deps = frag!(
             @@
@@ -219,15 +221,15 @@ impl Api {
             {r#"napi-build = "2""#}
         );
 
-        (self == Api::Node).then_some(deps)
+        (self == Platform::Node).then_some(deps)
     }
 
-    /// Returns JavaScript initialization code needed by this API before exports
-    /// are used.
+    /// Returns JavaScript initialization code needed by this platform before
+    /// exports are used.
     pub fn js_mod_init<'a>(self, src_path: &'a str) -> Option<impl FragmentOnce + 'a> {
         matches!(
             self,
-            Api::Wasm {
+            Platform::Wasm {
                 target: WasmTarget::Web
             }
         )

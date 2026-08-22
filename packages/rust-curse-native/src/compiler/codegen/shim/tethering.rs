@@ -129,21 +129,21 @@ use crate::{
     compiler::{
         codegen::fragment::{Fragment, FragmentOnce, doubles, fragment, spaced},
         db::Db,
-        inputs::Api,
+        inputs::Platform,
         ir::rust::ValueType,
     },
     frag,
 };
 
-/// Compiles the API-specific supporting code used by generated tethering
+/// Compiles the platform-specific supporting code used by generated tethering
 /// structs.
 pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
-    let api = Api::get(db);
-    let access_result = api.result_type("T");
-    let borrow_error = api.error(frag!(
+    let platform = Platform::get(db);
+    let access_result = platform.result_type("T");
+    let borrow_error = platform.error(frag!(
         { doubles("cannot access a tethered value while it is mutably borrowed") }.to_string()
     ));
-    let borrow_mut_error = api.error(frag!(
+    let borrow_mut_error = platform.error(frag!(
         { doubles("cannot mutably access a tethered value while it is borrowed") }.to_string()
     ));
 
@@ -154,12 +154,12 @@ pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
 
         pub type AccessResult<T> = ~{access_result};@@
 
-        /// Borrows a tethered value or returns an API-specific aliasing error.@
+        /// Borrows a tethered value or returns a platform-specific aliasing error.@
         pub fn try_borrow<T>(value: &RefCell<T>) -> AccessResult<std::cell::Ref<'_, T>>~{{
             value.try_borrow().map_err(|_|~{borrow_error})
         }}@@
 
-        /// Mutably borrows a tethered value or returns an API-specific aliasing error.@
+        /// Mutably borrows a tethered value or returns a platform-specific aliasing error.@
         pub fn try_borrow_mut<T>(value: &RefCell<T>) -> AccessResult<std::cell::RefMut<'_, T>>~{{
             value.try_borrow_mut().map_err(|_|~{borrow_mut_error})
         }}@@
@@ -485,7 +485,7 @@ where
 ///  - A source type otherwise
 ///
 /// The expression must be inserted into a scope that returns the
-/// [`crate::compiler::inputs::Api`] result type because it uses `?`.
+/// platform-specific result type because it uses `?`.
 pub fn render_tethering_struct_get_field_expr<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,
@@ -500,7 +500,7 @@ pub fn render_tethering_struct_get_field_expr<'a>(
 ///  - A source type otherwise
 ///
 /// The statement must be inserted into a scope that returns the
-/// [`crate::compiler::inputs::Api`] result type because it uses `?`.
+/// platform-specific result type because it uses `?`.
 pub fn render_tethering_struct_set_field_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,

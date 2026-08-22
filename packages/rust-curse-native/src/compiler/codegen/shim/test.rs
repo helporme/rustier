@@ -41,7 +41,10 @@ macro_rules! assert_rust_snap {
         expression: |$db:ident, $printer:ident| $expression:block $(,)?
     ) => {{
         let mut __node_db = $crate::test_db! { $($source)* };
-        $crate::compiler::inputs::Api::set(&mut __node_db, $crate::compiler::inputs::Api::Node);
+        $crate::compiler::inputs::Platform::set(
+            &mut __node_db,
+            $crate::compiler::inputs::Platform::Node,
+        );
         let __node = $crate::compiler::codegen::fragment::FragmentPrint::print(
             $crate::compiler::codegen::fragment::fragment(|$printer| {
                 let $db = &mut __node_db;
@@ -50,9 +53,9 @@ macro_rules! assert_rust_snap {
         );
 
         let mut __wasm_db = $crate::test_db! { $($source)* };
-        $crate::compiler::inputs::Api::set(
+        $crate::compiler::inputs::Platform::set(
             &mut __wasm_db,
-            $crate::compiler::inputs::Api::Wasm {
+            $crate::compiler::inputs::Platform::Wasm {
                 target: $crate::compiler::inputs::WasmTarget::Web,
             },
         );

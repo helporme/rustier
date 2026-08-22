@@ -12,7 +12,7 @@ use crate::{
         codegen::bindings::compile_bindings,
         codegen::fragment::{FragmentPrint, frag},
         db::DbImpl,
-        inputs::{Api, WasmTarget},
+        inputs::{Platform, WasmTarget},
     },
     sync::{file::write_if_changed, manifest},
     tools::{node, workspace},
@@ -40,15 +40,15 @@ pub struct SyncCrateOps<'a> {
 /// use rust_curse::{
 ///     compiler::{
 ///         db::DbImpl,
-///         inputs::{Api, WasmTarget},
+///         inputs::{Platform, WasmTarget},
 ///     },
 ///     sync::cursed_crate::{SyncCrateOps, sync_crate},
 /// };
 ///
 /// let mut db = DbImpl::default();
-/// Api::set(
+/// Platform::set(
 ///     &mut db,
-///     Api::Wasm {
+///     Platform::Wasm {
 ///         target: WasmTarget::Web,
 ///     },
 /// );
@@ -85,7 +85,7 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
         "resolved source package metadata"
     );
 
-    let api = Api::get(opts.db);
+    let platform = Platform::get(opts.db);
     let manifest = manifest::render_manifest(
         opts.db,
         manifest::ManifestOpts {
@@ -111,7 +111,7 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
     changed |= write_file(opts.out_dir.join("Cargo.toml"), manifest)?;
     changed |= write_file(src_dir.join("lib.rs"), bindings)?;
 
-    if let Some(build_script_body) = api.build_script_body() {
+    if let Some(build_script_body) = platform.build_script_body() {
         debug!("writing generated build script");
         let build_script = frag!(
             fn main()~{{
@@ -123,7 +123,7 @@ pub fn sync_crate(opts: SyncCrateOps) -> Result<bool, SyncCrateError> {
         changed |= write_file(opts.out_dir.join("build.rs"), build_script)?;
     }
 
-    if api == Api::Node {
+    if platform == Platform::Node {
         debug!("ensuring generated Node crate compatibility");
         changed |= node::ensure_node_compat(opts.out_dir)
             .map_err(|source| SyncCrateError::EnsureNodeCompat { source })?;

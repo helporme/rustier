@@ -1,6 +1,6 @@
-pub mod api;
-pub mod fragment;
-mod js;
-mod shim;
+mod fragment;
+pub mod js;
+mod platform;
+pub mod shim;
 pub mod sourcemap;
 pub mod ts;
