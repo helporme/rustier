@@ -284,7 +284,7 @@ mod tests {
             facade::{FacadeClass, FacadeClassKind},
             rust::Crate,
         },
-        test::{TEST_CRATE_NAME, build_test_db, format_rust_source},
+        test::{build_test_db, format_rust_source},
     };
 
     #[test]
@@ -330,7 +330,8 @@ mod tests {
     }
 
     fn only_facade_class(db: &RootDatabase) -> FacadeClass<'_> {
-        let root = Crate::by(db, TEST_CRATE_NAME)
+        let root = Crate::all(db)
+            .first()
             .expect("test crate should be lowered")
             .root(db)
             .shim(db)

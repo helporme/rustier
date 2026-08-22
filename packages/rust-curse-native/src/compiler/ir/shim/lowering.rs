@@ -1,7 +1,7 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        rust::{AsType, FieldParent, Member, Type, ValueType},
+        rust::{FieldParent, IntoType, Member, Type, ValueType},
         shim::{
             ShimClass, ShimClassSource, ShimCrate, ShimField, ShimFunction,
             ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimFunctionGetter,
@@ -194,7 +194,7 @@ impl<'db> ShimFunctionGetter<'db> {
             is_borrowed: true,
             inner: class,
         };
-        let class_src_type = class.src(db).as_type();
+        let class_src_type = class.src(db).into_type();
 
         [ShimParam::new(
             db,
@@ -230,7 +230,7 @@ impl<'db> ShimFunctionSetter<'db> {
             is_borrowed: true,
             inner: class,
         };
-        let class_src_type = class.src(db).as_type();
+        let class_src_type = class.src(db).into_type();
         let value_src_type = field.value_type(db).as_type();
         let value_shim_type = value_src_type.shim_in(db);
         let function = self.as_fn();

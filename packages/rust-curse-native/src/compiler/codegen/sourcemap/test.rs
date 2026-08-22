@@ -10,7 +10,6 @@ use crate::compiler::{
         decals::DecalMod,
         rust::{Crate, Member},
     },
-    test::TEST_CRATE_NAME,
 };
 
 #[derive(Deserialize, Serialize)]
@@ -36,7 +35,8 @@ pub fn configure_db(db: &mut RootDatabase) {
 }
 
 pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalMod<'db> {
-    Crate::by(db, TEST_CRATE_NAME)
+    Crate::all(db)
+        .first()
         .expect("test crate should be lowered")
         .root(db)
         .shim(db)
@@ -44,7 +44,8 @@ pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalMod<'db> {
 }
 
 pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalMod<'db> {
-    let mut module = Crate::by(db, TEST_CRATE_NAME)
+    let mut module = Crate::all(db)
+        .first()
         .expect("test crate should be lowered")
         .root(db);
 
@@ -63,16 +64,17 @@ pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalMod<'db> {
 }
 
 pub fn snapshot_module(db: &RootDatabase, module: DecalMod<'_>) -> String {
-    let crate_dir = Crate::by(db, TEST_CRATE_NAME)
+    let crate_dir = Crate::all(db)
+        .first()
         .expect("test crate should be lowered")
         .dir(db);
     let generated = numbered_lines(module.render_ts(db));
-    let mappings = normalize_mappings(crate_dir, module.render_sourcemap_mappings(db));
+    let mappings = normalize_mappings(crate_dir.as_path(), module.render_sourcemap_mappings(db));
     let mut source_map: TestSourceMap = serde_json::from_str(module.render_sourcemap(db)).unwrap();
     source_map.sources = source_map
         .sources
         .iter()
-        .map(|source| normalize_source(crate_dir, source))
+        .map(|source| normalize_source(crate_dir.as_path(), source))
         .collect();
     let source_map = serde_json::to_string_pretty(&source_map).unwrap();
 

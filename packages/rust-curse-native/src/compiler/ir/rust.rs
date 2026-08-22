@@ -72,7 +72,16 @@ pub struct Crate<'db> {
     hir: HirCrate,
 }
 
+#[salsa::tracked]
 impl<'db> Crate<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn all(db: &'db dyn Db) -> Vec<Self> {
+        HirCrate::all(db)
+            .into_iter()
+            .map(|crate_| Self::new(db, crate_))
+            .collect()
+    }
+
     pub fn name(self, db: &'db dyn Db) -> &'db String {
         self.lower_name(db)
     }
@@ -190,8 +199,8 @@ impl<'db> Struct<'db> {
     }
 }
 
-impl<'db> AsValueType<'db> for Struct<'db> {
-    fn as_value_type(self) -> ValueType<'db> {
+impl<'db> IntoValueType<'db> for Struct<'db> {
+    fn into_value_type(self) -> ValueType<'db> {
         ValueType::Struct(self)
     }
 }
@@ -249,8 +258,8 @@ impl<'db> Enum<'db> {
     }
 }
 
-impl<'db> AsValueType<'db> for Enum<'db> {
-    fn as_value_type(self) -> ValueType<'db> {
+impl<'db> IntoValueType<'db> for Enum<'db> {
+    fn into_value_type(self) -> ValueType<'db> {
         ValueType::Enum(self)
     }
 }
@@ -514,13 +523,13 @@ impl<'db> From<ValueType<'db>> for Type<'db> {
     }
 }
 
-pub trait AsValueType<'db> {
-    fn as_value_type(self) -> ValueType<'db>;
+pub trait IntoValueType<'db> {
+    fn into_value_type(self) -> ValueType<'db>;
 }
 
-impl<'db, T: AsValueType<'db>> From<T> for ValueType<'db> {
+impl<'db, T: IntoValueType<'db>> From<T> for ValueType<'db> {
     fn from(value: T) -> Self {
-        value.as_value_type()
+        value.into_value_type()
     }
 }
 
@@ -542,19 +551,19 @@ impl<'db> Type<'db> {
     }
 }
 
-pub trait AsType<'db> {
-    fn as_type(self) -> Type<'db>;
+pub trait IntoType<'db> {
+    fn into_type(self) -> Type<'db>;
 }
 
-impl<'db, T: AsValueType<'db>> AsType<'db> for T {
-    fn as_type(self) -> Type<'db> {
-        Type::Value(self.as_value_type())
+impl<'db, T: IntoValueType<'db>> IntoType<'db> for T {
+    fn into_type(self) -> Type<'db> {
+        Type::Value(self.into_value_type())
     }
 }
 
-impl<'db, T: AsType<'db>> From<T> for Type<'db> {
+impl<'db, T: IntoType<'db>> From<T> for Type<'db> {
     fn from(value: T) -> Self {
-        value.as_type()
+        value.into_type()
     }
 }
 

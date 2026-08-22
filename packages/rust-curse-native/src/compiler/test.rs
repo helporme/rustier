@@ -1,85 +1,88 @@
 //! Shared compiler test fixtures.
 
-#![allow(dead_code)]
-
-use std::collections::BTreeMap;
-
 use crate::compiler::{
-    db::RootDatabase,
-    inputs::{Crate, RustdocCrates},
+    Compiler, CompilerOpts, CrateApiDiscovery, CrateApiImportMode, CrateGraphBuilder, Edition,
+    FfiLayout, FilePath, Platform, WorkspaceCrate, db::RootDatabase,
 };
 
-/// Name of the temporary source crate created by [`test_db!`].
 #[doc(hidden)]
-pub const TEST_CRATE_NAME: &str = "rustdoc_test_crate";
-
-/// Formats tokenized Rust source using standard Rust indentation.
-#[doc(hidden)]
-pub fn format_rust_source(source: &str) -> String {
+pub(super) fn format_rust_source(source: &str) -> String {
     syn::parse_file(source)
         .map(|file| prettyplease::unparse(&file))
         .unwrap_or_else(|_| source.to_owned())
 }
 
-/// Builds a code generation database from root source and additional module
-/// files.
 #[doc(hidden)]
-pub fn build_test_db(source: String, files: &[(&str, String)]) -> RootDatabase {
-    let fixture_dir = tempfile::tempdir().expect("create test crate tempdir");
-    let crate_dir = fixture_dir.path().to_path_buf();
-    let src_dir = crate_dir.join("src");
-
-    std::fs::create_dir_all(&src_dir).expect("create test crate src directory");
-    std::fs::write(
-        crate_dir.join("Cargo.toml"),
-        indoc::formatdoc! {r#"
-            [package]
-            name = "{TEST_CRATE_NAME}"
-            version = "0.0.0"
-            edition = "2021"
-            publish = false
-
-            [lib]
-            path = "src/lib.rs"
-
-            [workspace]
-        "#},
-    )
-    .expect("write test crate manifest");
-    std::fs::write(src_dir.join("lib.rs"), source).expect("write test crate source");
-
-    for (path, source) in files {
-        let file_path = src_dir.join(path);
-        std::fs::create_dir_all(
-            file_path
-                .parent()
-                .expect("test source file should have a parent directory"),
-        )
-        .expect("create test source file directory");
-        std::fs::write(file_path, source).expect("write test source file");
-    }
-
-    let crate_body = crate::tools::rustdoc::run(&crate_dir.join("Cargo.toml"))
-        .unwrap_or_else(|error| panic!("rustdoc generation failed: {error}"));
-    let crates = BTreeMap::from([(
-        TEST_CRATE_NAME.to_owned(),
-        Crate {
-            body: crate_body,
-            is_external: false,
-            dir: crate_dir,
+pub(super) fn build_test_db(source: String, files: &[(&str, String)]) -> RootDatabase {
+    let root_file =
+        FilePath::new_virtual("/src/lib.rs").expect("test crate root should be a valid path");
+    let mut compiler = Compiler::new(CompilerOpts {
+        platform: Platform::Node,
+        ffi_layout: FfiLayout {
+            ffi_js_file: FilePath::new_virtual("/generated/ffi.js")
+                .expect("test FFI file should be a valid path"),
         },
-    )]);
+    });
 
-    let mut db = RootDatabase::default();
-    RustdocCrates::set(&mut db, crates);
+    compiler
+        .change_workspace(|change| {
+            change.set_file(root_file.clone(), Some(source));
+            for (path, source) in files {
+                let path = FilePath::new_virtual(format!("/src/{path}"))
+                    .expect("test module should have a valid virtual path");
+                change.set_file(path, Some(source.clone()));
+            }
 
-    // Source files are read lazily by diagnostics and sourcemap queries, so
-    // they must outlive the returned database.
-    let _ = fixture_dir.keep();
-    db
+            let mut crates = CrateGraphBuilder::default();
+            crates.add_crate(WorkspaceCrate {
+                name: "kitty_go".to_owned(),
+                edition: Edition::E2024,
+                root_file,
+                version: "0.0.0".to_owned(),
+                api_discovery: CrateApiDiscovery::Eager,
+                api_import_mode: CrateApiImportMode::Mod,
+            });
+            change.set_crates(crates);
+            Ok(())
+        })
+        .expect("build test compiler workspace");
+
+    compiler.db
 }
 
-/// Creates a [`RootDatabase`] containing rustdoc inputs for inline Rust code.
+/// Creates a compiler database containing rst-analyzer inputs for inline Rust
+/// code.
+///
+/// # Example
+///
+/// ```ignore
+/// let db = test_db! {
+///     pub struct User {
+///         pub name: String,
+///     }
+///
+///     pub fn greet(user: &User) -> String {
+///         format!("Hello, {}!", user.name)
+///     }
+/// };
+/// ```
+///
+/// A module can be placed in a separate virtual source file with `@file`:
+///
+/// ```ignore
+/// let db = test_db! {
+///     @file: "models.rs";
+///     pub mod models {
+///         pub struct User {
+///             pub name: String,
+///         }
+///     }
+///
+///     pub fn greet(user: &models::User) -> String {
+///         format!("Hello, {}!", user.name)
+///     }
+/// };
+/// ```
 #[macro_export]
 macro_rules! test_db {
     (
@@ -123,10 +126,10 @@ macro_rules! test_db {
         @source: [$($source:tt)*];
         @bodies: [$(($path:literal, { $($body:tt)* }))*];
     ) => {{
-        let source = $crate::compiler::test::format_rust_source(
+        let __source = $crate::compiler::test::format_rust_source(
             ::std::stringify!($($source)*),
         );
-        let files = [$(
+        let __files: &[(&str, ::std::string::String)] = &[$(
             (
                 $path,
                 $crate::compiler::test::format_rust_source(
@@ -134,7 +137,7 @@ macro_rules! test_db {
                 ),
             )
         ),*];
-        $crate::compiler::test::build_test_db(source, &files)
+        $crate::compiler::test::build_test_db(__source, __files)
     }};
     ($($source:tt)*) => {
         $crate::test_db! {

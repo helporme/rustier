@@ -70,7 +70,7 @@ impl<'db> DecalMod<'db> {
 mod tests {
     use crate::{
         assert_ts_snap,
-        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Crate, test::TEST_CRATE_NAME},
+        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Crate},
     };
 
     macro_rules! test_module {
@@ -81,7 +81,8 @@ mod tests {
                     source: { $($source)* },
                     expression: |db, p| {
                         let db = &*db;
-                        let root = Crate::by(db, TEST_CRATE_NAME)
+                        let root = Crate::all(db)
+                            .first()
                             .expect("test crate should be lowered")
                             .root(db)
                             .shim(db)

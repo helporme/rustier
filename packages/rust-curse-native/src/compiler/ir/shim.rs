@@ -13,7 +13,7 @@ mod lowering;
 
 use crate::compiler::{
     db::Db,
-    ir::rust::{AsValueType, Crate, Enum, Field, Function, Mod, Struct, Type, ValueType},
+    ir::rust::{Crate, Enum, Field, Function, IntoValueType, Mod, Struct, Type, ValueType},
 };
 
 #[salsa::interned(debug)]
@@ -78,11 +78,11 @@ pub enum ShimClassSource<'db> {
     Enum(Enum<'db>),
 }
 
-impl<'db> AsValueType<'db> for ShimClassSource<'db> {
-    fn as_value_type(self) -> ValueType<'db> {
+impl<'db> IntoValueType<'db> for ShimClassSource<'db> {
+    fn into_value_type(self) -> ValueType<'db> {
         match self {
-            ShimClassSource::Struct(s) => s.as_value_type(),
-            ShimClassSource::Enum(e) => e.as_value_type(),
+            ShimClassSource::Struct(s) => s.into_value_type(),
+            ShimClassSource::Enum(e) => e.into_value_type(),
         }
     }
 }

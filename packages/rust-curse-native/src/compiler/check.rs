@@ -42,10 +42,12 @@ impl<'db> Mod<'db> {
 #[cfg(test)]
 mod tests {
     use super::{Crate, Db};
-    use crate::{compiler::test::TEST_CRATE_NAME, test_db};
+    use crate::test_db;
 
     pub(super) fn diagnostic_codes(db: &dyn Db) -> Vec<String> {
-        let crate_ = Crate::by(db, TEST_CRATE_NAME).expect("test crate should be lowered");
+        let crate_ = Crate::all(db)
+            .first()
+            .expect("test crate should be lowered");
 
         crate_
             .check(db)

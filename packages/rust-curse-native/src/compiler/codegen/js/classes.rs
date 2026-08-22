@@ -499,7 +499,6 @@ mod tests {
         compiler::{
             codegen::{fragment::FragmentOnce as _, js::cast::test::TestCastRenderer},
             ir::rust::Crate,
-            test::TEST_CRATE_NAME,
         },
     };
 
@@ -511,7 +510,8 @@ mod tests {
                     source: { $($source)* },
                     expression: |db, printer| {
                         let db = &*db;
-                        let root = Crate::by(db, TEST_CRATE_NAME)
+                        let root = Crate::all(db)
+                            .first()
                             .expect("test crate should be lowered")
                             .root(db)
                             .shim(db)

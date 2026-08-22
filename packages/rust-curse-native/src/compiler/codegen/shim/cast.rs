@@ -377,7 +377,6 @@ mod tests {
             rust::{Crate, Member, Type, ValueType},
             shim::ShimType,
         },
-        test::TEST_CRATE_NAME,
     };
 
     macro_rules! cast_snapshot {
@@ -793,7 +792,9 @@ mod tests {
     }
 
     fn test_value_type<'db>(db: &'db dyn Db, name: &str) -> ValueType<'db> {
-        let crate_ = Crate::by(db, TEST_CRATE_NAME).expect("test crate should be lowered");
+        let crate_ = Crate::all(db)
+            .first()
+            .expect("test crate should be lowered");
 
         crate_
             .root(db)

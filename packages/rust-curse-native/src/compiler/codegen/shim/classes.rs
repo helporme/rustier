@@ -205,7 +205,7 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
 mod tests {
     use crate::{
         assert_rust_snap,
-        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Crate, test::TEST_CRATE_NAME},
+        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Crate},
     };
 
     macro_rules! test_class {
@@ -216,7 +216,8 @@ mod tests {
                     source: { $($source)* },
                     expression: |db, printer| {
                         let db = &*db;
-                        let root = Crate::by(db, TEST_CRATE_NAME)
+                        let root = Crate::all(db)
+                            .first()
                             .expect("test crate should be lowered")
                             .root(db)
                             .shim(db);

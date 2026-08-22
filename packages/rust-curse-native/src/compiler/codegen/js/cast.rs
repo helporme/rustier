@@ -273,7 +273,6 @@ mod tests {
             ffi::FfiType,
             rust::Crate,
         },
-        test::TEST_CRATE_NAME,
     };
 
     macro_rules! cast_snapshot {
@@ -405,7 +404,9 @@ mod tests {
     }
 
     fn test_facade_class<'db>(db: &'db dyn Db) -> FacadeClass<'db> {
-        let crate_ = Crate::by(db, TEST_CRATE_NAME).expect("test crate should be lowered");
+        let crate_ = Crate::all(db)
+            .first()
+            .expect("test crate should be lowered");
         let root = crate_.root(db).shim(db).facade(db);
         let [class] = root.classes(db).as_slice() else {
             panic!("test crate root should contain exactly one facade class");

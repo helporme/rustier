@@ -308,16 +308,15 @@ mod tests {
     use super::*;
     use crate::{
         assert_rust_snap,
-        compiler::{
-            codegen::shim::cast::test::TestCastRenderer, ir::rust::Crate, test::TEST_CRATE_NAME,
-        },
+        compiler::{codegen::shim::cast::test::TestCastRenderer, ir::rust::Crate},
     };
 
     fn find_test_function<'db>(
         db: &'db dyn Db,
         predicate: impl Fn(ShimFunction<'db>) -> bool,
     ) -> ShimFunction<'db> {
-        let root = Crate::by(db, TEST_CRATE_NAME)
+        let root = Crate::all(db)
+            .first()
             .expect("test crate should be lowered")
             .root(db)
             .shim(db);
