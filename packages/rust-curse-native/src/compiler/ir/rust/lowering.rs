@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::compiler::{
+    FilePath,
     db::Db,
     inputs::RustdocCrates,
     ir::rust::{AsItem, Enum, Field, Function, ItemPath, Mod, Span, Struct, Variant},
@@ -76,12 +77,15 @@ impl<'db> RustdocSpan<'db> {
             .unwrap()
             .dir;
 
+        let abs_path = if span.filename.is_absolute() {
+            span.filename.clone()
+        } else {
+            crate_dir.join(&span.filename)
+        };
+
         Span {
-            abs_path: if span.filename.is_absolute() {
-                span.filename.clone()
-            } else {
-                crate_dir.join(&span.filename)
-            },
+            abs_path: FilePath::new_real(abs_path.to_string_lossy())
+                .expect("rustdoc span path must be absolute"),
             src_path: span.filename.clone(),
             begin: span.begin,
             end: span.end,

@@ -2,7 +2,7 @@
 
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, doubles, frag, fragment, singles},
-    inputs::{Platform, WasmTarget},
+    inputs::{Platform, WasmEnv},
 };
 
 // todo: split it on multiple files?
@@ -230,7 +230,7 @@ impl Platform {
         matches!(
             self,
             Platform::Wasm {
-                target: WasmTarget::Web
+                target: WasmEnv::Web
             }
         )
         .then(|| {

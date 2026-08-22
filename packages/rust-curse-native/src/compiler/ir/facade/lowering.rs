@@ -1,9 +1,7 @@
-use std::{
-    collections::{BTreeMap, HashMap, HashSet},
-    path::PathBuf,
-};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::compiler::{
+    FilePath,
     db::Db,
     inputs::FfiLayout,
     ir::{
@@ -76,7 +74,7 @@ impl<'db> FacadeMod<'db> {
     }
 
     #[salsa::tracked(returns(ref))]
-    pub(super) fn lower_file_path(self, db: &'db dyn Db) -> PathBuf {
+    pub(super) fn lower_file_path(self, db: &'db dyn Db) -> FilePath {
         let span = self.shim(db).src(db).span(db);
         span.abs_path.clone()
     }

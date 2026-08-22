@@ -28,7 +28,7 @@ pub struct ManifestOpts<'a> {
 /// use rust_curse::{
 ///     compiler::{
 ///         db::RootDatabase,
-///         inputs::{Platform, WasmTarget},
+///         inputs::{Platform, WasmEnv},
 ///     },
 ///     sync::manifest::{ManifestOpts, render_manifest},
 /// };
@@ -37,7 +37,7 @@ pub struct ManifestOpts<'a> {
 /// Platform::set(
 ///     &mut db,
 ///     Platform::Wasm {
-///         target: WasmTarget::Web,
+///         target: WasmEnv::Web,
 ///     },
 /// );
 ///
@@ -123,7 +123,7 @@ fn escape_toml(value: &str) -> String {
 mod tests {
     use crate::compiler::{
         db::RootDatabase,
-        inputs::{Platform, WasmTarget},
+        inputs::{Platform, WasmEnv},
     };
 
     use super::*;
@@ -203,7 +203,7 @@ mod tests {
 
     fn wasm_platform() -> Platform {
         Platform::Wasm {
-            target: WasmTarget::Web,
+            target: WasmEnv::Web,
         }
     }
 

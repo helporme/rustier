@@ -3,9 +3,10 @@
 pub mod ext;
 mod lowering;
 
-use std::{collections::HashSet, path::PathBuf};
+use std::collections::HashSet;
 
 use crate::compiler::{
+    FilePath,
     db::Db,
     ir::{
         rust::{Field, FieldName, Span, Variant},
@@ -54,7 +55,7 @@ impl<'db> DecalMod<'db> {
         self.lower_imports(db)
     }
 
-    pub fn file_path(self, db: &'db dyn Db) -> &'db PathBuf {
+    pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
         self.lower_file_path(db)
     }
 }

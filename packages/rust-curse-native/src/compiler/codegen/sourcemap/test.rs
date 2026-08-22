@@ -29,7 +29,8 @@ pub fn configure_db(db: &mut RootDatabase) {
     FfiLayout::set(
         db,
         FfiLayout {
-            ffi_js_file: std::path::PathBuf::from("ffi.js"),
+            ffi_js_file: crate::compiler::FilePath::new_virtual("/ffi.js")
+                .expect("test FFI path must be valid"),
         },
     );
 }

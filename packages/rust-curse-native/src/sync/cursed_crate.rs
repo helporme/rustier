@@ -12,7 +12,7 @@ use crate::{
         codegen::bindings::compile_bindings,
         codegen::fragment::{FragmentPrint, frag},
         db::RootDatabase,
-        inputs::{Platform, WasmTarget},
+        inputs::Platform,
     },
     sync::{file::write_if_changed, manifest},
     tools::{node, workspace},
@@ -40,7 +40,7 @@ pub struct SyncCrateOps<'a> {
 /// use rust_curse::{
 ///     compiler::{
 ///         db::RootDatabase,
-///         inputs::{Platform, WasmTarget},
+///         inputs::{Platform, WasmEnv},
 ///     },
 ///     sync::cursed_crate::{SyncCrateOps, sync_crate},
 /// };
@@ -49,7 +49,7 @@ pub struct SyncCrateOps<'a> {
 /// Platform::set(
 ///     &mut db,
 ///     Platform::Wasm {
-///         target: WasmTarget::Web,
+///         target: WasmEnv::Web,
 ///     },
 /// );
 ///

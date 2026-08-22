@@ -3,12 +3,10 @@
 pub mod ext;
 mod lowering;
 
-use std::{
-    collections::{BTreeMap, HashSet},
-    path::PathBuf,
-};
+use std::collections::{BTreeMap, HashSet};
 
 use crate::compiler::{
+    FilePath,
     db::Db,
     ir::{
         ffi::{FfiClass, FfiFunction},
@@ -70,7 +68,7 @@ impl<'db> FacadeMod<'db> {
         self.lower_imports(db)
     }
 
-    pub fn file_path(self, db: &'db dyn Db) -> &'db PathBuf {
+    pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
         self.lower_file_path(db)
     }
 }

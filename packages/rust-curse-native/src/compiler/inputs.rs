@@ -1,19 +1,22 @@
-//! Additional inputs used by compiler besides those provided by rust-analyzer.
+//! Additional salsa inputs used by compiler besides those provided by
+//! rust-analyzer.
 
-use std::path::PathBuf;
+use std::collections::HashMap;
 
-use crate::compiler::db::Db;
+use crate::compiler::{FilePath, db::Db};
 
 /// Target platform used for FFI
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
+#[non_exhaustive]
 pub enum Platform {
-    Wasm { target: WasmTarget },
+    Wasm { target: WasmEnv },
     Node,
 }
 
-/// Wasm execution environment
+/// Wasm execution environment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
-pub enum WasmTarget {
+#[non_exhaustive]
+pub enum WasmEnv {
     Web,
     Node,
 }
@@ -22,7 +25,38 @@ pub enum WasmTarget {
 #[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct FfiLayout {
     /// Location of the js file exposing all ffi functions
-    pub ffi_js_file: PathBuf,
+    pub ffi_js_file: FilePath,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
+pub struct CratesMetadata {
+    /// A crate metadata mapped by crate root file path (virutal or not).
+    pub crates: HashMap<FilePath, CrateMetadata>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
+pub struct CrateMetadata {
+    pub api_discovery: CrateApiDiscovery,
+    pub api_import_mode: CrateApiImportMode,
+}
+
+/// How to discovery the crate public api to compile.
+#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
+pub enum CrateApiDiscovery {
+    /// Compile all public Api of this crate.
+    Eager,
+    /// Compile only the public Api that is referenced in other eager's crate
+    /// api.
+    Lazy,
+}
+
+/// Shape of imports generated for the crate modules
+#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
+pub enum CrateApiImportMode {
+    /// Genearte js imports matching the rust module path.
+    Mod,
+    /// Generate js imports to files ignoring the rust module path.
+    Relative,
 }
 
 macro_rules! impl_salsa_input {
@@ -58,3 +92,4 @@ macro_rules! impl_salsa_input {
 
 impl_salsa_input!(Platform, PlatformInput);
 impl_salsa_input!(FfiLayout, FfiLayoutInput);
+impl_salsa_input!(CratesMetadata, CratesMetadataInput);

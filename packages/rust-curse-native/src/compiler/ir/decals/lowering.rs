@@ -1,9 +1,7 @@
-use std::{
-    collections::{HashMap, HashSet},
-    path::PathBuf,
-};
+use std::collections::{HashMap, HashSet};
 
 use crate::compiler::{
+    FilePath,
     db::Db,
     ir::{
         common::compile_relative_path,
@@ -95,7 +93,7 @@ impl<'db> DecalMod<'db> {
     }
 
     #[salsa::tracked(returns(ref))]
-    pub(super) fn lower_file_path(self, db: &'db dyn Db) -> PathBuf {
+    pub(super) fn lower_file_path(self, db: &'db dyn Db) -> FilePath {
         let span = self.shim(db).src(db).span(db);
         span.abs_path.clone()
     }

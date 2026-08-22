@@ -1,6 +1,11 @@
-use std::path::Path;
+use crate::compiler::FilePath;
 
-pub(super) fn compile_relative_path(from_mod_path: &Path, to_mod_path: &Path) -> Option<String> {
+pub(super) fn compile_relative_path(
+    from_mod_path: &FilePath,
+    to_mod_path: &FilePath,
+) -> Option<String> {
+    let from_mod_path = from_mod_path.as_path();
+    let to_mod_path = to_mod_path.as_path();
     let mut from_components = from_mod_path.parent()?.components().peekable();
     let mut to_components = to_mod_path.components().peekable();
 

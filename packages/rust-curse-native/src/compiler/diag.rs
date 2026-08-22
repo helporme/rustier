@@ -3,9 +3,10 @@
 use std::{fmt, panic::RefUnwindSafe, sync::Arc};
 
 use miette::{Diagnostic, GraphicalReportHandler, GraphicalTheme, NamedSource};
+use ra_ap_ide_db::base_db::{LibraryRoots, LocalRoots};
 use salsa::Accumulator;
 
-use crate::compiler::{db::Db, inputs::SourceFiles, ir::rust::Span};
+use crate::compiler::{FilePath, db::Db, ir::rust::Span};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, salsa::Update)]
 pub struct DiagSource(Option<NamedSource<Arc<str>>>);
@@ -50,25 +51,45 @@ impl Span {
     /// Converts this row/column span into a byte-offset Miette span by loading
     /// its source file.
     pub fn diag_span(&self, db: &dyn Db) -> DiagSpan {
-        let Ok(source_file) = SourceFiles::read(db, self.abs_path.as_path()) else {
+        let Some(source) = source_text(db, &self.abs_path) else {
             return (0, 0).into();
         };
 
-        row_col_range_to_diag_span(&source_file.contents(db), self.begin, self.end)
+        row_col_range_to_diag_span(&source, self.begin, self.end)
     }
 
     /// Loads this span's source file and materializes a Miette-compatible
     /// source wrapper.
     pub fn diag_source(&self, db: &dyn Db) -> DiagSource {
-        let Ok(source_file) = SourceFiles::read(db, self.abs_path.as_path()) else {
+        let Some(source) = source_text(db, &self.abs_path) else {
             return DiagSource::not_available();
         };
 
         DiagSource(Some(NamedSource::new(
             self.src_path.display().to_string(),
-            source_file.contents(db),
+            source,
         )))
     }
+}
+
+fn source_text(db: &dyn Db, path: &FilePath) -> Option<Arc<str>> {
+    let vfs_path = path.clone().into();
+    let local_roots = LocalRoots::try_get(db)
+        .into_iter()
+        .flat_map(|roots| roots.roots(db).iter().copied());
+    let library_roots = LibraryRoots::try_get(db)
+        .into_iter()
+        .flat_map(|roots| roots.roots(db).iter().copied());
+
+    local_roots
+        .chain(library_roots)
+        .find_map(|root_id| {
+            db.source_root(root_id)
+                .source_root(db)
+                .file_for_path(&vfs_path)
+                .copied()
+        })
+        .map(|file_id| Arc::<str>::from(db.file_text(file_id).text(db).as_ref()))
 }
 
 fn row_col_range_to_diag_span(

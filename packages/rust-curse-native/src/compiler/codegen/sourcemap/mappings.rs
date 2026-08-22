@@ -33,6 +33,7 @@ pub(super) fn original_location(span: &Span) -> OriginalLocation {
     OriginalLocation {
         source: span
             .abs_path
+            .as_path()
             .to_string_lossy()
             .replace(std::path::MAIN_SEPARATOR, "/"),
         line: span.begin.0.saturating_sub(1),

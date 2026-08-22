@@ -22,13 +22,15 @@ struct SourceMap {
 
 #[salsa::tracked]
 impl<'db> DecalMod<'db> {
-    /// Renders a Source Map v3 document for this module's TypeScript declarations.
+    /// Renders a Source Map v3 document for this module's TypeScript
+    /// declarations.
     #[salsa::tracked(returns(ref))]
     pub fn render_sourcemap(self, db: &'db dyn Db) -> String {
         let mappings = self.render_sourcemap_mappings(db);
         let compiled = compile_mappings(mappings);
         let file = self
             .file_path(db)
+            .as_path()
             .file_name()
             .map(|file_name| format!("{}.d.ts", file_name.to_string_lossy()))
             .unwrap_or_default();

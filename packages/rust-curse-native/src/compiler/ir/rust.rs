@@ -3,7 +3,7 @@
 mod lowering;
 
 use self::lowering::ItemExt;
-use crate::compiler::{db::Db, mangle::mangle_path};
+use crate::compiler::{FilePath, db::Db, mangle::mangle_path};
 use std::{
     fmt,
     path::{Path, PathBuf},
@@ -515,7 +515,7 @@ impl<'db, T: AsType<'db>> From<T> for Type<'db> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
 pub struct Span {
-    pub abs_path: PathBuf,
+    pub abs_path: FilePath,
     /// The path reachable from the crate root.
     ///
     /// This may be relative for files in the main crate and absolute otherwise.
