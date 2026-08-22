@@ -156,7 +156,7 @@ fn brand() -> impl FragmentOnce {
 mod tests {
     use crate::{
         assert_ts_snap,
-        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Crate},
+        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Rust},
     };
 
     macro_rules! test_class {
@@ -167,7 +167,8 @@ mod tests {
                     source: { $($source)* },
                     expression: |db, p| {
                         let db = &*db;
-                        let root = Crate::all(db)
+                        let root = Rust::get(db)
+                            .crates(db)
                             .first()
                             .expect("test crate should be lowered")
                             .root(db)

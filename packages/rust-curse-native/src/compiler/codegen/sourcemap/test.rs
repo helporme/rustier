@@ -8,7 +8,7 @@ use crate::compiler::{
     inputs::{FfiLayout, Platform},
     ir::{
         decals::DecalMod,
-        rust::{Crate, Member},
+        rust::{Member, Rust},
     },
 };
 
@@ -35,7 +35,8 @@ pub fn configure_db(db: &mut RootDatabase) {
 }
 
 pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalMod<'db> {
-    Crate::all(db)
+    Rust::get(db)
+        .crates(db)
         .first()
         .expect("test crate should be lowered")
         .root(db)
@@ -44,7 +45,8 @@ pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalMod<'db> {
 }
 
 pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalMod<'db> {
-    let mut module = Crate::all(db)
+    let mut module = Rust::get(db)
+        .crates(db)
         .first()
         .expect("test crate should be lowered")
         .root(db);
@@ -64,7 +66,8 @@ pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalMod<'db> {
 }
 
 pub fn snapshot_module(db: &RootDatabase, module: DecalMod<'_>) -> String {
-    let crate_dir = Crate::all(db)
+    let crate_dir = Rust::get(db)
+        .crates(db)
         .first()
         .expect("test crate should be lowered")
         .dir(db);

@@ -22,7 +22,7 @@ export function test_fn (
 		).an(
 			_0
 		);
-		__fn__free__rustdoc_0test_0crate_test_0fn(
+		__fn__free__test_0crate_test_0fn(
 			__0
 		);
 	}

@@ -11,18 +11,18 @@ pub fn test_fn() {}
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__free__rustdoc_0test_0crate_test_0fn")]
-pub fn __fn__free__rustdoc_0test_0crate_test_0fn() -> napi::Result<()> {
-    rustdoc_test_crate::test_fn();
+#[napi(js_name = "__fn__free__test_0crate_test_0fn")]
+pub fn __fn__free__test_0crate_test_0fn() -> napi::Result<()> {
+    test_crate::test_fn();
     Ok(())
 }
 ```
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__free__rustdoc_0test_0crate_test_0fn")]
-pub fn __fn__free__rustdoc_0test_0crate_test_0fn() -> Result<(), JsValue> {
-    rustdoc_test_crate::test_fn();
+#[wasm_bindgen(js_name = "__fn__free__test_0crate_test_0fn")]
+pub fn __fn__free__test_0crate_test_0fn() -> Result<(), JsValue> {
+    test_crate::test_fn();
     Ok(())
 }
 ```

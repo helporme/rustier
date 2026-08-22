@@ -45,6 +45,7 @@ oxc_parser = "=0.138.0"
 oxc_span = "=0.138.0"
 prettyplease = "0.2"
 proptest = "1"
+ra_ap_test_fixture = "=0.0.345"
 syn = { version = "2", features = ["parsing"] }
 
 [[test]]

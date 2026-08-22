@@ -37,7 +37,7 @@ Source map:
   "file": "lib.rs.d.ts",
   "sourceRoot": "",
   "sources": [
-    "src/lib.rs"
+    "lib.rs"
   ],
   "names": [
     "empty",
@@ -54,7 +54,7 @@ Mappings:
     Mapping {
         generated_line: 0,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 4,
         original_column: 0,
         name: "empty",
@@ -62,7 +62,7 @@ Mappings:
     Mapping {
         generated_line: 0,
         generated_column: 16,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 4,
         original_column: 7,
         name: "empty",
@@ -70,7 +70,7 @@ Mappings:
     Mapping {
         generated_line: 2,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 0,
         original_column: 0,
         name: "Example",
@@ -78,7 +78,7 @@ Mappings:
     Mapping {
         generated_line: 2,
         generated_column: 12,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 0,
         original_column: 9,
         name: "Example",
@@ -86,7 +86,7 @@ Mappings:
     Mapping {
         generated_line: 4,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 0,
         original_column: 0,
         name: "Example",
@@ -94,7 +94,7 @@ Mappings:
     Mapping {
         generated_line: 4,
         generated_column: 17,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 0,
         original_column: 9,
         name: "Example",
@@ -102,7 +102,7 @@ Mappings:
     Mapping {
         generated_line: 5,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 0,
         original_column: 0,
         name: "Example",
@@ -110,7 +110,7 @@ Mappings:
     Mapping {
         generated_line: 5,
         generated_column: 13,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 0,
         original_column: 9,
         name: "Example",
@@ -118,7 +118,7 @@ Mappings:
     Mapping {
         generated_line: 7,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 1,
         original_column: 4,
         name: "Value",
@@ -126,7 +126,7 @@ Mappings:
     Mapping {
         generated_line: 7,
         generated_column: 12,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 1,
         original_column: 4,
         name: "Value",
@@ -134,7 +134,7 @@ Mappings:
     Mapping {
         generated_line: 8,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 1,
         original_column: 12,
         name: "type",
@@ -142,7 +142,7 @@ Mappings:
     Mapping {
         generated_line: 8,
         generated_column: 3,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 1,
         original_column: 12,
         name: "type",
@@ -150,7 +150,7 @@ Mappings:
     Mapping {
         generated_line: 11,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 0,
         original_column: 0,
         name: "Example",
@@ -158,7 +158,7 @@ Mappings:
     Mapping {
         generated_line: 11,
         generated_column: 14,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 0,
         original_column: 9,
         name: "Example",
@@ -166,7 +166,7 @@ Mappings:
     Mapping {
         generated_line: 13,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 0,
         original_column: 0,
         name: "Example",
@@ -174,7 +174,7 @@ Mappings:
     Mapping {
         generated_line: 13,
         generated_column: 10,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 0,
         original_column: 9,
         name: "Example",
@@ -182,7 +182,7 @@ Mappings:
     Mapping {
         generated_line: 17,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 3,
         original_column: 0,
         name: "Never",
@@ -190,7 +190,7 @@ Mappings:
     Mapping {
         generated_line: 17,
         generated_column: 12,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 3,
         original_column: 9,
         name: "Never",
@@ -198,7 +198,7 @@ Mappings:
     Mapping {
         generated_line: 19,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 3,
         original_column: 0,
         name: "Never",
@@ -206,7 +206,7 @@ Mappings:
     Mapping {
         generated_line: 19,
         generated_column: 17,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 3,
         original_column: 9,
         name: "Never",
@@ -214,7 +214,7 @@ Mappings:
     Mapping {
         generated_line: 20,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 3,
         original_column: 0,
         name: "Never",
@@ -222,7 +222,7 @@ Mappings:
     Mapping {
         generated_line: 20,
         generated_column: 13,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 3,
         original_column: 9,
         name: "Never",
@@ -230,7 +230,7 @@ Mappings:
     Mapping {
         generated_line: 22,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 3,
         original_column: 0,
         name: "Never",
@@ -238,7 +238,7 @@ Mappings:
     Mapping {
         generated_line: 22,
         generated_column: 14,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 3,
         original_column: 9,
         name: "Never",
@@ -246,7 +246,7 @@ Mappings:
     Mapping {
         generated_line: 24,
         generated_column: 0,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 3,
         original_column: 0,
         name: "Never",
@@ -254,7 +254,7 @@ Mappings:
     Mapping {
         generated_line: 24,
         generated_column: 10,
-        source: "src/lib.rs",
+        source: "lib.rs",
         original_line: 3,
         original_column: 9,
         name: "Never",

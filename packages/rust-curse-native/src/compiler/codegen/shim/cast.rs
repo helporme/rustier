@@ -374,7 +374,7 @@ mod tests {
         codegen::shim::tethering::TetheringStructType,
         db::Db,
         ir::{
-            rust::{Crate, Member, Type, ValueType},
+            rust::{Member, Rust, Type, ValueType},
             shim::ShimType,
         },
     };
@@ -792,7 +792,8 @@ mod tests {
     }
 
     fn test_value_type<'db>(db: &'db dyn Db, name: &str) -> ValueType<'db> {
-        let crate_ = Crate::all(db)
+        let crate_ = Rust::get(db)
+            .crates(db)
             .first()
             .expect("test crate should be lowered");
 

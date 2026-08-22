@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 358
 expression: snapshot
 ---
 # Source
@@ -14,16 +13,16 @@ pub fn test_fn() -> i32 {
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__free__rustdoc_0test_0crate_test_0fn")]
-pub fn __fn__free__rustdoc_0test_0crate_test_0fn() -> napi::Result<f64> {
-    Ok(cast.from("Rust(Value(i32))").to("Shim(f64)").an(rustdoc_test_crate::test_fn()))
+#[napi(js_name = "__fn__free__test_0crate_test_0fn")]
+pub fn __fn__free__test_0crate_test_0fn() -> napi::Result<f64> {
+    Ok(cast.from("Rust(Value(i32))").to("Shim(f64)").an(test_crate::test_fn()))
 }
 ```
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__free__rustdoc_0test_0crate_test_0fn")]
-pub fn __fn__free__rustdoc_0test_0crate_test_0fn() -> Result<f64, JsValue> {
-    Ok(cast.from("Rust(Value(i32))").to("Shim(f64)").an(rustdoc_test_crate::test_fn()))
+#[wasm_bindgen(js_name = "__fn__free__test_0crate_test_0fn")]
+pub fn __fn__free__test_0crate_test_0fn() -> Result<f64, JsValue> {
+    Ok(cast.from("Rust(Value(i32))").to("Shim(f64)").an(test_crate::test_fn()))
 }
 ```

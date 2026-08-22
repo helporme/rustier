@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 386
 expression: snapshot
 ---
 # Source
@@ -14,8 +13,8 @@ pub fn test_fn(direct: i32, borrowed: &i32) -> i32 {
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__free__rustdoc_0test_0crate_test_0fn")]
-pub fn __fn__free__rustdoc_0test_0crate_test_0fn(_0: f64, _1: f64) -> napi::Result<f64> {
+#[napi(js_name = "__fn__free__test_0crate_test_0fn")]
+pub fn __fn__free__test_0crate_test_0fn(_0: f64, _1: f64) -> napi::Result<f64> {
     Ok(
         cast
             .from("Rust(Value(i32))")
@@ -27,7 +26,7 @@ pub fn __fn__free__rustdoc_0test_0crate_test_0fn(_0: f64, _1: f64) -> napi::Resu
                         .from("Shim(f64)")
                         .to("Rust(Borrowed { is_mutable: false, inner: i32 })")
                         .an(_1);
-                    rustdoc_test_crate::test_fn(_0, _1)
+                    test_crate::test_fn(_0, _1)
                 }
             }),
     )
@@ -36,11 +35,8 @@ pub fn __fn__free__rustdoc_0test_0crate_test_0fn(_0: f64, _1: f64) -> napi::Resu
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__free__rustdoc_0test_0crate_test_0fn")]
-pub fn __fn__free__rustdoc_0test_0crate_test_0fn(
-    _0: f64,
-    _1: f64,
-) -> Result<f64, JsValue> {
+#[wasm_bindgen(js_name = "__fn__free__test_0crate_test_0fn")]
+pub fn __fn__free__test_0crate_test_0fn(_0: f64, _1: f64) -> Result<f64, JsValue> {
     Ok(
         cast
             .from("Rust(Value(i32))")
@@ -52,7 +48,7 @@ pub fn __fn__free__rustdoc_0test_0crate_test_0fn(
                         .from("Shim(f64)")
                         .to("Rust(Borrowed { is_mutable: false, inner: i32 })")
                         .an(_1);
-                    rustdoc_test_crate::test_fn(_0, _1)
+                    test_crate::test_fn(_0, _1)
                 }
             }),
     )

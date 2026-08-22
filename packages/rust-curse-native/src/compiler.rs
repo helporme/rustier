@@ -27,10 +27,13 @@ use triomphe::Arc;
 
 use self::{
     db::RootDatabase,
+    diag::Diag,
     inputs::{CrateMetadata, CratesMetadata},
+    ir::{rust::Rust, shim::ShimMod},
 };
 
 pub use self::{
+    diag::Theme,
     inputs::{CrateApiDiscovery, CrateApiImportMode, FfiLayout, Platform, WasmEnv},
     path::{FilePath, FilePathError},
 };
@@ -123,32 +126,57 @@ impl Compiler {
 
     /// Compiles a shim code and collects diagnostics.
     pub fn compile_shim(&self) -> ShimCompilationOutput {
-        todo!()
+        let rust = Rust::get(&self.db);
+        let diagnostics = rust
+            .crates(&self.db)
+            .iter()
+            .flat_map(|crate_| crate_.check(&self.db))
+            .cloned()
+            .map(CompilerDiagnostic::from)
+            .collect();
+        let shim = rust.shim(&self.db).render(&self.db).to_owned();
+
+        ShimCompilationOutput { diagnostics, shim }
     }
 
     /// Compiles a js code for a given rust module file.
     ///
     /// Compilation of js code cannot emit new diagnostics besides those
-    /// returned by [`Self::compile_shim`] function.
-    pub fn compile_js(&self, _path: FilePath) -> String {
-        todo!()
+    /// returned by [`Self::compile_shim`] function. Returns [`None`] when the
+    /// path does not identify a Rust module in the compiler workspace.
+    pub fn compile_js(&self, path: FilePath) -> Option<String> {
+        self.shim_mod(path)
+            .map(|mod_| mod_.facade(&self.db).render(&self.db).to_owned())
     }
 
     /// Compiles a ts code for a given rust module file.
     ///
-    ///
     /// Compilation of ts code cannot emit new diagnostics besides those
-    /// returned by [`Self::compile_shim`] function.
-    pub fn compile_ts(&self, _path: FilePath) -> String {
-        todo!()
+    /// returned by [`Self::compile_shim`] function. Returns [`None`] when the
+    /// path does not identify a Rust module in the compiler workspace.
+    pub fn compile_ts(&self, path: FilePath) -> Option<String> {
+        self.shim_mod(path)
+            .map(|mod_| mod_.decals(&self.db).render_ts(&self.db).to_owned())
     }
 
     /// Compiles a ts sourcemap file for a given rust module file.
     ///
     /// Compilation of ts sourcemap file cannot emit new diagnostics besides
-    /// those returned by [`Self::compile_shim`] function.
-    pub fn compile_ts_sourcemap(&self, _path: FilePath) -> String {
-        todo!()
+    /// those returned by [`Self::compile_shim`] function. Returns [`None`] when
+    /// the path does not identify a Rust module in the compiler workspace.
+    pub fn compile_ts_sourcemap(&self, path: FilePath) -> Option<String> {
+        self.shim_mod(path)
+            .map(|mod_| mod_.decals(&self.db).render_sourcemap(&self.db).to_owned())
+    }
+
+    fn shim_mod(&self, path: FilePath) -> Option<ShimMod<'_>> {
+        Rust::get(&self.db)
+            .shim(&self.db)
+            .crates(&self.db)
+            .iter()
+            .flat_map(|crate_| crate_.mods(&self.db))
+            .find(|mod_| mod_.facade(&self.db).file_path(&self.db) == &path)
+            .copied()
     }
 }
 
@@ -360,7 +388,7 @@ impl From<Edition> for HirEdition {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct ShimCompilationOutput {
     /// Diagnostics emitted during compilation.
     ///
@@ -371,9 +399,30 @@ pub struct ShimCompilationOutput {
     pub shim: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct CompilerDiagnostic {
-    // todo: code, help, description, source_code, etc. etc. populated from compiler/diag.rs
+    inner: Diag,
+}
+
+impl CompilerDiagnostic {
+    pub fn render(&self, theme: Theme) -> Result<String, std::fmt::Error> {
+        self.inner.render(theme)
+    }
+}
+
+impl From<Diag> for CompilerDiagnostic {
+    fn from(inner: Diag) -> Self {
+        Self { inner }
+    }
+}
+
+impl std::fmt::Debug for CompilerDiagnostic {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("CompilerDiagnostic")
+            .field("message", &self.inner.inner.to_string())
+            .finish()
+    }
 }
 
 #[derive(Debug, Error)]

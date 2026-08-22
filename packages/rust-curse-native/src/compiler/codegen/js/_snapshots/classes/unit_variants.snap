@@ -21,7 +21,7 @@ export class Test {
 	"second"];
 
 	get ["type"]() {
-		return Test.#_types[__fn__disc__rustdoc_0test_0crate_Test(
+		return Test.#_types[__fn__disc__test_0crate_Test(
 			this.#_ffi
 		)];
 	}

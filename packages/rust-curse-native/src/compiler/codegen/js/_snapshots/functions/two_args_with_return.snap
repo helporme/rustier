@@ -39,7 +39,7 @@ export function test_fn (
 				).to(
 					"Facade(number)"
 				).an(
-					__fn__free__rustdoc_0test_0crate_test_0fn(
+					__fn__free__test_0crate_test_0fn(
 						__0,
 						__1
 					)

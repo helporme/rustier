@@ -282,7 +282,7 @@ mod tests {
         db::RootDatabase,
         ir::{
             facade::{FacadeClass, FacadeClassKind},
-            rust::Crate,
+            rust::Rust,
         },
         test::{build_test_db, format_rust_source},
     };
@@ -330,7 +330,8 @@ mod tests {
     }
 
     fn only_facade_class(db: &RootDatabase) -> FacadeClass<'_> {
-        let root = Crate::all(db)
+        let root = Rust::get(db)
+            .crates(db)
             .first()
             .expect("test crate should be lowered")
             .root(db)

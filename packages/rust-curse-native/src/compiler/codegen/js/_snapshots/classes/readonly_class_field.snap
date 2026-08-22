@@ -25,11 +25,11 @@ export class Test {
 		) {
 			{
 				const out = cast.from(
-					"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Nested\" }) } }))"
+					"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } }))"
 				).to(
-					"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Nested\" }) } }))"
+					"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } }))"
 				).an(
-					__fn__getter__rustdoc_0test_0crate_Test__nested(
+					__fn__getter__test_0crate_Test__nested(
 						this.#_ffi
 					)
 				);

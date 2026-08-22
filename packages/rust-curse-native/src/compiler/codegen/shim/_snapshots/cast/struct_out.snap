@@ -14,9 +14,9 @@ pub struct ExampleStruct;
 ```rust
 fn cast(input: ()) {
     {
-        let output = __struct__rustdoc_0test_0crate_ExampleStruct {
+        let output = __struct__test_0crate_ExampleStruct {
             src: std::rc::Rc::new(
-                __tethering__rustdoc_0test_0crate_ExampleStruct::new_owned(input),
+                __tethering__test_0crate_ExampleStruct::new_owned(input),
             ),
         };
         consume(output);
@@ -28,9 +28,9 @@ fn cast(input: ()) {
 ```rust
 fn cast(input: ()) {
     {
-        let output = __struct__rustdoc_0test_0crate_ExampleStruct {
+        let output = __struct__test_0crate_ExampleStruct {
             src: std::rc::Rc::new(
-                __tethering__rustdoc_0test_0crate_ExampleStruct::new_owned(input),
+                __tethering__test_0crate_ExampleStruct::new_owned(input),
             ),
         };
         consume(output);

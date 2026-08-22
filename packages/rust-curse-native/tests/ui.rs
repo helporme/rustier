@@ -1,16 +1,14 @@
 use std::{fs, io::ErrorKind, path::Path};
 
-use rust_curse::compiler::{
-    codegen::api::{ApiKind, WasmTarget},
-    diag::Theme,
-};
+use rust_curse::compiler::{Platform, Theme, WasmEnv};
 
 use crate::common::ProgramTest;
 
+#[allow(dead_code)]
 mod common;
 
 fn parse_ui_test(src: String) -> Result<ProgramTest, String> {
-    let mut apis = None;
+    let mut platforms = None;
     let mut cargo_check = false;
 
     for (line_index, line) in src.lines().enumerate() {
@@ -19,22 +17,22 @@ fn parse_ui_test(src: String) -> Result<ProgramTest, String> {
         };
         let directive = directive.trim();
         if let Some(value) = directive.strip_prefix("api:") {
-            if apis.is_some() {
+            if platforms.is_some() {
                 return Err(format!(
                     "duplicate `//@ api` directive on line {}",
                     line_index + 1
                 ));
             }
 
-            let mut parsed_apis = Vec::new();
+            let mut parsed_platforms = Vec::new();
             for value in value.split(',').map(str::trim) {
-                let api = match value {
-                    "wasm" => ApiKind::Wasm {
-                        target: WasmTarget::Node,
+                let platform = match value {
+                    "wasm" => Platform::Wasm {
+                        target: WasmEnv::Node,
                     },
-                    "node" => ApiKind::Node,
-                    "wasm(web)" => ApiKind::Wasm {
-                        target: WasmTarget::Web,
+                    "node" => Platform::Node,
+                    "wasm(web)" => Platform::Wasm {
+                        target: WasmEnv::Web,
                     },
                     "" => {
                         return Err(format!(
@@ -49,15 +47,15 @@ fn parse_ui_test(src: String) -> Result<ProgramTest, String> {
                         ));
                     }
                 };
-                if parsed_apis.contains(&api) {
+                if parsed_platforms.contains(&platform) {
                     return Err(format!(
                         "duplicate API target `{value}` in `//@ api` directive on line {}",
                         line_index + 1
                     ));
                 }
-                parsed_apis.push(api);
+                parsed_platforms.push(platform);
             }
-            apis = Some(parsed_apis);
+            platforms = Some(parsed_platforms);
         } else if directive == "cargo-check" {
             if cargo_check {
                 return Err(format!(
@@ -74,7 +72,7 @@ fn parse_ui_test(src: String) -> Result<ProgramTest, String> {
         }
     }
 
-    let apis = apis.ok_or_else(|| {
+    let platforms = platforms.ok_or_else(|| {
         "missing `//@ api` directive; expected one or more of `wasm`, `node`, or `wasm(web)`"
             .to_string()
     })?;
@@ -82,7 +80,7 @@ fn parse_ui_test(src: String) -> Result<ProgramTest, String> {
     Ok(ProgramTest {
         src,
         cargo_check,
-        apis,
+        platforms,
     })
 }
 

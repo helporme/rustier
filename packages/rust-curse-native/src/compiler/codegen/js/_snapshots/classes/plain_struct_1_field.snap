@@ -24,7 +24,7 @@ export class Test {
 			).to(
 				"Facade(number)"
 			).an(
-				__fn__getter__rustdoc_0test_0crate_Test__field(
+				__fn__getter__test_0crate_Test__field(
 					this.#_ffi
 				)
 			);
@@ -43,7 +43,7 @@ export class Test {
 			).an(
 				value
 			);
-			__fn__setter__rustdoc_0test_0crate_Test__field(
+			__fn__setter__test_0crate_Test__field(
 				this.#_ffi, out
 			);
 		}

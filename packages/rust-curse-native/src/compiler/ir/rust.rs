@@ -2,12 +2,53 @@
 
 mod lowering;
 
-use crate::compiler::{FilePath, db::Db, mangle::mangle_path};
+use crate::compiler::{
+    FilePath,
+    db::Db,
+    inputs::CratesMetadata,
+    ir::shim::{Shim, ShimCrate},
+    mangle::mangle_path,
+};
 use ra_ap_hir::{
     Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
     Function as HirFunction, Module as HirModule, Struct as HirStruct,
 };
 use std::{fmt, path::PathBuf};
+
+#[salsa::interned(debug)]
+pub struct Rust<'db> {
+    #[returns(ref)]
+    pub crates: Vec<Crate<'db>>,
+}
+
+#[salsa::tracked]
+impl<'db> Rust<'db> {
+    #[salsa::tracked]
+    pub fn get(db: &'db dyn Db) -> Self {
+        let metadata = CratesMetadata::get(db);
+        let mut crates = HirCrate::all(db);
+        crates.sort_by_key(|crate_| crate_.is_builtin(db));
+        Self::new(
+            db,
+            crates
+                .into_iter()
+                .map(|crate_| Crate::new(db, crate_))
+                .filter(|crate_| metadata.crates.contains_key(crate_.root_file(db)))
+                .collect::<Vec<_>>(),
+        )
+    }
+
+    #[salsa::tracked]
+    pub fn shim(self, db: &'db dyn Db) -> Shim<'db> {
+        Shim::new(
+            db,
+            self.crates(db)
+                .iter()
+                .map(|crate_| ShimCrate::new(db, *crate_))
+                .collect::<Vec<_>>(),
+        )
+    }
+}
 
 #[salsa::interned(debug)]
 pub struct ItemPath<'db> {
@@ -74,14 +115,6 @@ pub struct Crate<'db> {
 
 #[salsa::tracked]
 impl<'db> Crate<'db> {
-    #[salsa::tracked(returns(ref))]
-    pub fn all(db: &'db dyn Db) -> Vec<Self> {
-        HirCrate::all(db)
-            .into_iter()
-            .map(|crate_| Self::new(db, crate_))
-            .collect()
-    }
-
     pub fn name(self, db: &'db dyn Db) -> &'db String {
         self.lower_name(db)
     }
@@ -92,6 +125,10 @@ impl<'db> Crate<'db> {
 
     pub fn dir(self, db: &'db dyn Db) -> &'db FilePath {
         self.lower_dir(db)
+    }
+
+    pub(in crate::compiler) fn root_file(self, db: &'db dyn Db) -> &'db FilePath {
+        self.root(db).file_path(db)
     }
 }
 

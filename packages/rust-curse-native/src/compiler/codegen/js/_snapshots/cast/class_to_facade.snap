@@ -19,11 +19,11 @@ function cast(
 		const __cast_input = input;
 		if(
 			!(
-				__cast_input instanceof __struct__rustdoc_0test_0crate_ExampleStruct
+				__cast_input instanceof __struct__test_0crate_ExampleStruct
 			)
 		) {
 			throw new TypeError(
-				"Expected a value of type \"__struct__rustdoc_0test_0crate_ExampleStruct\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+				"Expected a value of type \"__struct__test_0crate_ExampleStruct\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
 					__cast_input
 				) + "\""
 			);

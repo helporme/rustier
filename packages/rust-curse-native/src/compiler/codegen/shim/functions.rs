@@ -166,11 +166,11 @@ where
                     let fn_call_stmt = self.cast_compiler.render_many(
                         self.db,
                         cast_param_to_source_types,
-                        frag!({src_fn_call_expr};),
+                        src_fn_call_expr,
                     );
 
                     frag!(
-                        {fn_call_stmt}@
+                        {fn_call_stmt};@
                         Ok(())
                     )
                     .apply(p);
@@ -280,15 +280,22 @@ where
 
                 match variant.shape(self.db) {
                     Shape::Unit => {
-                        frag!({enum_name}::{variant_name}~ => {index}u32,).apply(p);
+                        frag!({enum_name}::{variant_name}~ => {index}f64,).apply(p);
                     }
                     Shape::Tuple(_) => {
-                        frag!({enum_name}::{variant_name}(..) => {index}u32,).apply(p);
+                        frag!({enum_name}::{variant_name}(..) => {index}f64,).apply(p);
                     }
                     Shape::Plain { .. } => {
-                        frag!({enum_name}::{variant_name}~{{ .. }} => {index}u32,).apply(p);
+                        frag!({enum_name}::{variant_name}~{{ .. }} => {index}f64,).apply(p);
                     }
                 }
+            }
+
+            if src.is_non_exhaustive(self.db) {
+                let error = Platform::get(self.db).error(frag!(
+                    "cannot discriminate an unknown non-exhaustive enum variant".to_string()
+                ));
+                frag!(_ => return Err({error}),).apply(p);
             }
         });
 
@@ -308,14 +315,15 @@ mod tests {
     use super::*;
     use crate::{
         assert_rust_snap,
-        compiler::{codegen::shim::cast::test::TestCastRenderer, ir::rust::Crate},
+        compiler::{codegen::shim::cast::test::TestCastRenderer, ir::rust::Rust},
     };
 
     fn find_test_function<'db>(
         db: &'db dyn Db,
         predicate: impl Fn(ShimFunction<'db>) -> bool,
     ) -> ShimFunction<'db> {
-        let root = Crate::all(db)
+        let root = Rust::get(db)
+            .crates(db)
             .first()
             .expect("test crate should be lowered")
             .root(db)

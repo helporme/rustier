@@ -16,10 +16,8 @@ pub enum ExampleEnum {
 ```rust
 fn cast(input: ()) {
     {
-        let output = __enum__rustdoc_0test_0crate_ExampleEnum {
-            src: std::rc::Rc::new(
-                __tethering__rustdoc_0test_0crate_ExampleEnum::new_owned(input),
-            ),
+        let output = __enum__test_0crate_ExampleEnum {
+            src: std::rc::Rc::new(__tethering__test_0crate_ExampleEnum::new_owned(input)),
         };
         consume(output);
     }
@@ -30,10 +28,8 @@ fn cast(input: ()) {
 ```rust
 fn cast(input: ()) {
     {
-        let output = __enum__rustdoc_0test_0crate_ExampleEnum {
-            src: std::rc::Rc::new(
-                __tethering__rustdoc_0test_0crate_ExampleEnum::new_owned(input),
-            ),
+        let output = __enum__test_0crate_ExampleEnum {
+            src: std::rc::Rc::new(__tethering__test_0crate_ExampleEnum::new_owned(input)),
         };
         consume(output);
     }

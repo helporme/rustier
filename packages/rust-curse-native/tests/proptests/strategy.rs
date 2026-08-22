@@ -1,5 +1,6 @@
 use proptest::{collection::vec, prelude::*};
-use rust_curse::{compiler::codegen::fragment::FragmentPrint as _, frag};
+
+use crate::{common::fragment::FragmentPrint as _, frag};
 
 use super::program::{
     Enum, EnumVariant, Function, FunctionParam, Item, Module, Program, Shape, ShapeField, Struct,
@@ -82,16 +83,16 @@ fn scope_items() -> BoxedStrategy<Vec<Item>> {
                 .iter()
                 .copied()
                 .enumerate()
-                .filter_map(|(declaration_index, kind)| {
+                .map(|(declaration_index, kind)| {
                     let is_clone = match kind {
                         DeclarationKind::Struct => true,
                         DeclarationKind::Enum => false,
                     };
-                    Some(TypeSymbol {
+                    TypeSymbol {
                         declaration_index,
                         path: frag!(self::Type { declaration_index }).print(),
                         is_clone,
-                    })
+                    }
                 })
                 .collect::<Vec<_>>();
 

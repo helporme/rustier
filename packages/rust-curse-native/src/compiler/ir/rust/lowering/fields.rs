@@ -32,10 +32,11 @@ impl<'db> Field<'db> {
 
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_value_type(self, db: &'db dyn Db) -> ValueType<'db> {
+        let hir = self.hir(db);
         lower_type(
             db,
-            &self.hir(db).ty(db),
-            self.hir(db).parent_def(db).module(db).krate(db),
+            &field_type(db, hir),
+            hir.parent_def(db).module(db).krate(db),
         )
         .expect("unsupported fields are discarded while lowering their parent shape")
         .deborrow()
@@ -45,10 +46,11 @@ impl<'db> Field<'db> {
     pub(in crate::compiler::ir::rust) fn lower_is_readonly(self, db: &'db dyn Db) -> bool {
         let hir = self.hir(db);
         let crate_ = hir.parent_def(db).module(db).krate(db);
+        let type_ = field_type(db, hir);
         matches!(
-            lower_type(db, &hir.ty(db), crate_).map(Type::deborrow),
+            lower_type(db, &type_, crate_).map(Type::deborrow),
             Ok(ValueType::Struct(_) | ValueType::Enum(_))
-        ) && !is_clonable(db, &hir.ty(db), crate_)
+        ) && !is_clonable(db, &type_, crate_)
     }
 
     #[salsa::tracked(returns(ref))]
@@ -70,15 +72,18 @@ pub(super) fn lower_field<'db>(
     db: &'db dyn Db,
     field: ra_ap_hir::Field,
 ) -> Result<Option<Field<'db>>, Box<FieldLowerError>> {
-    if field.visibility(db) != Visibility::Public {
+    if matches!(field.parent_def(db), HirFieldParent::Struct(_))
+        && field.visibility(db) != Visibility::Public
+    {
         return Ok(None);
     }
     let crate_ = field.parent_def(db).module(db).krate(db);
+    let type_ = field_type(db, field);
     let mut causes = Vec::new();
     if has_explicit_reference_lifetime(db, field) {
         causes.push(TypeLowerErrorUnsupported::LifetimeRef);
     }
-    if let Err(error) = lower_type(db, &field.ty(db), crate_) {
+    if let Err(error) = lower_type(db, &type_, crate_) {
         causes.push(error);
     }
     if !causes.is_empty() {
@@ -91,11 +96,11 @@ pub(super) fn lower_field<'db>(
             causes,
         }));
     }
-    let lowered_type = lower_type(db, &field.ty(db), crate_)
+    let lowered_type = lower_type(db, &type_, crate_)
         .expect("the field type was successfully validated above")
         .deborrow();
     if matches!(lowered_type, ValueType::Struct(_) | ValueType::Enum(_))
-        && !is_clonable(db, &field.ty(db), crate_)
+        && !is_clonable(db, &type_, crate_)
     {
         let span = lower_item_span(db, field, crate_);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
@@ -108,6 +113,10 @@ pub(super) fn lower_field<'db>(
         .accumulate(db);
     }
     Ok(Some(Field::new(db, field)))
+}
+
+fn field_type<'db>(db: &'db dyn Db, field: ra_ap_hir::Field) -> ra_ap_hir::Type<'db> {
+    ra_ap_hir::attach_db(db, || field.ty(db))
 }
 
 fn has_explicit_reference_lifetime<T>(db: &dyn Db, item: T) -> bool
@@ -132,10 +141,7 @@ fn field_name(db: &dyn Db, field: ra_ap_hir::Field) -> FieldName {
         HirFieldParent::EnumVariant(variant) if variant.kind(db) == StructKind::Tuple => {
             FieldName::Idx(field.index())
         }
-        _ => {
-            let crate_ = field.parent_def(db).module(db).krate(db);
-            FieldName::Name(field.name(db).display(db, crate_.edition(db)).to_string())
-        }
+        _ => FieldName::Name(field.name(db).as_str().to_owned()),
     }
 }
 

@@ -20,19 +20,19 @@ export function test_fn (
 ) {
 	{
 		const __0 = cast.from(
-			"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } }))"
+			"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } }))"
 		).to(
-			"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } }))"
+			"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } }))"
 		).an(
 			_0
 		);
 		{
 			const result = cast.from(
-				"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } }))"
+				"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } }))"
 			).to(
-				"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } }))"
+				"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } }))"
 			).an(
-				__fn__free__rustdoc_0test_0crate_test_0fn(
+				__fn__free__test_0crate_test_0fn(
 					__0
 				)
 			);

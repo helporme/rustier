@@ -140,7 +140,7 @@ mod tests {
         assert_js_snap,
         compiler::{
             codegen::{fragment::FragmentOnce as _, js::cast::test::TestCastRenderer},
-            ir::rust::Crate,
+            ir::rust::Rust,
         },
     };
 
@@ -152,7 +152,8 @@ mod tests {
                     source: { $($source)* },
                     expression: |db, printer| {
                         let db = &*db;
-                        let root = Crate::all(db)
+                        let root = Rust::get(db)
+                            .crates(db)
                             .first()
                             .expect("test crate should be lowered")
                             .root(db)

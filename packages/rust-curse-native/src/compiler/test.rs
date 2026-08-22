@@ -1,9 +1,38 @@
 //! Shared compiler test fixtures.
 
+use std::collections::HashMap;
+
+use ra_ap_test_fixture::ChangeFixture;
+
 use crate::compiler::{
-    Compiler, CompilerOpts, CrateApiDiscovery, CrateApiImportMode, CrateGraphBuilder, Edition,
-    FfiLayout, FilePath, Platform, WorkspaceCrate, db::RootDatabase,
+    CrateApiDiscovery, CrateApiImportMode, FfiLayout, FilePath, Platform,
+    db::RootDatabase,
+    inputs::{CrateMetadata, CratesMetadata},
 };
+
+const TEST_CRATE_FIXTURE_HEADER: &str = r#"//- minicore: clone, derive
+//- /src/lib.rs crate:test_crate deps:std edition:2024
+"#;
+
+const TEST_STD_FIXTURE: &str = r#"
+//- /sysroot/std/lib.rs crate:std new_source_root:library
+pub mod string {
+    pub struct String;
+
+    impl core::clone::Clone for String {
+        fn clone(&self) -> Self {
+            loop {}
+        }
+    }
+}
+
+pub mod prelude {
+    pub mod rust_2024 {
+        pub use core::prelude::rust_2024::*;
+        pub use crate::string::String;
+    }
+}
+"#;
 
 #[doc(hidden)]
 pub(super) fn format_rust_source(source: &str) -> String {
@@ -16,41 +45,46 @@ pub(super) fn format_rust_source(source: &str) -> String {
 pub(super) fn build_test_db(source: String, files: &[(&str, String)]) -> RootDatabase {
     let root_file =
         FilePath::new_virtual("/src/lib.rs").expect("test crate root should be a valid path");
-    let mut compiler = Compiler::new(CompilerOpts {
-        platform: Platform::Node,
-        ffi_layout: FfiLayout {
+
+    let mut fixture = String::from(TEST_CRATE_FIXTURE_HEADER);
+    fixture.push_str(&source);
+    fixture.push('\n');
+    for (path, source) in files {
+        fixture.push_str("\n//- /src/");
+        fixture.push_str(path);
+        fixture.push('\n');
+        fixture.push_str(source);
+        fixture.push('\n');
+    }
+    fixture.push_str(TEST_STD_FIXTURE);
+
+    let mut db = RootDatabase::default();
+    db.apply_change(ChangeFixture::parse(&fixture).change);
+    Platform::set(&mut db, Platform::Node);
+    FfiLayout::set(
+        &mut db,
+        FfiLayout {
             ffi_js_file: FilePath::new_virtual("/generated/ffi.js")
                 .expect("test FFI file should be a valid path"),
         },
-    });
-
-    compiler
-        .change_workspace(|change| {
-            change.set_file(root_file.clone(), Some(source));
-            for (path, source) in files {
-                let path = FilePath::new_virtual(format!("/src/{path}"))
-                    .expect("test module should have a valid virtual path");
-                change.set_file(path, Some(source.clone()));
-            }
-
-            let mut crates = CrateGraphBuilder::default();
-            crates.add_crate(WorkspaceCrate {
-                name: "kitty_go".to_owned(),
-                edition: Edition::E2024,
+    );
+    CratesMetadata::set(
+        &mut db,
+        CratesMetadata {
+            crates: HashMap::from([(
                 root_file,
-                version: "0.0.0".to_owned(),
-                api_discovery: CrateApiDiscovery::Eager,
-                api_import_mode: CrateApiImportMode::Mod,
-            });
-            change.set_crates(crates);
-            Ok(())
-        })
-        .expect("build test compiler workspace");
+                CrateMetadata {
+                    api_discovery: CrateApiDiscovery::Eager,
+                    api_import_mode: CrateApiImportMode::Mod,
+                },
+            )]),
+        },
+    );
 
-    compiler.db
+    db
 }
 
-/// Creates a compiler database containing rst-analyzer inputs for inline Rust
+/// Creates a compiler database containing rust-analyzer inputs for inline Rust
 /// code.
 ///
 /// # Example

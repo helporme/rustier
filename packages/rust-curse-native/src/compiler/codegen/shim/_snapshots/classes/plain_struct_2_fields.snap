@@ -14,34 +14,33 @@ pub struct Test {
 # Compiled
 ## Node
 ```rust
-struct __tethering__rustdoc_0test_0crate_Test {
-    src: __tethering::SourceSlot<rustdoc_test_crate::Test>,
+struct __tethering__test_0crate_Test {
+    src: __tethering::SourceSlot<test_crate::Test>,
 }
-impl __tethering::Accessor<rustdoc_test_crate::Test>
-for __tethering__rustdoc_0test_0crate_Test {
+impl __tethering::Accessor<test_crate::Test> for __tethering__test_0crate_Test {
     fn access_dyn(
         &self,
-        f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+        f: &mut dyn FnMut(&test_crate::Test) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
         self.src.access_dyn(f)
     }
     fn access_mut_dyn(
         &self,
-        f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+        f: &mut dyn FnMut(&mut test_crate::Test) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
         self.src.access_mut_dyn(f)
     }
 }
-impl __tethering__rustdoc_0test_0crate_Test {
-    pub fn new_owned(input: rustdoc_test_crate::Test) -> Self {
-        __tethering__rustdoc_0test_0crate_Test {
+impl __tethering__test_0crate_Test {
+    pub fn new_owned(input: test_crate::Test) -> Self {
+        __tethering__test_0crate_Test {
             src: __tethering::SourceSlot::owned(input),
         }
     }
     pub fn new_projected(
-        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Test>>,
+        accessor: std::rc::Rc<dyn __tethering::Accessor<test_crate::Test>>,
     ) -> Self {
-        __tethering__rustdoc_0test_0crate_Test {
+        __tethering__test_0crate_Test {
             src: __tethering::SourceSlot::projected(accessor),
         }
     }
@@ -64,42 +63,41 @@ impl __tethering__rustdoc_0test_0crate_Test {
         })
     }
 }
-#[napi(js_name = "__struct__rustdoc_0test_0crate_Test")]
-pub struct __struct__rustdoc_0test_0crate_Test {
-    src: std::rc::Rc<__tethering__rustdoc_0test_0crate_Test>,
+#[napi(js_name = "__struct__test_0crate_Test")]
+pub struct __struct__test_0crate_Test {
+    src: std::rc::Rc<__tethering__test_0crate_Test>,
 }
 ```
 
 ## Wasm
 ```rust
-struct __tethering__rustdoc_0test_0crate_Test {
-    src: __tethering::SourceSlot<rustdoc_test_crate::Test>,
+struct __tethering__test_0crate_Test {
+    src: __tethering::SourceSlot<test_crate::Test>,
 }
-impl __tethering::Accessor<rustdoc_test_crate::Test>
-for __tethering__rustdoc_0test_0crate_Test {
+impl __tethering::Accessor<test_crate::Test> for __tethering__test_0crate_Test {
     fn access_dyn(
         &self,
-        f: &mut dyn FnMut(&rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+        f: &mut dyn FnMut(&test_crate::Test) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
         self.src.access_dyn(f)
     }
     fn access_mut_dyn(
         &self,
-        f: &mut dyn FnMut(&mut rustdoc_test_crate::Test) -> __tethering::AccessResult<()>,
+        f: &mut dyn FnMut(&mut test_crate::Test) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
         self.src.access_mut_dyn(f)
     }
 }
-impl __tethering__rustdoc_0test_0crate_Test {
-    pub fn new_owned(input: rustdoc_test_crate::Test) -> Self {
-        __tethering__rustdoc_0test_0crate_Test {
+impl __tethering__test_0crate_Test {
+    pub fn new_owned(input: test_crate::Test) -> Self {
+        __tethering__test_0crate_Test {
             src: __tethering::SourceSlot::owned(input),
         }
     }
     pub fn new_projected(
-        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Test>>,
+        accessor: std::rc::Rc<dyn __tethering::Accessor<test_crate::Test>>,
     ) -> Self {
-        __tethering__rustdoc_0test_0crate_Test {
+        __tethering__test_0crate_Test {
             src: __tethering::SourceSlot::projected(accessor),
         }
     }
@@ -122,8 +120,8 @@ impl __tethering__rustdoc_0test_0crate_Test {
         })
     }
 }
-#[wasm_bindgen(js_name = "__struct__rustdoc_0test_0crate_Test")]
-pub struct __struct__rustdoc_0test_0crate_Test {
-    src: std::rc::Rc<__tethering__rustdoc_0test_0crate_Test>,
+#[wasm_bindgen(js_name = "__struct__test_0crate_Test")]
+pub struct __struct__test_0crate_Test {
+    src: std::rc::Rc<__tethering__test_0crate_Test>,
 }
 ```

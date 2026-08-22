@@ -26,7 +26,7 @@ export class Test {
 	"HttpRequest"];
 
 	get ["value"]() {
-		const type_ = __fn__disc__rustdoc_0test_0crate_Test(
+		const type_ = __fn__disc__test_0crate_Test(
 			this.#_ffi
 		);
 		if(
@@ -37,11 +37,11 @@ export class Test {
 			) {
 				{
 					const out = cast.from(
-						"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Writable\" }) } }))"
+						"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5802) } }) } }))"
 					).to(
-						"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Writable\" }) } }))"
+						"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5802) } }) } }))"
 					).an(
-						__fn__getter__rustdoc_0test_0crate_Test____HTTPRequest__value(
+						__fn__getter__test_0crate_Test____HTTPRequest__value(
 							this.#_ffi
 						)
 					);
@@ -58,11 +58,11 @@ export class Test {
 			) {
 				{
 					const out = cast.from(
-						"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Readonly\" }) } }))"
+						"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } }))"
 					).to(
-						"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Readonly\" }) } }))"
+						"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } }))"
 					).an(
-						__fn__getter__rustdoc_0test_0crate_Test____HttpRequest__value(
+						__fn__getter__test_0crate_Test____HttpRequest__value(
 							this.#_ffi
 						)
 					);
@@ -79,7 +79,7 @@ export class Test {
 	set ["value"](
 		value
 	) {
-		const type_ = __fn__disc__rustdoc_0test_0crate_Test(
+		const type_ = __fn__disc__test_0crate_Test(
 			this.#_ffi
 		);
 		if(
@@ -87,13 +87,13 @@ export class Test {
 		) {
 			{
 				const out = cast.from(
-					"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Writable\" }) } }))"
+					"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5802) } }) } }))"
 				).to(
-					"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Writable\" }) } }))"
+					"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5802) } }) } }))"
 				).an(
 					value
 				);
-				__fn__setter__rustdoc_0test_0crate_Test____HTTPRequest__value(
+				__fn__setter__test_0crate_Test____HTTPRequest__value(
 					this.#_ffi, out
 				);
 				this.#__field_0_0 = value;
@@ -113,7 +113,7 @@ export class Test {
 	}
 
 	get ["only_first"]() {
-		const type_ = __fn__disc__rustdoc_0test_0crate_Test(
+		const type_ = __fn__disc__test_0crate_Test(
 			this.#_ffi
 		);
 		if(
@@ -125,7 +125,7 @@ export class Test {
 				).to(
 					"Facade(number)"
 				).an(
-					__fn__getter__rustdoc_0test_0crate_Test____HTTPRequest__only_first(
+					__fn__getter__test_0crate_Test____HTTPRequest__only_first(
 						this.#_ffi
 					)
 				);
@@ -140,7 +140,7 @@ export class Test {
 	set ["only_first"](
 		value
 	) {
-		const type_ = __fn__disc__rustdoc_0test_0crate_Test(
+		const type_ = __fn__disc__test_0crate_Test(
 			this.#_ffi
 		);
 		if(
@@ -154,7 +154,7 @@ export class Test {
 				).an(
 					value
 				);
-				__fn__setter__rustdoc_0test_0crate_Test____HTTPRequest__only_first(
+				__fn__setter__test_0crate_Test____HTTPRequest__only_first(
 					this.#_ffi, out
 				);
 				return;
@@ -166,7 +166,7 @@ export class Test {
 	}
 
 	get ["type"]() {
-		const type_ = __fn__disc__rustdoc_0test_0crate_Test(
+		const type_ = __fn__disc__test_0crate_Test(
 			this.#_ffi
 		);
 		if(
@@ -178,7 +178,7 @@ export class Test {
 				).to(
 					"Facade(number)"
 				).an(
-					__fn__getter__rustdoc_0test_0crate_Test____HTTPRequest__type(
+					__fn__getter__test_0crate_Test____HTTPRequest__type(
 						this.#_ffi
 					)
 				);
@@ -193,7 +193,7 @@ export class Test {
 	set ["type"](
 		value
 	) {
-		const type_ = __fn__disc__rustdoc_0test_0crate_Test(
+		const type_ = __fn__disc__test_0crate_Test(
 			this.#_ffi
 		);
 		if(
@@ -207,7 +207,7 @@ export class Test {
 				).an(
 					value
 				);
-				__fn__setter__rustdoc_0test_0crate_Test____HTTPRequest__type(
+				__fn__setter__test_0crate_Test____HTTPRequest__type(
 					this.#_ffi, out
 				);
 				return;
@@ -219,7 +219,7 @@ export class Test {
 	}
 
 	get ["$type"]() {
-		return Test.#_types[__fn__disc__rustdoc_0test_0crate_Test(
+		return Test.#_types[__fn__disc__test_0crate_Test(
 			this.#_ffi
 		)];
 	}

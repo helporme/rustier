@@ -19,7 +19,7 @@ export class Test {
 	static #_types = ["plain"];
 
 	get ["field"]() {
-		const type_ = __fn__disc__rustdoc_0test_0crate_Test(
+		const type_ = __fn__disc__test_0crate_Test(
 			this.#_ffi
 		);
 		if(
@@ -31,7 +31,7 @@ export class Test {
 				).to(
 					"Facade(number)"
 				).an(
-					__fn__getter__rustdoc_0test_0crate_Test____Plain__field(
+					__fn__getter__test_0crate_Test____Plain__field(
 						this.#_ffi
 					)
 				);
@@ -46,7 +46,7 @@ export class Test {
 	set ["field"](
 		value
 	) {
-		const type_ = __fn__disc__rustdoc_0test_0crate_Test(
+		const type_ = __fn__disc__test_0crate_Test(
 			this.#_ffi
 		);
 		if(
@@ -60,7 +60,7 @@ export class Test {
 				).an(
 					value
 				);
-				__fn__setter__rustdoc_0test_0crate_Test____Plain__field(
+				__fn__setter__test_0crate_Test____Plain__field(
 					this.#_ffi, out
 				);
 				return;
@@ -72,7 +72,7 @@ export class Test {
 	}
 
 	get ["type"]() {
-		return Test.#_types[__fn__disc__rustdoc_0test_0crate_Test(
+		return Test.#_types[__fn__disc__test_0crate_Test(
 			this.#_ffi
 		)];
 	}

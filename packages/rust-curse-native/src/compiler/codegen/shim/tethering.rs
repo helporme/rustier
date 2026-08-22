@@ -675,11 +675,12 @@ mod tests {
     use super::*;
     use crate::{
         assert_rust_snap,
-        compiler::ir::rust::{Crate, Member},
+        compiler::ir::rust::{Member, Rust},
     };
 
     fn test_value_type<'db>(db: &'db dyn Db, name: &str) -> ValueType<'db> {
-        let crate_ = Crate::all(db)
+        let crate_ = Rust::get(db)
+            .crates(db)
             .first()
             .expect("test crate should be lowered");
 

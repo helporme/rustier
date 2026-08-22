@@ -1,5 +1,8 @@
 use miette::Diagnostic;
-use ra_ap_hir::{Adt, GenericDef, HirDisplay as _, Mutability, Trait, Type as HirType};
+use ra_ap_hir::{
+    Adt, GenericDef, HasSource as _, HirDisplay as _, Mutability, Trait, Type as HirType,
+};
+use ra_ap_syntax::{AstNode as _, ast::HasAttrs as _};
 use thiserror::Error;
 
 use crate::compiler::{
@@ -12,8 +15,16 @@ pub(super) fn lower_type<'db>(
     type_: &HirType<'db>,
     crate_: ra_ap_hir::Crate,
 ) -> Result<Type<'db>, TypeLowerErrorUnsupported> {
+    ra_ap_hir::attach_db(db, || lower_type_attached(db, type_, crate_))
+}
+
+fn lower_type_attached<'db>(
+    db: &'db dyn Db,
+    type_: &HirType<'db>,
+    crate_: ra_ap_hir::Crate,
+) -> Result<Type<'db>, TypeLowerErrorUnsupported> {
     if let Some((inner, mutability)) = type_.as_reference() {
-        let Type::Value(inner) = lower_type(db, &inner, crate_)? else {
+        let Type::Value(inner) = lower_type_attached(db, &inner, crate_)? else {
             return Err(TypeLowerErrorUnsupported::DoubleReference);
         };
         return Ok(Type::Borrowed {
@@ -67,8 +78,31 @@ pub(super) fn lower_type<'db>(
 }
 
 pub(super) fn is_clonable(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::Crate) -> bool {
-    Trait::lang(db, crate_, ra_ap_hir::LangItem::Clone)
-        .is_some_and(|clone| type_.impls_trait(db, clone, &[]))
+    if type_.as_adt().is_some_and(|adt| derives_clone(db, adt)) {
+        return true;
+    }
+
+    ra_ap_hir::attach_db(db, || {
+        Trait::lang(db, crate_, ra_ap_hir::LangItem::Clone)
+            .is_some_and(|clone| type_.impls_trait(db, clone, &[]))
+    })
+}
+
+fn derives_clone(db: &dyn Db, adt: Adt) -> bool {
+    let Some(source) = adt.source(db) else {
+        return false;
+    };
+
+    source.value.attrs().any(|attr| {
+        attr.as_simple_call().is_some_and(|(name, tokens)| {
+            name == "derive"
+                && tokens
+                    .syntax()
+                    .descendants_with_tokens()
+                    .filter_map(|element| element.into_token())
+                    .any(|token| token.text() == "Clone")
+        })
+    })
 }
 
 fn unsupported_type(

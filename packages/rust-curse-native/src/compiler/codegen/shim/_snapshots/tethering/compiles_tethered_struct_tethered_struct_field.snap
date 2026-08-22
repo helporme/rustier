@@ -14,49 +14,44 @@ pub struct Parent {
 # Compiled
 ## Node
 ```rust
-struct __tethering__rustdoc_0test_0crate_Parent {
-    src: __tethering::SourceSlot<rustdoc_test_crate::Parent>,
+struct __tethering__test_0crate_Parent {
+    src: __tethering::SourceSlot<test_crate::Parent>,
     __c__child: std::cell::RefCell<
-        Option<std::rc::Weak<__tethering__rustdoc_0test_0crate_Child>>,
+        Option<std::rc::Weak<__tethering__test_0crate_Child>>,
     >,
 }
-impl __tethering::Accessor<rustdoc_test_crate::Parent>
-for __tethering__rustdoc_0test_0crate_Parent {
+impl __tethering::Accessor<test_crate::Parent> for __tethering__test_0crate_Parent {
     fn access_dyn(
         &self,
-        f: &mut dyn FnMut(&rustdoc_test_crate::Parent) -> __tethering::AccessResult<()>,
+        f: &mut dyn FnMut(&test_crate::Parent) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
         self.src.access_dyn(f)
     }
     fn access_mut_dyn(
         &self,
-        f: &mut dyn FnMut(
-            &mut rustdoc_test_crate::Parent,
-        ) -> __tethering::AccessResult<()>,
+        f: &mut dyn FnMut(&mut test_crate::Parent) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
         self.src.access_mut_dyn(f)
     }
 }
-impl __tethering__rustdoc_0test_0crate_Parent {
-    pub fn new_owned(input: rustdoc_test_crate::Parent) -> Self {
-        __tethering__rustdoc_0test_0crate_Parent {
+impl __tethering__test_0crate_Parent {
+    pub fn new_owned(input: test_crate::Parent) -> Self {
+        __tethering__test_0crate_Parent {
             src: __tethering::SourceSlot::owned(input),
             __c__child: std::cell::RefCell::new(None),
         }
     }
     pub fn new_projected(
-        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Parent>>,
+        accessor: std::rc::Rc<dyn __tethering::Accessor<test_crate::Parent>>,
     ) -> Self {
-        __tethering__rustdoc_0test_0crate_Parent {
+        __tethering__test_0crate_Parent {
             src: __tethering::SourceSlot::projected(accessor),
             __c__child: std::cell::RefCell::new(None),
         }
     }
     pub fn get_child(
         self: &std::rc::Rc<Self>,
-    ) -> __tethering::AccessResult<
-        std::rc::Rc<__tethering__rustdoc_0test_0crate_Child>,
-    > {
+    ) -> __tethering::AccessResult<std::rc::Rc<__tethering__test_0crate_Child>> {
         self.access(|parent| {
             Ok(&parent.child)?;
             Ok(())
@@ -67,25 +62,20 @@ impl __tethering__rustdoc_0test_0crate_Parent {
         {
             return Ok(tethered);
         }
-        let field_access: std::rc::Rc<
-            dyn __tethering::Accessor<rustdoc_test_crate::Child>,
-        > = std::rc::Rc::new(__tethering::FieldAccess {
+        let field_access: std::rc::Rc<dyn __tethering::Accessor<test_crate::Child>> = std::rc::Rc::new(__tethering::FieldAccess {
             parent: self.clone(),
             get: |parent| Ok(&parent.child),
             get_mut: |parent| Ok(&mut parent.child),
         });
         let tethered = std::rc::Rc::new(
-            __tethering__rustdoc_0test_0crate_Child::new_projected(field_access),
+            __tethering__test_0crate_Child::new_projected(field_access),
         );
         *__tethering::try_borrow_mut(&self.__c__child)? = Some(
             std::rc::Rc::downgrade(&tethered),
         );
         Ok(tethered)
     }
-    pub fn set_child(
-        &self,
-        value: rustdoc_test_crate::Child,
-    ) -> __tethering::AccessResult<()> {
+    pub fn set_child(&self, value: test_crate::Child) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             Ok(&mut src.child)?;
             Ok(())
@@ -105,49 +95,44 @@ impl __tethering__rustdoc_0test_0crate_Parent {
 
 ## Wasm
 ```rust
-struct __tethering__rustdoc_0test_0crate_Parent {
-    src: __tethering::SourceSlot<rustdoc_test_crate::Parent>,
+struct __tethering__test_0crate_Parent {
+    src: __tethering::SourceSlot<test_crate::Parent>,
     __c__child: std::cell::RefCell<
-        Option<std::rc::Weak<__tethering__rustdoc_0test_0crate_Child>>,
+        Option<std::rc::Weak<__tethering__test_0crate_Child>>,
     >,
 }
-impl __tethering::Accessor<rustdoc_test_crate::Parent>
-for __tethering__rustdoc_0test_0crate_Parent {
+impl __tethering::Accessor<test_crate::Parent> for __tethering__test_0crate_Parent {
     fn access_dyn(
         &self,
-        f: &mut dyn FnMut(&rustdoc_test_crate::Parent) -> __tethering::AccessResult<()>,
+        f: &mut dyn FnMut(&test_crate::Parent) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
         self.src.access_dyn(f)
     }
     fn access_mut_dyn(
         &self,
-        f: &mut dyn FnMut(
-            &mut rustdoc_test_crate::Parent,
-        ) -> __tethering::AccessResult<()>,
+        f: &mut dyn FnMut(&mut test_crate::Parent) -> __tethering::AccessResult<()>,
     ) -> __tethering::AccessResult<()> {
         self.src.access_mut_dyn(f)
     }
 }
-impl __tethering__rustdoc_0test_0crate_Parent {
-    pub fn new_owned(input: rustdoc_test_crate::Parent) -> Self {
-        __tethering__rustdoc_0test_0crate_Parent {
+impl __tethering__test_0crate_Parent {
+    pub fn new_owned(input: test_crate::Parent) -> Self {
+        __tethering__test_0crate_Parent {
             src: __tethering::SourceSlot::owned(input),
             __c__child: std::cell::RefCell::new(None),
         }
     }
     pub fn new_projected(
-        accessor: std::rc::Rc<dyn __tethering::Accessor<rustdoc_test_crate::Parent>>,
+        accessor: std::rc::Rc<dyn __tethering::Accessor<test_crate::Parent>>,
     ) -> Self {
-        __tethering__rustdoc_0test_0crate_Parent {
+        __tethering__test_0crate_Parent {
             src: __tethering::SourceSlot::projected(accessor),
             __c__child: std::cell::RefCell::new(None),
         }
     }
     pub fn get_child(
         self: &std::rc::Rc<Self>,
-    ) -> __tethering::AccessResult<
-        std::rc::Rc<__tethering__rustdoc_0test_0crate_Child>,
-    > {
+    ) -> __tethering::AccessResult<std::rc::Rc<__tethering__test_0crate_Child>> {
         self.access(|parent| {
             Ok(&parent.child)?;
             Ok(())
@@ -158,25 +143,20 @@ impl __tethering__rustdoc_0test_0crate_Parent {
         {
             return Ok(tethered);
         }
-        let field_access: std::rc::Rc<
-            dyn __tethering::Accessor<rustdoc_test_crate::Child>,
-        > = std::rc::Rc::new(__tethering::FieldAccess {
+        let field_access: std::rc::Rc<dyn __tethering::Accessor<test_crate::Child>> = std::rc::Rc::new(__tethering::FieldAccess {
             parent: self.clone(),
             get: |parent| Ok(&parent.child),
             get_mut: |parent| Ok(&mut parent.child),
         });
         let tethered = std::rc::Rc::new(
-            __tethering__rustdoc_0test_0crate_Child::new_projected(field_access),
+            __tethering__test_0crate_Child::new_projected(field_access),
         );
         *__tethering::try_borrow_mut(&self.__c__child)? = Some(
             std::rc::Rc::downgrade(&tethered),
         );
         Ok(tethered)
     }
-    pub fn set_child(
-        &self,
-        value: rustdoc_test_crate::Child,
-    ) -> __tethering::AccessResult<()> {
+    pub fn set_child(&self, value: test_crate::Child) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             Ok(&mut src.child)?;
             Ok(())

@@ -4,7 +4,6 @@ use proptest::{
     prelude::*,
     test_runner::{Config, TestCaseError, basic_result_cache},
 };
-use rust_curse::compiler::{codegen::api::ApiKind, codegen::fragment::FragmentPrint as _};
 
 #[allow(dead_code)]
 mod common;
@@ -12,6 +11,8 @@ mod common;
 mod program;
 #[path = "proptests/strategy.rs"]
 mod strategy;
+
+use common::fragment::FragmentPrint as _;
 
 static PROGRAM_COMPILER: OnceLock<Result<Mutex<common::ProgramCompiler>, String>> = OnceLock::new();
 
@@ -48,7 +49,7 @@ proptest! {
         let program = common::ProgramTest {
             src: program.print(),
             cargo_check: true,
-            apis: vec![ApiKind::Node],
+            platforms: vec![rust_curse::compiler::Platform::Node],
         };
 
         let compiler = PROGRAM_COMPILER

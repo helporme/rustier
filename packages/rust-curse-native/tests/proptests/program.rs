@@ -1,5 +1,5 @@
-use rust_curse::{
-    compiler::codegen::fragment::{Fragment, FragmentOnce, Printer, comma_list, fragment},
+use crate::{
+    common::fragment::{Fragment, FragmentOnce, Printer, comma_list, fragment},
     frag,
 };
 

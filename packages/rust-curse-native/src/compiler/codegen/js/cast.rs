@@ -271,7 +271,7 @@ mod tests {
         ir::{
             facade::{FacadeClass, FacadeType},
             ffi::FfiType,
-            rust::Crate,
+            rust::Rust,
         },
     };
 
@@ -404,7 +404,8 @@ mod tests {
     }
 
     fn test_facade_class<'db>(db: &'db dyn Db) -> FacadeClass<'db> {
-        let crate_ = Crate::all(db)
+        let crate_ = Rust::get(db)
+            .crates(db)
             .first()
             .expect("test crate should be lowered");
         let root = crate_.root(db).shim(db).facade(db);

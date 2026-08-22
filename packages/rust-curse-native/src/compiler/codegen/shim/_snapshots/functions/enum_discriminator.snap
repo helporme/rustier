@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 410
 expression: snapshot
 ---
 # Source
@@ -16,24 +15,22 @@ pub enum Test {
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__disc__rustdoc_0test_0crate_Test")]
-pub fn __fn__disc__rustdoc_0test_0crate_Test(
-    _0: &__enum__rustdoc_0test_0crate_Test,
-) -> napi::Result<f64> {
+#[napi(js_name = "__fn__disc__test_0crate_Test")]
+pub fn __fn__disc__test_0crate_Test(_0: &__enum__test_0crate_Test) -> napi::Result<f64> {
     let result = cast
         .from(
-            "Shim(Class { is_borrowed: true, inner: ShimClass { src: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } })",
+            "Shim(Class { is_borrowed: true, inner: ShimClass { src: Enum(Enum { hir: Enum { id: EnumId(5c00) } }) } })",
         )
         .to(
-            "Tethered(TetheringStructType { source_type: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
+            "Tethered(TetheringStructType { source_type: Enum(Enum { hir: Enum { id: EnumId(5c00) } }) })",
         )
         .an(_0)
         .access(|src| {
             Ok(
                 match src {
-                    rustdoc_test_crate::Test::Unit => 0u32,
-                    rustdoc_test_crate::Test::Tuple(..) => 1u32,
-                    rustdoc_test_crate::Test::Plain { .. } => 2u32,
+                    test_crate::Test::Unit => 0f64,
+                    test_crate::Test::Tuple(..) => 1f64,
+                    test_crate::Test::Plain { .. } => 2f64,
                 },
             )
         })?;
@@ -43,24 +40,24 @@ pub fn __fn__disc__rustdoc_0test_0crate_Test(
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__disc__rustdoc_0test_0crate_Test")]
-pub fn __fn__disc__rustdoc_0test_0crate_Test(
-    _0: &__enum__rustdoc_0test_0crate_Test,
+#[wasm_bindgen(js_name = "__fn__disc__test_0crate_Test")]
+pub fn __fn__disc__test_0crate_Test(
+    _0: &__enum__test_0crate_Test,
 ) -> Result<f64, JsValue> {
     let result = cast
         .from(
-            "Shim(Class { is_borrowed: true, inner: ShimClass { src: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) } })",
+            "Shim(Class { is_borrowed: true, inner: ShimClass { src: Enum(Enum { hir: Enum { id: EnumId(5c00) } }) } })",
         )
         .to(
-            "Tethered(TetheringStructType { source_type: Enum(Enum { parent: Mod { parent: Crate(Crate { name: \"rustdoc_test_crate\" }), name: \"rustdoc_test_crate\" }, name: \"Test\" }) })",
+            "Tethered(TetheringStructType { source_type: Enum(Enum { hir: Enum { id: EnumId(5c00) } }) })",
         )
         .an(_0)
         .access(|src| {
             Ok(
                 match src {
-                    rustdoc_test_crate::Test::Unit => 0u32,
-                    rustdoc_test_crate::Test::Tuple(..) => 1u32,
-                    rustdoc_test_crate::Test::Plain { .. } => 2u32,
+                    test_crate::Test::Unit => 0f64,
+                    test_crate::Test::Tuple(..) => 1f64,
+                    test_crate::Test::Plain { .. } => 2f64,
                 },
             )
         })?;
