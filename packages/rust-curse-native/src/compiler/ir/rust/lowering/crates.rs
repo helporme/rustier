@@ -1,40 +1,30 @@
-use std::path::Path;
-
-use super::RustdocId;
+use super::vfs_path;
 use crate::compiler::{
+    FilePath,
     db::Db,
-    inputs::RustdocCrates,
-    ir::rust::{Crate, Mod, ModParent},
+    ir::rust::{Crate, Mod},
 };
-use rustdoc_types as doc;
 
 #[salsa::tracked]
 impl<'db> Crate<'db> {
-    fn data(self, db: &'db dyn Db) -> &'db doc::Crate {
-        let rustdoc = RustdocCrates::get(db);
-        &rustdoc.crate_data(db, self.name(db)).unwrap().body
-    }
-
-    pub(in crate::compiler::ir::rust) fn lower(db: &'db dyn Db, name: &str) -> Option<Self> {
-        let rustdoc = RustdocCrates::get(db);
-
-        if rustdoc.crates(db).contains_key(name) {
-            Some(Crate::new(db, name))
-        } else {
-            None
-        }
-    }
-
-    pub(in crate::compiler::ir::rust) fn lower_dir(self, db: &'db dyn Db) -> &'db Path {
-        let rustdoc = RustdocCrates::get(db);
-        &rustdoc.crate_data(db, self.name(db)).unwrap().dir
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_name(self, db: &'db dyn Db) -> String {
+        self.hir(db)
+            .display_name(db)
+            .map(|name| name.to_string())
+            .unwrap_or_default()
     }
 
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_crate_root(self, db: &'db dyn Db) -> Mod<'db> {
-        let data = self.data(db);
+        Mod::new(db, self.hir(db).root_module(db))
+    }
 
-        let id = RustdocId::new(db, self.name(db), data.root);
-        Mod::lower(db, id, ModParent::Crate(self))
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_dir(self, db: &'db dyn Db) -> FilePath {
+        vfs_path(db, self.hir(db).root_file(db))
+            .and_then(|path| path.parent())
+            .map(FilePath::from)
+            .expect("crate root must belong to a workspace source root")
     }
 }

@@ -39,7 +39,7 @@ impl<'db> DecalMod<'db> {
         self.shim(db).src(db).docs(db)
     }
 
-    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
         self.shim(db).src(db).span(db)
     }
 
@@ -70,7 +70,7 @@ impl<'db> DecalFunction<'db> {
         self.shim(db).src(db).name(db)
     }
 
-    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
         self.shim(db).src(db).span(db)
     }
 
@@ -132,7 +132,7 @@ impl<'db> DecalClass<'db> {
         }
     }
 
-    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
         match self.shim(db).src(db) {
             ShimClassSource::Struct(struct_) => struct_.span(db),
             ShimClassSource::Enum(enum_) => enum_.span(db),
@@ -168,7 +168,7 @@ impl<'db> DecalVariant<'db> {
         self.src(db).name(db)
     }
 
-    pub fn span(self, db: &'db dyn Db) -> &'db Span {
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
         self.src(db).span(db)
     }
 
@@ -192,11 +192,11 @@ impl<'db> DecalField<'db> {
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.src(db).span(db).as_ref()
+        self.src(db).span(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.src(db).docs(db).as_ref()
+        self.src(db).docs(db)
     }
 
     pub fn is_readonly(self, db: &'db dyn Db) -> bool {

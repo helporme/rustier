@@ -44,7 +44,10 @@ impl<'db> DecalClass<'db> {
         let name = self.name(db);
         let class_line = find_name_line(generated, generated_line, "export class ", name, " {")
             .expect("rendered TypeScript class declaration should exist");
-        let original = original_location(self.span(db));
+        let Some(span) = self.span(db) else {
+            return Vec::new();
+        };
+        let original = original_location(span);
         let mut mappings = declaration_mappings(
             class_line,
             "export class ".len(),
@@ -126,7 +129,10 @@ impl<'db> DecalClass<'db> {
             "();",
         )
         .expect("rendered TypeScript union instance constructor should exist");
-        let original = original_location(self.span(db));
+        let Some(span) = self.span(db) else {
+            return Vec::new();
+        };
+        let original = original_location(span);
         let original_name_column = original.column + "pub enum ".len();
         let mut mappings = Vec::new();
 
@@ -160,7 +166,10 @@ impl<'db> DecalClass<'db> {
             .expect("rendered TypeScript union variant discriminant should exist");
             variant_start_line = tag_line + 1;
 
-            let original = original_location(variant.span(db));
+            let Some(span) = variant.span(db) else {
+                continue;
+            };
+            let original = original_location(span);
             mappings.extend(declaration_mappings(
                 tag_line,
                 "\t\t\treadonly ".len(),

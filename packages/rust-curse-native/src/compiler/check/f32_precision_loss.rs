@@ -53,10 +53,10 @@ impl<'db> Enum<'db> {
     }
 }
 
-fn emit(db: &dyn Db, span: &Span) {
+fn emit(db: &dyn Db, span: Option<&Span>) {
     F32PrecisionLoss {
-        source_code: span.diag_source(db),
-        span: span.diag_span(db),
+        source_code: span.map(|span| span.diag_source(db)).into(),
+        span: span.map(|span| span.diag_span(db)),
     }
     .accumulate(db);
 }
@@ -72,7 +72,7 @@ pub struct F32PrecisionLoss {
     #[source_code]
     source_code: DiagSource,
     #[label]
-    span: DiagSpan,
+    span: Option<DiagSpan>,
 }
 
 #[cfg(test)]

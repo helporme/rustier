@@ -1,95 +1,104 @@
-use rustdoc_types as doc;
+use miette::Diagnostic;
+use ra_ap_hir::StructKind;
+use thiserror::Error;
 
-use super::{
-    ItemExt as _, RustdocId,
-    fields::{FieldLowerError, lower_field},
-};
+use super::{diagnostic_location, lower_field};
 use crate::compiler::{
     db::Db,
-    ir::rust::{FieldParent, Shape},
+    diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
+    ir::rust::{AsItem as _, FieldParent, Shape},
 };
 
-pub enum RustdocShape<'a> {
-    Unit,
-    Tuple(&'a [Option<doc::Id>]),
-    Plain {
-        fields: &'a [doc::Id],
-        has_stripped_fields: bool,
-    },
-}
-
-impl<'db> Shape<'db> {
-    pub(super) fn lower(
-        db: &'db dyn Db,
-        shape: RustdocShape<'_>,
-        parent: FieldParent<'db>,
-    ) -> (Self, Vec<FieldLowerError>) {
-        let item_id = match parent {
-            FieldParent::Struct(struct_) => struct_.rustdoc_id(db),
-            FieldParent::Variant(variant) => variant.rustdoc_id(db),
-        };
-
-        match shape {
-            RustdocShape::Unit => (Self::Unit, vec![]),
-            RustdocShape::Tuple(ids) => {
-                let (fields, errors): (Vec<_>, Vec<_>) = ids
-                    .iter()
-                    .map(|id| {
-                        id.as_ref().map(|id| {
-                            lower_field(
-                                db,
-                                RustdocId::new(db, item_id.crate_name(db), id),
-                                parent,
-                                None,
-                            )
-                        })
-                    })
-                    .fold((vec![], vec![]), |(mut fields, mut errors), result| {
-                        match result {
-                            Some(Ok(field)) => fields.push(Some(field)),
-                            Some(Err(error)) => {
-                                errors.push(*error);
-                                fields.push(None);
-                            }
-                            None => fields.push(None),
-                        }
-                        (fields, errors)
-                    });
-
-                (Self::Tuple(fields), errors)
-            }
-            RustdocShape::Plain {
+pub(super) fn lower_shape<'db>(
+    db: &'db dyn Db,
+    parent: FieldParent<'db>,
+    kind: StructKind,
+    fields: Vec<ra_ap_hir::Field>,
+) -> Shape<'db> {
+    let mut errors = Vec::new();
+    let shape = match kind {
+        StructKind::Unit => Shape::Unit,
+        StructKind::Tuple => Shape::Tuple(
+            fields
+                .into_iter()
+                .map(|field| match lower_field(db, field) {
+                    Ok(field) => field,
+                    Err(error) => {
+                        errors.push(*error);
+                        None
+                    }
+                })
+                .collect(),
+        ),
+        StructKind::Record => {
+            let field_count = fields.len();
+            let fields: Vec<_> = fields
+                .into_iter()
+                .filter_map(|field| match lower_field(db, field) {
+                    Ok(field) => field,
+                    Err(error) => {
+                        errors.push(*error);
+                        None
+                    }
+                })
+                .collect();
+            Shape::Plain {
+                has_stripped_fields: fields.len() != field_count,
                 fields,
-                has_stripped_fields,
-            } => {
-                let (fields, errors): (Vec<_>, Vec<_>) = fields
-                    .iter()
-                    .map(|id| {
-                        lower_field(
-                            db,
-                            RustdocId::new(db, item_id.crate_name(db), id),
-                            parent,
-                            None,
-                        )
-                    })
-                    .fold((vec![], vec![]), |(mut fields, mut errors), result| {
-                        match result {
-                            Ok(field) => fields.push(field),
-                            Err(error) => errors.push(*error),
-                        }
-                        (fields, errors)
-                    });
+            }
+        }
+    };
 
-                let has_stripped_fields = has_stripped_fields || !errors.is_empty();
-
-                (
-                    Self::Plain {
-                        fields,
-                        has_stripped_fields,
-                    },
-                    errors,
-                )
+    if !errors.is_empty() {
+        match parent {
+            FieldParent::Struct(struct_) => {
+                let (source_code, span) = diagnostic_location(db, struct_.span(db));
+                StructFieldsLowerError {
+                    fqn: struct_.fqn(db).to_owned(),
+                    source_code,
+                    span,
+                    causes: errors,
+                }
+                .accumulate(db)
+            }
+            FieldParent::Variant(variant) => {
+                let (source_code, span) = diagnostic_location(db, variant.span(db));
+                VariantFieldsLowerError {
+                    fqn: variant.fqn(db).to_owned(),
+                    source_code,
+                    span,
+                    causes: errors,
+                }
+                .accumulate(db)
             }
         }
     }
+
+    shape
+}
+
+#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
+#[error("the struct \"{fqn}\" has fields that cannot be exported to JS")]
+#[diagnostic(code(rust_curse::skipped_struct), severity(Warning))]
+struct StructFieldsLowerError {
+    fqn: String,
+    #[source_code]
+    source_code: DiagSource,
+    #[label]
+    span: Option<DiagSpan>,
+    #[related]
+    causes: Vec<super::FieldLowerError>,
+}
+
+#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
+#[error("the enum variant \"{fqn}\" has fields that cannot be exported to JS")]
+#[diagnostic(code(rust_curse::skipped_enum_variant), severity(Warning))]
+struct VariantFieldsLowerError {
+    fqn: String,
+    #[source_code]
+    source_code: DiagSource,
+    #[label]
+    span: Option<DiagSpan>,
+    #[related]
+    causes: Vec<super::FieldLowerError>,
 }

@@ -2,12 +2,12 @@
 
 mod lowering;
 
-use self::lowering::ItemExt;
 use crate::compiler::{FilePath, db::Db, mangle::mangle_path};
-use std::{
-    fmt,
-    path::{Path, PathBuf},
+use ra_ap_hir::{
+    Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
+    Function as HirFunction, Module as HirModule, Struct as HirStruct,
 };
+use std::{fmt, path::PathBuf};
 
 #[salsa::interned(debug)]
 pub struct ItemPath<'db> {
@@ -69,29 +69,26 @@ macro_rules! as_item {
 
 #[salsa::interned(debug)]
 pub struct Crate<'db> {
-    #[returns(ref)]
-    pub name: String,
+    hir: HirCrate,
 }
 
 impl<'db> Crate<'db> {
-    pub fn by(db: &'db dyn Db, name: &str) -> Option<Crate<'db>> {
-        Self::lower(db, name)
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        self.lower_name(db)
     }
 
     pub fn root(self, db: &'db dyn Db) -> Mod<'db> {
         self.lower_crate_root(db)
     }
 
-    pub fn dir(self, db: &'db dyn Db) -> &'db Path {
+    pub fn dir(self, db: &'db dyn Db) -> &'db FilePath {
         self.lower_dir(db)
     }
 }
 
 #[salsa::interned(debug)]
 pub struct Mod<'db> {
-    pub parent: ModParent<'db>,
-    #[returns(ref)]
-    pub name: String,
+    hir: HirModule,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
@@ -102,6 +99,14 @@ pub enum ModParent<'db> {
 
 #[salsa::tracked]
 impl<'db> Mod<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> ModParent<'db> {
+        self.lower_parent(db)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        self.lower_name(db)
+    }
+
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         match self.parent(db) {
@@ -114,15 +119,19 @@ impl<'db> Mod<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn members(self, db: &'db dyn Db) -> Vec<Member<'db>> {
-        self.lower_members(db)
+        self.lower_members(db).clone()
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.lower_docs(db)
+        self.lower_docs(db).as_ref()
     }
 
-    pub fn span(self, db: &'db dyn Db) -> &'db Span {
-        self.lower_span(db).expect("mod must have span")
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.lower_span(db).as_ref()
+    }
+
+    pub(super) fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
+        self.lower_file_path(db)
     }
 }
 
@@ -138,13 +147,19 @@ pub enum Member<'db> {
 
 #[salsa::interned(debug)]
 pub struct Struct<'db> {
-    pub parent: Mod<'db>,
-    #[returns(ref)]
-    pub name: String,
+    hir: HirStruct,
 }
 
 #[salsa::tracked]
 impl<'db> Struct<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> Mod<'db> {
+        self.lower_parent(db)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        self.lower_name(db)
+    }
+
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         self.parent(db)
@@ -167,11 +182,11 @@ impl<'db> Struct<'db> {
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.lower_docs(db)
+        self.lower_docs(db).as_ref()
     }
 
-    pub fn span(self, db: &'db dyn Db) -> &'db Span {
-        self.lower_span(db).expect("struct must have span")
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.lower_span(db).as_ref()
     }
 }
 
@@ -185,13 +200,19 @@ as_item!(Struct);
 
 #[salsa::interned(debug)]
 pub struct Enum<'db> {
-    pub parent: Mod<'db>,
-    #[returns(ref)]
-    pub name: String,
+    hir: HirEnum,
 }
 
 #[salsa::tracked]
 impl<'db> Enum<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> Mod<'db> {
+        self.lower_parent(db)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        self.lower_name(db)
+    }
+
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         self.parent(db)
@@ -220,11 +241,11 @@ impl<'db> Enum<'db> {
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.lower_docs(db)
+        self.lower_docs(db).as_ref()
     }
 
-    pub fn span(self, db: &'db dyn Db) -> &'db Span {
-        self.lower_span(db).expect("enum must have span")
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.lower_span(db).as_ref()
     }
 }
 
@@ -238,13 +259,19 @@ as_item!(Enum);
 
 #[salsa::interned(debug)]
 pub struct Variant<'db> {
-    pub parent: Enum<'db>,
-    #[returns(ref)]
-    pub name: String,
+    hir: HirVariant,
 }
 
 #[salsa::tracked]
 impl<'db> Variant<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> Enum<'db> {
+        self.lower_parent(db)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        self.lower_name(db)
+    }
+
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         self.parent(db)
@@ -267,11 +294,11 @@ impl<'db> Variant<'db> {
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.lower_docs(db)
+        self.lower_docs(db).as_ref()
     }
 
-    pub fn span(self, db: &'db dyn Db) -> &'db Span {
-        self.lower_span(db).expect("variant must have span")
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.lower_span(db).as_ref()
     }
 }
 
@@ -289,26 +316,38 @@ pub enum Shape<'db> {
     },
 }
 
-#[salsa::tracked(debug)]
+#[salsa::interned(debug)]
 pub struct Field<'db> {
-    pub parent: FieldParent<'db>,
-    #[returns(ref)]
-    pub name: FieldName,
-    #[tracked]
-    pub value_type: ValueType<'db>,
-    /// Whether generated bindings must prohibit writes to the field.
-    #[tracked]
-    pub is_readonly: bool,
-    #[returns(ref)]
-    #[tracked]
-    pub docs: Option<String>,
-    #[returns(ref)]
-    #[tracked]
-    pub span: Option<Span>,
+    hir: HirField,
 }
 
 #[salsa::tracked]
 impl<'db> Field<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> FieldParent<'db> {
+        self.lower_parent(db)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db FieldName {
+        self.lower_name(db)
+    }
+
+    pub fn value_type(self, db: &'db dyn Db) -> ValueType<'db> {
+        self.lower_value_type(db)
+    }
+
+    /// Whether generated bindings must prohibit writes to the field.
+    pub fn is_readonly(self, db: &'db dyn Db) -> bool {
+        self.lower_is_readonly(db)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.lower_docs(db).as_ref()
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.lower_span(db).as_ref()
+    }
+
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         let name = match self.name(db) {
@@ -359,13 +398,19 @@ impl fmt::Display for FieldName {
 
 #[salsa::interned(debug)]
 pub struct Function<'db> {
-    pub parent: Mod<'db>,
-    #[returns(ref)]
-    pub name: String,
+    hir: HirFunction,
 }
 
 #[salsa::tracked]
 impl<'db> Function<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> Mod<'db> {
+        self.lower_parent(db)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        self.lower_name(db)
+    }
+
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         self.parent(db)
@@ -382,11 +427,11 @@ impl<'db> Function<'db> {
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.lower_docs(db)
+        self.lower_docs(db).as_ref()
     }
 
-    pub fn span(self, db: &'db dyn Db) -> &'db Span {
-        self.lower_span(db).expect("function must have span")
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.lower_span(db).as_ref()
     }
 }
 

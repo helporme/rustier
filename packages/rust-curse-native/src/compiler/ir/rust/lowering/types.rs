@@ -1,136 +1,91 @@
 use miette::Diagnostic;
+use ra_ap_hir::{Adt, GenericDef, HirDisplay as _, Mutability, Trait, Type as HirType};
 use thiserror::Error;
 
-use super::{RustdocId, RustdocType, enums::EnumLowerError, structs::StructLowerError};
 use crate::compiler::{
     db::Db,
-    ir::rust::{Enum, Mod, ModParent, Struct, Type, ValueType},
+    ir::rust::{Enum, Struct, Type, ValueType},
 };
 
-use rustdoc_types as doc;
-
-impl<'db> Type<'db> {
-    pub(super) fn lower(
-        db: &'db dyn Db,
-        type_: RustdocType<'db>,
-        parent: Mod<'db>,
-    ) -> Result<Self, Vec<TypeLowerError>> {
-        let crate_ = type_.crate_(db);
-        let crate_name = type_.crate_name(db);
-        let type_ = type_.inner(db);
-
-        match type_ {
-            doc::Type::Primitive(name) => match lower_primitive(name) {
-                Some(type_) => Ok(Type::Value(type_)),
-                None => Err(vec![TypeLowerError::UnsupportedPrimitive {
-                    name: name.clone(),
-                }]),
-            },
-            doc::Type::ResolvedPath(path) => {
-                let Some(summary) = crate_.paths.get(&path.id) else {
-                    return Err(vec![TypeLowerError::UnsupportedType {
-                        type_: type_.clone(),
-                    }]);
-                };
-
-                if summary.path == ["alloc", "string", "String"] {
-                    Ok(Type::Value(ValueType::String))
-                } else if summary.kind == doc::ItemKind::Struct
-                    && crate_.index.contains_key(&path.id)
-                {
-                    let id = RustdocId::new(db, crate_name, path.id);
-                    let struct_ = Struct::lower(db, id, declaring_mod(db, parent, &summary.path));
-                    match struct_ {
-                        Ok(s) => Ok(Type::Value(ValueType::Struct(s))),
-                        Err(e) => Err(vec![TypeLowerError::StructLowerError(*e)]),
-                    }
-                } else if summary.kind == doc::ItemKind::Enum && crate_.index.contains_key(&path.id)
-                {
-                    let id = RustdocId::new(db, crate_name, path.id);
-                    let enum_ = Enum::lower(db, id, declaring_mod(db, parent, &summary.path));
-                    match enum_ {
-                        Ok(e) => Ok(Type::Value(ValueType::Enum(e))),
-                        Err(e) => Err(vec![TypeLowerError::EnumLowerError(*e)]),
-                    }
-                } else {
-                    Err(vec![TypeLowerError::UnsupportedType {
-                        type_: type_.clone(),
-                    }])
-                }
-            }
-            doc::Type::BorrowedRef {
-                lifetime,
-                is_mutable,
-                type_,
-            } => {
-                let mut diags = Vec::new();
-
-                if lifetime.is_some() {
-                    diags.push(TypeLowerError::UnsupportedLifetimeRef);
-                }
-
-                let type_ = type_.as_ref();
-                let inner = match Self::lower(db, RustdocType::new(db, crate_name, type_), parent) {
-                    Ok(Type::Value(inner)) => Some(inner),
-                    Ok(Type::Borrowed { .. }) => {
-                        diags.push(TypeLowerError::UnsupportedDoubleReference);
-                        None
-                    }
-                    Err(inner_diags) => {
-                        diags.extend(inner_diags);
-                        None
-                    }
-                };
-
-                match inner {
-                    Some(inner) if diags.is_empty() => Ok(Type::Borrowed {
-                        is_mutable: *is_mutable,
-                        inner,
-                    }),
-                    _ => Err(diags),
-                }
-            }
-            _ => Err(vec![TypeLowerError::UnsupportedType {
-                type_: type_.clone(),
-            }]),
-        }
-    }
-}
-
-fn declaring_mod<'db>(db: &'db dyn Db, active_mod: Mod<'db>, path: &[String]) -> Mod<'db> {
-    let mut mod_ = active_mod.path(db).crate_(db).root(db);
-
-    for segment in path.iter().skip(1).take(path.len().saturating_sub(2)) {
-        mod_ = Mod::new(db, ModParent::Mod(mod_), segment);
+pub(super) fn lower_type<'db>(
+    db: &'db dyn Db,
+    type_: &HirType<'db>,
+    crate_: ra_ap_hir::Crate,
+) -> Result<Type<'db>, TypeLowerErrorUnsupported> {
+    if let Some((inner, mutability)) = type_.as_reference() {
+        let Type::Value(inner) = lower_type(db, &inner, crate_)? else {
+            return Err(TypeLowerErrorUnsupported::DoubleReference);
+        };
+        return Ok(Type::Borrowed {
+            is_mutable: mutability == Mutability::Mut,
+            inner,
+        });
     }
 
-    mod_
-}
+    if let Some(builtin) = type_.as_builtin() {
+        let name = builtin.name().display(db, crate_.edition(db)).to_string();
+        let value = match name.as_str() {
+            "bool" => ValueType::bool,
+            "char" => ValueType::char,
+            "str" => ValueType::Str,
+            "i8" => ValueType::i8,
+            "u8" => ValueType::u8,
+            "i16" => ValueType::i16,
+            "u16" => ValueType::u16,
+            "i32" => ValueType::i32,
+            "u32" => ValueType::u32,
+            "f32" => ValueType::f32,
+            "f64" => ValueType::f64,
+            _ => return Err(TypeLowerErrorUnsupported::Primitive { name }),
+        };
+        return Ok(Type::Value(value));
+    }
 
-fn lower_primitive<'db>(name: &str) -> Option<ValueType<'db>> {
-    let type_ = match name {
-        "bool" => ValueType::bool,
-        "char" => ValueType::char,
-        "str" => ValueType::Str,
-        "i8" => ValueType::i8,
-        "i16" => ValueType::i16,
-        "i32" => ValueType::i32,
-        "u8" => ValueType::u8,
-        "u16" => ValueType::u16,
-        "u32" => ValueType::u32,
-        "f32" => ValueType::f32,
-        "f64" => ValueType::f64,
-        _ => return None,
+    let Some(adt) = type_.as_adt() else {
+        return Err(unsupported_type(db, type_, crate_));
     };
+    if !GenericDef::Adt(adt).params(db).is_empty() {
+        return Err(unsupported_type(db, type_, crate_));
+    }
+    let value = match adt {
+        Adt::Struct(struct_)
+            if struct_.name(db).display(db, crate_.edition(db)).to_string() == "String"
+                && struct_
+                    .module(db)
+                    .path_segments(db)
+                    .map(|name| name.display(db, crate_.edition(db)).to_string())
+                    .collect::<Vec<_>>()
+                    .ends_with(&["string".to_owned()]) =>
+        {
+            ValueType::String
+        }
+        Adt::Struct(struct_) => ValueType::Struct(Struct::new(db, struct_)),
+        Adt::Enum(enum_) => ValueType::Enum(Enum::new(db, enum_)),
+        Adt::Union(_) => return Err(unsupported_type(db, type_, crate_)),
+    };
+    Ok(Type::Value(value))
+}
 
-    Some(type_)
+pub(super) fn is_clonable(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::Crate) -> bool {
+    Trait::lang(db, crate_, ra_ap_hir::LangItem::Clone)
+        .is_some_and(|clone| type_.impls_trait(db, clone, &[]))
+}
+
+fn unsupported_type(
+    db: &dyn Db,
+    type_: &HirType<'_>,
+    crate_: ra_ap_hir::Crate,
+) -> TypeLowerErrorUnsupported {
+    TypeLowerErrorUnsupported::Type {
+        type_: type_.display(db, crate_.to_display_target(db)).to_string(),
+    }
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
-pub enum TypeLowerError {
-    #[error("unsupported type: {type_:#?}")]
+pub(super) enum TypeLowerErrorUnsupported {
+    #[error("unsupported type: {type_}")]
     #[diagnostic(code(rust_curse::unsupported_type), severity(Warning))]
-    UnsupportedType { type_: doc::Type },
+    Type { type_: String },
 
     #[error("the primitive type `{name}` is not supported")]
     #[diagnostic(
@@ -140,11 +95,11 @@ pub enum TypeLowerError {
         ),
         severity(Warning)
     )]
-    UnsupportedPrimitive { name: String },
+    Primitive { name: String },
 
     #[error("references with explicit lifetimes are not supported")]
     #[diagnostic(code(rust_curse::unsupported_lifetime_ref), severity(Warning))]
-    UnsupportedLifetimeRef,
+    LifetimeRef,
 
     #[error("double references are not supported")]
     #[diagnostic(
@@ -152,13 +107,5 @@ pub enum TypeLowerError {
         help("use a single reference instead of a double reference"),
         severity(Warning)
     )]
-    UnsupportedDoubleReference,
-
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    StructLowerError(#[from] StructLowerError),
-
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    EnumLowerError(#[from] EnumLowerError),
+    DoubleReference,
 }

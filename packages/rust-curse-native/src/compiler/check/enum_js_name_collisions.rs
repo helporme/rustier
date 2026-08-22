@@ -30,8 +30,8 @@ impl<'db> Enum<'db> {
         }
 
         let source_span = self.span(db);
-        let source_code = source_span.diag_source(db);
-        let span = source_span.diag_span(db);
+        let source_code: DiagSource = source_span.map(|span| span.diag_source(db)).into();
+        let span = source_span.map(|span| span.diag_span(db));
 
         if has_type_field_collision {
             EnumJsNameCollision::TypeField {
@@ -61,7 +61,7 @@ pub enum EnumJsNameCollision {
         #[source_code]
         source_code: DiagSource,
         #[label]
-        span: DiagSpan,
+        span: Option<DiagSpan>,
     },
 
     #[error(
@@ -76,7 +76,7 @@ pub enum EnumJsNameCollision {
         #[source_code]
         source_code: DiagSource,
         #[label]
-        span: DiagSpan,
+        span: Option<DiagSpan>,
     },
 }
 

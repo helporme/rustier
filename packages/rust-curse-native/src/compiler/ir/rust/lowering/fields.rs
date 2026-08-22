@@ -1,131 +1,155 @@
-use super::{ItemExt, RustdocId, RustdocSpan, RustdocType, types::TypeLowerError};
+use miette::Diagnostic;
+use ra_ap_hir::{
+    HasAttrs as _, HasVisibility as _, StructKind, Variant as HirFieldParent, Visibility,
+};
+use ra_ap_syntax::{AstNode as _, ast};
+use thiserror::Error;
+
+use super::{
+    TypeLowerErrorUnsupported, diagnostic_location, is_clonable, lower_item_span, lower_type,
+};
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
-    ir::rust::{Field, FieldName, FieldParent, Type, ValueType},
+    ir::rust::{Field, FieldName, FieldParent, Span, Struct, Type, ValueType, Variant},
 };
-use miette::Diagnostic;
-use rustdoc_types as doc;
-use thiserror::Error;
 
 #[salsa::tracked]
-pub fn lower_field<'db>(
+impl<'db> Field<'db> {
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> FieldParent<'db> {
+        match self.hir(db).parent_def(db) {
+            HirFieldParent::Struct(struct_) => FieldParent::Struct(Struct::new(db, struct_)),
+            HirFieldParent::EnumVariant(variant) => FieldParent::Variant(Variant::new(db, variant)),
+            HirFieldParent::Union(_) => unreachable!("union fields are not lowered"),
+        }
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_name(self, db: &'db dyn Db) -> FieldName {
+        field_name(db, self.hir(db))
+    }
+
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_value_type(self, db: &'db dyn Db) -> ValueType<'db> {
+        lower_type(
+            db,
+            &self.hir(db).ty(db),
+            self.hir(db).parent_def(db).module(db).krate(db),
+        )
+        .expect("unsupported fields are discarded while lowering their parent shape")
+        .deborrow()
+    }
+
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_is_readonly(self, db: &'db dyn Db) -> bool {
+        let hir = self.hir(db);
+        let crate_ = hir.parent_def(db).module(db).krate(db);
+        matches!(
+            lower_type(db, &hir.ty(db), crate_).map(Type::deborrow),
+            Ok(ValueType::Struct(_) | ValueType::Enum(_))
+        ) && !is_clonable(db, &hir.ty(db), crate_)
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_docs(self, db: &'db dyn Db) -> Option<String> {
+        self.hir(db).hir_docs(db).map(|docs| docs.docs().to_owned())
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_span(self, db: &'db dyn Db) -> Option<Span> {
+        lower_item_span(
+            db,
+            self.hir(db),
+            self.hir(db).parent_def(db).module(db).krate(db),
+        )
+    }
+}
+
+pub(super) fn lower_field<'db>(
     db: &'db dyn Db,
-    id: RustdocId<'db>,
-    parent: FieldParent<'db>,
-    idx: Option<usize>,
-) -> Result<Field<'db>, Box<FieldLowerError>> {
-    let item = id.item(db);
-
-    let doc::ItemEnum::StructField(field_type) = &item.inner else {
-        unreachable!("expected field, got {:?}", item.inner);
-    };
-
-    let mod_ = match parent {
-        FieldParent::Struct(s) => s.parent(db),
-        FieldParent::Variant(v) => v.parent(db).parent(db),
-    };
-
-    let span = item.span.as_ref().map(|span| {
-        let crate_name = id.crate_name(db);
-        RustdocSpan::new(db, span, crate_name).lower(db).to_owned()
-    });
-
-    let name = match item.name.as_ref() {
-        Some(name) => FieldName::Name(name.to_owned()),
-        None => FieldName::Idx(idx.unwrap()),
-    };
-
-    let field_type = RustdocType::new(db, id.crate_name(db), field_type);
-    let field_type = Type::lower(db, field_type, mod_)
-        .map_err(|causes| {
-            let source_code = span.as_ref().map(|span| span.diag_source(db)).into();
-            let span = span.as_ref().map(|span| span.diag_span(db));
-
-            FieldLowerError {
-                field_name: name.to_string(),
-                source_code,
-                span,
-                causes,
-            }
-        })?
+    field: ra_ap_hir::Field,
+) -> Result<Option<Field<'db>>, Box<FieldLowerError>> {
+    if field.visibility(db) != Visibility::Public {
+        return Ok(None);
+    }
+    let crate_ = field.parent_def(db).module(db).krate(db);
+    let mut causes = Vec::new();
+    if has_explicit_reference_lifetime(db, field) {
+        causes.push(TypeLowerErrorUnsupported::LifetimeRef);
+    }
+    if let Err(error) = lower_type(db, &field.ty(db), crate_) {
+        causes.push(error);
+    }
+    if !causes.is_empty() {
+        let span = lower_item_span(db, field, crate_);
+        let (source_code, span) = diagnostic_location(db, span.as_ref());
+        return Err(Box::new(FieldLowerError {
+            field_name: field_name(db, field).to_string(),
+            source_code,
+            span,
+            causes,
+        }));
+    }
+    let lowered_type = lower_type(db, &field.ty(db), crate_)
+        .expect("the field type was successfully validated above")
         .deborrow();
-
-    let is_readonly = match field_type {
-        ValueType::Struct(s) => !is_clonable(db, s.rustdoc_id(db)),
-        ValueType::Enum(e) => !is_clonable(db, e.rustdoc_id(db)),
-        _ => false,
-    };
-
-    if is_readonly {
-        let source_code = span.as_ref().map(|span| span.diag_source(db)).into();
-        let span = span.as_ref().map(|span| span.diag_span(db));
-
+    if matches!(lowered_type, ValueType::Struct(_) | ValueType::Enum(_))
+        && !is_clonable(db, &field.ty(db), crate_)
+    {
+        let span = lower_item_span(db, field, crate_);
+        let (source_code, span) = diagnostic_location(db, span.as_ref());
         FieldReadonlyError {
-            field_name: name.to_string(),
-            field_type_fqn: field_type.fqn(db).to_string(),
+            field_name: field_name(db, field).to_string(),
+            field_type_fqn: lowered_type.fqn(db).to_owned(),
             source_code,
             span,
         }
         .accumulate(db);
     }
-
-    Ok(Field::new(
-        db,
-        parent,
-        name,
-        field_type,
-        is_readonly,
-        item.docs.clone(),
-        span,
-    ))
+    Ok(Some(Field::new(db, field)))
 }
 
-#[salsa::tracked]
-pub fn is_clonable<'db>(db: &'db dyn Db, id: RustdocId<'db>) -> bool {
-    let item = id.item(db);
-    let crate_ = id.crate_(db);
-
-    let impls = match &item.inner {
-        doc::ItemEnum::Enum(def) => &def.impls,
-        doc::ItemEnum::Struct(def) => &def.impls,
-        _ => unreachable!(),
-    };
-
-    impls.iter().any(|impl_id| {
-        let impl_item = crate_
-            .index
-            .get(impl_id)
-            .expect("enum impl must be present in the rustdoc index");
-
-        let doc::ItemEnum::Impl(impl_) = &impl_item.inner else {
-            unreachable!()
-        };
-        if impl_.is_negative {
-            return false;
-        }
-        let Some(trait_) = &impl_.trait_ else {
-            return false;
-        };
-        let Some(trait_summary) = crate_.paths.get(&trait_.id) else {
-            return false;
-        };
-
-        trait_summary.path == ["core", "clone", "Clone"]
+fn has_explicit_reference_lifetime<T>(db: &dyn Db, item: T) -> bool
+where
+    T: ra_ap_hir::HasSource + Copy,
+{
+    item.source(db).is_some_and(|source| {
+        source
+            .value
+            .syntax()
+            .descendants()
+            .filter_map(ast::RefType::cast)
+            .any(|reference| reference.lifetime().is_some())
     })
+}
+
+fn field_name(db: &dyn Db, field: ra_ap_hir::Field) -> FieldName {
+    match field.parent_def(db) {
+        HirFieldParent::Struct(struct_) if struct_.kind(db) == StructKind::Tuple => {
+            FieldName::Idx(field.index())
+        }
+        HirFieldParent::EnumVariant(variant) if variant.kind(db) == StructKind::Tuple => {
+            FieldName::Idx(field.index())
+        }
+        _ => {
+            let crate_ = field.parent_def(db).module(db).krate(db);
+            FieldName::Name(field.name(db).display(db, crate_.edition(db)).to_string())
+        }
+    }
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 #[error("the field \"{field_name}\" cannot be exported to JS")]
 #[diagnostic(code(rust_curse::skipped_field), severity(Warning))]
-pub struct FieldLowerError {
+pub(super) struct FieldLowerError {
     field_name: String,
     #[source_code]
     source_code: DiagSource,
     #[label]
     span: Option<DiagSpan>,
     #[related]
-    causes: Vec<TypeLowerError>,
+    causes: Vec<TypeLowerErrorUnsupported>,
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
@@ -139,7 +163,7 @@ pub struct FieldLowerError {
     ),
     severity(Warning)
 )]
-pub struct FieldReadonlyError {
+struct FieldReadonlyError {
     field_name: String,
     field_type_fqn: String,
     #[source_code]

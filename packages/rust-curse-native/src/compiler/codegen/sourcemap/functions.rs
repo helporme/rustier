@@ -15,7 +15,10 @@ impl<'db> DecalFunction<'db> {
         db: &'db dyn Db,
         generated_line: usize,
     ) -> Vec<Mapping> {
-        let original = original_location(self.span(db));
+        let Some(span) = self.span(db) else {
+            return Vec::new();
+        };
+        let original = original_location(span);
         let name = self.name(db).to_owned();
 
         vec![

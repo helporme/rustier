@@ -1,180 +1,119 @@
-use std::collections::HashMap;
+mod crates;
+mod enums;
+mod fields;
+mod functions;
+mod mods;
+mod shapes;
+mod structs;
+mod types;
 
+use self::{
+    enums::lower_enum,
+    fields::{FieldLowerError, lower_field},
+    functions::lower_function,
+    shapes::lower_shape,
+    structs::lower_struct,
+    types::{TypeLowerErrorUnsupported, is_clonable, lower_type},
+};
+use ra_ap_hir::Adt;
+
+use super::Span;
 use crate::compiler::{
     FilePath,
     db::Db,
-    inputs::RustdocCrates,
-    ir::rust::{AsItem, Enum, Field, Function, ItemPath, Mod, Span, Struct, Variant},
+    diag::{DiagSource, DiagSpan},
 };
-use rustdoc_types as doc;
 
-pub mod crates;
-pub mod enums;
-pub mod fields;
-pub mod functions;
-pub mod mods;
-pub mod shapes;
-pub mod structs;
-pub mod types;
+pub(super) fn function_fqn(db: &dyn Db, function: ra_ap_hir::Function) -> String {
+    let module = function.module(db);
+    let crate_ = module.krate(db);
+    let name = function
+        .name(db)
+        .display(db, crate_.edition(db))
+        .to_string();
+    item_fqn(db, module, name)
+}
 
-pub(in crate::compiler::ir::rust) trait ItemExt<'db>:
-    AsItem<'db>
-{
-    fn kind() -> doc::ItemKind;
+pub(super) fn adt_fqn(db: &dyn Db, adt: Adt) -> String {
+    let module = adt.module(db);
+    let crate_ = module.krate(db);
+    let name = adt.name(db).display(db, crate_.edition(db)).to_string();
+    item_fqn(db, module, name)
+}
 
-    fn rustdoc_id(self, db: &'db dyn Db) -> RustdocId<'db> {
-        lookup_rustdoc_id(db, self.path(db), Self::kind())
+fn item_fqn(db: &dyn Db, module: ra_ap_hir::Module, name: String) -> String {
+    let crate_ = module.krate(db);
+    let mut segments = Vec::new();
+    if let Some(crate_name) = crate_.display_name(db) {
+        segments.push(crate_name.to_string());
     }
-
-    fn lower_span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        let id = self.rustdoc_id(db);
-        let item = id.item(db);
-
-        item.span.as_ref().map(|span| {
-            let crate_name = id.crate_name(db);
-            RustdocSpan::new(db, span, crate_name).lower(db)
-        })
-    }
-
-    fn lower_docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        let id = self.rustdoc_id(db);
-        let item = id.item(db);
-        item.docs.as_ref()
-    }
+    segments.extend(
+        module
+            .path_segments(db)
+            .map(|segment| segment.display(db, crate_.edition(db)).to_string()),
+    );
+    segments.push(name);
+    segments.join("::")
 }
 
-macro_rules! impl_item_ext {
-    ($type:ident, $kind:expr) => {
-        impl<'db> ItemExt<'db> for $type<'db> {
-            fn kind() -> doc::ItemKind {
-                $kind
-            }
-        }
-    };
-}
-impl_item_ext!(Mod, doc::ItemKind::Module);
-impl_item_ext!(Struct, doc::ItemKind::Struct);
-impl_item_ext!(Enum, doc::ItemKind::Enum);
-impl_item_ext!(Variant, doc::ItemKind::Variant);
-impl_item_ext!(Field, doc::ItemKind::StructField);
-impl_item_ext!(Function, doc::ItemKind::Function);
-
-#[salsa::interned]
-struct RustdocSpan<'db> {
-    #[returns(ref)]
-    pub inner: doc::Span,
-    #[returns(ref)]
-    pub crate_name: String,
+pub(super) fn diagnostic_location(
+    db: &dyn Db,
+    span: Option<&Span>,
+) -> (DiagSource, Option<DiagSpan>) {
+    (
+        span.map(|span| span.diag_source(db)).into(),
+        span.map(|span| span.diag_span(db)),
+    )
 }
 
-#[salsa::tracked]
-impl<'db> RustdocSpan<'db> {
-    #[salsa::tracked(returns(ref))]
-    fn lower(self, db: &'db dyn Db) -> Span {
-        let span = self.inner(db);
-        let crate_dir = &RustdocCrates::get(db)
-            .crate_data(db, self.crate_name(db))
-            .unwrap()
-            .dir;
-
-        let abs_path = if span.filename.is_absolute() {
-            span.filename.clone()
-        } else {
-            crate_dir.join(&span.filename)
-        };
-
-        Span {
-            abs_path: FilePath::new_real(abs_path.to_string_lossy())
-                .expect("rustdoc span path must be absolute"),
-            src_path: span.filename.clone(),
-            begin: span.begin,
-            end: span.end,
-        }
-    }
+pub(super) fn lower_item_span<T: ra_ap_hir::HasSource + Copy>(
+    db: &dyn Db,
+    item: T,
+    crate_: ra_ap_hir::Crate,
+) -> Option<Span> {
+    let source = item.source_with_range(db)?;
+    lower_span(
+        db,
+        crate_,
+        source.file_id,
+        source.value.0.start().into(),
+        source.value.0.end().into(),
+    )
 }
 
-fn lookup_rustdoc_id<'db>(
-    db: &'db dyn Db,
-    path: ItemPath<'db>,
-    kind: doc::ItemKind,
-) -> RustdocId<'db> {
-    let crate_name = path.crate_(db).name(db);
-    let segments = path.segments(db);
-    let lookup = RustdocIdKey::new(db, crate_name, segments, kind);
+fn lower_span(
+    db: &dyn Db,
+    crate_: ra_ap_hir::Crate,
+    hir_file: ra_ap_hir::HirFileId,
+    range_start: u32,
+    range_end: u32,
+) -> Option<Span> {
+    let file_id = hir_file.original_file(db).file_id(db);
+    let abs_path = file_path(db, file_id)?;
+    let crate_root = file_path(db, crate_.root_file(db))?;
+    let crate_dir = crate_root.as_path().parent()?;
+    let src_path = abs_path
+        .as_path()
+        .strip_prefix(crate_dir)
+        .unwrap_or_else(|_| abs_path.as_path())
+        .to_owned();
+    let begin = db.line_column(file_id, range_start.into()).ok()?;
+    let end = db.line_column(file_id, range_end.into()).ok()?;
 
-    rustdoc_backmap(db).get(&lookup).copied().unwrap()
+    Some(Span {
+        abs_path,
+        src_path,
+        begin: (begin.0 as usize + 1, begin.1 as usize + 1),
+        end: (end.0 as usize + 1, end.1 as usize + 1),
+    })
 }
 
-#[salsa::interned]
-struct RustdocIdKey {
-    crate_name: String,
-    path: Vec<String>,
-    kind: doc::ItemKind,
+fn file_path(db: &dyn Db, file_id: ra_ap_vfs::FileId) -> Option<FilePath> {
+    vfs_path(db, file_id).map(FilePath::from)
 }
 
-#[salsa::interned]
-pub(in crate::compiler::ir::rust) struct RustdocId {
-    #[returns(ref)]
-    pub crate_name: String,
-    pub inner: doc::Id,
-}
-
-impl<'db> RustdocId<'db> {
-    pub fn item(self, db: &'db dyn Db) -> &'db doc::Item {
-        let crate_ = self.crate_(db);
-        let id = self.inner(db);
-
-        crate_.index.get(&id).unwrap()
-    }
-
-    pub fn summary(self, db: &'db dyn Db) -> &'db doc::ItemSummary {
-        let crate_ = self.crate_(db);
-        let id = self.inner(db);
-        crate_.paths.get(&id).unwrap()
-    }
-
-    pub fn crate_(self, db: &'db dyn Db) -> &'db doc::Crate {
-        let rustdoc = RustdocCrates::get(db);
-
-        // Crate must exist in input rustdoc, otherwise it won't be requested;
-        // And if it doesn't exist it's unrecoverable
-        rustdoc.crate_(db, self.crate_name(db)).unwrap()
-    }
-}
-
-#[salsa::tracked(returns(ref))]
-fn rustdoc_backmap<'db>(db: &'db dyn Db) -> HashMap<RustdocIdKey<'db>, RustdocId<'db>> {
-    let rustdoc = RustdocCrates::get(db);
-    let mut backmap = HashMap::new();
-
-    for (crate_name, crate_) in rustdoc.crates(db) {
-        for (idx, item_summary) in &crate_.body.paths {
-            if !crate_.body.index.contains_key(idx) {
-                continue;
-            }
-
-            let lookup = RustdocIdKey::new(db, crate_name, &item_summary.path, item_summary.kind);
-            let rustdoc_id = RustdocId::new(db, crate_name, idx);
-
-            backmap.insert(lookup, rustdoc_id);
-        }
-    }
-
-    backmap
-}
-
-/// An interned type to a specific rustdoc item in a specific crate.
-#[salsa::interned]
-pub struct RustdocType<'db> {
-    #[returns(ref)]
-    pub crate_name: String,
-    #[returns(ref)]
-    pub inner: doc::Type,
-}
-
-impl<'db> RustdocType<'db> {
-    pub fn crate_(&self, db: &'db dyn Db) -> &'db doc::Crate {
-        let rustdoc = RustdocCrates::get(db);
-        &rustdoc.crate_data(db, self.crate_name(db)).unwrap().body
-    }
+fn vfs_path(db: &dyn Db, file_id: ra_ap_vfs::FileId) -> Option<ra_ap_vfs::VfsPath> {
+    let source_root_id = db.file_source_root(file_id).source_root_id(db);
+    let source_root = db.source_root(source_root_id).source_root(db);
+    source_root.path_for_file(&file_id).cloned()
 }

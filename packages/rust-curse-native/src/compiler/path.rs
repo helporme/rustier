@@ -43,6 +43,18 @@ impl FilePath {
     }
 }
 
+impl From<VfsPath> for FilePath {
+    fn from(value: VfsPath) -> Self {
+        match value.as_path() {
+            Some(path) => {
+                Self::new_real(path.to_string()).expect("rust-analyzer real paths must be absolute")
+            }
+            None => Self::new_virtual(value.to_string())
+                .expect("rust-analyzer virtual paths must start with `/`"),
+        }
+    }
+}
+
 impl From<FilePath> for VfsPath {
     fn from(value: FilePath) -> Self {
         match value.0 {

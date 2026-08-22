@@ -2276,6 +2276,7 @@ dependencies = [
  "ra_ap_edition",
  "ra_ap_hir",
  "ra_ap_ide_db",
+ "ra_ap_syntax",
  "ra_ap_vfs",
  "rustdoc-types",
  "salsa",

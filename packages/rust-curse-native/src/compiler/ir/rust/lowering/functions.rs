@@ -1,84 +1,144 @@
 use miette::Diagnostic;
+use ra_ap_hir::{GenericDef, HasAttrs as _, HasSource as _};
+use ra_ap_syntax::{AstNode as _, ast};
 use thiserror::Error;
 
+use super::{
+    TypeLowerErrorUnsupported, diagnostic_location, function_fqn, is_clonable, lower_item_span,
+    lower_type,
+};
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
-    ir::rust::{AsItem as _, Function, Mod, Param, Type, ValueType},
+    ir::rust::{AsItem as _, Function, Mod, Param, Span, Type, ValueType},
 };
-
-use super::{
-    ItemExt as _, RustdocId, RustdocSpan, RustdocType, fields::is_clonable, types::TypeLowerError,
-};
-
-use rustdoc_types as doc;
 
 #[salsa::tracked]
 impl<'db> Function<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower(
+    pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> Mod<'db> {
+        Mod::new(db, self.hir(db).module(db))
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_name(self, db: &'db dyn Db) -> String {
+        let hir = self.hir(db);
+        hir.name(db)
+            .display(db, hir.module(db).krate(db).edition(db))
+            .to_string()
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_params(self, db: &'db dyn Db) -> Vec<Param<'db>> {
+        let hir = self.hir(db);
+        let crate_ = hir.module(db).krate(db);
+        hir.params_without_self(db)
+            .into_iter()
+            .enumerate()
+            .map(|(index, param)| {
+                let type_ = lower_type(db, param.ty(), crate_)
+                    .expect("functions with unsupported parameters are not lowered");
+                let name = param
+                    .name(db)
+                    .map(|name| name.display(db, crate_.edition(db)).to_string())
+                    .unwrap_or_else(|| format!("arg{index}"));
+                Param::new(db, self, index, name, type_)
+            })
+            .collect()
+    }
+
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_ret_type(
+        self,
         db: &'db dyn Db,
-        id: RustdocId<'db>,
-        parent: Mod<'db>,
-    ) -> Result<Self<'db>, Box<FnLowerError>> {
-        let item = id.item(db);
-
-        let doc::ItemEnum::Function(def) = &item.inner else {
-            unreachable!("expected function, got {:?}", item.inner);
-        };
-
-        let mut causes = Vec::new();
-
-        if def.header.is_async {
-            causes.push(FnLowerError::UnsupportedAsync);
+    ) -> Option<ValueType<'db>> {
+        let hir = self.hir(db);
+        let type_ = hir.ret_type(db);
+        if type_.is_unit() {
+            return None;
         }
-
-        if def.header.is_unsafe {
-            causes.push(FnLowerError::UnsupportedUnsafe);
+        match lower_type(db, &type_, hir.module(db).krate(db))
+            .expect("functions with unsupported return types are not lowered")
+        {
+            Type::Value(type_) => Some(type_),
+            Type::Borrowed { .. } => {
+                unreachable!("functions returning borrowed values are not lowered")
+            }
         }
+    }
 
-        if def.header.abi != doc::Abi::Rust {
-            causes.push(FnLowerError::UnsupportedAbi {
-                abi: def.header.abi.clone(),
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_docs(self, db: &'db dyn Db) -> Option<String> {
+        self.hir(db).hir_docs(db).map(|docs| docs.docs().to_owned())
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_span(self, db: &'db dyn Db) -> Option<Span> {
+        lower_item_span(db, self.hir(db), self.hir(db).module(db).krate(db))
+    }
+}
+
+pub(super) fn lower_function<'db>(
+    db: &'db dyn Db,
+    hir: ra_ap_hir::Function,
+) -> Result<Function<'db>, Box<FunctionLowerError>> {
+    let crate_ = hir.module(db).krate(db);
+    let mut causes = Vec::new();
+
+    if hir.is_async(db) {
+        causes.push(FunctionLowerCause::UnsupportedAsync);
+    }
+    if hir.is_unsafe(db) {
+        causes.push(FunctionLowerCause::UnsupportedUnsafe);
+    }
+    if hir.is_varargs(db) {
+        causes.push(FunctionLowerCause::UnsupportedVariadic);
+    }
+    if !GenericDef::Function(hir).params(db).is_empty() {
+        causes.push(FunctionLowerCause::UnsupportedGeneric);
+    }
+    if let Some(source) = hir.source(db) {
+        if let Some(abi) = source.value.abi() {
+            causes.push(FunctionLowerCause::UnsupportedAbi {
+                abi: abi.syntax().text().to_string(),
             });
         }
-
-        if def.sig.is_c_variadic {
-            causes.push(FnLowerError::UnsupportedVariadic);
+        if source
+            .value
+            .syntax()
+            .descendants()
+            .filter_map(ast::RefType::cast)
+            .any(|reference| reference.lifetime().is_some())
+        {
+            causes.push(FunctionLowerCause::UnsupportedLifetimeRef);
         }
+    }
 
-        if !def.generics.params.is_empty() {
-            causes.push(FnLowerError::UnsupportedGeneric);
-        }
-
-        for (name, ty) in &def.sig.inputs {
-            let type_ = match Type::lower(db, RustdocType::new(db, id.crate_name(db), ty), parent) {
-                Ok(lowered) => lowered,
-                Err(diags) => {
-                    causes.push(FnLowerError::UnsupportedParam {
-                        name: name.clone(),
-                        causes: diags,
-                    });
-                    continue;
-                }
-            };
-
-            match type_ {
-                Type::Value(type_) => match type_ {
-                    ValueType::Struct(struct_id) if !is_clonable(db, struct_id.rustdoc_id(db)) => {
-                        causes.push(FnLowerError::NonClonableMovedStructParam {
-                            name: name.clone(),
-                            struct_fqn: struct_id.fqn(db).to_owned(),
-                        });
-                        continue;
-                    }
-                    ValueType::Enum(enum_id) if !is_clonable(db, enum_id.rustdoc_id(db)) => {
-                        causes.push(FnLowerError::NonClonableMovedEnumParam {
-                            name: name.clone(),
-                            enum_fqn: enum_id.fqn(db).to_owned(),
-                        });
-                        continue;
-                    }
+    for (index, param) in hir.params_without_self(db).into_iter().enumerate() {
+        let name = param
+            .name(db)
+            .map(|name| name.display(db, crate_.edition(db)).to_string())
+            .unwrap_or_else(|| format!("arg{index}"));
+        match lower_type(db, param.ty(), crate_) {
+            Err(error) => causes.push(FunctionLowerCause::UnsupportedParam {
+                name,
+                causes: vec![error],
+            }),
+            Ok(Type::Value(ValueType::Struct(struct_))) if !is_clonable(db, param.ty(), crate_) => {
+                causes.push(FunctionLowerCause::NonClonableMovedParam {
+                    name,
+                    type_fqn: struct_.fqn(db).to_owned(),
+                });
+            }
+            Ok(Type::Value(ValueType::Enum(enum_))) if !is_clonable(db, param.ty(), crate_) => {
+                causes.push(FunctionLowerCause::NonClonableMovedParam {
+                    name,
+                    type_fqn: enum_.fqn(db).to_owned(),
+                });
+            }
+            Ok(Type::Borrowed {
+                is_mutable: true,
+                inner:
                     ValueType::bool
                     | ValueType::char
                     | ValueType::i8
@@ -90,158 +150,62 @@ impl<'db> Function<'db> {
                     | ValueType::f32
                     | ValueType::f64
                     | ValueType::Str
-                    | ValueType::String
-                    | ValueType::Struct(_)
-                    | ValueType::Enum(_) => {}
-                },
-                Type::Borrowed {
-                    is_mutable: true,
-                    inner,
-                } => match inner {
-                    ValueType::bool
-                    | ValueType::char
-                    | ValueType::i8
-                    | ValueType::u8
-                    | ValueType::i16
-                    | ValueType::u16
-                    | ValueType::i32
-                    | ValueType::u32
-                    | ValueType::f32
-                    | ValueType::f64 => {
-                        let span = item.span.as_ref().map(|span| {
-                            let crate_name = id.crate_name(db);
-                            RustdocSpan::new(db, span, crate_name).lower(db)
-                        });
-                        let source_code = span.as_ref().map(|span| span.diag_source(db)).into();
-                        let span = span.as_ref().map(|span| span.diag_span(db));
-                        FnLowerError::PrimitiveMutRefIgnored {
-                            name: name.clone(),
-                            source_code,
-                            span,
-                        }
-                        .accumulate(db);
-                    }
-                    ValueType::Str | ValueType::String => {
-                        let span = item.span.as_ref().map(|span| {
-                            let crate_name = id.crate_name(db);
-                            RustdocSpan::new(db, span, crate_name).lower(db)
-                        });
-                        let source_code = span.as_ref().map(|span| span.diag_source(db)).into();
-                        let span = span.as_ref().map(|span| span.diag_span(db));
-                        FnLowerError::StringMutRefIgnored {
-                            name: name.clone(),
-                            source_code,
-                            span,
-                        }
-                        .accumulate(db);
-                    }
-                    ValueType::Struct(_) | ValueType::Enum(_) => {}
-                },
-                _ => {}
-            };
-        }
-
-        if let Some(ty) = &def.sig.output {
-            match Type::lower(db, RustdocType::new(db, id.crate_name(db), ty), parent) {
-                Ok(Type::Borrowed { .. }) => {
-                    causes.push(FnLowerError::BorrowedReturn);
+                    | ValueType::String,
+            }) => {
+                let span = lower_item_span(db, hir, crate_);
+                let (source_code, span) = diagnostic_location(db, span.as_ref());
+                MutableReferenceIgnored {
+                    parameter: name,
+                    source_code,
+                    span,
                 }
-                Err(diags) => {
-                    causes.extend(diags.into_iter().map(FnLowerError::Type));
-                }
-                Ok(Type::Value(_)) => {}
+                .accumulate(db);
             }
-        };
-
-        if !causes.is_empty() {
-            let span = item.span.as_ref().map(|span| {
-                let crate_name = id.crate_name(db);
-                RustdocSpan::new(db, span, crate_name).lower(db)
-            });
-            let source_code = span.as_ref().map(|span| span.diag_source(db)).into();
-            let span = span.as_ref().map(|span| span.diag_span(db));
-
-            return Err(Box::new(FnLowerError::Skipped {
-                fn_fqn: id.summary(db).path.join("::"),
-                source_code,
-                span,
-                causes,
-            }));
+            Ok(_) => {}
         }
-
-        let name = item.name.as_ref().unwrap();
-        Ok(Self::new(db, parent, name))
     }
 
-    #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_ret_type(
-        self,
-        db: &'db dyn Db,
-    ) -> Option<ValueType<'db>> {
-        let id = self.rustdoc_id(db);
-        let item = id.item(db);
-
-        let doc::ItemEnum::Function(def) = &item.inner else {
-            unreachable!("expected function, got {:?}", item.inner);
-        };
-
-        def.sig.output.as_ref().map(|ty| {
-            Type::lower(
-                db,
-                RustdocType::new(db, id.crate_name(db), ty),
-                self.parent(db),
-            )
-            .expect("ret type must be lowerable otherwise fn won't be lowered")
-            .deborrow()
-        })
+    let return_type = hir.ret_type(db);
+    if !return_type.is_unit() {
+        match lower_type(db, &return_type, crate_) {
+            Ok(Type::Borrowed { .. }) => causes.push(FunctionLowerCause::BorrowedReturn),
+            Err(error) => causes.push(FunctionLowerCause::Type(error)),
+            Ok(Type::Value(_)) => {}
+        }
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub(in crate::compiler::ir::rust) fn lower_params(self, db: &'db dyn Db) -> Vec<Param<'db>> {
-        let id = self.rustdoc_id(db);
-        let item = id.item(db);
-
-        let doc::ItemEnum::Function(def) = &item.inner else {
-            unreachable!("expected function, got {:?}", item.inner);
-        };
-
-        def.sig
-            .inputs
-            .iter()
-            .enumerate()
-            .map(|(index, (name, ty))| {
-                let ty = Type::lower(
-                    db,
-                    RustdocType::new(db, id.crate_name(db), ty),
-                    self.parent(db),
-                )
-                .expect("ret type must be lowerable otherwise fn won't be lowered");
-
-                Param::new(db, self, index, name.clone(), ty)
-            })
-            .collect()
+    if causes.is_empty() {
+        Ok(Function::new(db, hir))
+    } else {
+        let span = lower_item_span(db, hir, crate_);
+        let (source_code, span) = diagnostic_location(db, span.as_ref());
+        Err(Box::new(FunctionLowerError {
+            fqn: function_fqn(db, hir),
+            source_code,
+            span,
+            causes,
+        }))
     }
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
-pub enum FnLowerError {
-    #[error("the function \"{fn_fqn}\" cannot be exported to JS")]
-    #[diagnostic(code(rust_curse::skipped_fn), severity(Warning))]
-    Skipped {
-        /// The fully qualified name of the function being lowered.
-        fn_fqn: String,
-        #[source_code]
-        source_code: DiagSource,
-        #[label]
-        span: Option<DiagSpan>,
-        #[related]
-        causes: Vec<FnLowerError>,
-    },
+#[error("the function \"{fqn}\" cannot be exported to JS")]
+#[diagnostic(code(rust_curse::skipped_fn), severity(Warning))]
+pub(super) struct FunctionLowerError {
+    fqn: String,
+    #[source_code]
+    source_code: DiagSource,
+    #[label]
+    span: Option<DiagSpan>,
+    #[related]
+    causes: Vec<FunctionLowerCause>,
+}
 
+#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
+enum FunctionLowerCause {
     #[error("async functions are not supported")]
     #[diagnostic(code(rust_curse::unsupported_async_fn), severity(Warning))]
     UnsupportedAsync,
-
     #[error("unsafe functions are not supported")]
     #[diagnostic(
         code(rust_curse::unsupported_unsafe_fn),
@@ -249,15 +213,12 @@ pub enum FnLowerError {
         severity(Warning)
     )]
     UnsupportedUnsafe,
-
-    #[error("functions with the {abi:?} ABI are not supported")]
+    #[error("functions with the {abi} ABI are not supported")]
     #[diagnostic(code(rust_curse::unsupported_abi), severity(Warning))]
-    UnsupportedAbi { abi: doc::Abi },
-
+    UnsupportedAbi { abi: String },
     #[error("C-variadic functions are not supported")]
     #[diagnostic(code(rust_curse::unsupported_variadic_fn), severity(Warning))]
     UnsupportedVariadic,
-
     #[error("generic functions are not supported")]
     #[diagnostic(
         code(rust_curse::unsupported_generic_fn),
@@ -267,21 +228,26 @@ pub enum FnLowerError {
         severity(Warning)
     )]
     UnsupportedGeneric,
-
+    #[error("references with explicit lifetimes are not supported")]
+    #[diagnostic(code(rust_curse::unsupported_lifetime_ref), severity(Warning))]
+    UnsupportedLifetimeRef,
     #[error("the parameter `{name}` has an unsupported type")]
     #[diagnostic(code(rust_curse::unsupported_param), severity(Warning))]
     UnsupportedParam {
-        /// The name of the parameter that has an unsupported type.
         name: String,
-
         #[related]
-        causes: Vec<TypeLowerError>,
+        causes: Vec<TypeLowerErrorUnsupported>,
     },
-
+    #[error("the parameter `{name}` moves \"{type_fqn}\", which does not implement `Clone`")]
+    #[diagnostic(
+        code(rust_curse::non_clonable_moved_param),
+        help("pass the value by reference or implement `Clone` for the type"),
+        severity(Warning)
+    )]
+    NonClonableMovedParam { name: String, type_fqn: String },
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Type(#[from] TypeLowerError),
-
+    Type(#[from] TypeLowerErrorUnsupported),
     #[error("functions cannot return borrowed values")]
     #[diagnostic(
         code(rust_curse::borrowed_return),
@@ -289,70 +255,19 @@ pub enum FnLowerError {
         severity(Warning)
     )]
     BorrowedReturn,
+}
 
-    #[error(
-        "the moved struct parameter `{name}` cannot be exported because \"{struct_fqn}\" does not implement `Clone`"
-    )]
-    #[diagnostic(
-        code(rust_curse::non_clonable_moved_struct_param),
-        help(
-            "derive or implement `Clone` for \"{struct_fqn}\", or pass the parameter by reference"
-        ),
-        severity(Warning)
-    )]
-    NonClonableMovedStructParam {
-        /// The name of the non-clonable moved struct parameter.
-        name: String,
-        /// The fully qualified name of the parameter's struct.
-        struct_fqn: String,
-    },
-
-    #[error(
-        "the moved enum parameter `{name}` cannot be exported because \"{enum_fqn}\" does not implement `Clone`"
-    )]
-    #[diagnostic(
-        code(rust_curse::non_clonable_moved_enum_param),
-        help("derive or implement `Clone` for \"{enum_fqn}\", or pass the parameter by reference"),
-        severity(Warning)
-    )]
-    NonClonableMovedEnumParam {
-        /// The name of the non-clonable moved enum parameter.
-        name: String,
-        /// The fully qualified name of the parameter's enum.
-        enum_fqn: String,
-    },
-
-    #[error("the mutable reference to the primitive parameter `{name}` does not propagate changes")]
-    #[diagnostic(
-        code(rust_curse::primitive_mut_ref_ignored),
-        help(
-            "primitive values are copied across the JS boundary, so mutations made in Rust are not reflected in JS"
-        ),
-        severity(Warning)
-    )]
-    PrimitiveMutRefIgnored {
-        /// The name of the parameter that has an ignored mutable reference.
-        name: String,
-        #[source_code]
-        source_code: DiagSource,
-        #[label]
-        span: Option<DiagSpan>,
-    },
-
-    #[error("the mutable reference to the string parameter `{name}` does not propagate changes")]
-    #[diagnostic(
-        code(rust_curse::string_mut_ref_ignored),
-        help(
-            "string values are copied across the JS boundary, so mutations made in Rust are not reflected in JS"
-        ),
-        severity(Warning)
-    )]
-    StringMutRefIgnored {
-        /// The name of the parameter that has an ignored mutable reference.
-        name: String,
-        #[source_code]
-        source_code: DiagSource,
-        #[label]
-        span: Option<DiagSpan>,
-    },
+#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
+#[error("writes through the mutable reference parameter `{parameter}` are not observable by JS")]
+#[diagnostic(
+    code(rust_curse::mutable_reference_ignored),
+    help("pass the value by value or return the updated value instead"),
+    severity(Warning)
+)]
+struct MutableReferenceIgnored {
+    parameter: String,
+    #[source_code]
+    source_code: DiagSource,
+    #[label]
+    span: Option<DiagSpan>,
 }
