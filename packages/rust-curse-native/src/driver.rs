@@ -492,7 +492,7 @@ impl Driver {
             let Some(span) = mod_.span(&self.db) else {
                 continue;
             };
-            let Ok(span_path) = span.abs_path.canonicalize() else {
+            let Ok(span_path) = span.src_path.as_path().canonicalize() else {
                 trace!("skipping IR module with non-canonicalizable span path");
                 continue;
             };

@@ -2,8 +2,12 @@
 
 use std::path::Path;
 
+use ra_ap_ide_db::base_db::{LibraryRoots, LocalRoots};
 use ra_ap_vfs::VfsPath;
 use thiserror::Error;
+use triomphe::Arc;
+
+use crate::compiler::db::Db;
 
 /// Path to a file.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
@@ -40,6 +44,26 @@ impl FilePath {
         match &self.0 {
             FilePathKind::Virtual(path) | FilePathKind::Real(path) => Path::new(path),
         }
+    }
+
+    pub(super) fn contents(&self, db: &dyn Db) -> Option<Arc<str>> {
+        let vfs_path = self.clone().into();
+        let local_roots = LocalRoots::try_get(db)
+            .into_iter()
+            .flat_map(|roots| roots.roots(db).iter().copied());
+
+        let library_roots = LibraryRoots::try_get(db)
+            .into_iter()
+            .flat_map(|roots| roots.roots(db).iter().copied());
+
+        let file_id = local_roots.chain(library_roots).find_map(|root_id| {
+            db.source_root(root_id)
+                .source_root(db)
+                .file_for_path(&vfs_path)
+                .copied()
+        })?;
+
+        Some(db.file_text(file_id).text(db).clone())
     }
 }
 

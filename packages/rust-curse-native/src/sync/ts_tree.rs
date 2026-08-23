@@ -80,9 +80,9 @@ pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<Vec<Diag>, SyncTsTreeErr
             continue;
         };
 
-        let span_path = span.abs_path.canonicalize().map_err(|source| {
+        let span_path = span.src_path.as_path().canonicalize().map_err(|source| {
             SyncTsTreeError::CanonicalizeModulePath {
-                path: span.abs_path.clone(),
+                path: span.src_path.as_path().to_owned(),
                 source,
             }
         })?;

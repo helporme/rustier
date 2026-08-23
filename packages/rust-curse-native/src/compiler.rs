@@ -12,6 +12,7 @@ mod test;
 
 use std::{collections::HashMap, path::PathBuf, string::FromUtf8Error};
 
+use miette::{GraphicalReportHandler, GraphicalTheme};
 use ra_ap_cfg::CfgOptions;
 use ra_ap_edition::Edition as HirEdition;
 use ra_ap_ide_db::{
@@ -33,10 +34,15 @@ use self::{
 };
 
 pub use self::{
-    diag::Theme,
     inputs::{CrateApiDiscovery, CrateApiImportMode, FfiLayout, Platform, WasmEnv},
     path::{FilePath, FilePathError},
 };
+
+#[derive(Clone, Copy)]
+pub enum Theme {
+    Unicode,
+    UnicodeNoColor,
+}
 
 /// An incremental rust-curse compiler.
 pub struct Compiler {
@@ -401,18 +407,65 @@ pub struct ShimCompilationOutput {
 
 #[derive(Clone)]
 pub struct CompilerDiagnostic {
+    /// Stable identifier for this diagnostic, when one is defined.
+    pub code: Option<String>,
+    /// Primary diagnostic message.
+    pub message: String,
+    /// Primary byte-offset span in the diagnostic source.
+    pub span: Option<CompilerDiagnosticSpan>,
+    /// Diagnostic severity. Diagnostics without an explicit severity are
+    /// errors.
+    pub severity: CompilerDiagnosticSeverity,
+    /// Suggested remediation, when one is available.
+    pub help_text: Option<String>,
     inner: Diag,
 }
 
 impl CompilerDiagnostic {
     pub fn render(&self, theme: Theme) -> Result<String, std::fmt::Error> {
-        self.inner.render(theme)
+        let handler = match theme {
+            Theme::Unicode => GraphicalReportHandler::new(),
+            Theme::UnicodeNoColor => {
+                GraphicalReportHandler::new_themed(GraphicalTheme::unicode_nocolor())
+            }
+        }
+        .with_context_lines(0)
+        .with_show_related_as_nested(true);
+
+        let mut rendered = String::new();
+        handler.render_report(&mut rendered, self.inner.inner.as_ref())?;
+
+        Ok(rendered)
     }
 }
 
 impl From<Diag> for CompilerDiagnostic {
     fn from(inner: Diag) -> Self {
-        Self { inner }
+        let code = inner.inner.code().map(|code| code.to_string());
+        let message = inner.inner.to_string();
+        let span = inner
+            .inner
+            .labels()
+            .and_then(|mut labels| labels.next())
+            .map(|label| CompilerDiagnosticSpan {
+                offset: label.offset(),
+                length: label.len(),
+            });
+        let severity = match inner.inner.severity().unwrap_or(miette::Severity::Error) {
+            miette::Severity::Advice => CompilerDiagnosticSeverity::Advice,
+            miette::Severity::Warning => CompilerDiagnosticSeverity::Warning,
+            miette::Severity::Error => CompilerDiagnosticSeverity::Error,
+        };
+        let help_text = inner.inner.help().map(|help| help.to_string());
+
+        Self {
+            code,
+            message,
+            span,
+            severity,
+            help_text,
+            inner,
+        }
     }
 }
 
@@ -420,9 +473,28 @@ impl std::fmt::Debug for CompilerDiagnostic {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
             .debug_struct("CompilerDiagnostic")
-            .field("message", &self.inner.inner.to_string())
+            .field("code", &self.code)
+            .field("message", &self.message)
+            .field("span", &self.span)
+            .field("severity", &self.severity)
+            .field("help_text", &self.help_text)
             .finish()
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CompilerDiagnosticSpan {
+    pub offset: usize,
+    pub length: usize,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CompilerDiagnosticSeverity {
+    Advice,
+    Warning,
+    #[default]
+    Error,
 }
 
 #[derive(Debug, Error)]

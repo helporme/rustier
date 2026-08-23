@@ -1,4 +1,4 @@
-use miette::Diagnostic;
+use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{GenericDef, HasAttrs as _, HasSource as _};
 use ra_ap_syntax::{AstNode as _, ast};
 use thiserror::Error;
@@ -9,7 +9,7 @@ use super::{
 };
 use crate::compiler::{
     db::Db,
-    diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
+    diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::{AsItem as _, Function, Mod, Param, Span, Type, ValueType},
 };
 
@@ -74,7 +74,7 @@ impl<'db> Function<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir::rust) fn lower_span(self, db: &'db dyn Db) -> Option<Span> {
-        lower_item_span(db, self.hir(db), self.hir(db).module(db).krate(db))
+        lower_item_span(db, self.hir(db))
     }
 }
 
@@ -152,7 +152,7 @@ pub(super) fn lower_function<'db>(
                     | ValueType::Str
                     | ValueType::String,
             }) => {
-                let span = lower_item_span(db, hir, crate_);
+                let span = lower_item_span(db, hir);
                 let (source_code, span) = diagnostic_location(db, span.as_ref());
                 MutableReferenceIgnored {
                     parameter: name,
@@ -177,7 +177,7 @@ pub(super) fn lower_function<'db>(
     if causes.is_empty() {
         Ok(Function::new(db, hir))
     } else {
-        let span = lower_item_span(db, hir, crate_);
+        let span = lower_item_span(db, hir);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
         Err(Box::new(FunctionLowerError {
             fqn: function_fqn(db, hir),
@@ -210,7 +210,7 @@ pub(super) struct FunctionLowerError {
     #[source_code]
     source_code: DiagSource,
     #[label]
-    span: Option<DiagSpan>,
+    span: Option<SourceSpan>,
     #[related]
     causes: Vec<FunctionLowerCause>,
 }
@@ -283,5 +283,5 @@ struct MutableReferenceIgnored {
     #[source_code]
     source_code: DiagSource,
     #[label]
-    span: Option<DiagSpan>,
+    span: Option<SourceSpan>,
 }

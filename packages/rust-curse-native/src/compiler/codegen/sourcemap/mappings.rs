@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::compiler::ir::rust::Span;
+use crate::compiler::{db::Db, ir::rust::Span};
 
 /// A single source map mapping before source and name indexes are assigned.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
@@ -29,15 +29,22 @@ pub(super) struct OriginalLocation {
 }
 
 /// Resolves the beginning of an IR span into a source-map location.
-pub(super) fn original_location(span: &Span) -> OriginalLocation {
+pub(super) fn original_location(db: &dyn Db, span: &Span) -> OriginalLocation {
+    let source = span.src(db);
+    let prefix = &source[..span.offset.min(source.len())];
+    let line = prefix.bytes().filter(|byte| *byte == b'\n').count();
+    let column = prefix
+        .rsplit_once('\n')
+        .map_or(prefix.len(), |(_, line)| line.len());
+
     OriginalLocation {
         source: span
-            .abs_path
+            .src_path
             .as_path()
             .to_string_lossy()
             .replace(std::path::MAIN_SEPARATOR, "/"),
-        line: span.begin.0.saturating_sub(1),
-        column: span.begin.1.saturating_sub(1),
+        line,
+        column,
     }
 }
 

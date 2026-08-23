@@ -1,11 +1,11 @@
-use miette::Diagnostic;
+use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::StructKind;
 use thiserror::Error;
 
 use super::{diagnostic_location, lower_field};
 use crate::compiler::{
     db::Db,
-    diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
+    diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::{AsItem as _, FieldParent, Shape},
 };
 
@@ -85,7 +85,7 @@ struct StructFieldsLowerError {
     #[source_code]
     source_code: DiagSource,
     #[label]
-    span: Option<DiagSpan>,
+    span: Option<SourceSpan>,
     #[related]
     causes: Vec<super::FieldLowerError>,
 }
@@ -98,7 +98,7 @@ struct VariantFieldsLowerError {
     #[source_code]
     source_code: DiagSource,
     #[label]
-    span: Option<DiagSpan>,
+    span: Option<SourceSpan>,
     #[related]
     causes: Vec<super::FieldLowerError>,
 }

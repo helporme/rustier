@@ -13,7 +13,8 @@ use ra_ap_hir::{
     Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
     Function as HirFunction, Module as HirModule, Struct as HirStruct,
 };
-use std::{fmt, path::PathBuf};
+use std::fmt;
+use triomphe::Arc;
 
 #[salsa::interned(debug)]
 pub struct Rust<'db> {
@@ -606,11 +607,13 @@ impl<'db, T: IntoType<'db>> From<T> for Type<'db> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
 pub struct Span {
-    pub abs_path: FilePath,
-    /// The path reachable from the crate root.
-    ///
-    /// This may be relative for files in the main crate and absolute otherwise.
-    pub src_path: PathBuf,
-    pub begin: (usize, usize),
-    pub end: (usize, usize),
+    pub src_path: FilePath,
+    pub offset: usize,
+    pub length: usize,
+}
+
+impl Span {
+    pub fn src(&self, db: &dyn Db) -> Arc<str> {
+        self.src_path.contents(db).unwrap_or_else(|| Arc::from(""))
+    }
 }

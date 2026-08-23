@@ -1,11 +1,11 @@
-use miette::Diagnostic;
+use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{Adt, GenericDef, HasAttrs as _};
 use thiserror::Error;
 
 use super::{adt_fqn, diagnostic_location, lower_item_span, lower_shape};
 use crate::compiler::{
     db::Db,
-    diag::{DiagSource, DiagSpan},
+    diag::DiagSource,
     ir::rust::{Enum, FieldParent, Mod, Shape, Span, Variant},
 };
 
@@ -48,7 +48,7 @@ impl<'db> Enum<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir::rust) fn lower_span(self, db: &'db dyn Db) -> Option<Span> {
-        lower_item_span(db, self.hir(db), self.hir(db).module(db).krate(db))
+        lower_item_span(db, self.hir(db))
     }
 }
 
@@ -84,7 +84,7 @@ impl<'db> Variant<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir::rust) fn lower_span(self, db: &'db dyn Db) -> Option<Span> {
-        lower_item_span(db, self.hir(db), self.hir(db).module(db).krate(db))
+        lower_item_span(db, self.hir(db))
     }
 }
 
@@ -100,7 +100,7 @@ pub(super) fn lower_enum<'db>(
         return Ok(Enum::new(db, hir));
     }
 
-    let span = lower_item_span(db, hir, hir.module(db).krate(db));
+    let span = lower_item_span(db, hir);
     let (source_code, span) = diagnostic_location(db, span.as_ref());
     Err(Box::new(EnumLowerError {
         fqn: adt_fqn(db, Adt::Enum(hir)),
@@ -118,7 +118,7 @@ pub(super) struct EnumLowerError {
     #[source_code]
     source_code: DiagSource,
     #[label]
-    span: Option<DiagSpan>,
+    span: Option<SourceSpan>,
     #[related]
     causes: Vec<EnumLowerCause>,
 }

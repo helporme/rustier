@@ -15,14 +15,11 @@ use self::{
     structs::lower_struct,
     types::{TypeLowerErrorUnsupported, is_clonable, lower_type},
 };
+use miette::SourceSpan;
 use ra_ap_hir::Adt;
 
 use super::Span;
-use crate::compiler::{
-    FilePath,
-    db::Db,
-    diag::{DiagSource, DiagSpan},
-};
+use crate::compiler::{FilePath, db::Db, diag::DiagSource};
 
 pub(super) fn function_fqn(db: &dyn Db, function: ra_ap_hir::Function) -> String {
     let module = function.module(db);
@@ -59,22 +56,22 @@ fn item_fqn(db: &dyn Db, module: ra_ap_hir::Module, name: String) -> String {
 pub(super) fn diagnostic_location(
     db: &dyn Db,
     span: Option<&Span>,
-) -> (DiagSource, Option<DiagSpan>) {
+) -> (DiagSource, Option<SourceSpan>) {
     (
-        span.map(|span| span.diag_source(db)).into(),
-        span.map(|span| span.diag_span(db)),
+        span.map(|span| span.src(db))
+            .map(Into::into)
+            .unwrap_or_default(),
+        span.map(|span| (span.offset, span.length).into()),
     )
 }
 
 pub(super) fn lower_item_span<T: ra_ap_hir::HasSource + Copy>(
     db: &dyn Db,
     item: T,
-    crate_: ra_ap_hir::Crate,
 ) -> Option<Span> {
     let source = item.source_with_range(db)?;
     lower_span(
         db,
-        crate_,
         source.file_id,
         source.value.0.start().into(),
         source.value.0.end().into(),
@@ -83,28 +80,17 @@ pub(super) fn lower_item_span<T: ra_ap_hir::HasSource + Copy>(
 
 fn lower_span(
     db: &dyn Db,
-    crate_: ra_ap_hir::Crate,
     hir_file: ra_ap_hir::HirFileId,
     range_start: u32,
     range_end: u32,
 ) -> Option<Span> {
     let file_id = hir_file.original_file(db).file_id(db);
-    let abs_path = file_path(db, file_id)?;
-    let crate_root = file_path(db, crate_.root_file(db))?;
-    let crate_dir = crate_root.as_path().parent()?;
-    let src_path = abs_path
-        .as_path()
-        .strip_prefix(crate_dir)
-        .unwrap_or_else(|_| abs_path.as_path())
-        .to_owned();
-    let begin = db.line_column(file_id, range_start.into()).ok()?;
-    let end = db.line_column(file_id, range_end.into()).ok()?;
+    let src_path = file_path(db, file_id)?;
 
     Some(Span {
-        abs_path,
         src_path,
-        begin: (begin.0 as usize + 1, begin.1 as usize + 1),
-        end: (end.0 as usize + 1, end.1 as usize + 1),
+        offset: range_start as usize,
+        length: range_end.saturating_sub(range_start) as usize,
     })
 }
 

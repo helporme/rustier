@@ -63,7 +63,6 @@ impl<'db> Mod<'db> {
         let source = self.hir(db).definition_source_range(db);
         lower_span(
             db,
-            self.hir(db).krate(db),
             source.file_id,
             source.value.start().into(),
             source.value.end().into(),

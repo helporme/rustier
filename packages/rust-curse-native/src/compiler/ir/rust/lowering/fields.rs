@@ -1,4 +1,4 @@
-use miette::Diagnostic;
+use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{
     HasAttrs as _, HasVisibility as _, StructKind, Variant as HirFieldParent, Visibility,
 };
@@ -10,7 +10,7 @@ use super::{
 };
 use crate::compiler::{
     db::Db,
-    diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
+    diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::{Field, FieldName, FieldParent, Span, Struct, Type, ValueType, Variant},
 };
 
@@ -60,11 +60,7 @@ impl<'db> Field<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir::rust) fn lower_span(self, db: &'db dyn Db) -> Option<Span> {
-        lower_item_span(
-            db,
-            self.hir(db),
-            self.hir(db).parent_def(db).module(db).krate(db),
-        )
+        lower_item_span(db, self.hir(db))
     }
 }
 
@@ -87,7 +83,7 @@ pub(super) fn lower_field<'db>(
         causes.push(error);
     }
     if !causes.is_empty() {
-        let span = lower_item_span(db, field, crate_);
+        let span = lower_item_span(db, field);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
         return Err(Box::new(FieldLowerError {
             field_name: field_name(db, field).to_string(),
@@ -102,7 +98,7 @@ pub(super) fn lower_field<'db>(
     if matches!(lowered_type, ValueType::Struct(_) | ValueType::Enum(_))
         && !is_clonable(db, &type_, crate_)
     {
-        let span = lower_item_span(db, field, crate_);
+        let span = lower_item_span(db, field);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
         FieldReadonlyError {
             field_name: field_name(db, field).to_string(),
@@ -153,7 +149,7 @@ pub(super) struct FieldLowerError {
     #[source_code]
     source_code: DiagSource,
     #[label]
-    span: Option<DiagSpan>,
+    span: Option<SourceSpan>,
     #[related]
     causes: Vec<TypeLowerErrorUnsupported>,
 }
@@ -175,5 +171,5 @@ struct FieldReadonlyError {
     #[source_code]
     source_code: DiagSource,
     #[label]
-    span: Option<DiagSpan>,
+    span: Option<SourceSpan>,
 }

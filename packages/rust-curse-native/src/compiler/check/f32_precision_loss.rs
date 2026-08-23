@@ -1,9 +1,9 @@
-use miette::Diagnostic;
+use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 use crate::compiler::{
     db::Db,
-    diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
+    diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::{Enum, Function, Span, Struct, ValueType},
 };
 
@@ -55,8 +55,11 @@ impl<'db> Enum<'db> {
 
 fn emit(db: &dyn Db, span: Option<&Span>) {
     F32PrecisionLoss {
-        source_code: span.map(|span| span.diag_source(db)).into(),
-        span: span.map(|span| span.diag_span(db)),
+        source_code: span
+            .map(|span| span.src(db))
+            .map(Into::into)
+            .unwrap_or_default(),
+        span: span.map(|span| (span.offset, span.length).into()),
     }
     .accumulate(db);
 }
@@ -72,7 +75,7 @@ pub struct F32PrecisionLoss {
     #[source_code]
     source_code: DiagSource,
     #[label]
-    span: Option<DiagSpan>,
+    span: Option<SourceSpan>,
 }
 
 #[cfg(test)]

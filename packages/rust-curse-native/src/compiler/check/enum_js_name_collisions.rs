@@ -1,9 +1,9 @@
-use miette::Diagnostic;
+use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 use crate::compiler::{
     db::Db,
-    diag::{DiagAccumulateExt as _, DiagSource, DiagSpan},
+    diag::{DiagAccumulateExt as _, DiagSource},
     ir::{facade::FacadeClassKind, rust::Enum},
     mangle::to_camel_case,
 };
@@ -30,8 +30,11 @@ impl<'db> Enum<'db> {
         }
 
         let source_span = self.span(db);
-        let source_code: DiagSource = source_span.map(|span| span.diag_source(db)).into();
-        let span = source_span.map(|span| span.diag_span(db));
+        let source_code: DiagSource = source_span
+            .map(|span| span.src(db))
+            .map(Into::into)
+            .unwrap_or_default();
+        let span = source_span.map(|span| (span.offset, span.length).into());
 
         if has_type_field_collision {
             EnumJsNameCollision::TypeField {
@@ -61,7 +64,7 @@ pub enum EnumJsNameCollision {
         #[source_code]
         source_code: DiagSource,
         #[label]
-        span: Option<DiagSpan>,
+        span: Option<SourceSpan>,
     },
 
     #[error(
@@ -76,7 +79,7 @@ pub enum EnumJsNameCollision {
         #[source_code]
         source_code: DiagSource,
         #[label]
-        span: Option<DiagSpan>,
+        span: Option<SourceSpan>,
     },
 }
 

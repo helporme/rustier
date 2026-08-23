@@ -47,7 +47,7 @@ impl<'db> DecalClass<'db> {
         let Some(span) = self.span(db) else {
             return Vec::new();
         };
-        let original = original_location(span);
+        let original = original_location(db, span);
         let mut mappings = declaration_mappings(
             class_line,
             "export class ".len(),
@@ -72,7 +72,7 @@ impl<'db> DecalClass<'db> {
             let Some(span) = field.span(db) else {
                 continue;
             };
-            let original = original_location(span);
+            let original = original_location(db, span);
             let original_name_column = match field.name(db) {
                 FieldName::Name(name) if name.parse::<usize>().is_err() => {
                     original.column + "pub ".len()
@@ -132,7 +132,7 @@ impl<'db> DecalClass<'db> {
         let Some(span) = self.span(db) else {
             return Vec::new();
         };
-        let original = original_location(span);
+        let original = original_location(db, span);
         let original_name_column = original.column + "pub enum ".len();
         let mut mappings = Vec::new();
 
@@ -169,7 +169,7 @@ impl<'db> DecalClass<'db> {
             let Some(span) = variant.span(db) else {
                 continue;
             };
-            let original = original_location(span);
+            let original = original_location(db, span);
             mappings.extend(declaration_mappings(
                 tag_line,
                 "\t\t\treadonly ".len(),
@@ -202,7 +202,7 @@ impl<'db> DecalClass<'db> {
                 let Some(span) = field.span(db) else {
                     continue;
                 };
-                let original = original_location(span);
+                let original = original_location(db, span);
                 mappings.extend(declaration_mappings(
                     field_line,
                     prefix.len(),
