@@ -134,7 +134,7 @@ impl ProgramCompiler {
             });
             compiler
                 .change_workspace(|change| {
-                    change.set_file(
+                    change.set_local_file(
                         root_file.clone(),
                         Some(format!("{}\n{COMPILER_STD_FIXTURE}", program.src)),
                     );
@@ -144,6 +144,8 @@ impl ProgramCompiler {
                         edition: Edition::E2024,
                         root_file,
                         version: "0.0.0".to_owned(),
+                        is_local: true,
+                        is_sysroot: false,
                         api_discovery: CrateApiDiscovery::Eager,
                         api_import_mode: CrateApiImportMode::Mod,
                     });

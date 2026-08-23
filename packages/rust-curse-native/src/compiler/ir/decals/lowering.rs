@@ -4,7 +4,6 @@ use crate::compiler::{
     FilePath,
     db::Db,
     ir::{
-        common::compile_relative_path,
         decals::{
             DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalFunction, DecalImport,
             DecalMod, DecalParam, DecalType, DecalVariant,
@@ -18,11 +17,10 @@ use crate::compiler::{
 impl<'db> DecalImport<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_path(self, db: &'db dyn Db) -> String {
-        compile_relative_path(
-            self.originating_from(db).file_path(db),
-            self.class(db).parent(db).file_path(db),
-        )
-        .expect("relative path must exist")
+        self.originating_from(db)
+            .file_path(db)
+            .relative_path(self.class(db).parent(db).file_path(db))
+            .expect("relative path must exist")
     }
 }
 

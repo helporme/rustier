@@ -1,3 +1,4 @@
+mod change;
 mod check;
 mod codegen;
 mod db;
@@ -10,30 +11,23 @@ mod path;
 #[cfg(test)]
 mod test;
 
-use std::{collections::HashMap, path::PathBuf, string::FromUtf8Error};
+use std::collections::HashMap;
 
 use miette::{GraphicalReportHandler, GraphicalTheme};
-use ra_ap_cfg::CfgOptions;
-use ra_ap_edition::Edition as HirEdition;
-use ra_ap_ide_db::{
-    ChangeWithProcMacros,
-    base_db::{
-        AbsPathBuf, CrateDisplayName, CrateGraphBuilder as HirCrateGraphBuilder, CrateName,
-        CrateOrigin, CrateWorkspaceData, DependencyBuilder, Env, FileSet, SourceRoot,
-    },
-};
-use ra_ap_vfs::{Change, Vfs};
-use thiserror::Error;
-use triomphe::Arc;
+use ra_ap_vfs::Vfs;
 
 use self::{
     db::RootDatabase,
     diag::Diag,
-    inputs::{CrateMetadata, CratesMetadata},
+    inputs::CratesMetadata,
     ir::{rust::Rust, shim::ShimMod},
 };
 
 pub use self::{
+    change::{
+        CrateBuilderId, CrateGraphBuilder, Edition, WorkspaceChange, WorkspaceChangeError,
+        WorkspaceCrate, WorkspaceCrateDependency,
+    },
     inputs::{CrateApiDiscovery, CrateApiImportMode, FfiLayout, Platform, WasmEnv},
     path::{FilePath, FilePathError},
 };
@@ -102,7 +96,7 @@ impl Compiler {
     ///
     /// compiler.change_workspace(|change| {
     ///     let root = FilePath::new_virtual("/src/lib.rs")?;
-    ///     change.set_file(root.clone(), Some("pub fn greet() {}".into()));
+    ///     change.set_local_file(root.clone(), Some("pub fn greet() {}".into()));
     ///
     ///     let mut crates = CrateGraphBuilder::default();
     ///     crates.add_crate(WorkspaceCrate {
@@ -110,6 +104,8 @@ impl Compiler {
     ///         edition: Edition::E2024,
     ///         root_file: root,
     ///         version: "0.1.0".into(),
+    ///         is_local: true,
+    ///         is_sysroot: false,
     ///         api_discovery: CrateApiDiscovery::Eager,
     ///         api_import_mode: CrateApiImportMode::Relative,
     ///     });
@@ -122,10 +118,7 @@ impl Compiler {
         &mut self,
         once: impl FnOnce(&mut WorkspaceChange) -> Result<(), WorkspaceChangeError>,
     ) -> Result<(), WorkspaceChangeError> {
-        let mut change = WorkspaceChange {
-            files: HashMap::new(),
-            crate_graph: None,
-        };
+        let mut change = WorkspaceChange::new();
         once(&mut change)?;
         change.apply(&mut self.db, &mut self.vfs)
     }
@@ -192,206 +185,6 @@ pub struct CompilerOpts {
     pub platform: Platform,
     /// Layout of generated ffi files.
     pub ffi_layout: FfiLayout,
-}
-
-pub struct WorkspaceChange {
-    files: HashMap<FilePath, Option<String>>,
-    crate_graph: Option<CrateGraphBuilder>,
-}
-
-impl WorkspaceChange {
-    /// Sets a file content. Set content to `None` to remove a file.
-    pub fn set_file(&mut self, path: FilePath, contents: Option<String>) {
-        self.files.insert(path, contents);
-    }
-
-    pub fn set_crates(&mut self, crate_graph: CrateGraphBuilder) {
-        self.crate_graph = Some(crate_graph);
-    }
-
-    fn apply(self, db: &mut RootDatabase, vfs: &mut Vfs) -> Result<(), WorkspaceChangeError> {
-        for (path, contents) in self.files {
-            vfs.set_file_contents(path.into(), contents.map(String::into_bytes));
-        }
-
-        let (crate_graph, crates_metadata) = match self.crate_graph {
-            Some(crate_graph) => {
-                let (crate_graph, crates_metadata) = Self::build_crate_graph(vfs, crate_graph)?;
-                (Some(crate_graph), Some(crates_metadata))
-            }
-            None => (None, None),
-        };
-
-        let mut change = ChangeWithProcMacros::default();
-        let mut files = FileSet::default();
-        for (file_id, path) in vfs.iter() {
-            files.insert(file_id, path.clone());
-        }
-        change.set_roots(vec![SourceRoot::new_local(files)]);
-
-        for changed_file in vfs.take_changes().into_values() {
-            let contents = match changed_file.change {
-                Change::Create(contents, _) | Change::Modify(contents, _) => {
-                    Some(String::from_utf8(contents)?)
-                }
-                Change::Delete => None,
-            };
-            change.change_file(changed_file.file_id, contents);
-        }
-
-        if let Some(crate_graph) = crate_graph {
-            change.set_crate_graph(crate_graph);
-        }
-        db.apply_change(change);
-
-        if let Some(crates_metadata) = crates_metadata {
-            CratesMetadata::set(db, crates_metadata);
-        }
-        Ok(())
-    }
-
-    fn build_crate_graph(
-        vfs: &Vfs,
-        crate_graph: CrateGraphBuilder,
-    ) -> Result<(HirCrateGraphBuilder, CratesMetadata), WorkspaceChangeError> {
-        let CrateGraphBuilder { crates, deps } = crate_graph;
-        let mut hir_graph = HirCrateGraphBuilder::default();
-        let mut hir_ids = Vec::with_capacity(crates.len());
-        let mut metadata = HashMap::with_capacity(crates.len());
-        // rust-analyzer requires this field even when proc macros are disabled.
-        // Keep it synthetic so compiler setup never reads the host environment.
-        let synthetic_root = if cfg!(windows) { r"C:\" } else { "/" };
-        let proc_macro_cwd = Arc::new(AbsPathBuf::assert_utf8(PathBuf::from(synthetic_root)));
-        let workspace_data = Arc::new(CrateWorkspaceData {
-            target: Err("target data is not configured".into()),
-            toolchain: None,
-        });
-
-        for crate_ in crates {
-            let root_path = crate_.root_file.clone();
-            let root_vfs_path = root_path.clone().into();
-            let (root_file_id, _) = vfs.file_id(&root_vfs_path).ok_or_else(|| {
-                WorkspaceChangeError::MissingCrateRoot {
-                    path: root_path.clone(),
-                }
-            })?;
-            let crate_name = CrateName::normalize_dashes(&crate_.name);
-            let hir_id = hir_graph.add_crate_root(
-                root_file_id,
-                crate_.edition.into(),
-                Some(CrateDisplayName::from(crate_name.clone())),
-                Some(crate_.version),
-                CfgOptions::default(),
-                None,
-                Env::default(),
-                CrateOrigin::Local {
-                    repo: None,
-                    name: Some(crate_name.symbol().clone()),
-                },
-                Vec::new(),
-                false,
-                proc_macro_cwd.clone(),
-                workspace_data.clone(),
-            );
-
-            metadata.insert(
-                root_path,
-                CrateMetadata {
-                    api_discovery: crate_.api_discovery,
-                    api_import_mode: crate_.api_import_mode,
-                },
-            );
-            hir_ids.push(hir_id);
-        }
-
-        for dependency in deps {
-            let from = *hir_ids.get(dependency.from_crate.0).ok_or(
-                WorkspaceChangeError::InvalidCrateId {
-                    role: "source",
-                    id: dependency.from_crate,
-                },
-            )?;
-            let to = *hir_ids.get(dependency.to_crate.0).ok_or(
-                WorkspaceChangeError::InvalidCrateId {
-                    role: "target",
-                    id: dependency.to_crate,
-                },
-            )?;
-            let name = CrateName::new(&dependency.name).map_err(|name| {
-                WorkspaceChangeError::InvalidDependencyName {
-                    name: name.to_owned(),
-                }
-            })?;
-
-            hir_graph
-                .add_dep(from, DependencyBuilder::new(name, to))
-                .map_err(|error| WorkspaceChangeError::CyclicDependency {
-                    message: error.to_string(),
-                })?;
-        }
-
-        Ok((hir_graph, CratesMetadata { crates: metadata }))
-    }
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct CrateGraphBuilder {
-    crates: Vec<WorkspaceCrate>,
-    deps: Vec<WorkspaceCrateDependency>,
-}
-
-impl CrateGraphBuilder {
-    pub fn add_crate(&mut self, crate_: WorkspaceCrate) -> CrateBuilderId {
-        let id = CrateBuilderId(self.crates.len());
-        self.crates.push(crate_);
-        id
-    }
-
-    pub fn add_dependency(&mut self, dependency: WorkspaceCrateDependency) {
-        self.deps.push(dependency)
-    }
-}
-
-/// Temporary crate id used to crate a dependency.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
-pub struct CrateBuilderId(usize);
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WorkspaceCrate {
-    pub name: String,
-    pub edition: Edition,
-    pub root_file: FilePath,
-    pub version: String,
-    pub api_discovery: CrateApiDiscovery,
-    pub api_import_mode: CrateApiImportMode,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
-pub struct WorkspaceCrateDependency {
-    pub name: String,
-    pub from_crate: CrateBuilderId,
-    pub to_crate: CrateBuilderId,
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Ord, PartialOrd, Hash)]
-#[non_exhaustive]
-pub enum Edition {
-    E2015,
-    E2018,
-    E2021,
-    #[default]
-    E2024,
-}
-
-impl From<Edition> for HirEdition {
-    fn from(value: Edition) -> Self {
-        match value {
-            Edition::E2015 => Self::Edition2015,
-            Edition::E2018 => Self::Edition2018,
-            Edition::E2021 => Self::Edition2021,
-            Edition::E2024 => Self::Edition2024,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -495,29 +288,4 @@ pub enum CompilerDiagnosticSeverity {
     Warning,
     #[default]
     Error,
-}
-
-#[derive(Debug, Error)]
-#[non_exhaustive]
-pub enum WorkspaceChangeError {
-    #[error("crate root file is not present in the compiler workspace: {path:?}")]
-    MissingCrateRoot { path: FilePath },
-
-    #[error("dependency {role} crate id is out of bounds: {id:?}")]
-    InvalidCrateId {
-        role: &'static str,
-        id: CrateBuilderId,
-    },
-
-    #[error("dependency name is not a valid Rust crate name: {name}")]
-    InvalidDependencyName { name: String },
-
-    #[error("crate dependency introduces a cycle: {message}")]
-    CyclicDependency { message: String },
-
-    #[error("compiler workspace contents are not valid UTF-8")]
-    InvalidFileContents(#[from] FromUtf8Error),
-
-    #[error(transparent)]
-    InvalidFilePath(#[from] FilePathError),
 }

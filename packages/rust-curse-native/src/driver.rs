@@ -8,12 +8,7 @@
 //! At the end, if rust-curse itself will be good enough, the driver can be
 //! removed and js can just use rust-curse as lib.
 
-use std::{
-    collections::{BTreeMap, HashMap},
-    error::Error as StdError,
-    path::PathBuf,
-    sync::Once,
-};
+use std::{collections::HashMap, error::Error as StdError, path::PathBuf, sync::Once};
 
 use miette::Diagnostic;
 use napi_derive::napi;
@@ -23,13 +18,10 @@ use tracing::{debug, info, trace};
 use tracing_subscriber::{EnvFilter, fmt::time::ChronoLocal};
 
 use crate::{
-    compiler::{
-        self,
-        db::RootDatabase,
-        diag::{Diag, Theme},
-        lower::rustdoc_to_ir::mods::lower_mods,
+    compiler::{self, Compiler, CompilerOpts, FfiLayout, FilePath, Platform, Theme, WasmEnv},
+    sync::{
+        SyncCrateOpts, SyncTsTreeOpts, sync_crate, sync_ts_tree, workspace::PopulateWorkspaceOpts,
     },
-    sync::{SyncCrateOps, SyncTsTreeOpts, sync_crate, sync_ts_tree},
     tools::{self, node::BuildOutput as NodeBuildOutput, wasm::BuildOutput as WasmBuildOutput},
 };
 
@@ -135,17 +127,27 @@ enum BuildArtifacts {
 }
 
 impl ProfileOpts {
-    fn platform(&self) -> compiler::inputs::Platform {
+    fn platform(&self) -> Platform {
         match &self.target {
-            ProfileTarget::Wasm { target } => compiler::inputs::Platform::Wasm {
+            ProfileTarget::Wasm { target } => Platform::Wasm {
                 target: target.into(),
             },
-            ProfileTarget::Node => compiler::inputs::Platform::Node,
+            ProfileTarget::Node => Platform::Node,
         }
     }
 }
 
-impl From<&WasmTarget> for compiler::inputs::WasmTarget {
+fn compiler_opts(platform: Platform) -> CompilerOpts {
+    CompilerOpts {
+        platform,
+        ffi_layout: FfiLayout {
+            ffi_js_file: FilePath::new_virtual("/generated/ffi.js")
+                .expect("fixed virtual FFI path must be valid"),
+        },
+    }
+}
+
+impl From<&WasmTarget> for WasmEnv {
     fn from(target: &WasmTarget) -> Self {
         match target {
             WasmTarget::Web => Self::Web,
@@ -181,7 +183,7 @@ impl From<&BuildArtifacts> for BuildArtifact {
 #[napi]
 pub struct Driver {
     opts: DriverOpts,
-    db: RootDatabase,
+    compiler: Compiler,
     profile_builds: HashMap<String, BuildArtifacts>,
     build_version: u64,
 }
@@ -201,7 +203,7 @@ impl Driver {
 
         Self {
             opts,
-            db: RootDatabase::default(),
+            compiler: Compiler::new(compiler_opts(Platform::Node)),
             profile_builds: HashMap::new(),
             build_version: 0,
         }
@@ -226,8 +228,6 @@ impl Driver {
                 ProfileTarget::Node => needs_node_tools = true,
             }
         }
-
-        tools::rustdoc::ensure().map_err(|source| InstallDepsError::Rustdoc { source })?;
 
         if needs_wasm_tools {
             tools::wasm::ensure_wasm_target_installed()
@@ -278,33 +278,32 @@ impl Driver {
             "resolved driver build paths"
         );
 
-        let rustdoc = tools::rustdoc::run(&manifest_path)
-            .map_err(|source| BuildError::GenerateRustdoc { source })?;
-
         let package = tools::workspace::get_package(&manifest_path)
             .map_err(|source| BuildError::GetPackage { source })?;
+        let shared_platform = self
+            .opts
+            .profiles
+            .values()
+            .next()
+            .map(ProfileOpts::platform)
+            .unwrap_or(Platform::Node);
+        self.compiler = Compiler::new(compiler_opts(shared_platform));
+        self.compiler
+            .change_workspace(|change| {
+                change.populate_from_fs(PopulateWorkspaceOpts::new(&manifest_path))
+            })
+            .map_err(|source| BuildError::PopulateWorkspace { source })?;
 
-        let src_dir = package.source_package_path.join("src");
-        let crates = BTreeMap::from([(
-            package.source_crate_name,
-            compiler::inputs::Crate {
-                body: rustdoc,
-                is_external: false,
-                dir: package.source_package_path,
-            },
-        )]);
-        compiler::inputs::RustdocCrates::set(&mut self.db, crates);
-
-        let sync_ts_tree_diags = sync_ts_tree(SyncTsTreeOpts {
-            our_dir: &types_dir,
-            src_dir: &src_dir,
-            db: &self.db,
+        let shared_compilation = self.compiler.compile_shim();
+        sync_ts_tree(SyncTsTreeOpts {
+            out_dir: &types_dir,
+            package_dir: &package.source_package_path,
+            compiler: &self.compiler,
         })
         .map_err(|source| BuildError::SyncTsTree { source })?;
 
         let mut diags = Vec::new();
-
-        for diag in sync_ts_tree_diags.into_iter() {
+        for diag in shared_compilation.diagnostics {
             diags.push(
                 diag.render(Theme::UnicodeNoColor)
                     .map_err(|source| BuildError::RenderDiagnostic { source })?,
@@ -345,17 +344,19 @@ impl Driver {
                 "syncing profile crate"
             );
 
-            compiler::inputs::Platform::set(&mut self.db, profile.platform());
-            sync_crate(SyncCrateOps {
+            let platform = profile.platform();
+            self.compiler.set_opts(compiler_opts(platform));
+            let compilation = self.compiler.compile_shim();
+            sync_crate(SyncCrateOpts {
                 manifest_path: &manifest_path,
                 out_dir: &profile_crate_dir,
-                db: &self.db,
+                platform,
+                shim: &compilation.shim,
             })
             .map_err(|source| BuildError::SyncCrate { source })?;
 
             let mut profile_diags = Vec::new();
-            for diag in compiler::codegen::bindings::compile_bindings::accumulated::<Diag>(&self.db)
-            {
+            for diag in compilation.diagnostics {
                 profile_diags.push(
                     diag.render(Theme::UnicodeNoColor)
                         .map_err(|source| BuildError::RenderDiagnostic { source })?,
@@ -414,20 +415,6 @@ impl Driver {
             info!(profile_name = %profile_name, "built profile");
         }
 
-        let modules = lower_mods(&self.db);
-        for diag in compiler::check::check(&self.db, modules) {
-            diags.push(
-                Diag::from(diag.clone())
-                    .render(Theme::UnicodeNoColor)
-                    .map_err(|source| BuildError::RenderDiagnostic { source })?,
-            );
-        }
-
-        debug!(
-            diag_count = diags.len(),
-            "rendered shared diagnostics after IR checks"
-        );
-
         info!(
             profile_count = per_profile.len(),
             diag_count = diags.len(),
@@ -474,8 +461,12 @@ impl Driver {
 
         trace!(src_path, "resolved profile artifact source path");
 
-        compiler::inputs::Platform::set(&mut self.db, platform);
-        compiler::inputs::JsCodegenPaths::set(&mut self.db, src_path);
+        let ffi_js_file =
+            FilePath::new_real(src_path).map_err(ResolveError::InvalidCompilerPath)?;
+        self.compiler.set_opts(CompilerOpts {
+            platform,
+            ffi_layout: FfiLayout { ffi_js_file },
+        });
 
         let module_path = PathBuf::from(&file_path).canonicalize().map_err(|source| {
             ResolveError::CanonicalizeModulePath {
@@ -486,40 +477,22 @@ impl Driver {
 
         debug!(module_path = %module_path.display(), "canonicalized Rust module path");
 
-        // todo: build file map instaed
-        let modules = lower_mods(&self.db);
-        for mod_ in modules {
-            let Some(span) = mod_.span(&self.db) else {
-                continue;
-            };
-            let Ok(span_path) = span.src_path.as_path().canonicalize() else {
-                trace!("skipping IR module with non-canonicalizable span path");
-                continue;
-            };
-
-            trace!(span_path = %span_path.display(), "checking IR module span path");
-
-            if span_path == module_path {
-                debug!(module_path = %module_path.display(), "resolved Rust module import");
-                return Ok(compiler::codegen::js::mod_::compile_js_file(
-                    &self.db, *mod_,
-                ));
-            }
-        }
-
-        Err(ResolveError::UnknownModule { path: module_path })
+        let module_path_string =
+            module_path
+                .to_str()
+                .ok_or_else(|| ResolveError::NonUtf8ModulePath {
+                    path: module_path.clone(),
+                })?;
+        let compiler_path =
+            FilePath::new_real(module_path_string).map_err(ResolveError::InvalidCompilerPath)?;
+        self.compiler
+            .compile_js(compiler_path)
+            .ok_or(ResolveError::UnknownModule { path: module_path })
     }
 }
 
 #[derive(Error, Diagnostic, Debug)]
 enum InstallDepsError {
-    #[error("failed to install rustdoc prerequisites")]
-    #[diagnostic(code(rust_curse::driver::install_rustdoc))]
-    Rustdoc {
-        #[source]
-        source: tools::rustdoc::RustdocError,
-    },
-
     #[error("failed to install wasm Rust target")]
     #[diagnostic(code(rust_curse::driver::install_wasm_target))]
     WasmTarget {
@@ -560,6 +533,14 @@ enum ResolveError {
         source: std::io::Error,
     },
 
+    #[error("Rust module path is not valid UTF-8: {}", path.display())]
+    #[diagnostic(code(rust_curse::driver::non_utf8_module_path))]
+    NonUtf8ModulePath { path: PathBuf },
+
+    #[error("invalid compiler file path")]
+    #[diagnostic(code(rust_curse::driver::invalid_compiler_path))]
+    InvalidCompilerPath(#[source] compiler::FilePathError),
+
     #[error("no Rust module found for `{}`", path.display())]
     #[diagnostic(code(rust_curse::driver::unknown_module))]
     UnknownModule { path: PathBuf },
@@ -578,11 +559,11 @@ enum BuildError {
         source: tools::workspace::GetPackageErr,
     },
 
-    #[error("failed to generate rustdoc JSON")]
-    #[diagnostic(code(rust_curse::driver::generate_rustdoc))]
-    GenerateRustdoc {
+    #[error("failed to populate compiler workspace")]
+    #[diagnostic(code(rust_curse::driver::populate_workspace))]
+    PopulateWorkspace {
         #[source]
-        source: tools::rustdoc::RustdocError,
+        source: compiler::WorkspaceChangeError,
     },
 
     #[error("failed to sync generated crate")]

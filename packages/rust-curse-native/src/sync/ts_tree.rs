@@ -5,203 +5,158 @@ use std::{
 
 use miette::Diagnostic;
 
-use tracing::{debug, info, trace};
-
 use crate::{
-    compiler::{self, db::RootDatabase, diag::Diag, lower::rustdoc_to_ir::mods::lower_mods},
+    compiler::{Compiler, FilePath},
     sync::file::write_if_changed,
 };
 
-/// Options for [`sync_ts_tree`].
 pub struct SyncTsTreeOpts<'a> {
-    /// The directory where mirrored TypeScript declarations and source maps
-    /// should be written.
-    pub our_dir: &'a Path,
-    /// The source `src` directory used to calculate mirrored module paths.
-    pub src_dir: &'a Path,
-    /// The database for compiling TypeScript declarations.
-    pub db: &'a RootDatabase,
+    pub out_dir: &'a Path,
+    pub package_dir: &'a Path,
+    pub compiler: &'a Compiler,
 }
 
-/// Syncs a mirrored `src` tree with TypeScript declarations and source maps
-/// for each Rust module.
-///
-/// # Example
-///
-/// ```no_run
-/// use std::path::Path;
-///
-/// use rust_curse::{
-///     compiler::db::RootDatabase,
-///     sync::ts_tree::{SyncTsTreeOpts, sync_ts_tree},
-/// };
-///
-/// sync_ts_tree(SyncTsTreeOpts {
-///     our_dir: Path::new(".rust-curse/ts"),
-///     src_dir: Path::new("src"),
-///     db: &RootDatabase::default(),
-/// })?;
-///
-/// # Ok::<(), Box<dyn std::error::Error>>(())
-/// ```
-#[tracing::instrument(
-    level = "debug",
-    skip(opts),
-    fields(our_dir = %opts.our_dir.display(), src_dir = %opts.src_dir.display())
-)]
-pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<Vec<Diag>, SyncTsTreeError> {
-    info!("syncing TypeScript declaration tree");
+pub fn sync_ts_tree(opts: SyncTsTreeOpts<'_>) -> Result<(), SyncTsTreeError> {
+    ensure_dir(opts.out_dir)?;
+    let package_dir = canonicalize(opts.package_dir)?;
+    let mut pending = vec![package_dir.clone()];
 
-    let modules = lower_mods(opts.db);
-    let diags = lower_mods::accumulated::<Diag>(opts.db)
-        .into_iter()
-        .cloned()
-        .collect();
-
-    ensure_dir(opts.our_dir)?;
-    let src_dir = opts
-        .src_dir
-        .parent()
-        .ok_or_else(|| SyncTsTreeError::ReadParentDirectory {
-            path: opts.src_dir.to_path_buf(),
-        })?;
-
-    let src_dir =
-        src_dir
-            .canonicalize()
-            .map_err(|source| SyncTsTreeError::CanonicalizeSourceDirectory {
-                path: opts.src_dir.to_path_buf(),
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(&directory).map_err(|source| SyncTsTreeError::ReadDirectory {
+            path: directory.clone(),
+            source,
+        })? {
+            let entry = entry.map_err(|source| SyncTsTreeError::ReadDirectory {
+                path: directory.clone(),
                 source,
             })?;
-
-    for mod_ in modules {
-        let Some(span) = mod_.span(opts.db) else {
-            trace!("skipping IR module without a span");
-            continue;
-        };
-
-        let span_path = span.src_path.as_path().canonicalize().map_err(|source| {
-            SyncTsTreeError::CanonicalizeModulePath {
-                path: span.src_path.as_path().to_owned(),
-                source,
+            let path = entry.path();
+            let file_type = entry
+                .file_type()
+                .map_err(|source| SyncTsTreeError::ReadFileType {
+                    path: path.clone(),
+                    source,
+                })?;
+            if file_type.is_dir() {
+                if !matches!(entry.file_name().to_str(), Some(".git" | "target")) {
+                    pending.push(path);
+                }
+                continue;
             }
-        })?;
-
-        let relative_path = span_path.strip_prefix(&src_dir).map_err(|_| {
-            SyncTsTreeError::ModuleOutsideSourceDirectory {
-                module_path: span_path.clone(),
-                src_dir: src_dir.clone(),
+            if !file_type.is_file() || path.extension().is_none_or(|ext| ext != "rs") {
+                continue;
             }
-        })?;
 
-        let Some(file_name) = relative_path.file_name() else {
-            return Err(SyncTsTreeError::MissingModuleFileName {
-                path: relative_path.to_path_buf(),
-            });
-        };
-
-        let declaration_file_name = format!("{}.d.ts", file_name.to_string_lossy());
-        let sourcemap_file_name = format!("{declaration_file_name}.map");
-        let output_path = opts
-            .our_dir
-            .join(relative_path)
-            .with_file_name(&declaration_file_name);
-        let sourcemap_path = output_path.with_file_name(&sourcemap_file_name);
-
-        if let Some(parent) = output_path.parent() {
-            ensure_dir(parent)?;
+            let source_path = canonicalize(&path)?;
+            let compiler_path = FilePath::new_real(path_string(&source_path)?)
+                .map_err(SyncTsTreeError::InvalidFilePath)?;
+            let Some(mut declaration) = opts.compiler.compile_ts(compiler_path.clone()) else {
+                continue;
+            };
+            let Some(sourcemap) = opts.compiler.compile_ts_sourcemap(compiler_path) else {
+                continue;
+            };
+            let relative = source_path.strip_prefix(&package_dir).map_err(|_| {
+                SyncTsTreeError::SourceOutsidePackage {
+                    path: source_path.clone(),
+                    package_dir: package_dir.clone(),
+                }
+            })?;
+            let file_name =
+                relative
+                    .file_name()
+                    .ok_or_else(|| SyncTsTreeError::MissingFileName {
+                        path: relative.to_path_buf(),
+                    })?;
+            let declaration_name = format!("{}.d.ts", file_name.to_string_lossy());
+            let sourcemap_name = format!("{declaration_name}.map");
+            let output_path = opts
+                .out_dir
+                .join(relative)
+                .with_file_name(&declaration_name);
+            let sourcemap_path = output_path.with_file_name(&sourcemap_name);
+            if let Some(parent) = output_path.parent() {
+                ensure_dir(parent)?;
+            }
+            if !declaration.is_empty() {
+                declaration.push_str(&format!("\n//# sourceMappingURL={sourcemap_name}\n"));
+            }
+            write_file(output_path, declaration)?;
+            write_file(sourcemap_path, sourcemap)?;
         }
-
-        let mut declaration = compiler::codegen::ts::mod_::compile_mod(opts.db, *mod_);
-        if !declaration.is_empty() {
-            declaration.push_str(&format!("\n//# sourceMappingURL={sourcemap_file_name}\n"));
-        }
-        write_file(output_path, declaration.as_bytes())?;
-
-        let sourcemap = compiler::codegen::ts::sourcemap::compile_mod(opts.db, *mod_).to_string();
-        write_file(sourcemap_path, sourcemap.as_bytes())?;
     }
-
-    info!("synced TypeScript declaration tree");
-
-    Ok(diags)
-}
-
-fn ensure_dir(path: &Path) -> Result<(), SyncTsTreeError> {
-    if path.exists() {
-        debug!(path = %path.display(), "directory already exists");
-        return Ok(());
-    }
-
-    debug!(path = %path.display(), "creating directory");
-    fs::create_dir_all(path).map_err(|source| SyncTsTreeError::CreateDirectory {
-        path: path.to_path_buf(),
-        source,
-    })?;
     Ok(())
 }
 
-fn write_file(path: PathBuf, content: impl AsRef<[u8]>) -> Result<bool, SyncTsTreeError> {
-    let changed =
-        write_if_changed(&path, content.as_ref()).map_err(|source| SyncTsTreeError::WriteFile {
-            path: path.clone(),
+fn canonicalize(path: &Path) -> Result<PathBuf, SyncTsTreeError> {
+    path.canonicalize()
+        .map_err(|source| SyncTsTreeError::Canonicalize {
+            path: path.to_path_buf(),
             source,
-        })?;
-    debug!(path = %path.display(), changed, "synced TypeScript tree file");
-    Ok(changed)
+        })
 }
 
-/// Error returned when syncing the TypeScript declaration tree fails.
+fn path_string(path: &Path) -> Result<&str, SyncTsTreeError> {
+    path.to_str().ok_or_else(|| SyncTsTreeError::NonUtf8Path {
+        path: path.to_path_buf(),
+    })
+}
+
+fn ensure_dir(path: &Path) -> Result<(), SyncTsTreeError> {
+    fs::create_dir_all(path).map_err(|source| SyncTsTreeError::CreateDirectory {
+        path: path.to_path_buf(),
+        source,
+    })
+}
+
+fn write_file(path: PathBuf, contents: impl AsRef<[u8]>) -> Result<(), SyncTsTreeError> {
+    write_if_changed(&path, contents)
+        .map(|_| ())
+        .map_err(|source| SyncTsTreeError::WriteFile { path, source })
+}
+
 #[derive(thiserror::Error, Diagnostic, Debug)]
 pub enum SyncTsTreeError {
-    #[error("failed to create directory at {}", path.display())]
-    #[diagnostic(code(rust_curse::sync_ts_tree::create_directory))]
+    #[error("failed to read directory {}", path.display())]
+    ReadDirectory {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("failed to read file type for {}", path.display())]
+    ReadFileType {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("failed to canonicalize {}", path.display())]
+    Canonicalize {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("failed to create directory {}", path.display())]
     CreateDirectory {
         path: PathBuf,
         #[source]
         source: std::io::Error,
     },
-
-    #[error("failed to read parent directory at {}", path.display())]
-    #[diagnostic(code(rust_curse::sync_ts_tree::canonicalize_source_directory))]
-    ReadParentDirectory { path: PathBuf },
-
-    #[error("failed to canonicalize source directory at {}", path.display())]
-    #[diagnostic(code(rust_curse::sync_ts_tree::canonicalize_source_directory))]
-    CanonicalizeSourceDirectory {
-        path: PathBuf,
-        #[source]
-        source: std::io::Error,
-    },
-
-    #[error("failed to canonicalize module path at {}", path.display())]
-    #[diagnostic(code(rust_curse::sync_ts_tree::canonicalize_module_path))]
-    CanonicalizeModulePath {
-        path: PathBuf,
-        #[source]
-        source: std::io::Error,
-    },
-
-    #[error(
-        "Rust module path {} is outside source directory {}",
-        module_path.display(),
-        src_dir.display()
-    )]
-    #[diagnostic(code(rust_curse::sync_ts_tree::module_outside_source_directory))]
-    ModuleOutsideSourceDirectory {
-        module_path: PathBuf,
-        src_dir: PathBuf,
-    },
-
-    #[error("Rust module path {} has no file name", path.display())]
-    #[diagnostic(code(rust_curse::sync_ts_tree::missing_module_file_name))]
-    MissingModuleFileName { path: PathBuf },
-
-    #[error("failed to write TypeScript tree file at {}", path.display())]
-    #[diagnostic(code(rust_curse::sync_ts_tree::write_file))]
+    #[error("failed to write {}", path.display())]
     WriteFile {
         path: PathBuf,
         #[source]
         source: std::io::Error,
     },
+    #[error("path is not valid UTF-8: {}", path.display())]
+    NonUtf8Path { path: PathBuf },
+    #[error(
+        "source {} is outside package {}",
+        path.display(),
+        package_dir.display()
+    )]
+    SourceOutsidePackage { path: PathBuf, package_dir: PathBuf },
+    #[error("path has no file name: {}", path.display())]
+    MissingFileName { path: PathBuf },
+    #[error(transparent)]
+    InvalidFilePath(#[from] crate::compiler::FilePathError),
 }

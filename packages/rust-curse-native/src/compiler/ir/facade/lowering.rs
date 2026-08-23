@@ -5,7 +5,6 @@ use crate::compiler::{
     db::Db,
     inputs::FfiLayout,
     ir::{
-        common::compile_relative_path,
         facade::{
             FacadeClass, FacadeClassKind, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
             FacadeFieldPlain, FacadeFunction, FacadeImport, FacadeImportItem, FacadeMod,
@@ -28,7 +27,9 @@ impl<'db> FacadeImport<'db> {
             FacadeImportItem::FacadeClass(class) => class.parent(db).file_path(db),
         };
 
-        compile_relative_path(originating_from_path, to_path).expect("relative path must exist")
+        originating_from_path
+            .relative_path(to_path)
+            .expect("relative path must exist")
     }
 }
 
