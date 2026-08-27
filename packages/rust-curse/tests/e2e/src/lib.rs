@@ -42,6 +42,14 @@ pub mod fn_strings;
 pub mod fn_struct;
 #[path = "fn-wrong-type-throws/test.rs"]
 pub mod fn_wrong_type_throws;
+#[path = "impl-enum/test.rs"]
+pub mod impl_enum;
+#[path = "impl-multiple-modules/test.rs"]
+pub mod impl_multiple_modules;
+#[path = "impl-skipped/test.rs"]
+pub mod impl_skipped;
+#[path = "impl-struct/test.rs"]
+pub mod impl_struct;
 #[path = "struct-bad-alias-throws/test.rs"]
 pub mod struct_bad_alias_throws;
 #[path = "struct-field-wrong-type-throws/test.rs"]
