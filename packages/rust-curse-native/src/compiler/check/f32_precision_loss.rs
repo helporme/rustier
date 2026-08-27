@@ -29,13 +29,13 @@ impl<'db> Function<'db> {
 impl<'db> Struct<'db> {
     #[salsa::tracked]
     pub(super) fn check_f32_precision_loss(self, db: &'db dyn Db) {
-        let has_f32_field = self
+        let f32_field = self
             .fields(db)
             .iter()
-            .any(|field| field.value_type(db) == ValueType::f32);
+            .find(|field| field.value_type(db) == ValueType::f32);
 
-        if has_f32_field {
-            emit(db, self.span(db));
+        if let Some(field) = f32_field {
+            emit(db, field.span(db));
         }
     }
 }
