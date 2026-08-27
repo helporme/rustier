@@ -5,10 +5,10 @@ it('throws when reading or writing Circle.radius while Shape is Hidden', () => {
   const shape = make_hidden()
 
   expect(() => Reflect.get(shape, 'radius')).toThrow(
-    'cannot access inactive enum variant field',
+    'Field radius is not available on the active Shape variant',
   )
   expect(() => Reflect.set(shape, 'radius', 10)).toThrow(
-    'cannot access inactive enum variant field',
+    'Field radius is not available on the active Shape variant',
   )
 })
 

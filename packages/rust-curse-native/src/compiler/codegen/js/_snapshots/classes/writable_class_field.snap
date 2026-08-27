@@ -54,7 +54,7 @@ export class Test {
 			__fn__setter__test_0crate_Test__nested(
 				this.#_ffi, out
 			);
-			this.#__field_0 = value;
+			this.#__field_0 = undefined;
 		}
 	}
 

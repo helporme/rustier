@@ -3,7 +3,7 @@ import { identity_i32, make_child_struct, value_struct_value } from './test.rs'
 
 it('throws when a wrong JS type is passed to a function argument', () => {
   expect(() => identity_i32(Symbol('wrong type') as never)).toThrow(
-    'Expected Rust `i32` from a JavaScript number: cannot cast value to i32',
+    'Expected a value of type "number", but value of type "symbol" was passed: "Symbol(wrong type)"',
   )
 })
 

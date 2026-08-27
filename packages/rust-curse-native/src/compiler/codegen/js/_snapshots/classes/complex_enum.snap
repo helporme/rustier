@@ -96,7 +96,7 @@ export class Test {
 				__fn__setter__test_0crate_Test____HTTPRequest__value(
 					this.#_ffi, out
 				);
-				this.#__field_0_0 = value;
+				this.#__field_0_0 = undefined;
 				return;
 			}
 		}

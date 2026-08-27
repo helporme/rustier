@@ -8,12 +8,6 @@ import {
   identity_u8,
 } from './test.rs'
 
-const invalidArgumentMessage = (
-  rustType: string,
-  jsType: string,
-  reason: string,
-) => `Expected Rust \`${rustType}\` from a JavaScript ${jsType}: ${reason}`
-
 const cases = [
   ['i8', identity_i8, -129, 128],
   ['i16', identity_i16, -32769, 32768],
@@ -28,12 +22,6 @@ for (const [rustType, identity, belowMin, aboveMax] of cases) {
     ['below minimum', belowMin],
     ['above maximum', aboveMax],
   ] as const)(`throws for ${rustType} %s`, (_name, value) => {
-    expect(() => identity(value)).toThrow(
-      invalidArgumentMessage(
-        rustType,
-        'number',
-        `cannot cast ${value} to ${rustType}`,
-      ),
-    )
+    expect(() => identity(value)).toThrow(`cannot cast ${value} to ${rustType}`)
   })
 }

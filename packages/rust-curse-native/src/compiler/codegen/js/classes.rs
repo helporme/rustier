@@ -282,7 +282,7 @@ where
             frag!({ ffi_setter.symbol(self.db) }(this.#_ffi, out);).apply(p);
 
             if matches!(facade_type, FacadeType::Class(_)) {
-                frag!(@this.#{cache_name(self.index, None)}~ = ~value;).apply(p);
+                frag!(@this.#{cache_name(self.index, None)}~ = undefined;).apply(p);
             }
         });
 
@@ -455,7 +455,7 @@ where
 
             if matches!(facade_type, FacadeType::Class(_)) {
                 frag!(@
-                    this.#{cache_name(self.index, Some(discriminator))}~ = ~value;
+                    this.#{cache_name(self.index, Some(discriminator))}~ = undefined;
                 )
                 .apply(p);
             }
