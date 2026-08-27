@@ -42,7 +42,8 @@ impl<'db> Function<'db> {
                     .name(db)
                     .map(|name| name.display(db, crate_.edition(db)).to_string())
                     .unwrap_or_else(|| format!("arg{index}"));
-                Param::new(db, self, index, name, type_)
+                let span = lower_item_span(db, param);
+                Param::new(db, self, index, name, type_, span)
             })
             .collect()
     }

@@ -494,6 +494,9 @@ pub struct Param<'db> {
     #[returns(ref)]
     #[tracked]
     pub type_: Type<'db>,
+    #[returns(ref)]
+    #[tracked]
+    pub span: Option<Span>,
 }
 
 /// A supported subset of Rust value types.

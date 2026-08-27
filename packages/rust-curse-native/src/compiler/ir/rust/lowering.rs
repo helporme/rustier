@@ -65,10 +65,7 @@ pub(super) fn diagnostic_location(
     )
 }
 
-pub(super) fn lower_item_span<T: ra_ap_hir::HasSource + Copy>(
-    db: &dyn Db,
-    item: T,
-) -> Option<Span> {
+pub(super) fn lower_item_span<T: ra_ap_hir::HasSource>(db: &dyn Db, item: T) -> Option<Span> {
     let source = item.source_with_range(db)?;
     lower_span(
         db,

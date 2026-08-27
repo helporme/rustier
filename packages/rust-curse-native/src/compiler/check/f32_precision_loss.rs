@@ -11,13 +11,15 @@ use crate::compiler::{
 impl<'db> Function<'db> {
     #[salsa::tracked]
     pub(super) fn check_f32_precision_loss(self, db: &'db dyn Db) {
-        let has_f32_param = self
+        let f32_param = self
             .params(db)
             .iter()
-            .any(|param| param.type_(db).deborrow() == ValueType::f32);
+            .find(|param| param.type_(db).deborrow() == ValueType::f32);
         let has_f32_return = self.ret_type(db) == Some(ValueType::f32);
 
-        if has_f32_param || has_f32_return {
+        if let Some(param) = f32_param {
+            emit(db, param.span(db).as_ref());
+        } else if has_f32_return {
             emit(db, self.span(db));
         }
     }
