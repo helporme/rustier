@@ -1,9 +1,8 @@
 use crate::{
     compiler::{
-        codegen::fragment::{FragmentOnce, fragment},
+        codegen::fragment::{FragmentOnce, frag, fragment},
         ir::rust::Type,
     },
-    frag,
 };
 
 use super::CastOutput;

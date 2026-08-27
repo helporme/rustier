@@ -1,13 +1,12 @@
 use crate::{
     compiler::{
         codegen::{
-            fragment::{FragmentOnce, FragmentPrint, fragment, singles, spaced},
+            fragment::{FragmentOnce, FragmentPrint, frag, fragment, singles, spaced},
             ts::jsdoc::render_jsdoc,
         },
         db::Db,
         ir::decals::{DecalClassKind, DecalMod},
     },
-    frag,
 };
 
 #[salsa::tracked]

@@ -1,10 +1,9 @@
 use crate::{
     compiler::{
-        codegen::fragment::{FragmentOnce, doubles},
+        codegen::fragment::{FragmentOnce, doubles, frag},
         db::Db,
         ir::{facade::FacadeClass, ffi::FfiClass},
     },
-    frag,
 };
 
 pub fn render_facade_class_to_ffi<'db, InExpr, OutVar, Continue>(

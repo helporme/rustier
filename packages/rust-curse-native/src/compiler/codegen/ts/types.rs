@@ -1,10 +1,9 @@
 use crate::{
     compiler::{
-        codegen::fragment::{FragmentOnce, fragment},
+        codegen::fragment::{FragmentOnce, frag, fragment},
         db::Db,
         ir::decals::DecalType,
     },
-    frag,
 };
 
 impl<'db> DecalType<'db> {

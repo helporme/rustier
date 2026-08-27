@@ -2,8 +2,8 @@ use crate::{
     compiler::{
         codegen::{
             fragment::{
-                FragmentOnce, FragmentPrint as _, Printer, comma_list, doubles, fragment, spaced,
-                squares,
+                FragmentOnce, FragmentPrint as _, Printer, comma_list, doubles, frag, fragment,
+                spaced, squares,
             },
             js::cast::{Cast, CastRenderer, Renderer},
         },
@@ -16,7 +16,6 @@ use crate::{
             rust::FieldName,
         },
     },
-    frag,
 };
 
 #[salsa::tracked]

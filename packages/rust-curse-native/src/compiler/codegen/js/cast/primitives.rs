@@ -1,6 +1,5 @@
 use crate::{
-    compiler::codegen::fragment::{FragmentOnce, doubles},
-    frag,
+    compiler::codegen::fragment::{FragmentOnce, doubles, frag},
 };
 
 pub fn render_string_cast<'db, InExpr, OutVar, Continue>(

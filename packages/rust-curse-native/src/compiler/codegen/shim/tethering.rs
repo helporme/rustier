@@ -127,12 +127,11 @@
 
 use crate::{
     compiler::{
-        codegen::fragment::{Fragment, FragmentOnce, doubles, fragment, spaced},
+        codegen::fragment::{Fragment, FragmentOnce, doubles, frag, fragment, spaced},
         db::Db,
         inputs::Platform,
         ir::rust::ValueType,
     },
-    frag,
 };
 
 /// Compiles the platform-specific supporting code used by generated tethering

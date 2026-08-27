@@ -198,12 +198,9 @@ where
 pub mod test {
     use std::fmt::{Debug, Write as _};
 
-    use crate::{
-        compiler::{
-            codegen::fragment::{FragmentOnce, Printer},
-            db::Db,
-        },
-        frag,
+    use crate::compiler::{
+        codegen::fragment::{FragmentOnce, Printer, frag},
+        db::Db,
     };
 
     use super::{Cast, CastRenderer, CastType};
@@ -267,6 +264,7 @@ pub mod test {
 #[cfg(test)]
 mod tests {
     use crate::compiler::{
+        codegen::fragment::frag,
         db::Db,
         ir::{
             facade::{FacadeClass, FacadeType},
@@ -284,8 +282,6 @@ mod tests {
         ) => {
             #[test]
             fn $name() {
-                use $crate::frag;
-
                 $crate::assert_js_snap! {
                     source: { $($source)* },
                     expression: |__db, __printer| {
@@ -300,7 +296,7 @@ mod tests {
                         };
 
                         $crate::compiler::codegen::fragment::FragmentOnce::apply(
-                            $crate::frag!(
+                            frag!(
                                 function cast(input)~{{
                                     {$crate::compiler::codegen::js::cast::CastRenderer::render_stmt(
                                         $crate::compiler::codegen::js::cast::Renderer,
@@ -311,7 +307,7 @@ mod tests {
                                             in_expr: "input",
                                             out_var_name: "output",
                                         },
-                                        $crate::frag!(consume(output);),
+                                        frag!(consume(output);),
                                     )}
                                 }}
                             ),

@@ -1,7 +1,7 @@
 use crate::{
     compiler::{
         codegen::{
-            fragment::{FragmentOnce, FragmentPrint, Printer, doubles, fragment},
+            fragment::{FragmentOnce, FragmentPrint, Printer, doubles, frag, fragment},
             shim::tethering::{
                 ClonedField, FieldExpr, TetheredField, TetheringStruct, TetheringStructField,
                 render_tethering_struct,
@@ -14,7 +14,6 @@ use crate::{
             shim::{ShimClass, ShimField},
         },
     },
-    frag,
 };
 
 #[salsa::tracked]

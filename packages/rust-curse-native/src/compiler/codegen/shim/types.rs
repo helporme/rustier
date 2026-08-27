@@ -1,13 +1,12 @@
 use crate::{
     compiler::{
-        codegen::fragment::{FragmentOnce, Printer, fragment},
+        codegen::fragment::{FragmentOnce, Printer, frag, fragment},
         db::Db,
         ir::{
             rust::{AsItem, FieldName, ValueType},
             shim::ShimType,
         },
     },
-    frag,
 };
 
 impl<'db> ShimType<'db> {

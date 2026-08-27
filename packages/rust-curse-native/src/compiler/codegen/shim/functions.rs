@@ -1,7 +1,7 @@
 use crate::{
     compiler::{
         codegen::{
-            fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, fragment},
+            fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, frag, fragment},
             shim::{
                 cast::{Cast, CastRenderer, Renderer},
                 tethering::{
@@ -19,7 +19,6 @@ use crate::{
             },
         },
     },
-    frag,
 };
 
 #[salsa::tracked]

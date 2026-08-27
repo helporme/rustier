@@ -1,14 +1,13 @@
 use crate::{
     compiler::{
         codegen::{
-            fragment::{FragmentPrint as _, spaced},
+            fragment::{FragmentPrint as _, frag, spaced},
             shim::tethering::compile_tethering_prelude,
         },
         db::Db,
         inputs::Platform,
         ir::shim::Shim,
     },
-    frag,
 };
 
 mod cast;

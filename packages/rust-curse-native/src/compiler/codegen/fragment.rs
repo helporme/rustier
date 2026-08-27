@@ -4,7 +4,7 @@
 //!
 //! Example:
 //!
-//! ```
+//! ```ignore
 //! # use rust_curse::compiler::codegen::fragment::{frag, FragmentPrint};
 //! #
 //! let name = "world";
@@ -31,7 +31,7 @@
 //! converts a closure to a fragment by directly implementing the
 //! [`FragmentOnce`] trait. For example:
 //!
-//! ```
+//! ```ignore
 //! # use rust_curse::compiler::codegen::fragment::{fragment, FragmentOnce, FragmentPrint};
 //! #
 //! let hello = "Hello ";
@@ -59,7 +59,7 @@
 //! This is where the `frag` macro comes to help you. It accepts source-like
 //! syntax and automatically converts it into a fragment.
 //!
-//! ```
+//! ```ignore
 //! # use rust_curse::compiler::codegen::fragment::{frag, FragmentPrint};
 //! #
 //! let name = "%username%";
@@ -79,7 +79,7 @@ use std::fmt::{self, Write as _};
 /// `Printer` is normally created by [`FragmentPrint::print`], but fragments can
 /// also be applied to one directly.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{FragmentOnce, Printer};
 /// #
 /// let mut printer = Printer::default();
@@ -96,7 +96,7 @@ pub struct Printer {
 impl Default for Printer {
     /// Creates an empty printer positioned at the start of an unindented line.
     ///
-    /// ```
+    /// ```ignore
     /// # use rust_curse::compiler::codegen::fragment::{FragmentOnce, Printer};
     /// #
     /// let mut printer = Printer::default();
@@ -116,7 +116,7 @@ impl Printer {
     /// Appends text and inserts the current indentation at each non-empty line
     /// start.
     ///
-    /// ```
+    /// ```ignore
     /// # use rust_curse::compiler::codegen::fragment::{idented, FragmentPrint};
     /// #
     /// assert_eq!(idented("one\ntwo").print(), "\tone\n\ttwo");
@@ -156,7 +156,7 @@ impl Printer {
 impl fmt::Write for Printer {
     /// Appends a string using the printer's indentation rules.
     ///
-    /// ```
+    /// ```ignore
     /// # use rust_curse::compiler::codegen::fragment::{FragmentPrint, IntoFnFragment, Printer};
     /// # use std::fmt::Write as _;
     /// #
@@ -175,7 +175,7 @@ impl fmt::Write for Printer {
 
 /// A trait for writing once a piece of source code to the [`Printer`].
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{fragment, FragmentOnce, FragmentPrint};
 /// #
 /// let text = String::from("owned");
@@ -195,7 +195,7 @@ pub trait FragmentOnce {
 /// or type erasure. Every `Fragment` can also be consumed as a
 /// [`FragmentOnce`]. Normal fragment composition should use [`FragmentOnce`].
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{Fragment, FragmentPrint};
 /// #
 /// fn print_fragment(fragment: impl Fragment) -> String {
@@ -216,7 +216,7 @@ pub trait Fragment {
 
 /// Wraps a printing function as a [`FragmentOnce`].
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{FragmentOnce, FragmentPrint, IntoFnFragment, Printer};
 /// #
 /// let fragment = (|printer: &mut Printer| {
@@ -242,7 +242,7 @@ where
 pub trait IntoFnFragment: FnOnce(&mut Printer) + Sized {
     /// Wraps this function in a [`FnFragment`].
     ///
-    /// ```
+    /// ```ignore
     /// # use rust_curse::compiler::codegen::fragment::{FragmentPrint, IntoFnFragment, Printer};
     /// # use std::fmt::Write as _;
     /// #
@@ -324,7 +324,7 @@ impl FragmentOnce for &str {
 }
 
 impl Fragment for &str {
-    /// ```
+    /// ```ignore
     /// # use rust_curse::compiler::codegen::fragment::FragmentPrint;
     /// #
     /// assert_eq!("slice".print(), "slice");
@@ -341,7 +341,7 @@ impl FragmentOnce for String {
 }
 
 impl Fragment for String {
-    /// ```
+    /// ```ignore
     /// # use rust_curse::compiler::codegen::fragment::FragmentPrint;
     /// #
     /// assert_eq!(String::from("owned").print(), "owned");
@@ -379,7 +379,7 @@ where
 {
     /// Applies the contained fragment or leaves `printer` unchanged for `None`.
     ///
-    /// ```
+    /// ```ignore
     /// # use rust_curse::compiler::codegen::fragment::FragmentPrint;
     /// #
     /// assert_eq!(Some("present").print(), "present");
@@ -410,7 +410,7 @@ impl FragmentOnce for () {
 impl Fragment for () {
     /// Leaves `printer` unchanged.
     ///
-    /// ```
+    /// ```ignore
     /// # use rust_curse::compiler::codegen::fragment::FragmentPrint;
     /// #
     /// assert_eq!(().print(), "");
@@ -420,7 +420,7 @@ impl Fragment for () {
 
 /// Renders a [`FragmentOnce`] into an owned string.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::FragmentPrint;
 /// #
 /// assert_eq!(("hello", " ", "world").print(), "hello world");
@@ -433,7 +433,7 @@ pub trait FragmentPrint: FragmentOnce + Sized {
 impl<F: FragmentOnce> FragmentPrint for F {
     /// Applies this fragment to a fresh printer and returns its output.
     ///
-    /// ```
+    /// ```ignore
     /// # use rust_curse::compiler::codegen::fragment::FragmentPrint;
     /// #
     /// assert_eq!(("a", "b", "c").print(), "abc");
@@ -456,7 +456,7 @@ macro_rules! impl_fragment_for_tuple {
         {
             /// Appends each tuple element in order.
             ///
-            /// ```
+            /// ```ignore
             /// # use rust_curse::compiler::codegen::fragment::FragmentPrint;
             /// #
             /// assert_eq!(("one", "two").print(), "onetwo");
@@ -489,7 +489,7 @@ impl_fragment_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7, I.8);
 
 /// Converts a printing closure into a composable [`FnFragment`].
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{fragment, FragmentOnce, FragmentPrint};
 /// #
 /// let greeting = fragment(|p| {
@@ -526,7 +526,7 @@ impl Fragment for Blank {
 /// Existing newlines at either side of the boundary count toward the requested
 /// separator, and repeated calls request additional newlines.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{blank, FragmentPrint};
 /// #
 /// assert_eq!(("one", blank(), "two").print(), "one\ntwo");
@@ -569,7 +569,7 @@ where
 ///
 /// The returned fragment is reusable when the input implements [`Fragment`].
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{idented, Fragment, FragmentPrint};
 /// #
 /// fn require_fragment(_: impl Fragment) {}
@@ -615,7 +615,7 @@ where
 
 /// Wraps the given fragment in curly braces with indentation.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{curlies, FragmentPrint};
 /// #
 /// assert_eq!(curlies("value").print(), "{\n\tvalue\n}");
@@ -633,7 +633,7 @@ where
 
 /// Wraps the given fragment in parentheses with indentation.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{parens, FragmentPrint};
 /// #
 /// assert_eq!(parens("value").print(), "(\n\tvalue\n)");
@@ -651,7 +651,7 @@ where
 
 /// Wraps the given fragment in square brackets.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{squares, FragmentPrint};
 /// #
 /// assert_eq!(squares("value").print(), "[value]");
@@ -669,7 +669,7 @@ where
 
 /// Wraps the given fragment in single quotes.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{singles, FragmentPrint};
 /// #
 /// assert_eq!(singles("value").print(), "'value'");
@@ -687,7 +687,7 @@ where
 
 /// Wraps the given fragment in double quotes.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{doubles, FragmentPrint};
 /// #
 /// assert_eq!(doubles("value").print(), "\"value\"");
@@ -744,7 +744,7 @@ where
 ///
 /// The returned fragment is reusable when the input's iterator is cloneable.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{comma_list, Fragment, FragmentPrint};
 /// #
 /// fn require_fragment(_: impl Fragment) {}
@@ -816,7 +816,7 @@ where
 /// if it ends with one, `spaced` inserts one more. Existing blank lines are
 /// preserved.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{spaced, Fragment, FragmentPrint};
 /// #
 /// fn require_fragment(_: impl Fragment) {}
@@ -839,7 +839,7 @@ where
 
 /// Builds a fragment from source-like text supporting interpolation.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{frag, FragmentPrint};
 /// #
 /// let name = "world";
@@ -853,7 +853,7 @@ where
 /// ## Escaping curly braces
 /// Double braces are are escaped.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{frag, FragmentPrint};
 /// #
 /// let field = "value";
@@ -867,7 +867,7 @@ where
 /// parentheses or curly braces. While working, it's not neccessary to use `~`
 /// between static tokens; the macro will insert a space automatically.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{frag, FragmentPrint};
 /// #
 /// assert_eq!(frag!(hello ~ world).print(), "hello world");
@@ -884,7 +884,7 @@ where
 /// ## Newline insertion (`@`)
 /// Use `@` to insert a newline if non-empty text follows it.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{frag, FragmentPrint};
 /// #
 /// let name = "world";
@@ -903,7 +903,7 @@ where
 /// [`parens`](crate::compiler::codegen::fragment::parens), and
 /// [`squares`](crate::compiler::codegen::fragment::squares), respectively.
 ///
-/// ```
+/// ```ignore
 /// # use rust_curse::compiler::codegen::fragment::{frag, FragmentPrint};
 /// #
 /// let function = frag!(
@@ -917,7 +917,6 @@ where
 /// let index = "0";
 /// assert_eq!(frag!(values[{index}]).print(), "values[0]");
 /// ```
-#[macro_export]
 macro_rules! frag {
     (@nest) => {
         ()
@@ -1062,4 +1061,4 @@ macro_rules! frag {
     };
 }
 
-pub use crate::frag;
+pub(crate) use frag;

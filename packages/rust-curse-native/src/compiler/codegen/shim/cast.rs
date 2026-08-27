@@ -9,7 +9,7 @@ mod tethering;
 use crate::{
     compiler::{
         codegen::{
-            fragment::{FragmentOnce, Printer, fragment},
+            fragment::{FragmentOnce, Printer, frag, fragment},
             shim::tethering::TetheringStructType,
         },
         db::Db,
@@ -18,7 +18,6 @@ use crate::{
             shim::ShimType,
         },
     },
-    frag,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -313,12 +312,9 @@ where
 pub mod test {
     use std::fmt::{Debug, Write as _};
 
-    use crate::{
-        compiler::{
-            codegen::fragment::{FragmentOnce, Printer},
-            db::Db,
-        },
-        frag,
+    use crate::compiler::{
+        codegen::fragment::{FragmentOnce, Printer, frag},
+        db::Db,
     };
 
     use super::{CastArgs, CastRenderer, adapt_to_cast_output};
@@ -371,6 +367,7 @@ pub mod test {
 #[cfg(test)]
 mod tests {
     use crate::compiler::{
+        codegen::fragment::frag,
         codegen::shim::tethering::TetheringStructType,
         db::Db,
         ir::{
@@ -388,8 +385,6 @@ mod tests {
         ) => {
             #[test]
             fn $name() {
-                use $crate::frag;
-
                 $crate::assert_rust_snap! {
                     source: { $($source)* },
                     expression: |__db, __printer| {
@@ -404,7 +399,7 @@ mod tests {
                         };
 
                         $crate::compiler::codegen::fragment::FragmentOnce::apply(
-                            $crate::frag!(
+                            frag!(
                                 fn cast(input: ())~{{
                                     {$crate::compiler::codegen::shim::cast::CastRenderer::render_stmt(
                                         $crate::compiler::codegen::shim::cast::Renderer,
@@ -415,7 +410,7 @@ mod tests {
                                             in_expr: "input",
                                             out_var_name: "output",
                                         },
-                                        $crate::frag!(consume(output);),
+                                        frag!(consume(output);),
                                     )}
                                 }}
                             ),

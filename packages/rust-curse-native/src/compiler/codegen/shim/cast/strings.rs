@@ -1,9 +1,8 @@
 use crate::{
     compiler::{
-        codegen::fragment::{FragmentOnce, fragment},
+        codegen::fragment::{FragmentOnce, frag, fragment},
         ir::rust::{Type, ValueType},
     },
-    frag,
 };
 
 use super::{CastOutput, adapt_to_cast_output, borrowing::render_owned_to_borrowed};

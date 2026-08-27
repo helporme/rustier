@@ -1,10 +1,9 @@
 use crate::{
     compiler::{
-        codegen::fragment::{FragmentPrint, spaced},
+        codegen::fragment::{FragmentPrint, frag, spaced},
         db::Db,
         ir::facade::FacadeMod,
     },
-    frag,
 };
 
 #[salsa::tracked]

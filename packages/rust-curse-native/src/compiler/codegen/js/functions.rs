@@ -1,13 +1,12 @@
 use crate::{
     compiler::{
         codegen::{
-            fragment::{FragmentOnce, FragmentPrint, Printer, comma_list, fragment},
+            fragment::{FragmentOnce, FragmentPrint, Printer, comma_list, frag, fragment},
             js::cast::{Cast, CastRenderer, Renderer},
         },
         db::Db,
         ir::facade::FacadeFunction,
     },
-    frag,
 };
 
 #[salsa::tracked]
