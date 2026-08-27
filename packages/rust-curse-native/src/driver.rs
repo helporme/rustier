@@ -295,10 +295,11 @@ impl Driver {
             .map_err(|source| BuildError::PopulateWorkspace { source })?;
 
         let shared_compilation = self.compiler.compile_shim();
+        let ts_tree = self.compiler.compile_ts_tree();
         sync_ts_tree(SyncTsTreeOpts {
             out_dir: &types_dir,
             package_dir: &package.source_package_path,
-            compiler: &self.compiler,
+            tree: ts_tree,
         })
         .map_err(|source| BuildError::SyncTsTree { source })?;
 

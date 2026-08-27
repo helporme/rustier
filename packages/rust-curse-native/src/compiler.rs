@@ -147,24 +147,30 @@ impl Compiler {
             .map(|mod_| mod_.facade(&self.db).render(&self.db).to_owned())
     }
 
-    /// Compiles a ts code for a given rust module file.
-    ///
-    /// Compilation of ts code cannot emit new diagnostics besides those
-    /// returned by [`Self::compile_shim`] function. Returns [`None`] when the
-    /// path does not identify a Rust module in the compiler workspace.
-    pub fn compile_ts(&self, path: FilePath) -> Option<String> {
-        self.shim_mod(path)
-            .map(|mod_| mod_.decals(&self.db).render_ts(&self.db).to_owned())
-    }
+    /// Compiles the TypeScript declaration tree.
+    pub fn compile_ts_tree(&self) -> TsTreeCompilationOutput<'_> {
+        let db = &self.db;
+        let mut modules = Rust::get(db)
+            .shim(db)
+            .crates(db)
+            .iter()
+            .flat_map(|crate_| crate_.mods(db))
+            .map(|mod_| {
+                let decals = mod_.decals(db);
+                TsModuleCompilationOutput {
+                    source_path: decals.file_path(db),
+                    declaration: decals.render_ts(db),
+                    sourcemap: decals.render_sourcemap(db),
+                }
+            })
+            .collect::<Vec<_>>();
+        modules.sort_by(|left, right| left.source_path.as_path().cmp(right.source_path.as_path()));
 
-    /// Compiles a ts sourcemap file for a given rust module file.
-    ///
-    /// Compilation of ts sourcemap file cannot emit new diagnostics besides
-    /// those returned by [`Self::compile_shim`] function. Returns [`None`] when
-    /// the path does not identify a Rust module in the compiler workspace.
-    pub fn compile_ts_sourcemap(&self, path: FilePath) -> Option<String> {
-        self.shim_mod(path)
-            .map(|mod_| mod_.decals(&self.db).render_sourcemap(&self.db).to_owned())
+        // inline Rust modules share their containing module's source file and
+        // therefore do not have a distinct declaration-tree output.
+        modules.dedup_by(|left, right| left.source_path == right.source_path);
+
+        TsTreeCompilationOutput { modules }
     }
 
     fn shim_mod(&self, path: FilePath) -> Option<ShimMod<'_>> {
@@ -195,6 +201,22 @@ pub struct ShimCompilationOutput {
     pub diagnostics: Vec<CompilerDiagnostic>,
     /// Compiled shim code.
     pub shim: String,
+}
+
+#[derive(Debug)]
+pub struct TsTreeCompilationOutput<'compiler> {
+    /// TypeScript declaration output for every compiled Rust module.
+    pub modules: Vec<TsModuleCompilationOutput<'compiler>>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct TsModuleCompilationOutput<'compiler> {
+    /// Rust source file represented by this declaration module.
+    pub source_path: &'compiler FilePath,
+    /// Rendered TypeScript declarations.
+    pub declaration: &'compiler str,
+    /// Source Map v3 document for the declarations.
+    pub sourcemap: &'compiler str,
 }
 
 #[derive(Clone)]
@@ -286,4 +308,61 @@ pub enum CompilerDiagnosticSeverity {
     Warning,
     #[default]
     Error,
+}
+
+#[cfg(test)]
+mod api_tests {
+    use ra_ap_vfs::Vfs;
+
+    use super::Compiler;
+
+    #[test]
+    fn compile_ts_tree_returns_borrowed_output_for_every_module() {
+        let db = crate::test_db! {
+            @file: "models.rs";
+            pub mod models {
+                #[derive(Clone)]
+                pub struct User {
+                    pub id: i32,
+                }
+            }
+
+            pub mod inline {
+                pub struct Inline;
+            }
+
+            pub fn user_id(user: models::User) -> i32 {
+                user.id
+            }
+        };
+        let compiler = Compiler {
+            db,
+            vfs: Vfs::default(),
+        };
+
+        let output = compiler.compile_ts_tree();
+
+        assert_eq!(output.modules.len(), 2);
+        assert_eq!(
+            output.modules[0].source_path.as_path().to_str(),
+            Some("/src/lib.rs")
+        );
+        assert!(
+            output.modules[0]
+                .declaration
+                .contains("export function user_id")
+        );
+        assert_eq!(
+            output.modules[1].source_path.as_path().to_str(),
+            Some("/src/models.rs")
+        );
+        assert!(output.modules[1].declaration.contains("export class User"));
+        for module in output.modules {
+            assert_eq!(
+                serde_json::from_str::<serde_json::Value>(module.sourcemap)
+                    .expect("source map should be valid JSON")["version"],
+                3
+            );
+        }
+    }
 }
