@@ -1,10 +1,24 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        rust::{Enum, Field, ImplTarget, Mod, Struct, Type, ValueType},
-        shim::{ShimClass, ShimClassSource, ShimField, ShimMod, ShimType},
+        rust::{Enum, Field, ImplTarget, Mod, Rust, Struct, Type, ValueType},
+        shim::{Shim, ShimClass, ShimClassSource, ShimCrate, ShimField, ShimMod, ShimType},
     },
 };
+
+#[salsa::tracked]
+impl<'db> Rust<'db> {
+    #[salsa::tracked]
+    pub fn shim(self, db: &'db dyn Db) -> Shim<'db> {
+        Shim::new(
+            db,
+            self.crates(db)
+                .iter()
+                .map(|crate_| ShimCrate::new(db, *crate_))
+                .collect::<Vec<_>>(),
+        )
+    }
+}
 
 impl<'db> Mod<'db> {
     pub fn shim(self, db: &'db dyn Db) -> ShimMod<'db> {

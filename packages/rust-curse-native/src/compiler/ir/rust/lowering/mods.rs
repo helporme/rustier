@@ -1,8 +1,10 @@
 use ra_ap_hir::{Adt, HasAttrs as _, HasVisibility as _, ModuleDef, Visibility};
 
-use super::{file_path, lower_enum, lower_function, lower_span, lower_struct};
+use super::{
+    discovery::ReachableItem as _, file_path, lower_enum, lower_function, lower_span, lower_struct,
+};
 use crate::compiler::{
-    FilePath,
+    CrateApiDiscovery, FilePath,
     db::Db,
     diag::DiagAccumulateExt as _,
     ir::rust::{Crate, Member, Mod, ModParent, Span},
@@ -30,24 +32,31 @@ impl<'db> Mod<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir::rust) fn lower_members(self, db: &'db dyn Db) -> Vec<Member<'db>> {
+        let include_all = self.path(db).crate_(db).api_discovery(db) == CrateApiDiscovery::Eager;
         self.hir(db)
             .declarations(db)
             .into_iter()
             .filter(|item| item.visibility(db) == Visibility::Public)
             .filter_map(|item| match item {
-                ModuleDef::Module(module) => Some(Member::Mod(Mod::new(db, module))),
-                ModuleDef::Function(function) => lower_function(db, function)
+                ModuleDef::Module(module) => {
+                    let mod_ = Mod::new(db, module);
+                    module.is_reachable(db).then_some(Member::Mod(mod_))
+                }
+                ModuleDef::Function(function) if include_all => lower_function(db, function)
                     .map(Member::Function)
                     .map_err(|error| (*error).accumulate(db))
                     .ok(),
-                ModuleDef::Adt(Adt::Struct(struct_)) => lower_struct(db, struct_)
-                    .map(Member::Struct)
-                    .map_err(|error| (*error).accumulate(db))
-                    .ok(),
-                ModuleDef::Adt(Adt::Enum(enum_)) => lower_enum(db, enum_)
-                    .map(Member::Enum)
-                    .map_err(|error| (*error).accumulate(db))
-                    .ok(),
+                ModuleDef::Adt(adt) if adt.is_reachable(db) => match adt {
+                    Adt::Struct(struct_) => lower_struct(db, struct_)
+                        .map(Member::Struct)
+                        .map_err(|error| (*error).accumulate(db))
+                        .ok(),
+                    Adt::Enum(enum_) => lower_enum(db, enum_)
+                        .map(Member::Enum)
+                        .map_err(|error| (*error).accumulate(db))
+                        .ok(),
+                    Adt::Union(_) => None,
+                },
                 _ => None,
             })
             .collect()

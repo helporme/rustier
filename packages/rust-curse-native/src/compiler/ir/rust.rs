@@ -2,13 +2,7 @@
 
 mod lowering;
 
-use crate::compiler::{
-    FilePath,
-    db::Db,
-    inputs::CratesMetadata,
-    ir::shim::{Shim, ShimCrate},
-    mangle::mangle_path,
-};
+use crate::compiler::{CrateApiDiscovery, FilePath, db::Db, mangle::mangle_path};
 use ra_ap_hir::{
     Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
     Function as HirFunction, Impl as HirImpl, Module as HirModule, Struct as HirStruct,
@@ -22,32 +16,9 @@ pub struct Rust<'db> {
     pub crates: Vec<Crate<'db>>,
 }
 
-#[salsa::tracked]
 impl<'db> Rust<'db> {
-    #[salsa::tracked]
     pub fn get(db: &'db dyn Db) -> Self {
-        let metadata = CratesMetadata::get(db);
-        let mut crates = HirCrate::all(db);
-        crates.sort_by_key(|crate_| crate_.is_builtin(db));
-        Self::new(
-            db,
-            crates
-                .into_iter()
-                .map(|crate_| Crate::new(db, crate_))
-                .filter(|crate_| metadata.crates.contains_key(crate_.root_file(db)))
-                .collect::<Vec<_>>(),
-        )
-    }
-
-    #[salsa::tracked]
-    pub fn shim(self, db: &'db dyn Db) -> Shim<'db> {
-        Shim::new(
-            db,
-            self.crates(db)
-                .iter()
-                .map(|crate_| ShimCrate::new(db, *crate_))
-                .collect::<Vec<_>>(),
-        )
+        Self::lower(db)
     }
 }
 
@@ -130,6 +101,10 @@ impl<'db> Crate<'db> {
 
     pub(in crate::compiler) fn root_file(self, db: &'db dyn Db) -> &'db FilePath {
         self.root(db).file_path(db)
+    }
+
+    pub(in crate::compiler) fn api_discovery(self, db: &'db dyn Db) -> CrateApiDiscovery {
+        self.lower_api_discovery(db)
     }
 }
 

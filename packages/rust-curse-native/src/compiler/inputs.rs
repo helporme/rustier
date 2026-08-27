@@ -40,13 +40,12 @@ pub struct CrateMetadata {
     pub api_import_mode: CrateApiImportMode,
 }
 
-/// How to discovery the crate public api to compile.
-#[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
+/// How to discover the crate public API to compile.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, salsa::Update)]
 pub enum CrateApiDiscovery {
-    /// Compile all public Api of this crate.
+    /// Compile all public API of this crate.
     Eager,
-    /// Compile only the public Api that is referenced in other eager's crate
-    /// api.
+    /// Compile only public API referenced by eager crates.
     Lazy,
 }
 
