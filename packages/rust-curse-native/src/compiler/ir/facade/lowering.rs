@@ -70,6 +70,12 @@ impl<'db> FacadeMod<'db> {
 
         items
             .into_iter()
+            .filter(|item| {
+                !matches!(
+                    item,
+                    FacadeImportItem::FacadeClass(class) if class.parent(db) == self
+                )
+            })
             .map(|item| FacadeImport::new(db, self, item))
             .collect()
     }
@@ -100,7 +106,7 @@ impl<'db> FacadeFunction<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_imports(self, db: &'db dyn Db) -> HashSet<FacadeImportItem<'db>> {
-        let mut imports = HashSet::new();
+        let mut imports = HashSet::from([FacadeImportItem::FfiFunction(self.ffi(db))]);
 
         for param in self.params(db) {
             if let FacadeType::Class(class) = param.type_(db) {
