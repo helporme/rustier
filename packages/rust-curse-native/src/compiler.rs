@@ -105,7 +105,6 @@ impl Compiler {
     ///         root_file: root,
     ///         version: "0.1.0".into(),
     ///         is_local: true,
-    ///         is_sysroot: false,
     ///         api_discovery: CrateApiDiscovery::Eager,
     ///         api_import_mode: CrateApiImportMode::Relative,
     ///     });
@@ -206,8 +205,7 @@ pub struct CompilerDiagnostic {
     pub message: String,
     /// Primary byte-offset span in the diagnostic source.
     pub span: Option<CompilerDiagnosticSpan>,
-    /// Diagnostic severity. Diagnostics without an explicit severity are
-    /// errors.
+    /// Diagnostic severity.
     pub severity: CompilerDiagnosticSeverity,
     /// Suggested remediation, when one is available.
     pub help_text: Option<String>,
