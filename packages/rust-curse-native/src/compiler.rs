@@ -45,15 +45,12 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn new(opts: CompilerOpts) -> Self {
+    pub fn new() -> Self {
         let mut compiler = Self {
             db: RootDatabase::default(),
             vfs: Vfs::default(),
         };
 
-        // it's mandatory to have some options set in the database,
-        // otherwise compilation will panic on run.
-        compiler.set_opts(opts);
         CratesMetadata::set(
             &mut compiler.db,
             CratesMetadata {
@@ -64,35 +61,16 @@ impl Compiler {
         compiler
     }
 
-    /// Gets currently applied options.
-    pub fn opts(&self) -> CompilerOpts {
-        CompilerOpts {
-            platform: Platform::get(&self.db),
-            ffi_layout: FfiLayout::get(&self.db),
-        }
-    }
-
-    /// Sets new options.
-    pub fn set_opts(&mut self, opts: CompilerOpts) {
-        Platform::set(&mut self.db, opts.platform);
-        FfiLayout::set(&mut self.db, opts.ffi_layout);
-    }
-
     /// Changes the workspace (source files, crates) available to the compiler.
     ///
     /// # Example:
     /// ```ignore
     /// use rust_curse::compiler::{
-    ///     Compiler, CompilerOpts, CrateApiDiscovery, CrateApiImportMode,
-    ///     CrateGraphBuilder, Edition, FfiLayout, FilePath, Platform,
-    ///     WorkspaceChangeError, WorkspaceCrate,
+    ///     Compiler, CrateApiDiscovery, CrateApiImportMode, CrateGraphBuilder,
+    ///     Edition, FilePath, WorkspaceChangeError, WorkspaceCrate,
     /// };
     ///
-    /// let ffi_js_file = FilePath::new_virtual("/generated/ffi.js")?;
-    /// let mut compiler = Compiler::new(CompilerOpts {
-    ///     platform: Platform::Node,
-    ///     ffi_layout: FfiLayout { ffi_js_file },
-    /// });
+    /// let mut compiler = Compiler::new();
     ///
     /// compiler.change_workspace(|change| {
     ///     let root = FilePath::new_virtual("/src/lib.rs")?;
@@ -123,7 +101,8 @@ impl Compiler {
     }
 
     /// Compiles a shim code and collects diagnostics.
-    pub fn compile_shim(&self) -> ShimCompilationOutput {
+    pub fn compile_shim(&mut self, opts: CompileShimOpts) -> ShimCompilationOutput {
+        Platform::set(&mut self.db, opts.platform);
         let rust = Rust::get(&self.db);
         let diagnostics = rust
             .crates(&self.db)
@@ -142,7 +121,13 @@ impl Compiler {
     /// Compilation of js code cannot emit new diagnostics besides those
     /// returned by [`Self::compile_shim`] function. Returns [`None`] when the
     /// path does not identify a Rust module in the compiler workspace.
-    pub fn compile_js(&self, path: FilePath) -> Option<String> {
+    pub fn compile_js(&mut self, path: FilePath, opts: CompileJsOpts) -> Option<String> {
+        FfiLayout::set(
+            &mut self.db,
+            FfiLayout {
+                ffi_js_file: opts.ffi_js_file,
+            },
+        );
         self.shim_mod(path)
             .map(|mod_| mod_.facade(&self.db).render(&self.db).to_owned())
     }
@@ -185,11 +170,15 @@ impl Compiler {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CompilerOpts {
+pub struct CompileShimOpts {
     /// Target platform used for FFI.
     pub platform: Platform,
-    /// Layout of generated ffi files.
-    pub ffi_layout: FfiLayout,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompileJsOpts {
+    /// JavaScript file exposing the generated FFI functions.
+    pub ffi_js_file: FilePath,
 }
 
 #[derive(Debug, Clone)]

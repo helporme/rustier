@@ -579,6 +579,6 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Driver, WasmTarget } = nativeBinding
-export { Driver }
+const { Server, WasmTarget } = nativeBinding
+export { Server }
 export { WasmTarget }

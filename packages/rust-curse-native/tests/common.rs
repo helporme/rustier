@@ -5,8 +5,8 @@ use std::{
 };
 
 use rust_curse::compiler::{
-    Compiler, CompilerDiagnostic, CompilerOpts, CrateApiDiscovery, CrateApiImportMode,
-    CrateGraphBuilder, Edition, FfiLayout, FilePath, Platform, WorkspaceCrate,
+    CompileShimOpts, Compiler, CompilerDiagnostic, CrateApiDiscovery, CrateApiImportMode,
+    CrateGraphBuilder, Edition, FilePath, Platform, WorkspaceCrate,
 };
 use serde_json::Value;
 use tempfile::TempDir;
@@ -126,12 +126,7 @@ impl ProgramCompiler {
             };
             let generated_dir = workspace.generated_root.join(generated_dir_name);
             let root_file = real_file_path(&workspace.source_dir.join("src/lib.rs"))?;
-            let mut compiler = Compiler::new(CompilerOpts {
-                platform,
-                ffi_layout: FfiLayout {
-                    ffi_js_file: real_file_path(&generated_dir.join("ffi.js"))?,
-                },
-            });
+            let mut compiler = Compiler::new();
             compiler
                 .change_workspace(|change| {
                     change.set_local_file(
@@ -156,7 +151,7 @@ impl ProgramCompiler {
                     format!("configure {platform_name} compiler workspace: {error}")
                 })?;
 
-            let output = compiler.compile_shim();
+            let output = compiler.compile_shim(CompileShimOpts { platform });
             diagnostics.extend(output.diagnostics);
             write_generated_crate(
                 &generated_dir,

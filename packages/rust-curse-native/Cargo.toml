@@ -9,7 +9,7 @@ crate-type = ["cdylib", "lib"]
 
 [features]
 default = []
-napi-binding = ["dep:napi", "dep:napi-derive", "dep:napi-build", "dep:tracing-subscriber"]
+napi-binding = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
 
 [dependencies]
 napi = { version = "3", default-features = false, features = ["napi6", "serde-json", "async"], optional = true }
@@ -31,7 +31,6 @@ thiserror = "2.0.18"
 cargo_metadata = "0.23.1"
 miette = { version = "7", features = ["fancy"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter", "ansi", "std", "chrono"], optional = true }
 
 [build-dependencies]
 napi-build = { version = "2", optional = true }

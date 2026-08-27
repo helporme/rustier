@@ -5,7 +5,7 @@ pub mod sync;
 pub mod tools;
 
 #[cfg(feature = "napi-binding")]
-pub mod driver;
+pub mod server;
 
 #[cfg(feature = "napi-binding")]
-pub use driver::*;
+pub use server::*;

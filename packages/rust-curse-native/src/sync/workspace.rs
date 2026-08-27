@@ -659,7 +659,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::compiler::{Compiler, CompilerOpts, FfiLayout, Platform};
+    use crate::compiler::{CompileShimOpts, Compiler, Platform};
 
     #[test]
     fn includes_overridden_transitive_dependency() {
@@ -689,12 +689,7 @@ mod tests {
         );
 
         let manifest_path = workspace.path().join("root/Cargo.toml");
-        let mut compiler = Compiler::new(CompilerOpts {
-            platform: Platform::Node,
-            ffi_layout: FfiLayout {
-                ffi_js_file: FilePath::new_virtual("/ffi.js").unwrap(),
-            },
-        });
+        let mut compiler = Compiler::new();
         compiler
             .change_workspace(|change| {
                 let mut opts = PopulateWorkspaceOpts::new(&manifest_path);
@@ -703,7 +698,9 @@ mod tests {
             })
             .unwrap();
 
-        let output = compiler.compile_shim();
+        let output = compiler.compile_shim(CompileShimOpts {
+            platform: Platform::Node,
+        });
         assert!(output.shim.contains("direct"), "{}", output.shim);
         assert!(output.shim.contains("transitive"), "{}", output.shim);
     }

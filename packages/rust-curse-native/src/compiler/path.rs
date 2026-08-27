@@ -1,6 +1,6 @@
 //! Path used inside the compiler to hide the VfsPath.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use ra_ap_ide_db::base_db::{LibraryRoots, LocalRoots};
 use ra_ap_vfs::VfsPath;
@@ -136,6 +136,19 @@ impl From<FilePath> for VfsPath {
     }
 }
 
+impl TryFrom<&Path> for FilePath {
+    type Error = FilePathError;
+
+    fn try_from(path: &Path) -> Result<Self, Self::Error> {
+        let path = path
+            .to_str()
+            .ok_or_else(|| FilePathError::NonUtf8RealPath {
+                path: path.to_owned(),
+            })?;
+        Self::new_real(path)
+    }
+}
+
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum FilePathError {
@@ -144,4 +157,7 @@ pub enum FilePathError {
 
     #[error("real file path must be absolute: {path}")]
     RelativeRealPath { path: String },
+
+    #[error("real file path is not valid UTF-8: {}", path.display())]
+    NonUtf8RealPath { path: PathBuf },
 }

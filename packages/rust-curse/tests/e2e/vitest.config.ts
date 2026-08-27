@@ -1,14 +1,21 @@
 import { defineConfig, Plugin } from 'vitest/config'
 import {
-  Driver,
+  Server,
   type ProfileBuildOutput,
   WasmTarget,
 } from 'rust-curse/unstable'
+import { readFileSync } from 'node:fs'
 import { resolve as resolvePath } from 'node:path'
 
-const curse = new Driver({
+type TestTarget = 'wasm' | 'node'
+const targets: TestTarget[] = ['node', 'wasm']
+const server = new Server({
   manifestPath: resolvePath('Cargo.toml'),
   outDir: resolvePath('.rust-curse'),
+  included: ['*.rs'],
+  excluded: ['.git', '.hg', '.svn', 'node_modules', 'target'],
+  includeDepCrates: [],
+  excludeDepCrates: [],
   profiles: {
     wasm: {
       target: { type: 'Wasm', target: WasmTarget.NodeJs },
@@ -20,7 +27,7 @@ const curse = new Driver({
     },
   },
 })
-curse.installDeps()
+server.installDeps()
 
 const VIRTUAL_MODULES = {
   diags: `$build/diags`,
@@ -32,16 +39,29 @@ const RUST_INPUT_RE = /\.(rs|toml|lock)$/
 const isRustInput = (file: string) =>
   RUST_INPUT_RE.test(file) && !file.startsWith(OUT_DIR)
 
-type Profile = 'wasm' | 'node'
+const updateServer = (
+  filePath: string,
+  event: 'create' | 'update' | 'delete',
+) => {
+  if (!isRustInput(filePath)) return false
 
-const profiles: Profile[] = ['node', 'wasm']
-type CachedProfileOutput = Partial<Pick<ProfileBuildOutput, 'artifact'>> & {
-  diags: string[]
+  server.update([
+    {
+      filePath,
+      ...(event === 'delete'
+        ? {}
+        : { contents: readFileSync(filePath, 'utf8') }),
+    },
+  ])
+  for (const target of targets) dirtyTargets.add(target)
+  return true
 }
 
-const outputs: Partial<Record<Profile, CachedProfileOutput>> = {}
-let sharedDiags: string[] = []
-const dirtyProfiles = new Set<Profile>(profiles)
+type CachedOutput = Partial<Pick<ProfileBuildOutput, 'artifact'>> & {
+  diags: string[]
+}
+const outputs: Partial<Record<TestTarget, CachedOutput>> = {}
+const dirtyTargets = new Set<TestTarget>(targets)
 
 const reportException = (error: unknown, warn: (diag: string) => void) => {
   const diag = error instanceof Error ? error.message : String(error)
@@ -49,61 +69,57 @@ const reportException = (error: unknown, warn: (diag: string) => void) => {
   return diag
 }
 
-const rebuildProfiles = (
-  profileNames: Profile[],
-  warn: (diag: string) => void,
-) => {
+const rebuild = (names: TestTarget[], warn: (diag: string) => void) => {
   try {
-    const output = curse.build(profileNames)
-    sharedDiags = output.diags
+    const output = server.build(names)
 
-    for (const diag of output.diags) {
-      warn(diag)
-    }
-
-    for (const profile of profileNames) {
-      const profileOutput = output.perProfile[profile]
+    for (const name of names) {
+      const profileOutput = output.perProfile[name]
       if (profileOutput) {
-        outputs[profile] = profileOutput
-        for (const diag of profileOutput.diags) {
-          warn(diag)
-        }
+        outputs[name] = profileOutput
+        for (const diag of profileOutput.diags) warn(diag)
       }
-      dirtyProfiles.delete(profile)
+      dirtyTargets.delete(name)
     }
   } catch (error) {
     const diag = reportException(error, warn)
 
-    for (const profile of profileNames) {
-      outputs[profile] = {
-        artifact: outputs[profile]?.artifact,
-        diags: [...(outputs[profile]?.diags ?? []), diag],
+    for (const name of names) {
+      outputs[name] = {
+        artifact: outputs[name]?.artifact,
+        diags: [...(outputs[name]?.diags ?? []), diag],
       }
-      dirtyProfiles.delete(profile)
+      dirtyTargets.delete(name)
     }
   }
 }
 
-// use this convoulted plugin setup since vitest sends file change updates only to the root plugin
-// and not to the per project plugins
+// Vitest sends file changes to the root plugin rather than project plugins.
 const rustCurseWatcher = (): Plugin => ({
   name: 'rust-curse-watcher',
 
   configureServer(server) {
     server.watcher.on('change', (file) => {
-      if (!isRustInput(file)) return
-
-      rebuildProfiles(profiles, (diag) => server.config.logger.warn(diag))
+      if (updateServer(file, 'update'))
+        rebuild(targets, (diag) => server.config.logger.warn(diag))
+    })
+    server.watcher.on('add', (file) => {
+      if (updateServer(file, 'create'))
+        rebuild(targets, (diag) => server.config.logger.warn(diag))
+    })
+    server.watcher.on('unlink', (file) => {
+      if (updateServer(file, 'delete'))
+        rebuild(targets, (diag) => server.config.logger.warn(diag))
     })
   },
 })
 
-const rustCurse = (profile: Profile): Plugin => {
+const rustCurse = (target: TestTarget): Plugin => {
   return {
-    name: 'rust-curse-' + profile,
+    name: 'rust-curse-' + target,
 
     buildStart() {
-      rebuildProfiles([profile], (diag) => this.warn(diag))
+      rebuild([target], (diag) => this.warn(diag))
     },
 
     resolveId(id) {
@@ -111,41 +127,39 @@ const rustCurse = (profile: Profile): Plugin => {
         return RESOLVED_MOD_PREFIX + id
     },
 
-    watchChange(id) {
-      if (isRustInput(id)) {
-        dirtyProfiles.add(profile)
-      }
+    watchChange(id, change) {
+      updateServer(id, change.event)
     },
 
     load(id) {
       // Resolve diagnostics module
       if (id.substring(1) === VIRTUAL_MODULES.diags) {
-        const diags = [...sharedDiags, ...(outputs[profile]?.diags ?? [])]
+        const diags = outputs[target]?.diags ?? []
         return `export const rustCurseDiags = ${JSON.stringify(diags)};`
       }
 
       // Resolve .rs files
       if (!id.endsWith('.rs')) return null
 
-      if (!outputs[profile] || dirtyProfiles.has(profile)) {
-        rebuildProfiles([profile], (diag) => this.warn(diag))
+      if (!outputs[target] || dirtyTargets.has(target)) {
+        rebuild([target], (diag) => this.warn(diag))
       }
 
-      if (!outputs[profile]?.artifact) {
-        const diags = [...sharedDiags, ...(outputs[profile]?.diags ?? [])]
+      if (!outputs[target]?.artifact) {
+        const diags = outputs[target]?.diags ?? []
         const diag =
           diags[diags.length - 1] ??
-          `profile \`${profile}\` has no build artifacts`
+          `profile \`${target}\` has no build artifacts`
         return `throw new Error(${JSON.stringify(diag)});`
       }
 
       try {
-        return curse.resolve(profile, id)
+        return server.load(target, id)
       } catch (error) {
         const diag = reportException(error, (diag) => this.warn(diag))
-        outputs[profile] = {
-          artifact: outputs[profile]?.artifact,
-          diags: [...(outputs[profile]?.diags ?? []), diag],
+        outputs[target] = {
+          artifact: outputs[target]?.artifact,
+          diags: [...(outputs[target]?.diags ?? []), diag],
         }
         return `throw new Error(${JSON.stringify(diag)});`
       }
