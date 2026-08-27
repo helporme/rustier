@@ -169,6 +169,12 @@ impl Compiler {
     }
 }
 
+impl Default for Compiler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompileShimOpts {
     /// Target platform used for FFI.
