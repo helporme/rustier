@@ -2,6 +2,7 @@ mod crates;
 mod enums;
 mod fields;
 mod functions;
+mod impls;
 mod mods;
 mod shapes;
 mod structs;
@@ -11,6 +12,7 @@ use self::{
     enums::lower_enum,
     fields::{FieldLowerError, lower_field},
     functions::lower_function,
+    impls::lower_impl,
     shapes::lower_shape,
     structs::lower_struct,
     types::{TypeLowerErrorUnsupported, is_clonable, lower_type},
@@ -18,17 +20,11 @@ use self::{
 use miette::SourceSpan;
 use ra_ap_hir::Adt;
 
-use super::Span;
+use super::{AsItem as _, Function, Span};
 use crate::compiler::{FilePath, db::Db, diag::DiagSource};
 
 pub(super) fn function_fqn(db: &dyn Db, function: ra_ap_hir::Function) -> String {
-    let module = function.module(db);
-    let crate_ = module.krate(db);
-    let name = function
-        .name(db)
-        .display(db, crate_.edition(db))
-        .to_string();
-    item_fqn(db, module, name)
+    Function::new(db, function).fqn(db).to_owned()
 }
 
 pub(super) fn adt_fqn(db: &dyn Db, adt: Adt) -> String {

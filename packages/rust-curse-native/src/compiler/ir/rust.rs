@@ -11,7 +11,7 @@ use crate::compiler::{
 };
 use ra_ap_hir::{
     Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
-    Function as HirFunction, Module as HirModule, Struct as HirStruct,
+    Function as HirFunction, Impl as HirImpl, Module as HirModule, Struct as HirStruct,
 };
 use std::fmt;
 use triomphe::Arc;
@@ -235,6 +235,12 @@ impl<'db> Struct<'db> {
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
         self.lower_span(db).as_ref()
     }
+
+    /// Supported inherent impl blocks for this type, including impls declared
+    /// in other modules.
+    pub fn impls(self, db: &'db dyn Db) -> &'db Vec<Impl<'db>> {
+        self.lower_impls(db)
+    }
 }
 
 impl<'db> IntoValueType<'db> for Struct<'db> {
@@ -294,6 +300,12 @@ impl<'db> Enum<'db> {
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
         self.lower_span(db).as_ref()
     }
+
+    /// Supported inherent impl blocks for this type, including impls declared
+    /// in other modules.
+    pub fn impls(self, db: &'db dyn Db) -> &'db Vec<Impl<'db>> {
+        self.lower_impls(db)
+    }
 }
 
 impl<'db> IntoValueType<'db> for Enum<'db> {
@@ -303,6 +315,69 @@ impl<'db> IntoValueType<'db> for Enum<'db> {
 }
 
 as_item!(Enum);
+
+/// A supported inherent impl block for a struct or enum.
+#[salsa::interned(debug)]
+pub struct Impl<'db> {
+    hir: HirImpl,
+}
+
+#[salsa::tracked]
+impl<'db> Impl<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> Mod<'db> {
+        self.lower_parent(db)
+    }
+
+    pub fn target(self, db: &'db dyn Db) -> ImplTarget<'db> {
+        self.lower_target(db)
+    }
+
+    pub fn fns(self, db: &'db dyn Db) -> &'db Vec<Function<'db>> {
+        self.lower_fns(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.lower_span(db).as_ref()
+    }
+}
+
+/// The nominal type targeted by an inherent impl block.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
+pub enum ImplTarget<'db> {
+    Struct(Struct<'db>),
+    Enum(Enum<'db>),
+}
+
+impl<'db> ImplTarget<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> Mod<'db> {
+        match self {
+            ImplTarget::Struct(struct_) => struct_.parent(db),
+            ImplTarget::Enum(enum_) => enum_.parent(db),
+        }
+    }
+
+    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        match self {
+            ImplTarget::Struct(struct_) => struct_.path(db),
+            ImplTarget::Enum(enum_) => enum_.path(db),
+        }
+    }
+}
+
+impl<'db> IntoValueType<'db> for ImplTarget<'db> {
+    fn into_value_type(self) -> ValueType<'db> {
+        match self {
+            ImplTarget::Struct(struct_) => struct_.into_value_type(),
+            ImplTarget::Enum(enum_) => enum_.into_value_type(),
+        }
+    }
+}
+
+impl<'db> AsItem<'db> for ImplTarget<'db> {
+    fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        self.path(db)
+    }
+}
 
 #[salsa::interned(debug)]
 pub struct Variant<'db> {
@@ -450,7 +525,7 @@ pub struct Function<'db> {
 
 #[salsa::tracked]
 impl<'db> Function<'db> {
-    pub fn parent(self, db: &'db dyn Db) -> Mod<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> FunctionParent<'db> {
         self.lower_parent(db)
     }
 
@@ -463,6 +538,10 @@ impl<'db> Function<'db> {
         self.parent(db)
             .path(db)
             .append(db, self.name(db).to_owned())
+    }
+
+    pub fn receiver(self, db: &'db dyn Db) -> Option<Receiver> {
+        self.lower_receiver(db)
     }
 
     pub fn params(self, db: &'db dyn Db) -> &'db Vec<Param<'db>> {
@@ -483,6 +562,33 @@ impl<'db> Function<'db> {
 }
 
 as_item!(Function);
+
+/// The declaration containing a source-defined function.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
+pub enum FunctionParent<'db> {
+    Mod(Mod<'db>),
+    Impl(Impl<'db>),
+}
+
+impl<'db> FunctionParent<'db> {
+    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        match self {
+            FunctionParent::Mod(mod_) => mod_.path(db),
+            FunctionParent::Impl(impl_) => impl_.target(db).path(db),
+        }
+    }
+}
+
+/// How an associated function receives its target value.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update)]
+pub enum Receiver {
+    /// `&self`
+    Shared,
+    /// `&mut self`
+    Exclusive,
+    /// `self`
+    Owned,
+}
 
 #[salsa::tracked(debug)]
 pub struct Param<'db> {

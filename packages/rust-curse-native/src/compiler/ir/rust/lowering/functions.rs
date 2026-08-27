@@ -1,5 +1,7 @@
 use miette::{Diagnostic, SourceSpan};
-use ra_ap_hir::{GenericDef, HasAttrs as _, HasSource as _};
+use ra_ap_hir::{
+    Access, AsAssocItem as _, AssocItemContainer, GenericDef, HasAttrs as _, HasSource as _,
+};
 use ra_ap_syntax::{AstNode as _, ast};
 use thiserror::Error;
 
@@ -10,14 +12,29 @@ use super::{
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::rust::{AsItem as _, Function, Mod, Param, Span, Type, ValueType},
+    ir::rust::{
+        AsItem as _, Function, FunctionParent, Impl, Mod, Param, Receiver, Span, Type, ValueType,
+    },
 };
 
 #[salsa::tracked]
 impl<'db> Function<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> Mod<'db> {
-        Mod::new(db, self.hir(db).module(db))
+    pub(in crate::compiler::ir::rust) fn lower_parent(
+        self,
+        db: &'db dyn Db,
+    ) -> FunctionParent<'db> {
+        let hir = self.hir(db);
+        let Some(item) = hir.as_assoc_item(db) else {
+            return FunctionParent::Mod(Mod::new(db, hir.module(db)));
+        };
+
+        match item.container(db) {
+            AssocItemContainer::Impl(impl_) => FunctionParent::Impl(Impl::new(db, impl_)),
+            AssocItemContainer::Trait(_) => {
+                unreachable!("functions from trait declarations are not lowered")
+            }
+        }
     }
 
     #[salsa::tracked(returns(ref))]
@@ -26,6 +43,17 @@ impl<'db> Function<'db> {
         hir.name(db)
             .display(db, hir.module(db).krate(db).edition(db))
             .to_string()
+    }
+
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_receiver(self, db: &'db dyn Db) -> Option<Receiver> {
+        self.hir(db)
+            .self_param(db)
+            .map(|receiver| match receiver.access(db) {
+                Access::Shared => Receiver::Shared,
+                Access::Exclusive => Receiver::Exclusive,
+                Access::Owned => Receiver::Owned,
+            })
     }
 
     #[salsa::tracked(returns(ref))]
@@ -99,6 +127,14 @@ pub(super) fn lower_function<'db>(
         causes.push(FunctionLowerCause::UnsupportedGeneric);
     }
     if let Some(source) = hir.source(db) {
+        if source
+            .value
+            .param_list()
+            .and_then(|params| params.self_param())
+            .is_some_and(|receiver| receiver.colon_token().is_some())
+        {
+            causes.push(FunctionLowerCause::UnsupportedArbitraryReceiver);
+        }
         if let Some(abi) = source.value.abi() {
             causes.push(FunctionLowerCause::UnsupportedAbi {
                 abi: abi.syntax().text().to_string(),
@@ -243,6 +279,9 @@ enum FunctionLowerCause {
         severity(Warning)
     )]
     UnsupportedGeneric,
+    #[error("arbitrary self types are not supported")]
+    #[diagnostic(code(rust_curse::unsupported_arbitrary_receiver), severity(Warning))]
+    UnsupportedArbitraryReceiver,
     #[error("references with explicit lifetimes are not supported")]
     #[diagnostic(code(rust_curse::unsupported_lifetime_ref), severity(Warning))]
     UnsupportedLifetimeRef,
