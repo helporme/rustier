@@ -1,7 +1,7 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        facade::{FacadeClass, FacadeFieldDiscriminator, FacadeFunction, FacadeMethod, FacadeMod},
+        facade::{FacadeClass, FacadeFieldDiscriminator, FacadeFunction, FacadeMod},
         shim::{
             ShimClass, ShimFunctionAssociated, ShimFunctionEnumDiscriminator, ShimFunctionFree,
             ShimMod,
@@ -23,13 +23,13 @@ impl<'db> ShimClass<'db> {
 
 impl<'db> ShimFunctionFree<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeFunction<'db> {
-        FacadeFunction::new(db, self)
+        FacadeFunction::new(db, self.as_fn())
     }
 }
 
 impl<'db> ShimFunctionAssociated<'db> {
-    pub fn facade(self, db: &'db dyn Db) -> FacadeMethod<'db> {
-        FacadeMethod::new(db, self)
+    pub fn facade(self, db: &'db dyn Db) -> FacadeFunction<'db> {
+        FacadeFunction::new(db, self.as_fn())
     }
 }
 

@@ -4,7 +4,10 @@ use crate::compiler::{
     codegen::sourcemap::mappings::{Mapping, OriginalLocation, find_name_line, original_location},
     db::Db,
     ir::{
-        decals::{DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalVariant},
+        decals::{
+            DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalFunction,
+            DecalFunctionKind, DecalVariant,
+        },
         rust::FieldName,
     },
 };
@@ -88,6 +91,20 @@ impl<'db> DecalClass<'db> {
             ));
         }
 
+        for method in self.methods(db) {
+            let (prefix, suffix) = class_method_search(method, db, "\t");
+            let method_line = find_name_line(
+                generated,
+                field_start_line,
+                &prefix,
+                method.name(db),
+                suffix,
+            )
+            .expect("rendered TypeScript class method declaration should exist");
+            field_start_line = method_line + 1;
+            mappings.extend(method_mappings(method, db, method_line, prefix.len()));
+        }
+
         mappings
     }
 
@@ -150,6 +167,44 @@ impl<'db> DecalClass<'db> {
                 original_name_column,
                 name,
             ));
+        }
+
+        let mut static_method_start_line = plain_line + 1;
+        for method in self
+            .methods(db)
+            .iter()
+            .filter(|method| matches!(method.kind(db), DecalFunctionKind::StaticMethod))
+        {
+            let prefix = "\texport function ";
+            let method_line = find_name_line(
+                generated,
+                static_method_start_line,
+                prefix,
+                method.name(db),
+                "(",
+            )
+            .expect("rendered TypeScript enum namespace function declaration should exist");
+            static_method_start_line = method_line + 1;
+            mappings.extend(method_mappings(method, db, method_line, prefix.len()));
+        }
+
+        let mut instance_method_start_line = instance_line + 1;
+        for method in self
+            .methods(db)
+            .iter()
+            .filter(|method| matches!(method.kind(db), DecalFunctionKind::Method))
+        {
+            let (prefix, suffix) = class_method_search(method, db, "\t\t");
+            let method_line = find_name_line(
+                generated,
+                instance_method_start_line,
+                &prefix,
+                method.name(db),
+                suffix,
+            )
+            .expect("rendered TypeScript enum instance method declaration should exist");
+            instance_method_start_line = method_line + 1;
+            mappings.extend(method_mappings(method, db, method_line, prefix.len()));
         }
 
         let tag_prefix = format!("\t\t\treadonly {}: \"", discriminator.name(db));
@@ -216,6 +271,44 @@ impl<'db> DecalClass<'db> {
         mappings.sort_by_key(|mapping| (mapping.generated_line, mapping.generated_column));
         mappings
     }
+}
+
+fn class_method_search<'db>(
+    method: &DecalFunction<'db>,
+    db: &'db dyn Db,
+    indent: &str,
+) -> (String, &'static str) {
+    let static_prefix = if matches!(method.kind(db), DecalFunctionKind::StaticMethod) {
+        "static "
+    } else {
+        ""
+    };
+    if method.name(db) == "constructor" {
+        (format!("{indent}{static_prefix}[\""), "\"](")
+    } else {
+        (format!("{indent}{static_prefix}"), "(")
+    }
+}
+
+fn method_mappings<'db>(
+    method: &DecalFunction<'db>,
+    db: &'db dyn Db,
+    generated_line: usize,
+    generated_name_column: usize,
+) -> Vec<Mapping> {
+    let Some(span) = method.span(db) else {
+        return Vec::new();
+    };
+    let original = original_location(db, span);
+
+    declaration_mappings(
+        generated_line,
+        generated_name_column,
+        &original,
+        original.column + "pub fn ".len(),
+        method.name(db),
+    )
+    .to_vec()
 }
 
 fn declaration_mappings(

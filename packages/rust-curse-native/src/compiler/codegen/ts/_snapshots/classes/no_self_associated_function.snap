@@ -1,0 +1,30 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Test;
+impl Test {
+    /// Creates a value.
+    pub fn create(value: i32) -> Self {
+        let _ = value;
+        Self
+    }
+}
+```
+
+# Compiled
+
+```ts
+export class Test {
+	/** Creates a value. */
+	static create(
+		value: number,
+	): Test;
+	private __rust_curse_brand: never;
+	private constructor();
+}
+```

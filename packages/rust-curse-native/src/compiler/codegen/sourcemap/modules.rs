@@ -194,6 +194,69 @@ mod tests {
         pub fn empty() {}
     });
 
+    test_module!(inherent_struct_methods_cross_file, {
+        #[derive(Clone)]
+        pub struct Counter;
+
+        @file: "counter_methods.rs";
+        mod counter_methods {
+            impl super::Counter {
+                /// Creates a counter.
+                pub fn create(value: i32) -> Self {
+                    let _ = value;
+                    Self
+                }
+
+                pub fn value(&self) -> i32 {
+                    0
+                }
+
+                pub fn add(&mut self, amount: i32) {
+                    let _ = amount;
+                }
+
+                pub fn consume(self) -> bool {
+                    true
+                }
+
+                pub fn constructor(&self) -> bool {
+                    true
+                }
+
+                pub fn prototype() -> bool {
+                    true
+                }
+            }
+        }
+    });
+
+    test_module!(inherent_enum_methods, {
+        #[derive(Clone)]
+        pub enum Status {
+            Pending,
+            Complete,
+        }
+
+        impl Status {
+            /// Creates a pending status.
+            pub fn pending() -> Self {
+                Self::Pending
+            }
+
+            pub fn is_complete(&self) -> bool {
+                matches!(self, Self::Complete)
+            }
+
+            pub fn complete(&mut self) {
+                *self = Self::Complete;
+            }
+
+            pub fn into_complete(self) -> bool {
+                matches!(self, Self::Complete)
+            }
+        }
+    });
+
     #[test]
     fn external_module() {
         let mut db = test_db! {

@@ -7,7 +7,7 @@ use crate::compiler::{
     ir::{
         facade::{
             FacadeClass, FacadeClassKind, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
-            FacadeFieldPlain, FacadeFunction, FacadeImport, FacadeImportItem, FacadeMethod,
+            FacadeFieldPlain, FacadeFunction, FacadeFunctionKind, FacadeImport, FacadeImportItem,
             FacadeMod, FacadeParam, FacadeType,
         },
         rust::FieldName,
@@ -90,8 +90,13 @@ impl<'db> FacadeMod<'db> {
 impl<'db> FacadeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
-        self.shim(db)
-            .params(db)
+        let params = match self.shim(db) {
+            ShimFunction::Free(function) => function.params(db).as_slice(),
+            ShimFunction::Associated(function) => function.params_without_receiver(db),
+            _ => unreachable!("facade functions must be source-defined functions"),
+        };
+
+        params
             .iter()
             .copied()
             .map(|param| FacadeParam::new(db, param))
@@ -107,39 +112,11 @@ impl<'db> FacadeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_imports(self, db: &'db dyn Db) -> HashSet<FacadeImportItem<'db>> {
         let mut imports = HashSet::from([FacadeImportItem::FfiFunction(self.ffi(db))]);
-
-        for param in self.params(db) {
-            if let FacadeType::Class(class) = param.type_(db) {
-                imports.insert(FacadeImportItem::FacadeClass(class));
-            }
-        }
-
-        imports
-    }
-}
-
-#[salsa::tracked]
-impl<'db> FacadeMethod<'db> {
-    #[salsa::tracked(returns(ref))]
-    pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
-        self.shim(db)
-            .params_without_receiver(db)
-            .iter()
-            .copied()
-            .map(|param| FacadeParam::new(db, param))
-            .collect()
-    }
-
-    pub(super) fn lower_ret_type(self, db: &'db dyn Db) -> Option<FacadeType<'db>> {
-        self.shim(db)
-            .ret_type(db)
-            .map(|type_| type_.lower_facade(db))
-    }
-
-    #[salsa::tracked(returns(ref))]
-    pub(super) fn lower_imports(self, db: &'db dyn Db) -> HashSet<FacadeImportItem<'db>> {
-        let mut imports = HashSet::from([FacadeImportItem::FfiFunction(self.ffi(db))]);
-        let owner = self.shim(db).self_class(db).facade(db);
+        let owner = match self.shim(db) {
+            ShimFunction::Associated(function) => Some(function.self_class(db).facade(db)),
+            ShimFunction::Free(_) => None,
+            _ => unreachable!("facade functions must be source-defined functions"),
+        };
 
         for type_ in self
             .params(db)
@@ -148,7 +125,7 @@ impl<'db> FacadeMethod<'db> {
             .chain(self.ret_type(db))
         {
             if let FacadeType::Class(class) = type_
-                && class != owner
+                && Some(class) != owner
             {
                 imports.insert(FacadeImportItem::FacadeClass(class));
             }
@@ -168,11 +145,18 @@ impl<'db> FacadeParam<'db> {
 #[salsa::tracked]
 impl<'db> FacadeClass<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn lower_methods(self, db: &'db dyn Db) -> Vec<FacadeMethod<'db>> {
+    pub(super) fn lower_methods(self, db: &'db dyn Db) -> Vec<FacadeFunction<'db>> {
         self.shim(db)
             .associated_fns(db)
             .iter()
-            .map(|function| function.facade(db))
+            .map(|function| {
+                let function = function.facade(db);
+                debug_assert!(matches!(
+                    function.kind(db),
+                    FacadeFunctionKind::Method | FacadeFunctionKind::StaticMethod,
+                ));
+                function
+            })
             .collect()
     }
 
@@ -190,9 +174,19 @@ impl<'db> FacadeClass<'db> {
             },
             ShimClassSource::Enum(enum_) => {
                 let mut groups: Vec<(FieldName, BTreeMap<u32, FacadeFieldPlain<'db>>)> = vec![];
+                let exported_fields = shim
+                    .fields(db)
+                    .iter()
+                    .map(|field| field.src(db))
+                    .collect::<HashSet<_>>();
 
                 for (variant_idx, variant) in enum_.variants(db).iter().enumerate() {
-                    for field in variant.fields(db) {
+                    for field in variant
+                        .fields(db)
+                        .iter()
+                        .copied()
+                        .filter(|field| exported_fields.contains(field))
+                    {
                         let name = field.name(db);
                         let sub = if let Some((_, sub)) =
                             groups.iter_mut().find(|(group_name, _)| group_name == name)

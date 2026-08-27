@@ -1,0 +1,39 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub enum Test {
+    First { value: i32 },
+    Second { value: i32 },
+}
+impl Test {
+    pub fn value(&self) -> i32 {
+        0
+    }
+}
+```
+
+# Compiled
+
+```ts
+export type Test = Test.Instance & Test.Plain;
+
+export namespace Test {
+	export type Plain =
+		| {
+			readonly type: "first";
+		}
+		| {
+			readonly type: "second";
+		};
+
+	export class Instance {
+		value(): number;
+		private __rust_curse_brand: never;
+		private constructor();
+	}
+}
+```

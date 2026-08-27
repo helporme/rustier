@@ -424,4 +424,54 @@ mod tests {
             Plain { field: i32 },
         }
     );
+
+    test_function!(
+        no_self_associated_function,
+        ShimFunction::Associated(_),
+        pub struct Test;
+
+        impl Test {
+            pub fn create(value: i32) -> Self {
+                let _ = value;
+                Self
+            }
+        }
+    );
+
+    test_function!(
+        owned_self_associated_function,
+        ShimFunction::Associated(_),
+        #[derive(Clone)]
+        pub struct Test;
+
+        impl Test {
+            pub fn owned(self) -> bool {
+                true
+            }
+        }
+    );
+
+    test_function!(
+        shared_self_associated_function,
+        ShimFunction::Associated(_),
+        pub struct Test;
+
+        impl Test {
+            pub fn shared(&self, value: i32) -> i32 {
+                value
+            }
+        }
+    );
+
+    test_function!(
+        exclusive_self_associated_function,
+        ShimFunction::Associated(_),
+        pub struct Test;
+
+        impl Test {
+            pub fn exclusive(&mut self, value: i32) {
+                let _ = value;
+            }
+        }
+    );
 }

@@ -47,6 +47,13 @@ macro_rules! assert_js_snap {
             &mut __db,
             $crate::compiler::inputs::Platform::Node,
         );
+        $crate::compiler::inputs::FfiLayout::set(
+            &mut __db,
+            $crate::compiler::inputs::FfiLayout {
+                ffi_js_file: $crate::compiler::FilePath::new_virtual("/ffi.js")
+                    .expect("test FFI path must be valid"),
+            },
+        );
         let __compiled = $crate::compiler::codegen::fragment::FragmentPrint::print(
             $crate::compiler::codegen::fragment::fragment(|$printer| {
                 let $db = &mut __db;

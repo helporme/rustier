@@ -1,0 +1,26 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Test;
+impl Test {
+    pub fn shared(&self, value: i32) -> i32 {
+        value
+    }
+}
+```
+
+# Compiled
+
+```ts
+export class Test {
+	shared(
+		value: number,
+	): number;
+	private __rust_curse_brand: never;
+	private constructor();
+}
+```

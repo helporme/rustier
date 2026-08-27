@@ -1,43 +1,90 @@
-use crate::{
-    compiler::{
-        codegen::{
-            fragment::{FragmentOnce, FragmentPrint, Printer, comma_list, frag, fragment},
-            ts::jsdoc::render_jsdoc,
+use crate::compiler::{
+    codegen::{
+        fragment::{
+            FragmentOnce, FragmentPrint, Printer, comma_list, doubles, frag, fragment, squares,
         },
-        db::Db,
-        ir::decals::DecalFunction,
+        ts::jsdoc::render_jsdoc,
     },
+    db::Db,
+    ir::decals::{DecalFunction, DecalFunctionKind, DecalParam, DecalType},
 };
 
 #[salsa::tracked]
 impl<'db> DecalFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_ts(self, db: &'db dyn Db) -> String {
-        let params = fragment(move |p: &mut Printer| {
-            if self.params(db).is_empty() {
-                frag!(()).apply(p);
-            } else {
-                frag!(({
-                    comma_list(
-                        self.params(db)
-                            .iter()
-                            .map(|param| frag!({param.name(db)}:~{param.type_(db).render_ts(db)})),
-                    )
-                },))
-                .apply(p);
-            }
-        });
-        let return_type = fragment(move |p: &mut Printer| match self.ret_type(db) {
-            Some(type_) => type_.render_ts(db).apply(p),
-            None => frag!(void).apply(p),
-        });
-
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
-            export function ~{self.name(db)}{params}:~{return_type};
+            export function ~{self.name(db)}{render_params(db, self.params(db))}:~{
+                render_return_type(db, self.ret_type(db))
+            };
         )
         .print()
     }
+}
+
+impl<'db> DecalFunction<'db> {
+    pub(super) fn render_in_class_ts(self, db: &'db dyn Db) -> String {
+        let static_prefix =
+            matches!(self.kind(db), DecalFunctionKind::StaticMethod).then_some("static ");
+
+        frag!(
+            {render_jsdoc(self.docs(db).map(String::as_str))}
+            {static_prefix}{render_class_method_name(self.name(db))}{
+                render_params(db, self.params(db))
+            }:~{render_return_type(db, self.ret_type(db))};
+        )
+        .print()
+    }
+
+    pub(super) fn render_in_namespace_ts(self, db: &'db dyn Db) -> String {
+        debug_assert_eq!(self.kind(db), DecalFunctionKind::StaticMethod);
+
+        frag!(
+            {render_jsdoc(self.docs(db).map(String::as_str))}
+            export function ~{self.name(db)}{render_params(db, self.params(db))}:~{
+                render_return_type(db, self.ret_type(db))
+            };
+        )
+        .print()
+    }
+}
+
+fn render_params<'db>(db: &'db dyn Db, params: &'db [DecalParam<'db>]) -> impl FragmentOnce + 'db {
+    fragment(move |p: &mut Printer| {
+        if params.is_empty() {
+            frag!(()).apply(p);
+        } else {
+            frag!(({
+                comma_list(
+                    params
+                        .iter()
+                        .map(|param| frag!({param.name(db)}:~{param.type_(db).render_ts(db)})),
+                )
+            },))
+            .apply(p);
+        }
+    })
+}
+
+fn render_return_type<'db>(
+    db: &'db dyn Db,
+    ret_type: Option<DecalType<'db>>,
+) -> impl FragmentOnce + 'db {
+    fragment(move |p: &mut Printer| match ret_type {
+        Some(type_) => type_.render_ts(db).apply(p),
+        None => frag!(void).apply(p),
+    })
+}
+
+fn render_class_method_name(name: &str) -> impl FragmentOnce + '_ {
+    fragment(move |p| {
+        if name == "constructor" {
+            squares(doubles(name)).apply(p);
+        } else {
+            name.apply(p);
+        }
+    })
 }
 
 #[cfg(test)]

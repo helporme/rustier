@@ -1,0 +1,65 @@
+---
+source: src/compiler/codegen/shim/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Test;
+impl Test {
+    pub fn exclusive(&mut self, value: i32) {
+        let _ = value;
+    }
+}
+```
+
+# Compiled
+## Node
+```rust
+#[napi(js_name = "__fn__associated__test_0crate_Test_exclusive")]
+pub fn __fn__associated__test_0crate_Test_exclusive(
+    _0: &__struct__test_0crate_Test,
+    _1: f64,
+) -> napi::Result<()> {
+    {
+        let _0 = cast
+            .from(
+                "Shim(Class { is_borrowed: true, inner: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } })",
+            )
+            .to(
+                "Rust(Borrowed { is_mutable: true, inner: Struct(Struct { hir: Struct { id: StructId(5801) } }) })",
+            )
+            .an(_0);
+        {
+            let _1 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_1);
+            test_crate::Test::exclusive(_0, _1)
+        }
+    };
+    Ok(())
+}
+```
+
+## Wasm
+```rust
+#[wasm_bindgen(js_name = "__fn__associated__test_0crate_Test_exclusive")]
+pub fn __fn__associated__test_0crate_Test_exclusive(
+    _0: &__struct__test_0crate_Test,
+    _1: f64,
+) -> Result<(), JsValue> {
+    {
+        let _0 = cast
+            .from(
+                "Shim(Class { is_borrowed: true, inner: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } })",
+            )
+            .to(
+                "Rust(Borrowed { is_mutable: true, inner: Struct(Struct { hir: Struct { id: StructId(5801) } }) })",
+            )
+            .an(_0);
+        {
+            let _1 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_1);
+            test_crate::Test::exclusive(_0, _1)
+        }
+    };
+    Ok(())
+}
+```

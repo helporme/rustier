@@ -1,0 +1,66 @@
+---
+source: src/compiler/codegen/js/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Test;
+impl Test {
+    pub fn exclusive(&mut self, value: i32) {
+        let _ = value;
+    }
+}
+```
+
+# Compiled
+
+```js
+export class Test {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+	exclusive(
+		_0
+	) {
+		{
+			const __0 = cast.from(
+				"Facade(number)"
+			).to(
+				"Ffi(number)"
+			).an(
+				_0
+			);
+			__fn__associated__test_0crate_Test_exclusive(
+				this.#_ffi, __0
+			);
+		}
+	}
+
+	constructor(
+		token
+	){
+		if(
+			token !== Test.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly (yet)"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new Test(
+			 Test.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+```

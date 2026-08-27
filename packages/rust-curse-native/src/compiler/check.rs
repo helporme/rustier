@@ -9,6 +9,7 @@ use crate::compiler::{
 
 mod enum_js_name_collisions;
 mod f32_precision_loss;
+mod method_field_collisions;
 
 impl<'db> Crate<'db> {
     pub fn check(self, db: &'db dyn Db) -> Vec<&'db Diag> {
@@ -27,10 +28,14 @@ impl<'db> Mod<'db> {
     fn check(self, db: &'db dyn Db) {
         for member in self.members(db) {
             match member {
-                Member::Struct(struct_) => struct_.check_f32_precision_loss(db),
+                Member::Struct(struct_) => {
+                    struct_.check_f32_precision_loss(db);
+                    struct_.check_method_field_collisions(db);
+                }
                 Member::Enum(enum_) => {
                     enum_.check_f32_precision_loss(db);
                     enum_.check_js_name_collisions(db);
+                    enum_.check_method_field_collisions(db);
                 }
                 Member::Function(function) => function.check_f32_precision_loss(db),
                 Member::Mod(mod_) => mod_.check(db),

@@ -66,7 +66,7 @@ where
                 #_ffi;@
                 {self.render_private_declarations()}@
 
-                {self.render_fields()}@@
+                {self.render_members()}@@
 
                 constructor(token) {{
                     if (token !== ~{name}.#_construction_token) {{
@@ -85,6 +85,32 @@ where
                 }}
             }}
         )
+    }
+
+    fn render_members(self) -> impl FragmentOnce + 'db {
+        fragment(move |p| {
+            self.render_fields().apply(p);
+
+            if !self.class.methods(self.db).is_empty() {
+                if self.has_rendered_fields() {
+                    frag!(@@).apply(p);
+                }
+                spaced(
+                    self.class
+                        .methods(self.db)
+                        .iter()
+                        .map(|method| method.render_with(self.db, self.casts)),
+                )
+                .apply(p);
+            }
+        })
+    }
+
+    fn has_rendered_fields(self) -> bool {
+        match self.class.kind(self.db) {
+            FacadeClassKind::Plain { fields } => !fields.is_empty(),
+            FacadeClassKind::DiscriminatedUnion { .. } => true,
+        }
     }
 
     fn render_fields(self) -> impl FragmentOnce + 'db {
@@ -602,6 +628,111 @@ mod tests {
             HttpRequest {
                 value: Readonly,
             },
+        }
+    });
+    test_class!(no_self_associated_function, {
+        #[derive(Clone)]
+        pub struct Test;
+
+        impl Test {
+            pub fn create(value: i32) -> Self {
+                let _ = value;
+                Self
+            }
+        }
+    });
+    test_class!(owned_self_associated_function, {
+        #[derive(Clone)]
+        pub struct Test;
+
+        impl Test {
+            pub fn owned(self) -> bool {
+                true
+            }
+        }
+    });
+    test_class!(shared_self_associated_function, {
+        pub struct Test;
+
+        impl Test {
+            pub fn shared(&self, value: i32) -> i32 {
+                value
+            }
+        }
+    });
+    test_class!(exclusive_self_associated_function, {
+        pub struct Test;
+
+        impl Test {
+            pub fn exclusive(&mut self, value: i32) {
+                let _ = value;
+            }
+        }
+    });
+    test_class!(constructor_associated_function, {
+        pub struct Test;
+
+        impl Test {
+            pub fn constructor(&self) -> bool {
+                true
+            }
+        }
+    });
+    test_class!(prototype_associated_function, {
+        pub struct Test;
+
+        impl Test {
+            pub fn prototype() -> bool {
+                true
+            }
+        }
+    });
+    test_class!(method_shadows_field, {
+        pub struct Test {
+            pub value: i32,
+        }
+
+        impl Test {
+            pub fn value(&self) -> i32 {
+                self.value
+            }
+        }
+    });
+    test_class!(enum_method_shadows_fields, {
+        pub enum Test {
+            First { value: i32 },
+            Second { value: i32 },
+        }
+
+        impl Test {
+            pub fn value(&self) -> i32 {
+                0
+            }
+        }
+    });
+    test_class!(inherent_enum_methods, {
+        #[derive(Clone)]
+        pub enum Test {
+            First,
+            Second,
+        }
+
+        impl Test {
+            pub fn first() -> Self {
+                Self::First
+            }
+
+            pub fn is_first(&self) -> bool {
+                matches!(self, Self::First)
+            }
+
+            pub fn make_second(&mut self) {
+                *self = Self::Second;
+            }
+
+            pub fn into_bool(self) -> bool {
+                matches!(self, Self::First)
+            }
         }
     });
 }

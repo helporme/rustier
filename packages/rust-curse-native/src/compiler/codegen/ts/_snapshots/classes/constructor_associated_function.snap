@@ -1,0 +1,24 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Test;
+impl Test {
+    pub fn constructor(&self) -> bool {
+        true
+    }
+}
+```
+
+# Compiled
+
+```ts
+export class Test {
+	["constructor"](): boolean;
+	private __rust_curse_brand: never;
+	private constructor();
+}
+```

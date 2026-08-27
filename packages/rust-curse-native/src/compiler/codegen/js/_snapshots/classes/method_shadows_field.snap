@@ -1,0 +1,68 @@
+---
+source: src/compiler/codegen/js/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Test {
+    pub value: i32,
+}
+impl Test {
+    pub fn value(&self) -> i32 {
+        self.value
+    }
+}
+```
+
+# Compiled
+
+```js
+export class Test {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+	value(
+
+	) {
+		{
+			const result = cast.from(
+				"Ffi(number)"
+			).to(
+				"Facade(number)"
+			).an(
+				__fn__associated__test_0crate_Test_value(
+					this.#_ffi
+				)
+			);
+			return result;
+		}
+	}
+
+	constructor(
+		token
+	){
+		if(
+			token !== Test.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly (yet)"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new Test(
+			 Test.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+```

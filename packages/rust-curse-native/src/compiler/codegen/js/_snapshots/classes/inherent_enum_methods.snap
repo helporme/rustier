@@ -1,0 +1,129 @@
+---
+source: src/compiler/codegen/js/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub enum Test {
+    First,
+    Second,
+}
+impl Test {
+    pub fn first() -> Self {
+        Self::First
+    }
+    pub fn is_first(&self) -> bool {
+        matches!(self, Self::First)
+    }
+    pub fn make_second(&mut self) {
+        *self = Self::Second;
+    }
+    pub fn into_bool(self) -> bool {
+        matches!(self, Self::First)
+    }
+}
+```
+
+# Compiled
+
+```js
+export class Test {
+	static #_construction_token = Symbol();
+	#_ffi;
+	static #_types = ["first",
+	"second"];
+
+	get ["type"]() {
+		return Test.#_types[__fn__disc__test_0crate_Test(
+			this.#_ffi
+		)];
+	}
+
+	static first(
+
+	) {
+		{
+			const result = cast.from(
+				"Ffi(Class(FfiClass { shim: ShimClass { src: Enum(Enum { hir: Enum { id: EnumId(6000) } }) } }))"
+			).to(
+				"Facade(Class(FacadeClass { shim: ShimClass { src: Enum(Enum { hir: Enum { id: EnumId(6000) } }) } }))"
+			).an(
+				__fn__associated__test_0crate_Test_first(
+
+				)
+			);
+			return result;
+		}
+	}
+
+	is_first(
+
+	) {
+		{
+			const result = cast.from(
+				"Ffi(boolean)"
+			).to(
+				"Facade(boolean)"
+			).an(
+				__fn__associated__test_0crate_Test_is_0first(
+					this.#_ffi
+				)
+			);
+			return result;
+		}
+	}
+
+	make_second(
+
+	) {
+		__fn__associated__test_0crate_Test_make_0second(
+			this.#_ffi
+		);
+	}
+
+	into_bool(
+
+	) {
+		{
+			const result = cast.from(
+				"Ffi(boolean)"
+			).to(
+				"Facade(boolean)"
+			).an(
+				__fn__associated__test_0crate_Test_into_0bool(
+					this.#_ffi
+				)
+			);
+			return result;
+		}
+	}
+
+	constructor(
+		token
+	){
+		if(
+			token !== Test.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly (yet)"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new Test(
+			 Test.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+```

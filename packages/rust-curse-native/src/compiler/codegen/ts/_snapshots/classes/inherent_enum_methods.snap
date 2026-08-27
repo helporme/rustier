@@ -1,0 +1,56 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub enum Test {
+    First,
+    Second,
+}
+impl Test {
+    /// Creates the first variant.
+    pub fn first() -> Self {
+        Self::First
+    }
+    pub fn is_first(&self) -> bool {
+        matches!(self, Self::First)
+    }
+    pub fn make_second(&mut self) {
+        *self = Self::Second;
+    }
+    pub fn into_bool(self) -> bool {
+        matches!(self, Self::First)
+    }
+}
+```
+
+# Compiled
+
+```ts
+export type Test = Test.Instance & Test.Plain;
+
+export namespace Test {
+	export type Plain =
+		| {
+			readonly type: "first";
+		}
+		| {
+			readonly type: "second";
+		};
+	/** Creates the first variant. */
+	export function first(): Test;
+
+	export class Instance {
+		is_first(): boolean;
+
+		make_second(): void;
+
+		into_bool(): boolean;
+		private __rust_curse_brand: never;
+		private constructor();
+	}
+}
+```

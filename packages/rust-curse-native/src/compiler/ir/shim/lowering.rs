@@ -2,8 +2,8 @@ use crate::compiler::{
     db::Db,
     ir::{
         rust::{
-            FieldParent, FunctionParent, IntoType, IntoValueType as _, Member, Receiver, Type,
-            ValueType,
+            FieldName, FieldParent, FunctionParent, IntoType, IntoValueType as _, Member, Receiver,
+            Type, ValueType,
         },
         shim::{
             ShimClass, ShimClassSource, ShimCrate, ShimField, ShimFunction, ShimFunctionAssociated,
@@ -111,8 +111,21 @@ impl<'db> ShimClass<'db> {
             ShimClassSource::Struct(struct_) => struct_.fields(db),
             ShimClassSource::Enum(enum_) => enum_.fields(db),
         };
+        let methods = self.associated_fns(db);
 
-        fields.iter().map(|field| field.shim(db)).collect()
+        fields
+            .iter()
+            .filter(|field| {
+                !methods.iter().any(|method| {
+                    method.src(db).receiver(db).is_some()
+                        && matches!(
+                            field.name(db),
+                            FieldName::Name(name) if name == method.src(db).name(db)
+                        )
+                })
+            })
+            .map(|field| field.shim(db))
+            .collect()
     }
 
     #[salsa::tracked(returns(ref))]

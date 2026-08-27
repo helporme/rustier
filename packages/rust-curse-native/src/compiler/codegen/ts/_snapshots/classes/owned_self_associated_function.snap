@@ -1,0 +1,25 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Test;
+impl Test {
+    pub fn owned(self) -> bool {
+        true
+    }
+}
+```
+
+# Compiled
+
+```ts
+export class Test {
+	owned(): boolean;
+	private __rust_curse_brand: never;
+	private constructor();
+}
+```

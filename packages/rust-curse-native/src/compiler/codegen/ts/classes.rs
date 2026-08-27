@@ -1,15 +1,15 @@
-use crate::{
-    compiler::{
-        codegen::{
-            fragment::{
-                FragmentOnce, FragmentPrint, blank, curlies, doubles, frag, fragment, idented,
-            },
-            ts::jsdoc::render_jsdoc,
+use crate::compiler::{
+    codegen::{
+        fragment::{
+            FragmentOnce, FragmentPrint, blank, curlies, doubles, frag, fragment, idented, spaced,
         },
-        db::Db,
-        ir::decals::{DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalVariant},
-        ir::rust::FieldName,
+        ts::jsdoc::render_jsdoc,
     },
+    db::Db,
+    ir::decals::{
+        DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalFunctionKind, DecalVariant,
+    },
+    ir::rust::FieldName,
 };
 
 #[salsa::tracked]
@@ -26,7 +26,7 @@ impl<'db> DecalClass<'db> {
     }
 
     fn render_plain_ts(self, db: &'db dyn Db, fields: &'db [DecalField<'db>]) -> String {
-        let fields = fragment(move |p| {
+        let members = fragment(move |p| {
             for (index, field) in fields.iter().enumerate() {
                 if index > 0 {
                     frag!(@).apply(p);
@@ -34,7 +34,14 @@ impl<'db> DecalClass<'db> {
                 field.render_ts(db, true).apply(p);
             }
 
-            if !fields.is_empty() {
+            for (index, method) in self.methods(db).iter().enumerate() {
+                if !fields.is_empty() || index > 0 {
+                    frag!(@).apply(p);
+                }
+                method.render_in_class_ts(db).apply(p);
+            }
+
+            if !fields.is_empty() || !self.methods(db).is_empty() {
                 frag!(@).apply(p);
             }
             brand().apply(p);
@@ -42,7 +49,7 @@ impl<'db> DecalClass<'db> {
 
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
-            export class ~{self.name(db)}~{{ {fields} }}
+            export class ~{self.name(db)}~{{ {members} }}
         )
         .print()
     }
@@ -75,15 +82,44 @@ impl<'db> DecalClass<'db> {
             }
         });
 
+        let static_methods = self
+            .methods(db)
+            .iter()
+            .filter(|method| matches!(method.kind(db), DecalFunctionKind::StaticMethod))
+            .map(|method| method.render_in_namespace_ts(db))
+            .collect::<Vec<_>>();
+
+        let static_methods = fragment(move |p| {
+            if !static_methods.is_empty() {
+                blank().apply(p);
+                spaced(static_methods).apply(p);
+            }
+        });
+
+        let instance_methods = self
+            .methods(db)
+            .iter()
+            .filter(|method| matches!(method.kind(db), DecalFunctionKind::Method))
+            .map(|method| method.render_in_class_ts(db))
+            .collect::<Vec<_>>();
+
+        let instance_members = fragment(move |p| {
+            if !instance_methods.is_empty() {
+                spaced(instance_methods).apply(p);
+                blank().apply(p);
+            }
+            brand().apply(p);
+        });
+
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
             export type ~{self.name(db)}~ = ~{self.name(db)}.Instance & ~{self.name(db)}.Plain;@@
 
             export namespace ~{self.name(db)}~{{
-                {plain}@@
+                {plain}{static_methods}@@
 
                 export class Instance~{{
-                    {brand()}
+                    {instance_members}
                 }}
             }}
         )
@@ -236,6 +272,122 @@ mod tests {
     test_class!(renamed_discriminator, "Example", {
         pub enum Example {
             Value { r#type: String },
+        }
+    });
+
+    test_class!(no_self_associated_function, "Test", {
+        #[derive(Clone)]
+        pub struct Test;
+
+        impl Test {
+            /// Creates a value.
+            pub fn create(value: i32) -> Self {
+                let _ = value;
+                Self
+            }
+        }
+    });
+
+    test_class!(owned_self_associated_function, "Test", {
+        #[derive(Clone)]
+        pub struct Test;
+
+        impl Test {
+            pub fn owned(self) -> bool {
+                true
+            }
+        }
+    });
+
+    test_class!(shared_self_associated_function, "Test", {
+        pub struct Test;
+
+        impl Test {
+            pub fn shared(&self, value: i32) -> i32 {
+                value
+            }
+        }
+    });
+
+    test_class!(exclusive_self_associated_function, "Test", {
+        pub struct Test;
+
+        impl Test {
+            pub fn exclusive(&mut self, value: i32) {
+                let _ = value;
+            }
+        }
+    });
+
+    test_class!(constructor_associated_function, "Test", {
+        pub struct Test;
+
+        impl Test {
+            pub fn constructor(&self) -> bool {
+                true
+            }
+        }
+    });
+
+    test_class!(prototype_associated_function, "Test", {
+        pub struct Test;
+
+        impl Test {
+            pub fn prototype() -> bool {
+                true
+            }
+        }
+    });
+
+    test_class!(method_shadows_field, "Test", {
+        pub struct Test {
+            pub value: i32,
+        }
+
+        impl Test {
+            pub fn value(&self) -> i32 {
+                self.value
+            }
+        }
+    });
+
+    test_class!(enum_method_shadows_fields, "Test", {
+        pub enum Test {
+            First { value: i32 },
+            Second { value: i32 },
+        }
+
+        impl Test {
+            pub fn value(&self) -> i32 {
+                0
+            }
+        }
+    });
+
+    test_class!(inherent_enum_methods, "Test", {
+        #[derive(Clone)]
+        pub enum Test {
+            First,
+            Second,
+        }
+
+        impl Test {
+            /// Creates the first variant.
+            pub fn first() -> Self {
+                Self::First
+            }
+
+            pub fn is_first(&self) -> bool {
+                matches!(self, Self::First)
+            }
+
+            pub fn make_second(&mut self) {
+                *self = Self::Second;
+            }
+
+            pub fn into_bool(self) -> bool {
+                matches!(self, Self::First)
+            }
         }
     });
 }
