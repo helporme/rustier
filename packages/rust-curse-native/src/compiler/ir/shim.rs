@@ -67,6 +67,10 @@ impl<'db> ShimClass<'db> {
         self.lower_fields(db)
     }
 
+    pub fn associated_fns(self, db: &'db dyn Db) -> &'db Vec<ShimFunctionAssociated<'db>> {
+        self.lower_associated_fns(db)
+    }
+
     pub(super) fn fns(self, db: &'db dyn Db) -> &'db Vec<ShimFunction<'db>> {
         self.lower_fns(db)
     }
@@ -103,12 +107,12 @@ impl<'db> ShimField<'db> {
     }
 }
 
-/// A callable shim operation, either source-defined or synthesized for the JS
-/// API.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
 pub enum ShimFunction<'db> {
     /// A function declared in the source API.
     Free(ShimFunctionFree<'db>),
+    /// A source-defined function in an inherent impl block.
+    Associated(ShimFunctionAssociated<'db>),
     /// A synthetic field-read operation.
     Getter(ShimFunctionGetter<'db>),
     /// A synthetic field-write operation.
@@ -121,6 +125,7 @@ impl<'db> ShimFunction<'db> {
     pub fn symbol(self, db: &'db dyn Db) -> &'db str {
         match self {
             ShimFunction::Free(f) => f.symbol(db),
+            ShimFunction::Associated(f) => f.symbol(db),
             ShimFunction::Getter(g) => g.symbol(db),
             ShimFunction::Setter(s) => s.symbol(db),
             ShimFunction::EnumDiscriminator(e) => e.symbol(db),
@@ -130,6 +135,7 @@ impl<'db> ShimFunction<'db> {
     pub fn ret_type(self, db: &'db dyn Db) -> Option<ShimType<'db>> {
         match self {
             ShimFunction::Free(f) => f.ret_type(db),
+            ShimFunction::Associated(f) => f.ret_type(db),
             ShimFunction::Getter(g) => Some(g.ret_type(db)),
             ShimFunction::Setter(_) => None,
             ShimFunction::EnumDiscriminator(d) => Some(d.ret_type()),
@@ -141,8 +147,6 @@ impl<'db> ShimFunction<'db> {
     }
 }
 
-/// A Rust source function carried into the shim without synthesizing an
-/// operation.
 #[salsa::interned(debug)]
 pub struct ShimFunctionFree<'db> {
     pub src: Function<'db>,
@@ -166,20 +170,48 @@ impl<'db> ShimFunctionFree<'db> {
     }
 }
 
-/// A parameter carrying both its Rust type and JS-compatible boundary type.
+#[salsa::interned(debug)]
+pub struct ShimFunctionAssociated<'db> {
+    pub src: Function<'db>,
+}
+
+impl<'db> ShimFunctionAssociated<'db> {
+    pub fn as_fn(self) -> ShimFunction<'db> {
+        ShimFunction::Associated(self)
+    }
+
+    pub fn self_class(self, db: &'db dyn Db) -> ShimClass<'db> {
+        self.lower_self_class(db)
+    }
+
+    pub fn symbol(self, db: &'db dyn Db) -> &'db str {
+        self.lower_symbol(db)
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<ShimType<'db>> {
+        self.lower_ret_type(db)
+    }
+
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<ShimParam<'db>> {
+        self.lower_params(db)
+    }
+
+    pub fn params_without_receiver(self, db: &'db dyn Db) -> &'db [ShimParam<'db>] {
+        let offset = usize::from(self.src(db).receiver(db).is_some());
+        &self.params(db)[offset..]
+    }
+}
+
 #[salsa::tracked(debug)]
 pub struct ShimParam<'db> {
     pub parent: ShimFunction<'db>,
     pub idx: usize,
-    /// The original type from the Rust API.
     #[tracked]
     pub src_type: Type<'db>,
-    /// The type used to pass the value across the shim boundary.
     #[tracked]
     pub type_: ShimType<'db>,
 }
 
-/// A synthetic JS-facing read operation for a Rust field.
 #[salsa::interned(debug)]
 pub struct ShimFunctionGetter<'db> {
     pub src: Field<'db>,
@@ -203,7 +235,6 @@ impl<'db> ShimFunctionGetter<'db> {
     }
 }
 
-/// A synthetic JS-facing write operation for a writable Rust field.
 #[salsa::interned(debug)]
 pub struct ShimFunctionSetter<'db> {
     pub src: Field<'db>,
@@ -223,7 +254,6 @@ impl<'db> ShimFunctionSetter<'db> {
     }
 }
 
-/// A synthetic JS-facing operation that identifies a Rust enum variant.
 #[salsa::interned(debug)]
 pub struct ShimFunctionEnumDiscriminator<'db> {
     pub src: Enum<'db>,
@@ -251,11 +281,6 @@ impl<'db> ShimFunctionEnumDiscriminator<'db> {
     }
 }
 
-/// A JS-compatible boundary type.
-///
-/// Rust numeric and `char` values normalize to `f64`, string types normalize to
-/// `String`, and class values retain the ownership direction needed by the
-/// shim.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 #[allow(non_camel_case_types)]
 pub enum ShimType<'db> {
@@ -263,7 +288,6 @@ pub enum ShimType<'db> {
     String,
     bool,
     Class {
-        /// `true` for borrowed inputs and `false` for owned outputs.
         is_borrowed: bool,
         inner: ShimClass<'db>,
     },

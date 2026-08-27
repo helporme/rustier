@@ -11,8 +11,8 @@ use crate::compiler::{
     ir::{
         rust::{Field, FieldName, Span, Variant},
         shim::{
-            ShimClass, ShimClassSource, ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimMod,
-            ShimParam,
+            ShimClass, ShimClassSource, ShimFunction, ShimFunctionAssociated,
+            ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimMod, ShimParam,
         },
     },
 };
@@ -88,6 +88,37 @@ impl<'db> DecalFunction<'db> {
 }
 
 #[salsa::interned(debug)]
+pub struct DecalMethod<'db> {
+    shim: ShimFunctionAssociated<'db>,
+}
+
+impl<'db> DecalMethod<'db> {
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        self.shim(db).src(db).name(db)
+    }
+
+    pub fn is_static(self, db: &'db dyn Db) -> bool {
+        self.shim(db).src(db).receiver(db).is_none()
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.shim(db).src(db).span(db)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.shim(db).src(db).docs(db)
+    }
+
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<DecalParam<'db>> {
+        self.lower_params(db)
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<DecalType<'db>> {
+        self.lower_ret_type(db)
+    }
+}
+
+#[salsa::interned(debug)]
 pub struct DecalParam<'db> {
     shim: ShimParam<'db>,
 }
@@ -95,12 +126,16 @@ pub struct DecalParam<'db> {
 impl<'db> DecalParam<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db String {
         let shim = self.shim(db);
-        let function = match shim.parent(db) {
-            crate::compiler::ir::shim::ShimFunction::Free(function) => function,
-            _ => unreachable!("declaration parameters only belong to free functions"),
+        let (function, param_idx) = match shim.parent(db) {
+            ShimFunction::Free(function) => (function.src(db), shim.idx(db)),
+            ShimFunction::Associated(function) => {
+                let receiver_offset = usize::from(function.src(db).receiver(db).is_some());
+                (function.src(db), shim.idx(db) - receiver_offset)
+            }
+            _ => unreachable!("declaration parameters only belong to source-defined functions"),
         };
 
-        function.src(db).params(db)[shim.idx(db)].name(db)
+        function.params(db)[param_idx].name(db)
     }
 
     pub fn type_(self, db: &'db dyn Db) -> DecalType<'db> {
@@ -141,6 +176,10 @@ impl<'db> DecalClass<'db> {
 
     pub fn kind(self, db: &'db dyn Db) -> &'db DecalClassKind<'db> {
         self.lower_kind(db)
+    }
+
+    pub fn methods(self, db: &'db dyn Db) -> &'db Vec<DecalMethod<'db>> {
+        self.lower_methods(db)
     }
 }
 

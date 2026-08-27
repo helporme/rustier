@@ -13,10 +13,9 @@ use crate::{
         db::Db,
         inputs::Platform,
         ir::{
-            rust::{AsItem as _, Shape, Type},
+            rust::{AsItem as _, Function, Shape, Type},
             shim::{
-                ShimFunction, ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimFunctionGetter,
-                ShimFunctionSetter,
+                ShimFunction, ShimFunctionEnumDiscriminator, ShimFunctionGetter, ShimFunctionSetter,
             },
         },
     },
@@ -108,7 +107,12 @@ where
 
     fn render_body(self) -> impl FragmentOnce {
         fragment(move |p| match self.function {
-            ShimFunction::Free(free_fn) => self.render_free_fn_call_body(free_fn).apply(p),
+            ShimFunction::Free(free_fn) => self
+                .render_source_fn_call_body(free_fn.src(self.db))
+                .apply(p),
+            ShimFunction::Associated(function) => self
+                .render_source_fn_call_body(function.src(self.db))
+                .apply(p),
             ShimFunction::Getter(getter) => self.render_fn_getter_body(getter).apply(p),
             ShimFunction::Setter(setter) => self.render_fn_setter_body(setter).apply(p),
             ShimFunction::EnumDiscriminator(discriminator) => {
@@ -117,7 +121,7 @@ where
         })
     }
 
-    fn render_free_fn_call_body(self, free_fn: ShimFunctionFree<'db>) -> impl FragmentOnce {
+    fn render_source_fn_call_body(self, src_fn: Function<'db>) -> impl FragmentOnce {
         let cast_param_to_source_types =
             self.function
                 .params(self.db)
@@ -132,20 +136,17 @@ where
 
         let src_fn_call_expr = {
             let params = comma_list(
-                free_fn
+                self.function
                     .params(self.db)
                     .iter()
                     .enumerate()
                     .map(|(i, _)| frag!(_{i})),
             );
-            frag!({ free_fn.src(self.db).fqn(self.db) }({ params }))
+            frag!({ src_fn.fqn(self.db) }({ params }))
         };
 
-        fragment(move |p| {
-            match (
-                free_fn.src(self.db).ret_type(self.db),
-                free_fn.ret_type(self.db),
-            ) {
+        fragment(
+            move |p| match (src_fn.ret_type(self.db), self.function.ret_type(self.db)) {
                 (Some(src_ret_type), Some(shim_ret_type)) => {
                     let result_expr = self.cast_compiler.render_many(
                         self.db,
@@ -175,8 +176,8 @@ where
                     )
                     .apply(p);
                 }
-            }
-        })
+            },
+        )
     }
 
     fn render_fn_getter_body(self, getter: ShimFunctionGetter<'db>) -> impl FragmentOnce {

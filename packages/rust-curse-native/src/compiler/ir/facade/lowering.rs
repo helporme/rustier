@@ -7,8 +7,8 @@ use crate::compiler::{
     ir::{
         facade::{
             FacadeClass, FacadeClassKind, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
-            FacadeFieldPlain, FacadeFunction, FacadeImport, FacadeImportItem, FacadeMod,
-            FacadeParam, FacadeType,
+            FacadeFieldPlain, FacadeFunction, FacadeImport, FacadeImportItem, FacadeMethod,
+            FacadeMod, FacadeParam, FacadeType,
         },
         rust::FieldName,
         shim::{ShimClassSource, ShimFunction, ShimFunctionEnumDiscriminator, ShimType},
@@ -113,6 +113,46 @@ impl<'db> FacadeFunction<'db> {
 }
 
 #[salsa::tracked]
+impl<'db> FacadeMethod<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
+        self.shim(db)
+            .params_without_receiver(db)
+            .iter()
+            .copied()
+            .map(|param| FacadeParam::new(db, param))
+            .collect()
+    }
+
+    pub(super) fn lower_ret_type(self, db: &'db dyn Db) -> Option<FacadeType<'db>> {
+        self.shim(db)
+            .ret_type(db)
+            .map(|type_| type_.lower_facade(db))
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_imports(self, db: &'db dyn Db) -> HashSet<FacadeImportItem<'db>> {
+        let mut imports = HashSet::from([FacadeImportItem::FfiFunction(self.ffi(db))]);
+        let owner = self.shim(db).self_class(db).facade(db);
+
+        for type_ in self
+            .params(db)
+            .iter()
+            .map(|param| param.type_(db))
+            .chain(self.ret_type(db))
+        {
+            if let FacadeType::Class(class) = type_
+                && class != owner
+            {
+                imports.insert(FacadeImportItem::FacadeClass(class));
+            }
+        }
+
+        imports
+    }
+}
+
+#[salsa::tracked]
 impl<'db> FacadeParam<'db> {
     pub(super) fn lower_type(self, db: &'db dyn Db) -> FacadeType<'db> {
         self.shim(db).type_(db).lower_facade(db)
@@ -121,6 +161,15 @@ impl<'db> FacadeParam<'db> {
 
 #[salsa::tracked]
 impl<'db> FacadeClass<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_methods(self, db: &'db dyn Db) -> Vec<FacadeMethod<'db>> {
+        self.shim(db)
+            .associated_fns(db)
+            .iter()
+            .map(|function| function.facade(db))
+            .collect()
+    }
+
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_kind(self, db: &'db dyn Db) -> FacadeClassKind<'db> {
         let shim = self.shim(db);
@@ -205,6 +254,10 @@ impl<'db> FacadeClass<'db> {
 
                 imports.insert(FacadeImportItem::FfiFunction(discriminator.ffi_getter(db)));
             }
+        }
+
+        for method in self.methods(db) {
+            imports.extend(method.imports(db).iter().copied());
         }
 
         imports.insert(FacadeImportItem::FfiClass(self.ffi(db)));

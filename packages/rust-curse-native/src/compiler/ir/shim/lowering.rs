@@ -1,9 +1,12 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        rust::{FieldParent, IntoType, Member, Type, ValueType},
+        rust::{
+            FieldParent, FunctionParent, IntoType, IntoValueType as _, Member, Receiver, Type,
+            ValueType,
+        },
         shim::{
-            ShimClass, ShimClassSource, ShimCrate, ShimField, ShimFunction,
+            ShimClass, ShimClassSource, ShimCrate, ShimField, ShimFunction, ShimFunctionAssociated,
             ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimFunctionGetter,
             ShimFunctionSetter, ShimMod, ShimParam, ShimType,
         },
@@ -113,13 +116,35 @@ impl<'db> ShimClass<'db> {
     }
 
     #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_associated_fns(self, db: &'db dyn Db) -> Vec<ShimFunctionAssociated<'db>> {
+        let impls = match self.src(db) {
+            ShimClassSource::Struct(struct_) => struct_.impls(db),
+            ShimClassSource::Enum(enum_) => enum_.impls(db),
+        };
+
+        impls
+            .iter()
+            .flat_map(|impl_| impl_.fns(db))
+            // JavaScript forbids a static class element named `prototype`,
+            // including when the name is computed.
+            .filter(|function| function.receiver(db).is_some() || function.name(db) != "prototype")
+            .map(|function| ShimFunctionAssociated::new(db, *function))
+            .collect()
+    }
+
+    #[salsa::tracked(returns(ref))]
     pub(super) fn lower_fns(self, db: &'db dyn Db) -> Vec<ShimFunction<'db>> {
-        match self.src(db) {
-            ShimClassSource::Enum(enum_) => {
-                vec![ShimFunctionEnumDiscriminator::new(db, enum_).as_fn()]
-            }
-            ShimClassSource::Struct(_) => vec![],
+        let mut fns = self
+            .associated_fns(db)
+            .iter()
+            .map(|function| function.as_fn())
+            .collect::<Vec<_>>();
+
+        if let ShimClassSource::Enum(enum_) = self.src(db) {
+            fns.push(ShimFunctionEnumDiscriminator::new(db, enum_).as_fn());
         }
+
+        fns
     }
 }
 
@@ -129,6 +154,7 @@ impl<'db> ShimFunction<'db> {
     pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<ShimParam<'db>> {
         match self {
             ShimFunction::Free(function) => function.params(db).clone(),
+            ShimFunction::Associated(function) => function.params(db).clone(),
             ShimFunction::Getter(getter) => getter.params(db).to_vec(),
             ShimFunction::Setter(setter) => setter.params(db).to_vec(),
             ShimFunction::EnumDiscriminator(discriminator) => discriminator.params(db).to_vec(),
@@ -163,6 +189,66 @@ impl<'db> ShimFunctionFree<'db> {
                 ShimParam::new(db, function, idx, *src_type, shim_type)
             })
             .collect()
+    }
+}
+
+#[salsa::tracked]
+impl<'db> ShimFunctionAssociated<'db> {
+    #[salsa::tracked]
+    pub(super) fn lower_self_class(self, db: &'db dyn Db) -> ShimClass<'db> {
+        match self.src(db).parent(db) {
+            FunctionParent::Impl(impl_) => impl_.target(db).shim(db),
+            FunctionParent::Mod(_) => {
+                unreachable!("associated shim functions must belong to an impl block")
+            }
+        }
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_symbol(self, db: &'db dyn Db) -> String {
+        format!("__fn__associated__{}", self.src(db).path(db).mangled(db))
+    }
+
+    pub(super) fn lower_ret_type(self, db: &'db dyn Db) -> Option<ShimType<'db>> {
+        self.src(db)
+            .ret_type(db)
+            .map(|ret| ret.as_type().shim_out(db))
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<ShimParam<'db>> {
+        let function = self.as_fn();
+        let mut params = Vec::new();
+
+        if let Some(receiver) = self.src(db).receiver(db) {
+            let value_type = self.self_class(db).src(db).into_value_type();
+            let src_type = match receiver {
+                Receiver::Shared => value_type.borrowed(),
+                Receiver::Exclusive => value_type.borrowed_mut(),
+                Receiver::Owned => value_type.as_type(),
+            };
+
+            params.push(ShimParam::new(
+                db,
+                function,
+                0,
+                src_type,
+                src_type.shim_in(db),
+            ));
+        }
+
+        let offset = params.len();
+        params.extend(
+            self.src(db)
+                .params(db)
+                .iter()
+                .enumerate()
+                .map(|(idx, src)| {
+                    let src_type = *src.type_(db);
+                    ShimParam::new(db, function, idx + offset, src_type, src_type.shim_in(db))
+                }),
+        );
+        params
     }
 }
 

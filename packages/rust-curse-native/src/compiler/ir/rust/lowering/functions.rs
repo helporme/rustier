@@ -151,6 +151,29 @@ pub(super) fn lower_function<'db>(
         }
     }
 
+    if let Some(receiver) = hir.self_param(db)
+        && receiver.access(db) == Access::Owned
+    {
+        let receiver_type = ra_ap_hir::attach_db(db, || receiver.ty(db));
+        match lower_type(db, &receiver_type, crate_) {
+            Ok(Type::Value(ValueType::Struct(struct_)))
+                if !is_clonable(db, &receiver_type, crate_) =>
+            {
+                causes.push(FunctionLowerCause::NonClonableMovedParam {
+                    name: "self".to_owned(),
+                    type_fqn: struct_.fqn(db).to_owned(),
+                });
+            }
+            Ok(Type::Value(ValueType::Enum(enum_))) if !is_clonable(db, &receiver_type, crate_) => {
+                causes.push(FunctionLowerCause::NonClonableMovedParam {
+                    name: "self".to_owned(),
+                    type_fqn: enum_.fqn(db).to_owned(),
+                });
+            }
+            _ => {}
+        }
+    }
+
     for (index, param) in function_params(db, hir).into_iter().enumerate() {
         let name = param
             .name(db)

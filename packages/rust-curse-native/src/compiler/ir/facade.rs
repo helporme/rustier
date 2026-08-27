@@ -12,13 +12,12 @@ use crate::compiler::{
         ffi::{FfiClass, FfiFunction},
         rust::FieldName,
         shim::{
-            ShimClass, ShimClassSource, ShimField, ShimFunctionEnumDiscriminator, ShimFunctionFree,
-            ShimMod, ShimParam,
+            ShimClass, ShimClassSource, ShimField, ShimFunctionAssociated,
+            ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimMod, ShimParam,
         },
     },
 };
 
-/// Carries the importing module so its generated import path can be relative.
 #[salsa::tracked(debug)]
 pub struct FacadeImport<'db> {
     /// The module where the import statement will be emitted.
@@ -27,7 +26,6 @@ pub struct FacadeImport<'db> {
 }
 
 impl<'db> FacadeImport<'db> {
-    /// Resolves the imported item relative to the module emitting the import.
     pub fn path(self, db: &'db dyn Db) -> &'db str {
         self.lower_path(db)
     }
@@ -101,6 +99,37 @@ impl<'db> FacadeFunction<'db> {
 }
 
 #[salsa::interned(debug)]
+pub struct FacadeMethod<'db> {
+    shim: ShimFunctionAssociated<'db>,
+}
+
+impl<'db> FacadeMethod<'db> {
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        self.shim(db).src(db).name(db)
+    }
+
+    pub fn is_static(self, db: &'db dyn Db) -> bool {
+        self.shim(db).src(db).receiver(db).is_none()
+    }
+
+    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
+        self.shim(db).ffi(db)
+    }
+
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<FacadeParam<'db>> {
+        self.lower_params(db)
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<FacadeType<'db>> {
+        self.lower_ret_type(db)
+    }
+
+    pub(super) fn imports(self, db: &'db dyn Db) -> &'db HashSet<FacadeImportItem<'db>> {
+        self.lower_imports(db)
+    }
+}
+
+#[salsa::interned(debug)]
 pub struct FacadeParam<'db> {
     shim: ShimParam<'db>,
 }
@@ -136,12 +165,15 @@ impl<'db> FacadeClass<'db> {
         self.lower_kind(db)
     }
 
+    pub fn methods(self, db: &'db dyn Db) -> &'db Vec<FacadeMethod<'db>> {
+        self.lower_methods(db)
+    }
+
     pub(super) fn imports(self, db: &'db dyn Db) -> &'db HashSet<FacadeImportItem<'db>> {
         self.lower_imports(db)
     }
 }
 
-/// The structural shape of a JavaScript facade class.
 #[derive(Debug, Clone, Eq, PartialEq, salsa::Update)]
 pub enum FacadeClassKind<'db> {
     Plain {
@@ -153,7 +185,6 @@ pub enum FacadeClassKind<'db> {
     },
 }
 
-/// A field whose representation does not vary by enum variant.
 #[salsa::interned(debug)]
 pub struct FacadeFieldPlain<'db> {
     shim: ShimField<'db>,
@@ -177,20 +208,16 @@ impl<'db> FacadeFieldPlain<'db> {
     }
 }
 
-/// Groups same-named enum fields whose representation differs between variants.
 #[salsa::tracked(debug)]
 pub struct FacadeFieldDiscriminated<'db> {
     parent: FacadeClass<'db>,
-    /// The JavaScript-facing name shared by the variant-specific fields.
     #[returns(ref)]
     pub name: FieldName,
-    /// Maps discriminator values to their variant-specific field accessors.
     #[returns(ref)]
     #[tracked]
     pub sub: BTreeMap<u32, FacadeFieldPlain<'db>>,
 }
 
-/// A synthetic field exposing which variant of an enum is active.
 #[salsa::interned(debug)]
 pub struct FacadeFieldDiscriminator<'db> {
     shim: ShimFunctionEnumDiscriminator<'db>,

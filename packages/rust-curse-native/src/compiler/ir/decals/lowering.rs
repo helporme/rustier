@@ -6,7 +6,7 @@ use crate::compiler::{
     ir::{
         decals::{
             DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalFunction, DecalImport,
-            DecalMod, DecalParam, DecalType, DecalVariant,
+            DecalMethod, DecalMod, DecalParam, DecalType, DecalVariant,
         },
         shim::{ShimClassSource, ShimFunction, ShimFunctionEnumDiscriminator, ShimType},
     },
@@ -82,6 +82,15 @@ impl<'db> DecalMod<'db> {
                     }
                 }
             }
+
+            for method in class.methods(db) {
+                for param in method.params(db) {
+                    insert_type(param.type_(db));
+                }
+                if let Some(type_) = method.ret_type(db) {
+                    insert_type(type_);
+                }
+            }
         }
 
         classes
@@ -115,6 +124,24 @@ impl<'db> DecalFunction<'db> {
 }
 
 #[salsa::tracked]
+impl<'db> DecalMethod<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<DecalParam<'db>> {
+        self.shim(db)
+            .params_without_receiver(db)
+            .iter()
+            .map(|param| DecalParam::new(db, *param))
+            .collect()
+    }
+
+    pub(super) fn lower_ret_type(self, db: &'db dyn Db) -> Option<DecalType<'db>> {
+        self.shim(db)
+            .ret_type(db)
+            .map(|type_| type_.lower_decals(db))
+    }
+}
+
+#[salsa::tracked]
 impl<'db> DecalParam<'db> {
     pub(super) fn lower_type(self, db: &'db dyn Db) -> DecalType<'db> {
         self.shim(db).type_(db).lower_decals(db)
@@ -123,6 +150,15 @@ impl<'db> DecalParam<'db> {
 
 #[salsa::tracked]
 impl<'db> DecalClass<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_methods(self, db: &'db dyn Db) -> Vec<DecalMethod<'db>> {
+        self.shim(db)
+            .associated_fns(db)
+            .iter()
+            .map(|function| function.decals(db))
+            .collect()
+    }
+
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_kind(self, db: &'db dyn Db) -> DecalClassKind<'db> {
         match self.shim(db).src(db) {

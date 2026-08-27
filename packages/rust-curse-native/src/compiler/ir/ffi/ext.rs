@@ -3,8 +3,8 @@ use crate::compiler::{
     ir::{
         ffi::{FfiClass, FfiFunction, FfiParam},
         shim::{
-            ShimClass, ShimFunction, ShimFunctionEnumDiscriminator, ShimFunctionFree,
-            ShimFunctionGetter, ShimFunctionSetter, ShimParam,
+            ShimClass, ShimFunction, ShimFunctionAssociated, ShimFunctionEnumDiscriminator,
+            ShimFunctionFree, ShimFunctionGetter, ShimFunctionSetter, ShimParam,
         },
     },
 };
@@ -22,6 +22,12 @@ impl<'db> ShimFunction<'db> {
 }
 
 impl<'db> ShimFunctionFree<'db> {
+    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
+        self.as_fn().ffi(db)
+    }
+}
+
+impl<'db> ShimFunctionAssociated<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
         self.as_fn().ffi(db)
     }

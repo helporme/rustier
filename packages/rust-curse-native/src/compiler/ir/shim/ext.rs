@@ -1,7 +1,7 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        rust::{Enum, Field, Mod, Struct, Type, ValueType},
+        rust::{Enum, Field, ImplTarget, Mod, Struct, Type, ValueType},
         shim::{ShimClass, ShimClassSource, ShimField, ShimMod, ShimType},
     },
 };
@@ -21,6 +21,15 @@ impl<'db> Struct<'db> {
 impl<'db> Enum<'db> {
     pub fn shim(self, db: &'db dyn Db) -> ShimClass<'db> {
         ShimClass::new(db, ShimClassSource::Enum(self))
+    }
+}
+
+impl<'db> ImplTarget<'db> {
+    pub fn shim(self, db: &'db dyn Db) -> ShimClass<'db> {
+        match self {
+            ImplTarget::Struct(struct_) => struct_.shim(db),
+            ImplTarget::Enum(enum_) => enum_.shim(db),
+        }
     }
 }
 
