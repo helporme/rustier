@@ -4,22 +4,3 @@ name = "library-example"
 version = "0.1.0"
 edition = "2024"
 publish = false
-build = ".rust-curse/build.rs"
-
-[lib]
-path = ".rust-curse/lib.rs"
-crate-type = ["cdylib", "rlib"]
-
-[dependencies]
-wasm-bindgen = { version = "0.2", optional = true }
-napi = { version = "3", optional = true }
-napi-derive = { version = "3", optional = true }
-js-sys = { version = "0.3", optional = true }
-
-[features]
-default=["node"]
-wasm = ["dep:js-sys", "dep:wasm-bindgen"]
-node = ["dep:napi", "dep:napi-build", "dep:napi-derive"]
-
-[build-dependencies]
-napi-build = { version = "2", optional = true }
