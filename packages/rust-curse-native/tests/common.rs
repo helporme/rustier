@@ -6,7 +6,7 @@ use std::{
 
 use rust_curse::compiler::{
     CompileShimOpts, Compiler, CompilerDiagnostic, CrateApiDiscovery, CrateApiImportMode,
-    CrateGraphBuilder, Edition, FilePath, Platform, WorkspaceCrate,
+    CrateGraphBuilder, Edition, FilePath, Platform, WorkspaceChange, WorkspaceCrate,
 };
 use serde_json::Value;
 use tempfile::TempDir;
@@ -127,29 +127,26 @@ impl ProgramCompiler {
             let generated_dir = workspace.generated_root.join(generated_dir_name);
             let root_file = real_file_path(&workspace.source_dir.join("src/lib.rs"))?;
             let mut compiler = Compiler::new();
-            compiler
-                .change_workspace(|change| {
-                    change.set_local_file(
-                        root_file.clone(),
-                        Some(format!("{}\n{COMPILER_STD_FIXTURE}", program.src)),
-                    );
-                    let mut crates = CrateGraphBuilder::default();
-                    crates.add_crate(WorkspaceCrate {
-                        name: SOURCE_CRATE_NAME.to_owned(),
-                        edition: Edition::E2024,
-                        root_file,
-                        version: "0.0.0".to_owned(),
-                        is_local: true,
-                        is_sysroot: false,
-                        api_discovery: CrateApiDiscovery::Eager,
-                        api_import_mode: CrateApiImportMode::Mod,
-                    });
-                    change.set_crates(crates);
-                    Ok(())
-                })
-                .map_err(|error| {
-                    format!("configure {platform_name} compiler workspace: {error}")
-                })?;
+            let mut change = WorkspaceChange::new();
+            change.set_local_file(
+                root_file.clone(),
+                Some(format!("{}\n{COMPILER_STD_FIXTURE}", program.src)),
+            );
+            let mut crates = CrateGraphBuilder::default();
+            crates.add_crate(WorkspaceCrate {
+                name: SOURCE_CRATE_NAME.to_owned(),
+                edition: Edition::E2024,
+                root_file,
+                version: "0.0.0".to_owned(),
+                is_local: true,
+                is_sysroot: false,
+                api_discovery: CrateApiDiscovery::Eager,
+                api_import_mode: CrateApiImportMode::Mod,
+            });
+            change.set_crates(crates);
+            compiler.change(change).map_err(|error| {
+                format!("configure {platform_name} compiler workspace: {error}")
+            })?;
 
             let output = compiler.compile_shim(CompileShimOpts { platform });
             diagnostics.extend(output.diagnostics);

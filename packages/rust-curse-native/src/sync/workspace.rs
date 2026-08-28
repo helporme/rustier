@@ -690,13 +690,11 @@ mod tests {
 
         let manifest_path = workspace.path().join("root/Cargo.toml");
         let mut compiler = Compiler::new();
-        compiler
-            .change_workspace(|change| {
-                let mut opts = PopulateWorkspaceOpts::new(&manifest_path);
-                opts.include_dep_crates.push("transitive".to_owned());
-                change.populate_from_fs(opts)
-            })
-            .unwrap();
+        let mut change = WorkspaceChange::new();
+        let mut opts = PopulateWorkspaceOpts::new(&manifest_path);
+        opts.include_dep_crates.push("transitive".to_owned());
+        change.populate_from_fs(opts).unwrap();
+        compiler.change(change).unwrap();
 
         let output = compiler.compile_shim(CompileShimOpts {
             platform: Platform::Node,

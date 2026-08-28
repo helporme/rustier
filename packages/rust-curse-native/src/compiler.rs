@@ -67,36 +67,30 @@ impl Compiler {
     /// ```ignore
     /// use rust_curse::compiler::{
     ///     Compiler, CrateApiDiscovery, CrateApiImportMode, CrateGraphBuilder,
-    ///     Edition, FilePath, WorkspaceChangeError, WorkspaceCrate,
+    ///     Edition, FilePath, WorkspaceChange, WorkspaceChangeError, WorkspaceCrate,
     /// };
     ///
     /// let mut compiler = Compiler::new();
     ///
-    /// compiler.change_workspace(|change| {
-    ///     let root = FilePath::new_virtual("/src/lib.rs")?;
-    ///     change.set_local_file(root.clone(), Some("pub fn greet() {}".into()));
+    /// let root = FilePath::new_virtual("/src/lib.rs")?;
+    /// let mut change = WorkspaceChange::new();
+    /// change.set_local_file(root.clone(), Some("pub fn greet() {}".into()));
     ///
-    ///     let mut crates = CrateGraphBuilder::default();
-    ///     crates.add_crate(WorkspaceCrate {
-    ///         name: "example".into(),
-    ///         edition: Edition::E2024,
-    ///         root_file: root,
-    ///         version: "0.1.0".into(),
-    ///         is_local: true,
-    ///         api_discovery: CrateApiDiscovery::Eager,
-    ///         api_import_mode: CrateApiImportMode::Relative,
-    ///     });
-    ///     change.set_crates(crates);
-    ///     Ok(())
-    /// })?;
+    /// let mut crates = CrateGraphBuilder::default();
+    /// crates.add_crate(WorkspaceCrate {
+    ///     name: "example".into(),
+    ///     edition: Edition::E2024,
+    ///     root_file: root,
+    ///     version: "0.1.0".into(),
+    ///     is_local: true,
+    ///     api_discovery: CrateApiDiscovery::Eager,
+    ///     api_import_mode: CrateApiImportMode::Relative,
+    /// });
+    /// change.set_crates(crates);
+    /// compiler.change(change)?;
     /// # Ok::<(), WorkspaceChangeError>(())
     /// ```
-    pub fn change_workspace(
-        &mut self,
-        once: impl FnOnce(&mut WorkspaceChange) -> Result<(), WorkspaceChangeError>,
-    ) -> Result<(), WorkspaceChangeError> {
-        let mut change = WorkspaceChange::new();
-        once(&mut change)?;
+    pub fn change(&mut self, change: WorkspaceChange) -> Result<(), WorkspaceChangeError> {
         change.apply(&mut self.db, &mut self.vfs)
     }
 

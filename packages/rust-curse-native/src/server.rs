@@ -10,6 +10,7 @@ use napi_derive::napi;
 use crate::{
     compiler::{
         CompileJsOpts, CompileShimOpts, Compiler, CompilerDiagnostic, FilePath, Platform, Theme,
+        WorkspaceChange,
     },
     sync::{
         SyncCrateOpts, SyncTsTreeOpts, sync_crate, sync_ts_tree, workspace::PopulateWorkspaceOpts,
@@ -293,19 +294,16 @@ impl Server {
                 exclude_dep_crates: self.opts.exclude_dep_crates.clone(),
                 include_std: true,
             };
-            compiler
-                .change_workspace(|change| change.populate_from_fs(opts))
-                .map_err(napi_error)?;
+            let mut change = WorkspaceChange::new();
+            change.populate_from_fs(opts).map_err(napi_error)?;
+            compiler.change(change).map_err(napi_error)?;
             self.compiler = compiler;
         } else {
-            self.compiler
-                .change_workspace(|change| {
-                    for (path, contents) in files {
-                        change.set_local_file(path, contents);
-                    }
-                    Ok(())
-                })
-                .map_err(napi_error)?;
+            let mut change = WorkspaceChange::new();
+            for (path, contents) in files {
+                change.set_local_file(path, contents);
+            }
+            self.compiler.change(change).map_err(napi_error)?;
         }
 
         sync_ts_tree(SyncTsTreeOpts {

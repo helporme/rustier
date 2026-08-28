@@ -41,7 +41,7 @@ enum FileLocality {
 }
 
 impl WorkspaceChange {
-    pub(super) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             files: HashMap::new(),
             crate_graph: None,
