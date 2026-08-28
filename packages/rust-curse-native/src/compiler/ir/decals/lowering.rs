@@ -5,8 +5,8 @@ use crate::compiler::{
     db::Db,
     ir::{
         decals::{
-            DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalFunction,
-            DecalFunctionKind, DecalImport, DecalMod, DecalParam, DecalType, DecalVariant,
+            DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalFreeFunction,
+            DecalImport, DecalMethod, DecalMod, DecalParam, DecalType, DecalVariant,
         },
         shim::{ShimClassSource, ShimFunction, ShimFunctionEnumDiscriminator, ShimType},
     },
@@ -27,7 +27,7 @@ impl<'db> DecalImport<'db> {
 #[salsa::tracked]
 impl<'db> DecalMod<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn lower_fns(self, db: &'db dyn Db) -> Vec<DecalFunction<'db>> {
+    pub(super) fn lower_fns(self, db: &'db dyn Db) -> Vec<DecalFreeFunction<'db>> {
         self.shim(db)
             .fns(db)
             .iter()
@@ -106,16 +106,30 @@ impl<'db> DecalMod<'db> {
 }
 
 #[salsa::tracked]
-impl<'db> DecalFunction<'db> {
+impl<'db> DecalFreeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<DecalParam<'db>> {
-        let params = match self.shim(db) {
-            ShimFunction::Free(function) => function.params(db).as_slice(),
-            ShimFunction::Associated(function) => function.params_without_receiver(db),
-            _ => unreachable!("declaration functions must be source-defined functions"),
-        };
+        self.shim(db)
+            .params(db)
+            .iter()
+            .map(|param| DecalParam::new(db, *param))
+            .collect()
+    }
 
-        params
+    pub(super) fn lower_ret_type(self, db: &'db dyn Db) -> Option<DecalType<'db>> {
+        self.shim(db)
+            .as_fn()
+            .ret_type(db)
+            .map(|type_| type_.lower_decals(db))
+    }
+}
+
+#[salsa::tracked]
+impl<'db> DecalMethod<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<DecalParam<'db>> {
+        self.shim(db)
+            .params_without_receiver(db)
             .iter()
             .map(|param| DecalParam::new(db, *param))
             .collect()
@@ -138,19 +152,31 @@ impl<'db> DecalParam<'db> {
 #[salsa::tracked]
 impl<'db> DecalClass<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn lower_methods(self, db: &'db dyn Db) -> Vec<DecalFunction<'db>> {
+    pub(super) fn lower_methods(self, db: &'db dyn Db) -> Vec<DecalMethod<'db>> {
         self.shim(db)
             .associated_fns(db)
             .iter()
-            .map(|function| {
-                let function = function.decals(db);
-                debug_assert!(matches!(
-                    function.kind(db),
-                    DecalFunctionKind::Method | DecalFunctionKind::StaticMethod,
-                ));
-                function
-            })
+            .map(|function| function.decals(db))
             .collect()
+    }
+
+    #[salsa::tracked]
+    pub(super) fn lower_constructor(self, db: &'db dyn Db) -> Option<DecalMethod<'db>> {
+        let ShimClassSource::Struct(_) = self.shim(db).src(db) else {
+            return None;
+        };
+
+        self.methods(db).iter().copied().find(|method| {
+            method.name(db) == "new"
+                && method.is_static(db)
+                && matches!(
+                    method.shim(db).ret_type(db),
+                    Some(ShimType::Class {
+                        is_borrowed: false,
+                        inner,
+                    }) if inner == self.shim(db)
+                )
+        })
     }
 
     #[salsa::tracked(returns(ref))]

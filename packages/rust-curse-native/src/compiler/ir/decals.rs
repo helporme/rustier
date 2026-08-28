@@ -11,8 +11,8 @@ use crate::compiler::{
     ir::{
         rust::{Field, FieldName, Function, Span, Variant},
         shim::{
-            ShimClass, ShimClassSource, ShimFunction, ShimFunctionEnumDiscriminator, ShimMod,
-            ShimParam,
+            ShimClass, ShimClassSource, ShimFunction, ShimFunctionAssociated,
+            ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimMod, ShimParam,
         },
     },
 };
@@ -43,7 +43,7 @@ impl<'db> DecalMod<'db> {
         self.shim(db).src(db).span(db)
     }
 
-    pub fn fns(self, db: &'db dyn Db) -> &'db Vec<DecalFunction<'db>> {
+    pub fn fns(self, db: &'db dyn Db) -> &'db Vec<DecalFreeFunction<'db>> {
         self.lower_fns(db)
     }
 
@@ -60,21 +60,57 @@ impl<'db> DecalMod<'db> {
     }
 }
 
-#[salsa::interned(debug)]
-pub struct DecalFunction<'db> {
-    shim: ShimFunction<'db>,
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
+pub enum DecalFunction<'db> {
+    Free(DecalFreeFunction<'db>),
+    Method(DecalMethod<'db>),
 }
 
 impl<'db> DecalFunction<'db> {
-    pub fn kind(self, db: &'db dyn Db) -> DecalFunctionKind {
-        match self.shim(db) {
-            ShimFunction::Free(_) => DecalFunctionKind::Free,
-            ShimFunction::Associated(function) if function.src(db).receiver(db).is_none() => {
-                DecalFunctionKind::StaticMethod
-            }
-            ShimFunction::Associated(_) => DecalFunctionKind::Method,
-            _ => unreachable!("declaration functions must be source-defined functions"),
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        match self {
+            Self::Free(function) => function.name(db),
+            Self::Method(method) => method.name(db),
         }
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        match self {
+            Self::Free(function) => function.span(db),
+            Self::Method(method) => method.span(db),
+        }
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        match self {
+            Self::Free(function) => function.docs(db),
+            Self::Method(method) => method.docs(db),
+        }
+    }
+
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<DecalParam<'db>> {
+        match self {
+            Self::Free(function) => function.params(db),
+            Self::Method(method) => method.params(db),
+        }
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<DecalType<'db>> {
+        match self {
+            Self::Free(function) => function.ret_type(db),
+            Self::Method(method) => method.ret_type(db),
+        }
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct DecalFreeFunction<'db> {
+    shim: ShimFunctionFree<'db>,
+}
+
+impl<'db> DecalFreeFunction<'db> {
+    pub fn as_fn(self) -> DecalFunction<'db> {
+        DecalFunction::Free(self)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {
@@ -98,19 +134,47 @@ impl<'db> DecalFunction<'db> {
     }
 
     fn src(self, db: &'db dyn Db) -> Function<'db> {
-        match self.shim(db) {
-            ShimFunction::Free(function) => function.src(db),
-            ShimFunction::Associated(function) => function.src(db),
-            _ => unreachable!("declaration functions must be source-defined functions"),
-        }
+        self.shim(db).src(db)
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update)]
-pub enum DecalFunctionKind {
-    Free,
-    Method,
-    StaticMethod,
+#[salsa::interned(debug)]
+pub struct DecalMethod<'db> {
+    shim: ShimFunctionAssociated<'db>,
+}
+
+impl<'db> DecalMethod<'db> {
+    pub fn as_fn(self) -> DecalFunction<'db> {
+        DecalFunction::Method(self)
+    }
+
+    pub fn is_static(self, db: &'db dyn Db) -> bool {
+        self.src(db).receiver(db).is_none()
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        self.src(db).name(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.src(db).span(db)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.src(db).docs(db)
+    }
+
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<DecalParam<'db>> {
+        self.lower_params(db)
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<DecalType<'db>> {
+        self.lower_ret_type(db)
+    }
+
+    fn src(self, db: &'db dyn Db) -> Function<'db> {
+        self.shim(db).src(db)
+    }
 }
 
 #[salsa::interned(debug)]
@@ -173,8 +237,12 @@ impl<'db> DecalClass<'db> {
         self.lower_kind(db)
     }
 
-    pub fn methods(self, db: &'db dyn Db) -> &'db Vec<DecalFunction<'db>> {
+    pub fn methods(self, db: &'db dyn Db) -> &'db Vec<DecalMethod<'db>> {
         self.lower_methods(db)
+    }
+
+    pub fn constructor(self, db: &'db dyn Db) -> Option<DecalMethod<'db>> {
+        self.lower_constructor(db)
     }
 }
 

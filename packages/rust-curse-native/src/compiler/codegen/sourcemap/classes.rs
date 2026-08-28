@@ -5,8 +5,7 @@ use crate::compiler::{
     db::Db,
     ir::{
         decals::{
-            DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalFunction,
-            DecalFunctionKind, DecalVariant,
+            DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalMethod, DecalVariant,
         },
         rust::FieldName,
     },
@@ -91,7 +90,12 @@ impl<'db> DecalClass<'db> {
             ));
         }
 
-        for method in self.methods(db) {
+        let constructor = self.constructor(db);
+        for method in self
+            .methods(db)
+            .iter()
+            .filter(|method| Some(**method) != constructor)
+        {
             let (prefix, suffix) = class_method_search(method, db, "\t");
             let method_line = find_name_line(
                 generated,
@@ -103,6 +107,19 @@ impl<'db> DecalClass<'db> {
             .expect("rendered TypeScript class method declaration should exist");
             field_start_line = method_line + 1;
             mappings.extend(method_mappings(method, db, method_line, prefix.len()));
+        }
+
+        if let Some(constructor) = constructor {
+            let prefix = "\t";
+            let constructor_line =
+                find_name_line(generated, field_start_line, prefix, "constructor", "(")
+                    .expect("rendered TypeScript class constructor declaration should exist");
+            mappings.extend(method_mappings(
+                &constructor,
+                db,
+                constructor_line,
+                prefix.len(),
+            ));
         }
 
         mappings
@@ -173,7 +190,7 @@ impl<'db> DecalClass<'db> {
         for method in self
             .methods(db)
             .iter()
-            .filter(|method| matches!(method.kind(db), DecalFunctionKind::StaticMethod))
+            .filter(|method| method.is_static(db))
         {
             let prefix = "\texport function ";
             let method_line = find_name_line(
@@ -192,7 +209,7 @@ impl<'db> DecalClass<'db> {
         for method in self
             .methods(db)
             .iter()
-            .filter(|method| matches!(method.kind(db), DecalFunctionKind::Method))
+            .filter(|method| !method.is_static(db))
         {
             let (prefix, suffix) = class_method_search(method, db, "\t\t");
             let method_line = find_name_line(
@@ -274,15 +291,11 @@ impl<'db> DecalClass<'db> {
 }
 
 fn class_method_search<'db>(
-    method: &DecalFunction<'db>,
+    method: &DecalMethod<'db>,
     db: &'db dyn Db,
     indent: &str,
 ) -> (String, &'static str) {
-    let static_prefix = if matches!(method.kind(db), DecalFunctionKind::StaticMethod) {
-        "static "
-    } else {
-        ""
-    };
+    let static_prefix = if method.is_static(db) { "static " } else { "" };
     if method.name(db) == "constructor" {
         (format!("{indent}{static_prefix}[\""), "\"](")
     } else {
@@ -291,7 +304,7 @@ fn class_method_search<'db>(
 }
 
 fn method_mappings<'db>(
-    method: &DecalFunction<'db>,
+    method: &DecalMethod<'db>,
     db: &'db dyn Db,
     generated_line: usize,
     generated_name_column: usize,

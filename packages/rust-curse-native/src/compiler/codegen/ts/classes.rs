@@ -7,7 +7,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::decals::{
-        DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalFunctionKind, DecalVariant,
+        DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalVariant,
     },
     ir::rust::FieldName,
 };
@@ -27,6 +27,8 @@ impl<'db> DecalClass<'db> {
 
     fn render_plain_ts(self, db: &'db dyn Db, fields: &'db [DecalField<'db>]) -> String {
         let members = fragment(move |p| {
+            let constructor = self.constructor(db);
+
             for (index, field) in fields.iter().enumerate() {
                 if index > 0 {
                     frag!(@).apply(p);
@@ -34,17 +36,30 @@ impl<'db> DecalClass<'db> {
                 field.render_ts(db, true).apply(p);
             }
 
-            for (index, method) in self.methods(db).iter().enumerate() {
-                if !fields.is_empty() || index > 0 {
+            let mut rendered_method = false;
+            for method in self
+                .methods(db)
+                .iter()
+                .copied()
+                .filter(|method| Some(*method) != constructor)
+            {
+                if !fields.is_empty() || rendered_method {
                     frag!(@).apply(p);
                 }
                 method.render_in_class_ts(db).apply(p);
+                rendered_method = true;
             }
 
-            if !fields.is_empty() || !self.methods(db).is_empty() {
+            if !fields.is_empty() || rendered_method {
                 frag!(@).apply(p);
             }
             brand().apply(p);
+            frag!(@).apply(p);
+            if let Some(constructor) = constructor {
+                constructor.render_as_constructor_ts(db).apply(p);
+            } else {
+                private_ctor().apply(p);
+            }
         });
 
         frag!(
@@ -85,7 +100,7 @@ impl<'db> DecalClass<'db> {
         let static_methods = self
             .methods(db)
             .iter()
-            .filter(|method| matches!(method.kind(db), DecalFunctionKind::StaticMethod))
+            .filter(|method| method.is_static(db))
             .map(|method| method.render_in_namespace_ts(db))
             .collect::<Vec<_>>();
 
@@ -99,7 +114,7 @@ impl<'db> DecalClass<'db> {
         let instance_methods = self
             .methods(db)
             .iter()
-            .filter(|method| matches!(method.kind(db), DecalFunctionKind::Method))
+            .filter(|method| !method.is_static(db))
             .map(|method| method.render_in_class_ts(db))
             .collect::<Vec<_>>();
 
@@ -109,6 +124,8 @@ impl<'db> DecalClass<'db> {
                 blank().apply(p);
             }
             brand().apply(p);
+            frag!(@).apply(p);
+            private_ctor().apply(p);
         });
 
         frag!(
@@ -183,10 +200,11 @@ impl<'db> DecalField<'db> {
 }
 
 fn brand() -> impl FragmentOnce {
-    frag!(
-        private __rust_curse_brand: never;@
-        private constructor();
-    )
+    frag!(private __rust_curse_brand: never;)
+}
+
+fn private_ctor() -> impl FragmentOnce {
+    frag!(private constructor();)
 }
 
 #[cfg(test)]
@@ -284,6 +302,30 @@ mod tests {
             pub fn create(value: i32) -> Self {
                 let _ = value;
                 Self
+            }
+        }
+    });
+
+    test_class!(constructor_without_arguments, "Test", {
+        #[derive(Clone)]
+        pub struct Test;
+
+        impl Test {
+            /// Creates a test value.
+            pub fn new() -> Self {
+                Self
+            }
+        }
+    });
+
+    test_class!(constructor_with_arguments_and_named_return, "Test", {
+        #[derive(Clone)]
+        pub struct Test;
+
+        impl Test {
+            pub fn new(value: i32, enabled: bool) -> Test {
+                let _ = (value, enabled);
+                Test
             }
         }
     });

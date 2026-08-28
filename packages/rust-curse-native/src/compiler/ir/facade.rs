@@ -12,8 +12,8 @@ use crate::compiler::{
         ffi::{FfiClass, FfiFunction},
         rust::{FieldName, Function},
         shim::{
-            ShimClass, ShimClassSource, ShimField, ShimFunction, ShimFunctionEnumDiscriminator,
-            ShimMod, ShimParam,
+            ShimClass, ShimClassSource, ShimField, ShimFunctionAssociated,
+            ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimMod, ShimParam,
         },
     },
 };
@@ -54,7 +54,7 @@ pub struct FacadeMod<'db> {
 }
 
 impl<'db> FacadeMod<'db> {
-    pub fn fns(self, db: &'db dyn Db) -> &'db Vec<FacadeFunction<'db>> {
+    pub fn fns(self, db: &'db dyn Db) -> &'db Vec<FacadeFreeFunction<'db>> {
         self.lower_fns(db)
     }
 
@@ -71,21 +71,50 @@ impl<'db> FacadeMod<'db> {
     }
 }
 
-#[salsa::interned(debug)]
-pub struct FacadeFunction<'db> {
-    shim: ShimFunction<'db>,
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
+pub enum FacadeFunction<'db> {
+    Free(FacadeFreeFunction<'db>),
+    Method(FacadeMethod<'db>),
 }
 
 impl<'db> FacadeFunction<'db> {
-    pub fn kind(self, db: &'db dyn Db) -> FacadeFunctionKind {
-        match self.shim(db) {
-            ShimFunction::Free(_) => FacadeFunctionKind::Free,
-            ShimFunction::Associated(function) if function.src(db).receiver(db).is_none() => {
-                FacadeFunctionKind::StaticMethod
-            }
-            ShimFunction::Associated(_) => FacadeFunctionKind::Method,
-            _ => unreachable!("facade functions must be source-defined functions"),
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        match self {
+            Self::Free(function) => function.name(db),
+            Self::Method(method) => method.name(db),
         }
+    }
+
+    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
+        match self {
+            Self::Free(function) => function.ffi(db),
+            Self::Method(method) => method.ffi(db),
+        }
+    }
+
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<FacadeParam<'db>> {
+        match self {
+            Self::Free(function) => function.params(db),
+            Self::Method(method) => method.params(db),
+        }
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<FacadeType<'db>> {
+        match self {
+            Self::Free(function) => function.ret_type(db),
+            Self::Method(method) => method.ret_type(db),
+        }
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct FacadeFreeFunction<'db> {
+    shim: ShimFunctionFree<'db>,
+}
+
+impl<'db> FacadeFreeFunction<'db> {
+    pub fn as_fn(self) -> FacadeFunction<'db> {
+        FacadeFunction::Free(self)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {
@@ -93,7 +122,7 @@ impl<'db> FacadeFunction<'db> {
     }
 
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.shim(db).ffi(db)
+        self.shim(db).as_fn().ffi(db)
     }
 
     pub fn params(self, db: &'db dyn Db) -> &'db Vec<FacadeParam<'db>> {
@@ -109,19 +138,51 @@ impl<'db> FacadeFunction<'db> {
     }
 
     fn src(self, db: &'db dyn Db) -> Function<'db> {
-        match self.shim(db) {
-            ShimFunction::Free(function) => function.src(db),
-            ShimFunction::Associated(function) => function.src(db),
-            _ => unreachable!("facade functions must be source-defined functions"),
-        }
+        self.shim(db).src(db)
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update)]
-pub enum FacadeFunctionKind {
-    Free,
-    Method,
-    StaticMethod,
+#[salsa::interned(debug)]
+pub struct FacadeMethod<'db> {
+    shim: ShimFunctionAssociated<'db>,
+}
+
+impl<'db> FacadeMethod<'db> {
+    pub fn as_fn(self) -> FacadeFunction<'db> {
+        FacadeFunction::Method(self)
+    }
+
+    pub fn is_static(self, db: &'db dyn Db) -> bool {
+        self.src(db).receiver(db).is_none()
+    }
+
+    pub fn class(self, db: &'db dyn Db) -> FacadeClass<'db> {
+        self.shim(db).self_class(db).facade(db)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        self.src(db).name(db)
+    }
+
+    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
+        self.shim(db).as_fn().ffi(db)
+    }
+
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<FacadeParam<'db>> {
+        self.lower_params(db)
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<FacadeType<'db>> {
+        self.lower_ret_type(db)
+    }
+
+    pub(super) fn imports(self, db: &'db dyn Db) -> &'db HashSet<FacadeImportItem<'db>> {
+        self.lower_imports(db)
+    }
+
+    fn src(self, db: &'db dyn Db) -> Function<'db> {
+        self.shim(db).src(db)
+    }
 }
 
 #[salsa::interned(debug)]
@@ -160,8 +221,12 @@ impl<'db> FacadeClass<'db> {
         self.lower_kind(db)
     }
 
-    pub fn methods(self, db: &'db dyn Db) -> &'db Vec<FacadeFunction<'db>> {
+    pub fn methods(self, db: &'db dyn Db) -> &'db Vec<FacadeMethod<'db>> {
         self.lower_methods(db)
+    }
+
+    pub fn constructor(self, db: &'db dyn Db) -> Option<FacadeMethod<'db>> {
+        self.lower_constructor(db)
     }
 
     pub(super) fn imports(self, db: &'db dyn Db) -> &'db HashSet<FacadeImportItem<'db>> {

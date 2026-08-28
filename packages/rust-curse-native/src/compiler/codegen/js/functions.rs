@@ -6,11 +6,11 @@ use crate::compiler::{
         js::cast::{Cast, CastRenderer, Renderer},
     },
     db::Db,
-    ir::facade::{FacadeFunction, FacadeFunctionKind},
+    ir::facade::{FacadeFreeFunction, FacadeFunction, FacadeMethod},
 };
 
 #[salsa::tracked]
-impl<'db> FacadeFunction<'db> {
+impl<'db> FacadeFreeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render(self, db: &'db dyn Db) -> String {
         self.render_with(db, Renderer).print()
@@ -20,7 +20,7 @@ impl<'db> FacadeFunction<'db> {
     where
         Casts: CastRenderer<'db> + Copy + Clone + 'db,
     {
-        FacadeFunctionRenderer {
+        FreeFunctionRenderer {
             function: self,
             db,
             casts,
@@ -28,14 +28,42 @@ impl<'db> FacadeFunction<'db> {
     }
 }
 
+impl<'db> FacadeMethod<'db> {
+    pub(super) fn render_with<Casts>(self, db: &'db dyn Db, casts: Casts) -> impl FragmentOnce
+    where
+        Casts: CastRenderer<'db> + Copy + Clone + 'db,
+    {
+        MethodRenderer {
+            method: self,
+            db,
+            casts,
+        }
+    }
+
+    pub(super) fn render_as_constructor_with<Casts>(
+        self,
+        db: &'db dyn Db,
+        casts: Casts,
+    ) -> impl FragmentOnce
+    where
+        Casts: CastRenderer<'db> + Copy + Clone + 'db,
+    {
+        ConstructorRenderer {
+            method: self,
+            db,
+            casts,
+        }
+    }
+}
+
 #[derive(Copy, Clone)]
-struct FacadeFunctionRenderer<'db, Casts> {
-    function: FacadeFunction<'db>,
+struct FreeFunctionRenderer<'db, Casts> {
+    function: FacadeFreeFunction<'db>,
     db: &'db dyn Db,
     casts: Casts,
 }
 
-impl<'db, Casts> FragmentOnce for FacadeFunctionRenderer<'db, Casts>
+impl<'db, Casts> FragmentOnce for FreeFunctionRenderer<'db, Casts>
 where
     Casts: CastRenderer<'db> + Copy + Clone + 'db,
 {
@@ -44,20 +72,162 @@ where
     }
 }
 
-impl<'db, Casts> FacadeFunctionRenderer<'db, Casts>
+impl<'db, Casts> FreeFunctionRenderer<'db, Casts>
 where
     Casts: CastRenderer<'db> + Copy + Clone + 'db,
 {
     fn render(self) -> impl FragmentOnce + 'db {
         let name = self.function.name(self.db);
-        let ffi_ret_type = self.function.ffi(self.db).ret_type(self.db);
-        let facade_ret_type = self.function.ret_type(self.db);
 
-        let body = fragment(move |p| match (ffi_ret_type, facade_ret_type) {
+        frag!(
+            export function~{name}~({self.render_params()})~{{
+                {self.render_body()}@
+            }}
+        )
+    }
+}
+
+impl<'db, Casts> FunctionRenderer<'db, Casts> for FreeFunctionRenderer<'db, Casts>
+where
+    Casts: CastRenderer<'db> + Copy + Clone + 'db,
+{
+    fn db(self) -> &'db dyn Db {
+        self.db
+    }
+
+    fn function(self) -> FacadeFunction<'db> {
+        self.function.as_fn()
+    }
+
+    fn casts(self) -> Casts {
+        self.casts
+    }
+}
+
+#[derive(Copy, Clone)]
+struct MethodRenderer<'db, Casts> {
+    method: FacadeMethod<'db>,
+    db: &'db dyn Db,
+    casts: Casts,
+}
+
+impl<'db, Casts> FragmentOnce for MethodRenderer<'db, Casts>
+where
+    Casts: CastRenderer<'db> + Copy + Clone + 'db,
+{
+    fn apply(self, p: &mut Printer) {
+        self.render().apply(p);
+    }
+}
+
+impl<'db, Casts> MethodRenderer<'db, Casts>
+where
+    Casts: CastRenderer<'db> + Copy + Clone + 'db,
+{
+    fn render(self) -> impl FragmentOnce + 'db {
+        let name = self.method.name(self.db);
+        let static_prefix = self.method.is_static(self.db).then_some("static ");
+
+        frag!(
+            {static_prefix}{render_method_name(name)}({self.render_params()})~{{
+                {self.render_body()}@
+            }}
+        )
+    }
+}
+
+impl<'db, Casts> FunctionRenderer<'db, Casts> for MethodRenderer<'db, Casts>
+where
+    Casts: CastRenderer<'db> + Copy + Clone + 'db,
+{
+    fn db(self) -> &'db dyn Db {
+        self.db
+    }
+
+    fn function(self) -> FacadeFunction<'db> {
+        self.method.as_fn()
+    }
+
+    fn casts(self) -> Casts {
+        self.casts
+    }
+}
+
+#[derive(Copy, Clone)]
+struct ConstructorRenderer<'db, Casts> {
+    method: FacadeMethod<'db>,
+    db: &'db dyn Db,
+    casts: Casts,
+}
+
+impl<'db, Casts> FragmentOnce for ConstructorRenderer<'db, Casts>
+where
+    Casts: CastRenderer<'db> + Copy + Clone + 'db,
+{
+    fn apply(self, p: &mut Printer) {
+        self.render().apply(p);
+    }
+}
+
+impl<'db, Casts> ConstructorRenderer<'db, Casts>
+where
+    Casts: CastRenderer<'db> + Copy + Clone + 'db,
+{
+    fn render(self) -> impl FragmentOnce + 'db {
+        let class_name = self.method.class(self.db).name(self.db);
+        let body = self.render_param_casts(frag!(
+            this.#_ffi~ = ~{self.render_call_expr()};
+        ));
+
+        frag!(
+            constructor({self.render_params()})~{{
+                if (arguments[0]~ === ~{class_name}.#_construction_token) {{
+                    return;
+                }}@
+                {body}@
+            }}
+        )
+    }
+}
+
+impl<'db, Casts> FunctionRenderer<'db, Casts> for ConstructorRenderer<'db, Casts>
+where
+    Casts: CastRenderer<'db> + Copy + Clone + 'db,
+{
+    fn db(self) -> &'db dyn Db {
+        self.db
+    }
+
+    fn function(self) -> FacadeFunction<'db> {
+        self.method.as_fn()
+    }
+
+    fn casts(self) -> Casts {
+        self.casts
+    }
+}
+
+trait FunctionRenderer<'db, Casts>: Copy + 'db
+where
+    Casts: CastRenderer<'db> + Copy + Clone + 'db,
+{
+    fn db(self) -> &'db dyn Db;
+
+    fn function(self) -> FacadeFunction<'db>;
+
+    fn casts(self) -> Casts;
+
+    fn render_body(self) -> impl FragmentOnce + 'db {
+        let db = self.db();
+        let function = self.function();
+        let ffi_ret_type = function.ffi(db).ret_type(db);
+        let facade_ret_type = function.ret_type(db);
+
+        fragment(move |p| match (ffi_ret_type, facade_ret_type) {
             (Some(ffi_ret_type), Some(facade_ret_type)) => {
                 self.render_param_casts({
-                    self.casts.render_stmt(
-                        self.db,
+                    self.casts().render_stmt(
+                        db,
                         Cast {
                             from: ffi_ret_type,
                             to: facade_ret_type,
@@ -74,101 +244,78 @@ where
                 self.render_param_casts(call_stmt).apply(p);
             }
             _ => unreachable!(),
-        });
-
-        fragment(move |p| match self.function.kind(self.db) {
-            FacadeFunctionKind::Free => frag!(
-                export function~{name}~({self.render_params()})~{{
-                    {body}@
-                }}
-            )
-            .apply(p),
-            FacadeFunctionKind::Method | FacadeFunctionKind::StaticMethod => {
-                let static_prefix = matches!(
-                    self.function.kind(self.db),
-                    FacadeFunctionKind::StaticMethod
-                )
-                .then_some("static ");
-
-                frag!(
-                    {static_prefix}{render_method_name(name)}({self.render_params()})~{{
-                        {body}@
-                    }}
-                )
-                .apply(p);
-            }
         })
     }
 
     fn render_params(self) -> impl FragmentOnce {
+        let db = self.db();
         comma_list(
-            self.function
-                .params(self.db)
+            self.function()
+                .params(db)
                 .iter()
                 .enumerate()
-                .map(|(i, _)| Self::param_name(i)),
+                .map(|(i, _)| param_name(i)),
         )
     }
 
     fn render_param_casts(self, continuation: impl FragmentOnce + 'db) -> impl FragmentOnce + 'db {
-        let ffi_params = self.function.ffi(self.db).params(self.db);
+        let db = self.db();
+        let function = self.function();
+        let ffi_params = function.ffi(db).params(db);
         let receiver_offset = usize::from(matches!(
-            self.function.kind(self.db),
-            FacadeFunctionKind::Method
+            function,
+            FacadeFunction::Method(method) if !method.is_static(db)
         ));
         let ffi_params = &ffi_params[receiver_offset..];
-        assert_eq!(
-            self.function.params(self.db).len(),
-            ffi_params.len(),
-            "facade and FFI explicit parameter counts must match",
-        );
-        let param_casts = self
-            .function
-            .params(self.db)
-            .iter()
-            .zip(ffi_params)
-            .enumerate()
-            .map(|(i, (param, ffi_param))| Cast {
-                from: param.type_(self.db),
-                to: ffi_param.type_(self.db),
-                in_expr: Self::param_name(i),
-                out_var_name: Self::casted_param_name(i),
-            });
 
-        self.casts.render_many(self.db, param_casts, continuation)
+        let param_casts = function.params(db).iter().zip(ffi_params).enumerate().map(
+            |(i, (param, ffi_param))| Cast {
+                from: param.type_(db),
+                to: ffi_param.type_(db),
+                in_expr: param_name(i),
+                out_var_name: casted_param_name(i),
+            },
+        );
+
+        self.casts().render_many(db, param_casts, continuation)
     }
 
     fn render_call_expr(self) -> impl FragmentOnce {
-        let ffi_fn_symbol = self.function.ffi(self.db).symbol(self.db);
-        let is_instance_method = matches!(self.function.kind(self.db), FacadeFunctionKind::Method);
+        let db = self.db();
+        let function = self.function();
+        let ffi_fn_symbol = function.ffi(db).symbol(db);
+        let is_instance_method = matches!(
+            function,
+            FacadeFunction::Method(method) if !method.is_static(db)
+        );
         let params = fragment(move |p| {
             if is_instance_method {
                 frag!(this.#_ffi).apply(p);
-                if !self.function.params(self.db).is_empty() {
+                if !function.params(db).is_empty() {
                     frag!(,~).apply(p);
                 }
             }
 
             comma_list(
-                self.function
-                    .params(self.db)
+                function
+                    .params(db)
                     .iter()
                     .enumerate()
-                    .map(|(i, _)| Self::casted_param_name(i)),
+                    .map(|(i, _)| casted_param_name(i)),
             )
             .apply(p);
         });
 
         frag!({ ffi_fn_symbol }({ params }))
     }
+}
 
-    fn param_name(i: usize) -> impl FragmentOnce {
-        frag!(_{i})
-    }
+fn param_name(i: usize) -> impl FragmentOnce {
+    frag!(_{i})
+}
 
-    fn casted_param_name(i: usize) -> impl FragmentOnce {
-        frag!(__ { i })
-    }
+fn casted_param_name(i: usize) -> impl FragmentOnce {
+    frag!(__ { i })
 }
 
 fn render_method_name(name: &str) -> impl FragmentOnce + '_ {

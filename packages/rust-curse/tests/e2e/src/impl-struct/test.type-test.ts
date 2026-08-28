@@ -1,8 +1,8 @@
 import { expectTypeOf, test } from 'vitest'
 import { Counter } from './test.rs'
 
-test('declares struct associated functions as static and instance methods', () => {
-  const counter = Counter.new(1)
+test('declares struct constructors, static functions, and instance methods', () => {
+  const counter = new Counter(1)
 
   expectTypeOf(counter).toEqualTypeOf<Counter>()
   expectTypeOf(counter.value()).toEqualTypeOf<number>()

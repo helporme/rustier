@@ -7,7 +7,7 @@ use crate::compiler::{
     ir::{
         facade::{
             FacadeClass, FacadeClassKind, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
-            FacadeFieldPlain, FacadeFunction, FacadeFunctionKind, FacadeImport, FacadeImportItem,
+            FacadeFieldPlain, FacadeFreeFunction, FacadeImport, FacadeImportItem, FacadeMethod,
             FacadeMod, FacadeParam, FacadeType,
         },
         rust::FieldName,
@@ -36,7 +36,7 @@ impl<'db> FacadeImport<'db> {
 #[salsa::tracked]
 impl<'db> FacadeMod<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn lower_fns(self, db: &'db dyn Db) -> Vec<FacadeFunction<'db>> {
+    pub(super) fn lower_fns(self, db: &'db dyn Db) -> Vec<FacadeFreeFunction<'db>> {
         self.shim(db)
             .fns(db)
             .iter()
@@ -87,16 +87,49 @@ impl<'db> FacadeMod<'db> {
 }
 
 #[salsa::tracked]
-impl<'db> FacadeFunction<'db> {
+impl<'db> FacadeFreeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
-        let params = match self.shim(db) {
-            ShimFunction::Free(function) => function.params(db).as_slice(),
-            ShimFunction::Associated(function) => function.params_without_receiver(db),
-            _ => unreachable!("facade functions must be source-defined functions"),
-        };
+        self.shim(db)
+            .params(db)
+            .iter()
+            .copied()
+            .map(|param| FacadeParam::new(db, param))
+            .collect()
+    }
 
-        params
+    pub(super) fn lower_ret_type(self, db: &'db dyn Db) -> Option<FacadeType<'db>> {
+        self.shim(db)
+            .as_fn()
+            .ret_type(db)
+            .map(|type_| type_.lower_facade(db))
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_imports(self, db: &'db dyn Db) -> HashSet<FacadeImportItem<'db>> {
+        let mut imports = HashSet::from([FacadeImportItem::FfiFunction(self.ffi(db))]);
+
+        for type_ in self
+            .params(db)
+            .iter()
+            .map(|param| param.type_(db))
+            .chain(self.ret_type(db))
+        {
+            if let FacadeType::Class(class) = type_ {
+                imports.insert(FacadeImportItem::FacadeClass(class));
+            }
+        }
+
+        imports
+    }
+}
+
+#[salsa::tracked]
+impl<'db> FacadeMethod<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
+        self.shim(db)
+            .params_without_receiver(db)
             .iter()
             .copied()
             .map(|param| FacadeParam::new(db, param))
@@ -112,11 +145,7 @@ impl<'db> FacadeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_imports(self, db: &'db dyn Db) -> HashSet<FacadeImportItem<'db>> {
         let mut imports = HashSet::from([FacadeImportItem::FfiFunction(self.ffi(db))]);
-        let owner = match self.shim(db) {
-            ShimFunction::Associated(function) => Some(function.self_class(db).facade(db)),
-            ShimFunction::Free(_) => None,
-            _ => unreachable!("facade functions must be source-defined functions"),
-        };
+        let owner = self.class(db);
 
         for type_ in self
             .params(db)
@@ -125,7 +154,7 @@ impl<'db> FacadeFunction<'db> {
             .chain(self.ret_type(db))
         {
             if let FacadeType::Class(class) = type_
-                && Some(class) != owner
+                && class != owner
             {
                 imports.insert(FacadeImportItem::FacadeClass(class));
             }
@@ -145,19 +174,31 @@ impl<'db> FacadeParam<'db> {
 #[salsa::tracked]
 impl<'db> FacadeClass<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn lower_methods(self, db: &'db dyn Db) -> Vec<FacadeFunction<'db>> {
+    pub(super) fn lower_methods(self, db: &'db dyn Db) -> Vec<FacadeMethod<'db>> {
         self.shim(db)
             .associated_fns(db)
             .iter()
-            .map(|function| {
-                let function = function.facade(db);
-                debug_assert!(matches!(
-                    function.kind(db),
-                    FacadeFunctionKind::Method | FacadeFunctionKind::StaticMethod,
-                ));
-                function
-            })
+            .map(|function| function.facade(db))
             .collect()
+    }
+
+    #[salsa::tracked]
+    pub(super) fn lower_constructor(self, db: &'db dyn Db) -> Option<FacadeMethod<'db>> {
+        let ShimClassSource::Struct(_) = self.shim(db).src(db) else {
+            return None;
+        };
+
+        self.methods(db).iter().copied().find(|method| {
+            method.name(db) == "new"
+                && method.is_static(db)
+                && matches!(
+                    method.shim(db).ret_type(db),
+                    Some(ShimType::Class {
+                        is_borrowed: false,
+                        inner,
+                    }) if inner == self.shim(db)
+                )
+        })
     }
 
     #[salsa::tracked(returns(ref))]

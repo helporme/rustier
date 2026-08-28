@@ -2,8 +2,8 @@ import { expect, it } from 'vitest'
 import { rustCurseDiags } from '$build/diags'
 import { Counter } from './test.rs'
 
-it('calls struct static, shared, and exclusive associated functions', () => {
-  const counter = Counter.new(10)
+it('calls a struct constructor and shared and exclusive methods', () => {
+  const counter = new Counter(10)
 
   expect(counter.value()).toBe(10)
 
@@ -13,19 +13,19 @@ it('calls struct static, shared, and exclusive associated functions', () => {
 })
 
 it('clones an owned self receiver and leaves the JS wrapper valid', () => {
-  const counter = Counter.new(21)
+  const counter = new Counter(21)
 
   expect(counter.into_value()).toBe(21)
   expect(counter.value()).toBe(21)
 })
 
 it('passes and returns Self through associated functions', () => {
-  const first = Counter.new(12)
+  const first = new Counter(12)
   const second = Counter.clone_of(first)
 
   expect(first.sum(second)).toBe(24)
 
-  const replacement = Counter.new(90)
+  const replacement = new Counter(90)
   second.replace_with(replacement)
 
   expect(second.value()).toBe(90)
@@ -33,15 +33,15 @@ it('passes and returns Self through associated functions', () => {
 })
 
 it('exposes an inherent method named constructor', () => {
-  const positive = Counter.new(1)
-  const negative = Counter.new(-1)
+  const positive = new Counter(1)
+  const negative = new Counter(-1)
 
   expect(positive.constructor()).toBe(true)
   expect(negative.constructor()).toBe(false)
 })
 
 it('lets the method shadow a field with the same name', () => {
-  const counter = Counter.new(7)
+  const counter = new Counter(7)
   const runtimeCounter = counter as unknown as Record<string, unknown>
 
   expect(counter.value()).toBe(7)
@@ -53,7 +53,7 @@ it('lets the method shadow a field with the same name', () => {
 
 it('omits static prototype and non-public methods', () => {
   const runtimeClass = Counter as unknown as Record<string, unknown>
-  const runtimeCounter = Counter.new(0) as unknown as Record<string, unknown>
+  const runtimeCounter = new Counter(0) as unknown as Record<string, unknown>
 
   expect(typeof runtimeClass.prototype).toBe('object')
   expect(runtimeClass.private_method).toBeUndefined()

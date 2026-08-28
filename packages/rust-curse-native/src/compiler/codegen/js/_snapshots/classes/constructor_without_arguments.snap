@@ -1,0 +1,53 @@
+---
+source: src/compiler/codegen/js/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Test;
+impl Test {
+    pub fn new() -> Self {
+        Self
+    }
+}
+```
+
+# Compiled
+
+```js
+export class Test {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+
+	) {
+		if(
+			arguments[0] === Test.#_construction_token
+		){
+			return;
+		}
+		this.#_ffi = __fn__associated__test_0crate_Test_new(
+
+		);
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new Test(
+			 Test.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+```

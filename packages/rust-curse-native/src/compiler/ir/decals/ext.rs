@@ -1,7 +1,7 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        decals::{DecalClass, DecalFunction, DecalMod},
+        decals::{DecalClass, DecalFreeFunction, DecalMethod, DecalMod},
         shim::{ShimClass, ShimFunctionAssociated, ShimFunctionFree, ShimMod},
     },
 };
@@ -19,13 +19,13 @@ impl<'db> ShimClass<'db> {
 }
 
 impl<'db> ShimFunctionFree<'db> {
-    pub fn decals(self, db: &'db dyn Db) -> DecalFunction<'db> {
-        DecalFunction::new(db, self.as_fn())
+    pub fn decals(self, db: &'db dyn Db) -> DecalFreeFunction<'db> {
+        DecalFreeFunction::new(db, self)
     }
 }
 
 impl<'db> ShimFunctionAssociated<'db> {
-    pub fn decals(self, db: &'db dyn Db) -> DecalFunction<'db> {
-        DecalFunction::new(db, self.as_fn())
+    pub fn decals(self, db: &'db dyn Db) -> DecalMethod<'db> {
+        DecalMethod::new(db, self)
     }
 }

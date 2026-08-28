@@ -6,11 +6,11 @@ use crate::compiler::{
         ts::jsdoc::render_jsdoc,
     },
     db::Db,
-    ir::decals::{DecalFunction, DecalFunctionKind, DecalParam, DecalType},
+    ir::decals::{DecalFreeFunction, DecalMethod, DecalParam, DecalType},
 };
 
 #[salsa::tracked]
-impl<'db> DecalFunction<'db> {
+impl<'db> DecalFreeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_ts(self, db: &'db dyn Db) -> String {
         frag!(
@@ -23,10 +23,9 @@ impl<'db> DecalFunction<'db> {
     }
 }
 
-impl<'db> DecalFunction<'db> {
+impl<'db> DecalMethod<'db> {
     pub(super) fn render_in_class_ts(self, db: &'db dyn Db) -> String {
-        let static_prefix =
-            matches!(self.kind(db), DecalFunctionKind::StaticMethod).then_some("static ");
+        let static_prefix = self.is_static(db).then_some("static ");
 
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
@@ -38,13 +37,19 @@ impl<'db> DecalFunction<'db> {
     }
 
     pub(super) fn render_in_namespace_ts(self, db: &'db dyn Db) -> String {
-        debug_assert_eq!(self.kind(db), DecalFunctionKind::StaticMethod);
-
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
             export function ~{self.name(db)}{render_params(db, self.params(db))}:~{
                 render_return_type(db, self.ret_type(db))
             };
+        )
+        .print()
+    }
+
+    pub(super) fn render_as_constructor_ts(self, db: &'db dyn Db) -> String {
+        frag!(
+            {render_jsdoc(self.docs(db).map(String::as_str))}
+            constructor{render_params(db, self.params(db))};
         )
         .print()
     }

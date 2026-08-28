@@ -1,20 +1,18 @@
-use crate::{
-    compiler::{
-        codegen::{
-            fragment::{
-                FragmentOnce, FragmentPrint as _, Printer, comma_list, doubles, frag, fragment,
-                spaced, squares,
-            },
-            js::cast::{Cast, CastRenderer, Renderer},
+use crate::compiler::{
+    codegen::{
+        fragment::{
+            FragmentOnce, FragmentPrint as _, Printer, comma_list, doubles, frag, fragment, spaced,
+            squares,
         },
-        db::Db,
-        ir::{
-            facade::{
-                FacadeClass, FacadeClassKind, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
-                FacadeFieldPlain, FacadeType,
-            },
-            rust::FieldName,
+        js::cast::{Cast, CastRenderer, Renderer},
+    },
+    db::Db,
+    ir::{
+        facade::{
+            FacadeClass, FacadeClassKind, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
+            FacadeFieldPlain, FacadeType,
         },
+        rust::FieldName,
     },
 };
 
@@ -68,11 +66,7 @@ where
 
                 {self.render_members()}@@
 
-                constructor(token) {{
-                    if (token !== ~{name}.#_construction_token) {{
-                        throw new TypeError("rust-backed structs cannot be constructed directly (yet)");
-                    }}
-                }}@@
+                {self.render_constructor()}@@
 
                 static $from_ffi(ffi) {{
                     const obj = new ~{name}(~{name}.#_construction_token);@
@@ -91,15 +85,43 @@ where
         fragment(move |p| {
             self.render_fields().apply(p);
 
-            if !self.class.methods(self.db).is_empty() {
+            let constructor = self.class.constructor(self.db);
+            let methods = self
+                .class
+                .methods(self.db)
+                .iter()
+                .copied()
+                .filter(|method| Some(*method) != constructor)
+                .collect::<Vec<_>>();
+
+            if !methods.is_empty() {
                 if self.has_rendered_fields() {
                     frag!(@@).apply(p);
                 }
                 spaced(
-                    self.class
-                        .methods(self.db)
-                        .iter()
+                    methods
+                        .into_iter()
                         .map(|method| method.render_with(self.db, self.casts)),
+                )
+                .apply(p);
+            }
+        })
+    }
+
+    fn render_constructor(self) -> impl FragmentOnce + 'db {
+        fragment(move |p| {
+            if let Some(constructor) = self.class.constructor(self.db) {
+                constructor
+                    .render_as_constructor_with(self.db, self.casts)
+                    .apply(p);
+            } else {
+                let class_name = self.class.name(self.db);
+                frag!(
+                    constructor(token) {{
+                        if (token !== ~{class_name}.#_construction_token) {{
+                            throw new TypeError("rust-backed structs cannot be constructed directly (yet)");
+                        }}
+                    }}
                 )
                 .apply(p);
             }
@@ -638,6 +660,27 @@ mod tests {
             pub fn create(value: i32) -> Self {
                 let _ = value;
                 Self
+            }
+        }
+    });
+    test_class!(constructor_without_arguments, {
+        #[derive(Clone)]
+        pub struct Test;
+
+        impl Test {
+            pub fn new() -> Self {
+                Self
+            }
+        }
+    });
+    test_class!(constructor_with_arguments_and_named_return, {
+        #[derive(Clone)]
+        pub struct Test;
+
+        impl Test {
+            pub fn new(value: i32, enabled: bool) -> Test {
+                let _ = (value, enabled);
+                Test
             }
         }
     });

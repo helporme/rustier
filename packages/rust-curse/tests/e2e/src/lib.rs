@@ -50,6 +50,8 @@ pub mod impl_multiple_modules;
 pub mod impl_skipped;
 #[path = "impl-struct/test.rs"]
 pub mod impl_struct;
+#[path = "impl-struct-constructor/test.rs"]
+pub mod impl_struct_constructor;
 #[path = "struct-bad-alias-throws/test.rs"]
 pub mod struct_bad_alias_throws;
 #[path = "struct-field-wrong-type-throws/test.rs"]
