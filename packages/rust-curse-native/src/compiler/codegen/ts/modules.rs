@@ -1,30 +1,36 @@
-use crate::{
-    compiler::{
-        codegen::{
-            fragment::{FragmentOnce, FragmentPrint, frag, fragment, singles, spaced},
-            ts::jsdoc::render_jsdoc,
-        },
-        db::Db,
-        ir::decals::{DecalClassKind, DecalMod},
+use std::collections::BTreeSet;
+
+use crate::compiler::{
+    codegen::{
+        fragment::{FragmentOnce, FragmentPrint, frag, fragment, singles, spaced},
+        ts::jsdoc::render_jsdoc,
     },
+    db::Db,
+    ir::decals::{DecalClassKind, DecalMod},
 };
 
 #[salsa::tracked]
 impl<'db> DecalMod<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn render_ts(self, db: &'db dyn Db) -> String {
+        let functions = self.fns(db);
+        let classes = self.classes(db);
+
+        if functions.is_empty() && classes.is_empty() {
+            // make sure that returned stirng is always valid typescript module
+            return frag!(export {};).print();
+        }
+
         let imports = self.ts_imports(db);
         let has_imports = !imports.is_empty();
-        let functions = self.fns(db).iter().map(|function| function.render_ts(db));
+        let functions = functions.iter().map(|function| function.render_ts(db));
 
-        let plain_classes = self
-            .classes(db)
+        let plain_classes = classes
             .iter()
             .filter(|&class| matches!(class.kind(db), DecalClassKind::Plain { .. }))
             .map(|class| class.render_ts(db));
 
-        let discriminated_classes = self
-            .classes(db)
+        let discriminated_classes = classes
             .iter()
             .filter(|&class| matches!(class.kind(db), DecalClassKind::DiscriminatedUnion { .. }))
             .map(|class| class.render_ts(db));
@@ -52,7 +58,8 @@ impl<'db> DecalMod<'db> {
         .print()
     }
 
-    fn ts_imports(self, db: &'db dyn Db) -> std::collections::BTreeSet<(String, String)> {
+    // todo: remove it and make sure Mod.imports() are sorted instead.
+    fn ts_imports(self, db: &'db dyn Db) -> BTreeSet<(String, String)> {
         self.imports(db)
             .iter()
             .map(|import| {
