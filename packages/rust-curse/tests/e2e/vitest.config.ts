@@ -1,4 +1,4 @@
-import { defineConfig, Plugin } from 'vitest/config'
+import { defineConfig, type Plugin } from 'vitest/config'
 import {
   Server,
   type ProfileBuildOutput,

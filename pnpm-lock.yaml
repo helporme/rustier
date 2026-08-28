@@ -38,6 +38,9 @@ importers:
       publint:
         specifier: ^0.3.20
         version: 0.3.20
+      rolldown:
+        specifier: ^1.0.0
+        version: 1.0.0
       rust-curse-native:
         specifier: workspace:*
         version: link:../rust-curse-native

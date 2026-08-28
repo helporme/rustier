@@ -3,7 +3,8 @@ import { defineConfig } from 'tsdown'
 export default defineConfig({
   entry: {
     unstable: 'src/unstable/index.ts',
-    utils: 'src/utils.ts',
+    rolldown: 'src/rolldown.ts',
+    tsdown: 'src/tsdown.ts',
   },
   exports: {
     packageJson: false,
