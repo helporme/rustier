@@ -157,20 +157,19 @@ impl Server {
             .any(|profile| matches!(&profile.target, Target::Node));
 
         if needs_wasm {
-            tools::wasm::ensure_wasm_target_installed()
-                .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+            tools::wasm::ensure_wasm_target_installed().map_err(napi_error)?;
             tools::wasm::ensure_wasm_bindgen_cli_installed(
                 tools::wasm::EnsureWasmBindgenCliInstalledOpts {
                     install_root_path: &tools_dir.join("wasm-bindgen"),
                 },
             )
-            .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+            .map_err(napi_error)?;
         }
         if needs_node {
             tools::node::ensure_napi_cli_installed(tools::node::EnsureNapiCliInstalledOpts {
                 install_root_path: &tools_dir.join("napi"),
             })
-            .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+            .map_err(napi_error)?;
         }
 
         Ok(())
@@ -183,8 +182,7 @@ impl Server {
             let path = PathBuf::from(&change.file_path);
             if path.extension().is_some_and(|extension| extension == "rs") {
                 self.pending.get_or_insert_default().files.insert(
-                    FilePath::try_from(path.as_path())
-                        .map_err(|error| napi::Error::from_reason(error.to_string()))?,
+                    FilePath::try_from(path.as_path()).map_err(napi_error)?,
                     change.contents,
                 );
                 changed = true;
@@ -240,15 +238,14 @@ impl Server {
 
         let path = PathBuf::from(file_path)
             .canonicalize()
-            .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+            .map_err(napi_error)?;
 
         self.compiler
             .compile_js(
-                FilePath::try_from(path.as_path())
-                    .map_err(|error| napi::Error::from_reason(error.to_string()))?,
+                FilePath::try_from(path.as_path()).map_err(napi_error)?,
                 CompileJsOpts {
                     ffi_js_file: FilePath::new_real(build.output.artifact.js_path())
-                        .map_err(|error| napi::Error::from_reason(error.to_string()))?,
+                        .map_err(napi_error)?,
                 },
             )
             .ok_or_else(|| napi::Error::from_reason("Rust module is not part of the workspace"))
@@ -298,7 +295,7 @@ impl Server {
             };
             compiler
                 .change_workspace(|change| change.populate_from_fs(opts))
-                .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+                .map_err(napi_error)?;
             self.compiler = compiler;
         } else {
             self.compiler
@@ -308,7 +305,7 @@ impl Server {
                     }
                     Ok(())
                 })
-                .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+                .map_err(napi_error)?;
         }
 
         sync_ts_tree(SyncTsTreeOpts {
@@ -318,7 +315,7 @@ impl Server {
                 .ok_or_else(|| napi::Error::from_reason("manifest path has no parent"))?,
             tree: self.compiler.compile_ts_tree(),
         })
-        .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+        .map_err(napi_error)?;
 
         let pending = self
             .pending
@@ -367,7 +364,7 @@ impl Server {
             platform,
             shim: &compilation.shim,
         })
-        .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+        .map_err(napi_error)?;
 
         let build_version = self
             .profile_builds
@@ -382,7 +379,7 @@ impl Server {
             &out_dir.join("tools"),
         )?;
         tools::build_versioning::cleanup_old_build_versions(&output_root, build_version)
-            .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+            .map_err(napi_error)?;
 
         let output = ProfileBuildOutput { artifact, diags };
         self.profile_builds.insert(
@@ -421,7 +418,7 @@ impl Server {
                     release: profile.release,
                     compat,
                 })
-                .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+                .map_err(napi_error)?;
                 Ok(BuildArtifact::Wasm {
                     wasm_abs_path: output.wasm_abs_path.to_string_lossy().into_owned(),
                     js_abs_path: output.js_abs_path.to_string_lossy().into_owned(),
@@ -434,7 +431,7 @@ impl Server {
                     node_cli_path: &tools::node::napi_cli_path(&tools_dir.join("napi")),
                     release: profile.release,
                 })
-                .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+                .map_err(napi_error)?;
                 Ok(BuildArtifact::Node {
                     js_abs_path: output.js_path.to_string_lossy().into_owned(),
                     node_abs_path: output.node_path.to_string_lossy().into_owned(),
@@ -457,9 +454,23 @@ impl Server {
 fn render_diags(diags: Vec<CompilerDiagnostic>) -> napi::Result<Vec<String>> {
     diags
         .into_iter()
-        .map(|diag| {
-            diag.render(Theme::UnicodeNoColor)
-                .map_err(|error| napi::Error::from_reason(error.to_string()))
-        })
+        .map(|diag| diag.render(Theme::UnicodeNoColor).map_err(napi_error))
         .collect()
+}
+
+fn napi_error(error: impl std::error::Error) -> napi::Error {
+    let mut reason = error.to_string();
+    let mut source = error.source();
+
+    if source.is_some() {
+        reason.push_str("\n\nCaused by:");
+    }
+    let mut index = 1;
+    while let Some(cause) = source {
+        reason.push_str(&format!("\n  {index}: {cause}"));
+        source = cause.source();
+        index += 1;
+    }
+
+    napi::Error::from_reason(reason)
 }
