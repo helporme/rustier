@@ -2,6 +2,7 @@
 
 mod crater;
 mod fs;
+mod ts_tree;
 mod write_file;
 
 use std::{

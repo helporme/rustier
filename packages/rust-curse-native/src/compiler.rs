@@ -143,6 +143,7 @@ impl Compiler {
                 }
             })
             .collect::<Vec<_>>();
+
         modules.sort_by(|left, right| left.source_path.as_path().cmp(right.source_path.as_path()));
 
         // inline Rust modules share their containing module's source file and
