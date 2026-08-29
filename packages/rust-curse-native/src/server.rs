@@ -1,6 +1,8 @@
 //! Long-lived build server used by JavaScript bundler integrations.
 
+mod crater;
 mod fs;
+mod write_file;
 
 use std::{
     collections::{HashMap, HashSet},
