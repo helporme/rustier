@@ -7,6 +7,7 @@ use std::{
 use rust_curse::compiler::{
     CompileShimOpts, Compiler, CompilerDiagnostic, CrateApiDiscovery, CrateApiImportMode,
     CrateGraphBuilder, Edition, FilePath, Platform, WorkspaceChange, WorkspaceCrate,
+    WorkspaceCrateKind,
 };
 use serde_json::Value;
 use tempfile::TempDir;
@@ -138,8 +139,7 @@ impl ProgramCompiler {
                 edition: Edition::E2024,
                 root_file,
                 version: "0.0.0".to_owned(),
-                is_local: true,
-                is_sysroot: false,
+                kind: WorkspaceCrateKind::Local,
                 api_discovery: CrateApiDiscovery::Eager,
                 api_import_mode: CrateApiImportMode::Mod,
             });

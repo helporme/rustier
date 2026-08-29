@@ -26,7 +26,7 @@ use self::{
 pub use self::{
     change::{
         CrateBuilderId, CrateGraphBuilder, Edition, WorkspaceChange, WorkspaceChangeError,
-        WorkspaceCrate, WorkspaceCrateDependency,
+        WorkspaceCrate, WorkspaceCrateDependency, WorkspaceCrateKind,
     },
     inputs::{CrateApiDiscovery, CrateApiImportMode, FfiLayout, Platform, WasmEnv},
     path::{FilePath, FilePathError},
@@ -82,7 +82,7 @@ impl Compiler {
     ///     edition: Edition::E2024,
     ///     root_file: root,
     ///     version: "0.1.0".into(),
-    ///     is_local: true,
+    ///     kind: WorkspaceCrateKind::Local,
     ///     api_discovery: CrateApiDiscovery::Eager,
     ///     api_import_mode: CrateApiImportMode::Relative,
     /// });

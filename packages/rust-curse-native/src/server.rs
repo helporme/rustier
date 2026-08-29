@@ -1,5 +1,7 @@
 //! Long-lived build server used by JavaScript bundler integrations.
 
+mod fs;
+
 use std::{
     collections::{HashMap, HashSet},
     path::{Path, PathBuf},

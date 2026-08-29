@@ -174,24 +174,22 @@ impl WorkspaceChange {
                 }
             })?;
             let crate_name = CrateName::normalize_dashes(&crate_.name);
-            let origin = if crate_.is_sysroot {
-                CrateOrigin::Lang(match crate_.name.as_str() {
+            let origin = match crate_.kind {
+                WorkspaceCrateKind::Lang => CrateOrigin::Lang(match crate_.name.as_str() {
                     "alloc" => LangCrateOrigin::Alloc,
                     "core" => LangCrateOrigin::Core,
                     "proc_macro" => LangCrateOrigin::ProcMacro,
                     "std" => LangCrateOrigin::Std,
-                    _ => unreachable!("unsupported sysroot crate"),
-                })
-            } else if crate_.is_local {
-                CrateOrigin::Local {
+                    _ => panic!("unsupported sysroot crate"),
+                }),
+                WorkspaceCrateKind::Local => CrateOrigin::Local {
                     repo: None,
                     name: Some(crate_name.symbol().clone()),
-                }
-            } else {
-                CrateOrigin::Library {
+                },
+                WorkspaceCrateKind::Dependency => CrateOrigin::Library {
                     repo: None,
                     name: crate_name.symbol().clone(),
-                }
+                },
             };
             let hir_id = hir_graph.add_crate_root(
                 root_file_id,
@@ -276,10 +274,16 @@ pub struct WorkspaceCrate {
     pub edition: Edition,
     pub root_file: FilePath,
     pub version: String,
-    pub is_local: bool,
-    pub is_sysroot: bool,
+    pub kind: WorkspaceCrateKind,
     pub api_discovery: CrateApiDiscovery,
     pub api_import_mode: CrateApiImportMode,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WorkspaceCrateKind {
+    Local,
+    Lang,
+    Dependency,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
@@ -313,12 +317,6 @@ impl From<Edition> for HirEdition {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum WorkspaceChangeError {
-    #[error("failed to prepare compiler workspace")]
-    Prepare {
-        #[source]
-        source: Box<dyn std::error::Error + Send + Sync>,
-    },
-
     #[error("crate root file is not present in the compiler workspace: {path:?}")]
     MissingCrateRoot { path: FilePath },
 
@@ -339,14 +337,4 @@ pub enum WorkspaceChangeError {
 
     #[error(transparent)]
     InvalidFilePath(#[from] FilePathError),
-}
-
-impl WorkspaceChangeError {
-    /// Wraps an error raised while an external workspace provider prepares a
-    /// change.
-    pub fn prepare(source: impl std::error::Error + Send + Sync + 'static) -> Self {
-        Self::Prepare {
-            source: Box::new(source),
-        }
-    }
 }
