@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use crate::compiler::{FilePath, db::Db};
+use crate::compiler::{FilePath, WorkspaceCrateKind, db::Db};
 
 /// Target platform used for FFI
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
@@ -36,6 +36,7 @@ pub struct CratesMetadata {
 
 #[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct CrateMetadata {
+    pub kind: WorkspaceCrateKind,
     pub api_discovery: CrateApiDiscovery,
     pub api_import_mode: CrateApiImportMode,
 }

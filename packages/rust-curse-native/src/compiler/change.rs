@@ -209,6 +209,7 @@ impl WorkspaceChange {
             metadata.insert(
                 root_path,
                 CrateMetadata {
+                    kind: crate_.kind,
                     api_discovery: crate_.api_discovery,
                     api_import_mode: crate_.api_import_mode,
                 },
@@ -279,7 +280,7 @@ pub struct WorkspaceCrate {
     pub api_import_mode: CrateApiImportMode,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, salsa::Update)]
 pub enum WorkspaceCrateKind {
     Local,
     Lang,

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use ra_ap_test_fixture::ChangeFixture;
 
 use crate::compiler::{
-    CrateApiDiscovery, CrateApiImportMode, FfiLayout, FilePath, Platform,
+    CrateApiDiscovery, CrateApiImportMode, FfiLayout, FilePath, Platform, WorkspaceCrateKind,
     db::RootDatabase,
     inputs::{CrateMetadata, CratesMetadata},
 };
@@ -74,6 +74,7 @@ pub(super) fn build_test_db(source: String, files: &[(&str, String)]) -> RootDat
             crates: HashMap::from([(
                 root_file,
                 CrateMetadata {
+                    kind: WorkspaceCrateKind::Local,
                     api_discovery: CrateApiDiscovery::Eager,
                     api_import_mode: CrateApiImportMode::Mod,
                 },

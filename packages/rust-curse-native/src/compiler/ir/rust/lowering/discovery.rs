@@ -268,7 +268,7 @@ mod tests {
 
     use super::*;
     use crate::compiler::{
-        CrateApiImportMode, FilePath, Platform,
+        CrateApiImportMode, FilePath, Platform, WorkspaceCrateKind,
         db::RootDatabase,
         inputs::{CrateMetadata, CratesMetadata},
         ir::rust::{Member, Mod, Rust},
@@ -338,6 +338,7 @@ pub struct NeverReferenced {
                     (
                         eager_root,
                         CrateMetadata {
+                            kind: WorkspaceCrateKind::Local,
                             api_discovery: CrateApiDiscovery::Eager,
                             api_import_mode: CrateApiImportMode::Mod,
                         },
@@ -345,6 +346,7 @@ pub struct NeverReferenced {
                     (
                         lazy_root,
                         CrateMetadata {
+                            kind: WorkspaceCrateKind::Local,
                             api_discovery: CrateApiDiscovery::Lazy,
                             api_import_mode: CrateApiImportMode::Mod,
                         },
@@ -352,6 +354,7 @@ pub struct NeverReferenced {
                     (
                         unused_lazy_root,
                         CrateMetadata {
+                            kind: WorkspaceCrateKind::Local,
                             api_discovery: CrateApiDiscovery::Lazy,
                             api_import_mode: CrateApiImportMode::Mod,
                         },
