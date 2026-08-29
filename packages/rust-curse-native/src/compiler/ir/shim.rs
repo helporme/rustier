@@ -5,8 +5,8 @@
 //! shim code and is also the source representation lowered into the facade and
 //! FFI IRs.
 //!
-//! Unlike the downstream IRs, shim entities *deliberately* keeps referneces to
-//! the rust (higher) IR public.
+//! Unlike the downstream IRs, shim entities *deliberately* keep references to
+//! the higher-level Rust IR public.
 
 pub mod ext;
 mod lowering;

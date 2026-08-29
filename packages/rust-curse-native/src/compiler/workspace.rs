@@ -28,12 +28,12 @@ use super::{
     inputs::{CrateMetadata, CratesMetadata},
 };
 
-/// Workspace exposing convinient methods to setup an environment for rust
-/// analyzer database and expose it via [`Self::db`] and [`Self::db_mut`].
+/// Workspace exposing convenient methods to set up an environment for a
+/// rust-analyzer database and access it via [`Self::db`] and [`Self::db_mut`].
 ///
-/// Useful for testint and quick project bootstraping. Alternatively, you can
-/// use the rust-analyzer [`RootDatabase`] directly and settings rust-curse
-/// specific inputs using [`super::inputs`].
+/// Useful for testing and quick project bootstrapping. Alternatively, you can
+/// use the rust-analyzer [`RootDatabase`] directly and manually set
+/// rust-curse-specific [`inputs`](super::inputs).
 pub struct Workspace {
     db: RootDatabase,
     vfs: Vfs,
@@ -105,12 +105,12 @@ impl Workspace {
         &self.db
     }
 
-    /// Changes a compilation target platform.
+    /// Changes the compilation target platform.
     pub fn change_platform(&mut self, platform: Platform) {
         Platform::set(&mut self.db, platform);
     }
 
-    /// Sets a FFI layout to a custom one.
+    /// Sets a custom FFI layout.
     pub fn change_ffi_layout(&mut self, ffi_layout: FfiLayout) {
         FfiLayout::set(&mut self.db, ffi_layout);
     }
@@ -119,10 +119,10 @@ impl Workspace {
     ///
     /// **Dangerous:** File and crate graph changes must still go through
     /// [`Workspace::apply_change`] so the database inputs and underlying VFS
-    /// stay in sync. In case you are integrating rust-curse with other project
-    /// using rust-analyzer hir database, you probably do not want to use
-    /// [`Workspace`] at all and should just directly set singleton [`inputs`]
-    /// such as [`CratesMetadata`](inputs::CratesMetadata).
+    /// stay in sync. If you are integrating rust-curse with another project
+    /// using a rust-analyzer HIR database, you probably do not want to use
+    /// [`Workspace`] at all and should instead set singleton
+    /// [`inputs`](super::inputs) directly, such as [`CratesMetadata`].
     pub fn db_mut(&mut self) -> &mut RootDatabase {
         &mut self.db
     }
@@ -153,7 +153,7 @@ enum FileLocality {
 }
 
 impl WorkspaceChange {
-    /// Crates new empty workspace change.
+    /// Creates a new empty workspace change.
     pub fn new() -> Self {
         Default::default()
     }
@@ -374,7 +374,7 @@ impl CrateGraphBuilder {
     }
 }
 
-/// Temporary crate id used to crate a dependency.
+/// Temporary crate ID used to create a dependency.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct CrateBuilderId(usize);
 

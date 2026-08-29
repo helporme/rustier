@@ -1,11 +1,11 @@
-//! Additional salsa inputs used by compiler besides those provided by
+//! Additional Salsa inputs used by the compiler besides those provided by
 //! rust-analyzer.
 
 use std::collections::HashMap;
 
 use crate::compiler::{db::Db, path::FilePath};
 
-/// Target platform used for FFI
+/// Target platform used for FFI.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
 #[non_exhaustive]
 pub enum Platform {
@@ -21,16 +21,16 @@ pub enum WasmEnv {
     Node,
 }
 
-/// Layout of generated ffi files
+/// Layout of generated FFI files.
 #[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct FfiLayout {
-    /// Location of the js file exposing all ffi functions
+    /// Location of the JavaScript file exposing all FFI functions.
     pub ffi_js_file: FilePath,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct CratesMetadata {
-    /// A crate metadata mapped by crate root file path (virutal or not).
+    /// Crate metadata mapped by crate root file path, whether virtual or real.
     pub crates: HashMap<FilePath, CrateMetadata>,
 }
 
@@ -49,12 +49,12 @@ pub enum CrateApiDiscovery {
     Lazy,
 }
 
-/// Shape of imports generated for the crate modules
+/// Shape of imports generated for crate modules.
 #[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub enum CrateApiImportMode {
-    /// Genearte js imports matching the rust module path.
+    /// Generate JavaScript imports matching the Rust module path.
     Mod,
-    /// Generate js imports to files ignoring the rust module path.
+    /// Generate JavaScript file imports that ignore the Rust module path.
     Relative,
 }
 

@@ -1,4 +1,4 @@
-//! Tethering is a mechanism of simulating a js-like object model for Rust
+//! Tethering is a mechanism for simulating a JavaScript-like object model for Rust
 //! language constructs, like structs or enums.
 //!
 //! ## Idea
@@ -17,7 +17,7 @@
 //! }
 //! ```
 //!
-//! If we mentally translate this two structs to javascript classes, we can
+//! If we mentally translate these two structs to JavaScript classes, we can
 //! expect the following code to work:
 //! ```js
 //! const line = new Line(new Point(1, 1), new Point(2, -3));
@@ -31,11 +31,11 @@
 //! console.log(start.x, start.y); // 10, 1
 //! ```
 //!
-//! It works since JavaScript is GC-collected language, and each `new Point()`
+//! It works since JavaScript is a garbage-collected language, and each `new Point()`
 //! allocates a new object in the heap, so `Line.start` and `Line.end` are
 //! holding a pointer to the `Point` object in the heap.
 //!
-//! In rust we could represent something simillar using `Rc` and `RwLock` or
+//! In Rust, we could represent something similar using `Rc` and `RwLock` or
 //! `Arc` and `Mutex`:
 //! ```text
 //! use std::sync::{Arc, Mutex};
@@ -45,30 +45,30 @@
 //!     end: Arc<Mutex<Point>>,
 //! }
 //! ```
-//! Avoid the fact that we can deadlock ourself.
+//! This ignores the fact that we can deadlock ourselves.
 //!
-//! However, it's not reasonable approach for rust-curse to design it this way.
+//! However, it is not reasonable for rust-curse to use this design.
 //! It implies that we need to generate a "binding struct" that contains all the
-//! same fields as source one and wrap all non-copy fields to `Arc<Mutex<T>>`.
+//! same fields as the source struct and wrap all non-copy fields in `Arc<Mutex<T>>`.
 //! It's enough to say that it's impossible to do for private fields.
 //!
-//! Instead, we introducing The grand concept that we **clone** values on
+//! Instead, we introduce the concept that we **clone** values on
 //! move. With this constraint, we can expose fields that hold struct (like
 //! `line.start` or `line.end`) to JavaScript using _projection_.
 //!
 //! Projection is nothing more than a closure that will return for a given
-//! struct a (mutable) reference to it's field value, like `|line| &line.start`
+//! struct a (mutable) reference to its field value, like `|line| &line.start`
 //! is a projection from a `Line` to `Point`.
 //!
-//! Teathered struct is a struct that is compiled specifically for a source
-//! struct and can be initalized from:
-//!  - an owned value, so `TetheringPoint` will be crated like
+//! A tethered struct is compiled specifically for a source struct and can be
+//! initialized from:
+//!  - an owned value, so `TetheringPoint` will be created like
 //!    `TetheringPoint::new_owned(Point::new(1,2))`.
-//!  - a projection, so `TetheringPoint` will be crated like
+//!  - a projection, so `TetheringPoint` will be created like
 //!    `TetheringPoint::from_projection(Projection::new(line, |line|
 //!    &line.start))`.
 //!
-//! It's not a real code, but fine example.
+//! This is not real code, but it illustrates the idea.
 //!
 //! Now, for each struct we generate a tethering struct with internal structure
 //! like this:
@@ -76,7 +76,7 @@
 //! struct TetheringPoint {
 //!     src: ProjectionOrOwned<Point>,
 //! }
-//! // impl of TetheringPoint ommited for brevity
+//! // impl of TetheringPoint omitted for brevity
 //!
 //! struct TetheringLine {
 //!     src: ProjectionOrOwned<Line>,
@@ -102,9 +102,9 @@
 //! }
 //! ```
 //!
-//! By utilizing projections, we can generate code that emulate JS-like field
-//! access just fine for all lines of code of javascript snippet shown in the
-//! beggining of this unreasonably long module doc, except the last one.
+//! By using projections, we can generate code that emulates JavaScript-like field
+//! access for every line of the JavaScript snippet shown at the beginning of
+//! this module documentation except the last one.
 //!
 //! All projections created and returned from the previous pseudo-code example
 //! are projecting from the same source struct, so doing this:
@@ -114,16 +114,15 @@
 //! ```
 //! will update the struct stored in `start` variable to point to `(-20, 13)`,
 //! since both `line.start` and `start` are practically accessing the same
-//! memory. To circumvent it, in setter, when setting a value, we first
-//! check if there is any previously returned `TetheringPoint` value holded
+//! memory. To avoid this, the setter first checks whether any previously
+//! returned `TetheringPoint` value is still held
 //! by JavaScript, and if so, we replace the underlying projection of the
 //! `TetheringPoint` with the owned value of the `Line.start` value before
 //! overwriting it.
 //!
-//! In practice the code differs and have much more nuances, but the idea is
-//! unchanged. Tethering structs is a internal mechanism used to support
-//! codegen, and because of that, it doesn't have nor should have any dependency
-//! on IR.
+//! In practice, the code differs and has more nuances, but the idea is
+//! unchanged. Tethering structs are an internal mechanism used to support
+//! code generation, so they do not and should not depend on IR.
 
 use crate::{
     compiler::{
