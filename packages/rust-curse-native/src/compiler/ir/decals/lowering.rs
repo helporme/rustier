@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::compiler::{
-    FilePath,
     db::Db,
     ir::{
         decals::{
@@ -11,6 +10,7 @@ use crate::compiler::{
         shim::{ShimClassSource, ShimFunction, ShimFunctionEnumDiscriminator, ShimType},
     },
     mangle::to_camel_case,
+    path::FilePath,
 };
 
 #[salsa::tracked]

@@ -6,7 +6,6 @@ mod lowering;
 use std::collections::{BTreeMap, HashSet};
 
 use crate::compiler::{
-    FilePath,
     db::Db,
     ir::{
         ffi::{FfiClass, FfiFunction},
@@ -16,6 +15,7 @@ use crate::compiler::{
             ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimMod, ShimParam,
         },
     },
+    path::FilePath,
 };
 
 #[salsa::tracked(debug)]

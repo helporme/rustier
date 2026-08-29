@@ -3,7 +3,7 @@ source: src/compiler/codegen/sourcemap/modules.rs
 expression: snapshot
 ---
 TypeScript:
-
+  0 | export {};
 
 Source map:
 {

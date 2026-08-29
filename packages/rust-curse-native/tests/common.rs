@@ -5,9 +5,13 @@ use std::{
 };
 
 use rust_curse::compiler::{
-    CompileShimOpts, Compiler, CompilerDiagnostic, CrateApiDiscovery, CrateApiImportMode,
-    CrateGraphBuilder, Edition, FilePath, Platform, WorkspaceChange, WorkspaceCrate,
-    WorkspaceCrateKind,
+    diag::Diag,
+    inputs::{CrateApiDiscovery, CrateApiImportMode, Platform, WasmEnv},
+    ir::rust::Rust,
+    path::FilePath,
+    workspace::{
+        CrateGraphBuilder, Edition, Workspace, WorkspaceChange, WorkspaceCrate, WorkspaceCrateKind,
+    },
 };
 use serde_json::Value;
 use tempfile::TempDir;
@@ -39,17 +43,17 @@ pub struct ProgramTest {
 /// Reuses one filesystem workspace and Cargo target directory across program
 /// tests.
 pub struct ProgramCompiler {
-    workspace: Workspace,
+    workspace: TestWorkspace,
 }
 
-struct Workspace {
+struct TestWorkspace {
     _temp_dir: TempDir,
     source_dir: PathBuf,
     generated_root: PathBuf,
     cargo_target_dir: PathBuf,
 }
 
-impl Workspace {
+impl TestWorkspace {
     fn new() -> Result<Self, String> {
         let temp_dir = tempfile::Builder::new()
             .prefix("rust-curse-tests-")
@@ -90,7 +94,7 @@ path = "src/lib.rs"
 impl ProgramTest {
     /// Compiles this program for every selected API and returns emitted
     /// diagnostics.
-    pub fn compile(&self) -> Result<Vec<CompilerDiagnostic>, String> {
+    pub fn compile(&self) -> Result<Vec<Diag>, String> {
         ProgramCompiler::new()?.compile(self)
     }
 }
@@ -99,12 +103,12 @@ impl ProgramCompiler {
     /// Creates an isolated compiler workspace whose build artifacts can be
     /// reused.
     pub fn new() -> Result<Self, String> {
-        Workspace::new().map(|workspace| Self { workspace })
+        TestWorkspace::new().map(|workspace| Self { workspace })
     }
 
     /// Compiles one program while retaining artifacts from earlier
     /// compilations.
-    pub fn compile(&self, program: &ProgramTest) -> Result<Vec<CompilerDiagnostic>, String> {
+    pub fn compile(&self, program: &ProgramTest) -> Result<Vec<Diag>, String> {
         if program.platforms.is_empty() {
             return Err("program test must select at least one platform".to_string());
         }
@@ -117,17 +121,17 @@ impl ProgramCompiler {
         for &platform in &program.platforms {
             let (platform_name, generated_dir_name) = match platform {
                 Platform::Wasm {
-                    target: rust_curse::compiler::WasmEnv::Node,
+                    target: WasmEnv::Node,
                 } => ("wasm", "wasm"),
                 Platform::Node => ("node", "node"),
                 Platform::Wasm {
-                    target: rust_curse::compiler::WasmEnv::Web,
+                    target: WasmEnv::Web,
                 } => ("wasm(web)", "wasm-web"),
                 _ => return Err("program test selected an unsupported platform".to_string()),
             };
             let generated_dir = workspace.generated_root.join(generated_dir_name);
             let root_file = real_file_path(&workspace.source_dir.join("src/lib.rs"))?;
-            let mut compiler = Compiler::new();
+            let mut compiler = Workspace::new();
             let mut change = WorkspaceChange::new();
             change.set_local_file(
                 root_file.clone(),
@@ -144,18 +148,21 @@ impl ProgramCompiler {
                 api_import_mode: CrateApiImportMode::Mod,
             });
             change.set_crates(crates);
-            compiler.change(change).map_err(|error| {
+            compiler.apply_change(change).map_err(|error| {
                 format!("configure {platform_name} compiler workspace: {error}")
             })?;
 
-            let output = compiler.compile_shim(CompileShimOpts { platform });
-            diagnostics.extend(output.diagnostics);
-            write_generated_crate(
-                &generated_dir,
-                &workspace.source_dir,
-                platform,
-                &output.shim,
-            )?;
+            Platform::set(compiler.db_mut(), platform);
+            let db = compiler.db();
+            let rust = Rust::get(db);
+            diagnostics.extend(
+                rust.crates(db)
+                    .iter()
+                    .flat_map(|crate_| crate_.check(db))
+                    .cloned(),
+            );
+            let shim = rust.shim(db).render(db);
+            write_generated_crate(&generated_dir, &workspace.source_dir, platform, shim)?;
 
             let generated_source_path = generated_dir.join("src/lib.rs");
             let generated_source = fs::read_to_string(&generated_source_path)

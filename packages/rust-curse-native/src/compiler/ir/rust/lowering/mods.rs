@@ -4,10 +4,11 @@ use super::{
     discovery::ReachableItem as _, file_path, lower_enum, lower_function, lower_span, lower_struct,
 };
 use crate::compiler::{
-    CrateApiDiscovery, FilePath,
     db::Db,
     diag::DiagAccumulateExt as _,
+    inputs::CrateApiDiscovery,
     ir::rust::{Crate, Member, Mod, ModParent, Span},
+    path::FilePath,
 };
 
 #[salsa::tracked]

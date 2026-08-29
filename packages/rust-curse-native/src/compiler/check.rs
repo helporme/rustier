@@ -25,7 +25,7 @@ fn accumulate_checks<'db>(db: &'db dyn Db, crate_: Crate<'db>) {
 #[salsa::tracked]
 impl<'db> Mod<'db> {
     #[salsa::tracked]
-    fn check(self, db: &'db dyn Db) {
+    pub fn check(self, db: &'db dyn Db) {
         for member in self.members(db) {
             match member {
                 Member::Struct(struct_) => {

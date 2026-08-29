@@ -18,17 +18,129 @@ use ra_ap_vfs::{Change, Vfs};
 use thiserror::Error;
 use triomphe::Arc;
 
+use crate::compiler::{
+    inputs::{CrateApiDiscovery, CrateApiImportMode, FfiLayout, Platform, WasmEnv::Web},
+    path::{FilePath, FilePathError},
+};
+
 use super::{
-    CrateApiDiscovery, CrateApiImportMode, FilePath, FilePathError,
     db::RootDatabase,
     inputs::{CrateMetadata, CratesMetadata},
 };
 
+/// Workspace exposing convinient methods to setup an environment for rust
+/// analyzer database and expose it via [`Self::db`] and [`Self::db_mut`].
+///
+/// Useful for testint and quick project bootstraping. Alternatively, you can
+/// use the rust-analyzer [`RootDatabase`] directly and settings rust-curse
+/// specific inputs using [`super::inputs`].
+pub struct Workspace {
+    db: RootDatabase,
+    vfs: Vfs,
+}
+
+impl Workspace {
+    /// Creates a new empty default workspace.
+    pub fn new() -> Self {
+        let mut workspace = Self {
+            db: RootDatabase::default(),
+            vfs: Vfs::default(),
+        };
+
+        CratesMetadata::set(
+            &mut workspace.db,
+            CratesMetadata {
+                crates: HashMap::new(),
+            },
+        );
+
+        Platform::set(&mut workspace.db, Platform::Wasm { target: Web });
+        FfiLayout::set(
+            &mut workspace.db,
+            FfiLayout {
+                ffi_js_file: FilePath::new_virtual("/@ffi").unwrap(),
+            },
+        );
+
+        workspace
+    }
+
+    /// Applies an external change to workspace.
+    ///
+    /// # Example:
+    /// ```ignore
+    /// use rust_curse::compiler::workspace::{
+    ///     Workspace, CrateApiDiscovery, CrateApiImportMode, CrateGraphBuilder,
+    ///     Edition, FilePath, WorkspaceChange, WorkspaceChangeError, WorkspaceCrate,
+    /// };
+    ///
+    /// let mut workspace = Workspace::new();
+    ///
+    /// let root = FilePath::new_virtual("/src/lib.rs")?;
+    /// let mut change = WorkspaceChange::new();
+    /// change.set_local_file(root.clone(), Some("pub fn greet() {}".into()));
+    ///
+    /// let mut crates = CrateGraphBuilder::default();
+    /// crates.add_crate(WorkspaceCrate {
+    ///     name: "example".into(),
+    ///     edition: Edition::E2024,
+    ///     root_file: root,
+    ///     version: "0.1.0".into(),
+    ///     kind: WorkspaceCrateKind::Local,
+    ///     api_discovery: CrateApiDiscovery::Eager,
+    ///     api_import_mode: CrateApiImportMode::Relative,
+    /// });
+    /// change.set_crates(crates);
+    /// workspace.apply_change(change)?;
+    /// # Ok::<(), WorkspaceChangeError>(())
+    /// ```
+    pub fn apply_change(&mut self, change: WorkspaceChange) -> Result<(), WorkspaceChangeError> {
+        // note: technically speaking, it's possible to just expose the database and
+        // CratesMetadata
+        change.apply(&mut self.db, &mut self.vfs)
+    }
+
+    /// Returns the database used for analysis and compilation queries.
+    pub fn db(&self) -> &RootDatabase {
+        &self.db
+    }
+
+    /// Changes a compilation target platform.
+    pub fn change_platform(&mut self, platform: Platform) {
+        Platform::set(&mut self.db, platform);
+    }
+
+    /// Sets a FFI layout to a custom one.
+    pub fn change_ffi_layout(&mut self, ffi_layout: FfiLayout) {
+        FfiLayout::set(&mut self.db, ffi_layout);
+    }
+
+    /// Returns the database mutably, for setting external compiler inputs.
+    ///
+    /// **Dangerous:** File and crate graph changes must still go through
+    /// [`Workspace::apply_change`] so the database inputs and underlying VFS
+    /// stay in sync. In case you are integrating rust-curse with other project
+    /// using rust-analyzer hir database, you probably do not want to use
+    /// [`Workspace`] at all and should just directly set singleton [`inputs`]
+    /// such as [`CratesMetadata`](inputs::CratesMetadata).
+    pub fn db_mut(&mut self) -> &mut RootDatabase {
+        &mut self.db
+    }
+}
+
+impl Default for Workspace {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct WorkspaceChange {
     files: HashMap<FilePath, WorkspaceFileChange>,
     crate_graph: Option<CrateGraphBuilder>,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 struct WorkspaceFileChange {
     contents: Option<String>,
     locality: FileLocality,
@@ -41,11 +153,9 @@ enum FileLocality {
 }
 
 impl WorkspaceChange {
+    /// Crates new empty workspace change.
     pub fn new() -> Self {
-        Self {
-            files: HashMap::new(),
-            crate_graph: None,
-        }
+        Default::default()
     }
 
     /// Sets an editable workspace file. Set content to `None` to remove it.
@@ -209,7 +319,6 @@ impl WorkspaceChange {
             metadata.insert(
                 root_path,
                 CrateMetadata {
-                    kind: crate_.kind,
                     api_discovery: crate_.api_discovery,
                     api_import_mode: crate_.api_import_mode,
                 },

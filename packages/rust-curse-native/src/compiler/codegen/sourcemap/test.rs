@@ -10,6 +10,7 @@ use crate::compiler::{
         decals::DecalMod,
         rust::{Member, Rust},
     },
+    path::FilePath,
 };
 
 #[derive(Deserialize, Serialize)]
@@ -28,8 +29,7 @@ pub fn configure_db(db: &mut RootDatabase) {
     FfiLayout::set(
         db,
         FfiLayout {
-            ffi_js_file: crate::compiler::FilePath::new_virtual("/ffi.js")
-                .expect("test FFI path must be valid"),
+            ffi_js_file: FilePath::new_virtual("/ffi.js").expect("test FFI path must be valid"),
         },
     );
 }

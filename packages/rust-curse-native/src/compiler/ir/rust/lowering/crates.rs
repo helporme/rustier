@@ -1,9 +1,9 @@
 use super::vfs_path;
 use crate::compiler::{
-    CrateApiDiscovery, FilePath,
     db::Db,
-    inputs::CratesMetadata,
+    inputs::{CrateApiDiscovery, CratesMetadata},
     ir::rust::{Crate, Mod},
+    path::FilePath,
 };
 
 #[salsa::tracked]

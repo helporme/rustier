@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use crate::compiler::{FilePath, WorkspaceCrateKind, db::Db};
+use crate::compiler::{db::Db, path::FilePath};
 
 /// Target platform used for FFI
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
@@ -36,7 +36,6 @@ pub struct CratesMetadata {
 
 #[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct CrateMetadata {
-    pub kind: WorkspaceCrateKind,
     pub api_discovery: CrateApiDiscovery,
     pub api_import_mode: CrateApiImportMode,
 }
@@ -62,11 +61,13 @@ pub enum CrateApiImportMode {
 macro_rules! impl_salsa_input {
     ($name:ident, $input_name:ident) => {
         impl $name {
-            pub(super) fn set(db: &mut dyn Db, value: Self) {
+            /// Sets this compiler input in the database.
+            pub fn set(db: &mut dyn Db, value: Self) {
                 $input_name::set(db, value);
             }
 
-            pub(super) fn get(db: &dyn Db) -> Self {
+            /// Gets this compiler input from the database.
+            pub fn get(db: &dyn Db) -> Self {
                 $input_name::get(db).inner(db)
             }
         }

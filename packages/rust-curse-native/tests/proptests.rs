@@ -13,6 +13,7 @@ mod program;
 mod strategy;
 
 use common::fragment::FragmentPrint as _;
+use rust_curse::compiler::inputs::Platform;
 
 static PROGRAM_COMPILER: OnceLock<Result<Mutex<common::ProgramCompiler>, String>> = OnceLock::new();
 
@@ -49,7 +50,7 @@ proptest! {
         let program = common::ProgramTest {
             src: program.print(),
             cargo_check: true,
-            platforms: vec![rust_curse::compiler::Platform::Node],
+            platforms: vec![Platform::Node],
         };
 
         let compiler = PROGRAM_COMPILER

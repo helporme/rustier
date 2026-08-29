@@ -6,7 +6,6 @@ mod lowering;
 use std::collections::HashSet;
 
 use crate::compiler::{
-    FilePath,
     db::Db,
     ir::{
         rust::{Field, FieldName, Function, Span, Variant},
@@ -15,6 +14,7 @@ use crate::compiler::{
             ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimMod, ShimParam,
         },
     },
+    path::FilePath,
 };
 
 #[salsa::tracked(debug)]

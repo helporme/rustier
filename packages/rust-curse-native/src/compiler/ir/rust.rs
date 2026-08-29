@@ -2,7 +2,7 @@
 
 mod lowering;
 
-use crate::compiler::{CrateApiDiscovery, FilePath, db::Db, mangle::mangle_path};
+use crate::compiler::{db::Db, inputs::CrateApiDiscovery, mangle::mangle_path, path::FilePath};
 use ra_ap_hir::{
     Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
     Function as HirFunction, Impl as HirImpl, Module as HirModule, Struct as HirStruct,

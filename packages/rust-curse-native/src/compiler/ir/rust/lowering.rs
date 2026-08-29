@@ -22,7 +22,7 @@ use miette::SourceSpan;
 use ra_ap_hir::Adt;
 
 use super::{AsItem as _, Crate, Function, Rust, Span};
-use crate::compiler::{FilePath, db::Db, diag::DiagSource, inputs::CratesMetadata};
+use crate::compiler::{db::Db, diag::DiagSource, inputs::CratesMetadata, path::FilePath};
 
 use self::discovery::ReachableItem as _;
 

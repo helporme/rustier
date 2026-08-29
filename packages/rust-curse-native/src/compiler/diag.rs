@@ -2,7 +2,7 @@
 
 use std::{panic::RefUnwindSafe, sync::Arc as StdArc};
 
-use miette::{Diagnostic, SourceCode};
+use miette::{Diagnostic, GraphicalReportHandler, GraphicalTheme, SourceCode};
 use salsa::Accumulator;
 use triomphe::Arc;
 
@@ -37,6 +37,25 @@ pub struct Diag {
     pub inner: StdArc<dyn Diagnostic + RefUnwindSafe + Send + Sync + 'static>,
 }
 
+impl Diag {
+    /// Renders this diagnostic for display.
+    pub fn render(&self, theme: Theme) -> Result<String, std::fmt::Error> {
+        let handler = match theme {
+            Theme::Unicode => GraphicalReportHandler::new(),
+            Theme::UnicodeNoColor => {
+                GraphicalReportHandler::new_themed(GraphicalTheme::unicode_nocolor())
+            }
+        }
+        .with_context_lines(0)
+        .with_show_related_as_nested(true);
+
+        let mut rendered = String::new();
+        handler.render_report(&mut rendered, self.inner.as_ref())?;
+
+        Ok(rendered)
+    }
+}
+
 impl<T: Diagnostic + RefUnwindSafe + Send + Sync + 'static> From<T> for Diag {
     fn from(value: T) -> Self {
         let inner = StdArc::new(value);
@@ -59,4 +78,10 @@ impl<T: Diagnostic + RefUnwindSafe + Send + Sync + 'static> DiagAccumulateExt fo
     {
         Diag::from(self).accumulate(db);
     }
+}
+
+#[derive(Clone, Copy)]
+pub enum Theme {
+    Unicode,
+    UnicodeNoColor,
 }

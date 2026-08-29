@@ -1,6 +1,9 @@
 use std::{fs, io::ErrorKind, path::Path};
 
-use rust_curse::compiler::{Platform, Theme, WasmEnv};
+use rust_curse::compiler::{
+    diag::Theme,
+    inputs::{Platform, WasmEnv},
+};
 
 use crate::common::ProgramTest;
 
