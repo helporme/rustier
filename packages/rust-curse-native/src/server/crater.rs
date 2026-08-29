@@ -14,7 +14,7 @@ use std::{
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::compiler::{CompileShimOpts, Compiler, Platform};
+use crate::compiler::{CompileShimOpts, Compiler, CompilerDiagnostic, Platform};
 
 use self::manifest::ManifestOpts;
 use super::write_file::write_file;
@@ -100,7 +100,7 @@ impl ServerCrater {
         &self,
         compiler: &mut Compiler,
         opts: SyncOpts<'_>,
-    ) -> Result<(), CraterSyncError> {
+    ) -> Result<Vec<CompilerDiagnostic>, CraterSyncError> {
         let profile = self.profile(opts.profile)?;
         let compilation = compiler.compile_shim(CompileShimOpts {
             platform: profile.platform,
@@ -129,7 +129,7 @@ impl ServerCrater {
                 .map_err(|source| CraterSyncError::EnsureNapiProject { source })?;
         }
 
-        Ok(())
+        Ok(compilation.diagnostics)
     }
 
     pub fn build(&self, opts: BuildOpts<'_>) -> Result<BuildArtifact, CraterBuildError> {

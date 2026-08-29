@@ -18,79 +18,28 @@ use thiserror::Error;
 
 use crate::compiler::{
     CrateApiDiscovery, CrateApiImportMode, CrateBuilderId, CrateGraphBuilder, Edition, FilePath,
-    WorkspaceChange, WorkspaceCrate, WorkspaceCrateDependency, WorkspaceCrateKind,
+    WorkspaceCrate, WorkspaceCrateDependency, WorkspaceCrateKind,
 };
 
 use super::ServerFs;
 
-/// Options for [`ServerFs::load`].
-#[derive(Debug, Clone)]
-pub struct ServerFsLoadOpts<'a> {
-    /// Path to the manifest of the package that drives API discovery.
-    pub manifest_path: &'a Path,
-    /// Glob patterns for files loaded into the compiler.
-    pub included: Vec<Pattern>,
-    /// Glob patterns for files and directories to skip.
-    pub excluded: Vec<Pattern>,
-    /// Additional dependency package or crate names loaded with lazy discovery.
-    /// Every resolved version with a matching name is included.
-    pub include_dep_crates: HashSet<String>,
-    /// Dependency package or crate names omitted from the compiler.
-    /// Every resolved version with a matching name is excluded.
-    pub exclude_dep_crates: HashSet<String>,
-    /// Whether standard-library crates should be loaded from the Rust sysroot.
-    pub include_std: bool,
-}
-
-impl<'a> ServerFsLoadOpts<'a> {
-    /// Creates load options with Rust source and common build-directory
-    /// filters.
-    pub fn new(manifest_path: &'a Path) -> Self {
-        Self {
-            manifest_path,
-            included: vec![Pattern::new("*.rs").unwrap()],
-            excluded: vec![
-                Pattern::new(".git").unwrap(),
-                Pattern::new(".hg").unwrap(),
-                Pattern::new(".svn").unwrap(),
-                Pattern::new("node_modules").unwrap(),
-                Pattern::new("target").unwrap(),
-            ],
-            include_dep_crates: HashSet::new(),
-            exclude_dep_crates: HashSet::new(),
-            include_std: true,
-        }
-    }
-}
-
 impl ServerFs {
-    /// Loads filesystem state and compiler inputs from a Cargo project.
-    pub fn load(opts: ServerFsLoadOpts<'_>) -> Result<Self, FsLoadError> {
-        let mut server_fs = Self {
-            pending_change: WorkspaceChange::new(),
-            active_files: Vec::new(),
-        };
-        server_fs.load_project(opts)?;
-        server_fs.active_files.sort();
-        server_fs.active_files.dedup();
-        Ok(server_fs)
-    }
-
-    fn load_project(&mut self, opts: ServerFsLoadOpts<'_>) -> Result<(), FsLoadError> {
+    pub(super) fn load_project(&mut self) -> Result<(), FsReloadError> {
         let filters = SourceFilters {
-            included: opts.included.clone(),
-            excluded: opts.excluded.clone(),
+            included: self.opts.included.clone(),
+            excluded: self.opts.excluded.clone(),
         };
-        let overrides = CrateOverrides::new(&opts.include_dep_crates, &opts.exclude_dep_crates)?;
+        let overrides =
+            CrateOverrides::new(&self.opts.include_dep_crates, &self.opts.exclude_dep_crates)?;
         let metadata = MetadataCommand::new()
-            .manifest_path(opts.manifest_path)
+            .manifest_path(&self.opts.manifest_path)
             .exec()
-            .map_err(|source| FsLoadError::CargoMetadata {
-                manifest_path: opts.manifest_path.to_path_buf(),
+            .map_err(|source| FsReloadError::CargoMetadata {
+                manifest_path: self.opts.manifest_path.to_path_buf(),
                 source,
             })?;
 
-        let project = CargoProject::new(&metadata, opts.manifest_path)?;
+        let project = CargoProject::new(&metadata, &self.opts.manifest_path)?;
         self.track_cargo_files(&metadata, &project.packages, &project.members)?;
         let LoadedCrates {
             mut graph,
@@ -98,14 +47,17 @@ impl ServerFs {
             matched_includes,
             matched_excludes,
         } = self.load_crates(&project, &filters, &overrides.included, &overrides.excluded)?;
-        overrides.validate(&matched_includes, &matched_excludes, opts.include_std)?;
+
+        overrides.validate(&matched_includes, &matched_excludes, self.opts.include_std)?;
 
         add_dependencies(&mut graph, project.distances.keys(), &project.nodes, &ids);
 
-        if opts.include_std {
+        if self.opts.include_std {
             self.add_sysroot(&mut graph, ids.values().copied(), &filters)?;
         }
+
         self.pending_change.set_crates(graph);
+
         Ok(())
     }
 
@@ -115,7 +67,7 @@ impl ServerFs {
         filters: &SourceFilters,
         included: &HashSet<String>,
         excluded: &HashSet<String>,
-    ) -> Result<LoadedCrates, FsLoadError> {
+    ) -> Result<LoadedCrates, FsReloadError> {
         let mut loaded = LoadedCrates::default();
         let mut reachable = project.distances.iter().collect::<Vec<_>>();
         reachable.sort_by_key(|(_, distance)| **distance);
@@ -125,7 +77,7 @@ impl ServerFs {
                 project
                     .packages
                     .get(package_id)
-                    .ok_or_else(|| FsLoadError::MissingPackage {
+                    .ok_or_else(|| FsReloadError::MissingPackage {
                         package_id: package_id.repr.clone(),
                     })?;
             let Some(target) = library_target(package) else {
@@ -152,7 +104,7 @@ impl ServerFs {
                 matches
             });
             if is_main && is_excluded {
-                return Err(FsLoadError::ExcludedMainCrate {
+                return Err(FsReloadError::ExcludedMainCrate {
                     name: package.name.to_string(),
                 });
             }
@@ -192,10 +144,10 @@ impl ServerFs {
         metadata: &cargo_metadata::Metadata,
         packages: &HashMap<&PackageId, &Package>,
         project_members: &HashSet<&PackageId>,
-    ) -> Result<(), FsLoadError> {
+    ) -> Result<(), FsReloadError> {
         for package_id in project_members {
             if let Some(package) = packages.get(package_id) {
-                self.active_files.push(path_string(real_file_path(
+                self.active_files.insert(path_string(real_file_path(
                     package.manifest_path.as_std_path(),
                 )?));
             }
@@ -203,7 +155,7 @@ impl ServerFs {
         let lockfile = metadata.workspace_root.as_std_path().join("Cargo.lock");
         if lockfile.is_file() {
             self.active_files
-                .push(path_string(real_file_path(&lockfile)?));
+                .insert(path_string(real_file_path(&lockfile)?));
         }
         Ok(())
     }
@@ -213,7 +165,7 @@ impl ServerFs {
         crate_graph: &mut CrateGraphBuilder,
         project_crates: impl Iterator<Item = CrateBuilderId>,
         filters: &SourceFilters,
-    ) -> Result<(), FsLoadError> {
+    ) -> Result<(), FsReloadError> {
         let library_dir = discover_sysroot_library()?;
         let mut sysroot_crates = HashMap::new();
         for name in ["core", "alloc", "std", "proc_macro"] {
@@ -264,13 +216,13 @@ impl ServerFs {
         library_dir: &Path,
         name: &str,
         filters: &SourceFilters,
-    ) -> Result<CrateBuilderId, FsLoadError> {
+    ) -> Result<CrateBuilderId, FsReloadError> {
         let manifest_path = library_dir.join(name).join("Cargo.toml");
         let mut command = MetadataCommand::new();
         command.manifest_path(&manifest_path).no_deps();
         let metadata = command
             .exec()
-            .map_err(|source| FsLoadError::CargoMetadata {
+            .map_err(|source| FsReloadError::CargoMetadata {
                 manifest_path: manifest_path.clone(),
                 source,
             })?;
@@ -278,12 +230,13 @@ impl ServerFs {
             .packages
             .iter()
             .find(|package| package.name.as_str() == name)
-            .ok_or_else(|| FsLoadError::MissingRootPackage {
+            .ok_or_else(|| FsReloadError::MissingRootPackage {
                 manifest_path: manifest_path.clone(),
             })?;
-        let target = library_target(package).ok_or_else(|| FsLoadError::MissingLibraryTarget {
-            package: package.name.to_string(),
-        })?;
+        let target =
+            library_target(package).ok_or_else(|| FsReloadError::MissingLibraryTarget {
+                package: package.name.to_string(),
+            })?;
 
         self.load_package_sources(package, false, filters)?;
         Ok(crate_graph.add_crate(WorkspaceCrate {
@@ -302,34 +255,37 @@ impl ServerFs {
         package: &Package,
         is_local: bool,
         filters: &SourceFilters,
-    ) -> Result<(), FsLoadError> {
+    ) -> Result<(), FsReloadError> {
         let package_dir = package
             .manifest_path
             .as_std_path()
             .parent()
-            .ok_or_else(|| FsLoadError::ManifestWithoutParent {
+            .ok_or_else(|| FsReloadError::ManifestWithoutParent {
                 manifest_path: package.manifest_path.as_std_path().to_path_buf(),
             })?;
         let mut pending = vec![package_dir.to_path_buf()];
 
         while let Some(directory) = pending.pop() {
-            for entry in fs::read_dir(&directory).map_err(|source| FsLoadError::ReadDirectory {
-                path: directory.clone(),
-                source,
-            })? {
-                let entry = entry.map_err(|source| FsLoadError::ReadDirectory {
+            for entry in
+                fs::read_dir(&directory).map_err(|source| FsReloadError::ReadDirectory {
+                    path: directory.clone(),
+                    source,
+                })?
+            {
+                let entry = entry.map_err(|source| FsReloadError::ReadDirectory {
                     path: directory.clone(),
                     source,
                 })?;
                 let path = entry.path();
-                let file_type = entry
-                    .file_type()
-                    .map_err(|source| FsLoadError::ReadFileType {
-                        path: path.clone(),
-                        source,
-                    })?;
+                let file_type =
+                    entry
+                        .file_type()
+                        .map_err(|source| FsReloadError::ReadFileType {
+                            path: path.clone(),
+                            source,
+                        })?;
                 let relative_path = path.strip_prefix(package_dir).map_err(|_| {
-                    FsLoadError::SourceOutsidePackage {
+                    FsReloadError::SourceOutsidePackage {
                         path: path.clone(),
                         package_dir: package_dir.to_path_buf(),
                     }
@@ -344,14 +300,14 @@ impl ServerFs {
                     && filters.includes(relative_path)
                 {
                     let contents =
-                        fs::read_to_string(&path).map_err(|source| FsLoadError::ReadSource {
+                        fs::read_to_string(&path).map_err(|source| FsReloadError::ReadSource {
                             path: path.clone(),
                             source,
                         })?;
                     let path = real_file_path(&path)?;
                     if is_local {
                         self.active_files
-                            .push(path.as_path().to_string_lossy().into_owned());
+                            .insert(path.as_path().to_string_lossy().into_owned());
                         self.pending_change.set_local_file(path, Some(contents));
                     } else {
                         self.pending_change.set_library_file(path, Some(contents));
@@ -369,7 +325,7 @@ struct CrateOverrides {
 }
 
 impl CrateOverrides {
-    fn new(included: &HashSet<String>, excluded: &HashSet<String>) -> Result<Self, FsLoadError> {
+    fn new(included: &HashSet<String>, excluded: &HashSet<String>) -> Result<Self, FsReloadError> {
         let included = included
             .iter()
             .map(|name| normalize_crate_name(name))
@@ -379,7 +335,7 @@ impl CrateOverrides {
             .map(|name| normalize_crate_name(name))
             .collect::<HashSet<_>>();
         if let Some(name) = included.intersection(&excluded).next() {
-            return Err(FsLoadError::ConflictingCrateOverride { name: name.clone() });
+            return Err(FsReloadError::ConflictingCrateOverride { name: name.clone() });
         }
         Ok(Self { included, excluded })
     }
@@ -389,12 +345,12 @@ impl CrateOverrides {
         matched_includes: &HashSet<String>,
         matched_excludes: &HashSet<String>,
         include_std: bool,
-    ) -> Result<(), FsLoadError> {
+    ) -> Result<(), FsReloadError> {
         for name in self.included.difference(matched_includes) {
             if include_std && is_sysroot_name(name) {
                 continue;
             }
-            return Err(FsLoadError::UnknownCrateOverride {
+            return Err(FsReloadError::UnknownCrateOverride {
                 kind: "included",
                 name: name.clone(),
             });
@@ -402,11 +358,11 @@ impl CrateOverrides {
         for name in self.excluded.difference(matched_excludes) {
             if is_sysroot_name(name) {
                 if include_std {
-                    return Err(FsLoadError::ExcludedSysrootCrate { name: name.clone() });
+                    return Err(FsReloadError::ExcludedSysrootCrate { name: name.clone() });
                 }
                 continue;
             }
-            return Err(FsLoadError::UnknownCrateOverride {
+            return Err(FsReloadError::UnknownCrateOverride {
                 kind: "excluded",
                 name: name.clone(),
             });
@@ -428,16 +384,16 @@ impl<'a> CargoProject<'a> {
     fn new(
         metadata: &'a cargo_metadata::Metadata,
         manifest_path: &Path,
-    ) -> Result<Self, FsLoadError> {
+    ) -> Result<Self, FsReloadError> {
         let root = metadata
             .root_package()
-            .ok_or_else(|| FsLoadError::MissingRootPackage {
+            .ok_or_else(|| FsReloadError::MissingRootPackage {
                 manifest_path: manifest_path.to_path_buf(),
             })?;
         let resolve = metadata
             .resolve
             .as_ref()
-            .ok_or(FsLoadError::MissingResolveGraph)?;
+            .ok_or(FsReloadError::MissingResolveGraph)?;
         let nodes = resolve
             .nodes
             .iter()
@@ -445,7 +401,7 @@ impl<'a> CargoProject<'a> {
             .collect::<HashMap<_, _>>();
         let root_node = nodes
             .get(&root.id)
-            .ok_or_else(|| FsLoadError::MissingPackage {
+            .ok_or_else(|| FsReloadError::MissingPackage {
                 package_id: root.id.repr.clone(),
             })?;
         let direct_dependencies = root_node
@@ -579,17 +535,17 @@ fn path_string(path: FilePath) -> String {
     path.as_path().to_string_lossy().into_owned()
 }
 
-fn discover_sysroot_library() -> Result<PathBuf, FsLoadError> {
+fn discover_sysroot_library() -> Result<PathBuf, FsReloadError> {
     let rustc = env::var_os("RUSTC").unwrap_or_else(|| OsString::from("rustc"));
     let output = Command::new(&rustc)
         .args(["--print", "sysroot"])
         .output()
-        .map_err(|source| FsLoadError::RunRustc {
+        .map_err(|source| FsReloadError::RunRustc {
             rustc: PathBuf::from(&rustc),
             source,
         })?;
     if !output.status.success() {
-        return Err(FsLoadError::RustcFailed {
+        return Err(FsReloadError::RustcFailed {
             rustc: PathBuf::from(&rustc),
             message: String::from_utf8_lossy(&output.stderr).trim().to_owned(),
         });
@@ -604,7 +560,7 @@ fn discover_sysroot_library() -> Result<PathBuf, FsLoadError> {
     if library_dir.join("std/src/lib.rs").is_file() {
         Ok(library_dir)
     } else {
-        Err(FsLoadError::MissingRustSrc { sysroot })
+        Err(FsReloadError::MissingRustSrc { sysroot })
     }
 }
 
@@ -623,26 +579,26 @@ fn is_normal(dependency: &NodeDep) -> bool {
         .any(|kind| kind.kind == DependencyKind::Normal)
 }
 
-fn real_file_path(path: &Path) -> Result<FilePath, FsLoadError> {
+fn real_file_path(path: &Path) -> Result<FilePath, FsReloadError> {
     let path = path
         .canonicalize()
-        .map_err(|source| FsLoadError::CanonicalizePath {
+        .map_err(|source| FsReloadError::CanonicalizePath {
             path: path.to_path_buf(),
             source,
         })?;
     let path = path
         .to_str()
-        .ok_or_else(|| FsLoadError::NonUtf8Path { path: path.clone() })?;
-    FilePath::new_real(path).map_err(|source| FsLoadError::FilePath { source })
+        .ok_or_else(|| FsReloadError::NonUtf8Path { path: path.clone() })?;
+    FilePath::new_real(path).map_err(|source| FsReloadError::FilePath { source })
 }
 
-fn edition(value: &str) -> Result<Edition, FsLoadError> {
+fn edition(value: &str) -> Result<Edition, FsReloadError> {
     match value {
         "2015" => Ok(Edition::E2015),
         "2018" => Ok(Edition::E2018),
         "2021" => Ok(Edition::E2021),
         "2024" => Ok(Edition::E2024),
-        value => Err(FsLoadError::UnsupportedEdition {
+        value => Err(FsReloadError::UnsupportedEdition {
             edition: value.to_owned(),
         }),
     }
@@ -650,7 +606,7 @@ fn edition(value: &str) -> Result<Edition, FsLoadError> {
 
 /// An error encountered while loading server filesystem state.
 #[derive(Debug, Error, Diagnostic)]
-pub enum FsLoadError {
+pub enum FsReloadError {
     #[error("failed to read Cargo metadata for {}", manifest_path.display())]
     CargoMetadata {
         manifest_path: PathBuf,

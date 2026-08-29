@@ -6,7 +6,7 @@ use std::{
 
 use miette::Diagnostic;
 
-use crate::{compiler::TsTreeCompilationOutput, sync::file::write_if_changed};
+use crate::compiler::TsTreeCompilationOutput;
 
 pub struct SyncTsTreeOpts<'a> {
     pub out_dir: &'a Path,
@@ -112,9 +112,17 @@ fn ensure_dir(path: &Path) -> Result<(), SyncTsTreeError> {
 }
 
 fn write_file(path: PathBuf, contents: impl AsRef<[u8]>) -> Result<(), SyncTsTreeError> {
-    write_if_changed(&path, contents)
-        .map(|_| ())
-        .map_err(|source| SyncTsTreeError::WriteFile { path, source })
+    let contents = contents.as_ref();
+    match fs::read(&path) {
+        Ok(existing) if existing == contents => Ok(()),
+        Ok(_) => {
+            fs::write(&path, contents).map_err(|source| SyncTsTreeError::WriteFile { path, source })
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            fs::write(&path, contents).map_err(|source| SyncTsTreeError::WriteFile { path, source })
+        }
+        Err(source) => Err(SyncTsTreeError::WriteFile { path, source }),
+    }
 }
 
 #[derive(thiserror::Error, Diagnostic, Debug)]

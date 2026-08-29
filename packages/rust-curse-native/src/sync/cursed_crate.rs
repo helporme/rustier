@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use crate::{
     compiler::Platform,
-    sync::{file::write_if_changed, manifest},
+    sync::manifest,
     tools::{node, workspace},
 };
 
@@ -63,7 +63,17 @@ fn ensure_dir(path: &Path) -> Result<bool, SyncCrateError> {
 }
 
 fn write_file(path: PathBuf, content: impl AsRef<[u8]>) -> Result<bool, SyncCrateError> {
-    write_if_changed(&path, content).map_err(|source| SyncCrateError::WriteFile { path, source })
+    let content = content.as_ref();
+    match fs::read(&path) {
+        Ok(existing) if existing == content => Ok(false),
+        Ok(_) => fs::write(&path, content)
+            .map(|()| true)
+            .map_err(|source| SyncCrateError::WriteFile { path, source }),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => fs::write(&path, content)
+            .map(|()| true)
+            .map_err(|source| SyncCrateError::WriteFile { path, source }),
+        Err(source) => Err(SyncCrateError::WriteFile { path, source }),
+    }
 }
 
 #[derive(Error, Diagnostic, Debug)]
