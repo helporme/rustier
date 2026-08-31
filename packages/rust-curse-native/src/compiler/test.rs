@@ -6,9 +6,7 @@ use ra_ap_test_fixture::ChangeFixture;
 
 use crate::compiler::{
     db::RootDatabase,
-    inputs::{
-        CrateApiDiscovery, CrateApiImportMode, CrateMetadata, CratesMetadata, FfiLayout, Platform,
-    },
+    inputs::{FfiLayout, Platform},
     path::FilePath,
 };
 
@@ -68,18 +66,6 @@ pub(super) fn build_test_db(source: String, files: &[(&str, String)]) -> RootDat
         FfiLayout {
             ffi_js_file: FilePath::new_virtual("/generated/ffi.js")
                 .expect("test FFI file should be a valid path"),
-        },
-    );
-    CratesMetadata::set(
-        &mut db,
-        CratesMetadata {
-            crates: HashMap::from([(
-                root_file,
-                CrateMetadata {
-                    api_discovery: CrateApiDiscovery::Eager,
-                    api_import_mode: CrateApiImportMode::Mod,
-                },
-            )]),
         },
     );
 

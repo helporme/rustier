@@ -10,7 +10,8 @@ use rust_curse::compiler::{
     ir::rust::Rust,
     path::FilePath,
     workspace::{
-        CrateGraphBuilder, Edition, Workspace, WorkspaceChange, WorkspaceCrate, WorkspaceCrateKind,
+        CrateGraphBuilder, Edition, Workspace, WorkspaceChange, WorkspaceCrate,
+        WorkspaceCrateOrigin,
     },
 };
 use serde_json::Value;
@@ -143,8 +144,7 @@ impl ProgramCompiler {
                 edition: Edition::E2024,
                 root_file,
                 version: "0.0.0".to_owned(),
-                kind: WorkspaceCrateKind::Local,
-                api_discovery: CrateApiDiscovery::Eager,
+                origin: WorkspaceCrateOrigin::Local,
                 api_import_mode: CrateApiImportMode::Mod,
             });
             change.set_crates(crates);

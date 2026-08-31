@@ -24,6 +24,8 @@ ra_ap_syntax = "=0.0.345"
 ra_ap_vfs = "=0.0.345"
 ra_ap_cfg = "=0.0.345"
 ra_ap_edition = "=0.0.345"
+ra_ap_load-cargo = "=0.0.345"
+ra_ap_project_model = "=0.0.345"
 triomphe = "0.1"
 glob = "0.3"
 indoc = "2"
@@ -31,6 +33,7 @@ thiserror = "2.0.18"
 cargo_metadata = "0.23.1"
 miette = { version = "7", features = ["fancy"] }
 tracing = "0.1"
+anyhow = "1.0.104"
 
 [build-dependencies]
 napi-build = { version = "2", optional = true }

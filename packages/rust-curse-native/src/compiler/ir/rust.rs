@@ -99,11 +99,11 @@ impl<'db> Crate<'db> {
         self.lower_dir(db)
     }
 
-    pub(in crate::compiler) fn root_file(self, db: &'db dyn Db) -> &'db FilePath {
+    pub fn root_file(self, db: &'db dyn Db) -> &'db FilePath {
         self.root(db).file_path(db)
     }
 
-    pub(in crate::compiler) fn api_discovery(self, db: &'db dyn Db) -> CrateApiDiscovery {
+    pub fn api_discovery(self, db: &'db dyn Db) -> CrateApiDiscovery {
         self.lower_api_discovery(db)
     }
 }
