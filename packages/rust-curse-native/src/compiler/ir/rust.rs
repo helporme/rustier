@@ -2,7 +2,7 @@
 
 mod lowering;
 
-use crate::compiler::{db::Db, inputs::CrateApiDiscovery, mangle::mangle_path, path::FilePath};
+use crate::compiler::{db::Db, mangle::mangle_path, path::FilePath};
 use ra_ap_hir::{
     Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
     Function as HirFunction, Impl as HirImpl, Module as HirModule, Struct as HirStruct,
@@ -10,6 +10,7 @@ use ra_ap_hir::{
 use std::fmt;
 use triomphe::Arc;
 
+/// A root of rust public API.
 #[salsa::interned(debug)]
 pub struct Rust<'db> {
     #[returns(ref)]
@@ -91,7 +92,7 @@ impl<'db> Crate<'db> {
         self.lower_name(db)
     }
 
-    pub fn root(self, db: &'db dyn Db) -> Mod<'db> {
+    pub fn root(self, db: &'db dyn Db) -> Module<'db> {
         self.lower_crate_root(db)
     }
 
@@ -102,26 +103,22 @@ impl<'db> Crate<'db> {
     pub fn root_file(self, db: &'db dyn Db) -> &'db FilePath {
         self.root(db).file_path(db)
     }
-
-    pub fn api_discovery(self, db: &'db dyn Db) -> CrateApiDiscovery {
-        self.lower_api_discovery(db)
-    }
 }
 
 #[salsa::interned(debug)]
-pub struct Mod<'db> {
+pub struct Module<'db> {
     hir: HirModule,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
-pub enum ModParent<'db> {
-    Mod(Mod<'db>),
+pub enum ModuleParent<'db> {
+    Module(Module<'db>),
     Crate(Crate<'db>),
 }
 
 #[salsa::tracked]
-impl<'db> Mod<'db> {
-    pub fn parent(self, db: &'db dyn Db) -> ModParent<'db> {
+impl<'db> Module<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> ModuleParent<'db> {
         self.lower_parent(db)
     }
 
@@ -132,8 +129,8 @@ impl<'db> Mod<'db> {
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         match self.parent(db) {
-            ModParent::Mod(parent) => parent.path(db).append(db, self.name(db).to_owned()),
-            ModParent::Crate(crate_) => {
+            ModuleParent::Module(parent) => parent.path(db).append(db, self.name(db).to_owned()),
+            ModuleParent::Crate(crate_) => {
                 ItemPath::from_segment(db, crate_, self.name(db).to_owned())
             }
         }
@@ -157,14 +154,14 @@ impl<'db> Mod<'db> {
     }
 }
 
-as_item!(Mod);
+as_item!(Module);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
 pub enum Member<'db> {
     Struct(Struct<'db>),
     Enum(Enum<'db>),
     Function(Function<'db>),
-    Mod(Mod<'db>),
+    Module(Module<'db>),
 }
 
 #[salsa::interned(debug)]
@@ -174,7 +171,7 @@ pub struct Struct<'db> {
 
 #[salsa::tracked]
 impl<'db> Struct<'db> {
-    pub fn parent(self, db: &'db dyn Db) -> Mod<'db> {
+    pub fn module(self, db: &'db dyn Db) -> Module<'db> {
         self.lower_parent(db)
     }
 
@@ -184,7 +181,7 @@ impl<'db> Struct<'db> {
 
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
-        self.parent(db)
+        self.module(db)
             .path(db)
             .append(db, self.name(db).to_owned())
     }
@@ -233,7 +230,7 @@ pub struct Enum<'db> {
 
 #[salsa::tracked]
 impl<'db> Enum<'db> {
-    pub fn parent(self, db: &'db dyn Db) -> Mod<'db> {
+    pub fn module(self, db: &'db dyn Db) -> Module<'db> {
         self.lower_parent(db)
     }
 
@@ -243,7 +240,7 @@ impl<'db> Enum<'db> {
 
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
-        self.parent(db)
+        self.module(db)
             .path(db)
             .append(db, self.name(db).to_owned())
     }
@@ -252,6 +249,7 @@ impl<'db> Enum<'db> {
         self.lower_is_non_exhaustive(db)
     }
 
+    /// The variants of this enum.
     pub fn variants(self, db: &'db dyn Db) -> &'db Vec<Variant<'db>> {
         self.lower_variants(db)
     }
@@ -299,7 +297,7 @@ pub struct Impl<'db> {
 
 #[salsa::tracked]
 impl<'db> Impl<'db> {
-    pub fn parent(self, db: &'db dyn Db) -> Mod<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> Module<'db> {
         self.lower_parent(db)
     }
 
@@ -307,8 +305,8 @@ impl<'db> Impl<'db> {
         self.lower_target(db)
     }
 
-    pub fn fns(self, db: &'db dyn Db) -> &'db Vec<Function<'db>> {
-        self.lower_fns(db)
+    pub fn functions(self, db: &'db dyn Db) -> &'db Vec<Function<'db>> {
+        self.lower_functions(db)
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
@@ -324,10 +322,10 @@ pub enum ImplTarget<'db> {
 }
 
 impl<'db> ImplTarget<'db> {
-    pub fn parent(self, db: &'db dyn Db) -> Mod<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> Module<'db> {
         match self {
-            ImplTarget::Struct(struct_) => struct_.parent(db),
-            ImplTarget::Enum(enum_) => enum_.parent(db),
+            ImplTarget::Struct(struct_) => struct_.module(db),
+            ImplTarget::Enum(enum_) => enum_.module(db),
         }
     }
 
@@ -541,7 +539,7 @@ as_item!(Function);
 /// The declaration containing a source-defined function.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
 pub enum FunctionParent<'db> {
-    Mod(Mod<'db>),
+    Mod(Module<'db>),
     Impl(Impl<'db>),
 }
 

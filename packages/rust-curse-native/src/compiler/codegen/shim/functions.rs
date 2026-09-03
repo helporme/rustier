@@ -1,23 +1,19 @@
-use crate::{
-    compiler::{
-        codegen::{
-            fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, frag, fragment},
-            shim::{
-                cast::{Cast, CastRenderer, Renderer},
-                tethering::{
-                    TetheringStructType, render_tethering_struct_get_field_expr,
-                    render_tethering_struct_set_field_stmt,
-                },
+use crate::compiler::{
+    codegen::{
+        fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, frag, fragment},
+        shim::{
+            cast::{Cast, CastRenderer, Renderer},
+            tethering::{
+                TetheringStructType, render_tethering_struct_get_field_expr,
+                render_tethering_struct_set_field_stmt,
             },
         },
-        db::Db,
-        inputs::Platform,
-        ir::{
-            rust::{AsItem as _, Function, Shape, Type},
-            shim::{
-                ShimFunction, ShimFunctionEnumDiscriminator, ShimFunctionGetter, ShimFunctionSetter,
-            },
-        },
+    },
+    db::Db,
+    inputs::Platform,
+    ir::{
+        rust::{AsItem as _, Function, Shape, Type},
+        shim::{ShimFunction, ShimFunctionDiscriminator, ShimFunctionGetter, ShimFunctionSetter},
     },
 };
 
@@ -260,7 +256,7 @@ where
 
     fn render_enum_discriminator_body(
         self,
-        discriminator: ShimFunctionEnumDiscriminator<'db>,
+        discriminator: ShimFunctionDiscriminator<'db>,
     ) -> impl FragmentOnce {
         let src = discriminator.src(self.db);
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
@@ -322,7 +318,7 @@ mod tests {
         db: &'db dyn Db,
         predicate: impl Fn(ShimFunction<'db>) -> bool,
     ) -> ShimFunction<'db> {
-        let root = Rust::get(db)
+        let root = Rust::complete(db)
             .crates(db)
             .first()
             .expect("test crate should be lowered")

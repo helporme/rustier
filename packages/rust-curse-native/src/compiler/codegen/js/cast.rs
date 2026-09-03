@@ -267,7 +267,7 @@ mod tests {
         codegen::fragment::frag,
         db::Db,
         ir::{
-            facade::{FacadeClass, FacadeType},
+            facade::{FacadeClass, FacadeMember, FacadeType},
             ffi::FfiType,
             rust::Rust,
         },
@@ -400,15 +400,19 @@ mod tests {
     }
 
     fn test_facade_class<'db>(db: &'db dyn Db) -> FacadeClass<'db> {
-        let crate_ = Rust::get(db)
+        let crate_ = Rust::complete(db)
             .crates(db)
             .first()
             .expect("test crate should be lowered");
         let root = crate_.root(db).shim(db).facade(db);
-        let [class] = root.classes(db).as_slice() else {
+        let mut classes = root.members(db).iter().filter_map(|member| match member {
+            FacadeMember::Class(class) => Some(*class),
+            _ => None,
+        });
+        let (Some(class), None) = (classes.next(), classes.next()) else {
             panic!("test crate root should contain exactly one facade class");
         };
 
-        *class
+        class
     }
 }

@@ -211,7 +211,10 @@ fn private_ctor() -> impl FragmentOnce {
 mod tests {
     use crate::{
         assert_ts_snap,
-        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Rust},
+        compiler::{
+            codegen::fragment::FragmentOnce as _,
+            ir::{decals::DecalModuleMember, rust::Rust},
+        },
     };
 
     macro_rules! test_class {
@@ -230,9 +233,14 @@ mod tests {
                             .shim(db)
                             .decals(db);
                         let class = root
-                            .classes(db)
+                            .members(db)
                             .iter()
-                            .find(|class| class.name(db) == $class_name)
+                            .find_map(|member| match member {
+                                DecalModuleMember::Class(class) if class.name(db) == $class_name => {
+                                    Some(class)
+                                }
+                                _ => None,
+                            })
                             .expect("test class should be lowered");
 
                         class.render_ts(db).apply(p);

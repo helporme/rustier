@@ -6,32 +6,37 @@ use crate::compiler::{
         ts::jsdoc::render_jsdoc,
     },
     db::Db,
-    ir::decals::{DecalClassKind, DecalMod},
+    ir::decals::{DecalClassKind, DecalModule, DecalModuleMember},
 };
 
 #[salsa::tracked]
-impl<'db> DecalMod<'db> {
+impl<'db> DecalModule<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn render_ts(self, db: &'db dyn Db) -> String {
-        let functions = self.fns(db);
-        let classes = self.classes(db);
+        let functions = self.members(db).iter().filter_map(|member| match member {
+            DecalModuleMember::Function(function) => Some(function),
+            _ => None,
+        });
+        let classes = self.members(db).iter().filter_map(|member| match member {
+            DecalModuleMember::Class(class) => Some(class),
+            _ => None,
+        });
 
-        if functions.is_empty() && classes.is_empty() {
+        if functions.clone().next().is_none() && classes.clone().next().is_none() {
             // make sure that returned stirng is always valid typescript module
             return frag!(export {};).print();
         }
 
         let imports = self.ts_imports(db);
         let has_imports = !imports.is_empty();
-        let functions = functions.iter().map(|function| function.render_ts(db));
+        let functions = functions.map(|function| function.render_ts(db));
 
         let plain_classes = classes
-            .iter()
+            .clone()
             .filter(|&class| matches!(class.kind(db), DecalClassKind::Plain { .. }))
             .map(|class| class.render_ts(db));
 
         let discriminated_classes = classes
-            .iter()
             .filter(|&class| matches!(class.kind(db), DecalClassKind::DiscriminatedUnion { .. }))
             .map(|class| class.render_ts(db));
 
@@ -58,7 +63,7 @@ impl<'db> DecalMod<'db> {
         .print()
     }
 
-    // todo: remove it and make sure Mod.imports() are sorted instead.
+    // todo: remove it and make sure Module.imports() are sorted instead.
     fn ts_imports(self, db: &'db dyn Db) -> BTreeSet<(String, String)> {
         self.imports(db)
             .iter()

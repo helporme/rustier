@@ -6,14 +6,14 @@ use super::{adt_fqn, diagnostic_location, lower_impl, lower_item_span, lower_sha
 use crate::compiler::{
     db::Db,
     diag::DiagSource,
-    ir::rust::{Enum, FieldParent, Impl, Mod, Shape, Span, Variant},
+    ir::rust::{Enum, FieldParent, Impl, Module, Shape, Span, Variant},
 };
 
 #[salsa::tracked]
 impl<'db> Enum<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> Mod<'db> {
-        Mod::new(db, self.hir(db).module(db))
+    pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> Module<'db> {
+        Module::new(db, self.hir(db).module(db))
     }
 
     #[salsa::tracked(returns(ref))]

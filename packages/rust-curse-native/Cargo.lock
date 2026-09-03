@@ -2390,6 +2390,7 @@ dependencies = [
  "glob",
  "indoc",
  "insta",
+ "itertools",
  "miette",
  "napi",
  "napi-build",

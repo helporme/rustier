@@ -13,7 +13,7 @@ use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::{
-        AsItem as _, Function, FunctionParent, Impl, Mod, Param, Receiver, Span, Type, ValueType,
+        AsItem as _, Function, FunctionParent, Impl, Module, Param, Receiver, Span, Type, ValueType,
     },
 };
 
@@ -26,7 +26,7 @@ impl<'db> Function<'db> {
     ) -> FunctionParent<'db> {
         let hir = self.hir(db);
         let Some(item) = hir.as_assoc_item(db) else {
-            return FunctionParent::Mod(Mod::new(db, hir.module(db)));
+            return FunctionParent::Mod(Module::new(db, hir.module(db)));
         };
 
         match item.container(db) {

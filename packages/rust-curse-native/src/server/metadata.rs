@@ -193,7 +193,6 @@ pub enum MetadataLoadError {
 //                 .expect("Cargo metadata returned a relative crate root"),
 //                 version: crate_.version(db).to_owned(),
 //                 kind: crate_.kind(db, self),
-//                 api_discovery: crate_.api_discovery(db, self),
 //                 api_import_mode: crate_.api_import_mode(db, self),
 //             });
 //             (*crate_, id)

@@ -1,18 +1,16 @@
-use crate::{
-    compiler::{
-        codegen::{
-            fragment::{FragmentOnce, FragmentPrint, Printer, doubles, frag, fragment},
-            shim::tethering::{
-                ClonedField, FieldExpr, TetheredField, TetheringStruct, TetheringStructField,
-                render_tethering_struct,
-            },
+use crate::compiler::{
+    codegen::{
+        fragment::{FragmentOnce, FragmentPrint, Printer, doubles, frag, fragment},
+        shim::tethering::{
+            ClonedField, FieldExpr, TetheredField, TetheringStruct, TetheringStructField,
+            render_tethering_struct,
         },
-        db::Db,
-        inputs::Platform,
-        ir::{
-            rust::{AsItem as _, FieldParent, Shape, ValueType},
-            shim::{ShimClass, ShimField},
-        },
+    },
+    db::Db,
+    inputs::Platform,
+    ir::{
+        rust::{AsItem as _, FieldParent, Shape, ValueType},
+        shim::{ShimClass, ShimField},
     },
 };
 
@@ -51,7 +49,7 @@ impl<'db> ClassFragment<'db> {
             .map(|field| field.get_tethered_field(self.db));
 
         let tethering_struct = TetheringStruct {
-            source_type: self.class.src(self.db).into(),
+            source_type: self.class.src_type(self.db).into(),
             fields: tethered_fields,
         };
 
@@ -62,7 +60,7 @@ impl<'db> ClassFragment<'db> {
         let platform = Platform::get(self.db);
 
         let tethering_type_name =
-            ValueType::from(self.class.src(self.db)).tethering_struct_name(self.db);
+            ValueType::from(self.class.src_type(self.db)).tethering_struct_name(self.db);
 
         let symbol = self.class.ffi(self.db).symbol(self.db);
 

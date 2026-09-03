@@ -4,14 +4,14 @@ use super::{lower_enum, lower_function, lower_item_span, lower_struct};
 use crate::compiler::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::rust::{Impl, ImplTarget, Mod, Span},
+    ir::rust::{Impl, ImplTarget, Module, Span},
 };
 
 #[salsa::tracked]
 impl<'db> Impl<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> Mod<'db> {
-        Mod::new(db, self.hir(db).module(db))
+    pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> Module<'db> {
+        Module::new(db, self.hir(db).module(db))
     }
 
     #[salsa::tracked]
@@ -20,7 +20,7 @@ impl<'db> Impl<'db> {
     }
 
     #[salsa::tracked(returns(ref))]
-    pub(in crate::compiler::ir::rust) fn lower_fns(
+    pub(in crate::compiler::ir::rust) fn lower_functions(
         self,
         db: &'db dyn Db,
     ) -> Vec<crate::compiler::ir::rust::Function<'db>> {

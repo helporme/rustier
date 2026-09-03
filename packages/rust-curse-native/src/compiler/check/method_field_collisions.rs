@@ -31,7 +31,7 @@ fn check_method_field_collisions<'db>(
     class: ShimClass<'db>,
     fields: &[Field<'db>],
 ) {
-    let methods = class.associated_fns(db);
+    let methods = class.methods(db);
 
     for field in fields {
         let FieldName::Name(field_name) = field.name(db) else {

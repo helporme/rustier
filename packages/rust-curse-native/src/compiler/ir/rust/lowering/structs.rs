@@ -6,14 +6,14 @@ use super::{adt_fqn, diagnostic_location, lower_impl, lower_item_span, lower_sha
 use crate::compiler::{
     db::Db,
     diag::DiagSource,
-    ir::rust::{FieldParent, Impl, Mod, Shape, Span, Struct},
+    ir::rust::{FieldParent, Impl, Module, Shape, Span, Struct},
 };
 
 #[salsa::tracked]
 impl<'db> Struct<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> Mod<'db> {
-        Mod::new(db, self.hir(db).module(db))
+    pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> Module<'db> {
+        Module::new(db, self.hir(db).module(db))
     }
 
     #[salsa::tracked(returns(ref))]

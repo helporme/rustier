@@ -334,7 +334,7 @@ mod tests {
         assert_js_snap,
         compiler::{
             codegen::{fragment::FragmentOnce as _, js::cast::test::TestCastRenderer},
-            ir::rust::Rust,
+            ir::{facade::FacadeMember, rust::Rust},
         },
     };
 
@@ -353,7 +353,11 @@ mod tests {
                             .root(db)
                             .shim(db)
                             .facade(db);
-                        let [function] = root.fns(db).as_slice() else {
+                        let mut functions = root.members(db).iter().filter_map(|member| match member {
+                            FacadeModuleMember::Function(function) => Some(*function),
+                            _ => None,
+                        });
+                        let (Some(function), None) = (functions.next(), functions.next()) else {
                             panic!("test crate root should contain exactly one facade function");
                         };
 

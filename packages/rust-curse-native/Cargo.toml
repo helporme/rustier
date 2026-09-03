@@ -34,6 +34,7 @@ cargo_metadata = "0.23.1"
 miette = { version = "7", features = ["fancy"] }
 tracing = "0.1"
 anyhow = "1.0.104"
+itertools = "0.15.0"
 
 [build-dependencies]
 napi-build = { version = "2", optional = true }

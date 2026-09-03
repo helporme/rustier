@@ -1,24 +1,21 @@
 use ra_ap_hir::{Adt, HasAttrs as _, HasVisibility as _, ModuleDef, Visibility};
 
-use super::{
-    discovery::ReachableItem as _, file_path, lower_enum, lower_function, lower_span, lower_struct,
-};
+use super::{file_path, lower_enum, lower_function, lower_span, lower_struct};
 use crate::compiler::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    inputs::CrateApiDiscovery,
-    ir::rust::{Crate, Member, Mod, ModParent, Span},
+    ir::rust::{Crate, Member, Module, ModuleParent, Span},
     path::FilePath,
 };
 
 #[salsa::tracked]
-impl<'db> Mod<'db> {
+impl<'db> Module<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> ModParent<'db> {
+    pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> ModuleParent<'db> {
         let hir = self.hir(db);
         match hir.parent(db) {
-            Some(parent) => ModParent::Mod(Self::new(db, parent)),
-            None => ModParent::Crate(Crate::new(db, hir.krate(db))),
+            Some(parent) => ModuleParent::Module(Self::new(db, parent)),
+            None => ModuleParent::Crate(Crate::new(db, hir.krate(db))),
         }
     }
 
@@ -33,21 +30,20 @@ impl<'db> Mod<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir::rust) fn lower_members(self, db: &'db dyn Db) -> Vec<Member<'db>> {
-        let include_all = self.path(db).crate_(db).api_discovery(db) == CrateApiDiscovery::Eager;
         self.hir(db)
             .declarations(db)
             .into_iter()
             .filter(|item| item.visibility(db) == Visibility::Public)
             .filter_map(|item| match item {
                 ModuleDef::Module(module) => {
-                    let mod_ = Mod::new(db, module);
-                    module.is_reachable(db).then_some(Member::Mod(mod_))
+                    let mod_ = Module::new(db, module);
+                    Some(Member::Module(mod_))
                 }
-                ModuleDef::Function(function) if include_all => lower_function(db, function)
+                ModuleDef::Function(function) => lower_function(db, function)
                     .map(Member::Function)
                     .map_err(|error| (*error).accumulate(db))
                     .ok(),
-                ModuleDef::Adt(adt) if adt.is_reachable(db) => match adt {
+                ModuleDef::Adt(adt) => match adt {
                     Adt::Struct(struct_) => lower_struct(db, struct_)
                         .map(Member::Struct)
                         .map_err(|error| (*error).accumulate(db))

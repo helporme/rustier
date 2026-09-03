@@ -1,8 +1,7 @@
 use super::vfs_path;
 use crate::compiler::{
     db::Db,
-    inputs::{CrateApiDiscovery, CratesMetadata},
-    ir::rust::{Crate, Mod},
+    ir::rust::{Crate, Module},
     path::FilePath,
 };
 
@@ -17,8 +16,8 @@ impl<'db> Crate<'db> {
     }
 
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_crate_root(self, db: &'db dyn Db) -> Mod<'db> {
-        Mod::new(db, self.hir(db).root_module(db))
+    pub(in crate::compiler::ir::rust) fn lower_crate_root(self, db: &'db dyn Db) -> Module<'db> {
+        Module::new(db, self.hir(db).root_module(db))
     }
 
     #[salsa::tracked(returns(ref))]
@@ -27,17 +26,5 @@ impl<'db> Crate<'db> {
             .and_then(|path| path.parent())
             .map(FilePath::from)
             .expect("crate root must belong to a workspace source root")
-    }
-
-    #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_api_discovery(
-        self,
-        db: &'db dyn Db,
-    ) -> CrateApiDiscovery {
-        CratesMetadata::get(db)
-            .crates
-            .get(self.root_file(db))
-            .expect("lowered crates must have compiler metadata")
-            .api_discovery
     }
 }

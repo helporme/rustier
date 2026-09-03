@@ -2,24 +2,42 @@ use crate::compiler::{
     db::Db,
     ir::{
         facade::{
-            FacadeClass, FacadeFieldDiscriminator, FacadeFreeFunction, FacadeMethod, FacadeMod,
+            FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldDiscriminator,
+            FacadeFreeFunction, FacadeMethod, FacadeModule,
         },
         shim::{
-            ShimClass, ShimFunctionAssociated, ShimFunctionEnumDiscriminator, ShimFunctionFree,
-            ShimMod,
+            ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimFunctionAssociated,
+            ShimFunctionDiscriminator, ShimFunctionFree, ShimModule,
         },
     },
 };
 
-impl<'db> ShimMod<'db> {
-    pub fn facade(self, db: &'db dyn Db) -> FacadeMod<'db> {
-        FacadeMod::new(db, self)
+impl<'db> ShimModule<'db> {
+    pub fn facade(self, db: &'db dyn Db) -> FacadeModule<'db> {
+        FacadeModule::new(db, self)
+    }
+}
+
+impl<'db> ShimClassPlain<'db> {
+    pub fn facade(self, db: &'db dyn Db) -> FacadeClassPlain<'db> {
+        FacadeClassPlain::new(db, self)
+    }
+}
+
+impl<'db> ShimClassDiscriminated<'db> {
+    pub fn facade(self, db: &'db dyn Db) -> FacadeClassDiscriminated<'db> {
+        FacadeClassDiscriminated::new(db, self)
     }
 }
 
 impl<'db> ShimClass<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeClass<'db> {
-        FacadeClass::new(db, self)
+        match self {
+            ShimClass::Plain(plain) => FacadeClass::Plain(plain.facade(db)),
+            ShimClass::Discriminated(discriminated) => {
+                FacadeClass::Discriminated(discriminated.facade(db))
+            }
+        }
     }
 }
 
@@ -35,7 +53,7 @@ impl<'db> ShimFunctionAssociated<'db> {
     }
 }
 
-impl<'db> ShimFunctionEnumDiscriminator<'db> {
+impl<'db> ShimFunctionDiscriminator<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeFieldDiscriminator<'db> {
         FacadeFieldDiscriminator::new(db, self)
     }

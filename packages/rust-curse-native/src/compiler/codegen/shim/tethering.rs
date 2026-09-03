@@ -1,5 +1,5 @@
-//! Tethering is a mechanism for simulating a JavaScript-like object model for Rust
-//! language constructs, like structs or enums.
+//! Tethering is a mechanism for simulating a JavaScript-like object model for
+//! Rust language constructs, like structs or enums.
 //!
 //! ## Idea
 //!
@@ -31,9 +31,9 @@
 //! console.log(start.x, start.y); // 10, 1
 //! ```
 //!
-//! It works since JavaScript is a garbage-collected language, and each `new Point()`
-//! allocates a new object in the heap, so `Line.start` and `Line.end` are
-//! holding a pointer to the `Point` object in the heap.
+//! It works since JavaScript is a garbage-collected language, and each `new
+//! Point()` allocates a new object in the heap, so `Line.start` and `Line.end`
+//! are holding a pointer to the `Point` object in the heap.
 //!
 //! In Rust, we could represent something similar using `Rc` and `RwLock` or
 //! `Arc` and `Mutex`:
@@ -49,8 +49,9 @@
 //!
 //! However, it is not reasonable for rust-curse to use this design.
 //! It implies that we need to generate a "binding struct" that contains all the
-//! same fields as the source struct and wrap all non-copy fields in `Arc<Mutex<T>>`.
-//! It's enough to say that it's impossible to do for private fields.
+//! same fields as the source struct and wrap all non-copy fields in
+//! `Arc<Mutex<T>>`. It's enough to say that it's impossible to do for private
+//! fields.
 //!
 //! Instead, we introduce the concept that we **clone** values on
 //! move. With this constraint, we can expose fields that hold struct (like
@@ -102,9 +103,9 @@
 //! }
 //! ```
 //!
-//! By using projections, we can generate code that emulates JavaScript-like field
-//! access for every line of the JavaScript snippet shown at the beginning of
-//! this module documentation except the last one.
+//! By using projections, we can generate code that emulates JavaScript-like
+//! field access for every line of the JavaScript snippet shown at the beginning
+//! of this module documentation except the last one.
 //!
 //! All projections created and returned from the previous pseudo-code example
 //! are projecting from the same source struct, so doing this:
@@ -124,13 +125,11 @@
 //! unchanged. Tethering structs are an internal mechanism used to support
 //! code generation, so they do not and should not depend on IR.
 
-use crate::{
-    compiler::{
-        codegen::fragment::{Fragment, FragmentOnce, doubles, frag, fragment, spaced},
-        db::Db,
-        inputs::Platform,
-        ir::rust::ValueType,
-    },
+use crate::compiler::{
+    codegen::fragment::{Fragment, FragmentOnce, doubles, frag, fragment, spaced},
+    db::Db,
+    inputs::Platform,
+    ir::rust::ValueType,
 };
 
 /// Compiles the platform-specific supporting code used by generated tethering
@@ -677,7 +676,7 @@ mod tests {
     };
 
     fn test_value_type<'db>(db: &'db dyn Db, name: &str) -> ValueType<'db> {
-        let crate_ = Rust::get(db)
+        let crate_ = Rust::complete(db)
             .crates(db)
             .first()
             .expect("test crate should be lowered");

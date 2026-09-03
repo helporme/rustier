@@ -1,14 +1,14 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        decals::{DecalClass, DecalFreeFunction, DecalMethod, DecalMod},
-        shim::{ShimClass, ShimFunctionAssociated, ShimFunctionFree, ShimMod},
+        decals::{DecalClass, DecalFreeFunction, DecalMethod, DecalModule},
+        shim::{ShimClass, ShimFunctionAssociated, ShimFunctionFree, ShimModule},
     },
 };
 
-impl<'db> ShimMod<'db> {
-    pub fn decals(self, db: &'db dyn Db) -> DecalMod<'db> {
-        DecalMod::new(db, self)
+impl<'db> ShimModule<'db> {
+    pub fn decals(self, db: &'db dyn Db) -> DecalModule<'db> {
+        DecalModule::new(db, self)
     }
 }
 

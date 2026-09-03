@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 use crate::compiler::{
     codegen::sourcemap::mappings::Mapping,
     db::RootDatabase,
-    inputs::{FfiLayout, Platform},
+    inputs::{FilePaths, Platform},
     ir::{
-        decals::DecalMod,
+        decals::DecalModule,
         rust::{Member, Rust},
     },
     path::FilePath,
@@ -26,16 +26,16 @@ struct TestSourceMap {
 
 pub fn configure_db(db: &mut RootDatabase) {
     Platform::set(db, Platform::Node);
-    FfiLayout::set(
+    FilePaths::set(
         db,
-        FfiLayout {
+        FilePaths {
             ffi_js_file: FilePath::new_virtual("/ffi.js").expect("test FFI path must be valid"),
         },
     );
 }
 
-pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalMod<'db> {
-    Rust::get(db)
+pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalModule<'db> {
+    Rust::complete(db)
         .crates(db)
         .first()
         .expect("test crate should be lowered")
@@ -44,8 +44,8 @@ pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalMod<'db> {
         .decals(db)
 }
 
-pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalMod<'db> {
-    let mut module = Rust::get(db)
+pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalModule<'db> {
+    let mut module = Rust::complete(db)
         .crates(db)
         .first()
         .expect("test crate should be lowered")
@@ -56,7 +56,7 @@ pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalMod<'db> {
             .members(db)
             .iter()
             .find_map(|member| match member {
-                Member::Mod(child) if child.name(db) == segment => Some(*child),
+                Member::Module(child) if child.name(db) == segment => Some(*child),
                 _ => None,
             })
             .expect("test module should be lowered");
@@ -65,8 +65,8 @@ pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalMod<'db> {
     module.shim(db).decals(db)
 }
 
-pub fn snapshot_module(db: &RootDatabase, module: DecalMod<'_>) -> String {
-    let crate_dir = Rust::get(db)
+pub fn snapshot_module(db: &RootDatabase, module: DecalModule<'_>) -> String {
+    let crate_dir = Rust::complete(db)
         .crates(db)
         .first()
         .expect("test crate should be lowered")

@@ -3,8 +3,9 @@ use crate::compiler::{
     ir::{
         ffi::{FfiClass, FfiFunction, FfiParam},
         shim::{
-            ShimClass, ShimFunction, ShimFunctionAssociated, ShimFunctionEnumDiscriminator,
-            ShimFunctionFree, ShimFunctionGetter, ShimFunctionSetter, ShimParam,
+            ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimFunction,
+            ShimFunctionAssociated, ShimFunctionDiscriminator, ShimFunctionFree,
+            ShimFunctionGetter, ShimFunctionSetter, ShimParam,
         },
     },
 };
@@ -12,6 +13,18 @@ use crate::compiler::{
 impl<'db> ShimClass<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
         FfiClass::new(db, self)
+    }
+}
+
+impl<'db> ShimClassPlain<'db> {
+    pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
+        FfiClass::new(db, ShimClass::Plain(self))
+    }
+}
+
+impl<'db> ShimClassDiscriminated<'db> {
+    pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
+        FfiClass::new(db, ShimClass::Discriminated(self))
     }
 }
 
@@ -23,31 +36,31 @@ impl<'db> ShimFunction<'db> {
 
 impl<'db> ShimFunctionFree<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.as_fn().ffi(db)
+        FfiFunction::new(db, ShimFunction::from(self))
     }
 }
 
 impl<'db> ShimFunctionAssociated<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.as_fn().ffi(db)
+        FfiFunction::new(db, ShimFunction::from(self))
     }
 }
 
 impl<'db> ShimFunctionGetter<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.as_fn().ffi(db)
+        FfiFunction::new(db, ShimFunction::from(self))
     }
 }
 
 impl<'db> ShimFunctionSetter<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.as_fn().ffi(db)
+        FfiFunction::new(db, ShimFunction::from(self))
     }
 }
 
-impl<'db> ShimFunctionEnumDiscriminator<'db> {
+impl<'db> ShimFunctionDiscriminator<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.as_fn().ffi(db)
+        FfiFunction::new(db, ShimFunction::from(self))
     }
 }
 

@@ -545,7 +545,7 @@ mod tests {
         assert_js_snap,
         compiler::{
             codegen::{fragment::FragmentOnce as _, js::cast::test::TestCastRenderer},
-            ir::rust::Rust,
+            ir::{facade::FacadeMember, rust::Rust},
         },
     };
 
@@ -565,10 +565,14 @@ mod tests {
                             .shim(db)
                             .facade(db);
                         let class = root
-                            .classes(db)
+                            .members(db)
                             .iter()
-                            .copied()
-                            .find(|class| class.name(db) == "Test")
+                            .find_map(|member| match member {
+                                FacadeModuleMember::Class(class) if class.name(db) == "Test" => {
+                                    Some(*class)
+                                }
+                                _ => None,
+                            })
                             .expect("test crate should contain a `Test` facade class");
 
                         class.render_with(db, TestCastRenderer).apply(printer);

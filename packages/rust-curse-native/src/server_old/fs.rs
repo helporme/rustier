@@ -15,13 +15,13 @@ pub use load::FsReloadError;
 /// Options for [`ServerFs::load`].
 #[derive(Debug, Clone)]
 pub struct ServerFsOpts {
-    /// Path to the manifest of the package that drives API discovery.
+    /// Path to the manifest of the root package.
     pub manifest_path: PathBuf,
     /// Glob patterns for files loaded into the compiler.
     pub included: Vec<Pattern>,
     /// Glob patterns for files and directories to skip.
     pub excluded: Vec<Pattern>,
-    /// Additional dependency package or crate names loaded with lazy discovery.
+    /// Additional dependency package or crate names to load.
     /// Every resolved version with a matching name is included.
     pub include_dep_crates: HashSet<String>,
     /// Dependency package or crate names omitted from the compiler.

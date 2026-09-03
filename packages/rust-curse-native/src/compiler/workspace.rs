@@ -5,7 +5,7 @@ use ra_ap_project_model::CargoConfig;
 use ra_ap_vfs::Vfs;
 
 use crate::compiler::{
-    inputs::{FfiLayout, Platform, WasmEnv::Web},
+    inputs::{FilePaths, Platform, WasmEnv::Web},
     path::FilePath,
 };
 
@@ -37,9 +37,9 @@ impl Workspace {
 
         Platform::set(&mut db, Platform::Wasm { target: Web });
 
-        FfiLayout::set(
+        FilePaths::set(
             &mut db,
-            FfiLayout {
+            FilePaths {
                 ffi_js_file: FilePath::new_virtual("/@ffi").unwrap(),
             },
         );
@@ -53,8 +53,8 @@ impl Workspace {
     }
 
     /// Sets a custom FFI layout.
-    pub fn change_ffi_layout(&mut self, ffi_layout: FfiLayout) {
-        FfiLayout::set(&mut self.db, ffi_layout);
+    pub fn change_ffi_layout(&mut self, ffi_layout: FilePaths) {
+        FilePaths::set(&mut self.db, ffi_layout);
     }
 
     /// Returns the database used for analysis and compilation queries.

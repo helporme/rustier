@@ -1,10 +1,9 @@
 mod crates;
-mod discovery;
 mod enums;
 mod fields;
 mod functions;
 mod impls;
-mod mods;
+mod modules;
 mod shapes;
 mod structs;
 mod types;
@@ -22,15 +21,12 @@ use miette::SourceSpan;
 use ra_ap_hir::Adt;
 
 use super::{AsItem as _, Crate, Function, Rust, Span};
-use crate::compiler::{db::Db, diag::DiagSource, inputs::CratesMetadata, path::FilePath};
-
-use self::discovery::ReachableItem as _;
+use crate::compiler::{db::Db, diag::DiagSource, path::FilePath};
 
 #[salsa::tracked]
 impl<'db> Rust<'db> {
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower(db: &'db dyn Db) -> Self {
-        let metadata = CratesMetadata::get(db);
         let mut crates = ra_ap_hir::Crate::all(db);
         crates.sort_by_key(|crate_| crate_.is_builtin(db));
         Self::new(
@@ -38,8 +34,6 @@ impl<'db> Rust<'db> {
             crates
                 .into_iter()
                 .map(|crate_| Crate::new(db, crate_))
-                .filter(|crate_| metadata.crates.contains_key(crate_.root_file(db)))
-                .filter(|crate_| crate_.hir(db).is_reachable(db))
                 .collect::<Vec<_>>(),
         )
     }

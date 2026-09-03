@@ -4,7 +4,7 @@
 use crate::compiler::{
     db::Db,
     diag::Diag,
-    ir::rust::{Crate, Member, Mod},
+    ir::rust::{Crate, Member, Module},
 };
 
 mod enum_js_name_collisions;
@@ -23,7 +23,7 @@ fn accumulate_checks<'db>(db: &'db dyn Db, crate_: Crate<'db>) {
 }
 
 #[salsa::tracked]
-impl<'db> Mod<'db> {
+impl<'db> Module<'db> {
     #[salsa::tracked]
     pub fn check(self, db: &'db dyn Db) {
         for member in self.members(db) {
@@ -38,7 +38,7 @@ impl<'db> Mod<'db> {
                     enum_.check_method_field_collisions(db);
                 }
                 Member::Function(function) => function.check_f32_precision_loss(db),
-                Member::Mod(mod_) => mod_.check(db),
+                Member::Module(mod_) => mod_.check(db),
             }
         }
     }
@@ -50,7 +50,7 @@ mod tests {
     use crate::{compiler::ir::rust::Rust, test_db};
 
     pub(super) fn diagnostic_codes(db: &dyn Db) -> Vec<String> {
-        let crate_ = Rust::get(db)
+        let crate_ = Rust::complete(db)
             .crates(db)
             .first()
             .expect("test crate should be lowered");

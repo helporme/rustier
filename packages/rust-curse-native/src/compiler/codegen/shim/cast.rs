@@ -6,17 +6,15 @@ mod numbers;
 mod strings;
 mod tethering;
 
-use crate::{
-    compiler::{
-        codegen::{
-            fragment::{FragmentOnce, Printer, frag, fragment},
-            shim::tethering::TetheringStructType,
-        },
-        db::Db,
-        ir::{
-            rust::{Type, ValueType},
-            shim::ShimType,
-        },
+use crate::compiler::{
+    codegen::{
+        fragment::{FragmentOnce, Printer, frag, fragment},
+        shim::tethering::TetheringStructType,
+    },
+    db::Db,
+    ir::{
+        rust::{Type, ValueType},
+        shim::ShimType,
     },
 };
 
@@ -787,7 +785,7 @@ mod tests {
     }
 
     fn test_value_type<'db>(db: &'db dyn Db, name: &str) -> ValueType<'db> {
-        let crate_ = Rust::get(db)
+        let crate_ = Rust::complete(db)
             .crates(db)
             .first()
             .expect("test crate should be lowered");

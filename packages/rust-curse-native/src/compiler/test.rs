@@ -6,7 +6,7 @@ use ra_ap_test_fixture::ChangeFixture;
 
 use crate::compiler::{
     db::RootDatabase,
-    inputs::{FfiLayout, Platform},
+    inputs::{FilePaths, Platform},
     path::FilePath,
 };
 
@@ -61,9 +61,9 @@ pub(super) fn build_test_db(source: String, files: &[(&str, String)]) -> RootDat
     let mut db = RootDatabase::default();
     db.apply_change(ChangeFixture::parse(&fixture).change);
     Platform::set(&mut db, Platform::Node);
-    FfiLayout::set(
+    FilePaths::set(
         &mut db,
-        FfiLayout {
+        FilePaths {
             ffi_js_file: FilePath::new_virtual("/generated/ffi.js")
                 .expect("test FFI file should be a valid path"),
         },

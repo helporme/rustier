@@ -6,7 +6,7 @@ use std::{
 
 use rust_curse::compiler::{
     diag::Diag,
-    inputs::{CrateApiDiscovery, CrateApiImportMode, Platform, WasmEnv},
+    inputs::{CrateApiImportMode, Platform, WasmEnv},
     ir::rust::Rust,
     path::FilePath,
     workspace::{
@@ -154,7 +154,7 @@ impl ProgramCompiler {
 
             Platform::set(compiler.db_mut(), platform);
             let db = compiler.db();
-            let rust = Rust::get(db);
+            let rust = Rust::complete(db);
             diagnostics.extend(
                 rust.crates(db)
                     .iter()

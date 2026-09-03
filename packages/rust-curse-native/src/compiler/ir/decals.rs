@@ -10,8 +10,8 @@ use crate::compiler::{
     ir::{
         rust::{Field, FieldName, Function, Span, Variant},
         shim::{
-            ShimClass, ShimClassSource, ShimFunction, ShimFunctionAssociated,
-            ShimFunctionEnumDiscriminator, ShimFunctionFree, ShimMod, ShimParam,
+            ShimClass, ShimFunction, ShimFunctionAssociated, ShimFunctionDiscriminator,
+            ShimFunctionFree, ShimModule, ShimParam,
         },
     },
     path::FilePath,
@@ -19,7 +19,7 @@ use crate::compiler::{
 
 #[salsa::tracked(debug)]
 pub struct DecalImport<'db> {
-    pub originating_from: DecalMod<'db>,
+    pub originating_from: DecalModule<'db>,
     pub class: DecalClass<'db>,
 }
 
@@ -30,11 +30,11 @@ impl<'db> DecalImport<'db> {
 }
 
 #[salsa::interned(debug)]
-pub struct DecalMod<'db> {
-    shim: ShimMod<'db>,
+pub struct DecalModule<'db> {
+    shim: ShimModule<'db>,
 }
 
-impl<'db> DecalMod<'db> {
+impl<'db> DecalModule<'db> {
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
         self.shim(db).src(db).docs(db)
     }
@@ -43,12 +43,8 @@ impl<'db> DecalMod<'db> {
         self.shim(db).src(db).span(db)
     }
 
-    pub fn fns(self, db: &'db dyn Db) -> &'db Vec<DecalFreeFunction<'db>> {
-        self.lower_fns(db)
-    }
-
-    pub fn classes(self, db: &'db dyn Db) -> &'db Vec<DecalClass<'db>> {
-        self.lower_classes(db)
+    pub fn members(self, db: &'db dyn Db) -> &'db Vec<DecalModuleMember<'db>> {
+        self.lower_members(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> &'db HashSet<DecalImport<'db>> {
@@ -58,6 +54,13 @@ impl<'db> DecalMod<'db> {
     pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
         self.lower_file_path(db)
     }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
+pub enum DecalModuleMember<'db> {
+    Class(DecalClass<'db>),
+    Function(DecalFreeFunction<'db>),
+    Module(DecalModule<'db>),
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
@@ -208,26 +211,26 @@ pub struct DecalClass<'db> {
 }
 
 impl<'db> DecalClass<'db> {
-    pub fn parent(self, db: &'db dyn Db) -> DecalMod<'db> {
-        self.shim(db).parent(db).decals(db)
+    pub fn parent(self, db: &'db dyn Db) -> DecalModule<'db> {
+        self.shim(db).module(db).decals(db)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db str {
-        match self.shim(db).src(db) {
+        match self.shim(db).src_type(db) {
             ShimClassSource::Struct(struct_) => struct_.name(db),
             ShimClassSource::Enum(enum_) => enum_.name(db),
         }
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        match self.shim(db).src(db) {
+        match self.shim(db).src_type(db) {
             ShimClassSource::Struct(struct_) => struct_.docs(db),
             ShimClassSource::Enum(enum_) => enum_.docs(db),
         }
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        match self.shim(db).src(db) {
+        match self.shim(db).src_type(db) {
             ShimClassSource::Struct(struct_) => struct_.span(db),
             ShimClassSource::Enum(enum_) => enum_.span(db),
         }
@@ -312,7 +315,7 @@ impl<'db> DecalField<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalDiscriminator<'db> {
-    src: ShimFunctionEnumDiscriminator<'db>,
+    src: ShimFunctionDiscriminator<'db>,
 }
 
 impl<'db> DecalDiscriminator<'db> {

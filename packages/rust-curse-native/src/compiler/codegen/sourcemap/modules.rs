@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::compiler::{
     codegen::sourcemap::mappings::{Mapping, compile_mappings, find_name_line},
     db::Db,
-    ir::decals::{DecalClassKind, DecalMod},
+    ir::decals::{DecalClassKind, DecalModule, DecalModuleMember},
 };
 
 /// A Source Map v3 document for generated TypeScript declarations.
@@ -21,7 +21,7 @@ struct SourceMap {
 }
 
 #[salsa::tracked]
-impl<'db> DecalMod<'db> {
+impl<'db> DecalModule<'db> {
     /// Renders a Source Map v3 document for this module's TypeScript
     /// declarations.
     #[salsa::tracked(returns(ref))]
@@ -53,7 +53,10 @@ impl<'db> DecalMod<'db> {
         let mut mappings = Vec::new();
         let mut search_line = 0;
 
-        for function in self.fns(db) {
+        for function in self.members(db).iter().filter_map(|member| match member {
+            DecalModuleMember::Function(function) => Some(function),
+            _ => None,
+        }) {
             let generated_line = find_name_line(
                 generated,
                 search_line,
@@ -72,8 +75,12 @@ impl<'db> DecalMod<'db> {
         }
 
         for class in self
-            .classes(db)
+            .members(db)
             .iter()
+            .filter_map(|member| match member {
+                DecalModuleMember::Class(class) => Some(class),
+                _ => None,
+            })
             .filter(|class| matches!(class.kind(db), DecalClassKind::Plain { .. }))
         {
             let generated_line = find_name_line(
@@ -94,8 +101,12 @@ impl<'db> DecalMod<'db> {
         }
 
         for class in self
-            .classes(db)
+            .members(db)
             .iter()
+            .filter_map(|member| match member {
+                DecalModuleMember::Class(class) => Some(class),
+                _ => None,
+            })
             .filter(|class| matches!(class.kind(db), DecalClassKind::DiscriminatedUnion { .. }))
         {
             let generated_line =

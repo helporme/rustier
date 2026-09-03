@@ -5,9 +5,10 @@ use crate::compiler::{
     ir::{
         decals::{
             DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalFreeFunction,
-            DecalImport, DecalMethod, DecalMod, DecalParam, DecalType, DecalVariant,
+            DecalImport, DecalMethod, DecalModule, DecalModuleMember, DecalParam, DecalType,
+            DecalVariant,
         },
-        shim::{ShimClassSource, ShimFunction, ShimFunctionEnumDiscriminator, ShimType},
+        shim::{ShimClassSource, ShimFunctionDiscriminator, ShimMember, ShimType},
     },
     mangle::to_camel_case,
     path::FilePath,
@@ -25,25 +26,17 @@ impl<'db> DecalImport<'db> {
 }
 
 #[salsa::tracked]
-impl<'db> DecalMod<'db> {
+impl<'db> DecalModule<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn lower_fns(self, db: &'db dyn Db) -> Vec<DecalFreeFunction<'db>> {
+    pub(super) fn lower_members(self, db: &'db dyn Db) -> Vec<DecalModuleMember<'db>> {
         self.shim(db)
-            .fns(db)
+            .members(db)
             .iter()
-            .filter_map(|function| match function {
-                ShimFunction::Free(function) => Some(function.decals(db)),
-                _ => None,
+            .map(|member| match member {
+                ShimMember::Class(class) => DecalModuleMember::Class(class.decals(db)),
+                ShimMember::Function(function) => DecalModuleMember::Function(function.decals(db)),
+                ShimMember::Module(module) => DecalModuleMember::Module(module.decals(db)),
             })
-            .collect()
-    }
-
-    #[salsa::tracked(returns(ref))]
-    pub(super) fn lower_classes(self, db: &'db dyn Db) -> Vec<DecalClass<'db>> {
-        self.shim(db)
-            .classes(db)
-            .iter()
-            .map(|class| class.decals(db))
             .collect()
     }
 
@@ -58,38 +51,42 @@ impl<'db> DecalMod<'db> {
             }
         };
 
-        for function in self.fns(db) {
-            for param in function.params(db) {
-                insert_type(param.type_(db));
-            }
-            if let Some(type_) = function.ret_type(db) {
-                insert_type(type_);
-            }
-        }
-
-        for class in self.classes(db) {
-            match class.kind(db) {
-                DecalClassKind::Plain { fields } => {
-                    for field in fields {
-                        insert_type(field.type_(db));
+        for member in self.members(db) {
+            match member {
+                DecalModuleMember::Function(function) => {
+                    for param in function.params(db) {
+                        insert_type(param.type_(db));
+                    }
+                    if let Some(type_) = function.ret_type(db) {
+                        insert_type(type_);
                     }
                 }
-                DecalClassKind::DiscriminatedUnion { variants, .. } => {
-                    for variant in variants {
-                        for field in variant.fields(db) {
-                            insert_type(field.type_(db));
+                DecalModuleMember::Class(class) => {
+                    match class.kind(db) {
+                        DecalClassKind::Plain { fields } => {
+                            for field in fields {
+                                insert_type(field.type_(db));
+                            }
+                        }
+                        DecalClassKind::DiscriminatedUnion { variants, .. } => {
+                            for variant in variants {
+                                for field in variant.fields(db) {
+                                    insert_type(field.type_(db));
+                                }
+                            }
+                        }
+                    }
+
+                    for method in class.methods(db) {
+                        for param in method.params(db) {
+                            insert_type(param.type_(db));
+                        }
+                        if let Some(type_) = method.ret_type(db) {
+                            insert_type(type_);
                         }
                     }
                 }
-            }
-
-            for method in class.methods(db) {
-                for param in method.params(db) {
-                    insert_type(param.type_(db));
-                }
-                if let Some(type_) = method.ret_type(db) {
-                    insert_type(type_);
-                }
+                DecalModuleMember::Module(_) => {}
             }
         }
 
@@ -129,7 +126,7 @@ impl<'db> DecalMethod<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<DecalParam<'db>> {
         self.shim(db)
-            .params_without_receiver(db)
+            .params_without_self(db)
             .iter()
             .map(|param| DecalParam::new(db, *param))
             .collect()
@@ -154,7 +151,7 @@ impl<'db> DecalClass<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_methods(self, db: &'db dyn Db) -> Vec<DecalMethod<'db>> {
         self.shim(db)
-            .associated_fns(db)
+            .methods(db)
             .iter()
             .map(|function| function.decals(db))
             .collect()
@@ -162,7 +159,7 @@ impl<'db> DecalClass<'db> {
 
     #[salsa::tracked]
     pub(super) fn lower_constructor(self, db: &'db dyn Db) -> Option<DecalMethod<'db>> {
-        let ShimClassSource::Struct(_) = self.shim(db).src(db) else {
+        let ShimClassSource::Struct(_) = self.shim(db).src_type(db) else {
             return None;
         };
 
@@ -181,7 +178,7 @@ impl<'db> DecalClass<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_kind(self, db: &'db dyn Db) -> DecalClassKind<'db> {
-        match self.shim(db).src(db) {
+        match self.shim(db).src_type(db) {
             ShimClassSource::Struct(_) => DecalClassKind::Plain {
                 fields: self
                     .shim(db)
@@ -202,7 +199,7 @@ impl<'db> DecalClass<'db> {
                     variants,
                     discriminator: DecalDiscriminator::new(
                         db,
-                        ShimFunctionEnumDiscriminator::new(db, enum_),
+                        ShimFunctionDiscriminator::new(db, enum_),
                     ),
                 }
             }

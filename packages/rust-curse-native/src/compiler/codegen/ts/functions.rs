@@ -96,7 +96,10 @@ fn render_class_method_name(name: &str) -> impl FragmentOnce + '_ {
 mod tests {
     use crate::{
         assert_ts_snap,
-        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Rust},
+        compiler::{
+            codegen::fragment::FragmentOnce as _,
+            ir::{decals::DecalModuleMember, rust::Rust},
+        },
     };
 
     macro_rules! test_function {
@@ -115,9 +118,16 @@ mod tests {
                             .shim(db)
                             .decals(db);
                         let function = root
-                            .fns(db)
+                            .members(db)
                             .iter()
-                            .find(|function| function.name(db) == $function_name)
+                            .find_map(|member| match member {
+                                DecalModuleMember::Function(function)
+                                    if function.name(db) == $function_name =>
+                                {
+                                    Some(function)
+                                }
+                                _ => None,
+                            })
                             .expect("test function should be lowered");
 
                         function.render_ts(db).apply(p);

@@ -1,48 +1,48 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        rust::{Enum, Field, ImplTarget, Mod, Rust, Struct, Type, ValueType},
-        shim::{Shim, ShimClass, ShimClassSource, ShimCrate, ShimField, ShimMod, ShimType},
+        rust::{Enum, Field, ImplTarget, Member, Module, Struct, Type, ValueType},
+        shim::{
+            ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimField, ShimFunctionFree,
+            ShimMember, ShimModule, ShimType,
+        },
     },
 };
 
-#[salsa::tracked]
-impl<'db> Rust<'db> {
-    #[salsa::tracked]
-    pub fn shim(self, db: &'db dyn Db) -> Shim<'db> {
-        Shim::new(
-            db,
-            self.crates(db)
-                .iter()
-                .map(|crate_| ShimCrate::new(db, *crate_))
-                .collect::<Vec<_>>(),
-        )
+impl<'db> Module<'db> {
+    pub fn shim(self, db: &'db dyn Db) -> ShimModule<'db> {
+        ShimModule::new(db, self)
     }
 }
 
-impl<'db> Mod<'db> {
-    pub fn shim(self, db: &'db dyn Db) -> ShimMod<'db> {
-        ShimMod::new(db, self)
+impl<'db> Member<'db> {
+    pub fn shim(self, db: &'db dyn Db) -> ShimMember<'db> {
+        match self {
+            Member::Function(function) => ShimMember::Function(ShimFunctionFree::new(db, function)),
+            Member::Struct(struct_) => ShimMember::Class(struct_.shim(db).into()),
+            Member::Enum(enum_) => ShimMember::Class(enum_.shim(db).into()),
+            Member::Module(module) => ShimMember::Module(module.shim(db)),
+        }
     }
 }
 
 impl<'db> Struct<'db> {
-    pub fn shim(self, db: &'db dyn Db) -> ShimClass<'db> {
-        ShimClass::new(db, ShimClassSource::Struct(self))
+    pub fn shim(self, db: &'db dyn Db) -> ShimClassPlain<'db> {
+        ShimClassPlain::new(db, self)
     }
 }
 
 impl<'db> Enum<'db> {
-    pub fn shim(self, db: &'db dyn Db) -> ShimClass<'db> {
-        ShimClass::new(db, ShimClassSource::Enum(self))
+    pub fn shim(self, db: &'db dyn Db) -> ShimClassDiscriminated<'db> {
+        ShimClassDiscriminated::new(db, self)
     }
 }
 
 impl<'db> ImplTarget<'db> {
     pub fn shim(self, db: &'db dyn Db) -> ShimClass<'db> {
         match self {
-            ImplTarget::Struct(struct_) => struct_.shim(db),
-            ImplTarget::Enum(enum_) => enum_.shim(db),
+            ImplTarget::Struct(struct_) => struct_.shim(db).into(),
+            ImplTarget::Enum(enum_) => enum_.shim(db).into(),
         }
     }
 }
@@ -69,11 +69,11 @@ impl<'db> Type<'db> {
             ValueType::Str | ValueType::String => ShimType::String,
             ValueType::Struct(struct_) => ShimType::Class {
                 is_borrowed: true,
-                inner: struct_.shim(db),
+                inner: struct_.shim(db).into(),
             },
             ValueType::Enum(enum_) => ShimType::Class {
                 is_borrowed: true,
-                inner: enum_.shim(db),
+                inner: enum_.shim(db).into(),
             },
         }
     }

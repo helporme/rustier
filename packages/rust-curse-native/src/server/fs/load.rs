@@ -17,8 +17,8 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::compiler::{
-    CrateApiDiscovery, CrateApiImportMode, CrateBuilderId, CrateGraphBuilder, Edition, FilePath,
-    WorkspaceCrate, WorkspaceCrateDependency, WorkspaceCrateKind,
+    CrateApiImportMode, CrateBuilderId, CrateGraphBuilder, Edition, FilePath, WorkspaceCrate,
+    WorkspaceCrateDependency, WorkspaceCrateKind,
 };
 
 use super::ServerFs;
@@ -114,12 +114,10 @@ impl ServerFs {
 
             let is_local = project.members.contains(package_id);
             self.load_package_sources(package, is_local, filters)?;
-            let (api_discovery, api_import_mode) = if is_main {
-                (CrateApiDiscovery::Eager, CrateApiImportMode::Relative)
-            } else if is_direct {
-                (CrateApiDiscovery::Eager, CrateApiImportMode::Mod)
+            let api_import_mode = if is_main {
+                CrateApiImportMode::Relative
             } else {
-                (CrateApiDiscovery::Lazy, CrateApiImportMode::Mod)
+                CrateApiImportMode::Mod
             };
             let crate_id = loaded.graph.add_crate(WorkspaceCrate {
                 name: target.name.clone(),
@@ -131,7 +129,6 @@ impl ServerFs {
                 } else {
                     WorkspaceCrateKind::Dependency
                 },
-                api_discovery,
                 api_import_mode,
             });
             loaded.ids.insert(package.id.clone(), crate_id);
@@ -245,7 +242,6 @@ impl ServerFs {
             root_file: real_file_path(target.src_path.as_std_path())?,
             version: package.version.to_string(),
             kind: WorkspaceCrateKind::Lang,
-            api_discovery: CrateApiDiscovery::Lazy,
             api_import_mode: CrateApiImportMode::Mod,
         }))
     }
