@@ -35,7 +35,7 @@ pub fn configure_db(db: &mut RootDatabase) {
 }
 
 pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalModule<'db> {
-    Rust::complete(db)
+    Rust::get(db)
         .crates(db)
         .first()
         .expect("test crate should be lowered")
@@ -45,7 +45,7 @@ pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalModule<'db> {
 }
 
 pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalModule<'db> {
-    let mut module = Rust::complete(db)
+    let mut module = Rust::get(db)
         .crates(db)
         .first()
         .expect("test crate should be lowered")
@@ -66,7 +66,7 @@ pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalModule<'db
 }
 
 pub fn snapshot_module(db: &RootDatabase, module: DecalModule<'_>) -> String {
-    let crate_dir = Rust::complete(db)
+    let crate_dir = Rust::get(db)
         .crates(db)
         .first()
         .expect("test crate should be lowered")

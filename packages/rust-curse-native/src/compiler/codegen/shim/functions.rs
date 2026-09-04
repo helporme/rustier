@@ -327,6 +327,10 @@ mod tests {
 
         root.functions(db)
             .map(|function| ShimFunction::from(function))
+            .chain(
+                root.classes(db)
+                    .flat_map(|class| class.all_functions(db).iter().copied()),
+            )
             .find(|function| predicate(*function))
             .expect("fixture should lower the requested shim function")
     }

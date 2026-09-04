@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/js/classes.rs
+assertion_line: 755
 expression: snapshot
 ---
 # Source
@@ -46,9 +47,9 @@ export class Test {
 	) {
 		{
 			const result = cast.from(
-				"Ffi(Class(FfiClass { shim: ShimClass { src: Enum(Enum { hir: Enum { id: EnumId(6000) } }) } }))"
+				"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(6000) } } }) }))"
 			).to(
-				"Facade(Class(FacadeClass { shim: ShimClass { src: Enum(Enum { hir: Enum { id: EnumId(6000) } }) } }))"
+				"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(6000) } } } })))"
 			).an(
 				__fn__associated__test_0crate_Test_first(
 

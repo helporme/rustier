@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/js/classes.rs
+assertion_line: 606
 expression: snapshot
 ---
 # Source
@@ -26,9 +27,9 @@ export class Test {
 		) {
 			{
 				const out = cast.from(
-					"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5802) } }) } }))"
+					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5802) } } }) }))"
 				).to(
-					"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5802) } }) } }))"
+					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5802) } } } })))"
 				).an(
 					__fn__getter__test_0crate_Test__nested(
 						this.#_ffi
@@ -45,9 +46,9 @@ export class Test {
 	) {
 		{
 			const out = cast.from(
-				"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5802) } }) } }))"
+				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5802) } } } })))"
 			).to(
-				"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5802) } }) } }))"
+				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5802) } } }) }))"
 			).an(
 				value
 			);

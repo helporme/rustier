@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/ts/classes.rs
+assertion_line: 406
 expression: snapshot
 ---
 # Source
@@ -25,9 +26,11 @@ export namespace Test {
 	export type Plain =
 		| {
 			readonly type: "first";
+			value: number;
 		}
 		| {
 			readonly type: "second";
+			value: number;
 		};
 
 	export class Instance {

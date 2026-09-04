@@ -4,9 +4,7 @@ use crate::compiler::{
     codegen::sourcemap::mappings::{Mapping, OriginalLocation, find_name_line, original_location},
     db::Db,
     ir::{
-        decals::{
-            DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalMethod, DecalVariant,
-        },
+        decals::{DecalClass, DecalDiscriminator, DecalField, DecalMethod, DecalVariant},
         rust::FieldName,
     },
 };
@@ -20,29 +18,27 @@ impl<'db> DecalClass<'db> {
         db: &'db dyn Db,
         generated_line: usize,
     ) -> Vec<Mapping> {
-        match self.kind(db) {
-            DecalClassKind::Plain { fields } => {
-                self.render_plain_sourcemap_mappings(db, fields, generated_line)
+        match self {
+            DecalClass::Plain(plain) => {
+                self.render_plain_sourcemap_mappings(db, plain.fields(db).collect(), generated_line)
             }
-            DecalClassKind::DiscriminatedUnion {
-                variants,
-                discriminator,
-            } => self.render_discriminated_sourcemap_mappings(
-                db,
-                variants,
-                *discriminator,
-                generated_line,
-            ),
+            DecalClass::Discriminated(discriminated) => self
+                .render_discriminated_sourcemap_mappings(
+                    db,
+                    discriminated.variants(db),
+                    discriminated.discriminator(db),
+                    generated_line,
+                ),
         }
     }
 
     fn render_plain_sourcemap_mappings(
         self,
         db: &'db dyn Db,
-        fields: &'db [DecalField<'db>],
+        fields: Vec<DecalField<'db>>,
         generated_line: usize,
     ) -> Vec<Mapping> {
-        let generated = self.parent(db).render_ts(db);
+        let generated = self.module(db).render_ts(db);
         let name = self.name(db);
         let class_line = find_name_line(generated, generated_line, "export class ", name, " {")
             .expect("rendered TypeScript class declaration should exist");
@@ -132,7 +128,7 @@ impl<'db> DecalClass<'db> {
         discriminator: DecalDiscriminator<'db>,
         generated_line: usize,
     ) -> Vec<Mapping> {
-        let generated = self.parent(db).render_ts(db);
+        let generated = self.module(db).render_ts(db);
         let name = self.name(db);
         let type_line = find_name_line(generated, generated_line, "export type ", name, " =")
             .expect("rendered TypeScript union declaration should exist");

@@ -12,7 +12,7 @@ use crate::compiler::{
 use super::db::RootDatabase;
 
 /// Workspace exposing convenient methods to set up an environment for a
-/// rust-analyzer database and access it via [`Self::db`] and [`Self::db_mut`].
+/// rust-analyzer database and access it via [`Self::db`].
 ///
 /// Useful for testing and quick project bootstrapping. Alternatively, you can
 /// use the rust-analyzer [`RootDatabase`] directly and manually set

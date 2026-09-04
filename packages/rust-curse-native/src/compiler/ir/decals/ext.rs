@@ -1,8 +1,14 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        decals::{DecalClass, DecalFreeFunction, DecalMethod, DecalModule},
-        shim::{ShimClass, ShimFunctionAssociated, ShimFunctionFree, ShimModule},
+        decals::{
+            DecalClass, DecalClassDiscriminated, DecalClassPlain, DecalFreeFunction, DecalMethod,
+            DecalModule,
+        },
+        shim::{
+            ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimFunctionAssociated,
+            ShimFunctionFree, ShimModule,
+        },
     },
 };
 
@@ -12,9 +18,26 @@ impl<'db> ShimModule<'db> {
     }
 }
 
+impl<'db> ShimClassPlain<'db> {
+    pub fn decals(self, db: &'db dyn Db) -> DecalClassPlain<'db> {
+        DecalClassPlain::new(db, self)
+    }
+}
+
+impl<'db> ShimClassDiscriminated<'db> {
+    pub fn decals(self, db: &'db dyn Db) -> DecalClassDiscriminated<'db> {
+        DecalClassDiscriminated::new(db, self)
+    }
+}
+
 impl<'db> ShimClass<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalClass<'db> {
-        DecalClass::new(db, self)
+        match self {
+            ShimClass::Plain(plain) => DecalClass::Plain(plain.decals(db)),
+            ShimClass::Discriminated(discriminated) => {
+                DecalClass::Discriminated(discriminated.decals(db))
+            }
+        }
     }
 }
 

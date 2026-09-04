@@ -400,13 +400,13 @@ mod tests {
     }
 
     fn test_facade_class<'db>(db: &'db dyn Db) -> FacadeClass<'db> {
-        let crate_ = Rust::complete(db)
+        let crate_ = Rust::get(db)
             .crates(db)
             .first()
             .expect("test crate should be lowered");
         let root = crate_.root(db).shim(db).facade(db);
-        let mut classes = root.members(db).iter().filter_map(|member| match member {
-            FacadeMember::Class(class) => Some(*class),
+        let mut classes = root.members(db).filter_map(|member| match member {
+            FacadeMember::Class(class) => Some(class),
             _ => None,
         });
         let (Some(class), None) = (classes.next(), classes.next()) else {

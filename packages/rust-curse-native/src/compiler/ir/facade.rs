@@ -324,10 +324,6 @@ impl<'db> FacadeClass<'db> {
         }
     }
 
-    // pub fn kind(self, db: &'db dyn Db) -> &'db FacadeClassKind<'db> {
-    //     self.lower_kind(db)
-    // }
-
     #[salsa::tracked(returns(ref))]
     pub fn methods(self, db: &'db dyn Db) -> Vec<FacadeMethod<'db>> {
         match self {
@@ -441,6 +437,7 @@ impl<'db> FacadeClassDiscriminated<'db> {
             .flat_map(|variant| variant.fields(db).map(move |field| (field, variant)))
             .into_group_map_by(|(field, _)| field.name(db))
             .into_iter()
+            .sorted_by_key(|(name, _)| name.to_string())
             .map(|(name, pairs)| {
                 FacadeFieldDiscriminated::new(
                     db,

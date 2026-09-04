@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/cast.rs
+assertion_line: 677
 expression: snapshot
 ---
 # Source
@@ -16,7 +17,7 @@ pub enum ExampleEnum {
 ```rust
 fn cast(input: ()) {
     {
-        let output = __enum__test_0crate_ExampleEnum {
+        let output = __discr__test_0crate_ExampleEnum {
             src: std::rc::Rc::new(__tethering__test_0crate_ExampleEnum::new_owned(input)),
         };
         consume(output);
@@ -28,7 +29,7 @@ fn cast(input: ()) {
 ```rust
 fn cast(input: ()) {
     {
-        let output = __enum__test_0crate_ExampleEnum {
+        let output = __discr__test_0crate_ExampleEnum {
             src: std::rc::Rc::new(__tethering__test_0crate_ExampleEnum::new_owned(input)),
         };
         consume(output);

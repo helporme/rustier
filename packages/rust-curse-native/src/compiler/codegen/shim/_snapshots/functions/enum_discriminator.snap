@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
+assertion_line: 417
 expression: snapshot
 ---
 # Source
@@ -16,10 +17,12 @@ pub enum Test {
 ## Node
 ```rust
 #[napi(js_name = "__fn__disc__test_0crate_Test")]
-pub fn __fn__disc__test_0crate_Test(_0: &__enum__test_0crate_Test) -> napi::Result<f64> {
+pub fn __fn__disc__test_0crate_Test(
+    _0: &__discr__test_0crate_Test,
+) -> napi::Result<f64> {
     let result = cast
         .from(
-            "Shim(Class { is_borrowed: true, inner: ShimClass { src: Enum(Enum { hir: Enum { id: EnumId(5c00) } }) } })",
+            "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5c00) } } }) })",
         )
         .to(
             "Tethered(TetheringStructType { source_type: Enum(Enum { hir: Enum { id: EnumId(5c00) } }) })",
@@ -42,11 +45,11 @@ pub fn __fn__disc__test_0crate_Test(_0: &__enum__test_0crate_Test) -> napi::Resu
 ```rust
 #[wasm_bindgen(js_name = "__fn__disc__test_0crate_Test")]
 pub fn __fn__disc__test_0crate_Test(
-    _0: &__enum__test_0crate_Test,
+    _0: &__discr__test_0crate_Test,
 ) -> Result<f64, JsValue> {
     let result = cast
         .from(
-            "Shim(Class { is_borrowed: true, inner: ShimClass { src: Enum(Enum { hir: Enum { id: EnumId(5c00) } }) } })",
+            "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5c00) } } }) })",
         )
         .to(
             "Tethered(TetheringStructType { source_type: Enum(Enum { hir: Enum { id: EnumId(5c00) } }) })",

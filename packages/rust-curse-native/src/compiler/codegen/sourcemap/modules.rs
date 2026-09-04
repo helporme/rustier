@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::compiler::{
     codegen::sourcemap::mappings::{Mapping, compile_mappings, find_name_line},
     db::Db,
-    ir::decals::{DecalClassKind, DecalModule, DecalModuleMember},
+    ir::decals::{DecalClass, DecalMember, DecalModule},
 };
 
 /// A Source Map v3 document for generated TypeScript declarations.
@@ -53,8 +53,8 @@ impl<'db> DecalModule<'db> {
         let mut mappings = Vec::new();
         let mut search_line = 0;
 
-        for function in self.members(db).iter().filter_map(|member| match member {
-            DecalModuleMember::Function(function) => Some(function),
+        for function in self.members(db).filter_map(|member| match member {
+            DecalMember::Function(function) => Some(function),
             _ => None,
         }) {
             let generated_line = find_name_line(
@@ -76,12 +76,11 @@ impl<'db> DecalModule<'db> {
 
         for class in self
             .members(db)
-            .iter()
             .filter_map(|member| match member {
-                DecalModuleMember::Class(class) => Some(class),
+                DecalMember::Class(class) => Some(class),
                 _ => None,
             })
-            .filter(|class| matches!(class.kind(db), DecalClassKind::Plain { .. }))
+            .filter(|class| matches!(class, DecalClass::Plain(_)))
         {
             let generated_line = find_name_line(
                 generated,
@@ -102,12 +101,11 @@ impl<'db> DecalModule<'db> {
 
         for class in self
             .members(db)
-            .iter()
             .filter_map(|member| match member {
-                DecalModuleMember::Class(class) => Some(class),
+                DecalMember::Class(class) => Some(class),
                 _ => None,
             })
-            .filter(|class| matches!(class.kind(db), DecalClassKind::DiscriminatedUnion { .. }))
+            .filter(|class| matches!(class, DecalClass::Discriminated(_)))
         {
             let generated_line =
                 find_name_line(generated, search_line, "export type ", class.name(db), " =")

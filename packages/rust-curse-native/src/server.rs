@@ -1,8 +1,6 @@
-use std::path::PathBuf;
-
 use napi_derive::napi;
 
-use crate::{compiler::workspace::Workspace, server::paths::WorkspacePaths};
+use crate::compiler::workspace::Workspace;
 
 mod db;
 mod metadata;

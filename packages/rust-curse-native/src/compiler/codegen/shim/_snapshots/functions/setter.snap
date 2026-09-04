@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
+assertion_line: 409
 expression: snapshot
 ---
 # Source
@@ -15,13 +16,13 @@ pub struct Test {
 ```rust
 #[napi(js_name = "__fn__setter__test_0crate_Test__field")]
 pub fn __fn__setter__test_0crate_Test__field(
-    _0: &__struct__test_0crate_Test,
+    _0: &__plain__test_0crate_Test,
     _1: f64,
 ) -> napi::Result<()> {
     {
         let value = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_1);
         cast.from(
-                "Shim(Class { is_borrowed: true, inner: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } })",
+                "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } }) })",
             )
             .to(
                 "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5801) } }) })",
@@ -37,13 +38,13 @@ pub fn __fn__setter__test_0crate_Test__field(
 ```rust
 #[wasm_bindgen(js_name = "__fn__setter__test_0crate_Test__field")]
 pub fn __fn__setter__test_0crate_Test__field(
-    _0: &__struct__test_0crate_Test,
+    _0: &__plain__test_0crate_Test,
     _1: f64,
 ) -> Result<(), JsValue> {
     {
         let value = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_1);
         cast.from(
-                "Shim(Class { is_borrowed: true, inner: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } })",
+                "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } }) })",
             )
             .to(
                 "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5801) } }) })",

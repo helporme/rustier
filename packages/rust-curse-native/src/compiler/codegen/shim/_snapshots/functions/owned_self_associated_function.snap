@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
+assertion_line: 440
 expression: snapshot
 ---
 # Source
@@ -19,7 +20,7 @@ impl Test {
 ```rust
 #[napi(js_name = "__fn__associated__test_0crate_Test_owned")]
 pub fn __fn__associated__test_0crate_Test_owned(
-    _0: &__struct__test_0crate_Test,
+    _0: &__plain__test_0crate_Test,
 ) -> napi::Result<bool> {
     Ok(
         cast
@@ -28,7 +29,7 @@ pub fn __fn__associated__test_0crate_Test_owned(
             .an({
                 let _0 = cast
                     .from(
-                        "Shim(Class { is_borrowed: true, inner: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } })",
+                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } }) })",
                     )
                     .to(
                         "Rust(Value(Struct(Struct { hir: Struct { id: StructId(5801) } })))",
@@ -44,7 +45,7 @@ pub fn __fn__associated__test_0crate_Test_owned(
 ```rust
 #[wasm_bindgen(js_name = "__fn__associated__test_0crate_Test_owned")]
 pub fn __fn__associated__test_0crate_Test_owned(
-    _0: &__struct__test_0crate_Test,
+    _0: &__plain__test_0crate_Test,
 ) -> Result<bool, JsValue> {
     Ok(
         cast
@@ -53,7 +54,7 @@ pub fn __fn__associated__test_0crate_Test_owned(
             .an({
                 let _0 = cast
                     .from(
-                        "Shim(Class { is_borrowed: true, inner: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } })",
+                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } }) })",
                     )
                     .to(
                         "Rust(Value(Struct(Struct { hir: Struct { id: StructId(5801) } })))",

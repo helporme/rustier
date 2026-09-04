@@ -6,38 +6,48 @@ use crate::compiler::{
         ts::jsdoc::render_jsdoc,
     },
     db::Db,
-    ir::decals::{DecalClassKind, DecalModule, DecalModuleMember},
+    ir::decals::{DecalClass, DecalMember, DecalModule},
 };
 
 #[salsa::tracked]
 impl<'db> DecalModule<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn render_ts(self, db: &'db dyn Db) -> String {
-        let functions = self.members(db).iter().filter_map(|member| match member {
-            DecalModuleMember::Function(function) => Some(function),
-            _ => None,
-        });
-        let classes = self.members(db).iter().filter_map(|member| match member {
-            DecalModuleMember::Class(class) => Some(class),
-            _ => None,
-        });
+        let members = self.members(db).collect::<Vec<_>>();
+        let functions = members
+            .iter()
+            .filter_map(|member| match member {
+                DecalMember::Function(function) => Some(*function),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        let classes = members
+            .iter()
+            .filter_map(|member| match member {
+                DecalMember::Class(class) => Some(*class),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
 
-        if functions.clone().next().is_none() && classes.clone().next().is_none() {
+        if functions.is_empty() && classes.is_empty() {
             // make sure that returned stirng is always valid typescript module
             return frag!(export {};).print();
         }
 
         let imports = self.ts_imports(db);
         let has_imports = !imports.is_empty();
-        let functions = functions.map(|function| function.render_ts(db));
+        let functions = functions.into_iter().map(|function| function.render_ts(db));
 
         let plain_classes = classes
-            .clone()
-            .filter(|&class| matches!(class.kind(db), DecalClassKind::Plain { .. }))
+            .iter()
+            .copied()
+            .filter(|class| matches!(class, DecalClass::Plain(_)))
             .map(|class| class.render_ts(db));
 
         let discriminated_classes = classes
-            .filter(|&class| matches!(class.kind(db), DecalClassKind::DiscriminatedUnion { .. }))
+            .iter()
+            .copied()
+            .filter(|class| matches!(class, DecalClass::Discriminated(_)))
             .map(|class| class.render_ts(db));
 
         fragment(move |p| {
@@ -70,7 +80,7 @@ impl<'db> DecalModule<'db> {
             .map(|import| {
                 (
                     import.class(db).name(db).to_owned(),
-                    import.path(db).to_owned(),
+                    import.from_path(db).to_owned(),
                 )
             })
             .collect()

@@ -6,9 +6,7 @@ use crate::compiler::{
         ts::jsdoc::render_jsdoc,
     },
     db::Db,
-    ir::decals::{
-        DecalClass, DecalClassKind, DecalDiscriminator, DecalField, DecalVariant,
-    },
+    ir::decals::{DecalClass, DecalDiscriminator, DecalField, DecalVariant},
     ir::rust::FieldName,
 };
 
@@ -16,16 +14,17 @@ use crate::compiler::{
 impl<'db> DecalClass<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_ts(self, db: &'db dyn Db) -> String {
-        match self.kind(db) {
-            DecalClassKind::Plain { fields } => self.render_plain_ts(db, fields),
-            DecalClassKind::DiscriminatedUnion {
-                variants,
-                discriminator,
-            } => self.render_discriminated_ts(db, variants, *discriminator),
+        match self {
+            DecalClass::Plain(plain) => self.render_plain_ts(db, plain.fields(db).collect()),
+            DecalClass::Discriminated(discriminated) => self.render_discriminated_ts(
+                db,
+                discriminated.variants(db),
+                discriminated.discriminator(db),
+            ),
         }
     }
 
-    fn render_plain_ts(self, db: &'db dyn Db, fields: &'db [DecalField<'db>]) -> String {
+    fn render_plain_ts(self, db: &'db dyn Db, fields: Vec<DecalField<'db>>) -> String {
         let members = fragment(move |p| {
             let constructor = self.constructor(db);
 
@@ -213,7 +212,7 @@ mod tests {
         assert_ts_snap,
         compiler::{
             codegen::fragment::FragmentOnce as _,
-            ir::{decals::DecalModuleMember, rust::Rust},
+            ir::{decals::DecalMember, rust::Rust},
         },
     };
 
@@ -234,9 +233,8 @@ mod tests {
                             .decals(db);
                         let class = root
                             .members(db)
-                            .iter()
                             .find_map(|member| match member {
-                                DecalModuleMember::Class(class) if class.name(db) == $class_name => {
+                                DecalMember::Class(class) if class.name(db) == $class_name => {
                                     Some(class)
                                 }
                                 _ => None,

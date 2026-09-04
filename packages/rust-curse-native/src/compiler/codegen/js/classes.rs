@@ -129,37 +129,35 @@ where
     }
 
     fn has_rendered_fields(self) -> bool {
-        match self.class.kind(self.db) {
-            FacadeClassKind::Plain { fields } => !fields.is_empty(),
-            FacadeClassKind::DiscriminatedUnion { .. } => true,
+        match self.class {
+            FacadeClass::Plain(plain) => plain.fields(self.db).next().is_some(),
+            FacadeClass::Discriminated(_) => true,
         }
     }
 
     fn render_fields(self) -> impl FragmentOnce + 'db {
-        fragment(move |p| match self.class.kind(self.db) {
-            FacadeClassKind::Plain { fields } => {
+        fragment(move |p| match self.class {
+            FacadeClass::Plain(plain) => {
                 spaced(
-                    fields
-                        .iter()
-                        .copied()
+                    plain
+                        .fields(self.db)
                         .enumerate()
                         .map(|(index, field)| self.field_renderer(index).render_plain(field)),
                 )
                 .apply(p);
             }
-            FacadeClassKind::DiscriminatedUnion {
-                fields,
-                discriminator,
-            } => {
+            FacadeClass::Discriminated(discriminated) => {
+                let fields = discriminated.fields(self.db);
+                let discriminator = discriminated.discriminator(self.db);
                 spaced(fields.iter().copied().enumerate().map(|(index, field)| {
                     self.field_renderer(index)
-                        .render_discriminated(field, *discriminator)
+                        .render_discriminated(field, discriminator)
                 }))
                 .apply(p);
 
                 let discriminator = self
                     .field_renderer(fields.len())
-                    .render_discriminator(*discriminator);
+                    .render_discriminator(discriminator);
                 if fields.is_empty() {
                     discriminator.apply(p);
                 } else {
@@ -170,19 +168,16 @@ where
     }
 
     fn render_private_declarations(self) -> impl FragmentOnce + 'db {
-        fragment(move |p| match self.class.kind(self.db) {
-            FacadeClassKind::Plain { fields } => {
-                for (field_index, field) in fields.iter().enumerate() {
+        fragment(move |p| match self.class {
+            FacadeClass::Plain(plain) => {
+                for (field_index, field) in plain.fields(self.db).enumerate() {
                     if matches!(field.type_(self.db), FacadeType::Class(_)) {
                         frag!(#{cache_name(field_index, None)};@).apply(p);
                     }
                 }
             }
-            FacadeClassKind::DiscriminatedUnion {
-                fields,
-                discriminator,
-            } => {
-                for (field_index, field) in fields.iter().enumerate() {
+            FacadeClass::Discriminated(discriminated) => {
+                for (field_index, field) in discriminated.fields(self.db).iter().enumerate() {
                     for (discriminator, sub) in field.sub(self.db) {
                         if matches!(sub.type_(self.db), FacadeType::Class(_)) {
                             frag!(#{cache_name(field_index, Some(*discriminator))};@).apply(p);
@@ -191,7 +186,8 @@ where
                 }
 
                 let tags = comma_list(
-                    discriminator
+                    discriminated
+                        .discriminator(self.db)
                         .variant_names(self.db)
                         .iter()
                         .map(|name| doubles(name.as_str())),
@@ -566,10 +562,9 @@ mod tests {
                             .facade(db);
                         let class = root
                             .members(db)
-                            .iter()
                             .find_map(|member| match member {
-                                FacadeModuleMember::Class(class) if class.name(db) == "Test" => {
-                                    Some(*class)
+                                FacadeMember::Class(class) if class.name(db) == "Test" => {
+                                    Some(class)
                                 }
                                 _ => None,
                             })

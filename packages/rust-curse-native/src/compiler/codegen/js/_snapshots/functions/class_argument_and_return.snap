@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/js/functions.rs
+assertion_line: 403
 expression: snapshot
 ---
 # Source
@@ -20,17 +21,17 @@ export function test_fn (
 ) {
 	{
 		const __0 = cast.from(
-			"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } }))"
+			"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } } })))"
 		).to(
-			"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } }))"
+			"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } }) }))"
 		).an(
 			_0
 		);
 		{
 			const result = cast.from(
-				"Ffi(Class(FfiClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } }))"
+				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } }) }))"
 			).to(
-				"Facade(Class(FacadeClass { shim: ShimClass { src: Struct(Struct { hir: Struct { id: StructId(5801) } }) } }))"
+				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } } })))"
 			).an(
 				__fn__free__test_0crate_test_0fn(
 					__0

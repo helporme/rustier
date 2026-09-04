@@ -55,7 +55,12 @@ impl<'db> DecalMethod<'db> {
     }
 }
 
-fn render_params<'db>(db: &'db dyn Db, params: &'db [DecalParam<'db>]) -> impl FragmentOnce + 'db {
+fn render_params<'db>(
+    db: &'db dyn Db,
+    params: impl Iterator<Item = DecalParam<'db>> + 'db,
+) -> impl FragmentOnce + 'db {
+    let params = params.collect::<Vec<_>>();
+
     fragment(move |p: &mut Printer| {
         if params.is_empty() {
             frag!(()).apply(p);
@@ -98,7 +103,7 @@ mod tests {
         assert_ts_snap,
         compiler::{
             codegen::fragment::FragmentOnce as _,
-            ir::{decals::DecalModuleMember, rust::Rust},
+            ir::{decals::DecalMember, rust::Rust},
         },
     };
 
@@ -119,9 +124,8 @@ mod tests {
                             .decals(db);
                         let function = root
                             .members(db)
-                            .iter()
                             .find_map(|member| match member {
-                                DecalModuleMember::Function(function)
+                                DecalMember::Function(function)
                                     if function.name(db) == $function_name =>
                                 {
                                     Some(function)

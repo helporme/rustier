@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/classes.rs
+assertion_line: 236
 expression: snapshot
 ---
 # Source
@@ -42,8 +43,8 @@ impl __tethering__test_0crate_Test {
         }
     }
 }
-#[napi(js_name = "__struct__test_0crate_Test")]
-pub struct __struct__test_0crate_Test {
+#[napi(js_name = "__plain__test_0crate_Test")]
+pub struct __plain__test_0crate_Test {
     src: std::rc::Rc<__tethering__test_0crate_Test>,
 }
 ```
@@ -81,8 +82,8 @@ impl __tethering__test_0crate_Test {
         }
     }
 }
-#[wasm_bindgen(js_name = "__struct__test_0crate_Test")]
-pub struct __struct__test_0crate_Test {
+#[wasm_bindgen(js_name = "__plain__test_0crate_Test")]
+pub struct __plain__test_0crate_Test {
     src: std::rc::Rc<__tethering__test_0crate_Test>,
 }
 ```
