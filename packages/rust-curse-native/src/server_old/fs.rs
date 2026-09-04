@@ -107,7 +107,7 @@ impl ServerFs {
         std::mem::replace(&mut self.pending_change, WorkspaceChange::new())
     }
 
-    /// Returns local project files which should be watched for changes.
+    /// Local project files which should be watched for changes.
     pub fn active_files(&self) -> &BTreeSet<String> {
         &self.active_files
     }

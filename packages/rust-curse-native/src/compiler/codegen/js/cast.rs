@@ -401,10 +401,11 @@ mod tests {
 
     fn test_facade_class<'db>(db: &'db dyn Db) -> FacadeClass<'db> {
         let crate_ = Rust::get(db)
+            .shim_complete(db)
             .crates(db)
-            .first()
+            .next()
             .expect("test crate should be lowered");
-        let root = crate_.root(db).shim(db).facade(db);
+        let root = crate_.root(db).facade(db);
         let mut classes = root.members(db).filter_map(|member| match member {
             FacadeMember::Class(class) => Some(class),
             _ => None,

@@ -87,7 +87,6 @@ where
         comma_list(
             self.function
                 .params(self.db)
-                .iter()
                 .enumerate()
                 .map(move |(i, param)| {
                     fragment(move |p| {
@@ -120,7 +119,6 @@ where
         let cast_param_to_source_types =
             self.function
                 .params(self.db)
-                .iter()
                 .enumerate()
                 .map(|(i, param)| Cast {
                     from: param.type_(self.db),
@@ -133,7 +131,6 @@ where
             let params = comma_list(
                 self.function
                     .params(self.db)
-                    .iter()
                     .enumerate()
                     .map(|(i, _)| frag!(_{i})),
             );
@@ -311,7 +308,10 @@ mod tests {
     use super::*;
     use crate::{
         assert_rust_snap,
-        compiler::{codegen::shim::cast::test::TestCastRenderer, ir::rust::Rust},
+        compiler::{
+            codegen::shim::cast::test::TestCastRenderer,
+            ir::rust::Rust,
+        },
     };
 
     fn find_test_function<'db>(
@@ -319,11 +319,11 @@ mod tests {
         predicate: impl Fn(ShimFunction<'db>) -> bool,
     ) -> ShimFunction<'db> {
         let root = Rust::get(db)
+            .shim_complete(db)
             .crates(db)
-            .first()
+            .next()
             .expect("test crate should be lowered")
-            .root(db)
-            .shim(db);
+            .root(db);
 
         root.functions(db)
             .map(ShimFunction::from)

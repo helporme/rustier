@@ -93,7 +93,7 @@ impl<'db> DecalModule<'db> {
             search_line = generated_line + 1;
             mappings.extend(
                 class
-                    .render_sourcemap_mappings(db, generated_line)
+                    .render_sourcemap_mappings(db, self, generated_line)
                     .iter()
                     .cloned(),
             );
@@ -113,7 +113,7 @@ impl<'db> DecalModule<'db> {
             search_line = generated_line + 1;
             mappings.extend(
                 class
-                    .render_sourcemap_mappings(db, generated_line)
+                    .render_sourcemap_mappings(db, self, generated_line)
                     .iter()
                     .cloned(),
             );

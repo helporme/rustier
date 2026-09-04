@@ -3,14 +3,20 @@ use crate::compiler::{
     ir::{
         decals::{
             DecalClass, DecalClassDiscriminated, DecalClassPlain, DecalFreeFunction, DecalMethod,
-            DecalModule,
+            DecalModule, DecalParentModule,
         },
         shim::{
             ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimFunctionAssociated,
-            ShimFunctionFree, ShimModule,
+            ShimFunctionFree, ShimModule, ShimParentModule,
         },
     },
 };
+
+impl<'db> ShimParentModule<'db> {
+    pub fn decals(self, db: &'db dyn Db) -> DecalParentModule<'db> {
+        DecalParentModule::new(db, self)
+    }
+}
 
 impl<'db> ShimModule<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalModule<'db> {

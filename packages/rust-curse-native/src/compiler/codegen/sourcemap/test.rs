@@ -8,7 +8,7 @@ use crate::compiler::{
     inputs::{FilePaths, Platform},
     ir::{
         decals::DecalModule,
-        rust::{Member, Rust},
+        rust::Rust,
     },
     path::FilePath,
 };
@@ -36,33 +36,30 @@ pub fn configure_db(db: &mut RootDatabase) {
 
 pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalModule<'db> {
     Rust::get(db)
+        .shim_complete(db)
         .crates(db)
-        .first()
+        .next()
         .expect("test crate should be lowered")
         .root(db)
-        .shim(db)
         .decals(db)
 }
 
 pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalModule<'db> {
     let mut module = Rust::get(db)
+        .shim_complete(db)
         .crates(db)
-        .first()
+        .next()
         .expect("test crate should be lowered")
         .root(db);
 
     for segment in path.split("::") {
         module = module
-            .members(db)
-            .iter()
-            .find_map(|member| match member {
-                Member::Module(child) if child.name(db) == segment => Some(*child),
-                _ => None,
-            })
+            .modules(db)
+            .find(|child| child.src(db).name(db) == segment)
             .expect("test module should be lowered");
     }
 
-    module.shim(db).decals(db)
+    module.decals(db)
 }
 
 pub fn snapshot_module(db: &RootDatabase, module: DecalModule<'_>) -> String {

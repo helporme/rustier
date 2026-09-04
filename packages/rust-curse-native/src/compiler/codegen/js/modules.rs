@@ -6,6 +6,7 @@ use crate::compiler::{
 
 #[salsa::tracked]
 impl<'db> FacadeModule<'db> {
+    /// Renders the module as a string.
     #[salsa::tracked(returns(ref))]
     pub fn render(self, db: &'db dyn Db) -> String {
         let mut imports = self.imports(db).to_vec();

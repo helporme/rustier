@@ -107,7 +107,7 @@ impl<'db> MetadataCrate<'db> {
         package.name.as_str()
     }
 
-    /// Returns the edition of the crate.
+    /// The edition of the crate.
     pub fn edition(self, db: &dyn Db) -> Edition {
         let package = self.package(db);
 
@@ -120,7 +120,7 @@ impl<'db> MetadataCrate<'db> {
         }
     }
 
-    /// Returns the path to the library main file (`lib.rs`) or None if the
+    /// The path to the library main file (`lib.rs`) or None if the
     /// crate is not a library.
     pub fn lib_file(self, db: &'db dyn Db) -> Option<&'db Path> {
         let package = self.package(db);
@@ -135,18 +135,18 @@ impl<'db> MetadataCrate<'db> {
             .map(|t| t.src_path.as_std_path())
     }
 
-    /// Returns the version of the crate.
+    /// The version of the crate.
     #[salsa::tracked(returns(ref))]
     pub fn version(self, db: &dyn Db) -> String {
         self.package(db).version.to_string()
     }
 
-    /// Returns the path to the manifest file.
+    /// The path to the manifest file.
     pub fn manifest_path(self, db: &'db dyn Db) -> &'db Path {
         self.package(db).manifest_path.as_std_path()
     }
 
-    /// Returns whether the crate is a member of the workspace.
+    /// Whether the crate is a member of the workspace.
     pub fn is_in_workspace(self, db: &dyn Db) -> bool {
         let metadata = self.inner(db);
         metadata.workspace_members.contains(self.id(db))

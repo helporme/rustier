@@ -42,7 +42,7 @@ pub struct BuildOutput {
     pub js_path: PathBuf,
 }
 
-/// Returns the expected path to the local `napi` binary.
+/// The expected path to the local `napi` binary.
 #[tracing::instrument(level = "trace", skip_all, fields(install_root_path = %install_root_path.display()))]
 pub fn napi_cli_path(install_root_path: &Path) -> PathBuf {
     let napi_bin_name = if cfg!(windows) {
@@ -61,7 +61,7 @@ pub fn napi_cli_path(install_root_path: &Path) -> PathBuf {
 
 /// Ensures `path` is compatible with Node tooling that expects a package root.
 ///
-/// Returns `true` when this call changed the filesystem.
+/// `true` when this call changed the filesystem.
 ///
 /// ```no_run
 /// use rust_curse::tools::node::ensure_node_compat;
@@ -98,7 +98,7 @@ pub fn ensure_node_compat(path: &Path) -> Result<bool, EnsureNodeCompatError> {
 
 /// Ensure a local NAPI CLI is installed under `install_root_path`.
 ///
-/// Returns the path to the installed `napi` binary.
+/// The path to the installed `napi` binary.
 ///
 /// ```no_run
 /// use rust_curse::tools::node::{ensure_napi_cli_installed, EnsureNapiCliInstalledOpts};

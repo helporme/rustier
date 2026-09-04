@@ -57,7 +57,7 @@ impl Workspace {
         FilePaths::set(&mut self.db, ffi_layout);
     }
 
-    /// Returns the database used for analysis and compilation queries.
+    /// The database used for analysis and compilation queries.
     pub fn db(&self) -> &RootDatabase {
         &self.db
     }

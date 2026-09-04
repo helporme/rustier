@@ -5,7 +5,7 @@ mod lowering;
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use itertools::Itertools;
+use itertools::{Either, Itertools};
 
 use crate::compiler::{
     db::Db,
@@ -16,7 +16,7 @@ use crate::compiler::{
         shim::{
             ShimClassDiscriminated, ShimClassPlain, ShimField, ShimFunctionAssociated,
             ShimFunctionDiscriminator, ShimFunctionFree, ShimMember, ShimModule, ShimParam,
-            ShimType,
+            ShimParentModule, ShimType,
         },
     },
     mangle::to_camel_case,
@@ -25,7 +25,7 @@ use crate::compiler::{
 
 /// An import of a facade item.
 ///
-/// Matching the js `import`/ statement.
+/// Matching the js `import`/`export` statement.
 #[salsa::tracked(debug)]
 pub struct FacadeImport<'db> {
     /// The module where the import statement will be emitted.
@@ -72,11 +72,25 @@ impl<'db> FacadeImportItem<'db> {
     }
 }
 
-/// A facade module.
+/// A facade module used as a parent of another facade entity.
 ///
 /// Matches a single `.js` file generated for a rust module. Take into accout
 /// that there is no crate containing this module since crates aren't a thing in
 /// js.
+#[salsa::interned(debug)]
+pub struct FacadeParentModule<'db> {
+    shim: ShimParentModule<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> FacadeParentModule<'db> {
+    /// File path of the source rust module.
+    pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
+        self.shim(db).src(db).file_path(db)
+    }
+}
+
+/// A reachable facade module.
 #[salsa::interned(debug)]
 pub struct FacadeModule<'db> {
     shim: ShimModule<'db>,
@@ -84,9 +98,13 @@ pub struct FacadeModule<'db> {
 
 #[salsa::tracked]
 impl<'db> FacadeModule<'db> {
-    /// Members defined in this module.
+    pub fn as_parent(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
+        self.shim(db).as_parent(db).facade(db)
+    }
+
+    /// All members defined in this module.
     pub fn members(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeMember<'db>> + 'db {
-        self.shim(db).members(db).iter().map(|member| match member {
+        self.shim(db).members(db).map(|member| match member {
             ShimMember::Class(class) => FacadeMember::Class(class.facade(db)),
             ShimMember::Function(function) => FacadeMember::Function(function.facade(db)),
             ShimMember::Module(module) => FacadeMember::Module(module.facade(db)),
@@ -104,7 +122,7 @@ impl<'db> FacadeModule<'db> {
                     items.extend(function.imports(db).iter().copied());
                 }
                 FacadeMember::Class(class) => {
-                    items.extend(class.imports(db).iter().copied());
+                    items.extend(class.imports(db));
                 }
                 FacadeMember::Module(_) => {}
             }
@@ -115,7 +133,7 @@ impl<'db> FacadeModule<'db> {
             .filter(|item| {
                 !matches!(
                     item,
-                    FacadeImportItem::FacadeClass(class) if class.module(db) == self
+                    FacadeImportItem::FacadeClass(class) if class.module(db) == self.as_parent(db)
                 )
             })
             .map(|item| FacadeImport::new(db, self, item))
@@ -124,7 +142,7 @@ impl<'db> FacadeModule<'db> {
 
     /// File path of the source rust module.
     pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
-        self.shim(db).src(db).file_path(db)
+        self.as_parent(db).file_path(db)
     }
 }
 
@@ -157,11 +175,10 @@ impl<'db> FacadeFunction<'db> {
         }
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
+    pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeParam<'db>> + 'db {
         match self {
-            Self::Free(function) => function.params(db).collect(),
-            Self::Method(method) => method.params(db).collect(),
+            Self::Free(function) => Either::Left(function.params(db)),
+            Self::Method(method) => Either::Right(method.params(db)),
         }
     }
 
@@ -258,6 +275,8 @@ impl<'db> FacadeMethod<'db> {
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeParam<'db>> + 'db {
         self.shim(db)
             .params_without_self(db)
+            .iter()
+            .copied()
             .map(|param| FacadeParam::new(db, param))
     }
 
@@ -275,7 +294,7 @@ impl<'db> FacadeMethod<'db> {
                 FacadeType::Class(cls) => Some(cls),
                 _ => None,
             })
-            .flat_map(|cls| cls.imports(db).iter().copied())
+            .map(FacadeImportItem::FacadeClass)
             .chain(std::iter::once(FacadeImportItem::FfiFunction(self.ffi(db))))
     }
 
@@ -310,7 +329,7 @@ impl<'db> FacadeClass<'db> {
         }
     }
 
-    pub fn module(self, db: &'db dyn Db) -> FacadeModule<'db> {
+    pub fn module(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
         match self {
             FacadeClass::Plain(plain) => plain.module(db),
             FacadeClass::Discriminated(discriminated) => discriminated.module(db),
@@ -324,11 +343,10 @@ impl<'db> FacadeClass<'db> {
         }
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn methods(self, db: &'db dyn Db) -> Vec<FacadeMethod<'db>> {
+    pub fn methods(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeMethod<'db>> + 'db {
         match self {
-            FacadeClass::Plain(plain) => plain.methods(db).collect(),
-            FacadeClass::Discriminated(discriminated) => discriminated.methods(db).collect(),
+            FacadeClass::Plain(plain) => Either::Left(plain.methods(db)),
+            FacadeClass::Discriminated(discriminated) => Either::Right(discriminated.methods(db)),
         }
     }
 
@@ -339,11 +357,10 @@ impl<'db> FacadeClass<'db> {
         }
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItem<'db>> {
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> + 'db {
         match self {
-            FacadeClass::Plain(plain) => plain.imports(db).collect(),
-            FacadeClass::Discriminated(discriminated) => discriminated.imports(db).collect(),
+            FacadeClass::Plain(plain) => Either::Left(plain.imports(db)),
+            FacadeClass::Discriminated(discriminated) => Either::Right(discriminated.imports(db)),
         }
     }
 }
@@ -358,7 +375,7 @@ impl<'db> FacadeClassPlain<'db> {
         self.shim(db).ffi(db)
     }
 
-    pub fn module(self, db: &'db dyn Db) -> FacadeModule<'db> {
+    pub fn module(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
         self.shim(db).module(db).facade(db)
     }
 
@@ -413,7 +430,7 @@ impl<'db> FacadeClassDiscriminated<'db> {
         self.shim(db).ffi(db)
     }
 
-    pub fn module(self, db: &'db dyn Db) -> FacadeModule<'db> {
+    pub fn module(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
         self.shim(db).module(db).facade(db)
     }
 
@@ -535,7 +552,6 @@ impl<'db> FacadeFieldDiscriminator<'db> {
         if enum_.variants(db).iter().any(|variant| {
             variant
                 .fields(db)
-                .iter()
                 .any(|field| matches!(field.name(db), FieldName::Name(name) if name == "type"))
         }) {
             "$type"

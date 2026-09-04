@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::compiler::{
     db::Db,
-    ir::rust::{Enum, Function, FunctionParent, Member, Module, ModuleParent, Struct, ValueType},
+    ir::rust::{Enum, Function, FunctionParent, Impl, Member, Module, ModuleParent, Struct, ValueType},
 };
 
 /// A usage graph that derives all used members of a rust api from a set of root
@@ -39,36 +39,28 @@ impl<'db> UsageGraph<'db> {
         self,
         db: &'db dyn Db,
         module: Module<'db>,
-    ) -> Option<&'db HashSet<Member<'db>>> {
+    ) -> Option<&'db Vec<Member<'db>>> {
         self.all_module_members(db).get(&module)
     }
 
     #[salsa::tracked(returns(ref))]
-    fn all_module_members(self, db: &'db dyn Db) -> HashMap<Module<'db>, HashSet<Member<'db>>> {
-        let mut result: HashMap<Module<'db>, HashSet<Member<'db>>> = HashMap::default();
+    fn all_module_members(self, db: &'db dyn Db) -> HashMap<Module<'db>, Vec<Member<'db>>> {
+        let used_members = self.members(db);
+        let mut result = HashMap::default();
 
-        for member in self.members(db) {
-            match member {
-                Member::Struct(struct_) => {
-                    result
-                        .entry(struct_.module(db))
-                        .or_default()
-                        .insert(*member);
-                }
-                Member::Enum(enum_) => {
-                    result.entry(enum_.module(db)).or_default().insert(*member);
-                }
-                Member::Function(function) => {
-                    if let FunctionParent::Module(module) = function.parent(db) {
-                        result.entry(module).or_default().insert(*member);
-                    }
-                }
-                Member::Module(module) => {
-                    if let ModuleParent::Module(parent) = module.parent(db) {
-                        result.entry(parent).or_default().insert(*member);
-                    }
-                }
-            }
+        for module in used_members.iter().filter_map(|member| match member {
+            Member::Module(module) => Some(*module),
+            _ => None,
+        }) {
+            result.insert(
+                module,
+                module
+                    .members(db)
+                    .iter()
+                    .filter(|member| used_members.contains(member))
+                    .copied()
+                    .collect(),
+            );
         }
 
         result
@@ -110,6 +102,9 @@ impl<'db> Visitor<'db> {
         for param in function.params(self.db) {
             self.visit_value_type(param.type_(self.db).deborrow());
         }
+        if let Some(ret_type) = function.ret_type(self.db) {
+            self.visit_value_type(ret_type);
+        }
     }
 
     pub fn visit_struct(&mut self, struct_: Struct<'db>) {
@@ -122,6 +117,9 @@ impl<'db> Visitor<'db> {
         for field in struct_.fields(self.db) {
             self.visit_value_type(field.value_type(self.db));
         }
+        for impl_ in struct_.impls(self.db) {
+            self.visit_impl(*impl_);
+        }
     }
 
     pub fn visit_enum(&mut self, enum_: Enum<'db>) {
@@ -133,6 +131,15 @@ impl<'db> Visitor<'db> {
 
         for field in enum_.fields(self.db) {
             self.visit_value_type(field.value_type(self.db));
+        }
+        for impl_ in enum_.impls(self.db) {
+            self.visit_impl(*impl_);
+        }
+    }
+
+    pub fn visit_impl(&mut self, impl_: Impl<'db>) {
+        for function in impl_.functions(self.db) {
+            self.visit_function(*function);
         }
     }
 
@@ -150,7 +157,7 @@ impl<'db> Visitor<'db> {
 
         while let ModuleParent::Module(parent) = current.parent(self.db) {
             current = parent;
-            self.used_members.insert(Member::Module(module));
+            self.used_members.insert(Member::Module(current));
         }
     }
 }

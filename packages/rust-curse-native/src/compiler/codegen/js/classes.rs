@@ -89,8 +89,6 @@ where
             let methods = self
                 .class
                 .methods(self.db)
-                .iter()
-                .copied()
                 .filter(|method| Some(*method) != constructor)
                 .collect::<Vec<_>>();
 
@@ -541,7 +539,10 @@ mod tests {
         assert_js_snap,
         compiler::{
             codegen::{fragment::FragmentOnce as _, js::cast::test::TestCastRenderer},
-            ir::{facade::FacadeMember, rust::Rust},
+            ir::{
+                facade::FacadeMember,
+                rust::Rust,
+            },
         },
     };
 
@@ -554,11 +555,11 @@ mod tests {
                     expression: |db, printer| {
                         let db = &*db;
                         let root = Rust::get(db)
+                            .shim_complete(db)
                             .crates(db)
-                            .first()
+                            .next()
                             .expect("test crate should be lowered")
                             .root(db)
-                            .shim(db)
                             .facade(db);
                         let class = root
                             .members(db)

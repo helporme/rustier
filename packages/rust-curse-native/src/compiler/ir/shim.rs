@@ -11,11 +11,13 @@
 pub mod ext;
 mod lowering;
 
+use itertools::Either;
+
 use crate::compiler::{
     db::Db,
     ir::rust::{
         Crate, Enum, Field, FieldName, FieldParent, Function, FunctionParent, IntoValueType,
-        Module, Receiver, Rust, Struct, Type, ValueType, Variant,
+        Module, ModuleParent, Receiver, Rust, Struct, Type, ValueType, Variant, usages::UsageGraph,
     },
 };
 
@@ -26,80 +28,132 @@ use crate::compiler::{
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, salsa::Update)]
 pub struct Shim<'db> {
     pub rust: Rust<'db>,
+    pub usages: UsageGraph<'db>,
 }
 
 impl<'db> Shim<'db> {
     pub fn crates(self, db: &'db dyn Db) -> impl Iterator<Item = ShimCrate<'db>> {
-        self.rust.crates(db).iter().map(|crate_| crate_.shim(db))
+        self.rust
+            .crates(db)
+            .iter()
+            .map(move |crate_| crate_.shim_reachable_from(db, self.usages))
     }
 }
 
-/// A shim crate matching the original Rust crate.
-///
-/// The crate isn't needed for shim codegen, but is retained for easier
-/// lowering of js IRs.
+/// A shim crate, containing only reachable modules from the [`UsageGraph`].
 #[salsa::interned(debug)]
 pub struct ShimCrate<'db> {
     pub src: Crate<'db>,
+    pub usages: UsageGraph<'db>,
 }
 
 impl<'db> ShimCrate<'db> {
+    /// The root module of the crate.
     pub fn root(self, db: &'db dyn Db) -> ShimModule<'db> {
-        self.src(db).root(db).shim(db)
+        self.src(db)
+            .root(db)
+            .shim_reachable_from(db, self.usages(db))
     }
 }
 
-/// A shim module matching original rust module.
+/// A shim crate used as a parent of the module.
 ///
-/// The module isn't needed for shim codegen, but is retained for easier
-/// lowering of js IRs.
+/// The parent crate deliberately does not provide root module, they should be
+/// obtained by converting it into a reachable [`ShimCrate`].
 #[salsa::interned(debug)]
-pub struct ShimModule<'db> {
+pub struct ShimParentCrate<'db> {
+    pub src: Crate<'db>,
+}
+
+impl<'db> ShimParentCrate<'db> {
+    pub fn into_reachable(self, db: &'db dyn Db, usages: UsageGraph<'db>) -> ShimCrate<'db> {
+        ShimCrate::new(db, self.src(db), usages)
+    }
+}
+
+/// A shim module used as a parent of other shim entity.
+///
+/// The parent module deliberately does not provide members, they should be
+/// obtained by converting it into a reachable [`ShimModule`].
+#[salsa::interned(debug)]
+pub struct ShimParentModule<'db> {
     pub src: Module<'db>,
 }
 
 #[salsa::tracked]
+impl<'db> ShimParentModule<'db> {
+    pub fn parent(self, db: &'db dyn Db) -> ShimParent<'db> {
+        match self.src(db).parent(db) {
+            ModuleParent::Module(module) => ShimParent::Module(module.shim_parent(db)),
+            ModuleParent::Crate(crate_) => ShimParent::Crate(crate_.shim_parent(db)),
+        }
+    }
+
+    pub fn into_reachable(self, db: &'db dyn Db, usages: UsageGraph<'db>) -> ShimModule<'db> {
+        ShimModule::new(db, self.src(db), usages)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
+pub enum ShimParent<'db> {
+    Module(ShimParentModule<'db>),
+    Crate(ShimParentCrate<'db>),
+}
+
+/// A shim module derived from a rust module, containing only reachable members
+/// from the [`UsageGraph`].
+#[salsa::interned(debug)]
+pub struct ShimModule<'db> {
+    pub src: Module<'db>,
+    pub usages: UsageGraph<'db>,
+}
+
+#[salsa::tracked]
 impl<'db> ShimModule<'db> {
-    /// Returns all shim members matching the original members defined in the
-    /// rust module.
-    #[salsa::tracked(returns(ref))]
-    pub fn members(self, db: &'db dyn Db) -> Vec<ShimMember<'db>> {
-        self.src(db)
-            .members(db)
-            .iter()
-            .map(|member| member.shim(db))
-            .collect()
+    pub fn as_parent(self, db: &'db dyn Db) -> ShimParentModule<'db> {
+        self.src(db).shim_parent(db)
     }
 
-    /// Returns all shim classes defined in the module.
+    pub fn members(self, db: &'db dyn Db) -> impl Iterator<Item = ShimMember<'db>> + 'db {
+        let usages = self.usages(db);
+        let members = usages.module_members(db, self.src(db));
+
+        match members {
+            Some(members) => Either::Left(
+                members
+                    .iter()
+                    .map(move |member| member.shim_reachable_from(db, usages)),
+            ),
+            None => Either::Right(std::iter::empty()),
+        }
+    }
+
+    /// All reachable shim classes defined in the module.
     pub fn classes(self, db: &'db dyn Db) -> impl Iterator<Item = ShimClass<'db>> + 'db {
-        self.members(db).iter().filter_map(|m| match m {
-            ShimMember::Class(c) => Some(*c),
+        self.members(db).filter_map(|member| match member {
+            ShimMember::Class(class) => Some(class),
             _ => None,
         })
     }
 
-    /// Returns all shim functions defined in the module.
-    ///
-    /// Take into account that it doesn't return associated functions of classes
-    /// or other synthetic functions.
+    /// All reachable free functions defined in the module.
     pub fn functions(self, db: &'db dyn Db) -> impl Iterator<Item = ShimFunctionFree<'db>> + 'db {
-        self.members(db).iter().filter_map(|m| match m {
-            ShimMember::Function(f) => Some(*f),
+        self.members(db).filter_map(|member| match member {
+            ShimMember::Function(function) => Some(function),
             _ => None,
         })
     }
 
-    /// Returns all shim modules defined in the module.
+    /// All reachable child modules defined in the module.
     pub fn modules(self, db: &'db dyn Db) -> impl Iterator<Item = ShimModule<'db>> + 'db {
-        self.members(db).iter().filter_map(|m| match m {
-            ShimMember::Module(m) => Some(*m),
+        self.members(db).filter_map(|member| match member {
+            ShimMember::Module(module) => Some(module),
             _ => None,
         })
     }
 }
 
-/// A member defined in a shim module.
+/// A member reachable from a [`ShimModule`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
 pub enum ShimMember<'db> {
     Class(ShimClass<'db>),
@@ -117,7 +171,7 @@ pub enum ShimClass<'db> {
 
 impl<'db> ShimClass<'db> {
     /// The module this class belongs to.
-    pub fn module(self, db: &'db dyn Db) -> ShimModule<'db> {
+    pub fn module(self, db: &'db dyn Db) -> ShimParentModule<'db> {
         match self {
             ShimClass::Plain(p) => p.module(db),
             ShimClass::Discriminated(d) => d.module(db),
@@ -183,8 +237,8 @@ pub struct ShimClassPlain<'db> {
 #[salsa::tracked]
 impl<'db> ShimClassPlain<'db> {
     /// The module this class belongs to.
-    pub fn module(self, db: &'db dyn Db) -> ShimModule<'db> {
-        self.src(db).module(db).shim(db)
+    pub fn module(self, db: &'db dyn Db) -> ShimParentModule<'db> {
+        self.src(db).module(db).shim_parent(db)
     }
 
     /// The name of this class.
@@ -205,7 +259,6 @@ impl<'db> ShimClassPlain<'db> {
         let methods = self.methods(db);
 
         fields
-            .iter()
             .filter(|field| {
                 !methods.iter().any(|method| {
                     method.src(db).receiver(db).is_some()
@@ -262,8 +315,8 @@ pub struct ShimClassDiscriminated<'db> {
 #[salsa::tracked]
 impl<'db> ShimClassDiscriminated<'db> {
     /// The module this class belongs to.
-    pub fn module(self, db: &'db dyn Db) -> ShimModule<'db> {
-        self.src(db).module(db).shim(db)
+    pub fn module(self, db: &'db dyn Db) -> ShimParentModule<'db> {
+        self.src(db).module(db).shim_parent(db)
     }
 
     /// The name of this class.
@@ -351,7 +404,7 @@ impl<'db> ShimClassDiscriminatedVariant<'db> {
 
     /// Fields of this varaint.
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = ShimField<'db>> {
-        self.src(db).fields(db).iter().map(move |f| f.shim(db))
+        self.src(db).fields(db).map(move |f| f.shim(db))
     }
 }
 
@@ -411,14 +464,21 @@ impl<'db> ShimFunction<'db> {
         }
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> Vec<ShimParam<'db>> {
+    pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = ShimParam<'db>> + 'db {
         match self {
-            ShimFunction::Free(function) => function.params(db).clone(),
-            ShimFunction::Associated(function) => function.params(db).clone(),
-            ShimFunction::Getter(getter) => getter.params(db).to_vec(),
-            ShimFunction::Setter(setter) => setter.params(db).to_vec(),
-            ShimFunction::EnumDiscriminator(discriminator) => discriminator.params(db).to_vec(),
+            ShimFunction::Free(function) => Either::Left(function.params(db).iter().copied()),
+            ShimFunction::Associated(function) => {
+                Either::Right(Either::Left(function.params(db).iter().copied()))
+            }
+            ShimFunction::Getter(getter) => Either::Right(Either::Right(Either::Left(
+                getter.params(db).iter().copied(),
+            ))),
+            ShimFunction::Setter(setter) => Either::Right(Either::Right(Either::Right(
+                Either::Left(setter.params(db).iter().copied()),
+            ))),
+            ShimFunction::EnumDiscriminator(discriminator) => Either::Right(Either::Right(
+                Either::Right(Either::Right(discriminator.params(db).iter().copied())),
+            )),
         }
     }
 }
@@ -509,19 +569,17 @@ impl<'db> ShimFunctionAssociated<'db> {
                 src_type,
                 src_type.shim_in(db),
             ))
-            .chain(self.params_without_self(db))
+            .chain(self.params_without_self(db).iter().copied())
             .collect()
         } else {
-            self.params_without_self(db).collect()
+            self.params_without_self(db).clone()
         }
     }
 
-    /// Returns the parameters of this function, excluding the self (receiver)
+    /// The parameters of this function, excluding the self (receiver)
     /// parameter.
-    pub fn params_without_self(
-        self,
-        db: &'db dyn Db,
-    ) -> impl Iterator<Item = ShimParam<'db>> + 'db {
+    #[salsa::tracked(returns(ref))]
+    pub fn params_without_self(self, db: &'db dyn Db) -> Vec<ShimParam<'db>> {
         let offset = usize::from(self.src(db).receiver(db).is_some());
 
         self.src(db)
@@ -538,6 +596,7 @@ impl<'db> ShimFunctionAssociated<'db> {
                     src_type.shim_in(db),
                 )
             })
+            .collect()
     }
 }
 

@@ -204,7 +204,10 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
 mod tests {
     use crate::{
         assert_rust_snap,
-        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Rust},
+        compiler::{
+            codegen::fragment::FragmentOnce as _,
+            ir::rust::Rust,
+        },
     };
 
     macro_rules! test_class {
@@ -216,11 +219,11 @@ mod tests {
                     expression: |db, printer| {
                         let db = &*db;
                         let root = Rust::get(db)
+                            .shim_complete(db)
                             .crates(db)
-                            .first()
+                            .next()
                             .expect("test crate should be lowered")
-                            .root(db)
-                            .shim(db);
+                            .root(db);
 
                         let Some(class) = root.classes(db).next() else {
                             panic!("test crate root should contain exactly one shim class");

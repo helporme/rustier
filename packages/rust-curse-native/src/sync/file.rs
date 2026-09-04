@@ -4,7 +4,7 @@ use tracing::debug;
 
 /// Writes `content` to `path` only when the file contents differ.
 ///
-/// Returns `Ok(true)` when the file was written, and `Ok(false)` when the
+/// `Ok(true)` when the file was written, and `Ok(false)` when the
 /// existing file already matched `content`.
 #[tracing::instrument(level = "trace", skip(path, content), fields(path = %path.as_ref().display()))]
 pub fn write_if_changed(path: impl AsRef<Path>, content: impl AsRef<[u8]>) -> io::Result<bool> {

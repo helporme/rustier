@@ -91,7 +91,10 @@ impl<'db> DecalModule<'db> {
 mod tests {
     use crate::{
         assert_ts_snap,
-        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Rust},
+        compiler::{
+            codegen::fragment::FragmentOnce as _,
+            ir::rust::Rust,
+        },
     };
 
     macro_rules! test_module {
@@ -103,11 +106,11 @@ mod tests {
                     expression: |db, p| {
                         let db = &*db;
                         let root = Rust::get(db)
+                            .shim_complete(db)
                             .crates(db)
-                            .first()
+                            .next()
                             .expect("test crate should be lowered")
                             .root(db)
-                            .shim(db)
                             .decals(db);
 
                         root.render_ts(db).apply(p);

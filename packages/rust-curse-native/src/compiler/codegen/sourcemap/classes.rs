@@ -4,7 +4,9 @@ use crate::compiler::{
     codegen::sourcemap::mappings::{Mapping, OriginalLocation, find_name_line, original_location},
     db::Db,
     ir::{
-        decals::{DecalClass, DecalDiscriminator, DecalField, DecalMethod, DecalVariant},
+        decals::{
+            DecalClass, DecalDiscriminator, DecalField, DecalMethod, DecalModule, DecalVariant,
+        },
         rust::FieldName,
     },
 };
@@ -16,15 +18,20 @@ impl<'db> DecalClass<'db> {
     pub(super) fn render_sourcemap_mappings(
         self,
         db: &'db dyn Db,
+        module: DecalModule<'db>,
         generated_line: usize,
     ) -> Vec<Mapping> {
         match self {
-            DecalClass::Plain(plain) => {
-                self.render_plain_sourcemap_mappings(db, plain.fields(db).collect(), generated_line)
-            }
+            DecalClass::Plain(plain) => self.render_plain_sourcemap_mappings(
+                db,
+                module,
+                plain.fields(db).collect(),
+                generated_line,
+            ),
             DecalClass::Discriminated(discriminated) => self
                 .render_discriminated_sourcemap_mappings(
                     db,
+                    module,
                     discriminated.variants(db),
                     discriminated.discriminator(db),
                     generated_line,
@@ -35,10 +42,11 @@ impl<'db> DecalClass<'db> {
     fn render_plain_sourcemap_mappings(
         self,
         db: &'db dyn Db,
+        module: DecalModule<'db>,
         fields: Vec<DecalField<'db>>,
         generated_line: usize,
     ) -> Vec<Mapping> {
-        let generated = self.module(db).render_ts(db);
+        let generated = module.render_ts(db);
         let name = self.name(db);
         let class_line = find_name_line(generated, generated_line, "export class ", name, " {")
             .expect("rendered TypeScript class declaration should exist");
@@ -89,10 +97,9 @@ impl<'db> DecalClass<'db> {
         let constructor = self.constructor(db);
         for method in self
             .methods(db)
-            .iter()
-            .filter(|method| Some(**method) != constructor)
+            .filter(|method| Some(*method) != constructor)
         {
-            let (prefix, suffix) = class_method_search(method, db, "\t");
+            let (prefix, suffix) = class_method_search(&method, db, "\t");
             let method_line = find_name_line(
                 generated,
                 field_start_line,
@@ -102,7 +109,7 @@ impl<'db> DecalClass<'db> {
             )
             .expect("rendered TypeScript class method declaration should exist");
             field_start_line = method_line + 1;
-            mappings.extend(method_mappings(method, db, method_line, prefix.len()));
+            mappings.extend(method_mappings(&method, db, method_line, prefix.len()));
         }
 
         if let Some(constructor) = constructor {
@@ -124,11 +131,12 @@ impl<'db> DecalClass<'db> {
     fn render_discriminated_sourcemap_mappings(
         self,
         db: &'db dyn Db,
+        module: DecalModule<'db>,
         variants: &'db [DecalVariant<'db>],
         discriminator: DecalDiscriminator<'db>,
         generated_line: usize,
     ) -> Vec<Mapping> {
-        let generated = self.module(db).render_ts(db);
+        let generated = module.render_ts(db);
         let name = self.name(db);
         let type_line = find_name_line(generated, generated_line, "export type ", name, " =")
             .expect("rendered TypeScript union declaration should exist");
@@ -183,11 +191,7 @@ impl<'db> DecalClass<'db> {
         }
 
         let mut static_method_start_line = plain_line + 1;
-        for method in self
-            .methods(db)
-            .iter()
-            .filter(|method| method.is_static(db))
-        {
+        for method in self.methods(db).filter(|method| method.is_static(db)) {
             let prefix = "\texport function ";
             let method_line = find_name_line(
                 generated,
@@ -198,16 +202,12 @@ impl<'db> DecalClass<'db> {
             )
             .expect("rendered TypeScript enum namespace function declaration should exist");
             static_method_start_line = method_line + 1;
-            mappings.extend(method_mappings(method, db, method_line, prefix.len()));
+            mappings.extend(method_mappings(&method, db, method_line, prefix.len()));
         }
 
         let mut instance_method_start_line = instance_line + 1;
-        for method in self
-            .methods(db)
-            .iter()
-            .filter(|method| !method.is_static(db))
-        {
-            let (prefix, suffix) = class_method_search(method, db, "\t\t");
+        for method in self.methods(db).filter(|method| !method.is_static(db)) {
+            let (prefix, suffix) = class_method_search(&method, db, "\t\t");
             let method_line = find_name_line(
                 generated,
                 instance_method_start_line,
@@ -217,7 +217,7 @@ impl<'db> DecalClass<'db> {
             )
             .expect("rendered TypeScript enum instance method declaration should exist");
             instance_method_start_line = method_line + 1;
-            mappings.extend(method_mappings(method, db, method_line, prefix.len()));
+            mappings.extend(method_mappings(&method, db, method_line, prefix.len()));
         }
 
         let tag_prefix = format!("\t\t\treadonly {}: \"", discriminator.name(db));

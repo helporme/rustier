@@ -4,6 +4,7 @@ mod lowering;
 pub mod usages;
 
 use crate::compiler::{db::Db, mangle::mangle_path, path::FilePath};
+use itertools::Either;
 use ra_ap_hir::{
     Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
     Function as HirFunction, Impl as HirImpl, Module as HirModule, Struct as HirStruct,
@@ -192,12 +193,11 @@ impl<'db> Struct<'db> {
     }
 
     /// Flattens the shape while omitting private or hidden tuple-field slots.
-    #[salsa::tracked(returns(ref))]
-    pub fn fields(self, db: &'db dyn Db) -> Vec<Field<'db>> {
+    pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = Field<'db>> + 'db {
         match self.shape(db) {
-            Shape::Unit => vec![],
-            Shape::Tuple(fields) => fields.iter().copied().flatten().collect(),
-            Shape::Plain { fields, .. } => fields.clone(),
+            Shape::Unit => Either::Left(std::iter::empty()),
+            Shape::Tuple(fields) => Either::Right(Either::Left(fields.iter().copied().flatten())),
+            Shape::Plain { fields, .. } => Either::Right(Either::Right(fields.iter().copied())),
         }
     }
 
@@ -380,12 +380,11 @@ impl<'db> Variant<'db> {
     }
 
     /// Flattens the shape while omitting private or hidden tuple-field slots.
-    #[salsa::tracked(returns(ref))]
-    pub fn fields(self, db: &'db dyn Db) -> Vec<Field<'db>> {
+    pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = Field<'db>> + 'db {
         match self.shape(db) {
-            Shape::Unit => vec![],
-            Shape::Tuple(fields) => fields.iter().copied().flatten().collect(),
-            Shape::Plain { fields, .. } => fields.clone(),
+            Shape::Unit => Either::Left(std::iter::empty()),
+            Shape::Tuple(fields) => Either::Right(Either::Left(fields.iter().copied().flatten())),
+            Shape::Plain { fields, .. } => Either::Right(Either::Right(fields.iter().copied())),
         }
     }
 

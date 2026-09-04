@@ -252,7 +252,6 @@ where
         comma_list(
             self.function()
                 .params(db)
-                .iter()
                 .enumerate()
                 .map(|(i, _)| param_name(i)),
         )
@@ -268,14 +267,17 @@ where
         ));
         let ffi_params = &ffi_params[receiver_offset..];
 
-        let param_casts = function.params(db).iter().zip(ffi_params).enumerate().map(
-            |(i, (param, ffi_param))| Cast {
-                from: param.type_(db),
-                to: ffi_param.type_(db),
-                in_expr: param_name(i),
-                out_var_name: casted_param_name(i),
-            },
-        );
+        let param_casts =
+            function
+                .params(db)
+                .zip(ffi_params)
+                .enumerate()
+                .map(|(i, (param, ffi_param))| Cast {
+                    from: param.type_(db),
+                    to: ffi_param.type_(db),
+                    in_expr: param_name(i),
+                    out_var_name: casted_param_name(i),
+                });
 
         self.casts().render_many(db, param_casts, continuation)
     }
@@ -291,7 +293,7 @@ where
         let params = fragment(move |p| {
             if is_instance_method {
                 frag!(this.#_ffi).apply(p);
-                if !function.params(db).is_empty() {
+                if function.params(db).next().is_some() {
                     frag!(,~).apply(p);
                 }
             }
@@ -299,7 +301,6 @@ where
             comma_list(
                 function
                     .params(db)
-                    .iter()
                     .enumerate()
                     .map(|(i, _)| casted_param_name(i)),
             )
@@ -334,7 +335,10 @@ mod tests {
         assert_js_snap,
         compiler::{
             codegen::{fragment::FragmentOnce as _, js::cast::test::TestCastRenderer},
-            ir::{facade::FacadeMember, rust::Rust},
+            ir::{
+                facade::FacadeMember,
+                rust::Rust,
+            },
         },
     };
 
@@ -347,11 +351,11 @@ mod tests {
                     expression: |db, printer| {
                         let db = &*db;
                         let root = Rust::get(db)
+                            .shim_complete(db)
                             .crates(db)
-                            .first()
+                            .next()
                             .expect("test crate should be lowered")
                             .root(db)
-                            .shim(db)
                             .facade(db);
                         let mut functions = root.members(db).filter_map(|member| match member {
                             FacadeMember::Function(function) => Some(function),

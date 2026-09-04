@@ -5,6 +5,8 @@ mod lowering;
 
 use std::collections::{HashMap, HashSet};
 
+use itertools::Either;
+
 use crate::compiler::{
     db::Db,
     ir::{
@@ -12,7 +14,7 @@ use crate::compiler::{
         shim::{
             ShimClassDiscriminated, ShimClassDiscriminatedVariant, ShimClassPlain, ShimField,
             ShimFunction, ShimFunctionAssociated, ShimFunctionDiscriminator, ShimFunctionFree,
-            ShimMember, ShimModule, ShimParam, ShimType,
+            ShimMember, ShimModule, ShimParam, ShimParentModule, ShimType,
         },
     },
     mangle::to_camel_case,
@@ -37,14 +39,15 @@ impl<'db> DecalImport<'db> {
     }
 }
 
-/// A TypeScript declaration module.
+/// A TypeScript declaration module used as a parent of another declaration
+/// entity.
 #[salsa::interned(debug)]
-pub struct DecalModule<'db> {
-    shim: ShimModule<'db>,
+pub struct DecalParentModule<'db> {
+    shim: ShimParentModule<'db>,
 }
 
 #[salsa::tracked]
-impl<'db> DecalModule<'db> {
+impl<'db> DecalParentModule<'db> {
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
         self.shim(db).src(db).docs(db)
     }
@@ -53,9 +56,34 @@ impl<'db> DecalModule<'db> {
         self.shim(db).src(db).span(db)
     }
 
+    pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
+        self.shim(db).src(db).file_path(db)
+    }
+}
+
+/// A reachable TypeScript declaration module.
+#[salsa::interned(debug)]
+pub struct DecalModule<'db> {
+    shim: ShimModule<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> DecalModule<'db> {
+    pub fn as_parent(self, db: &'db dyn Db) -> DecalParentModule<'db> {
+        self.shim(db).as_parent(db).decals(db)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.as_parent(db).docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.as_parent(db).span(db)
+    }
+
     /// Members defined in this module.
     pub fn members(self, db: &'db dyn Db) -> impl Iterator<Item = DecalMember<'db>> + 'db {
-        self.shim(db).members(db).iter().map(|member| match member {
+        self.shim(db).members(db).map(|member| match member {
             ShimMember::Class(class) => DecalMember::Class(class.decals(db)),
             ShimMember::Function(function) => DecalMember::Function(function.decals(db)),
             ShimMember::Module(module) => DecalMember::Module(module.decals(db)),
@@ -81,13 +109,13 @@ impl<'db> DecalModule<'db> {
 
         classes
             .into_iter()
-            .filter(|class| class.module(db) != self)
+            .filter(|class| class.module(db) != self.as_parent(db))
             .map(|class| DecalImport::new(db, self, class))
             .collect()
     }
 
     pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
-        self.shim(db).src(db).file_path(db)
+        self.as_parent(db).file_path(db)
     }
 }
 
@@ -127,11 +155,10 @@ impl<'db> DecalFunction<'db> {
         }
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> Vec<DecalParam<'db>> {
+    pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = DecalParam<'db>> + 'db {
         match self {
-            Self::Free(function) => function.params(db).collect(),
-            Self::Method(method) => method.params(db).collect(),
+            Self::Free(function) => Either::Left(function.params(db)),
+            Self::Method(method) => Either::Right(method.params(db)),
         }
     }
 
@@ -225,6 +252,8 @@ impl<'db> DecalMethod<'db> {
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = DecalParam<'db>> + 'db {
         self.shim(db)
             .params_without_self(db)
+            .iter()
+            .copied()
             .map(|param| DecalParam::new(db, param))
     }
 
@@ -279,7 +308,7 @@ pub enum DecalClass<'db> {
 
 #[salsa::tracked]
 impl<'db> DecalClass<'db> {
-    pub fn module(self, db: &'db dyn Db) -> DecalModule<'db> {
+    pub fn module(self, db: &'db dyn Db) -> DecalParentModule<'db> {
         match self {
             DecalClass::Plain(plain) => plain.module(db),
             DecalClass::Discriminated(discriminated) => discriminated.module(db),
@@ -307,11 +336,10 @@ impl<'db> DecalClass<'db> {
         }
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn methods(self, db: &'db dyn Db) -> Vec<DecalMethod<'db>> {
+    pub fn methods(self, db: &'db dyn Db) -> impl Iterator<Item = DecalMethod<'db>> + 'db {
         match self {
-            DecalClass::Plain(plain) => plain.methods(db).collect(),
-            DecalClass::Discriminated(discriminated) => discriminated.methods(db).collect(),
+            DecalClass::Plain(plain) => Either::Left(plain.methods(db)),
+            DecalClass::Discriminated(discriminated) => Either::Right(discriminated.methods(db)),
         }
     }
 
@@ -323,13 +351,12 @@ impl<'db> DecalClass<'db> {
     }
 
     fn referenced_classes(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
-        let classes: Vec<_> = match self {
-            DecalClass::Plain(plain) => plain.referenced_classes(db).collect(),
+        match self {
+            DecalClass::Plain(plain) => Either::Left(plain.referenced_classes(db)),
             DecalClass::Discriminated(discriminated) => {
-                discriminated.referenced_classes(db).collect()
+                Either::Right(discriminated.referenced_classes(db))
             }
-        };
-        classes.into_iter()
+        }
     }
 }
 
@@ -339,7 +366,7 @@ pub struct DecalClassPlain<'db> {
 }
 
 impl<'db> DecalClassPlain<'db> {
-    pub fn module(self, db: &'db dyn Db) -> DecalModule<'db> {
+    pub fn module(self, db: &'db dyn Db) -> DecalParentModule<'db> {
         self.shim(db).module(db).decals(db)
     }
 
@@ -400,7 +427,7 @@ pub struct DecalClassDiscriminated<'db> {
 
 #[salsa::tracked]
 impl<'db> DecalClassDiscriminated<'db> {
-    pub fn module(self, db: &'db dyn Db) -> DecalModule<'db> {
+    pub fn module(self, db: &'db dyn Db) -> DecalParentModule<'db> {
         self.shim(db).module(db).decals(db)
     }
 

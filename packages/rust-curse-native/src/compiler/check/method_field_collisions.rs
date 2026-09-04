@@ -29,7 +29,7 @@ impl<'db> Enum<'db> {
 fn check_method_field_collisions<'db>(
     db: &'db dyn Db,
     class: ShimClass<'db>,
-    fields: &[Field<'db>],
+    fields: impl Iterator<Item = Field<'db>>,
 ) {
     let methods = class.methods(db);
 

@@ -54,7 +54,7 @@ pub struct BuildOutput {
     pub js_abs_path: PathBuf,
 }
 
-/// Returns the expected path to the local `wasm-bindgen` binary.
+/// The expected path to the local `wasm-bindgen` binary.
 #[tracing::instrument(level = "trace", skip_all, fields(install_root_path = %install_root_path.display()))]
 pub fn wasm_bindgen_cli_path(install_root_path: &Path) -> PathBuf {
     let wasm_bindgen_bin_name = if std::env::consts::EXE_EXTENSION.is_empty() {
@@ -110,7 +110,7 @@ pub fn ensure_wasm_target_installed() -> Result<(), EnsureWasmTargetInstalledErr
 
 /// Ensure a local `wasm-bindgen` CLI is installed under `install_root_path`.
 ///
-/// Returns the absolute path to the installed `wasm-bindgen` binary.
+/// The absolute path to the installed `wasm-bindgen` binary.
 ///
 /// ```no_run
 /// use rust_curse::tools::wasm::{

@@ -8,7 +8,7 @@ use crate::compiler::{
 // todo: split it on multiple files?
 
 impl Platform {
-    /// Returns the prelude code for this platform.
+    /// The prelude code for this platform.
     pub fn prelude(&self) -> &str {
         match self {
             Platform::Wasm { .. } => "use wasm_bindgen::prelude::*;\n",
@@ -16,7 +16,7 @@ impl Platform {
         }
     }
 
-    /// Returns the Rust boundary type used for incoming JavaScript values.
+    /// The Rust boundary type used for incoming JavaScript values.
     pub fn js_type(&self) -> &'static str {
         match self {
             Platform::Wasm { .. } => "JsValue",
@@ -24,37 +24,37 @@ impl Platform {
         }
     }
 
-    /// Returns a platform-specific error expression for casting a JavaScript
+    /// A platform-specific error expression for casting a JavaScript
     /// value to `bool`.
     pub fn cast_to_bool(self) -> impl FragmentOnce {
         self.cast_to_primitive("bool", "as_bool", "Boolean")
     }
 
-    /// Returns a platform-specific error expression for casting a JavaScript
+    /// A platform-specific error expression for casting a JavaScript
     /// value to `String`.
     pub fn cast_to_string(self) -> impl FragmentOnce {
         self.cast_to_primitive("String", "as_string", "String")
     }
 
-    /// Returns a platform-specific error expression for casting a JavaScript
+    /// A platform-specific error expression for casting a JavaScript
     /// value to `f64`.
     pub fn cast_to_f64(self) -> impl FragmentOnce {
         self.cast_to_primitive("f64", "as_f64", "Number")
     }
 
-    /// Returns a string-error expression for the legacy JavaScript-to-`bool`
+    /// A string-error expression for the legacy JavaScript-to-`bool`
     /// cast function.
     pub fn cast_to_bool_with_string_error(self) -> impl FragmentOnce {
         self.cast_to_primitive_with_string_error("bool", "as_bool", "Boolean")
     }
 
-    /// Returns a string-error expression for the legacy JavaScript-to-`String`
+    /// A string-error expression for the legacy JavaScript-to-`String`
     /// cast function.
     pub fn cast_to_string_with_string_error(self) -> impl FragmentOnce {
         self.cast_to_primitive_with_string_error("String", "as_string", "String")
     }
 
-    /// Returns a string-error expression for the legacy JavaScript-to-`f64`
+    /// A string-error expression for the legacy JavaScript-to-`f64`
     /// cast function.
     pub fn cast_to_f64_with_string_error(self) -> impl FragmentOnce {
         self.cast_to_primitive_with_string_error("f64", "as_f64", "Number")
@@ -147,7 +147,7 @@ impl Platform {
         )
     }
 
-    /// Returns the getter header for a field with the given JavaScript name.
+    /// The getter header for a field with the given JavaScript name.
     pub fn field_getter_header<'a>(self, name: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         let platform_attr = match self {
             Platform::Wasm { .. } => "wasm_bindgen",
@@ -159,7 +159,7 @@ impl Platform {
         )
     }
 
-    /// Returns the setter header for a field with the given JavaScript name.
+    /// The setter header for a field with the given JavaScript name.
     pub fn field_setter_header<'a>(self, name: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         let platform_attr = match self {
             Platform::Wasm { .. } => "wasm_bindgen",
@@ -171,7 +171,7 @@ impl Platform {
         )
     }
 
-    /// Returns the error type for this platform.
+    /// The error type for this platform.
     pub fn result_type<'a>(self, ok_type: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         fragment(move |p| match self {
             Platform::Wasm { .. } => frag!(Result<{ok_type}, JsValue>).apply(p),
@@ -179,7 +179,7 @@ impl Platform {
         })
     }
 
-    /// Returns an error expression with the given reason.
+    /// An error expression with the given reason.
     pub fn error<'a>(self, reason: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         fragment(move |p| match self {
             Platform::Wasm { .. } => frag!(JsValue::from_str(&{ reason })).apply(p),
@@ -187,7 +187,7 @@ impl Platform {
         })
     }
 
-    /// Returns the contents of `fn main` for this platform's build script, if
+    /// The contents of `fn main` for this platform's build script, if
     /// any.
     pub fn build_script_body(&self) -> Option<&'static str> {
         match self {
@@ -196,12 +196,12 @@ impl Platform {
         }
     }
 
-    /// Returns whether this platform needs a generated Cargo build script.
+    /// Whether this platform needs a generated Cargo build script.
     pub fn needs_build_script(&self) -> bool {
         self.build_script_body().is_some()
     }
 
-    /// Returns the Cargo manifest dependencies required by this platform.
+    /// The Cargo manifest dependencies required by this platform.
     pub fn manifest_deps(self) -> Option<impl FragmentOnce> {
         Some(fragment(move |p| match self {
             Platform::Wasm { .. } => frag!({ r#"wasm-bindgen = "0.2""# }).apply(p),
@@ -213,7 +213,7 @@ impl Platform {
         }))
     }
 
-    /// Returns the Cargo manifest build dependencies required by this platform.
+    /// The Cargo manifest build dependencies required by this platform.
     pub fn manifest_build_deps(self) -> Option<impl FragmentOnce> {
         let deps = frag!(
             @@
@@ -224,7 +224,7 @@ impl Platform {
         (self == Platform::Node).then_some(deps)
     }
 
-    /// Returns JavaScript initialization code needed by this platform before
+    /// JavaScript initialization code needed by this platform before
     /// exports are used.
     pub fn js_mod_init<'a>(self, src_path: &'a str) -> Option<impl FragmentOnce + 'a> {
         matches!(

@@ -9,7 +9,7 @@ use miette::Diagnostic;
 use thiserror::Error;
 use tracing::{debug, trace};
 
-/// Returns a build-version-specific child directory under `path`.
+/// A build-version-specific child directory under `path`.
 #[tracing::instrument(level = "trace", skip_all, fields(path = %path.display(), version))]
 pub fn get_versioned_dir(path: &Path, version: u64) -> PathBuf {
     path.join(version.to_string())

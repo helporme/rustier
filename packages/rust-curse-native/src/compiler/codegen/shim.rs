@@ -5,10 +5,7 @@ use crate::compiler::{
     },
     db::Db,
     inputs::Platform,
-    ir::{
-        rust::usages::UsageGraph,
-        shim::{ShimFunction, ShimMember},
-    },
+    ir::shim::{Shim, ShimFunction, ShimMember},
 };
 
 mod cast;
@@ -20,22 +17,19 @@ mod types;
 #[cfg(test)]
 mod test;
 
-#[salsa::tracked]
-impl<'db> UsageGraph<'db> {
-    /// Renders a shim code only for members of [`Self`].
-    #[salsa::tracked(returns(ref))]
-    pub fn render_shim(self, db: &'db dyn Db) -> String {
-        let members = spaced(
-            self.members(db)
-                .iter()
-                .filter_map(|member| match member.shim(db) {
-                    ShimMember::Class(shim_class) => Some(shim_class.render(db)),
-                    ShimMember::Function(shim_function_free) => {
-                        Some(ShimFunction::from(shim_function_free).render(db))
-                    }
-                    _ => None,
-                }),
-        );
+impl<'db> Shim<'db> {
+    pub fn render(self, db: &'db dyn Db) -> String {
+        let members = self.usages.members(db);
+
+        let members = spaced(members.iter().filter_map(|member| {
+            match member.shim_reachable_from(db, self.usages) {
+                ShimMember::Class(shim_class) => Some(shim_class.render(db)),
+                ShimMember::Function(shim_function_free) => {
+                    Some(ShimFunction::from(shim_function_free).render(db))
+                }
+                _ => None,
+            }
+        }));
 
         let platform = Platform::get(db);
         let shim = frag!(

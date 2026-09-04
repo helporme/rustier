@@ -38,8 +38,6 @@ impl<'db> DecalClass<'db> {
             let mut rendered_method = false;
             for method in self
                 .methods(db)
-                .iter()
-                .copied()
                 .filter(|method| Some(*method) != constructor)
             {
                 if !fields.is_empty() || rendered_method {
@@ -98,7 +96,6 @@ impl<'db> DecalClass<'db> {
 
         let static_methods = self
             .methods(db)
-            .iter()
             .filter(|method| method.is_static(db))
             .map(|method| method.render_in_namespace_ts(db))
             .collect::<Vec<_>>();
@@ -112,7 +109,6 @@ impl<'db> DecalClass<'db> {
 
         let instance_methods = self
             .methods(db)
-            .iter()
             .filter(|method| !method.is_static(db))
             .map(|method| method.render_in_class_ts(db))
             .collect::<Vec<_>>();
@@ -212,7 +208,10 @@ mod tests {
         assert_ts_snap,
         compiler::{
             codegen::fragment::FragmentOnce as _,
-            ir::{decals::DecalMember, rust::Rust},
+            ir::{
+                decals::DecalMember,
+                rust::Rust,
+            },
         },
     };
 
@@ -225,11 +224,11 @@ mod tests {
                     expression: |db, p| {
                         let db = &*db;
                         let root = Rust::get(db)
+                            .shim_complete(db)
                             .crates(db)
-                            .first()
+                            .next()
                             .expect("test crate should be lowered")
                             .root(db)
-                            .shim(db)
                             .decals(db);
                         let class = root
                             .members(db)
