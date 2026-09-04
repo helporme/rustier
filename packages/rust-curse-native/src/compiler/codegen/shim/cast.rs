@@ -785,7 +785,7 @@ mod tests {
     }
 
     fn test_value_type<'db>(db: &'db dyn Db, name: &str) -> ValueType<'db> {
-        let crate_ = Rust::complete(db)
+        let crate_ = Rust::get(db)
             .crates(db)
             .first()
             .expect("test crate should be lowered");
@@ -804,8 +804,8 @@ mod tests {
 
     fn test_shim_class_type<'db>(db: &'db dyn Db, name: &str, is_borrowed: bool) -> ShimType<'db> {
         let inner = match test_value_type(db, name) {
-            ValueType::Struct(struct_) => struct_.shim(db),
-            ValueType::Enum(enum_) => enum_.shim(db),
+            ValueType::Struct(struct_) => struct_.shim(db).into(),
+            ValueType::Enum(enum_) => enum_.shim(db).into(),
             _ => unreachable!("class cast test requires a struct or enum"),
         };
 

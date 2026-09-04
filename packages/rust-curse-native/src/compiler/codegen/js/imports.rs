@@ -1,9 +1,7 @@
-use crate::{
-    compiler::{
-        codegen::fragment::{FragmentPrint, doubles, frag},
-        db::Db,
-        ir::facade::FacadeImport,
-    },
+use crate::compiler::{
+    codegen::fragment::{FragmentPrint, doubles, frag},
+    db::Db,
+    ir::facade::FacadeImport,
 };
 
 #[salsa::tracked]
@@ -14,7 +12,7 @@ impl<'db> FacadeImport<'db> {
         let symbol = item.symbol(db);
 
         frag!(
-            import {{ {symbol} }} from {doubles(self.path(db))}
+            import {{ {symbol} }} from {doubles(self.from_path(db))}
         )
         .print()
     }

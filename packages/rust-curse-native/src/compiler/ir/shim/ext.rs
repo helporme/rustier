@@ -1,13 +1,25 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        rust::{Enum, Field, ImplTarget, Member, Module, Struct, Type, ValueType},
+        rust::{Crate, Enum, Field, ImplTarget, Member, Module, Rust, Struct, Type, ValueType},
         shim::{
-            ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimField, ShimFunctionFree,
-            ShimMember, ShimModule, ShimType,
+            Shim, ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimCrate, ShimField,
+            ShimFunctionFree, ShimMember, ShimModule, ShimType,
         },
     },
 };
+
+impl<'db> Rust<'db> {
+    pub fn shim(self) -> Shim<'db> {
+        Shim { rust: self }
+    }
+}
+
+impl<'db> Crate<'db> {
+    pub fn shim(self, db: &'db dyn Db) -> ShimCrate<'db> {
+        ShimCrate::new(db, self)
+    }
+}
 
 impl<'db> Module<'db> {
     pub fn shim(self, db: &'db dyn Db) -> ShimModule<'db> {

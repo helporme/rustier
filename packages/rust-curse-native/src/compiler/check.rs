@@ -50,7 +50,7 @@ mod tests {
     use crate::{compiler::ir::rust::Rust, test_db};
 
     pub(super) fn diagnostic_codes(db: &dyn Db) -> Vec<String> {
-        let crate_ = Rust::complete(db)
+        let crate_ = Rust::get(db)
             .crates(db)
             .first()
             .expect("test crate should be lowered");

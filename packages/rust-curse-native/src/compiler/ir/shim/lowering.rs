@@ -13,6 +13,6 @@ impl<'db> Impl<'db> {
         self.functions(db)
             .iter()
             .filter(|function| function.receiver(db).is_some() || function.name(db) != "prototype")
-            .map(|function| ShimFunctionAssociated::new(db, *function))
+            .map(move |function| ShimFunctionAssociated::new(db, *function))
     }
 }

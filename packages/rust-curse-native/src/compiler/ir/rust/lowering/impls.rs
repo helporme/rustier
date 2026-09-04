@@ -10,7 +10,7 @@ use crate::compiler::{
 #[salsa::tracked]
 impl<'db> Impl<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> Module<'db> {
+    pub(in crate::compiler::ir::rust) fn lower_module(self, db: &'db dyn Db) -> Module<'db> {
         Module::new(db, self.hir(db).module(db))
     }
 

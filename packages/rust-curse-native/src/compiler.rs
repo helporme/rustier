@@ -7,7 +7,7 @@ pub mod ir;
 pub mod path;
 pub mod workspace;
 
-mod check;
+// mod check;
 mod codegen;
 mod mangle;
 

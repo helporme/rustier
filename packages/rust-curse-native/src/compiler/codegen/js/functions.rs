@@ -354,7 +354,7 @@ mod tests {
                             .shim(db)
                             .facade(db);
                         let mut functions = root.members(db).iter().filter_map(|member| match member {
-                            FacadeModuleMember::Function(function) => Some(*function),
+                            ModuleMember::Function(function) => Some(*function),
                             _ => None,
                         });
                         let (Some(function), None) = (functions.next(), functions.next()) else {

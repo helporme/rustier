@@ -9,8 +9,8 @@ use crate::compiler::{
     db::Db,
     ir::{
         facade::{
-            FacadeClass, FacadeClassKind, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
-            FacadeFieldPlain, FacadeType,
+            FacadeClass, FacadeFieldDiscriminated, FacadeFieldDiscriminator, FacadeFieldPlain,
+            FacadeType,
         },
         rust::FieldName,
     },
@@ -27,7 +27,7 @@ impl<'db> FacadeClass<'db> {
     where
         Casts: CastRenderer<'db> + Copy + Clone + 'db,
     {
-        FacadeClassRenderer {
+        FacadeClassFragment {
             class: self,
             db,
             casts,
@@ -36,13 +36,13 @@ impl<'db> FacadeClass<'db> {
 }
 
 #[derive(Copy, Clone)]
-struct FacadeClassRenderer<'db, Casts> {
+struct FacadeClassFragment<'db, Casts> {
     class: FacadeClass<'db>,
     db: &'db dyn Db,
     casts: Casts,
 }
 
-impl<'db, Casts> FragmentOnce for FacadeClassRenderer<'db, Casts>
+impl<'db, Casts> FragmentOnce for FacadeClassFragment<'db, Casts>
 where
     Casts: CastRenderer<'db> + Copy + Clone + 'db,
 {
@@ -51,7 +51,7 @@ where
     }
 }
 
-impl<'db, Casts> FacadeClassRenderer<'db, Casts>
+impl<'db, Casts> FacadeClassFragment<'db, Casts>
 where
     Casts: CastRenderer<'db> + Copy + Clone + 'db,
 {

@@ -26,7 +26,7 @@ impl<'db> Function<'db> {
     ) -> FunctionParent<'db> {
         let hir = self.hir(db);
         let Some(item) = hir.as_assoc_item(db) else {
-            return FunctionParent::Mod(Module::new(db, hir.module(db)));
+            return FunctionParent::Module(Module::new(db, hir.module(db)));
         };
 
         match item.container(db) {

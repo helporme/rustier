@@ -318,16 +318,15 @@ mod tests {
         db: &'db dyn Db,
         predicate: impl Fn(ShimFunction<'db>) -> bool,
     ) -> ShimFunction<'db> {
-        let root = Rust::complete(db)
+        let root = Rust::get(db)
             .crates(db)
             .first()
             .expect("test crate should be lowered")
             .root(db)
             .shim(db);
 
-        root.fns(db)
-            .iter()
-            .copied()
+        root.functions(db)
+            .map(|function| ShimFunction::from(function))
             .find(|function| predicate(*function))
             .expect("fixture should lower the requested shim function")
     }

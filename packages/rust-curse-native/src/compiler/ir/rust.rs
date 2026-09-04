@@ -1,6 +1,7 @@
 //! Intermediate representation for the supported subset of Rust's public API.
 
 mod lowering;
+pub mod usages;
 
 use crate::compiler::{db::Db, mangle::mangle_path, path::FilePath};
 use ra_ap_hir::{
@@ -297,8 +298,8 @@ pub struct Impl<'db> {
 
 #[salsa::tracked]
 impl<'db> Impl<'db> {
-    pub fn parent(self, db: &'db dyn Db) -> Module<'db> {
-        self.lower_parent(db)
+    pub fn module(self, db: &'db dyn Db) -> Module<'db> {
+        self.lower_module(db)
     }
 
     pub fn target(self, db: &'db dyn Db) -> ImplTarget<'db> {
@@ -539,14 +540,14 @@ as_item!(Function);
 /// The declaration containing a source-defined function.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
 pub enum FunctionParent<'db> {
-    Mod(Module<'db>),
+    Module(Module<'db>),
     Impl(Impl<'db>),
 }
 
 impl<'db> FunctionParent<'db> {
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         match self {
-            FunctionParent::Mod(mod_) => mod_.path(db),
+            FunctionParent::Module(mod_) => mod_.path(db),
             FunctionParent::Impl(impl_) => impl_.target(db).path(db),
         }
     }

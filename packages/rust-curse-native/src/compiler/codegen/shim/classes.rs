@@ -49,7 +49,7 @@ impl<'db> ClassFragment<'db> {
             .map(|field| field.get_tethered_field(self.db));
 
         let tethering_struct = TetheringStruct {
-            source_type: self.class.src_type(self.db).into(),
+            source_type: self.class.src_value_type(self.db).into(),
             fields: tethered_fields,
         };
 
@@ -60,7 +60,7 @@ impl<'db> ClassFragment<'db> {
         let platform = Platform::get(self.db);
 
         let tethering_type_name =
-            ValueType::from(self.class.src_type(self.db)).tethering_struct_name(self.db);
+            ValueType::from(self.class.src_value_type(self.db)).tethering_struct_name(self.db);
 
         let symbol = self.class.ffi(self.db).symbol(self.db);
 
@@ -219,7 +219,8 @@ mod tests {
                             .expect("test crate should be lowered")
                             .root(db)
                             .shim(db);
-                        let [class] = root.classes(db).as_slice() else {
+
+                        let Some(class) = root.classes(db).next() else {
                             panic!("test crate root should contain exactly one shim class");
                         };
                         class.render(db).apply(printer);

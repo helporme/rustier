@@ -1,0 +1,155 @@
+use std::collections::{HashMap, HashSet};
+
+use crate::compiler::{
+    db::Db,
+    ir::rust::{Enum, Function, FunctionParent, Member, Module, ModuleParent, Struct, ValueType},
+};
+
+/// A usage graph that derives all used members of a rust api from a set of root
+/// modules.
+#[salsa::interned(debug)]
+pub struct UsageGraph<'db> {
+    /// The modules that seed usage graph
+    #[returns(ref)]
+    pub roots: Vec<Module<'db>>,
+}
+
+#[salsa::tracked]
+impl<'db> UsageGraph<'db> {
+    /// The reflexive transitive closure of members used by the root module
+    /// members.
+    #[salsa::tracked(returns(ref))]
+    pub fn members(self, db: &'db dyn Db) -> HashSet<Member<'db>> {
+        let mut visitor = Visitor {
+            db,
+            visited: HashSet::default(),
+            used_members: HashSet::default(),
+        };
+
+        for root in self.roots(db) {
+            visitor.visit_module(*root);
+        }
+
+        visitor.used_members
+    }
+
+    /// The members of a given module used transitively by the root module
+    /// members.
+    pub fn module_members(
+        self,
+        db: &'db dyn Db,
+        module: Module<'db>,
+    ) -> Option<&'db HashSet<Member<'db>>> {
+        self.all_module_members(db).get(&module)
+    }
+
+    #[salsa::tracked(returns(ref))]
+    fn all_module_members(self, db: &'db dyn Db) -> HashMap<Module<'db>, HashSet<Member<'db>>> {
+        let mut result: HashMap<Module<'db>, HashSet<Member<'db>>> = HashMap::default();
+
+        for member in self.members(db) {
+            match member {
+                Member::Struct(struct_) => {
+                    result
+                        .entry(struct_.module(db))
+                        .or_default()
+                        .insert(*member);
+                }
+                Member::Enum(enum_) => {
+                    result.entry(enum_.module(db)).or_default().insert(*member);
+                }
+                Member::Function(function) => {
+                    if let FunctionParent::Module(module) = function.parent(db) {
+                        result.entry(module).or_default().insert(*member);
+                    }
+                }
+                Member::Module(module) => {
+                    if let ModuleParent::Module(parent) = module.parent(db) {
+                        result.entry(parent).or_default().insert(*member);
+                    }
+                }
+            }
+        }
+
+        result
+    }
+}
+
+struct Visitor<'db> {
+    db: &'db dyn Db,
+    visited: HashSet<Node<'db>>,
+    used_members: HashSet<Member<'db>>,
+}
+
+impl<'db> Visitor<'db> {
+    pub fn visit_module(&mut self, module: Module<'db>) {
+        self.used_members.insert(Member::Module(module));
+
+        for member in module.members(self.db) {
+            match member {
+                Member::Function(function) => self.visit_function(*function),
+                Member::Struct(struct_) => self.visit_struct(*struct_),
+                Member::Enum(enum_) => self.visit_enum(*enum_),
+                Member::Module(module) => self.visit_module(*module),
+            }
+        }
+    }
+
+    pub fn visit_function(&mut self, function: Function<'db>) {
+        if !self.visited.insert(Node::Function(function)) {
+            return;
+        }
+        self.used_members.insert(Member::Function(function));
+
+        for param in function.params(self.db) {
+            self.visit_value_type(param.type_(self.db).deborrow());
+        }
+    }
+
+    pub fn visit_struct(&mut self, struct_: Struct<'db>) {
+        if !self.visited.insert(Node::Struct(struct_)) {
+            return;
+        }
+        self.used_members.insert(Member::Struct(struct_));
+
+        for field in struct_.fields(self.db) {
+            self.visit_value_type(field.value_type(self.db));
+        }
+    }
+
+    pub fn visit_enum(&mut self, enum_: Enum<'db>) {
+        if !self.visited.insert(Node::Enum(enum_)) {
+            return;
+        }
+        self.used_members.insert(Member::Enum(enum_));
+
+        for field in enum_.fields(self.db) {
+            self.visit_value_type(field.value_type(self.db));
+        }
+    }
+
+    fn visit_value_type(&mut self, value_type: ValueType<'db>) {
+        match value_type {
+            ValueType::Struct(struct_) => self.visit_struct(struct_),
+            ValueType::Enum(enum_) => self.visit_enum(enum_),
+            _ => {}
+        }
+    }
+
+    fn add_parent_chain(&mut self, module: Module<'db>) {
+        let mut current = module;
+        self.used_members.insert(Member::Module(module));
+
+        while let ModuleParent::Module(parent) = current.parent(self.db) {
+            current = parent;
+            self.used_members.insert(Member::Module(module));
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Hash)]
+enum Node<'db> {
+    Struct(Struct<'db>),
+    Enum(Enum<'db>),
+    Function(Function<'db>),
+}

@@ -10,24 +10,40 @@
 
 pub mod ext;
 mod lowering;
-pub mod references;
 
 use crate::compiler::{
     db::Db,
     ir::rust::{
         Crate, Enum, Field, FieldName, FieldParent, Function, FunctionParent, IntoValueType,
-        Module, Receiver, Struct, Type, ValueType, Variant,
+        Module, Receiver, Rust, Struct, Type, ValueType, Variant,
     },
 };
 
-/// A shim crate matching original rust crate.
+/// A root of the shim IR.
+///
+/// It's generally redundant API, generally serving as a quality-of-life wrapper
+/// for tests.
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, salsa::Update)]
+pub struct Shim<'db> {
+    pub rust: Rust<'db>,
+}
+
+impl<'db> Shim<'db> {
+    pub fn crates(self, db: &'db dyn Db) -> impl Iterator<Item = ShimCrate<'db>> {
+        self.rust.crates(db).iter().map(|crate_| crate_.shim(db))
+    }
+}
+
+/// A shim crate matching the original Rust crate.
+///
+/// The crate isn't needed for shim codegen, but is retained for easier
+/// lowering of js IRs.
 #[salsa::interned(debug)]
 pub struct ShimCrate<'db> {
     pub src: Crate<'db>,
 }
 
 impl<'db> ShimCrate<'db> {
-    /// Returns the root module of the crate.
     pub fn root(self, db: &'db dyn Db) -> ShimModule<'db> {
         self.src(db).root(db).shim(db)
     }
@@ -206,13 +222,10 @@ impl<'db> ShimClassPlain<'db> {
     /// Methods of this class.
     #[salsa::tracked(returns(ref))]
     pub fn methods(self, db: &'db dyn Db) -> Vec<ShimFunctionAssociated<'db>> {
-        let impls = self.src(db).impls(db);
-
-        impls
+        self.src(db)
+            .impls(db)
             .iter()
-            .flat_map(|impl_| impl_.functions(db))
-            .filter(|function| function.receiver(db).is_some() || function.name(db) != "prototype")
-            .map(|function| ShimFunctionAssociated::new(db, *function))
+            .flat_map(|impl_| impl_.lower_as_methods(db))
             .collect()
     }
 
@@ -338,7 +351,7 @@ impl<'db> ShimClassDiscriminatedVariant<'db> {
 
     /// Fields of this varaint.
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = ShimField<'db>> {
-        self.src(db).fields(db).iter().map(|f| f.shim(db))
+        self.src(db).fields(db).iter().map(move |f| f.shim(db))
     }
 }
 
@@ -467,7 +480,7 @@ impl<'db> ShimFunctionAssociated<'db> {
     pub fn self_class(self, db: &'db dyn Db) -> ShimClass<'db> {
         match self.src(db).parent(db) {
             FunctionParent::Impl(impl_) => impl_.target(db).shim(db),
-            FunctionParent::Mod(_) => {
+            FunctionParent::Module(_) => {
                 unreachable!("associated shim functions must belong to an impl block")
             }
         }
