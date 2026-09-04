@@ -1,7 +1,5 @@
 //! Shared compiler test fixtures.
 
-use std::collections::HashMap;
-
 use ra_ap_test_fixture::ChangeFixture;
 
 use crate::compiler::{
@@ -43,9 +41,6 @@ pub(super) fn format_rust_source(source: &str) -> String {
 
 #[doc(hidden)]
 pub(super) fn build_test_db(source: String, files: &[(&str, String)]) -> RootDatabase {
-    let root_file =
-        FilePath::new_virtual("/src/lib.rs").expect("test crate root should be a valid path");
-
     let mut fixture = String::from(TEST_CRATE_FIXTURE_HEADER);
     fixture.push_str(&source);
     fixture.push('\n');

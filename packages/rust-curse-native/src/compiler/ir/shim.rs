@@ -141,7 +141,7 @@ impl<'db> ShimClass<'db> {
     }
 
     /// The source value type of this class.
-    pub fn src_value_type(self, db: &'db dyn Db) -> ValueType {
+    pub fn src_value_type(self, db: &'db dyn Db) -> ValueType<'db> {
         match self {
             ShimClass::Plain(p) => p.src(db).into_value_type(),
             ShimClass::Discriminated(d) => d.src(db).into_value_type(),

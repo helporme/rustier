@@ -326,7 +326,7 @@ mod tests {
             .shim(db);
 
         root.functions(db)
-            .map(|function| ShimFunction::from(function))
+            .map(ShimFunction::from)
             .chain(
                 root.classes(db)
                     .flat_map(|class| class.all_functions(db).iter().copied()),

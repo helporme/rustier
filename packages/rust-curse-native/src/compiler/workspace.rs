@@ -20,7 +20,7 @@ use super::db::RootDatabase;
 #[derive(Debug)]
 pub struct Workspace {
     db: RootDatabase,
-    vfs: Vfs,
+    _vfs: Vfs,
 }
 
 impl Workspace {
@@ -44,7 +44,7 @@ impl Workspace {
             },
         );
 
-        Ok(Self { db, vfs })
+        Ok(Self { db, _vfs: vfs })
     }
 
     /// Changes the compilation target platform.

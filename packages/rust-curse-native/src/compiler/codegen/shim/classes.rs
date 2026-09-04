@@ -9,7 +9,7 @@ use crate::compiler::{
     db::Db,
     inputs::Platform,
     ir::{
-        rust::{AsItem as _, FieldParent, Shape, ValueType},
+        rust::{AsItem as _, FieldParent, Shape},
         shim::{ShimClass, ShimField},
     },
 };
@@ -49,7 +49,7 @@ impl<'db> ClassFragment<'db> {
             .map(|field| field.get_tethered_field(self.db));
 
         let tethering_struct = TetheringStruct {
-            source_type: self.class.src_value_type(self.db).into(),
+            source_type: self.class.src_value_type(self.db),
             fields: tethered_fields,
         };
 
@@ -59,8 +59,10 @@ impl<'db> ClassFragment<'db> {
     fn render_struct<'a>(&'a self) -> impl FragmentOnce + 'a {
         let platform = Platform::get(self.db);
 
-        let tethering_type_name =
-            ValueType::from(self.class.src_value_type(self.db)).tethering_struct_name(self.db);
+        let tethering_type_name = self
+            .class
+            .src_value_type(self.db)
+            .tethering_struct_name(self.db);
 
         let symbol = self.class.ffi(self.db).symbol(self.db);
 

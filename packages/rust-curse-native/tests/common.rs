@@ -4,15 +4,13 @@ use std::{
     process::Command,
 };
 
+use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice};
+use ra_ap_project_model::CargoConfig;
 use rust_curse::compiler::{
     diag::Diag,
-    inputs::{CrateApiImportMode, Platform, WasmEnv},
-    ir::rust::Rust,
-    path::FilePath,
-    workspace::{
-        CrateGraphBuilder, Edition, Workspace, WorkspaceChange, WorkspaceCrate,
-        WorkspaceCrateOrigin,
-    },
+    inputs::{Platform, WasmEnv},
+    ir::rust::{Rust, usages::UsageGraph},
+    workspace::Workspace,
 };
 use serde_json::Value;
 use tempfile::TempDir;
@@ -21,14 +19,6 @@ use tempfile::TempDir;
 pub mod fragment;
 
 const SOURCE_CRATE_NAME: &str = "test_source";
-const COMPILER_STD_FIXTURE: &str = r#"
-mod __rust_curse_test_std {
-    pub mod string {
-        pub struct String;
-    }
-}
-use __rust_curse_test_std::string::String;
-"#;
 
 /// A source program and the binding APIs against which it should be tested.
 pub struct ProgramTest {
@@ -118,7 +108,7 @@ impl ProgramCompiler {
         fs::write(workspace.source_dir.join("src/lib.rs"), &program.src)
             .map_err(|error| format!("write source program: {error}"))?;
 
-        let mut diagnostics = Vec::new();
+        let diagnostics = Vec::new();
         for &platform in &program.platforms {
             let (platform_name, generated_dir_name) = match platform {
                 Platform::Wasm {
@@ -131,37 +121,28 @@ impl ProgramCompiler {
                 _ => return Err("program test selected an unsupported platform".to_string()),
             };
             let generated_dir = workspace.generated_root.join(generated_dir_name);
-            let root_file = real_file_path(&workspace.source_dir.join("src/lib.rs"))?;
-            let mut compiler = Workspace::new();
-            let mut change = WorkspaceChange::new();
-            change.set_local_file(
-                root_file.clone(),
-                Some(format!("{}\n{COMPILER_STD_FIXTURE}", program.src)),
-            );
-            let mut crates = CrateGraphBuilder::default();
-            crates.add_crate(WorkspaceCrate {
-                name: SOURCE_CRATE_NAME.to_owned(),
-                edition: Edition::E2024,
-                root_file,
-                version: "0.0.0".to_owned(),
-                origin: WorkspaceCrateOrigin::Local,
-                api_import_mode: CrateApiImportMode::Mod,
-            });
-            change.set_crates(crates);
-            compiler.apply_change(change).map_err(|error| {
-                format!("configure {platform_name} compiler workspace: {error}")
-            })?;
-
-            Platform::set(compiler.db_mut(), platform);
+            let mut compiler = Workspace::load(
+                &workspace.source_dir,
+                &CargoConfig::default(),
+                &LoadCargoConfig {
+                    load_out_dirs_from_check: false,
+                    with_proc_macro_server: ProcMacroServerChoice::None,
+                    prefill_caches: false,
+                    num_worker_threads: 1,
+                    proc_macro_processes: 1,
+                },
+            )
+            .map_err(|error| format!("configure {platform_name} compiler workspace: {error}"))?;
+            compiler.change_platform(platform);
             let db = compiler.db();
-            let rust = Rust::complete(db);
-            diagnostics.extend(
-                rust.crates(db)
-                    .iter()
-                    .flat_map(|crate_| crate_.check(db))
-                    .cloned(),
-            );
-            let shim = rust.shim(db).render(db);
+            let rust = Rust::get(db);
+            let source = rust
+                .crates(db)
+                .iter()
+                .find(|crate_| crate_.name(db) == SOURCE_CRATE_NAME)
+                .copied()
+                .expect("source crate should be lowered");
+            let shim = UsageGraph::new(db, vec![source.root(db)]).render_shim(db);
             write_generated_crate(&generated_dir, &workspace.source_dir, platform, shim)?;
 
             let generated_source_path = generated_dir.join("src/lib.rs");
@@ -186,11 +167,6 @@ impl ProgramCompiler {
 
         Ok(diagnostics)
     }
-}
-
-fn real_file_path(path: &Path) -> Result<FilePath, String> {
-    FilePath::new_real(path.to_string_lossy())
-        .map_err(|error| format!("create compiler path for {}: {error}", path.display()))
 }
 
 fn write_generated_crate(

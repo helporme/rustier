@@ -84,7 +84,7 @@ where
         unreachable!("class-to-type cast requires a class source");
     };
     let tethered = TetheringStructType {
-        source_type: inner.src_value_type(db).into(),
+        source_type: inner.src_value_type(db),
     };
     let tethered_expr = render_class_to_tethered_expr(class, in_expr);
 
@@ -111,7 +111,7 @@ where
         "a source value can only be cast to an owned class wrapper",
     );
     let tethered = TetheringStructType {
-        source_type: inner.src_value_type(db).into(),
+        source_type: inner.src_value_type(db),
     };
     let tethered_expr = render_type_to_tethered_expr(db, source, tethered, in_expr);
     let class_expr = frag!({inner.symbol(db)}~{{ src: {tethered_expr} }});

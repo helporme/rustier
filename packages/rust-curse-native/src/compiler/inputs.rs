@@ -1,7 +1,7 @@
 //! Additional Salsa inputs used by the compiler besides those provided by
 //! rust-analyzer.
 
-use crate::compiler::{db::Db, ir::rust::Module, path::FilePath};
+use crate::compiler::{db::Db, path::FilePath};
 
 /// Target platform used for FFI.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]

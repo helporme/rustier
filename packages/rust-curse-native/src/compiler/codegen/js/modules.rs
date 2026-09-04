@@ -8,7 +8,7 @@ use crate::compiler::{
 impl<'db> FacadeModule<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn render(self, db: &'db dyn Db) -> String {
-        let mut imports = self.imports(db).iter().copied().collect::<Vec<_>>();
+        let mut imports = self.imports(db).to_vec();
 
         imports.sort_by(|left, right| {
             (left.from_path(db), left.item(db).symbol(db))

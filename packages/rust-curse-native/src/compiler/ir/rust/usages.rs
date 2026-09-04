@@ -93,6 +93,8 @@ impl<'db> Visitor<'db> {
                 Member::Module(module) => self.visit_module(*module),
             }
         }
+
+        self.add_parent_chain(module);
     }
 
     pub fn visit_function(&mut self, function: Function<'db>) {
@@ -100,6 +102,10 @@ impl<'db> Visitor<'db> {
             return;
         }
         self.used_members.insert(Member::Function(function));
+
+        if let FunctionParent::Module(module) = function.parent(self.db) {
+            self.add_parent_chain(module);
+        }
 
         for param in function.params(self.db) {
             self.visit_value_type(param.type_(self.db).deborrow());
@@ -111,6 +117,7 @@ impl<'db> Visitor<'db> {
             return;
         }
         self.used_members.insert(Member::Struct(struct_));
+        self.add_parent_chain(struct_.module(self.db));
 
         for field in struct_.fields(self.db) {
             self.visit_value_type(field.value_type(self.db));
@@ -122,6 +129,7 @@ impl<'db> Visitor<'db> {
             return;
         }
         self.used_members.insert(Member::Enum(enum_));
+        self.add_parent_chain(enum_.module(self.db));
 
         for field in enum_.fields(self.db) {
             self.visit_value_type(field.value_type(self.db));
