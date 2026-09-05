@@ -2,7 +2,9 @@ use std::collections::{HashMap, HashSet};
 
 use crate::compiler::{
     db::Db,
-    ir::rust::{Enum, Function, FunctionParent, Impl, Member, Module, ModuleParent, Struct, ValueType},
+    ir::rust::{
+        Enum, Function, FunctionParent, Impl, Member, Module, ModuleParent, Struct, ValueType,
+    },
 };
 
 /// A usage graph that derives all used members of a rust api from a set of root

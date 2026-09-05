@@ -204,10 +204,7 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
 mod tests {
     use crate::{
         assert_rust_snap,
-        compiler::{
-            codegen::fragment::FragmentOnce as _,
-            ir::rust::Rust,
-        },
+        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Rust},
     };
 
     macro_rules! test_class {

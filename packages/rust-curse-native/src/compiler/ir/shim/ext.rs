@@ -15,7 +15,11 @@ use crate::compiler::{
 impl<'db> Rust<'db> {
     /// The complete public API, reachable from every crate's root module.
     pub fn shim_complete(self, db: &'db dyn Db) -> Shim<'db> {
-        let roots: Vec<_> = self.crates(db).iter().map(|crate_| crate_.root(db)).collect();
+        let roots: Vec<_> = self
+            .crates(db)
+            .iter()
+            .map(|crate_| crate_.root(db))
+            .collect();
         self.shim_reachable_from(UsageGraph::new(db, roots))
     }
 

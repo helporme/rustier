@@ -91,10 +91,7 @@ impl<'db> DecalModule<'db> {
 mod tests {
     use crate::{
         assert_ts_snap,
-        compiler::{
-            codegen::fragment::FragmentOnce as _,
-            ir::rust::Rust,
-        },
+        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Rust},
     };
 
     macro_rules! test_module {

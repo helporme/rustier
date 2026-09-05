@@ -1,11 +1,9 @@
-use crate::{
-    compiler::{
-        codegen::fragment::{FragmentOnce, Printer, frag, fragment},
-        db::Db,
-        ir::{
-            rust::{AsItem, FieldName, ValueType},
-            shim::ShimType,
-        },
+use crate::compiler::{
+    codegen::fragment::{FragmentOnce, Printer, frag, fragment},
+    db::Db,
+    ir::{
+        rust::{AsItem, FieldName, ValueType},
+        shim::ShimType,
     },
 };
 

@@ -539,10 +539,7 @@ mod tests {
         assert_js_snap,
         compiler::{
             codegen::{fragment::FragmentOnce as _, js::cast::test::TestCastRenderer},
-            ir::{
-                facade::FacadeMember,
-                rust::Rust,
-            },
+            ir::{facade::FacadeMember, rust::Rust},
         },
     };
 

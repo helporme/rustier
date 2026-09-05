@@ -308,10 +308,7 @@ mod tests {
     use super::*;
     use crate::{
         assert_rust_snap,
-        compiler::{
-            codegen::shim::cast::test::TestCastRenderer,
-            ir::rust::Rust,
-        },
+        compiler::{codegen::shim::cast::test::TestCastRenderer, ir::rust::Rust},
     };
 
     fn find_test_function<'db>(

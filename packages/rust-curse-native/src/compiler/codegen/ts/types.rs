@@ -1,9 +1,7 @@
-use crate::{
-    compiler::{
-        codegen::fragment::{FragmentOnce, frag, fragment},
-        db::Db,
-        ir::decals::DecalType,
-    },
+use crate::compiler::{
+    codegen::fragment::{FragmentOnce, frag, fragment},
+    db::Db,
+    ir::decals::DecalType,
 };
 
 impl<'db> DecalType<'db> {

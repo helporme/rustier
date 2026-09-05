@@ -6,10 +6,7 @@ use crate::compiler::{
     codegen::sourcemap::mappings::Mapping,
     db::RootDatabase,
     inputs::{FilePaths, Platform},
-    ir::{
-        decals::DecalModule,
-        rust::Rust,
-    },
+    ir::{decals::DecalModule, rust::Rust},
     path::FilePath,
 };
 

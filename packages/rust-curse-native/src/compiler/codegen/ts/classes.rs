@@ -208,10 +208,7 @@ mod tests {
         assert_ts_snap,
         compiler::{
             codegen::fragment::FragmentOnce as _,
-            ir::{
-                decals::DecalMember,
-                rust::Rust,
-            },
+            ir::{decals::DecalMember, rust::Rust},
         },
     };
 

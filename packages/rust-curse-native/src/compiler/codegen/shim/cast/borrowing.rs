@@ -1,8 +1,6 @@
-use crate::{
-    compiler::{
-        codegen::fragment::{FragmentOnce, frag, fragment},
-        ir::rust::Type,
-    },
+use crate::compiler::{
+    codegen::fragment::{FragmentOnce, frag, fragment},
+    ir::rust::Type,
 };
 
 use super::CastOutput;

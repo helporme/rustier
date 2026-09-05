@@ -1,12 +1,10 @@
-use crate::{
-    compiler::{
-        codegen::{
-            fragment::{FragmentOnce, frag, fragment},
-            shim::tethering::TetheringStructType,
-        },
-        db::Db,
-        ir::rust::Type,
+use crate::compiler::{
+    codegen::{
+        fragment::{FragmentOnce, frag, fragment},
+        shim::tethering::TetheringStructType,
     },
+    db::Db,
+    ir::rust::Type,
 };
 
 use super::{CastOutput, adapt_to_cast_output};

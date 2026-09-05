@@ -1,8 +1,9 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
+use ra_ap_ide_db::ChangeWithProcMacros;
 use ra_ap_load_cargo::{LoadCargoConfig, load_workspace_at};
 use ra_ap_project_model::CargoConfig;
-use ra_ap_vfs::Vfs;
+use ra_ap_vfs::{Change, Vfs};
 
 use crate::compiler::{
     inputs::{FilePaths, Platform, WasmEnv::Web},
@@ -20,7 +21,7 @@ use super::db::RootDatabase;
 #[derive(Debug)]
 pub struct Workspace {
     db: RootDatabase,
-    _vfs: Vfs,
+    vfs: Vfs,
 }
 
 impl Workspace {
@@ -44,7 +45,37 @@ impl Workspace {
             },
         );
 
-        Ok(Self { db, _vfs: vfs })
+        Ok(Self { db, vfs })
+    }
+
+    /// Applies file changes to the workspace database.
+    pub fn apply_change(&mut self, change: WorkspaceChange) {
+        for (path, contents) in change.files {
+            self.vfs
+                .set_file_contents(path.into(), contents.map(String::into_bytes));
+        }
+
+        let mut analysis_change = ChangeWithProcMacros::default();
+        let mut changed = false;
+
+        for (_, file) in self.vfs.take_changes() {
+            match file.change {
+                Change::Create(contents, _) | Change::Modify(contents, _) => {
+                    if let Ok(text) = String::from_utf8(contents) {
+                        analysis_change.change_file(file.file_id, Some(text));
+                        changed = true;
+                    }
+                }
+                Change::Delete => {
+                    analysis_change.change_file(file.file_id, None);
+                    changed = true;
+                }
+            }
+        }
+
+        if changed {
+            self.db.apply_change(analysis_change);
+        }
     }
 
     /// Changes the compilation target platform.
@@ -60,5 +91,18 @@ impl Workspace {
     /// The database used for analysis and compilation queries.
     pub fn db(&self) -> &RootDatabase {
         &self.db
+    }
+}
+
+/// File-only changes to apply to a [`Workspace`].
+#[derive(Debug, Default)]
+pub struct WorkspaceChange {
+    files: HashMap<FilePath, Option<String>>,
+}
+
+impl WorkspaceChange {
+    /// Records a file creation, update, or deletion.
+    pub fn set_file(&mut self, path: FilePath, contents: Option<String>) {
+        self.files.insert(path, contents);
     }
 }

@@ -1,10 +1,8 @@
-use crate::{
-    compiler::{
-        codegen::fragment::{FragmentOnce, doubles, frag, fragment},
-        db::Db,
-        inputs::Platform,
-        ir::rust::{Type, ValueType},
-    },
+use crate::compiler::{
+    codegen::fragment::{FragmentOnce, doubles, frag, fragment},
+    db::Db,
+    inputs::Platform,
+    ir::rust::{Type, ValueType},
 };
 
 use super::{CastOutput, adapt_to_cast_output, borrowing::render_owned_to_borrowed};

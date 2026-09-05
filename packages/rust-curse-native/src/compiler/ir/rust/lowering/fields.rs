@@ -33,13 +33,9 @@ impl<'db> Field<'db> {
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_value_type(self, db: &'db dyn Db) -> ValueType<'db> {
         let hir = self.hir(db);
-        lower_type(
-            db,
-            &hir.ty(db),
-            hir.parent_def(db).module(db).krate(db),
-        )
-        .expect("unsupported fields are discarded while lowering their parent shape")
-        .deborrow()
+        lower_type(db, &hir.ty(db), hir.parent_def(db).module(db).krate(db))
+            .expect("unsupported fields are discarded while lowering their parent shape")
+            .deborrow()
     }
 
     #[salsa::tracked]
