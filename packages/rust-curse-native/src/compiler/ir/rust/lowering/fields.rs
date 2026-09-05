@@ -35,7 +35,7 @@ impl<'db> Field<'db> {
         let hir = self.hir(db);
         lower_type(
             db,
-            &field_type(db, hir),
+            &hir.ty(db),
             hir.parent_def(db).module(db).krate(db),
         )
         .expect("unsupported fields are discarded while lowering their parent shape")
@@ -46,7 +46,7 @@ impl<'db> Field<'db> {
     pub(in crate::compiler::ir::rust) fn lower_is_readonly(self, db: &'db dyn Db) -> bool {
         let hir = self.hir(db);
         let crate_ = hir.parent_def(db).module(db).krate(db);
-        let type_ = field_type(db, hir);
+        let type_ = hir.ty(db);
         matches!(
             lower_type(db, &type_, crate_).map(Type::deborrow),
             Ok(ValueType::Struct(_) | ValueType::Enum(_))
@@ -74,7 +74,7 @@ pub(super) fn lower_field<'db>(
         return Ok(None);
     }
     let crate_ = field.parent_def(db).module(db).krate(db);
-    let type_ = field_type(db, field);
+    let type_ = field.ty(db);
     let mut causes = Vec::new();
     if has_explicit_reference_lifetime(db, field) {
         causes.push(TypeLowerErrorUnsupported::LifetimeRef);
@@ -109,10 +109,6 @@ pub(super) fn lower_field<'db>(
         .accumulate(db);
     }
     Ok(Some(Field::new(db, field)))
-}
-
-fn field_type<'db>(db: &'db dyn Db, field: ra_ap_hir::Field) -> ra_ap_hir::Type<'db> {
-    ra_ap_hir::attach_db(db, || field.ty(db))
 }
 
 fn has_explicit_reference_lifetime<T>(db: &dyn Db, item: T) -> bool

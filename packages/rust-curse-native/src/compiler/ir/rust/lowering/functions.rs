@@ -60,7 +60,7 @@ impl<'db> Function<'db> {
     pub(in crate::compiler::ir::rust) fn lower_params(self, db: &'db dyn Db) -> Vec<Param<'db>> {
         let hir = self.hir(db);
         let crate_ = hir.module(db).krate(db);
-        function_params(db, hir)
+        hir.params_without_self(db)
             .into_iter()
             .enumerate()
             .map(|(index, param)| {
@@ -82,7 +82,7 @@ impl<'db> Function<'db> {
         db: &'db dyn Db,
     ) -> Option<ValueType<'db>> {
         let hir = self.hir(db);
-        let type_ = function_return_type(db, hir);
+        let type_ = hir.ret_type(db);
         if type_.is_unit() {
             return None;
         }
@@ -154,7 +154,7 @@ pub(super) fn lower_function<'db>(
     if let Some(receiver) = hir.self_param(db)
         && receiver.access(db) == Access::Owned
     {
-        let receiver_type = ra_ap_hir::attach_db(db, || receiver.ty(db));
+        let receiver_type = receiver.ty(db);
         match lower_type(db, &receiver_type, crate_) {
             Ok(Type::Value(ValueType::Struct(struct_)))
                 if !is_clonable(db, &receiver_type, crate_) =>
@@ -174,7 +174,7 @@ pub(super) fn lower_function<'db>(
         }
     }
 
-    for (index, param) in function_params(db, hir).into_iter().enumerate() {
+    for (index, param) in hir.params_without_self(db).into_iter().enumerate() {
         let name = param
             .name(db)
             .map(|name| name.display(db, crate_.edition(db)).to_string())
@@ -225,7 +225,7 @@ pub(super) fn lower_function<'db>(
         }
     }
 
-    let return_type = function_return_type(db, hir);
+    let return_type = hir.ret_type(db);
     if !return_type.is_unit() {
         match lower_type(db, &return_type, crate_) {
             Ok(Type::Borrowed { .. }) => causes.push(FunctionLowerCause::BorrowedReturn),
@@ -246,20 +246,6 @@ pub(super) fn lower_function<'db>(
             causes,
         }))
     }
-}
-
-fn function_params<'db>(
-    db: &'db dyn Db,
-    function: ra_ap_hir::Function,
-) -> Vec<ra_ap_hir::Param<'db>> {
-    ra_ap_hir::attach_db(db, || function.params_without_self(db))
-}
-
-fn function_return_type<'db>(
-    db: &'db dyn Db,
-    function: ra_ap_hir::Function,
-) -> ra_ap_hir::Type<'db> {
-    ra_ap_hir::attach_db(db, || function.ret_type(db))
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]

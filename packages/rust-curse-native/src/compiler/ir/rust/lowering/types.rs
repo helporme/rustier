@@ -15,16 +15,8 @@ pub(super) fn lower_type<'db>(
     type_: &HirType<'db>,
     crate_: ra_ap_hir::Crate,
 ) -> Result<Type<'db>, TypeLowerErrorUnsupported> {
-    ra_ap_hir::attach_db(db, || lower_type_attached(db, type_, crate_))
-}
-
-fn lower_type_attached<'db>(
-    db: &'db dyn Db,
-    type_: &HirType<'db>,
-    crate_: ra_ap_hir::Crate,
-) -> Result<Type<'db>, TypeLowerErrorUnsupported> {
     if let Some((inner, mutability)) = type_.as_reference() {
-        let Type::Value(inner) = lower_type_attached(db, &inner, crate_)? else {
+        let Type::Value(inner) = lower_type(db, &inner, crate_)? else {
             return Err(TypeLowerErrorUnsupported::DoubleReference);
         };
         return Ok(Type::Borrowed {
@@ -82,10 +74,8 @@ pub(super) fn is_clonable(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::C
         return true;
     }
 
-    ra_ap_hir::attach_db(db, || {
-        Trait::lang(db, crate_, ra_ap_hir::LangItem::Clone)
-            .is_some_and(|clone| type_.impls_trait(db, clone, &[]))
-    })
+    Trait::lang(db, crate_, ra_ap_hir::LangItem::Clone)
+        .is_some_and(|clone| type_.impls_trait(db, clone, &[]))
 }
 
 fn derives_clone(db: &dyn Db, adt: Adt) -> bool {

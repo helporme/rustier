@@ -138,8 +138,10 @@ mod tests {
             fn $name() {
                 let mut db = test_db! { $($source)* };
                 configure_db(&mut db);
-                let module = root_decals(&db);
-                let snapshot = snapshot_module(&db, module);
+                let snapshot = ra_ap_hir::attach_db(&db, || {
+                    let module = root_decals(&db);
+                    snapshot_module(&db, module)
+                });
 
                 insta::with_settings!({
                     snapshot_path => "_snapshots/modules",
@@ -279,8 +281,10 @@ mod tests {
             }
         };
         configure_db(&mut db);
-        let module = decals_by_path(&db, "items");
-        let snapshot = snapshot_module(&db, module);
+        let snapshot = ra_ap_hir::attach_db(&db, || {
+            let module = decals_by_path(&db, "items");
+            snapshot_module(&db, module)
+        });
 
         insta::with_settings!({
             snapshot_path => "_snapshots/modules",

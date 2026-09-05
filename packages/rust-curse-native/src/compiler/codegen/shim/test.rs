@@ -45,12 +45,14 @@ macro_rules! assert_rust_snap {
             &mut __node_db,
             $crate::compiler::inputs::Platform::Node,
         );
-        let __node = $crate::compiler::codegen::fragment::FragmentPrint::print(
-            $crate::compiler::codegen::fragment::fragment(|$printer| {
-                let $db = &mut __node_db;
-                $expression
-            }),
-        );
+        let __node = ::ra_ap_hir::attach_db(&__node_db, || {
+            $crate::compiler::codegen::fragment::FragmentPrint::print(
+                $crate::compiler::codegen::fragment::fragment(|$printer| {
+                    let $db = &__node_db;
+                    $expression
+                }),
+            )
+        });
 
         let mut __wasm_db = $crate::test_db! { $($source)* };
         $crate::compiler::inputs::Platform::set(
@@ -59,12 +61,14 @@ macro_rules! assert_rust_snap {
                 target: $crate::compiler::inputs::WasmEnv::Web,
             },
         );
-        let __wasm = $crate::compiler::codegen::fragment::FragmentPrint::print(
-            $crate::compiler::codegen::fragment::fragment(|$printer| {
-                let $db = &mut __wasm_db;
-                $expression
-            }),
-        );
+        let __wasm = ::ra_ap_hir::attach_db(&__wasm_db, || {
+            $crate::compiler::codegen::fragment::FragmentPrint::print(
+                $crate::compiler::codegen::fragment::fragment(|$printer| {
+                    let $db = &__wasm_db;
+                    $expression
+                }),
+            )
+        });
 
         let (snapshot, snapshot_path) =
             $crate::compiler::codegen::shim::test::build_rust_snapshot(
