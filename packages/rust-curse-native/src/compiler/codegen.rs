@@ -1,4 +1,4 @@
-mod fragment;
+pub(super) mod fragment;
 pub mod js;
 mod platform;
 pub mod shim;
