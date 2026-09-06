@@ -38,33 +38,26 @@ pub fn build_rust_snapshot(
 macro_rules! assert_rust_snap {
     (
         source: { $($source:tt)* },
-        expression: |$db:ident, $printer:ident| $expression:block $(,)?
+        expression: |$db:ident, $platform:ident, $printer:ident| $expression:block $(,)?
     ) => {{
-        let mut __node_db = $crate::test_db! { $($source)* };
-        $crate::compiler::inputs::Platform::set(
-            &mut __node_db,
-            $crate::compiler::inputs::Platform::Node,
-        );
-        let __node = ::ra_ap_hir::attach_db(&__node_db, || {
+        let __db = $crate::test_db! { $($source)* };
+        let __node = ::ra_ap_hir::attach_db(&__db, || {
             $crate::compiler::codegen::fragment::FragmentPrint::print(
                 $crate::compiler::codegen::fragment::fragment(|$printer| {
-                    let $db = &__node_db;
+                    let $db = &__db;
+                    let $platform = $crate::compiler::codegen::shim::Platform::Node;
                     $expression
                 }),
             )
         });
 
-        let mut __wasm_db = $crate::test_db! { $($source)* };
-        $crate::compiler::inputs::Platform::set(
-            &mut __wasm_db,
-            $crate::compiler::inputs::Platform::Wasm {
-                target: $crate::compiler::inputs::WasmEnv::Web,
-            },
-        );
-        let __wasm = ::ra_ap_hir::attach_db(&__wasm_db, || {
+        let __wasm = ::ra_ap_hir::attach_db(&__db, || {
             $crate::compiler::codegen::fragment::FragmentPrint::print(
                 $crate::compiler::codegen::fragment::fragment(|$printer| {
-                    let $db = &__wasm_db;
+                    let $db = &__db;
+                    let $platform = $crate::compiler::codegen::shim::Platform::Wasm {
+                        target: $crate::compiler::codegen::shim::WasmEnv::Web,
+                    };
                     $expression
                 }),
             )

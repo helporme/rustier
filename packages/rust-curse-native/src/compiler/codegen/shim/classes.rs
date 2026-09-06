@@ -1,13 +1,13 @@
 use crate::compiler::{
     codegen::{
         fragment::{FragmentOnce, FragmentPrint, Printer, doubles, frag, fragment},
+        shim::Platform,
         shim::tethering::{
             ClonedField, FieldExpr, TetheredField, TetheringStruct, TetheringStructField,
             render_tethering_struct,
         },
     },
     db::Db,
-    inputs::Platform,
     ir::{
         rust::{AsItem as _, FieldParent, Shape},
         shim::{ShimClass, ShimField},
@@ -17,14 +17,20 @@ use crate::compiler::{
 #[salsa::tracked]
 impl<'db> ShimClass<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn render(self, db: &'db dyn Db) -> String {
-        ClassFragment { class: self, db }.print()
+    pub(super) fn render(self, db: &'db dyn Db, platform: Platform) -> String {
+        ClassFragment {
+            class: self,
+            db,
+            platform,
+        }
+        .print()
     }
 }
 
 struct ClassFragment<'db> {
     class: ShimClass<'db>,
     db: &'db dyn Db,
+    platform: Platform,
 }
 
 impl<'db> FragmentOnce for ClassFragment<'db> {
@@ -46,7 +52,7 @@ impl<'db> ClassFragment<'db> {
             .class
             .fields(self.db)
             .iter()
-            .map(|field| field.get_tethered_field(self.db));
+            .map(|field| field.get_tethered_field(self.db, self.platform));
 
         let tethering_struct = TetheringStruct {
             source_type: self.class.src_value_type(self.db),
@@ -57,7 +63,7 @@ impl<'db> ClassFragment<'db> {
     }
 
     fn render_struct<'a>(&'a self) -> impl FragmentOnce + 'a {
-        let platform = Platform::get(self.db);
+        let platform = self.platform;
 
         let tethering_type_name = self
             .class
@@ -79,15 +85,18 @@ impl<'db> ShimField<'db> {
     fn get_tethered_field(
         &self,
         db: &'db dyn Db,
+        platform: Platform,
     ) -> TetheredField<'db, ShimFieldExpr<'_, 'db>, ShimFieldExpr<'_, 'db>> {
         let ref_field_expr = ShimFieldExpr {
             field: self,
             db,
+            platform,
             is_mutable: false,
         };
         let mut_field_expr = ShimFieldExpr {
             field: self,
             db,
+            platform,
             is_mutable: true,
         };
 
@@ -115,6 +124,7 @@ impl<'db> ShimField<'db> {
 struct ShimFieldExpr<'field, 'db> {
     field: &'field ShimField<'db>,
     db: &'db dyn Db,
+    platform: Platform,
     is_mutable: bool,
 }
 
@@ -123,6 +133,7 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
         let Self {
             field,
             db,
+            platform,
             is_mutable,
         } = *self;
 
@@ -155,7 +166,7 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
                     }
                     .to_string()
                 );
-                let error = Platform::get(db).error(reason);
+                let error = platform.error(reason);
                 let enum_name = enum_.fqn(db);
                 let variant_name = variant.name(db);
 
@@ -213,7 +224,7 @@ mod tests {
             fn $name() {
                 assert_rust_snap! {
                     source: { $($source)* },
-                    expression: |db, printer| {
+                    expression: |db, platform, printer| {
                         let db = &*db;
                         let root = Rust::get(db)
                             .shim_complete(db)
@@ -225,7 +236,7 @@ mod tests {
                         let Some(class) = root.classes(db).next() else {
                             panic!("test crate root should contain exactly one shim class");
                         };
-                        class.render(db).apply(printer);
+                        class.render(db, platform).apply(printer);
                     },
                 }
             }

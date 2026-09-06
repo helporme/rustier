@@ -40,10 +40,16 @@ impl FilePath {
         Ok(Self(FilePathKind::Real(path)))
     }
 
+    /// The path as a [`Path`], irrespective of whether it is virtual or real.
     pub fn as_path(&self) -> &Path {
         match &self.0 {
             FilePathKind::Virtual(path) | FilePathKind::Real(path) => Path::new(path),
         }
+    }
+
+    /// `true` if the path is a real file on the filesystem.
+    pub fn is_real(&self) -> bool {
+        matches!(self.0, FilePathKind::Real(_))
     }
 
     pub(super) fn contents(&self, db: &dyn Db) -> Option<Arc<str>> {

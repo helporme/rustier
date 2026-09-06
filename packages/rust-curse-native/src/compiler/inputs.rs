@@ -3,22 +3,6 @@
 
 use crate::compiler::{db::Db, path::FilePath};
 
-/// Target platform used for FFI.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
-#[non_exhaustive]
-pub enum Platform {
-    Wasm { target: WasmEnv },
-    Node,
-}
-
-/// Wasm execution environment.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
-#[non_exhaustive]
-pub enum WasmEnv {
-    Web,
-    Node,
-}
-
 /// Paths to the various files required by the compiler.
 #[derive(Debug, Clone, PartialEq, Eq, salsa::Update)]
 pub struct FilePaths {
@@ -60,5 +44,4 @@ macro_rules! impl_salsa_input {
     };
 }
 
-impl_salsa_input!(Platform, PlatformInput);
 impl_salsa_input!(FilePaths, FfiLayoutInput);

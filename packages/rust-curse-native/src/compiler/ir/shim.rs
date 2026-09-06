@@ -11,6 +11,8 @@
 pub mod ext;
 mod lowering;
 
+use std::collections::VecDeque;
+
 use itertools::Either;
 
 use crate::compiler::{
@@ -53,6 +55,16 @@ impl<'db> ShimCrate<'db> {
         self.src(db)
             .root(db)
             .shim_reachable_from(db, self.usages(db))
+    }
+
+    /// The root module and all reachable descendants, in breadth-first order.
+    pub fn all_modules(self, db: &'db dyn Db) -> impl Iterator<Item = ShimModule<'db>> + 'db {
+        let mut pending = VecDeque::from([self.root(db)]);
+        std::iter::from_fn(move || {
+            let module = pending.pop_front()?;
+            pending.extend(module.modules(db));
+            Some(module)
+        })
     }
 }
 

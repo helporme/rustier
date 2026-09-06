@@ -2,7 +2,8 @@ use crate::compiler::{
     codegen::{
         fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, frag, fragment},
         shim::{
-            cast::{Cast, CastRenderer, Renderer},
+            Platform,
+            cast::{Cast, CastRenderer, ShimCastRenderer},
             tethering::{
                 TetheringStructType, render_tethering_struct_get_field_expr,
                 render_tethering_struct_set_field_stmt,
@@ -10,7 +11,6 @@ use crate::compiler::{
         },
     },
     db::Db,
-    inputs::Platform,
     ir::{
         rust::{AsItem as _, Function, Shape, Type},
         shim::{ShimFunction, ShimFunctionDiscriminator, ShimFunctionGetter, ShimFunctionSetter},
@@ -20,20 +20,23 @@ use crate::compiler::{
 #[salsa::tracked]
 impl<'db> ShimFunction<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn render(self, db: &'db dyn Db) -> String {
-        self.render_with(db, Renderer).print()
+    pub(super) fn render(self, db: &'db dyn Db, platform: Platform) -> String {
+        self.render_with(db, platform, ShimCastRenderer { platform })
+            .print()
     }
 
-    fn render_with<CastCompiler>(
+    fn render_with<Renderer>(
         self,
         db: &'db dyn Db,
-        cast_compiler: CastCompiler,
+        platform: Platform,
+        cast_compiler: Renderer,
     ) -> impl FragmentOnce
     where
-        CastCompiler: CastRenderer<'db> + Copy + Clone + 'db,
+        Renderer: CastRenderer<'db> + Copy + Clone + 'db,
     {
         FunctionFragment {
             function: self,
+            platform,
             cast_compiler,
             db,
         }
@@ -43,6 +46,7 @@ impl<'db> ShimFunction<'db> {
 #[derive(Copy, Clone)]
 struct FunctionFragment<'db, CastCompiler> {
     function: ShimFunction<'db>,
+    platform: Platform,
     cast_compiler: CastCompiler,
     db: &'db dyn Db,
 }
@@ -61,7 +65,7 @@ where
     CastCompiler: CastRenderer<'db> + Copy + Clone + 'db,
 {
     fn render(self) -> impl FragmentOnce {
-        let platform = Platform::get(self.db);
+        let platform = self.platform;
 
         let ret_type = self.function.ret_type(self.db);
 
@@ -285,7 +289,7 @@ where
             }
 
             if src.is_non_exhaustive(self.db) {
-                let error = Platform::get(self.db).error(frag!(
+                let error = self.platform.error(frag!(
                     "cannot discriminate an unknown non-exhaustive enum variant".to_string()
                 ));
                 frag!(_ => return Err({error}),).apply(p);
@@ -338,14 +342,14 @@ mod tests {
             fn $name() {
                 assert_rust_snap! {
                     source: { $($source)* },
-                    expression: |db, printer| {
+                    expression: |db, platform, printer| {
                         let db: &dyn Db = &*db;
                         let function = find_test_function(db, |function| {
                             matches!(function, $variant)
                         });
 
                         function
-                            .render_with(db, TestCastRenderer)
+                            .render_with(db, platform, TestCastRenderer)
                             .apply(printer);
                     },
                 }

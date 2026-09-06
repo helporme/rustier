@@ -1,14 +1,16 @@
 use crate::compiler::{
-    codegen::fragment::{FragmentOnce, doubles, frag, fragment},
+    codegen::{
+        fragment::{FragmentOnce, doubles, frag, fragment},
+        shim::Platform,
+    },
     db::Db,
-    inputs::Platform,
     ir::rust::{Type, ValueType},
 };
 
 use super::{CastOutput, adapt_to_cast_output, borrowing::render_owned_to_borrowed};
 
 pub fn render_f64_to_type<'db, InExpr, OutVar, Continue>(
-    db: &'db dyn Db,
+    platform: Platform,
     target: Type<'db>,
     in_expr: InExpr,
     output: CastOutput<OutVar, Continue>,
@@ -20,17 +22,17 @@ where
 {
     fragment(move |printer| match target {
         Type::Value(target) => {
-            render_f64_to_value(db, target, in_expr, output).apply(printer);
+            render_f64_to_value(platform, target, in_expr, output).apply(printer);
         }
         Type::Borrowed { inner, .. } => {
-            let value = render_f64_to_value_expr(db, inner, in_expr);
+            let value = render_f64_to_value_expr(platform, inner, in_expr);
             render_owned_to_borrowed(target, value, output).apply(printer);
         }
     })
 }
 
 fn render_f64_to_value<'db, InExpr, OutVar, Continue>(
-    db: &'db dyn Db,
+    platform: Platform,
     target: ValueType<'db>,
     in_expr: InExpr,
     output: CastOutput<OutVar, Continue>,
@@ -40,12 +42,12 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    let expr = render_f64_to_value_expr(db, target, in_expr);
+    let expr = render_f64_to_value_expr(platform, target, in_expr);
     adapt_to_cast_output(expr, output)
 }
 
 fn render_f64_to_value_expr<'db, InExpr>(
-    db: &'db dyn Db,
+    platform: Platform,
     target: ValueType<'db>,
     in_expr: InExpr,
 ) -> impl FragmentOnce + 'db
@@ -54,13 +56,13 @@ where
 {
     fragment(move |printer| match target {
         ValueType::i8 | ValueType::i16 | ValueType::i32 => {
-            render_f64_to_signed_expr(db, target, in_expr).apply(printer);
+            render_f64_to_signed_expr(platform, target, in_expr).apply(printer);
         }
         ValueType::u8 | ValueType::u16 | ValueType::u32 => {
-            render_f64_to_unsigned_expr(db, target, in_expr).apply(printer);
+            render_f64_to_unsigned_expr(platform, target, in_expr).apply(printer);
         }
         ValueType::char => {
-            render_f64_to_char_expr(db, in_expr).apply(printer);
+            render_f64_to_char_expr(platform, in_expr).apply(printer);
         }
         ValueType::f32 => frag!(({in_expr})~as f32).apply(printer),
         ValueType::f64 => in_expr.apply(printer),
@@ -69,7 +71,7 @@ where
 }
 
 fn render_f64_to_signed_expr<'db, InExpr>(
-    db: &'db dyn Db,
+    platform: Platform,
     target: ValueType<'db>,
     in_expr: InExpr,
 ) -> impl FragmentOnce + 'db
@@ -82,8 +84,6 @@ where
         ValueType::i32 => "i32",
         _ => unreachable!("signed integer cast requires a signed integer target"),
     };
-    let platform = Platform::get(db);
-
     frag!({{
         let type_name = ~{doubles(type_name)};@
         let value = ~{in_expr};@
@@ -101,7 +101,7 @@ where
 }
 
 fn render_f64_to_unsigned_expr<'db, InExpr>(
-    db: &'db dyn Db,
+    platform: Platform,
     target: ValueType<'db>,
     in_expr: InExpr,
 ) -> impl FragmentOnce + 'db
@@ -114,8 +114,6 @@ where
         ValueType::u32 => "u32",
         _ => unreachable!("unsigned integer cast requires an unsigned integer target"),
     };
-    let platform = Platform::get(db);
-
     frag!({{
         let type_name = ~{doubles(type_name)};@
         let value = ~{in_expr};@
@@ -132,12 +130,14 @@ where
     }})
 }
 
-fn render_f64_to_char_expr<'db, InExpr>(db: &'db dyn Db, in_expr: InExpr) -> impl FragmentOnce + 'db
+fn render_f64_to_char_expr<'db, InExpr>(
+    platform: Platform,
+    in_expr: InExpr,
+) -> impl FragmentOnce + 'db
 where
     InExpr: FragmentOnce + 'db,
 {
-    let as_u32 = render_f64_to_unsigned_expr(db, ValueType::u32, in_expr);
-    let platform = Platform::get(db);
+    let as_u32 = render_f64_to_unsigned_expr(platform, ValueType::u32, in_expr);
     let error_expr = platform.error(frag!(format!("cannot cast {value} to char")));
 
     frag!({{

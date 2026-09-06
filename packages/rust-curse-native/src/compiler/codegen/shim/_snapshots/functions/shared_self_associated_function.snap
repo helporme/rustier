@@ -29,10 +29,10 @@ pub fn __fn__associated__test_0crate_Test_shared(
             .an({
                 let _0 = cast
                     .from(
-                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } }) })",
+                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } }) })",
                     )
                     .to(
-                        "Rust(Borrowed { is_mutable: false, inner: Struct(Struct { hir: Struct { id: StructId(5801) } }) })",
+                        "Rust(Borrowed { is_mutable: false, inner: Struct(Struct { hir: Struct { id: StructId(5401) } }) })",
                     )
                     .an(_0);
                 {
@@ -58,10 +58,10 @@ pub fn __fn__associated__test_0crate_Test_shared(
             .an({
                 let _0 = cast
                     .from(
-                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } }) })",
+                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } }) })",
                     )
                     .to(
-                        "Rust(Borrowed { is_mutable: false, inner: Struct(Struct { hir: Struct { id: StructId(5801) } }) })",
+                        "Rust(Borrowed { is_mutable: false, inner: Struct(Struct { hir: Struct { id: StructId(5401) } }) })",
                     )
                     .an(_0);
                 {

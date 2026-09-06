@@ -1,8 +1,8 @@
 //! All platform-specific code generation utilities.
 
-use crate::compiler::{
-    codegen::fragment::{FragmentOnce, doubles, frag, fragment, singles},
-    inputs::{Platform, WasmEnv},
+use crate::compiler::codegen::{
+    fragment::{FragmentOnce, doubles, frag, fragment, singles},
+    shim::{Platform, WasmEnv},
 };
 
 // todo: split it on multiple files?

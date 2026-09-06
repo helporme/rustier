@@ -30,6 +30,7 @@ use crate::compiler::{
 pub struct FacadeImport<'db> {
     /// The module where the import statement will be emitted.
     pub originating_from: FacadeModule<'db>,
+    /// Imported item.
     pub item: FacadeImportItem<'db>,
 }
 

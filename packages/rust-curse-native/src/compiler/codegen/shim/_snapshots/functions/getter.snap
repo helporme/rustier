@@ -25,10 +25,10 @@ pub fn __fn__getter__test_0crate_Test__field(
             .an(
                 cast
                     .from(
-                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } }) })",
+                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } }) })",
                     )
                     .to(
-                        "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5801) } }) })",
+                        "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5401) } }) })",
                     )
                     .an(_0)
                     .get_field()?,
@@ -50,10 +50,10 @@ pub fn __fn__getter__test_0crate_Test__field(
             .an(
                 cast
                     .from(
-                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } }) })",
+                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } }) })",
                     )
                     .to(
-                        "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5801) } }) })",
+                        "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5401) } }) })",
                     )
                     .an(_0)
                     .get_field()?,

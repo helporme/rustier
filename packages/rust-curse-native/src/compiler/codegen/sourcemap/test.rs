@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::compiler::{
     codegen::sourcemap::mappings::Mapping,
     db::RootDatabase,
-    inputs::{FilePaths, Platform},
+    inputs::FilePaths,
     ir::{decals::DecalModule, rust::Rust},
     path::FilePath,
 };
@@ -22,7 +22,6 @@ struct TestSourceMap {
 }
 
 pub fn configure_db(db: &mut RootDatabase) {
-    Platform::set(db, Platform::Node);
     FilePaths::set(
         db,
         FilePaths {

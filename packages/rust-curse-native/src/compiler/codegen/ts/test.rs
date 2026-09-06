@@ -41,10 +41,6 @@ macro_rules! assert_ts_snap {
         expression: |$db:ident, $printer:ident| $expression:block $(,)?
     ) => {{
         let mut __db = $crate::test_db! { $($source)* };
-        $crate::compiler::inputs::Platform::set(
-            &mut __db,
-            $crate::compiler::inputs::Platform::Node,
-        );
         $crate::compiler::inputs::FilePaths::set(
             &mut __db,
             $crate::compiler::inputs::FilePaths {

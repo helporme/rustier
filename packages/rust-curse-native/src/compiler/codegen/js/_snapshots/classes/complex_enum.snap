@@ -1,6 +1,6 @@
 ---
 source: src/compiler/codegen/js/classes.rs
-assertion_line: 637
+assertion_line: 635
 expression: snapshot
 ---
 # Source
@@ -144,9 +144,9 @@ export class Test {
 			) {
 				{
 					const out = cast.from(
-						"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5802) } } }) }))"
+						"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5402) } } }) }))"
 					).to(
-						"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5802) } } } })))"
+						"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5402) } } } })))"
 					).an(
 						__fn__getter__test_0crate_Test____HTTPRequest__value(
 							this.#_ffi
@@ -165,9 +165,9 @@ export class Test {
 			) {
 				{
 					const out = cast.from(
-						"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } }) }))"
+						"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } }) }))"
 					).to(
-						"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5801) } } } })))"
+						"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } } })))"
 					).an(
 						__fn__getter__test_0crate_Test____HttpRequest__value(
 							this.#_ffi
@@ -194,9 +194,9 @@ export class Test {
 		) {
 			{
 				const out = cast.from(
-					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5802) } } } })))"
+					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5402) } } } })))"
 				).to(
-					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5802) } } }) }))"
+					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5402) } } }) }))"
 				).an(
 					value
 				);

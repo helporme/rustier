@@ -126,16 +126,17 @@
 //! code generation, so they do not and should not depend on IR.
 
 use crate::compiler::{
-    codegen::fragment::{Fragment, FragmentOnce, doubles, frag, fragment, spaced},
+    codegen::{
+        fragment::{Fragment, FragmentOnce, doubles, frag, fragment, spaced},
+        shim::Platform,
+    },
     db::Db,
-    inputs::Platform,
     ir::rust::ValueType,
 };
 
 /// Compiles the platform-specific supporting code used by generated tethering
 /// structs.
-pub fn compile_tethering_prelude(db: &dyn Db) -> impl FragmentOnce {
-    let platform = Platform::get(db);
+pub fn compile_tethering_prelude(platform: Platform) -> impl FragmentOnce {
     let access_result = platform.result_type("T");
     let borrow_error = platform.error(frag!(
         { doubles("cannot access a tethered value while it is mutably borrowed") }.to_string()
@@ -740,7 +741,7 @@ mod tests {
             source: {
                 pub struct Empty;
             },
-            expression: |db, p| {
+            expression: |db, _platform, p| {
                 let db: &dyn Db = &*db;
                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 0] = [];
 
@@ -764,7 +765,7 @@ mod tests {
                     pub count: u32,
                 }
             },
-            expression: |db, p| {
+            expression: |db, _platform, p| {
                 let db: &dyn Db = &*db;
                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 1] =
                     [TetheredField::Cloned(ClonedField {
@@ -795,7 +796,7 @@ mod tests {
                     pub child: Child,
                 }
             },
-            expression: |db, p| {
+            expression: |db, _platform, p| {
                 let db: &dyn Db = &*db;
                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 1] =
                     [TetheredField::TetheringStruct(TetheringStructField {
@@ -830,7 +831,7 @@ mod tests {
                     pub readonly_child: ReadonlyChild,
                 }
             },
-            expression: |db, p| {
+            expression: |db, _platform, p| {
                 let db: &dyn Db = &*db;
                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 3] = [
                     TetheredField::Cloned(ClonedField {

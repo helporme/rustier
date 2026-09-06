@@ -9,7 +9,7 @@ mod tethering;
 use crate::compiler::{
     codegen::{
         fragment::{FragmentOnce, Printer, frag, fragment},
-        shim::tethering::TetheringStructType,
+        shim::{Platform, tethering::TetheringStructType},
     },
     db::Db,
     ir::{
@@ -151,9 +151,11 @@ pub trait CastRenderer<'db>: Copy + 'db {
 }
 
 #[derive(Clone, Copy)]
-pub struct Renderer;
+pub struct ShimCastRenderer {
+    pub platform: Platform,
+}
 
-impl<'db> CastRenderer<'db> for Renderer {
+impl<'db> CastRenderer<'db> for ShimCastRenderer {
     fn render<InExpr, OutVar, Continue>(
         self,
         db: &'db dyn Db,
@@ -208,7 +210,8 @@ impl<'db> CastRenderer<'db> for Renderer {
 
                 // numbers
                 (Shim(ShimType::f64), Rust(target)) => {
-                    numbers::render_f64_to_type(db, target, in_expr, output).apply(printer);
+                    numbers::render_f64_to_type(self.platform, target, in_expr, output)
+                        .apply(printer);
                 }
                 (Rust(source), Shim(ShimType::f64)) => {
                     numbers::render_type_to_f64(db, source, in_expr, output).apply(printer);
@@ -385,7 +388,7 @@ mod tests {
             fn $name() {
                 $crate::assert_rust_snap! {
                     source: { $($source)* },
-                    expression: |__db, __printer| {
+                    expression: |__db, __platform, __printer| {
                         let __db: &dyn $crate::compiler::db::Db = &*__db;
                         let __from = {
                             let $from_db: &dyn $crate::compiler::db::Db = __db;
@@ -400,7 +403,7 @@ mod tests {
                             frag!(
                                 fn cast(input: ())~{{
                                     {$crate::compiler::codegen::shim::cast::CastRenderer::render_stmt(
-                                        $crate::compiler::codegen::shim::cast::Renderer,
+                                        $crate::compiler::codegen::shim::cast::ShimCastRenderer { platform: __platform },
                                         __db,
                                         $crate::compiler::codegen::shim::cast::Cast {
                                             from: __from,

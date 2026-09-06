@@ -6,10 +6,9 @@ pub mod inputs;
 pub mod ir;
 pub mod manifest;
 pub mod path;
-pub mod workspace;
 
 // mod check;
-mod codegen;
+pub mod codegen;
 mod mangle;
 
 #[cfg(test)]
