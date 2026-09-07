@@ -22,13 +22,21 @@ impl<'db> FacadeImport<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_path(self, db: &'db dyn Db, paths: JsCodegenPaths) -> String {
-        let originating_from_path = self.originating_from(db).file_path(db);
         let to_path = match self.item(db) {
             FacadeImportItem::FfiFunction(_) | FacadeImportItem::FfiClass(_) => &paths.ffi_js_file,
-            FacadeImportItem::FacadeClass(class) => class.module(db).file_path(db),
+            FacadeImportItem::FacadeClass(class) => {
+                let target = class.module(db);
+                if !target.is_local(db) {
+                    // We assume here that vite (rolldown) is used which can resolve such virtual
+                    // paths, or other bundler that supports virtual paths.
+                    return target.virtual_path(db).to_owned();
+                }
+                target.file_path(db)
+            }
         };
 
-        originating_from_path
+        self.originating_from(db)
+            .file_path(db)
             .relative_path(to_path)
             .expect("relative path must exist")
     }

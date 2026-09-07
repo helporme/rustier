@@ -66,6 +66,17 @@ pub struct FacadeParentModule<'db> {
 
 #[salsa::tracked]
 impl<'db> FacadeParentModule<'db> {
+    pub fn is_local(self, db: &'db dyn Db) -> bool {
+        self.shim(db).src(db).path(db).crate_(db).is_local(db)
+    }
+
+    /// Stable module specifier independent of source file layout.
+    #[salsa::tracked(returns(ref))]
+    pub fn virtual_path(self, db: &'db dyn Db) -> String {
+        let path = self.shim(db).src(db).path(db);
+        format!("$rust/{}", path.segments(db).join("/"))
+    }
+
     /// File path of the source rust module.
     pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
         self.shim(db).src(db).file_path(db)
@@ -80,6 +91,10 @@ pub struct FacadeModule<'db> {
 
 #[salsa::tracked]
 impl<'db> FacadeModule<'db> {
+    pub fn virtual_path(self, db: &'db dyn Db) -> &'db String {
+        self.as_parent(db).virtual_path(db)
+    }
+
     pub fn as_parent(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
         self.shim(db).as_parent(db).facade(db)
     }

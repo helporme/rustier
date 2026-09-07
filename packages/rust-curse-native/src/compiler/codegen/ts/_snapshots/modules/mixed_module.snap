@@ -19,7 +19,7 @@ models::External { external }```
 ```ts
 import type {
 	External
-} from './models.rs';
+} from '$rust/test_crate/models';
 
 export function mixed(
 	number: number,

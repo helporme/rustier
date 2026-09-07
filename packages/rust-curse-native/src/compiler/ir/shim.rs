@@ -50,6 +50,11 @@ pub struct ShimCrate<'db> {
 }
 
 impl<'db> ShimCrate<'db> {
+    /// Whether this crate belongs to the configured set of local crates.
+    pub fn is_local(self, db: &'db dyn Db) -> bool {
+        self.src(db).is_local(db)
+    }
+
     /// The root module of the crate.
     pub fn root(self, db: &'db dyn Db) -> ShimModule<'db> {
         self.src(db)

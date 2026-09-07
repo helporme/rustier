@@ -12,7 +12,7 @@ use crate::compiler::{
     ir::{
         rust::{FieldName, Function, Span},
         shim::{
-            ShimClassDiscriminated, ShimClassDiscriminatedVariant, ShimClassPlain, ShimField,
+            Shim, ShimClassDiscriminated, ShimClassDiscriminatedVariant, ShimClassPlain, ShimField,
             ShimFunction, ShimFunctionAssociated, ShimFunctionDiscriminator, ShimFunctionFree,
             ShimMember, ShimModule, ShimParam, ShimParentModule, ShimType,
         },
@@ -21,22 +21,47 @@ use crate::compiler::{
     path::FilePath,
 };
 
+/// TypeScript declarations for the reachable shim API.
+#[salsa::interned(debug)]
+pub struct Decals<'db> {
+    shim: Shim<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> Decals<'db> {
+    /// Reachable local modules, sorted by virtual path.
+    #[salsa::tracked(returns(ref))]
+    pub fn local_modules(self, db: &'db dyn Db) -> Vec<DecalModule<'db>> {
+        let mut modules = self
+            .shim(db)
+            .crates(db)
+            .filter(move |crate_| crate_.is_local(db))
+            .flat_map(move |crate_| crate_.all_modules(db))
+            .map(move |module| module.decals(db))
+            .collect::<Vec<_>>();
+        modules.sort_by_key(|module| module.virtual_path(db));
+        modules
+    }
+
+    /// Reachable external modules, sorted by virtual path.
+    #[salsa::tracked(returns(ref))]
+    pub fn external_modules(self, db: &'db dyn Db) -> Vec<DecalModule<'db>> {
+        let mut modules = self
+            .shim(db)
+            .crates(db)
+            .filter(move |crate_| !crate_.is_local(db))
+            .flat_map(move |crate_| crate_.all_modules(db))
+            .map(move |module| module.decals(db))
+            .collect::<Vec<_>>();
+        modules.sort_by_key(|module| module.virtual_path(db));
+        modules
+    }
+}
+
 #[salsa::tracked(debug)]
 pub struct DecalImport<'db> {
     pub originating_from: DecalModule<'db>,
     pub class: DecalClass<'db>,
-}
-
-#[salsa::tracked]
-impl<'db> DecalImport<'db> {
-    /// The path to import a class from.
-    #[salsa::tracked(returns(ref))]
-    pub fn from_path(self, db: &'db dyn Db) -> String {
-        self.originating_from(db)
-            .file_path(db)
-            .relative_path(self.class(db).module(db).file_path(db))
-            .expect("relative path must exist")
-    }
 }
 
 /// A TypeScript declaration module used as a parent of another declaration
@@ -48,6 +73,14 @@ pub struct DecalParentModule<'db> {
 
 #[salsa::tracked]
 impl<'db> DecalParentModule<'db> {
+    pub fn is_local(self, db: &'db dyn Db) -> bool {
+        self.shim(db).src(db).path(db).crate_(db).is_local(db)
+    }
+
+    pub fn virtual_path(self, db: &'db dyn Db) -> &'db String {
+        self.shim(db).facade(db).virtual_path(db)
+    }
+
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
         self.shim(db).src(db).docs(db)
     }
@@ -69,6 +102,10 @@ pub struct DecalModule<'db> {
 
 #[salsa::tracked]
 impl<'db> DecalModule<'db> {
+    pub fn virtual_path(self, db: &'db dyn Db) -> &'db String {
+        self.shim(db).facade(db).virtual_path(db)
+    }
+
     pub fn as_parent(self, db: &'db dyn Db) -> DecalParentModule<'db> {
         self.shim(db).as_parent(db).decals(db)
     }

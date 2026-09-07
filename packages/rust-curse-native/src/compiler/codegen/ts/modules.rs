@@ -80,7 +80,7 @@ impl<'db> DecalModule<'db> {
             .map(|import| {
                 (
                     import.class(db).name(db).to_owned(),
-                    import.from_path(db).to_owned(),
+                    import.path(db).to_owned(),
                 )
             })
             .collect()

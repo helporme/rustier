@@ -5,7 +5,7 @@ expression: snapshot
 TypeScript:
   0 | import type {
   1 | 	External
-  2 | } from './models.rs';
+  2 | } from '$rust/test_crate/models';
   3 | 
   4 | /** Transforms values. */
   5 | export function transform(
