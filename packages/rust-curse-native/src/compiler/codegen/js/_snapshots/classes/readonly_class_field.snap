@@ -26,9 +26,9 @@ export class Test {
 		) {
 			{
 				const out = cast.from(
-					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } }) }))"
+					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) }))"
 				).to(
-					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } } })))"
+					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } } })))"
 				).an(
 					__fn__getter__test_0crate_Test__nested(
 						this.#_ffi

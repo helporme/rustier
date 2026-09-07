@@ -40,14 +40,7 @@ macro_rules! assert_ts_snap {
         source: { $($source:tt)* },
         expression: |$db:ident, $printer:ident| $expression:block $(,)?
     ) => {{
-        let mut __db = $crate::test_db! { $($source)* };
-        $crate::compiler::inputs::FilePaths::set(
-            &mut __db,
-            $crate::compiler::inputs::FilePaths {
-                ffi_js_file: $crate::compiler::path::FilePath::new_virtual("/ffi.js")
-                    .expect("test FFI path must be valid"),
-            },
-        );
+        let __db = $crate::test_db! { $($source)* };
         let __compiled = ::ra_ap_hir::attach_db(&__db, || {
             $crate::compiler::codegen::fragment::FragmentPrint::print(
                 $crate::compiler::codegen::fragment::fragment(|$printer| {

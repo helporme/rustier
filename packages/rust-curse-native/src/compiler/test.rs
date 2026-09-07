@@ -2,7 +2,7 @@
 
 use ra_ap_test_fixture::ChangeFixture;
 
-use crate::compiler::{db::RootDatabase, inputs::FilePaths, path::FilePath};
+use crate::compiler::db::RootDatabase;
 
 const TEST_CRATE_FIXTURE_HEADER: &str = r#"//- minicore: clone, derive
 //- /src/lib.rs crate:test_crate deps:std edition:2024
@@ -51,13 +51,6 @@ pub(super) fn build_test_db(source: String, files: &[(&str, String)]) -> RootDat
 
     let mut db = RootDatabase::default();
     db.apply_change(ChangeFixture::parse(&fixture).change);
-    FilePaths::set(
-        &mut db,
-        FilePaths {
-            ffi_js_file: FilePath::new_virtual("/generated/ffi.js")
-                .expect("test FFI file should be a valid path"),
-        },
-    );
 
     db
 }

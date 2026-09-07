@@ -1,6 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 465
+assertion_line: 466
 expression: snapshot
 ---
 # Source
@@ -25,10 +25,10 @@ pub fn __fn__associated__test_0crate_Test_exclusive(
     {
         let _0 = cast
             .from(
-                "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } }) })",
+                "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .to(
-                "Rust(Borrowed { is_mutable: true, inner: Struct(Struct { hir: Struct { id: StructId(5401) } }) })",
+                "Rust(Borrowed { is_mutable: true, inner: Struct(Struct { hir: Struct { id: StructId(5001) } }) })",
             )
             .an(_0);
         {
@@ -50,10 +50,10 @@ pub fn __fn__associated__test_0crate_Test_exclusive(
     {
         let _0 = cast
             .from(
-                "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } }) })",
+                "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .to(
-                "Rust(Borrowed { is_mutable: true, inner: Struct(Struct { hir: Struct { id: StructId(5401) } }) })",
+                "Rust(Borrowed { is_mutable: true, inner: Struct(Struct { hir: Struct { id: StructId(5001) } }) })",
             )
             .an(_0);
         {

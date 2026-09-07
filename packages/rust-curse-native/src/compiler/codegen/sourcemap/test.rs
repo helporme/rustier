@@ -5,9 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::compiler::{
     codegen::sourcemap::mappings::Mapping,
     db::RootDatabase,
-    inputs::FilePaths,
     ir::{decals::DecalModule, rust::Rust},
-    path::FilePath,
 };
 
 #[derive(Deserialize, Serialize)]
@@ -19,15 +17,6 @@ struct TestSourceMap {
     sources: Vec<String>,
     names: Vec<String>,
     mappings: String,
-}
-
-pub fn configure_db(db: &mut RootDatabase) {
-    FilePaths::set(
-        db,
-        FilePaths {
-            ffi_js_file: FilePath::new_virtual("/ffi.js").expect("test FFI path must be valid"),
-        },
-    );
 }
 
 pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalModule<'db> {

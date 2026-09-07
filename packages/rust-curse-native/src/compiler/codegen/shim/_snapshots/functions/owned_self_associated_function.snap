@@ -1,6 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 440
+assertion_line: 441
 expression: snapshot
 ---
 # Source
@@ -29,10 +29,10 @@ pub fn __fn__associated__test_0crate_Test_owned(
             .an({
                 let _0 = cast
                     .from(
-                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } }) })",
+                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
                     .to(
-                        "Rust(Value(Struct(Struct { hir: Struct { id: StructId(5401) } })))",
+                        "Rust(Value(Struct(Struct { hir: Struct { id: StructId(5001) } })))",
                     )
                     .an(_0);
                 test_crate::Test::owned(_0)
@@ -54,10 +54,10 @@ pub fn __fn__associated__test_0crate_Test_owned(
             .an({
                 let _0 = cast
                     .from(
-                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } }) })",
+                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
                     .to(
-                        "Rust(Value(Struct(Struct { hir: Struct { id: StructId(5401) } })))",
+                        "Rust(Value(Struct(Struct { hir: Struct { id: StructId(5001) } })))",
                     )
                     .an(_0);
                 test_crate::Test::owned(_0)

@@ -9,7 +9,6 @@ use itertools::{Either, Itertools};
 
 use crate::compiler::{
     db::Db,
-    inputs::FilePaths,
     ir::{
         ffi::{FfiClass, FfiFunction},
         rust::{FieldName, Function},
@@ -32,24 +31,6 @@ pub struct FacadeImport<'db> {
     pub originating_from: FacadeModule<'db>,
     /// Imported item.
     pub item: FacadeImportItem<'db>,
-}
-
-#[salsa::tracked]
-impl<'db> FacadeImport<'db> {
-    /// The path to import an item from.
-    #[salsa::tracked(returns(ref))]
-    pub fn from_path(self, db: &'db dyn Db) -> String {
-        let layout = FilePaths::get(db);
-        let originating_from_path = self.originating_from(db).file_path(db);
-        let to_path = match self.item(db) {
-            FacadeImportItem::FfiFunction(_) | FacadeImportItem::FfiClass(_) => &layout.ffi_js_file,
-            FacadeImportItem::FacadeClass(class) => class.module(db).file_path(db),
-        };
-
-        originating_from_path
-            .relative_path(to_path)
-            .expect("relative path must exist")
-    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]

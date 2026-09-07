@@ -1,6 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 409
+assertion_line: 410
 expression: snapshot
 ---
 # Source
@@ -22,10 +22,10 @@ pub fn __fn__setter__test_0crate_Test__field(
     {
         let value = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_1);
         cast.from(
-                "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } }) })",
+                "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .to(
-                "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5401) } }) })",
+                "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5001) } }) })",
             )
             .an(_0)
             .set_field(value)?;
@@ -44,10 +44,10 @@ pub fn __fn__setter__test_0crate_Test__field(
     {
         let value = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_1);
         cast.from(
-                "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5401) } } }) })",
+                "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .to(
-                "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5401) } }) })",
+                "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5001) } }) })",
             )
             .an(_0)
             .set_field(value)?;

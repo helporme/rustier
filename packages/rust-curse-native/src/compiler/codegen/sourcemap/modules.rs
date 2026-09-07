@@ -126,9 +126,7 @@ impl<'db> DecalModule<'db> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        compiler::codegen::sourcemap::test::{
-            configure_db, decals_by_path, root_decals, snapshot_module,
-        },
+        compiler::codegen::sourcemap::test::{decals_by_path, root_decals, snapshot_module},
         test_db,
     };
 
@@ -136,8 +134,7 @@ mod tests {
         ($name:ident, { $($source:tt)* }) => {
             #[test]
             fn $name() {
-                let mut db = test_db! { $($source)* };
-                configure_db(&mut db);
+                let db = test_db! { $($source)* };
                 let snapshot = ra_ap_hir::attach_db(&db, || {
                     let module = root_decals(&db);
                     snapshot_module(&db, module)
@@ -270,7 +267,7 @@ mod tests {
 
     #[test]
     fn external_module() {
-        let mut db = test_db! {
+        let db = test_db! {
             @file: "nested/items.rs";
             pub mod items {
                 pub fn first() {}
@@ -280,7 +277,6 @@ mod tests {
                 }
             }
         };
-        configure_db(&mut db);
         let snapshot = ra_ap_hir::attach_db(&db, || {
             let module = decals_by_path(&db, "items");
             snapshot_module(&db, module)

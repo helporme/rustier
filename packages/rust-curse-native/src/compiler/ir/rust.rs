@@ -3,7 +3,7 @@
 mod lowering;
 pub mod usages;
 
-use crate::compiler::{db::Db, mangle::mangle_path, path::FilePath};
+use crate::compiler::{db::Db, inputs::LocalCrates, mangle::mangle_path, path::FilePath};
 use itertools::Either;
 use ra_ap_hir::{
     Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
@@ -90,6 +90,14 @@ pub struct Crate<'db> {
 
 #[salsa::tracked]
 impl<'db> Crate<'db> {
+    /// Whether this crate belongs to the configured set of local crates.
+    ///
+    /// Returns `false` if no local crates have been configured.
+    #[salsa::tracked]
+    pub fn is_local(self, db: &'db dyn Db) -> bool {
+        LocalCrates::contains(db, self.root_file(db))
+    }
+
     pub fn name(self, db: &'db dyn Db) -> &'db String {
         self.lower_name(db)
     }
