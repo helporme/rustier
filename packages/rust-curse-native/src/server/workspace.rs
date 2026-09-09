@@ -1,0 +1,170 @@
+use std::path::{Path, PathBuf};
+
+use anyhow::Context as _;
+
+use ra_ap_ide_db::{ChangeWithProcMacros, RootDatabase};
+use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice, load_workspace};
+use ra_ap_project_model::{
+    CargoConfig, ProjectManifest, ProjectWorkspace, ProjectWorkspaceKind, RustLibSource,
+};
+use ra_ap_vfs::{AbsPathBuf, Change, Vfs, VfsPath};
+
+use crate::{
+    compiler::{inputs::LocalCrates, path::FilePath},
+    server::{ServerChange, project::Project},
+};
+
+#[derive(Debug)]
+pub struct ServerWorkspace {
+    db: RootDatabase,
+    vfs: Vfs,
+    root_file: PathBuf,
+    manifest_path: PathBuf,
+}
+
+impl ServerWorkspace {
+    /// Loads a Cargo manifest and marks its package targets as local.
+    /// The manifest's containing directory is the workspace root.
+    pub fn load(manifest_path: PathBuf) -> anyhow::Result<Self> {
+        let cargo_config = CargoConfig {
+            sysroot: Some(RustLibSource::Discover),
+            ..Default::default()
+        };
+        let load_config = LoadCargoConfig {
+            load_out_dirs_from_check: false,
+            with_proc_macro_server: ProcMacroServerChoice::None,
+            prefill_caches: false,
+            num_worker_threads: 1,
+            proc_macro_processes: 1,
+        };
+
+        let manifest =
+            ProjectManifest::from_manifest_file(AbsPathBuf::assert_utf8(manifest_path.clone()))?;
+        let hir_ws =
+            ProjectWorkspace::load(manifest, &cargo_config, &|msg| tracing::info!("{msg}"))?;
+
+        let cargo = match &hir_ws.kind {
+            ProjectWorkspaceKind::Cargo { cargo, .. } => cargo,
+            ProjectWorkspaceKind::DetachedFile {
+                cargo: Some((cargo, ..)),
+                ..
+            } => cargo,
+
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "rust-curse doesn't support rust-project.json"
+                ));
+            }
+        };
+
+        let package = cargo
+            .packages()
+            .find(|&package| {
+                let path: &Path = cargo[package].manifest.as_ref();
+                path == manifest_path
+            })
+            .with_context(|| {
+                format!(
+                    "no Cargo package matches manifest {}",
+                    manifest_path.display()
+                )
+            })?;
+
+        let root = cargo[package]
+            .targets
+            .iter()
+            .map(|&target| FilePath::from(VfsPath::from(cargo[target].root.clone())))
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("no target found for package"))?;
+
+        let root_file = root.as_path().to_owned();
+
+        let (mut db, vfs, _) = load_workspace(hir_ws, &cargo_config.extra_env, &load_config)?;
+        LocalCrates::set(&mut db, [root]);
+
+        Ok(Self {
+            manifest_path,
+            db,
+            vfs,
+            root_file,
+        })
+    }
+
+    /// Applies Rust source changes and reloads on Cargo manifest or lockfile
+    /// changes. All other files are ignored.
+    pub fn change(&mut self, change: WorkspaceChange) -> anyhow::Result<()> {
+        let path = Path::new(&change.file_path);
+        if matches!(
+            path.file_name().and_then(|name| name.to_str()),
+            Some("Cargo.toml" | "Cargo.lock")
+        ) {
+            let workspace = Self::load(self.manifest_path.clone()).with_context(|| {
+                format!(
+                    "failed to reload workspace after changing {}",
+                    change.file_path
+                )
+            })?;
+            *self = workspace;
+            return Ok(());
+        }
+
+        if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+            return Ok(());
+        }
+
+        self.vfs.set_file_contents(
+            VfsPath::new_real_path(change.file_path),
+            change.contents.map(String::into_bytes),
+        );
+
+        let mut analysis_change = ChangeWithProcMacros::default();
+        let mut changed = false;
+
+        for (_, file) in self.vfs.take_changes() {
+            match file.change {
+                Change::Create(contents, _) | Change::Modify(contents, _) => {
+                    if let Ok(text) = String::from_utf8(contents) {
+                        analysis_change.change_file(file.file_id, Some(text));
+                        changed = true;
+                    }
+                }
+                Change::Delete => {
+                    analysis_change.change_file(file.file_id, None);
+                    changed = true;
+                }
+            }
+        }
+
+        if changed {
+            self.db.apply_change(analysis_change);
+        }
+
+        Ok(())
+    }
+
+    pub fn db(&self) -> &RootDatabase {
+        &self.db
+    }
+
+    pub fn db_mut(&mut self) -> &mut RootDatabase {
+        &mut self.db
+    }
+
+    pub fn project(&self) -> Project<'_> {
+        Project::new(&self.manifest_path, &self.root_file)
+    }
+}
+
+pub struct WorkspaceChange {
+    pub file_path: String,
+    pub contents: Option<String>,
+}
+
+impl From<ServerChange> for WorkspaceChange {
+    fn from(value: ServerChange) -> Self {
+        WorkspaceChange {
+            file_path: value.file_path,
+            contents: value.contents,
+        }
+    }
+}

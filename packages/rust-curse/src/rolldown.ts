@@ -1,16 +1,16 @@
 import { readFileSync } from 'node:fs'
-import { isAbsolute, relative, resolve } from 'node:path'
+import path, { resolve } from 'node:path'
+import { platform as profiles } from 'node:process'
 import type { Plugin } from 'rolldown'
-import { Server, WasmTarget, type Target } from 'rust-curse-native'
+import { Server, ServerPlatform, ServerWasmTarget } from 'rust-curse-native'
 
-export type RustCurseTarget = 'node' | 'wasm' | 'wasm-node'
-
-export interface RustCurseProfile {
-  target: RustCurseTarget
-  release?: boolean
-}
-
-export interface RustCurseOptions {
+export type RustCurseOptions = {
+  /**
+   * Path to the Cargo manifest, relative to Rolldown's working directory.
+   *
+   * @default "Cargo.toml"
+   */
+  manifestPath?: string
   /**
    * Rust build profiles available to imported modules.
    */
@@ -19,70 +19,18 @@ export interface RustCurseOptions {
    * Select the build profile for an imported `.rs` module.
    */
   activeProfile: (fileId: string) => string
-  /**
-   * Path to the Cargo manifest, relative to Rolldown's working directory.
-   *
-   * @default "Cargo.toml"
-   */
-  manifestPath?: string
-  /**
-   * Directory for generated crates, bindings, and build artifacts, relative
-   * to Rolldown's working directory.
-   *
-   * @default ".rust-curse"
-   */
-  outDir?: string
-  /**
-   * Workspace file patterns passed to rust-curse.
-   *
-   * @default ["*.rs"]
-   */
-  included?: string[]
-  /**
-   * Workspace paths excluded from rust-curse.
-   *
-   * @default [".git", ".hg", ".svn", "node_modules", "target"]
-   */
-  excluded?: string[]
-  /**
-   * Dependency crates that should also receive generated bindings.
-   */
-  includeDepCrates?: string[]
-  /**
-   * Dependency crates that should not receive generated bindings.
-   */
-  excludeDepCrates?: string[]
-  /**
-   * Ensure the profiles' Rust build tools are installed before the first build.
-   *
-   * @default true
-   */
-  installDeps?: boolean
 }
 
-const toNativeTarget = (target: RustCurseTarget): Target => {
-  switch (target) {
-    case 'node':
-      return { type: 'Node' }
-    case 'wasm-node':
-      return { type: 'Wasm', target: WasmTarget.NodeJs }
-    case 'wasm':
-      return { type: 'Wasm', target: WasmTarget.Web }
-  }
+export interface RustCurseProfile {
+  target: RustCurseTarget
+  /**
+   * Whether release build is used.
+   */
+  release?: boolean
 }
 
-const errorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
+export type RustCurseTarget = 'node' | 'wasm' | 'wasm-node'
 
-const cleanModuleId = (id: string) => id.replace(/[?#].*$/, '')
-
-const isPathInside = (parent: string, child: string) => {
-  const childFromParent = relative(parent, child)
-  return (
-    childFromParent === '' ||
-    (!childFromParent.startsWith('..') && !isAbsolute(childFromParent))
-  )
-}
 
 /**
  * Compile Rust modules and make `.rs` files importable by Rolldown.
@@ -109,109 +57,134 @@ const isPathInside = (parent: string, child: string) => {
  */
 export default function rustCurse(options: RustCurseOptions): Plugin {
   const profileNames = Object.keys(options.profiles)
+
   if (profileNames.length === 0) {
     throw new Error('rust-curse requires at least one build profile')
   }
+
   if (typeof options.activeProfile !== 'function') {
     throw new Error('rust-curse requires activeProfile')
   }
 
-  let root: string
-  let manifestPath: string
-  let outDir: string
-  let server: Server
-  let initialized = false
-
-  const initialize = (cwd: string) => {
-    root = cwd
-    manifestPath = resolve(root, options.manifestPath ?? 'Cargo.toml')
-    outDir = resolve(root, options.outDir ?? '.rust-curse')
-    server = new Server({
-      manifestPath,
-      outDir,
-      included: options.included ?? ['*.rs'],
-      excluded: options.excluded ?? [
-        '.git',
-        '.hg',
-        '.svn',
-        'node_modules',
-        'target',
-      ],
-      includeDepCrates: options.includeDepCrates ?? [],
-      excludeDepCrates: options.excludeDepCrates ?? [],
-      profiles: Object.fromEntries(
-        Object.entries(options.profiles).map(([name, profile]) => [
-          name,
-          {
-            target: toNativeTarget(profile.target),
-            release: profile.release ?? false,
-          },
-        ]),
-      ),
-    })
-
-    if (options.installDeps !== false) server.installDeps()
-    initialized = true
-  }
-
-  const build = (warn: (diagnostic: string) => void) => {
-    try {
-      const output = server.build(profileNames)
-      for (const profileName of profileNames) {
-        const profile = output.perProfile[profileName]
-        if (!profile) {
-          throw new Error(`profile \`${profileName}\` has no build output`)
-        }
-        for (const diagnostic of profile.diags) warn(diagnostic)
-      }
-    } catch (error) {
-      warn(errorMessage(error))
-    }
-  }
-
-  const rustInputPath = (rawFilePath: string) => {
-    const filePath = resolve(root, cleanModuleId(rawFilePath))
-    if (isPathInside(outDir, filePath)) return
-    if (!filePath.endsWith('.rs') && filePath !== manifestPath) return
-    return filePath
-  }
+  let server = new Server({
+    rootDir: process.cwd(),
+    manifestPath: path.resolve(options.manifestPath ?? "./Cargo.toml")
+  })
 
   return {
     name: 'rust-curse',
-
-    buildStart(inputOptions) {
-      if (!initialized) {
-        initialize(inputOptions.cwd ?? process.cwd())
-      }
-      build((diagnostic) => this.warn(diagnostic))
-    },
-
-    watchChange(id, change) {
-      const filePath = rustInputPath(id)
-      if (!filePath) return
-
+    watchChange(filePath, change) {
       const contents =
         change.event === 'delete' ? undefined : readFileSync(filePath, 'utf8')
-      server.update([{ filePath, contents }])
+
+      server.change({ filePath, contents })
     },
 
-    load(id) {
-      const filePath = cleanModuleId(id)
-      if (!filePath.endsWith('.rs')) return null
-
-      try {
-        const profileName = options.activeProfile(filePath)
-        if (!options.profiles[profileName]) {
-          throw new Error(
-            `activeProfile returned unknown profile \`${profileName}\` for \`${filePath}\``,
-          )
-        }
-        return server.load(profileName, filePath)
-      } catch (error) {
-        const diagnostic = errorMessage(error)
-        this.warn(diagnostic)
-        return `throw new Error(${JSON.stringify(diagnostic)});`
+    buildStart() {
+      for (let profile of Object.values(options.profiles)) {
+        server.build(toServerPlatforn(profile.target), profile.release ?? false)
       }
     },
   }
 }
+
+
+function toServerPlatforn(target: RustCurseTarget): ServerPlatform {
+  switch (target) {
+    case 'node':
+      return { type: 'Node' }
+    case 'wasm-node':
+      return { type: 'Wasm', target: ServerWasmTarget.Node }
+    case 'wasm':
+      return { type: 'Wasm', target: ServerWasmTarget.Web }
+  }
+}
+
+// const profileNames = Object.keys(options.profiles)
+//   if (profileNames.length === 0) {
+//     throw new Error('rust-curse requires at least one build profile')
+//   }
+//   if (typeof options.activeProfile !== 'function') {
+//     throw new Error('rust-curse requires activeProfile')
+//   }
+
+//   let root: string
+//   let manifestPath: string
+//   let outDir: string
+//   let server: Server
+//   let initialized = false
+
+//   const initialize = (cwd: string) => {
+//     root = cwd
+//     manifestPath = resolve(root, options.manifestPath ?? 'Cargo.toml')
+//     outDir = resolve(root, options.outDir ?? '.rust-curse')
+//     server = new Server({
+//       rootDir: root,
+//       manifestPath
+//     })
+
+//     if (options.installDeps !== false) server.installDeps()
+//     initialized = true
+//   }
+
+
+//   const build = (warn: (diagnostic: string) => void) => {
+//     try {
+//       const output = server.build(profileNames)
+//       for (const profileName of profileNames) {
+//         const profile = output.perProfile[profileName]
+//         if (!profile) {
+//           throw new Error(`profile \`${profileName}\` has no build output`)
+//         }
+//         for (const diagnostic of profile.diags) warn(diagnostic)
+//       }
+//     } catch (error) {
+//       warn(errorMessage(error))
+//     }
+//   }
+
+//   const rustInputPath = (rawFilePath: string) => {
+//     const filePath = resolve(root, cleanModuleId(rawFilePath))
+//     if (isPathInside(outDir, filePath)) return
+//     if (!filePath.endsWith('.rs') && filePath !== manifestPath) return
+//     return filePath
+//   }
+
+//   return {
+//     name: 'rust-curse',
+
+//     buildStart(inputOptions) {
+//       if (!initialized) {
+//         initialize(inputOptions.cwd ?? process.cwd())
+//       }
+//       build((diagnostic) => this.warn(diagnostic))
+//     },
+
+//     watchChange(id, change) {
+//       const filePath = rustInputPath(id)
+//       if (!filePath) return
+
+//       const contents =
+//         change.event === 'delete' ? undefined : readFileSync(filePath, 'utf8')
+//       server.update([{ filePath, contents }])
+//     },
+
+//     load(id) {
+//       const filePath = cleanModuleId(id)
+//       if (!filePath.endsWith('.rs')) return null
+
+//       try {
+//         const profileName = options.activeProfile(filePath)
+//         if (!options.profiles[profileName]) {
+//           throw new Error(
+//             `activeProfile returned unknown profile \`${profileName}\` for \`${filePath}\``,
+//           )
+//         }
+//         return server.load(profileName, filePath)
+//       } catch (error) {
+//         const diagnostic = errorMessage(error)
+//         this.warn(diagnostic)
+//         return `throw new Error(${JSON.stringify(diagnostic)});`
+//       }
+//     },
+//   }

@@ -1,8 +1,8 @@
 use std::{fs, io::ErrorKind, path::Path};
 
 use rust_curse::compiler::{
+    codegen::shim::{Platform, WasmEnv},
     diag::Theme,
-    inputs::{Platform, WasmEnv},
 };
 
 use crate::common::ProgramTest;

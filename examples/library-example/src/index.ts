@@ -1,3 +1,5 @@
-import { greet } from "./lib.rs";
+// import { greet } from "./lib.rs";
 
-console.log(greet)
+// console.log(greet)
+
+console.log("hello")

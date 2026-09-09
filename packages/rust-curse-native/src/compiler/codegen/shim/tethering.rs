@@ -742,7 +742,7 @@ mod tests {
                 pub struct Empty;
             },
             expression: |db, _platform, p| {
-                let db: &dyn Db = &*db;
+                let db: &dyn Db = db;
                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 0] = [];
 
                 render_tethering_struct(
@@ -766,7 +766,7 @@ mod tests {
                 }
             },
             expression: |db, _platform, p| {
-                let db: &dyn Db = &*db;
+                let db: &dyn Db = db;
                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 1] =
                     [TetheredField::Cloned(ClonedField {
                         name: "count",
@@ -797,7 +797,7 @@ mod tests {
                 }
             },
             expression: |db, _platform, p| {
-                let db: &dyn Db = &*db;
+                let db: &dyn Db = db;
                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 1] =
                     [TetheredField::TetheringStruct(TetheringStructField {
                         name: "child",
@@ -832,7 +832,7 @@ mod tests {
                 }
             },
             expression: |db, _platform, p| {
-                let db: &dyn Db = &*db;
+                let db: &dyn Db = db;
                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 3] = [
                     TetheredField::Cloned(ClonedField {
                         name: "count",

@@ -9,7 +9,7 @@ use ra_ap_hir::{
     Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
     Function as HirFunction, Impl as HirImpl, Module as HirModule, Struct as HirStruct,
 };
-use std::fmt;
+use std::{collections::VecDeque, fmt};
 use triomphe::Arc;
 
 /// A root of rust public API.
@@ -95,7 +95,7 @@ impl<'db> Crate<'db> {
     /// Returns `false` if no local crates have been configured.
     #[salsa::tracked]
     pub fn is_local(self, db: &'db dyn Db) -> bool {
-        LocalCrates::contains(db, self.root_file(db))
+        LocalCrates::contains(db, self.root(db).file_path(db))
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {
@@ -110,8 +110,13 @@ impl<'db> Crate<'db> {
         self.lower_dir(db)
     }
 
-    pub fn root_file(self, db: &'db dyn Db) -> &'db FilePath {
-        self.root(db).file_path(db)
+    pub fn all_modules(self, db: &'db dyn Db) -> impl Iterator<Item = Module<'db>> + 'db {
+        let mut pending = VecDeque::from([self.root(db)]);
+        std::iter::from_fn(move || {
+            let module = pending.pop_front()?;
+            pending.extend(module.modules(db));
+            Some(module)
+        })
     }
 }
 
@@ -146,9 +151,15 @@ impl<'db> Module<'db> {
         }
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn members(self, db: &'db dyn Db) -> Vec<Member<'db>> {
-        self.lower_members(db).clone()
+    pub fn members(self, db: &'db dyn Db) -> &'db Vec<Member<'db>> {
+        self.lower_members(db)
+    }
+
+    pub fn modules(self, db: &'db dyn Db) -> impl Iterator<Item = Module<'db>> + 'db {
+        self.members(db).iter().filter_map(|member| match member {
+            Member::Module(module) => Some(*module),
+            _ => None,
+        })
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
@@ -159,7 +170,7 @@ impl<'db> Module<'db> {
         self.lower_span(db).as_ref()
     }
 
-    pub(super) fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
+    pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
         self.lower_file_path(db)
     }
 }

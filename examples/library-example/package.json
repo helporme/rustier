@@ -13,7 +13,9 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "dev": "tsdown --watch"
+    "dev": "tsdown --watch",
+    "rebuild": "pnpm run rebuild:plugin && pnpm run build",
+    "rebuild:plugin": "cd ../../packages/rust-curse && pnpm run build"
   },
   "devDependencies": {
     "rust-curse": "workspace:*",

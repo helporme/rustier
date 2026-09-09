@@ -1,7 +1,7 @@
 //! All platform-specific code generation utilities.
 
 use crate::compiler::codegen::{
-    fragment::{FragmentOnce, doubles, frag, fragment, singles},
+    fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment, singles},
     shim::{Platform, WasmEnv},
 };
 
@@ -222,6 +222,12 @@ impl Platform {
         );
 
         (self == Platform::Node).then_some(deps)
+    }
+
+    /// Dependency entries to append to a generated manifest's `[dependencies]`
+    /// section, including a `[build-dependencies]` section when needed.
+    pub fn render_manifest_dependencies(self) -> String {
+        frag!({self.manifest_deps()}{self.manifest_build_deps()}).print()
     }
 
     /// JavaScript initialization code needed by this platform before

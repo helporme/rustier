@@ -4,13 +4,15 @@ use std::{
     process::Command,
 };
 
-use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice};
-use ra_ap_project_model::CargoConfig;
+use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice, load_workspace_at};
+use ra_ap_project_model::{CargoConfig, RustLibSource};
 use rust_curse::compiler::{
+    codegen::shim::{
+        Platform, WasmEnv,
+        manifest::{ManifestOpts, render_manifest},
+    },
     diag::Diag,
-    inputs::{Platform, WasmEnv},
     ir::rust::{Rust, usages::UsageGraph},
-    workspace::Workspace,
 };
 use serde_json::Value;
 use tempfile::TempDir;
@@ -121,9 +123,12 @@ impl ProgramCompiler {
                 _ => return Err("program test selected an unsupported platform".to_string()),
             };
             let generated_dir = workspace.generated_root.join(generated_dir_name);
-            let mut compiler = Workspace::load(
+            let (db, _, _) = load_workspace_at(
                 &workspace.source_dir,
-                &CargoConfig::default(),
+                &CargoConfig {
+                    sysroot: Some(RustLibSource::Discover),
+                    ..CargoConfig::default()
+                },
                 &LoadCargoConfig {
                     load_out_dirs_from_check: false,
                     with_proc_macro_server: ProcMacroServerChoice::None,
@@ -131,10 +136,10 @@ impl ProgramCompiler {
                     num_worker_threads: 1,
                     proc_macro_processes: 1,
                 },
+                &|_| {},
             )
             .map_err(|error| format!("configure {platform_name} compiler workspace: {error}"))?;
-            compiler.change_platform(platform);
-            let db = compiler.db();
+            let db = &db;
             let shim = ra_ap_hir::attach_db(db, || {
                 let rust = Rust::get(db);
                 let source = rust
@@ -145,7 +150,7 @@ impl ProgramCompiler {
                     .expect("source crate should be lowered");
 
                 rust.shim_reachable_from(UsageGraph::new(db, vec![source.root(db)]))
-                    .render(db)
+                    .render(db, platform)
             });
 
             write_generated_crate(&generated_dir, &workspace.source_dir, platform, &shim)?;
@@ -185,36 +190,19 @@ fn write_generated_crate(
     fs::write(generated_dir.join("src/lib.rs"), shim)
         .map_err(|error| format!("write generated shim: {error}"))?;
 
-    let source_dir = source_dir.to_string_lossy().replace('\\', "\\\\");
-    let (dependencies, build) = match platform {
-        Platform::Node => (
-            "napi = { version = \"3\", features = [\"napi10\"] }\nnapi-derive = \"3\"\n\n[build-dependencies]\nnapi-build = \"2\"\n",
-            "build = \"build.rs\"\n",
-        ),
-        Platform::Wasm { .. } => ("wasm-bindgen = \"0.2\"\n", ""),
-        _ => unreachable!("program tests only select supported platforms"),
-    };
-    let manifest = format!(
-        r#"[package]
-name = "generated-test-source"
-version = "0.0.0"
-edition = "2024"
-publish = false
-{build}
-[lib]
-crate-type = ["cdylib", "rlib"]
-
-[dependencies]
-test_source = {{ package = "test-source", path = "{source_dir}" }}
-{dependencies}"#
-    );
+    let manifest = render_manifest(ManifestOpts {
+        name: "test-source",
+        source_crate_name: SOURCE_CRATE_NAME,
+        source_package_path: source_dir,
+        platform,
+    });
     fs::write(generated_dir.join("Cargo.toml"), manifest)
         .map_err(|error| format!("write generated manifest: {error}"))?;
 
-    if platform == Platform::Node {
+    if let Some(body) = platform.build_script_body() {
         fs::write(
             generated_dir.join("build.rs"),
-            "fn main() { napi_build::setup(); }\n",
+            format!("fn main() {{ {body} }}\n"),
         )
         .map_err(|error| format!("write generated build script: {error}"))?;
     }

@@ -1,6 +1,6 @@
-import rolldown, { type RustCurseTarget } from './rolldown.js'
+import rolldown, { type RustCurseTarget } from './rolldown'
 
-export type { RustCurseTarget } from './rolldown.js'
+export type { RustCurseTarget } from './rolldown'
 
 export interface RustCurseOptions {
   /**

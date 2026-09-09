@@ -10,6 +10,7 @@ use crate::compiler::{
 mod cast;
 mod classes;
 mod functions;
+pub mod manifest;
 mod platform;
 mod tethering;
 mod types;

@@ -6,8 +6,7 @@ use tracing::debug;
 ///
 /// `Ok(true)` when the file was written, and `Ok(false)` when the
 /// existing file already matched `content`.
-#[tracing::instrument(level = "trace", skip(path, content), fields(path = %path.as_ref().display()))]
-pub fn write_if_changed(path: impl AsRef<Path>, content: impl AsRef<[u8]>) -> io::Result<bool> {
+pub fn write_file(path: impl AsRef<Path>, content: impl AsRef<[u8]>) -> io::Result<bool> {
     let path = path.as_ref();
     let content = content.as_ref();
 
@@ -23,6 +22,9 @@ pub fn write_if_changed(path: impl AsRef<Path>, content: impl AsRef<[u8]>) -> io
         }
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             debug!(bytes = content.len(), "writing missing file");
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)?;
+            }
             fs::write(path, content)?;
             Ok(true)
         }
@@ -41,9 +43,9 @@ mod tests {
     #[test]
     fn writes_missing_file() {
         let dir = tempdir().unwrap();
-        let path = dir.path().join("generated.rs");
+        let path = dir.path().join("nested").join("generated.rs");
 
-        let wrote = write_if_changed(&path, "content").unwrap();
+        let wrote = write_file(&path, "content").unwrap();
 
         assert!(wrote);
         assert_eq!(fs::read_to_string(path).unwrap(), "content");
@@ -56,7 +58,7 @@ mod tests {
         fs::write(&path, "content").unwrap();
         let modified_before = modified_at(&path);
 
-        let wrote = write_if_changed(&path, "content").unwrap();
+        let wrote = write_file(&path, "content").unwrap();
 
         assert!(!wrote);
         assert_eq!(modified_at(&path), modified_before);
@@ -68,7 +70,7 @@ mod tests {
         let path = dir.path().join("generated.rs");
         fs::write(&path, "old content").unwrap();
 
-        let wrote = write_if_changed(&path, "new content").unwrap();
+        let wrote = write_file(&path, "new content").unwrap();
 
         assert!(wrote);
         assert_eq!(fs::read_to_string(path).unwrap(), "new content");

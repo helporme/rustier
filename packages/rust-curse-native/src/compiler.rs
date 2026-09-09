@@ -4,7 +4,6 @@ pub mod db;
 pub mod diag;
 pub mod inputs;
 pub mod ir;
-pub mod manifest;
 pub mod path;
 
 // mod check;

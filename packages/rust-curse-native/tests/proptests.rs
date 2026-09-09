@@ -13,7 +13,7 @@ mod program;
 mod strategy;
 
 use common::fragment::FragmentPrint as _;
-use rust_curse::compiler::inputs::Platform;
+use rust_curse::compiler::codegen::shim::Platform;
 
 static PROGRAM_COMPILER: OnceLock<Result<Mutex<common::ProgramCompiler>, String>> = OnceLock::new();
 

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Enum, Function, FunctionParent, Impl, Member, Module, ModuleParent, Struct, ValueType,
+        Enum, Function, FunctionParent, Impl, Member, Module, ModuleParent, Rust, Struct, ValueType,
     },
 };
 
@@ -18,6 +18,17 @@ pub struct UsageGraph<'db> {
 
 #[salsa::tracked]
 impl<'db> UsageGraph<'db> {
+    /// A usage graph that reaches every member of the complete public API.
+    pub fn complete(db: &'db dyn Db) -> Self {
+        let roots: Vec<_> = Rust::get(db)
+            .crates(db)
+            .iter()
+            .map(|crate_| crate_.root(db))
+            .collect();
+
+        Self::new(db, roots)
+    }
+
     /// The reflexive transitive closure of members used by the root module
     /// members.
     #[salsa::tracked(returns(ref))]

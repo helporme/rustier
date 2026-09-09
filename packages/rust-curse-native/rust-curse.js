@@ -579,6 +579,6 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Server, WasmTarget } = nativeBinding
+const { Server, ServerWasmTarget } = nativeBinding
 export { Server }
-export { WasmTarget }
+export { ServerWasmTarget }
