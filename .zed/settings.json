@@ -3,7 +3,7 @@
     "rust-analyzer": {
       "initialization_options": {
         "cargo": {
-          "features": ["napi-binding"],
+          "features": "all",
           "extraEnv": {
             "RUSTUP_TOOLCHAIN": "nightly",
           },
