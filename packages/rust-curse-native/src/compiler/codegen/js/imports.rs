@@ -12,10 +12,10 @@ impl<'db> FacadeImport<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render(self, db: &'db dyn Db, paths: JsCodegenPaths) -> String {
         let item = self.item(db);
-        let symbol = item.symbol(db);
+        let name = item.name(db);
 
         frag!(
-            import {{ {symbol} }} from {doubles(self.render_path(db, paths))}
+            import {{ {name} }} from {doubles(self.render_path(db, paths))}
         )
         .print()
     }

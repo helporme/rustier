@@ -45,11 +45,11 @@ pub enum FacadeImportItem<'db> {
 
 impl<'db> FacadeImportItem<'db> {
     /// The symbol of the import item.
-    pub fn symbol(self, db: &'db dyn Db) -> &'db str {
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
         match self {
             FacadeImportItem::FfiFunction(f) => f.symbol(db),
             FacadeImportItem::FfiClass(c) => c.symbol(db),
-            FacadeImportItem::FacadeClass(c) => c.ffi(db).symbol(db),
+            FacadeImportItem::FacadeClass(c) => c.name(db),
         }
     }
 }
@@ -224,6 +224,10 @@ impl<'db> FacadeFreeFunction<'db> {
     pub fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItem<'db>> {
         let mut imports = HashSet::from([FacadeImportItem::FfiFunction(self.ffi(db))]);
 
+        if let Some(FacadeType::Class(class)) = self.ret_type(db) {
+            imports.insert(FacadeImportItem::FfiClass(class.ffi(db)));
+        }
+
         for type_ in self
             .params(db)
             .map(|param| param.type_(db))
@@ -293,6 +297,10 @@ impl<'db> FacadeMethod<'db> {
             })
             .map(FacadeImportItem::FacadeClass)
             .chain(std::iter::once(FacadeImportItem::FfiFunction(self.ffi(db))))
+            .chain(self.ret_type(db).and_then(|type_| match type_ {
+                FacadeType::Class(class) => Some(FacadeImportItem::FfiClass(class.ffi(db))),
+                _ => None,
+            }))
     }
 
     fn src(self, db: &'db dyn Db) -> Function<'db> {
@@ -509,6 +517,10 @@ impl<'db> FacadeFieldPlain<'db> {
             self.ffi_setter(db).map(FacadeImportItem::FfiFunction),
             match self.type_(db) {
                 FacadeType::Class(class) => Some(FacadeImportItem::FacadeClass(class)),
+                _ => None,
+            },
+            match self.type_(db) {
+                FacadeType::Class(class) => Some(FacadeImportItem::FfiClass(class.ffi(db))),
                 _ => None,
             },
         ]

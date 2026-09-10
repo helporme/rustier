@@ -27,7 +27,7 @@ use crate::compiler::{
 ///
 /// It's generally redundant API, generally serving as a quality-of-life wrapper
 /// for tests.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, salsa::Update)]
+#[salsa::interned(debug)]
 pub struct Shim<'db> {
     pub rust: Rust<'db>,
     pub usages: UsageGraph<'db>,
@@ -35,10 +35,10 @@ pub struct Shim<'db> {
 
 impl<'db> Shim<'db> {
     pub fn crates(self, db: &'db dyn Db) -> impl Iterator<Item = ShimCrate<'db>> {
-        self.rust
+        self.rust(db)
             .crates(db)
             .iter()
-            .map(move |crate_| crate_.shim_reachable_from(db, self.usages))
+            .map(move |crate_| crate_.shim_reachable_from(db, self.usages(db)))
     }
 }
 

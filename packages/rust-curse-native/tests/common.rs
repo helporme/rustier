@@ -149,10 +149,10 @@ impl ProgramCompiler {
                 .expect("source crate should be lowered");
 
             let shim = rust
-                .shim_reachable_from(UsageGraph::new(db, vec![source.root(db)]))
+                .shim_reachable_from(db, UsageGraph::new(db, vec![source.root(db)]))
                 .render(db, platform);
 
-            write_generated_crate(&generated_dir, &workspace.source_dir, platform, &shim)?;
+            write_generated_crate(&generated_dir, &workspace.source_dir, platform, shim)?;
 
             let generated_source_path = generated_dir.join("src/lib.rs");
             let generated_source = fs::read_to_string(&generated_source_path)

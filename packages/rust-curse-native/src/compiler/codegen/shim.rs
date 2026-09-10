@@ -36,7 +36,9 @@ pub enum WasmEnv {
     Node,
 }
 
+#[salsa::tracked]
 impl<'db> Shim<'db> {
+    #[salsa::tracked(returns(ref))]
     pub fn render(self, db: &'db dyn Db, platform: Platform) -> String {
         let members = spaced(
             self.crates(db)

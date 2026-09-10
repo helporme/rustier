@@ -17,7 +17,7 @@ impl<'db> FacadeModule<'db> {
         imports.sort_by_cached_key(|import| {
             (
                 import.render_path(db, paths.clone()),
-                import.item(db).symbol(db),
+                import.item(db).name(db),
             )
         });
 

@@ -15,11 +15,11 @@ use crate::compiler::{
 impl<'db> Rust<'db> {
     /// The complete public API, reachable from every crate's root module.
     pub fn shim_complete(self, db: &'db dyn Db) -> Shim<'db> {
-        self.shim_reachable_from(UsageGraph::complete(db))
+        self.shim_reachable_from(db, UsageGraph::complete(db))
     }
 
-    pub fn shim_reachable_from(self, usages: UsageGraph<'db>) -> Shim<'db> {
-        Shim { rust: self, usages }
+    pub fn shim_reachable_from(self, db: &'db dyn Db, usages: UsageGraph<'db>) -> Shim<'db> {
+        Shim::new(db, self, usages)
     }
 }
 
