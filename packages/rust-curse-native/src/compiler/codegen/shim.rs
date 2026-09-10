@@ -1,3 +1,5 @@
+use itertools::Either;
+
 use crate::compiler::{
     codegen::{
         fragment::{FragmentPrint, frag, spaced},
@@ -36,17 +38,25 @@ pub enum WasmEnv {
 
 impl<'db> Shim<'db> {
     pub fn render(self, db: &'db dyn Db, platform: Platform) -> String {
-        let members = self.usages.members(db);
-
-        let members = spaced(members.iter().filter_map(|member| {
-            match member.shim_reachable_from(db, self.usages) {
-                ShimMember::Class(shim_class) => Some(shim_class.render(db, platform)),
-                ShimMember::Function(shim_function_free) => {
-                    Some(ShimFunction::from(shim_function_free).render(db, platform))
-                }
-                _ => None,
-            }
-        }));
+        let members = spaced(
+            self.crates(db)
+                .flat_map(|crate_| crate_.all_modules(db))
+                .flat_map(|module| module.members(db))
+                .flat_map(|member| match member {
+                    ShimMember::Class(shim_class) => Either::Left(
+                        std::iter::once(shim_class.render(db, platform)).chain(
+                            shim_class
+                                .all_functions(db)
+                                .iter()
+                                .map(|function| function.render(db, platform)),
+                        ),
+                    ),
+                    ShimMember::Function(shim_function_free) => Either::Right(
+                        Some(ShimFunction::from(shim_function_free).render(db, platform)).into_iter(),
+                    ),
+                    ShimMember::Module(_) => Either::Right(None.into_iter()),
+                }),
+        );
 
         let shim = frag!(
             #![allow(unused_mut, dead_code, unused_imports, nonstandard_style, unreachable_patterns)]@@
