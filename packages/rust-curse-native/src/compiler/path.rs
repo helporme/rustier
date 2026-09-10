@@ -47,6 +47,12 @@ impl FilePath {
         }
     }
 
+    pub fn as_str(&self) -> &str {
+        match &self.0 {
+            FilePathKind::Virtual(path) | FilePathKind::Real(path) => path.as_str(),
+        }
+    }
+
     /// `true` if the path is a real file on the filesystem.
     pub fn is_real(&self) -> bool {
         matches!(self.0, FilePathKind::Real(_))

@@ -75,7 +75,11 @@ impl Server {
     }
 
     #[napi]
-    pub fn build(&mut self, platform: ServerPlatform, release: bool) -> napi::Result<()> {
+    pub fn build(
+        &mut self,
+        platform: ServerPlatform,
+        release: bool,
+    ) -> napi::Result<ServerBuildOutput> {
         let project = self.ws.project();
 
         project
@@ -91,12 +95,14 @@ impl Server {
             .exec()
             .map_err(|e| napi::Error::from_reason(format!("{e:#}")))?;
 
-        cursed_crate
+        let artifact = cursed_crate
             .build(self.ws.db(), release)
             .exec(self.ws.db_mut(), &self.toolchain)
             .map_err(|e| napi::Error::from_reason(format!("{e:#}")))?;
 
-        Ok(())
+        Ok(ServerBuildOutput {
+            bin_paths: vec![artifact.bin_path.as_str().to_owned()],
+        })
     }
 
     #[napi]
@@ -106,7 +112,7 @@ impl Server {
         self.ws
             .project()
             .cursed_crate(platform.into())
-            .js(db, Path::new(&path))
+            .js(db, &path)
             .cloned()
     }
 }
@@ -137,4 +143,12 @@ impl From<ServerPlatform> for Platform {
 pub enum ServerWasmTarget {
     Web,
     Node,
+}
+
+/// The output of a server build.
+#[napi(object)]
+pub struct ServerBuildOutput {
+    /// The paths to the built binaries that should be located next to the
+    /// project's built .js file in dist folder.
+    pub bin_paths: Vec<String>,
 }

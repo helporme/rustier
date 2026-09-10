@@ -4,7 +4,7 @@
 export declare class Server {
   constructor(cfg: Config)
   change(change: ServerChange): void
-  build(platform: ServerPlatform, release: boolean): void
+  build(platform: ServerPlatform, release: boolean): ServerBuildOutput
   load(platform: ServerPlatform, path: string): string | null
 }
 
@@ -13,6 +13,15 @@ export interface Config {
   rootDir: string
   /** Manifest path of the "main" crate relative to the [`root_dir`]. */
   manifestPath: string
+}
+
+/** The output of a server build. */
+export interface ServerBuildOutput {
+  /**
+   * The paths to the built binaries that should be located next to the
+   * project's built .js file in dist folder.
+   */
+  binPaths: Array<string>
 }
 
 /** A change to the server's workspace. */

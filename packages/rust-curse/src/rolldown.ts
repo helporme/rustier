@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import path, { resolve } from 'node:path'
 import { platform as profiles } from 'node:process'
 import type { Plugin } from 'rolldown'
@@ -66,30 +66,99 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
     throw new Error('rust-curse requires activeProfile')
   }
 
+  let manifestPath = path.resolve(options.manifestPath ?? "./Cargo.toml")
+  let rootDir = path.dirname(manifestPath);
+
   let server = new Server({
-    rootDir: process.cwd(),
-    manifestPath: path.resolve(options.manifestPath ?? "./Cargo.toml")
+    rootDir,
+    manifestPath
   })
 
   return {
     name: 'rust-curse',
+
+    options(inputOptions) {
+      if (inputOptions.watch === false) return null
+
+      const watch = inputOptions.watch ?? {}
+      const exclude = watch.exclude == null
+        ? []
+        : Array.isArray(watch.exclude) ? watch.exclude : [watch.exclude]
+
+      return {
+        ...inputOptions,
+        watch: {
+          ...watch,
+          // FIXME: .rust-curse constant is an internal knowledge of server
+          exclude: [...exclude, /[/\\]\.rust-curse(?:[/\\]|$)/],
+        },
+      }
+    },
+
+    buildStart() {
+      const srcDir = path.join(rootDir, 'src')
+
+      // FIXME: replace it with enumerating files from the rust module graph
+      // or run a separate file watcher since it's kind of crazy to explicitly register each path
+      this.addWatchFile(srcDir)
+      for (const entry of readdirSync(srcDir, { recursive: true, withFileTypes: true })) {
+        if (entry.isDirectory() || (entry.isFile() && entry.name.endsWith('.rs'))) {
+          this.addWatchFile(path.join(entry.parentPath, entry.name))
+        }
+      }
+      this.addWatchFile(manifestPath)
+      this.addWatchFile(path.join(rootDir, 'Cargo.lock'))
+
+      for (const profile of Object.values(options.profiles)) {
+        let output = server.build(
+          toServerPlatform(profile.target),
+          profile.release ?? false,
+        )
+
+        for (let binPath of output.binPaths) {
+          this.emitFile({
+            type: 'asset',
+            fileName: path.basename(binPath),
+            source: readFileSync(binPath),
+          })
+        }
+      }
+    },
+
     watchChange(filePath, change) {
       const contents =
-        change.event === 'delete' ? undefined : readFileSync(filePath, 'utf8')
+        change.event === 'delete'
+          ? undefined
+          : readFileSync(filePath, 'utf8')
 
       server.change({ filePath, contents })
     },
 
-    buildStart() {
-      for (let profile of Object.values(options.profiles)) {
-        server.build(toServerPlatforn(profile.target), profile.release ?? false)
+    resolveId(source) {
+      if (source.startsWith('$rust')) {
+        return `\0${source}`
       }
+      return null
+    },
+
+    load(id) {
+      const filePath = id.startsWith('\0$rust') ? id.slice(1) : id
+      if (!filePath.endsWith('.rs') && !filePath.startsWith('$rust')) {
+        return null
+      }
+
+      const profileName = options.activeProfile(filePath)
+      const profile = options.profiles[profileName]
+      if (!profile) {
+        throw new Error(`Unknown Rust build profile: ${profileName}`)
+      }
+
+      return server.load(toServerPlatform(profile.target), filePath)
     },
   }
 }
 
-
-function toServerPlatforn(target: RustCurseTarget): ServerPlatform {
+function toServerPlatform(target: RustCurseTarget): ServerPlatform {
   switch (target) {
     case 'node':
       return { type: 'Node' }
@@ -99,92 +168,3 @@ function toServerPlatforn(target: RustCurseTarget): ServerPlatform {
       return { type: 'Wasm', target: ServerWasmTarget.Web }
   }
 }
-
-// const profileNames = Object.keys(options.profiles)
-//   if (profileNames.length === 0) {
-//     throw new Error('rust-curse requires at least one build profile')
-//   }
-//   if (typeof options.activeProfile !== 'function') {
-//     throw new Error('rust-curse requires activeProfile')
-//   }
-
-//   let root: string
-//   let manifestPath: string
-//   let outDir: string
-//   let server: Server
-//   let initialized = false
-
-//   const initialize = (cwd: string) => {
-//     root = cwd
-//     manifestPath = resolve(root, options.manifestPath ?? 'Cargo.toml')
-//     outDir = resolve(root, options.outDir ?? '.rust-curse')
-//     server = new Server({
-//       rootDir: root,
-//       manifestPath
-//     })
-
-//     if (options.installDeps !== false) server.installDeps()
-//     initialized = true
-//   }
-
-
-//   const build = (warn: (diagnostic: string) => void) => {
-//     try {
-//       const output = server.build(profileNames)
-//       for (const profileName of profileNames) {
-//         const profile = output.perProfile[profileName]
-//         if (!profile) {
-//           throw new Error(`profile \`${profileName}\` has no build output`)
-//         }
-//         for (const diagnostic of profile.diags) warn(diagnostic)
-//       }
-//     } catch (error) {
-//       warn(errorMessage(error))
-//     }
-//   }
-
-//   const rustInputPath = (rawFilePath: string) => {
-//     const filePath = resolve(root, cleanModuleId(rawFilePath))
-//     if (isPathInside(outDir, filePath)) return
-//     if (!filePath.endsWith('.rs') && filePath !== manifestPath) return
-//     return filePath
-//   }
-
-//   return {
-//     name: 'rust-curse',
-
-//     buildStart(inputOptions) {
-//       if (!initialized) {
-//         initialize(inputOptions.cwd ?? process.cwd())
-//       }
-//       build((diagnostic) => this.warn(diagnostic))
-//     },
-
-//     watchChange(id, change) {
-//       const filePath = rustInputPath(id)
-//       if (!filePath) return
-
-//       const contents =
-//         change.event === 'delete' ? undefined : readFileSync(filePath, 'utf8')
-//       server.update([{ filePath, contents }])
-//     },
-
-//     load(id) {
-//       const filePath = cleanModuleId(id)
-//       if (!filePath.endsWith('.rs')) return null
-
-//       try {
-//         const profileName = options.activeProfile(filePath)
-//         if (!options.profiles[profileName]) {
-//           throw new Error(
-//             `activeProfile returned unknown profile \`${profileName}\` for \`${filePath}\``,
-//           )
-//         }
-//         return server.load(profileName, filePath)
-//       } catch (error) {
-//         const diagnostic = errorMessage(error)
-//         this.warn(diagnostic)
-//         return `throw new Error(${JSON.stringify(diagnostic)});`
-//       }
-//     },
-//   }

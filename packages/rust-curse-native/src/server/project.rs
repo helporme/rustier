@@ -1,8 +1,11 @@
 use std::{
     collections::HashMap,
+    fs,
+    io::ErrorKind,
     path::{Path, PathBuf},
 };
 
+use anyhow::Context as _;
 use salsa::Setter;
 
 use crate::{
@@ -131,14 +134,16 @@ impl<'a> CursedCrate<'a> {
         BuildArtifacts::artifact(db, self.manifest_path(db).to_string_lossy().as_ref())
     }
 
-    /// The JS code for the module at the given path, if available.
-    pub fn js<'db>(self, db: &'db dyn Db, path: &Path) -> Option<&'db String> {
+    pub fn js<'db>(self, db: &'db dyn Db, path: &String) -> Option<&'db String> {
         if let Some(artifact) = self.artifact(db) {
             self.project
                 .reachable_shim(db)
                 .crates(db)
                 .flat_map(|c| c.all_modules(db))
-                .find(|m| m.src(db).file_path(db).as_path() == path)
+                .find(|m| {
+                    m.decals(db).virtual_path(db) == path
+                        || m.src(db).file_path(db).as_str() == path
+                })
                 .map(|m| {
                     m.facade(db).render(
                         db,
@@ -268,9 +273,10 @@ impl CursedCrateBuild {
     }
 
     fn build_node(&self, toolchain: &Toolchain) -> anyhow::Result<BuildArtifact> {
+        let artifact_dir = self.reserve_unique_artifact_dir()?;
         let output = NapiBuildCommand {
             manifest_path: &self.out_dir.join("Cargo.toml"),
-            output_dir: &self.out_dir,
+            output_dir: &artifact_dir,
             release: self.release,
         }
         .exec(toolchain)?;
@@ -282,9 +288,11 @@ impl CursedCrateBuild {
     }
 
     fn build_wasm(&self, toolchain: &Toolchain, target: WasmEnv) -> anyhow::Result<BuildArtifact> {
+        let artifact_dir = self.reserve_unique_artifact_dir()?;
+
         let output = CargoBuildCommand {
             manifest_path: &self.out_dir.join("Cargo.toml"),
-            target_dir: &self.out_dir.join("target"),
+            target_dir: &artifact_dir,
             target: Some("wasm32-unknown-unknown"),
             release: self.release,
         }
@@ -301,7 +309,7 @@ impl CursedCrateBuild {
 
         let output = WasmBindgenCommand {
             wasm_path: &wasm_path,
-            output_dir: &self.out_dir,
+            output_dir: &artifact_dir,
             target: match target {
                 WasmEnv::Web => WasmBindgenTarget::Web,
                 WasmEnv::Node => WasmBindgenTarget::NodeJs,
@@ -313,6 +321,49 @@ impl CursedCrateBuild {
             js_path: output.js_path.as_path().try_into()?,
             bin_path: output.wasm_path.as_path().try_into()?,
         })
+    }
+
+    /// Reserve a unique artifact directory on disk to which the build output
+    /// will be written. The node.js cached the .node addon by file path,
+    /// and it cannot be reloaded as far as i can tell, so we need to came up
+    /// with a new path each time to support watch mode.
+    fn reserve_unique_artifact_dir(&self) -> anyhow::Result<PathBuf> {
+        let root = self.out_dir.join("artifacts");
+        fs::create_dir_all(&root)?;
+        let mut version = 0_u64;
+        for entry in fs::read_dir(&root)? {
+            let entry = entry?;
+            if let Some(existing) = entry
+                .file_name()
+                .to_str()
+                .and_then(|name| name.parse::<u64>().ok())
+            {
+                version = version.max(
+                    existing
+                        .checked_add(1)
+                        .context("artifact version overflow")?,
+                );
+            }
+        }
+
+        fs::remove_dir_all(&root)?;
+        fs::create_dir_all(&root)?;
+
+        loop {
+            let dir = root.join(version.to_string());
+            match fs::create_dir(&dir) {
+                Ok(()) => return Ok(dir),
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+                    version = version
+                        .checked_add(1)
+                        .context("artifact version overflow")?;
+                }
+                Err(error) => {
+                    return Err(error)
+                        .with_context(|| format!("reserve artifacts in {}", dir.display()));
+                }
+            }
+        }
     }
 }
 
