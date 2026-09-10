@@ -41,27 +41,23 @@ macro_rules! assert_rust_snap {
         expression: |$db:ident, $platform:ident, $printer:ident| $expression:block $(,)?
     ) => {{
         let __db = $crate::test_db! { $($source)* };
-        let __node = ::ra_ap_hir::attach_db(&__db, || {
-            $crate::compiler::codegen::fragment::FragmentPrint::print(
-                $crate::compiler::codegen::fragment::fragment(|$printer| {
-                    let $db = &__db;
-                    let $platform = $crate::compiler::codegen::shim::Platform::Node;
-                    $expression
-                }),
-            )
-        });
+        let __node = $crate::compiler::codegen::fragment::FragmentPrint::print(
+            $crate::compiler::codegen::fragment::fragment(|$printer| {
+                let $db = &__db;
+                let $platform = $crate::compiler::codegen::shim::Platform::Node;
+                $expression
+            }),
+        );
 
-        let __wasm = ::ra_ap_hir::attach_db(&__db, || {
-            $crate::compiler::codegen::fragment::FragmentPrint::print(
-                $crate::compiler::codegen::fragment::fragment(|$printer| {
-                    let $db = &__db;
-                    let $platform = $crate::compiler::codegen::shim::Platform::Wasm {
-                        target: $crate::compiler::codegen::shim::WasmEnv::Web,
-                    };
-                    $expression
-                }),
-            )
-        });
+        let __wasm = $crate::compiler::codegen::fragment::FragmentPrint::print(
+            $crate::compiler::codegen::fragment::fragment(|$printer| {
+                let $db = &__db;
+                let $platform = $crate::compiler::codegen::shim::Platform::Wasm {
+                    target: $crate::compiler::codegen::shim::WasmEnv::Web,
+                };
+                $expression
+            }),
+        );
 
         let (snapshot, snapshot_path) =
             $crate::compiler::codegen::shim::test::build_rust_snapshot(

@@ -1,6 +1,6 @@
 use miette::Diagnostic;
 use ra_ap_hir::{
-    Adt, GenericDef, HasSource as _, HirDisplay as _, Mutability, Trait, Type as HirType,
+    Adt, GenericDef, HasSource as _, HirDisplay as _, Mutability, Trait, Type as HirType, attach_db,
 };
 use ra_ap_syntax::{AstNode as _, ast::HasAttrs as _};
 use thiserror::Error;
@@ -75,7 +75,7 @@ pub(super) fn is_clonable(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::C
     }
 
     Trait::lang(db, crate_, ra_ap_hir::LangItem::Clone)
-        .is_some_and(|clone| type_.impls_trait(db, clone, &[]))
+        .is_some_and(|clone| attach_db(db, || type_.impls_trait(db, clone, &[])))
 }
 
 fn derives_clone(db: &dyn Db, adt: Adt) -> bool {
@@ -101,7 +101,9 @@ fn unsupported_type(
     crate_: ra_ap_hir::Crate,
 ) -> TypeLowerErrorUnsupported {
     TypeLowerErrorUnsupported::Type {
-        type_: type_.display(db, crate_.to_display_target(db)).to_string(),
+        type_: attach_db(db, || {
+            type_.display(db, crate_.to_display_target(db)).to_string()
+        }),
     }
 }
 

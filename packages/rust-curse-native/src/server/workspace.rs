@@ -20,6 +20,7 @@ pub struct ServerWorkspace {
     vfs: Vfs,
     root_file: PathBuf,
     manifest_path: PathBuf,
+    package_name: String,
 }
 
 impl ServerWorkspace {
@@ -78,6 +79,7 @@ impl ServerWorkspace {
             .ok_or_else(|| anyhow::anyhow!("no target found for package"))?;
 
         let root_file = root.as_path().to_owned();
+        let package_name = cargo[package].name.clone();
 
         let (mut db, vfs, _) = load_workspace(hir_ws, &cargo_config.extra_env, &load_config)?;
         LocalCrates::set(&mut db, [root]);
@@ -87,6 +89,7 @@ impl ServerWorkspace {
             db,
             vfs,
             root_file,
+            package_name,
         })
     }
 
@@ -151,7 +154,7 @@ impl ServerWorkspace {
     }
 
     pub fn project(&self) -> Project<'_> {
-        Project::new(&self.manifest_path, &self.root_file)
+        Project::new(&self.manifest_path, &self.root_file, &self.package_name)
     }
 }
 

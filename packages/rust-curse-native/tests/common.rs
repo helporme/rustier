@@ -140,18 +140,17 @@ impl ProgramCompiler {
             )
             .map_err(|error| format!("configure {platform_name} compiler workspace: {error}"))?;
             let db = &db;
-            let shim = ra_ap_hir::attach_db(db, || {
-                let rust = Rust::get(db);
-                let source = rust
-                    .crates(db)
-                    .iter()
-                    .find(|crate_| crate_.name(db) == SOURCE_CRATE_NAME)
-                    .copied()
-                    .expect("source crate should be lowered");
+            let rust = Rust::get(db);
+            let source = rust
+                .crates(db)
+                .iter()
+                .find(|crate_| crate_.name(db) == SOURCE_CRATE_NAME)
+                .copied()
+                .expect("source crate should be lowered");
 
-                rust.shim_reachable_from(UsageGraph::new(db, vec![source.root(db)]))
-                    .render(db, platform)
-            });
+            let shim = rust
+                .shim_reachable_from(UsageGraph::new(db, vec![source.root(db)]))
+                .render(db, platform);
 
             write_generated_crate(&generated_dir, &workspace.source_dir, platform, &shim)?;
 
@@ -192,6 +191,7 @@ fn write_generated_crate(
 
     let manifest = render_manifest(ManifestOpts {
         name: "test-source",
+        source_package_name: "test-source",
         source_crate_name: SOURCE_CRATE_NAME,
         source_package_path: source_dir,
         platform,

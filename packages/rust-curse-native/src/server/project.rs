@@ -38,16 +38,19 @@ pub struct Project<'a> {
     manifest_path: &'a Path,
     /// Path to the root file of the project (lib.rs)
     root_file: &'a Path,
+    /// Cargo package name, which can differ from the Rust library target name.
+    package_name: &'a str,
 }
 
 impl<'a> Project<'a> {
-    pub fn new(manifest_path: &'a Path, root_file: &'a Path) -> Self {
+    pub fn new(manifest_path: &'a Path, root_file: &'a Path, package_name: &'a str) -> Self {
         assert!(manifest_path.is_file() && manifest_path.file_name().unwrap() == "Cargo.toml");
         assert!(root_file.is_file() && root_file.file_name().unwrap() == "lib.rs");
 
         Self {
             manifest_path,
             root_file,
+            package_name,
         }
     }
 
@@ -157,6 +160,7 @@ impl<'a> CursedCrate<'a> {
 
         let manifest = render_manifest(ManifestOpts {
             name: &name,
+            source_package_name: self.project.package_name,
             source_crate_name: self.project.src_crate(db).name(db),
             source_package_path: self.project.root_dir(),
             platform: self.platform,
