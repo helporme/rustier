@@ -167,7 +167,10 @@ impl<'a> CursedCrate<'a> {
         });
 
         let lib = self.project.reachable_shim(db).render(db, self.platform);
-        let build = self.platform.build_script_body();
+        let build = self
+            .platform
+            .build_script_body()
+            .map(|body| format!("fn main() {{ {body} }}\n"));
 
         let package = matches!(self.platform, Platform::Node).then_some(format!(
             // It's technically possible to just write `{}` into the package.json, but we need to
@@ -182,7 +185,7 @@ impl<'a> CursedCrate<'a> {
         ));
 
         CursedCrateSync {
-            out_dir: self.project.out_dir(),
+            out_dir: self.root_dir(db),
             manifest,
             lib,
             build,
@@ -193,9 +196,9 @@ impl<'a> CursedCrate<'a> {
     /// Build of the cursed crate for the given platform and release mode.
     ///
     /// Doesn't do anything until executed.
-    pub fn build(self, release: bool) -> CursedCrateBuild {
+    pub fn build(self, db: &dyn Db, release: bool) -> CursedCrateBuild {
         CursedCrateBuild {
-            out_dir: self.project.out_dir(),
+            out_dir: self.root_dir(db),
             platform: self.platform,
             release,
         }
@@ -208,7 +211,7 @@ pub struct CursedCrateSync {
     out_dir: PathBuf,
     manifest: String,
     lib: String,
-    build: Option<&'static str>,
+    build: Option<String>,
     /// package.json contents for node projects that use napi
     package: Option<String>,
 }
