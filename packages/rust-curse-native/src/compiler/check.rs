@@ -6,7 +6,7 @@ use crate::compiler::{
     diag::Diag,
     ir::{
         rust::ValueType,
-        shim::{Shim, ShimMember},
+        shim::{Shim, ShimMember, ShimModule},
     },
 };
 
@@ -15,37 +15,39 @@ mod f32_precision_loss;
 mod method_field_collisions;
 
 impl<'db> Shim<'db> {
-    /// Collect diagnostics from lowering and checking this shim's reachable API.
+    /// Collect diagnostics from lowering and checking reachable local modules.
     pub fn check(self, db: &'db dyn Db) -> Vec<&'db Diag> {
-        accumulate_checks::accumulated::<Diag>(db, self)
+        self.crates(db)
+            .filter(|crate_| crate_.is_local(db))
+            .flat_map(|crate_| crate_.all_modules(db))
+            .flat_map(|module| accumulate_checks::accumulated::<Diag>(db, module))
+            .collect()
     }
 }
 
 #[salsa::tracked]
-fn accumulate_checks<'db>(db: &'db dyn Db, shim: Shim<'db>) {
-    for module in shim.crates(db).flat_map(|crate_| crate_.all_modules(db)) {
-        for member in module.members(db) {
-            match member {
-                ShimMember::Class(class) => {
-                    match class.src_value_type(db) {
-                        ValueType::Struct(struct_) => {
-                            struct_.check_f32_precision_loss(db);
-                            struct_.check_method_field_collisions(db);
-                        }
-                        ValueType::Enum(enum_) => {
-                            enum_.check_f32_precision_loss(db);
-                            enum_.check_js_name_collisions(db);
-                            enum_.check_method_field_collisions(db);
-                        }
-                        _ => unreachable!("shim classes represent structs or enums"),
+fn accumulate_checks<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
+    for member in module.src(db).members(db) {
+        match member.shim_reachable_from(db, module.usages(db)) {
+            ShimMember::Class(class) => {
+                match class.src_value_type(db) {
+                    ValueType::Struct(struct_) => {
+                        struct_.check_f32_precision_loss(db);
+                        struct_.check_method_field_collisions(db);
                     }
-                    for method in class.methods(db) {
-                        method.src(db).check_f32_precision_loss(db);
+                    ValueType::Enum(enum_) => {
+                        enum_.check_f32_precision_loss(db);
+                        enum_.check_js_name_collisions(db);
+                        enum_.check_method_field_collisions(db);
                     }
+                    _ => unreachable!("shim classes represent structs or enums"),
                 }
-                ShimMember::Function(function) => function.src(db).check_f32_precision_loss(db),
-                ShimMember::Module(_) => {}
+                for method in class.methods(db) {
+                    method.src(db).check_f32_precision_loss(db);
+                }
             }
+            ShimMember::Function(function) => function.src(db).check_f32_precision_loss(db),
+            ShimMember::Module(_) => {}
         }
     }
 }
