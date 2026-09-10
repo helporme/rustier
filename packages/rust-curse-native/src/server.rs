@@ -92,7 +92,7 @@ impl Server {
             .map_err(|e| napi::Error::from_reason(format!("{e:#}")))?;
 
         cursed_crate
-            .build(release)
+            .build(self.ws.db(), release)
             .exec(self.ws.db_mut(), &self.toolchain)
             .map_err(|e| napi::Error::from_reason(format!("{e:#}")))?;
 
