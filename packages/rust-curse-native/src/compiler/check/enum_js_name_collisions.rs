@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::{facade::FacadeClass, rust::Enum},
+    ir::rust::Enum,
     mangle::to_camel_case,
 };
 
@@ -13,9 +13,6 @@ impl<'db> Enum<'db> {
     #[salsa::tracked]
     pub(super) fn check_js_name_collisions(self, db: &'db dyn Db) {
         let facade = self.shim(db).facade(db);
-        let FacadeClass::Discriminated(facade) = facade else {
-            unreachable!();
-        };
         let discriminator = facade.discriminator(db);
 
         let has_type_field_collision = discriminator.name(db) == "$type";

@@ -4,41 +4,47 @@
 use crate::compiler::{
     db::Db,
     diag::Diag,
-    ir::rust::{Crate, Member, Module},
+    ir::{
+        rust::ValueType,
+        shim::{Shim, ShimMember},
+    },
 };
 
 mod enum_js_name_collisions;
 mod f32_precision_loss;
 mod method_field_collisions;
 
-impl<'db> Crate<'db> {
+impl<'db> Shim<'db> {
+    /// Collect diagnostics from lowering and checking this shim's reachable API.
     pub fn check(self, db: &'db dyn Db) -> Vec<&'db Diag> {
         accumulate_checks::accumulated::<Diag>(db, self)
     }
 }
 
 #[salsa::tracked]
-fn accumulate_checks<'db>(db: &'db dyn Db, crate_: Crate<'db>) {
-    crate_.root(db).check(db);
-}
-
-#[salsa::tracked]
-impl<'db> Module<'db> {
-    #[salsa::tracked]
-    pub fn check(self, db: &'db dyn Db) {
-        for member in self.members(db) {
+fn accumulate_checks<'db>(db: &'db dyn Db, shim: Shim<'db>) {
+    for module in shim.crates(db).flat_map(|crate_| crate_.all_modules(db)) {
+        for member in module.members(db) {
             match member {
-                Member::Struct(struct_) => {
-                    struct_.check_f32_precision_loss(db);
-                    struct_.check_method_field_collisions(db);
+                ShimMember::Class(class) => {
+                    match class.src_value_type(db) {
+                        ValueType::Struct(struct_) => {
+                            struct_.check_f32_precision_loss(db);
+                            struct_.check_method_field_collisions(db);
+                        }
+                        ValueType::Enum(enum_) => {
+                            enum_.check_f32_precision_loss(db);
+                            enum_.check_js_name_collisions(db);
+                            enum_.check_method_field_collisions(db);
+                        }
+                        _ => unreachable!("shim classes represent structs or enums"),
+                    }
+                    for method in class.methods(db) {
+                        method.src(db).check_f32_precision_loss(db);
+                    }
                 }
-                Member::Enum(enum_) => {
-                    enum_.check_f32_precision_loss(db);
-                    enum_.check_js_name_collisions(db);
-                    enum_.check_method_field_collisions(db);
-                }
-                Member::Function(function) => function.check_f32_precision_loss(db),
-                Member::Module(mod_) => mod_.check(db),
+                ShimMember::Function(function) => function.src(db).check_f32_precision_loss(db),
+                ShimMember::Module(_) => {}
             }
         }
     }
@@ -47,7 +53,10 @@ impl<'db> Module<'db> {
 #[cfg(test)]
 mod tests {
     use super::Db;
-    use crate::{compiler::ir::rust::Rust, test_db};
+    use crate::{
+        compiler::ir::rust::{Rust, usages::UsageGraph},
+        test_db,
+    };
 
     pub(super) fn diagnostic_codes(db: &dyn Db) -> Vec<String> {
         let crate_ = Rust::get(db)
@@ -55,7 +64,8 @@ mod tests {
             .first()
             .expect("test crate should be lowered");
 
-        crate_
+        Rust::get(db)
+            .shim_reachable_from(db, UsageGraph::new(db, [crate_.root(db)]))
             .check(db)
             .iter()
             .filter_map(|diag| diag.inner.code().map(|code| code.to_string()))

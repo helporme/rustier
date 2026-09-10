@@ -45,6 +45,7 @@ impl<'db> Enum<'db> {
     pub(super) fn check_f32_precision_loss(self, db: &'db dyn Db) {
         let has_f32_field = self
             .fields(db)
+            .iter()
             .any(|field| field.value_type(db) == ValueType::f32);
 
         if has_f32_field {

@@ -54,7 +54,8 @@ impl<'db> Shim<'db> {
                         ),
                     ),
                     ShimMember::Function(shim_function_free) => Either::Right(
-                        Some(ShimFunction::from(shim_function_free).render(db, platform)).into_iter(),
+                        Some(ShimFunction::from(shim_function_free).render(db, platform))
+                            .into_iter(),
                     ),
                     ShimMember::Module(_) => Either::Right(None.into_iter()),
                 }),

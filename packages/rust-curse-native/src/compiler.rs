@@ -6,7 +6,7 @@ pub mod inputs;
 pub mod ir;
 pub mod path;
 
-// mod check;
+mod check;
 pub mod codegen;
 mod mangle;
 

@@ -14,7 +14,7 @@ use crate::compiler::{
 impl<'db> Struct<'db> {
     #[salsa::tracked]
     pub(super) fn check_method_field_collisions(self, db: &'db dyn Db) {
-        check_method_field_collisions(db, self.shim(db), self.fields(db));
+        check_method_field_collisions(db, self.shim(db).into(), self.fields(db));
     }
 }
 
@@ -22,7 +22,11 @@ impl<'db> Struct<'db> {
 impl<'db> Enum<'db> {
     #[salsa::tracked]
     pub(super) fn check_method_field_collisions(self, db: &'db dyn Db) {
-        check_method_field_collisions(db, self.shim(db), self.fields(db));
+        check_method_field_collisions(
+            db,
+            self.shim(db).into(),
+            self.fields(db).iter().copied(),
+        );
     }
 }
 
