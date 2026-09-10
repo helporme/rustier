@@ -2,7 +2,7 @@
 
 use std::{panic::RefUnwindSafe, sync::Arc as StdArc};
 
-use miette::{Diagnostic, GraphicalReportHandler, GraphicalTheme, SourceCode};
+use miette::{Diagnostic, GraphicalReportHandler, GraphicalTheme, MietteSpanContents, SourceCode};
 use salsa::Accumulator;
 use triomphe::Arc;
 
@@ -22,11 +22,21 @@ impl SourceCode for DiagSource {
         context_lines_before: usize,
         context_lines_after: usize,
     ) -> Result<Box<dyn miette::SpanContents<'a> + 'a>, miette::MietteError> {
-        self.0.as_deref().unwrap_or_default().read_span(
+        let contents = self.0.as_deref().unwrap_or_default().read_span(
             span,
             context_lines_before,
             context_lines_after,
-        )
+        )?;
+        Ok(Box::new(
+            MietteSpanContents::new(
+                contents.data(),
+                *contents.span(),
+                contents.line(),
+                contents.column(),
+                contents.line_count(),
+            )
+            .with_language("Rust"),
+        ))
     }
 }
 
@@ -44,6 +54,7 @@ impl Diag {
             Theme::Unicode => GraphicalReportHandler::new(),
             Theme::UnicodeNoColor => {
                 GraphicalReportHandler::new_themed(GraphicalTheme::unicode_nocolor())
+                    .without_syntax_highlighting()
             }
         }
         .with_context_lines(0)

@@ -18,6 +18,7 @@ use crate::{
             },
         },
         db::Db,
+        diag::Diag,
         ir::{
             rust::{Crate, Rust, usages::UsageGraph},
             shim::Shim,
@@ -76,7 +77,7 @@ impl<'a> Project<'a> {
 
     /// A shim reachable from the project's local crate.
     pub fn reachable_shim(self, db: &dyn Db) -> Shim<'_> {
-        Rust::get(db).shim_reachable_from(UsageGraph::new(db, [self.src_crate(db).root(db)]))
+        Rust::get(db).shim_reachable_from(db, UsageGraph::new(db, [self.src_crate(db).root(db)]))
     }
 
     /// Project root directory.
@@ -171,7 +172,11 @@ impl<'a> CursedCrate<'a> {
             platform: self.platform,
         });
 
-        let lib = self.project.reachable_shim(db).render(db, self.platform);
+        let lib = self
+            .project
+            .reachable_shim(db)
+            .render(db, self.platform)
+            .clone();
         let build = self
             .platform
             .build_script_body()

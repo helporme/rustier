@@ -5,6 +5,7 @@ export declare class Server {
   constructor(cfg: Config)
   change(change: ServerChange): void
   build(platform: ServerPlatform, release: boolean): ServerBuildOutput
+  check(): Array<ServerDiagnostic>
   load(platform: ServerPlatform, path: string): string | null
 }
 
@@ -28,6 +29,33 @@ export interface ServerBuildOutput {
 export interface ServerChange {
   filePath: string
   contents?: string
+}
+
+export interface ServerDiagnostic {
+  code?: string
+  message: string
+  /** Complete miette report, including labels, help, and related diagnostics. */
+  rendered: string
+  severity: ServerDiagnosticSeverity
+  file?: string
+  loc?: ServerDiagnosticLocation
+  /** A source excerpt, distinct from the full rendered report. */
+  frame?: string
+  url?: string
+}
+
+export interface ServerDiagnosticLocation {
+  file?: string
+  /** One-based line number. */
+  line: number
+  /** Zero-based UTF-16 column, matching JavaScript source positions. */
+  column: number
+}
+
+export declare const enum ServerDiagnosticSeverity {
+  Error = 0,
+  Warning = 1,
+  Advice = 2
 }
 
 /** The platform to build for. */

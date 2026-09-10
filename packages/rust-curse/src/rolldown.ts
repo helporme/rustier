@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import path, { resolve } from 'node:path'
 import { platform as profiles } from 'node:process'
 import type { Plugin } from 'rolldown'
-import { Server, ServerPlatform, ServerWasmTarget } from 'rust-curse-native'
+import { Server, ServerDiagnosticSeverity, ServerPlatform, ServerWasmTarget } from 'rust-curse-native'
 
 export type RustCurseOptions = {
   /**
@@ -108,6 +108,22 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
       }
       this.addWatchFile(manifestPath)
       this.addWatchFile(path.join(rootDir, 'Cargo.lock'))
+
+      for (const diagnostic of server.check()) {
+        const file = diagnostic.loc?.file ?? diagnostic.file
+        const log = {
+          pluginCode: diagnostic.code,
+          message: diagnostic.rendered,
+          id: file,
+          // rolldown 1.0's logger requires a filename when loc is present
+          loc: diagnostic.loc && file ? { ...diagnostic.loc, file } : undefined,
+          url: diagnostic.url,
+          meta: { diagnostic },
+        }
+        if (diagnostic.severity === ServerDiagnosticSeverity.Error) this.error(log)
+        else if (diagnostic.severity === ServerDiagnosticSeverity.Warning) this.warn(log)
+        else this.info(log)
+      }
 
       for (const profile of Object.values(options.profiles)) {
         let output = server.build(

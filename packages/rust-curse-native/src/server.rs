@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use napi_derive::napi;
 
@@ -10,6 +10,7 @@ use crate::{
     },
 };
 
+mod diag;
 mod project;
 mod toolchain;
 mod workspace;
@@ -106,6 +107,19 @@ impl Server {
     }
 
     #[napi]
+    pub fn check(&self) -> Vec<ServerDiagnostic> {
+        let db = self.ws.db();
+        self.ws
+            .project()
+            .reachable_shim(db)
+            .check(db)
+            .into_iter()
+            .cloned()
+            .map(ServerDiagnostic::from)
+            .collect()
+    }
+
+    #[napi]
     pub fn load(&self, platform: ServerPlatform, path: String) -> Option<String> {
         let db = self.ws.db();
 
@@ -151,4 +165,32 @@ pub struct ServerBuildOutput {
     /// The paths to the built binaries that should be located next to the
     /// project's built .js file in dist folder.
     pub bin_paths: Vec<String>,
+}
+
+#[napi]
+pub enum ServerDiagnosticSeverity {
+    Error,
+    Warning,
+    Advice,
+}
+
+#[napi(object)]
+pub struct ServerDiagnostic {
+    pub code: Option<String>,
+    pub message: String,
+    pub severity: ServerDiagnosticSeverity,
+    pub file: Option<String>,
+    pub loc: Option<ServerDiagnosticLocation>,
+    pub url: Option<String>,
+    /// Complete miette report, including labels, help, and related diagnostics.
+    pub rendered: String,
+}
+
+#[napi(object)]
+pub struct ServerDiagnosticLocation {
+    pub file: Option<String>,
+    /// One-based line number.
+    pub line: u32,
+    /// Zero-based UTF-16 column, matching JavaScript source positions.
+    pub column: u32,
 }
