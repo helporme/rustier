@@ -3,12 +3,6 @@
 /** The rust-curse server. */
 export declare class Server {
   static create(cfg: Config): ServerCreateResult
-  /**
-   * Subscribe to this server's tracing events, replacing the previous
-   * callback. Pass null to unsubscribe. Startup logs are replayed on
-   * subscription. Callbacks run asynchronously on the JS thread and do not
-   * keep the Node process alive.
-   */
   onLog(callback?: (((arg: ServerLog) => void)) | undefined | null): void
   change(change: ServerChange): ServerChangeResult
   build(platform: ServerPlatform, release: boolean): ServerBuildResult

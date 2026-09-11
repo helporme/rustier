@@ -41,12 +41,14 @@ macro_rules! assert_ts_snap {
         expression: |$db:ident, $printer:ident| $expression:block $(,)?
     ) => {{
         let __db = $crate::test_db! { $($source)* };
-        let __compiled = $crate::compiler::codegen::fragment::FragmentPrint::print(
-            $crate::compiler::codegen::fragment::fragment(|$printer| {
-                let $db = &__db;
-                $expression
-            }),
-        );
+        let __compiled = ::ra_ap_hir::attach_db(&__db, || {
+            $crate::compiler::codegen::fragment::FragmentPrint::print(
+                $crate::compiler::codegen::fragment::fragment(|$printer| {
+                    let $db = &__db;
+                    $expression
+                }),
+            )
+        });
 
         let (snapshot, snapshot_path) =
             $crate::compiler::codegen::ts::test::build_ts_snapshot(

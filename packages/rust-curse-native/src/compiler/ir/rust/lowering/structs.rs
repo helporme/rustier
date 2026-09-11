@@ -1,5 +1,5 @@
 use miette::{Diagnostic, SourceSpan};
-use ra_ap_hir::{Adt, GenericDef, HasAttrs as _, attach_db};
+use ra_ap_hir::{Adt, GenericDef, HasAttrs as _};
 use thiserror::Error;
 
 use super::{adt_fqn, diagnostic_location, lower_impl, lower_item_span, lower_shape};
@@ -36,12 +36,10 @@ impl<'db> Struct<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir::rust) fn lower_impls(self, db: &'db dyn Db) -> Vec<Impl<'db>> {
-        attach_db(db, || {
-            ra_ap_hir::Impl::all_for_type(db, self.hir(db).ty(db))
-        })
-        .into_iter()
-        .filter_map(|impl_| lower_impl(db, impl_))
-        .collect()
+        ra_ap_hir::Impl::all_for_type(db, self.hir(db).ty(db))
+            .into_iter()
+            .filter_map(|impl_| lower_impl(db, impl_))
+            .collect()
     }
 
     #[salsa::tracked(returns(ref))]

@@ -1,6 +1,4 @@
-use ra_ap_hir::{
-    Adt, AssocItem, GenericDef, HasSource as _, HasVisibility as _, Visibility, attach_db,
-};
+use ra_ap_hir::{Adt, AssocItem, GenericDef, HasSource as _, HasVisibility as _, Visibility};
 
 use super::{lower_enum, lower_function, lower_item_span, lower_struct};
 use crate::compiler::{
@@ -50,7 +48,7 @@ impl<'db> Impl<'db> {
 }
 
 pub(super) fn lower_impl<'db>(db: &'db dyn Db, hir: ra_ap_hir::Impl) -> Option<Impl<'db>> {
-    if attach_db(db, || hir.trait_(db)).is_some()
+    if hir.trait_(db).is_some()
         || !GenericDef::Impl(hir).params(db).is_empty()
         || hir.is_unsafe(db)
         || hir.is_negative(db)
@@ -64,7 +62,7 @@ pub(super) fn lower_impl<'db>(db: &'db dyn Db, hir: ra_ap_hir::Impl) -> Option<I
 }
 
 fn lower_impl_target<'db>(db: &'db dyn Db, hir: ra_ap_hir::Impl) -> Option<ImplTarget<'db>> {
-    let target = attach_db(db, || hir.self_ty(db)).as_adt()?;
+    let target = hir.self_ty(db).as_adt()?;
     if target.visibility(db) != Visibility::Public {
         return None;
     }

@@ -1,6 +1,6 @@
 use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{
-    HasAttrs as _, HasVisibility as _, StructKind, Variant as HirFieldParent, Visibility, attach_db,
+    HasAttrs as _, HasVisibility as _, StructKind, Variant as HirFieldParent, Visibility,
 };
 use ra_ap_syntax::{AstNode as _, ast};
 use thiserror::Error;
@@ -33,7 +33,7 @@ impl<'db> Field<'db> {
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_value_type(self, db: &'db dyn Db) -> ValueType<'db> {
         let hir = self.hir(db);
-        let type_ = attach_db(db, || hir.ty(db));
+        let type_ = hir.ty(db);
         lower_type(db, &type_, hir.parent_def(db).module(db).krate(db))
             .expect("unsupported fields are discarded while lowering their parent shape")
             .deborrow()
@@ -43,7 +43,7 @@ impl<'db> Field<'db> {
     pub(in crate::compiler::ir::rust) fn lower_is_readonly(self, db: &'db dyn Db) -> bool {
         let hir = self.hir(db);
         let crate_ = hir.parent_def(db).module(db).krate(db);
-        let type_ = attach_db(db, || hir.ty(db));
+        let type_ = hir.ty(db);
         matches!(
             lower_type(db, &type_, crate_).map(Type::deborrow),
             Ok(ValueType::Struct(_) | ValueType::Enum(_))
@@ -71,7 +71,7 @@ pub(super) fn lower_field<'db>(
         return Ok(None);
     }
     let crate_ = field.parent_def(db).module(db).krate(db);
-    let type_ = attach_db(db, || field.ty(db));
+    let type_ = field.ty(db);
     let mut causes = Vec::new();
     if has_explicit_reference_lifetime(db, field) {
         causes.push(TypeLowerErrorUnsupported::LifetimeRef);

@@ -89,12 +89,8 @@ impl Server {
             self.ws
                 .change(change.into())
                 .map_err(ServerDiagnostic::from)?;
-            let db = self.ws.db();
             self.ws
-                .project()
-                .ts()
-                .sync(db)
-                .exec(db)
+                .with_db(|db| self.ws.project().ts().sync(db).exec(db))
                 .map_err(ServerDiagnostic::from)?;
             Ok(())
         })()
@@ -125,22 +121,25 @@ impl Server {
             {
                 let _span = tracing::info_span!(parent: None, "TypeScript declaration generation")
                     .entered();
-                project.ts().sync(self.ws.db()).exec(self.ws.db())?;
+                self.ws.with_db(|db| project.ts().sync(db).exec(db))?;
             }
 
             let cursed_crate = project.cursed_crate(platform);
             {
                 let _span = tracing::debug_span!("Rust shim generation").entered();
-                cursed_crate.sync(self.ws.db()).exec()?;
+                self.ws.with_db(|db| cursed_crate.sync(db).exec())?;
             }
 
-            let artifact = {
+            let bin_path = {
                 let _span = tracing::info_span!("Rust artifact compilation").entered();
-                cursed_crate
-                    .build(self.ws.db(), release)
-                    .exec(self.ws.db_mut(), &self.toolchain)?
+                let build = self.ws.with_db(|db| cursed_crate.build(db, release));
+                self.ws.with_db_mut(|db| {
+                    build
+                        .exec(db, &self.toolchain)
+                        .map(|artifact| artifact.bin_path.as_str().to_owned())
+                })?
             };
-            Ok(vec![artifact.bin_path.as_str().to_owned()])
+            Ok(vec![bin_path])
         })();
 
         if let Err(error) = &result {
@@ -157,15 +156,16 @@ impl Server {
     pub fn check(&self) -> Vec<ServerDiagnostic> {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
         let _span = tracing::info_span!("Rust API check").entered();
-        let db = self.ws.db();
-        let shim = self.ws.project().reachable_shim(db);
-        let diagnostics = shim.check(db);
+        self.ws.with_db(|db| {
+            let shim = self.ws.project().reachable_shim(db);
+            let diagnostics = shim.check(db);
 
-        diagnostics
-            .into_iter()
-            .cloned()
-            .map(ServerDiagnostic::from)
-            .collect()
+            diagnostics
+                .into_iter()
+                .cloned()
+                .map(ServerDiagnostic::from)
+                .collect()
+        })
     }
 
     #[napi]
@@ -173,12 +173,13 @@ impl Server {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
         let _span = tracing::debug_span!("Rust facade rendering", %path).entered();
 
-        let db = self.ws.db();
-        self.ws
-            .project()
-            .cursed_crate(platform.into())
-            .js(db, &path)
-            .cloned()
+        self.ws.with_db(|db| {
+            self.ws
+                .project()
+                .cursed_crate(platform.into())
+                .js(db, &path)
+                .cloned()
+        })
     }
 }
 

@@ -1,7 +1,6 @@
 use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{
     Access, AsAssocItem as _, AssocItemContainer, GenericDef, HasAttrs as _, HasSource as _,
-    attach_db,
 };
 use ra_ap_syntax::{AstNode as _, ast};
 use thiserror::Error;
@@ -62,8 +61,7 @@ impl<'db> Function<'db> {
         let hir = self.hir(db);
         let crate_ = hir.module(db).krate(db);
 
-        // Signature erasure can use the next solver's thread-local database.
-        attach_db(db, || hir.params_without_self(db))
+        hir.params_without_self(db)
             .into_iter()
             .enumerate()
             .map(|(index, param)| {
@@ -85,7 +83,7 @@ impl<'db> Function<'db> {
         db: &'db dyn Db,
     ) -> Option<ValueType<'db>> {
         let hir = self.hir(db);
-        let type_ = attach_db(db, || hir.ret_type(db));
+        let type_ = hir.ret_type(db);
         if type_.is_unit() {
             return None;
         }
@@ -157,7 +155,7 @@ pub(super) fn lower_function<'db>(
     if let Some(receiver) = hir.self_param(db)
         && receiver.access(db) == Access::Owned
     {
-        let receiver_type = attach_db(db, || receiver.ty(db));
+        let receiver_type = receiver.ty(db);
         match lower_type(db, &receiver_type, crate_) {
             Ok(Type::Value(ValueType::Struct(struct_)))
                 if !is_clonable(db, &receiver_type, crate_) =>
@@ -177,10 +175,7 @@ pub(super) fn lower_function<'db>(
         }
     }
 
-    for (index, param) in attach_db(db, || hir.params_without_self(db))
-        .into_iter()
-        .enumerate()
-    {
+    for (index, param) in hir.params_without_self(db).into_iter().enumerate() {
         let name = param
             .name(db)
             .map(|name| name.display(db, crate_.edition(db)).to_string())
@@ -231,7 +226,7 @@ pub(super) fn lower_function<'db>(
         }
     }
 
-    let return_type = attach_db(db, || hir.ret_type(db));
+    let return_type = hir.ret_type(db);
     if !return_type.is_unit() {
         match lower_type(db, &return_type, crate_) {
             Ok(Type::Borrowed { .. }) => causes.push(FunctionLowerCause::BorrowedReturn),

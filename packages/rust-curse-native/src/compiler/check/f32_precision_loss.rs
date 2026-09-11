@@ -82,7 +82,7 @@ pub struct F32PrecisionLoss {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{compiler::check::tests::diagnostic_codes, test_db};
+    use crate::{compiler::check::tests::diagnostic_codes, diagnostic_test_db as test_db};
 
     fn assert_f32_precision_loss(db: &dyn Db) {
         assert_eq!(diagnostic_codes(db), ["rust_curse::f32_precision_loss"]);

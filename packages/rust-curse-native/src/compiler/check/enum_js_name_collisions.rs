@@ -83,7 +83,7 @@ pub enum EnumJsNameCollision {
 
 #[cfg(test)]
 mod tests {
-    use crate::{compiler::check::tests::diagnostic_codes, test_db};
+    use crate::{compiler::check::tests::diagnostic_codes, diagnostic_test_db as test_db};
 
     #[test]
     fn warns_when_type_field_conflicts_with_discriminant() {

@@ -57,21 +57,37 @@ mod tests {
     use super::Db;
     use crate::{
         compiler::ir::rust::{Rust, usages::UsageGraph},
-        test_db,
+        diagnostic_test_db as test_db,
     };
 
-    pub(super) fn diagnostic_codes(db: &dyn Db) -> Vec<String> {
-        let crate_ = Rust::get(db)
-            .crates(db)
-            .first()
-            .expect("test crate should be lowered");
+    /// Diagnostics visit local crates only; codegen fixtures need not opt in.
+    #[macro_export]
+    macro_rules! diagnostic_test_db {
+        ($($source:tt)*) => {{
+            let mut db = $crate::test_db! { $($source)* };
+            $crate::compiler::inputs::LocalCrates::set(
+                &mut db,
+                [$crate::compiler::path::FilePath::new_virtual("/src/lib.rs")
+                    .expect("valid fixture root")],
+            );
+            db
+        }};
+    }
 
-        Rust::get(db)
-            .shim_reachable_from(db, UsageGraph::new(db, [crate_.root(db)]))
-            .check(db)
-            .iter()
-            .filter_map(|diag| diag.inner.code().map(|code| code.to_string()))
-            .collect()
+    pub(super) fn diagnostic_codes(db: &dyn Db) -> Vec<String> {
+        ra_ap_hir::attach_db(db, || {
+            let crate_ = Rust::get(db)
+                .crates(db)
+                .first()
+                .expect("test crate should be lowered");
+
+            Rust::get(db)
+                .shim_reachable_from(db, UsageGraph::new(db, [crate_.root(db)]))
+                .check(db)
+                .iter()
+                .filter_map(|diag| diag.inner.code().map(|code| code.to_string()))
+                .collect()
+        })
     }
 
     #[test]

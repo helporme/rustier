@@ -140,17 +140,18 @@ impl ProgramCompiler {
             )
             .map_err(|error| format!("configure {platform_name} compiler workspace: {error}"))?;
             let db = &db;
-            let rust = Rust::get(db);
-            let source = rust
-                .crates(db)
-                .iter()
-                .find(|crate_| crate_.name(db) == SOURCE_CRATE_NAME)
-                .copied()
-                .expect("source crate should be lowered");
+            let shim = ra_ap_hir::attach_db(db, || {
+                let rust = Rust::get(db);
+                let source = rust
+                    .crates(db)
+                    .iter()
+                    .find(|crate_| crate_.name(db) == SOURCE_CRATE_NAME)
+                    .copied()
+                    .expect("source crate should be lowered");
 
-            let shim = rust
-                .shim_reachable_from(db, UsageGraph::new(db, vec![source.root(db)]))
-                .render(db, platform);
+                rust.shim_reachable_from(db, UsageGraph::new(db, vec![source.root(db)]))
+                    .render(db, platform)
+            });
 
             write_generated_crate(&generated_dir, &workspace.source_dir, platform, shim)?;
 

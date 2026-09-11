@@ -166,12 +166,14 @@ impl ServerWorkspace {
         Project::new(&self.manifest_path, &self.root_file, &self.package_name)
     }
 
-    pub fn db(&self) -> &RootDatabase {
-        &self.db
+    /// Runs a complete compiler query with rust-analyzer's database attached.
+    pub fn with_db<R>(&self, f: impl FnOnce(&RootDatabase) -> R) -> R {
+        ra_ap_hir::attach_db(&self.db, || f(&self.db))
     }
 
-    pub fn db_mut(&mut self) -> &mut RootDatabase {
-        &mut self.db
+    /// Updates database inputs without retaining a shared database attachment.
+    pub fn with_db_mut<R>(&mut self, f: impl FnOnce(&mut RootDatabase) -> R) -> R {
+        f(&mut self.db)
     }
 }
 
