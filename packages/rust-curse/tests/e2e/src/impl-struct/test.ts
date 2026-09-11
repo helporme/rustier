@@ -46,7 +46,7 @@ it('lets the method shadow a field with the same name', () => {
 
   expect(counter.value()).toBe(7)
   expect(typeof runtimeCounter.value).toBe('function')
-  expect(rustCurseDiags.join('\n')).toContain(
+  expect(rustCurseDiags.map(diag => diag.rendered).join('\n')).toContain(
     'rust_curse::field_shadowed_by_method',
   )
 })

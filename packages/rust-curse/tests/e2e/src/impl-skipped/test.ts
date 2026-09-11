@@ -30,7 +30,7 @@ it('does not export generic targets or unsupported associated items', () => {
 })
 
 it('reports unsupported methods and generic targets', () => {
-  const renderedDiags = rustCurseDiags.join('\n')
+  const renderedDiags = rustCurseDiags.map(diag => diag.rendered).join('\n')
 
   expect(renderedDiags).toContain('rust_curse::unsupported_generic_fn')
   expect(renderedDiags).toContain('rust_curse::unsupported_unsafe_fn')

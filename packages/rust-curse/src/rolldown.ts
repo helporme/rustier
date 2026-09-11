@@ -1,7 +1,13 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import type { Plugin, PluginContext, RolldownError } from 'rolldown'
-import { Server, type ServerDiagnostic, ServerDiagnosticSeverity, ServerPlatform, ServerWasmTarget } from 'rust-curse-native'
+import {
+  Server,
+  type ServerDiagnostic,
+  ServerDiagnosticSeverity,
+  ServerPlatform,
+  ServerWasmTarget,
+} from 'rust-curse-native'
 
 export type RustCurseOptions = {
   /**
@@ -29,7 +35,6 @@ export interface RustCurseProfile {
 }
 
 export type RustCurseTarget = 'node' | 'wasm' | 'wasm-node'
-
 
 /**
  * Compile Rust modules and make `.rs` files importable by Rolldown.
@@ -65,27 +70,37 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
     throw new Error('rust-curse requires activeProfile')
   }
 
-  let manifestPath = path.resolve(options.manifestPath ?? "./Cargo.toml")
-  let rootDir = path.dirname(manifestPath);
+  let ctx: PluginContext = null!
+
+  let manifestPath = path.resolve(options.manifestPath ?? './Cargo.toml')
+  let rootDir = path.dirname(manifestPath)
 
   const serverResult = Server.create({
     rootDir,
-    manifestPath
+    manifestPath,
   })
 
-  const getServer = (context: PluginContext) =>
-    unwrap(context, serverResult)
+  const getServer = (ctx: PluginContext) => unwrap(ctx, serverResult)
 
   return {
     name: 'rust-curse',
+
+    api: {
+      get server() {
+        return ctx ? getServer(ctx) : undefined
+      },
+    },
 
     options(inputOptions) {
       if (inputOptions.watch === false) return null
 
       const watch = inputOptions.watch ?? {}
-      const exclude = watch.exclude == null
-        ? []
-        : Array.isArray(watch.exclude) ? watch.exclude : [watch.exclude]
+      const exclude =
+        watch.exclude == null
+          ? []
+          : Array.isArray(watch.exclude)
+            ? watch.exclude
+            : [watch.exclude]
 
       return {
         ...inputOptions,
@@ -98,14 +113,22 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
     },
 
     buildStart() {
-      const server = getServer(this);
+      ctx = this
+
+      const server = getServer(this)
       const srcDir = path.join(rootDir, 'src')
 
       // FIXME: replace it with enumerating files from the rust module graph
       // or run a separate file watcher since it's kind of crazy to explicitly register each path
       this.addWatchFile(srcDir)
-      for (const entry of readdirSync(srcDir, { recursive: true, withFileTypes: true })) {
-        if (entry.isDirectory() || (entry.isFile() && entry.name.endsWith('.rs'))) {
+      for (const entry of readdirSync(srcDir, {
+        recursive: true,
+        withFileTypes: true,
+      })) {
+        if (
+          entry.isDirectory() ||
+          (entry.isFile() && entry.name.endsWith('.rs'))
+        ) {
           this.addWatchFile(path.join(entry.parentPath, entry.name))
         }
       }
@@ -115,10 +138,13 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
       reportDiagnostics(this, server.check())
 
       for (const profile of Object.values(options.profiles)) {
-        const output = unwrap(this, server.build(
-          toServerPlatform(profile.target),
-          profile.release ?? false,
-        ))
+        const output = unwrap(
+          this,
+          server.build(
+            toServerPlatform(profile.target),
+            profile.release ?? false,
+          ),
+        )
 
         for (let binPath of output.binPaths) {
           this.emitFile({
@@ -131,11 +157,9 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
     },
 
     watchChange(filePath, change) {
-      const server = getServer(this);
+      const server = getServer(this)
       const contents =
-        change.event === 'delete'
-          ? undefined
-          : readFileSync(filePath, 'utf8')
+        change.event === 'delete' ? undefined : readFileSync(filePath, 'utf8')
 
       unwrap(this, server.change({ filePath, contents }))
     },
@@ -159,7 +183,7 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
         throw new Error(`Unknown Rust build profile: ${profileName}`)
       }
 
-      const server = getServer(this);
+      const server = getServer(this)
       return server.load(toServerPlatform(profile.target), filePath)
     },
   }
@@ -176,14 +200,18 @@ function toServerPlatform(target: RustCurseTarget): ServerPlatform {
   }
 }
 
-function reportDiagnostics(context: PluginContext, diagnostics: ServerDiagnostic[]) {
+function reportDiagnostics(
+  context: PluginContext,
+  diagnostics: ServerDiagnostic[],
+) {
   let failure: RolldownError | undefined
   for (const diagnostic of diagnostics) {
     const log = diagnosticLog(diagnostic)
     if (diagnostic.severity === ServerDiagnosticSeverity.Error) {
       if (failure) failure.message += `\n${log.message}`
       else failure = { ...log, stack: '' }
-    } else if (diagnostic.severity === ServerDiagnosticSeverity.Warning) context.warn(log)
+    } else if (diagnostic.severity === ServerDiagnosticSeverity.Warning)
+      context.warn(log)
     else context.info(log)
   }
   if (failure) context.error(failure)

@@ -4,7 +4,7 @@ import * as bindings from './test.rs'
 
 // This only checks that diagnostics are emitted at all. Unit tests cover each
 // individual diagnostic in detail.
-const renderedDiags = rustCurseDiags.join('\n')
+const renderedDiags = rustCurseDiags.map(diag => diag.rendered).join('\n')
 
 it('exports supported functions alongside skipped functions', () => {
   expect(bindings.supported()).toBe(42)
