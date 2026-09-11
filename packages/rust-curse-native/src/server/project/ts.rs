@@ -2,7 +2,10 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     compiler::{db::Db, ir::decals::Decals},
-    server::{project::Project, write_file::write_file},
+    server::{
+        project::{Project, ProjectError},
+        write_file::write_file,
+    },
 };
 
 /// A project's TypeScript definition.
@@ -43,7 +46,7 @@ pub struct ProjectTsSync<'a> {
 
 impl<'db> ProjectTsSync<'db> {
     /// Syncs the decals IR to the file system.
-    pub fn exec(&self, db: &'db dyn Db) -> anyhow::Result<()> {
+    pub fn exec(&self, db: &'db dyn Db) -> Result<(), ProjectError> {
         // Validate every local module before writing any output.
         let modules = self
             .decals
@@ -56,12 +59,13 @@ impl<'db> ProjectTsSync<'db> {
                     .strip_prefix(self.root_dir)
                     .ok()
                     .filter(|_| path.is_real())
-                    .ok_or_else(|| {
-                        anyhow::anyhow!("Local module outside root: {:?}", path.as_path())
+                    .ok_or_else(|| ProjectError::ModuleOutsideRoot {
+                        path: path.as_path().to_owned(),
+                        root: self.root_dir.to_owned(),
                     })?;
                 Ok((module, relative))
             })
-            .collect::<anyhow::Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>, ProjectError>>()?;
 
         for (module, relative) in modules {
             let Some(file_name) = relative.file_name() else {

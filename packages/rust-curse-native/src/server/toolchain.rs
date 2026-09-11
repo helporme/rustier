@@ -7,8 +7,18 @@ use std::{
     process::{Command, Output, Stdio},
 };
 
-use anyhow::{Context, Result, bail, ensure};
 use cargo_metadata::Message;
+
+/// A failed tool invocation, with compiler diagnostics and human-readable
+/// output.
+#[derive(Debug, thiserror::Error, miette::Diagnostic)]
+#[error("{message}")]
+#[diagnostic(code(rust_curse::build_failed))]
+pub struct BuildFailure {
+    pub message: String,
+    #[help]
+    pub rendered: String,
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct ToolchainOps<'a> {
@@ -43,14 +53,19 @@ struct RustTool {
 }
 
 impl RustTool {
-    fn configure(&self, command: &mut Command) -> Result<()> {
+    fn configure(&self, command: &mut Command) -> Result<(), ToolchainError> {
         let bin = self
             .cargo
             .parent()
-            .context("Cargo executable has no parent")?;
+            .ok_or_else(|| ToolchainError::MissingParent {
+                path: self.cargo.clone(),
+            })?;
         let mut paths = vec![bin.to_owned()];
         paths.extend(env::split_paths(&env::var_os("PATH").unwrap_or_default()));
-        command.env("PATH", env::join_paths(paths)?);
+        command.env(
+            "PATH",
+            env::join_paths(paths).map_err(ToolchainError::InvalidSearchPath)?,
+        );
         command.env("CARGO", &self.cargo);
         if let Some((rustup_home, cargo_home)) = &self.homes {
             command.env("RUSTUP_HOME", rustup_home);
@@ -62,7 +77,7 @@ impl RustTool {
         Ok(())
     }
 
-    fn command(&self) -> Result<Command> {
+    fn command(&self) -> Result<Command, ToolchainError> {
         let mut command = Command::new(&self.cargo);
         self.configure(&mut command)?;
         Ok(command)
@@ -71,12 +86,16 @@ impl RustTool {
 
 impl Toolchain {
     /// Installs or locates all tools.
-    pub fn install(ops: ToolchainOps<'_>) -> Result<Self> {
+    pub fn install(ops: ToolchainOps<'_>) -> Result<Self, ToolchainError> {
         let cargo = install_rust(&ops.cargo)?;
         let napi = resolve(&ops.napi, "napi", |root| {
             let bin = root.join("node_modules/.bin").join(script("napi"));
             if !working(&bin) {
-                fs::create_dir_all(root)?;
+                fs::create_dir_all(root).map_err(|source| ToolchainError::Io {
+                    operation: "create tool installation directory",
+                    path: root.to_owned(),
+                    source,
+                })?;
                 let mut command = Command::new(discover("npm")?);
                 command
                     .args(["install", "--ignore-scripts", "--no-audit", "--no-fund"])
@@ -120,16 +139,27 @@ pub struct NapiBuildCommand<'a> {
 }
 
 impl NapiBuildCommand<'_> {
-    pub fn exec(&self, toolchain: &Toolchain) -> Result<NapiBuildOutput> {
-        let manifest = fs::canonicalize(self.manifest_path)
-            .with_context(|| format!("resolve manifest {}", self.manifest_path.display()))?;
-        let root = manifest.parent().context("manifest has no parent")?;
+    pub fn exec(&self, toolchain: &Toolchain) -> Result<NapiBuildOutput, ToolchainError> {
+        let manifest =
+            fs::canonicalize(self.manifest_path).map_err(|source| ToolchainError::Io {
+                operation: "resolve manifest",
+                path: self.manifest_path.to_owned(),
+                source,
+            })?;
+        let root = manifest
+            .parent()
+            .ok_or_else(|| ToolchainError::MissingParent {
+                path: manifest.clone(),
+            })?;
         let output_dir = prepare_output(self.output_dir)?;
         // The NAPI CLI requires a Node package root; preserve any existing file.
         let package = root.join("package.json");
         if !package.exists() {
-            fs::write(&package, "{\"private\":true}\n")
-                .with_context(|| format!("create {}", package.display()))?;
+            fs::write(&package, "{\"private\":true}\n").map_err(|source| ToolchainError::Io {
+                operation: "create package manifest",
+                path: package.clone(),
+                source,
+            })?;
         }
         let mut command = Command::new(&toolchain.napi);
         toolchain.cargo.configure(&mut command)?;
@@ -144,21 +174,32 @@ impl NapiBuildCommand<'_> {
         if self.release {
             command.arg("--release");
         }
+        command.args(["--", "--message-format=json-diagnostic-rendered-ansi"]);
         run(&mut command)?;
         let js_path = require_file(output_dir.join("index.js"))?;
         let mut addons = Vec::new();
-        for entry in fs::read_dir(&output_dir)? {
-            let path = entry?.path();
+        for entry in fs::read_dir(&output_dir).map_err(|source| ToolchainError::Io {
+            operation: "read output directory",
+            path: output_dir.clone(),
+            source,
+        })? {
+            let path = entry
+                .map_err(|source| ToolchainError::Io {
+                    operation: "read output directory entry in",
+                    path: output_dir.clone(),
+                    source,
+                })?
+                .path();
             if path.is_file() && path.extension().is_some_and(|ext| ext == "node") {
                 addons.push(path);
             }
         }
-        ensure!(
-            addons.len() == 1,
-            "expected one .node file in {}, found {:?}",
-            output_dir.display(),
-            addons
-        );
+        if addons.len() != 1 {
+            return Err(ToolchainError::InvalidAddonOutput {
+                directory: output_dir,
+                addons,
+            });
+        }
         Ok(NapiBuildOutput {
             node_path: addons.remove(0),
             js_path,
@@ -197,13 +238,18 @@ pub struct WasmBindgenCommand<'a> {
 
 impl WasmBindgenCommand<'_> {
     /// Runs wasm-bindgen and verifies both generated artifacts.
-    pub fn exec(&self, toolchain: &Toolchain) -> Result<WasmBindgenOutput> {
-        let input = fs::canonicalize(self.wasm_path)
-            .with_context(|| format!("resolve WASM input {}", self.wasm_path.display()))?;
+    pub fn exec(&self, toolchain: &Toolchain) -> Result<WasmBindgenOutput, ToolchainError> {
+        let input = fs::canonicalize(self.wasm_path).map_err(|source| ToolchainError::Io {
+            operation: "resolve WASM input",
+            path: self.wasm_path.to_owned(),
+            source,
+        })?;
         let name = input
             .file_stem()
             .and_then(|name| name.to_str())
-            .context("WASM input must have a UTF-8 file stem")?;
+            .ok_or_else(|| ToolchainError::InvalidWasmName {
+                path: input.clone(),
+            })?;
         let output_dir = prepare_output(self.output_dir)?;
         let mut command = Command::new(&toolchain.wasm_bindgen);
         command
@@ -248,17 +294,27 @@ pub struct CargoBuildCommand<'a> {
 }
 
 impl CargoBuildCommand<'_> {
-    pub fn exec(&self, toolchain: &Toolchain) -> Result<CargoBuildOutput> {
-        let manifest = fs::canonicalize(self.manifest_path)
-            .with_context(|| format!("resolve manifest {}", self.manifest_path.display()))?;
+    pub fn exec(&self, toolchain: &Toolchain) -> Result<CargoBuildOutput, ToolchainError> {
+        let manifest =
+            fs::canonicalize(self.manifest_path).map_err(|source| ToolchainError::Io {
+                operation: "resolve manifest",
+                path: self.manifest_path.to_owned(),
+                source,
+            })?;
         let mut command = toolchain.cargo.command()?;
         command
-            .args(["build", "--message-format=json-render-diagnostics"])
+            .args(["build", "--message-format=json-diagnostic-rendered-ansi"])
             .arg("--manifest-path")
             .arg(&manifest)
             .arg("--target-dir")
             .arg(absolute(self.target_dir)?)
-            .current_dir(manifest.parent().context("manifest has no parent")?);
+            .current_dir(
+                manifest
+                    .parent()
+                    .ok_or_else(|| ToolchainError::MissingParent {
+                        path: manifest.clone(),
+                    })?,
+            );
         if let Some(target) = self.target {
             command.arg("--target").arg(target);
         }
@@ -269,7 +325,7 @@ impl CargoBuildCommand<'_> {
         let mut artifacts = Vec::new();
         for message in Message::parse_stream(Cursor::new(output.stdout)) {
             if let Message::CompilerArtifact(artifact) =
-                message.context("parse Cargo build output")?
+                message.map_err(ToolchainError::ParseCargoOutput)?
             {
                 artifacts.extend(
                     artifact
@@ -292,7 +348,7 @@ pub struct CargoBuildOutput {
     pub artifacts: Vec<PathBuf>,
 }
 
-fn install_rust(opts: &ToolInstallationOpts<'_>) -> Result<RustTool> {
+fn install_rust(opts: &ToolInstallationOpts<'_>) -> Result<RustTool, ToolchainError> {
     if let ToolInstallationOpts::Install(root) = opts {
         let root = absolute(root)?;
         let rustup_home = root.join("rustup");
@@ -321,7 +377,7 @@ fn install_rust(opts: &ToolInstallationOpts<'_>) -> Result<RustTool> {
         let output = run(&mut which)?;
         let cargo = PathBuf::from(
             String::from_utf8(output.stdout)
-                .context("rustup returned a non-UTF-8 path")?
+                .map_err(ToolchainError::InvalidRustupPath)?
                 .trim(),
         );
         let tool = RustTool {
@@ -339,19 +395,18 @@ fn install_rust(opts: &ToolInstallationOpts<'_>) -> Result<RustTool> {
 fn resolve(
     opts: &ToolInstallationOpts<'_>,
     name: &str,
-    install: impl FnOnce(&Path) -> Result<PathBuf>,
-) -> Result<PathBuf> {
+    install: impl FnOnce(&Path) -> Result<PathBuf, ToolchainError>,
+) -> Result<PathBuf, ToolchainError> {
     let path = match opts {
         ToolInstallationOpts::Locate(path) => absolute(path)?,
         ToolInstallationOpts::Discover => discover(name)?,
         ToolInstallationOpts::Install(root) => install(&absolute(root)?)?,
     };
-    run(Command::new(&path).arg("--version"))
-        .with_context(|| format!("validate {name} at {}", path.display()))?;
+    run(Command::new(&path).arg("--version"))?;
     Ok(path)
 }
 
-fn discover(name: &str) -> Result<PathBuf> {
+fn discover(name: &str) -> Result<PathBuf, ToolchainError> {
     let names = if cfg!(windows) {
         vec![executable(name), script(name), name.to_owned()]
     } else {
@@ -365,7 +420,9 @@ fn discover(name: &str) -> Result<PathBuf> {
             }
         }
     }
-    bail!("could not find a working {name} on PATH; install it or use Locate/Install")
+    Err(ToolchainError::ToolNotFound {
+        name: name.to_owned(),
+    })
 }
 
 fn working(path: &Path) -> bool {
@@ -384,35 +441,123 @@ fn script(name: &str) -> String {
     }
 }
 
-fn absolute(path: &Path) -> Result<PathBuf> {
-    std::path::absolute(path).with_context(|| format!("resolve {}", path.display()))
+fn absolute(path: &Path) -> Result<PathBuf, ToolchainError> {
+    std::path::absolute(path).map_err(|source| ToolchainError::Io {
+        operation: "resolve path",
+        path: path.to_owned(),
+        source,
+    })
 }
 
-fn prepare_output(path: &Path) -> Result<PathBuf> {
+fn prepare_output(path: &Path) -> Result<PathBuf, ToolchainError> {
     let path = absolute(path)?;
-    fs::create_dir_all(&path)
-        .with_context(|| format!("create output directory {}", path.display()))?;
+    fs::create_dir_all(&path).map_err(|source| ToolchainError::Io {
+        operation: "create output directory",
+        path: path.clone(),
+        source,
+    })?;
     Ok(path)
 }
 
-fn require_file(path: PathBuf) -> Result<PathBuf> {
-    ensure!(path.is_file(), "tool did not generate {}", path.display());
+fn require_file(path: PathBuf) -> Result<PathBuf, ToolchainError> {
+    if !path.is_file() {
+        return Err(ToolchainError::MissingOutput { path });
+    }
     Ok(path)
 }
 
-fn run(command: &mut Command) -> Result<Output> {
-    let description = format!("{command:?}");
-    tracing::debug!(command = %description, "running build tool");
-    let output = command
-        .stdin(Stdio::null())
-        .output()
-        .with_context(|| format!("failed to execute {description}"))?;
-    ensure!(
-        output.status.success(),
-        "{description} failed ({})\nstdout:\n{}\nstderr:\n{}",
-        output.status,
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr),
-    );
+fn run(command: &mut Command) -> Result<Output, ToolchainError> {
+    let program = Path::new(command.get_program())
+        .file_name()
+        .unwrap_or(command.get_program())
+        .to_string_lossy()
+        .into_owned();
+    let cwd = absolute(command.get_current_dir().unwrap_or_else(|| Path::new(".")))?;
+    tracing::debug!(%program, cwd = %cwd.display(), "running build tool");
+    let output =
+        command
+            .stdin(Stdio::null())
+            .output()
+            .map_err(|source| ToolchainError::CommandStartup {
+                program: program.clone(),
+                cwd: cwd.clone(),
+                source,
+            })?;
+    if !output.status.success() {
+        let mut failure = BuildFailure {
+            message: format!("{program} failed ({})", output.status),
+            rendered: String::new(),
+        };
+        // Parse compiler diagnostics from both streams, but prefer stderr for
+        // plain text: NAPI's stdout usually repeats the failure with a JS stack.
+        let has_stderr = !String::from_utf8_lossy(&output.stderr).trim().is_empty();
+        for (index, stream) in [&output.stderr, &output.stdout].into_iter().enumerate() {
+            let text = String::from_utf8_lossy(stream);
+            for message in Message::parse_stream(Cursor::new(text.as_bytes())) {
+                match message {
+                    Ok(Message::CompilerMessage(message)) => {
+                        if let Some(rendered) = &message.message.rendered {
+                            failure.rendered.push_str(rendered);
+                            if !rendered.ends_with('\n') {
+                                failure.rendered.push('\n');
+                            }
+                        }
+                    }
+                    Ok(Message::TextLine(line))
+                        if (index == 0 || !has_stderr)
+                            && serde_json::from_str::<serde_json::Value>(&line).is_err() =>
+                    {
+                        failure.rendered.push_str(&line);
+                        failure.rendered.push('\n');
+                    }
+                    _ => {}
+                }
+            }
+        }
+        return Err(failure.into());
+    }
     Ok(output)
+}
+
+/// Failures while resolving tools, preparing builds, or running a build tool.
+#[derive(Debug, thiserror::Error, miette::Diagnostic)]
+pub enum ToolchainError {
+    #[error("could not {operation} {}", path.display())]
+    Io {
+        operation: &'static str,
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("{} has no parent directory", path.display())]
+    MissingParent { path: PathBuf },
+    #[error("could not configure the build tool's PATH")]
+    InvalidSearchPath(#[source] env::JoinPathsError),
+    #[error("could not start {program} in {}", cwd.display())]
+    #[diagnostic(help("Check that the executable exists and can be run from this directory."))]
+    CommandStartup {
+        program: String,
+        cwd: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    CommandFailed(#[from] BuildFailure),
+    #[error("could not find a working {name} on PATH")]
+    #[diagnostic(help("Install the tool or configure its location using Locate/Install."))]
+    ToolNotFound { name: String },
+    #[error("tool did not generate {}", path.display())]
+    MissingOutput { path: PathBuf },
+    #[error("expected one .node file in {}, found {addons:?}", directory.display())]
+    InvalidAddonOutput {
+        directory: PathBuf,
+        addons: Vec<PathBuf>,
+    },
+    #[error("WASM input {} must have a UTF-8 file stem", path.display())]
+    InvalidWasmName { path: PathBuf },
+    #[error("could not parse Cargo build output")]
+    ParseCargoOutput(#[source] std::io::Error),
+    #[error("rustup returned a non-UTF-8 path")]
+    InvalidRustupPath(#[source] std::string::FromUtf8Error),
 }

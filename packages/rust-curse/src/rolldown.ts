@@ -1,8 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
-import path, { resolve } from 'node:path'
-import { platform as profiles } from 'node:process'
-import type { Plugin } from 'rolldown'
-import { Server, ServerDiagnosticSeverity, ServerPlatform, ServerWasmTarget } from 'rust-curse-native'
+import path from 'node:path'
+import type { Plugin, PluginContext, RolldownError } from 'rolldown'
+import { Server, type ServerDiagnostic, ServerDiagnosticSeverity, ServerPlatform, ServerWasmTarget } from 'rust-curse-native'
 
 export type RustCurseOptions = {
   /**
@@ -49,7 +48,7 @@ export type RustCurseTarget = 'node' | 'wasm' | 'wasm-node'
  *         wasm: { target: 'wasm' },
  *       },
  *       activeProfile: (fileId) =>
- *         fileId.includes('.server') ? 'node' : 'wasm',
+ *         fileId.includes('.server.') ? 'node' : 'wasm',
  *     }),
  *   ],
  * })
@@ -69,10 +68,13 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
   let manifestPath = path.resolve(options.manifestPath ?? "./Cargo.toml")
   let rootDir = path.dirname(manifestPath);
 
-  let server = new Server({
+  const serverResult = Server.create({
     rootDir,
     manifestPath
   })
+
+  const getServer = (context: PluginContext) =>
+    unwrap(context, serverResult)
 
   return {
     name: 'rust-curse',
@@ -96,6 +98,7 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
     },
 
     buildStart() {
+      const server = getServer(this);
       const srcDir = path.join(rootDir, 'src')
 
       // FIXME: replace it with enumerating files from the rust module graph
@@ -109,27 +112,13 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
       this.addWatchFile(manifestPath)
       this.addWatchFile(path.join(rootDir, 'Cargo.lock'))
 
-      for (const diagnostic of server.check()) {
-        const file = diagnostic.loc?.file ?? diagnostic.file
-        const log = {
-          pluginCode: diagnostic.code,
-          message: diagnostic.rendered,
-          id: file,
-          // rolldown 1.0's logger requires a filename when loc is present
-          loc: diagnostic.loc && file ? { ...diagnostic.loc, file } : undefined,
-          url: diagnostic.url,
-          meta: { diagnostic },
-        }
-        if (diagnostic.severity === ServerDiagnosticSeverity.Error) this.error(log)
-        else if (diagnostic.severity === ServerDiagnosticSeverity.Warning) this.warn(log)
-        else this.info(log)
-      }
+      reportDiagnostics(this, server.check())
 
       for (const profile of Object.values(options.profiles)) {
-        let output = server.build(
+        const output = unwrap(this, server.build(
           toServerPlatform(profile.target),
           profile.release ?? false,
-        )
+        ))
 
         for (let binPath of output.binPaths) {
           this.emitFile({
@@ -142,12 +131,13 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
     },
 
     watchChange(filePath, change) {
+      const server = getServer(this);
       const contents =
         change.event === 'delete'
           ? undefined
           : readFileSync(filePath, 'utf8')
 
-      server.change({ filePath, contents })
+      unwrap(this, server.change({ filePath, contents }))
     },
 
     resolveId(source) {
@@ -169,6 +159,7 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
         throw new Error(`Unknown Rust build profile: ${profileName}`)
       }
 
+      const server = getServer(this);
       return server.load(toServerPlatform(profile.target), filePath)
     },
   }
@@ -182,5 +173,40 @@ function toServerPlatform(target: RustCurseTarget): ServerPlatform {
       return { type: 'Wasm', target: ServerWasmTarget.Node }
     case 'wasm':
       return { type: 'Wasm', target: ServerWasmTarget.Web }
+  }
+}
+
+function reportDiagnostics(context: PluginContext, diagnostics: ServerDiagnostic[]) {
+  let failure: RolldownError | undefined
+  for (const diagnostic of diagnostics) {
+    const log = diagnosticLog(diagnostic)
+    if (diagnostic.severity === ServerDiagnosticSeverity.Error) {
+      if (failure) failure.message += `\n${log.message}`
+      else failure = { ...log, stack: '' }
+    } else if (diagnostic.severity === ServerDiagnosticSeverity.Warning) context.warn(log)
+    else context.info(log)
+  }
+  if (failure) context.error(failure)
+}
+
+function unwrap<T>(
+  context: PluginContext,
+  result: { type: 'Ok'; value: T } | { type: 'Err'; error: ServerDiagnostic },
+): T {
+  if (result.type === 'Err') context.error(diagnosticLog(result.error))
+  return result.value
+}
+
+function diagnosticLog(diagnostic: ServerDiagnostic): RolldownError {
+  const file = diagnostic.loc?.file ?? diagnostic.file
+  return {
+    pluginCode: diagnostic.code,
+    message: diagnostic.rendered,
+    id: file,
+    // rolldown 1.0's logger requires a filename when loc is present
+    loc: diagnostic.loc && file ? { ...diagnostic.loc, file } : undefined,
+    url: diagnostic.url,
+    meta: { diagnostic },
+    stack: '',
   }
 }

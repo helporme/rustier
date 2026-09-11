@@ -1,35 +1,75 @@
-use std::{fs, io, path::Path};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
+use miette::Diagnostic;
+use thiserror::Error;
 use tracing::debug;
 
 /// Writes `content` to `path` only when the file contents differ.
 ///
 /// `Ok(true)` when the file was written, and `Ok(false)` when the
 /// existing file already matched `content`.
-pub fn write_file(path: impl AsRef<Path>, content: impl AsRef<[u8]>) -> io::Result<bool> {
+pub fn write_file(
+    path: impl AsRef<Path>,
+    content: impl AsRef<[u8]>,
+) -> Result<bool, WriteFileError> {
     let path = path.as_ref();
     let content = content.as_ref();
 
     match fs::read(path) {
         Ok(existing) if existing == content => {
             debug!(bytes = content.len(), "file content unchanged");
-            Ok(false)
+            return Ok(false);
         }
         Ok(_) => {
             debug!(bytes = content.len(), "rewriting changed file");
-            fs::write(path, content)?;
-            Ok(true)
         }
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             debug!(bytes = content.len(), "writing missing file");
             if let Some(parent) = path.parent() {
-                fs::create_dir_all(parent)?;
+                fs::create_dir_all(parent).map_err(|source| WriteFileError::CreateDirectory {
+                    path: parent.to_owned(),
+                    source,
+                })?;
             }
-            fs::write(path, content)?;
-            Ok(true)
         }
-        Err(error) => Err(error),
+        Err(source) => {
+            return Err(WriteFileError::Read {
+                path: path.to_owned(),
+                source,
+            });
+        }
     }
+
+    fs::write(path, content).map_err(|source| WriteFileError::Write {
+        path: path.to_owned(),
+        source,
+    })?;
+    Ok(true)
+}
+
+#[derive(Debug, Error, Diagnostic)]
+pub enum WriteFileError {
+    #[error("failed to read {}", path.display())]
+    Read {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
+    #[error("failed to create directory {}", path.display())]
+    CreateDirectory {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
+    #[error("failed to write {}", path.display())]
+    Write {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
 }
 
 #[cfg(test)]

@@ -2,9 +2,9 @@
 /* eslint-disable */
 /** The rust-curse server. */
 export declare class Server {
-  constructor(cfg: Config)
-  change(change: ServerChange): void
-  build(platform: ServerPlatform, release: boolean): ServerBuildOutput
+  static create(cfg: Config): ServerCreateResult
+  change(change: ServerChange): ServerChangeResult
+  build(platform: ServerPlatform, release: boolean): ServerBuildResult
   check(): Array<ServerDiagnostic>
   load(platform: ServerPlatform, path: string): string | null
 }
@@ -25,23 +25,36 @@ export interface ServerBuildOutput {
   binPaths: Array<string>
 }
 
+export type ServerBuildResult =
+  | { type: 'Ok', value: ServerBuildOutput }
+  | { type: 'Err', error: ServerDiagnostic }
+
 /** A change to the server's workspace. */
 export interface ServerChange {
   filePath: string
   contents?: string
 }
 
+export type ServerChangeResult =
+  | { type: 'Ok', value: undefined }
+  | { type: 'Err', error: ServerDiagnostic }
+
+export type ServerCreateResult =
+  | { type: 'Ok', value: Server }
+  | { type: 'Err', error: ServerDiagnostic }
+
 export interface ServerDiagnostic {
   code?: string
   message: string
-  /** Complete miette report, including labels, help, and related diagnostics. */
-  rendered: string
   severity: ServerDiagnosticSeverity
   file?: string
   loc?: ServerDiagnosticLocation
-  /** A source excerpt, distinct from the full rendered report. */
-  frame?: string
   url?: string
+  /**
+   * Complete rendered report, including labels, help, and related
+   * diagnostics.
+   */
+  rendered: string
 }
 
 export interface ServerDiagnosticLocation {

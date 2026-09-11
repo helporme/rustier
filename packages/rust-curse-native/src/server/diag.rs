@@ -1,10 +1,32 @@
 use super::{ServerDiagnostic, ServerDiagnosticLocation, ServerDiagnosticSeverity};
-use crate::compiler::diag::{Diag, Theme};
+use crate::compiler::diag::Diag;
 
 impl From<Diag> for ServerDiagnostic {
     fn from(diag: Diag) -> Self {
-        let inner = diag.inner.as_ref();
+        Self::from_diagnostic(diag.inner.as_ref())
+    }
+}
+
+impl<D: miette::Diagnostic> From<D> for ServerDiagnostic {
+    fn from(diagnostic: D) -> Self {
+        Self::from_diagnostic(&diagnostic)
+    }
+}
+
+impl ServerDiagnostic {
+    fn from_diagnostic(inner: &dyn miette::Diagnostic) -> Self {
         let message = inner.to_string();
+        let mut rendered = String::new();
+
+        if miette::GraphicalReportHandler::new()
+            .with_context_lines(0)
+            .with_show_related_as_nested(true)
+            .render_report(&mut rendered, inner)
+            .is_err()
+        {
+            rendered = message.clone();
+        }
+
         let mut diagnostic = Self {
             code: inner.code().map(|code| code.to_string()),
             severity: match inner.severity().unwrap_or(miette::Severity::Error) {
@@ -15,9 +37,7 @@ impl From<Diag> for ServerDiagnostic {
             file: None,
             loc: None,
             url: inner.url().map(|url| url.to_string()),
-            rendered: diag
-                .render(Theme::Unicode)
-                .unwrap_or_else(|_| message.clone()),
+            rendered,
             message,
         };
 
@@ -56,4 +76,3 @@ impl From<Diag> for ServerDiagnostic {
         diagnostic
     }
 }
-

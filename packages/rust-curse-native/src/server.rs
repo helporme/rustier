@@ -1,3 +1,5 @@
+#![allow(clippy::result_large_err)]
+
 use std::path::PathBuf;
 
 use napi_derive::napi;
@@ -5,6 +7,7 @@ use napi_derive::napi;
 use crate::{
     compiler::codegen::shim::{Platform, WasmEnv},
     server::{
+        project::ProjectError,
         toolchain::{ToolInstallationOpts, Toolchain, ToolchainOps},
         workspace::ServerWorkspace,
     },
@@ -40,70 +43,62 @@ pub struct Server {
 
 #[napi]
 impl Server {
-    #[napi(constructor)]
-    pub fn new(cfg: Config) -> napi::Result<Self> {
-        let manifest_path: PathBuf = PathBuf::from(cfg.manifest_path);
+    #[napi]
+    pub fn create(cfg: Config) -> ServerCreateResult {
+        (|| -> Result<Self, ServerDiagnostic> {
+            let manifest_path = PathBuf::from(cfg.manifest_path);
+            let ws = ServerWorkspace::load(manifest_path).map_err(ServerDiagnostic::from)?;
 
-        let ws = ServerWorkspace::load(manifest_path)
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+            let tools_dir = ws.project().out_dir().join("tools");
+            let toolchain = Toolchain::install(ToolchainOps {
+                napi: ToolInstallationOpts::Install(&tools_dir.join("napi")),
+                wasm_bindgen: ToolInstallationOpts::Install(&tools_dir.join("wasm_bindgen")),
+                cargo: ToolInstallationOpts::Discover,
+            })
+            .map_err(ServerDiagnostic::from)?;
 
-        let tools_dir = ws.project().out_dir().join("tools");
-        let toolchain = Toolchain::install(ToolchainOps {
-            napi: ToolInstallationOpts::Install(&tools_dir.join("napi")),
-            wasm_bindgen: ToolInstallationOpts::Install(&tools_dir.join("wasm_bindgen")),
-            cargo: ToolInstallationOpts::Discover,
-        })
-        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-
-        Ok(Self { ws, toolchain })
+            Ok(Self { ws, toolchain })
+        })()
+        .into()
     }
 
     #[napi]
-    pub fn change(&mut self, change: ServerChange) -> napi::Result<()> {
-        self.ws
-            .change(change.into())
-            .map_err(|e| napi::Error::from_reason(format!("{e:#}")))?;
-
-        let db = self.ws.db();
-        self.ws
-            .project()
-            .ts()
-            .sync(db)
-            .exec(db)
-            .map_err(|e| napi::Error::from_reason(format!("{e:#}")))?;
-
-        Ok(())
+    pub fn change(&mut self, change: ServerChange) -> ServerChangeResult {
+        (|| -> Result<(), ServerDiagnostic> {
+            self.ws
+                .change(change.into())
+                .map_err(ServerDiagnostic::from)?;
+            let db = self.ws.db();
+            self.ws
+                .project()
+                .ts()
+                .sync(db)
+                .exec(db)
+                .map_err(ServerDiagnostic::from)?;
+            Ok(())
+        })()
+        .into()
     }
 
     #[napi]
-    pub fn build(
-        &mut self,
-        platform: ServerPlatform,
-        release: bool,
-    ) -> napi::Result<ServerBuildOutput> {
-        let project = self.ws.project();
+    pub fn build(&mut self, platform: ServerPlatform, release: bool) -> ServerBuildResult {
+        let result = (|| -> Result<Vec<String>, ProjectError> {
+            let project = self.ws.project();
+            project.ts().sync(self.ws.db()).exec(self.ws.db())?;
 
-        project
-            .ts()
-            .sync(self.ws.db())
-            .exec(self.ws.db())
-            .map_err(|e| napi::Error::from_reason(format!("{e:#}")))?;
+            let cursed_crate = project.cursed_crate(platform.into());
+            cursed_crate.sync(self.ws.db()).exec()?;
 
-        let cursed_crate = project.cursed_crate(platform.into());
+            let artifact = cursed_crate
+                .build(self.ws.db(), release)
+                .exec(self.ws.db_mut(), &self.toolchain)?;
+            Ok(vec![artifact.bin_path.as_str().to_owned()])
+        })();
 
-        cursed_crate
-            .sync(self.ws.db())
-            .exec()
-            .map_err(|e| napi::Error::from_reason(format!("{e:#}")))?;
-
-        let artifact = cursed_crate
-            .build(self.ws.db(), release)
-            .exec(self.ws.db_mut(), &self.toolchain)
-            .map_err(|e| napi::Error::from_reason(format!("{e:#}")))?;
-
-        Ok(ServerBuildOutput {
-            bin_paths: vec![artifact.bin_path.as_str().to_owned()],
-        })
+        result
+            .map(|bin_paths| ServerBuildOutput { bin_paths })
+            .map_err(ServerDiagnostic::from)
+            .into()
     }
 
     #[napi]
@@ -182,7 +177,8 @@ pub struct ServerDiagnostic {
     pub file: Option<String>,
     pub loc: Option<ServerDiagnosticLocation>,
     pub url: Option<String>,
-    /// Complete miette report, including labels, help, and related diagnostics.
+    /// Complete rendered report, including labels, help, and related
+    /// diagnostics.
     pub rendered: String,
 }
 
@@ -194,3 +190,27 @@ pub struct ServerDiagnosticLocation {
     /// Zero-based UTF-16 column, matching JavaScript source positions.
     pub column: u32,
 }
+
+macro_rules! server_result {
+    ($name:ident, $value:ty) => {
+        #[napi_derive::napi(object_from_js = false)]
+        #[allow(clippy::large_enum_variant)]
+        pub enum $name {
+            Ok { value: $value },
+            Err { error: ServerDiagnostic },
+        }
+
+        impl From<Result<$value, ServerDiagnostic>> for $name {
+            fn from(result: Result<$value, ServerDiagnostic>) -> Self {
+                match result {
+                    Ok(value) => Self::Ok { value },
+                    Err(error) => Self::Err { error },
+                }
+            }
+        }
+    };
+}
+
+server_result!(ServerCreateResult, Server);
+server_result!(ServerChangeResult, ());
+server_result!(ServerBuildResult, ServerBuildOutput);

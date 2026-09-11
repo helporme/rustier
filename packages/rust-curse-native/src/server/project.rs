@@ -5,8 +5,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::Context as _;
+use miette::Diagnostic;
 use salsa::Setter;
+use thiserror::Error;
 
 use crate::{
     compiler::{
@@ -18,19 +19,19 @@ use crate::{
             },
         },
         db::Db,
-        diag::Diag,
         ir::{
             rust::{Crate, Rust, usages::UsageGraph},
             shim::Shim,
         },
-        path::FilePath,
+        path::{FilePath, FilePathError},
     },
     server::{
         project::ts::ProjectTs,
         toolchain::{
-            CargoBuildCommand, NapiBuildCommand, Toolchain, WasmBindgenCommand, WasmBindgenTarget,
+            CargoBuildCommand, NapiBuildCommand, Toolchain, ToolchainError, WasmBindgenCommand,
+            WasmBindgenTarget,
         },
-        write_file::write_file,
+        write_file::{WriteFileError, write_file},
     },
 };
 
@@ -227,7 +228,7 @@ pub struct CursedCrateSync {
 }
 
 impl CursedCrateSync {
-    pub fn exec(&self) -> anyhow::Result<()> {
+    pub fn exec(&self) -> Result<(), ProjectError> {
         let CursedCrateSync {
             out_dir,
             manifest,
@@ -262,22 +263,24 @@ impl CursedCrateBuild {
         &self,
         db: &'db mut dyn Db,
         toolchain: &Toolchain,
-    ) -> anyhow::Result<&'db BuildArtifact> {
-        let artifact = match self.platform {
-            Platform::Node => self.build_node(toolchain),
-            Platform::Wasm { target } => self.build_wasm(toolchain, target),
-        }?;
-
+    ) -> Result<&'db BuildArtifact, ProjectError> {
         let manifest_path = self
             .out_dir
             .join("Cargo.toml")
             .to_string_lossy()
             .into_owned();
 
+        // The build removes previous artifact files before compiling.
+        BuildArtifacts::remove(db, &manifest_path);
+        let artifact = match self.platform {
+            Platform::Node => self.build_node(toolchain),
+            Platform::Wasm { target } => self.build_wasm(toolchain, target),
+        }?;
+
         Ok(BuildArtifacts::set(db, manifest_path, artifact))
     }
 
-    fn build_node(&self, toolchain: &Toolchain) -> anyhow::Result<BuildArtifact> {
+    fn build_node(&self, toolchain: &Toolchain) -> Result<BuildArtifact, ProjectError> {
         let artifact_dir = self.reserve_unique_artifact_dir()?;
         let output = NapiBuildCommand {
             manifest_path: &self.out_dir.join("Cargo.toml"),
@@ -292,7 +295,11 @@ impl CursedCrateBuild {
         })
     }
 
-    fn build_wasm(&self, toolchain: &Toolchain, target: WasmEnv) -> anyhow::Result<BuildArtifact> {
+    fn build_wasm(
+        &self,
+        toolchain: &Toolchain,
+        target: WasmEnv,
+    ) -> Result<BuildArtifact, ProjectError> {
         let artifact_dir = self.reserve_unique_artifact_dir()?;
 
         let output = CargoBuildCommand {
@@ -310,7 +317,7 @@ impl CursedCrateBuild {
                 path.extension()
                     .is_some_and(|extension| extension == "wasm")
             })
-            .ok_or_else(|| anyhow::anyhow!("expected one .wasm artifact, found none"))?;
+            .ok_or(ProjectError::MissingWasmArtifact)?;
 
         let output = WasmBindgenCommand {
             wasm_path: &wasm_path,
@@ -332,12 +339,20 @@ impl CursedCrateBuild {
     /// will be written. The node.js cached the .node addon by file path,
     /// and it cannot be reloaded as far as i can tell, so we need to came up
     /// with a new path each time to support watch mode.
-    fn reserve_unique_artifact_dir(&self) -> anyhow::Result<PathBuf> {
+    fn reserve_unique_artifact_dir(&self) -> Result<PathBuf, ProjectError> {
         let root = self.out_dir.join("artifacts");
-        fs::create_dir_all(&root)?;
+        let io_error = |operation| {
+            let path = root.clone();
+            move |source| ProjectError::ArtifactIo {
+                operation,
+                path,
+                source,
+            }
+        };
+        fs::create_dir_all(&root).map_err(io_error("create artifact directory"))?;
         let mut version = 0_u64;
-        for entry in fs::read_dir(&root)? {
-            let entry = entry?;
+        for entry in fs::read_dir(&root).map_err(io_error("read artifact directory"))? {
+            let entry = entry.map_err(io_error("read artifact entry"))?;
             if let Some(existing) = entry
                 .file_name()
                 .to_str()
@@ -346,13 +361,13 @@ impl CursedCrateBuild {
                 version = version.max(
                     existing
                         .checked_add(1)
-                        .context("artifact version overflow")?,
+                        .ok_or(ProjectError::ArtifactVersionOverflow)?,
                 );
             }
         }
 
-        fs::remove_dir_all(&root)?;
-        fs::create_dir_all(&root)?;
+        fs::remove_dir_all(&root).map_err(io_error("remove old artifacts"))?;
+        fs::create_dir_all(&root).map_err(io_error("create artifact directory"))?;
 
         loop {
             let dir = root.join(version.to_string());
@@ -361,11 +376,14 @@ impl CursedCrateBuild {
                 Err(error) if error.kind() == ErrorKind::AlreadyExists => {
                     version = version
                         .checked_add(1)
-                        .context("artifact version overflow")?;
+                        .ok_or(ProjectError::ArtifactVersionOverflow)?;
                 }
-                Err(error) => {
-                    return Err(error)
-                        .with_context(|| format!("reserve artifacts in {}", dir.display()));
+                Err(source) => {
+                    return Err(ProjectError::ArtifactIo {
+                        operation: "reserve artifact directory",
+                        path: dir,
+                        source,
+                    });
                 }
             }
         }
@@ -380,6 +398,16 @@ struct BuildArtifacts {
 }
 
 impl BuildArtifacts {
+    pub fn remove(db: &mut dyn Db, manifest_path: &str) {
+        if let Some(input) = Self::try_get(db)
+            && input.artifacts(db).contains_key(manifest_path)
+        {
+            let mut artifacts = input.artifacts(db).clone();
+            artifacts.remove(manifest_path);
+            input.set_artifacts(db).to(artifacts);
+        }
+    }
+
     pub fn set(db: &mut dyn Db, manifest_path: String, artifact: BuildArtifact) -> &BuildArtifact {
         let input = Self::try_get(db).unwrap_or_else(|| Self::new(db, HashMap::default()));
 
@@ -400,4 +428,34 @@ impl BuildArtifacts {
 pub struct BuildArtifact {
     pub js_path: FilePath,
     pub bin_path: FilePath,
+}
+
+#[derive(Debug, Error, Diagnostic)]
+pub enum ProjectError {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Toolchain(#[from] ToolchainError),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    WriteFile(#[from] WriteFileError),
+    #[error("invalid build artifact path: {0}")]
+    #[diagnostic(code(rust_curse::invalid_artifact_path))]
+    ArtifactPath(#[from] FilePathError),
+    #[error("failed to {operation} {}", path.display())]
+    #[diagnostic(code(rust_curse::artifact_io))]
+    ArtifactIo {
+        operation: &'static str,
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("artifact version overflow")]
+    #[diagnostic(code(rust_curse::artifact_version_overflow))]
+    ArtifactVersionOverflow,
+    #[error("Cargo did not produce a WebAssembly artifact")]
+    #[diagnostic(code(rust_curse::missing_wasm_artifact))]
+    MissingWasmArtifact,
+    #[error("local module {} is outside project root {}", path.display(), root.display())]
+    #[diagnostic(code(rust_curse::module_outside_project))]
+    ModuleOutsideRoot { path: PathBuf, root: PathBuf },
 }

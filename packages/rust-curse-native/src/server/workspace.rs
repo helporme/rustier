@@ -1,13 +1,13 @@
 use std::path::{Path, PathBuf};
 
-use anyhow::Context as _;
-
+use miette::Diagnostic;
 use ra_ap_ide_db::{ChangeWithProcMacros, RootDatabase};
 use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice, load_workspace};
 use ra_ap_project_model::{
     CargoConfig, ProjectManifest, ProjectWorkspace, ProjectWorkspaceKind, RustLibSource,
 };
 use ra_ap_vfs::{AbsPathBuf, Change, Vfs, VfsPath};
+use thiserror::Error;
 
 use crate::{
     compiler::{inputs::LocalCrates, path::FilePath},
@@ -26,7 +26,7 @@ pub struct ServerWorkspace {
 impl ServerWorkspace {
     /// Loads a Cargo manifest and marks its package targets as local.
     /// The manifest's containing directory is the workspace root.
-    pub fn load(manifest_path: PathBuf) -> anyhow::Result<Self> {
+    pub fn load(manifest_path: PathBuf) -> Result<Self, WorkspaceError> {
         let cargo_config = CargoConfig {
             sysroot: Some(RustLibSource::Discover),
             ..Default::default()
@@ -40,9 +40,17 @@ impl ServerWorkspace {
         };
 
         let manifest =
-            ProjectManifest::from_manifest_file(AbsPathBuf::assert_utf8(manifest_path.clone()))?;
+            ProjectManifest::from_manifest_file(AbsPathBuf::assert_utf8(manifest_path.clone()))
+                .map_err(|source| WorkspaceError::Manifest {
+                    path: manifest_path.clone(),
+                    source,
+                })?;
         let hir_ws =
-            ProjectWorkspace::load(manifest, &cargo_config, &|msg| tracing::info!("{msg}"))?;
+            ProjectWorkspace::load(manifest, &cargo_config, &|msg| tracing::info!("{msg}"))
+                .map_err(|source| WorkspaceError::Project {
+                    path: manifest_path.clone(),
+                    source,
+                })?;
 
         let cargo = match &hir_ws.kind {
             ProjectWorkspaceKind::Cargo { cargo, .. } => cargo,
@@ -52,9 +60,9 @@ impl ServerWorkspace {
             } => cargo,
 
             _ => {
-                return Err(anyhow::anyhow!(
-                    "rust-curse doesn't support rust-project.json"
-                ));
+                return Err(WorkspaceError::UnsupportedManifest {
+                    path: manifest_path,
+                });
             }
         };
 
@@ -64,11 +72,8 @@ impl ServerWorkspace {
                 let path: &Path = cargo[package].manifest.as_ref();
                 path == manifest_path
             })
-            .with_context(|| {
-                format!(
-                    "no Cargo package matches manifest {}",
-                    manifest_path.display()
-                )
+            .ok_or_else(|| WorkspaceError::MissingPackage {
+                path: manifest_path.clone(),
             })?;
 
         let root = cargo[package]
@@ -76,12 +81,18 @@ impl ServerWorkspace {
             .iter()
             .map(|&target| FilePath::from(VfsPath::from(cargo[target].root.clone())))
             .next()
-            .ok_or_else(|| anyhow::anyhow!("no target found for package"))?;
+            .ok_or_else(|| WorkspaceError::MissingTarget {
+                path: manifest_path.clone(),
+            })?;
 
         let root_file = root.as_path().to_owned();
         let package_name = cargo[package].name.clone();
 
-        let (mut db, vfs, _) = load_workspace(hir_ws, &cargo_config.extra_env, &load_config)?;
+        let (mut db, vfs, _) = load_workspace(hir_ws, &cargo_config.extra_env, &load_config)
+            .map_err(|source| WorkspaceError::Database {
+                path: manifest_path.clone(),
+                source,
+            })?;
         LocalCrates::set(&mut db, [root]);
 
         Ok(Self {
@@ -95,17 +106,17 @@ impl ServerWorkspace {
 
     /// Applies Rust source changes and reloads on Cargo manifest or lockfile
     /// changes. All other files are ignored.
-    pub fn change(&mut self, change: WorkspaceChange) -> anyhow::Result<()> {
+    pub fn change(&mut self, change: WorkspaceChange) -> Result<(), WorkspaceError> {
         let path = Path::new(&change.file_path);
         if matches!(
             path.file_name().and_then(|name| name.to_str()),
             Some("Cargo.toml" | "Cargo.lock")
         ) {
-            let workspace = Self::load(self.manifest_path.clone()).with_context(|| {
-                format!(
-                    "failed to reload workspace after changing {}",
-                    change.file_path
-                )
+            let workspace = Self::load(self.manifest_path.clone()).map_err(|source| {
+                WorkspaceError::Reload {
+                    path: path.to_owned(),
+                    source: Box::new(source),
+                }
             })?;
             *self = workspace;
             return Ok(());
@@ -170,4 +181,38 @@ impl From<ServerChange> for WorkspaceChange {
             contents: value.contents,
         }
     }
+}
+
+#[derive(Debug, Error, Diagnostic)]
+pub enum WorkspaceError {
+    #[error("failed to read project manifest {}", path.display())]
+    Manifest {
+        path: PathBuf,
+        #[source]
+        source: anyhow::Error,
+    },
+    #[error("failed to load project workspace for {}", path.display())]
+    Project {
+        path: PathBuf,
+        #[source]
+        source: anyhow::Error,
+    },
+    #[error("rust-curse doesn't support rust-project.json ({})", path.display())]
+    UnsupportedManifest { path: PathBuf },
+    #[error("no Cargo package matches manifest {}", path.display())]
+    MissingPackage { path: PathBuf },
+    #[error("no target found for package in {}", path.display())]
+    MissingTarget { path: PathBuf },
+    #[error("failed to load workspace database for {}", path.display())]
+    Database {
+        path: PathBuf,
+        #[source]
+        source: anyhow::Error,
+    },
+    #[error("failed to reload workspace after changing {}", path.display())]
+    Reload {
+        path: PathBuf,
+        #[source]
+        source: Box<WorkspaceError>,
+    },
 }
