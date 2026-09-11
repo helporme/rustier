@@ -156,16 +156,16 @@ impl ServerWorkspace {
         Ok(())
     }
 
+    pub fn project(&self) -> Project<'_> {
+        Project::new(&self.manifest_path, &self.root_file, &self.package_name)
+    }
+
     pub fn db(&self) -> &RootDatabase {
         &self.db
     }
 
     pub fn db_mut(&mut self) -> &mut RootDatabase {
         &mut self.db
-    }
-
-    pub fn project(&self) -> Project<'_> {
-        Project::new(&self.manifest_path, &self.root_file, &self.package_name)
     }
 }
 

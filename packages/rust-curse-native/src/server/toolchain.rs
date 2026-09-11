@@ -30,7 +30,8 @@ pub struct ToolchainOps<'a> {
 /// Where to obtain a tool. Relative paths are resolved at installation time.
 #[derive(Debug, Clone, Copy)]
 pub enum ToolInstallationOpts<'a> {
-    /// Use the executable at this path, returning error if not found.
+    /// Find the platform-specific executable in this directory.
+    /// Does not install anything or fall back to PATH.
     Locate(&'a Path),
     /// Use installation at this path, or install it if not found.
     Install(&'a Path),
@@ -398,7 +399,15 @@ fn resolve(
     install: impl FnOnce(&Path) -> Result<PathBuf, ToolchainError>,
 ) -> Result<PathBuf, ToolchainError> {
     let path = match opts {
-        ToolInstallationOpts::Locate(path) => absolute(path)?,
+        ToolInstallationOpts::Locate(directory) => {
+            let directory = absolute(directory)?;
+            find_in_directory(&directory, name)?.ok_or_else(|| {
+                ToolchainError::ToolNotFoundInDirectory {
+                    name: name.to_owned(),
+                    directory,
+                }
+            })?
+        }
         ToolInstallationOpts::Discover => discover(name)?,
         ToolInstallationOpts::Install(root) => install(&absolute(root)?)?,
     };
@@ -407,22 +416,29 @@ fn resolve(
 }
 
 fn discover(name: &str) -> Result<PathBuf, ToolchainError> {
-    let names = if cfg!(windows) {
-        vec![executable(name), script(name), name.to_owned()]
-    } else {
-        vec![name.to_owned()]
-    };
     for dir in env::split_paths(&env::var_os("PATH").unwrap_or_default()) {
-        for name in &names {
-            let path = absolute(&dir.join(name))?;
-            if working(&path) {
-                return Ok(path);
-            }
+        if let Some(path) = find_in_directory(&dir, name)? {
+            return Ok(path);
         }
     }
     Err(ToolchainError::ToolNotFound {
         name: name.to_owned(),
     })
+}
+
+fn find_in_directory(dir: &Path, name: &str) -> Result<Option<PathBuf>, ToolchainError> {
+    let names = if cfg!(windows) {
+        vec![executable(name), script(name), name.to_owned()]
+    } else {
+        vec![name.to_owned()]
+    };
+    for name in names {
+        let path = absolute(&dir.join(name))?;
+        if working(&path) {
+            return Ok(Some(path));
+        }
+    }
+    Ok(None)
 }
 
 fn working(path: &Path) -> bool {
@@ -547,6 +563,9 @@ pub enum ToolchainError {
     #[error("could not find a working {name} on PATH")]
     #[diagnostic(help("Install the tool or configure its location using Locate/Install."))]
     ToolNotFound { name: String },
+    #[error("could not find a working {name} in {}", directory.display())]
+    #[diagnostic(help("Locate expects the directory containing the tool's executable."))]
+    ToolNotFoundInDirectory { name: String, directory: PathBuf },
     #[error("tool did not generate {}", path.display())]
     MissingOutput { path: PathBuf },
     #[error("expected one .node file in {}, found {addons:?}", directory.display())]
