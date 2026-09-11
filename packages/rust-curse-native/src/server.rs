@@ -1,12 +1,14 @@
 #![allow(clippy::result_large_err)]
 
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
+use napi::threadsafe_function::ThreadsafeFunction;
 use napi_derive::napi;
 
 use crate::{
     compiler::codegen::shim::{Platform, WasmEnv},
     server::{
+        log::ServerLogs,
         project::ProjectError,
         toolchain::{ToolInstallationOpts, Toolchain, ToolchainOps},
         workspace::ServerWorkspace,
@@ -14,6 +16,7 @@ use crate::{
 };
 
 mod diag;
+mod log;
 mod project;
 mod toolchain;
 mod workspace;
@@ -39,6 +42,7 @@ pub struct ServerChange {
 pub struct Server {
     ws: ServerWorkspace,
     toolchain: Toolchain,
+    logs: ServerLogs,
 }
 
 #[napi]
@@ -46,7 +50,10 @@ impl Server {
     #[napi]
     pub fn create(cfg: Config) -> ServerCreateResult {
         (|| -> Result<Self, ServerDiagnostic> {
+            let logs = ServerLogs::new();
+            let _dispatch = tracing::dispatcher::set_default(logs.dispatch());
             let manifest_path = PathBuf::from(cfg.manifest_path);
+
             let ws = ServerWorkspace::load(manifest_path).map_err(ServerDiagnostic::from)?;
 
             let tools_dir = ws.project().out_dir().join("tools");
@@ -57,13 +64,27 @@ impl Server {
             })
             .map_err(ServerDiagnostic::from)?;
 
-            Ok(Self { ws, toolchain })
+            Ok(Self {
+                ws,
+                toolchain,
+                logs,
+            })
         })()
         .into()
     }
 
     #[napi]
+    pub fn on_log(
+        &self,
+        callback: Option<ThreadsafeFunction<ServerLog, (), ServerLog, napi::Status, false, true>>,
+    ) {
+        self.logs.on_log(callback);
+    }
+
+    #[napi]
     pub fn change(&mut self, change: ServerChange) -> ServerChangeResult {
+        let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
+        tracing::debug!(path = %change.file_path, "Updating Rust source");
         (|| -> Result<(), ServerDiagnostic> {
             self.ws
                 .change(change.into())
@@ -82,18 +103,49 @@ impl Server {
 
     #[napi]
     pub fn build(&mut self, platform: ServerPlatform, release: bool) -> ServerBuildResult {
+        let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
+
+        let platform = Platform::from(platform);
+        let platform_label = match platform {
+            Platform::Node => "node",
+            Platform::Wasm {
+                target: WasmEnv::Node,
+            } => "webasm-node",
+            Platform::Wasm {
+                target: WasmEnv::Web,
+            } => "webasm",
+        };
+
+        let profile = if release { "release" } else { "dev" };
+
+        let _span = tracing::info_span!("Rust build", platform = platform_label, profile).entered();
+
         let result = (|| -> Result<Vec<String>, ProjectError> {
             let project = self.ws.project();
-            project.ts().sync(self.ws.db()).exec(self.ws.db())?;
+            {
+                let _span = tracing::info_span!(parent: None, "TypeScript declaration generation")
+                    .entered();
+                project.ts().sync(self.ws.db()).exec(self.ws.db())?;
+            }
 
-            let cursed_crate = project.cursed_crate(platform.into());
-            cursed_crate.sync(self.ws.db()).exec()?;
+            let cursed_crate = project.cursed_crate(platform);
+            {
+                let _span = tracing::debug_span!("Rust shim generation").entered();
+                cursed_crate.sync(self.ws.db()).exec()?;
+            }
 
-            let artifact = cursed_crate
-                .build(self.ws.db(), release)
-                .exec(self.ws.db_mut(), &self.toolchain)?;
+            let artifact = {
+                let _span = tracing::info_span!("Rust artifact compilation").entered();
+                cursed_crate
+                    .build(self.ws.db(), release)
+                    .exec(self.ws.db_mut(), &self.toolchain)?
+            };
             Ok(vec![artifact.bin_path.as_str().to_owned()])
         })();
+
+        if let Err(error) = &result {
+            tracing::error!(%error, "Rust build failed");
+        }
 
         result
             .map(|bin_paths| ServerBuildOutput { bin_paths })
@@ -103,11 +155,13 @@ impl Server {
 
     #[napi]
     pub fn check(&self) -> Vec<ServerDiagnostic> {
+        let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
+        let _span = tracing::info_span!("Rust API check").entered();
         let db = self.ws.db();
-        self.ws
-            .project()
-            .reachable_shim(db)
-            .check(db)
+        let shim = self.ws.project().reachable_shim(db);
+        let diagnostics = shim.check(db);
+
+        diagnostics
             .into_iter()
             .cloned()
             .map(ServerDiagnostic::from)
@@ -116,8 +170,10 @@ impl Server {
 
     #[napi]
     pub fn load(&self, platform: ServerPlatform, path: String) -> Option<String> {
-        let db = self.ws.db();
+        let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
+        let _span = tracing::debug_span!("Rust facade rendering", %path).entered();
 
+        let db = self.ws.db();
         self.ws
             .project()
             .cursed_crate(platform.into())
@@ -214,3 +270,21 @@ macro_rules! server_result {
 server_result!(ServerCreateResult, Server);
 server_result!(ServerChangeResult, ());
 server_result!(ServerBuildResult, ServerBuildOutput);
+
+#[napi]
+pub enum ServerLogLevel {
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
+}
+
+#[napi(object)]
+pub struct ServerLog {
+    pub level: ServerLogLevel,
+    pub target: String,
+    pub message: String,
+    /// Span fields followed by event fields; the innermost value wins.
+    pub fields: HashMap<String, String>,
+}

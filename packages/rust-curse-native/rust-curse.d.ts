@@ -3,6 +3,13 @@
 /** The rust-curse server. */
 export declare class Server {
   static create(cfg: Config): ServerCreateResult
+  /**
+   * Subscribe to this server's tracing events, replacing the previous
+   * callback. Pass null to unsubscribe. Startup logs are replayed on
+   * subscription. Callbacks run asynchronously on the JS thread and do not
+   * keep the Node process alive.
+   */
+  onLog(callback?: (((arg: ServerLog) => void)) | undefined | null): void
   change(change: ServerChange): ServerChangeResult
   build(platform: ServerPlatform, release: boolean): ServerBuildResult
   check(): Array<ServerDiagnostic>
@@ -69,6 +76,22 @@ export declare const enum ServerDiagnosticSeverity {
   Error = 0,
   Warning = 1,
   Advice = 2
+}
+
+export interface ServerLog {
+  level: ServerLogLevel
+  target: string
+  message: string
+  /** Span fields followed by event fields; the innermost value wins. */
+  fields: Record<string, string>
+}
+
+export declare const enum ServerLogLevel {
+  Error = 0,
+  Warn = 1,
+  Info = 2,
+  Debug = 3,
+  Trace = 4
 }
 
 /** The platform to build for. */

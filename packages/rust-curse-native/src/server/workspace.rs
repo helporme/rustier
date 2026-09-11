@@ -27,10 +27,13 @@ impl ServerWorkspace {
     /// Loads a Cargo manifest and marks its package targets as local.
     /// The manifest's containing directory is the workspace root.
     pub fn load(manifest_path: PathBuf) -> Result<Self, WorkspaceError> {
+        let _span = tracing::info_span!("Rust workspace loading").entered();
+
         let cargo_config = CargoConfig {
             sysroot: Some(RustLibSource::Discover),
             ..Default::default()
         };
+
         let load_config = LoadCargoConfig {
             load_out_dirs_from_check: false,
             with_proc_macro_server: ProcMacroServerChoice::None,
@@ -45,12 +48,14 @@ impl ServerWorkspace {
                     path: manifest_path.clone(),
                     source,
                 })?;
-        let hir_ws =
-            ProjectWorkspace::load(manifest, &cargo_config, &|msg| tracing::info!("{msg}"))
-                .map_err(|source| WorkspaceError::Project {
-                    path: manifest_path.clone(),
-                    source,
-                })?;
+
+        let hir_ws = ProjectWorkspace::load(manifest, &cargo_config, &|progress| {
+            tracing::info!("Workspace progress: {progress}");
+        })
+        .map_err(|source| WorkspaceError::Project {
+            path: manifest_path.clone(),
+            source,
+        })?;
 
         let cargo = match &hir_ws.kind {
             ProjectWorkspaceKind::Cargo { cargo, .. } => cargo,
@@ -93,6 +98,7 @@ impl ServerWorkspace {
                 path: manifest_path.clone(),
                 source,
             })?;
+
         LocalCrates::set(&mut db, [root]);
 
         Ok(Self {

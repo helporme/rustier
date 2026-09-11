@@ -1,4 +1,7 @@
-import rolldown, { type RustCurseTarget } from './rolldown'
+import rolldown, {
+  type RustCurseOptions as RolldownOptions,
+  type RustCurseTarget,
+} from './rolldown'
 
 export type { RustCurseTarget } from './rolldown'
 
@@ -19,6 +22,11 @@ export interface RustCurseOptions {
    * @default "Cargo.toml"
    */
   manifestPath?: string
+  /**
+   * Progress logging settings. Enabled by default, with pretty formatting
+   * and debug/trace messages hidden. Does not suppress compiler diagnostics.
+   */
+  logging?: RolldownOptions['logging']
   /**
    * Directory for generated crates, bindings, and build artifacts.
    *

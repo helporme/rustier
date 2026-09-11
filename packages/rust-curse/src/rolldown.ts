@@ -1,10 +1,13 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
+import { styleText } from 'node:util'
 import type { Plugin, PluginContext, RolldownError } from 'rolldown'
 import {
   Server,
   type ServerDiagnostic,
   ServerDiagnosticSeverity,
+  type ServerLog,
+  ServerLogLevel,
   ServerPlatform,
   ServerWasmTarget,
 } from 'rust-curse-native'
@@ -24,6 +27,32 @@ export type RustCurseOptions = {
    * Select the build profile for an imported `.rs` module.
    */
   activeProfile: (fileId: string) => string
+  /**
+   * Control progress logging. Compiler diagnostics are reported independently.
+   */
+  logging?: {
+    /**
+     * Whether the plugin should emit progress logs.
+     *
+     * @default true
+     */
+    enabled?: boolean
+    /**
+     * Include debug and trace messages in addition to normal logs.
+     *
+     * @default false
+     */
+    debug?: boolean
+    /**
+     * `"pretty"` uses colorful logs output with nice formatting.
+     * `"plain"` emits only the original message, without added formatting.
+     *
+     * Structured fields remain available in log metadata in either mode.
+     *
+     * @default "pretty"
+     */
+    format?: 'pretty' | 'plain'
+  }
 }
 
 export interface RustCurseProfile {
@@ -72,6 +101,7 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
 
   let ctx: PluginContext = null!
 
+  let configured = false;
   let manifestPath = path.resolve(options.manifestPath ?? './Cargo.toml')
   let rootDir = path.dirname(manifestPath)
 
@@ -114,27 +144,14 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
 
     buildStart() {
       ctx = this
-
       const server = getServer(this)
-      const srcDir = path.join(rootDir, 'src')
 
-      // FIXME: replace it with enumerating files from the rust module graph
-      // or run a separate file watcher since it's kind of crazy to explicitly register each path
-      this.addWatchFile(srcDir)
-      for (const entry of readdirSync(srcDir, {
-        recursive: true,
-        withFileTypes: true,
-      })) {
-        if (
-          entry.isDirectory() ||
-          (entry.isFile() && entry.name.endsWith('.rs'))
-        ) {
-          this.addWatchFile(path.join(entry.parentPath, entry.name))
-        }
+      if (!configured) {
+        configured = true;
+        configureLogging(ctx, server, options.logging)
       }
-      this.addWatchFile(manifestPath)
-      this.addWatchFile(path.join(rootDir, 'Cargo.lock'))
 
+      watchRustFiles(ctx, rootDir, manifestPath);
       reportDiagnostics(this, server.check())
 
       for (const profile of Object.values(options.profiles)) {
@@ -186,7 +203,117 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
       const server = getServer(this)
       return server.load(toServerPlatform(profile.target), filePath)
     },
+
+    closeBundle() {
+      if (serverResult.type === 'Ok') serverResult.value.onLog(undefined)
+    },
+
+    closeWatcher() {
+      if (serverResult.type === 'Ok') serverResult.value.onLog(undefined)
+    },
   }
+}
+
+function configureLogging(ctx: PluginContext, server: Server, options: RustCurseOptions['logging']) {
+  if (options?.enabled === false) {
+    server.onLog(undefined)
+  } else {
+    server.onLog((log) => {
+      const verbose =
+        log.level === ServerLogLevel.Debug ||
+        log.level === ServerLogLevel.Trace
+      if (verbose && !options?.debug) return
+
+      const entry = {
+        message:
+          options?.format === 'plain'
+            ? log.message
+            : prettyLog(log),
+        meta: { target: log.target, fields: log.fields, level: log.level },
+      }
+      if (
+        log.level === ServerLogLevel.Error ||
+        log.level === ServerLogLevel.Warn
+      ) {
+        // Trace events are informational; diagnostics control build failure.
+        ctx.warn(entry)
+      } else if (verbose) {
+        ctx.debug(entry)
+      } else {
+        ctx.info(entry)
+      }
+    })
+  }
+}
+
+const logStyles = {
+  [ServerLogLevel.Error]: ['red', '[x]'],
+  [ServerLogLevel.Warn]: ['yellow', '[!]'],
+  [ServerLogLevel.Info]: ['cyan', '[i]'],
+  [ServerLogLevel.Debug]: ['gray', '[d]'],
+  [ServerLogLevel.Trace]: ['gray', '[t]'],
+} as const
+
+function prettyLog(log: ServerLog): string {
+  const [color, marker] = logStyles[log.level]
+  const stream = { stream: process.stderr }
+  const duration = formatDuration(log.fields.elapsed_ms)
+  const fields = Object.entries(log.fields)
+    .filter(([key]) => key !== 'elapsed_ms' || duration === undefined)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => {
+      if ((key === 'path' || key === 'cwd') && path.isAbsolute(value)) {
+        const relative = path.relative(process.cwd(), value)
+        if (
+          relative !== '..' &&
+          !relative.startsWith(`..${path.sep}`) &&
+          !path.isAbsolute(relative)
+        ) {
+          value = relative || '.'
+        }
+      }
+      return `${key}=${/\s|=/.test(value) ? JSON.stringify(value) : value}`
+    })
+    .join(' ')
+
+  return [
+    styleText(color, marker, stream),
+    log.message,
+    fields ? styleText('dim', fields, stream) : '',
+    duration ? styleText('dim', `(${duration})`, stream) : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
+function formatDuration(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined
+  const milliseconds = Number(value)
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) return undefined
+  if (milliseconds < 1000) return `${Math.round(milliseconds)} ms`
+  if (milliseconds < 60_000) return `${(milliseconds / 1000).toFixed(2)} s`
+  return `${Math.floor(milliseconds / 60_000)} min ${Math.floor((milliseconds % 60_000) / 1000)} s`
+}
+
+function watchRustFiles(ctx: PluginContext, rootDir: string, manifestPath: string) {
+  const srcDir = path.join(rootDir, 'src')
+
+  // FIXME: replace it with enumerating files from the rust module graph
+  // or run a separate file watcher since it's kind of crazy to explicitly register each path
+  ctx.addWatchFile(srcDir)
+  for (const entry of readdirSync(srcDir, {
+    recursive: true,
+    withFileTypes: true,
+  })) {
+    if (
+      entry.isDirectory() ||
+      (entry.isFile() && entry.name.endsWith('.rs'))
+    ) {
+      ctx.addWatchFile(path.join(entry.parentPath, entry.name))
+    }
+  }
+  ctx.addWatchFile(manifestPath)
+  ctx.addWatchFile(path.join(rootDir, 'Cargo.lock'))
 }
 
 function toServerPlatform(target: RustCurseTarget): ServerPlatform {

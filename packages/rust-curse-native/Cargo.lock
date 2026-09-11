@@ -2535,6 +2535,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tracing",
+ "tracing-subscriber",
  "triomphe",
 ]
 

@@ -88,37 +88,66 @@ impl RustTool {
 impl Toolchain {
     /// Installs or locates all tools.
     pub fn install(ops: ToolchainOps<'_>) -> Result<Self, ToolchainError> {
-        let cargo = install_rust(&ops.cargo)?;
-        let napi = resolve(&ops.napi, "napi", |root| {
-            let bin = root.join("node_modules/.bin").join(script("napi"));
-            if !working(&bin) {
-                fs::create_dir_all(root).map_err(|source| ToolchainError::Io {
-                    operation: "create tool installation directory",
-                    path: root.to_owned(),
-                    source,
-                })?;
-                let mut command = Command::new(discover("npm")?);
-                command
-                    .args(["install", "--ignore-scripts", "--no-audit", "--no-fund"])
-                    .arg("--prefix")
-                    .arg(root)
-                    .arg("@napi-rs/cli@3.7.2");
-                run(&mut command)?;
-            }
-            Ok(bin)
-        })?;
-        let wasm_bindgen = resolve(&ops.wasm_bindgen, "wasm-bindgen", |root| {
-            let bin = root.join("bin").join(executable("wasm-bindgen"));
-            if !working(&bin) {
-                let mut command = cargo.command()?;
-                command
-                    .args(["install", "wasm-bindgen-cli", "--locked", "--force"])
-                    .arg("--root")
-                    .arg(root);
-                run(&mut command)?;
-            }
-            Ok(bin)
-        })?;
+        let cargo = {
+            let span = tracing::debug_span!("Cargo setup", path = tracing::field::Empty).entered();
+            let cargo = install_rust(&ops.cargo)?;
+            span.record("path", tracing::field::display(cargo.cargo.display()));
+            cargo
+        };
+
+        let napi = {
+            let span =
+                tracing::info_span!("NAPI CLI setup", path = tracing::field::Empty).entered();
+            let napi = resolve(&ops.napi, "napi", |root| {
+                let bin = root.join("node_modules/.bin").join(script("napi"));
+                if !working(&bin) {
+                    tracing::info!(
+                        path = %root.display(),
+                        "Automatically installing NAPI CLI to the local directory"
+                    );
+                    fs::create_dir_all(root).map_err(|source| ToolchainError::Io {
+                        operation: "create tool installation directory",
+                        path: root.to_owned(),
+                        source,
+                    })?;
+                    let mut command = Command::new(discover("npm")?);
+                    command
+                        .args(["install", "--ignore-scripts", "--no-audit", "--no-fund"])
+                        .arg("--prefix")
+                        .arg(root)
+                        .arg("@napi-rs/cli@3.7.2");
+                    run(&mut command)?;
+                }
+                Ok(bin)
+            })?;
+            span.record("path", tracing::field::display(napi.display()));
+            napi
+        };
+
+        let wasm_bindgen = {
+            let span =
+                tracing::info_span!("Wasm-bindgen setup", path = tracing::field::Empty).entered();
+
+            let wasm_bindgen = resolve(&ops.wasm_bindgen, "wasm-bindgen", |root| {
+                let bin = root.join("bin").join(executable("wasm-bindgen"));
+                if !working(&bin) {
+                    tracing::info!(
+                        path = %root.display(),
+                        "Automatically installing wasm-bindgen CLI to the local directory"
+                    );
+                    let mut command = cargo.command()?;
+                    command
+                        .args(["install", "wasm-bindgen-cli", "--locked", "--force"])
+                        .arg("--root")
+                        .arg(root);
+                    run(&mut command)?;
+                }
+                Ok(bin)
+            })?;
+            span.record("path", tracing::field::display(wasm_bindgen.display()));
+            wasm_bindgen
+        };
+
         Ok(Self {
             napi,
             wasm_bindgen,
@@ -352,6 +381,10 @@ pub struct CargoBuildOutput {
 fn install_rust(opts: &ToolInstallationOpts<'_>) -> Result<RustTool, ToolchainError> {
     if let ToolInstallationOpts::Install(root) = opts {
         let root = absolute(root)?;
+        tracing::info!(
+            path = %root.display(),
+            "Automatically installing the Rust toolchain to the local directory"
+        );
         let rustup_home = root.join("rustup");
         let cargo_home = root.join("cargo");
         let rustup = discover("rustup")?;
@@ -489,7 +522,7 @@ fn run(command: &mut Command) -> Result<Output, ToolchainError> {
         .to_string_lossy()
         .into_owned();
     let cwd = absolute(command.get_current_dir().unwrap_or_else(|| Path::new(".")))?;
-    tracing::debug!(%program, cwd = %cwd.display(), "running build tool");
+    tracing::debug!(%program, cwd = %cwd.display(), "Running build tool");
     let output =
         command
             .stdin(Stdio::null())

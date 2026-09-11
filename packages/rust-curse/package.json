@@ -6,7 +6,9 @@
   "scripts": {
     "build:ts": "tsdown",
     "build:native": "cd ../rust-curse-native && pnpm run build",
+    "build:native-release": "cd ../rust-curse-native && pnpm run build:release",
     "build": "pnpm run build:native && pnpm run build:ts",
+    "build:release": "pnpm run build:native-release && pnpm run build:ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
