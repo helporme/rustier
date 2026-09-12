@@ -56,3 +56,8 @@ syn = { version = "2", features = ["parsing"] }
 name = "ui"
 path = "tests/ui.rs"
 harness = false
+
+[profile.dev.package."*"]
+opt-level = 3
+debug-assertions = false
+overflow-checks = false
