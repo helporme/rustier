@@ -3,7 +3,7 @@ use crate::compiler::{
         fragment::{
             FragmentOnce, FragmentPrint, blank, curlies, doubles, frag, fragment, idented, spaced,
         },
-        ts::jsdoc::render_jsdoc,
+        ts::{DeclarationScope, jsdoc::render_jsdoc},
     },
     db::Db,
     ir::decals::{DecalClass, DecalDiscriminator, DecalField, DecalVariant},
@@ -13,13 +13,14 @@ use crate::compiler::{
 #[salsa::tracked]
 impl<'db> DecalClass<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn render_ts(self, db: &'db dyn Db) -> String {
+    pub(super) fn render_in_scope_ts(self, db: &'db dyn Db, scope: DeclarationScope) -> String {
         match self {
             DecalClass::Plain(plain) => self.render_plain_ts(db, plain.fields(db).collect()),
             DecalClass::Discriminated(discriminated) => self.render_discriminated_ts(
                 db,
                 discriminated.variants(db),
                 discriminated.discriminator(db),
+                scope,
             ),
         }
     }
@@ -71,6 +72,7 @@ impl<'db> DecalClass<'db> {
         db: &'db dyn Db,
         variants: &'db [DecalVariant<'db>],
         discriminator: DecalDiscriminator<'db>,
+        scope: DeclarationScope,
     ) -> String {
         let rendered_variants = fragment(move |p| {
             for (index, variant) in variants.iter().enumerate() {
@@ -97,43 +99,51 @@ impl<'db> DecalClass<'db> {
         let static_methods = self
             .methods(db)
             .filter(|method| method.is_static(db))
-            .map(|method| method.render_in_namespace_ts(db))
+            .map(|method| method.render_in_object_ts(db))
             .collect::<Vec<_>>();
-
-        let static_methods = fragment(move |p| {
-            if !static_methods.is_empty() {
-                blank().apply(p);
-                spaced(static_methods).apply(p);
+        let static_members = fragment(move |p| {
+            if static_methods.is_empty() {
+                frag!({}).apply(p);
+            } else {
+                curlies(spaced(static_methods)).apply(p);
             }
         });
 
         let instance_methods = self
             .methods(db)
             .filter(|method| !method.is_static(db))
-            .map(|method| method.render_in_class_ts(db))
+            .map(|method| method.render_in_object_ts(db))
             .collect::<Vec<_>>();
 
+        // Rust identifiers cannot contain `$`, so this per-enum, module-private
+        // brand cannot collide with source declarations or imported Rust types.
+        let brand_name = format!("${}Brand", self.name(db));
+        let instance_brand_name = brand_name.clone();
         let instance_members = fragment(move |p| {
             if !instance_methods.is_empty() {
                 spaced(instance_methods).apply(p);
                 blank().apply(p);
             }
-            brand().apply(p);
-            frag!(@).apply(p);
-            private_ctor().apply(p);
+            frag!(readonly ~[{instance_brand_name}]: never;).apply(p);
         });
+
+        let declare = scope.declare_prefix();
 
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
             export type ~{self.name(db)}~ = ~{self.name(db)}.Instance & ~{self.name(db)}.Plain;@@
 
-            export namespace ~{self.name(db)}~{{
-                {plain}{static_methods}@@
+            export ~{declare}const ~{self.name(db)}:~{static_members};@@
 
-                export class Instance~{{
+            export ~{declare}namespace ~{self.name(db)}~{{
+                {plain}@@
+
+                export interface Instance~{{
                     {instance_members}
                 }}
-            }}
+            }}@@
+
+            {declare}const ~{brand_name}: unique symbol;
         )
         .print()
     }
@@ -207,7 +217,7 @@ mod tests {
     use crate::{
         assert_ts_snap,
         compiler::{
-            codegen::fragment::FragmentOnce as _,
+            codegen::{fragment::FragmentOnce as _, ts::DeclarationScope},
             ir::{decals::DecalMember, rust::Rust},
         },
     };
@@ -237,7 +247,7 @@ mod tests {
                             })
                             .expect("test class should be lowered");
 
-                        class.render_ts(db).apply(p);
+                        class.render_in_scope_ts(db, DeclarationScope::Module).apply(p);
                     },
                 }
             }
@@ -433,5 +443,56 @@ mod tests {
                 matches!(self, Self::First)
             }
         }
+    });
+
+    test_class!(enum_reserved_static_methods, "Wave", {
+        pub enum Wave {
+            Sine(f32),
+            Square(f32, f32),
+            Triangle(f32, f32),
+        }
+
+        impl Wave {
+            /// Creates a sine wave.
+            pub fn new() -> Self {
+                Self::Sine(1.0)
+            }
+
+            pub fn static_fn() -> u32 {
+                0
+            }
+
+            pub fn r#default() -> Self {
+                Self::new()
+            }
+
+            pub fn method_fn(&self) -> u32 {
+                0
+            }
+        }
+    });
+
+    test_class!(enum_reserved_instance_methods, "Wave", {
+        pub enum Wave {
+            Sine,
+        }
+
+        impl Wave {
+            pub fn new(&self) -> bool {
+                true
+            }
+
+            pub fn constructor(&self) -> bool {
+                true
+            }
+
+            pub fn r#default(&self) -> bool {
+                true
+            }
+        }
+    });
+
+    test_class!(empty_enum, "Never", {
+        pub enum Never {}
     });
 }

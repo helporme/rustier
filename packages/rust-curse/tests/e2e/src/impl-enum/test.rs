@@ -6,6 +6,10 @@ pub enum Phase {
 }
 
 impl Phase {
+    pub fn new() -> Self {
+        Self::Waiting
+    }
+
     pub fn waiting() -> Self {
         Self::Waiting
     }
@@ -39,5 +43,27 @@ impl Phase {
 
     pub fn clone_of(other: &Self) -> Self {
         other.clone()
+    }
+}
+
+pub enum UploadState {
+    Idle,
+    Active { progress: i32 },
+}
+
+impl UploadState {
+    pub fn new(progress: i32) -> Self {
+        Self::Active { progress }
+    }
+}
+
+pub enum DownloadState {
+    Idle,
+    Active { progress: i32 },
+}
+
+impl DownloadState {
+    pub fn new(progress: i32) -> Self {
+        Self::Active { progress }
     }
 }

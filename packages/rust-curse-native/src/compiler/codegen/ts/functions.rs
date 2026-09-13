@@ -24,6 +24,7 @@ impl<'db> DecalFreeFunction<'db> {
 }
 
 impl<'db> DecalMethod<'db> {
+    /// Renders method inside the ts class declaration.
     pub(super) fn render_in_class_ts(self, db: &'db dyn Db) -> String {
         let static_prefix = self.is_static(db).then_some("static ");
 
@@ -36,10 +37,20 @@ impl<'db> DecalMethod<'db> {
         .print()
     }
 
-    pub(super) fn render_in_namespace_ts(self, db: &'db dyn Db) -> String {
+    /// Renders method inside the ts object declaration.
+    pub(super) fn render_in_object_ts(self, db: &'db dyn Db) -> String {
+        let name = self.name(db);
+        let name = fragment(move |p| {
+            if name == "new" {
+                doubles(name).apply(p);
+            } else {
+                name.apply(p);
+            }
+        });
+
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
-            export function ~{self.name(db)}{render_params(db, self.params(db))}:~{
+            {name}{render_params(db, self.params(db))}:~{
                 render_return_type(db, self.ret_type(db))
             };
         )

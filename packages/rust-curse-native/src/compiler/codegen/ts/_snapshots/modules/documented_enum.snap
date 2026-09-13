@@ -35,7 +35,9 @@ export class Local {
 /** A shape represented by one of several layouts. */
 export type Shape = Shape.Instance & Shape.Plain;
 
-export namespace Shape {
+export declare const Shape: {};
+
+export declare namespace Shape {
 	export type Plain =
 		/** A circle with named fields. */
 		| {
@@ -62,9 +64,10 @@ export namespace Shape {
 			readonly type: "httpRequest";
 		};
 
-	export class Instance {
-		private __rust_curse_brand: never;
-		private constructor();
+	export interface Instance {
+		readonly [$ShapeBrand]: never;
 	}
 }
+
+declare const $ShapeBrand: unique symbol;
 ```

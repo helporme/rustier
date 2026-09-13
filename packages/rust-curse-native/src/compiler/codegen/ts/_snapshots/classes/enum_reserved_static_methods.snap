@@ -1,0 +1,68 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub enum Wave {
+    Sine(f32),
+    Square(f32, f32),
+    Triangle(f32, f32),
+}
+impl Wave {
+    /// Creates a sine wave.
+    pub fn new() -> Self {
+        Self::Sine(1.0)
+    }
+    pub fn static_fn() -> u32 {
+        0
+    }
+    pub fn r#default() -> Self {
+        Self::new()
+    }
+    pub fn method_fn(&self) -> u32 {
+        0
+    }
+}
+```
+
+# Compiled
+
+```ts
+export type Wave = Wave.Instance & Wave.Plain;
+
+export declare const Wave: {
+	/** Creates a sine wave. */
+	"new"(): Wave;
+
+	static_fn(): number;
+
+	default(): Wave;
+};
+
+export declare namespace Wave {
+	export type Plain =
+		| {
+			readonly type: "sine";
+			[0]: number;
+		}
+		| {
+			readonly type: "square";
+			[0]: number;
+			[1]: number;
+		}
+		| {
+			readonly type: "triangle";
+			[0]: number;
+			[1]: number;
+		};
+
+	export interface Instance {
+		method_fn(): number;
+		readonly [$WaveBrand]: never;
+	}
+}
+
+declare const $WaveBrand: unique symbol;
+```

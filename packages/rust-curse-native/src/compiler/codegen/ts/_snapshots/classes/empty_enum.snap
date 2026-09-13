@@ -1,0 +1,27 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub enum Never {}
+```
+
+# Compiled
+
+```ts
+export type Never = Never.Instance & Never.Plain;
+
+export declare const Never: {};
+
+export declare namespace Never {
+	export type Plain =never;
+
+	export interface Instance {
+		readonly [$NeverBrand]: never;
+	}
+}
+
+declare const $NeverBrand: unique symbol;
+```

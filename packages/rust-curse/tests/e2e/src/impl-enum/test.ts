@@ -1,6 +1,13 @@
 import { expect, it } from 'vitest'
 import { Phase } from './test.rs'
 
+it('calls Phase::new as a static function rather than a constructor', () => {
+  const phase = Phase.new()
+
+  expect(phase.type).toBe('waiting')
+  expect(phase.is_complete()).toBe(false)
+})
+
 it('calls enum static and shared associated functions', () => {
   const waiting = Phase.waiting()
   const running = Phase.running(4)

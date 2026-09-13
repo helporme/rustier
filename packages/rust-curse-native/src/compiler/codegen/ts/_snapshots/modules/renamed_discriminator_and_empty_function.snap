@@ -18,16 +18,19 @@ export function empty(): void;
 
 export type Example = Example.Instance & Example.Plain;
 
-export namespace Example {
+export declare const Example: {};
+
+export declare namespace Example {
 	export type Plain =
 		| {
 			readonly $type: "value";
 			type: string;
 		};
 
-	export class Instance {
-		private __rust_curse_brand: never;
-		private constructor();
+	export interface Instance {
+		readonly [$ExampleBrand]: never;
 	}
 }
+
+declare const $ExampleBrand: unique symbol;
 ```

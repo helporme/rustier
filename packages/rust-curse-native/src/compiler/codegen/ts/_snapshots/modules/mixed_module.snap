@@ -44,7 +44,9 @@ export class Local {
 
 export type Choice = Choice.Instance & Choice.Plain;
 
-export namespace Choice {
+export declare const Choice: {};
+
+export declare namespace Choice {
 	export type Plain =
 		| {
 			readonly type: "empty";
@@ -54,9 +56,10 @@ export namespace Choice {
 			number: number;
 		};
 
-	export class Instance {
-		private __rust_curse_brand: never;
-		private constructor();
+	export interface Instance {
+		readonly [$ChoiceBrand]: never;
 	}
 }
+
+declare const $ChoiceBrand: unique symbol;
 ```

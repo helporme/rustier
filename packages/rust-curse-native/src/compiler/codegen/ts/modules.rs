@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use crate::compiler::{
     codegen::{
         fragment::{FragmentOnce, FragmentPrint, frag, fragment, singles, spaced},
-        ts::jsdoc::render_jsdoc,
+        ts::{DeclarationScope, jsdoc::render_jsdoc},
     },
     db::Db,
     ir::decals::{DecalClass, DecalMember, DecalModule},
@@ -12,7 +12,11 @@ use crate::compiler::{
 #[salsa::tracked]
 impl<'db> DecalModule<'db> {
     #[salsa::tracked(returns(ref))]
-    pub fn render_ts(self, db: &'db dyn Db) -> String {
+    pub fn render_ts_mod(self, db: &'db dyn Db) -> String {
+        self.render_ts_in(db, DeclarationScope::Module)
+    }
+
+    pub(super) fn render_ts_in(self, db: &'db dyn Db, scope: DeclarationScope) -> String {
         let members = self.members(db).collect::<Vec<_>>();
         let functions = members
             .iter()
@@ -42,13 +46,13 @@ impl<'db> DecalModule<'db> {
             .iter()
             .copied()
             .filter(|class| matches!(class, DecalClass::Plain(_)))
-            .map(|class| class.render_ts(db));
+            .map(|class| class.render_in_scope_ts(db, scope));
 
         let discriminated_classes = classes
             .iter()
             .copied()
             .filter(|class| matches!(class, DecalClass::Discriminated(_)))
-            .map(|class| class.render_ts(db));
+            .map(|class| class.render_in_scope_ts(db, scope));
 
         fragment(move |p| {
             spaced(imports.into_iter().map(|(name, path)| {
@@ -110,7 +114,7 @@ mod tests {
                             .root(db)
                             .decals(db);
 
-                        root.render_ts(db).apply(p);
+                        root.render_ts_mod(db).apply(p);
                     },
                 }
             }
@@ -184,5 +188,18 @@ mod tests {
         }
 
         pub fn empty() {}
+    });
+
+    test_module!(distinct_enum_brands, {
+        pub enum Wave {
+            Sine(f32),
+        }
+
+        pub enum OtherWave {
+            Sine(f32),
+        }
+
+        // Ordinary Rust names must not collide with synthetic brand symbols.
+        pub struct WaveBrand;
     });
 }

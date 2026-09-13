@@ -53,7 +53,7 @@ pub fn snapshot_module(db: &RootDatabase, module: DecalModule<'_>) -> String {
         .first()
         .expect("test crate should be lowered")
         .dir(db);
-    let generated = numbered_lines(module.render_ts(db));
+    let generated = numbered_lines(module.render_ts_mod(db));
     let mappings = normalize_mappings(crate_dir.as_path(), module.render_sourcemap_mappings(db));
     let mut source_map: TestSourceMap = serde_json::from_str(module.render_sourcemap(db)).unwrap();
     source_map.sources = source_map

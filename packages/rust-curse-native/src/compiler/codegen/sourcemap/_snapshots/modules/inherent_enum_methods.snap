@@ -5,27 +5,31 @@ expression: snapshot
 TypeScript:
   0 | export type Status = Status.Instance & Status.Plain;
   1 | 
-  2 | export namespace Status {
-  3 | 	export type Plain =
-  4 | 		| {
-  5 | 			readonly type: "pending";
-  6 | 		}
-  7 | 		| {
-  8 | 			readonly type: "complete";
-  9 | 		};
- 10 | 	/** Creates a pending status. */
- 11 | 	export function pending(): Status;
- 12 | 
- 13 | 	export class Instance {
- 14 | 		is_complete(): boolean;
+  2 | export declare const Status: {
+  3 | 	/** Creates a pending status. */
+  4 | 	pending(): Status;
+  5 | };
+  6 | 
+  7 | export declare namespace Status {
+  8 | 	export type Plain =
+  9 | 		| {
+ 10 | 			readonly type: "pending";
+ 11 | 		}
+ 12 | 		| {
+ 13 | 			readonly type: "complete";
+ 14 | 		};
  15 | 
- 16 | 		complete(): void;
- 17 | 
- 18 | 		into_complete(): boolean;
- 19 | 		private __rust_curse_brand: never;
- 20 | 		private constructor();
- 21 | 	}
- 22 | }
+ 16 | 	export interface Instance {
+ 17 | 		is_complete(): boolean;
+ 18 | 
+ 19 | 		complete(): void;
+ 20 | 
+ 21 | 		into_complete(): boolean;
+ 22 | 		readonly [$StatusBrand]: never;
+ 23 | 	}
+ 24 | }
+ 25 | 
+ 26 | declare const $StatusBrand: unique symbol;
 
 Source map:
 {
@@ -37,14 +41,14 @@ Source map:
   ],
   "names": [
     "Status",
+    "pending",
     "Pending",
     "Complete",
-    "pending",
     "is_complete",
     "complete",
     "into_complete"
   ],
-  "mappings": "AAAAA,YAASA;;AAATA,iBAASA;AAATA,aAASA;;AAELC,YAAAA;;;AACAC,YAAAA;;;AAGAC,iBAAOA;;AANXH,cAASA;AAULI,EAAOA;;AAGPC,EAAOA;;AAGPC,EAAOA;;AAhBXN,UAASA"
+  "mappings": "AAAAA,YAASA;;AAATA,qBAASA;;AAMLC,CAAOA;;;AANXD,yBAASA;AAATA,aAASA;;AAELE,YAAAA;;;AACAC,YAAAA;;;AAHJH,kBAASA;AAULI,EAAOA;;AAGPC,EAAOA;;AAGPC,EAAOA"
 }
 
 Mappings:
@@ -75,14 +79,30 @@ Mappings:
     },
     Mapping {
         generated_line: 2,
-        generated_column: 17,
+        generated_column: 21,
         source: "lib.rs",
         original_line: 0,
         original_column: 9,
         name: "Status",
     },
     Mapping {
-        generated_line: 3,
+        generated_line: 4,
+        generated_column: 0,
+        source: "lib.rs",
+        original_line: 6,
+        original_column: 4,
+        name: "pending",
+    },
+    Mapping {
+        generated_line: 4,
+        generated_column: 1,
+        source: "lib.rs",
+        original_line: 6,
+        original_column: 11,
+        name: "pending",
+    },
+    Mapping {
+        generated_line: 7,
         generated_column: 0,
         source: "lib.rs",
         original_line: 0,
@@ -90,7 +110,23 @@ Mappings:
         name: "Status",
     },
     Mapping {
-        generated_line: 3,
+        generated_line: 7,
+        generated_column: 25,
+        source: "lib.rs",
+        original_line: 0,
+        original_column: 9,
+        name: "Status",
+    },
+    Mapping {
+        generated_line: 8,
+        generated_column: 0,
+        source: "lib.rs",
+        original_line: 0,
+        original_column: 0,
+        name: "Status",
+    },
+    Mapping {
+        generated_line: 8,
         generated_column: 13,
         source: "lib.rs",
         original_line: 0,
@@ -98,7 +134,7 @@ Mappings:
         name: "Status",
     },
     Mapping {
-        generated_line: 5,
+        generated_line: 10,
         generated_column: 0,
         source: "lib.rs",
         original_line: 2,
@@ -106,7 +142,7 @@ Mappings:
         name: "Pending",
     },
     Mapping {
-        generated_line: 5,
+        generated_line: 10,
         generated_column: 12,
         source: "lib.rs",
         original_line: 2,
@@ -114,7 +150,7 @@ Mappings:
         name: "Pending",
     },
     Mapping {
-        generated_line: 8,
+        generated_line: 13,
         generated_column: 0,
         source: "lib.rs",
         original_line: 3,
@@ -122,7 +158,7 @@ Mappings:
         name: "Complete",
     },
     Mapping {
-        generated_line: 8,
+        generated_line: 13,
         generated_column: 12,
         source: "lib.rs",
         original_line: 3,
@@ -130,23 +166,7 @@ Mappings:
         name: "Complete",
     },
     Mapping {
-        generated_line: 11,
-        generated_column: 0,
-        source: "lib.rs",
-        original_line: 6,
-        original_column: 4,
-        name: "pending",
-    },
-    Mapping {
-        generated_line: 11,
-        generated_column: 17,
-        source: "lib.rs",
-        original_line: 6,
-        original_column: 11,
-        name: "pending",
-    },
-    Mapping {
-        generated_line: 13,
+        generated_line: 16,
         generated_column: 0,
         source: "lib.rs",
         original_line: 0,
@@ -154,15 +174,15 @@ Mappings:
         name: "Status",
     },
     Mapping {
-        generated_line: 13,
-        generated_column: 14,
+        generated_line: 16,
+        generated_column: 18,
         source: "lib.rs",
         original_line: 0,
         original_column: 9,
         name: "Status",
     },
     Mapping {
-        generated_line: 14,
+        generated_line: 17,
         generated_column: 0,
         source: "lib.rs",
         original_line: 10,
@@ -170,7 +190,7 @@ Mappings:
         name: "is_complete",
     },
     Mapping {
-        generated_line: 14,
+        generated_line: 17,
         generated_column: 2,
         source: "lib.rs",
         original_line: 10,
@@ -178,7 +198,7 @@ Mappings:
         name: "is_complete",
     },
     Mapping {
-        generated_line: 16,
+        generated_line: 19,
         generated_column: 0,
         source: "lib.rs",
         original_line: 13,
@@ -186,7 +206,7 @@ Mappings:
         name: "complete",
     },
     Mapping {
-        generated_line: 16,
+        generated_line: 19,
         generated_column: 2,
         source: "lib.rs",
         original_line: 13,
@@ -194,7 +214,7 @@ Mappings:
         name: "complete",
     },
     Mapping {
-        generated_line: 18,
+        generated_line: 21,
         generated_column: 0,
         source: "lib.rs",
         original_line: 16,
@@ -202,27 +222,11 @@ Mappings:
         name: "into_complete",
     },
     Mapping {
-        generated_line: 18,
+        generated_line: 21,
         generated_column: 2,
         source: "lib.rs",
         original_line: 16,
         original_column: 11,
         name: "into_complete",
-    },
-    Mapping {
-        generated_line: 20,
-        generated_column: 0,
-        source: "lib.rs",
-        original_line: 0,
-        original_column: 0,
-        name: "Status",
-    },
-    Mapping {
-        generated_line: 20,
-        generated_column: 10,
-        source: "lib.rs",
-        original_line: 0,
-        original_column: 9,
-        name: "Status",
     },
 ]

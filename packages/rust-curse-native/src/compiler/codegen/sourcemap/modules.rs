@@ -49,7 +49,7 @@ impl<'db> DecalModule<'db> {
     /// Renders mappings for all declarations in their TypeScript output order.
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_sourcemap_mappings(self, db: &'db dyn Db) -> Vec<Mapping> {
-        let generated = self.render_ts(db);
+        let generated = self.render_ts_mod(db);
         let mut mappings = Vec::new();
         let mut search_line = 0;
 
@@ -261,6 +261,36 @@ mod tests {
 
             pub fn into_complete(self) -> bool {
                 matches!(self, Self::Complete)
+            }
+        }
+    });
+
+    test_module!(enum_object_method_names, {
+        pub enum StaticNames {
+            Value,
+        }
+
+        impl StaticNames {
+            pub fn new() -> Self {
+                Self::Value
+            }
+
+            pub fn constructor() -> bool {
+                true
+            }
+        }
+
+        pub enum InstanceNames {
+            Value,
+        }
+
+        impl InstanceNames {
+            pub fn new(&self) -> bool {
+                true
+            }
+
+            pub fn constructor(&self) -> bool {
+                true
             }
         }
     });

@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/ts/classes.rs
-assertion_line: 406
 expression: snapshot
 ---
 # Source
@@ -22,7 +21,9 @@ impl Test {
 ```ts
 export type Test = Test.Instance & Test.Plain;
 
-export namespace Test {
+export declare const Test: {};
+
+export declare namespace Test {
 	export type Plain =
 		| {
 			readonly type: "first";
@@ -33,10 +34,11 @@ export namespace Test {
 			value: number;
 		};
 
-	export class Instance {
+	export interface Instance {
 		value(): number;
-		private __rust_curse_brand: never;
-		private constructor();
+		readonly [$TestBrand]: never;
 	}
 }
+
+declare const $TestBrand: unique symbol;
 ```

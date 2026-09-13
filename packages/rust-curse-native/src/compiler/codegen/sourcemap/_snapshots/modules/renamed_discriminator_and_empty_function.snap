@@ -7,29 +7,35 @@ TypeScript:
   1 | 
   2 | export type Example = Example.Instance & Example.Plain;
   3 | 
-  4 | export namespace Example {
-  5 | 	export type Plain =
-  6 | 		| {
-  7 | 			readonly $type: "value";
-  8 | 			type: string;
-  9 | 		};
- 10 | 
- 11 | 	export class Instance {
- 12 | 		private __rust_curse_brand: never;
- 13 | 		private constructor();
- 14 | 	}
- 15 | }
- 16 | 
- 17 | export type Never = Never.Instance & Never.Plain;
- 18 | 
- 19 | export namespace Never {
- 20 | 	export type Plain =never;
+  4 | export declare const Example: {};
+  5 | 
+  6 | export declare namespace Example {
+  7 | 	export type Plain =
+  8 | 		| {
+  9 | 			readonly $type: "value";
+ 10 | 			type: string;
+ 11 | 		};
+ 12 | 
+ 13 | 	export interface Instance {
+ 14 | 		readonly [$ExampleBrand]: never;
+ 15 | 	}
+ 16 | }
+ 17 | 
+ 18 | declare const $ExampleBrand: unique symbol;
+ 19 | 
+ 20 | export type Never = Never.Instance & Never.Plain;
  21 | 
- 22 | 	export class Instance {
- 23 | 		private __rust_curse_brand: never;
- 24 | 		private constructor();
- 25 | 	}
- 26 | }
+ 22 | export declare const Never: {};
+ 23 | 
+ 24 | export declare namespace Never {
+ 25 | 	export type Plain =never;
+ 26 | 
+ 27 | 	export interface Instance {
+ 28 | 		readonly [$NeverBrand]: never;
+ 29 | 	}
+ 30 | }
+ 31 | 
+ 32 | declare const $NeverBrand: unique symbol;
 
 Source map:
 {
@@ -46,7 +52,7 @@ Source map:
     "type",
     "Never"
   ],
-  "mappings": "AAIAA,gBAAOA;;AAJPC,YAASA;;AAATA,iBAASA;AAATA,aAASA;;AACLC,YAAAA;AAAQC,GAAAA;;;AADZF,cAASA;;AAATA,UAASA;;;;AAGTG,YAASA;;AAATA,iBAASA;AAATA,aAASA;;AAATA,cAASA;;AAATA,UAASA"
+  "mappings": "AAIAA,gBAAOA;;AAJPC,YAASA;;AAATA,qBAASA;;AAATA,yBAASA;AAATA,aAASA;;AACLC,YAAAA;AAAQC,GAAAA;;;AADZF,kBAASA;;;;;;;AAGTG,YAASA;;AAATA,qBAASA;;AAATA,yBAASA;AAATA,aAASA;;AAATA,kBAASA"
 }
 
 Mappings:
@@ -93,14 +99,14 @@ Mappings:
     },
     Mapping {
         generated_line: 4,
-        generated_column: 17,
+        generated_column: 21,
         source: "lib.rs",
         original_line: 0,
         original_column: 9,
         name: "Example",
     },
     Mapping {
-        generated_line: 5,
+        generated_line: 6,
         generated_column: 0,
         source: "lib.rs",
         original_line: 0,
@@ -108,8 +114,8 @@ Mappings:
         name: "Example",
     },
     Mapping {
-        generated_line: 5,
-        generated_column: 13,
+        generated_line: 6,
+        generated_column: 25,
         source: "lib.rs",
         original_line: 0,
         original_column: 9,
@@ -119,12 +125,28 @@ Mappings:
         generated_line: 7,
         generated_column: 0,
         source: "lib.rs",
+        original_line: 0,
+        original_column: 0,
+        name: "Example",
+    },
+    Mapping {
+        generated_line: 7,
+        generated_column: 13,
+        source: "lib.rs",
+        original_line: 0,
+        original_column: 9,
+        name: "Example",
+    },
+    Mapping {
+        generated_line: 9,
+        generated_column: 0,
+        source: "lib.rs",
         original_line: 1,
         original_column: 4,
         name: "Value",
     },
     Mapping {
-        generated_line: 7,
+        generated_line: 9,
         generated_column: 12,
         source: "lib.rs",
         original_line: 1,
@@ -132,7 +154,7 @@ Mappings:
         name: "Value",
     },
     Mapping {
-        generated_line: 8,
+        generated_line: 10,
         generated_column: 0,
         source: "lib.rs",
         original_line: 1,
@@ -140,7 +162,7 @@ Mappings:
         name: "type",
     },
     Mapping {
-        generated_line: 8,
+        generated_line: 10,
         generated_column: 3,
         source: "lib.rs",
         original_line: 1,
@@ -148,22 +170,6 @@ Mappings:
         name: "type",
     },
     Mapping {
-        generated_line: 11,
-        generated_column: 0,
-        source: "lib.rs",
-        original_line: 0,
-        original_column: 0,
-        name: "Example",
-    },
-    Mapping {
-        generated_line: 11,
-        generated_column: 14,
-        source: "lib.rs",
-        original_line: 0,
-        original_column: 9,
-        name: "Example",
-    },
-    Mapping {
         generated_line: 13,
         generated_column: 0,
         source: "lib.rs",
@@ -173,14 +179,14 @@ Mappings:
     },
     Mapping {
         generated_line: 13,
-        generated_column: 10,
+        generated_column: 18,
         source: "lib.rs",
         original_line: 0,
         original_column: 9,
         name: "Example",
     },
     Mapping {
-        generated_line: 17,
+        generated_line: 20,
         generated_column: 0,
         source: "lib.rs",
         original_line: 3,
@@ -188,7 +194,7 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 17,
+        generated_line: 20,
         generated_column: 12,
         source: "lib.rs",
         original_line: 3,
@@ -196,7 +202,7 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 19,
+        generated_line: 22,
         generated_column: 0,
         source: "lib.rs",
         original_line: 3,
@@ -204,15 +210,15 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 19,
-        generated_column: 17,
+        generated_line: 22,
+        generated_column: 21,
         source: "lib.rs",
         original_line: 3,
         original_column: 9,
         name: "Never",
     },
     Mapping {
-        generated_line: 20,
+        generated_line: 24,
         generated_column: 0,
         source: "lib.rs",
         original_line: 3,
@@ -220,7 +226,23 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 20,
+        generated_line: 24,
+        generated_column: 25,
+        source: "lib.rs",
+        original_line: 3,
+        original_column: 9,
+        name: "Never",
+    },
+    Mapping {
+        generated_line: 25,
+        generated_column: 0,
+        source: "lib.rs",
+        original_line: 3,
+        original_column: 0,
+        name: "Never",
+    },
+    Mapping {
+        generated_line: 25,
         generated_column: 13,
         source: "lib.rs",
         original_line: 3,
@@ -228,7 +250,7 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 22,
+        generated_line: 27,
         generated_column: 0,
         source: "lib.rs",
         original_line: 3,
@@ -236,24 +258,8 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 22,
-        generated_column: 14,
-        source: "lib.rs",
-        original_line: 3,
-        original_column: 9,
-        name: "Never",
-    },
-    Mapping {
-        generated_line: 24,
-        generated_column: 0,
-        source: "lib.rs",
-        original_line: 3,
-        original_column: 0,
-        name: "Never",
-    },
-    Mapping {
-        generated_line: 24,
-        generated_column: 10,
+        generated_line: 27,
+        generated_column: 18,
         source: "lib.rs",
         original_line: 3,
         original_column: 9,

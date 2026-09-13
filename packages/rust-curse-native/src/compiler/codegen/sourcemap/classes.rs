@@ -46,7 +46,7 @@ impl<'db> DecalClass<'db> {
         fields: Vec<DecalField<'db>>,
         generated_line: usize,
     ) -> Vec<Mapping> {
-        let generated = module.render_ts(db);
+        let generated = module.render_ts_mod(db);
         let name = self.name(db);
         let class_line = find_name_line(generated, generated_line, "export class ", name, " {")
             .expect("rendered TypeScript class declaration should exist");
@@ -136,13 +136,26 @@ impl<'db> DecalClass<'db> {
         discriminator: DecalDiscriminator<'db>,
         generated_line: usize,
     ) -> Vec<Mapping> {
-        let generated = module.render_ts(db);
+        let generated = module.render_ts_mod(db);
         let name = self.name(db);
         let type_line = find_name_line(generated, generated_line, "export type ", name, " =")
             .expect("rendered TypeScript union declaration should exist");
-        let namespace_line =
-            find_name_line(generated, type_line + 1, "export namespace ", name, " {")
-                .expect("rendered TypeScript union namespace should exist");
+        let value_line = find_name_line(
+            generated,
+            type_line + 1,
+            "export declare const ",
+            name,
+            ": {",
+        )
+        .expect("rendered TypeScript enum static value declaration should exist");
+        let namespace_line = find_name_line(
+            generated,
+            value_line + 1,
+            "export declare namespace ",
+            name,
+            " {",
+        )
+        .expect("rendered TypeScript union namespace should exist");
         let plain_line = find_name_line(
             generated,
             namespace_line + 1,
@@ -154,19 +167,11 @@ impl<'db> DecalClass<'db> {
         let instance_line = find_name_line(
             generated,
             plain_line + 1,
-            "\texport class ",
+            "\texport interface ",
             "Instance",
             " {",
         )
-        .expect("rendered TypeScript union instance class should exist");
-        let constructor_line = find_name_line(
-            generated,
-            instance_line + 1,
-            "\t\tprivate ",
-            "constructor",
-            "();",
-        )
-        .expect("rendered TypeScript union instance constructor should exist");
+        .expect("rendered TypeScript union instance interface should exist");
         let Some(span) = self.span(db) else {
             return Vec::new();
         };
@@ -176,10 +181,10 @@ impl<'db> DecalClass<'db> {
 
         for (line, generated_name_column) in [
             (type_line, "export type ".len()),
-            (namespace_line, "export namespace ".len()),
+            (value_line, "export declare const ".len()),
+            (namespace_line, "export declare namespace ".len()),
             (plain_line, "\texport type ".len()),
-            (instance_line, "\texport class ".len()),
-            (constructor_line, "\t\tprivate ".len()),
+            (instance_line, "\texport interface ".len()),
         ] {
             mappings.extend(declaration_mappings(
                 line,
@@ -190,24 +195,24 @@ impl<'db> DecalClass<'db> {
             ));
         }
 
-        let mut static_method_start_line = plain_line + 1;
+        let mut static_method_start_line = value_line + 1;
         for method in self.methods(db).filter(|method| method.is_static(db)) {
-            let prefix = "\texport function ";
+            let (prefix, suffix) = object_method_search(&method, db, "\t");
             let method_line = find_name_line(
                 generated,
                 static_method_start_line,
-                prefix,
+                &prefix,
                 method.name(db),
-                "(",
+                suffix,
             )
-            .expect("rendered TypeScript enum namespace function declaration should exist");
+            .expect("rendered TypeScript enum static method declaration should exist");
             static_method_start_line = method_line + 1;
             mappings.extend(method_mappings(&method, db, method_line, prefix.len()));
         }
 
         let mut instance_method_start_line = instance_line + 1;
         for method in self.methods(db).filter(|method| !method.is_static(db)) {
-            let (prefix, suffix) = class_method_search(&method, db, "\t\t");
+            let (prefix, suffix) = object_method_search(&method, db, "\t\t");
             let method_line = find_name_line(
                 generated,
                 instance_method_start_line,
@@ -283,6 +288,18 @@ impl<'db> DecalClass<'db> {
 
         mappings.sort_by_key(|mapping| (mapping.generated_line, mapping.generated_column));
         mappings
+    }
+}
+
+fn object_method_search<'db>(
+    method: &DecalMethod<'db>,
+    db: &'db dyn Db,
+    indent: &str,
+) -> (String, &'static str) {
+    if method.name(db) == "new" {
+        (format!("{indent}\""), "\"(")
+    } else {
+        (indent.to_owned(), "(")
     }
 }
 

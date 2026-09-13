@@ -84,7 +84,7 @@ impl<'db> ProjectTsSync<'db> {
             // FIXME: move to the codegen?
             let declaration = format!(
                 "{}\n//# sourceMappingURL={sourcemap_name}\n",
-                module.render_ts(db)
+                module.render_ts_mod(db)
             );
 
             write_file(&sourcemap_path, module.render_sourcemap(db))?;
@@ -94,7 +94,7 @@ impl<'db> ProjectTsSync<'db> {
 
         write_file(
             &self.out_ambient_file,
-            self.decals.render_external_modules(db),
+            self.decals.render_ambient_ts_mods(db),
         )?;
 
         Ok(())

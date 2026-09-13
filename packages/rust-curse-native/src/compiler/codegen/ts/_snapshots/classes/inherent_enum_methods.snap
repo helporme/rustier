@@ -32,7 +32,12 @@ impl Test {
 ```ts
 export type Test = Test.Instance & Test.Plain;
 
-export namespace Test {
+export declare const Test: {
+	/** Creates the first variant. */
+	first(): Test;
+};
+
+export declare namespace Test {
 	export type Plain =
 		| {
 			readonly type: "first";
@@ -40,17 +45,16 @@ export namespace Test {
 		| {
 			readonly type: "second";
 		};
-	/** Creates the first variant. */
-	export function first(): Test;
 
-	export class Instance {
+	export interface Instance {
 		is_first(): boolean;
 
 		make_second(): void;
 
 		into_bool(): boolean;
-		private __rust_curse_brand: never;
-		private constructor();
+		readonly [$TestBrand]: never;
 	}
 }
+
+declare const $TestBrand: unique symbol;
 ```
