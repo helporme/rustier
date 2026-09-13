@@ -1,3 +1,4 @@
+pub mod ffi;
 pub(super) mod fragment;
 pub mod js;
 pub mod shim;

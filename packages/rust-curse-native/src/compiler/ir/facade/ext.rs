@@ -2,15 +2,22 @@ use crate::compiler::{
     db::Db,
     ir::{
         facade::{
-            FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldDiscriminator,
-            FacadeFreeFunction, FacadeMethod, FacadeModule, FacadeParentModule,
+            Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain,
+            FacadeFieldDiscriminator, FacadeFreeFunction, FacadeMethod, FacadeModule,
+            FacadeParentModule,
         },
         shim::{
-            ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimFunctionAssociated,
+            Shim, ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimFunctionAssociated,
             ShimFunctionDiscriminator, ShimFunctionFree, ShimModule, ShimParentModule,
         },
     },
 };
+
+impl<'db> Shim<'db> {
+    pub fn facade(self, db: &'db dyn Db) -> Facade<'db> {
+        Facade::new(db, self)
+    }
+}
 
 impl<'db> ShimParentModule<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeParentModule<'db> {

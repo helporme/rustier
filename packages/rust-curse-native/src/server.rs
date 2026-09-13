@@ -18,9 +18,12 @@ use crate::{
 mod diag;
 mod log;
 mod project;
+mod target;
 mod toolchain;
 mod workspace;
 mod write_file;
+
+pub use target::ServerNodeTarget;
 
 #[napi(object)]
 pub struct Config {
@@ -58,7 +61,6 @@ impl Server {
 
             let tools_dir = ws.project().out_dir().join("tools");
             let toolchain = Toolchain::install(ToolchainOps {
-                napi: ToolInstallationOpts::Install(&tools_dir.join("napi")),
                 wasm_bindgen: ToolInstallationOpts::Install(&tools_dir.join("wasm_bindgen")),
                 cargo: ToolInstallationOpts::Discover,
             })
@@ -101,6 +103,10 @@ impl Server {
     pub fn build(&mut self, platform: ServerPlatform, release: bool) -> ServerBuildResult {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
 
+        let node_target = match &platform {
+            ServerPlatform::Node { target } => *target,
+            ServerPlatform::Wasm { .. } => None,
+        };
         let platform = Platform::from(platform);
         let platform_label = match platform {
             Platform::Node => "node",
@@ -112,7 +118,7 @@ impl Server {
             } => "webasm",
         };
 
-        let profile = if release { "release" } else { "dev" };
+        let profile = if release { "release" } else { "debug" };
 
         let _span = tracing::info_span!("Rust build", platform = platform_label, profile).entered();
 
@@ -132,12 +138,20 @@ impl Server {
 
             let bin_path = {
                 let _span = tracing::info_span!("Rust artifact compilation").entered();
-                let build = self.ws.with_db(|db| cursed_crate.build(db, release));
-                self.ws.with_db_mut(|db| {
-                    build
-                        .exec(db, &self.toolchain)
-                        .map(|artifact| artifact.bin_path.as_str().to_owned())
-                })?
+                let build = self.ws.with_db(|db| match platform {
+                    Platform::Node => cursed_crate.build_napi(db, release, node_target),
+                    Platform::Wasm { .. } => cursed_crate.build_wasm(db, release),
+                });
+                self.ws.with_db_mut(|db| build.exec(db, &self.toolchain))?;
+                self.ws.with_db(|db| {
+                    self.ws
+                        .project()
+                        .cursed_crate(platform)
+                        .bin_file(db, node_target)
+                        .expect("successful build has a binary")
+                        .as_str()
+                        .to_owned()
+                })
             };
             Ok(vec![bin_path])
         })();
@@ -187,7 +201,7 @@ impl Server {
 #[napi]
 pub enum ServerPlatform {
     Wasm { target: ServerWasmTarget },
-    Node,
+    Node { target: Option<ServerNodeTarget> },
 }
 
 impl From<ServerPlatform> for Platform {
@@ -199,7 +213,7 @@ impl From<ServerPlatform> for Platform {
                     ServerWasmTarget::Node => WasmEnv::Node,
                 },
             },
-            ServerPlatform::Node => Platform::Node,
+            ServerPlatform::Node { .. } => Platform::Node,
         }
     }
 }

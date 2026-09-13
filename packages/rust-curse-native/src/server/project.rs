@@ -26,10 +26,10 @@ use crate::{
         path::{FilePath, FilePathError},
     },
     server::{
+        ServerNodeTarget,
         project::ts::ProjectTs,
         toolchain::{
-            CargoBuildCommand, NapiBuildCommand, Toolchain, ToolchainError, WasmBindgenCommand,
-            WasmBindgenTarget,
+            CargoBuildCommand, Toolchain, ToolchainError, WasmBindgenCommand, WasmBindgenTarget,
         },
         write_file::{WriteFileError, write_file},
     },
@@ -129,15 +129,18 @@ impl<'a> CursedCrate<'a> {
         self.root_dir(db).join("Cargo.toml")
     }
 
-    /// Latest built artifact for the cursed crate.
-    ///
-    /// See the [`build`][`Self::build`] for obtaining a build and executing it.
-    pub fn artifact(self, db: &dyn Db) -> Option<&BuildArtifact> {
+    pub fn ffi_js_file(self, db: &dyn Db) -> Option<&FilePath> {
         BuildArtifacts::artifact(db, self.manifest_path(db).to_string_lossy().as_ref())
+            .map(|artifact| &artifact.ffi_js_file)
+    }
+
+    pub fn bin_file(self, db: &dyn Db, target: Option<ServerNodeTarget>) -> Option<&FilePath> {
+        BuildArtifacts::artifact(db, self.manifest_path(db).to_string_lossy().as_ref())
+            .and_then(|artifact| artifact.bin_files.get(&target))
     }
 
     pub fn js<'db>(self, db: &'db dyn Db, path: &String) -> Option<&'db String> {
-        if let Some(artifact) = self.artifact(db) {
+        if let Some(ffi_js_file) = self.ffi_js_file(db) {
             self.project
                 .reachable_shim(db)
                 .crates(db)
@@ -150,7 +153,7 @@ impl<'a> CursedCrate<'a> {
                     m.facade(db).render(
                         db,
                         JsCodegenPaths {
-                            ffi_js_file: artifact.js_path.clone(),
+                            ffi_js_file: ffi_js_file.clone(),
                         },
                     )
                 })
@@ -183,35 +186,48 @@ impl<'a> CursedCrate<'a> {
             .build_script_body()
             .map(|body| format!("fn main() {{ {body} }}\n"));
 
-        let package = matches!(self.platform, Platform::Node).then_some(format!(
-            // It's technically possible to just write `{}` into the package.json, but we need to
-            // have some decency
-            r#"
-            {{
-                "name": "{name}",
-                "version": "0.0.0",
-                "private": true
-            }}
-            "#
-        ));
-
         CursedCrateSync {
             out_dir: self.root_dir(db),
             manifest,
             lib,
             build,
-            package,
         }
     }
 
-    /// Build of the cursed crate for the given platform and release mode.
+    /// Native build of the cursed crate.
     ///
     /// Doesn't do anything until executed.
-    pub fn build(self, db: &dyn Db, release: bool) -> CursedCrateBuild {
+    pub fn build_napi(
+        self,
+        db: &dyn Db,
+        release: bool,
+        node_target: Option<ServerNodeTarget>,
+    ) -> CursedCrateBuild {
         CursedCrateBuild {
             out_dir: self.root_dir(db),
             platform: self.platform,
             release,
+            node_target,
+            napi_ffi: Some(
+                self.project
+                    .reachable_shim(db)
+                    .facade(db)
+                    .ffi(db)
+                    .render_napi_ffi(db),
+            ),
+        }
+    }
+
+    /// WebAssembly build of the cursed crate.
+    ///
+    /// Doesn't do anything until executed.
+    pub fn build_wasm(self, db: &dyn Db, release: bool) -> CursedCrateBuild {
+        CursedCrateBuild {
+            out_dir: self.root_dir(db),
+            platform: self.platform,
+            release,
+            node_target: None,
+            napi_ffi: None,
         }
     }
 }
@@ -223,8 +239,6 @@ pub struct CursedCrateSync {
     manifest: String,
     lib: String,
     build: Option<String>,
-    /// package.json contents for node projects that use napi
-    package: Option<String>,
 }
 
 impl CursedCrateSync {
@@ -234,7 +248,6 @@ impl CursedCrateSync {
             manifest,
             lib,
             build,
-            package,
         } = self;
 
         write_file(out_dir.join("Cargo.toml"), manifest)?;
@@ -242,10 +255,6 @@ impl CursedCrateSync {
         if let Some(build) = build {
             write_file(out_dir.join("build.rs"), build)?;
         }
-        if let Some(package) = package {
-            write_file(out_dir.join("package.json"), package)?;
-        }
-
         Ok(())
     }
 }
@@ -256,83 +265,95 @@ pub struct CursedCrateBuild {
     out_dir: PathBuf,
     platform: Platform,
     release: bool,
+    node_target: Option<ServerNodeTarget>,
+    napi_ffi: Option<String>,
 }
 
 impl CursedCrateBuild {
-    pub fn exec<'db>(
-        &self,
-        db: &'db mut dyn Db,
-        toolchain: &Toolchain,
-    ) -> Result<&'db BuildArtifact, ProjectError> {
+    pub fn exec(&self, db: &mut dyn Db, toolchain: &Toolchain) -> Result<(), ProjectError> {
         let manifest_path = self
             .out_dir
             .join("Cargo.toml")
             .to_string_lossy()
             .into_owned();
 
-        // The build removes previous artifact files before compiling.
+        let mut bin_files = BuildArtifacts::artifact(db, &manifest_path)
+            .map(|artifact| artifact.bin_files.clone())
+            .unwrap_or_default();
+        bin_files.remove(&self.node_target);
         BuildArtifacts::remove(db, &manifest_path);
-        let artifact = match self.platform {
-            Platform::Node => self.build_node(toolchain),
-            Platform::Wasm { target } => self.build_wasm(toolchain, target),
-        }?;
 
-        Ok(BuildArtifacts::set(db, manifest_path, artifact))
-    }
-
-    fn build_node(&self, toolchain: &Toolchain) -> Result<BuildArtifact, ProjectError> {
-        let artifact_dir = self.reserve_unique_artifact_dir()?;
-        let output = NapiBuildCommand {
-            manifest_path: &self.out_dir.join("Cargo.toml"),
-            output_dir: &artifact_dir,
-            release: self.release,
-        }
-        .exec(toolchain)?;
-
-        Ok(BuildArtifact {
-            js_path: output.js_path.as_path().try_into()?,
-            bin_path: output.node_path.as_path().try_into()?,
-        })
-    }
-
-    fn build_wasm(
-        &self,
-        toolchain: &Toolchain,
-        target: WasmEnv,
-    ) -> Result<BuildArtifact, ProjectError> {
         let artifact_dir = self.reserve_unique_artifact_dir()?;
 
         let output = CargoBuildCommand {
             manifest_path: &self.out_dir.join("Cargo.toml"),
-            target_dir: &artifact_dir,
-            target: Some("wasm32-unknown-unknown"),
+            target_dir: &self.out_dir.join("target"),
+            target: Some(match self.platform {
+                Platform::Node => self
+                    .node_target
+                    .map_or(env!("RUST_CURSE_TARGET"), ServerNodeTarget::triple),
+                Platform::Wasm { .. } => "wasm32-unknown-unknown",
+            }),
             release: self.release,
         }
         .exec(toolchain)?;
 
-        let wasm_path = output
+        let binary = output
             .artifacts
             .into_iter()
             .find(|path| {
-                path.extension()
-                    .is_some_and(|extension| extension == "wasm")
+                let extension = path.extension().and_then(|ext| ext.to_str());
+                match self.platform {
+                    Platform::Node => matches!(extension, Some("dylib" | "dll" | "so")),
+                    Platform::Wasm { .. } => extension == Some("wasm"),
+                }
             })
-            .ok_or(ProjectError::MissingWasmArtifact)?;
+            .ok_or(ProjectError::MissingLibraryArtifact)?;
 
-        let output = WasmBindgenCommand {
-            wasm_path: &wasm_path,
-            output_dir: &artifact_dir,
-            target: match target {
-                WasmEnv::Web => WasmBindgenTarget::Web,
-                WasmEnv::Node => WasmBindgenTarget::NodeJs,
-            },
+        for file in bin_files.values_mut() {
+            let destination = artifact_dir.join(file.as_path().file_name().unwrap());
+            *file = copy_artifact(file.as_path(), &destination)?;
         }
-        .exec(toolchain)?;
 
-        Ok(BuildArtifact {
-            js_path: output.js_path.as_path().try_into()?,
-            bin_path: output.wasm_path.as_path().try_into()?,
-        })
+        let (ffi_js_file, bin_file) = match self.platform {
+            Platform::Node => {
+                let name = self
+                    .node_target
+                    .or_else(ServerNodeTarget::host)
+                    .map(ServerNodeTarget::native_binary_name)
+                    .ok_or(ProjectError::UnsupportedNodeHost)?;
+                let bin_file = copy_artifact(&binary, &artifact_dir.join(name))?;
+                let js_path = artifact_dir.join("index.mjs");
+                write_file(&js_path, self.napi_ffi.as_ref().unwrap())?;
+                (js_path.as_path().try_into()?, bin_file)
+            }
+            Platform::Wasm { target } => {
+                let output = WasmBindgenCommand {
+                    wasm_path: &binary,
+                    output_dir: &artifact_dir,
+                    target: match target {
+                        WasmEnv::Web => WasmBindgenTarget::Web,
+                        WasmEnv::Node => WasmBindgenTarget::NodeJs,
+                    },
+                }
+                .exec(toolchain)?;
+                (
+                    output.js_path.as_path().try_into()?,
+                    output.wasm_path.as_path().try_into()?,
+                )
+            }
+        };
+
+        bin_files.insert(self.node_target, bin_file);
+        BuildArtifacts::set(
+            db,
+            manifest_path,
+            BuildArtifact {
+                ffi_js_file,
+                bin_files,
+            },
+        );
+        Ok(())
     }
 
     /// Reserve a unique artifact directory on disk to which the build output
@@ -366,9 +387,6 @@ impl CursedCrateBuild {
             }
         }
 
-        fs::remove_dir_all(&root).map_err(io_error("remove old artifacts"))?;
-        fs::create_dir_all(&root).map_err(io_error("create artifact directory"))?;
-
         loop {
             let dir = root.join(version.to_string());
             match fs::create_dir(&dir) {
@@ -390,44 +408,51 @@ impl CursedCrateBuild {
     }
 }
 
+fn copy_artifact(source: &Path, destination: &Path) -> Result<FilePath, ProjectError> {
+    fs::copy(source, destination).map_err(|source| ProjectError::ArtifactIo {
+        operation: "copy artifact to",
+        path: destination.to_owned(),
+        source,
+    })?;
+    Ok(destination.try_into()?)
+}
+
 #[salsa::input(singleton)]
 struct BuildArtifacts {
-    /// A map of manifest paths to their build artifacts.
+    /// A shared JS loader and target-specific binaries for each manifest.
     #[returns(ref)]
     artifacts: HashMap<String, BuildArtifact>,
 }
 
 impl BuildArtifacts {
-    pub fn remove(db: &mut dyn Db, manifest_path: &str) {
+    pub fn remove(db: &mut dyn Db, key: &str) {
         if let Some(input) = Self::try_get(db)
-            && input.artifacts(db).contains_key(manifest_path)
+            && input.artifacts(db).contains_key(key)
         {
             let mut artifacts = input.artifacts(db).clone();
-            artifacts.remove(manifest_path);
+            artifacts.remove(key);
             input.set_artifacts(db).to(artifacts);
         }
     }
 
-    pub fn set(db: &mut dyn Db, manifest_path: String, artifact: BuildArtifact) -> &BuildArtifact {
+    pub fn set(db: &mut dyn Db, key: String, artifact: BuildArtifact) {
         let input = Self::try_get(db).unwrap_or_else(|| Self::new(db, HashMap::default()));
 
         let mut artifacts = input.artifacts(db).clone();
-        artifacts.insert(manifest_path.clone(), artifact);
+        artifacts.insert(key, artifact);
         input.set_artifacts(db).to(artifacts);
-
-        Self::artifact(db, &manifest_path).unwrap()
     }
 
-    pub fn artifact<'db>(db: &'db dyn Db, manifest_path: &str) -> Option<&'db BuildArtifact> {
-        Self::try_get(db).and_then(|input| input.artifacts(db).get(manifest_path))
+    pub fn artifact<'db>(db: &'db dyn Db, key: &str) -> Option<&'db BuildArtifact> {
+        Self::try_get(db).and_then(|input| input.artifacts(db).get(key))
     }
 }
 
-/// Absolute paths to a build's platform-specific outputs.
-#[derive(Debug, Clone, Eq, PartialEq, Hash, salsa::Update)]
+/// Absolute paths to the shared loader and the binaries built so far.
+#[derive(Debug, Clone, Eq, PartialEq, salsa::Update)]
 pub struct BuildArtifact {
-    pub js_path: FilePath,
-    pub bin_path: FilePath,
+    pub ffi_js_file: FilePath,
+    pub bin_files: HashMap<Option<ServerNodeTarget>, FilePath>,
 }
 
 #[derive(Debug, Error, Diagnostic)]
@@ -452,9 +477,11 @@ pub enum ProjectError {
     #[error("artifact version overflow")]
     #[diagnostic(code(rust_curse::artifact_version_overflow))]
     ArtifactVersionOverflow,
-    #[error("Cargo did not produce a WebAssembly artifact")]
-    #[diagnostic(code(rust_curse::missing_wasm_artifact))]
-    MissingWasmArtifact,
+    #[error("Cargo did not produce a library artifact for the requested package")]
+    #[diagnostic(code(rust_curse::missing_library_artifact))]
+    MissingLibraryArtifact,
+    #[error("the host target is not supported for native Node builds")]
+    UnsupportedNodeHost,
     #[error("local module {} is outside project root {}", path.display(), root.display())]
     #[diagnostic(code(rust_curse::module_outside_project))]
     ModuleOutsideRoot { path: PathBuf, root: PathBuf },

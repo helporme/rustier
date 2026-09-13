@@ -88,10 +88,39 @@ export declare const enum ServerLogLevel {
   Trace = 4
 }
 
+/** Supported Rust targets for native Node.js builds. */
+export declare const enum ServerNodeTarget {
+  Aarch64AppleDarwin = 1,
+  Aarch64LinuxAndroid = 18,
+  Aarch64PcWindowsMsvc = 5,
+  Aarch64UnknownFreebsd = 21,
+  Aarch64UnknownLinuxGnu = 8,
+  Aarch64UnknownLinuxMusl = 9,
+  Aarch64UnknownLinuxOhos = 22,
+  Armv7LinuxAndroideabi = 19,
+  Armv7UnknownLinuxGnueabihf = 10,
+  Armv7UnknownLinuxMusleabihf = 11,
+  Armv7UnknownLinuxOhos = 24,
+  I686PcWindowsMsvc = 4,
+  Loongarch64UnknownLinuxGnu = 14,
+  Loongarch64UnknownLinuxMusl = 15,
+  Powerpc64leUnknownLinuxGnu = 16,
+  Riscv64gcUnknownLinuxGnu = 12,
+  Riscv64gcUnknownLinuxMusl = 13,
+  S390xUnknownLinuxGnu = 17,
+  X86_64AppleDarwin = 0,
+  X86_64PcWindowsGnu = 3,
+  X86_64PcWindowsMsvc = 2,
+  X86_64UnknownFreebsd = 20,
+  X86_64UnknownLinuxGnu = 6,
+  X86_64UnknownLinuxMusl = 7,
+  X86_64UnknownLinuxOhos = 23
+}
+
 /** The platform to build for. */
 export type ServerPlatform =
   | { type: 'Wasm', target: ServerWasmTarget }
-  | { type: 'Node' }
+  | { type: 'Node', target?: ServerNodeTarget }
 
 /** The target platform for the WASM build. */
 export declare const enum ServerWasmTarget {

@@ -10,10 +10,10 @@ use itertools::{Either, Itertools};
 use crate::compiler::{
     db::Db,
     ir::{
-        ffi::{FfiClass, FfiFunction},
+        ffi::{Ffi, FfiClass, FfiFunction},
         rust::{FieldName, Function},
         shim::{
-            ShimClassDiscriminated, ShimClassPlain, ShimField, ShimFunctionAssociated,
+            Shim, ShimClassDiscriminated, ShimClassPlain, ShimField, ShimFunctionAssociated,
             ShimFunctionDiscriminator, ShimFunctionFree, ShimMember, ShimModule, ShimParam,
             ShimParentModule, ShimType,
         },
@@ -21,6 +21,18 @@ use crate::compiler::{
     mangle::to_camel_case,
     path::FilePath,
 };
+
+/// The facade for a complete reachable shim API.
+#[salsa::interned(debug)]
+pub struct Facade<'db> {
+    shim: Shim<'db>,
+}
+
+impl<'db> Facade<'db> {
+    pub fn ffi(self, db: &'db dyn Db) -> Ffi<'db> {
+        Ffi::new(db, self.shim(db))
+    }
+}
 
 /// An import of a facade item.
 ///

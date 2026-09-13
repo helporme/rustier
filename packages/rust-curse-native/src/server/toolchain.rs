@@ -22,7 +22,6 @@ pub struct BuildFailure {
 
 #[derive(Debug, Clone, Copy)]
 pub struct ToolchainOps<'a> {
-    pub napi: ToolInstallationOpts<'a>,
     pub wasm_bindgen: ToolInstallationOpts<'a>,
     pub cargo: ToolInstallationOpts<'a>,
 }
@@ -42,7 +41,6 @@ pub enum ToolInstallationOpts<'a> {
 /// Build tools resolved together by [`Toolchain::install`].
 #[derive(Debug)]
 pub struct Toolchain {
-    napi: PathBuf,
     wasm_bindgen: PathBuf,
     cargo: RustTool,
 }
@@ -95,35 +93,6 @@ impl Toolchain {
             cargo
         };
 
-        let napi = {
-            let span =
-                tracing::info_span!("NAPI CLI setup", path = tracing::field::Empty).entered();
-            let napi = resolve(&ops.napi, "napi", |root| {
-                let bin = root.join("node_modules/.bin").join(script("napi"));
-                if !working(&bin) {
-                    tracing::info!(
-                        path = %root.display(),
-                        "Automatically installing NAPI CLI to the local directory"
-                    );
-                    fs::create_dir_all(root).map_err(|source| ToolchainError::Io {
-                        operation: "create tool installation directory",
-                        path: root.to_owned(),
-                        source,
-                    })?;
-                    let mut command = Command::new(discover("npm")?);
-                    command
-                        .args(["install", "--ignore-scripts", "--no-audit", "--no-fund"])
-                        .arg("--prefix")
-                        .arg(root)
-                        .arg("@napi-rs/cli@3.7.2");
-                    run(&mut command)?;
-                }
-                Ok(bin)
-            })?;
-            span.record("path", tracing::field::display(napi.display()));
-            napi
-        };
-
         let wasm_bindgen = {
             let span =
                 tracing::info_span!("Wasm-bindgen setup", path = tracing::field::Empty).entered();
@@ -149,101 +118,10 @@ impl Toolchain {
         };
 
         Ok(Self {
-            napi,
             wasm_bindgen,
             cargo,
         })
     }
-}
-
-/// Build a native Node.js addon and an ESM JavaScript loader with NAPI-RS.
-#[derive(Debug, Clone, Copy)]
-pub struct NapiBuildCommand<'a> {
-    /// Cargo manifest of the crate to build.
-    pub manifest_path: &'a Path,
-    /// Directory receiving `index.js` and the platform-specific `.node` file.
-    /// Use a separate output directory for each build target.
-    pub output_dir: &'a Path,
-    /// Build with Cargo's release profile.
-    pub release: bool,
-}
-
-impl NapiBuildCommand<'_> {
-    pub fn exec(&self, toolchain: &Toolchain) -> Result<NapiBuildOutput, ToolchainError> {
-        let manifest =
-            fs::canonicalize(self.manifest_path).map_err(|source| ToolchainError::Io {
-                operation: "resolve manifest",
-                path: self.manifest_path.to_owned(),
-                source,
-            })?;
-        let root = manifest
-            .parent()
-            .ok_or_else(|| ToolchainError::MissingParent {
-                path: manifest.clone(),
-            })?;
-        let output_dir = prepare_output(self.output_dir)?;
-        // The NAPI CLI requires a Node package root; preserve any existing file.
-        let package = root.join("package.json");
-        if !package.exists() {
-            fs::write(&package, "{\"private\":true}\n").map_err(|source| ToolchainError::Io {
-                operation: "create package manifest",
-                path: package.clone(),
-                source,
-            })?;
-        }
-        let mut command = Command::new(&toolchain.napi);
-        toolchain.cargo.configure(&mut command)?;
-        command
-            .arg("build")
-            .arg("--manifest-path")
-            .arg(&manifest)
-            .arg("--output-dir")
-            .arg(&output_dir)
-            .args(["--platform", "--esm", "--js", "index.js"])
-            .current_dir(root);
-        if self.release {
-            command.arg("--release");
-        }
-        command.args(["--", "--message-format=json-diagnostic-rendered-ansi"]);
-        run(&mut command)?;
-        let js_path = require_file(output_dir.join("index.js"))?;
-        let mut addons = Vec::new();
-        for entry in fs::read_dir(&output_dir).map_err(|source| ToolchainError::Io {
-            operation: "read output directory",
-            path: output_dir.clone(),
-            source,
-        })? {
-            let path = entry
-                .map_err(|source| ToolchainError::Io {
-                    operation: "read output directory entry in",
-                    path: output_dir.clone(),
-                    source,
-                })?
-                .path();
-            if path.is_file() && path.extension().is_some_and(|ext| ext == "node") {
-                addons.push(path);
-            }
-        }
-        if addons.len() != 1 {
-            return Err(ToolchainError::InvalidAddonOutput {
-                directory: output_dir,
-                addons,
-            });
-        }
-        Ok(NapiBuildOutput {
-            node_path: addons.remove(0),
-            js_path,
-        })
-    }
-}
-
-/// Files generated by a successful NAPI build.
-#[derive(Debug, Clone)]
-pub struct NapiBuildOutput {
-    /// Absolute path to the generated native Node.js addon.
-    pub node_path: PathBuf,
-    /// Absolute path to the generated JavaScript binding file.
-    pub js_path: PathBuf,
 }
 
 /// JavaScript environment used by wasm-bindgen.
@@ -333,7 +211,11 @@ impl CargoBuildCommand<'_> {
             })?;
         let mut command = toolchain.cargo.command()?;
         command
-            .args(["build", "--message-format=json-diagnostic-rendered-ansi"])
+            .args([
+                "build",
+                "--lib",
+                "--message-format=json-diagnostic-rendered-ansi",
+            ])
             .arg("--manifest-path")
             .arg(&manifest)
             .arg("--target-dir")
@@ -356,6 +238,10 @@ impl CargoBuildCommand<'_> {
         for message in Message::parse_stream(Cursor::new(output.stdout)) {
             if let Message::CompilerArtifact(artifact) =
                 message.map_err(ToolchainError::ParseCargoOutput)?
+                && artifact
+                    .manifest_path
+                    .canonicalize()
+                    .is_ok_and(|path| path == manifest)
             {
                 artifacts.extend(
                     artifact
@@ -374,7 +260,7 @@ impl CargoBuildCommand<'_> {
 /// Artifacts reported by Cargo, sorted and deduplicated.
 #[derive(Debug, Clone)]
 pub struct CargoBuildOutput {
-    /// Files emitted for the requested package and its dependencies.
+    /// Files emitted for the requested package, excluding dependencies.
     pub artifacts: Vec<PathBuf>,
 }
 
@@ -537,8 +423,7 @@ fn run(command: &mut Command) -> Result<Output, ToolchainError> {
             message: format!("{program} failed ({})", output.status),
             rendered: String::new(),
         };
-        // Parse compiler diagnostics from both streams, but prefer stderr for
-        // plain text: NAPI's stdout usually repeats the failure with a JS stack.
+        // Cargo emits JSON diagnostics on stdout and progress on stderr.
         let has_stderr = !String::from_utf8_lossy(&output.stderr).trim().is_empty();
         for (index, stream) in [&output.stderr, &output.stdout].into_iter().enumerate() {
             let text = String::from_utf8_lossy(stream);
@@ -601,11 +486,6 @@ pub enum ToolchainError {
     ToolNotFoundInDirectory { name: String, directory: PathBuf },
     #[error("tool did not generate {}", path.display())]
     MissingOutput { path: PathBuf },
-    #[error("expected one .node file in {}, found {addons:?}", directory.display())]
-    InvalidAddonOutput {
-        directory: PathBuf,
-        addons: Vec<PathBuf>,
-    },
     #[error("WASM input {} must have a UTF-8 file stem", path.display())]
     InvalidWasmName { path: PathBuf },
     #[error("could not parse Cargo build output")]

@@ -1,4 +1,8 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashSet,
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 use crate::{
     compiler::{db::Db, ir::decals::Decals},
@@ -67,6 +71,7 @@ impl<'db> ProjectTsSync<'db> {
             })
             .collect::<Result<Vec<_>, ProjectError>>()?;
 
+        let mut generated = HashSet::new();
         for (module, relative) in modules {
             let Some(file_name) = relative.file_name() else {
                 continue;
@@ -90,8 +95,16 @@ impl<'db> ProjectTsSync<'db> {
             write_file(&sourcemap_path, module.render_sourcemap(db))?;
 
             write_file(&declaration_path, declaration)?;
+            generated.extend([declaration_path, sourcemap_path]);
         }
 
+        prune_declarations(&self.out_types_dir, &generated).map_err(|source| {
+            ProjectError::ArtifactIo {
+                operation: "remove stale declarations in",
+                path: self.out_types_dir.clone(),
+                source,
+            }
+        })?;
         write_file(
             &self.out_ambient_file,
             self.decals.render_ambient_ts_mods(db),
@@ -99,4 +112,34 @@ impl<'db> ProjectTsSync<'db> {
 
         Ok(())
     }
+}
+
+/// A different declaration target may no longer expose previously emitted
+/// modules.
+fn prune_declarations(root: &Path, generated: &HashSet<PathBuf>) -> io::Result<()> {
+    if fs::symlink_metadata(root).is_ok_and(|metadata| metadata.file_type().is_symlink()) {
+        return Ok(());
+    }
+    let entries = match fs::read_dir(root) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error),
+    };
+    for entry in entries {
+        let entry = entry?;
+        let path = entry.path();
+        let kind = entry.file_type()?;
+        if kind.is_dir() {
+            prune_declarations(&path, generated)?;
+        } else if kind.is_file()
+            && path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.ends_with(".rs.d.ts") || name.ends_with(".rs.d.ts.map"))
+            && !generated.contains(&path)
+        {
+            fs::remove_file(path)?;
+        }
+    }
+    Ok(())
 }

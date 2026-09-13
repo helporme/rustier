@@ -579,8 +579,9 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Server, ServerDiagnosticSeverity, ServerLogLevel, ServerWasmTarget } = nativeBinding
+const { Server, ServerDiagnosticSeverity, ServerLogLevel, ServerNodeTarget, ServerWasmTarget } = nativeBinding
 export { Server }
 export { ServerDiagnosticSeverity }
 export { ServerLogLevel }
+export { ServerNodeTarget }
 export { ServerWasmTarget }

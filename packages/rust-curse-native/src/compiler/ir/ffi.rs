@@ -8,8 +8,40 @@ mod lowering;
 
 use crate::compiler::{
     db::Db,
-    ir::shim::{ShimClass, ShimFunction, ShimParam},
+    ir::shim::{Shim, ShimClass, ShimFunction, ShimMember, ShimParam},
 };
+
+/// The actual exports of a reachable shim API.
+#[salsa::interned(debug)]
+pub struct Ffi<'db> {
+    shim: Shim<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> Ffi<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn symbols(self, db: &'db dyn Db) -> Vec<String> {
+        let mut symbols = std::collections::BTreeSet::new();
+        for member in self
+            .shim(db)
+            .crates(db)
+            .flat_map(|crate_| crate_.all_modules(db))
+            .flat_map(|module| module.members(db))
+        {
+            match member {
+                ShimMember::Class(class) => {
+                    symbols.insert(class.ffi(db).symbol(db));
+                    symbols.extend(class.all_functions(db).iter().map(|f| f.ffi(db).symbol(db)));
+                }
+                ShimMember::Function(function) => {
+                    symbols.insert(function.ffi(db).symbol(db));
+                }
+                ShimMember::Module(_) => {}
+            }
+        }
+        symbols.into_iter().map(str::to_owned).collect()
+    }
+}
 
 #[salsa::interned(debug)]
 pub struct FfiClass<'db> {
