@@ -27,4 +27,8 @@ export class Test {
 	private __rust_curse_brand: never;
 	private constructor();
 }
+
+export declare namespace Test {
+	export type Plain = {};
+}
 ```

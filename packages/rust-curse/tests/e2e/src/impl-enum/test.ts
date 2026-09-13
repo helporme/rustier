@@ -1,11 +1,21 @@
 import { expect, it } from 'vitest'
-import { Phase } from './test.rs'
+import { Phase, UploadState } from './test.rs'
 
 it('calls Phase::new as a static function rather than a constructor', () => {
   const phase = Phase.new()
 
   expect(phase.type).toBe('waiting')
   expect(phase.is_complete()).toBe(false)
+})
+
+it('passes arguments to enum new and returns the selected variant fields', () => {
+  const state = UploadState.new(25)
+
+  expect(state.type).toBe('active')
+  if (state.type !== 'active') {
+    throw new Error('UploadState.new must return the active variant')
+  }
+  expect(state.progress).toBe(25)
 })
 
 it('calls enum static and shared associated functions', () => {

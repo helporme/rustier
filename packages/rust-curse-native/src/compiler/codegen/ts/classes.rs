@@ -15,7 +15,7 @@ impl<'db> DecalClass<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_in_scope_ts(self, db: &'db dyn Db, scope: DeclarationScope) -> String {
         match self {
-            DecalClass::Plain(plain) => self.render_plain_ts(db, plain.fields(db).collect()),
+            DecalClass::Plain(plain) => self.render_plain_ts(db, plain.fields(db).collect(), scope),
             DecalClass::Discriminated(discriminated) => self.render_discriminated_ts(
                 db,
                 discriminated.variants(db),
@@ -25,8 +25,13 @@ impl<'db> DecalClass<'db> {
         }
     }
 
-    fn render_plain_ts(self, db: &'db dyn Db, fields: Vec<DecalField<'db>>) -> String {
-        let members = fragment(move |p| {
+    fn render_plain_ts(
+        self,
+        db: &'db dyn Db,
+        fields: Vec<DecalField<'db>>,
+        scope: DeclarationScope,
+    ) -> String {
+        let members = fragment(|p| {
             let constructor = self.constructor(db);
 
             for (index, field) in fields.iter().enumerate() {
@@ -60,9 +65,29 @@ impl<'db> DecalClass<'db> {
             }
         });
 
+        let plain = fragment(|p| {
+            if fields.is_empty() {
+                frag!({}).apply(p);
+            } else {
+                curlies(fragment(|p| {
+                    for (index, field) in fields.iter().enumerate() {
+                        if index > 0 {
+                            blank().apply(p);
+                        }
+                        field.render_ts(db, false).apply(p);
+                    }
+                }))
+                .apply(p);
+            }
+        });
+
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
-            export class ~{self.name(db)}~{{ {members} }}
+            export class ~{self.name(db)}~{{ {members} }}@@
+
+            export ~{scope.declare_prefix()}namespace ~{self.name(db)}~{{
+                export type Plain = ~{plain};
+            }}
         )
         .print()
     }
@@ -256,6 +281,30 @@ mod tests {
 
     test_class!(unit_class, "Empty", {
         pub struct Empty;
+    });
+
+    test_class!(struct_plain_with_methods, "Sine", {
+        pub struct Sine {
+            pub amplitude: f64,
+            pub frequency: f64,
+        }
+
+        impl Sine {
+            pub fn new() -> Self {
+                Self {
+                    amplitude: 1.0,
+                    frequency: 1.0,
+                }
+            }
+
+            pub fn static_fn() -> u32 {
+                0
+            }
+
+            pub fn method_fn(&self) -> u32 {
+                0
+            }
+        }
     });
 
     test_class!(documented_plain_class, "Record", {

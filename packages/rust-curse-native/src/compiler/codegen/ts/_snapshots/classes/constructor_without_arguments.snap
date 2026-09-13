@@ -23,4 +23,8 @@ export class Test {
 	/** Creates a test value. */
 	constructor();
 }
+
+export declare namespace Test {
+	export type Plain = {};
+}
 ```

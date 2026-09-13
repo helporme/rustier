@@ -64,7 +64,7 @@ impl<'db> DecalClass<'db> {
         .to_vec();
         let mut field_start_line = class_line + 1;
 
-        for field in fields {
+        for field in &fields {
             let prefix = if field.is_readonly(db) {
                 "\tpublic readonly "
             } else {
@@ -122,6 +122,75 @@ impl<'db> DecalClass<'db> {
                 db,
                 constructor_line,
                 prefix.len(),
+            ));
+        }
+
+        let namespace_line = find_name_line(
+            generated,
+            field_start_line,
+            "export declare namespace ",
+            name,
+            " {",
+        )
+        .expect("rendered TypeScript struct namespace should exist");
+        let plain_line = find_name_line(
+            generated,
+            namespace_line + 1,
+            "\texport type ",
+            "Plain",
+            " =",
+        )
+        .expect("rendered TypeScript plain struct should exist");
+        for (line, column) in [
+            (namespace_line, "export declare namespace ".len()),
+            (plain_line, "\texport type ".len()),
+        ] {
+            mappings.extend(declaration_mappings(
+                line,
+                column,
+                &original,
+                original.column + "pub struct ".len(),
+                name,
+            ));
+        }
+
+        let mut field_start_line = plain_line + 1;
+        for field in fields {
+            let field_name = field.name(db).to_string();
+            let wrapped = match field.name(db) {
+                FieldName::Idx(_) => true,
+                FieldName::Name(name) => name.parse::<usize>().is_ok(),
+            };
+            let prefix = format!(
+                "\t\t{}{}",
+                if field.is_readonly(db) {
+                    "readonly "
+                } else {
+                    ""
+                },
+                if wrapped { "[" } else { "" },
+            );
+            let suffix = if wrapped { "]:" } else { ":" };
+            let field_line =
+                find_name_line(generated, field_start_line, &prefix, &field_name, suffix)
+                    .expect("rendered TypeScript plain struct field should exist");
+            field_start_line = field_line + 1;
+
+            let Some(span) = field.span(db) else {
+                continue;
+            };
+            let original = original_location(db, span);
+            let original_name_column = if wrapped {
+                original.column
+            } else {
+                original.column + "pub ".len()
+            };
+            mappings.extend(declaration_mappings(
+                field_line,
+                prefix.len(),
+                &original,
+                original_name_column,
+                &field_name,
             ));
         }
 

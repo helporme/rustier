@@ -25,4 +25,8 @@ export class Test {
 		enabled: boolean,
 	);
 }
+
+export declare namespace Test {
+	export type Plain = {};
+}
 ```

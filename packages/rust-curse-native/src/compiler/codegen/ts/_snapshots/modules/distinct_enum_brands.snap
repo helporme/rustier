@@ -22,6 +22,10 @@ export class WaveBrand {
 	private constructor();
 }
 
+export declare namespace WaveBrand {
+	export type Plain = {};
+}
+
 export type Wave = Wave.Instance & Wave.Plain;
 
 export declare const Wave: {};

@@ -152,6 +152,112 @@ mod tests {
 
     test_module!(empty_module, {});
 
+    #[test]
+    fn struct_plain_mappings_preserve_source_locations() {
+        let db = test_db! {
+            pub struct Unit;
+            pub struct Empty {}
+            pub struct Value {
+                /// Writable field documentation.
+                pub number: i32,
+                /// Readonly field documentation.
+                pub unit: Unit,
+                pub hidden: i32,
+            }
+            impl Value {
+                pub fn hidden(&self) -> i32 { self.hidden }
+            }
+            pub struct Tuple(pub i32, Unit, pub Unit);
+        };
+        ra_ap_hir::attach_db(&db, || {
+            let module = root_decals(&db);
+            let generated = module.render_ts_mod(&db);
+            let lines = generated.lines().collect::<Vec<_>>();
+            let mappings = module.render_sourcemap_mappings(&db);
+            let name_mapping = |line: usize| {
+                mappings
+                    .iter()
+                    .filter(|mapping| mapping.generated_line == line)
+                    .max_by_key(|mapping| mapping.generated_column)
+                    .expect("declaration should have a name mapping")
+            };
+            let same_source = |left: &super::Mapping, right: &super::Mapping| {
+                assert_eq!(
+                    (
+                        &left.source,
+                        left.original_line,
+                        left.original_column,
+                        &left.name
+                    ),
+                    (
+                        &right.source,
+                        right.original_line,
+                        right.original_column,
+                        &right.name
+                    ),
+                );
+            };
+            for name in ["Unit", "Empty", "Value", "Tuple"] {
+                let class_line = lines
+                    .iter()
+                    .position(|line| *line == format!("export class {name} {{"))
+                    .unwrap();
+                let namespace_line = lines
+                    .iter()
+                    .position(|line| *line == format!("export declare namespace {name} {{"))
+                    .unwrap();
+                let plain_line = namespace_line + 1;
+                same_source(name_mapping(class_line), name_mapping(namespace_line));
+                same_source(name_mapping(class_line), name_mapping(plain_line));
+                assert_eq!(
+                    name_mapping(namespace_line).generated_column,
+                    "export declare namespace ".len()
+                );
+                assert_eq!(
+                    name_mapping(plain_line).generated_column,
+                    "\texport type ".len()
+                );
+                if matches!(name, "Unit" | "Empty") {
+                    assert_eq!(lines[plain_line], "\texport type Plain = {};");
+                }
+                for field_line in plain_line + 1..lines.len() {
+                    if !lines[field_line].starts_with("\t\t") {
+                        break;
+                    }
+                    if let Some(field) = mappings
+                        .iter()
+                        .filter(|mapping| mapping.generated_line == field_line)
+                        .max_by_key(|mapping| mapping.generated_column)
+                    {
+                        let class_field = mappings
+                            .iter()
+                            .find(|mapping| {
+                                mapping.generated_line > class_line
+                                    && mapping.generated_line < namespace_line
+                                    && mapping.name == field.name
+                                    && mapping.original_column == field.original_column
+                            })
+                            .unwrap();
+                        same_source(class_field, field);
+                        assert!(
+                            lines[field_line][field.generated_column..].starts_with(&field.name)
+                        );
+                    }
+                }
+            }
+            let mut plain_fields = mappings
+                .iter()
+                .filter(|mapping| {
+                    lines[mapping.generated_line].starts_with("\t\t")
+                        && mapping.generated_column > 0
+                })
+                .map(|mapping| mapping.name.as_str())
+                .collect::<Vec<_>>();
+            plain_fields.sort_unstable();
+            assert_eq!(plain_fields, ["0", "2", "number", "unit"]);
+        });
+    }
+
     test_module!(mixed_module, {
         @file: "models.rs";
         pub mod models {

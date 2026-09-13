@@ -10,6 +10,12 @@ TypeScript:
   4 | 	private __rust_curse_brand: never;
   5 | 	private constructor();
   6 | }
+  7 | 
+  8 | export declare namespace Value {
+  9 | 	export type Plain = {
+ 10 | 		number: number;
+ 11 | 	};
+ 12 | }
 
 Source map:
 {
@@ -24,7 +30,7 @@ Source map:
     "Value",
     "number"
   ],
-  "mappings": "AAAAA,gBAAOA;;AACPC,aAAWA;AACPC,QAAIA"
+  "mappings": "AAAAA,gBAAOA;;AACPC,aAAWA;AACPC,QAAIA;;;;;AADRD,yBAAWA;AAAXA,aAAWA;AACPC,EAAIA"
 }
 
 Mappings:
@@ -72,6 +78,54 @@ Mappings:
     Mapping {
         generated_line: 3,
         generated_column: 8,
+        source: "nested/items.rs",
+        original_line: 2,
+        original_column: 8,
+        name: "number",
+    },
+    Mapping {
+        generated_line: 8,
+        generated_column: 0,
+        source: "nested/items.rs",
+        original_line: 1,
+        original_column: 0,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 8,
+        generated_column: 25,
+        source: "nested/items.rs",
+        original_line: 1,
+        original_column: 11,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 9,
+        generated_column: 0,
+        source: "nested/items.rs",
+        original_line: 1,
+        original_column: 0,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 9,
+        generated_column: 13,
+        source: "nested/items.rs",
+        original_line: 1,
+        original_column: 11,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 10,
+        generated_column: 0,
+        source: "nested/items.rs",
+        original_line: 2,
+        original_column: 4,
+        name: "number",
+    },
+    Mapping {
+        generated_line: 10,
+        generated_column: 2,
         source: "nested/items.rs",
         original_line: 2,
         original_column: 8,

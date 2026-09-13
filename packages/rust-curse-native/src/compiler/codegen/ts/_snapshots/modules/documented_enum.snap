@@ -32,6 +32,10 @@ export class Local {
 	private constructor();
 }
 
+export declare namespace Local {
+	export type Plain = {};
+}
+
 /** A shape represented by one of several layouts. */
 export type Shape = Shape.Instance & Shape.Plain;
 

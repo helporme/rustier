@@ -15,4 +15,8 @@ export class Empty {
 	private __rust_curse_brand: never;
 	private constructor();
 }
+
+export declare namespace Empty {
+	export type Plain = {};
+}
 ```
