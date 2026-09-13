@@ -14,13 +14,18 @@ TypeScript:
   8 | 	): void;
   9 | 	consume(): boolean;
  10 | 	["constructor"](): boolean;
- 11 | 	private __rust_curse_brand: never;
- 12 | 	private constructor();
- 13 | }
- 14 | 
- 15 | export declare namespace Counter {
- 16 | 	export type Plain = {};
- 17 | }
+ 11 | 	static of(
+ 12 | 		value: Counter.Coerce
+ 13 | 	): Counter;
+ 14 | 	private __rust_curse_brand: never;
+ 15 | 	private constructor();
+ 16 | }
+ 17 | 
+ 18 | export declare namespace Counter {
+ 19 | 	export type Plain = {};
+ 20 | 
+ 21 | 	export type Coerce = {};
+ 22 | }
 
 Source map:
 {
@@ -39,7 +44,7 @@ Source map:
     "consume",
     "constructor"
   ],
-  "mappings": "AAAAA,aAAWA;;ACCPC,QAAOA;;;AAKPC,CAAOA;AAGPC,CAAOA;;;AAGPC,CAAOA;AAGPC,GAAOA;;;;;ADfXL,yBAAWA;AAAXA,aAAWA"
+  "mappings": "AAAAA,aAAWA;;ACCPC,QAAOA;;;AAKPC,CAAOA;AAGPC,CAAOA;;;AAGPC,CAAOA;AAGPC,GAAOA;ADfXL,QAAWA;;;;;;;AAAXA,yBAAWA;AAAXA,aAAWA;;AAAXA,aAAWA"
 }
 
 Mappings:
@@ -141,7 +146,7 @@ Mappings:
         name: "constructor",
     },
     Mapping {
-        generated_line: 15,
+        generated_line: 11,
         generated_column: 0,
         source: "lib.rs",
         original_line: 0,
@@ -149,7 +154,23 @@ Mappings:
         name: "Counter",
     },
     Mapping {
-        generated_line: 15,
+        generated_line: 11,
+        generated_column: 8,
+        source: "lib.rs",
+        original_line: 0,
+        original_column: 11,
+        name: "Counter",
+    },
+    Mapping {
+        generated_line: 18,
+        generated_column: 0,
+        source: "lib.rs",
+        original_line: 0,
+        original_column: 0,
+        name: "Counter",
+    },
+    Mapping {
+        generated_line: 18,
         generated_column: 25,
         source: "lib.rs",
         original_line: 0,
@@ -157,7 +178,7 @@ Mappings:
         name: "Counter",
     },
     Mapping {
-        generated_line: 16,
+        generated_line: 19,
         generated_column: 0,
         source: "lib.rs",
         original_line: 0,
@@ -165,7 +186,23 @@ Mappings:
         name: "Counter",
     },
     Mapping {
-        generated_line: 16,
+        generated_line: 19,
+        generated_column: 13,
+        source: "lib.rs",
+        original_line: 0,
+        original_column: 11,
+        name: "Counter",
+    },
+    Mapping {
+        generated_line: 21,
+        generated_column: 0,
+        source: "lib.rs",
+        original_line: 0,
+        original_column: 0,
+        name: "Counter",
+    },
+    Mapping {
+        generated_line: 21,
         generated_column: 13,
         source: "lib.rs",
         original_line: 0,

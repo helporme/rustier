@@ -12,6 +12,7 @@ impl<'db> FfiFunction<'db> {
     pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<FfiParam<'db>> {
         self.shim(db)
             .params(db)
+            .iter()
             .map(|param| param.ffi(db))
             .collect()
     }

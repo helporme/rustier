@@ -1,3 +1,5 @@
+#[path = "coerce-only-imports/test.rs"]
+pub mod coerce_only_imports;
 #[path = "enum-aliasing-throws/test.rs"]
 pub mod enum_aliasing_throws;
 #[path = "enum-fields-enum/test.rs"]
@@ -12,6 +14,8 @@ pub mod enum_inactive_fields_throws;
 pub mod enum_inactive_projection_throws;
 #[path = "enum-mixed/test.rs"]
 pub mod enum_mixed;
+#[path = "enum-of/test.rs"]
+pub mod enum_of;
 #[path = "enum-readonly-field-throws/test.rs"]
 pub mod enum_readonly_field_throws;
 #[path = "enum-shared-fields/test.rs"]
@@ -52,6 +56,10 @@ pub mod impl_skipped;
 pub mod impl_struct;
 #[path = "impl-struct-constructor/test.rs"]
 pub mod impl_struct_constructor;
+#[path = "of-input-throws/test.rs"]
+pub mod of_input_throws;
+#[path = "of-unavailable/test.rs"]
+pub mod of_unavailable;
 #[path = "struct-bad-alias-throws/test.rs"]
 pub mod struct_bad_alias_throws;
 #[path = "struct-field-wrong-type-throws/test.rs"]
@@ -66,3 +74,5 @@ pub mod struct_fields_string;
 pub mod struct_fields_struct;
 #[path = "struct-mixed/test.rs"]
 pub mod struct_mixed;
+#[path = "struct-of/test.rs"]
+pub mod struct_of;

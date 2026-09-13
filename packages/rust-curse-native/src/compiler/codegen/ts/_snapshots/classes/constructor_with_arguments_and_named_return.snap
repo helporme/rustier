@@ -19,6 +19,9 @@ impl Test {
 
 ```ts
 export class Test {
+	static of(
+		value: Test.Coerce
+	): Test;
 	private __rust_curse_brand: never;
 	constructor(
 		value: number,
@@ -28,5 +31,7 @@ export class Test {
 
 export declare namespace Test {
 	export type Plain = {};
+
+	export type Coerce = {};
 }
 ```

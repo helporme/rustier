@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 418
 expression: snapshot
 ---
 # Source
@@ -31,8 +30,8 @@ pub fn __fn__disc__test_0crate_Test(
         .access(|src| {
             Ok(
                 match src {
-                    test_crate::Test::Unit => 0f64,
-                    test_crate::Test::Tuple(..) => 1f64,
+                    test_crate::Test::Unit { .. } => 0f64,
+                    test_crate::Test::Tuple { .. } => 1f64,
                     test_crate::Test::Plain { .. } => 2f64,
                 },
             )
@@ -58,8 +57,8 @@ pub fn __fn__disc__test_0crate_Test(
         .access(|src| {
             Ok(
                 match src {
-                    test_crate::Test::Unit => 0f64,
-                    test_crate::Test::Tuple(..) => 1f64,
+                    test_crate::Test::Unit { .. } => 0f64,
+                    test_crate::Test::Tuple { .. } => 1f64,
                     test_crate::Test::Plain { .. } => 2f64,
                 },
             )

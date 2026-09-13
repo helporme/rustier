@@ -12,6 +12,12 @@ use crate::compiler::{
 #[salsa::tracked]
 impl<'db> Struct<'db> {
     #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_is_clonable(self, db: &'db dyn Db) -> bool {
+        let hir = self.hir(db);
+        super::is_clonable(db, &hir.ty(db), hir.module(db).krate(db))
+    }
+
+    #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> Module<'db> {
         Module::new(db, self.hir(db).module(db))
     }
@@ -22,6 +28,11 @@ impl<'db> Struct<'db> {
         hir.name(db)
             .display(db, hir.module(db).krate(db).edition(db))
             .to_string()
+    }
+
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_is_non_exhaustive(self, db: &'db dyn Db) -> bool {
+        self.hir(db).attrs(db).is_non_exhaustive()
     }
 
     #[salsa::tracked(returns(ref))]

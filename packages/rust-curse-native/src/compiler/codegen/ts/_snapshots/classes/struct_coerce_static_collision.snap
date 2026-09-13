@@ -1,0 +1,41 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Point {
+    pub x: u32,
+}
+impl Point {
+    pub fn of() -> Self {
+        Self { x: 0 }
+    }
+}
+```
+
+# Compiled
+
+```ts
+export class Point {
+	public x: number;
+	static of(): Point;
+	static $of(
+		value: Point.Coerce
+	): Point;
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+export declare namespace Point {
+	export type Plain = {
+		x: number;
+	};
+
+	export type Coerce = {
+		x: number;
+	};
+}
+```

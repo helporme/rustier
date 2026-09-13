@@ -1,0 +1,73 @@
+---
+source: src/compiler/codegen/shim/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct RawField {
+    pub r#type: u32,
+}
+```
+
+# Compiled
+## Node
+```rust
+#[napi(js_name = "__fn__coe__test_0crate_RawField")]
+pub fn __fn__coe__test_0crate_RawField(
+    _0: f64,
+) -> napi::Result<__plain__test_0crate_RawField> {
+    Ok(__plain__test_0crate_RawField {
+        src: std::rc::Rc::new(
+            __tethering__test_0crate_RawField::new_owned({
+                let _0 = {
+                    let type_name = "u32";
+                    let value = _0;
+                    if value.trunc() != value || value < 0 as f64
+                        || value > u32::MAX as f64
+                    {
+                        return Err(
+                            napi::Error::from_reason(
+                                format!("cannot cast {value} to {type_name}"),
+                            ),
+                        );
+                    }
+                    value as u32
+                };
+                test_crate::RawField { r#type: _0 }
+            }),
+        ),
+    })
+}
+```
+
+## Wasm
+```rust
+#[wasm_bindgen(js_name = "__fn__coe__test_0crate_RawField")]
+pub fn __fn__coe__test_0crate_RawField(
+    _0: f64,
+) -> Result<__plain__test_0crate_RawField, JsValue> {
+    Ok(__plain__test_0crate_RawField {
+        src: std::rc::Rc::new(
+            __tethering__test_0crate_RawField::new_owned({
+                let _0 = {
+                    let type_name = "u32";
+                    let value = _0;
+                    if value.trunc() != value || value < 0 as f64
+                        || value > u32::MAX as f64
+                    {
+                        return Err(
+                            JsValue::from_str(
+                                &format!("cannot cast {value} to {type_name}"),
+                            ),
+                        );
+                    }
+                    value as u32
+                };
+                test_crate::RawField { r#type: _0 }
+            }),
+        ),
+    })
+}
+```

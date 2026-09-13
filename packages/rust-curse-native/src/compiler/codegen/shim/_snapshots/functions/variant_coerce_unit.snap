@@ -1,0 +1,37 @@
+---
+source: src/compiler/codegen/shim/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub enum Test {
+    Unit,
+}
+```
+
+# Compiled
+## Node
+```rust
+#[napi(js_name = "__fn__coe__test_0crate_Test_Unit")]
+pub fn __fn__coe__test_0crate_Test_Unit() -> napi::Result<__discr__test_0crate_Test> {
+    Ok(__discr__test_0crate_Test {
+        src: std::rc::Rc::new(
+            __tethering__test_0crate_Test::new_owned(test_crate::Test::Unit),
+        ),
+    })
+}
+```
+
+## Wasm
+```rust
+#[wasm_bindgen(js_name = "__fn__coe__test_0crate_Test_Unit")]
+pub fn __fn__coe__test_0crate_Test_Unit() -> Result<__discr__test_0crate_Test, JsValue> {
+    Ok(__discr__test_0crate_Test {
+        src: std::rc::Rc::new(
+            __tethering__test_0crate_Test::new_owned(test_crate::Test::Unit),
+        ),
+    })
+}
+```

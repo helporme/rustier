@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/js/classes.rs
-assertion_line: 652
 expression: snapshot
 ---
 # Source
@@ -46,6 +45,30 @@ export class Test {
 				);
 				return result;
 			}
+		}
+	}
+
+	static of(
+		value
+	){
+		if(
+			value === null || typeof value !== "object"
+		){
+			throw new TypeError(
+				"Object coerce expects a non-null object"
+			);
+		}
+		{
+			const result = cast.from(
+				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) }))"
+			).to(
+				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } } })))"
+			).an(
+				__fn__coe__test_0crate_Test(
+
+				)
+			);
+			return result;
 		}
 	}
 

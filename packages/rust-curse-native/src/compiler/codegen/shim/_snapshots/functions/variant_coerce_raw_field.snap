@@ -1,0 +1,77 @@
+---
+source: src/compiler/codegen/shim/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub enum Test {
+    RawField { r#type: u32 },
+}
+```
+
+# Compiled
+## Node
+```rust
+#[napi(js_name = "__fn__coe__test_0crate_Test_RawField")]
+pub fn __fn__coe__test_0crate_Test_RawField(
+    _0: f64,
+) -> napi::Result<__discr__test_0crate_Test> {
+    Ok(__discr__test_0crate_Test {
+        src: std::rc::Rc::new(
+            __tethering__test_0crate_Test::new_owned({
+                let _0 = {
+                    let type_name = "u32";
+                    let value = _0;
+                    if value.trunc() != value || value < 0 as f64
+                        || value > u32::MAX as f64
+                    {
+                        return Err(
+                            napi::Error::from_reason(
+                                format!("cannot cast {value} to {type_name}"),
+                            ),
+                        );
+                    }
+                    value as u32
+                };
+                test_crate::Test::RawField {
+                    r#type: _0,
+                }
+            }),
+        ),
+    })
+}
+```
+
+## Wasm
+```rust
+#[wasm_bindgen(js_name = "__fn__coe__test_0crate_Test_RawField")]
+pub fn __fn__coe__test_0crate_Test_RawField(
+    _0: f64,
+) -> Result<__discr__test_0crate_Test, JsValue> {
+    Ok(__discr__test_0crate_Test {
+        src: std::rc::Rc::new(
+            __tethering__test_0crate_Test::new_owned({
+                let _0 = {
+                    let type_name = "u32";
+                    let value = _0;
+                    if value.trunc() != value || value < 0 as f64
+                        || value > u32::MAX as f64
+                    {
+                        return Err(
+                            JsValue::from_str(
+                                &format!("cannot cast {value} to {type_name}"),
+                            ),
+                        );
+                    }
+                    value as u32
+                };
+                test_crate::Test::RawField {
+                    r#type: _0,
+                }
+            }),
+        ),
+    })
+}
+```

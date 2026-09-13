@@ -35,10 +35,22 @@ export type Test = Test.Instance & Test.Plain;
 export declare const Test: {
 	/** Creates the first variant. */
 	first(): Test;
+
+	of(
+		value: Test.Coerce
+	): Test;
 };
 
 export declare namespace Test {
 	export type Plain =
+		| {
+			readonly type: "first";
+		}
+		| {
+			readonly type: "second";
+		};
+
+	export type Coerce =
 		| {
 			readonly type: "first";
 		}

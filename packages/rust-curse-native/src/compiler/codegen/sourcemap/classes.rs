@@ -112,6 +112,8 @@ impl<'db> DecalClass<'db> {
             mappings.extend(method_mappings(&method, db, method_line, prefix.len()));
         }
 
+        mappings.extend(self.coerce_mappings(db, generated, field_start_line, "\tstatic "));
+
         if let Some(constructor) = constructor {
             let prefix = "\t";
             let constructor_line =
@@ -133,65 +135,75 @@ impl<'db> DecalClass<'db> {
             " {",
         )
         .expect("rendered TypeScript struct namespace should exist");
-        let plain_line = find_name_line(
-            generated,
-            namespace_line + 1,
-            "\texport type ",
-            "Plain",
-            " =",
-        )
-        .expect("rendered TypeScript plain struct should exist");
-        for (line, column) in [
-            (namespace_line, "export declare namespace ".len()),
-            (plain_line, "\texport type ".len()),
-        ] {
+        mappings.extend(declaration_mappings(
+            namespace_line,
+            "export declare namespace ".len(),
+            &original,
+            original.column + "pub struct ".len(),
+            name,
+        ));
+        let mut projections = vec![("Plain", fields)];
+        if let Some(coerce) = self.coerce(db) {
+            projections.push(("Coerce", coerce.input_fields(db)));
+        }
+        let mut projection_start_line = namespace_line + 1;
+        for (alias, fields) in projections {
+            let projection_line = find_name_line(
+                generated,
+                projection_start_line,
+                "\texport type ",
+                alias,
+                " =",
+            )
+            .expect("rendered TypeScript struct projection should exist");
             mappings.extend(declaration_mappings(
-                line,
-                column,
+                projection_line,
+                "\texport type ".len(),
                 &original,
                 original.column + "pub struct ".len(),
                 name,
             ));
-        }
 
-        let mut field_start_line = plain_line + 1;
-        for field in fields {
-            let field_name = field.name(db).to_string();
-            let wrapped = match field.name(db) {
-                FieldName::Idx(_) => true,
-                FieldName::Name(name) => name.parse::<usize>().is_ok(),
-            };
-            let prefix = format!(
-                "\t\t{}{}",
-                if field.is_readonly(db) {
-                    "readonly "
+            let mut field_start_line = projection_line + 1;
+            for field in fields {
+                let field_name = field.name(db).to_string();
+                let wrapped = match field.name(db) {
+                    FieldName::Idx(_) => true,
+                    FieldName::Name(name) => name.parse::<usize>().is_ok(),
+                };
+                let prefix = format!(
+                    "\t\t{}{}",
+                    if field.is_readonly(db) {
+                        "readonly "
+                    } else {
+                        ""
+                    },
+                    if wrapped { "[" } else { "" },
+                );
+                let suffix = if wrapped { "]:" } else { ":" };
+                let field_line =
+                    find_name_line(generated, field_start_line, &prefix, &field_name, suffix)
+                        .expect("rendered TypeScript struct projection field should exist");
+                field_start_line = field_line + 1;
+
+                let Some(span) = field.span(db) else {
+                    continue;
+                };
+                let original = original_location(db, span);
+                let original_name_column = if wrapped {
+                    original.column
                 } else {
-                    ""
-                },
-                if wrapped { "[" } else { "" },
-            );
-            let suffix = if wrapped { "]:" } else { ":" };
-            let field_line =
-                find_name_line(generated, field_start_line, &prefix, &field_name, suffix)
-                    .expect("rendered TypeScript plain struct field should exist");
-            field_start_line = field_line + 1;
-
-            let Some(span) = field.span(db) else {
-                continue;
-            };
-            let original = original_location(db, span);
-            let original_name_column = if wrapped {
-                original.column
-            } else {
-                original.column + "pub ".len()
-            };
-            mappings.extend(declaration_mappings(
-                field_line,
-                prefix.len(),
-                &original,
-                original_name_column,
-                &field_name,
-            ));
+                    original.column + "pub ".len()
+                };
+                mappings.extend(declaration_mappings(
+                    field_line,
+                    prefix.len(),
+                    &original,
+                    original_name_column,
+                    &field_name,
+                ));
+            }
+            projection_start_line = field_start_line;
         }
 
         mappings
@@ -279,6 +291,8 @@ impl<'db> DecalClass<'db> {
             mappings.extend(method_mappings(&method, db, method_line, prefix.len()));
         }
 
+        mappings.extend(self.coerce_mappings(db, generated, static_method_start_line, "\t"));
+
         let mut instance_method_start_line = instance_line + 1;
         for method in self.methods(db).filter(|method| !method.is_static(db)) {
             let (prefix, suffix) = object_method_search(&method, db, "\t\t");
@@ -295,68 +309,120 @@ impl<'db> DecalClass<'db> {
         }
 
         let tag_prefix = format!("\t\t\treadonly {}: \"", discriminator.name(db));
-        let mut variant_start_line = plain_line + 1;
-
-        for variant in variants {
-            let tag_line = find_name_line(
-                generated,
-                variant_start_line,
-                &tag_prefix,
-                variant.name(db),
-                "\";",
-            )
-            .expect("rendered TypeScript union variant discriminant should exist");
-            variant_start_line = tag_line + 1;
-
-            let Some(span) = variant.span(db) else {
-                continue;
-            };
-            let original = original_location(db, span);
+        let mut projections = vec![(plain_line, false)];
+        if self.coerce(db).is_some() {
+            let coerce_line =
+                find_name_line(generated, plain_line + 1, "\texport type ", "Coerce", " =")
+                    .expect("rendered TypeScript coercion union should exist");
             mappings.extend(declaration_mappings(
-                tag_line,
-                "\t\t\treadonly ".len(),
+                coerce_line,
+                "\texport type ".len(),
                 &original,
-                original.column,
-                variant.source_name(db),
+                original_name_column,
+                name,
             ));
+            projections.push((coerce_line, true));
+        }
+        for (projection_line, coerce) in projections {
+            let mut variant_start_line = projection_line + 1;
 
-            for field in variant.fields(db) {
-                let field_name = field.name(db).to_string();
-                let wrapped = match field.name(db) {
-                    FieldName::Idx(_) => true,
-                    FieldName::Name(name) => name.parse::<usize>().is_ok(),
-                };
-                let prefix = format!(
-                    "\t\t\t{}{}",
-                    if field.is_readonly(db) {
-                        "readonly "
-                    } else {
-                        ""
-                    },
-                    if wrapped { "[" } else { "" },
-                );
-                let suffix = if wrapped { "]:" } else { ":" };
-                let field_line =
-                    find_name_line(generated, variant_start_line, &prefix, &field_name, suffix)
-                        .expect("rendered TypeScript union field should exist");
-                variant_start_line = field_line + 1;
+            for variant in variants
+                .iter()
+                .filter(|variant| !coerce || variant.if_coercible(db))
+            {
+                let tag_line = find_name_line(
+                    generated,
+                    variant_start_line,
+                    &tag_prefix,
+                    variant.name(db),
+                    "\";",
+                )
+                .expect("rendered TypeScript union variant discriminant should exist");
+                variant_start_line = tag_line + 1;
 
-                let Some(span) = field.span(db) else {
+                let Some(span) = variant.span(db) else {
                     continue;
                 };
                 let original = original_location(db, span);
                 mappings.extend(declaration_mappings(
-                    field_line,
-                    prefix.len(),
+                    tag_line,
+                    "\t\t\treadonly ".len(),
                     &original,
                     original.column,
-                    &field_name,
+                    variant.source_name(db),
                 ));
+
+                for field in variant.fields(db) {
+                    let field_name = field.name(db).to_string();
+                    let wrapped = match field.name(db) {
+                        FieldName::Idx(_) => true,
+                        FieldName::Name(name) => name.parse::<usize>().is_ok(),
+                    };
+                    let prefix = format!(
+                        "\t\t\t{}{}",
+                        if field.is_readonly(db) {
+                            "readonly "
+                        } else {
+                            ""
+                        },
+                        if wrapped { "[" } else { "" },
+                    );
+                    let suffix = if wrapped { "]:" } else { ":" };
+                    let field_line =
+                        find_name_line(generated, variant_start_line, &prefix, &field_name, suffix)
+                            .expect("rendered TypeScript union field should exist");
+                    variant_start_line = field_line + 1;
+
+                    let Some(span) = field.span(db) else {
+                        continue;
+                    };
+                    let original = original_location(db, span);
+                    mappings.extend(declaration_mappings(
+                        field_line,
+                        prefix.len(),
+                        &original,
+                        original.column,
+                        &field_name,
+                    ));
+                }
             }
         }
 
         mappings.sort_by_key(|mapping| (mapping.generated_line, mapping.generated_column));
         mappings
+    }
+
+    /// Synthetic coerce methods navigate to the class they construct, not a
+    /// source method.
+    fn coerce_mappings(
+        self,
+        db: &'db dyn Db,
+        generated: &str,
+        start_line: usize,
+        prefix: &str,
+    ) -> Vec<Mapping> {
+        let Some(coerce) = self.coerce(db) else {
+            return Vec::new();
+        };
+        let class = coerce.class(db);
+        let Some(span) = class.span(db) else {
+            return Vec::new();
+        };
+        let line = find_name_line(generated, start_line, prefix, coerce.name(db), "(")
+            .expect("rendered TypeScript coerce method should exist");
+        let original = original_location(db, span);
+        let declaration_prefix = match class {
+            DecalClass::Plain(_) => "pub struct ",
+            DecalClass::Discriminated(_) => "pub enum ",
+        };
+        declaration_mappings(
+            line,
+            prefix.len(),
+            &original,
+            original.column + declaration_prefix.len(),
+            class.name(db),
+        )
+        .to_vec()
     }
 }
 

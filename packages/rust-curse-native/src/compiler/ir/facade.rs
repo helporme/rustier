@@ -14,8 +14,8 @@ use crate::compiler::{
         rust::{FieldName, Function},
         shim::{
             Shim, ShimClassDiscriminated, ShimClassPlain, ShimField, ShimFunctionAssociated,
-            ShimFunctionDiscriminator, ShimFunctionFree, ShimMember, ShimModule, ShimParam,
-            ShimParentModule, ShimType,
+            ShimFunctionDiscriminator, ShimFunctionFree, ShimFunctionPlainCoerce, ShimMember,
+            ShimModule, ShimParam, ShimParentModule, ShimType,
         },
     },
     mangle::to_camel_case,
@@ -320,6 +320,155 @@ impl<'db> FacadeMethod<'db> {
     }
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
+pub enum FacadeCoerce<'db> {
+    Plain(FacadePlainCoerceFunction<'db>),
+    Discriminated(FacadeDiscriminatedCoerceFunction<'db>),
+}
+
+impl<'db> FacadeCoerce<'db> {
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
+        match self {
+            Self::Plain(coerce) => coerce.name(db),
+            Self::Discriminated(coerce) => coerce.name(db),
+        }
+    }
+
+    pub fn class(self, db: &'db dyn Db) -> FacadeClass<'db> {
+        match self {
+            Self::Plain(coerce) => FacadeClass::Plain(coerce.class(db)),
+            Self::Discriminated(coerce) => FacadeClass::Discriminated(coerce.class(db)),
+        }
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct FacadePlainCoerceFunction<'db> {
+    shim: ShimFunctionPlainCoerce<'db>,
+}
+
+impl<'db> FacadePlainCoerceFunction<'db> {
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
+        if self
+            .class(db)
+            .methods(db)
+            .any(|method| method.is_static(db) && method.name(db) == "of")
+        {
+            "$of"
+        } else {
+            "of"
+        }
+    }
+
+    pub fn class(self, db: &'db dyn Db) -> FacadeClassPlain<'db> {
+        self.shim(db).class(db).facade(db)
+    }
+
+    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
+        self.shim(db).ffi(db)
+    }
+
+    pub fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItem<'db>> {
+        let class = FacadeClass::Plain(self.class(db));
+        [
+            FacadeImportItem::FfiFunction(self.ffi(db)),
+            FacadeImportItem::FfiClass(class.ffi(db)),
+            FacadeImportItem::FacadeClass(class),
+        ]
+        .into_iter()
+        .chain(
+            self.fields(db)
+                .filter_map(|(_, param)| match param.type_(db) {
+                    FacadeType::Class(class) => Some(FacadeImportItem::FacadeClass(class)),
+                    _ => None,
+                }),
+        )
+        .collect()
+    }
+
+    pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = (FieldName, FacadeParam<'db>)> {
+        self.shim(db)
+            .field_param_coerce(db)
+            .iter()
+            .map(|(name, param)| (name.clone(), FacadeParam::new(db, *param)))
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct FacadeDiscriminatedCoerceFunction<'db> {
+    shim: ShimClassDiscriminated<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
+        if self
+            .class(db)
+            .methods(db)
+            .any(|method| method.is_static(db) && method.name(db) == "of")
+        {
+            "$of"
+        } else {
+            "of"
+        }
+    }
+
+    pub fn class(self, db: &'db dyn Db) -> FacadeClassDiscriminated<'db> {
+        self.shim(db).facade(db)
+    }
+
+    pub fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItem<'db>> {
+        let class = FacadeClass::Discriminated(self.class(db));
+        self.coerce_variants(db)
+            .iter()
+            .flat_map(|variant| {
+                [
+                    FacadeImportItem::FfiFunction(variant.ffi),
+                    FacadeImportItem::FfiClass(class.ffi(db)),
+                    FacadeImportItem::FacadeClass(class),
+                ]
+                .into_iter()
+                .chain(
+                    variant
+                        .fields
+                        .iter()
+                        .filter_map(|(_, param)| match param.type_(db) {
+                            FacadeType::Class(class) => Some(FacadeImportItem::FacadeClass(class)),
+                            _ => None,
+                        }),
+                )
+            })
+            .collect()
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn coerce_variants(self, db: &'db dyn Db) -> Vec<CoerceVariant<'db>> {
+        self.shim(db)
+            .variants(db)
+            .iter()
+            .zip(self.class(db).discriminator(db).variant_names(db))
+            .filter_map(|(v, name)| {
+                v.coerce(db).map(|coerce| CoerceVariant {
+                    name: name.clone(),
+                    ffi: coerce.ffi(db),
+                    fields: coerce
+                        .field_to_params(db)
+                        .iter()
+                        .map(|(name, param)| (name.clone(), FacadeParam::new(db, *param)))
+                        .collect(),
+                })
+            })
+            .collect()
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, salsa::Update)]
+pub struct CoerceVariant<'db> {
+    pub name: String,
+    pub ffi: FfiFunction<'db>,
+    pub fields: Vec<(FieldName, FacadeParam<'db>)>,
+}
+
 #[salsa::interned(debug)]
 pub struct FacadeParam<'db> {
     shim: ShimParam<'db>,
@@ -371,6 +520,15 @@ impl<'db> FacadeClass<'db> {
         match self {
             FacadeClass::Plain(plain) => plain.constructor(db),
             FacadeClass::Discriminated(_) => None,
+        }
+    }
+
+    pub fn coerce(self, db: &'db dyn Db) -> Option<FacadeCoerce<'db>> {
+        match self {
+            FacadeClass::Plain(plain) => plain.coerce(db).map(FacadeCoerce::Plain),
+            FacadeClass::Discriminated(discriminated) => {
+                discriminated.coerce(db).map(FacadeCoerce::Discriminated)
+            }
         }
     }
 
@@ -428,10 +586,21 @@ impl<'db> FacadeClassPlain<'db> {
         })
     }
 
+    pub fn coerce(self, db: &'db dyn Db) -> Option<FacadePlainCoerceFunction<'db>> {
+        self.shim(db)
+            .coerce(db)
+            .map(|fn_| FacadePlainCoerceFunction::new(db, fn_))
+    }
+
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> + 'db {
         self.fields(db)
             .flat_map(|f| f.imports(db))
             .chain(self.methods(db).flat_map(|m| m.imports(db)))
+            .chain(
+                self.coerce(db)
+                    .into_iter()
+                    .flat_map(move |coerce| coerce.imports(db)),
+            )
             .chain(std::iter::once(FacadeImportItem::FfiClass(self.ffi(db))))
     }
 }
@@ -492,11 +661,22 @@ impl<'db> FacadeClassDiscriminated<'db> {
         FacadeFieldDiscriminator::new(db, self.shim(db).discriminator(db))
     }
 
+    pub fn coerce(self, db: &'db dyn Db) -> Option<FacadeDiscriminatedCoerceFunction<'db>> {
+        let shim = self.shim(db);
+        shim.is_coercable(db)
+            .then(|| FacadeDiscriminatedCoerceFunction::new(db, shim))
+    }
+
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> + 'db {
         self.fields(db)
             .iter()
             .flat_map(|f| f.imports(db))
             .chain(self.methods(db).flat_map(|m| m.imports(db)))
+            .chain(
+                self.coerce(db)
+                    .into_iter()
+                    .flat_map(move |coerce| coerce.imports(db)),
+            )
             .chain(self.discriminator(db).imports(db))
     }
 }

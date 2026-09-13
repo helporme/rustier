@@ -299,6 +299,12 @@ impl<'db> ShimClassPlain<'db> {
             .collect()
     }
 
+    pub fn coerce(self, db: &'db dyn Db) -> Option<ShimFunctionPlainCoerce<'db>> {
+        self.src(db)
+            .is_constructible(db)
+            .then(|| ShimFunctionPlainCoerce::new(db, self))
+    }
+
     /// All functions defined by this class, including field accessors and
     /// methods.
     #[salsa::tracked(returns(ref))]
@@ -313,6 +319,7 @@ impl<'db> ShimClassPlain<'db> {
                     .iter()
                     .filter_map(|f| f.setter(db).map(|f| f.into())),
             )
+            .chain(self.coerce(db).map(|f| f.into()).into_iter())
             .collect()
     }
 }
@@ -354,7 +361,7 @@ impl<'db> ShimClassDiscriminated<'db> {
             .variants(db)
             .iter()
             .enumerate()
-            .map(|(i, variant)| ShimClassDiscriminatedVariant::new(db, *variant, i as u32))
+            .map(|(i, variant)| ShimClassDiscriminatedVariant::new(db, self, *variant, i as u32))
             .collect()
     }
 
@@ -382,6 +389,10 @@ impl<'db> ShimClassDiscriminated<'db> {
         ShimFunctionDiscriminator::new(db, self.src(db))
     }
 
+    pub fn is_coercable(self, db: &'db dyn Db) -> bool {
+        self.variants(db).iter().any(|v| v.coerce(db).is_some())
+    }
+
     /// All functions defined by this class, including field accessors,
     /// discriminator function and methods.
     #[salsa::tracked(returns(ref))]
@@ -397,6 +408,11 @@ impl<'db> ShimClassDiscriminated<'db> {
                     .filter_map(|f| f.setter(db).map(|f| f.into())),
             )
             .chain(std::iter::once(self.discriminator(db).into()))
+            .chain(
+                self.variants(db)
+                    .iter()
+                    .filter_map(|v| v.coerce(db).map(|f| f.into())),
+            )
             .collect()
     }
 }
@@ -409,6 +425,7 @@ impl<'db> From<ShimClassDiscriminated<'db>> for ShimClass<'db> {
 
 #[salsa::tracked(debug)]
 pub struct ShimClassDiscriminatedVariant<'db> {
+    pub class: ShimClassDiscriminated<'db>,
     pub src: Variant<'db>,
     /// The value of the tag field for this variant.
     pub tag_value: u32,
@@ -422,6 +439,13 @@ impl<'db> ShimClassDiscriminatedVariant<'db> {
     /// Fields of this varaint.
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = ShimField<'db>> {
         self.src(db).fields(db).map(move |f| f.shim(db))
+    }
+
+    /// Coerce function for this variant.
+    pub fn coerce(self, db: &'db dyn Db) -> Option<ShimFunctionDiscriminatedCoerce<'db>> {
+        self.src(db)
+            .is_constructible(db)
+            .then(|| ShimFunctionDiscriminatedCoerce::new(db, self))
     }
 }
 
@@ -457,6 +481,10 @@ pub enum ShimFunction<'db> {
     Setter(ShimFunctionSetter<'db>),
     /// A synthetic operation that identifies an enum variant.
     EnumDiscriminator(ShimFunctionDiscriminator<'db>),
+    /// A synthetic operation that coerces a plain struct to a class.
+    PlainCoerce(ShimFunctionPlainCoerce<'db>),
+    /// A synthetic operation that coerces a discriminated struct to a class.
+    DiscriminatedCoerce(ShimFunctionDiscriminatedCoerce<'db>),
 }
 
 #[salsa::tracked]
@@ -468,6 +496,8 @@ impl<'db> ShimFunction<'db> {
             ShimFunction::Getter(g) => g.symbol(db),
             ShimFunction::Setter(s) => s.symbol(db),
             ShimFunction::EnumDiscriminator(e) => e.symbol(db),
+            ShimFunction::PlainCoerce(p) => p.symbol(db),
+            ShimFunction::DiscriminatedCoerce(d) => d.symbol(db),
         }
     }
 
@@ -478,24 +508,20 @@ impl<'db> ShimFunction<'db> {
             ShimFunction::Getter(g) => Some(g.ret_type(db)),
             ShimFunction::Setter(_) => None,
             ShimFunction::EnumDiscriminator(d) => Some(d.ret_type()),
+            ShimFunction::PlainCoerce(p) => Some(p.ret_type(db)),
+            ShimFunction::DiscriminatedCoerce(d) => Some(d.ret_type(db)),
         }
     }
-
-    pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = ShimParam<'db>> + 'db {
+    #[salsa::tracked(returns(ref))]
+    pub fn params(self, db: &'db dyn Db) -> Vec<ShimParam<'db>> {
         match self {
-            ShimFunction::Free(function) => Either::Left(function.params(db).iter().copied()),
-            ShimFunction::Associated(function) => {
-                Either::Right(Either::Left(function.params(db).iter().copied()))
-            }
-            ShimFunction::Getter(getter) => Either::Right(Either::Right(Either::Left(
-                getter.params(db).iter().copied(),
-            ))),
-            ShimFunction::Setter(setter) => Either::Right(Either::Right(Either::Right(
-                Either::Left(setter.params(db).iter().copied()),
-            ))),
-            ShimFunction::EnumDiscriminator(discriminator) => Either::Right(Either::Right(
-                Either::Right(Either::Right(discriminator.params(db).iter().copied())),
-            )),
+            ShimFunction::Free(function) => function.params(db).clone(),
+            ShimFunction::Associated(function) => function.params(db).clone(),
+            ShimFunction::Getter(getter) => getter.params(db).to_vec(),
+            ShimFunction::Setter(setter) => setter.params(db).to_vec(),
+            ShimFunction::EnumDiscriminator(discriminator) => discriminator.params(db).to_vec(),
+            ShimFunction::PlainCoerce(coerce) => coerce.params(db).collect(),
+            ShimFunction::DiscriminatedCoerce(coerce) => coerce.params(db).collect(),
         }
     }
 }
@@ -768,6 +794,101 @@ impl<'db> ShimFunctionDiscriminator<'db> {
 impl<'db> From<ShimFunctionDiscriminator<'db>> for ShimFunction<'db> {
     fn from(value: ShimFunctionDiscriminator<'db>) -> Self {
         ShimFunction::EnumDiscriminator(value)
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct ShimFunctionPlainCoerce<'db> {
+    pub class: ShimClassPlain<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> ShimFunctionPlainCoerce<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        format!("__fn__coe__{}", self.class(db).src(db).path(db).mangled(db))
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> ShimType<'db> {
+        ShimType::Class {
+            is_borrowed: false,
+            inner: self.class(db).into(),
+        }
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn field_param_coerce(self, db: &'db dyn Db) -> Vec<(FieldName, ShimParam<'db>)> {
+        self.class(db)
+            .src(db)
+            .fields(db)
+            .enumerate()
+            .map(move |(idx, field)| {
+                let value_type = field.value_type(db).as_type();
+                (
+                    field.name(db).clone(),
+                    ShimParam::new(db, self.into(), idx, value_type, value_type.shim_in(db)),
+                )
+            })
+            .collect()
+    }
+
+    pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = ShimParam<'db>> + 'db {
+        self.field_param_coerce(db).iter().map(|(_, param)| *param)
+    }
+}
+
+impl<'db> From<ShimFunctionPlainCoerce<'db>> for ShimFunction<'db> {
+    fn from(value: ShimFunctionPlainCoerce<'db>) -> Self {
+        ShimFunction::PlainCoerce(value)
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct ShimFunctionDiscriminatedCoerce<'db> {
+    pub variant: ShimClassDiscriminatedVariant<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> ShimFunctionDiscriminatedCoerce<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        format!(
+            "__fn__coe__{}",
+            self.variant(db).src(db).path(db).mangled(db)
+        )
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> ShimType<'db> {
+        ShimType::Class {
+            is_borrowed: false,
+            inner: self.variant(db).class(db).into(),
+        }
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn field_to_params(self, db: &'db dyn Db) -> Vec<(FieldName, ShimParam<'db>)> {
+        self.variant(db)
+            .src(db)
+            .fields(db)
+            .enumerate()
+            .map(move |(idx, field)| {
+                let value_type = field.value_type(db).as_type();
+                (
+                    field.name(db).clone(),
+                    ShimParam::new(db, self.into(), idx, value_type, value_type.shim_in(db)),
+                )
+            })
+            .collect()
+    }
+
+    pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = ShimParam<'db>> + 'db {
+        self.field_to_params(db).iter().map(|(_, param)| *param)
+    }
+}
+
+impl<'db> From<ShimFunctionDiscriminatedCoerce<'db>> for ShimFunction<'db> {
+    fn from(value: ShimFunctionDiscriminatedCoerce<'db>) -> Self {
+        ShimFunction::DiscriminatedCoerce(value)
     }
 }
 

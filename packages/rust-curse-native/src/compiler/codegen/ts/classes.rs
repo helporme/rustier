@@ -1,12 +1,16 @@
 use crate::compiler::{
     codegen::{
         fragment::{
-            FragmentOnce, FragmentPrint, blank, curlies, doubles, frag, fragment, idented, spaced,
+            FragmentOnce, FragmentPrint, Printer, blank, curlies, doubles, frag, fragment, idented,
+            spaced,
         },
         ts::{DeclarationScope, jsdoc::render_jsdoc},
     },
     db::Db,
-    ir::decals::{DecalClass, DecalDiscriminator, DecalField, DecalVariant},
+    ir::decals::{
+        DecalClass, DecalClassDiscriminated, DecalClassPlain, DecalCoerceFunction, DecalField,
+        DecalVariant,
+    },
     ir::rust::FieldName,
 };
 
@@ -15,24 +19,26 @@ impl<'db> DecalClass<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_in_scope_ts(self, db: &'db dyn Db, scope: DeclarationScope) -> String {
         match self {
-            DecalClass::Plain(plain) => self.render_plain_ts(db, plain.fields(db).collect(), scope),
-            DecalClass::Discriminated(discriminated) => self.render_discriminated_ts(
-                db,
-                discriminated.variants(db),
-                discriminated.discriminator(db),
-                scope,
-            ),
+            DecalClass::Plain(class) => DecalPlainClassFragment { class, db, scope }.print(),
+            DecalClass::Discriminated(class) => {
+                DecalDiscriminatedClassFragment { class, db, scope }.print()
+            }
         }
     }
+}
 
-    fn render_plain_ts(
-        self,
-        db: &'db dyn Db,
-        fields: Vec<DecalField<'db>>,
-        scope: DeclarationScope,
-    ) -> String {
+struct DecalPlainClassFragment<'db> {
+    class: DecalClassPlain<'db>,
+    db: &'db dyn Db,
+    scope: DeclarationScope,
+}
+
+impl FragmentOnce for DecalPlainClassFragment<'_> {
+    fn apply(self, printer: &mut Printer) {
+        let Self { class, db, scope } = self;
+        let fields: Vec<_> = class.fields(db).collect();
         let members = fragment(|p| {
-            let constructor = self.constructor(db);
+            let constructor = class.constructor(db);
 
             for (index, field) in fields.iter().enumerate() {
                 if index > 0 {
@@ -42,7 +48,7 @@ impl<'db> DecalClass<'db> {
             }
 
             let mut rendered_method = false;
-            for method in self
+            for method in class
                 .methods(db)
                 .filter(|method| Some(*method) != constructor)
             {
@@ -50,6 +56,14 @@ impl<'db> DecalClass<'db> {
                     frag!(@).apply(p);
                 }
                 method.render_in_class_ts(db).apply(p);
+                rendered_method = true;
+            }
+
+            if let Some(coerce) = class.coerce(db) {
+                if !fields.is_empty() || rendered_method {
+                    blank().apply(p);
+                }
+                coerce.render_fn_ts(db, true).apply(p);
                 rendered_method = true;
             }
 
@@ -65,40 +79,37 @@ impl<'db> DecalClass<'db> {
             }
         });
 
-        let plain = fragment(|p| {
-            if fields.is_empty() {
-                frag!({}).apply(p);
-            } else {
-                curlies(fragment(|p| {
-                    for (index, field) in fields.iter().enumerate() {
-                        if index > 0 {
-                            blank().apply(p);
-                        }
-                        field.render_ts(db, false).apply(p);
-                    }
-                }))
-                .apply(p);
+        let plain = render_record_fields(db, fields.clone());
+        let coerce_type = fragment(|p| {
+            if let Some(coerce) = class.coerce(db) {
+                frag!(@@).apply(p);
+                coerce.render_input_ts(db).apply(p);
             }
         });
 
         frag!(
-            {render_jsdoc(self.docs(db).map(String::as_str))}
-            export class ~{self.name(db)}~{{ {members} }}@@
+            {render_jsdoc(class.docs(db).map(String::as_str))}
+            export class ~{class.name(db)}~{{ {members} }}@@
 
-            export ~{scope.declare_prefix()}namespace ~{self.name(db)}~{{
-                export type Plain = ~{plain};
+            export ~{scope.declare_prefix()}namespace ~{class.name(db)}~{{
+                export type Plain = ~{plain};{coerce_type}
             }}
         )
-        .print()
+        .apply(printer);
     }
+}
 
-    fn render_discriminated_ts(
-        self,
-        db: &'db dyn Db,
-        variants: &'db [DecalVariant<'db>],
-        discriminator: DecalDiscriminator<'db>,
-        scope: DeclarationScope,
-    ) -> String {
+struct DecalDiscriminatedClassFragment<'db> {
+    class: DecalClassDiscriminated<'db>,
+    db: &'db dyn Db,
+    scope: DeclarationScope,
+}
+
+impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
+    fn apply(self, printer: &mut Printer) {
+        let Self { class, db, scope } = self;
+        let variants = class.variants(db);
+        let discriminator = class.discriminator(db);
         let rendered_variants = fragment(move |p| {
             for (index, variant) in variants.iter().enumerate() {
                 if index > 0 {
@@ -121,10 +132,15 @@ impl<'db> DecalClass<'db> {
             }
         });
 
-        let static_methods = self
+        let static_methods = class
             .methods(db)
             .filter(|method| method.is_static(db))
             .map(|method| method.render_in_object_ts(db))
+            .chain(
+                class
+                    .coerce(db)
+                    .map(|coerce| coerce.render_fn_ts(db, false)),
+            )
             .collect::<Vec<_>>();
         let static_members = fragment(move |p| {
             if static_methods.is_empty() {
@@ -134,7 +150,7 @@ impl<'db> DecalClass<'db> {
             }
         });
 
-        let instance_methods = self
+        let instance_methods = class
             .methods(db)
             .filter(|method| !method.is_static(db))
             .map(|method| method.render_in_object_ts(db))
@@ -142,7 +158,7 @@ impl<'db> DecalClass<'db> {
 
         // Rust identifiers cannot contain `$`, so this per-enum, module-private
         // brand cannot collide with source declarations or imported Rust types.
-        let brand_name = format!("${}Brand", self.name(db));
+        let brand_name = format!("${}Brand", class.name(db));
         let instance_brand_name = brand_name.clone();
         let instance_members = fragment(move |p| {
             if !instance_methods.is_empty() {
@@ -153,15 +169,21 @@ impl<'db> DecalClass<'db> {
         });
 
         let declare = scope.declare_prefix();
+        let coerce_type = fragment(move |p| {
+            if let Some(coerce) = class.coerce(db) {
+                frag!(@@).apply(p);
+                coerce.render_input_ts(db).apply(p);
+            }
+        });
 
         frag!(
-            {render_jsdoc(self.docs(db).map(String::as_str))}
-            export type ~{self.name(db)}~ = ~{self.name(db)}.Instance & ~{self.name(db)}.Plain;@@
+            {render_jsdoc(class.docs(db).map(String::as_str))}
+            export type ~{class.name(db)}~ = ~{class.name(db)}.Instance & ~{class.name(db)}.Plain;@@
 
-            export ~{declare}const ~{self.name(db)}:~{static_members};@@
+            export ~{declare}const ~{class.name(db)}:~{static_members};@@
 
-            export ~{declare}namespace ~{self.name(db)}~{{
-                {plain}@@
+            export ~{declare}namespace ~{class.name(db)}~{{
+                {plain}{coerce_type}@@
 
                 export interface Instance~{{
                     {instance_members}
@@ -170,8 +192,67 @@ impl<'db> DecalClass<'db> {
 
             {declare}const ~{brand_name}: unique symbol;
         )
-        .print()
+        .apply(printer);
     }
+}
+
+impl<'db> DecalCoerceFunction<'db> {
+    fn render_fn_ts(self, db: &'db dyn Db, in_class: bool) -> String {
+        let static_prefix = in_class.then_some("static ");
+        let class = self.class(db).name(db);
+        frag!({static_prefix}{self.name(db)}(value:~{class}.Coerce):~{class};).print()
+    }
+
+    fn render_input_ts(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+        fragment(move |p| match self.class(db) {
+            DecalClass::Plain(_) => {
+                frag!(
+                    export type Coerce = ~{render_record_fields(db, self.input_fields(db))};
+                )
+                .apply(p);
+            }
+            DecalClass::Discriminated(class) => {
+                let variants = fragment(move |p| {
+                    for (index, variant) in class
+                        .variants(db)
+                        .iter()
+                        .filter(|variant| variant.if_coercible(db))
+                        .enumerate()
+                    {
+                        if index > 0 {
+                            blank().apply(p);
+                        }
+                        variant
+                            .render_ts(db, class.discriminator(db).name(db), variant.name(db))
+                            .apply(p);
+                    }
+                    frag!(;).apply(p);
+                });
+                frag!(export type Coerce =@{idented(variants)}).apply(p);
+            }
+        })
+    }
+}
+
+fn render_record_fields<'db>(
+    db: &'db dyn Db,
+    fields: Vec<DecalField<'db>>,
+) -> impl FragmentOnce + 'db {
+    fragment(move |p| {
+        if fields.is_empty() {
+            frag!({}).apply(p);
+        } else {
+            curlies(fragment(move |p| {
+                for (index, field) in fields.iter().enumerate() {
+                    if index > 0 {
+                        blank().apply(p);
+                    }
+                    field.render_ts(db, false).apply(p);
+                }
+            }))
+            .apply(p);
+        }
+    })
 }
 
 impl<'db> DecalVariant<'db> {
@@ -281,6 +362,60 @@ mod tests {
 
     test_class!(unit_class, "Empty", {
         pub struct Empty;
+    });
+
+    test_class!(coerce_with_shadowed_field, "Sine", {
+        #[derive(Clone)]
+        pub struct Sine {
+            /// The initial amplitude.
+            pub amplitude: f64,
+            pub frequency: f64,
+        }
+
+        impl Sine {
+            pub fn amplitude(&self) -> f64 {
+                self.amplitude
+            }
+        }
+    });
+
+    test_class!(tuple_coerce, "Point", {
+        #[derive(Clone)]
+        pub struct Point(pub u32, pub u32);
+    });
+
+    test_class!(struct_coerce_static_collision, "Point", {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: u32,
+        }
+
+        impl Point {
+            pub fn of() -> Self {
+                Self { x: 0 }
+            }
+        }
+    });
+
+    test_class!(enum_coerce_subset_and_canonical_names, "Wave", {
+        #[derive(Clone)]
+        #[non_exhaustive]
+        pub enum Wave {
+            Unit,
+            /// A named variant.
+            HTTPRequest {
+                r#type: u32,
+            },
+            HttpRequest(u32),
+            #[non_exhaustive]
+            Hidden(u32),
+        }
+
+        impl Wave {
+            pub fn of() -> Self {
+                Self::Unit
+            }
+        }
     });
 
     test_class!(struct_plain_with_methods, "Sine", {

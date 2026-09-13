@@ -1,0 +1,168 @@
+---
+source: src/compiler/codegen/js/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+#[allow(non_camel_case_types)]
+pub enum Test {
+    http { r#type: i32 },
+    Http,
+}
+```
+
+# Compiled
+
+```js
+export class Test {
+	static #_construction_token = Symbol();
+	#_ffi;
+	static #_types = ["http",
+	"Http"];
+
+	get ["type"]() {
+		const type_ = __fn__disc__test_0crate_Test(
+			this.#_ffi
+		);
+		if(
+			type_ === 0
+		) {
+			{
+				const out = cast.from(
+					"Ffi(number)"
+				).to(
+					"Facade(number)"
+				).an(
+					__fn__getter__test_0crate_Test____http__type(
+						this.#_ffi
+					)
+				);
+				return out;
+			}
+		}
+		throw new TypeError(
+			"Field type is not available on the active Test variant"
+		);
+	}
+
+	set ["type"](
+		value
+	) {
+		const type_ = __fn__disc__test_0crate_Test(
+			this.#_ffi
+		);
+		if(
+			type_ === 0
+		) {
+			{
+				const out = cast.from(
+					"Facade(number)"
+				).to(
+					"Ffi(number)"
+				).an(
+					value
+				);
+				__fn__setter__test_0crate_Test____http__type(
+					this.#_ffi, out
+				);
+				return;
+			}
+		}
+		throw new TypeError(
+			"Field type is not available on the active Test variant"
+		);
+	}
+
+	get ["$type"]() {
+		return Test.#_types[__fn__disc__test_0crate_Test(
+			this.#_ffi
+		)];
+	}
+
+	static of(
+		value
+	){
+		if(
+			value === null || typeof value !== "object"
+		){
+			throw new TypeError(
+				"Object coerce expects a non-null object"
+			);
+		}
+		switch(
+			value["$type"]
+		){
+			case "http":{
+				{
+					const __0 = cast.from(
+						"Facade(number)"
+					).to(
+						"Ffi(number)"
+					).an(
+						value["type"]
+					);
+					{
+						const result = cast.from(
+							"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } }) }))"
+						).to(
+							"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
+						).an(
+							__fn__coe__test_0crate_Test_http(
+								__0
+							)
+						);
+						return result;
+					}
+				}
+			}
+			case "Http":{
+				{
+					const result = cast.from(
+						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } }) }))"
+					).to(
+						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
+					).an(
+						__fn__coe__test_0crate_Test_Http(
+
+						)
+					);
+					return result;
+				}
+			}
+			default: throw new TypeError(
+				"Unknown or nonconstructible Test discriminator ($type): "+ String(
+					value["$type"]
+				)
+			);
+		}
+	}
+
+	constructor(
+		token
+	){
+		if(
+			token !== Test.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly (yet)"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new Test(
+			 Test.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+```

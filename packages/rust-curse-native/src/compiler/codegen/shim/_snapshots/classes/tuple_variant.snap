@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/classes.rs
-assertion_line: 264
 expression: snapshot
 ---
 # Source
@@ -47,7 +46,7 @@ impl __tethering__test_0crate_Test {
     pub fn get___Tuple__0(&self) -> __tethering::AccessResult<u32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Tuple(__field, ..) => Ok(__field),
+                test_crate::Test::Tuple { 0: __field, .. } => Ok(__field),
                 _ => {
                     Err(
                         napi::Error::from_reason(
@@ -63,7 +62,7 @@ impl __tethering__test_0crate_Test {
     pub fn set___Tuple__0(&self, value: u32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Tuple(__field, ..) => Ok(__field),
+                test_crate::Test::Tuple { 0: __field, .. } => Ok(__field),
                 _ => {
                     Err(
                         napi::Error::from_reason(
@@ -118,7 +117,7 @@ impl __tethering__test_0crate_Test {
     pub fn get___Tuple__0(&self) -> __tethering::AccessResult<u32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Tuple(__field, ..) => Ok(__field),
+                test_crate::Test::Tuple { 0: __field, .. } => Ok(__field),
                 _ => {
                     Err(
                         JsValue::from_str(
@@ -134,7 +133,7 @@ impl __tethering__test_0crate_Test {
     pub fn set___Tuple__0(&self, value: u32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Tuple(__field, ..) => Ok(__field),
+                test_crate::Test::Tuple { 0: __field, .. } => Ok(__field),
                 _ => {
                     Err(
                         JsValue::from_str(

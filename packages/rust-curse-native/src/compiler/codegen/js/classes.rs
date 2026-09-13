@@ -9,9 +9,10 @@ use crate::compiler::{
     db::Db,
     ir::{
         facade::{
-            FacadeClass, FacadeFieldDiscriminated, FacadeFieldDiscriminator, FacadeFieldPlain,
-            FacadeType,
+            FacadeClass, FacadeCoerce, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
+            FacadeFieldPlain, FacadeParam, FacadeType,
         },
+        ffi::FfiFunction,
         rust::FieldName,
     },
 };
@@ -64,7 +65,7 @@ where
                 #_ffi;@
                 {self.render_private_declarations()}@
 
-                {self.render_members()}@@
+                {self.render_members()}{self.render_coerce()}@@
 
                 {self.render_constructor()}@@
 
@@ -101,6 +102,20 @@ where
                         .into_iter()
                         .map(|method| method.render_with(self.db, self.casts)),
                 )
+                .apply(p);
+            }
+        })
+    }
+
+    fn render_coerce(self) -> impl FragmentOnce + 'db {
+        fragment(move |p| {
+            if let Some(coerce) = self.class.coerce(self.db) {
+                frag!(@@).apply(p);
+                CoerceFragment {
+                    coerce,
+                    db: self.db,
+                    casts: self.casts,
+                }
                 .apply(p);
             }
         })
@@ -202,6 +217,94 @@ where
             db: self.db,
             casts: self.casts,
         }
+    }
+}
+
+#[derive(Copy, Clone)]
+struct CoerceFragment<'db, Casts> {
+    coerce: FacadeCoerce<'db>,
+    db: &'db dyn Db,
+    casts: Casts,
+}
+
+impl<'db, Casts> FragmentOnce for CoerceFragment<'db, Casts>
+where
+    Casts: CastRenderer<'db> + Copy + Clone + 'db,
+{
+    fn apply(self, p: &mut Printer) {
+        let db = self.db;
+        let name = self.coerce.name(db);
+        match self.coerce {
+            FacadeCoerce::Plain(coerce) => {
+                let body = self.render_body(coerce.ffi(db), coerce.fields(db).collect());
+                frag!(static ~{name}(value) {{
+                    {render_coerce_object_guard()}@
+                    {body}@
+                }})
+                .apply(p);
+            }
+            FacadeCoerce::Discriminated(coerce) => {
+                let class = coerce.class(db);
+                let discriminator = class.discriminator(db).name(db);
+                let cases = fragment(move |p| {
+                    for variant in coerce.coerce_variants(db) {
+                        let tag = doubles(&variant.name);
+                        let body = self.render_body(variant.ffi, variant.fields.clone());
+                        frag!(case ~{tag}: {{ {body}@ }}@).apply(p);
+                    }
+                });
+                let message = doubles(format!(
+                    "Unknown or nonconstructible {} discriminator ({}): ",
+                    class.name(db),
+                    discriminator
+                ));
+                frag!(static ~{name}(value) {{
+                    {render_coerce_object_guard()}@
+                    switch (value[{doubles(discriminator)}]) {{
+                        {cases}
+                        default: throw new TypeError({message} + String(value[{doubles(discriminator)}]));
+                    }}
+                }}).apply(p);
+            }
+        }
+    }
+}
+
+impl<'db, Casts> CoerceFragment<'db, Casts>
+where
+    Casts: CastRenderer<'db> + Copy + Clone + 'db,
+{
+    fn render_body(
+        self,
+        ffi: FfiFunction<'db>,
+        fields: Vec<(FieldName, FacadeParam<'db>)>,
+    ) -> impl FragmentOnce + 'db {
+        let db = self.db;
+        let class = self.coerce.class(db);
+        let args = comma_list((0..fields.len()).map(|i| frag!(__ { i })));
+        let symbol = ffi.symbol(db);
+        let result = self.casts.render_stmt(
+            db,
+            Cast {
+                from: ffi.ret_type(db).expect("coerce returns its class"),
+                to: FacadeType::Class(class),
+                in_expr: frag!({ symbol }({ args })),
+                out_var_name: "result",
+            },
+            frag!(return result;),
+        );
+        let casts = fields.into_iter().zip(ffi.params(db)).enumerate().map(
+            |(i, ((name, param), ffi_param))| Cast {
+                from: param.type_(db),
+                to: ffi_param.type_(db),
+                in_expr: fragment(move |p| match name {
+                    FieldName::Name(name) => frag!(value[{ doubles(name) }]).apply(p),
+                    FieldName::Idx(index) => frag!(value[{ index }]).apply(p),
+                }),
+                out_var_name: frag!(__ { i }),
+            },
+        );
+        self.casts.render_many(db, casts, result)
     }
 }
 
@@ -519,6 +622,14 @@ where
     }
 }
 
+fn render_coerce_object_guard() -> impl FragmentOnce {
+    frag!(
+        if (value === null || typeof value !== "object") {{
+            throw new TypeError("Object coerce expects a non-null object");
+        }}
+    )
+}
+
 fn render_field_accessor(name: &FieldName) -> impl FragmentOnce + '_ {
     fragment(move |p| match name {
         FieldName::Idx(index) => squares(index.to_string()).apply(p),
@@ -577,6 +688,62 @@ mod tests {
 
     test_class!(unit_struct, {
         pub struct Test;
+    });
+    test_class!(coerce_unit_struct, {
+        #[derive(Clone)]
+        pub struct Test;
+    });
+    test_class!(coerce_tuple_struct, {
+        #[derive(Clone)]
+        pub struct Test(pub i32, pub String);
+    });
+    test_class!(coerce_nested_value, {
+        #[derive(Clone)]
+        pub struct Nested;
+        #[derive(Clone)]
+        pub struct Test {
+            pub nested: Nested,
+        }
+    });
+    test_class!(coerce_static_of_collision, {
+        #[derive(Clone)]
+        pub struct Test;
+        impl Test {
+            pub fn of() {}
+        }
+    });
+    test_class!(coerce_instance_of, {
+        #[derive(Clone)]
+        pub struct Test;
+        impl Test {
+            pub fn of(&self) {}
+        }
+    });
+    test_class!(coerce_enum_variants, {
+        #[derive(Clone)]
+        pub enum Test {
+            Unit,
+            EmptyTuple(),
+            EmptyRecord {},
+            Tuple(i32, String),
+            Record { value: i32 },
+        }
+    });
+    test_class!(coerce_canonical_discriminator, {
+        #[derive(Clone)]
+        #[allow(non_camel_case_types)]
+        pub enum Test {
+            http { r#type: i32 },
+            Http,
+        }
+    });
+    test_class!(coerce_canonical_ineligible_variant, {
+        #[derive(Clone)]
+        #[allow(non_camel_case_types)]
+        pub enum Test {
+            http,
+            Http(i128),
+        }
     });
     test_class!(tuple_unit_struct, {
         pub struct Test();

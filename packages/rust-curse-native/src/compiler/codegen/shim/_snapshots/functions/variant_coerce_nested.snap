@@ -1,0 +1,49 @@
+---
+source: src/compiler/codegen/shim/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Child(pub i32);
+#[derive(Clone)]
+pub enum Test {
+    Nested(Child),
+}
+```
+
+# Compiled
+## Node
+```rust
+#[napi(js_name = "__fn__coe__test_0crate_Test_Nested")]
+pub fn __fn__coe__test_0crate_Test_Nested(
+    _0: &__plain__test_0crate_Child,
+) -> napi::Result<__discr__test_0crate_Test> {
+    Ok(__discr__test_0crate_Test {
+        src: std::rc::Rc::new(
+            __tethering__test_0crate_Test::new_owned({
+                let _0 = std::rc::Rc::clone(&_0.src).access(|value| Ok(value.clone()))?;
+                test_crate::Test::Nested(_0)
+            }),
+        ),
+    })
+}
+```
+
+## Wasm
+```rust
+#[wasm_bindgen(js_name = "__fn__coe__test_0crate_Test_Nested")]
+pub fn __fn__coe__test_0crate_Test_Nested(
+    _0: &__plain__test_0crate_Child,
+) -> Result<__discr__test_0crate_Test, JsValue> {
+    Ok(__discr__test_0crate_Test {
+        src: std::rc::Rc::new(
+            __tethering__test_0crate_Test::new_owned({
+                let _0 = std::rc::Rc::clone(&_0.src).access(|value| Ok(value.clone()))?;
+                test_crate::Test::Nested(_0)
+            }),
+        ),
+    })
+}
+```

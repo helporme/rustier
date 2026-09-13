@@ -1,8 +1,9 @@
 use miette::{Diagnostic, SourceSpan};
+use ra_ap_edition::Edition;
 use ra_ap_hir::{
     HasAttrs as _, HasVisibility as _, StructKind, Variant as HirFieldParent, Visibility,
 };
-use ra_ap_syntax::{AstNode as _, ast};
+use ra_ap_syntax::{AstNode as _, SyntaxKind, ast};
 use thiserror::Error;
 
 use super::{
@@ -28,6 +29,18 @@ impl<'db> Field<'db> {
     #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir::rust) fn lower_name(self, db: &'db dyn Db) -> FieldName {
         field_name(db, self.hir(db))
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_escaped_name(self, db: &'db dyn Db) -> String {
+        match self.name(db) {
+            FieldName::Name(name)
+                if SyntaxKind::from_keyword(name, Edition::Edition2024).is_some() =>
+            {
+                format!("r#{name}")
+            }
+            name => name.to_string(),
+        }
     }
 
     #[salsa::tracked]

@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/js/classes.rs
-assertion_line: 753
 expression: snapshot
 ---
 # Source
@@ -98,6 +97,55 @@ export class Test {
 				)
 			);
 			return result;
+		}
+	}
+
+	static of(
+		value
+	){
+		if(
+			value === null || typeof value !== "object"
+		){
+			throw new TypeError(
+				"Object coerce expects a non-null object"
+			);
+		}
+		switch(
+			value["type"]
+		){
+			case "first":{
+				{
+					const result = cast.from(
+						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } }) }))"
+					).to(
+						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
+					).an(
+						__fn__coe__test_0crate_Test_First(
+
+						)
+					);
+					return result;
+				}
+			}
+			case "second":{
+				{
+					const result = cast.from(
+						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } }) }))"
+					).to(
+						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
+					).an(
+						__fn__coe__test_0crate_Test_Second(
+
+						)
+					);
+					return result;
+				}
+			}
+			default: throw new TypeError(
+				"Unknown or nonconstructible Test discriminator (type): "+ String(
+					value["type"]
+				)
+			);
 		}
 	}
 

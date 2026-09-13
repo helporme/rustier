@@ -1,0 +1,61 @@
+---
+source: src/compiler/codegen/shim/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub enum Test {
+    Record { text: String, flag: bool },
+}
+```
+
+# Compiled
+## Node
+```rust
+#[napi(js_name = "__fn__coe__test_0crate_Test_Record")]
+pub fn __fn__coe__test_0crate_Test_Record(
+    _0: String,
+    _1: bool,
+) -> napi::Result<__discr__test_0crate_Test> {
+    Ok(__discr__test_0crate_Test {
+        src: std::rc::Rc::new(
+            __tethering__test_0crate_Test::new_owned({
+                let _0 = _0;
+                {
+                    let _1 = _1;
+                    test_crate::Test::Record {
+                        text: _0,
+                        flag: _1,
+                    }
+                }
+            }),
+        ),
+    })
+}
+```
+
+## Wasm
+```rust
+#[wasm_bindgen(js_name = "__fn__coe__test_0crate_Test_Record")]
+pub fn __fn__coe__test_0crate_Test_Record(
+    _0: String,
+    _1: bool,
+) -> Result<__discr__test_0crate_Test, JsValue> {
+    Ok(__discr__test_0crate_Test {
+        src: std::rc::Rc::new(
+            __tethering__test_0crate_Test::new_owned({
+                let _0 = _0;
+                {
+                    let _1 = _1;
+                    test_crate::Test::Record {
+                        text: _0,
+                        flag: _1,
+                    }
+                }
+            }),
+        ),
+    })
+}
+```

@@ -1,3 +1,5 @@
+use itertools::Either;
+
 use crate::compiler::{
     codegen::{
         fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, frag, fragment},
@@ -12,8 +14,11 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        rust::{AsItem as _, Function, Shape, Type},
-        shim::{ShimFunction, ShimFunctionDiscriminator, ShimFunctionGetter, ShimFunctionSetter},
+        rust::{AsItem as _, Function, Shape, Type, ValueType},
+        shim::{
+            ShimFunction, ShimFunctionDiscriminatedCoerce, ShimFunctionDiscriminator,
+            ShimFunctionGetter, ShimFunctionPlainCoerce, ShimFunctionSetter,
+        },
     },
 };
 
@@ -49,6 +54,73 @@ struct FunctionFragment<'db, CastCompiler> {
     platform: Platform,
     cast_compiler: CastCompiler,
     db: &'db dyn Db,
+}
+
+#[derive(Copy, Clone)]
+struct CoerceFnFragment<'db, CastCompiler> {
+    coerce: Either<ShimFunctionPlainCoerce<'db>, ShimFunctionDiscriminatedCoerce<'db>>,
+    cast_compiler: CastCompiler,
+    db: &'db dyn Db,
+}
+
+impl<'db, CastCompiler> FragmentOnce for CoerceFnFragment<'db, CastCompiler>
+where
+    CastCompiler: CastRenderer<'db> + Copy + Clone + 'db,
+{
+    fn apply(self, p: &mut Printer) {
+        let db = self.db;
+        let (function, path, shape, source_type) = match self.coerce {
+            Either::Left(coerce) => {
+                let src = coerce.class(db).src(db);
+                (
+                    ShimFunction::from(coerce),
+                    src.fqn(db),
+                    src.shape(db),
+                    ValueType::Struct(src),
+                )
+            }
+            Either::Right(coerce) => {
+                let src = coerce.variant(db).src(db);
+                (
+                    ShimFunction::from(coerce),
+                    src.fqn(db),
+                    src.shape(db),
+                    ValueType::Enum(src.parent(db)),
+                )
+            }
+        };
+        let params = function.params(db);
+        let casts = params.iter().enumerate().map(|(i, param)| Cast {
+            from: param.type_(db),
+            to: param.src_type(db),
+            in_expr: frag!(_{i}),
+            out_var_name: frag!(_{i}),
+        });
+        let value = fragment(move |p| match shape {
+            Shape::Unit => path.apply(p),
+            Shape::Tuple(_) => {
+                let args = comma_list(params.iter().enumerate().map(|(i, _)| frag!(_{i})));
+                frag!({ path }({ args })).apply(p);
+            }
+            Shape::Plain { fields, .. } => {
+                let fields = comma_list(fields.iter().enumerate().map(|(i, field)| {
+                    let name = field.escaped_name(db);
+                    frag!({name}: _{i})
+                }));
+                frag!({path}~{{ {fields} }}).apply(p);
+            }
+        });
+        let value = self.cast_compiler.render_many(db, casts, value);
+        let result = self.cast_compiler.render_expr(
+            db,
+            Type::Value(source_type),
+            function
+                .ret_type(db)
+                .expect("coerce methods return a class"),
+            value,
+        );
+        frag!(Ok({ result })).apply(p);
+    }
 }
 
 impl<'db, CastCompiler> FragmentOnce for FunctionFragment<'db, CastCompiler>
@@ -91,6 +163,8 @@ where
         comma_list(
             self.function
                 .params(self.db)
+                .iter()
+                .copied()
                 .enumerate()
                 .map(move |(i, param)| {
                     fragment(move |p| {
@@ -116,25 +190,40 @@ where
             ShimFunction::EnumDiscriminator(discriminator) => {
                 self.render_enum_discriminator_body(discriminator).apply(p)
             }
+            ShimFunction::PlainCoerce(coerce) => CoerceFnFragment {
+                coerce: Either::Left(coerce),
+                cast_compiler: self.cast_compiler,
+                db: self.db,
+            }
+            .apply(p),
+            ShimFunction::DiscriminatedCoerce(coerce) => CoerceFnFragment {
+                coerce: Either::Right(coerce),
+                cast_compiler: self.cast_compiler,
+                db: self.db,
+            }
+            .apply(p),
         })
     }
 
     fn render_source_fn_call_body(self, src_fn: Function<'db>) -> impl FragmentOnce {
-        let cast_param_to_source_types =
-            self.function
-                .params(self.db)
-                .enumerate()
-                .map(|(i, param)| Cast {
-                    from: param.type_(self.db),
-                    to: param.src_type(self.db),
-                    in_expr: frag!(_{i}),
-                    out_var_name: frag!(_{i}),
-                });
+        let cast_param_to_source_types = self
+            .function
+            .params(self.db)
+            .iter()
+            .copied()
+            .enumerate()
+            .map(|(i, param)| Cast {
+                from: param.type_(self.db),
+                to: param.src_type(self.db),
+                in_expr: frag!(_{i}),
+                out_var_name: frag!(_{i}),
+            });
 
         let src_fn_call_expr = {
             let params = comma_list(
                 self.function
                     .params(self.db)
+                    .iter()
                     .enumerate()
                     .map(|(i, _)| frag!(_{i})),
             );
@@ -275,17 +364,9 @@ where
             for (index, variant) in src.variants(self.db).iter().enumerate() {
                 let variant_name = variant.name(self.db);
 
-                match variant.shape(self.db) {
-                    Shape::Unit => {
-                        frag!({enum_name}::{variant_name}~ => {index}f64,).apply(p);
-                    }
-                    Shape::Tuple(_) => {
-                        frag!({enum_name}::{variant_name}(..) => {index}f64,).apply(p);
-                    }
-                    Shape::Plain { .. } => {
-                        frag!({enum_name}::{variant_name}~{{ .. }} => {index}f64,).apply(p);
-                    }
-                }
+                // This pattern works for every shape, including
+                // non-exhaustive unit and tuple variants.
+                frag!({enum_name}::{variant_name}~{{ .. }} => {index}f64,).apply(p);
             }
 
             if src.is_non_exhaustive(self.db) {
@@ -362,6 +443,152 @@ mod tests {
         ShimFunction::Free(_),
         pub fn test_fn() {}
     );
+
+    macro_rules! test_coerce {
+        ($name:ident, $target:literal, { $($source:tt)* }) => {
+            #[test]
+            fn $name() {
+                assert_rust_snap! {
+                    source: { $($source)* },
+                    expression: |db, platform, printer| {
+                        let db: &dyn Db = &*db;
+                        let function = find_test_function(db, |function| match function {
+                            ShimFunction::PlainCoerce(coerce) => {
+                                coerce.class(db).name(db) == $target
+                            }
+                            ShimFunction::DiscriminatedCoerce(coerce) => {
+                                coerce.variant(db).name(db) == $target
+                            }
+                            _ => false,
+                        });
+                        function.render(db, platform).apply(printer);
+                    },
+                }
+            }
+        };
+    }
+
+    test_coerce!(struct_coerce_unit, "Unit", {
+        #[derive(Clone)]
+        pub struct Unit;
+    });
+
+    test_coerce!(struct_coerce_empty_tuple, "EmptyTuple", {
+        #[derive(Clone)]
+        pub struct EmptyTuple();
+    });
+
+    test_coerce!(struct_coerce_empty_record, "EmptyRecord", {
+        #[derive(Clone)]
+        pub struct EmptyRecord {}
+    });
+
+    test_coerce!(struct_coerce_tuple, "Tuple", {
+        #[derive(Clone)]
+        pub struct Tuple(pub i32, pub String);
+    });
+
+    test_coerce!(struct_coerce_record, "Record", {
+        #[derive(Clone)]
+        pub struct Record {
+            pub number: f64,
+            pub flag: bool,
+        }
+    });
+
+    test_coerce!(struct_coerce_raw_field, "RawField", {
+        #[derive(Clone)]
+        pub struct RawField {
+            pub r#type: u32,
+        }
+    });
+
+    test_coerce!(struct_coerce_nested, "Nested", {
+        #[derive(Clone)]
+        pub struct Child {
+            pub value: i32,
+        }
+
+        #[derive(Clone)]
+        pub struct Nested {
+            pub child: Child,
+        }
+    });
+
+    test_coerce!(struct_coerce_method_hidden_field, "Record", {
+        #[derive(Clone)]
+        pub struct Record {
+            pub number: f64,
+        }
+
+        impl Record {
+            pub fn number(&self) -> f64 {
+                self.number
+            }
+        }
+    });
+
+    test_coerce!(variant_coerce_unit, "Unit", {
+        #[derive(Clone)]
+        pub enum Test {
+            Unit,
+        }
+    });
+
+    test_coerce!(variant_coerce_empty_tuple, "EmptyTuple", {
+        #[derive(Clone)]
+        pub enum Test {
+            EmptyTuple(),
+        }
+    });
+
+    test_coerce!(variant_coerce_empty_record, "EmptyRecord", {
+        #[derive(Clone)]
+        pub enum Test {
+            EmptyRecord {},
+        }
+    });
+
+    test_coerce!(variant_coerce_tuple, "Tuple", {
+        #[derive(Clone)]
+        pub enum Test {
+            Tuple(i32, String),
+        }
+    });
+
+    test_coerce!(variant_coerce_record, "Record", {
+        #[derive(Clone)]
+        pub enum Test {
+            Record { text: String, flag: bool },
+        }
+    });
+
+    test_coerce!(variant_coerce_raw_field, "RawField", {
+        #[derive(Clone)]
+        pub enum Test {
+            RawField { r#type: u32 },
+        }
+    });
+
+    test_coerce!(variant_coerce_nested, "Nested", {
+        #[derive(Clone)]
+        pub struct Child(pub i32);
+
+        #[derive(Clone)]
+        pub enum Test {
+            Nested(Child),
+        }
+    });
+
+    test_coerce!(variant_coerce_non_exhaustive_parent, "Unit", {
+        #[derive(Clone)]
+        #[non_exhaustive]
+        pub enum Test {
+            Unit,
+            #[non_exhaustive]
+            Open,
+        }
+    });
 
     test_function!(
         zero_args_with_return,

@@ -211,6 +211,18 @@ impl<'db> Struct<'db> {
         self.lower_shape(db)
     }
 
+    pub fn is_non_exhaustive(self, db: &'db dyn Db) -> bool {
+        self.lower_is_non_exhaustive(db)
+    }
+
+    /// Whether the struct can be constructed using struct expression syntax.
+    pub fn is_constructible(self, db: &'db dyn Db) -> bool {
+        !self.is_non_exhaustive(db)
+            && !self.shape(db).has_stripped_fields()
+            && self.lower_is_clonable(db)
+            && self.fields(db).all(|field| !field.is_readonly(db))
+    }
+
     /// Flattens the shape while omitting private or hidden tuple-field slots.
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = Field<'db>> + 'db {
         match self.shape(db) {
@@ -398,6 +410,18 @@ impl<'db> Variant<'db> {
         self.lower_shape(db)
     }
 
+    pub fn is_non_exhaustive(self, db: &'db dyn Db) -> bool {
+        self.lower_is_non_exhaustive(db)
+    }
+
+    /// Whether the variant can be constructed using struct expression syntax.
+    pub fn is_constructible(self, db: &'db dyn Db) -> bool {
+        !self.is_non_exhaustive(db)
+            && !self.shape(db).has_stripped_fields()
+            && self.parent(db).lower_is_clonable(db)
+            && self.fields(db).all(|field| !field.is_readonly(db))
+    }
+
     /// Flattens the shape while omitting private or hidden tuple-field slots.
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = Field<'db>> + 'db {
         match self.shape(db) {
@@ -421,13 +445,29 @@ as_item!(Variant);
 #[derive(Debug, Clone, Hash, PartialEq, Eq, salsa::Update)]
 pub enum Shape<'db> {
     Unit,
-    /// Tuple fields, where private or hidden fields are represented by `None`.
+    /// Tuple fields, where omitted fields are represented by `None`.
     Tuple(Vec<Option<Field<'db>>>),
     Plain {
         fields: Vec<Field<'db>>,
-        /// Whether private or hidden fields were omitted.
+        /// Whether fields were omitted, including private or unsupported
+        /// fields.
         has_stripped_fields: bool,
     },
+}
+
+impl Shape<'_> {
+    /// Whether lowering omitted any source fields. Such shapes cannot be
+    /// constructed using only the exposed fields.
+    pub fn has_stripped_fields(&self) -> bool {
+        match self {
+            Shape::Unit => false,
+            Shape::Tuple(fields) => fields.iter().any(Option::is_none),
+            Shape::Plain {
+                has_stripped_fields,
+                ..
+            } => *has_stripped_fields,
+        }
+    }
 }
 
 #[salsa::interned(debug)]
@@ -443,6 +483,11 @@ impl<'db> Field<'db> {
 
     pub fn name(self, db: &'db dyn Db) -> &'db FieldName {
         self.lower_name(db)
+    }
+
+    /// Field spelling for Rust 2024 expressions and patterns.
+    pub fn escaped_name(self, db: &'db dyn Db) -> &'db String {
+        self.lower_escaped_name(db)
     }
 
     pub fn value_type(self, db: &'db dyn Db) -> ValueType<'db> {

@@ -4,8 +4,9 @@ use crate::compiler::{
         ffi::{FfiClass, FfiFunction, FfiParam},
         shim::{
             ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimFunction,
-            ShimFunctionAssociated, ShimFunctionDiscriminator, ShimFunctionFree,
-            ShimFunctionGetter, ShimFunctionSetter, ShimParam,
+            ShimFunctionAssociated, ShimFunctionDiscriminatedCoerce, ShimFunctionDiscriminator,
+            ShimFunctionFree, ShimFunctionGetter, ShimFunctionPlainCoerce, ShimFunctionSetter,
+            ShimParam,
         },
     },
 };
@@ -59,6 +60,18 @@ impl<'db> ShimFunctionSetter<'db> {
 }
 
 impl<'db> ShimFunctionDiscriminator<'db> {
+    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
+        FfiFunction::new(db, ShimFunction::from(self))
+    }
+}
+
+impl<'db> ShimFunctionPlainCoerce<'db> {
+    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
+        FfiFunction::new(db, ShimFunction::from(self))
+    }
+}
+
+impl<'db> ShimFunctionDiscriminatedCoerce<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
         FfiFunction::new(db, ShimFunction::from(self))
     }

@@ -9,7 +9,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        rust::{AsItem as _, FieldParent, Shape},
+        rust::{AsItem as _, FieldParent},
         shim::{ShimClass, ShimField},
     },
 };
@@ -141,7 +141,7 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
 
         fragment(move |p| match &src_field.parent(db) {
             FieldParent::Struct(..) => {
-                let field_name = src_field.name(db);
+                let field_name = src_field.escaped_name(db);
 
                 if is_mutable {
                     frag!(__tethering::AccessResult::Ok(&mut ~{source}.{field_name})).apply(p);
@@ -169,43 +169,15 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
                 let error = platform.error(reason);
                 let enum_name = enum_.fqn(db);
                 let variant_name = variant.name(db);
+                let field_name = src_field.escaped_name(db);
 
-                match variant.shape(db) {
-                    Shape::Unit => unreachable!("unit enum variants do not have fields"),
-                    Shape::Tuple(fields) => {
-                        let index = fields
-                            .iter()
-                            .position(|candidate| {
-                                candidate
-                                    .as_ref()
-                                    .is_some_and(|candidate| candidate.name(db) == field_name)
-                            })
-                            .expect("enum field must belong to its variant");
-                        let pattern = fragment(move |p| {
-                            for _ in 0..index {
-                                frag!(_,).apply(p);
-                            }
-                            frag!(__field, ..).apply(p);
-                        });
-
-                        frag!(
-                            match ~{source}~{{
-                                {enum_name}::{variant_name}({pattern}) => Ok(__field),@
-                                _ => Err({error}),
-                            }}
-                        )
-                        .apply(p);
-                    }
-                    Shape::Plain { .. } => {
-                        frag!(
-                            match ~{source}~{{
-                                {enum_name}::{variant_name}~{{ {field_name}: __field, .. }} => Ok(__field),@
-                                _ => Err({error}),
-                            }}
-                        )
-                        .apply(p);
-                    }
-                }
+                frag!(
+                    match ~{source}~{{
+                        {enum_name}::{variant_name}~{{ {field_name}: __field, .. }} => Ok(__field),@
+                        _ => Err({error}),
+                    }}
+                )
+                .apply(p);
             }
         })
     }
@@ -246,6 +218,20 @@ mod tests {
     test_class!(unit_struct, pub struct Test;);
     test_class!(tuple_unit_struct, pub struct Test(););
     test_class!(plain_unit_struct, pub struct Test {});
+    test_class!(
+        raw_struct_field,
+        #[derive(Clone)]
+        pub struct Test {
+            pub r#type: u32,
+        }
+    );
+    test_class!(
+        raw_variant_field,
+        #[derive(Clone)]
+        pub enum Test {
+            Value { r#type: u32 },
+        }
+    );
     test_class!(tuple_struct_1_field, pub struct Test(u32););
     test_class!(
         plain_struct_1_field,

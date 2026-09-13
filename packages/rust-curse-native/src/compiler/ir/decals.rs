@@ -3,7 +3,7 @@
 pub mod ext;
 mod lowering;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use itertools::Either;
 
@@ -17,7 +17,6 @@ use crate::compiler::{
             ShimMember, ShimModule, ShimParam, ShimParentModule, ShimType,
         },
     },
-    mangle::to_camel_case,
     path::FilePath,
 };
 
@@ -387,6 +386,13 @@ impl<'db> DecalClass<'db> {
         }
     }
 
+    pub fn coerce(self, db: &'db dyn Db) -> Option<DecalCoerceFunction<'db>> {
+        match self {
+            DecalClass::Plain(plain) => plain.coerce(db),
+            DecalClass::Discriminated(discriminated) => discriminated.coerce(db),
+        }
+    }
+
     fn referenced_classes(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
         match self {
             DecalClass::Plain(plain) => Either::Left(plain.referenced_classes(db)),
@@ -447,12 +453,25 @@ impl<'db> DecalClassPlain<'db> {
         })
     }
 
+    pub fn coerce(self, db: &'db dyn Db) -> Option<DecalCoerceFunction<'db>> {
+        self.shim(db)
+            .facade(db)
+            .coerce(db)
+            .map(|_| DecalCoerceFunction::new(db, DecalClass::Plain(self)))
+    }
+
     fn referenced_classes(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
         self.fields(db)
             .filter_map(|field| field.type_(db).class())
             .chain(
                 self.methods(db)
                     .flat_map(|method| method.referenced_classes(db)),
+            )
+            .chain(
+                self.coerce(db)
+                    .into_iter()
+                    .flat_map(move |coerce| coerce.input_fields(db))
+                    .filter_map(|field| field.type_(db).class()),
             )
     }
 }
@@ -492,13 +511,20 @@ impl<'db> DecalClassDiscriminated<'db> {
         let shim = self.shim(db);
         shim.variants(db)
             .iter()
-            .zip(lower_variant_names(db, shim))
-            .map(|(variant, name)| DecalVariant::new(db, *variant, name))
+            .zip(shim.discriminator(db).facade(db).variant_names(db))
+            .map(|(variant, name)| DecalVariant::new(db, *variant, name.clone()))
             .collect()
     }
 
     pub fn discriminator(self, db: &'db dyn Db) -> DecalDiscriminator<'db> {
         DecalDiscriminator::new(db, self.shim(db).discriminator(db))
+    }
+
+    pub fn coerce(self, db: &'db dyn Db) -> Option<DecalCoerceFunction<'db>> {
+        self.shim(db)
+            .facade(db)
+            .coerce(db)
+            .map(|_| DecalCoerceFunction::new(db, DecalClass::Discriminated(self)))
     }
 
     fn referenced_classes(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
@@ -522,6 +548,10 @@ pub struct DecalVariant<'db> {
 }
 
 impl<'db> DecalVariant<'db> {
+    pub fn if_coercible(self, db: &'db dyn Db) -> bool {
+        self.shim(db).coerce(db).is_some()
+    }
+
     pub fn source_name(self, db: &'db dyn Db) -> &'db String {
         self.shim(db).name(db)
     }
@@ -579,6 +609,47 @@ impl<'db> DecalDiscriminator<'db> {
     }
 }
 
+#[salsa::interned(debug)]
+pub struct DecalCoerceFunction<'db> {
+    pub class: DecalClass<'db>,
+}
+
+impl<'db> DecalCoerceFunction<'db> {
+    pub fn input_fields(self, db: &'db dyn Db) -> Vec<DecalField<'db>> {
+        match self.class(db) {
+            DecalClass::Plain(class) => class
+                .shim(db)
+                .src(db)
+                .fields(db)
+                .map(|field| DecalField::new(db, field.shim(db)))
+                .collect(),
+            DecalClass::Discriminated(class) => class
+                .variants(db)
+                .iter()
+                .filter(|variant| variant.if_coercible(db))
+                .flat_map(|variant| variant.fields(db))
+                .collect(),
+        }
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
+        match self.class(db) {
+            DecalClass::Plain(c) => c
+                .shim(db)
+                .facade(db)
+                .coerce(db)
+                .expect("coerce must exist")
+                .name(db),
+            DecalClass::Discriminated(c) => c
+                .shim(db)
+                .facade(db)
+                .coerce(db)
+                .expect("coerce must exist")
+                .name(db),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
 #[allow(non_camel_case_types)]
 pub enum DecalType<'db> {
@@ -595,30 +666,4 @@ impl<'db> DecalType<'db> {
             _ => None,
         }
     }
-}
-
-fn lower_variant_names<'db>(db: &'db dyn Db, class: ShimClassDiscriminated<'db>) -> Vec<String> {
-    let camel_case_names = class
-        .variants(db)
-        .iter()
-        .map(|variant| to_camel_case(variant.name(db)))
-        .collect::<Vec<_>>();
-    let mut occurrences = HashMap::new();
-
-    for name in &camel_case_names {
-        *occurrences.entry(name.clone()).or_insert(0) += 1;
-    }
-
-    class
-        .variants(db)
-        .iter()
-        .zip(camel_case_names)
-        .map(|(variant, camel_case_name)| {
-            if occurrences[&camel_case_name] > 1 {
-                variant.name(db).to_owned()
-            } else {
-                camel_case_name
-            }
-        })
-        .collect()
 }

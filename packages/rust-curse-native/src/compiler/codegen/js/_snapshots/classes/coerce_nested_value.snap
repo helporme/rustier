@@ -1,0 +1,121 @@
+---
+source: src/compiler/codegen/js/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Nested;
+#[derive(Clone)]
+pub struct Test {
+    pub nested: Nested,
+}
+```
+
+# Compiled
+
+```js
+export class Test {
+	static #_construction_token = Symbol();
+	#_ffi;
+	#__field_0;
+
+	get ["nested"]() {
+		if(
+			this.#__field_0 === undefined
+		) {
+			{
+				const out = cast.from(
+					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) }))"
+				).to(
+					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } } })))"
+				).an(
+					__fn__getter__test_0crate_Test__nested(
+						this.#_ffi
+					)
+				);
+				this.#__field_0 = out;
+			}
+		}
+		return this.#__field_0;
+	}
+
+	set ["nested"](
+		value
+	) {
+		{
+			const out = cast.from(
+				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } } })))"
+			).to(
+				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) }))"
+			).an(
+				value
+			);
+			__fn__setter__test_0crate_Test__nested(
+				this.#_ffi, out
+			);
+			this.#__field_0 = undefined;
+		}
+	}
+
+	static of(
+		value
+	){
+		if(
+			value === null || typeof value !== "object"
+		){
+			throw new TypeError(
+				"Object coerce expects a non-null object"
+			);
+		}
+		{
+			const __0 = cast.from(
+				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } } })))"
+			).to(
+				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) }))"
+			).an(
+				value["nested"]
+			);
+			{
+				const result = cast.from(
+					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5002) } } }) }))"
+				).to(
+					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5002) } } } })))"
+				).an(
+					__fn__coe__test_0crate_Test(
+						__0
+					)
+				);
+				return result;
+			}
+		}
+	}
+
+	constructor(
+		token
+	){
+		if(
+			token !== Test.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly (yet)"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new Test(
+			 Test.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+```

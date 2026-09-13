@@ -1,0 +1,155 @@
+---
+source: src/compiler/codegen/shim/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub enum Test {
+    Value { r#type: u32 },
+}
+```
+
+# Compiled
+## Node
+```rust
+struct __tethering__test_0crate_Test {
+    src: __tethering::SourceSlot<test_crate::Test>,
+}
+impl __tethering::Accessor<test_crate::Test> for __tethering__test_0crate_Test {
+    fn access_dyn(
+        &self,
+        f: &mut dyn FnMut(&test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_dyn(f)
+    }
+    fn access_mut_dyn(
+        &self,
+        f: &mut dyn FnMut(&mut test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut_dyn(f)
+    }
+}
+impl __tethering__test_0crate_Test {
+    pub fn new_owned(input: test_crate::Test) -> Self {
+        __tethering__test_0crate_Test {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<test_crate::Test>>,
+    ) -> Self {
+        __tethering__test_0crate_Test {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+    pub fn get___Value__type(&self) -> __tethering::AccessResult<u32> {
+        self.access(|src| Ok(
+            match src {
+                test_crate::Test::Value { r#type: __field, .. } => Ok(__field),
+                _ => {
+                    Err(
+                        napi::Error::from_reason(
+                            "cannot access inactive enum variant field `test_crate::Test::Value::type`"
+                                .to_string(),
+                        ),
+                    )
+                }
+            }?
+                .clone(),
+        ))
+    }
+    pub fn set___Value__type(&self, value: u32) -> __tethering::AccessResult<()> {
+        self.access_mut(|src| {
+            *match src {
+                test_crate::Test::Value { r#type: __field, .. } => Ok(__field),
+                _ => {
+                    Err(
+                        napi::Error::from_reason(
+                            "cannot access inactive enum variant field `test_crate::Test::Value::type`"
+                                .to_string(),
+                        ),
+                    )
+                }
+            }? = value;
+            Ok(())
+        })
+    }
+}
+#[napi(js_name = "__discr__test_0crate_Test")]
+pub struct __discr__test_0crate_Test {
+    src: std::rc::Rc<__tethering__test_0crate_Test>,
+}
+```
+
+## Wasm
+```rust
+struct __tethering__test_0crate_Test {
+    src: __tethering::SourceSlot<test_crate::Test>,
+}
+impl __tethering::Accessor<test_crate::Test> for __tethering__test_0crate_Test {
+    fn access_dyn(
+        &self,
+        f: &mut dyn FnMut(&test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_dyn(f)
+    }
+    fn access_mut_dyn(
+        &self,
+        f: &mut dyn FnMut(&mut test_crate::Test) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut_dyn(f)
+    }
+}
+impl __tethering__test_0crate_Test {
+    pub fn new_owned(input: test_crate::Test) -> Self {
+        __tethering__test_0crate_Test {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<test_crate::Test>>,
+    ) -> Self {
+        __tethering__test_0crate_Test {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+    pub fn get___Value__type(&self) -> __tethering::AccessResult<u32> {
+        self.access(|src| Ok(
+            match src {
+                test_crate::Test::Value { r#type: __field, .. } => Ok(__field),
+                _ => {
+                    Err(
+                        JsValue::from_str(
+                            &"cannot access inactive enum variant field `test_crate::Test::Value::type`"
+                                .to_string(),
+                        ),
+                    )
+                }
+            }?
+                .clone(),
+        ))
+    }
+    pub fn set___Value__type(&self, value: u32) -> __tethering::AccessResult<()> {
+        self.access_mut(|src| {
+            *match src {
+                test_crate::Test::Value { r#type: __field, .. } => Ok(__field),
+                _ => {
+                    Err(
+                        JsValue::from_str(
+                            &"cannot access inactive enum variant field `test_crate::Test::Value::type`"
+                                .to_string(),
+                        ),
+                    )
+                }
+            }? = value;
+            Ok(())
+        })
+    }
+}
+#[wasm_bindgen(js_name = "__discr__test_0crate_Test")]
+pub struct __discr__test_0crate_Test {
+    src: std::rc::Rc<__tethering__test_0crate_Test>,
+}
+```

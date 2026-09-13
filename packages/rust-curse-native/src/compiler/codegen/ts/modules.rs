@@ -202,4 +202,48 @@ mod tests {
         // Ordinary Rust names must not collide with synthetic brand symbols.
         pub struct WaveBrand;
     });
+
+    test_module!(coerce_imports_hidden_field_type, {
+        @file: "models.rs";
+        pub mod models {
+            #[derive(Clone)]
+            pub struct Point {
+                pub x: u32,
+            }
+        }
+
+        #[derive(Clone)]
+        pub struct Circle {
+            pub center: models::Point,
+            pub radius: f64,
+        }
+
+        impl Circle {
+            // Coerce still needs the input type when a method hides its accessor.
+            pub fn center(&self) -> bool {
+                true
+            }
+        }
+    });
+
+    test_module!(coerce_unavailable, {
+        pub struct NoClone {
+            pub value: u32,
+        }
+
+        #[derive(Clone)]
+        pub struct Private(pub u32, u32);
+
+        #[derive(Clone)]
+        #[non_exhaustive]
+        pub struct NonExhaustive {
+            pub value: u32,
+        }
+
+        #[derive(Clone)]
+        pub enum Blocked {
+            #[non_exhaustive]
+            Unit,
+        }
+    });
 }
