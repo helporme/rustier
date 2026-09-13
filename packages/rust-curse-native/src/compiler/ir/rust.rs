@@ -215,11 +215,15 @@ impl<'db> Struct<'db> {
         self.lower_is_non_exhaustive(db)
     }
 
+    pub fn is_clonable(self, db: &'db dyn Db) -> bool {
+        self.lower_is_clonable(db)
+    }
+
     /// Whether the struct can be constructed using struct expression syntax.
     pub fn is_constructible(self, db: &'db dyn Db) -> bool {
         !self.is_non_exhaustive(db)
             && !self.shape(db).has_stripped_fields()
-            && self.lower_is_clonable(db)
+            && self.is_clonable(db)
             && self.fields(db).all(|field| !field.is_readonly(db))
     }
 
@@ -279,6 +283,10 @@ impl<'db> Enum<'db> {
 
     pub fn is_non_exhaustive(self, db: &'db dyn Db) -> bool {
         self.lower_is_non_exhaustive(db)
+    }
+
+    pub fn is_clonable(self, db: &'db dyn Db) -> bool {
+        self.lower_is_clonable(db)
     }
 
     /// The variants of this enum.
@@ -418,7 +426,7 @@ impl<'db> Variant<'db> {
     pub fn is_constructible(self, db: &'db dyn Db) -> bool {
         !self.is_non_exhaustive(db)
             && !self.shape(db).has_stripped_fields()
-            && self.parent(db).lower_is_clonable(db)
+            && self.parent(db).is_clonable(db)
             && self.fields(db).all(|field| !field.is_readonly(db))
     }
 

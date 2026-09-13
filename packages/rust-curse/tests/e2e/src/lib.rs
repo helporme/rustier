@@ -1,3 +1,5 @@
+#[path = "coerce-clone-advice/test.rs"]
+pub mod coerce_clone_advice;
 #[path = "coerce-only-imports/test.rs"]
 pub mod coerce_only_imports;
 #[path = "enum-aliasing-throws/test.rs"]

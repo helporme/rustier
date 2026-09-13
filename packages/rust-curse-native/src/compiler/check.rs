@@ -11,6 +11,7 @@ use crate::compiler::{
 };
 
 mod coerce_name_collisions;
+mod coerce_requires_clone;
 mod enum_js_name_collisions;
 mod f32_precision_loss;
 mod method_field_collisions;
@@ -32,6 +33,7 @@ fn accumulate_checks<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
         match member.shim_reachable_from(db, module.usages(db)) {
             ShimMember::Class(class) => {
                 coerce_name_collisions::check(db, class);
+                coerce_requires_clone::check(db, class);
                 match class.src_value_type(db) {
                     ValueType::Struct(struct_) => {
                         struct_.check_f32_precision_loss(db);

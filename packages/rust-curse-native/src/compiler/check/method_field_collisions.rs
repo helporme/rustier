@@ -88,6 +88,7 @@ mod tests {
     #[test]
     fn warns_when_instance_method_shadows_struct_field() {
         let db = test_db! {
+            #[derive(Clone)]
             pub struct Example {
                 pub value: i32,
             }
@@ -108,6 +109,7 @@ mod tests {
     #[test]
     fn warns_for_each_shadowed_enum_variant_field() {
         let db = test_db! {
+            #[derive(Clone)]
             pub enum Example {
                 First { value: i32 },
                 Second { value: i32 },
@@ -132,6 +134,7 @@ mod tests {
     #[test]
     fn static_method_does_not_shadow_instance_field() {
         let db = test_db! {
+            #[derive(Clone)]
             pub struct Example {
                 pub value: i32,
             }

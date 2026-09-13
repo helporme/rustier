@@ -124,6 +124,7 @@ mod tests {
     #[test]
     fn struct_with_f32() {
         let db = test_db! {
+            #[derive(Clone)]
             pub struct Measurement {
                 pub value: f32,
             }
@@ -135,6 +136,7 @@ mod tests {
     #[test]
     fn enum_with_tuple_variant_f32() {
         let db = test_db! {
+            #[derive(Clone)]
             pub enum Measurement {
                 Value(f32),
             }
@@ -146,6 +148,7 @@ mod tests {
     #[test]
     fn enum_with_struct_variant_f32() {
         let db = test_db! {
+            #[derive(Clone)]
             pub enum Measurement {
                 Value { value: f32 },
             }

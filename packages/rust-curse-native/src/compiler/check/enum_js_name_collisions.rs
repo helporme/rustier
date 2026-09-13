@@ -88,6 +88,7 @@ mod tests {
     #[test]
     fn warns_when_type_field_conflicts_with_discriminant() {
         let db = test_db! {
+            #[derive(Clone)]
             pub enum Example {
                 Value { r#type: String },
             }
@@ -103,6 +104,7 @@ mod tests {
     fn warns_when_camel_cased_variant_tags_collide() {
         let db = test_db! {
             #[allow(non_camel_case_types)]
+            #[derive(Clone)]
             pub enum Example {
                 http {},
                 Http,
@@ -119,6 +121,7 @@ mod tests {
     fn emits_both_collision_diagnostics_in_stable_order() {
         let db = test_db! {
             #[allow(non_camel_case_types)]
+            #[derive(Clone)]
             pub enum Example {
                 http { r#type: String },
                 Http,
@@ -137,6 +140,7 @@ mod tests {
     #[test]
     fn accepts_distinct_facade_names() {
         let db = test_db! {
+            #[derive(Clone)]
             pub enum Example {
                 Http,
                 HTTPRequest,
