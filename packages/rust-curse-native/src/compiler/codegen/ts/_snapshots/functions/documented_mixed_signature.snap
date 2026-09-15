@@ -23,6 +23,6 @@ export function transform(
 	enabled: boolean,
 	label: string,
 	amount: number,
-	input: Input,
+	input: Input.Coerce,
 ): Output;
 ```

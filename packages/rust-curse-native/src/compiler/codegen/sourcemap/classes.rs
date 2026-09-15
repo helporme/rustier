@@ -65,15 +65,16 @@ impl<'db> DecalClass<'db> {
         let mut field_start_line = class_line + 1;
 
         for field in &fields {
-            let prefix = if field.is_readonly(db) {
-                "\tpublic readonly "
-            } else {
-                "\tpublic "
-            };
             let field_name = field.name(db).to_string();
-            let field_line = find_name_line(generated, field_start_line, prefix, &field_name, ":")
-                .expect("rendered TypeScript class field declaration should exist");
-            field_start_line = field_line + 1;
+            let locations = field_declaration_locations(
+                field,
+                db,
+                generated,
+                &mut field_start_line,
+                "\tpublic ",
+                true,
+                false,
+            );
 
             let Some(span) = field.span(db) else {
                 continue;
@@ -85,13 +86,15 @@ impl<'db> DecalClass<'db> {
                 }
                 FieldName::Name(_) | FieldName::Idx(_) => original.column,
             };
-            mappings.extend(declaration_mappings(
-                field_line,
-                prefix.len(),
-                &original,
-                original_name_column,
-                &field_name,
-            ));
+            for (field_line, name_column) in locations {
+                mappings.extend(declaration_mappings(
+                    field_line,
+                    name_column,
+                    &original,
+                    original_name_column,
+                    &field_name,
+                ));
+            }
         }
 
         let constructor = self.constructor(db);
@@ -171,20 +174,15 @@ impl<'db> DecalClass<'db> {
                     FieldName::Idx(_) => true,
                     FieldName::Name(name) => name.parse::<usize>().is_ok(),
                 };
-                let prefix = format!(
-                    "\t\t{}{}",
-                    if field.is_readonly(db) {
-                        "readonly "
-                    } else {
-                        ""
-                    },
-                    if wrapped { "[" } else { "" },
+                let locations = field_declaration_locations(
+                    &field,
+                    db,
+                    generated,
+                    &mut field_start_line,
+                    "\t\t",
+                    false,
+                    true,
                 );
-                let suffix = if wrapped { "]:" } else { ":" };
-                let field_line =
-                    find_name_line(generated, field_start_line, &prefix, &field_name, suffix)
-                        .expect("rendered TypeScript struct projection field should exist");
-                field_start_line = field_line + 1;
 
                 let Some(span) = field.span(db) else {
                     continue;
@@ -195,13 +193,15 @@ impl<'db> DecalClass<'db> {
                 } else {
                     original.column + "pub ".len()
                 };
-                mappings.extend(declaration_mappings(
-                    field_line,
-                    prefix.len(),
-                    &original,
-                    original_name_column,
-                    &field_name,
-                ));
+                for (field_line, name_column) in locations {
+                    mappings.extend(declaration_mappings(
+                        field_line,
+                        name_column,
+                        &original,
+                        original_name_column,
+                        &field_name,
+                    ));
+                }
             }
             projection_start_line = field_start_line;
         }
@@ -354,36 +354,29 @@ impl<'db> DecalClass<'db> {
 
                 for field in variant.fields(db) {
                     let field_name = field.name(db).to_string();
-                    let wrapped = match field.name(db) {
-                        FieldName::Idx(_) => true,
-                        FieldName::Name(name) => name.parse::<usize>().is_ok(),
-                    };
-                    let prefix = format!(
-                        "\t\t\t{}{}",
-                        if field.is_readonly(db) {
-                            "readonly "
-                        } else {
-                            ""
-                        },
-                        if wrapped { "[" } else { "" },
+                    let locations = field_declaration_locations(
+                        &field,
+                        db,
+                        generated,
+                        &mut variant_start_line,
+                        "\t\t\t",
+                        !coerce,
+                        true,
                     );
-                    let suffix = if wrapped { "]:" } else { ":" };
-                    let field_line =
-                        find_name_line(generated, variant_start_line, &prefix, &field_name, suffix)
-                            .expect("rendered TypeScript union field should exist");
-                    variant_start_line = field_line + 1;
 
                     let Some(span) = field.span(db) else {
                         continue;
                     };
                     let original = original_location(db, span);
-                    mappings.extend(declaration_mappings(
-                        field_line,
-                        prefix.len(),
-                        &original,
-                        original.column,
-                        &field_name,
-                    ));
+                    for (field_line, name_column) in locations {
+                        mappings.extend(declaration_mappings(
+                            field_line,
+                            name_column,
+                            &original,
+                            original.column,
+                            &field_name,
+                        ));
+                    }
                 }
             }
         }
@@ -424,6 +417,53 @@ impl<'db> DecalClass<'db> {
         )
         .to_vec()
     }
+}
+
+/// Accessors share one Rust field origin, with setters only for writable
+/// fields. Input projections remain ordinary properties regardless of
+/// coercibility.
+fn field_declaration_locations<'db>(
+    field: &DecalField<'db>,
+    db: &'db dyn Db,
+    generated: &str,
+    start_line: &mut usize,
+    indent: &str,
+    accessors: bool,
+    wrap_numeric_properties: bool,
+) -> Vec<(usize, usize)> {
+    let field_name = field.name(db).to_string();
+    let wrapped = (accessors || wrap_numeric_properties)
+        && match field.name(db) {
+            FieldName::Idx(_) => true,
+            FieldName::Name(name) => name.parse::<usize>().is_ok(),
+        };
+    let modifiers: &[&str] = if accessors {
+        if field.is_readonly(db) {
+            &["get "]
+        } else {
+            &["get ", "set "]
+        }
+    } else if field.is_readonly(db) {
+        &["readonly "]
+    } else {
+        &[""]
+    };
+    modifiers
+        .iter()
+        .map(|modifier| {
+            let prefix = format!("{indent}{modifier}{}", if wrapped { "[" } else { "" });
+            let suffix = match (accessors, wrapped) {
+                (true, true) => "](",
+                (true, false) => "(",
+                (false, true) => "]:",
+                (false, false) => ":",
+            };
+            let line = find_name_line(generated, *start_line, &prefix, &field_name, suffix)
+                .expect("rendered TypeScript field declaration should exist");
+            *start_line = line + 1;
+            (line, prefix.len())
+        })
+        .collect()
 }
 
 fn object_method_search<'db>(

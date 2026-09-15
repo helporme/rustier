@@ -16,7 +16,9 @@ function cast(
 	input
 ) {
 	{
-		const __cast_input = input;
+		const __cast_input = ExampleStruct.of(
+			input
+		);
 		if(
 			!(
 				__cast_input instanceof ExampleStruct

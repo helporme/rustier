@@ -40,19 +40,28 @@ export declare namespace Shape {
 		| {
 			readonly type: "HTTPRequest";
 			/** A numeric response code. */
-			response_code: number;
+			get response_code(): number;
+			set response_code(
+				value: number
+			);
 		}
 		/** A title-cased request with a colliding JavaScript tag. */
 		| {
 			readonly type: "HttpRequest";
-			response_code: number;
+			get response_code(): number;
+			set response_code(
+				value: number
+			);
 		}
 		/** Coordinates represented by tuple fields. */
 		| {
 			readonly type: "point";
 			/** A Rust-backed value. */
-			readonly [0]: Local;
-			[1]: number;
+			get [0](): Local;
+			get [1](): number;
+			set [1](
+				value: number
+			);
 		}
 		/** A variant without fields. */
 		| {

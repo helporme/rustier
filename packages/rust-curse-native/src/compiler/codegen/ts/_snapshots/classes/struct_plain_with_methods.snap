@@ -29,8 +29,14 @@ impl Sine {
 
 ```ts
 export class Sine {
-	public amplitude: number;
-	public frequency: number;
+	public get amplitude(): number;
+	public set amplitude(
+		value: number
+	);
+	public get frequency(): number;
+	public set frequency(
+		value: number
+	);
 	static static_fn(): number;
 	method_fn(): number;
 	private __rust_curse_brand: never;

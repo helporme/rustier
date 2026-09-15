@@ -45,17 +45,32 @@ export declare namespace Wave {
 	export type Plain =
 		| {
 			readonly type: "sine";
-			[0]: number;
+			get [0](): number;
+			set [0](
+				value: number
+			);
 		}
 		| {
 			readonly type: "square";
-			[0]: number;
-			[1]: number;
+			get [0](): number;
+			set [0](
+				value: number
+			);
+			get [1](): number;
+			set [1](
+				value: number
+			);
 		}
 		| {
 			readonly type: "triangle";
-			[0]: number;
-			[1]: number;
+			get [0](): number;
+			set [0](
+				value: number
+			);
+			get [1](): number;
+			set [1](
+				value: number
+			);
 		};
 
 	export interface Instance {

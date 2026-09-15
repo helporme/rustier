@@ -28,6 +28,11 @@ export class Test {
 		value
 	){
 		if(
+			value instanceof Test
+		){
+			return value;
+		}
+		if(
 			value === null || typeof value !== "object"
 		){
 			throw new TypeError(

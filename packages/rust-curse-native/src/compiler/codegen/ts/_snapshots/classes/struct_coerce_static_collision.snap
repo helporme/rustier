@@ -20,7 +20,10 @@ impl Point {
 
 ```ts
 export class Point {
-	public x: number;
+	public get x(): number;
+	public set x(
+		value: number
+	);
 	static of(): Point;
 	static $of(
 		value: Point.Coerce
@@ -34,7 +37,7 @@ export declare namespace Point {
 		x: number;
 	};
 
-	export type Coerce = {
+	export type Coerce ={
 		x: number;
 	};
 }

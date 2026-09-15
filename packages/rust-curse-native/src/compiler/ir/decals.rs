@@ -252,7 +252,7 @@ impl<'db> DecalFreeFunction<'db> {
             .map(|param| param.type_(db))
             .chain(self.ret_type(db))
             .filter_map(|type_| match type_ {
-                DecalType::Class(class) => Some(class),
+                DecalType::Class { inner, .. } => Some(inner),
                 _ => None,
             })
     }
@@ -332,7 +332,7 @@ impl<'db> DecalParam<'db> {
     }
 
     pub fn type_(self, db: &'db dyn Db) -> DecalType<'db> {
-        self.shim(db).type_(db).lower_decals(db)
+        self.shim(db).type_(db).lower_decals(db).try_as_coerced(db)
     }
 }
 
@@ -462,7 +462,7 @@ impl<'db> DecalClassPlain<'db> {
 
     fn referenced_classes(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
         self.fields(db)
-            .filter_map(|field| field.type_(db).class())
+            .filter_map(|field| field.get_type(db).class())
             .chain(
                 self.methods(db)
                     .flat_map(|method| method.referenced_classes(db)),
@@ -471,7 +471,7 @@ impl<'db> DecalClassPlain<'db> {
                 self.coerce(db)
                     .into_iter()
                     .flat_map(move |coerce| coerce.input_fields(db))
-                    .filter_map(|field| field.type_(db).class()),
+                    .filter_map(|field| field.set_type(db).class()),
             )
     }
 }
@@ -531,7 +531,7 @@ impl<'db> DecalClassDiscriminated<'db> {
         self.variants(db)
             .iter()
             .flat_map(|variant| variant.fields(db))
-            .filter_map(|field| field.type_(db).class())
+            .filter_map(|field| field.get_type(db).class())
             .chain(
                 self.methods(db)
                     .flat_map(|method| method.referenced_classes(db)),
@@ -593,8 +593,12 @@ impl<'db> DecalField<'db> {
         self.shim(db).setter(db).is_none()
     }
 
-    pub fn type_(self, db: &'db dyn Db) -> DecalType<'db> {
+    pub fn get_type(self, db: &'db dyn Db) -> DecalType<'db> {
         self.shim(db).getter(db).ret_type(db).lower_decals(db)
+    }
+
+    pub fn set_type(self, db: &'db dyn Db) -> DecalType<'db> {
+        self.get_type(db).try_as_coerced(db)
     }
 }
 
@@ -656,13 +660,26 @@ pub enum DecalType<'db> {
     boolean,
     string,
     number,
-    Class(DecalClass<'db>),
+    Class {
+        inner: DecalClass<'db>,
+        coerced: bool,
+    },
 }
 
 impl<'db> DecalType<'db> {
+    pub fn try_as_coerced(self, db: &'db dyn Db) -> Self {
+        match self {
+            Self::Class { inner, .. } => Self::Class {
+                inner,
+                coerced: inner.coerce(db).is_some(),
+            },
+            type_ => type_,
+        }
+    }
+
     fn class(self) -> Option<DecalClass<'db>> {
         match self {
-            DecalType::Class(class) => Some(class),
+            DecalType::Class { inner, .. } => Some(inner),
             _ => None,
         }
     }

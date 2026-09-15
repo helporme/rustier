@@ -9,7 +9,7 @@ use crate::compiler::{
     db::Db,
     ir::decals::{
         DecalClass, DecalClassDiscriminated, DecalClassPlain, DecalCoerceFunction, DecalField,
-        DecalVariant,
+        DecalType, DecalVariant,
     },
     ir::rust::FieldName,
 };
@@ -44,7 +44,7 @@ impl FragmentOnce for DecalPlainClassFragment<'_> {
                 if index > 0 {
                     frag!(@).apply(p);
                 }
-                field.render_ts(db, true).apply(p);
+                field.render_accessors_ts(db, "public ").apply(p);
             }
 
             let mut rendered_method = false;
@@ -79,11 +79,15 @@ impl FragmentOnce for DecalPlainClassFragment<'_> {
             }
         });
 
-        let plain = render_record_fields(db, fields.clone());
+        let plain = render_record_fields(
+            fields
+                .iter()
+                .map(|field| field.render_property_ts(db, field.get_type(db))),
+        );
         let coerce_type = fragment(|p| {
             if let Some(coerce) = class.coerce(db) {
                 frag!(@@).apply(p);
-                coerce.render_input_ts(db).apply(p);
+                coerce.render_coerce_ts(db).apply(p);
             }
         });
 
@@ -116,7 +120,13 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
                     blank().apply(p);
                 }
                 variant
-                    .render_ts(db, discriminator.name(db), variant.name(db))
+                    .render_ts(
+                        db,
+                        discriminator.name(db),
+                        variant
+                            .fields(db)
+                            .map(move |field| field.render_accessors_ts(db, "")),
+                    )
                     .apply(p);
             }
             frag!(;).apply(p);
@@ -158,21 +168,20 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
 
         // Rust identifiers cannot contain `$`, so this per-enum, module-private
         // brand cannot collide with source declarations or imported Rust types.
-        let brand_name = format!("${}Brand", class.name(db));
-        let instance_brand_name = brand_name.clone();
+        let brand_name = || frag!(${class.name(db)}Brand);
         let instance_members = fragment(move |p| {
             if !instance_methods.is_empty() {
                 spaced(instance_methods).apply(p);
                 blank().apply(p);
             }
-            frag!(readonly ~[{instance_brand_name}]: never;).apply(p);
+            frag!(readonly ~[{brand_name()}]: never;).apply(p);
         });
 
         let declare = scope.declare_prefix();
         let coerce_type = fragment(move |p| {
             if let Some(coerce) = class.coerce(db) {
                 frag!(@@).apply(p);
-                coerce.render_input_ts(db).apply(p);
+                coerce.render_coerce_ts(db).apply(p);
             }
         });
 
@@ -190,7 +199,7 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
                 }}
             }}@@
 
-            {declare}const ~{brand_name}: unique symbol;
+            {declare}const ~{brand_name()}: unique symbol;
         )
         .apply(printer);
     }
@@ -203,27 +212,35 @@ impl<'db> DecalCoerceFunction<'db> {
         frag!({static_prefix}{self.name(db)}(value:~{class}.Coerce):~{class};).print()
     }
 
-    fn render_input_ts(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+    fn render_coerce_ts(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
         fragment(move |p| match self.class(db) {
             DecalClass::Plain(_) => {
                 frag!(
-                    export type Coerce = ~{render_record_fields(db, self.input_fields(db))};
+                    export type Coerce = {
+                        render_record_fields(self.input_fields(db).into_iter().map(move |field| {
+                            field.render_property_ts(db, field.set_type(db))
+                        }))
+                    };
                 )
                 .apply(p);
             }
             DecalClass::Discriminated(class) => {
                 let variants = fragment(move |p| {
-                    for (index, variant) in class
+                    frag!(| Instance & Plain).apply(p);
+                    for variant in class
                         .variants(db)
                         .iter()
                         .filter(|variant| variant.if_coercible(db))
-                        .enumerate()
                     {
-                        if index > 0 {
-                            blank().apply(p);
-                        }
+                        blank().apply(p);
                         variant
-                            .render_ts(db, class.discriminator(db).name(db), variant.name(db))
+                            .render_ts(
+                                db,
+                                class.discriminator(db).name(db),
+                                variant.fields(db).map(move |field| {
+                                    field.render_property_ts(db, field.set_type(db))
+                                }),
+                            )
                             .apply(p);
                     }
                     frag!(;).apply(p);
@@ -234,20 +251,23 @@ impl<'db> DecalCoerceFunction<'db> {
     }
 }
 
-fn render_record_fields<'db>(
-    db: &'db dyn Db,
-    fields: Vec<DecalField<'db>>,
-) -> impl FragmentOnce + 'db {
+fn render_record_fields<'a, Field>(
+    fields: impl Iterator<Item = Field> + 'a,
+) -> impl FragmentOnce + 'a
+where
+    Field: FragmentOnce + 'a,
+{
     fragment(move |p| {
-        if fields.is_empty() {
+        let mut fields = fields.peekable();
+        if fields.peek().is_none() {
             frag!({}).apply(p);
         } else {
             curlies(fragment(move |p| {
-                for (index, field) in fields.iter().enumerate() {
+                for (index, field) in fields.enumerate() {
                     if index > 0 {
                         blank().apply(p);
                     }
-                    field.render_ts(db, false).apply(p);
+                    field.apply(p);
                 }
             }))
             .apply(p);
@@ -256,18 +276,21 @@ fn render_record_fields<'db>(
 }
 
 impl<'db> DecalVariant<'db> {
-    fn render_ts(
+    fn render_ts<Field>(
         self,
         db: &'db dyn Db,
         discriminator_name: &'db str,
-        tag_name: &'db str,
-    ) -> impl FragmentOnce + 'db {
+        fields: impl Iterator<Item = Field> + 'db,
+    ) -> impl FragmentOnce + 'db
+    where
+        Field: FragmentOnce + 'db,
+    {
         let properties = fragment(move |p| {
-            frag!(readonly ~{discriminator_name}:~{doubles(tag_name)};).apply(p);
+            frag!(readonly ~{discriminator_name}:~{doubles(self.name(db))};).apply(p);
 
-            for field in self.fields(db) {
+            for field in fields {
                 blank().apply(p);
-                field.render_ts(db, false).apply(p);
+                field.apply(p);
             }
         });
 
@@ -279,34 +302,44 @@ impl<'db> DecalVariant<'db> {
 }
 
 impl<'db> DecalField<'db> {
-    fn render_ts(self, db: &'db dyn Db, is_class_field: bool) -> impl FragmentOnce + 'db {
-        let visibility = if is_class_field {
-            "public "
-        } else {
-            Default::default()
-        };
-
-        let readonly = if self.is_readonly(db) {
-            "readonly "
-        } else {
-            Default::default()
-        };
-
-        let name = fragment(move |p| {
-            let name = self.name(db);
-            match name {
-                FieldName::Idx(_) if !is_class_field => ("[", name, "]").apply(p),
-                FieldName::Name(value) if !is_class_field && value.parse::<usize>().is_ok() => {
-                    ("[", name, "]").apply(p);
-                }
-                _ => name.apply(p),
+    fn render_accessors_ts(
+        self,
+        db: &'db dyn Db,
+        visibility: &'static str,
+    ) -> impl FragmentOnce + 'db {
+        fragment(move |p| {
+            frag!(
+                {render_jsdoc(self.docs(db).map(String::as_str))}
+                {visibility}get ~{self.render_name_ts(db)}():~{self.get_type(db).render_ts(db)};
+            )
+            .apply(p);
+            if !self.is_readonly(db) {
+                frag!(
+                    @
+                    {visibility}set ~{self.render_name_ts(db)}(value:~{self.set_type(db).render_ts(db)});
+                )
+                .apply(p);
             }
-        });
+        })
+    }
 
+    fn render_property_ts(self, db: &'db dyn Db, type_: DecalType<'db>) -> impl FragmentOnce + 'db {
+        let readonly = self.is_readonly(db).then_some("readonly ");
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
-            {visibility}{readonly}{name}:~{self.type_(db).render_ts(db)};
+            {readonly}{self.render_name_ts(db)}:~{type_.render_ts(db)};
         )
+    }
+
+    fn render_name_ts(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+        let name = self.name(db);
+        fragment(move |p| match name {
+            FieldName::Idx(_) => frag!([{ name }]).apply(p),
+            FieldName::Name(value) if value.parse::<usize>().is_ok() => {
+                frag!([{ name }]).apply(p);
+            }
+            _ => name.apply(p),
+        })
     }
 }
 

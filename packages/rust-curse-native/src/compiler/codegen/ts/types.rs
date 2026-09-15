@@ -10,7 +10,9 @@ impl<'db> DecalType<'db> {
             DecalType::boolean => frag!(boolean).apply(p),
             DecalType::string => frag!(string).apply(p),
             DecalType::number => frag!(number).apply(p),
-            DecalType::Class(class) => frag!({ class.name(db) }).apply(p),
+            DecalType::Class { inner, coerced } => {
+                frag!({inner.name(db)}{coerced.then_some(".Coerce")}).apply(p);
+            }
         })
     }
 }

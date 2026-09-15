@@ -26,7 +26,10 @@ pub enum Blocked {
 
 ```ts
 export class NoClone {
-	public value: number;
+	public get value(): number;
+	public set value(
+		value: number
+	);
 	private __rust_curse_brand: never;
 	private constructor();
 }
@@ -38,7 +41,10 @@ export declare namespace NoClone {
 }
 
 export class Private {
-	public 0: number;
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
 	private __rust_curse_brand: never;
 	private constructor();
 }
@@ -50,7 +56,10 @@ export declare namespace Private {
 }
 
 export class NonExhaustive {
-	public value: number;
+	public get value(): number;
+	public set value(
+		value: number
+	);
 	private __rust_curse_brand: never;
 	private constructor();
 }

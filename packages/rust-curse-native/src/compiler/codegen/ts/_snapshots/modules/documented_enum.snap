@@ -47,17 +47,29 @@ export declare namespace Shape {
 		| {
 			readonly type: "circle";
 			/** The circle radius. */
-			radius: number;
+			get radius(): number;
+			set radius(
+				value: number
+			);
 			/** A local Rust-backed value. */
-			readonly local: Local;
+			get local(): Local;
 			/** An imported Rust-backed value. */
-			external: External;
+			get external(): External;
+			set external(
+				value: External.Coerce
+			);
 		}
 		/** Coordinates represented by tuple fields. */
 		| {
 			readonly type: "point";
-			[0]: number;
-			[1]: number;
+			get [0](): number;
+			set [0](
+				value: number
+			);
+			get [1](): number;
+			set [1](
+				value: number
+			);
 		}
 		/** A variant without fields. */
 		| {

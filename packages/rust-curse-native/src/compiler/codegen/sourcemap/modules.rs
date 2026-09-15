@@ -229,16 +229,25 @@ mod tests {
                         .filter(|mapping| mapping.generated_line == field_line)
                         .max_by_key(|mapping| mapping.generated_column)
                     {
-                        let class_field = mappings
-                            .iter()
-                            .find(|mapping| {
-                                mapping.generated_line > class_line
-                                    && mapping.generated_line < namespace_line
-                                    && mapping.name == field.name
-                                    && mapping.original_column == field.original_column
+                        let accessor_name = if field.name.parse::<usize>().is_ok() {
+                            format!("[{}]", field.name)
+                        } else {
+                            field.name.clone()
+                        };
+                        let getter_line = (class_line + 1..namespace_line)
+                            .find(|&line| {
+                                lines[line].starts_with(&format!("\tpublic get {accessor_name}()"))
                             })
                             .unwrap();
-                        same_source(class_field, field);
+                        same_source(name_mapping(getter_line), field);
+                        let setter_line = (class_line + 1..namespace_line).find(|&line| {
+                            lines[line].starts_with(&format!("\tpublic set {accessor_name}("))
+                        });
+                        if lines[field_line].starts_with("\t\treadonly ") {
+                            assert!(setter_line.is_none());
+                        } else {
+                            same_source(name_mapping(setter_line.unwrap()), field);
+                        }
                         assert!(
                             lines[field_line][field.generated_column..].starts_with(&field.name)
                         );
@@ -271,6 +280,7 @@ mod tests {
         }
 
         /// Stores values.
+        #[derive(Clone)]
         pub struct Holder {
             /// A writable number.
             pub number: i32,
@@ -286,10 +296,12 @@ mod tests {
             HTTPRequest {
                 /// A named field.
                 response_code: i32,
+                /// A writable Rust-backed value.
+                external: models::External,
             },
             /// Coordinates represented by tuple fields.
             Point(
-                /// A Rust-backed value that cannot be replaced.
+                /// A writable Rust-backed value.
                 Holder,
                 i32,
             ),

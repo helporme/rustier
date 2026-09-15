@@ -51,6 +51,7 @@ export declare namespace Test {
 		};
 
 	export type Coerce =
+		| Instance & Plain
 		| {
 			readonly type: "first";
 		}

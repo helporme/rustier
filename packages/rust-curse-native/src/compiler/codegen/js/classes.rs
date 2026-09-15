@@ -234,10 +234,14 @@ where
     fn apply(self, p: &mut Printer) {
         let db = self.db;
         let name = self.coerce.name(db);
+        let class_name = self.coerce.class(db).name(db);
         match self.coerce {
             FacadeCoerce::Plain(coerce) => {
                 let body = self.render_body(coerce.ffi(db), coerce.fields(db).collect());
                 frag!(static ~{name}(value) {{
+                    if (value instanceof ~{class_name}) {{
+                        return value;
+                    }}@
                     {render_coerce_object_guard()}@
                     {body}@
                 }})
@@ -259,6 +263,9 @@ where
                     discriminator
                 ));
                 frag!(static ~{name}(value) {{
+                    if (value instanceof ~{class_name}) {{
+                        return value;
+                    }}@
                     {render_coerce_object_guard()}@
                     switch (value[{doubles(discriminator)}]) {{
                         {cases}

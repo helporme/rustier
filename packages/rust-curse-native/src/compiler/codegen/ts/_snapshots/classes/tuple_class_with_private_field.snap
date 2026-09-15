@@ -13,8 +13,11 @@ pub struct Tuple(pub i32, String, pub Local);
 
 ```ts
 export class Tuple {
-	public 0: number;
-	public readonly 2: Local;
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	public get [2](): Local;
 	private __rust_curse_brand: never;
 	private constructor();
 }

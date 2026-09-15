@@ -27,11 +27,17 @@ export declare namespace Test {
 	export type Plain =
 		| {
 			readonly type: "first";
-			value: number;
+			get value(): number;
+			set value(
+				value: number
+			);
 		}
 		| {
 			readonly type: "second";
-			value: number;
+			get value(): number;
+			set value(
+				value: number
+			);
 		};
 
 	export interface Instance {

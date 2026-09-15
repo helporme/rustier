@@ -9,7 +9,10 @@ impl<'db> ShimType<'db> {
             ShimType::f64 => DecalType::number,
             ShimType::String => DecalType::string,
             ShimType::bool => DecalType::boolean,
-            ShimType::Class { inner, .. } => DecalType::Class(inner.decals(db)),
+            ShimType::Class { inner, .. } => DecalType::Class {
+                inner: inner.decals(db),
+                coerced: false,
+            },
         }
     }
 }

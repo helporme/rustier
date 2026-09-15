@@ -21,7 +21,10 @@ export declare namespace Example {
 	export type Plain =
 		| {
 			readonly $type: "value";
-			type: string;
+			get type(): string;
+			set type(
+				value: string
+			);
 		};
 
 	export interface Instance {

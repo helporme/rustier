@@ -1,5 +1,5 @@
 use crate::compiler::{
-    codegen::fragment::{FragmentOnce, doubles, frag},
+    codegen::fragment::{FragmentOnce, doubles, frag, fragment},
     db::Db,
     ir::{facade::FacadeClass, ffi::FfiClass},
 };
@@ -17,6 +17,12 @@ where
     Continue: FragmentOnce + 'db,
 {
     let expected_class = source.name(db);
+    
+    let input = fragment(move |p| match source.coerce(db) {
+        Some(coerce) => frag!({expected_class}.{coerce.name(db)}({in_expr})).apply(p),
+        None => in_expr.apply(p),
+    });
+    
     let error_message = frag!(
         {doubles((
             r#"Expected a value of type \""#,
@@ -26,7 +32,7 @@ where
     );
 
     frag!({{
-        const __cast_input~ = ~{in_expr};@
+        const __cast_input~ = ~{input};@
         if (!(__cast_input~ instanceof ~{expected_class}))~{{
             throw new TypeError(
                 {error_message}

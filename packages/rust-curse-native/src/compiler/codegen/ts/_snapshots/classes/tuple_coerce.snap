@@ -13,8 +13,14 @@ pub struct Point(pub u32, pub u32);
 
 ```ts
 export class Point {
-	public 0: number;
-	public 1: number;
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	public get [1](): number;
+	public set [1](
+		value: number
+	);
 	static of(
 		value: Point.Coerce
 	): Point;
@@ -28,7 +34,7 @@ export declare namespace Point {
 		[1]: number;
 	};
 
-	export type Coerce = {
+	export type Coerce ={
 		[0]: number;
 		[1]: number;
 	};

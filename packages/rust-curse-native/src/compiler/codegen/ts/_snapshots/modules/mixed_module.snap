@@ -24,15 +24,27 @@ import type {
 export function mixed(
 	number: number,
 	text: string,
-	local: Local,
-	external: External,
+	local: Local.Coerce,
+	external: External.Coerce,
 ): External;
 
 export class Mixed {
-	public number: number;
-	public text: string;
-	public local: Local;
-	public external: External;
+	public get number(): number;
+	public set number(
+		value: number
+	);
+	public get text(): string;
+	public set text(
+		value: string
+	);
+	public get local(): Local;
+	public set local(
+		value: Local.Coerce
+	);
+	public get external(): External;
+	public set external(
+		value: External.Coerce
+	);
 	private __rust_curse_brand: never;
 	private constructor();
 }
@@ -57,7 +69,7 @@ export class Local {
 export declare namespace Local {
 	export type Plain = {};
 
-	export type Coerce = {};
+	export type Coerce ={};
 }
 
 export type Choice = Choice.Instance & Choice.Plain;
@@ -71,7 +83,10 @@ export declare namespace Choice {
 		}
 		| {
 			readonly type: "value";
-			number: number;
+			get number(): number;
+			set number(
+				value: number
+			);
 		};
 
 	export interface Instance {

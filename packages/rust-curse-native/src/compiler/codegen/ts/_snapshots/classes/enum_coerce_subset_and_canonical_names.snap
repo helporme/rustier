@@ -43,18 +43,28 @@ export declare namespace Wave {
 		/** A named variant. */
 		| {
 			readonly $type: "HTTPRequest";
-			type: number;
+			get type(): number;
+			set type(
+				value: number
+			);
 		}
 		| {
 			readonly $type: "HttpRequest";
-			[0]: number;
+			get [0](): number;
+			set [0](
+				value: number
+			);
 		}
 		| {
 			readonly $type: "hidden";
-			[0]: number;
+			get [0](): number;
+			set [0](
+				value: number
+			);
 		};
 
 	export type Coerce =
+		| Instance & Plain
 		| {
 			readonly $type: "unit";
 		}
