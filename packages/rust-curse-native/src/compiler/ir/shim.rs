@@ -260,7 +260,7 @@ impl<'db> ShimClassPlain<'db> {
 
     /// The name of this class.
     pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.src(db).name(db)
+        self.src(db).segment(db).name(db)
     }
 
     /// The symbol of this class.
@@ -345,7 +345,7 @@ impl<'db> ShimClassDiscriminated<'db> {
 
     /// The name of this class.
     pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.src(db).name(db)
+        self.src(db).segment(db).name(db)
     }
 
     /// The mangled unique symbol name of this class.

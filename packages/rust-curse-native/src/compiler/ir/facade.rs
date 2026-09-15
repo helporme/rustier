@@ -86,7 +86,13 @@ impl<'db> FacadeParentModule<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn virtual_path(self, db: &'db dyn Db) -> String {
         let path = self.shim(db).src(db).path(db);
-        format!("$rust/{}", path.segments(db).join("/"))
+        let names = path
+            .segments(db)
+            .iter()
+            .map(|segment| segment.name(db).as_str())
+            .collect::<Vec<_>>();
+
+        format!("$rust/{}", names.join("/"))
     }
 
     /// File path of the source rust module.

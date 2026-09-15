@@ -687,10 +687,12 @@ mod tests {
             .members(db)
             .iter()
             .find_map(|member| match member {
-                Member::Struct(struct_) if struct_.name(db) == name => {
+                Member::Struct(struct_) if struct_.segment(db).name(db) == name => {
                     Some(ValueType::Struct(*struct_))
                 }
-                Member::Enum(enum_) if enum_.name(db) == name => Some(ValueType::Enum(*enum_)),
+                Member::Enum(enum_) if enum_.segment(db).name(db) == name => {
+                    Some(ValueType::Enum(*enum_))
+                }
                 _ => None,
             })
             .unwrap_or_else(|| panic!("test value type `{name}` should be a root member"))

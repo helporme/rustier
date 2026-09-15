@@ -798,8 +798,10 @@ mod tests {
             .members(db)
             .iter()
             .find_map(|member| match member {
-                Member::Struct(struct_) if struct_.name(db) == name => Some((*struct_).into()),
-                Member::Enum(enum_) if enum_.name(db) == name => Some((*enum_).into()),
+                Member::Struct(struct_) if struct_.segment(db).name(db) == name => {
+                    Some((*struct_).into())
+                }
+                Member::Enum(enum_) if enum_.segment(db).name(db) == name => Some((*enum_).into()),
                 _ => None,
             })
             .unwrap_or_else(|| panic!("test value type `{name}` should be lowered"))

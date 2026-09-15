@@ -25,43 +25,62 @@ impl<'db> Rust<'db> {
     }
 }
 
+/// One component of a Rust item path.
+#[salsa::interned(debug)]
+pub struct PathSegment<'db> {
+    #[returns(ref)]
+    pub name: String,
+}
+
+#[salsa::tracked]
+impl<'db> PathSegment<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn mangled(self, db: &'db dyn Db) -> String {
+        mangle_path([self.name(db).as_str()])
+    }
+}
+
 #[salsa::interned(debug)]
 pub struct ItemPath<'db> {
     pub crate_: Crate<'db>,
     #[returns(ref)]
-    pub segments: Vec<String>,
+    pub segments: Vec<PathSegment<'db>>,
 }
 
 #[salsa::tracked]
 impl<'db> ItemPath<'db> {
     #[salsa::tracked]
-    pub fn from_segment(db: &'db dyn Db, crate_: Crate<'db>, segment: String) -> Self {
+    pub fn from_segment(db: &'db dyn Db, crate_: Crate<'db>, segment: PathSegment<'db>) -> Self {
         Self::new(db, crate_, vec![segment])
     }
 
     #[salsa::tracked]
-    pub fn append(self, db: &'db dyn Db, segment: String) -> Self {
+    pub fn append(self, db: &'db dyn Db, segment: PathSegment<'db>) -> Self {
         let mut segments = self.segments(db).to_owned();
-        segments.push(segment.to_owned());
+        segments.push(segment);
         Self::new(db, self.crate_(db), segments)
     }
 
     #[salsa::tracked(returns(ref))]
     pub fn fqn(self, db: &'db dyn Db) -> String {
-        self.segments(db).join("::")
+        self.segments(db)
+            .iter()
+            .map(|segment| segment.name(db).as_str())
+            .collect::<Vec<_>>()
+            .join("::")
     }
 
     #[salsa::tracked(returns(ref))]
     pub fn mangled(self, db: &'db dyn Db) -> String {
-        mangle_path(self.segments(db).iter().map(|s| s.as_str()))
+        self.segments(db)
+            .iter()
+            .map(|segment| segment.mangled(db).as_str())
+            .collect::<Vec<_>>()
+            .join("_")
     }
 
-    #[salsa::tracked(returns(ref))]
-    pub fn name(self, db: &'db dyn Db) -> String {
-        self.segments(db)
-            .last()
-            .expect("Item must have a name")
-            .to_string()
+    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
+        *self.segments(db).last().expect("Item must have a name")
     }
 }
 
@@ -144,9 +163,11 @@ impl<'db> Module<'db> {
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         match self.parent(db) {
-            ModuleParent::Module(parent) => parent.path(db).append(db, self.name(db).to_owned()),
+            ModuleParent::Module(parent) => parent
+                .path(db)
+                .append(db, PathSegment::new(db, self.name(db).to_owned())),
             ModuleParent::Crate(crate_) => {
-                ItemPath::from_segment(db, crate_, self.name(db).to_owned())
+                ItemPath::from_segment(db, crate_, PathSegment::new(db, self.name(db).to_owned()))
             }
         }
     }
@@ -196,15 +217,13 @@ impl<'db> Struct<'db> {
         self.lower_parent(db)
     }
 
-    pub fn name(self, db: &'db dyn Db) -> &'db String {
-        self.lower_name(db)
+    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
+        PathSegment::new(db, self.lower_name(db).to_owned())
     }
 
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
-        self.module(db)
-            .path(db)
-            .append(db, self.name(db).to_owned())
+        self.module(db).path(db).append(db, self.segment(db))
     }
 
     pub fn shape(self, db: &'db dyn Db) -> &'db Shape<'db> {
@@ -270,15 +289,13 @@ impl<'db> Enum<'db> {
         self.lower_parent(db)
     }
 
-    pub fn name(self, db: &'db dyn Db) -> &'db String {
-        self.lower_name(db)
+    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
+        PathSegment::new(db, self.lower_name(db).to_owned())
     }
 
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
-        self.module(db)
-            .path(db)
-            .append(db, self.name(db).to_owned())
+        self.module(db).path(db).append(db, self.segment(db))
     }
 
     pub fn is_non_exhaustive(self, db: &'db dyn Db) -> bool {
@@ -411,7 +428,7 @@ impl<'db> Variant<'db> {
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         self.parent(db)
             .path(db)
-            .append(db, self.name(db).to_owned())
+            .append(db, PathSegment::new(db, self.name(db).to_owned()))
     }
 
     pub fn shape(self, db: &'db dyn Db) -> &'db Shape<'db> {
@@ -522,9 +539,10 @@ impl<'db> Field<'db> {
             FieldName::Name(name) => name.to_owned(),
         };
 
+        let segment = PathSegment::new(db, name);
         match self.parent(db) {
-            FieldParent::Struct(struct_) => struct_.path(db).append(db, name),
-            FieldParent::Variant(variant) => variant.path(db).append(db, name),
+            FieldParent::Struct(struct_) => struct_.path(db).append(db, segment),
+            FieldParent::Variant(variant) => variant.path(db).append(db, segment),
         }
     }
 
@@ -582,7 +600,7 @@ impl<'db> Function<'db> {
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         self.parent(db)
             .path(db)
-            .append(db, self.name(db).to_owned())
+            .append(db, PathSegment::new(db, self.name(db).to_owned()))
     }
 
     pub fn receiver(self, db: &'db dyn Db) -> Option<Receiver> {
