@@ -113,7 +113,7 @@ impl ServerWorkspace {
     /// Applies Rust source changes and reloads on Cargo manifest or lockfile
     /// changes. All other files are ignored. Returns `true` if the workspace
     /// was changed, `false` otherwise.
-    pub fn change(&mut self, change: WorkspaceChange) -> Result<bool, WorkspaceError> {
+    pub fn change(&mut self, change: WorkspaceChange) -> Result<(), WorkspaceError> {
         let path = Path::new(&change.file_path);
         if matches!(
             path.file_name().and_then(|name| name.to_str()),
@@ -126,11 +126,11 @@ impl ServerWorkspace {
                 }
             })?;
             *self = workspace;
-            return Ok(true);
+            return Ok(());
         }
 
         if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
-            return Ok(false);
+            return Ok(());
         }
 
         self.vfs.set_file_contents(
@@ -160,7 +160,7 @@ impl ServerWorkspace {
             self.db.apply_change(analysis_change);
         }
 
-        Ok(changed)
+        Ok(())
     }
 
     pub fn project(&self) -> Project<'_> {
