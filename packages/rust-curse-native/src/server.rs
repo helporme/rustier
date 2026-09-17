@@ -88,9 +88,15 @@ impl Server {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
         tracing::debug!(path = %change.file_path, "Updating Rust source");
         (|| -> Result<(), ServerDiagnostic> {
-            self.ws
+            let changed = self
+                .ws
                 .change(change.into())
                 .map_err(ServerDiagnostic::from)?;
+
+            if !changed {
+                return Ok(());
+            }
+
             self.ws
                 .with_db(|db| self.ws.project().ts().sync(db).exec(db))
                 .map_err(ServerDiagnostic::from)?;
