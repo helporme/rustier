@@ -467,12 +467,6 @@ impl<'db> DecalClassPlain<'db> {
                 self.methods(db)
                     .flat_map(|method| method.referenced_classes(db)),
             )
-            .chain(
-                self.coerce(db)
-                    .into_iter()
-                    .flat_map(move |coerce| coerce.input_fields(db))
-                    .filter_map(|field| field.set_type(db).class()),
-            )
     }
 }
 
@@ -621,12 +615,7 @@ pub struct DecalCoerceFunction<'db> {
 impl<'db> DecalCoerceFunction<'db> {
     pub fn input_fields(self, db: &'db dyn Db) -> Vec<DecalField<'db>> {
         match self.class(db) {
-            DecalClass::Plain(class) => class
-                .shim(db)
-                .src(db)
-                .fields(db)
-                .map(|field| DecalField::new(db, field.shim(db)))
-                .collect(),
+            DecalClass::Plain(class) => class.fields(db).collect(),
             DecalClass::Discriminated(class) => class
                 .variants(db)
                 .iter()

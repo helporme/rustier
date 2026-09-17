@@ -50,6 +50,10 @@ pub enum Progress {
 }
 
 impl Progress {
+    pub fn reserved(value: i32) -> Self {
+        Self::Reserved { value }
+    }
+
     pub fn label(&self) -> i32 {
         match self {
             Self::Hidden { label } => *label,

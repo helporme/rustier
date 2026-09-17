@@ -1,22 +1,22 @@
 import { expect, it } from 'vitest'
 import { rustCurseDiags } from '$build/diags'
-import { Counter } from './test.rs'
+import { Counter, ReadonlyOwner, Unexposed } from './test.rs'
 
 it('calls a struct constructor and shared and exclusive methods', () => {
   const counter = new Counter(10)
 
-  expect(counter.value()).toBe(10)
+  expect(counter.value).toBe(10)
 
   counter.add(5)
 
-  expect(counter.value()).toBe(15)
+  expect(counter.value).toBe(15)
 })
 
 it('clones an owned self receiver and leaves the JS wrapper valid', () => {
   const counter = new Counter(21)
 
   expect(counter.into_value()).toBe(21)
-  expect(counter.value()).toBe(21)
+  expect(counter.value).toBe(21)
 })
 
 it('passes and returns Self through associated functions', () => {
@@ -28,8 +28,8 @@ it('passes and returns Self through associated functions', () => {
   const replacement = new Counter(90)
   second.replace_with(replacement)
 
-  expect(second.value()).toBe(90)
-  expect(replacement.value()).toBe(90)
+  expect(second.value).toBe(90)
+  expect(replacement.value).toBe(90)
 })
 
 it('exposes an inherent method named constructor', () => {
@@ -40,15 +40,34 @@ it('exposes an inherent method named constructor', () => {
   expect(negative.constructor()).toBe(false)
 })
 
-it('lets the method shadow a field with the same name', () => {
+it('lets exposed fields shadow methods, including readonly fields', () => {
   const counter = new Counter(7)
-  const runtimeCounter = counter as unknown as Record<string, unknown>
+  const owner = new ReadonlyOwner(9)
 
-  expect(counter.value()).toBe(7)
-  expect(typeof runtimeCounter.value).toBe('function')
-  expect(rustCurseDiags.map(diag => diag.rendered).join('\n')).toContain(
-    'rust_curse::field_shadowed_by_method',
-  )
+  expect(counter.value).toBe(7)
+  counter.value = 12
+  expect(counter.into_value()).toBe(12)
+  expect(owner.child.value).toBe(9)
+  expect(Object.getOwnPropertyDescriptor(ReadonlyOwner.prototype, 'child')?.set).toBeUndefined()
+  const collisions = rustCurseDiags.filter(diag =>
+    diag.code === 'rust_curse::method_shadowed_by_field'
+    && diag.message.includes('e2e::impl_struct::'))
+  expect(collisions).toHaveLength(2)
+  for (const name of ['Counter::value', 'ReadonlyOwner::child']) {
+    expect(collisions.filter(diag => diag.message.includes(`e2e::impl_struct::${name}`))).toHaveLength(1)
+  }
+})
+
+it('keeps static names and methods matching private or unsupported fields', () => {
+  const counter = new Counter(7)
+  const unexposed = new Unexposed(7)
+
+  expect(Counter.baseline()).toBe(100)
+  expect(counter.baseline).toBe(7)
+  counter.baseline = 8
+  expect(counter.baseline).toBe(8)
+  expect(unexposed.private()).toBe(7)
+  expect(unexposed.unsupported()).toBe(7)
 })
 
 it('omits static prototype and non-public methods', () => {

@@ -7,7 +7,7 @@ pub struct Outer {
 }
 
 impl Outer {
-    // The method hides the field accessor, leaving Nested referenced only by Coerce.
+    // Keep this method to test that the nested field takes precedence.
     pub fn nested(&self) -> i32 {
         self.nested.value
     }

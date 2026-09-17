@@ -24,7 +24,7 @@ TypeScript:
  18 | export declare namespace Counter {
  19 | 	export type Plain = {};
  20 | 
- 21 | 	export type Coerce ={};
+ 21 | 	export type Coerce = {};
  22 | }
 
 Source map:

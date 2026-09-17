@@ -6,7 +6,17 @@ test('declares enum associated functions on its static value and instance', () =
 
   expectTypeOf(phase).toEqualTypeOf<Phase>()
   expectTypeOf(phase.type).toEqualTypeOf<'waiting' | 'running' | 'complete'>()
-  expectTypeOf(phase.step()).toEqualTypeOf<number>()
+  if (phase.type === 'running') {
+    expectTypeOf(phase.step).toEqualTypeOf<number>()
+    phase.step = 2
+    // @ts-expect-error The field replaces the method rather than overloading it.
+    phase.step()
+  } else {
+    // @ts-expect-error A collision on Running removes the method from all variants.
+    phase.step
+  }
+  expectTypeOf(phase.into_step()).toEqualTypeOf<number>()
+  expectTypeOf(phase.is_complete()).toEqualTypeOf<boolean>()
   expectTypeOf(phase.finish()).toEqualTypeOf<void>()
   expectTypeOf(Phase.clone_of(phase)).toEqualTypeOf<Phase>()
 })
@@ -21,11 +31,20 @@ test('declares Phase.new as callable without making Phase constructible', () => 
 test('exposes Phase.Instance only as a type', () => {
   const instance: Phase.Instance = Phase.new()
 
-  expectTypeOf(instance.step()).toEqualTypeOf<number>()
+  expectTypeOf(instance.into_step()).toEqualTypeOf<number>()
+  expectTypeOf<Phase.Instance>().not.toHaveProperty('step')
   // @ts-expect-error Instance describes Rust wrappers; it has no runtime value.
   Phase.Instance
   // @ts-expect-error Instance cannot be used to construct a wrapper.
   new Phase.Instance()
+})
+
+test('includes colliding fields in the enum Plain union', () => {
+  expectTypeOf<Phase.Plain>().toEqualTypeOf<
+    | { readonly type: 'waiting' }
+    | { readonly type: 'running'; step: number }
+    | { readonly type: 'complete' }
+  >()
 })
 
 test('narrows branded enum instances by their variant tag', () => {
@@ -43,15 +62,14 @@ test('narrows branded enum instances by their variant tag', () => {
   }
 })
 
-test('does not coerce plain objects into branded Rust enum instances', () => {
+test('accepts variant function inputs without making plain values branded instances', () => {
   const plain: UploadState.Plain = { type: 'active', progress: 25 }
 
   // @ts-expect-error Matching variant fields do not create a Rust wrapper.
   const state: UploadState = plain
   // @ts-expect-error Even an enum without instance methods has a private brand.
   const instance: UploadState.Instance = {}
-  // @ts-expect-error Enum arguments require wrappers, not plain variant objects.
-  Phase.clone_of({ type: 'waiting' })
+  expectTypeOf(Phase.clone_of({ type: 'waiting' })).toEqualTypeOf<Phase>()
 
   expectTypeOf(state).toEqualTypeOf<UploadState>()
   expectTypeOf(instance).toEqualTypeOf<UploadState.Instance>()

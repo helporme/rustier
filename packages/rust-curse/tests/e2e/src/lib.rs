@@ -1,3 +1,5 @@
+#[path = "automatic-coercion/test.rs"]
+pub mod automatic_coercion;
 #[path = "coerce-clone-advice/test.rs"]
 pub mod coerce_clone_advice;
 #[path = "coerce-only-imports/test.rs"]

@@ -34,7 +34,7 @@ export declare namespace Point {
 		[1]: number;
 	};
 
-	export type Coerce ={
+	export type Coerce = {
 		[0]: number;
 		[1]: number;
 	};

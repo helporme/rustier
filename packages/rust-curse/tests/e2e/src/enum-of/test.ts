@@ -47,13 +47,32 @@ it('keeps static Status.of and constructs variants through $of', () => {
   if (failed.type !== 'failed') throw new Error('expected Status::Failed')
   expect(failed.code).toBe(503)
   expect(Status.$of({ type: 'ready' }).type).toBe('ready')
+  expect(Status.$of(Status.$of(failed))).toBe(failed)
 })
 
 it('constructs exhaustive variants of a non-exhaustive parent enum', () => {
   expect(Progress.of({ type: 'started' }).type).toBe('started')
-  expect(Progress.of({ type: 'hidden', label: 7 }).label()).toBe(7)
+  const hidden = Progress.of({ type: 'hidden', label: 7 })
+  if (hidden.type !== 'hidden') throw new Error('expected Progress::Hidden')
+  expect(hidden.label).toBe(7)
   const progress = Progress.of({ type: 'percent', value: 50 })
   expect(progress.type).toBe('percent')
   if (progress.type !== 'percent') throw new Error('expected Progress::Percent')
   expect(progress.value).toBe(50)
+})
+
+it('preserves enum identity including colliding fields and nonconstructible variants', () => {
+  const circle = Shape.of({ type: 'circle', center: { 0: 1, 1: 2 }, radius: 3 })
+  expect(Shape.of(Shape.of(circle))).toBe(circle)
+  const hidden = Progress.of({ type: 'hidden', label: 7 })
+  expect(Progress.of(Progress.of(hidden))).toBe(hidden)
+  if (hidden.type !== 'hidden') throw new Error('expected Progress::Hidden')
+  expect(hidden.label).toBe(7)
+  hidden.label = 8
+  expect(hidden.label).toBe(8)
+  const reserved = Progress.reserved(42)
+  expect(Progress.of(Progress.of(reserved))).toBe(reserved)
+  expect(reserved.type).toBe('reserved')
+  if (reserved.type !== 'reserved') throw new Error('expected Progress::Reserved')
+  expect(reserved.value).toBe(42)
 })

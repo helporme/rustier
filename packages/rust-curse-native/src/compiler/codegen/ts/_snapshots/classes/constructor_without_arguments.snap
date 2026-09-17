@@ -30,6 +30,6 @@ export class Test {
 export declare namespace Test {
 	export type Plain = {};
 
-	export type Coerce ={};
+	export type Coerce = {};
 }
 ```

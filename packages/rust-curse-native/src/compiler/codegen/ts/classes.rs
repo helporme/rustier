@@ -216,7 +216,7 @@ impl<'db> DecalCoerceFunction<'db> {
         fragment(move |p| match self.class(db) {
             DecalClass::Plain(_) => {
                 frag!(
-                    export type Coerce = {
+                    export type Coerce = ~{
                         render_record_fields(self.input_fields(db).into_iter().map(move |field| {
                             field.render_property_ts(db, field.set_type(db))
                         }))
@@ -397,7 +397,7 @@ mod tests {
         pub struct Empty;
     });
 
-    test_class!(coerce_with_shadowed_field, "Sine", {
+    test_class!(coerce_with_shadowed_method, "Sine", {
         #[derive(Clone)]
         pub struct Sine {
             /// The initial amplitude.
@@ -610,7 +610,7 @@ mod tests {
         }
     });
 
-    test_class!(method_shadows_field, "Test", {
+    test_class!(field_shadows_method, "Test", {
         pub struct Test {
             pub value: i32,
         }
@@ -622,7 +622,7 @@ mod tests {
         }
     });
 
-    test_class!(enum_method_shadows_fields, "Test", {
+    test_class!(enum_fields_shadow_method, "Test", {
         pub enum Test {
             First { value: i32 },
             Second { value: i32 },

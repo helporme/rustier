@@ -901,7 +901,7 @@ mod tests {
             }
         }
     });
-    test_class!(method_shadows_field, {
+    test_class!(field_shadows_method, {
         pub struct Test {
             pub value: i32,
         }
@@ -912,7 +912,7 @@ mod tests {
             }
         }
     });
-    test_class!(enum_method_shadows_fields, {
+    test_class!(enum_fields_shadow_method, {
         pub enum Test {
             First { value: i32 },
             Second { value: i32 },

@@ -18,11 +18,14 @@ import type {
 } from '$rust/test_crate/models';
 
 export class Circle {
+	public get center(): Point;
+	public set center(
+		value: Point.Coerce
+	);
 	public get radius(): number;
 	public set radius(
 		value: number
 	);
-	center(): boolean;
 	static of(
 		value: Circle.Coerce
 	): Circle;
@@ -32,10 +35,11 @@ export class Circle {
 
 export declare namespace Circle {
 	export type Plain = {
+		center: Point;
 		radius: number;
 	};
 
-	export type Coerce ={
+	export type Coerce = {
 		center: Point.Coerce;
 		radius: number;
 	};

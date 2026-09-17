@@ -22,20 +22,35 @@ export class Test {
 	static #_construction_token = Symbol();
 	#_ffi;
 
-	value(
-
-	) {
+	get ["value"]() {
 		{
-			const result = cast.from(
+			const out = cast.from(
 				"Ffi(number)"
 			).to(
 				"Facade(number)"
 			).an(
-				__fn__associated__test_0crate_Test_value(
+				__fn__getter__test_0crate_Test__value(
 					this.#_ffi
 				)
 			);
-			return result;
+			return out;
+		}
+	}
+
+	set ["value"](
+		value
+	) {
+		{
+			const out = cast.from(
+				"Facade(number)"
+			).to(
+				"Ffi(number)"
+			).an(
+				value
+			);
+			__fn__setter__test_0crate_Test__value(
+				this.#_ffi, out
+			);
 		}
 	}
 

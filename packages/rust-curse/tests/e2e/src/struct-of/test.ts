@@ -32,6 +32,15 @@ it.each([undefined, null, 42, 'input'])('rejects non-object unit input %s', valu
 it('keeps static Ticket.of and exposes the generated constructor as $of', () => {
   expect(Ticket.of(7).number).toBe(107)
   expect(Ticket.$of({ number: 7 }).number).toBe(7)
+  const ticket = Ticket.$of({ number: 7 })
+  expect(Ticket.$of(Ticket.$of(ticket))).toBe(ticket)
   const renderedDiags = rustCurseDiags.map(diag => diag.rendered).join('\n')
   expect(renderedDiags).toContain('rust_curse::coerce_name_collision')
+})
+
+it('returns the same Point instance through repeated coercion', () => {
+  const point = Point.of({ 0: 1, 1: 2 })
+  expect(Point.of(Point.of(point))).toBe(point)
+  expect(Label.of({ text: 'nested', position: { 0: 3, 1: 4 } }).position[0]).toBe(3)
+  expect(point_x({ 0: 5, 1: 6 })).toBe(5)
 })

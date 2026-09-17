@@ -23,13 +23,12 @@ test('declares public struct fields as a plain object type', () => {
   ChildStruct.Plain
 })
 
-test('does not coerce plain objects into Rust struct instances', () => {
+test('accepts plain function inputs without making plain values branded instances', () => {
   const plain: ChildStruct.Plain = { value: 42 }
 
   // @ts-expect-error Plain objects do not carry the Rust instance brand.
   const instance: ChildStruct = plain
-  // @ts-expect-error Function arguments still require Rust wrappers.
-  child_value(plain)
+  expectTypeOf(child_value(plain)).toEqualTypeOf<number>()
 })
 
 test('keeps nested fields as Rust instance types', () => {

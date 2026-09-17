@@ -33,6 +33,10 @@ it('does not attach coerce methods to ineligible classes', () => {
   }
 })
 
-it('coerces public fields hidden by instance methods', () => {
-  expect(Shadowed.of({ value: 42 }).value()).toBe(42)
+it('coerces public fields that shadow instance methods', () => {
+  const shadowed = Shadowed.of({ value: 42 })
+  expect(Shadowed.of(Shadowed.of(shadowed))).toBe(shadowed)
+  expect(shadowed.value).toBe(42)
+  shadowed.value = 43
+  expect(shadowed.value).toBe(43)
 })

@@ -272,19 +272,8 @@ impl<'db> ShimClassPlain<'db> {
     /// Fields of this class.
     #[salsa::tracked(returns(ref))]
     pub fn fields(self, db: &'db dyn Db) -> Vec<ShimField<'db>> {
-        let fields = self.src(db).fields(db);
-        let methods = self.methods(db);
-
-        fields
-            .filter(|field| {
-                !methods.iter().any(|method| {
-                    method.src(db).receiver(db).is_some()
-                        && matches!(
-                            field.name(db),
-                            FieldName::Name(name) if name == method.src(db).name(db)
-                        )
-                })
-            })
+        self.src(db)
+            .fields(db)
             .map(|field| field.shim(db))
             .collect()
     }
@@ -296,6 +285,7 @@ impl<'db> ShimClassPlain<'db> {
             .impls(db)
             .iter()
             .flat_map(|impl_| impl_.lower_as_methods(db))
+            .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
     }
 
@@ -381,6 +371,7 @@ impl<'db> ShimClassDiscriminated<'db> {
             .impls(db)
             .iter()
             .flat_map(|impl_| impl_.lower_as_methods(db))
+            .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
     }
 
@@ -574,6 +565,14 @@ pub struct ShimFunctionAssociated<'db> {
 
 #[salsa::tracked]
 impl<'db> ShimFunctionAssociated<'db> {
+    pub fn is_shadowed_by_field(self, db: &'db dyn Db) -> bool {
+        let src = self.src(db);
+        src.receiver(db).is_some()
+            && self.self_class(db).fields(db).iter().any(
+                |field| matches!(field.name(db), FieldName::Name(name) if name == src.name(db)),
+            )
+    }
+
     #[salsa::tracked(returns(ref))]
     pub fn symbol(self, db: &'db dyn Db) -> String {
         format!("__fn__associated__{}", self.src(db).path(db).mangled(db))

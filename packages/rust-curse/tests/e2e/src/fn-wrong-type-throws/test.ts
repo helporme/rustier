@@ -11,7 +11,7 @@ it('throws when a number is passed where a struct is expected', () => {
   expect(() => value_struct_value(42 as never)).toThrow()
 })
 
-it('throws when a different struct wrapper is passed where a struct is expected', () => {
+it('throws when a wrapper without the required value field is passed', () => {
   const child = make_child_struct(42)
 
   expect(() => value_struct_value(child as never)).toThrow()

@@ -263,7 +263,7 @@ mod tests {
                 .map(|mapping| mapping.name.as_str())
                 .collect::<Vec<_>>();
             plain_fields.sort_unstable();
-            assert_eq!(plain_fields, ["0", "2", "number", "unit"]);
+            assert_eq!(plain_fields, ["0", "2", "hidden", "number", "unit"]);
         });
     }
 

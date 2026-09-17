@@ -60,7 +60,7 @@ TypeScript:
  54 | 		external: External;
  55 | 	};
  56 | 
- 57 | 	export type Coerce ={
+ 57 | 	export type Coerce = {
  58 | 		/** A writable number. */
  59 | 		number: number;
  60 | 		/** A Rust-backed value. */

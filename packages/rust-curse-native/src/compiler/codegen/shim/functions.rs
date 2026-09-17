@@ -515,7 +515,7 @@ mod tests {
         }
     });
 
-    test_coerce!(struct_coerce_method_hidden_field, "Record", {
+    test_coerce!(struct_coerce_shadowed_method, "Record", {
         #[derive(Clone)]
         pub struct Record {
             pub number: f64,

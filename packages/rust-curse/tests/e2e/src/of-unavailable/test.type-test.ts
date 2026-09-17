@@ -20,7 +20,8 @@ test('omits coerce methods for incomplete or non-Clone inputs', () => {
   expectTypeOf(ClosedEnum).not.toHaveProperty('of')
   expectTypeOf(Shadowed.of({ value: 42 })).toEqualTypeOf<Shadowed>()
   expectTypeOf<Shadowed.Coerce>().toEqualTypeOf<{ value: number }>()
-  expectTypeOf<Shadowed.Plain>().not.toHaveProperty('value')
+  expectTypeOf<Shadowed.Plain>().toEqualTypeOf<{ value: number }>()
+  expectTypeOf(Shadowed.of(Shadowed.of({ value: 42 }))).toEqualTypeOf<Shadowed>()
 })
 
 test('omits Coerce along with unavailable coerce methods', () => {

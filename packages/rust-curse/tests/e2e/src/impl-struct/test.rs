@@ -1,15 +1,23 @@
 #[derive(Clone)]
 pub struct Counter {
     pub value: i32,
+    pub baseline: i32,
 }
 
 impl Counter {
     pub fn new(value: i32) -> Self {
-        Self { value }
+        Self {
+            value,
+            baseline: value,
+        }
     }
 
     pub fn value(&self) -> i32 {
         self.value
+    }
+
+    pub fn baseline() -> i32 {
+        100
     }
 
     pub fn add(&mut self, amount: i32) {
@@ -50,5 +58,48 @@ impl Counter {
 
     pub(super) fn parent_method(&self) -> bool {
         true
+    }
+}
+
+#[derive(Clone)]
+pub struct Unexposed {
+    private: i32,
+    pub unsupported: Vec<i32>,
+}
+
+impl Unexposed {
+    pub fn new(value: i32) -> Self {
+        Self {
+            private: value,
+            unsupported: vec![value],
+        }
+    }
+
+    pub fn private(&self) -> i32 {
+        self.private
+    }
+
+    pub fn unsupported(&self) -> i32 {
+        self.unsupported[0]
+    }
+}
+
+pub struct ReadonlyChild {
+    pub value: i32,
+}
+
+pub struct ReadonlyOwner {
+    pub child: ReadonlyChild,
+}
+
+impl ReadonlyOwner {
+    pub fn new(value: i32) -> Self {
+        Self {
+            child: ReadonlyChild { value },
+        }
+    }
+
+    pub fn child(&self) -> i32 {
+        self.child.value
     }
 }

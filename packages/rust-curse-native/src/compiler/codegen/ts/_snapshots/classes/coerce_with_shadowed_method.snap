@@ -22,11 +22,15 @@ impl Sine {
 
 ```ts
 export class Sine {
+	/** The initial amplitude. */
+	public get amplitude(): number;
+	public set amplitude(
+		value: number
+	);
 	public get frequency(): number;
 	public set frequency(
 		value: number
 	);
-	amplitude(): number;
 	static of(
 		value: Sine.Coerce
 	): Sine;
@@ -36,10 +40,12 @@ export class Sine {
 
 export declare namespace Sine {
 	export type Plain = {
+		/** The initial amplitude. */
+		amplitude: number;
 		frequency: number;
 	};
 
-	export type Coerce ={
+	export type Coerce = {
 		/** The initial amplitude. */
 		amplitude: number;
 		frequency: number;

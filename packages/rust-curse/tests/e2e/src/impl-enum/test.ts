@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest'
+import { rustCurseDiags } from '$build/diags'
 import { Phase, UploadState } from './test.rs'
 
 it('calls Phase::new as a static function rather than a constructor', () => {
@@ -25,7 +26,10 @@ it('calls enum static and shared associated functions', () => {
   expect(waiting.type).toBe('waiting')
   expect(waiting.is_complete()).toBe(false)
   expect(running.type).toBe('running')
-  expect(running.step()).toBe(4)
+  if (running.type !== 'running') throw new Error('expected Phase::Running')
+  expect(running.step).toBe(4)
+  running.step = 6
+  expect(running.into_step()).toBe(6)
   expect(waiting.same_phase(running)).toBe(false)
 })
 
@@ -36,7 +40,7 @@ it('mutates an enum through an exclusive self receiver', () => {
 
   expect(phase.type).toBe('complete')
   expect(phase.is_complete()).toBe(true)
-  expect(phase.step()).toBe(-1)
+  expect(phase.into_step()).toBe(-1)
 })
 
 it('clones an owned enum receiver and leaves the JS wrapper valid', () => {
@@ -44,7 +48,8 @@ it('clones an owned enum receiver and leaves the JS wrapper valid', () => {
 
   expect(phase.into_step()).toBe(8)
   expect(phase.type).toBe('running')
-  expect(phase.step()).toBe(8)
+  if (phase.type !== 'running') throw new Error('expected Phase::Running')
+  expect(phase.step).toBe(8)
 })
 
 it('passes and returns enum Self values', () => {
@@ -52,14 +57,24 @@ it('passes and returns enum Self values', () => {
   const cloned = Phase.clone_of(original)
 
   expect(cloned.type).toBe('running')
-  expect(cloned.step()).toBe(5)
+  if (cloned.type !== 'running') throw new Error('expected Phase::Running')
+  expect(cloned.step).toBe(5)
   expect(original.same_phase(cloned)).toBe(true)
 })
 
-it('lets an enum method shadow variant fields with the same name', () => {
+it('omits a colliding enum method globally, even on variants without the field', () => {
   const phase = Phase.running(11)
-  const runtimePhase = phase as unknown as Record<string, unknown>
 
-  expect(phase.step()).toBe(11)
-  expect(typeof runtimePhase.step).toBe('function')
+  if (phase.type !== 'running') throw new Error('expected Phase::Running')
+  expect(phase.step).toBe(11)
+  // Inactive fields still have accessors that reject reads; no callable method remains.
+  const descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Phase.waiting()), 'step')
+  expect(typeof descriptor?.get).toBe('function')
+  expect(descriptor?.value).toBeUndefined()
+  phase.finish()
+  expect(phase.into_step()).toBe(-1)
+  expect(rustCurseDiags.filter(diag =>
+    diag.code === 'rust_curse::method_shadowed_by_field'
+    && diag.message.includes('e2e::impl_enum::Phase::step'),
+  )).toHaveLength(1)
 })

@@ -69,7 +69,7 @@ export class Local {
 export declare namespace Local {
 	export type Plain = {};
 
-	export type Coerce ={};
+	export type Coerce = {};
 }
 
 export type Choice = Choice.Instance & Choice.Plain;

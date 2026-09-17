@@ -5,8 +5,8 @@ use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::{
-        rust::{Enum, Field, FieldName, Struct},
-        shim::ShimClass,
+        rust::{AsItem as _, Enum, Impl, Struct},
+        shim::ShimFunctionAssociated,
     },
 };
 
@@ -14,7 +14,7 @@ use crate::compiler::{
 impl<'db> Struct<'db> {
     #[salsa::tracked]
     pub(super) fn check_method_field_collisions(self, db: &'db dyn Db) {
-        check_method_field_collisions(db, self.shim(db).into(), self.fields(db));
+        check_method_field_collisions(db, self.impls(db));
     }
 }
 
@@ -22,41 +22,26 @@ impl<'db> Struct<'db> {
 impl<'db> Enum<'db> {
     #[salsa::tracked]
     pub(super) fn check_method_field_collisions(self, db: &'db dyn Db) {
-        check_method_field_collisions(
-            db,
-            self.shim(db).into(),
-            self.fields(db).iter().copied(),
-        );
+        check_method_field_collisions(db, self.impls(db));
     }
 }
 
-fn check_method_field_collisions<'db>(
-    db: &'db dyn Db,
-    class: ShimClass<'db>,
-    fields: impl Iterator<Item = Field<'db>>,
-) {
-    let methods = class.methods(db);
-
-    for field in fields {
-        let FieldName::Name(field_name) = field.name(db) else {
-            continue;
-        };
-        let is_shadowed = methods.iter().any(|method| {
-            method.src(db).receiver(db).is_some() && method.src(db).name(db) == field_name
-        });
-        if !is_shadowed {
+fn check_method_field_collisions<'db>(db: &'db dyn Db, impls: &[Impl<'db>]) {
+    for function in impls.iter().flat_map(|impl_| impl_.functions(db)) {
+        let method = ShimFunctionAssociated::new(db, *function);
+        if !method.is_shadowed_by_field(db) {
             continue;
         }
 
-        let source_span = field.span(db);
+        let source_span = function.span(db);
         let source_code = source_span
             .map(|span| span.src(db))
             .map(Into::into)
             .unwrap_or_default();
         let span = source_span.map(|span| (span.offset, span.length).into());
 
-        FieldShadowedByMethod {
-            field_name: field_name.clone(),
+        MethodShadowedByField {
+            fqn: function.fqn(db).to_owned(),
             source_code,
             span,
         }
@@ -66,18 +51,18 @@ fn check_method_field_collisions<'db>(
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 #[error(
-    "the field `{field_name}` is not exported to JS because it is shadowed by a method with the same name"
+    "the instance method \"{fqn}\" is not exported to JS because it is shadowed by a field with the same name"
 )]
 #[diagnostic(
-    code(rust_curse::field_shadowed_by_method),
+    code(rust_curse::method_shadowed_by_field),
     help("rename either the field or the method to export both"),
     severity(Warning)
 )]
-struct FieldShadowedByMethod {
-    field_name: String,
+struct MethodShadowedByField {
+    fqn: String,
     #[source_code]
     source_code: DiagSource,
-    #[label("shadowed field")]
+    #[label("shadowed instance method")]
     span: Option<SourceSpan>,
 }
 
@@ -86,7 +71,7 @@ mod tests {
     use crate::{compiler::check::tests::diagnostic_codes, diagnostic_test_db as test_db};
 
     #[test]
-    fn warns_when_instance_method_shadows_struct_field() {
+    fn warns_when_struct_field_shadows_instance_method() {
         let db = test_db! {
             #[derive(Clone)]
             pub struct Example {
@@ -102,12 +87,12 @@ mod tests {
 
         assert_eq!(
             diagnostic_codes(&db),
-            ["rust_curse::field_shadowed_by_method"]
+            ["rust_curse::method_shadowed_by_field"]
         );
     }
 
     #[test]
-    fn warns_for_each_shadowed_enum_variant_field() {
+    fn warns_once_when_enum_fields_shadow_a_method() {
         let db = test_db! {
             #[derive(Clone)]
             pub enum Example {
@@ -124,10 +109,7 @@ mod tests {
 
         assert_eq!(
             diagnostic_codes(&db),
-            [
-                "rust_curse::field_shadowed_by_method",
-                "rust_curse::field_shadowed_by_method",
-            ]
+            ["rust_curse::method_shadowed_by_field"]
         );
     }
 

@@ -203,7 +203,7 @@ mod tests {
         pub struct WaveBrand;
     });
 
-    test_module!(coerce_imports_hidden_field_type, {
+    test_module!(coerce_imports_field_type, {
         @file: "models.rs";
         pub mod models {
             #[derive(Clone)]
@@ -219,7 +219,7 @@ mod tests {
         }
 
         impl Circle {
-            // Coerce still needs the input type when a method hides its accessor.
+            // The field and its coerce input retain the imported type.
             pub fn center(&self) -> bool {
                 true
             }

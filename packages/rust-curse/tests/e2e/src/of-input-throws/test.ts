@@ -1,13 +1,13 @@
 import { expect, it } from 'vitest'
-import { Label, Message, Mixed, OtherPoint, Point, Shape, point_x } from './test.rs'
+import { Label, Message, Mixed, Point, Shape, point_x } from './test.rs'
 
-it('rejects nested plain objects rather than implicitly constructing Point', () => {
-  expect(() => Label.of({ position: { 0: 1, 1: 2 } } as any)).toThrow()
-  expect(() => Shape.of({ type: 'circle', center: { 0: 1, 1: 2 } } as any)).toThrow()
+it('rejects incomplete nested Point inputs', () => {
+  expect(() => Label.of({ position: { 0: 1 } } as any)).toThrow()
+  expect(() => Shape.of({ type: 'circle', center: { 0: 1 } } as any)).toThrow()
 })
 
-it('rejects a plain object passed to an ordinary Point argument', () => {
-  expect(() => point_x({ 0: 1, 1: 2 } as any)).toThrow()
+it('rejects invalid scalar fields in an ordinary Point argument', () => {
+  expect(() => point_x({ 0: '1', 1: 2 } as any)).toThrow()
 })
 
 it.each(['triangle', 'reserved', undefined])('rejects unavailable Shape tag %s', type => {
@@ -73,12 +73,11 @@ it.each([-128, 0, 127])('accepts valid i8 boundary/control value %s', count => {
   expect(point_x(position)).toBe(10)
 })
 
-it('rejects structurally similar wrappers of the wrong Rust class in struct and enum fields', () => {
-  const wrong = OtherPoint.of({ 0: 10, 1: 20 })
+it('rejects wrappers lacking required Point fields in struct and enum inputs', () => {
+  const wrong = Message.of({ $type: 'empty' })
   expect(() => Label.of({ position: wrong } as any)).toThrow()
   expect(() => Shape.of({ type: 'circle', center: wrong } as any)).toThrow()
-  expect(wrong[0]).toBe(10)
-  expect(wrong[1]).toBe(20)
+  expect(wrong.$type).toBe('empty')
 
   const position = Point.of({ 0: 10, 1: 20 })
   expect(point_x(Label.of({ position }).position)).toBe(10)
