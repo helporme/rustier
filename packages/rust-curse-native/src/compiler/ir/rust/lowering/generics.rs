@@ -1,0 +1,97 @@
+use ra_ap_hir::{Adt, GenericDef, GenericParam as HirGenericParam};
+
+use crate::compiler::{
+    db::Db,
+    ir::rust::{
+        ConstParam, Enum, Function, GenericOwner, GenericParam, GenericSig, Impl, LifetimeParam,
+        Struct, TypeParam,
+    },
+};
+
+#[salsa::tracked]
+impl<'db> Function<'db> {
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_generic_sig(
+        self,
+        db: &'db dyn Db,
+    ) -> GenericSig<'db> {
+        lower_generic_sig(db, GenericDef::Function(self.hir(db)))
+    }
+}
+
+#[salsa::tracked]
+impl<'db> Struct<'db> {
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_generic_sig(
+        self,
+        db: &'db dyn Db,
+    ) -> GenericSig<'db> {
+        lower_generic_sig(db, GenericDef::Adt(Adt::Struct(self.hir(db))))
+    }
+}
+
+#[salsa::tracked]
+impl<'db> Enum<'db> {
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_generic_sig(
+        self,
+        db: &'db dyn Db,
+    ) -> GenericSig<'db> {
+        lower_generic_sig(db, GenericDef::Adt(Adt::Enum(self.hir(db))))
+    }
+}
+
+#[salsa::tracked]
+impl<'db> Impl<'db> {
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_generic_sig(
+        self,
+        db: &'db dyn Db,
+    ) -> GenericSig<'db> {
+        lower_generic_sig(db, GenericDef::Impl(self.hir(db)))
+    }
+}
+
+fn lower_generic_sig<'db>(db: &'db dyn Db, hir: GenericDef) -> GenericSig<'db> {
+    let params = hir
+        .params(db)
+        .into_iter()
+        .map(|param| match param {
+            HirGenericParam::TypeParam(hir) => GenericParam::Type(TypeParam::new(db, hir)),
+            HirGenericParam::ConstParam(hir) => GenericParam::Const(ConstParam::new(db, hir)),
+            HirGenericParam::LifetimeParam(hir) => {
+                GenericParam::Lifetime(LifetimeParam::new(db, hir))
+            }
+        })
+        .collect::<Vec<_>>();
+    GenericSig::new(db, params)
+}
+
+#[salsa::tracked]
+impl<'db> GenericParam<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_name(self, db: &'db dyn Db) -> Option<String> {
+        let hir = self.hir(db);
+        if let HirGenericParam::TypeParam(param) = hir
+            && param.is_implicit(db)
+        {
+            return None;
+        }
+        Some(
+            hir.name(db)
+                .display(db, hir.module(db).krate(db).edition(db))
+                .to_string(),
+        )
+    }
+
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_owner(self, db: &'db dyn Db) -> GenericOwner<'db> {
+        match self.hir(db).parent() {
+            GenericDef::Function(hir) => GenericOwner::Function(Function::new(db, hir)),
+            GenericDef::Adt(Adt::Struct(hir)) => GenericOwner::Struct(Struct::new(db, hir)),
+            GenericDef::Adt(Adt::Enum(hir)) => GenericOwner::Enum(Enum::new(db, hir)),
+            GenericDef::Impl(hir) => GenericOwner::Impl(Impl::new(db, hir)),
+            _ => unreachable!("only parameters of supported generic owners enter Rust IR"),
+        }
+    }
+}

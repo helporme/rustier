@@ -6,8 +6,9 @@ pub mod usages;
 use crate::compiler::{db::Db, inputs::LocalCrates, mangle::mangle_path, path::FilePath};
 use itertools::Either;
 use ra_ap_hir::{
-    Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
-    Function as HirFunction, Impl as HirImpl, Module as HirModule, Struct as HirStruct,
+    ConstParam as HirConstParam, Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant,
+    Field as HirField, Function as HirFunction, Impl as HirImpl, LifetimeParam as HirLifetimeParam,
+    Module as HirModule, Struct as HirStruct, TypeParam as HirTypeParam,
 };
 use std::{collections::VecDeque, fmt};
 use triomphe::Arc;
@@ -217,6 +218,10 @@ impl<'db> Struct<'db> {
         self.lower_parent(db)
     }
 
+    pub fn generic_sig(self, db: &'db dyn Db) -> GenericSig<'db> {
+        self.lower_generic_sig(db)
+    }
+
     pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
         PathSegment::new(db, self.lower_name(db).to_owned())
     }
@@ -289,6 +294,10 @@ impl<'db> Enum<'db> {
         self.lower_parent(db)
     }
 
+    pub fn generic_sig(self, db: &'db dyn Db) -> GenericSig<'db> {
+        self.lower_generic_sig(db)
+    }
+
     pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
         PathSegment::new(db, self.lower_name(db).to_owned())
     }
@@ -356,6 +365,10 @@ pub struct Impl<'db> {
 impl<'db> Impl<'db> {
     pub fn module(self, db: &'db dyn Db) -> Module<'db> {
         self.lower_module(db)
+    }
+
+    pub fn generic_sig(self, db: &'db dyn Db) -> GenericSig<'db> {
+        self.lower_generic_sig(db)
     }
 
     pub fn target(self, db: &'db dyn Db) -> ImplTarget<'db> {
@@ -581,6 +594,103 @@ impl fmt::Display for FieldName {
     }
 }
 
+/// An item's own normalized generic parameters.
+///
+/// Enclosing parameters remain on their declaring item. HIR orders lifetimes
+/// first, followed by type and const parameters in declaration order.
+#[salsa::interned(debug)]
+pub struct GenericSig<'db> {
+    #[returns(ref)]
+    pub params: Vec<GenericParam<'db>>,
+}
+
+impl<'db> GenericSig<'db> {
+    pub fn is_empty(self, db: &'db dyn Db) -> bool {
+        self.params(db).is_empty()
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
+pub enum GenericParam<'db> {
+    Type(TypeParam<'db>),
+    Const(ConstParam<'db>),
+    Lifetime(LifetimeParam<'db>),
+}
+
+impl<'db> GenericParam<'db> {
+    /// The declared name, or `None` for an implicit parameter.
+    pub fn name(self, db: &'db dyn Db) -> Option<&'db str> {
+        self.lower_name(db).as_deref()
+    }
+
+    pub fn owner(self, db: &'db dyn Db) -> GenericOwner<'db> {
+        self.lower_owner(db)
+    }
+}
+
+/// The declaration that introduces a generic parameter.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
+pub enum GenericOwner<'db> {
+    Function(Function<'db>),
+    Struct(Struct<'db>),
+    Enum(Enum<'db>),
+    Impl(Impl<'db>),
+}
+
+#[salsa::interned(debug)]
+pub struct TypeParam<'db> {
+    hir: HirTypeParam,
+}
+
+impl<'db> TypeParam<'db> {
+    pub fn name(self, db: &'db dyn Db) -> Option<&'db str> {
+        GenericParam::Type(self).name(db)
+    }
+
+    pub fn owner(self, db: &'db dyn Db) -> GenericOwner<'db> {
+        GenericParam::Type(self).owner(db)
+    }
+
+    /// Whether this parameter was introduced by argument-position `impl Trait`.
+    pub fn is_implicit(self, db: &'db dyn Db) -> bool {
+        self.hir(db).is_implicit(db)
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct ConstParam<'db> {
+    hir: HirConstParam,
+}
+
+impl<'db> ConstParam<'db> {
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
+        GenericParam::Const(self)
+            .name(db)
+            .expect("const parameters have declared names")
+    }
+
+    pub fn owner(self, db: &'db dyn Db) -> GenericOwner<'db> {
+        GenericParam::Const(self).owner(db)
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct LifetimeParam<'db> {
+    hir: HirLifetimeParam,
+}
+
+impl<'db> LifetimeParam<'db> {
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
+        GenericParam::Lifetime(self)
+            .name(db)
+            .expect("lifetime parameters have declared names")
+    }
+
+    pub fn owner(self, db: &'db dyn Db) -> GenericOwner<'db> {
+        GenericParam::Lifetime(self).owner(db)
+    }
+}
+
 #[salsa::interned(debug)]
 pub struct Function<'db> {
     hir: HirFunction,
@@ -590,6 +700,10 @@ pub struct Function<'db> {
 impl<'db> Function<'db> {
     pub fn parent(self, db: &'db dyn Db) -> FunctionParent<'db> {
         self.lower_parent(db)
+    }
+
+    pub fn generic_sig(self, db: &'db dyn Db) -> GenericSig<'db> {
+        self.lower_generic_sig(db)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {

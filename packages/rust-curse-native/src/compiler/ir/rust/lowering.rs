@@ -2,6 +2,7 @@ mod crates;
 mod enums;
 mod fields;
 mod functions;
+mod generics;
 mod impls;
 mod modules;
 mod shapes;
@@ -18,10 +19,11 @@ use self::{
     types::{TypeLowerErrorUnsupported, is_clonable, lower_type},
 };
 use miette::SourceSpan;
-use ra_ap_hir::Adt;
+use ra_ap_hir::{Adt, GenericParam as HirGenericParam};
 
-use super::{AsItem as _, Crate, Function, Rust, Span};
+use super::{AsItem as _, Crate, Function, GenericParam, Rust, Span};
 use crate::compiler::{db::Db, diag::DiagSource, path::FilePath};
+
 
 #[salsa::tracked]
 impl<'db> Rust<'db> {
@@ -111,4 +113,15 @@ fn vfs_path(db: &dyn Db, file_id: ra_ap_vfs::FileId) -> Option<ra_ap_vfs::VfsPat
     let source_root_id = db.file_source_root(file_id).source_root_id(db);
     let source_root = db.source_root(source_root_id).source_root(db);
     source_root.path_for_file(&file_id).cloned()
+}
+
+
+impl<'db> GenericParam<'db> {
+    fn hir(self, db: &'db dyn Db) -> HirGenericParam {
+        match self {
+            Self::Type(param) => HirGenericParam::TypeParam(param.hir(db)),
+            Self::Const(param) => HirGenericParam::ConstParam(param.hir(db)),
+            Self::Lifetime(param) => HirGenericParam::LifetimeParam(param.hir(db)),
+        }
+    }
 }
