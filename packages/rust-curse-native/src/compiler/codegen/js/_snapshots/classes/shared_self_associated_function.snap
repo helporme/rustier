@@ -37,7 +37,7 @@ export class Test {
 				).to(
 					"Facade(number)"
 				).an(
-					__fn__associated__test_0crate_Test_shared(
+					__fn__associated__10_test_crate__4_Test__6_shared(
 						this.#_ffi, __0
 					)
 				);

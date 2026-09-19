@@ -67,9 +67,10 @@ impl<'db> Enum<'db> {
 
 impl<'db> ImplTarget<'db> {
     pub fn shim(self, db: &'db dyn Db) -> ShimClass<'db> {
+        Type::from(self).assert_shim_supported(db);
         match self {
-            ImplTarget::Struct(struct_) => struct_.shim(db).into(),
-            ImplTarget::Enum(enum_) => enum_.shim(db).into(),
+            ImplTarget::Struct(struct_) => struct_.def(db).shim(db).into(),
+            ImplTarget::Enum(enum_) => enum_.def(db).shim(db).into(),
         }
     }
 }
@@ -81,7 +82,46 @@ impl<'db> Field<'db> {
 }
 
 impl<'db> Type<'db> {
+    /// Guard the current nongeneric shim without discarding Rust IR metadata.
+    pub(crate) fn assert_shim_supported(self, db: &'db dyn Db) {
+        match self {
+            Type::Generic(_) => unreachable!("generic types cannot reach the shim"),
+            Type::Struct(value) => assert!(
+                value.gen_args(db).is_empty() && value.def(db).as_mono_type_DELME(db).is_some(),
+                "generic structs cannot reach the shim"
+            ),
+            Type::Enum(value) => assert!(
+                value.gen_args(db).is_empty() && value.def(db).as_mono_type_DELME(db).is_some(),
+                "generic enums cannot reach the shim"
+            ),
+            Type::Borrowed(value) => {
+                assert!(
+                    value.lifetime(db).is_none(),
+                    "explicit lifetimes cannot reach the shim"
+                );
+                assert!(
+                    !matches!(value.inner(db), Type::Borrowed(_)),
+                    "nested references cannot reach the shim"
+                );
+                value.inner(db).assert_shim_supported(db);
+            }
+            Type::bool
+            | Type::char
+            | Type::i8
+            | Type::u8
+            | Type::i16
+            | Type::u16
+            | Type::i32
+            | Type::u32
+            | Type::f32
+            | Type::f64
+            | Type::Str
+            | Type::String => {}
+        }
+    }
+
     pub(super) fn shim_in(self, db: &'db dyn Db) -> ShimType<'db> {
+        self.assert_shim_supported(db);
         match self {
             Type::bool => ShimType::bool,
             Type::char
@@ -96,13 +136,14 @@ impl<'db> Type<'db> {
             Type::Str | Type::String => ShimType::String,
             Type::Struct(struct_) => ShimType::Class {
                 is_borrowed: true,
-                inner: struct_.shim(db).into(),
+                inner: struct_.def(db).shim(db).into(),
             },
             Type::Enum(enum_) => ShimType::Class {
                 is_borrowed: true,
-                inner: enum_.shim(db).into(),
+                inner: enum_.def(db).shim(db).into(),
             },
             Type::Borrowed(borrowed) => borrowed.inner(db).shim_in(db),
+            Type::Generic(_) => unreachable!("unsupported Rust types do not enter the shim"),
         }
     }
 

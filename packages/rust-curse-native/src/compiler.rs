@@ -8,7 +8,6 @@ pub mod path;
 
 mod check;
 pub mod codegen;
-mod mangle;
 
 #[cfg(test)]
 mod test;

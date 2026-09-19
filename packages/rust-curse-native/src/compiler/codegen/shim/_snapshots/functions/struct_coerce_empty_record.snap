@@ -12,13 +12,13 @@ pub struct EmptyRecord {}
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__coe__test_0crate_EmptyRecord")]
-pub fn __fn__coe__test_0crate_EmptyRecord() -> napi::Result<
-    __plain__test_0crate_EmptyRecord,
+#[napi(js_name = "__fn__coe__10_test_crate__11_EmptyRecord")]
+pub fn __fn__coe__10_test_crate__11_EmptyRecord() -> napi::Result<
+    __plain__10_test_crate__11_EmptyRecord,
 > {
-    Ok(__plain__test_0crate_EmptyRecord {
+    Ok(__plain__10_test_crate__11_EmptyRecord {
         src: std::rc::Rc::new(
-            __tethering__test_0crate_EmptyRecord::new_owned(test_crate::EmptyRecord {}),
+            __tethering__10_test_crate__11_EmptyRecord::new_owned(test_crate::EmptyRecord {}),
         ),
     })
 }
@@ -26,14 +26,14 @@ pub fn __fn__coe__test_0crate_EmptyRecord() -> napi::Result<
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__coe__test_0crate_EmptyRecord")]
-pub fn __fn__coe__test_0crate_EmptyRecord() -> Result<
-    __plain__test_0crate_EmptyRecord,
+#[wasm_bindgen(js_name = "__fn__coe__10_test_crate__11_EmptyRecord")]
+pub fn __fn__coe__10_test_crate__11_EmptyRecord() -> Result<
+    __plain__10_test_crate__11_EmptyRecord,
     JsValue,
 > {
-    Ok(__plain__test_0crate_EmptyRecord {
+    Ok(__plain__10_test_crate__11_EmptyRecord {
         src: std::rc::Rc::new(
-            __tethering__test_0crate_EmptyRecord::new_owned(test_crate::EmptyRecord {}),
+            __tethering__10_test_crate__11_EmptyRecord::new_owned(test_crate::EmptyRecord {}),
         ),
     })
 }

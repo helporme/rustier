@@ -31,7 +31,7 @@ export class Test {
 			).an(
 				_0
 			);
-			__fn__associated__test_0crate_Test_exclusive(
+			__fn__associated__10_test_crate__4_Test__9_exclusive(
 				this.#_ffi, __0
 			);
 		}

@@ -18,13 +18,13 @@ pub struct Nested {
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__coe__test_0crate_Nested")]
-pub fn __fn__coe__test_0crate_Nested(
-    _0: &__plain__test_0crate_Child,
-) -> napi::Result<__plain__test_0crate_Nested> {
-    Ok(__plain__test_0crate_Nested {
+#[napi(js_name = "__fn__coe__10_test_crate__6_Nested")]
+pub fn __fn__coe__10_test_crate__6_Nested(
+    _0: &__plain__10_test_crate__5_Child,
+) -> napi::Result<__plain__10_test_crate__6_Nested> {
+    Ok(__plain__10_test_crate__6_Nested {
         src: std::rc::Rc::new(
-            __tethering__test_0crate_Nested::new_owned({
+            __tethering__10_test_crate__6_Nested::new_owned({
                 let _0 = std::rc::Rc::clone(&_0.src).access(|value| Ok(value.clone()))?;
                 test_crate::Nested { child: _0 }
             }),
@@ -35,13 +35,13 @@ pub fn __fn__coe__test_0crate_Nested(
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__coe__test_0crate_Nested")]
-pub fn __fn__coe__test_0crate_Nested(
-    _0: &__plain__test_0crate_Child,
-) -> Result<__plain__test_0crate_Nested, JsValue> {
-    Ok(__plain__test_0crate_Nested {
+#[wasm_bindgen(js_name = "__fn__coe__10_test_crate__6_Nested")]
+pub fn __fn__coe__10_test_crate__6_Nested(
+    _0: &__plain__10_test_crate__5_Child,
+) -> Result<__plain__10_test_crate__6_Nested, JsValue> {
+    Ok(__plain__10_test_crate__6_Nested {
         src: std::rc::Rc::new(
-            __tethering__test_0crate_Nested::new_owned({
+            __tethering__10_test_crate__6_Nested::new_owned({
                 let _0 = std::rc::Rc::clone(&_0.src).access(|value| Ok(value.clone()))?;
                 test_crate::Nested { child: _0 }
             }),

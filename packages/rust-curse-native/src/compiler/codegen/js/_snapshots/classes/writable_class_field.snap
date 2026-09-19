@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/js/classes.rs
-assertion_line: 604
 expression: snapshot
 ---
 # Source
@@ -31,7 +30,7 @@ export class Test {
 				).to(
 					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5002) } } } })))"
 				).an(
-					__fn__getter__test_0crate_Test__nested(
+					__fn__getter__10_test_crate__4_Test__nested(
 						this.#_ffi
 					)
 				);
@@ -52,7 +51,7 @@ export class Test {
 			).an(
 				value
 			);
-			__fn__setter__test_0crate_Test__nested(
+			__fn__setter__10_test_crate__4_Test__nested(
 				this.#_ffi, out
 			);
 			this.#__field_0 = undefined;

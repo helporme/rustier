@@ -36,7 +36,7 @@ export class Test {
 	"second"];
 
 	get ["type"]() {
-		return Test.#_types[__fn__disc__test_0crate_Test(
+		return Test.#_types[__fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		)];
 	}
@@ -50,7 +50,7 @@ export class Test {
 			).to(
 				"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
 			).an(
-				__fn__associated__test_0crate_Test_first(
+				__fn__associated__10_test_crate__4_Test__5_first(
 
 				)
 			);
@@ -67,7 +67,7 @@ export class Test {
 			).to(
 				"Facade(boolean)"
 			).an(
-				__fn__associated__test_0crate_Test_is_0first(
+				__fn__associated__10_test_crate__4_Test__8_is_first(
 					this.#_ffi
 				)
 			);
@@ -78,7 +78,7 @@ export class Test {
 	make_second(
 
 	) {
-		__fn__associated__test_0crate_Test_make_0second(
+		__fn__associated__10_test_crate__4_Test__11_make_second(
 			this.#_ffi
 		);
 	}
@@ -92,7 +92,7 @@ export class Test {
 			).to(
 				"Facade(boolean)"
 			).an(
-				__fn__associated__test_0crate_Test_into_0bool(
+				__fn__associated__10_test_crate__4_Test__9_into_bool(
 					this.#_ffi
 				)
 			);
@@ -125,7 +125,7 @@ export class Test {
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
 					).an(
-						__fn__coe__test_0crate_Test_First(
+						__fn__coe__10_test_crate__4_Test__5_First(
 
 						)
 					);
@@ -139,7 +139,7 @@ export class Test {
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
 					).an(
-						__fn__coe__test_0crate_Test_Second(
+						__fn__coe__10_test_crate__4_Test__6_Second(
 
 						)
 					);

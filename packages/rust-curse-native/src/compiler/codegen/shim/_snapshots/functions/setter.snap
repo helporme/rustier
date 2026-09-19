@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 410
 expression: snapshot
 ---
 # Source
@@ -14,9 +13,9 @@ pub struct Test {
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__setter__test_0crate_Test__field")]
-pub fn __fn__setter__test_0crate_Test__field(
-    _0: &__plain__test_0crate_Test,
+#[napi(js_name = "__fn__setter__10_test_crate__4_Test__field")]
+pub fn __fn__setter__10_test_crate__4_Test__field(
+    _0: &__plain__10_test_crate__4_Test,
     _1: f64,
 ) -> napi::Result<()> {
     {
@@ -25,7 +24,7 @@ pub fn __fn__setter__test_0crate_Test__field(
                 "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .to(
-                "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5001) } }) })",
+                "Tethered(TetheringStructType { source_type: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }) })",
             )
             .an(_0)
             .set_field(value)?;
@@ -36,9 +35,9 @@ pub fn __fn__setter__test_0crate_Test__field(
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__setter__test_0crate_Test__field")]
-pub fn __fn__setter__test_0crate_Test__field(
-    _0: &__plain__test_0crate_Test,
+#[wasm_bindgen(js_name = "__fn__setter__10_test_crate__4_Test__field")]
+pub fn __fn__setter__10_test_crate__4_Test__field(
+    _0: &__plain__10_test_crate__4_Test,
     _1: f64,
 ) -> Result<(), JsValue> {
     {
@@ -47,7 +46,7 @@ pub fn __fn__setter__test_0crate_Test__field(
                 "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .to(
-                "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5001) } }) })",
+                "Tethered(TetheringStructType { source_type: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }) })",
             )
             .an(_0)
             .set_field(value)?;

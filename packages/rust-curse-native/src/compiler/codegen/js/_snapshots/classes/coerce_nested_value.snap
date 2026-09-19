@@ -31,7 +31,7 @@ export class Test {
 				).to(
 					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } } })))"
 				).an(
-					__fn__getter__test_0crate_Test__nested(
+					__fn__getter__10_test_crate__4_Test__nested(
 						this.#_ffi
 					)
 				);
@@ -52,7 +52,7 @@ export class Test {
 			).an(
 				value
 			);
-			__fn__setter__test_0crate_Test__nested(
+			__fn__setter__10_test_crate__4_Test__nested(
 				this.#_ffi, out
 			);
 			this.#__field_0 = undefined;
@@ -88,7 +88,7 @@ export class Test {
 				).to(
 					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5002) } } } })))"
 				).an(
-					__fn__coe__test_0crate_Test(
+					__fn__coe__10_test_crate__4_Test(
 						__0
 					)
 				);

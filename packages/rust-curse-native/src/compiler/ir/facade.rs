@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use itertools::{Either, Itertools};
 
 use crate::compiler::{
+    codegen::utils::to_camel_case,
     db::Db,
     ir::{
         ffi::{Ffi, FfiClass, FfiFunction},
@@ -18,7 +19,6 @@ use crate::compiler::{
             ShimModule, ShimParam, ShimParentModule, ShimType,
         },
     },
-    mangle::to_camel_case,
     path::FilePath,
 };
 

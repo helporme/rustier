@@ -28,7 +28,7 @@ export class Test {
 	"record"];
 
 	get [0]() {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -40,7 +40,7 @@ export class Test {
 				).to(
 					"Facade(number)"
 				).an(
-					__fn__getter__test_0crate_Test____Tuple__0(
+					__fn__getter__10_test_crate__4_Test____Tuple__0(
 						this.#_ffi
 					)
 				);
@@ -55,7 +55,7 @@ export class Test {
 	set [0](
 		value
 	) {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -69,7 +69,7 @@ export class Test {
 				).an(
 					value
 				);
-				__fn__setter__test_0crate_Test____Tuple__0(
+				__fn__setter__10_test_crate__4_Test____Tuple__0(
 					this.#_ffi, out
 				);
 				return;
@@ -81,7 +81,7 @@ export class Test {
 	}
 
 	get [1]() {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -93,7 +93,7 @@ export class Test {
 				).to(
 					"Facade(string)"
 				).an(
-					__fn__getter__test_0crate_Test____Tuple__1(
+					__fn__getter__10_test_crate__4_Test____Tuple__1(
 						this.#_ffi
 					)
 				);
@@ -108,7 +108,7 @@ export class Test {
 	set [1](
 		value
 	) {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -122,7 +122,7 @@ export class Test {
 				).an(
 					value
 				);
-				__fn__setter__test_0crate_Test____Tuple__1(
+				__fn__setter__10_test_crate__4_Test____Tuple__1(
 					this.#_ffi, out
 				);
 				return;
@@ -134,7 +134,7 @@ export class Test {
 	}
 
 	get ["value"]() {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -146,7 +146,7 @@ export class Test {
 				).to(
 					"Facade(number)"
 				).an(
-					__fn__getter__test_0crate_Test____Record__value(
+					__fn__getter__10_test_crate__4_Test____Record__value(
 						this.#_ffi
 					)
 				);
@@ -161,7 +161,7 @@ export class Test {
 	set ["value"](
 		value
 	) {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -175,7 +175,7 @@ export class Test {
 				).an(
 					value
 				);
-				__fn__setter__test_0crate_Test____Record__value(
+				__fn__setter__10_test_crate__4_Test____Record__value(
 					this.#_ffi, out
 				);
 				return;
@@ -187,7 +187,7 @@ export class Test {
 	}
 
 	get ["type"]() {
-		return Test.#_types[__fn__disc__test_0crate_Test(
+		return Test.#_types[__fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		)];
 	}
@@ -217,7 +217,7 @@ export class Test {
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
 					).an(
-						__fn__coe__test_0crate_Test_Unit(
+						__fn__coe__10_test_crate__4_Test__4_Unit(
 
 						)
 					);
@@ -231,7 +231,7 @@ export class Test {
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
 					).an(
-						__fn__coe__test_0crate_Test_EmptyTuple(
+						__fn__coe__10_test_crate__4_Test__10_EmptyTuple(
 
 						)
 					);
@@ -245,7 +245,7 @@ export class Test {
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
 					).an(
-						__fn__coe__test_0crate_Test_EmptyRecord(
+						__fn__coe__10_test_crate__4_Test__11_EmptyRecord(
 
 						)
 					);
@@ -275,7 +275,7 @@ export class Test {
 							).to(
 								"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
 							).an(
-								__fn__coe__test_0crate_Test_Tuple(
+								__fn__coe__10_test_crate__4_Test__5_Tuple(
 									__0,
 									__1
 								)
@@ -300,7 +300,7 @@ export class Test {
 						).to(
 							"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
 						).an(
-							__fn__coe__test_0crate_Test_Record(
+							__fn__coe__10_test_crate__4_Test__6_Record(
 								__0
 							)
 						);

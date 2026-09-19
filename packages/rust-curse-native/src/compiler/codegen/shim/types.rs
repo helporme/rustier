@@ -43,10 +43,12 @@ impl<'db> Type<'db> {
         // FIXME: assumes that underlying type is not borrowed and it happens to be
         // true, but it may not always be in future
         assert!(!matches!(self, Type::Borrowed(_)));
+        self.assert_shim_supported(db);
         self.display(db)
     }
 
     pub(super) fn render_mangled_name(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+        self.assert_shim_supported(db);
         fragment(move |p| match self {
             Type::bool => "__bool".apply(p),
             Type::i8 => "__i8".apply(p),
@@ -70,10 +72,12 @@ impl<'db> Type<'db> {
                 }
                 borrowed.inner(db).render_mangled_name(db).apply(p);
             }
+            Type::Generic(_) => unreachable!("unsupported type cannot reach shim codegen"),
         })
     }
 
     pub(super) fn uses_tethering(self, db: &'db dyn Db) -> bool {
+        self.assert_shim_supported(db);
         match self {
             Type::bool
             | Type::char
@@ -89,6 +93,7 @@ impl<'db> Type<'db> {
             | Type::String => false,
             Type::Struct(_) | Type::Enum(_) => true,
             Type::Borrowed(borrowed) => borrowed.inner(db).uses_tethering(db),
+            Type::Generic(_) => unreachable!("unsupported type cannot reach shim codegen"),
         }
     }
 }

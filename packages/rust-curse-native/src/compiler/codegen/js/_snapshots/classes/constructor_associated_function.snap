@@ -29,7 +29,7 @@ export class Test {
 			).to(
 				"Facade(boolean)"
 			).an(
-				__fn__associated__test_0crate_Test_constructor(
+				__fn__associated__10_test_crate__4_Test__11_constructor(
 					this.#_ffi
 				)
 			);

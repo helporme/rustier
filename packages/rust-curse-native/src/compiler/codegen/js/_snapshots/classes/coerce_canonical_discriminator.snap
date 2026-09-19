@@ -23,7 +23,7 @@ export class Test {
 	"Http"];
 
 	get ["type"]() {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -35,7 +35,7 @@ export class Test {
 				).to(
 					"Facade(number)"
 				).an(
-					__fn__getter__test_0crate_Test____http__type(
+					__fn__getter__10_test_crate__4_Test____http__type(
 						this.#_ffi
 					)
 				);
@@ -50,7 +50,7 @@ export class Test {
 	set ["type"](
 		value
 	) {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -64,7 +64,7 @@ export class Test {
 				).an(
 					value
 				);
-				__fn__setter__test_0crate_Test____http__type(
+				__fn__setter__10_test_crate__4_Test____http__type(
 					this.#_ffi, out
 				);
 				return;
@@ -76,7 +76,7 @@ export class Test {
 	}
 
 	get ["$type"]() {
-		return Test.#_types[__fn__disc__test_0crate_Test(
+		return Test.#_types[__fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		)];
 	}
@@ -114,7 +114,7 @@ export class Test {
 						).to(
 							"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
 						).an(
-							__fn__coe__test_0crate_Test_http(
+							__fn__coe__10_test_crate__4_Test__4_http(
 								__0
 							)
 						);
@@ -129,7 +129,7 @@ export class Test {
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
 					).an(
-						__fn__coe__test_0crate_Test_Http(
+						__fn__coe__10_test_crate__4_Test__4_Http(
 
 						)
 					);

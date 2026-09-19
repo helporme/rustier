@@ -1,17 +1,20 @@
 //! Intermediate representation for the supported subset of Rust's public API.
 
 mod lowering;
-pub mod usages;
+mod mangle;
 
-use crate::compiler::{db::Db, inputs::LocalCrates, mangle::mangle_path, path::FilePath};
+use crate::compiler::{db::Db, inputs::LocalCrates, path::FilePath};
 use itertools::Either;
 use ra_ap_hir::{
-    ConstParam as HirConstParam, Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant,
-    Field as HirField, Function as HirFunction, Impl as HirImpl, LifetimeParam as HirLifetimeParam,
+    Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
+    Function as HirFunction, Impl as HirImpl, LifetimeParam as HirLifetimeParam,
     Module as HirModule, Struct as HirStruct, TypeParam as HirTypeParam,
 };
 use std::{collections::VecDeque, fmt};
 use triomphe::Arc;
+
+pub mod usages;
+pub use mangle::MangleError;
 
 /// A root of rust public API.
 #[salsa::interned(debug)]
@@ -31,13 +34,41 @@ impl<'db> Rust<'db> {
 pub struct PathSegment<'db> {
     #[returns(ref)]
     pub name: String,
+    #[returns(ref)]
+    pub gen_args: Vec<GenArg<'db>>,
 }
 
 #[salsa::tracked]
 impl<'db> PathSegment<'db> {
+    pub fn plain(db: &'db dyn Db, name: String) -> Self {
+        Self::new(db, name, Vec::<GenArg<'db>>::new())
+    }
+
     #[salsa::tracked(returns(ref))]
-    pub fn mangled(self, db: &'db dyn Db) -> String {
-        mangle_path([self.name(db).as_str()])
+    pub fn display(self, db: &'db dyn Db) -> String {
+        if self.gen_args(db).is_empty() {
+            return self.name(db).to_owned();
+        }
+        let args = self
+            .gen_args(db)
+            .iter()
+            .map(|arg| arg.display(db))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!("{}<{args}>", self.name(db))
+    }
+
+    /// Mangling is fallible for arguments without a stable closed identity.
+    #[salsa::tracked(returns(ref))]
+    pub fn try_mangled(self, db: &'db dyn Db) -> Result<String, MangleError> {
+        mangle::mangle_segments(db, &[self])
+    }
+
+    /// For code generation, which only receives supported, closed paths.
+    pub fn mangled(self, db: &'db dyn Db) -> &'db String {
+        self.try_mangled(db)
+            .as_ref()
+            .expect("cannot mangle a path with unresolved generic arguments")
     }
 }
 
@@ -66,18 +97,25 @@ impl<'db> ItemPath<'db> {
     pub fn fqn(self, db: &'db dyn Db) -> String {
         self.segments(db)
             .iter()
-            .map(|segment| segment.name(db).as_str())
+            .map(|segment| segment.display(db).as_str())
             .collect::<Vec<_>>()
             .join("::")
     }
 
+    /// Mangling is fallible for arguments without a stable closed identity.
+    //
+    // FIXME: add a `ItemMonoPath` that is a variant of `ItemPath` that does not
+    // include generic params and add the mangled method on this one?
     #[salsa::tracked(returns(ref))]
-    pub fn mangled(self, db: &'db dyn Db) -> String {
-        self.segments(db)
-            .iter()
-            .map(|segment| segment.mangled(db).as_str())
-            .collect::<Vec<_>>()
-            .join("_")
+    pub fn try_mangled(self, db: &'db dyn Db) -> Result<String, MangleError> {
+        mangle::mangle_segments(db, self.segments(db))
+    }
+
+    /// For code generation, which only receives supported, closed paths.
+    pub fn mangled(self, db: &'db dyn Db) -> &'db String {
+        self.try_mangled(db)
+            .as_ref()
+            .expect("cannot mangle a path with unresolved generic arguments")
     }
 
     pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
@@ -166,9 +204,9 @@ impl<'db> Module<'db> {
         match self.parent(db) {
             ModuleParent::Module(parent) => parent
                 .path(db)
-                .append(db, PathSegment::new(db, self.name(db).to_owned())),
+                .append(db, PathSegment::plain(db, self.name(db).to_owned())),
             ModuleParent::Crate(crate_) => {
-                ItemPath::from_segment(db, crate_, PathSegment::new(db, self.name(db).to_owned()))
+                ItemPath::from_segment(db, crate_, PathSegment::plain(db, self.name(db).to_owned()))
             }
         }
     }
@@ -218,12 +256,16 @@ impl<'db> Struct<'db> {
         self.lower_parent(db)
     }
 
-    pub fn generic_sig(self, db: &'db dyn Db) -> GenericSig<'db> {
-        self.lower_generic_sig(db)
+    pub fn generic_params(self, db: &'db dyn Db) -> &'db Vec<GenericParam<'db>> {
+        self.lower_generic_params(db)
     }
 
     pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
-        PathSegment::new(db, self.lower_name(db).to_owned())
+        PathSegment::plain(db, self.lower_name(db).to_owned())
+    }
+
+    pub fn as_mono_type_DELME(self, db: &'db dyn Db) -> Option<Type<'db>> {
+        self.lower_as_mono_type(db)
     }
 
     #[salsa::tracked]
@@ -275,12 +317,6 @@ impl<'db> Struct<'db> {
     }
 }
 
-impl<'db> From<Struct<'db>> for Type<'db> {
-    fn from(value: Struct<'db>) -> Self {
-        Type::Struct(value)
-    }
-}
-
 as_item!(Struct);
 
 #[salsa::interned(debug)]
@@ -294,12 +330,16 @@ impl<'db> Enum<'db> {
         self.lower_parent(db)
     }
 
-    pub fn generic_sig(self, db: &'db dyn Db) -> GenericSig<'db> {
-        self.lower_generic_sig(db)
+    pub fn generic_params(self, db: &'db dyn Db) -> &'db Vec<GenericParam<'db>> {
+        self.lower_generic_params(db)
     }
 
     pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
-        PathSegment::new(db, self.lower_name(db).to_owned())
+        PathSegment::plain(db, self.lower_name(db).to_owned())
+    }
+
+    pub fn as_mono_type_DELME(self, db: &'db dyn Db) -> Option<Type<'db>> {
+        self.lower_as_mono_type(db)
     }
 
     #[salsa::tracked]
@@ -347,12 +387,6 @@ impl<'db> Enum<'db> {
     }
 }
 
-impl<'db> From<Enum<'db>> for Type<'db> {
-    fn from(value: Enum<'db>) -> Self {
-        Type::Enum(value)
-    }
-}
-
 as_item!(Enum);
 
 /// A supported inherent impl block for a struct or enum.
@@ -367,8 +401,8 @@ impl<'db> Impl<'db> {
         self.lower_module(db)
     }
 
-    pub fn generic_sig(self, db: &'db dyn Db) -> GenericSig<'db> {
-        self.lower_generic_sig(db)
+    pub fn generic_params(self, db: &'db dyn Db) -> &'db Vec<GenericParam<'db>> {
+        self.lower_generic_params(db)
     }
 
     pub fn target(self, db: &'db dyn Db) -> ImplTarget<'db> {
@@ -387,15 +421,15 @@ impl<'db> Impl<'db> {
 /// The nominal type targeted by an inherent impl block.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
 pub enum ImplTarget<'db> {
-    Struct(Struct<'db>),
-    Enum(Enum<'db>),
+    Struct(StructType<'db>),
+    Enum(EnumType<'db>),
 }
 
 impl<'db> ImplTarget<'db> {
     pub fn parent(self, db: &'db dyn Db) -> Module<'db> {
         match self {
-            ImplTarget::Struct(struct_) => struct_.module(db),
-            ImplTarget::Enum(enum_) => enum_.module(db),
+            ImplTarget::Struct(struct_) => struct_.def(db).module(db),
+            ImplTarget::Enum(enum_) => enum_.def(db).module(db),
         }
     }
 
@@ -441,7 +475,7 @@ impl<'db> Variant<'db> {
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         self.parent(db)
             .path(db)
-            .append(db, PathSegment::new(db, self.name(db).to_owned()))
+            .append(db, PathSegment::plain(db, self.name(db).to_owned()))
     }
 
     pub fn shape(self, db: &'db dyn Db) -> &'db Shape<'db> {
@@ -552,7 +586,7 @@ impl<'db> Field<'db> {
             FieldName::Name(name) => name.to_owned(),
         };
 
-        let segment = PathSegment::new(db, name);
+        let segment = PathSegment::plain(db, name);
         match self.parent(db) {
             FieldParent::Struct(struct_) => struct_.path(db).append(db, segment),
             FieldParent::Variant(variant) => variant.path(db).append(db, segment),
@@ -594,26 +628,41 @@ impl fmt::Display for FieldName {
     }
 }
 
-/// An item's own normalized generic parameters.
-///
-/// Enclosing parameters remain on their declaring item. HIR orders lifetimes
-/// first, followed by type and const parameters in declaration order.
-#[salsa::interned(debug)]
-pub struct GenericSig<'db> {
-    #[returns(ref)]
-    pub params: Vec<GenericParam<'db>>,
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update)]
+pub enum GenArg<'db> {
+    Type(Type<'db>),
+    /// `None` retains an anonymous lifetime's argument slot.
+    Lifetime(Option<Lifetime<'db>>),
 }
 
-impl<'db> GenericSig<'db> {
-    pub fn is_empty(self, db: &'db dyn Db) -> bool {
-        self.params(db).is_empty()
+impl<'db> GenArg<'db> {
+    pub fn display(self, db: &'db dyn Db) -> &'db str {
+        match self {
+            Self::Type(type_) => type_.display(db),
+            Self::Lifetime(Some(lifetime)) => lifetime.display(db),
+            Self::Lifetime(None) => "'_",
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update)]
+pub enum Lifetime<'db> {
+    Param(LifetimeParam<'db>),
+    Static,
+}
+
+impl<'db> Lifetime<'db> {
+    pub fn display(self, db: &'db dyn Db) -> &'db str {
+        match self {
+            Self::Param(param) => param.name(db),
+            Self::Static => "'static",
+        }
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
 pub enum GenericParam<'db> {
     Type(TypeParam<'db>),
-    Const(ConstParam<'db>),
     Lifetime(LifetimeParam<'db>),
 }
 
@@ -647,6 +696,10 @@ impl<'db> TypeParam<'db> {
         GenericParam::Type(self).name(db)
     }
 
+    pub fn display(self, db: &'db dyn Db) -> &'db str {
+        self.lower_display(db)
+    }
+
     pub fn owner(self, db: &'db dyn Db) -> GenericOwner<'db> {
         GenericParam::Type(self).owner(db)
     }
@@ -654,23 +707,6 @@ impl<'db> TypeParam<'db> {
     /// Whether this parameter was introduced by argument-position `impl Trait`.
     pub fn is_implicit(self, db: &'db dyn Db) -> bool {
         self.hir(db).is_implicit(db)
-    }
-}
-
-#[salsa::interned(debug)]
-pub struct ConstParam<'db> {
-    hir: HirConstParam,
-}
-
-impl<'db> ConstParam<'db> {
-    pub fn name(self, db: &'db dyn Db) -> &'db str {
-        GenericParam::Const(self)
-            .name(db)
-            .expect("const parameters have declared names")
-    }
-
-    pub fn owner(self, db: &'db dyn Db) -> GenericOwner<'db> {
-        GenericParam::Const(self).owner(db)
     }
 }
 
@@ -702,19 +738,21 @@ impl<'db> Function<'db> {
         self.lower_parent(db)
     }
 
-    pub fn generic_sig(self, db: &'db dyn Db) -> GenericSig<'db> {
-        self.lower_generic_sig(db)
+    pub fn generic_params(self, db: &'db dyn Db) -> &'db Vec<GenericParam<'db>> {
+        self.lower_generic_params(db)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {
         self.lower_name(db)
     }
 
+    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
+        PathSegment::plain(db, self.name(db).to_owned())
+    }
+
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
-        self.parent(db)
-            .path(db)
-            .append(db, PathSegment::new(db, self.name(db).to_owned()))
+        self.parent(db).path(db).append(db, self.segment(db))
     }
 
     pub fn receiver(self, db: &'db dyn Db) -> Option<Receiver> {
@@ -798,12 +836,17 @@ pub enum Type<'db> {
     f64,
     Str,
     String,
-    Struct(Struct<'db>),
-    Enum(Enum<'db>),
+    Generic(TypeParam<'db>),
+    Struct(StructType<'db>),
+    Enum(EnumType<'db>),
     Borrowed(BorrowedType<'db>),
 }
 
 impl<'db> Type<'db> {
+    // FIXME: we may want to have a .fqn() method or .decl_syntax() method. Both of
+    // them feels wrong right now. It might be reasonable to have a separate type
+    // like `MonoType` that would represent a type without generic params and add
+    // .decl_syntax() on this one.
     pub fn display(self, db: &'db dyn Db) -> &'db str {
         match self {
             Type::bool => "bool",
@@ -818,18 +861,19 @@ impl<'db> Type<'db> {
             Type::f64 => "f64",
             Type::Str => "str",
             Type::String => "String",
+            Type::Generic(param) => param.display(db),
             Type::Struct(s) => s.fqn(db),
             Type::Enum(e) => e.fqn(db),
-            Type::Borrowed(reference) => reference.fqn(db),
+            Type::Borrowed(reference) => reference.display(db),
         }
     }
 
     pub fn borrowed(self, db: &'db dyn Db) -> Self {
-        Type::Borrowed(BorrowedType::new(db, false, self))
+        Type::Borrowed(BorrowedType::new(db, false, self, None))
     }
 
     pub fn borrowed_mut(self, db: &'db dyn Db) -> Self {
-        Type::Borrowed(BorrowedType::new(db, true, self))
+        Type::Borrowed(BorrowedType::new(db, true, self, None))
     }
 
     /// Removes one reference layer, leaving non-reference types unchanged.
@@ -841,19 +885,101 @@ impl<'db> Type<'db> {
     }
 }
 
-/// Interned indirection keeps recursive reference types cheap to copy.
+/// A struct definition applied to a particular list of generic arguments.
+#[salsa::interned(debug)]
+pub struct StructType<'db> {
+    pub def: Struct<'db>,
+    #[returns(ref)]
+    pub gen_args: Vec<GenArg<'db>>,
+}
+
+#[salsa::tracked]
+impl<'db> StructType<'db> {
+    #[salsa::tracked]
+    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
+        PathSegment::new(
+            db,
+            self.def(db).lower_name(db).to_owned(),
+            self.gen_args(db).to_owned(),
+        )
+    }
+
+    #[salsa::tracked]
+    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        self.def(db)
+            .module(db)
+            .path(db)
+            .append(db, self.segment(db))
+    }
+}
+
+impl<'db> From<StructType<'db>> for Type<'db> {
+    fn from(value: StructType<'db>) -> Self {
+        Self::Struct(value)
+    }
+}
+
+as_item!(StructType);
+
+/// An enum definition applied to a particular list of generic arguments.
+#[salsa::interned(debug)]
+pub struct EnumType<'db> {
+    pub def: Enum<'db>,
+    #[returns(ref)]
+    pub gen_args: Vec<GenArg<'db>>,
+}
+
+#[salsa::tracked]
+impl<'db> EnumType<'db> {
+    #[salsa::tracked]
+    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
+        PathSegment::new(
+            db,
+            self.def(db).lower_name(db).to_owned(),
+            self.gen_args(db).to_owned(),
+        )
+    }
+
+    #[salsa::tracked]
+    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        self.def(db)
+            .module(db)
+            .path(db)
+            .append(db, self.segment(db))
+    }
+}
+
+impl<'db> From<EnumType<'db>> for Type<'db> {
+    fn from(value: EnumType<'db>) -> Self {
+        Self::Enum(value)
+    }
+}
+
+as_item!(EnumType);
+
+impl<'db> From<TypeParam<'db>> for Type<'db> {
+    fn from(value: TypeParam<'db>) -> Self {
+        Self::Generic(value)
+    }
+}
+
 #[salsa::interned(debug)]
 pub struct BorrowedType<'db> {
     pub is_mutable: bool,
     pub inner: Type<'db>,
+    pub lifetime: Option<Lifetime<'db>>,
 }
 
 #[salsa::tracked]
 impl<'db> BorrowedType<'db> {
     #[salsa::tracked(returns(ref))]
-    pub fn fqn(self, db: &'db dyn Db) -> String {
+    pub fn display(self, db: &'db dyn Db) -> String {
+        let lifetime = self
+            .lifetime(db)
+            .map(|lifetime| format!("{} ", lifetime.display(db)))
+            .unwrap_or_default();
         let mutability = if self.is_mutable(db) { "mut " } else { "" };
-        format!("&{mutability}{}", self.inner(db).display(db))
+        format!("&{lifetime}{mutability}{}", self.inner(db).display(db))
     }
 }
 

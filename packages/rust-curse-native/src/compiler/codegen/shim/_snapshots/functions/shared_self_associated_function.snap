@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 454
 expression: snapshot
 ---
 # Source
@@ -17,9 +16,9 @@ impl Test {
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__associated__test_0crate_Test_shared")]
-pub fn __fn__associated__test_0crate_Test_shared(
-    _0: &__plain__test_0crate_Test,
+#[napi(js_name = "__fn__associated__10_test_crate__4_Test__6_shared")]
+pub fn __fn__associated__10_test_crate__4_Test__6_shared(
+    _0: &__plain__10_test_crate__4_Test,
     _1: f64,
 ) -> napi::Result<f64> {
     Ok(
@@ -32,7 +31,7 @@ pub fn __fn__associated__test_0crate_Test_shared(
                         "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
                     .to(
-                        "Rust(Borrowed(BorrowedType { is_mutable: false, inner: Struct(Struct { hir: Struct { id: StructId(5001) } }) }))",
+                        "Rust(Borrowed(BorrowedType { is_mutable: false, inner: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }), lifetime: None }))",
                     )
                     .an(_0);
                 {
@@ -46,9 +45,9 @@ pub fn __fn__associated__test_0crate_Test_shared(
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__associated__test_0crate_Test_shared")]
-pub fn __fn__associated__test_0crate_Test_shared(
-    _0: &__plain__test_0crate_Test,
+#[wasm_bindgen(js_name = "__fn__associated__10_test_crate__4_Test__6_shared")]
+pub fn __fn__associated__10_test_crate__4_Test__6_shared(
+    _0: &__plain__10_test_crate__4_Test,
     _1: f64,
 ) -> Result<f64, JsValue> {
     Ok(
@@ -61,7 +60,7 @@ pub fn __fn__associated__test_0crate_Test_shared(
                         "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
                     .to(
-                        "Rust(Borrowed(BorrowedType { is_mutable: false, inner: Struct(Struct { hir: Struct { id: StructId(5001) } }) }))",
+                        "Rust(Borrowed(BorrowedType { is_mutable: false, inner: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }), lifetime: None }))",
                     )
                     .an(_0);
                 {

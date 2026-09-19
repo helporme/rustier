@@ -214,8 +214,14 @@ impl<'db> ShimClass<'db> {
     /// The source type of this class.
     pub fn src_type(self, db: &'db dyn Db) -> Type<'db> {
         match self {
-            ShimClass::Plain(p) => p.src(db).into(),
-            ShimClass::Discriminated(d) => d.src(db).into(),
+            ShimClass::Plain(p) => p
+                .src(db)
+                .as_mono_type_DELME(db)
+                .expect("shim structs must be nongeneric"),
+            ShimClass::Discriminated(d) => d
+                .src(db)
+                .as_mono_type_DELME(db)
+                .expect("shim enums must be nongeneric"),
         }
     }
 
@@ -774,7 +780,10 @@ impl<'db> ShimFunctionDiscriminator<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> [ShimParam<'db>; 1] {
-        let src_type = Type::from(self.src(db));
+        let src_type = self
+            .src(db)
+            .as_mono_type_DELME(db)
+            .expect("shim enums must be nongeneric");
 
         [ShimParam::new(
             db,

@@ -688,10 +688,10 @@ mod tests {
             .iter()
             .find_map(|member| match member {
                 Member::Struct(struct_) if struct_.segment(db).name(db) == name => {
-                    Some(Type::Struct(*struct_))
+                    struct_.as_mono_type_DELME(db)
                 }
                 Member::Enum(enum_) if enum_.segment(db).name(db) == name => {
-                    Some(Type::Enum(*enum_))
+                    enum_.as_mono_type_DELME(db)
                 }
                 _ => None,
             })

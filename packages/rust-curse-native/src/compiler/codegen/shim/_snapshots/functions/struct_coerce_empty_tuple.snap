@@ -12,13 +12,15 @@ pub struct EmptyTuple();
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__coe__test_0crate_EmptyTuple")]
-pub fn __fn__coe__test_0crate_EmptyTuple() -> napi::Result<
-    __plain__test_0crate_EmptyTuple,
+#[napi(js_name = "__fn__coe__10_test_crate__10_EmptyTuple")]
+pub fn __fn__coe__10_test_crate__10_EmptyTuple() -> napi::Result<
+    __plain__10_test_crate__10_EmptyTuple,
 > {
-    Ok(__plain__test_0crate_EmptyTuple {
+    Ok(__plain__10_test_crate__10_EmptyTuple {
         src: std::rc::Rc::new(
-            __tethering__test_0crate_EmptyTuple::new_owned(test_crate::EmptyTuple()),
+            __tethering__10_test_crate__10_EmptyTuple::new_owned(
+                test_crate::EmptyTuple(),
+            ),
         ),
     })
 }
@@ -26,14 +28,16 @@ pub fn __fn__coe__test_0crate_EmptyTuple() -> napi::Result<
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__coe__test_0crate_EmptyTuple")]
-pub fn __fn__coe__test_0crate_EmptyTuple() -> Result<
-    __plain__test_0crate_EmptyTuple,
+#[wasm_bindgen(js_name = "__fn__coe__10_test_crate__10_EmptyTuple")]
+pub fn __fn__coe__10_test_crate__10_EmptyTuple() -> Result<
+    __plain__10_test_crate__10_EmptyTuple,
     JsValue,
 > {
-    Ok(__plain__test_0crate_EmptyTuple {
+    Ok(__plain__10_test_crate__10_EmptyTuple {
         src: std::rc::Rc::new(
-            __tethering__test_0crate_EmptyTuple::new_owned(test_crate::EmptyTuple()),
+            __tethering__10_test_crate__10_EmptyTuple::new_owned(
+                test_crate::EmptyTuple(),
+            ),
         ),
     })
 }

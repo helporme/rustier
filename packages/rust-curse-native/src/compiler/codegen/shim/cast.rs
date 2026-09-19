@@ -173,6 +173,14 @@ impl<'db> CastRenderer<'db> for ShimCastRenderer {
         fragment(move |printer| {
             use CastType::*;
 
+            for type_ in [src, dst] {
+                match type_ {
+                    Rust(type_) => type_.assert_shim_supported(db),
+                    Tethered(type_) => type_.source_type.assert_shim_supported(db),
+                    Shim(_) => {}
+                }
+            }
+
             if src == dst {
                 adapt_to_cast_output(in_expr, output).apply(printer);
                 return;
@@ -790,9 +798,11 @@ mod tests {
             .iter()
             .find_map(|member| match member {
                 Member::Struct(struct_) if struct_.segment(db).name(db) == name => {
-                    Some((*struct_).into())
+                    struct_.as_mono_type_DELME(db)
                 }
-                Member::Enum(enum_) if enum_.segment(db).name(db) == name => Some((*enum_).into()),
+                Member::Enum(enum_) if enum_.segment(db).name(db) == name => {
+                    enum_.as_mono_type_DELME(db)
+                }
                 _ => None,
             })
             .unwrap_or_else(|| panic!("test value type `{name}` should be lowered"))
@@ -800,8 +810,8 @@ mod tests {
 
     fn test_shim_class_type<'db>(db: &'db dyn Db, name: &str, is_borrowed: bool) -> ShimType<'db> {
         let inner = match test_type(db, name) {
-            Type::Struct(struct_) => struct_.shim(db).into(),
-            Type::Enum(enum_) => enum_.shim(db).into(),
+            Type::Struct(struct_) => struct_.def(db).shim(db).into(),
+            Type::Enum(enum_) => enum_.def(db).shim(db).into(),
             _ => unreachable!("class cast test requires a struct or enum"),
         };
 

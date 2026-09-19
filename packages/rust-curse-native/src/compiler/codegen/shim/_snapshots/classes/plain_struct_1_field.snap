@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/classes.rs
-assertion_line: 237
 expression: snapshot
 ---
 # Source
@@ -14,10 +13,10 @@ pub struct Test {
 # Compiled
 ## Node
 ```rust
-struct __tethering__test_0crate_Test {
+struct __tethering__10_test_crate__4_Test {
     src: __tethering::SourceSlot<test_crate::Test>,
 }
-impl __tethering::Accessor<test_crate::Test> for __tethering__test_0crate_Test {
+impl __tethering::Accessor<test_crate::Test> for __tethering__10_test_crate__4_Test {
     fn access_dyn(
         &self,
         f: &mut dyn FnMut(&test_crate::Test) -> __tethering::AccessResult<()>,
@@ -31,16 +30,16 @@ impl __tethering::Accessor<test_crate::Test> for __tethering__test_0crate_Test {
         self.src.access_mut_dyn(f)
     }
 }
-impl __tethering__test_0crate_Test {
+impl __tethering__10_test_crate__4_Test {
     pub fn new_owned(input: test_crate::Test) -> Self {
-        __tethering__test_0crate_Test {
+        __tethering__10_test_crate__4_Test {
             src: __tethering::SourceSlot::owned(input),
         }
     }
     pub fn new_projected(
         accessor: std::rc::Rc<dyn __tethering::Accessor<test_crate::Test>>,
     ) -> Self {
-        __tethering__test_0crate_Test {
+        __tethering__10_test_crate__4_Test {
             src: __tethering::SourceSlot::projected(accessor),
         }
     }
@@ -54,18 +53,18 @@ impl __tethering__test_0crate_Test {
         })
     }
 }
-#[napi(js_name = "__plain__test_0crate_Test")]
-pub struct __plain__test_0crate_Test {
-    src: std::rc::Rc<__tethering__test_0crate_Test>,
+#[napi(js_name = "__plain__10_test_crate__4_Test")]
+pub struct __plain__10_test_crate__4_Test {
+    src: std::rc::Rc<__tethering__10_test_crate__4_Test>,
 }
 ```
 
 ## Wasm
 ```rust
-struct __tethering__test_0crate_Test {
+struct __tethering__10_test_crate__4_Test {
     src: __tethering::SourceSlot<test_crate::Test>,
 }
-impl __tethering::Accessor<test_crate::Test> for __tethering__test_0crate_Test {
+impl __tethering::Accessor<test_crate::Test> for __tethering__10_test_crate__4_Test {
     fn access_dyn(
         &self,
         f: &mut dyn FnMut(&test_crate::Test) -> __tethering::AccessResult<()>,
@@ -79,16 +78,16 @@ impl __tethering::Accessor<test_crate::Test> for __tethering__test_0crate_Test {
         self.src.access_mut_dyn(f)
     }
 }
-impl __tethering__test_0crate_Test {
+impl __tethering__10_test_crate__4_Test {
     pub fn new_owned(input: test_crate::Test) -> Self {
-        __tethering__test_0crate_Test {
+        __tethering__10_test_crate__4_Test {
             src: __tethering::SourceSlot::owned(input),
         }
     }
     pub fn new_projected(
         accessor: std::rc::Rc<dyn __tethering::Accessor<test_crate::Test>>,
     ) -> Self {
-        __tethering__test_0crate_Test {
+        __tethering__10_test_crate__4_Test {
             src: __tethering::SourceSlot::projected(accessor),
         }
     }
@@ -102,8 +101,8 @@ impl __tethering__test_0crate_Test {
         })
     }
 }
-#[wasm_bindgen(js_name = "__plain__test_0crate_Test")]
-pub struct __plain__test_0crate_Test {
-    src: std::rc::Rc<__tethering__test_0crate_Test>,
+#[wasm_bindgen(js_name = "__plain__10_test_crate__4_Test")]
+pub struct __plain__10_test_crate__4_Test {
+    src: std::rc::Rc<__tethering__10_test_crate__4_Test>,
 }
 ```

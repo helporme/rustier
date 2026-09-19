@@ -4,7 +4,7 @@ use super::{lower_enum, lower_function, lower_item_span, lower_struct};
 use crate::compiler::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::rust::{Impl, ImplTarget, Module, Span},
+    ir::rust::{EnumType, GenArg, Impl, ImplTarget, Module, Span, StructType},
 };
 
 #[salsa::tracked]
@@ -68,8 +68,12 @@ fn lower_impl_target<'db>(db: &'db dyn Db, hir: ra_ap_hir::Impl) -> Option<ImplT
     }
 
     match target {
-        Adt::Struct(struct_) => lower_struct(db, struct_).ok().map(ImplTarget::Struct),
-        Adt::Enum(enum_) => lower_enum(db, enum_).ok().map(ImplTarget::Enum),
+        Adt::Struct(struct_) => lower_struct(db, struct_)
+            .ok()
+            .map(|def| ImplTarget::Struct(StructType::new(db, def, Vec::<GenArg<'db>>::new()))),
+        Adt::Enum(enum_) => lower_enum(db, enum_)
+            .ok()
+            .map(|def| ImplTarget::Enum(EnumType::new(db, def, Vec::<GenArg<'db>>::new()))),
         Adt::Union(_) => None,
     }
 }

@@ -21,9 +21,8 @@ use self::{
 use miette::SourceSpan;
 use ra_ap_hir::{Adt, GenericParam as HirGenericParam};
 
-use super::{AsItem as _, Crate, Function, GenericParam, Rust, Span};
+use super::{Crate, Function, GenericParam, Rust, Span};
 use crate::compiler::{db::Db, diag::DiagSource, path::FilePath};
-
 
 #[salsa::tracked]
 impl<'db> Rust<'db> {
@@ -42,7 +41,14 @@ impl<'db> Rust<'db> {
 }
 
 pub(super) fn function_fqn(db: &dyn Db, function: ra_ap_hir::Function) -> String {
-    Function::new(db, function).fqn(db).to_owned()
+    // Diagnostics retain the declaration name without generic arguments.
+    Function::new(db, function)
+        .path(db)
+        .segments(db)
+        .iter()
+        .map(|segment| segment.name(db).as_str())
+        .collect::<Vec<_>>()
+        .join("::")
 }
 
 pub(super) fn adt_fqn(db: &dyn Db, adt: Adt) -> String {
@@ -115,12 +121,10 @@ fn vfs_path(db: &dyn Db, file_id: ra_ap_vfs::FileId) -> Option<ra_ap_vfs::VfsPat
     source_root.path_for_file(&file_id).cloned()
 }
 
-
 impl<'db> GenericParam<'db> {
     fn hir(self, db: &'db dyn Db) -> HirGenericParam {
         match self {
             Self::Type(param) => HirGenericParam::TypeParam(param.hir(db)),
-            Self::Const(param) => HirGenericParam::ConstParam(param.hir(db)),
             Self::Lifetime(param) => HirGenericParam::LifetimeParam(param.hir(db)),
         }
     }

@@ -16,8 +16,8 @@ pub(super) fn check<'db>(db: &'db dyn Db, class: ShimClass<'db>) {
         return;
     }
     let source_span = match class.src_type(db) {
-        Type::Struct(value) => value.span(db),
-        Type::Enum(value) => value.span(db),
+        Type::Struct(value) => value.def(db).span(db),
+        Type::Enum(value) => value.def(db).span(db),
         _ => unreachable!("classes represent structs or enums"),
     };
     CoerceNameCollision {

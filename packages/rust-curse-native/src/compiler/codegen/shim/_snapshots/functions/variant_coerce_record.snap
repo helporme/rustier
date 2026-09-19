@@ -14,14 +14,14 @@ pub enum Test {
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__coe__test_0crate_Test_Record")]
-pub fn __fn__coe__test_0crate_Test_Record(
+#[napi(js_name = "__fn__coe__10_test_crate__4_Test__6_Record")]
+pub fn __fn__coe__10_test_crate__4_Test__6_Record(
     _0: String,
     _1: bool,
-) -> napi::Result<__discr__test_0crate_Test> {
-    Ok(__discr__test_0crate_Test {
+) -> napi::Result<__discr__10_test_crate__4_Test> {
+    Ok(__discr__10_test_crate__4_Test {
         src: std::rc::Rc::new(
-            __tethering__test_0crate_Test::new_owned({
+            __tethering__10_test_crate__4_Test::new_owned({
                 let _0 = _0;
                 {
                     let _1 = _1;
@@ -38,14 +38,14 @@ pub fn __fn__coe__test_0crate_Test_Record(
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__coe__test_0crate_Test_Record")]
-pub fn __fn__coe__test_0crate_Test_Record(
+#[wasm_bindgen(js_name = "__fn__coe__10_test_crate__4_Test__6_Record")]
+pub fn __fn__coe__10_test_crate__4_Test__6_Record(
     _0: String,
     _1: bool,
-) -> Result<__discr__test_0crate_Test, JsValue> {
-    Ok(__discr__test_0crate_Test {
+) -> Result<__discr__10_test_crate__4_Test, JsValue> {
+    Ok(__discr__10_test_crate__4_Test {
         src: std::rc::Rc::new(
-            __tethering__test_0crate_Test::new_owned({
+            __tethering__10_test_crate__4_Test::new_owned({
                 let _0 = _0;
                 {
                     let _1 = _1;

@@ -14,13 +14,13 @@ pub enum Test {
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__coe__test_0crate_Test_RawField")]
-pub fn __fn__coe__test_0crate_Test_RawField(
+#[napi(js_name = "__fn__coe__10_test_crate__4_Test__8_RawField")]
+pub fn __fn__coe__10_test_crate__4_Test__8_RawField(
     _0: f64,
-) -> napi::Result<__discr__test_0crate_Test> {
-    Ok(__discr__test_0crate_Test {
+) -> napi::Result<__discr__10_test_crate__4_Test> {
+    Ok(__discr__10_test_crate__4_Test {
         src: std::rc::Rc::new(
-            __tethering__test_0crate_Test::new_owned({
+            __tethering__10_test_crate__4_Test::new_owned({
                 let _0 = {
                     let type_name = "u32";
                     let value = _0;
@@ -46,13 +46,13 @@ pub fn __fn__coe__test_0crate_Test_RawField(
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__coe__test_0crate_Test_RawField")]
-pub fn __fn__coe__test_0crate_Test_RawField(
+#[wasm_bindgen(js_name = "__fn__coe__10_test_crate__4_Test__8_RawField")]
+pub fn __fn__coe__10_test_crate__4_Test__8_RawField(
     _0: f64,
-) -> Result<__discr__test_0crate_Test, JsValue> {
-    Ok(__discr__test_0crate_Test {
+) -> Result<__discr__10_test_crate__4_Test, JsValue> {
+    Ok(__discr__10_test_crate__4_Test {
         src: std::rc::Rc::new(
-            __tethering__test_0crate_Test::new_owned({
+            __tethering__10_test_crate__4_Test::new_owned({
                 let _0 = {
                     let type_name = "u32";
                     let value = _0;

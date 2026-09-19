@@ -23,7 +23,7 @@ export class Test {
 			).to(
 				"Facade(number)"
 			).an(
-				__fn__getter__test_0crate_Test__0(
+				__fn__getter__10_test_crate__4_Test__0(
 					this.#_ffi
 				)
 			);
@@ -42,7 +42,7 @@ export class Test {
 			).an(
 				value
 			);
-			__fn__setter__test_0crate_Test__0(
+			__fn__setter__10_test_crate__4_Test__0(
 				this.#_ffi, out
 			);
 		}
@@ -55,7 +55,7 @@ export class Test {
 			).to(
 				"Facade(string)"
 			).an(
-				__fn__getter__test_0crate_Test__1(
+				__fn__getter__10_test_crate__4_Test__1(
 					this.#_ffi
 				)
 			);
@@ -74,7 +74,7 @@ export class Test {
 			).an(
 				value
 			);
-			__fn__setter__test_0crate_Test__1(
+			__fn__setter__10_test_crate__4_Test__1(
 				this.#_ffi, out
 			);
 		}
@@ -117,7 +117,7 @@ export class Test {
 					).to(
 						"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } } })))"
 					).an(
-						__fn__coe__test_0crate_Test(
+						__fn__coe__10_test_crate__4_Test(
 							__0,
 							__1
 						)

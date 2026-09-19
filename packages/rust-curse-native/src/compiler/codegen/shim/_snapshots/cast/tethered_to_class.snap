@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/cast.rs
-assertion_line: 749
 expression: snapshot
 ---
 # Source
@@ -15,7 +14,7 @@ pub struct ExampleStruct;
 ```rust
 fn cast(input: ()) {
     {
-        let output = __plain__test_0crate_ExampleStruct {
+        let output = __plain__10_test_crate__13_ExampleStruct {
             src: input,
         };
         consume(output);
@@ -27,7 +26,7 @@ fn cast(input: ()) {
 ```rust
 fn cast(input: ()) {
     {
-        let output = __plain__test_0crate_ExampleStruct {
+        let output = __plain__10_test_crate__13_ExampleStruct {
             src: input,
         };
         consume(output);

@@ -24,6 +24,7 @@ pub(super) fn lower_type<'db>(
             db,
             mutability == Mutability::Mut,
             inner,
+            None,
         )));
     }
 
@@ -64,8 +65,12 @@ pub(super) fn lower_type<'db>(
         {
             Type::String
         }
-        Adt::Struct(struct_) => Type::Struct(Struct::new(db, struct_)),
-        Adt::Enum(enum_) => Type::Enum(Enum::new(db, enum_)),
+        Adt::Struct(struct_) => Struct::new(db, struct_)
+            .as_mono_type_DELME(db)
+            .ok_or_else(|| unsupported_type(db, type_, crate_))?,
+        Adt::Enum(enum_) => Enum::new(db, enum_)
+            .as_mono_type_DELME(db)
+            .ok_or_else(|| unsupported_type(db, type_, crate_))?,
         Adt::Union(_) => return Err(unsupported_type(db, type_, crate_)),
     };
     Ok(value)

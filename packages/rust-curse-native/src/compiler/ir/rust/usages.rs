@@ -3,7 +3,8 @@ use std::collections::{HashMap, HashSet};
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Enum, Function, FunctionParent, Impl, Member, Module, ModuleParent, Rust, Struct, Type,
+        Enum, Function, FunctionParent, GenArg, Impl, Member, Module, ModuleParent, Rust, Struct,
+        Type,
     },
 };
 
@@ -158,10 +159,25 @@ impl<'db> Visitor<'db> {
 
     fn visit_type(&mut self, type_: Type<'db>) {
         match type_ {
-            Type::Struct(struct_) => self.visit_struct(struct_),
-            Type::Enum(enum_) => self.visit_enum(enum_),
+            Type::Struct(struct_) => {
+                self.visit_struct(struct_.def(self.db));
+                self.visit_args(struct_.gen_args(self.db));
+            }
+            Type::Enum(enum_) => {
+                self.visit_enum(enum_.def(self.db));
+                self.visit_args(enum_.gen_args(self.db));
+            }
             Type::Borrowed(reference) => self.visit_type(reference.inner(self.db)),
             _ => {}
+        }
+    }
+
+    fn visit_args(&mut self, args: &[GenArg<'db>]) {
+        for arg in args {
+            match arg {
+                GenArg::Type(type_) => self.visit_type(*type_),
+                GenArg::Lifetime(_) => {}
+            }
         }
     }
 

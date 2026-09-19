@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 402
 expression: snapshot
 ---
 # Source
@@ -14,9 +13,9 @@ pub struct Test {
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__getter__test_0crate_Test__field")]
-pub fn __fn__getter__test_0crate_Test__field(
-    _0: &__plain__test_0crate_Test,
+#[napi(js_name = "__fn__getter__10_test_crate__4_Test__field")]
+pub fn __fn__getter__10_test_crate__4_Test__field(
+    _0: &__plain__10_test_crate__4_Test,
 ) -> napi::Result<f64> {
     Ok(
         cast
@@ -28,7 +27,7 @@ pub fn __fn__getter__test_0crate_Test__field(
                         "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
                     .to(
-                        "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5001) } }) })",
+                        "Tethered(TetheringStructType { source_type: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }) })",
                     )
                     .an(_0)
                     .get_field()?,
@@ -39,9 +38,9 @@ pub fn __fn__getter__test_0crate_Test__field(
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__getter__test_0crate_Test__field")]
-pub fn __fn__getter__test_0crate_Test__field(
-    _0: &__plain__test_0crate_Test,
+#[wasm_bindgen(js_name = "__fn__getter__10_test_crate__4_Test__field")]
+pub fn __fn__getter__10_test_crate__4_Test__field(
+    _0: &__plain__10_test_crate__4_Test,
 ) -> Result<f64, JsValue> {
     Ok(
         cast
@@ -53,7 +52,7 @@ pub fn __fn__getter__test_0crate_Test__field(
                         "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
                     .to(
-                        "Tethered(TetheringStructType { source_type: Struct(Struct { hir: Struct { id: StructId(5001) } }) })",
+                        "Tethered(TetheringStructType { source_type: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }) })",
                     )
                     .an(_0)
                     .get_field()?,

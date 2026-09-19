@@ -31,7 +31,7 @@ export function test_fn (
 			).an(
 				_1
 			);
-			__fn__free__test_0crate_test_0fn(
+			__fn__free__10_test_crate__7_test_fn(
 				__0,
 				__1
 			);

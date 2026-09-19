@@ -14,7 +14,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        rust::{AsItem as _, Function, Shape, Type},
+        rust::{AsItem as _, Function, Shape},
         shim::{
             ShimFunction, ShimFunctionDiscriminatedCoerce, ShimFunctionDiscriminator,
             ShimFunctionGetter, ShimFunctionPlainCoerce, ShimFunctionSetter,
@@ -76,7 +76,8 @@ where
                     ShimFunction::from(coerce),
                     src.fqn(db),
                     src.shape(db),
-                    Type::Struct(src),
+                    src.as_mono_type_DELME(db)
+                        .expect("shim structs must be nongeneric"),
                 )
             }
             Either::Right(coerce) => {
@@ -85,7 +86,9 @@ where
                     ShimFunction::from(coerce),
                     src.fqn(db),
                     src.shape(db),
-                    Type::Enum(src.parent(db)),
+                    src.parent(db)
+                        .as_mono_type_DELME(db)
+                        .expect("shim enums must be nongeneric"),
                 )
             }
         };
@@ -353,7 +356,9 @@ where
             self.db,
             discriminator.params(self.db)[0].type_(self.db),
             TetheringStructType {
-                source_type: src.into(),
+                source_type: src
+                    .as_mono_type_DELME(self.db)
+                    .expect("shim enums must be nongeneric"),
             },
             frag!(_0),
         );

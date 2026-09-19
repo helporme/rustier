@@ -17,16 +17,16 @@ pub struct Parent {
 # Compiled
 ## Node
 ```rust
-struct __tethering__test_0crate_Parent {
+struct __tethering__10_test_crate__6_Parent {
     src: __tethering::SourceSlot<test_crate::Parent>,
     __c__child: std::cell::RefCell<
-        Option<std::rc::Weak<__tethering__test_0crate_Child>>,
+        Option<std::rc::Weak<__tethering__10_test_crate__5_Child>>,
     >,
     __c__readonly_child: std::cell::RefCell<
-        Option<std::rc::Weak<__tethering__test_0crate_ReadonlyChild>>,
+        Option<std::rc::Weak<__tethering__10_test_crate__13_ReadonlyChild>>,
     >,
 }
-impl __tethering::Accessor<test_crate::Parent> for __tethering__test_0crate_Parent {
+impl __tethering::Accessor<test_crate::Parent> for __tethering__10_test_crate__6_Parent {
     fn access_dyn(
         &self,
         f: &mut dyn FnMut(&test_crate::Parent) -> __tethering::AccessResult<()>,
@@ -40,9 +40,9 @@ impl __tethering::Accessor<test_crate::Parent> for __tethering__test_0crate_Pare
         self.src.access_mut_dyn(f)
     }
 }
-impl __tethering__test_0crate_Parent {
+impl __tethering__10_test_crate__6_Parent {
     pub fn new_owned(input: test_crate::Parent) -> Self {
-        __tethering__test_0crate_Parent {
+        __tethering__10_test_crate__6_Parent {
             src: __tethering::SourceSlot::owned(input),
             __c__child: std::cell::RefCell::new(None),
             __c__readonly_child: std::cell::RefCell::new(None),
@@ -51,7 +51,7 @@ impl __tethering__test_0crate_Parent {
     pub fn new_projected(
         accessor: std::rc::Rc<dyn __tethering::Accessor<test_crate::Parent>>,
     ) -> Self {
-        __tethering__test_0crate_Parent {
+        __tethering__10_test_crate__6_Parent {
             src: __tethering::SourceSlot::projected(accessor),
             __c__child: std::cell::RefCell::new(None),
             __c__readonly_child: std::cell::RefCell::new(None),
@@ -68,7 +68,7 @@ impl __tethering__test_0crate_Parent {
     }
     pub fn get_child(
         self: &std::rc::Rc<Self>,
-    ) -> __tethering::AccessResult<std::rc::Rc<__tethering__test_0crate_Child>> {
+    ) -> __tethering::AccessResult<std::rc::Rc<__tethering__10_test_crate__5_Child>> {
         self.access(|parent| {
             Ok(&parent.child)?;
             Ok(())
@@ -85,7 +85,7 @@ impl __tethering__test_0crate_Parent {
             get_mut: |parent| Ok(&mut parent.child),
         });
         let tethered = std::rc::Rc::new(
-            __tethering__test_0crate_Child::new_projected(field_access),
+            __tethering__10_test_crate__5_Child::new_projected(field_access),
         );
         *__tethering::try_borrow_mut(&self.__c__child)? = Some(
             std::rc::Rc::downgrade(&tethered),
@@ -109,7 +109,9 @@ impl __tethering__test_0crate_Parent {
     }
     pub fn get_readonly_child(
         self: &std::rc::Rc<Self>,
-    ) -> __tethering::AccessResult<std::rc::Rc<__tethering__test_0crate_ReadonlyChild>> {
+    ) -> __tethering::AccessResult<
+        std::rc::Rc<__tethering__10_test_crate__13_ReadonlyChild>,
+    > {
         self.access(|parent| {
             Ok(&parent.readonly_child)?;
             Ok(())
@@ -128,7 +130,7 @@ impl __tethering__test_0crate_Parent {
             get_mut: |parent| Ok(&mut parent.readonly_child),
         });
         let tethered = std::rc::Rc::new(
-            __tethering__test_0crate_ReadonlyChild::new_projected(field_access),
+            __tethering__10_test_crate__13_ReadonlyChild::new_projected(field_access),
         );
         *__tethering::try_borrow_mut(&self.__c__readonly_child)? = Some(
             std::rc::Rc::downgrade(&tethered),
@@ -140,16 +142,16 @@ impl __tethering__test_0crate_Parent {
 
 ## Wasm
 ```rust
-struct __tethering__test_0crate_Parent {
+struct __tethering__10_test_crate__6_Parent {
     src: __tethering::SourceSlot<test_crate::Parent>,
     __c__child: std::cell::RefCell<
-        Option<std::rc::Weak<__tethering__test_0crate_Child>>,
+        Option<std::rc::Weak<__tethering__10_test_crate__5_Child>>,
     >,
     __c__readonly_child: std::cell::RefCell<
-        Option<std::rc::Weak<__tethering__test_0crate_ReadonlyChild>>,
+        Option<std::rc::Weak<__tethering__10_test_crate__13_ReadonlyChild>>,
     >,
 }
-impl __tethering::Accessor<test_crate::Parent> for __tethering__test_0crate_Parent {
+impl __tethering::Accessor<test_crate::Parent> for __tethering__10_test_crate__6_Parent {
     fn access_dyn(
         &self,
         f: &mut dyn FnMut(&test_crate::Parent) -> __tethering::AccessResult<()>,
@@ -163,9 +165,9 @@ impl __tethering::Accessor<test_crate::Parent> for __tethering__test_0crate_Pare
         self.src.access_mut_dyn(f)
     }
 }
-impl __tethering__test_0crate_Parent {
+impl __tethering__10_test_crate__6_Parent {
     pub fn new_owned(input: test_crate::Parent) -> Self {
-        __tethering__test_0crate_Parent {
+        __tethering__10_test_crate__6_Parent {
             src: __tethering::SourceSlot::owned(input),
             __c__child: std::cell::RefCell::new(None),
             __c__readonly_child: std::cell::RefCell::new(None),
@@ -174,7 +176,7 @@ impl __tethering__test_0crate_Parent {
     pub fn new_projected(
         accessor: std::rc::Rc<dyn __tethering::Accessor<test_crate::Parent>>,
     ) -> Self {
-        __tethering__test_0crate_Parent {
+        __tethering__10_test_crate__6_Parent {
             src: __tethering::SourceSlot::projected(accessor),
             __c__child: std::cell::RefCell::new(None),
             __c__readonly_child: std::cell::RefCell::new(None),
@@ -191,7 +193,7 @@ impl __tethering__test_0crate_Parent {
     }
     pub fn get_child(
         self: &std::rc::Rc<Self>,
-    ) -> __tethering::AccessResult<std::rc::Rc<__tethering__test_0crate_Child>> {
+    ) -> __tethering::AccessResult<std::rc::Rc<__tethering__10_test_crate__5_Child>> {
         self.access(|parent| {
             Ok(&parent.child)?;
             Ok(())
@@ -208,7 +210,7 @@ impl __tethering__test_0crate_Parent {
             get_mut: |parent| Ok(&mut parent.child),
         });
         let tethered = std::rc::Rc::new(
-            __tethering__test_0crate_Child::new_projected(field_access),
+            __tethering__10_test_crate__5_Child::new_projected(field_access),
         );
         *__tethering::try_borrow_mut(&self.__c__child)? = Some(
             std::rc::Rc::downgrade(&tethered),
@@ -232,7 +234,9 @@ impl __tethering__test_0crate_Parent {
     }
     pub fn get_readonly_child(
         self: &std::rc::Rc<Self>,
-    ) -> __tethering::AccessResult<std::rc::Rc<__tethering__test_0crate_ReadonlyChild>> {
+    ) -> __tethering::AccessResult<
+        std::rc::Rc<__tethering__10_test_crate__13_ReadonlyChild>,
+    > {
         self.access(|parent| {
             Ok(&parent.readonly_child)?;
             Ok(())
@@ -251,7 +255,7 @@ impl __tethering__test_0crate_Parent {
             get_mut: |parent| Ok(&mut parent.readonly_child),
         });
         let tethered = std::rc::Rc::new(
-            __tethering__test_0crate_ReadonlyChild::new_projected(field_access),
+            __tethering__10_test_crate__13_ReadonlyChild::new_projected(field_access),
         );
         *__tethering::try_borrow_mut(&self.__c__readonly_child)? = Some(
             std::rc::Rc::downgrade(&tethered),

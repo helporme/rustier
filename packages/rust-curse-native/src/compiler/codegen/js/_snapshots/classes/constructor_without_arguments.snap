@@ -44,7 +44,7 @@ export class Test {
 			).to(
 				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } } })))"
 			).an(
-				__fn__coe__test_0crate_Test(
+				__fn__coe__10_test_crate__4_Test(
 
 				)
 			);
@@ -60,7 +60,7 @@ export class Test {
 		){
 			return;
 		}
-		this.#_ffi = __fn__associated__test_0crate_Test_new(
+		this.#_ffi = __fn__associated__10_test_crate__4_Test__3_new(
 
 		);
 	}

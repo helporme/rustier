@@ -2,10 +2,10 @@ use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 use crate::compiler::{
+    codegen::utils::to_camel_case,
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::Enum,
-    mangle::to_camel_case,
 };
 
 #[salsa::tracked]

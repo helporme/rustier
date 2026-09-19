@@ -15,16 +15,16 @@ pub enum Test {
 # Compiled
 ## Node
 ```rust
-#[napi(js_name = "__fn__disc__test_0crate_Test")]
-pub fn __fn__disc__test_0crate_Test(
-    _0: &__discr__test_0crate_Test,
+#[napi(js_name = "__fn__disc__10_test_crate__4_Test")]
+pub fn __fn__disc__10_test_crate__4_Test(
+    _0: &__discr__10_test_crate__4_Test,
 ) -> napi::Result<f64> {
     let result = cast
         .from(
             "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5400) } } }) })",
         )
         .to(
-            "Tethered(TetheringStructType { source_type: Enum(Enum { hir: Enum { id: EnumId(5400) } }) })",
+            "Tethered(TetheringStructType { source_type: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] }) })",
         )
         .an(_0)
         .access(|src| {
@@ -42,16 +42,16 @@ pub fn __fn__disc__test_0crate_Test(
 
 ## Wasm
 ```rust
-#[wasm_bindgen(js_name = "__fn__disc__test_0crate_Test")]
-pub fn __fn__disc__test_0crate_Test(
-    _0: &__discr__test_0crate_Test,
+#[wasm_bindgen(js_name = "__fn__disc__10_test_crate__4_Test")]
+pub fn __fn__disc__10_test_crate__4_Test(
+    _0: &__discr__10_test_crate__4_Test,
 ) -> Result<f64, JsValue> {
     let result = cast
         .from(
             "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5400) } } }) })",
         )
         .to(
-            "Tethered(TetheringStructType { source_type: Enum(Enum { hir: Enum { id: EnumId(5400) } }) })",
+            "Tethered(TetheringStructType { source_type: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] }) })",
         )
         .an(_0)
         .access(|src| {

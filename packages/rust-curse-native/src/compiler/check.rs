@@ -36,10 +36,12 @@ fn accumulate_checks<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
                 coerce_requires_clone::check(db, class);
                 match class.src_type(db) {
                     Type::Struct(struct_) => {
+                        let struct_ = struct_.def(db);
                         struct_.check_f32_precision_loss(db);
                         struct_.check_method_field_collisions(db);
                     }
                     Type::Enum(enum_) => {
+                        let enum_ = enum_.def(db);
                         enum_.check_f32_precision_loss(db);
                         enum_.check_js_name_collisions(db);
                         enum_.check_method_field_collisions(db);

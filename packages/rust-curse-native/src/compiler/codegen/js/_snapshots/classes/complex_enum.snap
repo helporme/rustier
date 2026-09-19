@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/js/classes.rs
-assertion_line: 635
 expression: snapshot
 ---
 # Source
@@ -27,7 +26,7 @@ export class Test {
 	"HttpRequest"];
 
 	get ["only_first"]() {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -39,7 +38,7 @@ export class Test {
 				).to(
 					"Facade(number)"
 				).an(
-					__fn__getter__test_0crate_Test____HTTPRequest__only_first(
+					__fn__getter__10_test_crate__4_Test____HTTPRequest__only_first(
 						this.#_ffi
 					)
 				);
@@ -54,7 +53,7 @@ export class Test {
 	set ["only_first"](
 		value
 	) {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -68,7 +67,7 @@ export class Test {
 				).an(
 					value
 				);
-				__fn__setter__test_0crate_Test____HTTPRequest__only_first(
+				__fn__setter__10_test_crate__4_Test____HTTPRequest__only_first(
 					this.#_ffi, out
 				);
 				return;
@@ -80,7 +79,7 @@ export class Test {
 	}
 
 	get ["type"]() {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -92,7 +91,7 @@ export class Test {
 				).to(
 					"Facade(number)"
 				).an(
-					__fn__getter__test_0crate_Test____HTTPRequest__type(
+					__fn__getter__10_test_crate__4_Test____HTTPRequest__type(
 						this.#_ffi
 					)
 				);
@@ -107,7 +106,7 @@ export class Test {
 	set ["type"](
 		value
 	) {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -121,7 +120,7 @@ export class Test {
 				).an(
 					value
 				);
-				__fn__setter__test_0crate_Test____HTTPRequest__type(
+				__fn__setter__10_test_crate__4_Test____HTTPRequest__type(
 					this.#_ffi, out
 				);
 				return;
@@ -133,7 +132,7 @@ export class Test {
 	}
 
 	get ["value"]() {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -148,7 +147,7 @@ export class Test {
 					).to(
 						"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5002) } } } })))"
 					).an(
-						__fn__getter__test_0crate_Test____HTTPRequest__value(
+						__fn__getter__10_test_crate__4_Test____HTTPRequest__value(
 							this.#_ffi
 						)
 					);
@@ -169,7 +168,7 @@ export class Test {
 					).to(
 						"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } } })))"
 					).an(
-						__fn__getter__test_0crate_Test____HttpRequest__value(
+						__fn__getter__10_test_crate__4_Test____HttpRequest__value(
 							this.#_ffi
 						)
 					);
@@ -186,7 +185,7 @@ export class Test {
 	set ["value"](
 		value
 	) {
-		const type_ = __fn__disc__test_0crate_Test(
+		const type_ = __fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		);
 		if(
@@ -200,7 +199,7 @@ export class Test {
 				).an(
 					value
 				);
-				__fn__setter__test_0crate_Test____HTTPRequest__value(
+				__fn__setter__10_test_crate__4_Test____HTTPRequest__value(
 					this.#_ffi, out
 				);
 				this.#__field_2_0 = undefined;
@@ -220,7 +219,7 @@ export class Test {
 	}
 
 	get ["$type"]() {
-		return Test.#_types[__fn__disc__test_0crate_Test(
+		return Test.#_types[__fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		)];
 	}

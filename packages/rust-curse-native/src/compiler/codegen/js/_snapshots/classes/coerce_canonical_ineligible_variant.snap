@@ -23,7 +23,7 @@ export class Test {
 	"Http"];
 
 	get ["type"]() {
-		return Test.#_types[__fn__disc__test_0crate_Test(
+		return Test.#_types[__fn__disc__10_test_crate__4_Test(
 			this.#_ffi
 		)];
 	}
@@ -53,7 +53,7 @@ export class Test {
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
 					).an(
-						__fn__coe__test_0crate_Test_http(
+						__fn__coe__10_test_crate__4_Test__4_http(
 
 						)
 					);
