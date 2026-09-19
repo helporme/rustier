@@ -2,8 +2,7 @@ use crate::compiler::{
     db::Db,
     ir::{
         rust::{
-            Crate, Enum, Field, ImplTarget, Member, Module, Rust, Struct, Type, ValueType,
-            usages::UsageGraph,
+            Crate, Enum, Field, ImplTarget, Member, Module, Rust, Struct, Type, usages::UsageGraph,
         },
         shim::{
             Shim, ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimCrate, ShimField,
@@ -83,26 +82,27 @@ impl<'db> Field<'db> {
 
 impl<'db> Type<'db> {
     pub(super) fn shim_in(self, db: &'db dyn Db) -> ShimType<'db> {
-        match self.deborrow() {
-            ValueType::bool => ShimType::bool,
-            ValueType::char
-            | ValueType::i8
-            | ValueType::u8
-            | ValueType::i16
-            | ValueType::u16
-            | ValueType::i32
-            | ValueType::u32
-            | ValueType::f32
-            | ValueType::f64 => ShimType::f64,
-            ValueType::Str | ValueType::String => ShimType::String,
-            ValueType::Struct(struct_) => ShimType::Class {
+        match self {
+            Type::bool => ShimType::bool,
+            Type::char
+            | Type::i8
+            | Type::u8
+            | Type::i16
+            | Type::u16
+            | Type::i32
+            | Type::u32
+            | Type::f32
+            | Type::f64 => ShimType::f64,
+            Type::Str | Type::String => ShimType::String,
+            Type::Struct(struct_) => ShimType::Class {
                 is_borrowed: true,
                 inner: struct_.shim(db).into(),
             },
-            ValueType::Enum(enum_) => ShimType::Class {
+            Type::Enum(enum_) => ShimType::Class {
                 is_borrowed: true,
                 inner: enum_.shim(db).into(),
             },
+            Type::Borrowed(borrowed) => borrowed.inner(db).shim_in(db),
         }
     }
 

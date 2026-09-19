@@ -131,7 +131,7 @@ use crate::compiler::{
         shim::Platform,
     },
     db::Db,
-    ir::rust::ValueType,
+    ir::rust::Type,
 };
 
 /// Compiles the platform-specific supporting code used by generated tethering
@@ -298,7 +298,7 @@ pub fn compile_tethering_prelude(platform: Platform) -> impl FragmentOnce {
     )
 }
 
-impl<'db> ValueType<'db> {
+impl<'db> Type<'db> {
     pub fn tethering_struct_name(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
         frag!(__tethering__{self.render_mangled_name(db)})
     }
@@ -307,7 +307,7 @@ impl<'db> ValueType<'db> {
 /// A tethering struct. See the module-level documentation for more details.
 pub struct TetheringStruct<'a, Fields> {
     /// Source type for which the tethering struct is generated.
-    pub source_type: ValueType<'a>,
+    pub source_type: Type<'a>,
     /// Source fields exposed by the tethering struct.
     pub fields: Fields,
 }
@@ -333,7 +333,7 @@ pub struct ClonedField<'a, GetRefExpr, GetMutExpr> {
     /// Expression returning a fallible mutable reference to the source value.
     pub get_mut_expr: GetMutExpr,
     /// The type of this field on source type.
-    pub source_type: ValueType<'a>,
+    pub source_type: Type<'a>,
 }
 
 #[derive(Clone)]
@@ -345,7 +345,7 @@ pub struct TetheringStructField<'a, GetRefExpr, GetMutExpr> {
     /// Expression returning a fallible mutable reference to the source value.
     pub get_mut_expr: GetMutExpr,
     /// The type of this field on source type.
-    pub source_type: ValueType<'a>,
+    pub source_type: Type<'a>,
     /// Whether to generate a setter for this value.
     pub with_setter: bool,
 }
@@ -665,7 +665,7 @@ where
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq, salsa::Update)]
 pub struct TetheringStructType<'db> {
     // A source type which tethering struct is storing.
-    pub source_type: ValueType<'db>,
+    pub source_type: Type<'db>,
 }
 
 #[cfg(test)]
@@ -676,7 +676,7 @@ mod tests {
         compiler::ir::rust::{Member, Rust},
     };
 
-    fn test_value_type<'db>(db: &'db dyn Db, name: &str) -> ValueType<'db> {
+    fn test_type<'db>(db: &'db dyn Db, name: &str) -> Type<'db> {
         let crate_ = Rust::get(db)
             .crates(db)
             .first()
@@ -688,10 +688,10 @@ mod tests {
             .iter()
             .find_map(|member| match member {
                 Member::Struct(struct_) if struct_.segment(db).name(db) == name => {
-                    Some(ValueType::Struct(*struct_))
+                    Some(Type::Struct(*struct_))
                 }
                 Member::Enum(enum_) if enum_.segment(db).name(db) == name => {
-                    Some(ValueType::Enum(*enum_))
+                    Some(Type::Enum(*enum_))
                 }
                 _ => None,
             })
@@ -750,7 +750,7 @@ mod tests {
                 render_tethering_struct(
                     db,
                     TetheringStruct {
-                        source_type: test_value_type(db, "Empty"),
+                        source_type: test_type(db, "Empty"),
                         fields,
                     },
                 )
@@ -774,13 +774,13 @@ mod tests {
                         name: "count",
                         get_ref_expr: TestFieldExpr::shared("count"),
                         get_mut_expr: TestFieldExpr::mutable("count"),
-                        source_type: ValueType::u32,
+                        source_type: Type::u32,
                     })];
 
                 render_tethering_struct(
                     db,
                     TetheringStruct {
-                        source_type: test_value_type(db, "Parent"),
+                        source_type: test_type(db, "Parent"),
                         fields,
                     },
                 )
@@ -805,14 +805,14 @@ mod tests {
                         name: "child",
                         get_ref_expr: TestFieldExpr::shared("child"),
                         get_mut_expr: TestFieldExpr::mutable("child"),
-                        source_type: test_value_type(db, "Child"),
+                        source_type: test_type(db, "Child"),
                         with_setter: true,
                     })];
 
                 render_tethering_struct(
                     db,
                     TetheringStruct {
-                        source_type: test_value_type(db, "Parent"),
+                        source_type: test_type(db, "Parent"),
                         fields,
                     },
                 )
@@ -840,20 +840,20 @@ mod tests {
                         name: "count",
                         get_ref_expr: TestFieldExpr::shared("count"),
                         get_mut_expr: TestFieldExpr::mutable("count"),
-                        source_type: ValueType::u32,
+                        source_type: Type::u32,
                     }),
                     TetheredField::TetheringStruct(TetheringStructField {
                         name: "child",
                         get_ref_expr: TestFieldExpr::shared("child"),
                         get_mut_expr: TestFieldExpr::mutable("child"),
-                        source_type: test_value_type(db, "Child"),
+                        source_type: test_type(db, "Child"),
                         with_setter: true,
                     }),
                     TetheredField::TetheringStruct(TetheringStructField {
                         name: "readonly_child",
                         get_ref_expr: TestFieldExpr::shared("readonly_child"),
                         get_mut_expr: TestFieldExpr::mutable("readonly_child"),
-                        source_type: test_value_type(db, "ReadonlyChild"),
+                        source_type: test_type(db, "ReadonlyChild"),
                         with_setter: false,
                     }),
                 ];
@@ -861,7 +861,7 @@ mod tests {
                 render_tethering_struct(
                     db,
                     TetheringStruct {
-                        source_type: test_value_type(db, "Parent"),
+                        source_type: test_type(db, "Parent"),
                         fields,
                     },
                 )

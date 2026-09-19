@@ -12,10 +12,7 @@ use crate::compiler::{
         shim::{Platform, tethering::TetheringStructType},
     },
     db::Db,
-    ir::{
-        rust::{Type, ValueType},
-        shim::ShimType,
-    },
+    ir::{rust::Type, shim::ShimType},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -210,7 +207,7 @@ impl<'db> CastRenderer<'db> for ShimCastRenderer {
 
                 // numbers
                 (Shim(ShimType::f64), Rust(target)) => {
-                    numbers::render_f64_to_type(self.platform, target, in_expr, output)
+                    numbers::render_f64_to_type(db, self.platform, target, in_expr, output)
                         .apply(printer);
                 }
                 (Rust(source), Shim(ShimType::f64)) => {
@@ -218,28 +215,22 @@ impl<'db> CastRenderer<'db> for ShimCastRenderer {
                 }
 
                 // booleans
-                (
-                    Shim(ShimType::bool),
-                    Rust(
-                        target @ Type::Borrowed {
-                            inner: ValueType::bool,
-                            ..
-                        },
-                    ),
-                ) => {
-                    borrowing::render_owned_to_borrowed(target, in_expr, output).apply(printer);
+                (Shim(ShimType::bool), Rust(target @ Type::Borrowed(borrowed)))
+                    if borrowed.inner(db) == Type::bool =>
+                {
+                    borrowing::render_owned_to_borrowed(db, target, in_expr, output).apply(printer);
                 }
 
                 // strings
-                (Shim(ShimType::String), Rust(target @ Type::Borrowed { .. })) => {
-                    strings::render_string_to_type(target, in_expr, output).apply(printer);
+                (Shim(ShimType::String), Rust(target @ Type::Borrowed(_))) => {
+                    strings::render_string_to_type(db, target, in_expr, output).apply(printer);
                 }
 
                 // identity casts
-                (Shim(ShimType::bool), Rust(Type::Value(ValueType::bool)))
-                | (Rust(Type::Value(ValueType::bool)), Shim(ShimType::bool))
-                | (Shim(ShimType::String), Rust(Type::Value(ValueType::String)))
-                | (Rust(Type::Value(ValueType::String)), Shim(ShimType::String)) => {
+                (Shim(ShimType::bool), Rust(Type::bool))
+                | (Rust(Type::bool), Shim(ShimType::bool))
+                | (Shim(ShimType::String), Rust(Type::String))
+                | (Rust(Type::String), Shim(ShimType::String)) => {
                     adapt_to_cast_output(in_expr, output).apply(printer);
                 }
 
@@ -372,7 +363,7 @@ mod tests {
         codegen::shim::tethering::TetheringStructType,
         db::Db,
         ir::{
-            rust::{Member, Rust, Type, ValueType},
+            rust::{Member, Rust, Type},
             shim::ShimType,
         },
     };
@@ -446,31 +437,31 @@ mod tests {
             cast_snapshot! {
                 name: $in_name,
                 from: |_db| ShimType::f64,
-                to: |_db| Type::Value($value),
+                to: |_db| $value,
             }
 
             cast_snapshot! {
                 name: $ref_name,
                 from: |_db| ShimType::f64,
-                to: |_db| $value.borrowed(),
+                to: |db| $value.borrowed(db),
             }
 
             cast_snapshot! {
                 name: $mut_name,
                 from: |_db| ShimType::f64,
-                to: |_db| $value.borrowed_mut(),
+                to: |db| $value.borrowed_mut(db),
             }
 
             cast_snapshot! {
                 name: $out_name,
-                from: |_db| Type::Value($value),
+                from: |_db| $value,
                 to: |_db| ShimType::f64,
             }
         };
     }
 
     number_cast_snapshots! {
-        value: ValueType::char,
+        value: Type::char,
         in: char_in,
         ref_in: char_ref_in,
         mut_in: char_mut_in,
@@ -478,7 +469,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: ValueType::i8,
+        value: Type::i8,
         in: i8_in,
         ref_in: i8_ref_in,
         mut_in: i8_mut_in,
@@ -486,7 +477,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: ValueType::u8,
+        value: Type::u8,
         in: u8_in,
         ref_in: u8_ref_in,
         mut_in: u8_mut_in,
@@ -494,7 +485,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: ValueType::i16,
+        value: Type::i16,
         in: i16_in,
         ref_in: i16_ref_in,
         mut_in: i16_mut_in,
@@ -502,7 +493,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: ValueType::u16,
+        value: Type::u16,
         in: u16_in,
         ref_in: u16_ref_in,
         mut_in: u16_mut_in,
@@ -510,7 +501,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: ValueType::i32,
+        value: Type::i32,
         in: i32_in,
         ref_in: i32_ref_in,
         mut_in: i32_mut_in,
@@ -518,7 +509,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: ValueType::u32,
+        value: Type::u32,
         in: u32_in,
         ref_in: u32_ref_in,
         mut_in: u32_mut_in,
@@ -526,7 +517,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: ValueType::f32,
+        value: Type::f32,
         in: f32_in,
         ref_in: f32_ref_in,
         mut_in: f32_mut_in,
@@ -534,7 +525,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: ValueType::f64,
+        value: Type::f64,
         in: f64_in,
         ref_in: f64_ref_in,
         mut_in: f64_mut_in,
@@ -544,60 +535,60 @@ mod tests {
     cast_snapshot! {
         name: bool_in,
         from: |_db| ShimType::bool,
-        to: |_db| Type::Value(ValueType::bool),
+        to: |_db| Type::bool,
     }
 
     cast_snapshot! {
         name: bool_ref_in,
         from: |_db| ShimType::bool,
-        to: |_db| ValueType::bool.borrowed(),
+        to: |db| Type::bool.borrowed(db),
     }
 
     cast_snapshot! {
         name: bool_mut_in,
         from: |_db| ShimType::bool,
-        to: |_db| ValueType::bool.borrowed_mut(),
+        to: |db| Type::bool.borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: bool_out,
-        from: |_db| Type::Value(ValueType::bool),
+        from: |_db| Type::bool,
         to: |_db| ShimType::bool,
     }
 
     cast_snapshot! {
         name: string_in,
         from: |_db| ShimType::String,
-        to: |_db| Type::Value(ValueType::String),
+        to: |_db| Type::String,
     }
 
     cast_snapshot! {
         name: string_ref_in,
         from: |_db| ShimType::String,
-        to: |_db| ValueType::String.borrowed(),
+        to: |db| Type::String.borrowed(db),
     }
 
     cast_snapshot! {
         name: string_mut_in,
         from: |_db| ShimType::String,
-        to: |_db| ValueType::String.borrowed_mut(),
+        to: |db| Type::String.borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: str_ref_in,
         from: |_db| ShimType::String,
-        to: |_db| ValueType::Str.borrowed(),
+        to: |db| Type::Str.borrowed(db),
     }
 
     cast_snapshot! {
         name: str_mut_in,
         from: |_db| ShimType::String,
-        to: |_db| ValueType::Str.borrowed_mut(),
+        to: |db| Type::Str.borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: string_out,
-        from: |_db| Type::Value(ValueType::String),
+        from: |_db| Type::String,
         to: |_db| ShimType::String,
     }
 
@@ -608,7 +599,7 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| test_shim_class_type(db, "ExampleStruct", true),
-        to: |db| Type::Value(test_value_type(db, "ExampleStruct")),
+        to: |db| test_type(db, "ExampleStruct"),
     }
 
     cast_snapshot! {
@@ -618,7 +609,7 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| test_shim_class_type(db, "ExampleStruct", true),
-        to: |db| test_value_type(db, "ExampleStruct").borrowed(),
+        to: |db| test_type(db, "ExampleStruct").borrowed(db),
     }
 
     cast_snapshot! {
@@ -628,7 +619,7 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| test_shim_class_type(db, "ExampleStruct", true),
-        to: |db| test_value_type(db, "ExampleStruct").borrowed_mut(),
+        to: |db| test_type(db, "ExampleStruct").borrowed_mut(db),
     }
 
     cast_snapshot! {
@@ -637,7 +628,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| Type::Value(test_value_type(db, "ExampleStruct")),
+        from: |db| test_type(db, "ExampleStruct"),
         to: |db| test_shim_class_type(db, "ExampleStruct", false),
     }
 
@@ -650,7 +641,7 @@ mod tests {
             }
         },
         from: |db| test_shim_class_type(db, "ExampleEnum", true),
-        to: |db| Type::Value(test_value_type(db, "ExampleEnum")),
+        to: |db| test_type(db, "ExampleEnum"),
     }
 
     cast_snapshot! {
@@ -662,7 +653,7 @@ mod tests {
             }
         },
         from: |db| test_shim_class_type(db, "ExampleEnum", true),
-        to: |db| test_value_type(db, "ExampleEnum").borrowed(),
+        to: |db| test_type(db, "ExampleEnum").borrowed(db),
     }
 
     cast_snapshot! {
@@ -674,7 +665,7 @@ mod tests {
             }
         },
         from: |db| test_shim_class_type(db, "ExampleEnum", true),
-        to: |db| test_value_type(db, "ExampleEnum").borrowed_mut(),
+        to: |db| test_type(db, "ExampleEnum").borrowed_mut(db),
     }
 
     cast_snapshot! {
@@ -685,7 +676,7 @@ mod tests {
                 Variant,
             }
         },
-        from: |db| Type::Value(test_value_type(db, "ExampleEnum")),
+        from: |db| test_type(db, "ExampleEnum"),
         to: |db| test_shim_class_type(db, "ExampleEnum", false),
     }
 
@@ -695,9 +686,9 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| Type::Value(test_value_type(db, "ExampleStruct")),
+        from: |db| test_type(db, "ExampleStruct"),
         to: |db| TetheringStructType {
-            source_type: test_value_type(db, "ExampleStruct"),
+            source_type: test_type(db, "ExampleStruct"),
         },
     }
 
@@ -708,9 +699,9 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| TetheringStructType {
-            source_type: test_value_type(db, "ExampleStruct"),
+            source_type: test_type(db, "ExampleStruct"),
         },
-        to: |db| Type::Value(test_value_type(db, "ExampleStruct")),
+        to: |db| test_type(db, "ExampleStruct"),
     }
 
     cast_snapshot! {
@@ -720,9 +711,9 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| TetheringStructType {
-            source_type: test_value_type(db, "ExampleStruct"),
+            source_type: test_type(db, "ExampleStruct"),
         },
-        to: |db| test_value_type(db, "ExampleStruct").borrowed(),
+        to: |db| test_type(db, "ExampleStruct").borrowed(db),
     }
 
     cast_snapshot! {
@@ -732,9 +723,9 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| TetheringStructType {
-            source_type: test_value_type(db, "ExampleStruct"),
+            source_type: test_type(db, "ExampleStruct"),
         },
-        to: |db| test_value_type(db, "ExampleStruct").borrowed_mut(),
+        to: |db| test_type(db, "ExampleStruct").borrowed_mut(db),
     }
 
     cast_snapshot! {
@@ -745,7 +736,7 @@ mod tests {
         },
         from: |db| test_shim_class_type(db, "ExampleStruct", true),
         to: |db| TetheringStructType {
-            source_type: test_value_type(db, "ExampleStruct"),
+            source_type: test_type(db, "ExampleStruct"),
         },
     }
 
@@ -756,15 +747,15 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| TetheringStructType {
-            source_type: test_value_type(db, "ExampleStruct"),
+            source_type: test_type(db, "ExampleStruct"),
         },
         to: |db| test_shim_class_type(db, "ExampleStruct", false),
     }
 
     cast_snapshot! {
         name: rust_identity,
-        from: |_db| Type::Value(ValueType::bool),
-        to: |_db| Type::Value(ValueType::bool),
+        from: |_db| Type::bool,
+        to: |_db| Type::bool,
     }
 
     cast_snapshot! {
@@ -780,14 +771,14 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| TetheringStructType {
-            source_type: test_value_type(db, "ExampleStruct"),
+            source_type: test_type(db, "ExampleStruct"),
         },
         to: |db| TetheringStructType {
-            source_type: test_value_type(db, "ExampleStruct"),
+            source_type: test_type(db, "ExampleStruct"),
         },
     }
 
-    fn test_value_type<'db>(db: &'db dyn Db, name: &str) -> ValueType<'db> {
+    fn test_type<'db>(db: &'db dyn Db, name: &str) -> Type<'db> {
         let crate_ = Rust::get(db)
             .crates(db)
             .first()
@@ -808,9 +799,9 @@ mod tests {
     }
 
     fn test_shim_class_type<'db>(db: &'db dyn Db, name: &str, is_borrowed: bool) -> ShimType<'db> {
-        let inner = match test_value_type(db, name) {
-            ValueType::Struct(struct_) => struct_.shim(db).into(),
-            ValueType::Enum(enum_) => enum_.shim(db).into(),
+        let inner = match test_type(db, name) {
+            Type::Struct(struct_) => struct_.shim(db).into(),
+            Type::Enum(enum_) => enum_.shim(db).into(),
             _ => unreachable!("class cast test requires a struct or enum"),
         };
 

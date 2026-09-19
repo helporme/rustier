@@ -275,9 +275,9 @@ impl<'db> Struct<'db> {
     }
 }
 
-impl<'db> IntoValueType<'db> for Struct<'db> {
-    fn into_value_type(self) -> ValueType<'db> {
-        ValueType::Struct(self)
+impl<'db> From<Struct<'db>> for Type<'db> {
+    fn from(value: Struct<'db>) -> Self {
+        Type::Struct(value)
     }
 }
 
@@ -347,9 +347,9 @@ impl<'db> Enum<'db> {
     }
 }
 
-impl<'db> IntoValueType<'db> for Enum<'db> {
-    fn into_value_type(self) -> ValueType<'db> {
-        ValueType::Enum(self)
+impl<'db> From<Enum<'db>> for Type<'db> {
+    fn from(value: Enum<'db>) -> Self {
+        Type::Enum(value)
     }
 }
 
@@ -407,11 +407,11 @@ impl<'db> ImplTarget<'db> {
     }
 }
 
-impl<'db> IntoValueType<'db> for ImplTarget<'db> {
-    fn into_value_type(self) -> ValueType<'db> {
-        match self {
-            ImplTarget::Struct(struct_) => struct_.into_value_type(),
-            ImplTarget::Enum(enum_) => enum_.into_value_type(),
+impl<'db> From<ImplTarget<'db>> for Type<'db> {
+    fn from(value: ImplTarget<'db>) -> Self {
+        match value {
+            ImplTarget::Struct(struct_) => struct_.into(),
+            ImplTarget::Enum(enum_) => enum_.into(),
         }
     }
 }
@@ -528,8 +528,8 @@ impl<'db> Field<'db> {
         self.lower_escaped_name(db)
     }
 
-    pub fn value_type(self, db: &'db dyn Db) -> ValueType<'db> {
-        self.lower_value_type(db)
+    pub fn _type(self, db: &'db dyn Db) -> Type<'db> {
+        self.lower_type(db)
     }
 
     /// Whether generated bindings must prohibit writes to the field.
@@ -725,7 +725,7 @@ impl<'db> Function<'db> {
         self.lower_params(db)
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<ValueType<'db>> {
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
         self.lower_ret_type(db)
     }
 
@@ -782,10 +782,10 @@ pub struct Param<'db> {
     pub span: Option<Span>,
 }
 
-/// A supported subset of Rust value types.
+/// A supported subset of Rust types.
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub enum ValueType<'db> {
+pub enum Type<'db> {
     bool,
     char,
     i8,
@@ -800,94 +800,60 @@ pub enum ValueType<'db> {
     String,
     Struct(Struct<'db>),
     Enum(Enum<'db>),
-}
-
-impl<'db> ValueType<'db> {
-    pub fn fqn(self, db: &'db dyn Db) -> &'db str {
-        match self {
-            ValueType::bool => "bool",
-            ValueType::char => "char",
-            ValueType::i8 => "i8",
-            ValueType::u8 => "u8",
-            ValueType::i16 => "i16",
-            ValueType::u16 => "u16",
-            ValueType::i32 => "i32",
-            ValueType::u32 => "u32",
-            ValueType::f32 => "f32",
-            ValueType::f64 => "f64",
-            ValueType::Str => "str",
-            ValueType::String => "String",
-            ValueType::Struct(s) => s.fqn(db),
-            ValueType::Enum(e) => e.fqn(db),
-        }
-    }
-
-    pub fn borrowed(self) -> Type<'db> {
-        Type::Borrowed {
-            is_mutable: false,
-            inner: self,
-        }
-    }
-
-    pub fn borrowed_mut(self) -> Type<'db> {
-        Type::Borrowed {
-            is_mutable: true,
-            inner: self,
-        }
-    }
-
-    pub fn as_type(self) -> Type<'db> {
-        Type::Value(self)
-    }
-}
-
-impl<'db> From<ValueType<'db>> for Type<'db> {
-    fn from(value: ValueType<'db>) -> Self {
-        Type::Value(value)
-    }
-}
-
-pub trait IntoValueType<'db> {
-    fn into_value_type(self) -> ValueType<'db>;
-}
-
-impl<'db, T: IntoValueType<'db>> From<T> for ValueType<'db> {
-    fn from(value: T) -> Self {
-        value.into_value_type()
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub enum Type<'db> {
-    Value(ValueType<'db>),
-    Borrowed {
-        is_mutable: bool,
-        inner: ValueType<'db>,
-    },
+    Borrowed(BorrowedType<'db>),
 }
 
 impl<'db> Type<'db> {
-    pub fn deborrow(self) -> ValueType<'db> {
+    pub fn display(self, db: &'db dyn Db) -> &'db str {
         match self {
-            Type::Value(value_type) => value_type,
-            Type::Borrowed { inner, .. } => inner,
+            Type::bool => "bool",
+            Type::char => "char",
+            Type::i8 => "i8",
+            Type::u8 => "u8",
+            Type::i16 => "i16",
+            Type::u16 => "u16",
+            Type::i32 => "i32",
+            Type::u32 => "u32",
+            Type::f32 => "f32",
+            Type::f64 => "f64",
+            Type::Str => "str",
+            Type::String => "String",
+            Type::Struct(s) => s.fqn(db),
+            Type::Enum(e) => e.fqn(db),
+            Type::Borrowed(reference) => reference.fqn(db),
+        }
+    }
+
+    pub fn borrowed(self, db: &'db dyn Db) -> Self {
+        Type::Borrowed(BorrowedType::new(db, false, self))
+    }
+
+    pub fn borrowed_mut(self, db: &'db dyn Db) -> Self {
+        Type::Borrowed(BorrowedType::new(db, true, self))
+    }
+
+    /// Removes one reference layer, leaving non-reference types unchanged.
+    pub fn deborrow(self, db: &'db dyn Db) -> Self {
+        match self {
+            Type::Borrowed(reference) => reference.inner(db),
+            type_ => type_,
         }
     }
 }
 
-pub trait IntoType<'db> {
-    fn into_type(self) -> Type<'db>;
+/// Interned indirection keeps recursive reference types cheap to copy.
+#[salsa::interned(debug)]
+pub struct BorrowedType<'db> {
+    pub is_mutable: bool,
+    pub inner: Type<'db>,
 }
 
-impl<'db, T: IntoValueType<'db>> IntoType<'db> for T {
-    fn into_type(self) -> Type<'db> {
-        Type::Value(self.into_value_type())
-    }
-}
-
-impl<'db, T: IntoType<'db>> From<T> for Type<'db> {
-    fn from(value: T) -> Self {
-        value.into_type()
+#[salsa::tracked]
+impl<'db> BorrowedType<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn fqn(self, db: &'db dyn Db) -> String {
+        let mutability = if self.is_mutable(db) { "mut " } else { "" };
+        format!("&{mutability}{}", self.inner(db).display(db))
     }
 }
 

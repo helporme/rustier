@@ -12,7 +12,7 @@ use super::{
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::rust::{Field, FieldName, FieldParent, Span, Struct, Type, ValueType, Variant},
+    ir::rust::{Field, FieldName, FieldParent, Span, Struct, Type, Variant},
 };
 
 #[salsa::tracked]
@@ -44,12 +44,12 @@ impl<'db> Field<'db> {
     }
 
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_value_type(self, db: &'db dyn Db) -> ValueType<'db> {
+    pub(in crate::compiler::ir::rust) fn lower_type(self, db: &'db dyn Db) -> Type<'db> {
         let hir = self.hir(db);
         let type_ = hir.ty(db);
         lower_type(db, &type_, hir.parent_def(db).module(db).krate(db))
             .expect("unsupported fields are discarded while lowering their parent shape")
-            .deborrow()
+            .deborrow(db)
     }
 
     #[salsa::tracked]
@@ -58,8 +58,8 @@ impl<'db> Field<'db> {
         let crate_ = hir.parent_def(db).module(db).krate(db);
         let type_ = hir.ty(db);
         matches!(
-            lower_type(db, &type_, crate_).map(Type::deborrow),
-            Ok(ValueType::Struct(_) | ValueType::Enum(_))
+            lower_type(db, &type_, crate_).map(|type_| type_.deborrow(db)),
+            Ok(Type::Struct(_) | Type::Enum(_))
         ) && !is_clonable(db, &type_, crate_)
     }
 
@@ -104,15 +104,13 @@ pub(super) fn lower_field<'db>(
     }
     let lowered_type = lower_type(db, &type_, crate_)
         .expect("the field type was successfully validated above")
-        .deborrow();
-    if matches!(lowered_type, ValueType::Struct(_) | ValueType::Enum(_))
-        && !is_clonable(db, &type_, crate_)
-    {
+        .deborrow(db);
+    if matches!(lowered_type, Type::Struct(_) | Type::Enum(_)) && !is_clonable(db, &type_, crate_) {
         let span = lower_item_span(db, field);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
         FieldReadonlyError {
             field_name: field_name(db, field).to_string(),
-            field_type_fqn: lowered_type.fqn(db).to_owned(),
+            field_type_fqn: lowered_type.display(db).to_owned(),
             source_code,
             span,
         }

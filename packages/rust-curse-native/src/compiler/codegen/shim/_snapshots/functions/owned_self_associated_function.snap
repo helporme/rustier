@@ -24,16 +24,14 @@ pub fn __fn__associated__test_0crate_Test_owned(
 ) -> napi::Result<bool> {
     Ok(
         cast
-            .from("Rust(Value(bool))")
+            .from("Rust(bool)")
             .to("Shim(bool)")
             .an({
                 let _0 = cast
                     .from(
                         "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
-                    .to(
-                        "Rust(Value(Struct(Struct { hir: Struct { id: StructId(5001) } })))",
-                    )
+                    .to("Rust(Struct(Struct { hir: Struct { id: StructId(5001) } }))")
                     .an(_0);
                 test_crate::Test::owned(_0)
             }),
@@ -49,16 +47,14 @@ pub fn __fn__associated__test_0crate_Test_owned(
 ) -> Result<bool, JsValue> {
     Ok(
         cast
-            .from("Rust(Value(bool))")
+            .from("Rust(bool)")
             .to("Shim(bool)")
             .an({
                 let _0 = cast
                     .from(
                         "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
-                    .to(
-                        "Rust(Value(Struct(Struct { hir: Struct { id: StructId(5001) } })))",
-                    )
+                    .to("Rust(Struct(Struct { hir: Struct { id: StructId(5001) } }))")
                     .an(_0);
                 test_crate::Test::owned(_0)
             }),

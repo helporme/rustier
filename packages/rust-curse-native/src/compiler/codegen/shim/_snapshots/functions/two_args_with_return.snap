@@ -17,14 +17,16 @@ pub fn test_fn(direct: i32, borrowed: &i32) -> i32 {
 pub fn __fn__free__test_0crate_test_0fn(_0: f64, _1: f64) -> napi::Result<f64> {
     Ok(
         cast
-            .from("Rust(Value(i32))")
+            .from("Rust(i32)")
             .to("Shim(f64)")
             .an({
-                let _0 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_0);
+                let _0 = cast.from("Shim(f64)").to("Rust(i32)").an(_0);
                 {
                     let _1 = cast
                         .from("Shim(f64)")
-                        .to("Rust(Borrowed { is_mutable: false, inner: i32 })")
+                        .to(
+                            "Rust(Borrowed(BorrowedType { is_mutable: false, inner: i32 }))",
+                        )
                         .an(_1);
                     test_crate::test_fn(_0, _1)
                 }
@@ -39,14 +41,16 @@ pub fn __fn__free__test_0crate_test_0fn(_0: f64, _1: f64) -> napi::Result<f64> {
 pub fn __fn__free__test_0crate_test_0fn(_0: f64, _1: f64) -> Result<f64, JsValue> {
     Ok(
         cast
-            .from("Rust(Value(i32))")
+            .from("Rust(i32)")
             .to("Shim(f64)")
             .an({
-                let _0 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_0);
+                let _0 = cast.from("Shim(f64)").to("Rust(i32)").an(_0);
                 {
                     let _1 = cast
                         .from("Shim(f64)")
-                        .to("Rust(Borrowed { is_mutable: false, inner: i32 })")
+                        .to(
+                            "Rust(Borrowed(BorrowedType { is_mutable: false, inner: i32 }))",
+                        )
                         .an(_1);
                     test_crate::test_fn(_0, _1)
                 }

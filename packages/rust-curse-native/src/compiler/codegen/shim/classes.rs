@@ -55,7 +55,7 @@ impl<'db> ClassFragment<'db> {
             .map(|field| field.get_tethered_field(self.db, self.platform));
 
         let tethering_struct = TetheringStruct {
-            source_type: self.class.src_value_type(self.db),
+            source_type: self.class.src_type(self.db),
             fields: tethered_fields,
         };
 
@@ -65,10 +65,7 @@ impl<'db> ClassFragment<'db> {
     fn render_struct<'a>(&'a self) -> impl FragmentOnce + 'a {
         let platform = self.platform;
 
-        let tethering_type_name = self
-            .class
-            .src_value_type(self.db)
-            .tethering_struct_name(self.db);
+        let tethering_type_name = self.class.src_type(self.db).tethering_struct_name(self.db);
 
         let symbol = self.class.ffi(self.db).symbol(self.db);
 
@@ -101,12 +98,12 @@ impl<'db> ShimField<'db> {
         };
 
         let src_field = self.src(db);
-        if src_field.value_type(db).uses_tethering() {
+        if src_field._type(db).uses_tethering(db) {
             TetheredField::TetheringStruct(TetheringStructField {
                 name: src_field.mangled_name(db),
                 get_ref_expr: ref_field_expr,
                 get_mut_expr: mut_field_expr,
-                source_type: src_field.value_type(db),
+                source_type: src_field._type(db),
                 with_setter: !src_field.is_readonly(db),
             })
         } else {
@@ -114,7 +111,7 @@ impl<'db> ShimField<'db> {
                 name: src_field.mangled_name(db),
                 get_ref_expr: ref_field_expr,
                 get_mut_expr: mut_field_expr,
-                source_type: src_field.value_type(db),
+                source_type: src_field._type(db),
             })
         }
     }

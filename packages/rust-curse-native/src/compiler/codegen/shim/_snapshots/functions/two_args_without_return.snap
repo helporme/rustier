@@ -14,11 +14,11 @@ pub fn test_fn(_direct: i32, _borrowed: &i32) {}
 #[napi(js_name = "__fn__free__test_0crate_test_0fn")]
 pub fn __fn__free__test_0crate_test_0fn(_0: f64, _1: f64) -> napi::Result<()> {
     {
-        let _0 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_0);
+        let _0 = cast.from("Shim(f64)").to("Rust(i32)").an(_0);
         {
             let _1 = cast
                 .from("Shim(f64)")
-                .to("Rust(Borrowed { is_mutable: false, inner: i32 })")
+                .to("Rust(Borrowed(BorrowedType { is_mutable: false, inner: i32 }))")
                 .an(_1);
             test_crate::test_fn(_0, _1)
         }
@@ -32,11 +32,11 @@ pub fn __fn__free__test_0crate_test_0fn(_0: f64, _1: f64) -> napi::Result<()> {
 #[wasm_bindgen(js_name = "__fn__free__test_0crate_test_0fn")]
 pub fn __fn__free__test_0crate_test_0fn(_0: f64, _1: f64) -> Result<(), JsValue> {
     {
-        let _0 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_0);
+        let _0 = cast.from("Shim(f64)").to("Rust(i32)").an(_0);
         {
             let _1 = cast
                 .from("Shim(f64)")
-                .to("Rust(Borrowed { is_mutable: false, inner: i32 })")
+                .to("Rust(Borrowed(BorrowedType { is_mutable: false, inner: i32 }))")
                 .an(_1);
             test_crate::test_fn(_0, _1)
         }

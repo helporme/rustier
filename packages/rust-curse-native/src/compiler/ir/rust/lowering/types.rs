@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use crate::compiler::{
     db::Db,
-    ir::rust::{Enum, Struct, Type, ValueType},
+    ir::rust::{BorrowedType, Enum, Struct, Type},
 };
 
 pub(super) fn lower_type<'db>(
@@ -16,32 +16,34 @@ pub(super) fn lower_type<'db>(
     crate_: ra_ap_hir::Crate,
 ) -> Result<Type<'db>, TypeLowerErrorUnsupported> {
     if let Some((inner, mutability)) = type_.as_reference() {
-        let Type::Value(inner) = lower_type(db, &inner, crate_)? else {
+        let inner = lower_type(db, &inner, crate_)?;
+        if matches!(inner, Type::Borrowed(_)) {
             return Err(TypeLowerErrorUnsupported::DoubleReference);
-        };
-        return Ok(Type::Borrowed {
-            is_mutable: mutability == Mutability::Mut,
+        }
+        return Ok(Type::Borrowed(BorrowedType::new(
+            db,
+            mutability == Mutability::Mut,
             inner,
-        });
+        )));
     }
 
     if let Some(builtin) = type_.as_builtin() {
         let name = builtin.name().display(db, crate_.edition(db)).to_string();
         let value = match name.as_str() {
-            "bool" => ValueType::bool,
-            "char" => ValueType::char,
-            "str" => ValueType::Str,
-            "i8" => ValueType::i8,
-            "u8" => ValueType::u8,
-            "i16" => ValueType::i16,
-            "u16" => ValueType::u16,
-            "i32" => ValueType::i32,
-            "u32" => ValueType::u32,
-            "f32" => ValueType::f32,
-            "f64" => ValueType::f64,
+            "bool" => Type::bool,
+            "char" => Type::char,
+            "str" => Type::Str,
+            "i8" => Type::i8,
+            "u8" => Type::u8,
+            "i16" => Type::i16,
+            "u16" => Type::u16,
+            "i32" => Type::i32,
+            "u32" => Type::u32,
+            "f32" => Type::f32,
+            "f64" => Type::f64,
             _ => return Err(TypeLowerErrorUnsupported::Primitive { name }),
         };
-        return Ok(Type::Value(value));
+        return Ok(value);
     }
 
     let Some(adt) = type_.as_adt() else {
@@ -60,13 +62,13 @@ pub(super) fn lower_type<'db>(
                     .collect::<Vec<_>>()
                     .ends_with(&["string".to_owned()]) =>
         {
-            ValueType::String
+            Type::String
         }
-        Adt::Struct(struct_) => ValueType::Struct(Struct::new(db, struct_)),
-        Adt::Enum(enum_) => ValueType::Enum(Enum::new(db, enum_)),
+        Adt::Struct(struct_) => Type::Struct(Struct::new(db, struct_)),
+        Adt::Enum(enum_) => Type::Enum(Enum::new(db, enum_)),
         Adt::Union(_) => return Err(unsupported_type(db, type_, crate_)),
     };
-    Ok(Type::Value(value))
+    Ok(value)
 }
 
 pub(super) fn is_clonable(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::Crate) -> bool {

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Enum, Function, FunctionParent, Impl, Member, Module, ModuleParent, Rust, Struct, ValueType,
+        Enum, Function, FunctionParent, Impl, Member, Module, ModuleParent, Rust, Struct, Type,
     },
 };
 
@@ -113,10 +113,10 @@ impl<'db> Visitor<'db> {
         }
 
         for param in function.params(self.db) {
-            self.visit_value_type(param.type_(self.db).deborrow());
+            self.visit_type(*param.type_(self.db));
         }
         if let Some(ret_type) = function.ret_type(self.db) {
-            self.visit_value_type(ret_type);
+            self.visit_type(ret_type);
         }
     }
 
@@ -128,7 +128,7 @@ impl<'db> Visitor<'db> {
         self.add_parent_chain(struct_.module(self.db));
 
         for field in struct_.fields(self.db) {
-            self.visit_value_type(field.value_type(self.db));
+            self.visit_type(field._type(self.db));
         }
         for impl_ in struct_.impls(self.db) {
             self.visit_impl(*impl_);
@@ -143,7 +143,7 @@ impl<'db> Visitor<'db> {
         self.add_parent_chain(enum_.module(self.db));
 
         for field in enum_.fields(self.db) {
-            self.visit_value_type(field.value_type(self.db));
+            self.visit_type(field._type(self.db));
         }
         for impl_ in enum_.impls(self.db) {
             self.visit_impl(*impl_);
@@ -156,10 +156,11 @@ impl<'db> Visitor<'db> {
         }
     }
 
-    fn visit_value_type(&mut self, value_type: ValueType<'db>) {
-        match value_type {
-            ValueType::Struct(struct_) => self.visit_struct(struct_),
-            ValueType::Enum(enum_) => self.visit_enum(enum_),
+    fn visit_type(&mut self, type_: Type<'db>) {
+        match type_ {
+            Type::Struct(struct_) => self.visit_struct(struct_),
+            Type::Enum(enum_) => self.visit_enum(enum_),
+            Type::Borrowed(reference) => self.visit_type(reference.inner(self.db)),
             _ => {}
         }
     }

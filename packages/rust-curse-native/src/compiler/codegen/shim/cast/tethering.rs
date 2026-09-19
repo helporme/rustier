@@ -35,8 +35,7 @@ where
     InExpr: FragmentOnce + 'db,
 {
     assert_eq!(
-        source,
-        Type::Value(target.source_type),
+        source, target.source_type,
         "source and tethering cast types must refer to the same value type",
     );
     let tethering_struct_name = target.source_type.tethering_struct_name(db);
@@ -46,7 +45,7 @@ where
 }
 
 pub fn render_tethered_to_type<'db, InExpr, OutVar, Continue>(
-    _db: &'db dyn Db,
+    db: &'db dyn Db,
     source: TetheringStructType<'db>,
     target: Type<'db>,
     in_expr: InExpr,
@@ -59,16 +58,12 @@ where
 {
     assert_eq!(
         source.source_type,
-        target.deborrow(),
+        target.deborrow(db),
         "tethering and target cast types must refer to the same value type",
     );
 
     fragment(move |printer| match target {
-        Type::Value(_) => {
-            let expr = frag!({ in_expr }.access(|value| Ok(value.clone()))?);
-            adapt_to_cast_output(expr, output).apply(printer);
-        }
-        Type::Borrowed { is_mutable, .. } => match output {
+        Type::Borrowed(borrowed) => match output {
             CastOutput::Expression => {
                 unreachable!(
                     "a value borrowed through tethering access cannot escape as an expression"
@@ -78,7 +73,7 @@ where
                 out_var_name,
                 continue_with,
             } => {
-                if is_mutable {
+                if borrowed.is_mutable(db) {
                     frag!(
                         {in_expr}.access_mut(|value| Ok({{
                             let ~{out_var_name}~ = value;
@@ -97,5 +92,9 @@ where
                 }
             }
         },
+        _ => {
+            let expr = frag!({ in_expr }.access(|value| Ok(value.clone()))?);
+            adapt_to_cast_output(expr, output).apply(printer);
+        }
     })
 }

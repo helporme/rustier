@@ -12,9 +12,7 @@ use super::{
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::rust::{
-        AsItem as _, Function, FunctionParent, Impl, Module, Param, Receiver, Span, Type, ValueType,
-    },
+    ir::rust::{AsItem as _, Function, FunctionParent, Impl, Module, Param, Receiver, Span, Type},
 };
 
 #[salsa::tracked]
@@ -81,7 +79,7 @@ impl<'db> Function<'db> {
     pub(in crate::compiler::ir::rust) fn lower_ret_type(
         self,
         db: &'db dyn Db,
-    ) -> Option<ValueType<'db>> {
+    ) -> Option<Type<'db>> {
         let hir = self.hir(db);
         let type_ = hir.ret_type(db);
         if type_.is_unit() {
@@ -90,10 +88,10 @@ impl<'db> Function<'db> {
         match lower_type(db, &type_, hir.module(db).krate(db))
             .expect("functions with unsupported return types are not lowered")
         {
-            Type::Value(type_) => Some(type_),
-            Type::Borrowed { .. } => {
+            Type::Borrowed(_) => {
                 unreachable!("functions returning borrowed values are not lowered")
             }
+            type_ => Some(type_),
         }
     }
 
@@ -157,15 +155,13 @@ pub(super) fn lower_function<'db>(
     {
         let receiver_type = receiver.ty(db);
         match lower_type(db, &receiver_type, crate_) {
-            Ok(Type::Value(ValueType::Struct(struct_)))
-                if !is_clonable(db, &receiver_type, crate_) =>
-            {
+            Ok(Type::Struct(struct_)) if !is_clonable(db, &receiver_type, crate_) => {
                 causes.push(FunctionLowerCause::NonClonableMovedParam {
                     name: "self".to_owned(),
                     type_fqn: struct_.fqn(db).to_owned(),
                 });
             }
-            Ok(Type::Value(ValueType::Enum(enum_))) if !is_clonable(db, &receiver_type, crate_) => {
+            Ok(Type::Enum(enum_)) if !is_clonable(db, &receiver_type, crate_) => {
                 causes.push(FunctionLowerCause::NonClonableMovedParam {
                     name: "self".to_owned(),
                     type_fqn: enum_.fqn(db).to_owned(),
@@ -185,34 +181,36 @@ pub(super) fn lower_function<'db>(
                 name,
                 causes: vec![error],
             }),
-            Ok(Type::Value(ValueType::Struct(struct_))) if !is_clonable(db, param.ty(), crate_) => {
+            Ok(Type::Struct(struct_)) if !is_clonable(db, param.ty(), crate_) => {
                 causes.push(FunctionLowerCause::NonClonableMovedParam {
                     name,
                     type_fqn: struct_.fqn(db).to_owned(),
                 });
             }
-            Ok(Type::Value(ValueType::Enum(enum_))) if !is_clonable(db, param.ty(), crate_) => {
+            Ok(Type::Enum(enum_)) if !is_clonable(db, param.ty(), crate_) => {
                 causes.push(FunctionLowerCause::NonClonableMovedParam {
                     name,
                     type_fqn: enum_.fqn(db).to_owned(),
                 });
             }
-            Ok(Type::Borrowed {
-                is_mutable: true,
-                inner:
-                    ValueType::bool
-                    | ValueType::char
-                    | ValueType::i8
-                    | ValueType::u8
-                    | ValueType::i16
-                    | ValueType::u16
-                    | ValueType::i32
-                    | ValueType::u32
-                    | ValueType::f32
-                    | ValueType::f64
-                    | ValueType::Str
-                    | ValueType::String,
-            }) => {
+            Ok(Type::Borrowed(reference))
+                if reference.is_mutable(db)
+                    && matches!(
+                        reference.inner(db),
+                        Type::bool
+                            | Type::char
+                            | Type::i8
+                            | Type::u8
+                            | Type::i16
+                            | Type::u16
+                            | Type::i32
+                            | Type::u32
+                            | Type::f32
+                            | Type::f64
+                            | Type::Str
+                            | Type::String
+                    ) =>
+            {
                 let span = lower_item_span(db, hir);
                 let (source_code, span) = diagnostic_location(db, span.as_ref());
                 MutableReferenceIgnored {
@@ -229,9 +227,9 @@ pub(super) fn lower_function<'db>(
     let return_type = hir.ret_type(db);
     if !return_type.is_unit() {
         match lower_type(db, &return_type, crate_) {
-            Ok(Type::Borrowed { .. }) => causes.push(FunctionLowerCause::BorrowedReturn),
+            Ok(Type::Borrowed(_)) => causes.push(FunctionLowerCause::BorrowedReturn),
             Err(error) => causes.push(FunctionLowerCause::Type(error)),
-            Ok(Type::Value(_)) => {}
+            Ok(_) => {}
         }
     }
 

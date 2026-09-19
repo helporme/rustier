@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::rust::{Enum, Function, Span, Struct, ValueType},
+    ir::rust::{Enum, Function, Span, Struct, Type},
 };
 
 #[salsa::tracked]
@@ -14,8 +14,8 @@ impl<'db> Function<'db> {
         let f32_param = self
             .params(db)
             .iter()
-            .find(|param| param.type_(db).deborrow() == ValueType::f32);
-        let has_f32_return = self.ret_type(db) == Some(ValueType::f32);
+            .find(|param| param.type_(db).deborrow(db) == Type::f32);
+        let has_f32_return = self.ret_type(db) == Some(Type::f32);
 
         if let Some(param) = f32_param {
             emit(db, param.span(db).as_ref());
@@ -29,9 +29,7 @@ impl<'db> Function<'db> {
 impl<'db> Struct<'db> {
     #[salsa::tracked]
     pub(super) fn check_f32_precision_loss(self, db: &'db dyn Db) {
-        let f32_field = self
-            .fields(db)
-            .find(|field| field.value_type(db) == ValueType::f32);
+        let f32_field = self.fields(db).find(|field| field._type(db) == Type::f32);
 
         if let Some(field) = f32_field {
             emit(db, field.span(db));
@@ -46,7 +44,7 @@ impl<'db> Enum<'db> {
         let has_f32_field = self
             .fields(db)
             .iter()
-            .any(|field| field.value_type(db) == ValueType::f32);
+            .any(|field| field._type(db) == Type::f32);
 
         if has_f32_field {
             emit(db, self.span(db));

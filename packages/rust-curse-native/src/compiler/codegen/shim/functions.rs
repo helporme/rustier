@@ -14,7 +14,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        rust::{AsItem as _, Function, Shape, Type, ValueType},
+        rust::{AsItem as _, Function, Shape, Type},
         shim::{
             ShimFunction, ShimFunctionDiscriminatedCoerce, ShimFunctionDiscriminator,
             ShimFunctionGetter, ShimFunctionPlainCoerce, ShimFunctionSetter,
@@ -76,7 +76,7 @@ where
                     ShimFunction::from(coerce),
                     src.fqn(db),
                     src.shape(db),
-                    ValueType::Struct(src),
+                    Type::Struct(src),
                 )
             }
             Either::Right(coerce) => {
@@ -85,7 +85,7 @@ where
                     ShimFunction::from(coerce),
                     src.fqn(db),
                     src.shape(db),
-                    ValueType::Enum(src.parent(db)),
+                    Type::Enum(src.parent(db)),
                 )
             }
         };
@@ -113,7 +113,7 @@ where
         let value = self.cast_compiler.render_many(db, casts, value);
         let result = self.cast_compiler.render_expr(
             db,
-            Type::Value(source_type),
+            source_type,
             function
                 .ret_type(db)
                 .expect("coerce methods return a class"),
@@ -241,7 +241,7 @@ where
 
                     let casted_result_expr = self.cast_compiler.render_expr(
                         self.db,
-                        Type::from(src_ret_type),
+                        src_ret_type,
                         shim_ret_type,
                         result_expr,
                     );
@@ -271,7 +271,7 @@ where
             self.db,
             class_param.type_(self.db),
             TetheringStructType {
-                source_type: class_param.src_type(self.db).deborrow(),
+                source_type: class_param.src_type(self.db).deborrow(self.db),
             },
             frag!(_0),
         );
@@ -289,7 +289,7 @@ where
                     .render_expr(
                         self.db,
                         TetheringStructType {
-                            source_type: getter.src(self.db).value_type(self.db),
+                            source_type: getter.src(self.db)._type(self.db),
                         },
                         ret_type,
                         field_tethering_value_expr,
@@ -299,7 +299,7 @@ where
                 self.cast_compiler
                     .render_expr(
                         self.db,
-                        Type::from(getter.src(self.db).value_type(self.db)),
+                        getter.src(self.db)._type(self.db),
                         ret_type,
                         field_tethering_value_expr,
                     )
@@ -316,7 +316,7 @@ where
             self.db,
             class_param.type_(self.db),
             TetheringStructType {
-                source_type: class_param.src_type(self.db).deborrow(),
+                source_type: class_param.src_type(self.db).deborrow(self.db),
             },
             frag!(_0),
         );
@@ -331,7 +331,7 @@ where
             self.db,
             Cast {
                 from: value_param.type_(self.db),
-                to: Type::Value(setter.src(self.db).value_type(self.db)),
+                to: setter.src(self.db)._type(self.db),
                 in_expr: frag!(_1),
                 out_var_name: frag!(value),
             },

@@ -20,7 +20,7 @@ pub fn __fn__getter__test_0crate_Test__field(
 ) -> napi::Result<f64> {
     Ok(
         cast
-            .from("Rust(Value(i32))")
+            .from("Rust(i32)")
             .to("Shim(f64)")
             .an(
                 cast
@@ -45,7 +45,7 @@ pub fn __fn__getter__test_0crate_Test__field(
 ) -> Result<f64, JsValue> {
     Ok(
         cast
-            .from("Rust(Value(i32))")
+            .from("Rust(i32)")
             .to("Shim(f64)")
             .an(
                 cast

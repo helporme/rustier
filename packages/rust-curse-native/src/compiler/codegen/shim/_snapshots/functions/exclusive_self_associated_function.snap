@@ -28,11 +28,11 @@ pub fn __fn__associated__test_0crate_Test_exclusive(
                 "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .to(
-                "Rust(Borrowed { is_mutable: true, inner: Struct(Struct { hir: Struct { id: StructId(5001) } }) })",
+                "Rust(Borrowed(BorrowedType { is_mutable: true, inner: Struct(Struct { hir: Struct { id: StructId(5001) } }) }))",
             )
             .an(_0);
         {
-            let _1 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_1);
+            let _1 = cast.from("Shim(f64)").to("Rust(i32)").an(_1);
             test_crate::Test::exclusive(_0, _1)
         }
     };
@@ -53,11 +53,11 @@ pub fn __fn__associated__test_0crate_Test_exclusive(
                 "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .to(
-                "Rust(Borrowed { is_mutable: true, inner: Struct(Struct { hir: Struct { id: StructId(5001) } }) })",
+                "Rust(Borrowed(BorrowedType { is_mutable: true, inner: Struct(Struct { hir: Struct { id: StructId(5001) } }) }))",
             )
             .an(_0);
         {
-            let _1 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_1);
+            let _1 = cast.from("Shim(f64)").to("Rust(i32)").an(_1);
             test_crate::Test::exclusive(_0, _1)
         }
     };

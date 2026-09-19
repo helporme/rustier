@@ -1,5 +1,6 @@
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, frag, fragment},
+    db::Db,
     ir::rust::Type,
 };
 
@@ -7,6 +8,7 @@ use super::CastOutput;
 
 /// Renders a cast statement from owned T to borrowed &T / &mut T
 pub fn render_owned_to_borrowed<'db, InExpr, OutVar, Continue>(
+    db: &'db dyn Db,
     target: Type<'db>,
     in_expr: InExpr,
     output: CastOutput<OutVar, Continue>,
@@ -17,7 +19,7 @@ where
     Continue: FragmentOnce + 'db,
 {
     fragment(move |printer| {
-        let Type::Borrowed { is_mutable, .. } = target else {
+        let Type::Borrowed(borrowed) = target else {
             unreachable!();
         };
 
@@ -29,7 +31,7 @@ where
                 out_var_name,
                 continue_with,
             } => {
-                let borrow = if is_mutable {
+                let borrow = if borrowed.is_mutable(db) {
                     frag!(&mut __cast_owned_value)
                 } else {
                     frag!(&__cast_owned_value)

@@ -24,12 +24,12 @@ pub fn __fn__associated__test_0crate_Test_create(
 ) -> napi::Result<__plain__test_0crate_Test> {
     Ok(
         cast
-            .from("Rust(Value(Struct(Struct { hir: Struct { id: StructId(5001) } })))")
+            .from("Rust(Struct(Struct { hir: Struct { id: StructId(5001) } }))")
             .to(
                 "Shim(Class { is_borrowed: false, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .an({
-                let _0 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_0);
+                let _0 = cast.from("Shim(f64)").to("Rust(i32)").an(_0);
                 test_crate::Test::create(_0)
             }),
     )
@@ -44,12 +44,12 @@ pub fn __fn__associated__test_0crate_Test_create(
 ) -> Result<__plain__test_0crate_Test, JsValue> {
     Ok(
         cast
-            .from("Rust(Value(Struct(Struct { hir: Struct { id: StructId(5001) } })))")
+            .from("Rust(Struct(Struct { hir: Struct { id: StructId(5001) } }))")
             .to(
                 "Shim(Class { is_borrowed: false, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .an({
-                let _0 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_0);
+                let _0 = cast.from("Shim(f64)").to("Rust(i32)").an(_0);
                 test_crate::Test::create(_0)
             }),
     )

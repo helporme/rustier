@@ -5,7 +5,7 @@ use crate::compiler::{
     db::Db,
     diag::Diag,
     ir::{
-        rust::ValueType,
+        rust::Type,
         shim::{Shim, ShimMember, ShimModule},
     },
 };
@@ -34,12 +34,12 @@ fn accumulate_checks<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
             ShimMember::Class(class) => {
                 coerce_name_collisions::check(db, class);
                 coerce_requires_clone::check(db, class);
-                match class.src_value_type(db) {
-                    ValueType::Struct(struct_) => {
+                match class.src_type(db) {
+                    Type::Struct(struct_) => {
                         struct_.check_f32_precision_loss(db);
                         struct_.check_method_field_collisions(db);
                     }
-                    ValueType::Enum(enum_) => {
+                    Type::Enum(enum_) => {
                         enum_.check_f32_precision_loss(db);
                         enum_.check_js_name_collisions(db);
                         enum_.check_method_field_collisions(db);

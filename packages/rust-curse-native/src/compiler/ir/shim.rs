@@ -18,8 +18,8 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Crate, Enum, Field, FieldName, FieldParent, Function, FunctionParent, IntoValueType,
-        Module, ModuleParent, Receiver, Rust, Struct, Type, ValueType, Variant, usages::UsageGraph,
+        Crate, Enum, Field, FieldName, FieldParent, Function, FunctionParent, Module, ModuleParent,
+        Receiver, Rust, Struct, Type, Variant, usages::UsageGraph,
     },
 };
 
@@ -211,11 +211,11 @@ impl<'db> ShimClass<'db> {
         }
     }
 
-    /// The source value type of this class.
-    pub fn src_value_type(self, db: &'db dyn Db) -> ValueType<'db> {
+    /// The source type of this class.
+    pub fn src_type(self, db: &'db dyn Db) -> Type<'db> {
         match self {
-            ShimClass::Plain(p) => p.src(db).into_value_type(),
-            ShimClass::Discriminated(d) => d.src(db).into_value_type(),
+            ShimClass::Plain(p) => p.src(db).into(),
+            ShimClass::Discriminated(d) => d.src(db).into(),
         }
     }
 
@@ -530,9 +530,7 @@ impl<'db> ShimFunctionFree<'db> {
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<ShimType<'db>> {
-        self.src(db)
-            .ret_type(db)
-            .map(|ret| ret.as_type().shim_out(db))
+        self.src(db).ret_type(db).map(|ret| ret.shim_out(db))
     }
 
     #[salsa::tracked(returns(ref))]
@@ -589,19 +587,17 @@ impl<'db> ShimFunctionAssociated<'db> {
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<ShimType<'db>> {
-        self.src(db)
-            .ret_type(db)
-            .map(|ret| ret.as_type().shim_out(db))
+        self.src(db).ret_type(db).map(|ret| ret.shim_out(db))
     }
 
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> Vec<ShimParam<'db>> {
         if let Some(receiver) = self.src(db).receiver(db) {
-            let value_type = self.self_class(db).src_value_type(db);
+            let type_ = self.self_class(db).src_type(db);
             let src_type = match receiver {
-                Receiver::Shared => value_type.borrowed(),
-                Receiver::Exclusive => value_type.borrowed_mut(),
-                Receiver::Owned => value_type.as_type(),
+                Receiver::Shared => type_.borrowed(db),
+                Receiver::Exclusive => type_.borrowed_mut(db),
+                Receiver::Owned => type_,
             };
 
             std::iter::once(ShimParam::new(
@@ -677,7 +673,7 @@ impl<'db> ShimFunctionGetter<'db> {
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> ShimType<'db> {
-        self.src(db).value_type(db).as_type().shim_out(db)
+        self.src(db)._type(db).shim_out(db)
     }
 
     #[salsa::tracked(returns(ref))]
@@ -691,7 +687,7 @@ impl<'db> ShimFunctionGetter<'db> {
             is_borrowed: true,
             inner: class,
         };
-        let class_src_type = class.src_value_type(db).as_type();
+        let class_src_type = class.src_type(db);
 
         [ShimParam::new(
             db,
@@ -738,8 +734,8 @@ impl<'db> ShimFunctionSetter<'db> {
             is_borrowed: true,
             inner: class,
         };
-        let class_src_type = class.src_value_type(db).into();
-        let value_src_type = field.value_type(db).as_type();
+        let class_src_type = class.src_type(db);
+        let value_src_type = field._type(db);
         let value_shim_type = value_src_type.shim_in(db);
         let function = self.into();
 
@@ -778,7 +774,7 @@ impl<'db> ShimFunctionDiscriminator<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> [ShimParam<'db>; 1] {
-        let src_type = Type::from(ValueType::from(self.src(db)));
+        let src_type = Type::from(self.src(db));
 
         [ShimParam::new(
             db,
@@ -822,10 +818,10 @@ impl<'db> ShimFunctionPlainCoerce<'db> {
             .fields(db)
             .enumerate()
             .map(move |(idx, field)| {
-                let value_type = field.value_type(db).as_type();
+                let type_ = field._type(db);
                 (
                     field.name(db).clone(),
-                    ShimParam::new(db, self.into(), idx, value_type, value_type.shim_in(db)),
+                    ShimParam::new(db, self.into(), idx, type_, type_.shim_in(db)),
                 )
             })
             .collect()
@@ -871,10 +867,10 @@ impl<'db> ShimFunctionDiscriminatedCoerce<'db> {
             .fields(db)
             .enumerate()
             .map(move |(idx, field)| {
-                let value_type = field.value_type(db).as_type();
+                let type_ = field._type(db);
                 (
                     field.name(db).clone(),
-                    ShimParam::new(db, self.into(), idx, value_type, value_type.shim_in(db)),
+                    ShimParam::new(db, self.into(), idx, type_, type_.shim_in(db)),
                 )
             })
             .collect()

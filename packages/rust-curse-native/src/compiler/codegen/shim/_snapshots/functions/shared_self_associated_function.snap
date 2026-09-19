@@ -24,7 +24,7 @@ pub fn __fn__associated__test_0crate_Test_shared(
 ) -> napi::Result<f64> {
     Ok(
         cast
-            .from("Rust(Value(i32))")
+            .from("Rust(i32)")
             .to("Shim(f64)")
             .an({
                 let _0 = cast
@@ -32,11 +32,11 @@ pub fn __fn__associated__test_0crate_Test_shared(
                         "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
                     .to(
-                        "Rust(Borrowed { is_mutable: false, inner: Struct(Struct { hir: Struct { id: StructId(5001) } }) })",
+                        "Rust(Borrowed(BorrowedType { is_mutable: false, inner: Struct(Struct { hir: Struct { id: StructId(5001) } }) }))",
                     )
                     .an(_0);
                 {
-                    let _1 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_1);
+                    let _1 = cast.from("Shim(f64)").to("Rust(i32)").an(_1);
                     test_crate::Test::shared(_0, _1)
                 }
             }),
@@ -53,7 +53,7 @@ pub fn __fn__associated__test_0crate_Test_shared(
 ) -> Result<f64, JsValue> {
     Ok(
         cast
-            .from("Rust(Value(i32))")
+            .from("Rust(i32)")
             .to("Shim(f64)")
             .an({
                 let _0 = cast
@@ -61,11 +61,11 @@ pub fn __fn__associated__test_0crate_Test_shared(
                         "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
                     .to(
-                        "Rust(Borrowed { is_mutable: false, inner: Struct(Struct { hir: Struct { id: StructId(5001) } }) })",
+                        "Rust(Borrowed(BorrowedType { is_mutable: false, inner: Struct(Struct { hir: Struct { id: StructId(5001) } }) }))",
                     )
                     .an(_0);
                 {
-                    let _1 = cast.from("Shim(f64)").to("Rust(Value(i32))").an(_1);
+                    let _1 = cast.from("Shim(f64)").to("Rust(i32)").an(_1);
                     test_crate::Test::shared(_0, _1)
                 }
             }),
