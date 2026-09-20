@@ -87,15 +87,18 @@ impl Server {
     pub fn change(&mut self, change: ServerChange) -> ServerChangeResult {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
         tracing::debug!(path = %change.file_path, "Updating Rust source");
-        (|| -> Result<(), ServerDiagnostic> {
-            self.ws
+        (|| -> Result<bool, ServerDiagnostic> {
+            let changed = self
+                .ws
                 .change(change.into())
                 .map_err(ServerDiagnostic::from)?;
 
-            self.ws
-                .with_db(|db| self.ws.project().ts().sync(db).exec(db))
-                .map_err(ServerDiagnostic::from)?;
-            Ok(())
+            if changed {
+                self.ws
+                    .with_db(|db| self.ws.project().ts().sync(db).exec(db))
+                    .map_err(ServerDiagnostic::from)?;
+            }
+            Ok(changed)
         })()
         .into()
     }
@@ -123,7 +126,7 @@ impl Server {
 
         let _span = tracing::info_span!("Rust build", platform = platform_label, profile).entered();
 
-        let result = (|| -> Result<Vec<String>, ProjectError> {
+        let result = (|| -> Result<ServerBuildOutput, ProjectError> {
             let project = self.ws.project();
             {
                 let _span = tracing::info_span!(parent: None, "TypeScript declaration generation")
@@ -154,17 +157,16 @@ impl Server {
                         .to_owned()
                 })
             };
-            Ok(vec![bin_path])
+            Ok(ServerBuildOutput {
+                bin_paths: vec![bin_path],
+            })
         })();
 
         if let Err(error) = &result {
             tracing::error!(%error, "Rust build failed");
         }
 
-        result
-            .map(|bin_paths| ServerBuildOutput { bin_paths })
-            .map_err(ServerDiagnostic::from)
-            .into()
+        result.map_err(ServerDiagnostic::from).into()
     }
 
     #[napi]
@@ -284,7 +286,7 @@ macro_rules! server_result {
 }
 
 server_result!(ServerCreateResult, Server);
-server_result!(ServerChangeResult, ());
+server_result!(ServerChangeResult, bool);
 server_result!(ServerBuildResult, ServerBuildOutput);
 
 #[napi]

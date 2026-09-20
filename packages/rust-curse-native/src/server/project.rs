@@ -315,7 +315,7 @@ impl CursedCrateBuild {
             *file = copy_artifact(file.as_path(), &destination)?;
         }
 
-        let (ffi_js_file, bin_file) = match self.platform {
+        let (ffi_js_file, bin_file): (FilePath, FilePath) = match self.platform {
             Platform::Node => {
                 let name = self
                     .node_target
@@ -333,7 +333,7 @@ impl CursedCrateBuild {
                     output_dir: &artifact_dir,
                     target: match target {
                         WasmEnv::Web => WasmBindgenTarget::Web,
-                        WasmEnv::Node => WasmBindgenTarget::NodeJs,
+                        WasmEnv::Node => WasmBindgenTarget::NodeJsModule,
                     },
                 }
                 .exec(toolchain)?;

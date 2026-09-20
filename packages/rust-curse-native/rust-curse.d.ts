@@ -37,7 +37,7 @@ export interface ServerChange {
 }
 
 export type ServerChangeResult =
-  | { type: 'Ok', value: undefined }
+  | { type: 'Ok', value: boolean }
   | { type: 'Err', error: ServerDiagnostic }
 
 export type ServerCreateResult =

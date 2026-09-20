@@ -129,8 +129,8 @@ impl Toolchain {
 pub enum WasmBindgenTarget {
     /// Browser ES modules initialized by the caller.
     Web,
-    /// Node.js CommonJS bindings.
-    NodeJs,
+    /// Node.js ES modules with filesystem-based WebAssembly loading.
+    NodeJsModule,
 }
 
 /// Generate JavaScript bindings from an already compiled WebAssembly artifact.
@@ -169,7 +169,7 @@ impl WasmBindgenCommand<'_> {
             .arg("--target")
             .arg(match self.target {
                 WasmBindgenTarget::Web => "web",
-                WasmBindgenTarget::NodeJs => "nodejs",
+                WasmBindgenTarget::NodeJsModule => "experimental-nodejs-module",
             });
         run(&mut command)?;
         Ok(WasmBindgenOutput {

@@ -93,13 +93,15 @@ impl ServerWorkspace {
         let root_file = root.as_path().to_owned();
         let package_name = cargo[package].name.clone();
 
-        let (mut db, vfs, _) = load_workspace(hir_ws, &cargo_config.extra_env, &load_config)
+        let (mut db, mut vfs, _) = load_workspace(hir_ws, &cargo_config.extra_env, &load_config)
             .map_err(|source| WorkspaceError::Database {
                 path: manifest_path.clone(),
                 source,
             })?;
 
         LocalCrates::set(&mut db, [root]);
+        // Initial loading already applied these changes to the database.
+        vfs.take_changes();
 
         Ok(Self {
             manifest_path,
@@ -113,7 +115,7 @@ impl ServerWorkspace {
     /// Applies Rust source changes and reloads on Cargo manifest or lockfile
     /// changes. All other files are ignored. Returns `true` if the workspace
     /// was changed, `false` otherwise.
-    pub fn change(&mut self, change: WorkspaceChange) -> Result<(), WorkspaceError> {
+    pub fn change(&mut self, change: WorkspaceChange) -> Result<bool, WorkspaceError> {
         let path = Path::new(&change.file_path);
         if matches!(
             path.file_name().and_then(|name| name.to_str()),
@@ -126,11 +128,11 @@ impl ServerWorkspace {
                 }
             })?;
             *self = workspace;
-            return Ok(());
+            return Ok(true);
         }
 
         if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
-            return Ok(());
+            return Ok(false);
         }
 
         self.vfs.set_file_contents(
@@ -160,7 +162,7 @@ impl ServerWorkspace {
             self.db.apply_change(analysis_change);
         }
 
-        Ok(())
+        Ok(changed)
     }
 
     pub fn project(&self) -> Project<'_> {
