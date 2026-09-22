@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
+assertion_line: 698
 expression: snapshot
 ---
 # Source
@@ -27,11 +28,16 @@ pub fn __fn__associated__10_test_crate__4_Test__9_exclusive(
                 "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .to(
-                "Rust(Borrowed(BorrowedType { is_mutable: true, inner: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }), lifetime: None }))",
+                "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(6c01)) }) })",
             )
             .an(_0);
         {
-            let _1 = cast.from("Shim(f64)").to("Rust(i32)").an(_1);
+            let _1 = cast
+                .from("Shim(f64)")
+                .to(
+                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(6c01)) }, index: 0 } })",
+                )
+                .an(_1);
             test_crate::Test::exclusive(_0, _1)
         }
     };
@@ -52,11 +58,16 @@ pub fn __fn__associated__10_test_crate__4_Test__9_exclusive(
                 "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .to(
-                "Rust(Borrowed(BorrowedType { is_mutable: true, inner: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }), lifetime: None }))",
+                "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(6c01)) }) })",
             )
             .an(_0);
         {
-            let _1 = cast.from("Shim(f64)").to("Rust(i32)").an(_1);
+            let _1 = cast
+                .from("Shim(f64)")
+                .to(
+                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(6c01)) }, index: 0 } })",
+                )
+                .an(_1);
             test_crate::Test::exclusive(_0, _1)
         }
     };

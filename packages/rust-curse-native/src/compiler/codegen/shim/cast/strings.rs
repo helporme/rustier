@@ -1,7 +1,7 @@
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, frag, fragment},
     db::Db,
-    ir::rust::Type,
+    ir::rust::{Type, TypeKind},
 };
 
 use super::{CastOutput, adapt_to_cast_output, borrowing::render_owned_to_borrowed};
@@ -17,37 +17,39 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    fragment(move |printer| match target {
-        Type::String => {
+    fragment(move |printer| match target.kind(db) {
+        TypeKind::String => {
             adapt_to_cast_output(in_expr, output).apply(printer);
         }
-        Type::Borrowed(borrowed) if borrowed.inner(db) == Type::String => {
+        TypeKind::Borrowed(borrowed) if borrowed.inner(db).kind(db) == TypeKind::String => {
             render_owned_to_borrowed(db, target, in_expr, output).apply(printer);
         }
-        Type::Borrowed(borrowed) if borrowed.inner(db) == Type::Str => match output {
-            CastOutput::Expression => {
-                unreachable!(
-                    "a str borrowed from a cast-owned String cannot escape as an expression"
-                )
-            }
-            CastOutput::Continue {
-                out_var_name,
-                continue_with,
-            } => {
-                let borrow = if borrowed.is_mutable(db) {
-                    frag!(__cast_owned_value.as_mut_str())
-                } else {
-                    frag!(__cast_owned_value.as_str())
-                };
+        TypeKind::Borrowed(borrowed) if borrowed.inner(db).kind(db) == TypeKind::Str => {
+            match output {
+                CastOutput::Expression => {
+                    unreachable!(
+                        "a str borrowed from a cast-owned String cannot escape as an expression"
+                    )
+                }
+                CastOutput::Continue {
+                    out_var_name,
+                    continue_with,
+                } => {
+                    let borrow = if borrowed.is_mutable(db) {
+                        frag!(__cast_owned_value.as_mut_str())
+                    } else {
+                        frag!(__cast_owned_value.as_str())
+                    };
 
-                frag!({{
-                    let mut __cast_owned_value = {in_expr};
-                    let ~{out_var_name}~ = ~{borrow};
-                    {continue_with}
-                }})
-                .apply(printer);
+                    frag!({{
+                        let mut __cast_owned_value = {in_expr};
+                        let ~{out_var_name}~ = ~{borrow};
+                        {continue_with}
+                    }})
+                    .apply(printer);
+                }
             }
-        },
+        }
         _ => unreachable!("boundary String cannot be cast to `{target:?}`"),
     })
 }

@@ -4,7 +4,7 @@ use crate::compiler::{
     db::Db,
     ir::rust::{
         Enum, Function, FunctionParent, GenArg, Impl, Member, Module, ModuleParent, Rust, Struct,
-        Type,
+        Type, TypeKind,
     },
 };
 
@@ -158,16 +158,16 @@ impl<'db> Visitor<'db> {
     }
 
     fn visit_type(&mut self, type_: Type<'db>) {
-        match type_ {
-            Type::Struct(struct_) => {
+        match type_.kind(self.db) {
+            TypeKind::Struct(struct_) => {
                 self.visit_struct(struct_.def(self.db));
                 self.visit_args(struct_.gen_args(self.db));
             }
-            Type::Enum(enum_) => {
+            TypeKind::Enum(enum_) => {
                 self.visit_enum(enum_.def(self.db));
                 self.visit_args(enum_.gen_args(self.db));
             }
-            Type::Borrowed(reference) => self.visit_type(reference.inner(self.db)),
+            TypeKind::Borrowed(reference) => self.visit_type(reference.inner(self.db)),
             _ => {}
         }
     }

@@ -4,7 +4,7 @@ use crate::compiler::{
         shim::tethering::TetheringStructType,
     },
     db::Db,
-    ir::rust::Type,
+    ir::rust::{Type, TypeKind},
 };
 
 use super::{CastOutput, adapt_to_cast_output};
@@ -35,7 +35,8 @@ where
     InExpr: FragmentOnce + 'db,
 {
     assert_eq!(
-        source, target.source_type,
+        source.kind(db),
+        target.source_type.kind(db),
         "source and tethering cast types must refer to the same value type",
     );
     let tethering_struct_name = target.source_type.tethering_struct_name(db);
@@ -57,13 +58,13 @@ where
     Continue: FragmentOnce + 'db,
 {
     assert_eq!(
-        source.source_type,
-        target.deborrow(db),
+        source.source_type.kind(db),
+        target.deborrow(db).kind(db),
         "tethering and target cast types must refer to the same value type",
     );
 
-    fragment(move |printer| match target {
-        Type::Borrowed(borrowed) => match output {
+    fragment(move |printer| match target.kind(db) {
+        TypeKind::Borrowed(borrowed) => match output {
             CastOutput::Expression => {
                 unreachable!(
                     "a value borrowed through tethering access cannot escape as an expression"

@@ -12,7 +12,10 @@ use crate::compiler::{
         shim::{Platform, tethering::TetheringStructType},
     },
     db::Db,
-    ir::{rust::Type, shim::ShimType},
+    ir::{
+        rust::{Type, TypeKind},
+        shim::ShimType,
+    },
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -20,6 +23,25 @@ pub enum CastType<'db> {
     Tethered(TetheringStructType<'db>),
     Shim(ShimType<'db>),
     Rust(Type<'db>),
+}
+
+impl<'db> CastType<'db> {
+    fn same_representation(self, db: &'db dyn Db, other: Self) -> bool {
+        match (self, other) {
+            (Self::Shim(a), Self::Shim(b)) => a == b,
+            (Self::Tethered(a), Self::Tethered(b)) => {
+                a.source_type.kind(db) == b.source_type.kind(db)
+            }
+            (Self::Rust(a), Self::Rust(b)) => match (a.kind(db), b.kind(db)) {
+                (TypeKind::Borrowed(a), TypeKind::Borrowed(b)) => {
+                    a.is_mutable(db) == b.is_mutable(db)
+                        && a.inner(db).kind(db) == b.inner(db).kind(db)
+                }
+                (a, b) => a == b,
+            },
+            _ => false,
+        }
+    }
 }
 
 impl<'db> From<TetheringStructType<'db>> for CastType<'db> {
@@ -181,7 +203,7 @@ impl<'db> CastRenderer<'db> for ShimCastRenderer {
                 }
             }
 
-            if src == dst {
+            if src.same_representation(db, dst) {
                 adapt_to_cast_output(in_expr, output).apply(printer);
                 return;
             }
@@ -223,22 +245,29 @@ impl<'db> CastRenderer<'db> for ShimCastRenderer {
                 }
 
                 // booleans
-                (Shim(ShimType::bool), Rust(target @ Type::Borrowed(borrowed)))
-                    if borrowed.inner(db) == Type::bool =>
+                (Shim(ShimType::bool), Rust(target))
+                    if matches!(target.kind(db), TypeKind::Borrowed(borrowed)
+                        if borrowed.inner(db).kind(db) == TypeKind::bool) =>
                 {
                     borrowing::render_owned_to_borrowed(db, target, in_expr, output).apply(printer);
                 }
 
                 // strings
-                (Shim(ShimType::String), Rust(target @ Type::Borrowed(_))) => {
+                (Shim(ShimType::String), Rust(target))
+                    if matches!(target.kind(db), TypeKind::Borrowed(_)) =>
+                {
                     strings::render_string_to_type(db, target, in_expr, output).apply(printer);
                 }
 
                 // identity casts
-                (Shim(ShimType::bool), Rust(Type::bool))
-                | (Rust(Type::bool), Shim(ShimType::bool))
-                | (Shim(ShimType::String), Rust(Type::String))
-                | (Rust(Type::String), Shim(ShimType::String)) => {
+                (Shim(ShimType::bool), Rust(type_)) | (Rust(type_), Shim(ShimType::bool))
+                    if type_.kind(db) == TypeKind::bool =>
+                {
+                    adapt_to_cast_output(in_expr, output).apply(printer);
+                }
+                (Shim(ShimType::String), Rust(type_)) | (Rust(type_), Shim(ShimType::String))
+                    if type_.kind(db) == TypeKind::String =>
+                {
                     adapt_to_cast_output(in_expr, output).apply(printer);
                 }
 
@@ -371,7 +400,7 @@ mod tests {
         codegen::shim::tethering::TetheringStructType,
         db::Db,
         ir::{
-            rust::{Member, Rust, Type},
+            rust::{Member, Rust, Type, TypeKind},
             shim::ShimType,
         },
     };
@@ -380,6 +409,7 @@ mod tests {
         (
             name: $name:ident,
             source: { $($source:tt)* },
+            $(fixture: { $($fixture:tt)* },)?
             from: |$from_db:ident| $from:expr,
             to: |$to_db:ident| $to:expr $(,)?
         ) => {
@@ -388,6 +418,8 @@ mod tests {
                 $crate::assert_rust_snap! {
                     source: { $($source)* },
                     expression: |__db, __platform, __printer| {
+                        $(let __fixture_db = $crate::test_db! { $($fixture)* };
+                          let __db = &__fixture_db;)?
                         let __db: &dyn $crate::compiler::db::Db = &*__db;
                         let __from = {
                             let $from_db: &dyn $crate::compiler::db::Db = __db;
@@ -428,6 +460,13 @@ mod tests {
             cast_snapshot! {
                 name: $name,
                 source: {},
+                fixture: {
+                    pub fn cast_types(
+                        char: char, i8: i8, u8: u8, i16: i16, u16: u16,
+                        i32: i32, u32: u32, f32: f32, f64: f64,
+                        bool: bool, string: String, str: &str,
+                    ) {}
+                },
                 from: |$from_db| $from,
                 to: |$to_db| $to,
             }
@@ -436,7 +475,7 @@ mod tests {
 
     macro_rules! number_cast_snapshots {
         (
-            value: $value:expr,
+            value: $value:ident,
             in: $in_name:ident,
             ref_in: $ref_name:ident,
             mut_in: $mut_name:ident,
@@ -445,31 +484,31 @@ mod tests {
             cast_snapshot! {
                 name: $in_name,
                 from: |_db| ShimType::f64,
-                to: |_db| $value,
+                to: |db| test_type(db, stringify!($value)),
             }
 
             cast_snapshot! {
                 name: $ref_name,
                 from: |_db| ShimType::f64,
-                to: |db| $value.borrowed(db),
+                to: |db| test_type(db, stringify!($value)).borrowed(db),
             }
 
             cast_snapshot! {
                 name: $mut_name,
                 from: |_db| ShimType::f64,
-                to: |db| $value.borrowed_mut(db),
+                to: |db| test_type(db, stringify!($value)).borrowed_mut(db),
             }
 
             cast_snapshot! {
                 name: $out_name,
-                from: |_db| $value,
+                from: |db| test_type(db, stringify!($value)),
                 to: |_db| ShimType::f64,
             }
         };
     }
 
     number_cast_snapshots! {
-        value: Type::char,
+        value: char,
         in: char_in,
         ref_in: char_ref_in,
         mut_in: char_mut_in,
@@ -477,7 +516,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: Type::i8,
+        value: i8,
         in: i8_in,
         ref_in: i8_ref_in,
         mut_in: i8_mut_in,
@@ -485,7 +524,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: Type::u8,
+        value: u8,
         in: u8_in,
         ref_in: u8_ref_in,
         mut_in: u8_mut_in,
@@ -493,7 +532,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: Type::i16,
+        value: i16,
         in: i16_in,
         ref_in: i16_ref_in,
         mut_in: i16_mut_in,
@@ -501,7 +540,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: Type::u16,
+        value: u16,
         in: u16_in,
         ref_in: u16_ref_in,
         mut_in: u16_mut_in,
@@ -509,7 +548,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: Type::i32,
+        value: i32,
         in: i32_in,
         ref_in: i32_ref_in,
         mut_in: i32_mut_in,
@@ -517,7 +556,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: Type::u32,
+        value: u32,
         in: u32_in,
         ref_in: u32_ref_in,
         mut_in: u32_mut_in,
@@ -525,7 +564,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: Type::f32,
+        value: f32,
         in: f32_in,
         ref_in: f32_ref_in,
         mut_in: f32_mut_in,
@@ -533,7 +572,7 @@ mod tests {
     }
 
     number_cast_snapshots! {
-        value: Type::f64,
+        value: f64,
         in: f64_in,
         ref_in: f64_ref_in,
         mut_in: f64_mut_in,
@@ -543,60 +582,60 @@ mod tests {
     cast_snapshot! {
         name: bool_in,
         from: |_db| ShimType::bool,
-        to: |_db| Type::bool,
+        to: |db| test_type(db, "bool"),
     }
 
     cast_snapshot! {
         name: bool_ref_in,
         from: |_db| ShimType::bool,
-        to: |db| Type::bool.borrowed(db),
+        to: |db| test_type(db, "bool").borrowed(db),
     }
 
     cast_snapshot! {
         name: bool_mut_in,
         from: |_db| ShimType::bool,
-        to: |db| Type::bool.borrowed_mut(db),
+        to: |db| test_type(db, "bool").borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: bool_out,
-        from: |_db| Type::bool,
+        from: |db| test_type(db, "bool"),
         to: |_db| ShimType::bool,
     }
 
     cast_snapshot! {
         name: string_in,
         from: |_db| ShimType::String,
-        to: |_db| Type::String,
+        to: |db| test_type(db, "string"),
     }
 
     cast_snapshot! {
         name: string_ref_in,
         from: |_db| ShimType::String,
-        to: |db| Type::String.borrowed(db),
+        to: |db| test_type(db, "string").borrowed(db),
     }
 
     cast_snapshot! {
         name: string_mut_in,
         from: |_db| ShimType::String,
-        to: |db| Type::String.borrowed_mut(db),
+        to: |db| test_type(db, "string").borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: str_ref_in,
         from: |_db| ShimType::String,
-        to: |db| Type::Str.borrowed(db),
+        to: |db| test_type(db, "str").borrowed(db),
     }
 
     cast_snapshot! {
         name: str_mut_in,
         from: |_db| ShimType::String,
-        to: |db| Type::Str.borrowed_mut(db),
+        to: |db| test_type(db, "str").borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: string_out,
-        from: |_db| Type::String,
+        from: |db| test_type(db, "string"),
         to: |_db| ShimType::String,
     }
 
@@ -762,8 +801,8 @@ mod tests {
 
     cast_snapshot! {
         name: rust_identity,
-        from: |_db| Type::bool,
-        to: |_db| Type::bool,
+        from: |db| test_type(db, "bool"),
+        to: |db| test_type(db, "bool"),
     }
 
     cast_snapshot! {
@@ -786,6 +825,53 @@ mod tests {
         },
     }
 
+    #[test]
+    fn identity_casts_ignore_origins_but_preserve_mutability() {
+        use super::{CastRenderer, CastType, ShimCastRenderer};
+        use crate::compiler::codegen::{fragment::FragmentPrint as _, shim::Platform};
+
+        let db = crate::test_db! {
+            #[derive(Clone)]
+            pub struct Item;
+            pub fn values(first: &i32, second: &i32, mutable: &mut i32, item: Item, other: Item) {}
+        };
+        ra_ap_hir::attach_db(&db, || {
+            let Member::Function(function) = Rust::get(&db).crates(&db)[0]
+                .root(&db)
+                .members(&db)
+                .iter()
+                .find(|member| matches!(member, Member::Function(_)))
+                .unwrap()
+            else {
+                unreachable!()
+            };
+            let params = function.params(&db);
+            let type_at = |index: usize| *params[index].type_(&db);
+            let first = CastType::Rust(type_at(0));
+            let second = CastType::Rust(type_at(1));
+            assert_ne!(first, second);
+            assert!(!first.same_representation(&db, CastType::Rust(type_at(2))));
+            let renderer = ShimCastRenderer {
+                platform: Platform::Node,
+            };
+            assert_eq!(
+                renderer.render_expr(&db, first, second, "input").print(),
+                "input"
+            );
+            let first = TetheringStructType {
+                source_type: type_at(3),
+            };
+            let second = TetheringStructType {
+                source_type: type_at(4),
+            };
+            assert_ne!(first, second);
+            assert_eq!(
+                renderer.render_expr(&db, first, second, "input").print(),
+                "input"
+            );
+        });
+    }
+
     fn test_type<'db>(db: &'db dyn Db, name: &str) -> Type<'db> {
         let crate_ = Rust::get(db)
             .crates(db)
@@ -803,15 +889,20 @@ mod tests {
                 Member::Enum(enum_) if enum_.segment(db).name(db) == name => {
                     enum_.as_mono_type_DELME(db)
                 }
+                Member::Function(function) if function.name(db) == "cast_types" => function
+                    .params(db)
+                    .iter()
+                    .find(|param| param.name(db) == name)
+                    .map(|param| param.type_(db).deborrow(db)),
                 _ => None,
             })
             .unwrap_or_else(|| panic!("test value type `{name}` should be lowered"))
     }
 
     fn test_shim_class_type<'db>(db: &'db dyn Db, name: &str, is_borrowed: bool) -> ShimType<'db> {
-        let inner = match test_type(db, name) {
-            Type::Struct(struct_) => struct_.def(db).shim(db).into(),
-            Type::Enum(enum_) => enum_.def(db).shim(db).into(),
+        let inner = match test_type(db, name).kind(db) {
+            TypeKind::Struct(struct_) => struct_.def(db).shim(db).into(),
+            TypeKind::Enum(enum_) => enum_.def(db).shim(db).into(),
             _ => unreachable!("class cast test requires a struct or enum"),
         };
 

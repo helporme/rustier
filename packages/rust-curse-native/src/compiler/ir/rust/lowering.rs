@@ -21,8 +21,58 @@ use self::{
 use miette::SourceSpan;
 use ra_ap_hir::{Adt, GenericParam as HirGenericParam};
 
-use super::{Crate, Function, GenericParam, Rust, Span};
+use super::{Crate, Function, GenArg, GenericParam, Rust, Span, TypeOrigin};
 use crate::compiler::{db::Db, diag::DiagSource, path::FilePath};
+
+impl<'db> TypeOrigin<'db> {
+    pub(super) fn hir(self, db: &'db dyn Db) -> ra_ap_hir::Type<'db> {
+        match self {
+            Self::Field(field) => field.hir(db).ty(db),
+            Self::FunctionParameter { function, index } => {
+                function.hir(db).params_without_self(db)[index].ty().clone()
+            }
+            Self::FunctionReturn(function) => function.hir(db).ret_type(db),
+            Self::FunctionReceiver(function) => function
+                .hir(db)
+                .self_param(db)
+                .expect("receiver origin requires a self parameter")
+                .ty(db),
+            Self::Struct(type_) => {
+                type_
+                    .def(db)
+                    .hir(db)
+                    .ty(db)
+                    .instantiate(type_.gen_args(db).iter().filter_map(|arg| match arg {
+                        GenArg::Type(type_) => Some(type_.hir(db)),
+                        GenArg::Lifetime(_) => None,
+                    }))
+            }
+            Self::Enum(type_) => {
+                type_
+                    .def(db)
+                    .hir(db)
+                    .ty(db)
+                    .instantiate(type_.gen_args(db).iter().filter_map(|arg| match arg {
+                        GenArg::Type(type_) => Some(type_.hir(db)),
+                        GenArg::Lifetime(_) => None,
+                    }))
+            }
+            Self::TypeParameter(param) => param.hir(db).ty(db),
+            Self::Borrowed(reference) => reference.inner(db).hir(db).add_reference(
+                db,
+                if reference.is_mutable(db) {
+                    ra_ap_hir::Mutability::Mut
+                } else {
+                    ra_ap_hir::Mutability::Shared
+                },
+            ),
+            Self::Dereferenced(type_) => type_
+                .hir(db)
+                .as_reference_inner()
+                .expect("dereferenced origin requires a reference"),
+        }
+    }
+}
 
 #[salsa::tracked]
 impl<'db> Rust<'db> {

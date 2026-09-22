@@ -441,7 +441,7 @@ impl<'db> ImplTarget<'db> {
     }
 }
 
-impl<'db> From<ImplTarget<'db>> for Type<'db> {
+impl<'db> From<ImplTarget<'db>> for TypeOrigin<'db> {
     fn from(value: ImplTarget<'db>) -> Self {
         match value {
             ImplTarget::Struct(struct_) => struct_.into(),
@@ -759,6 +759,11 @@ impl<'db> Function<'db> {
         self.lower_receiver(db)
     }
 
+    pub fn receiver_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+        self.receiver(db)
+            .map(|_| Type::new(db, TypeOrigin::FunctionReceiver(self)))
+    }
+
     pub fn params(self, db: &'db dyn Db) -> &'db Vec<Param<'db>> {
         self.lower_params(db)
     }
@@ -821,9 +826,32 @@ pub struct Param<'db> {
 }
 
 /// A supported subset of Rust types.
+#[salsa::interned(debug)]
+pub struct Type<'db> {
+    pub origin: TypeOrigin<'db>,
+}
+
+/// An origin of rust type.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub enum TypeOrigin<'db> {
+    Field(Field<'db>),
+    /// Index into `params_without_self`, not the full parameter list.
+    FunctionParameter {
+        function: Function<'db>,
+        index: usize,
+    },
+    FunctionReturn(Function<'db>),
+    FunctionReceiver(Function<'db>),
+    Struct(StructType<'db>),
+    Enum(EnumType<'db>),
+    TypeParameter(TypeParam<'db>),
+    Borrowed(BorrowedType<'db>),
+    Dereferenced(Type<'db>),
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub enum Type<'db> {
+pub enum TypeKind<'db> {
     bool,
     char,
     i8,
@@ -843,44 +871,58 @@ pub enum Type<'db> {
 }
 
 impl<'db> Type<'db> {
+    fn hir(self, db: &'db dyn Db) -> ra_ap_hir::Type<'db> {
+        self.origin(db).hir(db)
+    }
+
+    pub fn kind(self, db: &'db dyn Db) -> TypeKind<'db> {
+        self.lower_kind(db)
+    }
+
     // FIXME: we may want to have a .fqn() method or .decl_syntax() method. Both of
     // them feels wrong right now. It might be reasonable to have a separate type
     // like `MonoType` that would represent a type without generic params and add
     // .decl_syntax() on this one.
     pub fn display(self, db: &'db dyn Db) -> &'db str {
-        match self {
-            Type::bool => "bool",
-            Type::char => "char",
-            Type::i8 => "i8",
-            Type::u8 => "u8",
-            Type::i16 => "i16",
-            Type::u16 => "u16",
-            Type::i32 => "i32",
-            Type::u32 => "u32",
-            Type::f32 => "f32",
-            Type::f64 => "f64",
-            Type::Str => "str",
-            Type::String => "String",
-            Type::Generic(param) => param.display(db),
-            Type::Struct(s) => s.fqn(db),
-            Type::Enum(e) => e.fqn(db),
-            Type::Borrowed(reference) => reference.display(db),
+        match self.kind(db) {
+            TypeKind::bool => "bool",
+            TypeKind::char => "char",
+            TypeKind::i8 => "i8",
+            TypeKind::u8 => "u8",
+            TypeKind::i16 => "i16",
+            TypeKind::u16 => "u16",
+            TypeKind::i32 => "i32",
+            TypeKind::u32 => "u32",
+            TypeKind::f32 => "f32",
+            TypeKind::f64 => "f64",
+            TypeKind::Str => "str",
+            TypeKind::String => "String",
+            TypeKind::Generic(param) => param.display(db),
+            TypeKind::Struct(s) => s.fqn(db),
+            TypeKind::Enum(e) => e.fqn(db),
+            TypeKind::Borrowed(reference) => reference.display(db),
         }
     }
 
     pub fn borrowed(self, db: &'db dyn Db) -> Self {
-        Type::Borrowed(BorrowedType::new(db, false, self, None))
+        Type::new(
+            db,
+            TypeOrigin::Borrowed(BorrowedType::new(db, false, self, None)),
+        )
     }
 
     pub fn borrowed_mut(self, db: &'db dyn Db) -> Self {
-        Type::Borrowed(BorrowedType::new(db, true, self, None))
+        Type::new(
+            db,
+            TypeOrigin::Borrowed(BorrowedType::new(db, true, self, None)),
+        )
     }
 
     /// Removes one reference layer, leaving non-reference types unchanged.
     pub fn deborrow(self, db: &'db dyn Db) -> Self {
-        match self {
-            Type::Borrowed(reference) => reference.inner(db),
-            type_ => type_,
+        match self.kind(db) {
+            TypeKind::Borrowed(reference) => reference.inner(db),
+            _ => self,
         }
     }
 }
@@ -913,7 +955,7 @@ impl<'db> StructType<'db> {
     }
 }
 
-impl<'db> From<StructType<'db>> for Type<'db> {
+impl<'db> From<StructType<'db>> for TypeOrigin<'db> {
     fn from(value: StructType<'db>) -> Self {
         Self::Struct(value)
     }
@@ -949,7 +991,7 @@ impl<'db> EnumType<'db> {
     }
 }
 
-impl<'db> From<EnumType<'db>> for Type<'db> {
+impl<'db> From<EnumType<'db>> for TypeOrigin<'db> {
     fn from(value: EnumType<'db>) -> Self {
         Self::Enum(value)
     }
@@ -957,9 +999,9 @@ impl<'db> From<EnumType<'db>> for Type<'db> {
 
 as_item!(EnumType);
 
-impl<'db> From<TypeParam<'db>> for Type<'db> {
+impl<'db> From<TypeParam<'db>> for TypeOrigin<'db> {
     fn from(value: TypeParam<'db>) -> Self {
-        Self::Generic(value)
+        Self::TypeParameter(value)
     }
 }
 

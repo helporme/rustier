@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
+assertion_line: 626
 expression: snapshot
 ---
 # Source
@@ -17,15 +18,22 @@ pub fn test_fn(direct: i32, borrowed: &i32) -> i32 {
 pub fn __fn__free__10_test_crate__7_test_fn(_0: f64, _1: f64) -> napi::Result<f64> {
     Ok(
         cast
-            .from("Rust(i32)")
+            .from(
+                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
+            )
             .to("Shim(f64)")
             .an({
-                let _0 = cast.from("Shim(f64)").to("Rust(i32)").an(_0);
+                let _0 = cast
+                    .from("Shim(f64)")
+                    .to(
+                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
+                    )
+                    .an(_0);
                 {
                     let _1 = cast
                         .from("Shim(f64)")
                         .to(
-                            "Rust(Borrowed(BorrowedType { is_mutable: false, inner: i32, lifetime: None }))",
+                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 1 } })",
                         )
                         .an(_1);
                     test_crate::test_fn(_0, _1)
@@ -41,15 +49,22 @@ pub fn __fn__free__10_test_crate__7_test_fn(_0: f64, _1: f64) -> napi::Result<f6
 pub fn __fn__free__10_test_crate__7_test_fn(_0: f64, _1: f64) -> Result<f64, JsValue> {
     Ok(
         cast
-            .from("Rust(i32)")
+            .from(
+                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
+            )
             .to("Shim(f64)")
             .an({
-                let _0 = cast.from("Shim(f64)").to("Rust(i32)").an(_0);
+                let _0 = cast
+                    .from("Shim(f64)")
+                    .to(
+                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
+                    )
+                    .an(_0);
                 {
                     let _1 = cast
                         .from("Shim(f64)")
                         .to(
-                            "Rust(Borrowed(BorrowedType { is_mutable: false, inner: i32, lifetime: None }))",
+                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 1 } })",
                         )
                         .an(_1);
                     test_crate::test_fn(_0, _1)

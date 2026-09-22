@@ -24,7 +24,7 @@ pub fn __fn__disc__10_test_crate__4_Test(
             "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5400) } } }) })",
         )
         .to(
-            "Tethered(TetheringStructType { source_type: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] }) })",
+            "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] }) } })",
         )
         .an(_0)
         .access(|src| {
@@ -51,7 +51,7 @@ pub fn __fn__disc__10_test_crate__4_Test(
             "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5400) } } }) })",
         )
         .to(
-            "Tethered(TetheringStructType { source_type: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] }) })",
+            "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] }) } })",
         )
         .an(_0)
         .access(|src| {

@@ -19,7 +19,7 @@ use crate::compiler::{
     db::Db,
     ir::rust::{
         Crate, Enum, Field, FieldName, FieldParent, Function, FunctionParent, Module, ModuleParent,
-        Receiver, Rust, Struct, Type, Variant, usages::UsageGraph,
+        Rust, Struct, Type, Variant, usages::UsageGraph,
     },
 };
 
@@ -598,14 +598,7 @@ impl<'db> ShimFunctionAssociated<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> Vec<ShimParam<'db>> {
-        if let Some(receiver) = self.src(db).receiver(db) {
-            let type_ = self.self_class(db).src_type(db);
-            let src_type = match receiver {
-                Receiver::Shared => type_.borrowed(db),
-                Receiver::Exclusive => type_.borrowed_mut(db),
-                Receiver::Owned => type_,
-            };
-
+        if let Some(src_type) = self.src(db).receiver_type(db) {
             std::iter::once(ShimParam::new(
                 db,
                 self.into(),

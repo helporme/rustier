@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
+assertion_line: 660
 expression: snapshot
 ---
 # Source
@@ -24,13 +25,18 @@ pub fn __fn__associated__10_test_crate__4_Test__6_create(
     Ok(
         cast
             .from(
-                "Rust(Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }))",
+                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(6c01)) }) })",
             )
             .to(
                 "Shim(Class { is_borrowed: false, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .an({
-                let _0 = cast.from("Shim(f64)").to("Rust(i32)").an(_0);
+                let _0 = cast
+                    .from("Shim(f64)")
+                    .to(
+                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(6c01)) }, index: 0 } })",
+                    )
+                    .an(_0);
                 test_crate::Test::create(_0)
             }),
     )
@@ -46,13 +52,18 @@ pub fn __fn__associated__10_test_crate__4_Test__6_create(
     Ok(
         cast
             .from(
-                "Rust(Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }))",
+                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(6c01)) }) })",
             )
             .to(
                 "Shim(Class { is_borrowed: false, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
             )
             .an({
-                let _0 = cast.from("Shim(f64)").to("Rust(i32)").an(_0);
+                let _0 = cast
+                    .from("Shim(f64)")
+                    .to(
+                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(6c01)) }, index: 0 } })",
+                    )
+                    .an(_0);
                 test_crate::Test::create(_0)
             }),
     )

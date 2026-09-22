@@ -2,7 +2,8 @@ use crate::compiler::{
     db::Db,
     ir::{
         rust::{
-            Crate, Enum, Field, ImplTarget, Member, Module, Rust, Struct, Type, usages::UsageGraph,
+            Crate, Enum, Field, ImplTarget, Member, Module, Rust, Struct, Type, TypeKind,
+            TypeOrigin, usages::UsageGraph,
         },
         shim::{
             Shim, ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimCrate, ShimField,
@@ -67,7 +68,7 @@ impl<'db> Enum<'db> {
 
 impl<'db> ImplTarget<'db> {
     pub fn shim(self, db: &'db dyn Db) -> ShimClass<'db> {
-        Type::from(self).assert_shim_supported(db);
+        Type::new(db, TypeOrigin::from(self)).assert_shim_supported(db);
         match self {
             ImplTarget::Struct(struct_) => struct_.def(db).shim(db).into(),
             ImplTarget::Enum(enum_) => enum_.def(db).shim(db).into(),
@@ -84,66 +85,66 @@ impl<'db> Field<'db> {
 impl<'db> Type<'db> {
     /// Guard the current nongeneric shim without discarding Rust IR metadata.
     pub(crate) fn assert_shim_supported(self, db: &'db dyn Db) {
-        match self {
-            Type::Generic(_) => unreachable!("generic types cannot reach the shim"),
-            Type::Struct(value) => assert!(
+        match self.kind(db) {
+            TypeKind::Generic(_) => unreachable!("generic types cannot reach the shim"),
+            TypeKind::Struct(value) => assert!(
                 value.gen_args(db).is_empty() && value.def(db).as_mono_type_DELME(db).is_some(),
                 "generic structs cannot reach the shim"
             ),
-            Type::Enum(value) => assert!(
+            TypeKind::Enum(value) => assert!(
                 value.gen_args(db).is_empty() && value.def(db).as_mono_type_DELME(db).is_some(),
                 "generic enums cannot reach the shim"
             ),
-            Type::Borrowed(value) => {
+            TypeKind::Borrowed(value) => {
                 assert!(
                     value.lifetime(db).is_none(),
                     "explicit lifetimes cannot reach the shim"
                 );
                 assert!(
-                    !matches!(value.inner(db), Type::Borrowed(_)),
+                    !matches!(value.inner(db).kind(db), TypeKind::Borrowed(_)),
                     "nested references cannot reach the shim"
                 );
                 value.inner(db).assert_shim_supported(db);
             }
-            Type::bool
-            | Type::char
-            | Type::i8
-            | Type::u8
-            | Type::i16
-            | Type::u16
-            | Type::i32
-            | Type::u32
-            | Type::f32
-            | Type::f64
-            | Type::Str
-            | Type::String => {}
+            TypeKind::bool
+            | TypeKind::char
+            | TypeKind::i8
+            | TypeKind::u8
+            | TypeKind::i16
+            | TypeKind::u16
+            | TypeKind::i32
+            | TypeKind::u32
+            | TypeKind::f32
+            | TypeKind::f64
+            | TypeKind::Str
+            | TypeKind::String => {}
         }
     }
 
     pub(super) fn shim_in(self, db: &'db dyn Db) -> ShimType<'db> {
         self.assert_shim_supported(db);
-        match self {
-            Type::bool => ShimType::bool,
-            Type::char
-            | Type::i8
-            | Type::u8
-            | Type::i16
-            | Type::u16
-            | Type::i32
-            | Type::u32
-            | Type::f32
-            | Type::f64 => ShimType::f64,
-            Type::Str | Type::String => ShimType::String,
-            Type::Struct(struct_) => ShimType::Class {
+        match self.kind(db) {
+            TypeKind::bool => ShimType::bool,
+            TypeKind::char
+            | TypeKind::i8
+            | TypeKind::u8
+            | TypeKind::i16
+            | TypeKind::u16
+            | TypeKind::i32
+            | TypeKind::u32
+            | TypeKind::f32
+            | TypeKind::f64 => ShimType::f64,
+            TypeKind::Str | TypeKind::String => ShimType::String,
+            TypeKind::Struct(struct_) => ShimType::Class {
                 is_borrowed: true,
                 inner: struct_.def(db).shim(db).into(),
             },
-            Type::Enum(enum_) => ShimType::Class {
+            TypeKind::Enum(enum_) => ShimType::Class {
                 is_borrowed: true,
                 inner: enum_.def(db).shim(db).into(),
             },
-            Type::Borrowed(borrowed) => borrowed.inner(db).shim_in(db),
-            Type::Generic(_) => unreachable!("unsupported Rust types do not enter the shim"),
+            TypeKind::Borrowed(borrowed) => borrowed.inner(db).shim_in(db),
+            TypeKind::Generic(_) => unreachable!("unsupported Rust types do not enter the shim"),
         }
     }
 

@@ -1,6 +1,6 @@
 use crate::compiler::{
     db::Db,
-    ir::rust::{GenArg, Lifetime, PathSegment, Type},
+    ir::rust::{GenArg, Lifetime, PathSegment, Type, TypeKind},
 };
 
 /// An argument whose stable semantic identity is not available to the mangler.
@@ -67,34 +67,34 @@ fn encode_lifetime(lifetime: Option<Lifetime<'_>>) -> Result<&'static str, Mangl
 
 fn encode_type<'db>(db: &'db dyn Db, type_: Type<'db>) -> Result<String, MangleError> {
     // These literal tags describe constructors, never source/display spelling.
-    let primitive = match type_ {
-        Type::bool => "bool",
-        Type::char => "char",
-        Type::i8 => "i8",
-        Type::u8 => "u8",
-        Type::i16 => "i16",
-        Type::u16 => "u16",
-        Type::i32 => "i32",
-        Type::u32 => "u32",
-        Type::f32 => "f32",
-        Type::f64 => "f64",
-        Type::Str => "str",
-        Type::String => "String",
-        Type::Generic(_) => return Err(MangleError::TypeParameter),
-        Type::Struct(type_) => {
+    let primitive = match type_.kind(db) {
+        TypeKind::bool => "bool",
+        TypeKind::char => "char",
+        TypeKind::i8 => "i8",
+        TypeKind::u8 => "u8",
+        TypeKind::i16 => "i16",
+        TypeKind::u16 => "u16",
+        TypeKind::i32 => "i32",
+        TypeKind::u32 => "u32",
+        TypeKind::f32 => "f32",
+        TypeKind::f64 => "f64",
+        TypeKind::Str => "str",
+        TypeKind::String => "String",
+        TypeKind::Generic(_) => return Err(MangleError::TypeParameter),
+        TypeKind::Struct(type_) => {
             return Ok(format!(
                 "S{}",
                 mangle_segments(db, type_.path(db).segments(db))?
             ));
         }
-        Type::Enum(type_) => {
+        TypeKind::Enum(type_) => {
             // `E` closes generic arguments, so enums use a separate `V` tag.
             return Ok(format!(
                 "V{}",
                 mangle_segments(db, type_.path(db).segments(db))?
             ));
         }
-        Type::Borrowed(reference) => {
+        TypeKind::Borrowed(reference) => {
             return Ok(format!(
                 "R{}L{}{}",
                 if reference.is_mutable(db) { "M" } else { "S" },

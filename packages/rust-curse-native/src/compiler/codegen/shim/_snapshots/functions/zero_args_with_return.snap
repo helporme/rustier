@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
+assertion_line: 598
 expression: snapshot
 ---
 # Source
@@ -15,7 +16,14 @@ pub fn test_fn() -> i32 {
 ```rust
 #[napi(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn() -> napi::Result<f64> {
-    Ok(cast.from("Rust(i32)").to("Shim(f64)").an(test_crate::test_fn()))
+    Ok(
+        cast
+            .from(
+                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
+            )
+            .to("Shim(f64)")
+            .an(test_crate::test_fn()),
+    )
 }
 ```
 
@@ -23,6 +31,13 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> napi::Result<f64> {
 ```rust
 #[wasm_bindgen(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn() -> Result<f64, JsValue> {
-    Ok(cast.from("Rust(i32)").to("Shim(f64)").an(test_crate::test_fn()))
+    Ok(
+        cast
+            .from(
+                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
+            )
+            .to("Shim(f64)")
+            .an(test_crate::test_fn()),
+    )
 }
 ```

@@ -12,7 +12,10 @@ use super::{
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::rust::{AsItem as _, Function, FunctionParent, Impl, Module, Param, Receiver, Span, Type},
+    ir::rust::{
+        AsItem as _, Function, FunctionParent, Impl, Module, Param, Receiver, Span, Type, TypeKind,
+        TypeOrigin,
+    },
 };
 
 #[salsa::tracked]
@@ -63,8 +66,15 @@ impl<'db> Function<'db> {
             .into_iter()
             .enumerate()
             .map(|(index, param)| {
-                let type_ = lower_type(db, param.ty(), crate_)
-                    .expect("functions with unsupported parameters are not lowered");
+                let type_ = lower_type(
+                    db,
+                    TypeOrigin::FunctionParameter {
+                        function: self,
+                        index,
+                    },
+                    crate_,
+                )
+                .expect("functions with unsupported parameters are not lowered");
                 let name = param
                     .name(db)
                     .map(|name| name.display(db, crate_.edition(db)).to_string())
@@ -85,13 +95,17 @@ impl<'db> Function<'db> {
         if type_.is_unit() {
             return None;
         }
-        match lower_type(db, &type_, hir.module(db).krate(db))
-            .expect("functions with unsupported return types are not lowered")
-        {
-            Type::Borrowed(_) => {
+        let type_ = lower_type(
+            db,
+            TypeOrigin::FunctionReturn(self),
+            hir.module(db).krate(db),
+        )
+        .expect("functions with unsupported return types are not lowered");
+        match type_.kind(db) {
+            TypeKind::Borrowed(_) => {
                 unreachable!("functions returning borrowed values are not lowered")
             }
-            type_ => Some(type_),
+            _ => Some(type_),
         }
     }
 
@@ -154,14 +168,20 @@ pub(super) fn lower_function<'db>(
         && receiver.access(db) == Access::Owned
     {
         let receiver_type = receiver.ty(db);
-        match lower_type(db, &receiver_type, crate_) {
-            Ok(Type::Struct(struct_)) if !is_clonable(db, &receiver_type, crate_) => {
+        match lower_type(
+            db,
+            TypeOrigin::FunctionReceiver(Function::new(db, hir)),
+            crate_,
+        )
+        .map(|type_| type_.kind(db))
+        {
+            Ok(TypeKind::Struct(struct_)) if !is_clonable(db, &receiver_type, crate_) => {
                 causes.push(FunctionLowerCause::NonClonableMovedParam {
                     name: "self".to_owned(),
                     type_fqn: struct_.fqn(db).to_owned(),
                 });
             }
-            Ok(Type::Enum(enum_)) if !is_clonable(db, &receiver_type, crate_) => {
+            Ok(TypeKind::Enum(enum_)) if !is_clonable(db, &receiver_type, crate_) => {
                 causes.push(FunctionLowerCause::NonClonableMovedParam {
                     name: "self".to_owned(),
                     type_fqn: enum_.fqn(db).to_owned(),
@@ -176,39 +196,48 @@ pub(super) fn lower_function<'db>(
             .name(db)
             .map(|name| name.display(db, crate_.edition(db)).to_string())
             .unwrap_or_else(|| format!("arg{index}"));
-        match lower_type(db, param.ty(), crate_) {
+        match lower_type(
+            db,
+            TypeOrigin::FunctionParameter {
+                function: Function::new(db, hir),
+                index,
+            },
+            crate_,
+        )
+        .map(|type_| type_.kind(db))
+        {
             Err(error) => causes.push(FunctionLowerCause::UnsupportedParam {
                 name,
                 causes: vec![error],
             }),
-            Ok(Type::Struct(struct_)) if !is_clonable(db, param.ty(), crate_) => {
+            Ok(TypeKind::Struct(struct_)) if !is_clonable(db, param.ty(), crate_) => {
                 causes.push(FunctionLowerCause::NonClonableMovedParam {
                     name,
                     type_fqn: struct_.fqn(db).to_owned(),
                 });
             }
-            Ok(Type::Enum(enum_)) if !is_clonable(db, param.ty(), crate_) => {
+            Ok(TypeKind::Enum(enum_)) if !is_clonable(db, param.ty(), crate_) => {
                 causes.push(FunctionLowerCause::NonClonableMovedParam {
                     name,
                     type_fqn: enum_.fqn(db).to_owned(),
                 });
             }
-            Ok(Type::Borrowed(reference))
+            Ok(TypeKind::Borrowed(reference))
                 if reference.is_mutable(db)
                     && matches!(
-                        reference.inner(db),
-                        Type::bool
-                            | Type::char
-                            | Type::i8
-                            | Type::u8
-                            | Type::i16
-                            | Type::u16
-                            | Type::i32
-                            | Type::u32
-                            | Type::f32
-                            | Type::f64
-                            | Type::Str
-                            | Type::String
+                        reference.inner(db).kind(db),
+                        TypeKind::bool
+                            | TypeKind::char
+                            | TypeKind::i8
+                            | TypeKind::u8
+                            | TypeKind::i16
+                            | TypeKind::u16
+                            | TypeKind::i32
+                            | TypeKind::u32
+                            | TypeKind::f32
+                            | TypeKind::f64
+                            | TypeKind::Str
+                            | TypeKind::String
                     ) =>
             {
                 let span = lower_item_span(db, hir);
@@ -226,8 +255,14 @@ pub(super) fn lower_function<'db>(
 
     let return_type = hir.ret_type(db);
     if !return_type.is_unit() {
-        match lower_type(db, &return_type, crate_) {
-            Ok(Type::Borrowed(_)) => causes.push(FunctionLowerCause::BorrowedReturn),
+        match lower_type(
+            db,
+            TypeOrigin::FunctionReturn(Function::new(db, hir)),
+            crate_,
+        )
+        .map(|type_| type_.kind(db))
+        {
+            Ok(TypeKind::Borrowed(_)) => causes.push(FunctionLowerCause::BorrowedReturn),
             Err(error) => causes.push(FunctionLowerCause::Type(error)),
             Ok(_) => {}
         }

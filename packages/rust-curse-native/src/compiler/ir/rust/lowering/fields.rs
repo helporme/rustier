@@ -12,7 +12,7 @@ use super::{
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::rust::{Field, FieldName, FieldParent, Span, Struct, Type, Variant},
+    ir::rust::{Field, FieldName, FieldParent, Span, Struct, Type, TypeKind, TypeOrigin, Variant},
 };
 
 #[salsa::tracked]
@@ -46,10 +46,13 @@ impl<'db> Field<'db> {
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_type(self, db: &'db dyn Db) -> Type<'db> {
         let hir = self.hir(db);
-        let type_ = hir.ty(db);
-        lower_type(db, &type_, hir.parent_def(db).module(db).krate(db))
-            .expect("unsupported fields are discarded while lowering their parent shape")
-            .deborrow(db)
+        lower_type(
+            db,
+            TypeOrigin::Field(self),
+            hir.parent_def(db).module(db).krate(db),
+        )
+        .expect("unsupported fields are discarded while lowering their parent shape")
+        .deborrow(db)
     }
 
     #[salsa::tracked]
@@ -58,8 +61,9 @@ impl<'db> Field<'db> {
         let crate_ = hir.parent_def(db).module(db).krate(db);
         let type_ = hir.ty(db);
         matches!(
-            lower_type(db, &type_, crate_).map(|type_| type_.deborrow(db)),
-            Ok(Type::Struct(_) | Type::Enum(_))
+            lower_type(db, TypeOrigin::Field(self), crate_)
+                .map(|type_| type_.deborrow(db).kind(db)),
+            Ok(TypeKind::Struct(_) | TypeKind::Enum(_))
         ) && !is_clonable(db, &type_, crate_)
     }
 
@@ -89,7 +93,7 @@ pub(super) fn lower_field<'db>(
     if has_explicit_reference_lifetime(db, field) {
         causes.push(TypeLowerErrorUnsupported::LifetimeRef);
     }
-    if let Err(error) = lower_type(db, &type_, crate_) {
+    if let Err(error) = lower_type(db, TypeOrigin::Field(Field::new(db, field)), crate_) {
         causes.push(error);
     }
     if !causes.is_empty() {
@@ -102,10 +106,14 @@ pub(super) fn lower_field<'db>(
             causes,
         }));
     }
-    let lowered_type = lower_type(db, &type_, crate_)
+    let lowered_type = lower_type(db, TypeOrigin::Field(Field::new(db, field)), crate_)
         .expect("the field type was successfully validated above")
         .deborrow(db);
-    if matches!(lowered_type, Type::Struct(_) | Type::Enum(_)) && !is_clonable(db, &type_, crate_) {
+    if matches!(
+        lowered_type.kind(db),
+        TypeKind::Struct(_) | TypeKind::Enum(_)
+    ) && !is_clonable(db, &type_, crate_)
+    {
         let span = lower_item_span(db, field);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
         FieldReadonlyError {

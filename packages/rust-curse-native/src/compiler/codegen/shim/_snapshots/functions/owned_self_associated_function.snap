@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
+assertion_line: 673
 expression: snapshot
 ---
 # Source
@@ -23,7 +24,9 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
 ) -> napi::Result<bool> {
     Ok(
         cast
-            .from("Rust(bool)")
+            .from(
+                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
+            )
             .to("Shim(bool)")
             .an({
                 let _0 = cast
@@ -31,7 +34,7 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
                         "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
                     .to(
-                        "Rust(Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }))",
+                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) })",
                     )
                     .an(_0);
                 test_crate::Test::owned(_0)
@@ -48,7 +51,9 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
 ) -> Result<bool, JsValue> {
     Ok(
         cast
-            .from("Rust(bool)")
+            .from(
+                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
+            )
             .to("Shim(bool)")
             .an({
                 let _0 = cast
@@ -56,7 +61,7 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
                         "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
                     .to(
-                        "Rust(Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }))",
+                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) })",
                     )
                     .an(_0);
                 test_crate::Test::owned(_0)

@@ -1,7 +1,7 @@
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, frag, fragment},
     db::Db,
-    ir::rust::Type,
+    ir::rust::{Type, TypeKind},
 };
 
 use super::CastOutput;
@@ -19,7 +19,7 @@ where
     Continue: FragmentOnce + 'db,
 {
     fragment(move |printer| {
-        let Type::Borrowed(borrowed) = target else {
+        let TypeKind::Borrowed(borrowed) = target.kind(db) else {
             unreachable!();
         };
 

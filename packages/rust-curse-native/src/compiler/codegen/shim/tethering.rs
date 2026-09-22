@@ -737,6 +737,19 @@ mod tests {
         }
     }
 
+    fn test_count_type<'db>(db: &'db dyn Db) -> Type<'db> {
+        let crate::compiler::ir::rust::TypeKind::Struct(parent) = test_type(db, "Parent").kind(db)
+        else {
+            unreachable!()
+        };
+        parent
+            .def(db)
+            .fields(db)
+            .find(|field| field.name(db).to_string() == "count")
+            .expect("fixture has a count field")
+            ._type(db)
+    }
+
     #[test]
     fn compiles_tethered_struct_empty() {
         assert_rust_snap! {
@@ -774,7 +787,7 @@ mod tests {
                         name: "count",
                         get_ref_expr: TestFieldExpr::shared("count"),
                         get_mut_expr: TestFieldExpr::mutable("count"),
-                        source_type: Type::u32,
+                        source_type: test_count_type(db),
                     })];
 
                 render_tethering_struct(
@@ -840,7 +853,7 @@ mod tests {
                         name: "count",
                         get_ref_expr: TestFieldExpr::shared("count"),
                         get_mut_expr: TestFieldExpr::mutable("count"),
-                        source_type: Type::u32,
+                        source_type: test_count_type(db),
                     }),
                     TetheredField::TetheringStruct(TetheringStructField {
                         name: "child",

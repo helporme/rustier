@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::{facade::FacadeClass, rust::Type, shim::ShimClass},
+    ir::{facade::FacadeClass, rust::TypeKind, shim::ShimClass},
 };
 
 pub(super) fn check<'db>(db: &'db dyn Db, class: ShimClass<'db>) {
@@ -15,9 +15,9 @@ pub(super) fn check<'db>(db: &'db dyn Db, class: ShimClass<'db>) {
     if name != Some("$of") {
         return;
     }
-    let source_span = match class.src_type(db) {
-        Type::Struct(value) => value.def(db).span(db),
-        Type::Enum(value) => value.def(db).span(db),
+    let source_span = match class.src_type(db).kind(db) {
+        TypeKind::Struct(value) => value.def(db).span(db),
+        TypeKind::Enum(value) => value.def(db).span(db),
         _ => unreachable!("classes represent structs or enums"),
     };
     CoerceNameCollision {
