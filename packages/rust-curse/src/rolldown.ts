@@ -20,6 +20,12 @@ export type RustCurseOptions = {
    */
   manifestPath?: string
   /**
+   * Generate TypeScript declarations for the Rust API.
+   *
+   * @default true
+   */
+  ts?: boolean
+  /**
    * Rust build profiles available to imported modules.
    */
   profiles: Record<string, RustCurseProfile>
@@ -108,6 +114,7 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
   const serverResult = Server.create({
     rootDir,
     manifestPath,
+    ts: options.ts ?? true,
   })
 
   const getServer = (ctx: PluginContext) => unwrap(ctx, serverResult)
@@ -155,15 +162,16 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
       reportDiagnostics(this, server.check())
 
       for (const profile of Object.values(options.profiles)) {
+        const platform = toServerPlatform(profile.target)
         const output = unwrap(
           this,
           server.build(
-            toServerPlatform(profile.target),
+            platform,
             profile.release ?? false,
           ),
         )
 
-        for (let binPath of output.binPaths) {
+        for (const binPath of output.binPaths) {
           this.emitFile({
             type: 'asset',
             fileName: path.basename(binPath),

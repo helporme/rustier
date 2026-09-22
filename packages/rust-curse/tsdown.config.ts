@@ -5,6 +5,7 @@ export default defineConfig({
     unstable: 'src/unstable/index.ts',
     rolldown: 'src/rolldown.ts',
     tsdown: 'src/tsdown.ts',
+    vite: 'src/vite.ts',
   },
   exports: {
     packageJson: false,

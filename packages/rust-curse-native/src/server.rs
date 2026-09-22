@@ -31,6 +31,8 @@ pub struct Config {
     pub root_dir: String,
     /// Manifest path of the "main" crate relative to the [`root_dir`].
     pub manifest_path: String,
+    /// Whether to generate TypeScript declarations for the Rust API.
+    pub ts: bool,
 }
 
 /// A change to the server's workspace.
@@ -43,6 +45,7 @@ pub struct ServerChange {
 /// The rust-curse server.
 #[napi]
 pub struct Server {
+    config: Config,
     ws: ServerWorkspace,
     toolchain: Toolchain,
     logs: ServerLogs,
@@ -55,8 +58,8 @@ impl Server {
         (|| -> Result<Self, ServerDiagnostic> {
             let logs = ServerLogs::new();
             let _dispatch = tracing::dispatcher::set_default(logs.dispatch());
-            let manifest_path = PathBuf::from(cfg.manifest_path);
-
+            let root_dir = PathBuf::from(&cfg.root_dir);
+            let manifest_path = root_dir.join(&cfg.manifest_path);
             let ws = ServerWorkspace::load(manifest_path).map_err(ServerDiagnostic::from)?;
 
             let tools_dir = ws.project().out_dir().join("tools");
@@ -67,6 +70,7 @@ impl Server {
             .map_err(ServerDiagnostic::from)?;
 
             Ok(Self {
+                config: cfg,
                 ws,
                 toolchain,
                 logs,
@@ -93,7 +97,7 @@ impl Server {
                 .change(change.into())
                 .map_err(ServerDiagnostic::from)?;
 
-            if changed {
+            if changed && self.config.ts {
                 self.ws
                     .with_db(|db| self.ws.project().ts().sync(db).exec(db))
                     .map_err(ServerDiagnostic::from)?;
@@ -128,7 +132,7 @@ impl Server {
 
         let result = (|| -> Result<ServerBuildOutput, ProjectError> {
             let project = self.ws.project();
-            {
+            if self.config.ts {
                 let _span = tracing::info_span!(parent: None, "TypeScript declaration generation")
                     .entered();
                 self.ws.with_db(|db| project.ts().sync(db).exec(db))?;
@@ -195,7 +199,6 @@ impl Server {
                 .project()
                 .cursed_crate(platform.into())
                 .js(db, &path)
-                .cloned()
         })
     }
 }

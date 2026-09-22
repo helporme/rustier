@@ -15,6 +15,8 @@ export interface Config {
   rootDir: string
   /** Manifest path of the "main" crate relative to the [`root_dir`]. */
   manifestPath: string
+  /** Whether to generate TypeScript declarations for the Rust API. */
+  ts: boolean
 }
 
 /** The output of a server build. */

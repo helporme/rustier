@@ -128,6 +128,7 @@ impl ServerWorkspace {
                 }
             })?;
             *self = workspace;
+
             return Ok(true);
         }
 

@@ -5,9 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use miette::Diagnostic;
 use salsa::Setter;
-use thiserror::Error;
 
 use crate::{
     compiler::{
@@ -139,27 +137,54 @@ impl<'a> CursedCrate<'a> {
             .and_then(|artifact| artifact.bin_files.get(&target))
     }
 
-    pub fn js<'db>(self, db: &'db dyn Db, path: &String) -> Option<&'db String> {
-        if let Some(ffi_js_file) = self.ffi_js_file(db) {
-            self.project
-                .reachable_shim(db)
-                .crates(db)
-                .flat_map(|c| c.all_modules(db))
-                .find(|m| {
-                    m.decals(db).virtual_path(db) == path
-                        || m.src(db).file_path(db).as_str() == path
-                })
-                .map(|m| {
-                    m.facade(db).render(
+    pub fn ffi_js(self, db: &dyn Db) -> Option<String> {
+        // FIXME: move to the compiler
+
+        let ffi_js_file = self.ffi_js_file(db)?;
+        // Debug formatting quotes and escapes the filesystem path.
+        let specifier = format!("{:?}", ffi_js_file.as_str());
+        let mut module = format!("export * from {specifier};\n");
+        if matches!(
+            self.platform,
+            Platform::Wasm {
+                target: WasmEnv::Web
+            }
+        ) {
+            module.push_str(&format!(
+                "import init from {specifier};\nawait init();\nexport {{ default }} from {specifier};\n"
+            ));
+        }
+        Some(module)
+    }
+
+    pub fn js(self, db: &dyn Db, path: &str) -> Option<String> {
+        let ffi_module_id = match self.platform {
+            Platform::Node => "$rust/unstable!/node",
+            Platform::Wasm { .. } => "$rust/unstable!/wasm",
+        };
+
+        if path == ffi_module_id {
+            return self.ffi_js(db);
+        }
+
+        self.ffi_js_file(db)?;
+        self.project
+            .reachable_shim(db)
+            .crates(db)
+            .flat_map(|c| c.all_modules(db))
+            .find(|m| {
+                m.decals(db).virtual_path(db) == path || m.src(db).file_path(db).as_str() == path
+            })
+            .map(|m| {
+                m.facade(db)
+                    .render(
                         db,
                         JsCodegenPaths {
-                            ffi_js_file: ffi_js_file.clone(),
+                            ffi_js_mod_id: ffi_module_id.to_owned(),
                         },
                     )
-                })
-        } else {
-            None
-        }
+                    .clone()
+            })
     }
 
     /// Synchronization of the cursed crate to the output directory.
@@ -455,7 +480,7 @@ pub struct BuildArtifact {
     pub bin_files: HashMap<Option<ServerNodeTarget>, FilePath>,
 }
 
-#[derive(Debug, Error, Diagnostic)]
+#[derive(Debug, thiserror::Error, miette::Diagnostic)]
 pub enum ProjectError {
     #[error(transparent)]
     #[diagnostic(transparent)]

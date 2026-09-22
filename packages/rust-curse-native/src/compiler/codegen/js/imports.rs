@@ -24,8 +24,7 @@ impl<'db> FacadeImport<'db> {
     pub(super) fn render_path(self, db: &'db dyn Db, paths: JsCodegenPaths) -> String {
         let to_path = match self.item(db) {
             FacadeImportItem::FfiFunction(_) | FacadeImportItem::FfiClass(_) => {
-                // Virtual facades have no filesystem directory to resolve against.
-                return paths.ffi_js_file.as_str().to_owned();
+                return paths.ffi_js_mod_id.as_str().to_owned();
             }
             FacadeImportItem::FacadeClass(class) => {
                 let target = class.module(db);

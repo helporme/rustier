@@ -22,6 +22,8 @@ export interface RustCurseOptions {
    * @default "Cargo.toml"
    */
   manifestPath?: string
+  /** Generate TypeScript declarations for the Rust API. Defaults to true. */
+  ts?: boolean
   /**
    * Progress logging settings. Enabled by default, with pretty formatting
    * and debug/trace messages hidden. Does not suppress compiler diagnostics.
