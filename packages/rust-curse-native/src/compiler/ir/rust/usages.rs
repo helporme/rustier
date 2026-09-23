@@ -131,8 +131,11 @@ impl<'db> Visitor<'db> {
         for field in struct_.fields(self.db) {
             self.visit_type(field._type(self.db));
         }
-        for impl_ in struct_.impls(self.db) {
-            self.visit_impl(*impl_);
+
+        if let Some(type_) = struct_.as_mono_type(self.db) {
+            for impl_ in type_.impls(self.db) {
+                self.visit_impl(impl_.declaration(self.db));
+            }
         }
     }
 
@@ -146,8 +149,11 @@ impl<'db> Visitor<'db> {
         for field in enum_.fields(self.db) {
             self.visit_type(field._type(self.db));
         }
-        for impl_ in enum_.impls(self.db) {
-            self.visit_impl(*impl_);
+
+        if let Some(type_) = enum_.as_mono_type(self.db) {
+            for impl_ in type_.impls(self.db) {
+                self.visit_impl(impl_.declaration(self.db));
+            }
         }
     }
 

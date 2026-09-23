@@ -264,10 +264,6 @@ impl<'db> Struct<'db> {
         PathSegment::plain(db, self.lower_name(db).to_owned())
     }
 
-    pub fn as_mono_type_DELME(self, db: &'db dyn Db) -> Option<Type<'db>> {
-        self.lower_as_mono_type(db)
-    }
-
     #[salsa::tracked]
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         self.module(db).path(db).append(db, self.segment(db))
@@ -310,10 +306,10 @@ impl<'db> Struct<'db> {
         self.lower_span(db).as_ref()
     }
 
-    /// Supported inherent impl blocks for this type, including impls declared
-    /// in other modules.
-    pub fn impls(self, db: &'db dyn Db) -> &'db Vec<Impl<'db>> {
-        self.lower_impls(db)
+    /// The struct's type as a [`Type`] if it is a monomorphized struct (i.e.
+    /// without generics).
+    pub fn as_mono_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+        self.lower_as_mono_type(db)
     }
 }
 
@@ -336,10 +332,6 @@ impl<'db> Enum<'db> {
 
     pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
         PathSegment::plain(db, self.lower_name(db).to_owned())
-    }
-
-    pub fn as_mono_type_DELME(self, db: &'db dyn Db) -> Option<Type<'db>> {
-        self.lower_as_mono_type(db)
     }
 
     #[salsa::tracked]
@@ -380,16 +372,16 @@ impl<'db> Enum<'db> {
         self.lower_span(db).as_ref()
     }
 
-    /// Supported inherent impl blocks for this type, including impls declared
-    /// in other modules.
-    pub fn impls(self, db: &'db dyn Db) -> &'db Vec<Impl<'db>> {
-        self.lower_impls(db)
+    /// The enum's type as a [`Type`] if it is a monomorphized enum (i.e.
+    /// without generics).
+    pub fn as_mono_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+        self.lower_as_mono_type(db)
     }
 }
 
 as_item!(Enum);
 
-/// A supported inherent impl block for a struct or enum.
+/// A supported inherent impl block.
 #[salsa::interned(debug)]
 pub struct Impl<'db> {
     hir: HirImpl,
@@ -405,10 +397,6 @@ impl<'db> Impl<'db> {
         self.lower_generic_params(db)
     }
 
-    pub fn target(self, db: &'db dyn Db) -> ImplTarget<'db> {
-        self.lower_target(db)
-    }
-
     pub fn functions(self, db: &'db dyn Db) -> &'db Vec<Function<'db>> {
         self.lower_functions(db)
     }
@@ -418,41 +406,39 @@ impl<'db> Impl<'db> {
     }
 }
 
-/// The nominal type targeted by an inherent impl block.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
-pub enum ImplTarget<'db> {
-    Struct(StructType<'db>),
-    Enum(EnumType<'db>),
+pub enum ImplQualified<'db> {
+    Inherent(ImplInherent<'db>),
 }
 
-impl<'db> ImplTarget<'db> {
-    pub fn parent(self, db: &'db dyn Db) -> Module<'db> {
+#[salsa::tracked]
+impl<'db> ImplQualified<'db> {
+    pub fn declaration(self, db: &'db dyn Db) -> Impl<'db> {
         match self {
-            ImplTarget::Struct(struct_) => struct_.def(db).module(db),
-            ImplTarget::Enum(enum_) => enum_.def(db).module(db),
+            Self::Inherent(impl_) => impl_.declaration(db),
         }
     }
 
-    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+    pub fn functions(self, db: &'db dyn Db) -> impl Iterator<Item = FunctionQualified<'db>> + 'db {
         match self {
-            ImplTarget::Struct(struct_) => struct_.path(db),
-            ImplTarget::Enum(enum_) => enum_.path(db),
+            Self::Inherent(impl_) => impl_.functions(db).map(FunctionQualified::Inherent),
         }
     }
 }
 
-impl<'db> From<ImplTarget<'db>> for TypeOrigin<'db> {
-    fn from(value: ImplTarget<'db>) -> Self {
-        match value {
-            ImplTarget::Struct(struct_) => struct_.into(),
-            ImplTarget::Enum(enum_) => enum_.into(),
-        }
-    }
+#[salsa::interned(debug)]
+pub struct ImplInherent<'db> {
+    pub declaration: Impl<'db>,
+    pub target: Type<'db>,
 }
 
-impl<'db> AsItem<'db> for ImplTarget<'db> {
-    fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
-        self.path(db)
+#[salsa::tracked]
+impl<'db> ImplInherent<'db> {
+    pub fn functions(self, db: &'db dyn Db) -> impl Iterator<Item = FunctionInherent<'db>> + 'db {
+        self.declaration(db)
+            .functions(db)
+            .iter()
+            .map(move |function| FunctionInherent::new(db, *function, self))
     }
 }
 
@@ -750,11 +736,6 @@ impl<'db> Function<'db> {
         PathSegment::plain(db, self.name(db).to_owned())
     }
 
-    #[salsa::tracked]
-    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
-        self.parent(db).path(db).append(db, self.segment(db))
-    }
-
     pub fn receiver(self, db: &'db dyn Db) -> Option<Receiver> {
         self.lower_receiver(db)
     }
@@ -781,22 +762,143 @@ impl<'db> Function<'db> {
     }
 }
 
-as_item!(Function);
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
+pub enum FunctionQualified<'db> {
+    Free(FunctionFree<'db>),
+    Inherent(FunctionInherent<'db>),
+}
+
+#[salsa::tracked]
+impl<'db> FunctionQualified<'db> {
+    pub fn declaration(self, db: &'db dyn Db) -> Function<'db> {
+        match self {
+            Self::Free(function) => function.declaration(db),
+            Self::Inherent(function) => function.declaration(db),
+        }
+    }
+
+    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
+        self.declaration(db).segment(db)
+    }
+
+    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        match self {
+            Self::Free(function) => function.path(db),
+            Self::Inherent(function) => function.path(db),
+        }
+    }
+
+    pub fn as_callible(self, db: &'db dyn Db) -> Option<Callable<'db>> {
+        self.lower_as_callible(db)
+    }
+}
+
+as_item!(FunctionQualified);
+
+#[salsa::interned(debug)]
+pub struct FunctionFree<'db> {
+    pub declaration: Function<'db>,
+}
+
+impl<'db> FunctionFree<'db> {
+    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
+        self.declaration(db).segment(db)
+    }
+
+    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        let FunctionParent::Module(module) = self.declaration(db).parent(db) else {
+            unreachable!("free functions must be declared in a module")
+        };
+        module.path(db).append(db, self.segment(db))
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct FunctionInherent<'db> {
+    pub declaration: Function<'db>,
+    pub impl_: ImplInherent<'db>,
+}
+
+impl<'db> FunctionInherent<'db> {
+    pub fn target(self, db: &'db dyn Db) -> Type<'db> {
+        self.impl_(db).target(db)
+    }
+
+    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
+        self.declaration(db).segment(db)
+    }
+
+    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        self.lower_path(db)
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct Callable<'db> {
+    pub function: FunctionQualified<'db>,
+    /// Arguments for the function's own generic parameters.
+    #[returns(ref)]
+    pub generic_args: Vec<GenArg<'db>>,
+}
+
+#[salsa::tracked]
+impl<'db> Callable<'db> {
+    pub fn declaration(self, db: &'db dyn Db) -> Function<'db> {
+        self.function(db).declaration(db)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        self.declaration(db).name(db)
+    }
+
+    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
+        PathSegment::new(db, self.name(db), self.generic_args(db))
+    }
+
+    #[salsa::tracked]
+    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        let path = self.function(db).path(db);
+        let mut segments = path.segments(db).clone();
+        *segments.last_mut().expect("functions have a path segment") = self.segment(db);
+        ItemPath::new(db, path.crate_(db), segments)
+    }
+
+    pub fn receiver(self, db: &'db dyn Db) -> Option<Receiver> {
+        self.declaration(db).receiver(db)
+    }
+
+    pub fn receiver_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+        if !self.needs_substitution(db) {
+            return self.declaration(db).receiver_type(db);
+        }
+        self.receiver(db)
+            .map(|_| Type::new(db, TypeOrigin::CallableReceiver(self)))
+    }
+
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<Param<'db>> {
+        self.lower_params(db)
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+        self.lower_ret_type(db)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.declaration(db).docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.declaration(db).span(db)
+    }
+}
+
+as_item!(Callable);
 
 /// The declaration containing a source-defined function.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
 pub enum FunctionParent<'db> {
     Module(Module<'db>),
     Impl(Impl<'db>),
-}
-
-impl<'db> FunctionParent<'db> {
-    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
-        match self {
-            FunctionParent::Module(mod_) => mod_.path(db),
-            FunctionParent::Impl(impl_) => impl_.target(db).path(db),
-        }
-    }
 }
 
 /// How an associated function receives its target value.
@@ -812,13 +914,10 @@ pub enum Receiver {
 
 #[salsa::tracked(debug)]
 pub struct Param<'db> {
-    pub parent: Function<'db>,
     pub index: usize,
     #[returns(ref)]
-    #[tracked]
     pub name: String,
     #[returns(ref)]
-    #[tracked]
     pub type_: Type<'db>,
     #[returns(ref)]
     #[tracked]
@@ -842,6 +941,16 @@ pub enum TypeOrigin<'db> {
     },
     FunctionReturn(Function<'db>),
     FunctionReceiver(Function<'db>),
+    CallableParameter {
+        callable: Callable<'db>,
+        index: usize,
+    },
+    CallableReturn(Callable<'db>),
+    CallableReceiver(Callable<'db>),
+    TypeArgument {
+        type_: Type<'db>,
+        index: usize,
+    },
     Struct(StructType<'db>),
     Enum(EnumType<'db>),
     TypeParameter(TypeParam<'db>),
@@ -871,12 +980,12 @@ pub enum TypeKind<'db> {
 }
 
 impl<'db> Type<'db> {
-    fn hir(self, db: &'db dyn Db) -> ra_ap_hir::Type<'db> {
-        self.origin(db).hir(db)
-    }
-
     pub fn kind(self, db: &'db dyn Db) -> TypeKind<'db> {
         self.lower_kind(db)
+    }
+
+    pub fn impls(self, db: &'db dyn Db) -> &'db Vec<ImplQualified<'db>> {
+        self.lower_impls(db)
     }
 
     // FIXME: we may want to have a .fqn() method or .decl_syntax() method. Both of
@@ -924,6 +1033,10 @@ impl<'db> Type<'db> {
             TypeKind::Borrowed(reference) => reference.inner(db),
             _ => self,
         }
+    }
+
+    fn hir(self, db: &'db dyn Db) -> ra_ap_hir::Type<'db> {
+        self.origin(db).hir(db)
     }
 }
 

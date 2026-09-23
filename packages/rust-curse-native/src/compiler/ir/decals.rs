@@ -10,7 +10,7 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     ir::{
-        rust::{FieldName, Function, Span},
+        rust::{Callable, FieldName, Span},
         shim::{
             Shim, ShimClassDiscriminated, ShimClassDiscriminatedVariant, ShimClassPlain, ShimField,
             ShimFunction, ShimFunctionAssociated, ShimFunctionDiscriminator, ShimFunctionFree,
@@ -243,7 +243,7 @@ impl<'db> DecalFreeFunction<'db> {
             .map(|type_| type_.lower_decals(db))
     }
 
-    fn src(self, db: &'db dyn Db) -> Function<'db> {
+    fn src(self, db: &'db dyn Db) -> Callable<'db> {
         self.shim(db).src(db)
     }
 
@@ -299,7 +299,7 @@ impl<'db> DecalMethod<'db> {
             .map(|type_| type_.lower_decals(db))
     }
 
-    fn src(self, db: &'db dyn Db) -> Function<'db> {
+    fn src(self, db: &'db dyn Db) -> Callable<'db> {
         self.shim(db).src(db)
     }
 

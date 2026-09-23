@@ -14,7 +14,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        rust::{AsItem as _, Function, Shape},
+        rust::{AsItem as _, Callable, Shape},
         shim::{
             ShimFunction, ShimFunctionDiscriminatedCoerce, ShimFunctionDiscriminator,
             ShimFunctionGetter, ShimFunctionPlainCoerce, ShimFunctionSetter,
@@ -76,7 +76,7 @@ where
                     ShimFunction::from(coerce),
                     src.fqn(db),
                     src.shape(db),
-                    src.as_mono_type_DELME(db)
+                    src.as_mono_type(db)
                         .expect("shim structs must be nongeneric"),
                 )
             }
@@ -87,7 +87,7 @@ where
                     src.fqn(db),
                     src.shape(db),
                     src.parent(db)
-                        .as_mono_type_DELME(db)
+                        .as_mono_type(db)
                         .expect("shim enums must be nongeneric"),
                 )
             }
@@ -208,7 +208,7 @@ where
         })
     }
 
-    fn render_source_fn_call_body(self, src_fn: Function<'db>) -> impl FragmentOnce {
+    fn render_source_fn_call_body(self, src_fn: Callable<'db>) -> impl FragmentOnce {
         let cast_param_to_source_types = self
             .function
             .params(self.db)
@@ -357,7 +357,7 @@ where
             discriminator.params(self.db)[0].type_(self.db),
             TetheringStructType {
                 source_type: src
-                    .as_mono_type_DELME(self.db)
+                    .as_mono_type(self.db)
                     .expect("shim enums must be nongeneric"),
             },
             frag!(_0),

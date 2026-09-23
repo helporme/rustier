@@ -1,3 +1,4 @@
+mod callables;
 mod crates;
 mod enums;
 mod fields;
@@ -7,6 +8,7 @@ mod impls;
 mod modules;
 mod shapes;
 mod structs;
+mod type_impls;
 mod types;
 
 use self::{
@@ -19,9 +21,9 @@ use self::{
     types::{TypeLowerErrorUnsupported, is_clonable, lower_type},
 };
 use miette::SourceSpan;
-use ra_ap_hir::{Adt, GenericParam as HirGenericParam};
+use ra_ap_hir::{Adt, GenericParam as HirGenericParam, HirDisplay as _};
 
-use super::{Crate, Function, GenArg, GenericParam, Rust, Span, TypeOrigin};
+use super::{Crate, Function, FunctionParent, GenArg, GenericParam, Rust, Span, TypeOrigin};
 use crate::compiler::{db::Db, diag::DiagSource, path::FilePath};
 
 impl<'db> TypeOrigin<'db> {
@@ -32,6 +34,29 @@ impl<'db> TypeOrigin<'db> {
                 function.hir(db).params_without_self(db)[index].ty().clone()
             }
             Self::FunctionReturn(function) => function.hir(db).ret_type(db),
+            Self::CallableParameter { callable, index } => callable.instantiate(
+                db,
+                callable.declaration(db).hir(db).params_without_self(db)[index]
+                    .ty()
+                    .clone(),
+            ),
+            Self::CallableReturn(callable) => {
+                callable.instantiate(db, callable.declaration(db).hir(db).ret_type(db))
+            }
+            Self::CallableReceiver(callable) => callable.instantiate(
+                db,
+                callable
+                    .declaration(db)
+                    .hir(db)
+                    .self_param(db)
+                    .expect("receiver")
+                    .ty(db),
+            ),
+            Self::TypeArgument { type_, index } => type_
+                .hir(db)
+                .type_arguments()
+                .nth(index)
+                .expect("type argument"),
             Self::FunctionReceiver(function) => function
                 .hir(db)
                 .self_param(db)
@@ -92,13 +117,21 @@ impl<'db> Rust<'db> {
 
 pub(super) fn function_fqn(db: &dyn Db, function: ra_ap_hir::Function) -> String {
     // Diagnostics retain the declaration name without generic arguments.
-    Function::new(db, function)
-        .path(db)
-        .segments(db)
-        .iter()
-        .map(|segment| segment.name(db).as_str())
-        .collect::<Vec<_>>()
-        .join("::")
+    let declaration = Function::new(db, function);
+    let parent = match declaration.parent(db) {
+        FunctionParent::Module(module) => module.path(db).fqn(db).to_owned(),
+        FunctionParent::Impl(impl_) => {
+            let hir = impl_.hir(db);
+            let self_ty = hir.self_ty(db);
+            match self_ty.as_adt() {
+                Some(adt) => adt_fqn(db, adt),
+                None => self_ty
+                    .display(db, hir.module(db).krate(db).to_display_target(db))
+                    .to_string(),
+            }
+        }
+    };
+    format!("{parent}::{}", declaration.name(db))
 }
 
 pub(super) fn adt_fqn(db: &dyn Db, adt: Adt) -> String {

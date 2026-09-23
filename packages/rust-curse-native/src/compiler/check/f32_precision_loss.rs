@@ -4,11 +4,11 @@ use thiserror::Error;
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::rust::{Enum, Function, Span, Struct, TypeKind},
+    ir::rust::{Callable, Enum, Span, Struct, TypeKind},
 };
 
 #[salsa::tracked]
-impl<'db> Function<'db> {
+impl<'db> Callable<'db> {
     #[salsa::tracked]
     pub(super) fn check_f32_precision_loss(self, db: &'db dyn Db) {
         let f32_param = self

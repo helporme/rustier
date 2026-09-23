@@ -884,11 +884,9 @@ mod tests {
             .iter()
             .find_map(|member| match member {
                 Member::Struct(struct_) if struct_.segment(db).name(db) == name => {
-                    struct_.as_mono_type_DELME(db)
+                    struct_.as_mono_type(db)
                 }
-                Member::Enum(enum_) if enum_.segment(db).name(db) == name => {
-                    enum_.as_mono_type_DELME(db)
-                }
+                Member::Enum(enum_) if enum_.segment(db).name(db) == name => enum_.as_mono_type(db),
                 Member::Function(function) if function.name(db) == "cast_types" => function
                     .params(db)
                     .iter()

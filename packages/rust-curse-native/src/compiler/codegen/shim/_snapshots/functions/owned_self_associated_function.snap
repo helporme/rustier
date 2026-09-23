@@ -25,7 +25,7 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
     Ok(
         cast
             .from(
-                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7c01)) }) })",
             )
             .to("Shim(bool)")
             .an({
@@ -34,7 +34,7 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
                         "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
                     .to(
-                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7c01)) }) })",
                     )
                     .an(_0);
                 test_crate::Test::owned(_0)
@@ -52,7 +52,7 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
     Ok(
         cast
             .from(
-                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7c01)) }) })",
             )
             .to("Shim(bool)")
             .an({
@@ -61,7 +61,7 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
                         "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
                     )
                     .to(
-                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7c01)) }) })",
                     )
                     .an(_0);
                 test_crate::Test::owned(_0)

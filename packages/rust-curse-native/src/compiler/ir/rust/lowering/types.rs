@@ -9,6 +9,7 @@ use crate::compiler::{
     db::Db,
     ir::rust::{
         BorrowedType, Enum, EnumType, GenArg, Struct, StructType, Type, TypeKind, TypeOrigin,
+        TypeParam,
     },
 };
 
@@ -40,7 +41,40 @@ impl<'db> Type<'db> {
             }
             _ => {}
         }
-        lower_type_kind(db, self, &self.hir(db), self.origin(db).crate_(db))
+        let hir = self.hir(db);
+        if let Some(param) = hir.as_type_param(db) {
+            return TypeKind::Generic(TypeParam::new(db, param));
+        }
+        if let Some((_, mutability)) = hir.as_reference() {
+            return TypeKind::Borrowed(BorrowedType::new(
+                db,
+                mutability == Mutability::Mut,
+                Type::new(db, TypeOrigin::Dereferenced(self)),
+                None,
+            ));
+        }
+        if let Some(adt) = hir.as_adt()
+            && !GenericDef::Adt(adt).params(db).is_empty()
+        {
+            let args = hir
+                .type_arguments()
+                .enumerate()
+                .map(|(index, _)| {
+                    GenArg::Type(Type::new(
+                        db,
+                        TypeOrigin::TypeArgument { type_: self, index },
+                    ))
+                })
+                .collect::<Vec<_>>();
+            return match adt {
+                Adt::Struct(hir) => {
+                    TypeKind::Struct(StructType::new(db, Struct::new(db, hir), args))
+                }
+                Adt::Enum(hir) => TypeKind::Enum(EnumType::new(db, Enum::new(db, hir), args)),
+                Adt::Union(_) => unreachable!("unions are unsupported"),
+            };
+        }
+        lower_type_kind(db, self, &hir, self.origin(db).crate_(db))
             .expect("unsupported types are discarded during lowering")
     }
 }
@@ -49,6 +83,12 @@ impl<'db> TypeOrigin<'db> {
     fn crate_(self, db: &'db dyn Db) -> ra_ap_hir::Crate {
         match self {
             Self::Field(field) => field.hir(db).parent_def(db).module(db).krate(db),
+            Self::CallableParameter { callable, .. }
+            | Self::CallableReturn(callable)
+            | Self::CallableReceiver(callable) => {
+                callable.declaration(db).hir(db).module(db).krate(db)
+            }
+            Self::TypeArgument { type_, .. } => type_.origin(db).crate_(db),
             Self::FunctionParameter { function, .. }
             | Self::FunctionReturn(function)
             | Self::FunctionReceiver(function) => function.hir(db).module(db).krate(db),

@@ -5,7 +5,7 @@ use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::{
-        rust::{AsItem as _, Enum, Impl, Struct},
+        rust::{AsItem as _, Enum, Struct, Type},
         shim::ShimFunctionAssociated,
     },
 };
@@ -14,7 +14,9 @@ use crate::compiler::{
 impl<'db> Struct<'db> {
     #[salsa::tracked]
     pub(super) fn check_method_field_collisions(self, db: &'db dyn Db) {
-        check_method_field_collisions(db, self.impls(db));
+        if let Some(type_) = self.as_mono_type(db) {
+            check_method_field_collisions(db, type_);
+        }
     }
 }
 
@@ -22,18 +24,29 @@ impl<'db> Struct<'db> {
 impl<'db> Enum<'db> {
     #[salsa::tracked]
     pub(super) fn check_method_field_collisions(self, db: &'db dyn Db) {
-        check_method_field_collisions(db, self.impls(db));
+        if let Some(type_) = self.as_mono_type(db) {
+            check_method_field_collisions(db, type_);
+        }
     }
 }
 
-fn check_method_field_collisions<'db>(db: &'db dyn Db, impls: &[Impl<'db>]) {
-    for function in impls.iter().flat_map(|impl_| impl_.functions(db)) {
-        let method = ShimFunctionAssociated::new(db, *function);
+fn check_method_field_collisions<'db>(db: &'db dyn Db, target: Type<'db>) {
+    for function in target
+        .impls(db)
+        .iter()
+        .flat_map(|impl_| impl_.functions(db))
+    {
+        let method = ShimFunctionAssociated::new(
+            db,
+            function
+                .as_callible(db)
+                .expect("generic functions are not lowered"),
+        );
         if !method.is_shadowed_by_field(db) {
             continue;
         }
 
-        let source_span = function.span(db);
+        let source_span = function.declaration(db).span(db);
         let source_code = source_span
             .map(|span| span.src(db))
             .map(Into::into)

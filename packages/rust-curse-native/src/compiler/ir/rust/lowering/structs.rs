@@ -2,11 +2,11 @@ use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{Adt, GenericDef, HasAttrs as _};
 use thiserror::Error;
 
-use super::{adt_fqn, diagnostic_location, lower_impl, lower_item_span, lower_shape};
+use super::{adt_fqn, diagnostic_location, lower_item_span, lower_shape};
 use crate::compiler::{
     db::Db,
     diag::DiagSource,
-    ir::rust::{FieldParent, Impl, Module, Shape, Span, Struct},
+    ir::rust::{FieldParent, Module, Shape, Span, Struct},
 };
 
 #[salsa::tracked]
@@ -43,14 +43,6 @@ impl<'db> Struct<'db> {
             self.hir(db).kind(db),
             self.hir(db).fields(db),
         )
-    }
-
-    #[salsa::tracked(returns(ref))]
-    pub(in crate::compiler::ir::rust) fn lower_impls(self, db: &'db dyn Db) -> Vec<Impl<'db>> {
-        ra_ap_hir::Impl::all_for_type(db, self.hir(db).ty(db))
-            .into_iter()
-            .filter_map(|impl_| lower_impl(db, impl_))
-            .collect()
     }
 
     #[salsa::tracked(returns(ref))]

@@ -12,7 +12,7 @@ use crate::compiler::{
     db::Db,
     ir::{
         ffi::{Ffi, FfiClass, FfiFunction},
-        rust::{FieldName, Function},
+        rust::{Callable, FieldName},
         shim::{
             Shim, ShimClassDiscriminated, ShimClassPlain, ShimField, ShimFunctionAssociated,
             ShimFunctionDiscriminator, ShimFunctionFree, ShimFunctionPlainCoerce, ShimMember,
@@ -259,7 +259,7 @@ impl<'db> FacadeFreeFunction<'db> {
         imports.into_iter().collect()
     }
 
-    fn src(self, db: &'db dyn Db) -> Function<'db> {
+    fn src(self, db: &'db dyn Db) -> Callable<'db> {
         self.shim(db).src(db)
     }
 }
@@ -321,7 +321,7 @@ impl<'db> FacadeMethod<'db> {
             }))
     }
 
-    fn src(self, db: &'db dyn Db) -> Function<'db> {
+    fn src(self, db: &'db dyn Db) -> Callable<'db> {
         self.shim(db).src(db)
     }
 }

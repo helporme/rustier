@@ -2,12 +2,12 @@ use crate::compiler::{
     db::Db,
     ir::{
         rust::{
-            Crate, Enum, Field, ImplTarget, Member, Module, Rust, Struct, Type, TypeKind,
-            TypeOrigin, usages::UsageGraph,
+            Crate, Enum, Field, FunctionFree, FunctionQualified, Member, Module, Rust, Struct,
+            Type, TypeKind, usages::UsageGraph,
         },
         shim::{
-            Shim, ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimCrate, ShimField,
-            ShimFunctionFree, ShimMember, ShimModule, ShimParentCrate, ShimParentModule, ShimType,
+            Shim, ShimClassDiscriminated, ShimClassPlain, ShimCrate, ShimField, ShimFunctionFree,
+            ShimMember, ShimModule, ShimParentCrate, ShimParentModule, ShimType,
         },
     },
 };
@@ -46,7 +46,12 @@ impl<'db> Module<'db> {
 impl<'db> Member<'db> {
     pub fn shim_reachable_from(self, db: &'db dyn Db, usages: UsageGraph<'db>) -> ShimMember<'db> {
         match self {
-            Member::Function(function) => ShimMember::Function(ShimFunctionFree::new(db, function)),
+            Member::Function(function) => ShimMember::Function(ShimFunctionFree::new(
+                db,
+                FunctionQualified::Free(FunctionFree::new(db, function))
+                    .as_callible(db)
+                    .expect("generic functions cannot reach the shim"),
+            )),
             Member::Struct(struct_) => ShimMember::Class(struct_.shim(db).into()),
             Member::Enum(enum_) => ShimMember::Class(enum_.shim(db).into()),
             Member::Module(module) => ShimMember::Module(module.shim_reachable_from(db, usages)),
@@ -66,16 +71,6 @@ impl<'db> Enum<'db> {
     }
 }
 
-impl<'db> ImplTarget<'db> {
-    pub fn shim(self, db: &'db dyn Db) -> ShimClass<'db> {
-        Type::new(db, TypeOrigin::from(self)).assert_shim_supported(db);
-        match self {
-            ImplTarget::Struct(struct_) => struct_.def(db).shim(db).into(),
-            ImplTarget::Enum(enum_) => enum_.def(db).shim(db).into(),
-        }
-    }
-}
-
 impl<'db> Field<'db> {
     pub fn shim(&self, db: &'db dyn Db) -> ShimField<'db> {
         ShimField::new(db, self)
@@ -88,11 +83,11 @@ impl<'db> Type<'db> {
         match self.kind(db) {
             TypeKind::Generic(_) => unreachable!("generic types cannot reach the shim"),
             TypeKind::Struct(value) => assert!(
-                value.gen_args(db).is_empty() && value.def(db).as_mono_type_DELME(db).is_some(),
+                value.gen_args(db).is_empty() && value.def(db).as_mono_type(db).is_some(),
                 "generic structs cannot reach the shim"
             ),
             TypeKind::Enum(value) => assert!(
-                value.gen_args(db).is_empty() && value.def(db).as_mono_type_DELME(db).is_some(),
+                value.gen_args(db).is_empty() && value.def(db).as_mono_type(db).is_some(),
                 "generic enums cannot reach the shim"
             ),
             TypeKind::Borrowed(value) => {

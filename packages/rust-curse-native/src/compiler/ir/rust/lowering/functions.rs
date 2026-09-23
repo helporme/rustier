@@ -66,21 +66,19 @@ impl<'db> Function<'db> {
             .into_iter()
             .enumerate()
             .map(|(index, param)| {
-                let type_ = lower_type(
+                let type_ = Type::new(
                     db,
                     TypeOrigin::FunctionParameter {
                         function: self,
                         index,
                     },
-                    crate_,
-                )
-                .expect("functions with unsupported parameters are not lowered");
+                );
                 let name = param
                     .name(db)
                     .map(|name| name.display(db, crate_.edition(db)).to_string())
                     .unwrap_or_else(|| format!("arg{index}"));
                 let span = lower_item_span(db, param);
-                Param::new(db, self, index, name, type_, span)
+                Param::new(db, index, name, type_, span)
             })
             .collect()
     }

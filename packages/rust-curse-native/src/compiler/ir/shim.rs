@@ -18,8 +18,8 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Crate, Enum, Field, FieldName, FieldParent, Function, FunctionParent, Module, ModuleParent,
-        Rust, Struct, Type, Variant, usages::UsageGraph,
+        Callable, Crate, Enum, Field, FieldName, FieldParent, FunctionQualified, Module,
+        ModuleParent, Rust, Struct, Type, Variant, usages::UsageGraph,
     },
 };
 
@@ -216,11 +216,11 @@ impl<'db> ShimClass<'db> {
         match self {
             ShimClass::Plain(p) => p
                 .src(db)
-                .as_mono_type_DELME(db)
+                .as_mono_type(db)
                 .expect("shim structs must be nongeneric"),
             ShimClass::Discriminated(d) => d
                 .src(db)
-                .as_mono_type_DELME(db)
+                .as_mono_type(db)
                 .expect("shim enums must be nongeneric"),
         }
     }
@@ -288,9 +288,9 @@ impl<'db> ShimClassPlain<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn methods(self, db: &'db dyn Db) -> Vec<ShimFunctionAssociated<'db>> {
         self.src(db)
-            .impls(db)
-            .iter()
-            .flat_map(|impl_| impl_.lower_as_methods(db))
+            .as_mono_type(db)
+            .expect("generic structs cannot reach the shim")
+            .lower_as_methods(db)
             .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
     }
@@ -374,9 +374,9 @@ impl<'db> ShimClassDiscriminated<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn methods(self, db: &'db dyn Db) -> Vec<ShimFunctionAssociated<'db>> {
         self.src(db)
-            .impls(db)
-            .iter()
-            .flat_map(|impl_| impl_.lower_as_methods(db))
+            .as_mono_type(db)
+            .expect("generic enums cannot reach the shim")
+            .lower_as_methods(db)
             .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
     }
@@ -525,7 +525,7 @@ impl<'db> ShimFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct ShimFunctionFree<'db> {
-    pub src: Function<'db>,
+    pub src: Callable<'db>,
 }
 
 #[salsa::tracked]
@@ -564,7 +564,7 @@ impl<'db> From<ShimFunctionFree<'db>> for ShimFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct ShimFunctionAssociated<'db> {
-    pub src: Function<'db>,
+    pub src: Callable<'db>,
 }
 
 #[salsa::tracked]
@@ -584,11 +584,12 @@ impl<'db> ShimFunctionAssociated<'db> {
 
     #[salsa::tracked]
     pub fn self_class(self, db: &'db dyn Db) -> ShimClass<'db> {
-        match self.src(db).parent(db) {
-            FunctionParent::Impl(impl_) => impl_.target(db).shim(db),
-            FunctionParent::Module(_) => {
-                unreachable!("associated shim functions must belong to an impl block")
-            }
+        let FunctionQualified::Inherent(function) = self.src(db).function(db) else {
+            unreachable!("associated shim functions must be inherent")
+        };
+        match function.target(db).shim_in(db) {
+            ShimType::Class { inner, .. } => inner,
+            _ => unreachable!("associated shim functions must target a class"),
         }
     }
 
@@ -775,7 +776,7 @@ impl<'db> ShimFunctionDiscriminator<'db> {
     pub fn params(self, db: &'db dyn Db) -> [ShimParam<'db>; 1] {
         let src_type = self
             .src(db)
-            .as_mono_type_DELME(db)
+            .as_mono_type(db)
             .expect("shim enums must be nongeneric");
 
         [ShimParam::new(

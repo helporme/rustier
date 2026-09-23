@@ -1,10 +1,10 @@
-use ra_ap_hir::{Adt, AssocItem, GenericDef, HasSource as _, HasVisibility as _, Visibility};
+use ra_ap_hir::{AssocItem, GenericDef, HasSource as _, HasVisibility as _, Visibility};
 
-use super::{lower_enum, lower_function, lower_item_span, lower_struct};
+use super::{lower_function, lower_item_span};
 use crate::compiler::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::rust::{EnumType, GenArg, Impl, ImplTarget, Module, Span, StructType},
+    ir::rust::{Impl, Module, Span},
 };
 
 #[salsa::tracked]
@@ -12,11 +12,6 @@ impl<'db> Impl<'db> {
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_module(self, db: &'db dyn Db) -> Module<'db> {
         Module::new(db, self.hir(db).module(db))
-    }
-
-    #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_target(self, db: &'db dyn Db) -> ImplTarget<'db> {
-        lower_impl_target(db, self.hir(db)).expect("only impls with supported targets are lowered")
     }
 
     #[salsa::tracked(returns(ref))]
@@ -53,27 +48,9 @@ pub(super) fn lower_impl<'db>(db: &'db dyn Db, hir: ra_ap_hir::Impl) -> Option<I
         || hir.is_unsafe(db)
         || hir.is_negative(db)
         || hir.source(db).is_none()
-        || lower_impl_target(db, hir).is_none()
     {
         return None;
     }
 
     Some(Impl::new(db, hir))
-}
-
-fn lower_impl_target<'db>(db: &'db dyn Db, hir: ra_ap_hir::Impl) -> Option<ImplTarget<'db>> {
-    let target = hir.self_ty(db).as_adt()?;
-    if target.visibility(db) != Visibility::Public {
-        return None;
-    }
-
-    match target {
-        Adt::Struct(struct_) => lower_struct(db, struct_)
-            .ok()
-            .map(|def| ImplTarget::Struct(StructType::new(db, def, Vec::<GenArg<'db>>::new()))),
-        Adt::Enum(enum_) => lower_enum(db, enum_)
-            .ok()
-            .map(|def| ImplTarget::Enum(EnumType::new(db, def, Vec::<GenArg<'db>>::new()))),
-        Adt::Union(_) => None,
-    }
 }
