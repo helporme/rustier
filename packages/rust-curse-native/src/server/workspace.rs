@@ -11,7 +11,10 @@ use thiserror::Error;
 
 use crate::{
     compiler::{inputs::LocalCrates, path::FilePath},
-    server::{ServerChange, project::Project},
+    server::{
+        ServerChange,
+        project::{Project, ProjectConfig},
+    },
 };
 
 #[derive(Debug)]
@@ -166,8 +169,20 @@ impl ServerWorkspace {
         Ok(changed)
     }
 
-    pub fn project(&self) -> Project<'_> {
-        Project::new(&self.manifest_path, &self.root_file, &self.package_name)
+    pub fn project<'db>(&self, db: &'db RootDatabase) -> Project<'db> {
+        assert!(
+            self.manifest_path.is_file() && self.manifest_path.file_name().unwrap() == "Cargo.toml"
+        );
+        assert!(self.root_file.is_file() && self.root_file.file_name().unwrap() == "lib.rs");
+
+        Project::new(
+            db,
+            ProjectConfig {
+                manifest_path: self.manifest_path.clone(),
+                root_file: self.root_file.clone(),
+                package_name: self.package_name.clone(),
+            },
+        )
     }
 
     /// Runs a complete compiler query with rust-analyzer's database attached.

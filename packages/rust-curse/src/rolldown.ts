@@ -8,9 +8,10 @@ import {
   ServerDiagnosticSeverity,
   type ServerLog,
   ServerLogLevel,
-  ServerPlatform,
-  ServerWasmTarget,
 } from 'rust-curse-native'
+import { toServerPlatform, type RustCurseTarget } from './target'
+
+export type { RustCurseTarget } from './target'
 
 export type RustCurseOptions = {
   /**
@@ -70,8 +71,6 @@ export interface RustCurseProfile {
   /** Additional Cargo features enabled on the source crate. */
   features?: string[]
 }
-
-export type RustCurseTarget = 'node' | 'wasm' | 'wasm-node'
 
 /**
  * Compile Rust modules and make `.rs` files importable by Rolldown.
@@ -325,17 +324,6 @@ function watchRustFiles(ctx: PluginContext, rootDir: string, manifestPath: strin
   }
   ctx.addWatchFile(manifestPath)
   ctx.addWatchFile(path.join(rootDir, 'Cargo.lock'))
-}
-
-function toServerPlatform(target: RustCurseTarget): ServerPlatform {
-  switch (target) {
-    case 'node':
-      return { type: 'Node' }
-    case 'wasm-node':
-      return { type: 'Wasm', target: ServerWasmTarget.Node }
-    case 'wasm':
-      return { type: 'Wasm', target: ServerWasmTarget.Web }
-  }
 }
 
 function reportDiagnostics(

@@ -63,35 +63,51 @@ impl ServerNodeTarget {
     }
 
     pub fn host() -> Option<Self> {
-        [
-            Self::Aarch64AppleDarwin,
-            Self::Aarch64LinuxAndroid,
-            Self::Aarch64PcWindowsMsvc,
-            Self::Aarch64UnknownFreebsd,
-            Self::Aarch64UnknownLinuxGnu,
-            Self::Aarch64UnknownLinuxMusl,
-            Self::Aarch64UnknownLinuxOhos,
-            Self::Armv7LinuxAndroideabi,
-            Self::Armv7UnknownLinuxGnueabihf,
-            Self::Armv7UnknownLinuxMusleabihf,
-            Self::Armv7UnknownLinuxOhos,
-            Self::I686PcWindowsMsvc,
-            Self::Loongarch64UnknownLinuxGnu,
-            Self::Loongarch64UnknownLinuxMusl,
-            Self::Powerpc64leUnknownLinuxGnu,
-            Self::Riscv64gcUnknownLinuxGnu,
-            Self::Riscv64gcUnknownLinuxMusl,
-            Self::S390xUnknownLinuxGnu,
-            Self::X86_64AppleDarwin,
-            Self::X86_64PcWindowsGnu,
-            Self::X86_64PcWindowsMsvc,
-            Self::X86_64UnknownFreebsd,
-            Self::X86_64UnknownLinuxGnu,
-            Self::X86_64UnknownLinuxMusl,
-            Self::X86_64UnknownLinuxOhos,
-        ]
-        .into_iter()
-        .find(|target| target.triple() == env!("RUST_CURSE_TARGET"))
+        let env = if cfg!(target_env = "msvc") {
+            "msvc"
+        } else if cfg!(target_env = "gnu") {
+            "gnu"
+        } else if cfg!(target_env = "musl") {
+            "musl"
+        } else if cfg!(target_env = "ohos") {
+            "ohos"
+        } else {
+            ""
+        };
+        Some(match (std::env::consts::ARCH, std::env::consts::OS, env) {
+            ("aarch64", "macos", "") => Self::Aarch64AppleDarwin,
+            ("x86_64", "macos", "") => Self::X86_64AppleDarwin,
+            ("aarch64", "android", "") => Self::Aarch64LinuxAndroid,
+            ("arm", "android", "") => Self::Armv7LinuxAndroideabi,
+            ("aarch64", "windows", "msvc") => Self::Aarch64PcWindowsMsvc,
+            ("x86", "windows", "msvc") => Self::I686PcWindowsMsvc,
+            ("x86_64", "windows", "msvc") => Self::X86_64PcWindowsMsvc,
+            ("x86_64", "windows", "gnu") => Self::X86_64PcWindowsGnu,
+            ("aarch64", "freebsd", "") => Self::Aarch64UnknownFreebsd,
+            ("x86_64", "freebsd", "") => Self::X86_64UnknownFreebsd,
+            ("aarch64", "linux", "gnu") => Self::Aarch64UnknownLinuxGnu,
+            ("aarch64", "linux", "musl") => Self::Aarch64UnknownLinuxMusl,
+            ("aarch64", "linux", "ohos") => Self::Aarch64UnknownLinuxOhos,
+            ("arm", "linux", "gnu") if cfg!(target_abi = "eabihf") => {
+                Self::Armv7UnknownLinuxGnueabihf
+            }
+            ("arm", "linux", "musl") if cfg!(target_abi = "eabihf") => {
+                Self::Armv7UnknownLinuxMusleabihf
+            }
+            ("arm", "linux", "ohos") => Self::Armv7UnknownLinuxOhos,
+            ("loongarch64", "linux", "gnu") => Self::Loongarch64UnknownLinuxGnu,
+            ("loongarch64", "linux", "musl") => Self::Loongarch64UnknownLinuxMusl,
+            ("powerpc64", "linux", "gnu") if cfg!(target_endian = "little") => {
+                Self::Powerpc64leUnknownLinuxGnu
+            }
+            ("riscv64", "linux", "gnu") => Self::Riscv64gcUnknownLinuxGnu,
+            ("riscv64", "linux", "musl") => Self::Riscv64gcUnknownLinuxMusl,
+            ("s390x", "linux", "gnu") => Self::S390xUnknownLinuxGnu,
+            ("x86_64", "linux", "gnu") => Self::X86_64UnknownLinuxGnu,
+            ("x86_64", "linux", "musl") => Self::X86_64UnknownLinuxMusl,
+            ("x86_64", "linux", "ohos") => Self::X86_64UnknownLinuxOhos,
+            _ => return None,
+        })
     }
 
     /// The sibling filename expected by `compiler/codegen/ffi/napi-loader.mjs`.

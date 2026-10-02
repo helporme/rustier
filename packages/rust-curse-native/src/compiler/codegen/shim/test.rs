@@ -53,9 +53,7 @@ macro_rules! assert_rust_snap {
             let __wasm = $crate::compiler::codegen::fragment::FragmentPrint::print(
                 $crate::compiler::codegen::fragment::fragment(|$printer| {
                     let $db = &__db;
-                    let $platform = $crate::compiler::codegen::shim::Platform::Wasm {
-                        target: $crate::compiler::codegen::shim::WasmEnv::Web,
-                    };
+                    let $platform = $crate::compiler::codegen::shim::Platform::Wasm;
                     $expression
                 }),
             );

@@ -24,15 +24,7 @@ mod test;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
 #[non_exhaustive]
 pub enum Platform {
-    Wasm { target: WasmEnv },
-    Node,
-}
-
-/// Wasm execution environment.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
-#[non_exhaustive]
-pub enum WasmEnv {
-    Web,
+    Wasm,
     Node,
 }
 

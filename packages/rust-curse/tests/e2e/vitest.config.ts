@@ -6,7 +6,7 @@ let activeProfile: 'wasm' | 'node' = 'wasm';
 let plugin: any = rustCurse({
   profiles: {
     wasm: {
-      target: 'wasm-node',
+      target: { type: 'wasm', loading: 'node-module' },
     },
     node: {
       target: "node"

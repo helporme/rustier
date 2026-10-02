@@ -7,10 +7,7 @@ use std::{
 use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice, load_workspace_at};
 use ra_ap_project_model::{CargoConfig, RustLibSource};
 use rust_curse::compiler::{
-    codegen::shim::{
-        Platform, WasmEnv,
-        manifest::{ManifestOpts, render_manifest},
-    },
+    codegen::shim::{Platform, manifest::Manifest},
     diag::Diag,
     ir::rust::{Rust, usages::UsageGraph},
 };
@@ -113,13 +110,8 @@ impl ProgramCompiler {
         let diagnostics = Vec::new();
         for &platform in &program.platforms {
             let (platform_name, generated_dir_name) = match platform {
-                Platform::Wasm {
-                    target: WasmEnv::Node,
-                } => ("wasm", "wasm"),
+                Platform::Wasm => ("wasm", "wasm"),
                 Platform::Node => ("node", "node"),
-                Platform::Wasm {
-                    target: WasmEnv::Web,
-                } => ("wasm(web)", "wasm-web"),
                 _ => return Err("program test selected an unsupported platform".to_string()),
             };
             let generated_dir = workspace.generated_root.join(generated_dir_name);
@@ -190,17 +182,17 @@ fn write_generated_crate(
     fs::write(generated_dir.join("src/lib.rs"), shim)
         .map_err(|error| format!("write generated shim: {error}"))?;
 
-    let manifest = render_manifest(ManifestOpts {
+    let manifest = Manifest {
         name: "test-source",
         source_package_name: "test-source",
         source_crate_name: SOURCE_CRATE_NAME,
         source_package_path: source_dir,
-        platform,
-    });
-    fs::write(generated_dir.join("Cargo.toml"), manifest)
+        platform: platform.into(),
+    };
+    fs::write(generated_dir.join("Cargo.toml"), manifest.render())
         .map_err(|error| format!("write generated manifest: {error}"))?;
 
-    if let Some(body) = platform.build_script_body() {
+    if let Some(body) = manifest.platform.build_script_body() {
         fs::write(
             generated_dir.join("build.rs"),
             format!("fn main() {{ {body} }}\n"),

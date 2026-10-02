@@ -7,8 +7,8 @@ use std::{
 use crate::{
     compiler::{db::Db, ir::decals::Decals},
     server::{
-        project::{Project, ProjectError},
-        write_file::write_file,
+        project::Project,
+        write_file::{WriteFileError, write_file},
     },
 };
 
@@ -29,13 +29,13 @@ impl<'a> ProjectTs<'a> {
     /// Doesn't do anything until executed.
     pub fn sync(self, db: &'a dyn Db) -> ProjectTsSync<'a> {
         let decals = self.project.reachable_shim(db).decals(db);
-        let out_dir = self.project.out_dir();
+        let out_dir = self.project.out_dir(db);
 
         ProjectTsSync {
             decals,
             out_types_dir: out_dir.join("types"),
             out_ambient_file: out_dir.join("ambient.d.ts"),
-            root_dir: self.project.root_dir(),
+            root_dir: self.project.root_dir(db),
         }
     }
 }
@@ -50,7 +50,7 @@ pub struct ProjectTsSync<'a> {
 
 impl<'db> ProjectTsSync<'db> {
     /// Syncs the decals IR to the file system.
-    pub fn exec(&self, db: &'db dyn Db) -> Result<(), ProjectError> {
+    pub fn exec(&self, db: &'db dyn Db) -> Result<(), ProjectTsError> {
         // Validate every local module before writing any output.
         let modules = self
             .decals
@@ -63,13 +63,13 @@ impl<'db> ProjectTsSync<'db> {
                     .strip_prefix(self.root_dir)
                     .ok()
                     .filter(|_| path.is_real())
-                    .ok_or_else(|| ProjectError::ModuleOutsideRoot {
+                    .ok_or_else(|| ProjectTsError::ModuleOutsideRoot {
                         path: path.as_path().to_owned(),
                         root: self.root_dir.to_owned(),
                     })?;
                 Ok((module, relative))
             })
-            .collect::<Result<Vec<_>, ProjectError>>()?;
+            .collect::<Result<Vec<_>, ProjectTsError>>()?;
 
         let mut generated = HashSet::new();
         for (module, relative) in modules {
@@ -99,8 +99,7 @@ impl<'db> ProjectTsSync<'db> {
         }
 
         prune_declarations(&self.out_types_dir, &generated).map_err(|source| {
-            ProjectError::ArtifactIo {
-                operation: "remove stale declarations in",
+            ProjectTsError::PruneDeclarations {
                 path: self.out_types_dir.clone(),
                 source,
             }
@@ -112,6 +111,23 @@ impl<'db> ProjectTsSync<'db> {
 
         Ok(())
     }
+}
+
+#[derive(Debug, thiserror::Error, miette::Diagnostic)]
+pub enum ProjectTsError {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    WriteFile(#[from] WriteFileError),
+    #[error("failed to remove stale declarations in {}", path.display())]
+    #[diagnostic(code(rust_curse::artifact_io))]
+    PruneDeclarations {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
+    #[error("local module {} is outside project root {}", path.display(), root.display())]
+    #[diagnostic(code(rust_curse::module_outside_project))]
+    ModuleOutsideRoot { path: PathBuf, root: PathBuf },
 }
 
 /// A different declaration target may no longer expose previously emitted

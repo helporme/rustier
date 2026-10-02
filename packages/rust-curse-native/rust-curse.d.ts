@@ -128,11 +128,11 @@ export declare const enum ServerNodeTarget {
 
 /** The platform to build for. */
 export type ServerPlatform =
-  | { type: 'Wasm', target: ServerWasmTarget }
+  | { type: 'Wasm', target: ServerWasmLoading }
   | { type: 'Node', target?: ServerNodeTarget }
 
-/** The target platform for the WASM build. */
-export declare const enum ServerWasmTarget {
-  Web = 0,
-  Node = 1
+/** The loading method for the WASM build. */
+export declare const enum ServerWasmLoading {
+  Fetch = 0,
+  ModuleNode = 1
 }

@@ -1,8 +1,8 @@
 //! All platform-specific code generation utilities.
 
 use crate::compiler::codegen::{
-    fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment, singles},
-    shim::{Platform, WasmEnv},
+    fragment::{FragmentOnce, doubles, frag, fragment},
+    shim::Platform,
 };
 
 // todo: split it on multiple files?
@@ -189,61 +189,10 @@ impl Platform {
 
     /// The contents of `fn main` for this platform's build script, if
     /// any.
-    pub fn build_script_body(&self) -> Option<&'static str> {
+    pub const fn build_script_body(&self) -> Option<&'static str> {
         match self {
-            Platform::Wasm { .. } => None,
+            Platform::Wasm => None,
             Platform::Node => Some("napi_build::setup();"),
         }
-    }
-
-    /// Whether this platform needs a generated Cargo build script.
-    pub fn needs_build_script(&self) -> bool {
-        self.build_script_body().is_some()
-    }
-
-    /// The Cargo manifest dependencies required by this platform.
-    pub fn manifest_deps(self) -> Option<impl FragmentOnce> {
-        Some(fragment(move |p| match self {
-            Platform::Wasm { .. } => frag!({ r#"wasm-bindgen = "0.2""# }).apply(p),
-            Platform::Node => frag!(
-                {r#"napi = { version = "3", features = ["napi10"] }"#}@
-                {r#"napi-derive = { version = "3" }"#}
-            )
-            .apply(p),
-        }))
-    }
-
-    /// The Cargo manifest build dependencies required by this platform.
-    pub fn manifest_build_deps(self) -> Option<impl FragmentOnce> {
-        let deps = frag!(
-            @@
-            [build-dependencies]@
-            {r#"napi-build = "2""#}
-        );
-
-        (self == Platform::Node).then_some(deps)
-    }
-
-    /// Dependency entries to append to a generated manifest's `[dependencies]`
-    /// section, including a `[build-dependencies]` section when needed.
-    pub fn render_manifest_dependencies(self) -> String {
-        frag!({self.manifest_deps()}{self.manifest_build_deps()}).print()
-    }
-
-    /// JavaScript initialization code needed by this platform before
-    /// exports are used.
-    pub fn js_mod_init<'a>(self, src_path: &'a str) -> Option<impl FragmentOnce + 'a> {
-        matches!(
-            self,
-            Platform::Wasm {
-                target: WasmEnv::Web
-            }
-        )
-        .then(|| {
-            frag!(
-                import init from ~{singles(src_path)};@
-                await init();
-            )
-        })
     }
 }

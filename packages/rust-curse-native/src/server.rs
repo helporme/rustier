@@ -6,10 +6,10 @@ use napi::threadsafe_function::ThreadsafeFunction;
 use napi_derive::napi;
 
 use crate::{
-    compiler::codegen::shim::{Platform, WasmEnv},
+    compiler::codegen::shim::Platform,
     server::{
         log::ServerLogs,
-        project::ProjectError,
+        project::{CursedCrateNode, CursedCrateWasm, WasmLoading},
         toolchain::{ToolInstallationOpts, Toolchain, ToolchainOps},
         workspace::ServerWorkspace,
     },
@@ -70,7 +70,7 @@ impl Server {
             let manifest_path = root_dir.join(&cfg.manifest_path);
             let ws = ServerWorkspace::load(manifest_path).map_err(ServerDiagnostic::from)?;
 
-            let tools_dir = ws.project().out_dir().join("tools");
+            let tools_dir = ws.with_db(|db| ws.project(db).out_dir(db).join("tools"));
             let toolchain = Toolchain::install(ToolchainOps {
                 wasm_bindgen: ToolInstallationOpts::Install(&tools_dir.join("wasm_bindgen")),
                 cargo: ToolInstallationOpts::Discover,
@@ -107,7 +107,7 @@ impl Server {
 
             if changed && self.config.ts {
                 self.ws
-                    .with_db(|db| self.ws.project().ts().sync(db).exec(db))
+                    .with_db(|db| self.ws.project(db).ts().sync(db).exec(db))
                     .map_err(ServerDiagnostic::from)?;
             }
             Ok(changed)
@@ -125,18 +125,17 @@ impl Server {
         } = opts;
         let features = features.unwrap_or_default();
 
-        let node_target = match &platform {
-            ServerPlatform::Node { target } => *target,
-            ServerPlatform::Wasm { .. } => None,
+        let compiler_platform = match &platform {
+            ServerPlatform::Node { .. } => Platform::Node,
+            ServerPlatform::Wasm { .. } => Platform::Wasm,
         };
-        let platform = Platform::from(platform);
-        let platform_label = match platform {
-            Platform::Node => "node",
-            Platform::Wasm {
-                target: WasmEnv::Node,
+        let platform_label = match &platform {
+            ServerPlatform::Node { .. } => "node",
+            ServerPlatform::Wasm {
+                target: ServerWasmLoading::ModuleNode,
             } => "webasm-node",
-            Platform::Wasm {
-                target: WasmEnv::Web,
+            ServerPlatform::Wasm {
+                target: ServerWasmLoading::Fetch,
             } => "webasm",
         };
 
@@ -144,47 +143,62 @@ impl Server {
 
         let _span = tracing::info_span!("Rust build", platform = platform_label, profile).entered();
 
-        let result = (|| -> Result<ServerBuildOutput, ProjectError> {
-            let project = self.ws.project();
+        let result = (|| -> Result<ServerBuildOutput, ServerDiagnostic> {
             if self.config.ts {
                 let _span = tracing::info_span!(parent: None, "TypeScript declaration generation")
                     .entered();
-                self.ws.with_db(|db| project.ts().sync(db).exec(db))?;
+                self.ws
+                    .with_db(|db| self.ws.project(db).ts().sync(db).exec(db))
+                    .map_err(ServerDiagnostic::from)?;
             }
 
-            let cursed_crate = project.cursed_crate(platform);
             {
                 let _span = tracing::debug_span!("Rust shim generation").entered();
-                self.ws.with_db(|db| cursed_crate.sync(db).exec())?;
+                self.ws
+                    .with_db(|db| {
+                        self.ws
+                            .project(db)
+                            .cursed_crate(db, compiler_platform)
+                            .sync(db)
+                            .exec()
+                    })
+                    .map_err(ServerDiagnostic::from)?;
             }
 
             let bin_path = {
                 let _span = tracing::info_span!("Rust artifact compilation").entered();
-                let build = self.ws.with_db(|db| match platform {
-                    Platform::Node => cursed_crate.build_napi(db, release, node_target, &features),
-                    Platform::Wasm { .. } => cursed_crate.build_wasm(db, release, &features),
-                });
-                self.ws.with_db_mut(|db| build.exec(db, &self.toolchain))?;
-                self.ws.with_db(|db| {
-                    self.ws
-                        .project()
-                        .cursed_crate(platform)
-                        .bin_file(db, node_target)
-                        .expect("successful build has a binary")
-                        .as_str()
-                        .to_owned()
-                })
+                match platform {
+                    ServerPlatform::Node { target } => {
+                        let build = self.ws.with_db(|db| {
+                            CursedCrateNode::new(db, self.ws.project(db))
+                                .build(db, release, target, &features)
+                        });
+                        self.ws
+                            .with_db_mut(|db| build.exec(db, &self.toolchain))
+                            .map_err(ServerDiagnostic::from)?
+                    }
+                    ServerPlatform::Wasm { target } => {
+                        let loading = WasmLoading::from(target);
+                        let build = self.ws.with_db(|db| {
+                            CursedCrateWasm::new(db, self.ws.project(db))
+                                .build(db, release, loading, &features)
+                        });
+                        self.ws
+                            .with_db_mut(|db| build.exec(db, &self.toolchain))
+                            .map_err(ServerDiagnostic::from)?
+                    }
+                }
             };
             Ok(ServerBuildOutput {
-                bin_paths: vec![bin_path],
+                bin_paths: vec![bin_path.as_str().to_owned()],
             })
         })();
 
         if let Err(error) = &result {
-            tracing::error!(%error, "Rust build failed");
+            tracing::error!(error = %error.message, "Rust build failed");
         }
 
-        result.map_err(ServerDiagnostic::from).into()
+        result.into()
     }
 
     #[napi]
@@ -192,7 +206,7 @@ impl Server {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
         let _span = tracing::info_span!("Rust API check").entered();
         self.ws.with_db(|db| {
-            let shim = self.ws.project().reachable_shim(db);
+            let shim = self.ws.project(db).reachable_shim(db);
             let diagnostics = shim.check(db);
 
             diagnostics
@@ -209,10 +223,13 @@ impl Server {
         let _span = tracing::debug_span!("Rust facade rendering", %path).entered();
 
         self.ws.with_db(|db| {
-            self.ws
-                .project()
-                .cursed_crate(platform.into())
-                .js(db, &path)
+            let project = self.ws.project(db);
+            match platform {
+                ServerPlatform::Node { .. } => CursedCrateNode::new(db, project).js(db, &path),
+                ServerPlatform::Wasm { target } => {
+                    CursedCrateWasm::new(db, project).js(db, &path, target.into())
+                }
+            }
         })
     }
 }
@@ -220,29 +237,33 @@ impl Server {
 /// The platform to build for.
 #[napi]
 pub enum ServerPlatform {
-    Wasm { target: ServerWasmTarget },
+    Wasm { target: ServerWasmLoading },
     Node { target: Option<ServerNodeTarget> },
 }
 
 impl From<ServerPlatform> for Platform {
     fn from(value: ServerPlatform) -> Self {
         match value {
-            ServerPlatform::Wasm { target } => Platform::Wasm {
-                target: match target {
-                    ServerWasmTarget::Web => WasmEnv::Web,
-                    ServerWasmTarget::Node => WasmEnv::Node,
-                },
-            },
+            ServerPlatform::Wasm { .. } => Platform::Wasm,
             ServerPlatform::Node { .. } => Platform::Node,
         }
     }
 }
 
-/// The target platform for the WASM build.
+/// The loading method for the WASM build.
 #[napi]
-pub enum ServerWasmTarget {
-    Web,
-    Node,
+pub enum ServerWasmLoading {
+    Fetch,
+    ModuleNode,
+}
+
+impl From<ServerWasmLoading> for WasmLoading {
+    fn from(target: ServerWasmLoading) -> Self {
+        match target {
+            ServerWasmLoading::Fetch => Self::Fetch,
+            ServerWasmLoading::ModuleNode => Self::ModuleNode,
+        }
+    }
 }
 
 /// The output of a server build.

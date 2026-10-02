@@ -1,9 +1,6 @@
 use std::{fs, io::ErrorKind, path::Path};
 
-use rust_curse::compiler::{
-    codegen::shim::{Platform, WasmEnv},
-    diag::Theme,
-};
+use rust_curse::compiler::{codegen::shim::Platform, diag::Theme};
 
 use crate::common::ProgramTest;
 
@@ -30,13 +27,8 @@ fn parse_ui_test(src: String) -> Result<ProgramTest, String> {
             let mut parsed_platforms = Vec::new();
             for value in value.split(',').map(str::trim) {
                 let platform = match value {
-                    "wasm" => Platform::Wasm {
-                        target: WasmEnv::Node,
-                    },
+                    "wasm" | "wasm(web)" => Platform::Wasm,
                     "node" => Platform::Node,
-                    "wasm(web)" => Platform::Wasm {
-                        target: WasmEnv::Web,
-                    },
                     "" => {
                         return Err(format!(
                             "empty API target in `//@ api` directive on line {}",

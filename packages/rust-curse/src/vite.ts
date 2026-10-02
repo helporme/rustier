@@ -15,16 +15,15 @@ import {
   ServerDiagnosticSeverity,
   type ServerLog,
   ServerLogLevel,
-  ServerPlatform,
-  ServerWasmTarget,
 } from 'rust-curse-native'
+import { toServerPlatform, type RustCurseTarget } from './target'
+
+export type { RustCurseTarget } from './target'
 
 const ffiModuleIds = [
   '\0$rust/unstable!/node',
   '\0$rust/unstable!/wasm',
 ] as const
-
-export type RustCurseTarget = 'node' | 'wasm' | 'wasm-node'
 
 export interface RustCurseConfiguration {
   target?: RustCurseTarget
@@ -37,12 +36,10 @@ export interface RustCurseConfiguration {
 export interface RustCurseOptions {
   /** Cargo manifest relative to Vite's root. Defaults to Cargo.toml. */
   manifestPath?: string
-  /** Browser modules always use web WebAssembly bindings. */
-  browser?: Omit<RustCurseConfiguration, 'target'> & { target?: 'wasm' }
+  /** Browser modules default to WebAssembly with fetch loading. */
+  browser?: RustCurseConfiguration
   /** Server modules default to the native Node target. */
-  ssr?: Omit<RustCurseConfiguration, 'target'> & {
-    target?: 'node' | 'wasm-node'
-  }
+  ssr?: RustCurseConfiguration
   logging?: {
     enabled?: boolean
     debug?: boolean
@@ -72,15 +69,6 @@ interface LogContext {
  * Rust vite plugin.
  */
 export default function rustCurse(options: RustCurseOptions = {}): Plugin {
-  if (options.browser?.target && options.browser.target !== 'wasm') {
-    throw new Error('rust-curse: browser.target must be "wasm"')
-  }
-  if (
-    options.ssr?.target &&
-    !['node', 'wasm-node'].includes(options.ssr.target)
-  ) {
-    throw new Error('rust-curse: ssr.target must be "node" or "wasm-node"')
-  }
   let config: ResolvedConfig
   let defaultRelease = false
   let dev: ViteDevServer | undefined
@@ -137,17 +125,18 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
   ) {
     const server = getServer(ctx)
     reportDiagnostics(ctx, server.check())
+    const platform = toServerPlatform(target)
     const output = unwrap(
       ctx,
       server.build({
-        platform: toServerPlatform(target),
+        platform,
         release: release ?? defaultRelease,
         features,
       }),
     )
-    if (dev && target === 'wasm') {
+    if (dev) {
       // Frameworks may restrict fs.allow to source/static directories.
-      // Permit the generated browser binaries without exposing other artifacts.
+      // Permit compiled binaries without exposing other artifacts.
       for (const binary of output.binPaths) {
         const file = normalizePath(binary)
         if (!dev.config.server.fs.allow.includes(file)) {
@@ -347,19 +336,6 @@ function watchRustFiles(
     path.join(root, 'build.rs'),
   ])
     ctx.addWatchFile(file)
-}
-
-function toServerPlatform(target: RustCurseTarget): ServerPlatform {
-  switch (target) {
-    case 'node':
-      return { type: 'Node' }
-    case 'wasm-node':
-      return { type: 'Wasm', target: ServerWasmTarget.Node }
-    case 'wasm':
-      return { type: 'Wasm', target: ServerWasmTarget.Web }
-    default:
-      throw new Error(`rust-curse: unknown target ${target}`)
-  }
 }
 
 function configureLogging(
