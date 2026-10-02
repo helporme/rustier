@@ -146,7 +146,7 @@ impl<'db> Callable<'db> {
         if args.is_empty() {
             type_
         } else {
-            type_.instantiate(args)
+            super::instantiate_type(db, type_, args)
         }
     }
 }

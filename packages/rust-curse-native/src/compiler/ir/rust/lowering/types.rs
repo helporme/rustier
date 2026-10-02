@@ -1,8 +1,5 @@
 use miette::Diagnostic;
-use ra_ap_hir::{
-    Adt, GenericDef, HasSource as _, HirDisplay as _, Mutability, Trait, Type as HirType,
-};
-use ra_ap_syntax::{AstNode as _, ast::HasAttrs as _};
+use ra_ap_hir::{Adt, GenericDef, HirDisplay as _, Mutability, Trait, Type as HirType};
 use thiserror::Error;
 
 use crate::compiler::{
@@ -174,29 +171,8 @@ fn lower_type_kind<'db>(
 }
 
 pub(super) fn is_clonable(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::Crate) -> bool {
-    if type_.as_adt().is_some_and(|adt| derives_clone(db, adt)) {
-        return true;
-    }
-
     Trait::lang(db, crate_, ra_ap_hir::LangItem::Clone)
         .is_some_and(|clone| type_.impls_trait(db, clone, &[]))
-}
-
-fn derives_clone(db: &dyn Db, adt: Adt) -> bool {
-    let Some(source) = adt.source(db) else {
-        return false;
-    };
-
-    source.value.attrs().any(|attr| {
-        attr.as_simple_call().is_some_and(|(name, tokens)| {
-            name == "derive"
-                && tokens
-                    .syntax()
-                    .descendants_with_tokens()
-                    .filter_map(|element| element.into_token())
-                    .any(|token| token.text() == "Clone")
-        })
-    })
 }
 
 fn unsupported_type(

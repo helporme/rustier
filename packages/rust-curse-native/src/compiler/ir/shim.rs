@@ -19,8 +19,7 @@ use crate::compiler::{
     db::Db,
     ir::rust::{
         Callable, Crate, EnumType, FieldName, FieldQualified, FunctionQualified, Module,
-        ModuleParent, Rust, StructType, Type, TypeKind, TypeOrigin, VariantQualified,
-        usages::UsageGraph,
+        ModuleParent, Rust, StructType, Type, TypeKind, VariantQualified, usages::UsageGraph,
     },
 };
 
@@ -215,8 +214,8 @@ impl<'db> ShimClass<'db> {
     /// The source type of this class.
     pub fn src_type(self, db: &'db dyn Db) -> Type<'db> {
         match self {
-            ShimClass::Plain(p) => Type::new(db, TypeOrigin::Struct(p.src(db))),
-            ShimClass::Discriminated(d) => Type::new(db, TypeOrigin::Enum(d.src(db))),
+            ShimClass::Plain(p) => p.src(db).into_type(db),
+            ShimClass::Discriminated(d) => d.src(db).into_type(db),
         }
     }
 
@@ -282,7 +281,8 @@ impl<'db> ShimClassPlain<'db> {
     /// Methods of this class.
     #[salsa::tracked(returns(ref))]
     pub fn methods(self, db: &'db dyn Db) -> Vec<ShimFunctionAssociated<'db>> {
-        Type::new(db, TypeOrigin::Struct(self.src(db)))
+        self.src(db)
+            .into_type(db)
             .lower_methods(db)
             .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
@@ -290,7 +290,6 @@ impl<'db> ShimClassPlain<'db> {
 
     pub fn coerce(self, db: &'db dyn Db) -> Option<ShimFunctionPlainCoerce<'db>> {
         self.src(db)
-            .def(db)
             .is_constructible(db)
             .then(|| ShimFunctionPlainCoerce::new(db, self))
     }
@@ -366,7 +365,8 @@ impl<'db> ShimClassDiscriminated<'db> {
     /// Methods of this class.
     #[salsa::tracked(returns(ref))]
     pub fn methods(self, db: &'db dyn Db) -> Vec<ShimFunctionAssociated<'db>> {
-        Type::new(db, TypeOrigin::Enum(self.src(db)))
+        self.src(db)
+            .into_type(db)
             .lower_methods(db)
             .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
@@ -432,7 +432,6 @@ impl<'db> ShimClassDiscriminatedVariant<'db> {
     /// Coerce function for this variant.
     pub fn coerce(self, db: &'db dyn Db) -> Option<ShimFunctionDiscriminatedCoerce<'db>> {
         self.src(db)
-            .declaration(db)
             .is_constructible(db)
             .then(|| ShimFunctionDiscriminatedCoerce::new(db, self))
     }
@@ -762,7 +761,7 @@ impl<'db> ShimFunctionDiscriminator<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> [ShimParam<'db>; 1] {
-        let src_type = Type::new(db, TypeOrigin::Enum(self.src(db)));
+        let src_type = self.src(db).into_type(db);
 
         [ShimParam::new(
             db,

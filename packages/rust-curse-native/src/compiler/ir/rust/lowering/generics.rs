@@ -4,7 +4,7 @@ use crate::compiler::{
     db::Db,
     ir::rust::{
         Enum, EnumType, Function, GenArg, GenericOwner, GenericParam, Impl, LifetimeParam, Struct,
-        StructType, Type, TypeOrigin, TypeParam,
+        StructType, Type, TypeParam,
     },
 };
 
@@ -53,12 +53,7 @@ impl<'db> Struct<'db> {
         GenericDef::Adt(Adt::Struct(self.hir(db)))
             .params(db)
             .is_empty()
-            .then(|| {
-                Type::new(
-                    db,
-                    TypeOrigin::Struct(StructType::new(db, self, Vec::<GenArg<'db>>::new())),
-                )
-            })
+            .then(|| StructType::new(db, self, Vec::<GenArg<'db>>::new()).into_type(db))
     }
 }
 
@@ -80,12 +75,7 @@ impl<'db> Enum<'db> {
         GenericDef::Adt(Adt::Enum(self.hir(db)))
             .params(db)
             .is_empty()
-            .then(|| {
-                Type::new(
-                    db,
-                    TypeOrigin::Enum(EnumType::new(db, self, Vec::<GenArg<'db>>::new())),
-                )
-            })
+            .then(|| EnumType::new(db, self, Vec::<GenArg<'db>>::new()).into_type(db))
     }
 }
 

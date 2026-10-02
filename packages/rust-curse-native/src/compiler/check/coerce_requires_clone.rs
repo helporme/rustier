@@ -13,9 +13,9 @@ pub(super) fn check<'db>(db: &'db dyn Db, class: ShimClass<'db>) {
     let (fqn, source_span) = match class {
         ShimClass::Plain(class) => {
             let src = class.src(db);
-            if src.def(db).is_clonable(db)
+            if src.is_clonable(db)
                 || src.def(db).is_non_exhaustive(db)
-                || src.def(db).shape(db).has_stripped_fields()
+                || src.has_stripped_fields(db)
                 || src.fields(db).any(|field| field.is_readonly(db))
             {
                 return;
@@ -24,10 +24,10 @@ pub(super) fn check<'db>(db: &'db dyn Db, class: ShimClass<'db>) {
         }
         ShimClass::Discriminated(class) => {
             let src = class.src(db);
-            if src.def(db).is_clonable(db)
+            if src.is_clonable(db)
                 || !src.variants(db).any(|variant| {
                     !variant.declaration(db).is_non_exhaustive(db)
-                        && !variant.declaration(db).shape(db).has_stripped_fields()
+                        && !variant.has_stripped_fields(db)
                         && variant.fields(db).all(|field| !field.is_readonly(db))
                 })
             {

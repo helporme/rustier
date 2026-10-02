@@ -6,17 +6,28 @@ use super::{adt_fqn, diagnostic_location, lower_item_span, lower_shape};
 use crate::compiler::{
     db::Db,
     diag::DiagSource,
-    ir::rust::{Enum, FieldParent, Module, Shape, Span, Variant},
+    ir::rust::{Enum, EnumType, FieldParent, Module, Shape, Span, Variant, VariantQualified},
 };
 
 #[salsa::tracked]
-impl<'db> Enum<'db> {
+impl<'db> EnumType<'db> {
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_is_clonable(self, db: &'db dyn Db) -> bool {
-        let hir = self.hir(db);
-        super::is_clonable(db, &hir.ty(db), hir.module(db).krate(db))
+        let crate_ = self.def(db).hir(db).module(db).krate(db);
+        super::is_clonable(db, &self.into_type(db).hir(db), crate_)
     }
+}
 
+#[salsa::tracked]
+impl<'db> VariantQualified<'db> {
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_has_stripped_fields(self, db: &'db dyn Db) -> bool {
+        self.fields(db).count() != self.declaration(db).hir(db).fields(db).len()
+    }
+}
+
+#[salsa::tracked]
+impl<'db> Enum<'db> {
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_parent(self, db: &'db dyn Db) -> Module<'db> {
         Module::new(db, self.hir(db).module(db))

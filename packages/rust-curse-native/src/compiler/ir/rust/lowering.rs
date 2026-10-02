@@ -30,11 +30,11 @@ impl<'db> TypeOrigin<'db> {
     pub(super) fn hir(self, db: &'db dyn Db) -> ra_ap_hir::Type<'db> {
         match self {
             Self::Field(field) => field.hir(db).ty(db),
-            Self::QualifiedField(field) => field
-                .declaration(db)
-                .hir(db)
-                .ty(db)
-                .instantiate(field.target(db).hir(db).type_arguments()),
+            Self::QualifiedField(field) => instantiate_type(
+                db,
+                field.declaration(db).hir(db).ty(db),
+                field.target(db).hir(db).type_arguments(),
+            ),
             Self::FunctionParameter { function, index } => {
                 function.hir(db).params_without_self(db)[index].ty().clone()
             }
@@ -67,26 +67,22 @@ impl<'db> TypeOrigin<'db> {
                 .self_param(db)
                 .expect("receiver origin requires a self parameter")
                 .ty(db),
-            Self::Struct(type_) => {
-                type_
-                    .def(db)
-                    .hir(db)
-                    .ty(db)
-                    .instantiate(type_.gen_args(db).iter().filter_map(|arg| match arg {
-                        GenArg::Type(type_) => Some(type_.hir(db)),
-                        GenArg::Lifetime(_) => None,
-                    }))
-            }
-            Self::Enum(type_) => {
-                type_
-                    .def(db)
-                    .hir(db)
-                    .ty(db)
-                    .instantiate(type_.gen_args(db).iter().filter_map(|arg| match arg {
-                        GenArg::Type(type_) => Some(type_.hir(db)),
-                        GenArg::Lifetime(_) => None,
-                    }))
-            }
+            Self::Struct(type_) => instantiate_type(
+                db,
+                type_.def(db).hir(db).ty(db),
+                type_.gen_args(db).iter().filter_map(|arg| match arg {
+                    GenArg::Type(type_) => Some(type_.hir(db)),
+                    GenArg::Lifetime(_) => None,
+                }),
+            ),
+            Self::Enum(type_) => instantiate_type(
+                db,
+                type_.def(db).hir(db).ty(db),
+                type_.gen_args(db).iter().filter_map(|arg| match arg {
+                    GenArg::Type(type_) => Some(type_.hir(db)),
+                    GenArg::Lifetime(_) => None,
+                }),
+            ),
             Self::TypeParameter(param) => param.hir(db).ty(db),
             Self::Borrowed(reference) => reference.inner(db).hir(db).add_reference(
                 db,
@@ -102,6 +98,17 @@ impl<'db> TypeOrigin<'db> {
                 .expect("dereferenced origin requires a reference"),
         }
     }
+}
+
+pub(super) fn instantiate_type<'db>(
+    db: &'db dyn Db,
+    source: ra_ap_hir::Type<'db>,
+    args: impl IntoIterator<Item = ra_ap_hir::Type<'db>>,
+) -> ra_ap_hir::Type<'db> {
+    let instantiated = source.instantiate(args);
+    instantiated
+        .try_rebase_into(db, &source)
+        .unwrap_or(instantiated)
 }
 
 #[salsa::tracked]

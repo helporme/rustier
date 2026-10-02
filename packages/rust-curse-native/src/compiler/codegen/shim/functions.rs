@@ -14,7 +14,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        rust::{AsItem as _, Callable, Shape, Type, TypeOrigin},
+        rust::{AsItem as _, Callable, Shape},
         shim::{
             ShimFunction, ShimFunctionDiscriminatedCoerce, ShimFunctionDiscriminator,
             ShimFunctionGetter, ShimFunctionPlainCoerce, ShimFunctionSetter,
@@ -76,7 +76,7 @@ where
                     ShimFunction::from(coerce),
                     src.fqn(db),
                     src.def(db).shape(db),
-                    Type::new(db, TypeOrigin::Struct(src)),
+                    src.into_type(db),
                 )
             }
             Either::Right(coerce) => {
@@ -85,7 +85,7 @@ where
                     ShimFunction::from(coerce),
                     src.fqn(db),
                     src.declaration(db).shape(db),
-                    Type::new(db, TypeOrigin::Enum(src.target(db))),
+                    src.target(db).into_type(db),
                 )
             }
         };
@@ -359,7 +359,7 @@ where
             self.db,
             discriminator.params(self.db)[0].type_(self.db),
             TetheringStructType {
-                source_type: Type::new(self.db, TypeOrigin::Enum(src)),
+                source_type: src.into_type(self.db),
             },
             frag!(_0),
         );

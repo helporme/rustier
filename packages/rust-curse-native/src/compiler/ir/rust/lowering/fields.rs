@@ -23,7 +23,7 @@ impl<'db> StructType<'db> {
         self,
         db: &'db dyn Db,
     ) -> impl Iterator<Item = FieldQualified<'db>> + 'db {
-        let target = Type::new(db, TypeOrigin::Struct(self));
+        let target = self.into_type(db);
         self.def(db)
             .hir(db)
             .fields(db)
@@ -37,7 +37,7 @@ impl<'db> VariantQualified<'db> {
         self,
         db: &'db dyn Db,
     ) -> impl Iterator<Item = FieldQualified<'db>> + 'db {
-        let target = Type::new(db, TypeOrigin::Enum(self.target(db)));
+        let target = self.target(db).into_type(db);
         self.declaration(db)
             .hir(db)
             .fields(db)
@@ -114,18 +114,6 @@ impl<'db> Field<'db> {
         )
         .expect("unsupported fields are discarded while lowering their parent shape")
         .deborrow(db)
-    }
-
-    #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_is_readonly(self, db: &'db dyn Db) -> bool {
-        let hir = self.hir(db);
-        let crate_ = hir.parent_def(db).module(db).krate(db);
-        let type_ = hir.ty(db);
-        matches!(
-            lower_type(db, TypeOrigin::Field(self), crate_)
-                .map(|type_| type_.deborrow(db).kind(db)),
-            Ok(TypeKind::Struct(_) | TypeKind::Enum(_))
-        ) && !is_clonable(db, &type_, crate_)
     }
 
     #[salsa::tracked(returns(ref))]

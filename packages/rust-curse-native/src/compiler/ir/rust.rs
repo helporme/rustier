@@ -277,18 +277,6 @@ impl<'db> Struct<'db> {
         self.lower_is_non_exhaustive(db)
     }
 
-    pub fn is_clonable(self, db: &'db dyn Db) -> bool {
-        self.lower_is_clonable(db)
-    }
-
-    /// Whether the struct can be constructed using struct expression syntax.
-    pub fn is_constructible(self, db: &'db dyn Db) -> bool {
-        !self.is_non_exhaustive(db)
-            && !self.shape(db).has_stripped_fields()
-            && self.is_clonable(db)
-            && self.fields(db).all(|field| !field.is_readonly_DELME(db))
-    }
-
     /// Flattens the shape while omitting private or hidden tuple-field slots.
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = Field<'db>> + 'db {
         match self.shape(db) {
@@ -341,10 +329,6 @@ impl<'db> Enum<'db> {
 
     pub fn is_non_exhaustive(self, db: &'db dyn Db) -> bool {
         self.lower_is_non_exhaustive(db)
-    }
-
-    pub fn is_clonable(self, db: &'db dyn Db) -> bool {
-        self.lower_is_clonable(db)
     }
 
     /// The variants of this enum.
@@ -472,14 +456,6 @@ impl<'db> Variant<'db> {
         self.lower_is_non_exhaustive(db)
     }
 
-    /// Whether the variant can be constructed using struct expression syntax.
-    pub fn is_constructible(self, db: &'db dyn Db) -> bool {
-        !self.is_non_exhaustive(db)
-            && !self.shape(db).has_stripped_fields()
-            && self.parent(db).is_clonable(db)
-            && self.fields(db).all(|field| !field.is_readonly_DELME(db))
-    }
-
     /// Flattens the shape while omitting private or hidden tuple-field slots.
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = Field<'db>> + 'db {
         match self.shape(db) {
@@ -507,6 +483,18 @@ pub struct VariantQualified<'db> {
 }
 
 impl<'db> VariantQualified<'db> {
+    pub fn has_stripped_fields(self, db: &'db dyn Db) -> bool {
+        self.lower_has_stripped_fields(db)
+    }
+
+    /// Whether this variant can be constructed from its exposed fields.
+    pub fn is_constructible(self, db: &'db dyn Db) -> bool {
+        !self.declaration(db).is_non_exhaustive(db)
+            && !self.has_stripped_fields(db)
+            && self.target(db).is_clonable(db)
+            && self.fields(db).all(|field| !field.is_readonly(db))
+    }
+
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         self.target(db).path(db).append(
             db,
@@ -571,11 +559,6 @@ impl<'db> Field<'db> {
 
     pub fn _type(self, db: &'db dyn Db) -> Type<'db> {
         self.lower_type(db)
-    }
-
-    /// Whether generated bindings must prohibit writes to the field.
-    pub fn is_readonly_DELME(self, db: &'db dyn Db) -> bool {
-        self.lower_is_readonly(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
@@ -1076,6 +1059,26 @@ pub struct StructType<'db> {
 
 #[salsa::tracked]
 impl<'db> StructType<'db> {
+    pub fn into_type(self, db: &'db dyn Db) -> Type<'db> {
+        Type::new(db, TypeOrigin::from(self))
+    }
+
+    pub fn is_clonable(self, db: &'db dyn Db) -> bool {
+        self.lower_is_clonable(db)
+    }
+
+    pub fn has_stripped_fields(self, db: &'db dyn Db) -> bool {
+        self.lower_has_stripped_fields(db)
+    }
+
+    /// Whether this struct can be constructed from its exposed fields.
+    pub fn is_constructible(self, db: &'db dyn Db) -> bool {
+        !self.def(db).is_non_exhaustive(db)
+            && !self.has_stripped_fields(db)
+            && self.is_clonable(db)
+            && self.fields(db).all(|field| !field.is_readonly(db))
+    }
+
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = FieldQualified<'db>> + 'db {
         self.lower_fields(db)
     }
@@ -1116,6 +1119,14 @@ pub struct EnumType<'db> {
 
 #[salsa::tracked]
 impl<'db> EnumType<'db> {
+    pub fn into_type(self, db: &'db dyn Db) -> Type<'db> {
+        Type::new(db, TypeOrigin::from(self))
+    }
+
+    pub fn is_clonable(self, db: &'db dyn Db) -> bool {
+        self.lower_is_clonable(db)
+    }
+
     pub fn variants(self, db: &'db dyn Db) -> impl Iterator<Item = VariantQualified<'db>> + 'db {
         self.def(db)
             .variants(db)
