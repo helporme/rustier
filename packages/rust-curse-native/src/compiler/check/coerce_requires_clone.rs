@@ -16,7 +16,7 @@ pub(super) fn check<'db>(db: &'db dyn Db, class: ShimClass<'db>) {
             if src.is_clonable(db)
                 || src.is_non_exhaustive(db)
                 || src.shape(db).has_stripped_fields()
-                || src.fields(db).any(|field| field.is_readonly(db))
+                || src.fields(db).any(|field| field.is_readonly_DELME(db))
             {
                 return;
             }
@@ -28,7 +28,7 @@ pub(super) fn check<'db>(db: &'db dyn Db, class: ShimClass<'db>) {
                 || !src.variants(db).iter().any(|variant| {
                     !variant.is_non_exhaustive(db)
                         && !variant.shape(db).has_stripped_fields()
-                        && variant.fields(db).all(|field| !field.is_readonly(db))
+                        && variant.fields(db).all(|field| !field.is_readonly_DELME(db))
                 })
             {
                 return;

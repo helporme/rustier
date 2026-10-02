@@ -30,6 +30,11 @@ impl<'db> TypeOrigin<'db> {
     pub(super) fn hir(self, db: &'db dyn Db) -> ra_ap_hir::Type<'db> {
         match self {
             Self::Field(field) => field.hir(db).ty(db),
+            Self::QualifiedField(field) => field
+                .declaration(db)
+                .hir(db)
+                .ty(db)
+                .instantiate(field.target(db).hir(db).type_arguments()),
             Self::FunctionParameter { function, index } => {
                 function.hir(db).params_without_self(db)[index].ty().clone()
             }

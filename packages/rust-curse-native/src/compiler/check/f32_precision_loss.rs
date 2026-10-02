@@ -20,7 +20,7 @@ impl<'db> Callable<'db> {
         if let Some(param) = f32_param {
             emit(db, param.span(db).as_ref());
         } else if has_f32_return {
-            emit(db, self.span(db));
+            emit(db, self.declaration(db).span(db));
         }
     }
 }

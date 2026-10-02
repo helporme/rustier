@@ -218,15 +218,15 @@ impl<'db> DecalFreeFunction<'db> {
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {
-        self.src(db).name(db)
+        self.src(db).declaration(db).name(db)
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.src(db).span(db)
+        self.src(db).declaration(db).span(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.src(db).docs(db)
+        self.src(db).declaration(db).docs(db)
     }
 
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = DecalParam<'db>> + 'db {
@@ -270,19 +270,19 @@ impl<'db> DecalMethod<'db> {
     }
 
     pub fn is_static(self, db: &'db dyn Db) -> bool {
-        self.src(db).receiver(db).is_none()
+        self.src(db).declaration(db).receiver(db).is_none()
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {
-        self.src(db).name(db)
+        self.src(db).declaration(db).name(db)
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.src(db).span(db)
+        self.src(db).declaration(db).span(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.src(db).docs(db)
+        self.src(db).declaration(db).docs(db)
     }
 
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = DecalParam<'db>> + 'db {
@@ -322,7 +322,8 @@ impl<'db> DecalParam<'db> {
         let (function, param_idx) = match shim.parent(db) {
             ShimFunction::Free(function) => (function.src(db), shim.idx(db)),
             ShimFunction::Associated(function) => {
-                let receiver_offset = usize::from(function.src(db).receiver(db).is_some());
+                let receiver_offset =
+                    usize::from(function.src(db).declaration(db).receiver(db).is_some());
                 (function.src(db), shim.idx(db) - receiver_offset)
             }
             _ => unreachable!("declaration parameters only belong to source-defined functions"),

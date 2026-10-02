@@ -18,8 +18,8 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Callable, Crate, Enum, Field, FieldName, FieldParent, FunctionQualified, Module,
-        ModuleParent, Rust, Struct, Type, Variant, usages::UsageGraph,
+        Callable, Crate, Enum, EnumType, Field, FieldName, FieldParent, FunctionQualified, Module,
+        ModuleParent, Rust, Struct, StructType, Type, Variant, usages::UsageGraph,
     },
 };
 
@@ -290,7 +290,7 @@ impl<'db> ShimClassPlain<'db> {
         self.src(db)
             .as_mono_type(db)
             .expect("generic structs cannot reach the shim")
-            .lower_as_methods(db)
+            .lower_methods(db)
             .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
     }
@@ -376,7 +376,7 @@ impl<'db> ShimClassDiscriminated<'db> {
         self.src(db)
             .as_mono_type(db)
             .expect("generic enums cannot reach the shim")
-            .lower_as_methods(db)
+            .lower_methods(db)
             .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
     }
@@ -462,7 +462,7 @@ impl<'db> ShimField<'db> {
 
     pub fn setter(self, db: &'db dyn Db) -> Option<ShimFunctionSetter<'db>> {
         let src = self.src(db);
-        (!src.is_readonly(db)).then(|| ShimFunctionSetter::new(db, src))
+        (!src.is_readonly_DELME(db)).then(|| ShimFunctionSetter::new(db, src))
     }
 }
 
@@ -570,7 +570,7 @@ pub struct ShimFunctionAssociated<'db> {
 #[salsa::tracked]
 impl<'db> ShimFunctionAssociated<'db> {
     pub fn is_shadowed_by_field(self, db: &'db dyn Db) -> bool {
-        let src = self.src(db);
+        let src = self.src(db).declaration(db);
         src.receiver(db).is_some()
             && self.self_class(db).fields(db).iter().any(
                 |field| matches!(field.name(db), FieldName::Name(name) if name == src.name(db)),
@@ -587,7 +587,7 @@ impl<'db> ShimFunctionAssociated<'db> {
         let FunctionQualified::Inherent(function) = self.src(db).function(db) else {
             unreachable!("associated shim functions must be inherent")
         };
-        match function.target(db).shim_in(db) {
+        match function.impl_(db).target(db).shim_in(db) {
             ShimType::Class { inner, .. } => inner,
             _ => unreachable!("associated shim functions must target a class"),
         }
@@ -618,7 +618,7 @@ impl<'db> ShimFunctionAssociated<'db> {
     /// parameter.
     #[salsa::tracked(returns(ref))]
     pub fn params_without_self(self, db: &'db dyn Db) -> Vec<ShimParam<'db>> {
-        let offset = usize::from(self.src(db).receiver(db).is_some());
+        let offset = usize::from(self.src(db).declaration(db).receiver(db).is_some());
 
         self.src(db)
             .params(db)

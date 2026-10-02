@@ -12,8 +12,58 @@ use super::{
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::rust::{Field, FieldName, FieldParent, Span, Struct, Type, TypeKind, TypeOrigin, Variant},
+    ir::rust::{
+        Field, FieldName, FieldParent, FieldQualified, Span, Struct, StructType, Type, TypeKind,
+        TypeOrigin, Variant, VariantQualified,
+    },
 };
+
+impl<'db> StructType<'db> {
+    pub(in crate::compiler::ir::rust) fn lower_fields(
+        self,
+        db: &'db dyn Db,
+    ) -> impl Iterator<Item = FieldQualified<'db>> + 'db {
+        let target = Type::new(db, TypeOrigin::Struct(self));
+        self.def(db)
+            .hir(db)
+            .fields(db)
+            .into_iter()
+            .filter(move |field| field.visibility(db) == Visibility::Public)
+            .map(move |field| FieldQualified::new(db, Field::new(db, field), target))
+    }
+}
+
+impl<'db> VariantQualified<'db> {
+    pub(in crate::compiler::ir::rust) fn lower_fields(
+        self,
+        db: &'db dyn Db,
+    ) -> impl Iterator<Item = FieldQualified<'db>> + 'db {
+        let target = Type::new(db, TypeOrigin::Enum(self.target(db)));
+        self.declaration(db)
+            .hir(db)
+            .fields(db)
+            .into_iter()
+            .map(move |field| FieldQualified::new(db, Field::new(db, field), target))
+    }
+}
+
+#[salsa::tracked]
+impl<'db> FieldQualified<'db> {
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_is_readonly(self, db: &'db dyn Db) -> bool {
+        let type_ = Type::new(db, TypeOrigin::QualifiedField(self));
+        let crate_ = self
+            .declaration(db)
+            .hir(db)
+            .parent_def(db)
+            .module(db)
+            .krate(db);
+        matches!(
+            type_.deborrow(db).kind(db),
+            TypeKind::Struct(_) | TypeKind::Enum(_)
+        ) && !is_clonable(db, &type_.hir(db), crate_)
+    }
+}
 
 #[salsa::tracked]
 impl<'db> Field<'db> {

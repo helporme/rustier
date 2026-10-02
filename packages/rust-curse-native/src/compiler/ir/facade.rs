@@ -221,7 +221,7 @@ impl<'db> FacadeFreeFunction<'db> {
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {
-        self.src(db).name(db)
+        self.src(db).declaration(db).name(db)
     }
 
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeParam<'db>> + 'db {
@@ -276,7 +276,7 @@ impl<'db> FacadeMethod<'db> {
     }
 
     pub fn is_static(self, db: &'db dyn Db) -> bool {
-        self.src(db).receiver(db).is_none()
+        self.src(db).declaration(db).receiver(db).is_none()
     }
 
     pub fn class(self, db: &'db dyn Db) -> FacadeClass<'db> {
@@ -284,7 +284,7 @@ impl<'db> FacadeMethod<'db> {
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {
-        self.src(db).name(db)
+        self.src(db).declaration(db).name(db)
     }
 
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {

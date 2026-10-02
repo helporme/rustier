@@ -286,7 +286,7 @@ impl<'db> Struct<'db> {
         !self.is_non_exhaustive(db)
             && !self.shape(db).has_stripped_fields()
             && self.is_clonable(db)
-            && self.fields(db).all(|field| !field.is_readonly(db))
+            && self.fields(db).all(|field| !field.is_readonly_DELME(db))
     }
 
     /// Flattens the shape while omitting private or hidden tuple-field slots.
@@ -477,7 +477,7 @@ impl<'db> Variant<'db> {
         !self.is_non_exhaustive(db)
             && !self.shape(db).has_stripped_fields()
             && self.parent(db).is_clonable(db)
-            && self.fields(db).all(|field| !field.is_readonly(db))
+            && self.fields(db).all(|field| !field.is_readonly_DELME(db))
     }
 
     /// Flattens the shape while omitting private or hidden tuple-field slots.
@@ -499,6 +499,27 @@ impl<'db> Variant<'db> {
 }
 
 as_item!(Variant);
+
+#[salsa::interned(debug)]
+pub struct VariantQualified<'db> {
+    pub declaration: Variant<'db>,
+    pub target: EnumType<'db>,
+}
+
+impl<'db> VariantQualified<'db> {
+    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        self.target(db).path(db).append(
+            db,
+            PathSegment::plain(db, self.declaration(db).name(db).clone()),
+        )
+    }
+
+    pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = FieldQualified<'db>> + 'db {
+        self.lower_fields(db)
+    }
+}
+
+as_item!(VariantQualified);
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, salsa::Update)]
 pub enum Shape<'db> {
@@ -553,7 +574,7 @@ impl<'db> Field<'db> {
     }
 
     /// Whether generated bindings must prohibit writes to the field.
-    pub fn is_readonly(self, db: &'db dyn Db) -> bool {
+    pub fn is_readonly_DELME(self, db: &'db dyn Db) -> bool {
         self.lower_is_readonly(db)
     }
 
@@ -592,6 +613,41 @@ impl<'db> Field<'db> {
 }
 
 as_item!(Field);
+
+#[salsa::interned(debug)]
+pub struct FieldQualified<'db> {
+    pub declaration: Field<'db>,
+    pub target: Type<'db>,
+}
+
+impl<'db> FieldQualified<'db> {
+    pub fn _type(self, db: &'db dyn Db) -> Type<'db> {
+        Type::new(db, TypeOrigin::QualifiedField(self)).deborrow(db)
+    }
+
+    pub fn is_readonly(self, db: &'db dyn Db) -> bool {
+        self.lower_is_readonly(db)
+    }
+
+    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        let path = match self.target(db).kind(db) {
+            TypeKind::Struct(type_) => type_.path(db),
+            TypeKind::Enum(type_) => {
+                let FieldParent::Variant(variant) = self.declaration(db).parent(db) else {
+                    unreachable!("enum fields belong to variants")
+                };
+                VariantQualified::new(db, variant, type_).path(db)
+            }
+            _ => unreachable!("qualified fields belong to structs or enums"),
+        };
+        path.append(
+            db,
+            PathSegment::plain(db, self.declaration(db).name(db).to_string()),
+        )
+    }
+}
+
+as_item!(FieldQualified);
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, salsa::Update, salsa::Supertype)]
 pub enum FieldParent<'db> {
@@ -777,10 +833,6 @@ impl<'db> FunctionQualified<'db> {
         }
     }
 
-    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
-        self.declaration(db).segment(db)
-    }
-
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         match self {
             Self::Free(function) => function.path(db),
@@ -801,15 +853,11 @@ pub struct FunctionFree<'db> {
 }
 
 impl<'db> FunctionFree<'db> {
-    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
-        self.declaration(db).segment(db)
-    }
-
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         let FunctionParent::Module(module) = self.declaration(db).parent(db) else {
             unreachable!("free functions must be declared in a module")
         };
-        module.path(db).append(db, self.segment(db))
+        module.path(db).append(db, self.declaration(db).segment(db))
     }
 }
 
@@ -820,14 +868,6 @@ pub struct FunctionInherent<'db> {
 }
 
 impl<'db> FunctionInherent<'db> {
-    pub fn target(self, db: &'db dyn Db) -> Type<'db> {
-        self.impl_(db).target(db)
-    }
-
-    pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
-        self.declaration(db).segment(db)
-    }
-
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         self.lower_path(db)
     }
@@ -847,12 +887,8 @@ impl<'db> Callable<'db> {
         self.function(db).declaration(db)
     }
 
-    pub fn name(self, db: &'db dyn Db) -> &'db String {
-        self.declaration(db).name(db)
-    }
-
     pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
-        PathSegment::new(db, self.name(db), self.generic_args(db))
+        PathSegment::new(db, self.declaration(db).name(db), self.generic_args(db))
     }
 
     #[salsa::tracked]
@@ -863,15 +899,12 @@ impl<'db> Callable<'db> {
         ItemPath::new(db, path.crate_(db), segments)
     }
 
-    pub fn receiver(self, db: &'db dyn Db) -> Option<Receiver> {
-        self.declaration(db).receiver(db)
-    }
-
     pub fn receiver_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
         if !self.needs_substitution(db) {
             return self.declaration(db).receiver_type(db);
         }
-        self.receiver(db)
+        self.declaration(db)
+            .receiver(db)
             .map(|_| Type::new(db, TypeOrigin::CallableReceiver(self)))
     }
 
@@ -881,14 +914,6 @@ impl<'db> Callable<'db> {
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
         self.lower_ret_type(db)
-    }
-
-    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.declaration(db).docs(db)
-    }
-
-    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.declaration(db).span(db)
     }
 }
 
@@ -934,6 +959,7 @@ pub struct Type<'db> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum TypeOrigin<'db> {
     Field(Field<'db>),
+    QualifiedField(FieldQualified<'db>),
     /// Index into `params_without_self`, not the full parameter list.
     FunctionParameter {
         function: Function<'db>,
@@ -1050,6 +1076,10 @@ pub struct StructType<'db> {
 
 #[salsa::tracked]
 impl<'db> StructType<'db> {
+    pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = FieldQualified<'db>> + 'db {
+        self.lower_fields(db)
+    }
+
     #[salsa::tracked]
     pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
         PathSegment::new(
@@ -1086,6 +1116,13 @@ pub struct EnumType<'db> {
 
 #[salsa::tracked]
 impl<'db> EnumType<'db> {
+    pub fn variants(self, db: &'db dyn Db) -> impl Iterator<Item = VariantQualified<'db>> + 'db {
+        self.def(db)
+            .variants(db)
+            .iter()
+            .map(move |variant| VariantQualified::new(db, *variant, self))
+    }
+
     #[salsa::tracked]
     pub fn segment(self, db: &'db dyn Db) -> PathSegment<'db> {
         PathSegment::new(

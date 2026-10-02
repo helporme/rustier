@@ -83,6 +83,7 @@ impl<'db> TypeOrigin<'db> {
     fn crate_(self, db: &'db dyn Db) -> ra_ap_hir::Crate {
         match self {
             Self::Field(field) => field.hir(db).parent_def(db).module(db).krate(db),
+            Self::QualifiedField(field) => field.target(db).origin(db).crate_(db),
             Self::CallableParameter { callable, .. }
             | Self::CallableReturn(callable)
             | Self::CallableReceiver(callable) => {

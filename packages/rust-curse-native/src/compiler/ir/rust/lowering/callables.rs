@@ -26,7 +26,7 @@ impl<'db> FunctionQualified<'db> {
 impl<'db> FunctionInherent<'db> {
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_path(self, db: &'db dyn Db) -> ItemPath<'db> {
-        let target = self.target(db);
+        let target = self.impl_(db).target(db);
         let path = match target.kind(db) {
             TypeKind::Struct(type_) => type_.path(db),
             TypeKind::Enum(type_) => type_.path(db),
@@ -51,7 +51,7 @@ impl<'db> FunctionInherent<'db> {
                 }
             }
         };
-        path.append(db, self.segment(db))
+        path.append(db, self.declaration(db).segment(db))
     }
 }
 
@@ -123,7 +123,7 @@ impl<'db> Callable<'db> {
             bind_self_type(
                 db,
                 impl_.self_ty(db),
-                function.target(db).hir(db),
+                function.impl_(db).target(db).hir(db),
                 &mut bindings,
             );
 

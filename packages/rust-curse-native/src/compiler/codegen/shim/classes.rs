@@ -104,7 +104,7 @@ impl<'db> ShimField<'db> {
                 get_ref_expr: ref_field_expr,
                 get_mut_expr: mut_field_expr,
                 source_type: src_field._type(db),
-                with_setter: !src_field.is_readonly(db),
+                with_setter: !src_field.is_readonly_DELME(db),
             })
         } else {
             TetheredField::Cloned(ClonedField {

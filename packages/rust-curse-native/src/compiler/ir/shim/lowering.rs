@@ -6,7 +6,7 @@ use crate::compiler::{
 #[salsa::tracked]
 impl<'db> Type<'db> {
     /// Methods of this class.
-    pub(super) fn lower_as_methods(
+    pub(super) fn lower_methods(
         self,
         db: &'db dyn Db,
     ) -> impl Iterator<Item = ShimFunctionAssociated<'db>> + 'db {
