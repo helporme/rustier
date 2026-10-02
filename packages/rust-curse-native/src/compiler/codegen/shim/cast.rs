@@ -845,7 +845,7 @@ mod tests {
             else {
                 unreachable!()
             };
-            let params = function.params(&db);
+            let params = function.declaration(&db).params(&db);
             let type_at = |index: usize| *params[index].type_(&db);
             let first = CastType::Rust(type_at(0));
             let second = CastType::Rust(type_at(1));
@@ -887,11 +887,14 @@ mod tests {
                     struct_.as_mono_type(db)
                 }
                 Member::Enum(enum_) if enum_.segment(db).name(db) == name => enum_.as_mono_type(db),
-                Member::Function(function) if function.name(db) == "cast_types" => function
-                    .params(db)
-                    .iter()
-                    .find(|param| param.name(db) == name)
-                    .map(|param| param.type_(db).deborrow(db)),
+                Member::Function(function) if function.declaration(db).name(db) == "cast_types" => {
+                    function
+                        .declaration(db)
+                        .params(db)
+                        .iter()
+                        .find(|param| param.name(db) == name)
+                        .map(|param| param.type_(db).deborrow(db))
+                }
                 _ => None,
             })
             .unwrap_or_else(|| panic!("test value type `{name}` should be lowered"))

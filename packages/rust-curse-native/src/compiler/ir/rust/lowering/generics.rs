@@ -49,9 +49,7 @@ impl<'db> Struct<'db> {
         self,
         db: &'db dyn Db,
     ) -> Option<Type<'db>> {
-        // Check HIR, including unsupported const parameters, not the IR subset.
-        GenericDef::Adt(Adt::Struct(self.hir(db)))
-            .params(db)
+        self.generic_params(db)
             .is_empty()
             .then(|| StructType::new(db, self, Vec::<GenArg<'db>>::new()).into_type(db))
     }
@@ -72,8 +70,7 @@ impl<'db> Enum<'db> {
         self,
         db: &'db dyn Db,
     ) -> Option<Type<'db>> {
-        GenericDef::Adt(Adt::Enum(self.hir(db)))
-            .params(db)
+        self.generic_params(db)
             .is_empty()
             .then(|| EnumType::new(db, self, Vec::<GenArg<'db>>::new()).into_type(db))
     }

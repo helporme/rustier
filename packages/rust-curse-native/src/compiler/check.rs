@@ -16,16 +16,21 @@ mod method_field_collisions;
 impl<'db> Shim<'db> {
     /// Collect diagnostics from lowering and checking reachable local modules.
     pub fn check(self, db: &'db dyn Db) -> Vec<&'db Diag> {
-        self.crates(db)
-            .filter(|crate_| crate_.is_local(db))
-            .flat_map(|crate_| crate_.all_modules(db))
-            .flat_map(|module| accumulate_checks::accumulated::<Diag>(db, module))
-            .collect()
+        accumulate_checks::accumulated::<Diag>(db, self)
     }
 }
 
 #[salsa::tracked]
-fn accumulate_checks<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
+fn accumulate_checks<'db>(db: &'db dyn Db, shim: Shim<'db>) {
+    for crate_ in shim.crates(db).filter(|crate_| crate_.is_local(db)) {
+        for module in crate_.all_modules(db) {
+            check_module(db, module);
+        }
+    }
+}
+
+#[salsa::tracked]
+fn check_module<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
     for member in module.src(db).members(db) {
         match member.shim_reachable_from(db, module.usages(db)) {
             ShimMember::Class(class) => {

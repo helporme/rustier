@@ -50,9 +50,11 @@ impl<'db> Type<'db> {
                 None,
             ));
         }
-        if let Some(adt) = hir.as_adt()
-            && !GenericDef::Adt(adt).params(db).is_empty()
-        {
+        if let Some(adt) = hir.as_adt().filter(|adt| match adt {
+            Adt::Struct(hir) => !Struct::new(db, *hir).generic_params(db).is_empty(),
+            Adt::Enum(hir) => !Enum::new(db, *hir).generic_params(db).is_empty(),
+            Adt::Union(_) => false,
+        }) {
             let args = hir
                 .type_arguments()
                 .enumerate()

@@ -4,7 +4,7 @@ use super::{file_path, lower_enum, lower_function, lower_span, lower_struct};
 use crate::compiler::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::rust::{Crate, Member, Module, ModuleParent, Span},
+    ir::rust::{Crate, FunctionFree, Member, Module, ModuleParent, Span},
     path::FilePath,
 };
 
@@ -40,7 +40,7 @@ impl<'db> Module<'db> {
                     Some(Member::Module(mod_))
                 }
                 ModuleDef::Function(function) => lower_function(db, function)
-                    .map(Member::Function)
+                    .map(|function| Member::Function(FunctionFree::new(db, function)))
                     .map_err(|error| (*error).accumulate(db))
                     .ok(),
                 ModuleDef::Adt(adt) => match adt {

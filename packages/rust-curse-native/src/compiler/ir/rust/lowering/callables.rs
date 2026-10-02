@@ -15,8 +15,8 @@ impl<'db> FunctionQualified<'db> {
         self,
         db: &'db dyn Db,
     ) -> Option<Callable<'db>> {
-        GenericDef::Function(self.declaration(db).hir(db))
-            .params(db)
+        self.declaration(db)
+            .generic_params(db)
             .is_empty()
             .then(|| Callable::new(db, self, Vec::<GenArg<'db>>::new()))
     }
@@ -58,16 +58,14 @@ impl<'db> FunctionInherent<'db> {
 #[salsa::tracked]
 impl<'db> Callable<'db> {
     pub(in crate::compiler::ir::rust) fn needs_substitution(self, db: &'db dyn Db) -> bool {
-        !GenericDef::Function(self.declaration(db).hir(db))
-            .params(db)
-            .is_empty()
+        !self.declaration(db).generic_params(db).is_empty()
             || match self.function(db) {
                 FunctionQualified::Free(_) => false,
-                FunctionQualified::Inherent(function) => {
-                    !GenericDef::Impl(function.impl_(db).declaration(db).hir(db))
-                        .params(db)
-                        .is_empty()
-                }
+                FunctionQualified::Inherent(function) => !function
+                    .impl_(db)
+                    .declaration(db)
+                    .generic_params(db)
+                    .is_empty(),
             }
     }
 

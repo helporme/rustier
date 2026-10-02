@@ -241,7 +241,7 @@ as_item!(Module);
 pub enum Member<'db> {
     Struct(Struct<'db>),
     Enum(Enum<'db>),
-    Function(Function<'db>),
+    Function(FunctionFree<'db>),
     Module(Module<'db>),
 }
 
@@ -836,6 +836,10 @@ pub struct FunctionFree<'db> {
 }
 
 impl<'db> FunctionFree<'db> {
+    pub fn as_qualified(self) -> FunctionQualified<'db> {
+        FunctionQualified::Free(self)
+    }
+
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         let FunctionParent::Module(module) = self.declaration(db).parent(db) else {
             unreachable!("free functions must be declared in a module")
@@ -965,6 +969,34 @@ pub enum TypeOrigin<'db> {
     TypeParameter(TypeParam<'db>),
     Borrowed(BorrowedType<'db>),
     Dereferenced(Type<'db>),
+}
+
+impl<'db> TypeOrigin<'db> {
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        match self {
+            TypeOrigin::Field(field) => field.span(db),
+            TypeOrigin::QualifiedField(field) => field.declaration(db).span(db),
+            TypeOrigin::FunctionParameter { function, index } => {
+                function.params(db)[index].span(db).as_ref()
+            }
+            TypeOrigin::FunctionReturn(function) | TypeOrigin::FunctionReceiver(function) => {
+                function.span(db)
+            }
+            TypeOrigin::CallableParameter { callable, index } => {
+                callable.declaration(db).params(db)[index].span(db).as_ref()
+            }
+            TypeOrigin::CallableReturn(callable) | TypeOrigin::CallableReceiver(callable) => {
+                callable.declaration(db).span(db)
+            }
+            TypeOrigin::Struct(type_) => type_.def(db).span(db),
+            TypeOrigin::Enum(type_) => type_.def(db).span(db),
+            TypeOrigin::Borrowed(reference) => reference.inner(db).origin(db).span(db),
+            TypeOrigin::Dereferenced(type_) | TypeOrigin::TypeArgument { type_, .. } => {
+                type_.origin(db).span(db)
+            }
+            TypeOrigin::TypeParameter(_) => None,
+        }
+    }
 }
 
 #[allow(non_camel_case_types)]

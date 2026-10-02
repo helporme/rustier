@@ -2,8 +2,8 @@ use crate::compiler::{
     db::Db,
     ir::{
         rust::{
-            Crate, EnumType, FieldQualified, FunctionFree, FunctionQualified, Member, Module, Rust,
-            StructType, Type, TypeKind, usages::UsageGraph,
+            Crate, EnumType, FieldQualified, Member, Module, Rust, StructType, Type, TypeKind,
+            usages::UsageGraph,
         },
         shim::{
             Shim, ShimClassDiscriminated, ShimClassPlain, ShimCrate, ShimField, ShimFunctionFree,
@@ -48,7 +48,8 @@ impl<'db> Member<'db> {
         match self {
             Member::Function(function) => ShimMember::Function(ShimFunctionFree::new(
                 db,
-                FunctionQualified::Free(FunctionFree::new(db, function))
+                function
+                    .as_qualified()
                     .as_callible(db)
                     .expect("generic functions cannot reach the shim"),
             )),
