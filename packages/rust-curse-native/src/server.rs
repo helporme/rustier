@@ -137,6 +137,9 @@ impl Server {
             ServerPlatform::Wasm {
                 target: ServerWasmLoading::Fetch,
             } => "webasm",
+            ServerPlatform::Wasm {
+                target: ServerWasmLoading::Module,
+            } => "webasm-module",
         };
 
         let profile = if release { "release" } else { "debug" };
@@ -255,6 +258,7 @@ impl From<ServerPlatform> for Platform {
 pub enum ServerWasmLoading {
     Fetch,
     ModuleNode,
+    Module,
 }
 
 impl From<ServerWasmLoading> for WasmLoading {
@@ -262,6 +266,7 @@ impl From<ServerWasmLoading> for WasmLoading {
         match target {
             ServerWasmLoading::Fetch => Self::Fetch,
             ServerWasmLoading::ModuleNode => Self::ModuleNode,
+            ServerWasmLoading::Module => Self::Module,
         }
     }
 }

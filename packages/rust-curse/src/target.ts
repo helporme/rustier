@@ -7,7 +7,7 @@ export type RustCurseTarget =
   | {
       type: 'wasm'
       /** Defaults to "fetch", including when target is the shorthand "wasm". */
-      loading?: 'fetch' | 'node-module'
+      loading?: 'fetch' | 'node-module' | 'module'
     }
 
 export function toServerPlatform(target: RustCurseTarget): ServerPlatform {
@@ -23,9 +23,11 @@ export function toServerPlatform(target: RustCurseTarget): ServerPlatform {
           return { type: 'Wasm', target: ServerWasmLoading.Fetch }
         case 'node-module':
           return { type: 'Wasm', target: ServerWasmLoading.ModuleNode }
+        case 'module':
+          return { type: 'Wasm', target: ServerWasmLoading.Module }
         default:
           throw new Error(
-            'rust-curse: wasm loading must be "fetch" or "node-module"',
+            'rust-curse: wasm loading must be "fetch", "node-module", or "module"',
           )
       }
     }

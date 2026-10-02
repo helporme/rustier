@@ -19,15 +19,20 @@ use super::{
 pub enum WasmLoading {
     Fetch,
     ModuleNode,
+    Module,
 }
 
 impl WasmLoading {
-    pub fn js(self, path: &str) -> String {
+    pub fn js(self, path: &str, wasm_path: &str) -> String {
         match self {
             Self::Fetch => {
                 format!("import init from {path:?};\nawait init();\nexport * from {path:?};\n")
             }
             Self::ModuleNode => format!("export * from {path:?};\n"),
+            Self::Module => format!(
+                "import wasmModule from {wasm_path:?};\nimport init from {path:?};\n\
+                 await init({{ module_or_path: wasmModule }});\nexport * from {path:?};\n"
+            ),
         }
     }
 }
@@ -64,7 +69,10 @@ impl<'a> CursedCrateWasm<'a> {
         const FFI_MODULE_ID: &str = "$rust/unstable!/wasm";
 
         if path == FFI_MODULE_ID {
-            return Some(loading.js(self.js_ffi_file_path(db)?.as_str()));
+            return Some(loading.js(
+                self.js_ffi_file_path(db)?.as_str(),
+                self.bin_ffi_file_path(db)?.as_str(),
+            ));
         }
 
         Some(
@@ -95,7 +103,7 @@ impl<'a> CursedCrateWasm<'a> {
             out_dir: crate_.root_dir(db).clone(),
             release,
             target: match loading {
-                WasmLoading::Fetch => WasmBindgenTarget::Web,
+                WasmLoading::Fetch | WasmLoading::Module => WasmBindgenTarget::Web,
                 WasmLoading::ModuleNode => WasmBindgenTarget::NodeJsModule,
             },
             features: crate_.dependency_features(db, dep_features),

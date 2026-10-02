@@ -134,5 +134,6 @@ export type ServerPlatform =
 /** The loading method for the WASM build. */
 export declare const enum ServerWasmLoading {
   Fetch = 0,
-  ModuleNode = 1
+  ModuleNode = 1,
+  Module = 2
 }
