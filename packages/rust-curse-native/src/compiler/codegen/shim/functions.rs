@@ -14,7 +14,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        rust::{AsItem as _, Callable, Shape},
+        rust::{AsItem as _, Callable, Shape, Type, TypeOrigin},
         shim::{
             ShimFunction, ShimFunctionDiscriminatedCoerce, ShimFunctionDiscriminator,
             ShimFunctionGetter, ShimFunctionPlainCoerce, ShimFunctionSetter,
@@ -75,9 +75,8 @@ where
                 (
                     ShimFunction::from(coerce),
                     src.fqn(db),
-                    src.shape(db),
-                    src.as_mono_type(db)
-                        .expect("shim structs must be nongeneric"),
+                    src.def(db).shape(db),
+                    Type::new(db, TypeOrigin::Struct(src)),
                 )
             }
             Either::Right(coerce) => {
@@ -85,10 +84,8 @@ where
                 (
                     ShimFunction::from(coerce),
                     src.fqn(db),
-                    src.shape(db),
-                    src.parent(db)
-                        .as_mono_type(db)
-                        .expect("shim enums must be nongeneric"),
+                    src.declaration(db).shape(db),
+                    Type::new(db, TypeOrigin::Enum(src.target(db))),
                 )
             }
         };
@@ -281,7 +278,10 @@ where
 
         let field_tethering_value_expr = render_tethering_struct_get_field_expr(
             cls_tethering_struct_expr,
-            getter.src(self.db).mangled_name(self.db),
+            getter
+                .src(self.db)
+                .declaration(self.db)
+                .mangled_name(self.db),
         );
 
         let ret_type = getter.ret_type(self.db);
@@ -326,7 +326,10 @@ where
 
         let set_tethered_field_stmt = render_tethering_struct_set_field_stmt(
             cls_tethering_struct_expr,
-            setter.src(self.db).mangled_name(self.db),
+            setter
+                .src(self.db)
+                .declaration(self.db)
+                .mangled_name(self.db),
             frag!(value),
         );
 
@@ -356,9 +359,7 @@ where
             self.db,
             discriminator.params(self.db)[0].type_(self.db),
             TetheringStructType {
-                source_type: src
-                    .as_mono_type(self.db)
-                    .expect("shim enums must be nongeneric"),
+                source_type: Type::new(self.db, TypeOrigin::Enum(src)),
             },
             frag!(_0),
         );
@@ -366,15 +367,15 @@ where
         let variants = fragment(move |p| {
             let enum_name = src.fqn(self.db);
 
-            for (index, variant) in src.variants(self.db).iter().enumerate() {
-                let variant_name = variant.name(self.db);
+            for (index, variant) in src.variants(self.db).enumerate() {
+                let variant_name = variant.declaration(self.db).name(self.db);
 
                 // This pattern works for every shape, including
                 // non-exhaustive unit and tuple variants.
                 frag!({enum_name}::{variant_name}~{{ .. }} => {index}f64,).apply(p);
             }
 
-            if src.is_non_exhaustive(self.db) {
+            if src.def(self.db).is_non_exhaustive(self.db) {
                 let error = self.platform.error(frag!(
                     "cannot discriminate an unknown non-exhaustive enum variant".to_string()
                 ));

@@ -5,14 +5,14 @@ use crate::compiler::{
     codegen::utils::to_camel_case,
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::rust::Enum,
+    ir::rust::{Enum, EnumType},
 };
 
 #[salsa::tracked]
 impl<'db> Enum<'db> {
     #[salsa::tracked]
     pub(super) fn check_js_name_collisions(self, db: &'db dyn Db) {
-        let facade = self.shim(db).facade(db);
+        let facade = EnumType::new(db, self, Vec::new()).shim(db).facade(db);
         let discriminator = facade.discriminator(db);
 
         let has_type_field_collision = discriminator.name(db) == "$type";

@@ -694,7 +694,7 @@ pub struct FacadeFieldPlain<'db> {
 
 impl<'db> FacadeFieldPlain<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db FieldName {
-        self.shim(db).src(db).name(db)
+        self.shim(db).src(db).declaration(db).name(db)
     }
 
     pub fn ffi_setter(self, db: &'db dyn Db) -> Option<FfiFunction<'db>> {
@@ -756,10 +756,10 @@ impl<'db> FacadeFieldDiscriminator<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'static str {
         let enum_ = self.shim(db).src(db);
 
-        if enum_.variants(db).iter().any(|variant| {
+        if enum_.variants(db).any(|variant| {
             variant
                 .fields(db)
-                .any(|field| matches!(field.name(db), FieldName::Name(name) if name == "type"))
+                .any(|field| matches!(field.declaration(db).name(db), FieldName::Name(name) if name == "type"))
         }) {
             "$type"
         } else {

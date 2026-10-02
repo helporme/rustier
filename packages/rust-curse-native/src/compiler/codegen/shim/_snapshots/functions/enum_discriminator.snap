@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
+assertion_line: 645
 expression: snapshot
 ---
 # Source
@@ -21,7 +22,7 @@ pub fn __fn__disc__10_test_crate__4_Test(
 ) -> napi::Result<f64> {
     let result = cast
         .from(
-            "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5400) } } }) })",
+            "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] } }) })",
         )
         .to(
             "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] }) } })",
@@ -48,7 +49,7 @@ pub fn __fn__disc__10_test_crate__4_Test(
 ) -> Result<f64, JsValue> {
     let result = cast
         .from(
-            "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5400) } } }) })",
+            "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] } }) })",
         )
         .to(
             "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] }) } })",

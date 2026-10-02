@@ -2,8 +2,8 @@ use crate::compiler::{
     db::Db,
     ir::{
         rust::{
-            Crate, Enum, Field, FunctionFree, FunctionQualified, Member, Module, Rust, Struct,
-            Type, TypeKind, usages::UsageGraph,
+            Crate, EnumType, FieldQualified, FunctionFree, FunctionQualified, Member, Module, Rust,
+            StructType, Type, TypeKind, usages::UsageGraph,
         },
         shim::{
             Shim, ShimClassDiscriminated, ShimClassPlain, ShimCrate, ShimField, ShimFunctionFree,
@@ -52,26 +52,30 @@ impl<'db> Member<'db> {
                     .as_callible(db)
                     .expect("generic functions cannot reach the shim"),
             )),
-            Member::Struct(struct_) => ShimMember::Class(struct_.shim(db).into()),
-            Member::Enum(enum_) => ShimMember::Class(enum_.shim(db).into()),
+            Member::Struct(struct_) => {
+                ShimMember::Class(StructType::new(db, struct_, Vec::new()).shim(db).into())
+            }
+            Member::Enum(enum_) => {
+                ShimMember::Class(EnumType::new(db, enum_, Vec::new()).shim(db).into())
+            }
             Member::Module(module) => ShimMember::Module(module.shim_reachable_from(db, usages)),
         }
     }
 }
 
-impl<'db> Struct<'db> {
+impl<'db> StructType<'db> {
     pub fn shim(self, db: &'db dyn Db) -> ShimClassPlain<'db> {
         ShimClassPlain::new(db, self)
     }
 }
 
-impl<'db> Enum<'db> {
+impl<'db> EnumType<'db> {
     pub fn shim(self, db: &'db dyn Db) -> ShimClassDiscriminated<'db> {
         ShimClassDiscriminated::new(db, self)
     }
 }
 
-impl<'db> Field<'db> {
+impl<'db> FieldQualified<'db> {
     pub fn shim(&self, db: &'db dyn Db) -> ShimField<'db> {
         ShimField::new(db, self)
     }
@@ -132,11 +136,11 @@ impl<'db> Type<'db> {
             TypeKind::Str | TypeKind::String => ShimType::String,
             TypeKind::Struct(struct_) => ShimType::Class {
                 is_borrowed: true,
-                inner: struct_.def(db).shim(db).into(),
+                inner: struct_.shim(db).into(),
             },
             TypeKind::Enum(enum_) => ShimType::Class {
                 is_borrowed: true,
-                inner: enum_.def(db).shim(db).into(),
+                inner: enum_.shim(db).into(),
             },
             TypeKind::Borrowed(borrowed) => borrowed.inner(db).shim_in(db),
             TypeKind::Generic(_) => unreachable!("unsupported Rust types do not enter the shim"),

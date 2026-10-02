@@ -28,8 +28,7 @@ impl<'db> StructType<'db> {
             .hir(db)
             .fields(db)
             .into_iter()
-            .filter(move |field| field.visibility(db) == Visibility::Public)
-            .map(move |field| FieldQualified::new(db, Field::new(db, field), target))
+            .filter_map(move |field| lower_qualified_field(db, field, target))
     }
 }
 
@@ -43,8 +42,20 @@ impl<'db> VariantQualified<'db> {
             .hir(db)
             .fields(db)
             .into_iter()
-            .map(move |field| FieldQualified::new(db, Field::new(db, field), target))
+            .filter_map(move |field| lower_qualified_field(db, field, target))
     }
+}
+
+fn lower_qualified_field<'db>(
+    db: &'db dyn Db,
+    hir: ra_ap_hir::Field,
+    target: Type<'db>,
+) -> Option<FieldQualified<'db>> {
+    let field = FieldQualified::new(db, Field::new(db, hir), target);
+    validate_field(db, hir, TypeOrigin::QualifiedField(field))
+        .ok()
+        .flatten()
+        .map(|_| field)
 }
 
 #[salsa::tracked]
@@ -132,37 +143,15 @@ pub(super) fn lower_field<'db>(
     db: &'db dyn Db,
     field: ra_ap_hir::Field,
 ) -> Result<Option<Field<'db>>, Box<FieldLowerError>> {
-    if matches!(field.parent_def(db), HirFieldParent::Struct(_))
-        && field.visibility(db) != Visibility::Public
-    {
+    let declaration = Field::new(db, field);
+    let Some(lowered_type) = validate_field(db, field, TypeOrigin::Field(declaration))? else {
         return Ok(None);
-    }
+    };
     let crate_ = field.parent_def(db).module(db).krate(db);
-    let type_ = field.ty(db);
-    let mut causes = Vec::new();
-    if has_explicit_reference_lifetime(db, field) {
-        causes.push(TypeLowerErrorUnsupported::LifetimeRef);
-    }
-    if let Err(error) = lower_type(db, TypeOrigin::Field(Field::new(db, field)), crate_) {
-        causes.push(error);
-    }
-    if !causes.is_empty() {
-        let span = lower_item_span(db, field);
-        let (source_code, span) = diagnostic_location(db, span.as_ref());
-        return Err(Box::new(FieldLowerError {
-            field_name: field_name(db, field).to_string(),
-            source_code,
-            span,
-            causes,
-        }));
-    }
-    let lowered_type = lower_type(db, TypeOrigin::Field(Field::new(db, field)), crate_)
-        .expect("the field type was successfully validated above")
-        .deborrow(db);
     if matches!(
         lowered_type.kind(db),
         TypeKind::Struct(_) | TypeKind::Enum(_)
-    ) && !is_clonable(db, &type_, crate_)
+    ) && !is_clonable(db, &field.ty(db), crate_)
     {
         let span = lower_item_span(db, field);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
@@ -174,7 +163,42 @@ pub(super) fn lower_field<'db>(
         }
         .accumulate(db);
     }
-    Ok(Some(Field::new(db, field)))
+    Ok(Some(declaration))
+}
+
+fn validate_field<'db>(
+    db: &'db dyn Db,
+    field: ra_ap_hir::Field,
+    origin: TypeOrigin<'db>,
+) -> Result<Option<Type<'db>>, Box<FieldLowerError>> {
+    if matches!(field.parent_def(db), HirFieldParent::Struct(_))
+        && field.visibility(db) != Visibility::Public
+    {
+        return Ok(None);
+    }
+    let crate_ = field.parent_def(db).module(db).krate(db);
+    let mut causes = Vec::new();
+    if has_explicit_reference_lifetime(db, field) {
+        causes.push(TypeLowerErrorUnsupported::LifetimeRef);
+    }
+    let lowered_type = match lower_type(db, origin, crate_) {
+        Ok(type_) => Some(type_.deborrow(db)),
+        Err(error) => {
+            causes.push(error);
+            None
+        }
+    };
+    if !causes.is_empty() {
+        let span = lower_item_span(db, field);
+        let (source_code, span) = diagnostic_location(db, span.as_ref());
+        return Err(Box::new(FieldLowerError {
+            field_name: field_name(db, field).to_string(),
+            source_code,
+            span,
+            causes,
+        }));
+    }
+    Ok(lowered_type)
 }
 
 fn has_explicit_reference_lifetime<T>(db: &dyn Db, item: T) -> bool

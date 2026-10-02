@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/js/classes.rs
+assertion_line: 729
 expression: snapshot
 ---
 # Source
@@ -213,9 +214,9 @@ export class Test {
 			case "unit":{
 				{
 					const result = cast.from(
-						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } }) }))"
+						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
 					).to(
-						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
+						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } } })))"
 					).an(
 						__fn__coe__10_test_crate__4_Test__4_Unit(
 
@@ -227,9 +228,9 @@ export class Test {
 			case "emptyTuple":{
 				{
 					const result = cast.from(
-						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } }) }))"
+						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
 					).to(
-						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
+						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } } })))"
 					).an(
 						__fn__coe__10_test_crate__4_Test__10_EmptyTuple(
 
@@ -241,9 +242,9 @@ export class Test {
 			case "emptyRecord":{
 				{
 					const result = cast.from(
-						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } }) }))"
+						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
 					).to(
-						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
+						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } } })))"
 					).an(
 						__fn__coe__10_test_crate__4_Test__11_EmptyRecord(
 
@@ -271,9 +272,9 @@ export class Test {
 						);
 						{
 							const result = cast.from(
-								"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } }) }))"
+								"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
 							).to(
-								"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
+								"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } } })))"
 							).an(
 								__fn__coe__10_test_crate__4_Test__5_Tuple(
 									__0,
@@ -296,9 +297,9 @@ export class Test {
 					);
 					{
 						const result = cast.from(
-							"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } }) }))"
+							"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
 						).to(
-							"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: Enum { hir: Enum { id: EnumId(5800) } } } })))"
+							"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } } })))"
 						).an(
 							__fn__coe__10_test_crate__4_Test__6_Record(
 								__0

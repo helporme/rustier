@@ -9,7 +9,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        rust::{AsItem as _, FieldParent},
+        rust::FieldParent,
         shim::{ShimClass, ShimField},
     },
 };
@@ -100,15 +100,15 @@ impl<'db> ShimField<'db> {
         let src_field = self.src(db);
         if src_field._type(db).uses_tethering(db) {
             TetheredField::TetheringStruct(TetheringStructField {
-                name: src_field.mangled_name(db),
+                name: src_field.declaration(db).mangled_name(db),
                 get_ref_expr: ref_field_expr,
                 get_mut_expr: mut_field_expr,
                 source_type: src_field._type(db),
-                with_setter: !src_field.is_readonly_DELME(db),
+                with_setter: !src_field.is_readonly(db),
             })
         } else {
             TetheredField::Cloned(ClonedField {
-                name: src_field.mangled_name(db),
+                name: src_field.declaration(db).mangled_name(db),
                 get_ref_expr: ref_field_expr,
                 get_mut_expr: mut_field_expr,
                 source_type: src_field._type(db),
@@ -136,9 +136,9 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
 
         let src_field = field.src(db);
 
-        fragment(move |p| match &src_field.parent(db) {
+        fragment(move |p| match &src_field.declaration(db).parent(db) {
             FieldParent::Struct(..) => {
-                let field_name = src_field.escaped_name(db);
+                let field_name = src_field.declaration(db).escaped_name(db);
 
                 if is_mutable {
                     frag!(__tethering::AccessResult::Ok(&mut ~{source}.{field_name})).apply(p);
@@ -147,13 +147,13 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
                 }
             }
             FieldParent::Variant(variant) => {
-                let enum_ = variant.parent(db);
-                let field_name = src_field.name(db);
+                let enum_ = src_field.target(db);
+                let field_name = src_field.declaration(db).name(db);
                 let reason = frag!(
                     {
                         doubles((
                             "cannot access inactive enum variant field `",
-                            enum_.fqn(db),
+                            enum_.display(db),
                             "::",
                             variant.name(db),
                             "::",
@@ -164,9 +164,9 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
                     .to_string()
                 );
                 let error = platform.error(reason);
-                let enum_name = enum_.fqn(db);
+                let enum_name = enum_.display(db); // FIXME: should use .fqn()
                 let variant_name = variant.name(db);
-                let field_name = src_field.escaped_name(db);
+                let field_name = src_field.declaration(db).escaped_name(db);
 
                 frag!(
                     match ~{source}~{{

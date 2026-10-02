@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/js/classes.rs
+assertion_line: 847
 expression: snapshot
 ---
 # Source
@@ -41,9 +42,9 @@ export class Test {
 		}
 		{
 			const result = cast.from(
-				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) }))"
+				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } }) }))"
 			).to(
-				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } } })))"
+				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } } })))"
 			).an(
 				__fn__coe__10_test_crate__4_Test(
 

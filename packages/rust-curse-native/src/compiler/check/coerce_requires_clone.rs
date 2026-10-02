@@ -13,27 +13,27 @@ pub(super) fn check<'db>(db: &'db dyn Db, class: ShimClass<'db>) {
     let (fqn, source_span) = match class {
         ShimClass::Plain(class) => {
             let src = class.src(db);
-            if src.is_clonable(db)
-                || src.is_non_exhaustive(db)
-                || src.shape(db).has_stripped_fields()
-                || src.fields(db).any(|field| field.is_readonly_DELME(db))
+            if src.def(db).is_clonable(db)
+                || src.def(db).is_non_exhaustive(db)
+                || src.def(db).shape(db).has_stripped_fields()
+                || src.fields(db).any(|field| field.is_readonly(db))
             {
                 return;
             }
-            (src.fqn(db), src.span(db))
+            (src.fqn(db), src.def(db).span(db))
         }
         ShimClass::Discriminated(class) => {
             let src = class.src(db);
-            if src.is_clonable(db)
-                || !src.variants(db).iter().any(|variant| {
-                    !variant.is_non_exhaustive(db)
-                        && !variant.shape(db).has_stripped_fields()
-                        && variant.fields(db).all(|field| !field.is_readonly_DELME(db))
+            if src.def(db).is_clonable(db)
+                || !src.variants(db).any(|variant| {
+                    !variant.declaration(db).is_non_exhaustive(db)
+                        && !variant.declaration(db).shape(db).has_stripped_fields()
+                        && variant.fields(db).all(|field| !field.is_readonly(db))
                 })
             {
                 return;
             }
-            (src.fqn(db), src.span(db))
+            (src.fqn(db), src.def(db).span(db))
         }
     };
 

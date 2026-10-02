@@ -18,8 +18,9 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Callable, Crate, Enum, EnumType, Field, FieldName, FieldParent, FunctionQualified, Module,
-        ModuleParent, Rust, Struct, StructType, Type, Variant, usages::UsageGraph,
+        Callable, Crate, EnumType, FieldName, FieldQualified, FunctionQualified, Module,
+        ModuleParent, Rust, StructType, Type, TypeKind, TypeOrigin, VariantQualified,
+        usages::UsageGraph,
     },
 };
 
@@ -214,14 +215,8 @@ impl<'db> ShimClass<'db> {
     /// The source type of this class.
     pub fn src_type(self, db: &'db dyn Db) -> Type<'db> {
         match self {
-            ShimClass::Plain(p) => p
-                .src(db)
-                .as_mono_type(db)
-                .expect("shim structs must be nongeneric"),
-            ShimClass::Discriminated(d) => d
-                .src(db)
-                .as_mono_type(db)
-                .expect("shim enums must be nongeneric"),
+            ShimClass::Plain(p) => Type::new(db, TypeOrigin::Struct(p.src(db))),
+            ShimClass::Discriminated(d) => Type::new(db, TypeOrigin::Enum(d.src(db))),
         }
     }
 
@@ -254,14 +249,14 @@ impl<'db> ShimClass<'db> {
 /// A POD-like class.
 #[salsa::interned(debug)]
 pub struct ShimClassPlain<'db> {
-    pub src: Struct<'db>,
+    pub src: StructType<'db>,
 }
 
 #[salsa::tracked]
 impl<'db> ShimClassPlain<'db> {
     /// The module this class belongs to.
     pub fn module(self, db: &'db dyn Db) -> ShimParentModule<'db> {
-        self.src(db).module(db).shim_parent(db)
+        self.src(db).def(db).module(db).shim_parent(db)
     }
 
     /// The name of this class.
@@ -287,9 +282,7 @@ impl<'db> ShimClassPlain<'db> {
     /// Methods of this class.
     #[salsa::tracked(returns(ref))]
     pub fn methods(self, db: &'db dyn Db) -> Vec<ShimFunctionAssociated<'db>> {
-        self.src(db)
-            .as_mono_type(db)
-            .expect("generic structs cannot reach the shim")
+        Type::new(db, TypeOrigin::Struct(self.src(db)))
             .lower_methods(db)
             .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
@@ -297,6 +290,7 @@ impl<'db> ShimClassPlain<'db> {
 
     pub fn coerce(self, db: &'db dyn Db) -> Option<ShimFunctionPlainCoerce<'db>> {
         self.src(db)
+            .def(db)
             .is_constructible(db)
             .then(|| ShimFunctionPlainCoerce::new(db, self))
     }
@@ -329,14 +323,14 @@ impl<'db> From<ShimClassPlain<'db>> for ShimClass<'db> {
 /// A tagged discriminated union class.
 #[salsa::interned(debug)]
 pub struct ShimClassDiscriminated<'db> {
-    pub src: Enum<'db>,
+    pub src: EnumType<'db>,
 }
 
 #[salsa::tracked]
 impl<'db> ShimClassDiscriminated<'db> {
     /// The module this class belongs to.
     pub fn module(self, db: &'db dyn Db) -> ShimParentModule<'db> {
-        self.src(db).module(db).shim_parent(db)
+        self.src(db).def(db).module(db).shim_parent(db)
     }
 
     /// The name of this class.
@@ -355,9 +349,8 @@ impl<'db> ShimClassDiscriminated<'db> {
     pub fn variants(self, db: &'db dyn Db) -> Vec<ShimClassDiscriminatedVariant<'db>> {
         self.src(db)
             .variants(db)
-            .iter()
             .enumerate()
-            .map(|(i, variant)| ShimClassDiscriminatedVariant::new(db, self, *variant, i as u32))
+            .map(|(i, variant)| ShimClassDiscriminatedVariant::new(db, self, variant, i as u32))
             .collect()
     }
 
@@ -373,9 +366,7 @@ impl<'db> ShimClassDiscriminated<'db> {
     /// Methods of this class.
     #[salsa::tracked(returns(ref))]
     pub fn methods(self, db: &'db dyn Db) -> Vec<ShimFunctionAssociated<'db>> {
-        self.src(db)
-            .as_mono_type(db)
-            .expect("generic enums cannot reach the shim")
+        Type::new(db, TypeOrigin::Enum(self.src(db)))
             .lower_methods(db)
             .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
@@ -423,14 +414,14 @@ impl<'db> From<ShimClassDiscriminated<'db>> for ShimClass<'db> {
 #[salsa::tracked(debug)]
 pub struct ShimClassDiscriminatedVariant<'db> {
     pub class: ShimClassDiscriminated<'db>,
-    pub src: Variant<'db>,
+    pub src: VariantQualified<'db>,
     /// The value of the tag field for this variant.
     pub tag_value: u32,
 }
 
 impl<'db> ShimClassDiscriminatedVariant<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db String {
-        self.src(db).name(db)
+        self.src(db).declaration(db).name(db)
     }
 
     /// Fields of this varaint.
@@ -441,6 +432,7 @@ impl<'db> ShimClassDiscriminatedVariant<'db> {
     /// Coerce function for this variant.
     pub fn coerce(self, db: &'db dyn Db) -> Option<ShimFunctionDiscriminatedCoerce<'db>> {
         self.src(db)
+            .declaration(db)
             .is_constructible(db)
             .then(|| ShimFunctionDiscriminatedCoerce::new(db, self))
     }
@@ -448,12 +440,12 @@ impl<'db> ShimClassDiscriminatedVariant<'db> {
 
 #[salsa::interned(debug)]
 pub struct ShimField<'db> {
-    pub src: Field<'db>,
+    pub src: FieldQualified<'db>,
 }
 
 impl<'db> ShimField<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db FieldName {
-        self.src(db).name(db)
+        self.src(db).declaration(db).name(db)
     }
 
     pub fn getter(self, db: &'db dyn Db) -> ShimFunctionGetter<'db> {
@@ -462,7 +454,7 @@ impl<'db> ShimField<'db> {
 
     pub fn setter(self, db: &'db dyn Db) -> Option<ShimFunctionSetter<'db>> {
         let src = self.src(db);
-        (!src.is_readonly_DELME(db)).then(|| ShimFunctionSetter::new(db, src))
+        (!src.is_readonly(db)).then(|| ShimFunctionSetter::new(db, src))
     }
 }
 
@@ -656,7 +648,7 @@ pub struct ShimParam<'db> {
 
 #[salsa::interned(debug)]
 pub struct ShimFunctionGetter<'db> {
-    pub src: Field<'db>,
+    pub src: FieldQualified<'db>,
 }
 
 #[salsa::tracked]
@@ -664,12 +656,17 @@ impl<'db> ShimFunctionGetter<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn symbol(self, db: &'db dyn Db) -> String {
         let src = self.src(db);
-        let parent_name = match src.parent(db) {
-            FieldParent::Struct(struct_) => struct_.path(db).mangled(db),
-            FieldParent::Variant(variant) => variant.parent(db).path(db).mangled(db),
+        let parent_name = match src.target(db).kind(db) {
+            TypeKind::Struct(type_) => type_.path(db).mangled(db),
+            TypeKind::Enum(type_) => type_.path(db).mangled(db),
+            _ => unreachable!("fields belong to classes"),
         };
 
-        format!("__fn__getter__{}__{}", parent_name, src.mangled_name(db))
+        format!(
+            "__fn__getter__{}__{}",
+            parent_name,
+            src.declaration(db).mangled_name(db)
+        )
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> ShimType<'db> {
@@ -679,15 +676,8 @@ impl<'db> ShimFunctionGetter<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> [ShimParam<'db>; 1] {
         let field = self.src(db);
-        let class = match field.parent(db) {
-            FieldParent::Struct(struct_) => struct_.shim(db).into(),
-            FieldParent::Variant(variant) => variant.parent(db).shim(db).into(),
-        };
-        let class_shim_type = ShimType::Class {
-            is_borrowed: true,
-            inner: class,
-        };
-        let class_src_type = class.src_type(db);
+        let class_src_type = field.target(db);
+        let class_shim_type = class_src_type.shim_in(db);
 
         [ShimParam::new(
             db,
@@ -707,7 +697,7 @@ impl<'db> From<ShimFunctionGetter<'db>> for ShimFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct ShimFunctionSetter<'db> {
-    pub src: Field<'db>,
+    pub src: FieldQualified<'db>,
 }
 
 #[salsa::tracked]
@@ -715,26 +705,24 @@ impl<'db> ShimFunctionSetter<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn symbol(self, db: &'db dyn Db) -> String {
         let src = self.src(db);
-        let parent_name = match src.parent(db) {
-            FieldParent::Struct(struct_) => struct_.path(db).mangled(db),
-            FieldParent::Variant(variant) => variant.parent(db).path(db).mangled(db),
+        let parent_name = match src.target(db).kind(db) {
+            TypeKind::Struct(type_) => type_.path(db).mangled(db),
+            TypeKind::Enum(type_) => type_.path(db).mangled(db),
+            _ => unreachable!("fields belong to classes"),
         };
 
-        format!("__fn__setter__{}__{}", parent_name, src.mangled_name(db))
+        format!(
+            "__fn__setter__{}__{}",
+            parent_name,
+            src.declaration(db).mangled_name(db)
+        )
     }
 
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> [ShimParam<'db>; 2] {
         let field = self.src(db);
-        let class = match field.parent(db) {
-            FieldParent::Struct(struct_) => struct_.shim(db).into(),
-            FieldParent::Variant(variant) => variant.parent(db).shim(db).into(),
-        };
-        let class_shim_type = ShimType::Class {
-            is_borrowed: true,
-            inner: class,
-        };
-        let class_src_type = class.src_type(db);
+        let class_src_type = field.target(db);
+        let class_shim_type = class_src_type.shim_in(db);
         let value_src_type = field._type(db);
         let value_shim_type = value_src_type.shim_in(db);
         let function = self.into();
@@ -754,7 +742,7 @@ impl<'db> From<ShimFunctionSetter<'db>> for ShimFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct ShimFunctionDiscriminator<'db> {
-    pub src: Enum<'db>,
+    pub src: EnumType<'db>,
 }
 
 #[salsa::tracked]
@@ -774,10 +762,7 @@ impl<'db> ShimFunctionDiscriminator<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> [ShimParam<'db>; 1] {
-        let src_type = self
-            .src(db)
-            .as_mono_type(db)
-            .expect("shim enums must be nongeneric");
+        let src_type = Type::new(db, TypeOrigin::Enum(self.src(db)));
 
         [ShimParam::new(
             db,
@@ -823,7 +808,7 @@ impl<'db> ShimFunctionPlainCoerce<'db> {
             .map(move |(idx, field)| {
                 let type_ = field._type(db);
                 (
-                    field.name(db).clone(),
+                    field.declaration(db).name(db).clone(),
                     ShimParam::new(db, self.into(), idx, type_, type_.shim_in(db)),
                 )
             })
@@ -872,7 +857,7 @@ impl<'db> ShimFunctionDiscriminatedCoerce<'db> {
             .map(move |(idx, field)| {
                 let type_ = field._type(db);
                 (
-                    field.name(db).clone(),
+                    field.declaration(db).name(db).clone(),
                     ShimParam::new(db, self.into(), idx, type_, type_.shim_in(db)),
                 )
             })

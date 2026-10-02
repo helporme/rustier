@@ -1,6 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 660
+assertion_line: 655
 expression: snapshot
 ---
 # Source
@@ -28,7 +28,7 @@ pub fn __fn__associated__10_test_crate__4_Test__6_create(
                 "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
             )
             .to(
-                "Shim(Class { is_borrowed: false, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
+                "Shim(Class { is_borrowed: false, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } }) })",
             )
             .an({
                 let _0 = cast
@@ -55,7 +55,7 @@ pub fn __fn__associated__10_test_crate__4_Test__6_create(
                 "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
             )
             .to(
-                "Shim(Class { is_borrowed: false, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
+                "Shim(Class { is_borrowed: false, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } }) })",
             )
             .an({
                 let _0 = cast

@@ -1,6 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 634
+assertion_line: 629
 expression: snapshot
 ---
 # Source
@@ -21,13 +21,13 @@ pub fn __fn__getter__10_test_crate__4_Test__field(
     Ok(
         cast
             .from(
-                "Rust(Type { origin: Field(Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }) })",
+                "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }) } }) })",
             )
             .to("Shim(f64)")
             .an(
                 cast
                     .from(
-                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
+                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } }) })",
                     )
                     .to(
                         "Tethered(TetheringStructType { source_type: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }) } })",
@@ -48,13 +48,13 @@ pub fn __fn__getter__10_test_crate__4_Test__field(
     Ok(
         cast
             .from(
-                "Rust(Type { origin: Field(Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }) })",
+                "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }) } }) })",
             )
             .to("Shim(f64)")
             .an(
                 cast
                     .from(
-                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) })",
+                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } }) })",
                     )
                     .to(
                         "Tethered(TetheringStructType { source_type: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] }) } })",

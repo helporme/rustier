@@ -419,11 +419,11 @@ impl<'db> DecalClassPlain<'db> {
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.shim(db).src(db).docs(db)
+        self.shim(db).src(db).def(db).docs(db)
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.shim(db).src(db).span(db)
+        self.shim(db).src(db).def(db).span(db)
     }
 
     pub fn methods(self, db: &'db dyn Db) -> impl Iterator<Item = DecalMethod<'db>> + 'db {
@@ -487,11 +487,11 @@ impl<'db> DecalClassDiscriminated<'db> {
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.shim(db).src(db).docs(db)
+        self.shim(db).src(db).def(db).docs(db)
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.shim(db).src(db).span(db)
+        self.shim(db).src(db).def(db).span(db)
     }
 
     pub fn methods(self, db: &'db dyn Db) -> impl Iterator<Item = DecalMethod<'db>> + 'db {
@@ -552,11 +552,11 @@ impl<'db> DecalVariant<'db> {
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.shim(db).src(db).span(db)
+        self.shim(db).src(db).declaration(db).span(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.shim(db).src(db).docs(db)
+        self.shim(db).src(db).declaration(db).docs(db)
     }
 
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = DecalField<'db>> + 'db {
@@ -573,15 +573,15 @@ pub struct DecalField<'db> {
 
 impl<'db> DecalField<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db FieldName {
-        self.shim(db).src(db).name(db)
+        self.shim(db).src(db).declaration(db).name(db)
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.shim(db).src(db).span(db)
+        self.shim(db).src(db).declaration(db).span(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.shim(db).src(db).docs(db)
+        self.shim(db).src(db).declaration(db).docs(db)
     }
 
     pub fn is_readonly(self, db: &'db dyn Db) -> bool {

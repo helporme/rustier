@@ -899,8 +899,8 @@ mod tests {
 
     fn test_shim_class_type<'db>(db: &'db dyn Db, name: &str, is_borrowed: bool) -> ShimType<'db> {
         let inner = match test_type(db, name).kind(db) {
-            TypeKind::Struct(struct_) => struct_.def(db).shim(db).into(),
-            TypeKind::Enum(enum_) => enum_.def(db).shim(db).into(),
+            TypeKind::Struct(struct_) => struct_.shim(db).into(),
+            TypeKind::Enum(enum_) => enum_.shim(db).into(),
             _ => unreachable!("class cast test requires a struct or enum"),
         };
 

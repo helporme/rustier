@@ -1,5 +1,6 @@
 ---
 source: src/compiler/codegen/js/functions.rs
+assertion_line: 404
 expression: snapshot
 ---
 # Source
@@ -20,17 +21,17 @@ export function test_fn (
 ) {
 	{
 		const __0 = cast.from(
-			"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } } })))"
+			"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } } })))"
 		).to(
-			"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) }))"
+			"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } }) }))"
 		).an(
 			_0
 		);
 		{
 			const result = cast.from(
-				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } }) }))"
+				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } }) }))"
 			).to(
-				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: Struct { hir: Struct { id: StructId(5001) } } } })))"
+				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } } })))"
 			).an(
 				__fn__free__10_test_crate__7_test_fn(
 					__0
