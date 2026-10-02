@@ -256,9 +256,13 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
       return modules
     },
 
-    resolveId(source) {
+    resolveId(source, importer) {
       if (source === '$rust' || source.startsWith('$rust/'))
         return `\0${source}`
+      // Vite's native WASM loader would instantiate without
+      // its glue and try to resolve internal WASM imports. Avoid it.
+      if (importer === ffiModuleIds[1] && source.endsWith('.wasm'))
+        return this.resolve(`${source}?url`, importer, { skipSelf: true })
       return null
     },
 
