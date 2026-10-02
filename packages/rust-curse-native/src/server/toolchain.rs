@@ -199,6 +199,8 @@ pub struct CargoBuildCommand<'a> {
     pub target: Option<&'a str>,
     /// Build with Cargo's release profile.
     pub release: bool,
+    /// Cargo feature names, including dependency-qualified names when needed.
+    pub features: &'a [String],
 }
 
 impl CargoBuildCommand<'_> {
@@ -232,6 +234,9 @@ impl CargoBuildCommand<'_> {
         }
         if self.release {
             command.arg("--release");
+        }
+        if !self.features.is_empty() {
+            command.arg("--features").arg(self.features.join(","));
         }
         let output = run(&mut command)?;
         let mut artifacts = Vec::new();

@@ -5,9 +5,16 @@ export declare class Server {
   static create(cfg: Config): ServerCreateResult
   onLog(callback?: (((arg: ServerLog) => void)) | undefined | null): void
   change(change: ServerChange): ServerChangeResult
-  build(platform: ServerPlatform, release: boolean): ServerBuildResult
+  build(opts: BuildOpts): ServerBuildResult
   check(): Array<ServerDiagnostic>
   load(platform: ServerPlatform, path: string): string | null
+}
+
+/** Options for compiling a Rust runtime. */
+export interface BuildOpts {
+  platform: ServerPlatform
+  release: boolean
+  features?: Array<string>
 }
 
 export interface Config {

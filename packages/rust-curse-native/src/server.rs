@@ -42,6 +42,14 @@ pub struct ServerChange {
     pub contents: Option<String>,
 }
 
+/// Options for compiling a Rust runtime.
+#[napi(object)]
+pub struct BuildOpts {
+    pub platform: ServerPlatform,
+    pub release: bool,
+    pub features: Option<Vec<String>>,
+}
+
 /// The rust-curse server.
 #[napi]
 pub struct Server {
@@ -108,8 +116,14 @@ impl Server {
     }
 
     #[napi]
-    pub fn build(&mut self, platform: ServerPlatform, release: bool) -> ServerBuildResult {
+    pub fn build(&mut self, opts: BuildOpts) -> ServerBuildResult {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
+        let BuildOpts {
+            platform,
+            release,
+            features,
+        } = opts;
+        let features = features.unwrap_or_default();
 
         let node_target = match &platform {
             ServerPlatform::Node { target } => *target,
@@ -147,8 +161,8 @@ impl Server {
             let bin_path = {
                 let _span = tracing::info_span!("Rust artifact compilation").entered();
                 let build = self.ws.with_db(|db| match platform {
-                    Platform::Node => cursed_crate.build_napi(db, release, node_target),
-                    Platform::Wasm { .. } => cursed_crate.build_wasm(db, release),
+                    Platform::Node => cursed_crate.build_napi(db, release, node_target, &features),
+                    Platform::Wasm { .. } => cursed_crate.build_wasm(db, release, &features),
                 });
                 self.ws.with_db_mut(|db| build.exec(db, &self.toolchain))?;
                 self.ws.with_db(|db| {

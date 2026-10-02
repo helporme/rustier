@@ -30,6 +30,8 @@ export interface RustCurseConfiguration {
   target?: RustCurseTarget
   /** Defaults to false, independently of Vite's mode. */
   release?: boolean
+  /** Additional Cargo features enabled on the source crate. */
+  features?: string[]
 }
 
 export interface RustCurseOptions {
@@ -130,10 +132,18 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
     ctx: Context,
     target: RustCurseTarget,
     release: boolean,
+    features?: string[],
   ) {
     const server = getServer(ctx)
     reportDiagnostics(ctx, server.check())
-    const output = unwrap(ctx, server.build(toServerPlatform(target), release))
+    const output = unwrap(
+      ctx,
+      server.build({
+        platform: toServerPlatform(target),
+        release,
+        features,
+      }),
+    )
     if (dev && target === 'wasm') {
       // Frameworks may restrict fs.allow to source/static directories.
       // Permit the generated browser binaries without exposing other artifacts.
@@ -210,6 +220,7 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
         this,
         settings?.target ?? (ssr ? 'node' : 'wasm'),
         settings?.release ?? false,
+        settings?.features,
       )
       if (!dev && ssr) serverBinaries = output.binPaths
     },
@@ -239,6 +250,7 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
         this,
         settings?.target ?? (ssr ? 'node' : 'wasm'),
         settings?.release ?? false,
+        settings?.features,
       )
 
       const graph = this.environment.moduleGraph

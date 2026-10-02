@@ -227,12 +227,14 @@ impl<'a> CursedCrate<'a> {
         db: &dyn Db,
         release: bool,
         node_target: Option<ServerNodeTarget>,
+        dep_features: &[String],
     ) -> CursedCrateBuild {
         CursedCrateBuild {
             out_dir: self.root_dir(db),
             platform: self.platform,
             release,
             node_target,
+            features: self.dependency_features(db, dep_features),
             napi_ffi: Some(
                 self.project
                     .reachable_shim(db)
@@ -246,14 +248,24 @@ impl<'a> CursedCrate<'a> {
     /// WebAssembly build of the cursed crate.
     ///
     /// Doesn't do anything until executed.
-    pub fn build_wasm(self, db: &dyn Db, release: bool) -> CursedCrateBuild {
+    pub fn build_wasm(self, db: &dyn Db, release: bool, dep_features: &[String]) -> CursedCrateBuild {
         CursedCrateBuild {
             out_dir: self.root_dir(db),
             platform: self.platform,
             release,
             node_target: None,
             napi_ffi: None,
+            features: self.dependency_features(db, dep_features),
         }
+    }
+
+    fn dependency_features(self, db: &dyn Db, dep_features: &[String]) -> Vec<String> {
+        // Match the dependency key used by render_manifest, not the package name.
+        let dependency = self.project.src_crate(db).name(db);
+        dep_features
+            .iter()
+            .map(|feature| format!("{dependency}/{feature}"))
+            .collect()
     }
 }
 
@@ -292,6 +304,7 @@ pub struct CursedCrateBuild {
     release: bool,
     node_target: Option<ServerNodeTarget>,
     napi_ffi: Option<String>,
+    features: Vec<String>,
 }
 
 impl CursedCrateBuild {
@@ -320,6 +333,7 @@ impl CursedCrateBuild {
                 Platform::Wasm { .. } => "wasm32-unknown-unknown",
             }),
             release: self.release,
+            features: &self.features,
         }
         .exec(toolchain)?;
 

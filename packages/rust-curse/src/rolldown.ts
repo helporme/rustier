@@ -67,6 +67,8 @@ export interface RustCurseProfile {
    * Whether release build is used.
    */
   release?: boolean
+  /** Additional Cargo features enabled on the source crate. */
+  features?: string[]
 }
 
 export type RustCurseTarget = 'node' | 'wasm' | 'wasm-node'
@@ -165,10 +167,11 @@ export default function rustCurse(options: RustCurseOptions): Plugin {
         const platform = toServerPlatform(profile.target)
         const output = unwrap(
           this,
-          server.build(
+          server.build({
             platform,
-            profile.release ?? false,
-          ),
+            release: profile.release ?? false,
+            features: profile.features,
+          }),
         )
 
         for (const binPath of output.binPaths) {

@@ -16,6 +16,8 @@ export interface RustCurseOptions {
    * @default false
    */
   release?: boolean
+  /** Additional Cargo features enabled on the source crate. */
+  features?: string[]
   /**
    * Path to the Cargo manifest, relative to tsdown's working directory.
    *
@@ -79,12 +81,13 @@ export interface RustCurseOptions {
 export default function rustCurse({
   target,
   release,
+  features,
   ...options
 }: RustCurseOptions) {
   return rolldown({
     ...options,
     profiles: {
-      default: { target, release },
+      default: { target, release, features },
     },
     activeProfile: () => 'default',
   })
