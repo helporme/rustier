@@ -115,7 +115,12 @@ impl<'a> CursedCrate<'a> {
     /// Cursed crate name.
     pub fn name(self, db: &dyn Db) -> String {
         let suffix = match self.platform {
-            Platform::Wasm { .. } => "wasm",
+            Platform::Wasm {
+                target: WasmEnv::Web,
+            } => "wasm_web",
+            Platform::Wasm {
+                target: WasmEnv::Node,
+            } => "wasm_node",
             Platform::Node => "node",
         };
 
@@ -248,7 +253,12 @@ impl<'a> CursedCrate<'a> {
     /// WebAssembly build of the cursed crate.
     ///
     /// Doesn't do anything until executed.
-    pub fn build_wasm(self, db: &dyn Db, release: bool, dep_features: &[String]) -> CursedCrateBuild {
+    pub fn build_wasm(
+        self,
+        db: &dyn Db,
+        release: bool,
+        dep_features: &[String],
+    ) -> CursedCrateBuild {
         CursedCrateBuild {
             out_dir: self.root_dir(db),
             platform: self.platform,
