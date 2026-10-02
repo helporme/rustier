@@ -5,21 +5,20 @@ use crate::compiler::{
     codegen::utils::to_camel_case,
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::rust::{Enum, EnumType},
+    ir::rust::EnumType,
 };
 
 #[salsa::tracked]
-impl<'db> Enum<'db> {
+impl<'db> EnumType<'db> {
     #[salsa::tracked]
     pub(super) fn check_js_name_collisions(self, db: &'db dyn Db) {
-        let facade = EnumType::new(db, self, Vec::new()).shim(db).facade(db);
+        let facade = self.shim(db).facade(db);
         let discriminator = facade.discriminator(db);
 
         let has_type_field_collision = discriminator.name(db) == "$type";
         let expected_variant_names = self
             .variants(db)
-            .iter()
-            .map(|variant| to_camel_case(variant.name(db)))
+            .map(|variant| to_camel_case(variant.declaration(db).name(db)))
             .collect::<Vec<_>>();
         let has_variant_tag_collision = discriminator.variant_names(db) != &expected_variant_names;
 
@@ -27,7 +26,7 @@ impl<'db> Enum<'db> {
             return;
         }
 
-        let source_span = self.span(db);
+        let source_span = self.def(db).span(db);
         let source_code: DiagSource = source_span
             .map(|span| span.src(db))
             .map(Into::into)

@@ -4,39 +4,42 @@ use thiserror::Error;
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::{rust::AsItem as _, shim::ShimClass},
+    ir::rust::{AsItem as _, EnumType, Span, StructType},
 };
 
-pub(super) fn check<'db>(db: &'db dyn Db, class: ShimClass<'db>) {
-    // Suggest Clone only when it is the remaining blocker for this ADT's
-    // coerce method.
-    let (fqn, source_span) = match class {
-        ShimClass::Plain(class) => {
-            let src = class.src(db);
-            if src.is_clonable(db)
-                || src.def(db).is_non_exhaustive(db)
-                || src.has_stripped_fields(db)
-                || src.fields(db).any(|field| field.is_readonly(db))
-            {
-                return;
-            }
-            (src.fqn(db), src.def(db).span(db))
+#[salsa::tracked]
+impl<'db> StructType<'db> {
+    #[salsa::tracked]
+    pub(super) fn check_coerce_requires_clone(self, db: &'db dyn Db) {
+        if self.is_clonable(db)
+            || self.def(db).is_non_exhaustive(db)
+            || self.has_stripped_fields(db)
+            || self.fields(db).any(|field| field.is_readonly(db))
+        {
+            return;
         }
-        ShimClass::Discriminated(class) => {
-            let src = class.src(db);
-            if src.is_clonable(db)
-                || !src.variants(db).any(|variant| {
-                    !variant.declaration(db).is_non_exhaustive(db)
-                        && !variant.has_stripped_fields(db)
-                        && variant.fields(db).all(|field| !field.is_readonly(db))
-                })
-            {
-                return;
-            }
-            (src.fqn(db), src.def(db).span(db))
-        }
-    };
+        emit(db, self.fqn(db), self.def(db).span(db));
+    }
+}
 
+#[salsa::tracked]
+impl<'db> EnumType<'db> {
+    #[salsa::tracked]
+    pub(super) fn check_coerce_requires_clone(self, db: &'db dyn Db) {
+        if self.is_clonable(db)
+            || !self.variants(db).any(|variant| {
+                !variant.declaration(db).is_non_exhaustive(db)
+                    && !variant.has_stripped_fields(db)
+                    && variant.fields(db).all(|field| !field.is_readonly(db))
+            })
+        {
+            return;
+        }
+        emit(db, self.fqn(db), self.def(db).span(db));
+    }
+}
+
+fn emit(db: &dyn Db, fqn: &str, source_span: Option<&Span>) {
     CoerceRequiresClone {
         fqn: fqn.to_owned(),
         source_code: source_span

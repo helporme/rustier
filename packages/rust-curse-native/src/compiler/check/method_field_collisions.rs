@@ -5,28 +5,24 @@ use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::{
-        rust::{AsItem as _, Enum, Struct, Type},
+        rust::{AsItem as _, EnumType, StructType, Type},
         shim::ShimFunctionAssociated,
     },
 };
 
 #[salsa::tracked]
-impl<'db> Struct<'db> {
+impl<'db> StructType<'db> {
     #[salsa::tracked]
     pub(super) fn check_method_field_collisions(self, db: &'db dyn Db) {
-        if let Some(type_) = self.as_mono_type(db) {
-            check_method_field_collisions(db, type_);
-        }
+        check_method_field_collisions(db, self.into_type(db));
     }
 }
 
 #[salsa::tracked]
-impl<'db> Enum<'db> {
+impl<'db> EnumType<'db> {
     #[salsa::tracked]
     pub(super) fn check_method_field_collisions(self, db: &'db dyn Db) {
-        if let Some(type_) = self.as_mono_type(db) {
-            check_method_field_collisions(db, type_);
-        }
+        check_method_field_collisions(db, self.into_type(db));
     }
 }
 

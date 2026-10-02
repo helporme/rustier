@@ -4,10 +4,7 @@
 use crate::compiler::{
     db::Db,
     diag::Diag,
-    ir::{
-        rust::TypeKind,
-        shim::{Shim, ShimMember, ShimModule},
-    },
+    ir::shim::{Shim, ShimClass, ShimMember, ShimModule},
 };
 
 mod coerce_name_collisions;
@@ -32,21 +29,22 @@ fn accumulate_checks<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
     for member in module.src(db).members(db) {
         match member.shim_reachable_from(db, module.usages(db)) {
             ShimMember::Class(class) => {
-                coerce_name_collisions::check(db, class);
-                coerce_requires_clone::check(db, class);
-                match class.src_type(db).kind(db) {
-                    TypeKind::Struct(struct_) => {
-                        let struct_ = struct_.def(db);
+                match class {
+                    ShimClass::Plain(class) => {
+                        let struct_ = class.src(db);
+                        struct_.check_coerce_name_collisions(db);
+                        struct_.check_coerce_requires_clone(db);
                         struct_.check_f32_precision_loss(db);
                         struct_.check_method_field_collisions(db);
                     }
-                    TypeKind::Enum(enum_) => {
-                        let enum_ = enum_.def(db);
+                    ShimClass::Discriminated(class) => {
+                        let enum_ = class.src(db);
+                        enum_.check_coerce_name_collisions(db);
+                        enum_.check_coerce_requires_clone(db);
                         enum_.check_f32_precision_loss(db);
                         enum_.check_js_name_collisions(db);
                         enum_.check_method_field_collisions(db);
                     }
-                    _ => unreachable!("shim classes represent structs or enums"),
                 }
                 for method in class.methods(db) {
                     method.src(db).check_f32_precision_loss(db);

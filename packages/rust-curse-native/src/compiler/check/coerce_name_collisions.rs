@@ -4,22 +4,32 @@ use thiserror::Error;
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::{facade::FacadeClass, rust::TypeKind, shim::ShimClass},
+    ir::rust::{EnumType, Span, StructType},
 };
 
-pub(super) fn check<'db>(db: &'db dyn Db, class: ShimClass<'db>) {
-    let name = match class.facade(db) {
-        FacadeClass::Plain(class) => class.coerce(db).map(|coerce| coerce.name(db)),
-        FacadeClass::Discriminated(class) => class.coerce(db).map(|coerce| coerce.name(db)),
-    };
-    if name != Some("$of") {
-        return;
+#[salsa::tracked]
+impl<'db> StructType<'db> {
+    #[salsa::tracked]
+    pub(super) fn check_coerce_name_collisions(self, db: &'db dyn Db) {
+        let facade = self.shim(db).facade(db);
+        if facade.coerce(db).map(|coerce| coerce.name(db)) == Some("$of") {
+            emit(db, self.def(db).span(db));
+        }
     }
-    let source_span = match class.src_type(db).kind(db) {
-        TypeKind::Struct(value) => value.def(db).span(db),
-        TypeKind::Enum(value) => value.def(db).span(db),
-        _ => unreachable!("classes represent structs or enums"),
-    };
+}
+
+#[salsa::tracked]
+impl<'db> EnumType<'db> {
+    #[salsa::tracked]
+    pub(super) fn check_coerce_name_collisions(self, db: &'db dyn Db) {
+        let facade = self.shim(db).facade(db);
+        if facade.coerce(db).map(|coerce| coerce.name(db)) == Some("$of") {
+            emit(db, self.def(db).span(db));
+        }
+    }
+}
+
+fn emit(db: &dyn Db, source_span: Option<&Span>) {
     CoerceNameCollision {
         source_code: source_span
             .map(|span| span.src(db).into())

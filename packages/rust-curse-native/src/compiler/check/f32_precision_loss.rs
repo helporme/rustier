@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::rust::{Callable, Enum, Span, Struct, TypeKind},
+    ir::rust::{Callable, EnumType, Span, StructType, TypeKind},
 };
 
 #[salsa::tracked]
@@ -15,7 +15,9 @@ impl<'db> Callable<'db> {
             .params(db)
             .iter()
             .find(|param| param.type_(db).deborrow(db).kind(db) == TypeKind::f32);
-        let has_f32_return = self.ret_type(db).map(|type_| type_.kind(db)) == Some(TypeKind::f32);
+        let has_f32_return = self
+            .ret_type(db)
+            .is_some_and(|type_| type_.deborrow(db).kind(db) == TypeKind::f32);
 
         if let Some(param) = f32_param {
             emit(db, param.span(db).as_ref());
@@ -26,7 +28,7 @@ impl<'db> Callable<'db> {
 }
 
 #[salsa::tracked]
-impl<'db> Struct<'db> {
+impl<'db> StructType<'db> {
     #[salsa::tracked]
     pub(super) fn check_f32_precision_loss(self, db: &'db dyn Db) {
         let f32_field = self
@@ -34,22 +36,22 @@ impl<'db> Struct<'db> {
             .find(|field| field._type(db).kind(db) == TypeKind::f32);
 
         if let Some(field) = f32_field {
-            emit(db, field.span(db));
+            emit(db, field.declaration(db).span(db));
         }
     }
 }
 
 #[salsa::tracked]
-impl<'db> Enum<'db> {
+impl<'db> EnumType<'db> {
     #[salsa::tracked]
     pub(super) fn check_f32_precision_loss(self, db: &'db dyn Db) {
         let has_f32_field = self
-            .fields(db)
-            .iter()
+            .variants(db)
+            .flat_map(|variant| variant.fields(db))
             .any(|field| field._type(db).kind(db) == TypeKind::f32);
 
         if has_f32_field {
-            emit(db, self.span(db));
+            emit(db, self.def(db).span(db));
         }
     }
 }
