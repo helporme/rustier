@@ -28,7 +28,7 @@ export type RustCurseTarget = 'node' | 'wasm' | 'wasm-node'
 
 export interface RustCurseConfiguration {
   target?: RustCurseTarget
-  /** Defaults to false, independently of Vite's mode. */
+  /** Defaults to false in Vite dev and true for build/preview. */
   release?: boolean
   /** Additional Cargo features enabled on the source crate. */
   features?: string[]
@@ -82,6 +82,7 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
     throw new Error('rust-curse: ssr.target must be "node" or "wasm-node"')
   }
   let config: ResolvedConfig
+  let defaultRelease = false
   let dev: ViteDevServer | undefined
   let native: Server | undefined
   let manifestPath: string
@@ -131,7 +132,7 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
   function buildTarget(
     ctx: Context,
     target: RustCurseTarget,
-    release: boolean,
+    release: boolean | undefined,
     features?: string[],
   ) {
     const server = getServer(ctx)
@@ -140,7 +141,7 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
       ctx,
       server.build({
         platform: toServerPlatform(target),
-        release,
+        release: release ?? defaultRelease,
         features,
       }),
     )
@@ -167,7 +168,8 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
       },
     },
 
-    config() {
+    config(_config, { command, isPreview }) {
+      defaultRelease = command === 'build' || isPreview === true
       return {
         // SSR normally suppresses assets; Rust bindings require sibling binaries.
         build: { emitAssets: true, ssrEmitAssets: true },
@@ -219,7 +221,7 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
       const output = buildTarget(
         this,
         settings?.target ?? (ssr ? 'node' : 'wasm'),
-        settings?.release ?? false,
+        settings?.release,
         settings?.features,
       )
       if (!dev && ssr) serverBinaries = output.binPaths
@@ -249,7 +251,7 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
       buildTarget(
         this,
         settings?.target ?? (ssr ? 'node' : 'wasm'),
-        settings?.release ?? false,
+        settings?.release,
         settings?.features,
       )
 
