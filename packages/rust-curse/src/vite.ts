@@ -77,6 +77,7 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
   let rootDir: string
 
   let serverBinaries: string[] = []
+  const moduleBinaries = new Map<string, string>()
   let lastChange:
     | { file: string; timestamp: number; affected: boolean }
     | undefined
@@ -203,7 +204,10 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
     },
 
     buildStart() {
-      if (!dev) serverBinaries = []
+      if (!dev) {
+        serverBinaries = []
+        moduleBinaries.clear()
+      }
       watchRustFiles(this, rootDir, manifestPath)
       const ssr = this.environment.config.consumer === 'server'
       const settings = ssr ? options.ssr : options.browser
@@ -259,10 +263,14 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
     resolveId(source, importer) {
       if (source === '$rust' || source.startsWith('$rust/'))
         return `\0${source}`
-      // Vite's native WASM loader would instantiate without
-      // its glue and try to resolve internal WASM imports. Avoid it.
-      if (importer === ffiModuleIds[1] && source.endsWith('.wasm'))
-        return this.resolve(`${source}?url`, importer, { skipSelf: true })
+      // Module loading must reach the downstream runtime as a WASM import,
+      // not Vite's instantiated exports or an asset URL.
+      if (importer === ffiModuleIds[1] && source.endsWith('.wasm')) {
+        if (dev) return { id: source, external: true }
+        const id = `./${path.basename(source)}`
+        moduleBinaries.set(id, source)
+        return { id, external: true }
+      }
       return null
     },
 
@@ -289,8 +297,21 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
         const directories = new Set(
           Object.keys(chunk.modules).map((id) => path.dirname(id)),
         )
+        const binaries = new Set<string>()
+        // External WASM belongs beside its importing chunk, not its glue chunk.
+        for (const id of chunk.imports) {
+          const binary = moduleBinaries.get(id)
+          if (binary) binaries.add(binary)
+        }
         for (const binary of serverBinaries) {
-          if (!directories.has(path.dirname(binary))) continue
+          if (
+            directories.has(path.dirname(binary)) &&
+            !moduleBinaries.has(`./${path.basename(binary)}`)
+          ) {
+            binaries.add(binary)
+          }
+        }
+        for (const binary of binaries) {
           const fileName = path.posix.join(
             path.posix.dirname(chunk.fileName),
             path.basename(binary),
