@@ -83,46 +83,7 @@ impl<'db> FieldQualified<'db> {
 }
 
 impl<'db> Type<'db> {
-    /// Guard the current nongeneric shim without discarding Rust IR metadata.
-    pub(crate) fn assert_shim_supported(self, db: &'db dyn Db) {
-        match self.kind(db) {
-            TypeKind::Generic(_) => unreachable!("generic types cannot reach the shim"),
-            TypeKind::Struct(value) => assert!(
-                value.gen_args(db).is_empty() && value.def(db).as_mono_type(db).is_some(),
-                "generic structs cannot reach the shim"
-            ),
-            TypeKind::Enum(value) => assert!(
-                value.gen_args(db).is_empty() && value.def(db).as_mono_type(db).is_some(),
-                "generic enums cannot reach the shim"
-            ),
-            TypeKind::Borrowed(value) => {
-                assert!(
-                    value.lifetime(db).is_none(),
-                    "explicit lifetimes cannot reach the shim"
-                );
-                assert!(
-                    !matches!(value.inner(db).kind(db), TypeKind::Borrowed(_)),
-                    "nested references cannot reach the shim"
-                );
-                value.inner(db).assert_shim_supported(db);
-            }
-            TypeKind::bool
-            | TypeKind::char
-            | TypeKind::i8
-            | TypeKind::u8
-            | TypeKind::i16
-            | TypeKind::u16
-            | TypeKind::i32
-            | TypeKind::u32
-            | TypeKind::f32
-            | TypeKind::f64
-            | TypeKind::Str
-            | TypeKind::String => {}
-        }
-    }
-
     pub(super) fn shim_in(self, db: &'db dyn Db) -> ShimType<'db> {
-        self.assert_shim_supported(db);
         match self.kind(db) {
             TypeKind::bool => ShimType::bool,
             TypeKind::char

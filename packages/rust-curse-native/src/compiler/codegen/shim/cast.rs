@@ -195,14 +195,6 @@ impl<'db> CastRenderer<'db> for ShimCastRenderer {
         fragment(move |printer| {
             use CastType::*;
 
-            for type_ in [src, dst] {
-                match type_ {
-                    Rust(type_) => type_.assert_shim_supported(db),
-                    Tethered(type_) => type_.source_type.assert_shim_supported(db),
-                    Shim(_) => {}
-                }
-            }
-
             if src.same_representation(db, dst) {
                 adapt_to_cast_output(in_expr, output).apply(printer);
                 return;

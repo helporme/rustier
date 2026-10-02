@@ -57,13 +57,9 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    let ShimType::Class { is_borrowed, inner } = class else {
+    let ShimType::Class { inner, .. } = class else {
         unreachable!("tethered-to-class cast requires a class target");
     };
-    assert!(
-        !is_borrowed,
-        "a newly rendered class wrapper is always an owned shim value",
-    );
 
     adapt_to_cast_output(frag!({inner.symbol(db)}~{{ src: {in_expr} }}), output)
 }
@@ -103,13 +99,9 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    let ShimType::Class { is_borrowed, inner } = class else {
+    let ShimType::Class { inner, .. } = class else {
         unreachable!("type-to-class cast requires a class target");
     };
-    assert!(
-        !is_borrowed,
-        "a source value can only be cast to an owned class wrapper",
-    );
     let tethered = TetheringStructType {
         source_type: inner.src_type(db),
     };

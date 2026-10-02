@@ -40,15 +40,10 @@ impl FragmentOnce for &FieldName {
 
 impl<'db> Type<'db> {
     pub(super) fn render_fqn(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
-        // FIXME: assumes that underlying type is not borrowed and it happens to be
-        // true, but it may not always be in future
-        assert!(!matches!(self.kind(db), TypeKind::Borrowed(_)));
-        self.assert_shim_supported(db);
         self.display(db)
     }
 
     pub(super) fn render_mangled_name(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
-        self.assert_shim_supported(db);
         fragment(move |p| match self.kind(db) {
             TypeKind::bool => "__bool".apply(p),
             TypeKind::i8 => "__i8".apply(p),
@@ -77,7 +72,6 @@ impl<'db> Type<'db> {
     }
 
     pub(super) fn uses_tethering(self, db: &'db dyn Db) -> bool {
-        self.assert_shim_supported(db);
         match self.kind(db) {
             TypeKind::bool
             | TypeKind::char

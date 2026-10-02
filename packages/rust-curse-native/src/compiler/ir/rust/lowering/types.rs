@@ -16,7 +16,17 @@ pub(super) fn lower_type<'db>(
     crate_: ra_ap_hir::Crate,
 ) -> Result<Type<'db>, TypeLowerErrorUnsupported> {
     let type_ = Type::new(db, origin);
-    lower_type_kind(db, type_, &origin.hir(db), crate_)?;
+    lower_type_kind(db, type_, &origin.hir(db), crate_, false)?;
+    Ok(type_)
+}
+
+pub(super) fn lower_instantiated_type<'db>(
+    db: &'db dyn Db,
+    origin: TypeOrigin<'db>,
+    crate_: ra_ap_hir::Crate,
+) -> Result<Type<'db>, TypeLowerErrorUnsupported> {
+    let type_ = Type::new(db, origin);
+    lower_type_kind(db, type_, &origin.hir(db), crate_, true)?;
     Ok(type_)
 }
 
@@ -73,7 +83,7 @@ impl<'db> Type<'db> {
                 Adt::Union(_) => unreachable!("unions are unsupported"),
             };
         }
-        lower_type_kind(db, self, &hir, self.origin(db).crate_(db))
+        lower_type_kind(db, self, &hir, self.origin(db).crate_(db), false)
             .expect("unsupported types are discarded during lowering")
     }
 }
@@ -106,12 +116,18 @@ fn lower_type_kind<'db>(
     source: Type<'db>,
     type_: &HirType<'db>,
     crate_: ra_ap_hir::Crate,
+    instantiated: bool,
 ) -> Result<TypeKind<'db>, TypeLowerErrorUnsupported> {
     if let Some((inner, mutability)) = type_.as_reference() {
         if inner.as_reference().is_some() {
             return Err(TypeLowerErrorUnsupported::DoubleReference);
         }
-        let inner = lower_type(db, TypeOrigin::Dereferenced(source), crate_)?;
+        let origin = TypeOrigin::Dereferenced(source);
+        let inner = if instantiated {
+            lower_instantiated_type(db, origin, crate_)?
+        } else {
+            lower_type(db, origin, crate_)?
+        };
         return Ok(TypeKind::Borrowed(BorrowedType::new(
             db,
             mutability == Mutability::Mut,
@@ -142,9 +158,30 @@ fn lower_type_kind<'db>(
     let Some(adt) = type_.as_adt() else {
         return Err(unsupported_type(db, type_, crate_));
     };
-    if !GenericDef::Adt(adt).params(db).is_empty() {
+    let params = GenericDef::Adt(adt).params(db);
+    if !params.is_empty()
+        && (!instantiated
+            || params
+                .iter()
+                .any(|param| !matches!(param, ra_ap_hir::GenericParam::TypeParam(_))))
+    {
         return Err(unsupported_type(db, type_, crate_));
     }
+    let args = type_
+        .type_arguments()
+        .enumerate()
+        .map(|(index, _)| {
+            lower_instantiated_type(
+                db,
+                TypeOrigin::TypeArgument {
+                    type_: source,
+                    index,
+                },
+                crate_,
+            )
+            .map(GenArg::Type)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     let value = match adt {
         Adt::Struct(struct_)
             if struct_.name(db).display(db, crate_.edition(db)).to_string() == "String"
@@ -157,16 +194,10 @@ fn lower_type_kind<'db>(
         {
             TypeKind::String
         }
-        Adt::Struct(struct_) => TypeKind::Struct(StructType::new(
-            db,
-            Struct::new(db, struct_),
-            Vec::<GenArg<'db>>::new(),
-        )),
-        Adt::Enum(enum_) => TypeKind::Enum(EnumType::new(
-            db,
-            Enum::new(db, enum_),
-            Vec::<GenArg<'db>>::new(),
-        )),
+        Adt::Struct(struct_) => {
+            TypeKind::Struct(StructType::new(db, Struct::new(db, struct_), args))
+        }
+        Adt::Enum(enum_) => TypeKind::Enum(EnumType::new(db, Enum::new(db, enum_), args)),
         Adt::Union(_) => return Err(unsupported_type(db, type_, crate_)),
     };
     Ok(value)

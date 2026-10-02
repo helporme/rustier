@@ -55,7 +55,7 @@ impl<'db> PathSegment<'db> {
             .map(|arg| arg.display(db))
             .collect::<Vec<_>>()
             .join(", ");
-        format!("{}<{args}>", self.name(db))
+        format!("{}::<{args}>", self.name(db))
     }
 
     /// Mangling is fallible for arguments without a stable closed identity.
@@ -419,10 +419,7 @@ pub struct ImplInherent<'db> {
 #[salsa::tracked]
 impl<'db> ImplInherent<'db> {
     pub fn functions(self, db: &'db dyn Db) -> impl Iterator<Item = FunctionInherent<'db>> + 'db {
-        self.declaration(db)
-            .functions(db)
-            .iter()
-            .map(move |function| FunctionInherent::new(db, *function, self))
+        self.lower_functions(db).iter().copied()
     }
 }
 

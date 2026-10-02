@@ -14,7 +14,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        rust::{AsItem as _, Callable, Shape},
+        rust::{Callable, Shape},
         shim::{
             ShimFunction, ShimFunctionDiscriminatedCoerce, ShimFunctionDiscriminator,
             ShimFunctionGetter, ShimFunctionPlainCoerce, ShimFunctionSetter,
@@ -74,7 +74,7 @@ where
                 let src = coerce.class(db).src(db);
                 (
                     ShimFunction::from(coerce),
-                    src.fqn(db),
+                    src.path(db).fqn(db),
                     src.def(db).shape(db),
                     src.into_type(db),
                 )
@@ -83,7 +83,7 @@ where
                 let src = coerce.variant(db).src(db);
                 (
                     ShimFunction::from(coerce),
-                    src.fqn(db),
+                    src.path(db).fqn(db),
                     src.declaration(db).shape(db),
                     src.target(db).into_type(db),
                 )
@@ -227,7 +227,7 @@ where
                     .enumerate()
                     .map(|(i, _)| frag!(_{i})),
             );
-            frag!({ src_fn.fqn(self.db) }({ params }))
+            frag!({ src_fn.path(self.db).fqn(self.db) }({ params }))
         };
 
         fragment(
@@ -365,7 +365,7 @@ where
         );
 
         let variants = fragment(move |p| {
-            let enum_name = src.fqn(self.db);
+            let enum_name = src.path(self.db).fqn(self.db);
 
             for (index, variant) in src.variants(self.db).enumerate() {
                 let variant_name = variant.declaration(self.db).name(self.db);

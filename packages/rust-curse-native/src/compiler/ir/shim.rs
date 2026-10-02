@@ -259,8 +259,15 @@ impl<'db> ShimClassPlain<'db> {
     }
 
     /// The name of this class.
-    pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.src(db).segment(db).name(db)
+    #[salsa::tracked(returns(ref))]
+    pub fn name(self, db: &'db dyn Db) -> String {
+        // FIXME: remove
+        let segment = self.src(db).segment(db);
+        if segment.gen_args(db).is_empty() {
+            segment.name(db).clone()
+        } else {
+            format!("_{}", segment.mangled(db))
+        }
     }
 
     /// The symbol of this class.
@@ -333,8 +340,15 @@ impl<'db> ShimClassDiscriminated<'db> {
     }
 
     /// The name of this class.
-    pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.src(db).segment(db).name(db)
+    #[salsa::tracked(returns(ref))]
+    pub fn name(self, db: &'db dyn Db) -> String {
+        // FIXME: remove
+        let segment = self.src(db).segment(db);
+        if segment.gen_args(db).is_empty() {
+            segment.name(db).clone()
+        } else {
+            format!("_{}", segment.mangled(db))
+        }
     }
 
     /// The mangled unique symbol name of this class.

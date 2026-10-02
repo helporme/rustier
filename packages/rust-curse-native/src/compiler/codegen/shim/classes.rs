@@ -9,7 +9,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        rust::FieldParent,
+        rust::{FieldParent, TypeKind},
         shim::{ShimClass, ShimField},
     },
 };
@@ -164,7 +164,10 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
                     .to_string()
                 );
                 let error = platform.error(reason);
-                let enum_name = enum_.display(db); // FIXME: should use .fqn()
+                let TypeKind::Enum(enum_type) = enum_.kind(db) else {
+                    unreachable!("variant fields belong to enums")
+                };
+                let enum_name = enum_type.path(db).fqn(db);
                 let variant_name = variant.name(db);
                 let field_name = src_field.declaration(db).escaped_name(db);
 

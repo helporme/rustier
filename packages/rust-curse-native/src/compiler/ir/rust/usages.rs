@@ -8,7 +8,7 @@ use crate::compiler::{
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::{
         Callable, Enum, EnumType, FunctionFree, FunctionQualified, GenArg, Member, Module,
-        ModuleParent, Rust, Span, Struct, StructType, Type, TypeKind, TypeOrigin,
+        ModuleParent, Rust, Struct, StructType, Type, TypeKind,
     },
 };
 

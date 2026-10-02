@@ -27,18 +27,13 @@ where
 
 pub fn render_type_to_tethered_expr<'db, InExpr>(
     db: &'db dyn Db,
-    source: Type<'db>,
+    _source: Type<'db>,
     target: TetheringStructType<'db>,
     in_expr: InExpr,
 ) -> impl FragmentOnce + 'db
 where
     InExpr: FragmentOnce + 'db,
 {
-    assert_eq!(
-        source.kind(db),
-        target.source_type.kind(db),
-        "source and tethering cast types must refer to the same value type",
-    );
     let tethering_struct_name = target.source_type.tethering_struct_name(db);
 
     // TODO: remove Rc once class ownership no longer requires it.
@@ -47,7 +42,7 @@ where
 
 pub fn render_tethered_to_type<'db, InExpr, OutVar, Continue>(
     db: &'db dyn Db,
-    source: TetheringStructType<'db>,
+    _source: TetheringStructType<'db>,
     target: Type<'db>,
     in_expr: InExpr,
     output: CastOutput<OutVar, Continue>,
@@ -57,12 +52,6 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    assert_eq!(
-        source.source_type.kind(db),
-        target.deborrow(db).kind(db),
-        "tethering and target cast types must refer to the same value type",
-    );
-
     fragment(move |printer| match target.kind(db) {
         TypeKind::Borrowed(borrowed) => match output {
             CastOutput::Expression => {

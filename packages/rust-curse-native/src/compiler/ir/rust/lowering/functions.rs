@@ -13,8 +13,8 @@ use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::{
-        AsItem as _, Function, FunctionParent, Impl, Module, Param, Receiver, Span, Type, TypeKind,
-        TypeOrigin,
+        AsItem as _, Callable, Function, FunctionInherent, FunctionParent, FunctionQualified, Impl,
+        ImplInherent, Module, Param, Receiver, Span, Type, TypeKind, TypeOrigin,
     },
 };
 
@@ -122,8 +122,38 @@ pub(super) fn lower_function<'db>(
     db: &'db dyn Db,
     hir: ra_ap_hir::Function,
 ) -> Result<Function<'db>, Box<FunctionLowerError>> {
+    lower_function_with_context(db, hir, None)
+}
+
+pub(super) fn lower_inherent_function<'db>(
+    db: &'db dyn Db,
+    hir: ra_ap_hir::Function,
+    impl_: ImplInherent<'db>,
+) -> Result<FunctionInherent<'db>, Box<FunctionLowerError>> {
+    // Provisional handles provide origins for substituted signature types.
+    // Only return the qualified function after its signature has been lowered.
+    let function = FunctionInherent::new(db, Function::new(db, hir), impl_);
+    let callable = FunctionQualified::Inherent(function)
+        .as_callible(db)
+        .filter(|callable| callable.needs_substitution(db));
+    lower_function_with_context(db, hir, callable)?;
+    Ok(function)
+}
+
+fn lower_function_with_context<'db>(
+    db: &'db dyn Db,
+    hir: ra_ap_hir::Function,
+    callable: Option<Callable<'db>>,
+) -> Result<Function<'db>, Box<FunctionLowerError>> {
     let crate_ = hir.module(db).krate(db);
     let mut causes = Vec::new();
+    let lower_signature_type = |origin| {
+        if callable.is_some() {
+            super::types::lower_instantiated_type(db, origin, crate_)
+        } else {
+            lower_type(db, origin, crate_)
+        }
+    };
 
     if hir.is_async(db) {
         causes.push(FunctionLowerCause::UnsupportedAsync);
@@ -162,17 +192,21 @@ pub(super) fn lower_function<'db>(
         }
     }
 
+    if let Some(callable) = callable
+        && hir.self_param(db).is_some()
+        && let Err(error) = lower_signature_type(TypeOrigin::CallableReceiver(callable))
+    {
+        causes.push(FunctionLowerCause::Type(error));
+    }
+
     if let Some(receiver) = hir.self_param(db)
         && receiver.access(db) == Access::Owned
     {
-        let receiver_type = receiver.ty(db);
-        match lower_type(
-            db,
-            TypeOrigin::FunctionReceiver(Function::new(db, hir)),
-            crate_,
-        )
-        .map(|type_| type_.kind(db))
-        {
+        let origin = callable
+            .map(TypeOrigin::CallableReceiver)
+            .unwrap_or_else(|| TypeOrigin::FunctionReceiver(Function::new(db, hir)));
+        let receiver_type = origin.hir(db);
+        match lower_signature_type(origin).map(|type_| type_.kind(db)) {
             Ok(TypeKind::Struct(struct_)) if !is_clonable(db, &receiver_type, crate_) => {
                 causes.push(FunctionLowerCause::NonClonableMovedParam {
                     name: "self".to_owned(),
@@ -194,27 +228,26 @@ pub(super) fn lower_function<'db>(
             .name(db)
             .map(|name| name.display(db, crate_.edition(db)).to_string())
             .unwrap_or_else(|| format!("arg{index}"));
-        match lower_type(
-            db,
-            TypeOrigin::FunctionParameter {
+        let origin = match callable {
+            Some(callable) => TypeOrigin::CallableParameter { callable, index },
+            None => TypeOrigin::FunctionParameter {
                 function: Function::new(db, hir),
                 index,
             },
-            crate_,
-        )
-        .map(|type_| type_.kind(db))
-        {
+        };
+        let parameter_type = origin.hir(db);
+        match lower_signature_type(origin).map(|type_| type_.kind(db)) {
             Err(error) => causes.push(FunctionLowerCause::UnsupportedParam {
                 name,
                 causes: vec![error],
             }),
-            Ok(TypeKind::Struct(struct_)) if !is_clonable(db, param.ty(), crate_) => {
+            Ok(TypeKind::Struct(struct_)) if !is_clonable(db, &parameter_type, crate_) => {
                 causes.push(FunctionLowerCause::NonClonableMovedParam {
                     name,
                     type_fqn: struct_.fqn(db).to_owned(),
                 });
             }
-            Ok(TypeKind::Enum(enum_)) if !is_clonable(db, param.ty(), crate_) => {
+            Ok(TypeKind::Enum(enum_)) if !is_clonable(db, &parameter_type, crate_) => {
                 causes.push(FunctionLowerCause::NonClonableMovedParam {
                     name,
                     type_fqn: enum_.fqn(db).to_owned(),
@@ -251,15 +284,12 @@ pub(super) fn lower_function<'db>(
         }
     }
 
-    let return_type = hir.ret_type(db);
+    let return_origin = callable
+        .map(TypeOrigin::CallableReturn)
+        .unwrap_or_else(|| TypeOrigin::FunctionReturn(Function::new(db, hir)));
+    let return_type = return_origin.hir(db);
     if !return_type.is_unit() {
-        match lower_type(
-            db,
-            TypeOrigin::FunctionReturn(Function::new(db, hir)),
-            crate_,
-        )
-        .map(|type_| type_.kind(db))
-        {
+        match lower_signature_type(return_origin).map(|type_| type_.kind(db)) {
             Ok(TypeKind::Borrowed(_)) => causes.push(FunctionLowerCause::BorrowedReturn),
             Err(error) => causes.push(FunctionLowerCause::Type(error)),
             Ok(_) => {}
@@ -272,7 +302,9 @@ pub(super) fn lower_function<'db>(
         let span = lower_item_span(db, hir);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
         Err(Box::new(FunctionLowerError {
-            fqn: function_fqn(db, hir),
+            fqn: callable
+                .map(|callable| callable.fqn(db).to_owned())
+                .unwrap_or_else(|| function_fqn(db, hir)),
             source_code,
             span,
             causes,
