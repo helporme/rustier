@@ -10,7 +10,7 @@ use crate::{
 };
 
 use super::{
-    CursedCrate, Project,
+    BridgeCrate, Project,
     common::{ArtifactError, reserve_unique_artifact_dir},
 };
 
@@ -45,11 +45,11 @@ impl WasmLoading {
 }
 
 #[salsa::interned(debug)]
-pub struct CursedCrateWasm<'db> {
+pub struct BridgeCrateWasm<'db> {
     pub(super) project: Project<'db>,
 }
 
-impl<'a> CursedCrateWasm<'a> {
+impl<'a> BridgeCrateWasm<'a> {
     pub const fn name(self) -> &'static str {
         "wasm"
     }
@@ -62,7 +62,7 @@ impl<'a> CursedCrateWasm<'a> {
         BuildArtifactsWasm::artifact(
             db,
             &(
-                CursedCrate::Wasm(self)
+                BridgeCrate::Wasm(self)
                     .manifest_path(db)
                     .to_string_lossy()
                     .into_owned(),
@@ -102,7 +102,7 @@ impl<'a> CursedCrateWasm<'a> {
         )
     }
 
-    /// WebAssembly build of the cursed crate.
+    /// WebAssembly build of the bridge crate.
     ///
     /// Doesn't do anything until executed.
     pub fn build(
@@ -111,9 +111,9 @@ impl<'a> CursedCrateWasm<'a> {
         release: bool,
         loading: WasmLoading,
         dep_features: &[String],
-    ) -> CursedCrateWasmBuild {
-        let crate_ = CursedCrate::Wasm(self);
-        CursedCrateWasmBuild {
+    ) -> BridgeCrateWasmBuild {
+        let crate_ = BridgeCrate::Wasm(self);
+        BridgeCrateWasmBuild {
             out_dir: crate_.root_dir(db).clone(),
             release,
             target: loading.bindgen_target(),
@@ -124,19 +124,19 @@ impl<'a> CursedCrateWasm<'a> {
 
 /// An owned WASM build plan, executed after releasing the database borrow.
 #[derive(Debug, Clone)]
-pub struct CursedCrateWasmBuild {
+pub struct BridgeCrateWasmBuild {
     out_dir: PathBuf,
     release: bool,
     target: WasmBindgenTarget,
     features: Vec<String>,
 }
 
-impl CursedCrateWasmBuild {
+impl BridgeCrateWasmBuild {
     pub fn exec(
         &self,
         db: &mut dyn Db,
         toolchain: &Toolchain,
-    ) -> Result<FilePath, CursedCrateWasmBuildError> {
+    ) -> Result<FilePath, BridgeCrateWasmBuildError> {
         let manifest_path = self.out_dir.join("Cargo.toml");
         let key = (manifest_path.to_string_lossy().into_owned(), self.target);
         BuildArtifactsWasm::remove(db, &key);
@@ -154,7 +154,7 @@ impl CursedCrateWasmBuild {
             .artifacts
             .into_iter()
             .find(|path| path.extension().and_then(|ext| ext.to_str()) == Some("wasm"))
-            .ok_or(CursedCrateWasmBuildError::MissingLibraryArtifact)?;
+            .ok_or(BridgeCrateWasmBuildError::MissingLibraryArtifact)?;
         let output = WasmBindgenCommand {
             wasm_path: &binary,
             output_dir: &artifact_dir,
@@ -182,7 +182,7 @@ impl CursedCrateWasmBuild {
 }
 
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]
-pub enum CursedCrateWasmBuildError {
+pub enum BridgeCrateWasmBuildError {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Toolchain(#[from] ToolchainError),

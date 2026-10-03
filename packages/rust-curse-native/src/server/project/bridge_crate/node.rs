@@ -12,16 +12,16 @@ use crate::{
 };
 
 use super::{
-    CursedCrate, Project,
+    BridgeCrate, Project,
     common::{ArtifactError, copy_artifact, reserve_unique_artifact_dir},
 };
 
 #[salsa::interned(debug)]
-pub struct CursedCrateNode<'db> {
+pub struct BridgeCrateNode<'db> {
     pub(super) project: Project<'db>,
 }
 
-impl<'a> CursedCrateNode<'a> {
+impl<'a> BridgeCrateNode<'a> {
     pub const fn name(self) -> &'static str {
         "node"
     }
@@ -29,7 +29,7 @@ impl<'a> CursedCrateNode<'a> {
     fn build_artifacts(self, db: &'a dyn Db) -> Option<&'a BuildArtifactNode> {
         BuildArtifactsNode::artifact(
             db,
-            CursedCrate::Node(self)
+            BridgeCrate::Node(self)
                 .manifest_path(db)
                 .to_string_lossy()
                 .as_ref(),
@@ -70,7 +70,7 @@ impl<'a> CursedCrateNode<'a> {
         )
     }
 
-    /// Native build of the cursed crate.
+    /// Native build of the bridge crate.
     ///
     /// Doesn't do anything until executed.
     pub fn build(
@@ -79,9 +79,9 @@ impl<'a> CursedCrateNode<'a> {
         release: bool,
         node_target: Option<ServerNodeTarget>,
         dep_features: &[String],
-    ) -> CursedCrateNodeBuild {
-        let crate_ = CursedCrate::Node(self);
-        CursedCrateNodeBuild {
+    ) -> BridgeCrateNodeBuild {
+        let crate_ = BridgeCrate::Node(self);
+        BridgeCrateNodeBuild {
             out_dir: crate_.root_dir(db).clone(),
             release,
             node_target,
@@ -98,7 +98,7 @@ impl<'a> CursedCrateNode<'a> {
 
 /// An owned native build plan, executed after releasing the database borrow.
 #[derive(Debug, Clone)]
-pub struct CursedCrateNodeBuild {
+pub struct BridgeCrateNodeBuild {
     out_dir: PathBuf,
     release: bool,
     node_target: Option<ServerNodeTarget>,
@@ -106,12 +106,12 @@ pub struct CursedCrateNodeBuild {
     features: Vec<String>,
 }
 
-impl CursedCrateNodeBuild {
+impl BridgeCrateNodeBuild {
     pub fn exec(
         &self,
         db: &mut dyn Db,
         toolchain: &Toolchain,
-    ) -> Result<FilePath, CursedCrateNodeBuildError> {
+    ) -> Result<FilePath, BridgeCrateNodeBuildError> {
         let manifest_path = self.out_dir.join("Cargo.toml");
         let key = manifest_path.to_string_lossy();
         let mut bin_files = BuildArtifactsNode::artifact(db, &key)
@@ -123,7 +123,7 @@ impl CursedCrateNodeBuild {
         let target = self
             .node_target
             .or_else(ServerNodeTarget::host)
-            .ok_or(CursedCrateNodeBuildError::UnsupportedNodeHost)?;
+            .ok_or(BridgeCrateNodeBuildError::UnsupportedNodeHost)?;
         let artifact_dir = reserve_unique_artifact_dir(&self.out_dir)?;
         let output = CargoBuildCommand {
             manifest_path: &manifest_path,
@@ -142,7 +142,7 @@ impl CursedCrateNodeBuild {
                     Some("dylib" | "dll" | "so")
                 )
             })
-            .ok_or(CursedCrateNodeBuildError::MissingLibraryArtifact)?;
+            .ok_or(BridgeCrateNodeBuildError::MissingLibraryArtifact)?;
 
         for file in bin_files.values_mut() {
             let destination = artifact_dir.join(file.as_path().file_name().unwrap());
@@ -168,7 +168,7 @@ impl CursedCrateNodeBuild {
 }
 
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]
-pub enum CursedCrateNodeBuildError {
+pub enum BridgeCrateNodeBuildError {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Toolchain(#[from] ToolchainError),

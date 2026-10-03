@@ -9,10 +9,10 @@ use crate::compiler::{
     },
 };
 
-pub mod cursed_crate;
+pub mod bridge_crate;
 pub mod ts;
 
-pub use cursed_crate::{CursedCrate, CursedCrateNode, CursedCrateWasm, WasmLoading};
+pub use bridge_crate::{BridgeCrate, BridgeCrateNode, BridgeCrateWasm, WasmLoading};
 use ts::ProjectTs;
 
 #[salsa::interned(debug)]
@@ -32,11 +32,11 @@ pub struct ProjectConfig {
 }
 
 impl<'a> Project<'a> {
-    /// Cursed crate of the project.
-    pub fn cursed_crate(self, db: &'a dyn Db, platform: Platform) -> CursedCrate<'a> {
+    /// Bridge crate of the project.
+    pub fn bridge_crate(self, db: &'a dyn Db, platform: Platform) -> BridgeCrate<'a> {
         match platform {
-            Platform::Node => CursedCrate::Node(CursedCrateNode::new(db, self)),
-            Platform::Wasm => CursedCrate::Wasm(CursedCrateWasm::new(db, self)),
+            Platform::Node => BridgeCrate::Node(BridgeCrateNode::new(db, self)),
+            Platform::Wasm => BridgeCrate::Wasm(BridgeCrateWasm::new(db, self)),
         }
     }
 

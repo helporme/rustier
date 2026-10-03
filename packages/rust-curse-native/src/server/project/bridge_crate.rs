@@ -15,19 +15,19 @@ mod common;
 mod node;
 mod wasm;
 
-pub use node::CursedCrateNode;
-pub use wasm::{CursedCrateWasm, WasmLoading};
+pub use node::BridgeCrateNode;
+pub use wasm::{BridgeCrateWasm, WasmLoading};
 
 /// A glue crate that contains rendered bindings code from source rust crate
 /// to the JavaScript.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
-pub enum CursedCrate<'a> {
-    Node(CursedCrateNode<'a>),
-    Wasm(CursedCrateWasm<'a>),
+pub enum BridgeCrate<'a> {
+    Node(BridgeCrateNode<'a>),
+    Wasm(BridgeCrateWasm<'a>),
 }
 
 #[salsa::tracked]
-impl<'a> CursedCrate<'a> {
+impl<'a> BridgeCrate<'a> {
     pub fn project(self, db: &'a dyn Db) -> Project<'a> {
         match self {
             Self::Node(crate_) => crate_.project(db),
@@ -49,7 +49,7 @@ impl<'a> CursedCrate<'a> {
         }
     }
 
-    /// Root directory of the cursed crate.
+    /// Root directory of the bridge crate.
     #[salsa::tracked(returns(ref))]
     pub fn root_dir(self, db: &'a dyn Db) -> PathBuf {
         self.project(db)
@@ -58,16 +58,16 @@ impl<'a> CursedCrate<'a> {
             .join(self.name())
     }
 
-    /// Path to the manifest file of the cursed crate.
+    /// Path to the manifest file of the bridge crate.
     #[salsa::tracked(returns(ref))]
     pub fn manifest_path(self, db: &'a dyn Db) -> PathBuf {
         self.root_dir(db).join("Cargo.toml")
     }
 
-    /// Synchronization of the cursed crate to the output directory.
+    /// Synchronization of the bridge crate to the output directory.
     ///
     /// Doesn't do anything until executed.
-    pub fn sync(self, db: &'a dyn Db) -> CursedCrateSync {
+    pub fn sync(self, db: &'a dyn Db) -> BridgeCrateSync {
         let manifest = Manifest {
             name: self.name(),
             source_package_name: &self.project(db).cfg(db).package_name,
@@ -87,7 +87,7 @@ impl<'a> CursedCrate<'a> {
             .build_script_body()
             .map(|body| format!("fn main() {{ {body} }}\n"));
 
-        CursedCrateSync {
+        BridgeCrateSync {
             out_dir: self.root_dir(db).clone(),
             manifest: manifest.render(),
             lib,
@@ -105,18 +105,18 @@ impl<'a> CursedCrate<'a> {
     }
 }
 
-/// Synchronization of the cursed crate to the output directory.
+/// Synchronization of the bridge crate to the output directory.
 #[derive(Debug, Clone)]
-pub struct CursedCrateSync {
+pub struct BridgeCrateSync {
     out_dir: PathBuf,
     manifest: String,
     lib: String,
     build: Option<String>,
 }
 
-impl CursedCrateSync {
+impl BridgeCrateSync {
     pub fn exec(&self) -> Result<(), WriteFileError> {
-        let CursedCrateSync {
+        let BridgeCrateSync {
             out_dir,
             manifest,
             lib,

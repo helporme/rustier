@@ -9,7 +9,7 @@ use crate::{
     compiler::codegen::shim::Platform,
     server::{
         log::ServerLogs,
-        project::{CursedCrateNode, CursedCrateWasm, WasmLoading},
+        project::{BridgeCrateNode, BridgeCrateWasm, WasmLoading},
         toolchain::{ToolInstallationOpts, Toolchain, ToolchainOps},
         workspace::ServerWorkspace,
     },
@@ -161,7 +161,7 @@ impl Server {
                     .with_db(|db| {
                         self.ws
                             .project(db)
-                            .cursed_crate(db, compiler_platform)
+                            .bridge_crate(db, compiler_platform)
                             .sync(db)
                             .exec()
                     })
@@ -173,7 +173,7 @@ impl Server {
                 match platform {
                     ServerPlatform::Node { target } => {
                         let build = self.ws.with_db(|db| {
-                            CursedCrateNode::new(db, self.ws.project(db))
+                            BridgeCrateNode::new(db, self.ws.project(db))
                                 .build(db, release, target, &features)
                         });
                         self.ws
@@ -183,7 +183,7 @@ impl Server {
                     ServerPlatform::Wasm { target } => {
                         let loading = WasmLoading::from(target);
                         let build = self.ws.with_db(|db| {
-                            CursedCrateWasm::new(db, self.ws.project(db))
+                            BridgeCrateWasm::new(db, self.ws.project(db))
                                 .build(db, release, loading, &features)
                         });
                         self.ws
@@ -227,10 +227,10 @@ impl Server {
             let project = self.ws.project(db);
             let binary = match platform {
                 ServerPlatform::Node { target } => {
-                    CursedCrateNode::new(db, project).bin_ffi_file_path(db, target)
+                    BridgeCrateNode::new(db, project).bin_ffi_file_path(db, target)
                 }
                 ServerPlatform::Wasm { target } => {
-                    CursedCrateWasm::new(db, project).bin_ffi_file_path(db, target.into())
+                    BridgeCrateWasm::new(db, project).bin_ffi_file_path(db, target.into())
                 }
             };
             binary
@@ -248,9 +248,9 @@ impl Server {
         self.ws.with_db(|db| {
             let project = self.ws.project(db);
             match platform {
-                ServerPlatform::Node { .. } => CursedCrateNode::new(db, project).js(db, &path),
+                ServerPlatform::Node { .. } => BridgeCrateNode::new(db, project).js(db, &path),
                 ServerPlatform::Wasm { target } => {
-                    CursedCrateWasm::new(db, project).js(db, &path, target.into())
+                    BridgeCrateWasm::new(db, project).js(db, &path, target.into())
                 }
             }
         })
