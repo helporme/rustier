@@ -2,7 +2,7 @@ use crate::compiler::{
     db::Db,
     ir::rust::{
         Callable, Crate, FunctionInherent, FunctionQualified, GenArg, GenericParam, ImplInherent,
-        ItemPath, Lifetime, Module, Param, PathSegment, Type, TypeKind, TypeOrigin,
+        ItemPath, Module, Param, PathSegment, Type, TypeKind, TypeOrigin,
     },
 };
 
@@ -17,13 +17,10 @@ impl<'db> FunctionInherent<'db> {
         let substituted_args = impl_
             .generic_args(db)
             .iter()
-            .filter(|(_, arg)| match arg {
-                GenArg::Type(type_) => {
-                    let hir = type_.hir(db);
-                    !hir.contains_unknown() && hir.generic_params(db).is_empty()
-                }
-                GenArg::Lifetime(Some(Lifetime::Static)) => true,
-                GenArg::Lifetime(_) => false,
+            .filter(|(_, arg)| {
+                let GenArg::Type(type_) = arg;
+                let hir = type_.hir(db);
+                !hir.contains_unknown() && hir.generic_params(db).is_empty()
             })
             .count();
 
@@ -134,9 +131,9 @@ impl<'db> Callable<'db> {
             args.extend(function.impl_(db).partial_type_args(db));
         }
 
-        args.extend(self.generic_args(db).iter().filter_map(|arg| match arg {
-            GenArg::Type(type_) => Some(type_.hir(db)),
-            GenArg::Lifetime(_) => None,
+        args.extend(self.generic_args(db).iter().map(|arg| {
+            let GenArg::Type(type_) = arg;
+            type_.hir(db)
         }));
 
         super::instantiate_type(db, type_, args)
@@ -149,17 +146,16 @@ impl<'db> ImplInherent<'db> {
         self.declaration(db)
             .generic_params(db)
             .iter()
-            .filter_map(|param| match param {
-                GenericParam::Type(type_param) => Some(
-                    self.generic_args(db)
-                        .iter()
-                        .find_map(|(binding, arg)| match arg {
-                            GenArg::Type(type_) if binding == param => Some(type_.hir(db)),
-                            _ => None,
-                        })
-                        .unwrap_or_else(|| type_param.hir(db).ty(db)),
-                ),
-                GenericParam::Lifetime(_) => None,
+            .map(|param| {
+                let GenericParam::Type(type_param) = param;
+                self.generic_args(db)
+                    .iter()
+                    .find(|(binding, _)| binding == param)
+                    .map(|(_, arg)| {
+                        let GenArg::Type(type_) = arg;
+                        type_.hir(db)
+                    })
+                    .unwrap_or_else(|| type_param.hir(db).ty(db))
             })
             .collect()
     }

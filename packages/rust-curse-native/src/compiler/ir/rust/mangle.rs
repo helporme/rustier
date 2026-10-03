@@ -1,6 +1,6 @@
 use crate::compiler::{
     db::Db,
-    ir::rust::{GenArg, Lifetime, PathSegment, Type, TypeKind},
+    ir::rust::{GenArg, PathSegment, Type, TypeKind},
 };
 
 /// An argument whose stable semantic identity is not available to the mangler.
@@ -11,8 +11,6 @@ use crate::compiler::{
 pub enum MangleError {
     #[error("cannot mangle an unresolved type parameter")]
     TypeParameter,
-    #[error("cannot mangle an unresolved lifetime parameter")]
-    LifetimeParameter,
 }
 
 fn length_prefixed(value: &str) -> String {
@@ -22,7 +20,7 @@ fn length_prefixed(value: &str) -> String {
 /// Keeps qualified names readable, using byte lengths to delimit identifiers.
 ///
 /// Path segments are separated by `__`. Nonempty generic arguments follow their
-/// segment inside `G...E`; argument tags distinguish types and lifetimes.
+/// segment inside `G...E`.
 /// Names are consumed by length, so their contents cannot act as
 /// separators or generic markers.
 pub(super) fn mangle_segments<'db>(
@@ -42,27 +40,13 @@ pub(super) fn mangle_segments<'db>(
         if !segment.gen_args(db).is_empty() {
             path.push('G');
             for arg in segment.gen_args(db) {
-                path.push_str(&encode_arg(db, *arg)?);
+                let GenArg::Type(type_) = arg;
+                path.push_str(&encode_type(db, *type_)?);
             }
             path.push('E');
         }
     }
     Ok(path)
-}
-
-fn encode_arg<'db>(db: &'db dyn Db, arg: GenArg<'db>) -> Result<String, MangleError> {
-    Ok(match arg {
-        GenArg::Type(type_) => encode_type(db, type_)?,
-        GenArg::Lifetime(lifetime) => format!("L{}", encode_lifetime(lifetime)?),
-    })
-}
-
-fn encode_lifetime(lifetime: Option<Lifetime<'_>>) -> Result<&'static str, MangleError> {
-    match lifetime {
-        None => Ok("A"),
-        Some(Lifetime::Static) => Ok("S"),
-        Some(Lifetime::Param(_)) => Err(MangleError::LifetimeParameter),
-    }
 }
 
 fn encode_type<'db>(db: &'db dyn Db, type_: Type<'db>) -> Result<String, MangleError> {
@@ -96,9 +80,8 @@ fn encode_type<'db>(db: &'db dyn Db, type_: Type<'db>) -> Result<String, MangleE
         }
         TypeKind::Borrowed(reference) => {
             return Ok(format!(
-                "R{}L{}{}",
+                "R{}{}",
                 if reference.is_mutable(db) { "M" } else { "S" },
-                encode_lifetime(reference.lifetime(db))?,
                 encode_type(db, reference.inner(db))?,
             ));
         }

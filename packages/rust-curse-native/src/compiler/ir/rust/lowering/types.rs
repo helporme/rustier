@@ -130,7 +130,6 @@ impl<'db> Type<'db> {
                 db,
                 mutability == Mutability::Mut,
                 Type::new(db, TypeOrigin::Dereferenced(self)),
-                None,
             ));
         }
         if let Some(adt) = hir.as_adt().filter(|adt| match adt {

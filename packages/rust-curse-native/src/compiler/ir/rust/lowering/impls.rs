@@ -67,11 +67,11 @@ impl<'db> ImplInherent<'db> {
         self.declaration(db)
             .generic_params(db)
             .iter()
-            .filter_map(|param| match param {
-                RustGenericParam::Type(type_param) => bindings
+            .filter_map(|param| {
+                let RustGenericParam::Type(type_param) = param;
+                bindings
                     .remove(&type_param.hir(db))
-                    .map(|type_| (*param, GenArg::Type(type_))),
-                RustGenericParam::Lifetime(_) => None,
+                    .map(|type_| (*param, GenArg::Type(type_)))
             })
             .collect()
     }

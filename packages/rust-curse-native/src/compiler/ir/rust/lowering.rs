@@ -70,17 +70,17 @@ impl<'db> TypeOrigin<'db> {
             Self::Struct(type_) => instantiate_type(
                 db,
                 type_.def(db).hir(db).ty(db),
-                type_.gen_args(db).iter().filter_map(|arg| match arg {
-                    GenArg::Type(type_) => Some(type_.hir(db)),
-                    GenArg::Lifetime(_) => None,
+                type_.gen_args(db).iter().map(|arg| {
+                    let GenArg::Type(type_) = arg;
+                    type_.hir(db)
                 }),
             ),
             Self::Enum(type_) => instantiate_type(
                 db,
                 type_.def(db).hir(db).ty(db),
-                type_.gen_args(db).iter().filter_map(|arg| match arg {
-                    GenArg::Type(type_) => Some(type_.hir(db)),
-                    GenArg::Lifetime(_) => None,
+                type_.gen_args(db).iter().map(|arg| {
+                    let GenArg::Type(type_) = arg;
+                    type_.hir(db)
                 }),
             ),
             Self::TypeParameter(param) => param.hir(db).ty(db),
@@ -209,7 +209,6 @@ impl<'db> GenericParam<'db> {
     fn hir(self, db: &'db dyn Db) -> HirGenericParam {
         match self {
             Self::Type(param) => HirGenericParam::TypeParam(param.hir(db)),
-            Self::Lifetime(param) => HirGenericParam::LifetimeParam(param.hir(db)),
         }
     }
 }

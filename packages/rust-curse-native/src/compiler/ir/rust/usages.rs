@@ -247,9 +247,8 @@ impl<'db> Visitor<'db> {
 
     fn visit_args(&mut self, args: &[GenArg<'db>], depth: usize) {
         for arg in args {
-            if let GenArg::Type(type_) = arg {
-                self.visit_type(*type_, depth);
-            }
+            let GenArg::Type(type_) = arg;
+            self.visit_type(*type_, depth);
         }
     }
 

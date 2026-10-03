@@ -3,8 +3,8 @@ use ra_ap_hir::{Adt, GenericDef, GenericParam as HirGenericParam, HirDisplay as 
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Enum, EnumType, Function, GenArg, GenericOwner, GenericParam, Impl, LifetimeParam, Struct,
-        StructType, Type, TypeParam,
+        Enum, EnumType, Function, GenArg, GenericOwner, GenericParam, Impl, Struct, StructType,
+        Type, TypeParam,
     },
 };
 
@@ -92,11 +92,7 @@ fn lower_generic_params<'db>(db: &'db dyn Db, hir: GenericDef) -> Vec<GenericPar
         .into_iter()
         .filter_map(|param| match param {
             HirGenericParam::TypeParam(hir) => Some(GenericParam::Type(TypeParam::new(db, hir))),
-            // Const-generic declarations remain rejected by item/type lowering.
-            HirGenericParam::ConstParam(_) => None,
-            HirGenericParam::LifetimeParam(hir) => {
-                Some(GenericParam::Lifetime(LifetimeParam::new(db, hir)))
-            }
+            HirGenericParam::ConstParam(_) | HirGenericParam::LifetimeParam(_) => None,
         })
         .collect()
 }

@@ -7,8 +7,8 @@ use crate::compiler::{db::Db, inputs::LocalCrates, path::FilePath};
 use itertools::Either;
 use ra_ap_hir::{
     Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
-    Function as HirFunction, Impl as HirImpl, LifetimeParam as HirLifetimeParam,
-    Module as HirModule, Struct as HirStruct, TypeParam as HirTypeParam,
+    Function as HirFunction, Impl as HirImpl, Module as HirModule, Struct as HirStruct,
+    TypeParam as HirTypeParam,
 };
 use std::{collections::VecDeque, fmt};
 use triomphe::Arc;
@@ -657,31 +657,12 @@ impl fmt::Display for FieldName {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update)]
 pub enum GenArg<'db> {
     Type(Type<'db>),
-    /// `None` retains an anonymous lifetime's argument slot.
-    Lifetime(Option<Lifetime<'db>>),
 }
 
 impl<'db> GenArg<'db> {
     pub fn display(self, db: &'db dyn Db) -> &'db str {
         match self {
             Self::Type(type_) => type_.display(db),
-            Self::Lifetime(Some(lifetime)) => lifetime.display(db),
-            Self::Lifetime(None) => "'_",
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update)]
-pub enum Lifetime<'db> {
-    Param(LifetimeParam<'db>),
-    Static,
-}
-
-impl<'db> Lifetime<'db> {
-    pub fn display(self, db: &'db dyn Db) -> &'db str {
-        match self {
-            Self::Param(param) => param.name(db),
-            Self::Static => "'static",
         }
     }
 }
@@ -689,7 +670,6 @@ impl<'db> Lifetime<'db> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
 pub enum GenericParam<'db> {
     Type(TypeParam<'db>),
-    Lifetime(LifetimeParam<'db>),
 }
 
 impl<'db> GenericParam<'db> {
@@ -733,23 +713,6 @@ impl<'db> TypeParam<'db> {
     /// Whether this parameter was introduced by argument-position `impl Trait`.
     pub fn is_implicit(self, db: &'db dyn Db) -> bool {
         self.hir(db).is_implicit(db)
-    }
-}
-
-#[salsa::interned(debug)]
-pub struct LifetimeParam<'db> {
-    hir: HirLifetimeParam,
-}
-
-impl<'db> LifetimeParam<'db> {
-    pub fn name(self, db: &'db dyn Db) -> &'db str {
-        GenericParam::Lifetime(self)
-            .name(db)
-            .expect("lifetime parameters have declared names")
-    }
-
-    pub fn owner(self, db: &'db dyn Db) -> GenericOwner<'db> {
-        GenericParam::Lifetime(self).owner(db)
     }
 }
 
@@ -1071,17 +1034,11 @@ impl<'db> Type<'db> {
     }
 
     pub fn borrowed(self, db: &'db dyn Db) -> Self {
-        Type::new(
-            db,
-            TypeOrigin::Borrowed(BorrowedType::new(db, false, self, None)),
-        )
+        Type::new(db, TypeOrigin::Borrowed(BorrowedType::new(db, false, self)))
     }
 
     pub fn borrowed_mut(self, db: &'db dyn Db) -> Self {
-        Type::new(
-            db,
-            TypeOrigin::Borrowed(BorrowedType::new(db, true, self, None)),
-        )
+        Type::new(db, TypeOrigin::Borrowed(BorrowedType::new(db, true, self)))
     }
 
     /// Removes one reference layer, leaving non-reference types unchanged.
@@ -1218,19 +1175,14 @@ impl<'db> From<TypeParam<'db>> for TypeOrigin<'db> {
 pub struct BorrowedType<'db> {
     pub is_mutable: bool,
     pub inner: Type<'db>,
-    pub lifetime: Option<Lifetime<'db>>,
 }
 
 #[salsa::tracked]
 impl<'db> BorrowedType<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn display(self, db: &'db dyn Db) -> String {
-        let lifetime = self
-            .lifetime(db)
-            .map(|lifetime| format!("{} ", lifetime.display(db)))
-            .unwrap_or_default();
         let mutability = if self.is_mutable(db) { "mut " } else { "" };
-        format!("&{lifetime}{mutability}{}", self.inner(db).display(db))
+        format!("&{mutability}{}", self.inner(db).display(db))
     }
 }
 
