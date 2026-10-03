@@ -5,12 +5,8 @@ use crate::{
         codegen::shim::{Platform, manifest::Manifest},
         db::Db,
         ir::facade::FacadeModule,
-        path::FilePath,
     },
-    server::{
-        ServerNodeTarget,
-        write_file::{WriteFileError, write_file},
-    },
+    server::write_file::{WriteFileError, write_file},
 };
 
 use super::Project;
@@ -68,25 +64,6 @@ impl<'a> CursedCrate<'a> {
         self.root_dir(db).join("Cargo.toml")
     }
 
-    /// Latest generated JS loader for the cursed crate, if any.
-    pub fn ffi_js_file(self, db: &'a dyn Db) -> Option<&'a FilePath> {
-        match self {
-            Self::Node(crate_) => crate_.js_ffi_file_path(db),
-            Self::Wasm(crate_) => crate_.js_ffi_file_path(db),
-        }
-    }
-
-    /// Latest build artifact for the given target, if any.
-    pub fn bin_file(
-        self,
-        db: &'a dyn Db,
-        target: Option<ServerNodeTarget>,
-    ) -> Option<&'a FilePath> {
-        match self {
-            Self::Node(crate_) => crate_.bin_ffi_file_path(db, target),
-            Self::Wasm(crate_) => crate_.bin_ffi_file_path(db),
-        }
-    }
     /// Synchronization of the cursed crate to the output directory.
     ///
     /// Doesn't do anything until executed.

@@ -229,8 +229,8 @@ impl Server {
                 ServerPlatform::Node { target } => {
                     CursedCrateNode::new(db, project).bin_ffi_file_path(db, target)
                 }
-                ServerPlatform::Wasm { .. } => {
-                    CursedCrateWasm::new(db, project).bin_ffi_file_path(db)
+                ServerPlatform::Wasm { target } => {
+                    CursedCrateWasm::new(db, project).bin_ffi_file_path(db, target.into())
                 }
             };
             binary

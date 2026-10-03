@@ -23,6 +23,13 @@ pub enum WasmLoading {
 }
 
 impl WasmLoading {
+    fn bindgen_target(self) -> WasmBindgenTarget {
+        match self {
+            Self::Fetch | Self::Module => WasmBindgenTarget::Web,
+            Self::ModuleNode => WasmBindgenTarget::NodeJsModule,
+        }
+    }
+
     pub fn js(self, path: &str, wasm_path: &str) -> String {
         match self {
             Self::Fetch => {
@@ -47,22 +54,29 @@ impl<'a> CursedCrateWasm<'a> {
         "wasm"
     }
 
-    fn build_artifacts(self, db: &'a dyn Db) -> Option<&'a BuildArtifactWasm> {
+    fn build_artifacts(
+        self,
+        db: &'a dyn Db,
+        loading: WasmLoading,
+    ) -> Option<&'a BuildArtifactWasm> {
         BuildArtifactsWasm::artifact(
             db,
-            CursedCrate::Wasm(self)
-                .manifest_path(db)
-                .to_string_lossy()
-                .as_ref(),
+            &(
+                CursedCrate::Wasm(self)
+                    .manifest_path(db)
+                    .to_string_lossy()
+                    .into_owned(),
+                loading.bindgen_target(),
+            ),
         )
     }
 
-    pub fn js_ffi_file_path(self, db: &'a dyn Db) -> Option<&'a FilePath> {
-        Some(&self.build_artifacts(db)?.ffi_js_file)
+    pub fn js_ffi_file_path(self, db: &'a dyn Db, loading: WasmLoading) -> Option<&'a FilePath> {
+        Some(&self.build_artifacts(db, loading)?.ffi_js_file)
     }
 
-    pub fn bin_ffi_file_path(self, db: &'a dyn Db) -> Option<&'a FilePath> {
-        Some(&self.build_artifacts(db)?.bin_file)
+    pub fn bin_ffi_file_path(self, db: &'a dyn Db, loading: WasmLoading) -> Option<&'a FilePath> {
+        Some(&self.build_artifacts(db, loading)?.bin_file)
     }
 
     pub fn js(self, db: &'a dyn Db, path: &str, loading: WasmLoading) -> Option<String> {
@@ -70,8 +84,8 @@ impl<'a> CursedCrateWasm<'a> {
 
         if path == FFI_MODULE_ID {
             return Some(loading.js(
-                self.js_ffi_file_path(db)?.as_str(),
-                self.bin_ffi_file_path(db)?.as_str(),
+                self.js_ffi_file_path(db, loading)?.as_str(),
+                self.bin_ffi_file_path(db, loading)?.as_str(),
             ));
         }
 
@@ -102,10 +116,7 @@ impl<'a> CursedCrateWasm<'a> {
         CursedCrateWasmBuild {
             out_dir: crate_.root_dir(db).clone(),
             release,
-            target: match loading {
-                WasmLoading::Fetch | WasmLoading::Module => WasmBindgenTarget::Web,
-                WasmLoading::ModuleNode => WasmBindgenTarget::NodeJsModule,
-            },
+            target: loading.bindgen_target(),
             features: crate_.dependency_features(db, dep_features),
         }
     }
@@ -127,7 +138,7 @@ impl CursedCrateWasmBuild {
         toolchain: &Toolchain,
     ) -> Result<FilePath, CursedCrateWasmBuildError> {
         let manifest_path = self.out_dir.join("Cargo.toml");
-        let key = manifest_path.to_string_lossy();
+        let key = (manifest_path.to_string_lossy().into_owned(), self.target);
         BuildArtifactsWasm::remove(db, &key);
 
         let artifact_dir = reserve_unique_artifact_dir(&self.out_dir)?;
@@ -159,7 +170,7 @@ impl CursedCrateWasmBuild {
             FilePath::try_from(output.wasm_path.as_path()).map_err(ArtifactError::from)?;
         BuildArtifactsWasm::set(
             db,
-            key.into_owned(),
+            key,
             BuildArtifactWasm {
                 ffi_js_file: FilePath::try_from(output.js_path.as_path())
                     .map_err(ArtifactError::from)?,
@@ -185,13 +196,13 @@ pub enum CursedCrateWasmBuildError {
 
 #[salsa::input(singleton)]
 struct BuildArtifactsWasm {
-    /// The latest wasm-bindgen output for each manifest.
+    /// The latest wasm-bindgen output for each manifest and binding target.
     #[returns(ref)]
-    artifacts: HashMap<String, BuildArtifactWasm>,
+    artifacts: HashMap<(String, WasmBindgenTarget), BuildArtifactWasm>,
 }
 
 impl BuildArtifactsWasm {
-    fn remove(db: &mut dyn Db, key: &str) {
+    fn remove(db: &mut dyn Db, key: &(String, WasmBindgenTarget)) {
         if let Some(input) = Self::try_get(db)
             && input.artifacts(db).contains_key(key)
         {
@@ -201,14 +212,17 @@ impl BuildArtifactsWasm {
         }
     }
 
-    fn set(db: &mut dyn Db, key: String, artifact: BuildArtifactWasm) {
+    fn set(db: &mut dyn Db, key: (String, WasmBindgenTarget), artifact: BuildArtifactWasm) {
         let input = Self::try_get(db).unwrap_or_else(|| Self::new(db, HashMap::default()));
         let mut artifacts = input.artifacts(db).clone();
         artifacts.insert(key, artifact);
         input.set_artifacts(db).to(artifacts);
     }
 
-    fn artifact<'db>(db: &'db dyn Db, key: &str) -> Option<&'db BuildArtifactWasm> {
+    fn artifact<'db>(
+        db: &'db dyn Db,
+        key: &(String, WasmBindgenTarget),
+    ) -> Option<&'db BuildArtifactWasm> {
         Self::try_get(db).and_then(|input| input.artifacts(db).get(key))
     }
 }

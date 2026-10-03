@@ -125,7 +125,7 @@ impl Toolchain {
 }
 
 /// JavaScript environment used by wasm-bindgen.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
 pub enum WasmBindgenTarget {
     /// Browser ES modules initialized by the caller.
     Web,
