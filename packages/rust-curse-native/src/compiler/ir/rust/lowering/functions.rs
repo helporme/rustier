@@ -207,11 +207,6 @@ fn check_function_substituted<'db>(
 ) {
     let crate_ = hir.module(db).krate(db);
     let check_type = |type_: &ra_ap_hir::Type<'db>| super::types::check_type(db, type_, crate_);
-    let provably_non_clonable = |type_: &ra_ap_hir::Type<'db>| {
-        !type_.contains_unknown()
-            && type_.generic_params(db).is_empty()
-            && !is_clonable(db, type_, crate_)
-    };
 
     if let Some(receiver) = hir.self_param(db) {
         let receiver_type = super::instantiate_type(db, receiver.ty(db), type_args.iter().cloned());
@@ -219,7 +214,7 @@ fn check_function_substituted<'db>(
             causes.push(FunctionLowerCause::Type(error));
         } else if receiver.access(db) == Access::Owned
             && let Some(adt) = receiver_type.as_adt()
-            && provably_non_clonable(&receiver_type)
+            && is_clonable(db, &receiver_type, crate_) == Some(false)
         {
             causes.push(FunctionLowerCause::NonClonableMovedParam {
                 name: "self".to_owned(),
@@ -245,7 +240,7 @@ fn check_function_substituted<'db>(
         }
         if let Some(adt) = parameter_type.as_adt()
             && !super::types::is_string(db, &parameter_type, crate_)
-            && provably_non_clonable(&parameter_type)
+            && is_clonable(db, &parameter_type, crate_) == Some(false)
         {
             causes.push(FunctionLowerCause::NonClonableMovedParam {
                 name,

@@ -72,7 +72,7 @@ impl<'db> FieldQualified<'db> {
         matches!(
             type_.deborrow(db).kind(db),
             TypeKind::Struct(_) | TypeKind::Enum(_)
-        ) && !is_clonable(db, &type_.hir(db), crate_)
+        ) && is_clonable(db, &type_.hir(db), crate_) != Some(true)
     }
 }
 
@@ -136,10 +136,11 @@ pub(super) fn lower_field<'db>(
         return Ok(None);
     };
     let crate_ = field.parent_def(db).module(db).krate(db);
+    let type_ = field.ty(db);
     if matches!(
         lowered_type.kind(db),
         TypeKind::Struct(_) | TypeKind::Enum(_)
-    ) && !is_clonable(db, &field.ty(db), crate_)
+    ) && is_clonable(db, &type_, crate_) == Some(false)
     {
         let span = lower_item_span(db, field);
         let (source_code, span) = diagnostic_location(db, span.as_ref());

@@ -492,7 +492,7 @@ impl<'db> VariantQualified<'db> {
     pub fn is_constructible(self, db: &'db dyn Db) -> bool {
         !self.declaration(db).is_non_exhaustive(db)
             && !self.has_stripped_fields(db)
-            && self.target(db).is_clonable(db)
+            && self.target(db).is_clonable(db) == Some(true)
             && self.fields(db).all(|field| !field.is_readonly(db))
     }
 
@@ -1111,7 +1111,7 @@ impl<'db> StructType<'db> {
         Type::new(db, TypeOrigin::from(self))
     }
 
-    pub fn is_clonable(self, db: &'db dyn Db) -> bool {
+    pub fn is_clonable(self, db: &'db dyn Db) -> Option<bool> {
         self.lower_is_clonable(db)
     }
 
@@ -1123,7 +1123,7 @@ impl<'db> StructType<'db> {
     pub fn is_constructible(self, db: &'db dyn Db) -> bool {
         !self.def(db).is_non_exhaustive(db)
             && !self.has_stripped_fields(db)
-            && self.is_clonable(db)
+            && self.is_clonable(db) == Some(true)
             && self.fields(db).all(|field| !field.is_readonly(db))
     }
 
@@ -1171,7 +1171,7 @@ impl<'db> EnumType<'db> {
         Type::new(db, TypeOrigin::from(self))
     }
 
-    pub fn is_clonable(self, db: &'db dyn Db) -> bool {
+    pub fn is_clonable(self, db: &'db dyn Db) -> Option<bool> {
         self.lower_is_clonable(db)
     }
 

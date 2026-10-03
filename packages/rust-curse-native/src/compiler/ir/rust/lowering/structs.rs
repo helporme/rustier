@@ -1,5 +1,5 @@
 use miette::{Diagnostic, SourceSpan};
-use ra_ap_hir::{Adt, GenericDef, HasAttrs as _};
+use ra_ap_hir::{Adt, GenericDef, GenericParam as HirGenericParam, HasAttrs as _};
 use thiserror::Error;
 
 use super::{adt_fqn, diagnostic_location, lower_item_span, lower_shape};
@@ -12,7 +12,7 @@ use crate::compiler::{
 #[salsa::tracked]
 impl<'db> StructType<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_is_clonable(self, db: &'db dyn Db) -> bool {
+    pub(in crate::compiler::ir::rust) fn lower_is_clonable(self, db: &'db dyn Db) -> Option<bool> {
         let crate_ = self.def(db).hir(db).module(db).krate(db);
         super::is_clonable(db, &self.into_type(db).hir(db), crate_)
     }
@@ -68,18 +68,22 @@ pub(super) fn lower_struct<'db>(
     db: &'db dyn Db,
     hir: ra_ap_hir::Struct,
 ) -> Result<Struct<'db>, Box<StructLowerError>> {
-    if GenericDef::Adt(Adt::Struct(hir)).params(db).is_empty() {
-        return Ok(Struct::new(db, hir));
+    if GenericDef::Adt(Adt::Struct(hir))
+        .params(db)
+        .iter()
+        .any(|param| matches!(param, HirGenericParam::ConstParam(_)))
+    {
+        let span = lower_item_span(db, hir);
+        let (source_code, span) = diagnostic_location(db, span.as_ref());
+        return Err(Box::new(StructLowerError {
+            fqn: adt_fqn(db, Adt::Struct(hir)),
+            source_code,
+            span,
+            causes: vec![StructLowerCause::UnsupportedConstGeneric],
+        }));
     }
 
-    let span = lower_item_span(db, hir);
-    let (source_code, span) = diagnostic_location(db, span.as_ref());
-    Err(Box::new(StructLowerError {
-        fqn: adt_fqn(db, Adt::Struct(hir)),
-        source_code,
-        span,
-        causes: vec![StructLowerCause::UnsupportedGeneric],
-    }))
+    Ok(Struct::new(db, hir))
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
@@ -97,13 +101,11 @@ pub(super) struct StructLowerError {
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 enum StructLowerCause {
-    #[error("generic structs are not supported")]
+    #[error("const-generic structs are not supported")]
     #[diagnostic(
-        code(rust_curse::unsupported_generic_struct),
-        help(
-            "export a non-generic wrapper that instantiates the generic parameters with concrete types"
-        ),
+        code(rust_curse::unsupported_const_generic_struct),
+        help("use a type without const generic parameters in the exported API"),
         severity(Warning)
     )]
-    UnsupportedGeneric,
+    UnsupportedConstGeneric,
 }

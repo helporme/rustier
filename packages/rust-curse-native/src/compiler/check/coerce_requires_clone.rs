@@ -11,7 +11,7 @@ use crate::compiler::{
 impl<'db> StructType<'db> {
     #[salsa::tracked]
     pub(super) fn check_coerce_requires_clone(self, db: &'db dyn Db) {
-        if self.is_clonable(db)
+        if self.is_clonable(db) != Some(false)
             || self.def(db).is_non_exhaustive(db)
             || self.has_stripped_fields(db)
             || self.fields(db).any(|field| field.is_readonly(db))
@@ -26,7 +26,7 @@ impl<'db> StructType<'db> {
 impl<'db> EnumType<'db> {
     #[salsa::tracked]
     pub(super) fn check_coerce_requires_clone(self, db: &'db dyn Db) {
-        if self.is_clonable(db)
+        if self.is_clonable(db) != Some(false)
             || !self.variants(db).any(|variant| {
                 !variant.declaration(db).is_non_exhaustive(db)
                     && !variant.has_stripped_fields(db)

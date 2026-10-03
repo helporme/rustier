@@ -40,9 +40,18 @@ pub(super) fn is_string(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::Cra
 }
 
 /// Checks whether the HIR type satisfies the `Clone` trait obligation.
-pub(super) fn is_clonable(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::Crate) -> bool {
-    Trait::lang(db, crate_, ra_ap_hir::LangItem::Clone)
-        .is_some_and(|clone| type_.impls_trait(db, clone, &[]))
+pub(super) fn is_clonable(
+    db: &dyn Db,
+    type_: &HirType<'_>,
+    crate_: ra_ap_hir::Crate,
+) -> Option<bool> {
+    if type_.contains_unknown() || !type_.generic_params(db).is_empty() {
+        return None;
+    }
+    Some(
+        Trait::lang(db, crate_, ra_ap_hir::LangItem::Clone)
+            .is_some_and(|clone| type_.impls_trait(db, clone, &[])),
+    )
 }
 
 /// Lowers a type origin to Rust IR after validating its HIR type.
