@@ -220,6 +220,26 @@ impl Server {
         })
     }
 
+    /// Current binary paths for the platform. Empty if no build is available.
+    #[napi]
+    pub fn bin_paths(&self, platform: ServerPlatform) -> Vec<String> {
+        self.ws.with_db(|db| {
+            let project = self.ws.project(db);
+            let binary = match platform {
+                ServerPlatform::Node { target } => {
+                    CursedCrateNode::new(db, project).bin_ffi_file_path(db, target)
+                }
+                ServerPlatform::Wasm { .. } => {
+                    CursedCrateWasm::new(db, project).bin_ffi_file_path(db)
+                }
+            };
+            binary
+                .into_iter()
+                .map(|path| path.as_str().to_owned())
+                .collect()
+        })
+    }
+
     #[napi]
     pub fn load(&self, platform: ServerPlatform, path: String) -> Option<String> {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());

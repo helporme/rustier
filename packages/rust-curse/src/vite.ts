@@ -15,6 +15,7 @@ import {
   ServerDiagnosticSeverity,
   type ServerLog,
   ServerLogLevel,
+  ServerWasmLoading,
 } from 'rust-curse-native'
 import { toServerPlatform, type RustCurseTarget } from './target'
 
@@ -76,8 +77,6 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
   let manifestPath: string
   let rootDir: string
 
-  let serverBinaries: string[] = []
-  const moduleBinaries = new Map<string, string>()
   let lastChange:
     | { file: string; timestamp: number; affected: boolean }
     | undefined
@@ -127,7 +126,7 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
     const server = getServer(ctx)
     reportDiagnostics(ctx, server.check())
     const platform = toServerPlatform(target)
-    const output = unwrap(
+    unwrap(
       ctx,
       server.build({
         platform,
@@ -138,14 +137,13 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
     if (dev) {
       // Frameworks may restrict fs.allow to source/static directories.
       // Permit compiled binaries without exposing other artifacts.
-      for (const binary of output.binPaths) {
+      for (const binary of server.binPaths(platform)) {
         const file = normalizePath(binary)
         if (!dev.config.server.fs.allow.includes(file)) {
           dev.config.server.fs.allow.push(file)
         }
       }
     }
-    return output
   }
 
   const plugin: Plugin = {
@@ -204,20 +202,15 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
     },
 
     buildStart() {
-      if (!dev) {
-        serverBinaries = []
-        moduleBinaries.clear()
-      }
       watchRustFiles(this, rootDir, manifestPath)
       const ssr = this.environment.config.consumer === 'server'
       const settings = ssr ? options.ssr : options.browser
-      const output = buildTarget(
+      buildTarget(
         this,
         settings?.target ?? (ssr ? 'node' : 'wasm'),
         settings?.release,
         settings?.features,
       )
-      if (!dev && ssr) serverBinaries = output.binPaths
     },
 
     watchChange(file, change) {
@@ -268,7 +261,6 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
       if (importer === ffiModuleIds[1] && source.endsWith('.wasm')) {
         if (dev) return { id: source, external: true }
         const id = `./${path.basename(source)}`
-        moduleBinaries.set(id, source)
         return { id, external: true }
       }
       return null
@@ -291,27 +283,27 @@ export default function rustCurse(options: RustCurseOptions = {}): Plugin {
     },
 
     generateBundle(_options, bundle) {
+      const ssr = this.environment.config.consumer === 'server'
+      const settings = ssr ? options.ssr : options.browser
+      const platform = toServerPlatform(settings?.target ?? (ssr ? 'node' : 'wasm'))
+      const binaries = getServer(this).binPaths(platform)
+      const moduleLoading =
+        platform.type === 'Wasm' && platform.target === ServerWasmLoading.Module
       const emitted = new Set<string>()
       for (const chunk of Object.values(bundle)) {
         if (chunk.type !== 'chunk') continue
         const directories = new Set(
           Object.keys(chunk.modules).map((id) => path.dirname(id)),
         )
-        const binaries = new Set<string>()
         // External WASM belongs beside its importing chunk, not its glue chunk.
-        for (const id of chunk.imports) {
-          const binary = moduleBinaries.get(id)
-          if (binary) binaries.add(binary)
-        }
-        for (const binary of serverBinaries) {
-          if (
-            directories.has(path.dirname(binary)) &&
-            !moduleBinaries.has(`./${path.basename(binary)}`)
-          ) {
-            binaries.add(binary)
-          }
-        }
         for (const binary of binaries) {
+          const moduleImport = `./${path.basename(binary)}`
+          if (
+            !chunk.imports.includes(moduleImport) &&
+            !(ssr && !moduleLoading && directories.has(path.dirname(binary)))
+          ) {
+            continue
+          }
           const fileName = path.posix.join(
             path.posix.dirname(chunk.fileName),
             path.basename(binary),
