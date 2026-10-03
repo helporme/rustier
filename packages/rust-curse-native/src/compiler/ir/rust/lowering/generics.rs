@@ -91,8 +91,12 @@ fn lower_generic_params<'db>(db: &'db dyn Db, hir: GenericDef) -> Vec<GenericPar
     hir.params(db)
         .into_iter()
         .filter_map(|param| match param {
-            HirGenericParam::TypeParam(hir) => Some(GenericParam::Type(TypeParam::new(db, hir))),
-            HirGenericParam::ConstParam(_) | HirGenericParam::LifetimeParam(_) => None,
+            HirGenericParam::TypeParam(hir)
+                if !hir.is_unstable(db) || hir.default(db).is_none() =>
+            {
+                Some(GenericParam::Type(TypeParam::new(db, hir)))
+            }
+            _ => None,
         })
         .collect()
 }

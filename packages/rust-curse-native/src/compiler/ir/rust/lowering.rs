@@ -18,7 +18,9 @@ use self::{
     impls::lower_impl,
     shapes::lower_shape,
     structs::lower_struct,
-    types::{TypeLowerErrorUnsupported, instantiate_type, is_clonable, lower_type},
+    types::{
+        TypeLowerErrorUnsupported, instantiate_adt_type, instantiate_type, is_clonable, lower_type,
+    },
 };
 use miette::SourceSpan;
 use ra_ap_hir::{Adt, GenericParam as HirGenericParam, HirDisplay as _};
@@ -29,7 +31,12 @@ use crate::compiler::{db::Db, diag::DiagSource, path::FilePath};
 impl<'db> TypeOrigin<'db> {
     pub(super) fn hir(self, db: &'db dyn Db) -> ra_ap_hir::Type<'db> {
         match self {
-            Self::Field(field) => field.hir(db).ty(db),
+            Self::Field(field) => instantiate_adt_type(
+                db,
+                field.hir(db).ty(db),
+                field.hir(db).parent_def(db).adt(db),
+                std::iter::empty(),
+            ),
             Self::QualifiedField(field) => instantiate_type(
                 db,
                 field.declaration(db).hir(db).ty(db),
@@ -67,17 +74,19 @@ impl<'db> TypeOrigin<'db> {
                 .self_param(db)
                 .expect("receiver origin requires a self parameter")
                 .ty(db),
-            Self::Struct(type_) => instantiate_type(
+            Self::Struct(type_) => instantiate_adt_type(
                 db,
                 type_.def(db).hir(db).ty(db),
+                Adt::Struct(type_.def(db).hir(db)),
                 type_.gen_args(db).iter().map(|arg| {
                     let GenArg::Type(type_) = arg;
                     type_.hir(db)
                 }),
             ),
-            Self::Enum(type_) => instantiate_type(
+            Self::Enum(type_) => instantiate_adt_type(
                 db,
                 type_.def(db).hir(db).ty(db),
+                Adt::Enum(type_.def(db).hir(db)),
                 type_.gen_args(db).iter().map(|arg| {
                     let GenArg::Type(type_) = arg;
                     type_.hir(db)

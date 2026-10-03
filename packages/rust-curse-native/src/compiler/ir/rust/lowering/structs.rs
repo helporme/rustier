@@ -68,10 +68,18 @@ pub(super) fn lower_struct<'db>(
     db: &'db dyn Db,
     hir: ra_ap_hir::Struct,
 ) -> Result<Struct<'db>, Box<StructLowerError>> {
-    if GenericDef::Adt(Adt::Struct(hir))
+    if let Some(cause) = GenericDef::Adt(Adt::Struct(hir))
         .params(db)
-        .iter()
-        .any(|param| matches!(param, HirGenericParam::ConstParam(_)))
+        .into_iter()
+        .find_map(|param| match param {
+            HirGenericParam::ConstParam(_) => Some(StructLowerCause::UnsupportedConstGeneric),
+            HirGenericParam::TypeParam(param)
+                if param.is_unstable(db) && param.default(db).is_none() =>
+            {
+                Some(StructLowerCause::UnsupportedUnstableGeneric)
+            }
+            _ => None,
+        })
     {
         let span = lower_item_span(db, hir);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
@@ -79,7 +87,7 @@ pub(super) fn lower_struct<'db>(
             fqn: adt_fqn(db, Adt::Struct(hir)),
             source_code,
             span,
-            causes: vec![StructLowerCause::UnsupportedConstGeneric],
+            causes: vec![cause],
         }));
     }
 
@@ -108,4 +116,8 @@ enum StructLowerCause {
         severity(Warning)
     )]
     UnsupportedConstGeneric,
+
+    #[error("unstable generic parameters without default types are not supported")]
+    #[diagnostic(code(rust_curse::unsupported_unstable_generic), severity(Warning))]
+    UnsupportedUnstableGeneric,
 }

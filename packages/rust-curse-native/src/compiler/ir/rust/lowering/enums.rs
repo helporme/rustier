@@ -114,10 +114,18 @@ pub(super) fn lower_enum<'db>(
     db: &'db dyn Db,
     hir: ra_ap_hir::Enum,
 ) -> Result<Enum<'db>, Box<EnumLowerError>> {
-    if GenericDef::Adt(Adt::Enum(hir))
+    if let Some(cause) = GenericDef::Adt(Adt::Enum(hir))
         .params(db)
-        .iter()
-        .any(|param| matches!(param, HirGenericParam::ConstParam(_)))
+        .into_iter()
+        .find_map(|param| match param {
+            HirGenericParam::ConstParam(_) => Some(EnumLowerCause::UnsupportedConstGeneric),
+            HirGenericParam::TypeParam(param)
+                if param.is_unstable(db) && param.default(db).is_none() =>
+            {
+                Some(EnumLowerCause::UnsupportedUnstableGeneric)
+            }
+            _ => None,
+        })
     {
         let span = lower_item_span(db, hir);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
@@ -125,7 +133,7 @@ pub(super) fn lower_enum<'db>(
             fqn: adt_fqn(db, Adt::Enum(hir)),
             source_code,
             span,
-            causes: vec![EnumLowerCause::UnsupportedConstGeneric],
+            causes: vec![cause],
         }));
     }
 
@@ -154,4 +162,8 @@ enum EnumLowerCause {
         severity(Warning)
     )]
     UnsupportedConstGeneric,
+
+    #[error("unstable generic parameters without default types are not supported")]
+    #[diagnostic(code(rust_curse::unsupported_unstable_generic), severity(Warning))]
+    UnsupportedUnstableGeneric,
 }

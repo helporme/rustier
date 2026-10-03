@@ -1,5 +1,8 @@
 use miette::Diagnostic;
-use ra_ap_hir::{Adt, GenericDef, HirDisplay as _, Mutability, Trait, Type as HirType};
+use ra_ap_hir::{
+    Adt, GenericDef, GenericParam as HirGenericParam, HirDisplay as _, Mutability, Trait,
+    Type as HirType,
+};
 use thiserror::Error;
 
 use crate::compiler::{
@@ -9,6 +12,27 @@ use crate::compiler::{
         TypeParam,
     },
 };
+
+pub(super) fn instantiate_adt_type<'db>(
+    db: &'db dyn Db,
+    source: HirType<'db>,
+    adt: Adt,
+    args: impl IntoIterator<Item = HirType<'db>>,
+) -> HirType<'db> {
+    let mut args = args.into_iter();
+    let mut full_args = Vec::new();
+    for param in GenericDef::Adt(adt).params(db) {
+        let HirGenericParam::TypeParam(param) = param else {
+            continue;
+        };
+        let arg = match param.is_unstable(db).then(|| param.default(db)).flatten() {
+            Some(default) => instantiate_type(db, default, full_args.iter().cloned()),
+            None => args.next().unwrap_or_else(|| param.ty(db)),
+        };
+        full_args.push(arg);
+    }
+    instantiate_type(db, source, full_args)
+}
 
 pub(super) fn instantiate_type<'db>(
     db: &'db dyn Db,
@@ -92,13 +116,19 @@ pub(super) fn check_type(
         || GenericDef::Adt(adt)
             .params(db)
             .iter()
-            .any(|param| matches!(param, ra_ap_hir::GenericParam::ConstParam(_)))
+            .any(|param| match param {
+                HirGenericParam::ConstParam(_) => true,
+                HirGenericParam::TypeParam(param) => {
+                    param.is_unstable(db) && param.default(db).is_none()
+                }
+                _ => false,
+            })
     {
         return Err(TypeLowerErrorUnsupported::Type {
             type_: type_.display(db, crate_.to_display_target(db)).to_string(),
         });
     }
-    for arg in type_.type_arguments() {
+    for (_, arg) in adt_type_args(db, adt, type_) {
         check_type(db, &arg, crate_)?;
     }
     Ok(())
@@ -137,9 +167,7 @@ impl<'db> Type<'db> {
             Adt::Enum(hir) => !Enum::new(db, *hir).generic_params(db).is_empty(),
             Adt::Union(_) => false,
         }) {
-            let args = hir
-                .type_arguments()
-                .enumerate()
+            let args = adt_type_args(db, adt, &hir)
                 .map(|(index, _)| {
                     GenArg::Type(Type::new(
                         db,
@@ -165,9 +193,7 @@ impl<'db> Type<'db> {
             .as_adt()
             .expect("unsupported types are discarded during lowering");
 
-        let args = hir
-            .type_arguments()
-            .enumerate()
+        let args = adt_type_args(db, adt, &hir)
             .map(|(index, _)| {
                 GenArg::Type(Type::new(
                     db,
@@ -208,6 +234,28 @@ impl<'db> TypeOrigin<'db> {
             Self::Dereferenced(type_) => type_.origin(db).crate_(db),
         }
     }
+}
+
+fn adt_type_args<'a, 'db: 'a>(
+    db: &'db dyn Db,
+    adt: Adt,
+    type_: &'a HirType<'db>,
+) -> impl Iterator<Item = (usize, HirType<'db>)> + 'a {
+    let params = GenericDef::Adt(adt)
+        .params(db)
+        .into_iter()
+        .filter_map(|param| match param {
+            HirGenericParam::TypeParam(param) => Some(param),
+            _ => None,
+        });
+
+    type_
+        .type_arguments()
+        .enumerate()
+        .zip(params)
+        .filter_map(move |((index, arg), param)| {
+            (!param.is_unstable(db) || param.default(db).is_none()).then_some((index, arg))
+        })
 }
 
 fn lower_builtin<'db>(
