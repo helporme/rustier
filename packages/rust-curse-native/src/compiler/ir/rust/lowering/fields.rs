@@ -3,12 +3,10 @@ use ra_ap_edition::Edition;
 use ra_ap_hir::{
     HasAttrs as _, HasVisibility as _, StructKind, Variant as HirFieldParent, Visibility,
 };
-use ra_ap_syntax::{AstNode as _, SyntaxKind, ast};
+use ra_ap_syntax::SyntaxKind;
 use thiserror::Error;
 
-use super::{
-    TypeLowerErrorUnsupported, diagnostic_location, is_clonable, lower_item_span, lower_type,
-};
+use super::{TypeLowerErrorUnsupported, diagnostic_location, lower_item_span, lower_type};
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
@@ -46,6 +44,7 @@ impl<'db> VariantQualified<'db> {
     }
 }
 
+#[salsa::tracked]
 fn lower_qualified_field<'db>(
     db: &'db dyn Db,
     hir: ra_ap_hir::Field,
@@ -53,6 +52,7 @@ fn lower_qualified_field<'db>(
 ) -> Option<FieldQualified<'db>> {
     let field = FieldQualified::new(db, Field::new(db, hir), target);
     validate_field(db, hir, TypeOrigin::QualifiedField(field))
+        .map_err(|error| (*error).accumulate(db))
         .ok()
         .flatten()
         .map(|_| field)
@@ -63,16 +63,10 @@ impl<'db> FieldQualified<'db> {
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_is_readonly(self, db: &'db dyn Db) -> bool {
         let type_ = Type::new(db, TypeOrigin::QualifiedField(self));
-        let crate_ = self
-            .declaration(db)
-            .hir(db)
-            .parent_def(db)
-            .module(db)
-            .krate(db);
         matches!(
             type_.deborrow(db).kind(db),
             TypeKind::Struct(_) | TypeKind::Enum(_)
-        ) && is_clonable(db, &type_.hir(db), crate_) != Some(true)
+        ) && type_.is_clonable(db) != Some(true)
     }
 }
 
@@ -132,26 +126,9 @@ pub(super) fn lower_field<'db>(
     field: ra_ap_hir::Field,
 ) -> Result<Option<Field<'db>>, Box<FieldLowerError>> {
     let declaration = Field::new(db, field);
-    let Some(lowered_type) = validate_field(db, field, TypeOrigin::Field(declaration))? else {
+    let Some(_) = validate_field(db, field, TypeOrigin::Field(declaration))? else {
         return Ok(None);
     };
-    let crate_ = field.parent_def(db).module(db).krate(db);
-    let type_ = field.ty(db);
-    if matches!(
-        lowered_type.kind(db),
-        TypeKind::Struct(_) | TypeKind::Enum(_)
-    ) && is_clonable(db, &type_, crate_) == Some(false)
-    {
-        let span = lower_item_span(db, field);
-        let (source_code, span) = diagnostic_location(db, span.as_ref());
-        FieldReadonlyError {
-            field_name: field_name(db, field).to_string(),
-            field_type_fqn: lowered_type.display(db).to_owned(),
-            source_code,
-            span,
-        }
-        .accumulate(db);
-    }
     Ok(Some(declaration))
 }
 
@@ -167,8 +144,8 @@ fn validate_field<'db>(
     }
     let crate_ = field.parent_def(db).module(db).krate(db);
     let mut causes = Vec::new();
-    if has_explicit_reference_lifetime(db, field) {
-        causes.push(FieldLowerCause::LifetimeRef);
+    if origin.hir(db).contains_reference(db) {
+        causes.push(FieldLowerCause::BorrowedField);
     }
     let lowered_type = match lower_type(db, origin, crate_) {
         Ok(type_) => Some(type_.deborrow(db)),
@@ -188,20 +165,6 @@ fn validate_field<'db>(
         }));
     }
     Ok(lowered_type)
-}
-
-fn has_explicit_reference_lifetime<T>(db: &dyn Db, item: T) -> bool
-where
-    T: ra_ap_hir::HasSource + Copy,
-{
-    item.source(db).is_some_and(|source| {
-        source
-            .value
-            .syntax()
-            .descendants()
-            .filter_map(ast::RefType::cast)
-            .any(|reference| reference.lifetime().is_some())
-    })
 }
 
 fn field_name(db: &dyn Db, field: ra_ap_hir::Field) -> FieldName {
@@ -231,31 +194,11 @@ pub(super) struct FieldLowerError {
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 enum FieldLowerCause {
-    #[error("fields containing references with explicit lifetimes are not supported")]
-    #[diagnostic(code(rust_curse::unsupported_lifetime_ref), severity(Warning))]
-    LifetimeRef,
+    #[error("fields containing borrowed values are not supported")]
+    #[diagnostic(code(rust_curse::unsupported_borrowed_field), severity(Warning))]
+    BorrowedField,
 
     #[error(transparent)]
     #[diagnostic(transparent)]
     Type(#[from] TypeLowerErrorUnsupported),
-}
-
-#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
-#[error(
-    "the field `{field_name}` is readonly in JS because \"{field_type_fqn}\" does not implement `Clone`"
-)]
-#[diagnostic(
-    code(rust_curse::readonly_field),
-    help(
-        "derive or implement `Clone` for \"{field_type_fqn}\" to make this field writable from JS"
-    ),
-    severity(Warning)
-)]
-struct FieldReadonlyError {
-    field_name: String,
-    field_type_fqn: String,
-    #[source_code]
-    source_code: DiagSource,
-    #[label]
-    span: Option<SourceSpan>,
 }

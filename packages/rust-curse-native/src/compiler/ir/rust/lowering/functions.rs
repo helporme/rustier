@@ -7,15 +7,14 @@ use ra_ap_syntax::AstNode as _;
 use thiserror::Error;
 
 use super::{
-    TypeLowerErrorUnsupported, diagnostic_location, function_fqn, is_clonable, lower_item_span,
-    lower_type,
+    TypeLowerErrorUnsupported, diagnostic_location, function_fqn, lower_item_span, lower_type,
 };
 use crate::compiler::{
     db::Db,
-    diag::{DiagAccumulateExt as _, DiagSource},
+    diag::DiagSource,
     ir::rust::{
         Function, FunctionInherent, FunctionParent, Impl, ImplInherent, Module, Param, Receiver,
-        Span, Type, TypeKind, TypeOrigin,
+        Span, Type, TypeOrigin,
     },
 };
 
@@ -100,12 +99,7 @@ impl<'db> Function<'db> {
             hir.module(db).krate(db),
         )
         .expect("functions with unsupported return types are not lowered");
-        match type_.kind(db) {
-            TypeKind::Borrowed(_) => {
-                unreachable!("functions returning borrowed values are not lowered")
-            }
-            _ => Some(type_),
-        }
+        Some(type_)
     }
 
     #[salsa::tracked(returns(ref))]
@@ -212,14 +206,6 @@ fn check_function_substituted<'db>(
         let receiver_type = super::instantiate_type(db, receiver.ty(db), type_args.iter().cloned());
         if let Err(error) = check_type(&receiver_type) {
             causes.push(FunctionLowerCause::Type(error));
-        } else if receiver.access(db) == Access::Owned
-            && let Some(adt) = receiver_type.as_adt()
-            && is_clonable(db, &receiver_type, crate_) == Some(false)
-        {
-            causes.push(FunctionLowerCause::NonClonableMovedParam {
-                name: "self".to_owned(),
-                type_fqn: super::adt_fqn(db, adt),
-            });
         }
     }
 
@@ -238,33 +224,10 @@ fn check_function_substituted<'db>(
             });
             continue;
         }
-        if let Some(adt) = parameter_type.as_adt()
-            && !super::types::is_string(db, &parameter_type, crate_)
-            && is_clonable(db, &parameter_type, crate_) == Some(false)
-        {
-            causes.push(FunctionLowerCause::NonClonableMovedParam {
-                name,
-                type_fqn: super::adt_fqn(db, adt),
-            });
-        } else if let Some((inner, ra_ap_hir::Mutability::Mut)) = parameter_type.as_reference()
-            && (inner.as_builtin().is_some() || super::types::is_string(db, &inner, crate_))
-            && (type_args.is_empty() || parameter_type != *param.ty())
-        {
-            let span = lower_item_span(db, hir);
-            let (source_code, span) = diagnostic_location(db, span.as_ref());
-            MutableReferenceIgnored {
-                parameter: name,
-                source_code,
-                span,
-            }
-            .accumulate(db);
-        }
     }
 
     let return_type = super::instantiate_type(db, hir.ret_type(db), type_args.iter().cloned());
-    if return_type.is_reference() {
-        causes.push(FunctionLowerCause::BorrowedReturn);
-    } else if !return_type.is_unit()
+    if !return_type.is_unit()
         && let Err(error) = check_type(&return_type)
     {
         causes.push(FunctionLowerCause::Type(error));
@@ -321,36 +284,7 @@ enum FunctionLowerCause {
         #[related]
         causes: Vec<TypeLowerErrorUnsupported>,
     },
-    #[error("the parameter `{name}` moves \"{type_fqn}\", which does not implement `Clone`")]
-    #[diagnostic(
-        code(rust_curse::non_clonable_moved_param),
-        help("pass the value by reference or implement `Clone` for the type"),
-        severity(Warning)
-    )]
-    NonClonableMovedParam { name: String, type_fqn: String },
     #[error(transparent)]
     #[diagnostic(transparent)]
     Type(#[from] TypeLowerErrorUnsupported),
-    #[error("functions cannot return borrowed values")]
-    #[diagnostic(
-        code(rust_curse::borrowed_return),
-        help("return an owned value instead, for example via `.to_owned()` or `.clone()`"),
-        severity(Warning)
-    )]
-    BorrowedReturn,
-}
-
-#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
-#[error("writes through the mutable reference parameter `{parameter}` are not observable by JS")]
-#[diagnostic(
-    code(rust_curse::mutable_reference_ignored),
-    help("pass the value by value or return the updated value instead"),
-    severity(Warning)
-)]
-struct MutableReferenceIgnored {
-    parameter: String,
-    #[source_code]
-    source_code: DiagSource,
-    #[label]
-    span: Option<SourceSpan>,
 }

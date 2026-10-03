@@ -18,9 +18,7 @@ use self::{
     impls::lower_impl,
     shapes::lower_shape,
     structs::lower_struct,
-    types::{
-        TypeLowerErrorUnsupported, instantiate_adt_type, instantiate_type, is_clonable, lower_type,
-    },
+    types::{TypeLowerErrorUnsupported, instantiate_adt_type, instantiate_type, lower_type},
 };
 use miette::SourceSpan;
 use ra_ap_hir::{Adt, GenericParam as HirGenericParam, HirDisplay as _};

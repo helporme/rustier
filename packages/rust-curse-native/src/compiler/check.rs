@@ -12,6 +12,7 @@ mod coerce_requires_clone;
 mod enum_js_name_collisions;
 mod f32_precision_loss;
 mod method_field_collisions;
+mod mutable_reference_ignored;
 
 impl<'db> Shim<'db> {
     /// Collect diagnostics from lowering and checking reachable local modules.
@@ -31,9 +32,10 @@ fn accumulate_checks<'db>(db: &'db dyn Db, shim: Shim<'db>) {
 
 #[salsa::tracked]
 fn check_module<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
-    for member in module.src(db).members(db) {
-        match member.shim_reachable_from(db, module.usages(db)) {
+    for member in module.members(db) {
+        match member {
             ShimMember::Class(class) => {
+                let _ = class.fields(db);
                 match class {
                     ShimClass::Plain(class) => {
                         let struct_ = class.src(db);
@@ -53,9 +55,13 @@ fn check_module<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
                 }
                 for method in class.methods(db) {
                     method.src(db).check_f32_precision_loss(db);
+                    method.src(db).check_mutable_reference_ignored(db);
                 }
             }
-            ShimMember::Function(function) => function.src(db).check_f32_precision_loss(db),
+            ShimMember::Function(function) => {
+                function.src(db).check_f32_precision_loss(db);
+                function.src(db).check_mutable_reference_ignored(db);
+            }
             ShimMember::Module(_) => {}
         }
     }

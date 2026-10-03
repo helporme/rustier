@@ -1004,6 +1004,10 @@ impl<'db> Type<'db> {
         self.lower_kind(db)
     }
 
+    pub fn is_clonable(self, db: &'db dyn Db) -> Option<bool> {
+        self.lower_is_clonable(db)
+    }
+
     pub fn impls(self, db: &'db dyn Db) -> &'db Vec<ImplQualified<'db>> {
         self.lower_impls(db)
     }
@@ -1069,7 +1073,7 @@ impl<'db> StructType<'db> {
     }
 
     pub fn is_clonable(self, db: &'db dyn Db) -> Option<bool> {
-        self.lower_is_clonable(db)
+        self.into_type(db).is_clonable(db)
     }
 
     pub fn has_stripped_fields(self, db: &'db dyn Db) -> bool {
@@ -1129,7 +1133,7 @@ impl<'db> EnumType<'db> {
     }
 
     pub fn is_clonable(self, db: &'db dyn Db) -> Option<bool> {
-        self.lower_is_clonable(db)
+        self.into_type(db).is_clonable(db)
     }
 
     pub fn variants(self, db: &'db dyn Db) -> impl Iterator<Item = VariantQualified<'db>> + 'db {

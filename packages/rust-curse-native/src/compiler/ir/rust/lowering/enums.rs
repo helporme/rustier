@@ -6,17 +6,8 @@ use super::{adt_fqn, diagnostic_location, lower_item_span, lower_shape};
 use crate::compiler::{
     db::Db,
     diag::DiagSource,
-    ir::rust::{Enum, EnumType, FieldParent, Module, Shape, Span, Variant, VariantQualified},
+    ir::rust::{Enum, FieldParent, Module, Shape, Span, Variant, VariantQualified},
 };
-
-#[salsa::tracked]
-impl<'db> EnumType<'db> {
-    #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_is_clonable(self, db: &'db dyn Db) -> Option<bool> {
-        let crate_ = self.def(db).hir(db).module(db).krate(db);
-        super::is_clonable(db, &self.into_type(db).hir(db), crate_)
-    }
-}
 
 #[salsa::tracked]
 impl<'db> VariantQualified<'db> {
@@ -164,6 +155,10 @@ enum EnumLowerCause {
     UnsupportedConstGeneric,
 
     #[error("unstable generic parameters without default types are not supported")]
-    #[diagnostic(code(rust_curse::unsupported_unstable_generic), severity(Warning))]
+    #[diagnostic(
+        code(rust_curse::unsupported_unstable_generic),
+        help("specify a default type for the #[unstable] generic parameter or remove #[unstable]"),
+        severity(Warning)
+    )]
     UnsupportedUnstableGeneric,
 }

@@ -2,12 +2,12 @@ use crate::compiler::{
     db::Db,
     ir::{
         rust::{
-            Crate, EnumType, FieldQualified, Member, Module, Rust, StructType, Type, TypeKind,
+            Crate, EnumType, FieldQualified, Module, Rust, StructType, Type, TypeKind,
             usages::UsageGraph,
         },
         shim::{
-            Shim, ShimClassDiscriminated, ShimClassPlain, ShimCrate, ShimField, ShimFunctionFree,
-            ShimMember, ShimModule, ShimParentCrate, ShimParentModule, ShimType,
+            Shim, ShimClassDiscriminated, ShimClassPlain, ShimCrate, ShimField, ShimModule,
+            ShimParentCrate, ShimParentModule, ShimType,
         },
     },
 };
@@ -43,27 +43,6 @@ impl<'db> Module<'db> {
     }
 }
 
-impl<'db> Member<'db> {
-    pub fn shim_reachable_from(self, db: &'db dyn Db, usages: UsageGraph<'db>) -> ShimMember<'db> {
-        match self {
-            Member::Function(function) => ShimMember::Function(ShimFunctionFree::new(
-                db,
-                function
-                    .as_qualified()
-                    .as_callible(db)
-                    .expect("generic functions cannot reach the shim"),
-            )),
-            Member::Struct(struct_) => {
-                ShimMember::Class(StructType::new(db, struct_, Vec::new()).shim(db).into())
-            }
-            Member::Enum(enum_) => {
-                ShimMember::Class(EnumType::new(db, enum_, Vec::new()).shim(db).into())
-            }
-            Member::Module(module) => ShimMember::Module(module.shim_reachable_from(db, usages)),
-        }
-    }
-}
-
 impl<'db> StructType<'db> {
     pub fn shim(self, db: &'db dyn Db) -> ShimClassPlain<'db> {
         ShimClassPlain::new(db, self)
@@ -78,7 +57,7 @@ impl<'db> EnumType<'db> {
 
 impl<'db> FieldQualified<'db> {
     pub fn shim(&self, db: &'db dyn Db) -> ShimField<'db> {
-        ShimField::new(db, self)
+        self.lower_shim(db)
     }
 }
 

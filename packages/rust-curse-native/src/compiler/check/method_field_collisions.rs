@@ -4,10 +4,7 @@ use thiserror::Error;
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::{
-        rust::{AsItem as _, EnumType, StructType, Type},
-        shim::ShimFunctionAssociated,
-    },
+    ir::rust::{AsItem as _, EnumType, StructType, Type},
 };
 
 #[salsa::tracked]
@@ -27,22 +24,12 @@ impl<'db> EnumType<'db> {
 }
 
 fn check_method_field_collisions<'db>(db: &'db dyn Db, target: Type<'db>) {
-    for function in target
-        .impls(db)
-        .iter()
-        .flat_map(|impl_| impl_.functions(db))
-    {
-        let method = ShimFunctionAssociated::new(
-            db,
-            function
-                .as_callible(db)
-                .expect("generic functions are not lowered"),
-        );
+    for method in target.lower_methods(db) {
         if !method.is_shadowed_by_field(db) {
             continue;
         }
 
-        let source_span = function.declaration(db).span(db);
+        let source_span = method.src(db).declaration(db).span(db);
         let source_code = source_span
             .map(|span| span.src(db))
             .map(Into::into)
@@ -50,7 +37,7 @@ fn check_method_field_collisions<'db>(db: &'db dyn Db, target: Type<'db>) {
         let span = source_span.map(|span| (span.offset, span.length).into());
 
         MethodShadowedByField {
-            fqn: function.fqn(db).to_owned(),
+            fqn: method.src(db).fqn(db).to_owned(),
             source_code,
             span,
         }

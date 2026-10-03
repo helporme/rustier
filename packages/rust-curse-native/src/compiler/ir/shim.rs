@@ -13,8 +13,6 @@ mod lowering;
 
 use std::collections::VecDeque;
 
-use itertools::Either;
-
 use crate::compiler::{
     db::Db,
     ir::rust::{
@@ -132,17 +130,7 @@ impl<'db> ShimModule<'db> {
     }
 
     pub fn members(self, db: &'db dyn Db) -> impl Iterator<Item = ShimMember<'db>> + 'db {
-        let usages = self.usages(db);
-        let members = usages.module_members(db, self.src(db));
-
-        match members {
-            Some(members) => Either::Left(
-                members
-                    .iter()
-                    .map(move |member| member.shim_reachable_from(db, usages)),
-            ),
-            None => Either::Right(std::iter::empty()),
-        }
+        self.lower_members(db).iter().cloned()
     }
 
     /// All reachable shim classes defined in the module.
@@ -291,6 +279,8 @@ impl<'db> ShimClassPlain<'db> {
         self.src(db)
             .into_type(db)
             .lower_methods(db)
+            .iter()
+            .copied()
             .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
     }
@@ -382,6 +372,8 @@ impl<'db> ShimClassDiscriminated<'db> {
         self.src(db)
             .into_type(db)
             .lower_methods(db)
+            .iter()
+            .copied()
             .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
     }
