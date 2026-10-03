@@ -18,7 +18,7 @@ use self::{
     impls::lower_impl,
     shapes::lower_shape,
     structs::lower_struct,
-    types::{TypeLowerErrorUnsupported, is_clonable, lower_type},
+    types::{TypeLowerErrorUnsupported, instantiate_type, is_clonable, lower_type},
 };
 use miette::SourceSpan;
 use ra_ap_hir::{Adt, GenericParam as HirGenericParam, HirDisplay as _};
@@ -98,17 +98,6 @@ impl<'db> TypeOrigin<'db> {
                 .expect("dereferenced origin requires a reference"),
         }
     }
-}
-
-pub(super) fn instantiate_type<'db>(
-    db: &'db dyn Db,
-    source: ra_ap_hir::Type<'db>,
-    args: impl IntoIterator<Item = ra_ap_hir::Type<'db>>,
-) -> ra_ap_hir::Type<'db> {
-    let instantiated = source.instantiate(args);
-    instantiated
-        .try_rebase_into(db, &source)
-        .unwrap_or(instantiated)
 }
 
 #[salsa::tracked]

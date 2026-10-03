@@ -418,6 +418,10 @@ pub struct ImplInherent<'db> {
 
 #[salsa::tracked]
 impl<'db> ImplInherent<'db> {
+    pub fn generic_args(self, db: &'db dyn Db) -> &'db Vec<(GenericParam<'db>, GenArg<'db>)> {
+        self.lower_generic_args(db)
+    }
+
     pub fn functions(self, db: &'db dyn Db) -> impl Iterator<Item = FunctionInherent<'db>> + 'db {
         self.lower_functions(db).iter().copied()
     }
@@ -821,7 +825,10 @@ impl<'db> FunctionQualified<'db> {
     }
 
     pub fn as_callible(self, db: &'db dyn Db) -> Option<Callable<'db>> {
-        self.lower_as_callible(db)
+        match self {
+            Self::Free(function) => function.as_callible(db),
+            Self::Inherent(function) => function.as_callable(db),
+        }
     }
 }
 
@@ -833,6 +840,13 @@ pub struct FunctionFree<'db> {
 }
 
 impl<'db> FunctionFree<'db> {
+    pub fn as_callible(self, db: &'db dyn Db) -> Option<Callable<'db>> {
+        self.declaration(db)
+            .generic_params(db)
+            .is_empty()
+            .then(|| Callable::new(db, self.as_qualified(), Vec::<GenArg<'db>>::new()))
+    }
+
     pub fn as_qualified(self) -> FunctionQualified<'db> {
         FunctionQualified::Free(self)
     }
@@ -852,6 +866,10 @@ pub struct FunctionInherent<'db> {
 }
 
 impl<'db> FunctionInherent<'db> {
+    pub fn as_callable(self, db: &'db dyn Db) -> Option<Callable<'db>> {
+        self.lower_as_callable(db)
+    }
+
     pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
         self.lower_path(db)
     }
@@ -861,6 +879,7 @@ impl<'db> FunctionInherent<'db> {
 pub struct Callable<'db> {
     pub function: FunctionQualified<'db>,
     /// Arguments for the function's own generic parameters.
+    /// FIXME: currently unused but should be in nearest future
     #[returns(ref)]
     pub generic_args: Vec<GenArg<'db>>,
 }

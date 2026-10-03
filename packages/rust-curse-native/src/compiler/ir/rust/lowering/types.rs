@@ -10,32 +10,96 @@ use crate::compiler::{
     },
 };
 
+pub(super) fn instantiate_type<'db>(
+    db: &'db dyn Db,
+    source: HirType<'db>,
+    args: impl IntoIterator<Item = HirType<'db>>,
+) -> HirType<'db> {
+    let mut args = args.into_iter().peekable();
+    if args.peek().is_none() {
+        return source;
+    }
+    let instantiated = source.instantiate(args);
+    instantiated
+        .try_rebase_into(db, &source)
+        .unwrap_or(instantiated)
+}
+
+/// Checks whether the HIR type is a struct named `String` in a `string` module.
+pub(super) fn is_string(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::Crate) -> bool {
+    let Some(Adt::Struct(struct_)) = type_.as_adt() else {
+        return false;
+    };
+    struct_.name(db).display(db, crate_.edition(db)).to_string() == "String"
+        && struct_
+            .module(db)
+            .path_segments(db)
+            .map(|name| name.display(db, crate_.edition(db)).to_string())
+            .collect::<Vec<_>>()
+            .ends_with(&["string".to_owned()])
+}
+
+/// Checks whether the HIR type satisfies the `Clone` trait obligation.
+pub(super) fn is_clonable(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::Crate) -> bool {
+    Trait::lang(db, crate_, ra_ap_hir::LangItem::Clone)
+        .is_some_and(|clone| type_.impls_trait(db, clone, &[]))
+}
+
+/// Lowers a type origin to Rust IR after validating its HIR type.
 pub(super) fn lower_type<'db>(
     db: &'db dyn Db,
     origin: TypeOrigin<'db>,
     crate_: ra_ap_hir::Crate,
 ) -> Result<Type<'db>, TypeLowerErrorUnsupported> {
     let type_ = Type::new(db, origin);
-    lower_type_kind(db, type_, &origin.hir(db), crate_, false)?;
+    check_type(db, &origin.hir(db), crate_)?;
     Ok(type_)
 }
 
-pub(super) fn lower_instantiated_type<'db>(
-    db: &'db dyn Db,
-    origin: TypeOrigin<'db>,
+/// Validates a HIR type and its nested arguments for Rust IR lowering.
+pub(super) fn check_type(
+    db: &dyn Db,
+    type_: &HirType<'_>,
     crate_: ra_ap_hir::Crate,
-) -> Result<Type<'db>, TypeLowerErrorUnsupported> {
-    let type_ = Type::new(db, origin);
-    lower_type_kind(db, type_, &origin.hir(db), crate_, true)?;
-    Ok(type_)
+) -> Result<(), TypeLowerErrorUnsupported> {
+    if type_.as_type_param(db).is_some() {
+        return Ok(());
+    }
+    if let Some((inner, _)) = type_.as_reference() {
+        if inner.as_reference().is_some() {
+            return Err(TypeLowerErrorUnsupported::DoubleReference);
+        }
+        return check_type(db, &inner, crate_);
+    }
+    if let Some(builtin) = type_.as_builtin() {
+        return lower_builtin(db, builtin, crate_).map(|_| ());
+    }
+    let Some(adt) = type_.as_adt() else {
+        return Err(TypeLowerErrorUnsupported::Type {
+            type_: type_.display(db, crate_.to_display_target(db)).to_string(),
+        });
+    };
+    if matches!(adt, Adt::Union(_))
+        || GenericDef::Adt(adt)
+            .params(db)
+            .iter()
+            .any(|param| matches!(param, ra_ap_hir::GenericParam::ConstParam(_)))
+    {
+        return Err(TypeLowerErrorUnsupported::Type {
+            type_: type_.display(db, crate_.to_display_target(db)).to_string(),
+        });
+    }
+    for arg in type_.type_arguments() {
+        check_type(db, &arg, crate_)?;
+    }
+    Ok(())
 }
 
 #[salsa::tracked]
 impl<'db> Type<'db> {
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_kind(self, db: &'db dyn Db) -> TypeKind<'db> {
-        // Synthesized types already describe their kind, including generic and
-        // lifetime arguments which are not yet accepted by source lowering.
+        // Synthesized types already describe their kind.
         match self.origin(db) {
             TypeOrigin::Struct(type_) => return TypeKind::Struct(type_),
             TypeOrigin::Enum(type_) => return TypeKind::Enum(type_),
@@ -83,8 +147,35 @@ impl<'db> Type<'db> {
                 Adt::Union(_) => unreachable!("unions are unsupported"),
             };
         }
-        lower_type_kind(db, self, &hir, self.origin(db).crate_(db), false)
-            .expect("unsupported types are discarded during lowering")
+        let crate_ = self.origin(db).crate_(db);
+        if let Some(builtin) = hir.as_builtin() {
+            return lower_builtin(db, builtin, crate_)
+                .expect("unsupported types are discarded during lowering");
+        }
+
+        let adt = hir
+            .as_adt()
+            .expect("unsupported types are discarded during lowering");
+
+        let args = hir
+            .type_arguments()
+            .enumerate()
+            .map(|(index, _)| {
+                GenArg::Type(Type::new(
+                    db,
+                    TypeOrigin::TypeArgument { type_: self, index },
+                ))
+            })
+            .collect::<Vec<_>>();
+
+        match adt {
+            Adt::Struct(_) if is_string(db, &hir, crate_) => TypeKind::String,
+            Adt::Struct(struct_) => {
+                TypeKind::Struct(StructType::new(db, Struct::new(db, struct_), args))
+            }
+            Adt::Enum(enum_) => TypeKind::Enum(EnumType::new(db, Enum::new(db, enum_), args)),
+            Adt::Union(_) => unreachable!("unions are unsupported"),
+        }
     }
 }
 
@@ -111,111 +202,26 @@ impl<'db> TypeOrigin<'db> {
     }
 }
 
-fn lower_type_kind<'db>(
+fn lower_builtin<'db>(
     db: &'db dyn Db,
-    source: Type<'db>,
-    type_: &HirType<'db>,
+    builtin: ra_ap_hir::BuiltinType,
     crate_: ra_ap_hir::Crate,
-    instantiated: bool,
 ) -> Result<TypeKind<'db>, TypeLowerErrorUnsupported> {
-    if let Some((inner, mutability)) = type_.as_reference() {
-        if inner.as_reference().is_some() {
-            return Err(TypeLowerErrorUnsupported::DoubleReference);
-        }
-        let origin = TypeOrigin::Dereferenced(source);
-        let inner = if instantiated {
-            lower_instantiated_type(db, origin, crate_)?
-        } else {
-            lower_type(db, origin, crate_)?
-        };
-        return Ok(TypeKind::Borrowed(BorrowedType::new(
-            db,
-            mutability == Mutability::Mut,
-            inner,
-            None,
-        )));
-    }
-
-    if let Some(builtin) = type_.as_builtin() {
-        let name = builtin.name().display(db, crate_.edition(db)).to_string();
-        let value = match name.as_str() {
-            "bool" => TypeKind::bool,
-            "char" => TypeKind::char,
-            "str" => TypeKind::Str,
-            "i8" => TypeKind::i8,
-            "u8" => TypeKind::u8,
-            "i16" => TypeKind::i16,
-            "u16" => TypeKind::u16,
-            "i32" => TypeKind::i32,
-            "u32" => TypeKind::u32,
-            "f32" => TypeKind::f32,
-            "f64" => TypeKind::f64,
-            _ => return Err(TypeLowerErrorUnsupported::Primitive { name }),
-        };
-        return Ok(value);
-    }
-
-    let Some(adt) = type_.as_adt() else {
-        return Err(unsupported_type(db, type_, crate_));
-    };
-    let params = GenericDef::Adt(adt).params(db);
-    if !params.is_empty()
-        && (!instantiated
-            || params
-                .iter()
-                .any(|param| !matches!(param, ra_ap_hir::GenericParam::TypeParam(_))))
-    {
-        return Err(unsupported_type(db, type_, crate_));
-    }
-    let args = type_
-        .type_arguments()
-        .enumerate()
-        .map(|(index, _)| {
-            lower_instantiated_type(
-                db,
-                TypeOrigin::TypeArgument {
-                    type_: source,
-                    index,
-                },
-                crate_,
-            )
-            .map(GenArg::Type)
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    let value = match adt {
-        Adt::Struct(struct_)
-            if struct_.name(db).display(db, crate_.edition(db)).to_string() == "String"
-                && struct_
-                    .module(db)
-                    .path_segments(db)
-                    .map(|name| name.display(db, crate_.edition(db)).to_string())
-                    .collect::<Vec<_>>()
-                    .ends_with(&["string".to_owned()]) =>
-        {
-            TypeKind::String
-        }
-        Adt::Struct(struct_) => {
-            TypeKind::Struct(StructType::new(db, Struct::new(db, struct_), args))
-        }
-        Adt::Enum(enum_) => TypeKind::Enum(EnumType::new(db, Enum::new(db, enum_), args)),
-        Adt::Union(_) => return Err(unsupported_type(db, type_, crate_)),
-    };
-    Ok(value)
-}
-
-pub(super) fn is_clonable(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::Crate) -> bool {
-    Trait::lang(db, crate_, ra_ap_hir::LangItem::Clone)
-        .is_some_and(|clone| type_.impls_trait(db, clone, &[]))
-}
-
-fn unsupported_type(
-    db: &dyn Db,
-    type_: &HirType<'_>,
-    crate_: ra_ap_hir::Crate,
-) -> TypeLowerErrorUnsupported {
-    TypeLowerErrorUnsupported::Type {
-        type_: type_.display(db, crate_.to_display_target(db)).to_string(),
-    }
+    let name = builtin.name().display(db, crate_.edition(db)).to_string();
+    Ok(match name.as_str() {
+        "bool" => TypeKind::bool,
+        "char" => TypeKind::char,
+        "str" => TypeKind::Str,
+        "i8" => TypeKind::i8,
+        "u8" => TypeKind::u8,
+        "i16" => TypeKind::i16,
+        "u16" => TypeKind::u16,
+        "i32" => TypeKind::i32,
+        "u32" => TypeKind::u32,
+        "f32" => TypeKind::f32,
+        "f64" => TypeKind::f64,
+        _ => return Err(TypeLowerErrorUnsupported::Primitive { name }),
+    })
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
@@ -233,10 +239,6 @@ pub(super) enum TypeLowerErrorUnsupported {
         severity(Warning)
     )]
     Primitive { name: String },
-
-    #[error("references with explicit lifetimes are not supported")]
-    #[diagnostic(code(rust_curse::unsupported_lifetime_ref), severity(Warning))]
-    LifetimeRef,
 
     #[error("double references are not supported")]
     #[diagnostic(

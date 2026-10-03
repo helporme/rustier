@@ -1,12 +1,18 @@
+use std::collections::HashMap;
+
 use ra_ap_hir::{
-    AssocItem, GenericDef, GenericParam, HasSource as _, HasVisibility as _, Visibility,
+    AssocItem, GenericDef, GenericParam, HasSource as _, HasVisibility as _, Type as HirType,
+    TypeParam as HirTypeParam, Visibility,
 };
 
 use super::{functions::lower_inherent_function, lower_function, lower_item_span};
 use crate::compiler::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::rust::{FunctionInherent, Impl, ImplInherent, Module, Span},
+    ir::rust::{
+        FunctionInherent, GenArg, GenericParam as RustGenericParam, Impl, ImplInherent, Module,
+        Span, Type, TypeOrigin,
+    },
 };
 
 #[salsa::tracked]
@@ -47,6 +53,30 @@ impl<'db> Impl<'db> {
 #[salsa::tracked]
 impl<'db> ImplInherent<'db> {
     #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_generic_args(
+        self,
+        db: &'db dyn Db,
+    ) -> Vec<(RustGenericParam<'db>, GenArg<'db>)> {
+        let mut bindings = HashMap::new();
+        bind_self_type(
+            db,
+            self.declaration(db).hir(db).self_ty(db),
+            self.target(db),
+            &mut bindings,
+        );
+        self.declaration(db)
+            .generic_params(db)
+            .iter()
+            .filter_map(|param| match param {
+                RustGenericParam::Type(type_param) => bindings
+                    .remove(&type_param.hir(db))
+                    .map(|type_| (*param, GenArg::Type(type_))),
+                RustGenericParam::Lifetime(_) => None,
+            })
+            .collect()
+    }
+
+    #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir::rust) fn lower_functions(
         self,
         db: &'db dyn Db,
@@ -81,4 +111,44 @@ pub(super) fn lower_impl<'db>(db: &'db dyn Db, hir: ra_ap_hir::Impl) -> Option<I
     }
 
     Some(Impl::new(db, hir))
+}
+
+fn bind_self_type<'db>(
+    db: &'db dyn Db,
+    pattern: HirType<'db>,
+    target: Type<'db>,
+    bindings: &mut HashMap<HirTypeParam, Type<'db>>,
+) {
+    let target_hir = target.hir(db);
+    if let Some(param) = pattern.as_type_param(db) {
+        bindings.insert(param, target);
+        return;
+    }
+    if let Some((inner, _)) = pattern.as_reference() {
+        if target_hir.as_reference().is_some() {
+            bind_self_type(
+                db,
+                inner,
+                Type::new(db, TypeOrigin::Dereferenced(target)),
+                bindings,
+            );
+        }
+        return;
+    }
+    if pattern.as_adt().is_some() && pattern.as_adt() == target_hir.as_adt() {
+        for (index, pattern) in pattern.type_arguments().enumerate() {
+            bind_self_type(
+                db,
+                pattern,
+                Type::new(
+                    db,
+                    TypeOrigin::TypeArgument {
+                        type_: target,
+                        index,
+                    },
+                ),
+                bindings,
+            );
+        }
+    }
 }

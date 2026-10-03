@@ -167,12 +167,12 @@ fn validate_field<'db>(
     let crate_ = field.parent_def(db).module(db).krate(db);
     let mut causes = Vec::new();
     if has_explicit_reference_lifetime(db, field) {
-        causes.push(TypeLowerErrorUnsupported::LifetimeRef);
+        causes.push(FieldLowerCause::LifetimeRef);
     }
     let lowered_type = match lower_type(db, origin, crate_) {
         Ok(type_) => Some(type_.deborrow(db)),
         Err(error) => {
-            causes.push(error);
+            causes.push(FieldLowerCause::Type(error));
             None
         }
     };
@@ -225,7 +225,18 @@ pub(super) struct FieldLowerError {
     #[label]
     span: Option<SourceSpan>,
     #[related]
-    causes: Vec<TypeLowerErrorUnsupported>,
+    causes: Vec<FieldLowerCause>,
+}
+
+#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
+enum FieldLowerCause {
+    #[error("fields containing references with explicit lifetimes are not supported")]
+    #[diagnostic(code(rust_curse::unsupported_lifetime_ref), severity(Warning))]
+    LifetimeRef,
+
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Type(#[from] TypeLowerErrorUnsupported),
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]

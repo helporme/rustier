@@ -1,8 +1,9 @@
 use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{
-    Access, AsAssocItem as _, AssocItemContainer, GenericDef, HasAttrs as _, HasSource as _,
+    Access, AsAssocItem as _, AssocItemContainer, Function as HirFunction, GenericDef,
+    HasAttrs as _, HasSource as _,
 };
-use ra_ap_syntax::{AstNode as _, ast};
+use ra_ap_syntax::AstNode as _;
 use thiserror::Error;
 
 use super::{
@@ -13,8 +14,8 @@ use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::{
-        AsItem as _, Callable, Function, FunctionInherent, FunctionParent, FunctionQualified, Impl,
-        ImplInherent, Module, Param, Receiver, Span, Type, TypeKind, TypeOrigin,
+        Function, FunctionInherent, FunctionParent, Impl, ImplInherent, Module, Param, Receiver,
+        Span, Type, TypeKind, TypeOrigin,
     },
 };
 
@@ -120,40 +121,9 @@ impl<'db> Function<'db> {
 
 pub(super) fn lower_function<'db>(
     db: &'db dyn Db,
-    hir: ra_ap_hir::Function,
+    hir: HirFunction,
 ) -> Result<Function<'db>, Box<FunctionLowerError>> {
-    lower_function_with_context(db, hir, None)
-}
-
-pub(super) fn lower_inherent_function<'db>(
-    db: &'db dyn Db,
-    hir: ra_ap_hir::Function,
-    impl_: ImplInherent<'db>,
-) -> Result<FunctionInherent<'db>, Box<FunctionLowerError>> {
-    // Provisional handles provide origins for substituted signature types.
-    // Only return the qualified function after its signature has been lowered.
-    let function = FunctionInherent::new(db, Function::new(db, hir), impl_);
-    let callable = FunctionQualified::Inherent(function)
-        .as_callible(db)
-        .filter(|callable| callable.needs_substitution(db));
-    lower_function_with_context(db, hir, callable)?;
-    Ok(function)
-}
-
-fn lower_function_with_context<'db>(
-    db: &'db dyn Db,
-    hir: ra_ap_hir::Function,
-    callable: Option<Callable<'db>>,
-) -> Result<Function<'db>, Box<FunctionLowerError>> {
-    let crate_ = hir.module(db).krate(db);
     let mut causes = Vec::new();
-    let lower_signature_type = |origin| {
-        if callable.is_some() {
-            super::types::lower_instantiated_type(db, origin, crate_)
-        } else {
-            lower_type(db, origin, crate_)
-        }
-    };
 
     if hir.is_async(db) {
         causes.push(FunctionLowerCause::UnsupportedAsync);
@@ -164,7 +134,11 @@ fn lower_function_with_context<'db>(
     if hir.is_varargs(db) {
         causes.push(FunctionLowerCause::UnsupportedVariadic);
     }
-    if !GenericDef::Function(hir).params(db).is_empty() {
+    if GenericDef::Function(hir)
+        .params(db)
+        .iter()
+        .any(|param| matches!(param, ra_ap_hir::GenericParam::ConstParam(_)))
+    {
         causes.push(FunctionLowerCause::UnsupportedGeneric);
     }
     if let Some(source) = hir.source(db) {
@@ -181,45 +155,76 @@ fn lower_function_with_context<'db>(
                 abi: abi.syntax().text().to_string(),
             });
         }
-        if source
-            .value
-            .syntax()
-            .descendants()
-            .filter_map(ast::RefType::cast)
-            .any(|reference| reference.lifetime().is_some())
+    }
+
+    check_function_substituted(db, hir, &[], &mut causes);
+
+    if causes.is_empty() {
+        Ok(Function::new(db, hir))
+    } else {
+        let span = lower_item_span(db, hir);
+        let (source_code, span) = diagnostic_location(db, span.as_ref());
+
+        Err(Box::new(FunctionLowerError {
+            fqn: function_fqn(db, hir),
+            source_code,
+            span,
+            causes,
+        }))
+    }
+}
+
+pub(super) fn lower_inherent_function<'db>(
+    db: &'db dyn Db,
+    hir: HirFunction,
+    impl_: ImplInherent<'db>,
+) -> Result<FunctionInherent<'db>, Box<FunctionLowerError>> {
+    let declaration = lower_function(db, hir)?;
+    let mut causes = Vec::new();
+
+    check_function_substituted(db, hir, &impl_.partial_type_args(db), &mut causes);
+
+    if causes.is_empty() {
+        Ok(FunctionInherent::new(db, declaration, impl_))
+    } else {
+        let span = lower_item_span(db, hir);
+        let (source_code, span) = diagnostic_location(db, span.as_ref());
+
+        Err(Box::new(FunctionLowerError {
+            fqn: function_fqn(db, hir),
+            source_code,
+            span,
+            causes,
+        }))
+    }
+}
+
+fn check_function_substituted<'db>(
+    db: &'db dyn Db,
+    hir: HirFunction,
+    type_args: &[ra_ap_hir::Type<'db>],
+    causes: &mut Vec<FunctionLowerCause>,
+) {
+    let crate_ = hir.module(db).krate(db);
+    let check_type = |type_: &ra_ap_hir::Type<'db>| super::types::check_type(db, type_, crate_);
+    let provably_non_clonable = |type_: &ra_ap_hir::Type<'db>| {
+        !type_.contains_unknown()
+            && type_.generic_params(db).is_empty()
+            && !is_clonable(db, type_, crate_)
+    };
+
+    if let Some(receiver) = hir.self_param(db) {
+        let receiver_type = super::instantiate_type(db, receiver.ty(db), type_args.iter().cloned());
+        if let Err(error) = check_type(&receiver_type) {
+            causes.push(FunctionLowerCause::Type(error));
+        } else if receiver.access(db) == Access::Owned
+            && let Some(adt) = receiver_type.as_adt()
+            && provably_non_clonable(&receiver_type)
         {
-            causes.push(FunctionLowerCause::UnsupportedLifetimeRef);
-        }
-    }
-
-    if let Some(callable) = callable
-        && hir.self_param(db).is_some()
-        && let Err(error) = lower_signature_type(TypeOrigin::CallableReceiver(callable))
-    {
-        causes.push(FunctionLowerCause::Type(error));
-    }
-
-    if let Some(receiver) = hir.self_param(db)
-        && receiver.access(db) == Access::Owned
-    {
-        let origin = callable
-            .map(TypeOrigin::CallableReceiver)
-            .unwrap_or_else(|| TypeOrigin::FunctionReceiver(Function::new(db, hir)));
-        let receiver_type = origin.hir(db);
-        match lower_signature_type(origin).map(|type_| type_.kind(db)) {
-            Ok(TypeKind::Struct(struct_)) if !is_clonable(db, &receiver_type, crate_) => {
-                causes.push(FunctionLowerCause::NonClonableMovedParam {
-                    name: "self".to_owned(),
-                    type_fqn: struct_.fqn(db).to_owned(),
-                });
-            }
-            Ok(TypeKind::Enum(enum_)) if !is_clonable(db, &receiver_type, crate_) => {
-                causes.push(FunctionLowerCause::NonClonableMovedParam {
-                    name: "self".to_owned(),
-                    type_fqn: enum_.fqn(db).to_owned(),
-                });
-            }
-            _ => {}
+            causes.push(FunctionLowerCause::NonClonableMovedParam {
+                name: "self".to_owned(),
+                type_fqn: super::adt_fqn(db, adt),
+            });
         }
     }
 
@@ -228,87 +233,46 @@ fn lower_function_with_context<'db>(
             .name(db)
             .map(|name| name.display(db, crate_.edition(db)).to_string())
             .unwrap_or_else(|| format!("arg{index}"));
-        let origin = match callable {
-            Some(callable) => TypeOrigin::CallableParameter { callable, index },
-            None => TypeOrigin::FunctionParameter {
-                function: Function::new(db, hir),
-                index,
-            },
-        };
-        let parameter_type = origin.hir(db);
-        match lower_signature_type(origin).map(|type_| type_.kind(db)) {
-            Err(error) => causes.push(FunctionLowerCause::UnsupportedParam {
+
+        let parameter_type =
+            super::instantiate_type(db, param.ty().clone(), type_args.iter().cloned());
+        if let Err(error) = check_type(&parameter_type) {
+            causes.push(FunctionLowerCause::UnsupportedParam {
                 name,
                 causes: vec![error],
-            }),
-            Ok(TypeKind::Struct(struct_)) if !is_clonable(db, &parameter_type, crate_) => {
-                causes.push(FunctionLowerCause::NonClonableMovedParam {
-                    name,
-                    type_fqn: struct_.fqn(db).to_owned(),
-                });
+            });
+            continue;
+        }
+        if let Some(adt) = parameter_type.as_adt()
+            && !super::types::is_string(db, &parameter_type, crate_)
+            && provably_non_clonable(&parameter_type)
+        {
+            causes.push(FunctionLowerCause::NonClonableMovedParam {
+                name,
+                type_fqn: super::adt_fqn(db, adt),
+            });
+        } else if let Some((inner, ra_ap_hir::Mutability::Mut)) = parameter_type.as_reference()
+            && (inner.as_builtin().is_some() || super::types::is_string(db, &inner, crate_))
+            && (type_args.is_empty() || parameter_type != *param.ty())
+        {
+            let span = lower_item_span(db, hir);
+            let (source_code, span) = diagnostic_location(db, span.as_ref());
+            MutableReferenceIgnored {
+                parameter: name,
+                source_code,
+                span,
             }
-            Ok(TypeKind::Enum(enum_)) if !is_clonable(db, &parameter_type, crate_) => {
-                causes.push(FunctionLowerCause::NonClonableMovedParam {
-                    name,
-                    type_fqn: enum_.fqn(db).to_owned(),
-                });
-            }
-            Ok(TypeKind::Borrowed(reference))
-                if reference.is_mutable(db)
-                    && matches!(
-                        reference.inner(db).kind(db),
-                        TypeKind::bool
-                            | TypeKind::char
-                            | TypeKind::i8
-                            | TypeKind::u8
-                            | TypeKind::i16
-                            | TypeKind::u16
-                            | TypeKind::i32
-                            | TypeKind::u32
-                            | TypeKind::f32
-                            | TypeKind::f64
-                            | TypeKind::Str
-                            | TypeKind::String
-                    ) =>
-            {
-                let span = lower_item_span(db, hir);
-                let (source_code, span) = diagnostic_location(db, span.as_ref());
-                MutableReferenceIgnored {
-                    parameter: name,
-                    source_code,
-                    span,
-                }
-                .accumulate(db);
-            }
-            Ok(_) => {}
+            .accumulate(db);
         }
     }
 
-    let return_origin = callable
-        .map(TypeOrigin::CallableReturn)
-        .unwrap_or_else(|| TypeOrigin::FunctionReturn(Function::new(db, hir)));
-    let return_type = return_origin.hir(db);
-    if !return_type.is_unit() {
-        match lower_signature_type(return_origin).map(|type_| type_.kind(db)) {
-            Ok(TypeKind::Borrowed(_)) => causes.push(FunctionLowerCause::BorrowedReturn),
-            Err(error) => causes.push(FunctionLowerCause::Type(error)),
-            Ok(_) => {}
-        }
-    }
-
-    if causes.is_empty() {
-        Ok(Function::new(db, hir))
-    } else {
-        let span = lower_item_span(db, hir);
-        let (source_code, span) = diagnostic_location(db, span.as_ref());
-        Err(Box::new(FunctionLowerError {
-            fqn: callable
-                .map(|callable| callable.fqn(db).to_owned())
-                .unwrap_or_else(|| function_fqn(db, hir)),
-            source_code,
-            span,
-            causes,
-        }))
+    let return_type = super::instantiate_type(db, hir.ret_type(db), type_args.iter().cloned());
+    if return_type.is_reference() {
+        causes.push(FunctionLowerCause::BorrowedReturn);
+    } else if !return_type.is_unit()
+        && let Err(error) = check_type(&return_type)
+    {
+        causes.push(FunctionLowerCause::Type(error));
     }
 }
 
@@ -343,7 +307,7 @@ enum FunctionLowerCause {
     #[error("C-variadic functions are not supported")]
     #[diagnostic(code(rust_curse::unsupported_variadic_fn), severity(Warning))]
     UnsupportedVariadic,
-    #[error("generic functions are not supported")]
+    #[error("const-generic functions are not supported")]
     #[diagnostic(
         code(rust_curse::unsupported_generic_fn),
         help(
@@ -355,9 +319,6 @@ enum FunctionLowerCause {
     #[error("arbitrary self types are not supported")]
     #[diagnostic(code(rust_curse::unsupported_arbitrary_receiver), severity(Warning))]
     UnsupportedArbitraryReceiver,
-    #[error("references with explicit lifetimes are not supported")]
-    #[diagnostic(code(rust_curse::unsupported_lifetime_ref), severity(Warning))]
-    UnsupportedLifetimeRef,
     #[error("the parameter `{name}` has an unsupported type")]
     #[diagnostic(code(rust_curse::unsupported_param), severity(Warning))]
     UnsupportedParam {

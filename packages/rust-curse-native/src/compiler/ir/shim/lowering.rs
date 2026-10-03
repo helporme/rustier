@@ -17,13 +17,10 @@ impl<'db> Type<'db> {
                 let declaration = function.declaration(db);
                 declaration.receiver(db).is_some() || declaration.name(db) != "prototype"
             })
-            .map(move |function| {
-                ShimFunctionAssociated::new(
-                    db,
-                    function
-                        .as_callible(db)
-                        .expect("generic functions cannot reach the shim"),
-                )
+            .filter_map(move |function| {
+                function
+                    .as_callible(db)
+                    .map(|callable| ShimFunctionAssociated::new(db, callable))
             })
     }
 }

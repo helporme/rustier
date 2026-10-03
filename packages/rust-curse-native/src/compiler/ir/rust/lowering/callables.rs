@@ -1,29 +1,45 @@
-use ra_ap_hir::GenericDef;
-
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Callable, Crate, FunctionInherent, FunctionQualified, GenArg, ItemPath, Module, Param,
-        PathSegment, Type, TypeKind, TypeOrigin,
+        Callable, Crate, FunctionInherent, FunctionQualified, GenArg, GenericParam, ImplInherent,
+        ItemPath, Lifetime, Module, Param, PathSegment, Type, TypeKind, TypeOrigin,
     },
 };
 
 #[salsa::tracked]
-impl<'db> FunctionQualified<'db> {
+impl<'db> FunctionInherent<'db> {
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_as_callible(
+    pub(in crate::compiler::ir::rust) fn lower_as_callable(
         self,
         db: &'db dyn Db,
     ) -> Option<Callable<'db>> {
-        self.declaration(db)
-            .generic_params(db)
-            .is_empty()
-            .then(|| Callable::new(db, self, Vec::<GenArg<'db>>::new()))
-    }
-}
+        let impl_ = self.impl_(db);
+        let substituted_args = impl_
+            .generic_args(db)
+            .iter()
+            .filter(|(_, arg)| match arg {
+                GenArg::Type(type_) => {
+                    let hir = type_.hir(db);
+                    !hir.contains_unknown() && hir.generic_params(db).is_empty()
+                }
+                GenArg::Lifetime(Some(Lifetime::Static)) => true,
+                GenArg::Lifetime(_) => false,
+            })
+            .count();
 
-#[salsa::tracked]
-impl<'db> FunctionInherent<'db> {
+        if !self.declaration(db).generic_params(db).is_empty()
+            || substituted_args != impl_.declaration(db).generic_params(db).len()
+        {
+            return None;
+        }
+
+        Some(Callable::new(
+            db,
+            FunctionQualified::Inherent(self),
+            Vec::<GenArg<'db>>::new(),
+        ))
+    }
+
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_path(self, db: &'db dyn Db) -> ItemPath<'db> {
         let target = self.impl_(db).target(db);
@@ -115,25 +131,7 @@ impl<'db> Callable<'db> {
     ) -> ra_ap_hir::Type<'db> {
         let mut args = Vec::new();
         if let FunctionQualified::Inherent(function) = self.function(db) {
-            let impl_ = function.impl_(db).declaration(db).hir(db);
-            let mut bindings = std::collections::HashMap::new();
-
-            bind_self_type(
-                db,
-                impl_.self_ty(db),
-                function.impl_(db).target(db).hir(db),
-                &mut bindings,
-            );
-
-            for param in GenericDef::Impl(impl_).params(db) {
-                if let ra_ap_hir::GenericParam::TypeParam(param) = param {
-                    args.push(
-                        bindings
-                            .remove(&param)
-                            .expect("impl type parameter must be determined by its target"),
-                    );
-                }
-            }
+            args.extend(function.impl_(db).partial_type_args(db));
         }
 
         args.extend(self.generic_args(db).iter().filter_map(|arg| match arg {
@@ -141,32 +139,28 @@ impl<'db> Callable<'db> {
             GenArg::Lifetime(_) => None,
         }));
 
-        if args.is_empty() {
-            type_
-        } else {
-            super::instantiate_type(db, type_, args)
-        }
+        super::instantiate_type(db, type_, args)
     }
 }
 
-fn bind_self_type<'db>(
-    db: &'db dyn Db,
-    pattern: ra_ap_hir::Type<'db>,
-    target: ra_ap_hir::Type<'db>,
-    bindings: &mut std::collections::HashMap<ra_ap_hir::TypeParam, ra_ap_hir::Type<'db>>,
-) {
-    if let Some(param) = pattern.as_type_param(db) {
-        bindings.insert(param, target);
-        return;
-    }
-    if let Some((inner, _)) = pattern.as_reference() {
-        let (target, _) = target.as_reference().expect("impl target reference");
-        bind_self_type(db, inner, target, bindings);
-        return;
-    }
-    if pattern.as_adt().is_some() {
-        for (pattern, target) in pattern.type_arguments().zip(target.type_arguments()) {
-            bind_self_type(db, pattern, target, bindings);
-        }
+impl<'db> ImplInherent<'db> {
+    /// Preserve identity arguments for bindings not determined by the target.
+    pub(super) fn partial_type_args(self, db: &'db dyn Db) -> Vec<ra_ap_hir::Type<'db>> {
+        self.declaration(db)
+            .generic_params(db)
+            .iter()
+            .filter_map(|param| match param {
+                GenericParam::Type(type_param) => Some(
+                    self.generic_args(db)
+                        .iter()
+                        .find_map(|(binding, arg)| match arg {
+                            GenArg::Type(type_) if binding == param => Some(type_.hir(db)),
+                            _ => None,
+                        })
+                        .unwrap_or_else(|| type_param.hir(db).ty(db)),
+                ),
+                GenericParam::Lifetime(_) => None,
+            })
+            .collect()
     }
 }
