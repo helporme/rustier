@@ -19,6 +19,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ServerWorkspace {
+    version: u128,
     db: RootDatabase,
     vfs: Vfs,
     root_file: PathBuf,
@@ -107,6 +108,7 @@ impl ServerWorkspace {
         vfs.take_changes();
 
         Ok(Self {
+            version: 0,
             manifest_path,
             db,
             vfs,
@@ -115,21 +117,28 @@ impl ServerWorkspace {
         })
     }
 
+    /// File-change version.
+    pub const fn version(&self) -> u128 {
+        self.version
+    }
+
     /// Applies Rust source changes and reloads on Cargo manifest or lockfile
     /// changes. All other files are ignored. Returns `true` if the workspace
     /// was changed, `false` otherwise.
     pub fn change(&mut self, change: WorkspaceChange) -> Result<bool, WorkspaceError> {
+        self.version = self.version.wrapping_add(1);
         let path = Path::new(&change.file_path);
         if matches!(
             path.file_name().and_then(|name| name.to_str()),
             Some("Cargo.toml" | "Cargo.lock")
         ) {
-            let workspace = Self::load(self.manifest_path.clone()).map_err(|source| {
+            let mut workspace = Self::load(self.manifest_path.clone()).map_err(|source| {
                 WorkspaceError::Reload {
                     path: path.to_owned(),
                     source: Box::new(source),
                 }
             })?;
+            workspace.version = self.version;
             *self = workspace;
 
             return Ok(true);
