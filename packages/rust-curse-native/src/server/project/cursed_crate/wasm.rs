@@ -147,6 +147,10 @@ impl CursedCrateWasmBuild {
         let output = WasmBindgenCommand {
             wasm_path: &binary,
             output_dir: &artifact_dir,
+            name_suffix: match self.target {
+                WasmBindgenTarget::Web => "web",
+                WasmBindgenTarget::NodeJsModule => "nodejs_module",
+            },
             target: self.target,
         }
         .exec(toolchain)?;

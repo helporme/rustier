@@ -140,6 +140,8 @@ pub struct WasmBindgenCommand<'a> {
     pub wasm_path: &'a Path,
     /// Directory receiving the JavaScript and processed WebAssembly files.
     pub output_dir: &'a Path,
+    /// Suffix appended to the input name stem for the generated artifacts.
+    pub name_suffix: &'a str,
     /// Runtime for the generated bindings.
     pub target: WasmBindgenTarget,
 }
@@ -158,6 +160,7 @@ impl WasmBindgenCommand<'_> {
             .ok_or_else(|| ToolchainError::InvalidWasmName {
                 path: input.clone(),
             })?;
+        let name = format!("{name}_{}", self.name_suffix);
         let output_dir = prepare_output(self.output_dir)?;
         let mut command = Command::new(&toolchain.wasm_bindgen);
         command
@@ -165,7 +168,7 @@ impl WasmBindgenCommand<'_> {
             .arg("--out-dir")
             .arg(&output_dir)
             .arg("--out-name")
-            .arg(name)
+            .arg(&name)
             .arg("--target")
             .arg(match self.target {
                 WasmBindgenTarget::Web => "web",
