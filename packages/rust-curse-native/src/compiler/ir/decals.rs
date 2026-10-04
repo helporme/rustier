@@ -13,8 +13,8 @@ use crate::compiler::{
         rust::{Callable, FieldName, Span},
         shim::{
             Shim, ShimClassDiscriminated, ShimClassDiscriminatedVariant, ShimClassPlain, ShimField,
-            ShimFunction, ShimFunctionAssociated, ShimFunctionDiscriminator, ShimFunctionFree,
-            ShimMember, ShimModule, ShimParam, ShimParentModule, ShimType,
+            ShimFunctionAssociated, ShimFunctionDiscriminator, ShimFunctionFree, ShimMember,
+            ShimModule, ShimParam, ShimParentModule, ShimType,
         },
     },
     path::FilePath,
@@ -318,18 +318,7 @@ pub struct DecalParam<'db> {
 
 impl<'db> DecalParam<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db String {
-        let shim = self.shim(db);
-        let (function, param_idx) = match shim.parent(db) {
-            ShimFunction::Free(function) => (function.src(db), shim.idx(db)),
-            ShimFunction::Associated(function) => {
-                let receiver_offset =
-                    usize::from(function.src(db).declaration(db).receiver(db).is_some());
-                (function.src(db), shim.idx(db) - receiver_offset)
-            }
-            _ => unreachable!("declaration parameters only belong to source-defined functions"),
-        };
-
-        function.params(db)[param_idx].name(db)
+        self.lower_name(db)
     }
 
     pub fn type_(self, db: &'db dyn Db) -> DecalType<'db> {
