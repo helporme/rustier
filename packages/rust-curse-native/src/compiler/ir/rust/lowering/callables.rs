@@ -1,3 +1,13 @@
+use ra_ap_hir::{
+    AsAssocItem as _, FindPathConfig, HirDisplay as _, ModuleDef, PathResolution,
+    PredicateEvaluationStatus, PrefixKind, Semantics, db::HirDatabase,
+};
+use ra_ap_syntax::{
+    AstNode as _, TextRange,
+    ast::{self, HasGenericParams as _, make},
+    syntax_editor::SyntaxEditor,
+};
+
 use crate::compiler::{
     db::Db,
     ir::rust::{
@@ -30,11 +40,13 @@ impl<'db> FunctionInherent<'db> {
             return None;
         }
 
-        Some(Callable::new(
+        let callable = Callable::new(
             db,
             FunctionQualified::Inherent(self),
             Vec::<GenArg<'db>>::new(),
-        ))
+        );
+
+        evaluate_where_clause(db, callable)?.then_some(callable)
     }
 
     #[salsa::tracked]
@@ -159,4 +171,148 @@ impl<'db> ImplInherent<'db> {
             })
             .collect()
     }
+}
+
+/// Evaluates a method's substituted where-clause in its impl's environment.
+///
+/// It's kind of workaround since there is no clear way how to evaluate hir function
+/// bounds that discard the function based on the impl generic constraints
+fn evaluate_where_clause<'db>(db: &'db dyn Db, callable: Callable<'db>) -> Option<bool> {
+    let FunctionQualified::Inherent(function) = callable.function(db) else {
+        return None;
+    };
+
+    let sema = Semantics::new_dyn(db);
+    let source = sema.source(function.declaration(db).hir(db))?;
+    let Some(where_clause) = source.value.where_clause() else {
+        return Some(true);
+    };
+
+    let where_clause = substitute_where_clause(db, &sema, callable, where_clause)?;
+    let impl_source = sema.source(function.impl_(db).declaration(db).hir(db))?;
+    let context = impl_source.value.self_ty()?;
+
+    // Use the impl's environment so the method's own predicates are not assumed.
+    let result = sema.evaluate_where_clause_at(
+        context.syntax(),
+        context.syntax().text_range().start(),
+        where_clause,
+    );
+
+    Some(result.status == PredicateEvaluationStatus::Holds)
+}
+
+/// Substitutes impl type arguments and `Self` into a method's where-clause.
+fn substitute_where_clause<'db>(
+    db: &'db dyn Db,
+    sema: &Semantics<'db, dyn HirDatabase>,
+    callable: Callable<'db>,
+    where_clause: ast::WhereClause,
+) -> Option<ast::WhereClause> {
+    let FunctionQualified::Inherent(function) = callable.function(db) else {
+        return None;
+    };
+
+    let module = function.declaration(db).hir(db).module(db);
+    let impl_source = sema.source(function.impl_(db).declaration(db).hir(db))?;
+    let scope = sema.scope(&impl_source.value.syntax().parent()?)?;
+    let (editor, substituted) = SyntaxEditor::with_ast_node(&where_clause);
+
+    // Resolve paths in the original syntax while editing its detached copy.
+    let paths = where_clause
+        .syntax()
+        .descendants()
+        .filter_map(ast::Path::cast);
+
+    let substituted_paths = substituted
+        .syntax()
+        .descendants()
+        .filter_map(ast::Path::cast);
+
+    let mut replaced: Option<TextRange> = None;
+
+    for (path, substituted_path) in paths.zip(substituted_paths) {
+        if replaced.is_some_and(|range| range.contains_range(path.syntax().text_range())) {
+            continue;
+        }
+
+        let type_ = match sema.resolve_path(&path) {
+            Some(PathResolution::TypeParam(param)) => callable.instantiate(db, param.ty(db)),
+            Some(PathResolution::SelfType(_)) => function.impl_(db).target(db).hir(db),
+            Some(PathResolution::Def(ModuleDef::TypeAlias(alias)))
+                if alias.as_assoc_item(db).is_some() =>
+            {
+                // Rebuild projections through HIR to preserve their associated trait.
+                let type_ = ast::Type::cast(path.syntax().parent()?)?;
+                callable.instantiate(db, sema.resolve_type(&type_)?)
+            }
+            _ => continue,
+        };
+
+        if type_.contains_unknown() || !type_.generic_params(db).is_empty() {
+            return None;
+        }
+
+        // Qualify inserted types so impl generic parameter names cannot shadow them.
+        let type_ = make::ty(&type_.display_source_code(db, module.into(), false).ok()?);
+        let mut source = type_.syntax().text().to_string();
+        let offset = type_.syntax().text_range().start();
+        let mut paths = Vec::new();
+
+        for path in type_.syntax().descendants().filter_map(ast::Path::cast) {
+            if path.qualifier().is_some() {
+                continue;
+            }
+
+            let Some(name) = path.segment().and_then(|segment| segment.name_ref()) else {
+                continue;
+            };
+            let Some(PathResolution::Def(def)) = scope.speculative_resolve(&path) else {
+                continue;
+            };
+            if matches!(def, ModuleDef::BuiltinType(_)) {
+                continue;
+            }
+
+            let qualified = module.find_use_path(
+                db,
+                def,
+                PrefixKind::ByCrate,
+                FindPathConfig {
+                    prefer_no_std: false,
+                    prefer_prelude: false,
+                    prefer_absolute: true,
+                    allow_unstable: true,
+                },
+            )?;
+            paths.push((
+                name.syntax().text_range() - offset,
+                qualified
+                    .display(db, module.krate(db).edition(db))
+                    .to_string(),
+            ));
+        }
+
+        // Apply text edits backwards so the remaining ranges stay valid.
+        paths.sort_unstable_by_key(|(range, _)| range.start());
+        for (range, path) in paths.into_iter().rev() {
+            source.replace_range(usize::from(range.start())..usize::from(range.end()), &path);
+        }
+
+        let type_ = make::ty(&source);
+        let parent = substituted_path.syntax().parent()?;
+
+        if ast::PathType::can_cast(parent.kind()) {
+            editor.replace(&parent, type_.syntax());
+        } else if ast::Path::can_cast(parent.kind()) {
+            let qualifier = make::path_unqualified(make::path_segment_ty(type_, None));
+            editor.replace(substituted_path.syntax(), qualifier.syntax());
+        } else {
+            return None;
+        }
+
+        replaced = Some(path.syntax().text_range());
+    }
+
+    ast::WhereClause::cast(editor.finish().new_root().clone())
 }
