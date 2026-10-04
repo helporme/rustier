@@ -1,12 +1,11 @@
-use std::{collections::HashMap, path::PathBuf};
-
-use salsa::Setter;
+use std::path::PathBuf;
 
 use crate::{
     compiler::{codegen::js::JsCodegenPaths, db::Db, path::FilePath},
     server::{
         ServerNodeTarget,
-        toolchain::{CargoBuildCommand, Toolchain, ToolchainError},
+        effects::Effect,
+        toolchain::{CargoBuild, Toolchain, ToolchainError},
         write_file::{WriteFileError, write_file},
     },
 };
@@ -26,34 +25,17 @@ impl<'a> BridgeCrateNode<'a> {
         "node"
     }
 
-    fn build_artifacts(self, db: &'a dyn Db) -> Option<&'a BuildArtifactNode> {
-        BuildArtifactsNode::artifact(
-            db,
-            BridgeCrate::Node(self)
-                .manifest_path(db)
-                .to_string_lossy()
-                .as_ref(),
-        )
-    }
-
-    pub fn js_ffi_file_path(self, db: &'a dyn Db) -> Option<&'a FilePath> {
-        Some(&self.build_artifacts(db)?.ffi_js_file)
-    }
-
-    pub fn bin_ffi_file_path(
+    pub fn js(
         self,
         db: &'a dyn Db,
-        target: Option<ServerNodeTarget>,
-    ) -> Option<&'a FilePath> {
-        self.build_artifacts(db)?.bin_files.get(&target)
-    }
-
-    pub fn js(self, db: &'a dyn Db, path: &str) -> Option<String> {
+        path: &str,
+        artifact: Option<&NodeBuildArtifact>,
+    ) -> Option<String> {
         const FFI_MODULE_ID: &str = "$rust/unstable!/node";
         if path == FFI_MODULE_ID {
             return Some(format!(
                 "export * from {:?};\n",
-                self.js_ffi_file_path(db)?.as_str()
+                artifact?.js_path.as_str()
             ));
         }
 
@@ -76,15 +58,17 @@ impl<'a> BridgeCrateNode<'a> {
     pub fn build(
         self,
         db: &'a dyn Db,
+        workspace_version: u128,
         release: bool,
-        node_target: Option<ServerNodeTarget>,
+        target: Option<ServerNodeTarget>,
         dep_features: &[String],
-    ) -> BridgeCrateNodeBuild {
+    ) -> NodeBuild {
         let crate_ = BridgeCrate::Node(self);
-        BridgeCrateNodeBuild {
+        NodeBuild {
             out_dir: crate_.root_dir(db).clone(),
+            workspace_version,
             release,
-            node_target,
+            target,
             features: crate_.dependency_features(db, dep_features),
             napi_ffi: self
                 .project(db)
@@ -97,42 +81,41 @@ impl<'a> BridgeCrateNode<'a> {
 }
 
 /// An owned native build plan, executed after releasing the database borrow.
-#[derive(Debug, Clone)]
-pub struct BridgeCrateNodeBuild {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct NodeBuild {
     out_dir: PathBuf,
+    workspace_version: u128,
     release: bool,
-    node_target: Option<ServerNodeTarget>,
+    target: Option<ServerNodeTarget>,
     napi_ffi: String,
     features: Vec<String>,
 }
 
-impl BridgeCrateNodeBuild {
-    pub fn exec(
+impl Effect for NodeBuild {
+    type Args<'a> = &'a Toolchain;
+    type Res = NodeBuildArtifact;
+    type Err = NodeBuildError;
+
+    fn _exec<'a>(
         &self,
         db: &mut dyn Db,
-        toolchain: &Toolchain,
-    ) -> Result<FilePath, BridgeCrateNodeBuildError> {
+        toolchain: Self::Args<'a>,
+    ) -> Result<NodeBuildArtifact, NodeBuildError> {
         let manifest_path = self.out_dir.join("Cargo.toml");
-        let key = manifest_path.to_string_lossy();
-        let mut bin_files = BuildArtifactsNode::artifact(db, &key)
-            .map(|artifact| artifact.bin_files.clone())
-            .unwrap_or_default();
-        bin_files.remove(&self.node_target);
-        BuildArtifactsNode::remove(db, &key);
-
         let target = self
-            .node_target
+            .target
             .or_else(ServerNodeTarget::host)
-            .ok_or(BridgeCrateNodeBuildError::UnsupportedNodeHost)?;
-        let artifact_dir = reserve_unique_artifact_dir(&self.out_dir)?;
-        let output = CargoBuildCommand {
-            manifest_path: &manifest_path,
-            target_dir: &self.out_dir.join("target"),
+            .ok_or(NodeBuildError::UnsupportedNodeHost)?;
+
+        let output = CargoBuild {
+            workspace_version: self.workspace_version,
+            manifest_path,
+            target_dir: self.out_dir.join("target"),
             target: Some(target.triple()),
             release: self.release,
-            features: &self.features,
+            features: self.features.clone(),
         }
-        .exec(toolchain)?;
+        .run(db, toolchain)?;
         let binary = output
             .artifacts
             .into_iter()
@@ -142,33 +125,33 @@ impl BridgeCrateNodeBuild {
                     Some("dylib" | "dll" | "so")
                 )
             })
-            .ok_or(BridgeCrateNodeBuildError::MissingLibraryArtifact)?;
+            .ok_or(NodeBuildError::MissingLibraryArtifact)?;
 
-        for file in bin_files.values_mut() {
-            let destination = artifact_dir.join(file.as_path().file_name().unwrap());
-            *file = copy_artifact(file.as_path(), &destination)?;
-        }
-
+        let artifact_dir = reserve_unique_artifact_dir(&self.out_dir)?;
         let name = target.native_binary_name();
-        let bin_file = copy_artifact(&binary, &artifact_dir.join(name))?;
+        let bin_path = copy_artifact(&binary, &artifact_dir.join(name))?;
         let js_path = artifact_dir.join("index.mjs");
         write_file(&js_path, &self.napi_ffi)?;
 
-        bin_files.insert(self.node_target, bin_file.clone());
-        BuildArtifactsNode::set(
-            db,
-            key.into_owned(),
-            BuildArtifactNode {
-                ffi_js_file: FilePath::try_from(js_path.as_path()).map_err(ArtifactError::from)?,
-                bin_files,
-            },
-        );
-        Ok(bin_file)
+        Ok(NodeBuildArtifact {
+            bin_path,
+            js_path: FilePath::try_from(js_path.as_path()).map_err(ArtifactError::from)?,
+        })
+    }
+
+    fn _synced(&self, _db: &dyn Db, artifact: &NodeBuildArtifact) -> Result<bool, NodeBuildError> {
+        Ok(artifact.bin_path.as_path().is_file() && artifact.js_path.as_path().is_file())
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct NodeBuildArtifact {
+    pub bin_path: FilePath,
+    pub js_path: FilePath,
+}
+
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]
-pub enum BridgeCrateNodeBuildError {
+pub enum NodeBuildError {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Toolchain(#[from] ToolchainError),
@@ -183,40 +166,4 @@ pub enum BridgeCrateNodeBuildError {
     MissingLibraryArtifact,
     #[error("the host target is not supported for native Node builds")]
     UnsupportedNodeHost,
-}
-
-#[salsa::input(singleton)]
-struct BuildArtifactsNode {
-    /// The latest loader and native binaries for each manifest.
-    #[returns(ref)]
-    artifacts: HashMap<String, BuildArtifactNode>,
-}
-
-impl BuildArtifactsNode {
-    fn remove(db: &mut dyn Db, key: &str) {
-        if let Some(input) = Self::try_get(db)
-            && input.artifacts(db).contains_key(key)
-        {
-            let mut artifacts = input.artifacts(db).clone();
-            artifacts.remove(key);
-            input.set_artifacts(db).to(artifacts);
-        }
-    }
-
-    fn set(db: &mut dyn Db, key: String, artifact: BuildArtifactNode) {
-        let input = Self::try_get(db).unwrap_or_else(|| Self::new(db, HashMap::default()));
-        let mut artifacts = input.artifacts(db).clone();
-        artifacts.insert(key, artifact);
-        input.set_artifacts(db).to(artifacts);
-    }
-
-    fn artifact<'db>(db: &'db dyn Db, key: &str) -> Option<&'db BuildArtifactNode> {
-        Self::try_get(db).and_then(|input| input.artifacts(db).get(key))
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, salsa::Update)]
-pub struct BuildArtifactNode {
-    pub ffi_js_file: FilePath,
-    pub bin_files: HashMap<Option<ServerNodeTarget>, FilePath>,
 }

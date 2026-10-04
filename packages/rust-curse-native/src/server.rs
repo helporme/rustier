@@ -8,14 +8,16 @@ use napi_derive::napi;
 use crate::{
     compiler::codegen::shim::Platform,
     server::{
+        effects::Effect,
         log::ServerLogs,
-        project::{BridgeCrateNode, BridgeCrateWasm, WasmLoading},
-        toolchain::{ToolInstallationOpts, Toolchain, ToolchainOps},
+        project::{BridgeCrateNode, BridgeCrateWasm, NodeBuild, WasmBuild, WasmLoading},
+        toolchain::{ToolInstallationOpts, Toolchain, ToolchainOps, WasmBindgenTarget},
         workspace::ServerWorkspace,
     },
 };
 
 mod diag;
+mod effects;
 mod log;
 mod project;
 mod target;
@@ -57,6 +59,8 @@ pub struct Server {
     ws: ServerWorkspace,
     toolchain: Toolchain,
     logs: ServerLogs,
+    node_builds: HashMap<Option<ServerNodeTarget>, NodeBuild>,
+    wasm_builds: HashMap<WasmBindgenTarget, WasmBuild>,
 }
 
 #[napi]
@@ -82,6 +86,8 @@ impl Server {
                 ws,
                 toolchain,
                 logs,
+                node_builds: HashMap::new(),
+                wasm_builds: HashMap::new(),
             })
         })()
         .into()
@@ -99,6 +105,8 @@ impl Server {
     pub fn change(&mut self, change: ServerChange) -> ServerChangeResult {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
         tracing::debug!(path = %change.file_path, "Updating Rust source");
+        self.node_builds.clear();
+        self.wasm_builds.clear();
         (|| -> Result<bool, ServerDiagnostic> {
             let changed = self
                 .ws
@@ -172,23 +180,42 @@ impl Server {
                 let _span = tracing::info_span!("Rust artifact compilation").entered();
                 match platform {
                     ServerPlatform::Node { target } => {
+                        self.node_builds.remove(&target);
                         let build = self.ws.with_db(|db| {
-                            BridgeCrateNode::new(db, self.ws.project(db))
-                                .build(db, release, target, &features)
+                            BridgeCrateNode::new(db, self.ws.project(db)).build(
+                                db,
+                                self.ws.version(),
+                                release,
+                                target,
+                                &features,
+                            )
                         });
-                        self.ws
-                            .with_db_mut(|db| build.exec(db, &self.toolchain))
-                            .map_err(ServerDiagnostic::from)?
+                        let artifact = self
+                            .ws
+                            .with_db_mut(|db| build.run(db, &self.toolchain))
+                            .map_err(ServerDiagnostic::from)?;
+                        self.node_builds.insert(target, build);
+                        artifact.bin_path
                     }
                     ServerPlatform::Wasm { target } => {
                         let loading = WasmLoading::from(target);
+                        let target = loading.bindgen_target();
+                        self.wasm_builds.remove(&target);
                         let build = self.ws.with_db(|db| {
-                            BridgeCrateWasm::new(db, self.ws.project(db))
-                                .build(db, release, loading, &features)
+                            BridgeCrateWasm::new(db, self.ws.project(db)).build(
+                                db,
+                                self.ws.version(),
+                                release,
+                                loading,
+                                &features,
+                            )
                         });
-                        self.ws
-                            .with_db_mut(|db| build.exec(db, &self.toolchain))
-                            .map_err(ServerDiagnostic::from)?
+                        let artifact = self
+                            .ws
+                            .with_db_mut(|db| build.run(db, &self.toolchain))
+                            .map_err(ServerDiagnostic::from)?;
+                        self.wasm_builds.insert(target, build);
+                        artifact.bin_path
                     }
                 }
             };
@@ -222,35 +249,61 @@ impl Server {
 
     /// Current binary paths for the platform. Empty if no build is available.
     #[napi]
-    pub fn bin_paths(&self, platform: ServerPlatform) -> Vec<String> {
+    pub fn bin_paths(&self, platform: ServerPlatform) -> napi::Result<Vec<String>> {
         self.ws.with_db(|db| {
-            let project = self.ws.project(db);
             let binary = match platform {
-                ServerPlatform::Node { target } => {
-                    BridgeCrateNode::new(db, project).bin_ffi_file_path(db, target)
-                }
-                ServerPlatform::Wasm { target } => {
-                    BridgeCrateWasm::new(db, project).bin_ffi_file_path(db, target.into())
-                }
+                ServerPlatform::Node { target } => self
+                    .node_builds
+                    .get(&target)
+                    .map(|build| build.latest(db))
+                    .transpose()
+                    .map_err(|error| napi::Error::from_reason(error.to_string()))?
+                    .flatten()
+                    .map(|artifact| artifact.bin_path),
+                ServerPlatform::Wasm { target } => self
+                    .wasm_builds
+                    .get(&WasmLoading::from(target).bindgen_target())
+                    .map(|build| build.latest(db))
+                    .transpose()
+                    .map_err(|error| napi::Error::from_reason(error.to_string()))?
+                    .flatten()
+                    .map(|artifact| artifact.bin_path),
             };
-            binary
+            Ok(binary
                 .into_iter()
                 .map(|path| path.as_str().to_owned())
-                .collect()
+                .collect())
         })
     }
 
     #[napi]
-    pub fn load(&self, platform: ServerPlatform, path: String) -> Option<String> {
+    pub fn load(&self, platform: ServerPlatform, path: String) -> napi::Result<Option<String>> {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
         let _span = tracing::debug_span!("Rust facade rendering", %path).entered();
 
         self.ws.with_db(|db| {
             let project = self.ws.project(db);
             match platform {
-                ServerPlatform::Node { .. } => BridgeCrateNode::new(db, project).js(db, &path),
+                ServerPlatform::Node { target } => {
+                    let artifact = self
+                        .node_builds
+                        .get(&target)
+                        .map(|build| build.latest(db))
+                        .transpose()
+                        .map_err(|error| napi::Error::from_reason(error.to_string()))?
+                        .flatten();
+                    Ok(BridgeCrateNode::new(db, project).js(db, &path, artifact.as_ref()))
+                }
                 ServerPlatform::Wasm { target } => {
-                    BridgeCrateWasm::new(db, project).js(db, &path, target.into())
+                    let loading = WasmLoading::from(target);
+                    let artifact = self
+                        .wasm_builds
+                        .get(&loading.bindgen_target())
+                        .map(|build| build.latest(db))
+                        .transpose()
+                        .map_err(|error| napi::Error::from_reason(error.to_string()))?
+                        .flatten();
+                    Ok(BridgeCrateWasm::new(db, project).js(db, &path, loading, artifact.as_ref()))
                 }
             }
         })

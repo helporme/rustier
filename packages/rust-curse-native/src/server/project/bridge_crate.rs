@@ -15,8 +15,8 @@ mod common;
 mod node;
 mod wasm;
 
-pub use node::BridgeCrateNode;
-pub use wasm::{BridgeCrateWasm, WasmLoading};
+pub use node::{BridgeCrateNode, NodeBuild};
+pub use wasm::{BridgeCrateWasm, WasmBuild, WasmLoading};
 
 /// A glue crate that contains rendered bindings code from source rust crate
 /// to the JavaScript.

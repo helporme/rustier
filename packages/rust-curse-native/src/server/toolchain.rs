@@ -9,6 +9,8 @@ use std::{
 
 use cargo_metadata::Message;
 
+use crate::{compiler::db::Db, server::effects::Effect};
+
 /// A failed tool invocation, with compiler diagnostics and human-readable
 /// output.
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]
@@ -134,22 +136,31 @@ pub enum WasmBindgenTarget {
 }
 
 /// Generate JavaScript bindings from an already compiled WebAssembly artifact.
-#[derive(Debug, Clone, Copy)]
-pub struct WasmBindgenCommand<'a> {
-    /// Input `.wasm` artifact, normally from [`CargoBuildCommand`].
-    pub wasm_path: &'a Path,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct WasmBindgen {
+    pub workspace_version: u128,
+    /// Input `.wasm` artifact, normally from [`CargoBuild`].
+    pub wasm_path: PathBuf,
     /// Directory receiving the JavaScript and processed WebAssembly files.
-    pub output_dir: &'a Path,
+    pub output_dir: PathBuf,
     /// Suffix appended to the input name stem for the generated artifacts.
-    pub name_suffix: &'a str,
+    pub name_suffix: &'static str,
     /// Runtime for the generated bindings.
     pub target: WasmBindgenTarget,
 }
 
-impl WasmBindgenCommand<'_> {
+impl Effect for WasmBindgen {
+    type Args<'a> = &'a Toolchain;
+    type Res = WasmBindgenOutput;
+    type Err = ToolchainError;
+
     /// Runs wasm-bindgen and verifies both generated artifacts.
-    pub fn exec(&self, toolchain: &Toolchain) -> Result<WasmBindgenOutput, ToolchainError> {
-        let input = fs::canonicalize(self.wasm_path).map_err(|source| ToolchainError::Io {
+    fn _exec<'a>(
+        &self,
+        _db: &mut dyn Db,
+        toolchain: Self::Args<'a>,
+    ) -> Result<WasmBindgenOutput, ToolchainError> {
+        let input = fs::canonicalize(&self.wasm_path).map_err(|source| ToolchainError::Io {
             operation: "resolve WASM input",
             path: self.wasm_path.to_owned(),
             source,
@@ -161,7 +172,8 @@ impl WasmBindgenCommand<'_> {
                 path: input.clone(),
             })?;
         let name = format!("{name}_{}", self.name_suffix);
-        let output_dir = prepare_output(self.output_dir)?;
+        let output_dir = prepare_output(&self.output_dir)?;
+
         let mut command = Command::new(&toolchain.wasm_bindgen);
         command
             .arg(&input)
@@ -175,10 +187,14 @@ impl WasmBindgenCommand<'_> {
                 WasmBindgenTarget::NodeJsModule => "experimental-nodejs-module",
             });
         run(&mut command)?;
-        Ok(WasmBindgenOutput {
-            js_path: require_file(output_dir.join(format!("{name}.js")))?,
-            wasm_path: require_file(output_dir.join(format!("{name}_bg.wasm")))?,
-        })
+
+        let js_path = require_file(output_dir.join(format!("{name}.js")))?;
+        let wasm_path = require_file(output_dir.join(format!("{name}_bg.wasm")))?;
+        Ok(WasmBindgenOutput { js_path, wasm_path })
+    }
+
+    fn _synced(&self, _db: &dyn Db, output: &WasmBindgenOutput) -> Result<bool, ToolchainError> {
+        Ok(output.js_path.is_file() && output.wasm_path.is_file())
     }
 }
 
@@ -192,24 +208,33 @@ pub struct WasmBindgenOutput {
 }
 
 /// Build a Cargo package and collect its artifacts from Cargo's JSON messages.
-#[derive(Debug, Clone, Copy)]
-pub struct CargoBuildCommand<'a> {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CargoBuild {
+    pub workspace_version: u128,
     /// Manifest to build.
-    pub manifest_path: &'a Path,
+    pub manifest_path: PathBuf,
     /// Cargo target directory; independent of the manifest's location.
-    pub target_dir: &'a Path,
+    pub target_dir: PathBuf,
     /// Target triple, or `None` for the host.
-    pub target: Option<&'a str>,
+    pub target: Option<&'static str>,
     /// Build with Cargo's release profile.
     pub release: bool,
     /// Cargo feature names, including dependency-qualified names when needed.
-    pub features: &'a [String],
+    pub features: Vec<String>,
 }
 
-impl CargoBuildCommand<'_> {
-    pub fn exec(&self, toolchain: &Toolchain) -> Result<CargoBuildOutput, ToolchainError> {
+impl Effect for CargoBuild {
+    type Args<'a> = &'a Toolchain;
+    type Res = CargoBuildOutput;
+    type Err = ToolchainError;
+
+    fn _exec<'a>(
+        &self,
+        _db: &mut dyn Db,
+        toolchain: Self::Args<'a>,
+    ) -> Result<CargoBuildOutput, ToolchainError> {
         let manifest =
-            fs::canonicalize(self.manifest_path).map_err(|source| ToolchainError::Io {
+            fs::canonicalize(&self.manifest_path).map_err(|source| ToolchainError::Io {
                 operation: "resolve manifest",
                 path: self.manifest_path.to_owned(),
                 source,
@@ -224,7 +249,7 @@ impl CargoBuildCommand<'_> {
             .arg("--manifest-path")
             .arg(&manifest)
             .arg("--target-dir")
-            .arg(absolute(self.target_dir)?)
+            .arg(absolute(&self.target_dir)?)
             .current_dir(
                 manifest
                     .parent()
@@ -241,6 +266,7 @@ impl CargoBuildCommand<'_> {
         if !self.features.is_empty() {
             command.arg("--features").arg(self.features.join(","));
         }
+
         let output = run(&mut command)?;
         let mut artifacts = Vec::new();
         for message in Message::parse_stream(Cursor::new(output.stdout)) {
@@ -261,7 +287,12 @@ impl CargoBuildCommand<'_> {
         }
         artifacts.sort();
         artifacts.dedup();
+
         Ok(CargoBuildOutput { artifacts })
+    }
+
+    fn _synced(&self, _db: &dyn Db, output: &CargoBuildOutput) -> Result<bool, ToolchainError> {
+        Ok(!output.artifacts.is_empty() && output.artifacts.iter().all(|path| path.is_file()))
     }
 }
 

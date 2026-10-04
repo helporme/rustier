@@ -12,7 +12,9 @@ use crate::compiler::{
 pub mod bridge_crate;
 pub mod ts;
 
-pub use bridge_crate::{BridgeCrate, BridgeCrateNode, BridgeCrateWasm, WasmLoading};
+pub use bridge_crate::{
+    BridgeCrate, BridgeCrateNode, BridgeCrateWasm, NodeBuild, WasmBuild, WasmLoading,
+};
 use ts::ProjectTs;
 
 #[salsa::interned(debug)]

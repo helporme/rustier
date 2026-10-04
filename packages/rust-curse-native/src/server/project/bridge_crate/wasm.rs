@@ -1,11 +1,10 @@
-use std::{collections::HashMap, path::PathBuf};
-
-use salsa::Setter;
+use std::path::PathBuf;
 
 use crate::{
     compiler::{codegen::js::JsCodegenPaths, db::Db, path::FilePath},
-    server::toolchain::{
-        CargoBuildCommand, Toolchain, ToolchainError, WasmBindgenCommand, WasmBindgenTarget,
+    server::{
+        effects::Effect,
+        toolchain::{CargoBuild, Toolchain, ToolchainError, WasmBindgen, WasmBindgenTarget},
     },
 };
 
@@ -23,7 +22,7 @@ pub enum WasmLoading {
 }
 
 impl WasmLoading {
-    fn bindgen_target(self) -> WasmBindgenTarget {
+    pub(in crate::server) fn bindgen_target(self) -> WasmBindgenTarget {
         match self {
             Self::Fetch | Self::Module => WasmBindgenTarget::Web,
             Self::ModuleNode => WasmBindgenTarget::NodeJsModule,
@@ -54,39 +53,18 @@ impl<'a> BridgeCrateWasm<'a> {
         "wasm"
     }
 
-    fn build_artifacts(
+    pub fn js(
         self,
         db: &'a dyn Db,
+        path: &str,
         loading: WasmLoading,
-    ) -> Option<&'a BuildArtifactWasm> {
-        BuildArtifactsWasm::artifact(
-            db,
-            &(
-                BridgeCrate::Wasm(self)
-                    .manifest_path(db)
-                    .to_string_lossy()
-                    .into_owned(),
-                loading.bindgen_target(),
-            ),
-        )
-    }
-
-    pub fn js_ffi_file_path(self, db: &'a dyn Db, loading: WasmLoading) -> Option<&'a FilePath> {
-        Some(&self.build_artifacts(db, loading)?.ffi_js_file)
-    }
-
-    pub fn bin_ffi_file_path(self, db: &'a dyn Db, loading: WasmLoading) -> Option<&'a FilePath> {
-        Some(&self.build_artifacts(db, loading)?.bin_file)
-    }
-
-    pub fn js(self, db: &'a dyn Db, path: &str, loading: WasmLoading) -> Option<String> {
+        artifact: Option<&WasmBuildArtifact>,
+    ) -> Option<String> {
         const FFI_MODULE_ID: &str = "$rust/unstable!/wasm";
 
         if path == FFI_MODULE_ID {
-            return Some(loading.js(
-                self.js_ffi_file_path(db, loading)?.as_str(),
-                self.bin_ffi_file_path(db, loading)?.as_str(),
-            ));
+            let artifact = artifact?;
+            return Some(loading.js(artifact.js_path.as_str(), artifact.bin_path.as_str()));
         }
 
         Some(
@@ -108,13 +86,15 @@ impl<'a> BridgeCrateWasm<'a> {
     pub fn build(
         self,
         db: &'a dyn Db,
+        workspace_version: u128,
         release: bool,
         loading: WasmLoading,
         dep_features: &[String],
-    ) -> BridgeCrateWasmBuild {
+    ) -> WasmBuild {
         let crate_ = BridgeCrate::Wasm(self);
-        BridgeCrateWasmBuild {
+        WasmBuild {
             out_dir: crate_.root_dir(db).clone(),
+            workspace_version,
             release,
             target: loading.bindgen_target(),
             features: crate_.dependency_features(db, dep_features),
@@ -123,66 +103,75 @@ impl<'a> BridgeCrateWasm<'a> {
 }
 
 /// An owned WASM build plan, executed after releasing the database borrow.
-#[derive(Debug, Clone)]
-pub struct BridgeCrateWasmBuild {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct WasmBuild {
     out_dir: PathBuf,
+    workspace_version: u128,
     release: bool,
     target: WasmBindgenTarget,
     features: Vec<String>,
 }
 
-impl BridgeCrateWasmBuild {
-    pub fn exec(
+impl Effect for WasmBuild {
+    type Args<'a> = &'a Toolchain;
+    type Res = WasmBuildArtifact;
+    type Err = WasmBuildError;
+
+    fn _exec<'a>(
         &self,
         db: &mut dyn Db,
-        toolchain: &Toolchain,
-    ) -> Result<FilePath, BridgeCrateWasmBuildError> {
+        toolchain: Self::Args<'a>,
+    ) -> Result<WasmBuildArtifact, WasmBuildError> {
         let manifest_path = self.out_dir.join("Cargo.toml");
-        let key = (manifest_path.to_string_lossy().into_owned(), self.target);
-        BuildArtifactsWasm::remove(db, &key);
-
         let artifact_dir = reserve_unique_artifact_dir(&self.out_dir)?;
-        let output = CargoBuildCommand {
-            manifest_path: &manifest_path,
-            target_dir: &self.out_dir.join("target"),
+        let output = CargoBuild {
+            workspace_version: self.workspace_version,
+            manifest_path,
+            target_dir: self.out_dir.join("target"),
             target: Some("wasm32-unknown-unknown"),
             release: self.release,
-            features: &self.features,
+            features: self.features.clone(),
         }
-        .exec(toolchain)?;
+        .run(db, toolchain)?;
+
         let binary = output
             .artifacts
             .into_iter()
             .find(|path| path.extension().and_then(|ext| ext.to_str()) == Some("wasm"))
-            .ok_or(BridgeCrateWasmBuildError::MissingLibraryArtifact)?;
-        let output = WasmBindgenCommand {
-            wasm_path: &binary,
-            output_dir: &artifact_dir,
+            .ok_or(WasmBuildError::MissingLibraryArtifact)?;
+
+        let output = WasmBindgen {
+            workspace_version: self.workspace_version,
+            wasm_path: binary,
+            output_dir: artifact_dir,
             name_suffix: match self.target {
                 WasmBindgenTarget::Web => "web",
                 WasmBindgenTarget::NodeJsModule => "nodejs_module",
             },
             target: self.target,
         }
-        .exec(toolchain)?;
+        .run(db, toolchain)?;
 
-        let bin_file =
-            FilePath::try_from(output.wasm_path.as_path()).map_err(ArtifactError::from)?;
-        BuildArtifactsWasm::set(
-            db,
-            key,
-            BuildArtifactWasm {
-                ffi_js_file: FilePath::try_from(output.js_path.as_path())
-                    .map_err(ArtifactError::from)?,
-                bin_file: bin_file.clone(),
-            },
-        );
-        Ok(bin_file)
+        Ok(WasmBuildArtifact {
+            bin_path: FilePath::try_from(output.wasm_path.as_path())
+                .map_err(ArtifactError::from)?,
+            js_path: FilePath::try_from(output.js_path.as_path()).map_err(ArtifactError::from)?,
+        })
+    }
+
+    fn _synced(&self, _db: &dyn Db, artifact: &WasmBuildArtifact) -> Result<bool, WasmBuildError> {
+        Ok(artifact.bin_path.as_path().is_file() && artifact.js_path.as_path().is_file())
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct WasmBuildArtifact {
+    pub bin_path: FilePath,
+    pub js_path: FilePath,
+}
+
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]
-pub enum BridgeCrateWasmBuildError {
+pub enum WasmBuildError {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Toolchain(#[from] ToolchainError),
@@ -192,43 +181,4 @@ pub enum BridgeCrateWasmBuildError {
     #[error("Cargo did not produce a library artifact for the requested package")]
     #[diagnostic(code(rust_curse::missing_library_artifact))]
     MissingLibraryArtifact,
-}
-
-#[salsa::input(singleton)]
-struct BuildArtifactsWasm {
-    /// The latest wasm-bindgen output for each manifest and binding target.
-    #[returns(ref)]
-    artifacts: HashMap<(String, WasmBindgenTarget), BuildArtifactWasm>,
-}
-
-impl BuildArtifactsWasm {
-    fn remove(db: &mut dyn Db, key: &(String, WasmBindgenTarget)) {
-        if let Some(input) = Self::try_get(db)
-            && input.artifacts(db).contains_key(key)
-        {
-            let mut artifacts = input.artifacts(db).clone();
-            artifacts.remove(key);
-            input.set_artifacts(db).to(artifacts);
-        }
-    }
-
-    fn set(db: &mut dyn Db, key: (String, WasmBindgenTarget), artifact: BuildArtifactWasm) {
-        let input = Self::try_get(db).unwrap_or_else(|| Self::new(db, HashMap::default()));
-        let mut artifacts = input.artifacts(db).clone();
-        artifacts.insert(key, artifact);
-        input.set_artifacts(db).to(artifacts);
-    }
-
-    fn artifact<'db>(
-        db: &'db dyn Db,
-        key: &(String, WasmBindgenTarget),
-    ) -> Option<&'db BuildArtifactWasm> {
-        Self::try_get(db).and_then(|input| input.artifacts(db).get(key))
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, salsa::Update)]
-pub struct BuildArtifactWasm {
-    pub ffi_js_file: FilePath,
-    pub bin_file: FilePath,
 }
