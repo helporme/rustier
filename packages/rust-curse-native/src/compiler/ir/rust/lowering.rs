@@ -7,6 +7,7 @@ mod generics;
 mod impls;
 mod modules;
 mod shapes;
+mod stability;
 mod structs;
 mod type_impls;
 mod types;
@@ -17,6 +18,7 @@ use self::{
     functions::lower_function,
     impls::lower_impl,
     shapes::lower_shape,
+    stability::{UnstableItemError, check_stability},
     structs::lower_struct,
     types::{TypeLowerErrorUnsupported, instantiate_adt_type, instantiate_type, lower_type},
 };

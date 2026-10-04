@@ -5,6 +5,7 @@
 - All code is private, there are no breaking changes.
 - Avoid adding assertions.
 - Do not add comments unless requested.
+- Add blank lines between logical groups of statements in generated and edited Rust code, especially between setup, checks, traversal, and final returns.
 - When a function returns `Result`, its error type should cover exactly the errors that function can produce. Prefer fine-grained error types over a single module-wide error type.
 - When generating source code, prefer `frag!()` over `format!()` whenever possible to avoid intermediate allocations. Prefer `IntoIterator` over vectors where possible, adding `+ Clone` to `IntoIter` when needed. Only materialize an owned `String` when required by an API.
 

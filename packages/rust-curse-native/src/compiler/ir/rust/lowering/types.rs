@@ -7,6 +7,7 @@ use ra_ap_hir::{
 };
 use thiserror::Error;
 
+use super::{UnstableItemError, check_stability, lower_item_span};
 use crate::compiler::{
     db::Db,
     ir::rust::{
@@ -127,6 +128,16 @@ pub(super) fn check_type(
             type_: type_.display(db, crate_.to_display_target(db)).to_string(),
         });
     };
+
+    check_stability(db, adt, adt.module(db), || lower_item_span(db, adt))?;
+
+    if let Adt::Enum(enum_) = adt {
+        for variant in enum_.variants(db) {
+            check_stability(db, variant, enum_.module(db), || {
+                lower_item_span(db, variant)
+            })?;
+        }
+    }
 
     if matches!(adt, Adt::Union(_))
         || GenericDef::Adt(adt)
@@ -381,6 +392,10 @@ fn lower_builtin<'db>(
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 pub(super) enum TypeLowerErrorUnsupported {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Unstable(#[from] UnstableItemError),
+
     #[error("the unstable parameter `{parameter}` of `{type_}` has a non-default argument")]
     #[diagnostic(
         code(rust_curse::unsupported_unstable_generic_argument),

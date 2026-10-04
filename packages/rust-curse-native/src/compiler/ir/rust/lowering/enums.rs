@@ -2,7 +2,9 @@ use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{Adt, GenericDef, GenericParam as HirGenericParam, HasAttrs as _};
 use thiserror::Error;
 
-use super::{adt_fqn, diagnostic_location, lower_item_span, lower_shape};
+use super::{
+    UnstableItemError, adt_fqn, check_stability, diagnostic_location, lower_item_span, lower_shape,
+};
 use crate::compiler::{
     db::Db,
     diag::DiagSource,
@@ -105,19 +107,32 @@ pub(super) fn lower_enum<'db>(
     db: &'db dyn Db,
     hir: ra_ap_hir::Enum,
 ) -> Result<Enum<'db>, Box<EnumLowerError>> {
-    if let Some(cause) = GenericDef::Adt(Adt::Enum(hir))
-        .params(db)
-        .into_iter()
-        .find_map(|param| match param {
-            HirGenericParam::ConstParam(_) => Some(EnumLowerCause::UnsupportedConstGeneric),
-            HirGenericParam::TypeParam(param)
-                if param.is_unstable(db) && param.default(db).is_none() =>
-            {
-                Some(EnumLowerCause::UnsupportedUnstableGeneric)
-            }
-            _ => None,
+    let cause = check_stability(db, hir, hir.module(db), || lower_item_span(db, hir))
+        .err()
+        .map(EnumLowerCause::Unstable)
+        .or_else(|| {
+            hir.variants(db).into_iter().find_map(|variant| {
+                check_stability(db, variant, hir.module(db), || lower_item_span(db, variant))
+                    .err()
+                    .map(EnumLowerCause::Unstable)
+            })
         })
-    {
+        .or_else(|| {
+            GenericDef::Adt(Adt::Enum(hir))
+                .params(db)
+                .into_iter()
+                .find_map(|param| match param {
+                    HirGenericParam::ConstParam(_) => Some(EnumLowerCause::UnsupportedConstGeneric),
+                    HirGenericParam::TypeParam(param)
+                        if param.is_unstable(db) && param.default(db).is_none() =>
+                    {
+                        Some(EnumLowerCause::UnsupportedUnstableGeneric)
+                    }
+                    _ => None,
+                })
+        });
+
+    if let Some(cause) = cause {
         let span = lower_item_span(db, hir);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
         return Err(Box::new(EnumLowerError {
@@ -146,6 +161,10 @@ pub(super) struct EnumLowerError {
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 enum EnumLowerCause {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Unstable(#[from] UnstableItemError),
+
     #[error("const-generic enums are not supported")]
     #[diagnostic(
         code(rust_curse::unsupported_const_generic_enum),

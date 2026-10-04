@@ -1,13 +1,14 @@
 use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{
     Access, AsAssocItem as _, AssocItemContainer, Function as HirFunction, GenericDef,
-    HasAttrs as _, HasSource as _,
+    GenericParam as HirGenericParam, HasAttrs as _, HasSource as _,
 };
 use ra_ap_syntax::AstNode as _;
 use thiserror::Error;
 
 use super::{
-    TypeLowerErrorUnsupported, diagnostic_location, function_fqn, lower_item_span, lower_type,
+    TypeLowerErrorUnsupported, UnstableItemError, check_stability, diagnostic_location,
+    function_fqn, lower_item_span, lower_type,
 };
 use crate::compiler::{
     db::Db,
@@ -117,6 +118,35 @@ pub(super) fn lower_function<'db>(
     db: &'db dyn Db,
     hir: HirFunction,
 ) -> Result<Function<'db>, Box<FunctionLowerError>> {
+    let unstable = check_stability(db, hir, hir.module(db), || lower_item_span(db, hir))
+        .err()
+        .or_else(|| {
+            GenericDef::Function(hir)
+                .params(db)
+                .into_iter()
+                .find_map(|param| match param {
+                    HirGenericParam::TypeParam(param)
+                        if param.is_unstable(db) && param.default(db).is_none() =>
+                    {
+                        check_stability(db, param, hir.module(db), || lower_item_span(db, hir))
+                            .err()
+                    }
+                    _ => None,
+                })
+        });
+
+    if let Some(error) = unstable {
+        let span = lower_item_span(db, hir);
+        let (source_code, span) = diagnostic_location(db, span.as_ref());
+
+        return Err(Box::new(FunctionLowerError {
+            fqn: function_fqn(db, hir),
+            source_code,
+            span,
+            causes: vec![FunctionLowerCause::Unstable(error)],
+        }));
+    }
+
     let mut causes = Vec::new();
 
     if hir.is_async(db) {
@@ -131,7 +161,7 @@ pub(super) fn lower_function<'db>(
     if GenericDef::Function(hir)
         .params(db)
         .iter()
-        .any(|param| matches!(param, ra_ap_hir::GenericParam::ConstParam(_)))
+        .any(|param| matches!(param, HirGenericParam::ConstParam(_)))
     {
         causes.push(FunctionLowerCause::UnsupportedGeneric);
     }
@@ -249,6 +279,10 @@ pub(super) struct FunctionLowerError {
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 enum FunctionLowerCause {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Unstable(#[from] UnstableItemError),
+
     #[error("async functions are not supported")]
     #[diagnostic(code(rust_curse::unsupported_async_fn), severity(Warning))]
     UnsupportedAsync,

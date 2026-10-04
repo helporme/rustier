@@ -2,7 +2,9 @@ use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{Adt, GenericDef, GenericParam as HirGenericParam, HasAttrs as _};
 use thiserror::Error;
 
-use super::{adt_fqn, diagnostic_location, lower_item_span, lower_shape};
+use super::{
+    UnstableItemError, adt_fqn, check_stability, diagnostic_location, lower_item_span, lower_shape,
+};
 use crate::compiler::{
     db::Db,
     diag::DiagSource,
@@ -62,19 +64,27 @@ pub(super) fn lower_struct<'db>(
     db: &'db dyn Db,
     hir: ra_ap_hir::Struct,
 ) -> Result<Struct<'db>, Box<StructLowerError>> {
-    if let Some(cause) = GenericDef::Adt(Adt::Struct(hir))
-        .params(db)
-        .into_iter()
-        .find_map(|param| match param {
-            HirGenericParam::ConstParam(_) => Some(StructLowerCause::UnsupportedConstGeneric),
-            HirGenericParam::TypeParam(param)
-                if param.is_unstable(db) && param.default(db).is_none() =>
-            {
-                Some(StructLowerCause::UnsupportedUnstableGeneric)
-            }
-            _ => None,
-        })
-    {
+    let cause = check_stability(db, hir, hir.module(db), || lower_item_span(db, hir))
+        .err()
+        .map(StructLowerCause::Unstable)
+        .or_else(|| {
+            GenericDef::Adt(Adt::Struct(hir))
+                .params(db)
+                .into_iter()
+                .find_map(|param| match param {
+                    HirGenericParam::ConstParam(_) => {
+                        Some(StructLowerCause::UnsupportedConstGeneric)
+                    }
+                    HirGenericParam::TypeParam(param)
+                        if param.is_unstable(db) && param.default(db).is_none() =>
+                    {
+                        Some(StructLowerCause::UnsupportedUnstableGeneric)
+                    }
+                    _ => None,
+                })
+        });
+
+    if let Some(cause) = cause {
         let span = lower_item_span(db, hir);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
         return Err(Box::new(StructLowerError {
@@ -103,6 +113,10 @@ pub(super) struct StructLowerError {
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 enum StructLowerCause {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Unstable(#[from] UnstableItemError),
+
     #[error("const-generic structs are not supported")]
     #[diagnostic(
         code(rust_curse::unsupported_const_generic_struct),

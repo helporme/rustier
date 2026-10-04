@@ -6,7 +6,10 @@ use ra_ap_hir::{
 use ra_ap_syntax::SyntaxKind;
 use thiserror::Error;
 
-use super::{TypeLowerErrorUnsupported, diagnostic_location, lower_item_span, lower_type};
+use super::{
+    TypeLowerErrorUnsupported, UnstableItemError, check_stability, diagnostic_location,
+    lower_item_span, lower_type,
+};
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
@@ -143,7 +146,23 @@ fn validate_field<'db>(
         return Ok(None);
     }
     let crate_ = field.parent_def(db).module(db).krate(db);
+
+    if let Err(error) = check_stability(db, field, field.parent_def(db).module(db), || {
+        lower_item_span(db, field)
+    }) {
+        let span = lower_item_span(db, field);
+        let (source_code, span) = diagnostic_location(db, span.as_ref());
+
+        return Err(Box::new(FieldLowerError {
+            field_name: field_name(db, field).to_string(),
+            source_code,
+            span,
+            causes: vec![FieldLowerCause::Unstable(error)],
+        }));
+    }
+
     let mut causes = Vec::new();
+
     if origin.hir(db).contains_reference(db) {
         causes.push(FieldLowerCause::BorrowedField);
     }
@@ -194,6 +213,10 @@ pub(super) struct FieldLowerError {
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 enum FieldLowerCause {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Unstable(#[from] UnstableItemError),
+
     #[error("fields containing borrowed values are not supported")]
     #[diagnostic(code(rust_curse::unsupported_borrowed_field), severity(Warning))]
     BorrowedField,

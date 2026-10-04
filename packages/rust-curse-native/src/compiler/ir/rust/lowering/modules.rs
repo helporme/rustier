@@ -1,6 +1,6 @@
 use ra_ap_hir::{Adt, HasAttrs as _, HasVisibility as _, ModuleDef, Visibility};
 
-use super::{file_path, lower_enum, lower_function, lower_span, lower_struct};
+use super::{check_stability, file_path, lower_enum, lower_function, lower_span, lower_struct};
 use crate::compiler::{
     db::Db,
     diag::DiagAccumulateExt as _,
@@ -35,10 +35,12 @@ impl<'db> Module<'db> {
             .into_iter()
             .filter(|item| item.visibility(db) == Visibility::Public)
             .filter_map(|item| match item {
-                ModuleDef::Module(module) => {
-                    let mod_ = Module::new(db, module);
-                    Some(Member::Module(mod_))
-                }
+                ModuleDef::Module(module) => check_stability(db, module, module, || {
+                    Module::new(db, module).span(db).cloned()
+                })
+                .map(|_| Member::Module(Module::new(db, module)))
+                .map_err(|error| error.accumulate(db))
+                .ok(),
                 ModuleDef::Function(function) => lower_function(db, function)
                     .map(|function| Member::Function(FunctionFree::new(db, function)))
                     .map_err(|error| (*error).accumulate(db))
