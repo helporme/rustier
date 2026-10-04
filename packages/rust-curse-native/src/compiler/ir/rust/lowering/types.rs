@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use miette::Diagnostic;
 use ra_ap_hir::{
     Adt, GenericDef, GenericParam as HirGenericParam, HirDisplay as _, Mutability, Trait,
@@ -39,11 +41,19 @@ pub(super) fn instantiate_type<'db>(
     source: HirType<'db>,
     args: impl IntoIterator<Item = HirType<'db>>,
 ) -> HirType<'db> {
-    let mut args = args.into_iter().peekable();
-    if args.peek().is_none() {
+    let args = args.into_iter().collect::<Vec<_>>();
+    if args.is_empty() {
         return source;
     }
-    let instantiated = source.instantiate(args);
+    let context = args
+        .iter()
+        .find(|context| {
+            args.iter()
+                .all(|arg| arg.try_rebase_into(db, context).is_some())
+        })
+        .unwrap_or(&source);
+    let instantiated =
+        source.instantiate(args.iter().map(|arg| arg.rebase_into_or_error(db, context)));
     instantiated
         .try_rebase_into(db, &source)
         .unwrap_or(instantiated)
@@ -171,6 +181,51 @@ pub(super) fn check_type(
 
 #[salsa::tracked]
 impl<'db> Type<'db> {
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_contains_borrowed_values(
+        self,
+        db: &'db dyn Db,
+    ) -> bool {
+        let mut pending = vec![self.hir(db)];
+        let mut visited = HashSet::new();
+
+        while let Some(type_) = pending.pop() {
+            if type_.is_reference() {
+                return true;
+            }
+
+            pending.extend(type_.type_arguments());
+            pending.extend(type_.tuple_fields(db));
+            pending.extend(type_.as_slice());
+            pending.extend(type_.as_array(db).map(|(inner, _)| inner));
+            pending.extend(type_.as_raw_ptr().map(|(inner, _)| inner));
+
+            if let Some(adt) = type_.as_adt()
+                && visited.insert(adt)
+            {
+                match adt {
+                    Adt::Struct(struct_) => {
+                        pending.extend(struct_.fields(db).into_iter().map(|field| field.ty(db)));
+                    }
+                    Adt::Enum(enum_) => {
+                        pending.extend(
+                            enum_
+                                .variants(db)
+                                .into_iter()
+                                .flat_map(|variant| variant.fields(db))
+                                .map(|field| field.ty(db)),
+                        );
+                    }
+                    Adt::Union(union) => {
+                        pending.extend(union.fields(db).into_iter().map(|field| field.ty(db)));
+                    }
+                }
+            }
+        }
+
+        false
+    }
+
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_is_clonable(self, db: &'db dyn Db) -> Option<bool> {
         is_clonable(db, &self.hir(db), self.origin(db).crate_(db))

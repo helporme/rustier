@@ -5,7 +5,7 @@ use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::{
-        rust::{AsItem as _, Callable, FunctionQualified, Receiver, Type, TypeKind},
+        rust::{AsItem as _, Callable, FunctionQualified, Type, TypeKind},
         shim::{ShimFunction, ShimFunctionAssociated, ShimFunctionFree},
     },
 };
@@ -20,7 +20,6 @@ impl<'db> Callable<'db> {
         let mut causes = Vec::new();
         let parameters = self
             .receiver_type(db)
-            .filter(|_| self.declaration(db).receiver(db) == Some(Receiver::Owned))
             .into_iter()
             .map(|type_| ("self", type_))
             .chain(
@@ -30,6 +29,13 @@ impl<'db> Callable<'db> {
             );
 
         for (name, type_) in parameters {
+            if type_.deborrow(db).contains_borrowed_values(db) {
+                causes.push(FunctionLowerCause::BorrowedParam {
+                    name: name.to_owned(),
+                    type_fqn: type_.display(db).to_owned(),
+                });
+                continue;
+            }
             if matches!(type_.kind(db), TypeKind::Struct(_) | TypeKind::Enum(_))
                 && type_.is_clonable(db) == Some(false)
             {
@@ -42,7 +48,7 @@ impl<'db> Callable<'db> {
 
         if self
             .ret_type(db)
-            .is_some_and(|type_| matches!(type_.kind(db), TypeKind::Borrowed(_)))
+            .is_some_and(|type_| type_.contains_borrowed_values(db))
         {
             causes.push(FunctionLowerCause::BorrowedReturn);
         }
@@ -110,6 +116,14 @@ pub(in crate::compiler::ir::shim) struct FunctionLowerError {
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 enum FunctionLowerCause {
+    #[error("the parameter `{name}` has type \"{type_fqn}\", which contains borrowed values")]
+    #[diagnostic(
+        code(rust_curse::borrowed_param),
+        help("use owned values inside the ADT; a reference to an owned ADT is supported"),
+        severity(Warning)
+    )]
+    BorrowedParam { name: String, type_fqn: String },
+
     #[error("the parameter `{name}` moves \"{type_fqn}\", which does not implement `Clone`")]
     #[diagnostic(
         code(rust_curse::non_clonable_moved_param),
@@ -121,7 +135,9 @@ enum FunctionLowerCause {
     #[error("functions cannot return borrowed values")]
     #[diagnostic(
         code(rust_curse::borrowed_return),
-        help("return an owned value instead, for example via `.to_owned()` or `.clone()`"),
+        help(
+            "return owned values, including inside ADTs; cloning an ADT containing references does not remove its borrows"
+        ),
         severity(Warning)
     )]
     BorrowedReturn,

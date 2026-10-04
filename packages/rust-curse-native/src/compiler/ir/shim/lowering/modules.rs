@@ -26,6 +26,7 @@ impl<'db> ShimModule<'db> {
                 Member::Struct(_) | Member::Enum(_) => lowered.extend(
                     usages
                         .types(db)
+                        .filter(|type_| !type_.contains_borrowed_values(db))
                         .filter_map(|type_| match (*member, type_.kind(db)) {
                             (Member::Struct(def), TypeKind::Struct(type_))
                                 if type_.def(db) == def =>
