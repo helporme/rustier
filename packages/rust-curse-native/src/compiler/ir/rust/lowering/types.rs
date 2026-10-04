@@ -11,8 +11,8 @@ use super::{UnstableItemError, check_stability, lower_item_span};
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        BorrowedType, Enum, EnumType, GenArg, Struct, StructType, Type, TypeKind, TypeOrigin,
-        TypeParam,
+        BorrowedType, Crate, Enum, EnumType, GenArg, Struct, StructType, Type, TypeKind,
+        TypeOrigin, TypeParam,
     },
 };
 
@@ -192,6 +192,14 @@ pub(super) fn check_type(
 
 #[salsa::tracked]
 impl<'db> Type<'db> {
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_is_from_alloc_crate(self, db: &'db dyn Db) -> bool {
+        self.hir(db)
+            .strip_references()
+            .as_adt()
+            .is_some_and(|adt| Crate::new(db, adt.module(db).krate(db)).name(db) == "alloc")
+    }
+
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_contains_borrowed_values(
         self,

@@ -32,6 +32,12 @@ pub enum Platform {
 impl<'db> Shim<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn render(self, db: &'db dyn Db, platform: Platform) -> String {
+        let alloc_import = self
+            .usages(db)
+            .types(db)
+            .any(|type_| type_.is_from_alloc_crate(db))
+            .then_some(frag!(extern crate alloc;@@));
+
         let members = spaced(
             self.crates(db)
                 .flat_map(|crate_| crate_.all_modules(db))
@@ -55,6 +61,7 @@ impl<'db> Shim<'db> {
 
         let shim = frag!(
             #![allow(unused_mut, dead_code, unused_imports, nonstandard_style, unreachable_patterns)]@@
+            {alloc_import}
             {platform.prelude()}@@
             {compile_tethering_prelude(platform)}@@
             {members}
