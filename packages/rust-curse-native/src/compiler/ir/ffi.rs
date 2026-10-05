@@ -6,6 +6,8 @@
 pub mod ext;
 mod lowering;
 
+use itertools::Either;
+
 use crate::compiler::{
     db::Db,
     ir::shim::{Shim, ShimClass, ShimFunction, ShimMember, ShimParam},
@@ -22,23 +24,30 @@ impl<'db> Ffi<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn symbols(self, db: &'db dyn Db) -> Vec<String> {
         let mut symbols = std::collections::BTreeSet::new();
+
         for member in self
             .shim(db)
             .crates(db)
             .flat_map(|crate_| crate_.all_modules(db))
             .flat_map(|module| module.members(db))
         {
-            match member {
-                ShimMember::Class(class) => {
-                    symbols.insert(class.ffi(db).symbol(db));
-                    symbols.extend(class.all_functions(db).iter().map(|f| f.ffi(db).symbol(db)));
-                }
+            let classes = match member {
+                ShimMember::Class(class) => Either::Left(std::iter::once(class)),
+                ShimMember::Template(template) => Either::Right(template.classes(db)),
                 ShimMember::Function(function) => {
                     symbols.insert(function.ffi(db).symbol(db));
+
+                    continue;
                 }
-                ShimMember::Module(_) => {}
+                ShimMember::Module(_) => continue,
+            };
+
+            for class in classes {
+                symbols.insert(class.ffi(db).symbol(db));
+                symbols.extend(class.all_functions(db).iter().map(|f| f.ffi(db).symbol(db)));
             }
         }
+
         symbols.into_iter().map(str::to_owned).collect()
     }
 }

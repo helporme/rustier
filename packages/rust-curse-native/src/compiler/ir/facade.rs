@@ -119,11 +119,24 @@ impl<'db> FacadeModule<'db> {
 
     /// All members defined in this module.
     pub fn members(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeMember<'db>> + 'db {
-        self.shim(db).members(db).map(|member| match member {
-            ShimMember::Class(class) => FacadeMember::Class(class.facade(db)),
-            ShimMember::Function(function) => FacadeMember::Function(function.facade(db)),
-            ShimMember::Module(module) => FacadeMember::Module(module.facade(db)),
-        })
+        self.shim(db)
+            .members(db)
+            .flat_map(move |member| match member {
+                ShimMember::Class(class) => {
+                    Either::Left(std::iter::once(FacadeMember::Class(class.facade(db))))
+                }
+                ShimMember::Template(template) => Either::Right(
+                    template
+                        .classes(db)
+                        .map(|class| FacadeMember::Class(class.facade(db))),
+                ),
+                ShimMember::Function(function) => {
+                    Either::Left(std::iter::once(FacadeMember::Function(function.facade(db))))
+                }
+                ShimMember::Module(module) => {
+                    Either::Left(std::iter::once(FacadeMember::Module(module.facade(db))))
+                }
+            })
     }
 
     /// Imports needed for this module.

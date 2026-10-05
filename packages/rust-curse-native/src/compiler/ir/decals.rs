@@ -119,11 +119,24 @@ impl<'db> DecalModule<'db> {
 
     /// Members defined in this module.
     pub fn members(self, db: &'db dyn Db) -> impl Iterator<Item = DecalMember<'db>> + 'db {
-        self.shim(db).members(db).map(|member| match member {
-            ShimMember::Class(class) => DecalMember::Class(class.decals(db)),
-            ShimMember::Function(function) => DecalMember::Function(function.decals(db)),
-            ShimMember::Module(module) => DecalMember::Module(module.decals(db)),
-        })
+        self.shim(db)
+            .members(db)
+            .flat_map(move |member| match member {
+                ShimMember::Class(class) => {
+                    Either::Left(std::iter::once(DecalMember::Class(class.decals(db))))
+                }
+                ShimMember::Template(template) => Either::Right(
+                    template
+                        .classes(db)
+                        .map(|class| DecalMember::Class(class.decals(db))),
+                ),
+                ShimMember::Function(function) => {
+                    Either::Left(std::iter::once(DecalMember::Function(function.decals(db))))
+                }
+                ShimMember::Module(module) => {
+                    Either::Left(std::iter::once(DecalMember::Module(module.decals(db))))
+                }
+            })
     }
 
     /// Imports needed for this module.

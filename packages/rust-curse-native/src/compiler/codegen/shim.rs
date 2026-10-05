@@ -6,7 +6,7 @@ use crate::compiler::{
         shim::tethering::compile_tethering_prelude,
     },
     db::Db,
-    ir::shim::{Shim, ShimFunction, ShimMember},
+    ir::shim::{Shim, ShimClass, ShimFunction, ShimMember},
 };
 
 mod cast;
@@ -38,19 +38,24 @@ impl<'db> Shim<'db> {
             .any(|type_| type_.is_from_alloc_crate(db))
             .then_some(frag!(extern crate alloc;@@));
 
+        let render_class = |class: ShimClass<'db>| {
+            std::iter::once(class.render(db, platform)).chain(
+                class
+                    .all_functions(db)
+                    .iter()
+                    .map(move |function| function.render(db, platform)),
+            )
+        };
+
         let members = spaced(
             self.crates(db)
                 .flat_map(|crate_| crate_.all_modules(db))
                 .flat_map(|module| module.members(db))
                 .flat_map(|member| match member {
-                    ShimMember::Class(shim_class) => Either::Left(
-                        std::iter::once(shim_class.render(db, platform)).chain(
-                            shim_class
-                                .all_functions(db)
-                                .iter()
-                                .map(|function| function.render(db, platform)),
-                        ),
-                    ),
+                    ShimMember::Class(class) => Either::Left(Either::Left(render_class(class))),
+                    ShimMember::Template(template) => {
+                        Either::Left(Either::Right(template.classes(db).flat_map(render_class)))
+                    }
                     ShimMember::Function(shim_function_free) => Either::Right(
                         Some(ShimFunction::from(shim_function_free).render(db, platform))
                             .into_iter(),

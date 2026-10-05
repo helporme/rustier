@@ -1,6 +1,8 @@
 //! Module for running checks on IR for spotting common (but not critical)
 //! mistakes and pitfalls when using rust-curse.
 
+use itertools::Either;
+
 use crate::compiler::{
     db::Db,
     diag::Diag,
@@ -33,36 +35,43 @@ fn accumulate_checks<'db>(db: &'db dyn Db, shim: Shim<'db>) {
 #[salsa::tracked]
 fn check_module<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
     for member in module.members(db) {
-        match member {
-            ShimMember::Class(class) => {
-                let _ = class.fields(db);
-                match class {
-                    ShimClass::Plain(class) => {
-                        let struct_ = class.src(db);
-                        struct_.check_coerce_name_collisions(db);
-                        struct_.check_coerce_requires_clone(db);
-                        struct_.check_f32_precision_loss(db);
-                        struct_.check_method_field_collisions(db);
-                    }
-                    ShimClass::Discriminated(class) => {
-                        let enum_ = class.src(db);
-                        enum_.check_coerce_name_collisions(db);
-                        enum_.check_coerce_requires_clone(db);
-                        enum_.check_f32_precision_loss(db);
-                        enum_.check_js_name_collisions(db);
-                        enum_.check_method_field_collisions(db);
-                    }
-                }
-                for method in class.methods(db) {
-                    method.src(db).check_f32_precision_loss(db);
-                    method.src(db).check_mutable_reference_ignored(db);
-                }
-            }
+        let classes = match member {
+            ShimMember::Class(class) => Either::Left(std::iter::once(class)),
+            ShimMember::Template(template) => Either::Right(template.classes(db)),
             ShimMember::Function(function) => {
                 function.src(db).check_f32_precision_loss(db);
                 function.src(db).check_mutable_reference_ignored(db);
+
+                continue;
             }
-            ShimMember::Module(_) => {}
+            ShimMember::Module(_) => continue,
+        };
+
+        for class in classes {
+            let _ = class.fields(db);
+
+            match class {
+                ShimClass::Plain(class) => {
+                    let struct_ = class.src(db);
+                    struct_.check_coerce_name_collisions(db);
+                    struct_.check_coerce_requires_clone(db);
+                    struct_.check_f32_precision_loss(db);
+                    struct_.check_method_field_collisions(db);
+                }
+                ShimClass::Discriminated(class) => {
+                    let enum_ = class.src(db);
+                    enum_.check_coerce_name_collisions(db);
+                    enum_.check_coerce_requires_clone(db);
+                    enum_.check_f32_precision_loss(db);
+                    enum_.check_js_name_collisions(db);
+                    enum_.check_method_field_collisions(db);
+                }
+            }
+
+            for method in class.methods(db) {
+                method.src(db).check_f32_precision_loss(db);
+                method.src(db).check_mutable_reference_ignored(db);
+            }
         }
     }
 }

@@ -3,7 +3,10 @@ use crate::compiler::{
     diag::DiagAccumulateExt as _,
     ir::{
         rust::{Member, TypeKind},
-        shim::{ShimClass, ShimFunction, ShimMember, ShimModule},
+        shim::{
+            ShimClass, ShimClassDiscriminatedTemplate, ShimClassPlainTemplate, ShimClassTemplate,
+            ShimFunction, ShimMember, ShimModule,
+        },
     },
 };
 
@@ -23,17 +26,29 @@ impl<'db> ShimModule<'db> {
         let mut lowered = vec![];
         for member in members {
             match *member {
+                Member::Struct(src) if !src.generic_params(db).is_empty() => {
+                    let template = ShimClassPlainTemplate::new(db, src, usages);
+
+                    lowered.push(ShimMember::Template(ShimClassTemplate::Plain(template)));
+                }
+                Member::Enum(src) if !src.generic_params(db).is_empty() => {
+                    let template = ShimClassDiscriminatedTemplate::new(db, src, usages);
+
+                    lowered.push(ShimMember::Template(ShimClassTemplate::Discriminated(
+                        template,
+                    )));
+                }
                 Member::Struct(_) | Member::Enum(_) => lowered.extend(
                     usages
                         .types(db)
                         .filter(|type_| !type_.contains_borrowed_values(db))
                         .filter_map(|type_| match (*member, type_.kind(db)) {
-                            (Member::Struct(def), TypeKind::Struct(type_))
-                                if type_.def(db) == def =>
+                            (Member::Struct(src), TypeKind::Struct(type_))
+                                if type_.def(db) == src =>
                             {
                                 Some(ShimClass::Plain(type_.shim(db)))
                             }
-                            (Member::Enum(def), TypeKind::Enum(type_)) if type_.def(db) == def => {
+                            (Member::Enum(src), TypeKind::Enum(type_)) if type_.def(db) == src => {
                                 Some(ShimClass::Discriminated(type_.shim(db)))
                             }
                             _ => None,

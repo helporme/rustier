@@ -13,11 +13,14 @@ mod lowering;
 
 use std::collections::VecDeque;
 
+use itertools::Either;
+
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Callable, Crate, EnumType, FieldName, FieldQualified, FunctionQualified, Module,
-        ModuleParent, Rust, StructType, Type, TypeKind, VariantQualified, usages::UsageGraph,
+        Callable, Crate, Enum, EnumType, FieldName, FieldQualified, FunctionQualified, Module,
+        ModuleParent, Rust, Struct, StructType, Type, TypeKind, VariantQualified,
+        usages::UsageGraph,
     },
 };
 
@@ -135,8 +138,17 @@ impl<'db> ShimModule<'db> {
 
     /// All reachable shim classes defined in the module.
     pub fn classes(self, db: &'db dyn Db) -> impl Iterator<Item = ShimClass<'db>> + 'db {
+        self.members(db).flat_map(move |member| match member {
+            ShimMember::Class(class) => Either::Left(Some(class).into_iter()),
+            ShimMember::Template(template) => Either::Right(template.classes(db)),
+            _ => Either::Left(None.into_iter()),
+        })
+    }
+
+    /// All reachable shim class templates defined in the module.
+    pub fn templates(self, db: &'db dyn Db) -> impl Iterator<Item = ShimClassTemplate<'db>> + 'db {
         self.members(db).filter_map(|member| match member {
-            ShimMember::Class(class) => Some(class),
+            ShimMember::Template(template) => Some(template),
             _ => None,
         })
     }
@@ -162,8 +174,69 @@ impl<'db> ShimModule<'db> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
 pub enum ShimMember<'db> {
     Class(ShimClass<'db>),
+    Template(ShimClassTemplate<'db>),
     Function(ShimFunctionFree<'db>),
     Module(ShimModule<'db>),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
+pub enum ShimClassTemplate<'db> {
+    Plain(ShimClassPlainTemplate<'db>),
+    Discriminated(ShimClassDiscriminatedTemplate<'db>),
+}
+
+impl<'db> ShimClassTemplate<'db> {
+    pub fn classes(self, db: &'db dyn Db) -> impl Iterator<Item = ShimClass<'db>> + 'db {
+        match self {
+            Self::Plain(template) => Either::Left(template.classes(db).map(ShimClass::Plain)),
+            Self::Discriminated(template) => {
+                Either::Right(template.classes(db).map(ShimClass::Discriminated))
+            }
+        }
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct ShimClassPlainTemplate<'db> {
+    pub src: Struct<'db>,
+    pub usages: UsageGraph<'db>,
+}
+
+impl<'db> ShimClassPlainTemplate<'db> {
+    pub fn classes(self, db: &'db dyn Db) -> impl Iterator<Item = ShimClassPlain<'db>> + 'db {
+        let src = self.src(db);
+
+        self.usages(db)
+            .types(db)
+            .filter(|type_| !type_.contains_borrowed_values(db))
+            .filter_map(move |type_| match type_.kind(db) {
+                TypeKind::Struct(type_) if type_.def(db) == src => Some(type_.shim(db)),
+                _ => None,
+            })
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct ShimClassDiscriminatedTemplate<'db> {
+    pub src: Enum<'db>,
+    pub usages: UsageGraph<'db>,
+}
+
+impl<'db> ShimClassDiscriminatedTemplate<'db> {
+    pub fn classes(
+        self,
+        db: &'db dyn Db,
+    ) -> impl Iterator<Item = ShimClassDiscriminated<'db>> + 'db {
+        let src = self.src(db);
+
+        self.usages(db)
+            .types(db)
+            .filter(|type_| !type_.contains_borrowed_values(db))
+            .filter_map(move |type_| match type_.kind(db) {
+                TypeKind::Enum(type_) if type_.def(db) == src => Some(type_.shim(db)),
+                _ => None,
+            })
+    }
 }
 
 /// A rust ADT represented as a class which is a more friendly representation
