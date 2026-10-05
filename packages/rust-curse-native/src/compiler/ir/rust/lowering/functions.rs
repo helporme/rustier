@@ -7,8 +7,8 @@ use ra_ap_syntax::AstNode as _;
 use thiserror::Error;
 
 use super::{
-    TypeLowerErrorUnsupported, UnstableItemError, check_stability, diagnostic_location,
-    function_fqn, lower_item_span, lower_type,
+    TypeLowerErrorUnsupported, diagnostic_location, function_fqn, is_stable, lower_item_span,
+    lower_type,
 };
 use crate::compiler::{
     db::Db,
@@ -118,33 +118,13 @@ pub(super) fn lower_function<'db>(
     db: &'db dyn Db,
     hir: HirFunction,
 ) -> Result<Function<'db>, Box<FunctionLowerError>> {
-    let unstable = check_stability(db, hir, hir.module(db), || lower_item_span(db, hir))
-        .err()
-        .or_else(|| {
-            GenericDef::Function(hir)
-                .params(db)
-                .into_iter()
-                .find_map(|param| match param {
-                    HirGenericParam::TypeParam(param)
-                        if param.is_unstable(db) && param.default(db).is_none() =>
-                    {
-                        check_stability(db, param, hir.module(db), || lower_item_span(db, hir))
-                            .err()
-                    }
-                    _ => None,
-                })
-        });
-
-    if let Some(error) = unstable {
-        let span = lower_item_span(db, hir);
-        let (source_code, span) = diagnostic_location(db, span.as_ref());
-
-        return Err(Box::new(FunctionLowerError {
-            fqn: function_fqn(db, hir),
-            source_code,
-            span,
-            causes: vec![FunctionLowerCause::Unstable(error)],
-        }));
+    if !is_stable(db, hir, hir.module(db))
+        || GenericDef::Function(hir).params(db).iter().any(|param| {
+            matches!(param, HirGenericParam::TypeParam(param)
+                if param.is_unstable(db) && param.default(db).is_none())
+        })
+    {
+        return Err(Box::new(FunctionLowerError::Unstable));
     }
 
     let mut causes = Vec::new();
@@ -181,21 +161,11 @@ pub(super) fn lower_function<'db>(
         }
     }
 
-    check_function_substituted(db, hir, &[], &mut causes);
-
-    if causes.is_empty() {
-        Ok(Function::new(db, hir))
-    } else {
-        let span = lower_item_span(db, hir);
-        let (source_code, span) = diagnostic_location(db, span.as_ref());
-
-        Err(Box::new(FunctionLowerError {
-            fqn: function_fqn(db, hir),
-            source_code,
-            span,
-            causes,
-        }))
+    if let Some(error) = check_function_substituted(db, hir, &[], causes) {
+        return Err(Box::new(error));
     }
+
+    Ok(Function::new(db, hir))
 }
 
 pub(super) fn lower_inherent_function<'db>(
@@ -204,38 +174,31 @@ pub(super) fn lower_inherent_function<'db>(
     impl_: ImplInherent<'db>,
 ) -> Result<FunctionInherent<'db>, Box<FunctionLowerError>> {
     let declaration = lower_function(db, hir)?;
-    let mut causes = Vec::new();
 
-    check_function_substituted(db, hir, &impl_.partial_type_args(db), &mut causes);
-
-    if causes.is_empty() {
-        Ok(FunctionInherent::new(db, declaration, impl_))
-    } else {
-        let span = lower_item_span(db, hir);
-        let (source_code, span) = diagnostic_location(db, span.as_ref());
-
-        Err(Box::new(FunctionLowerError {
-            fqn: function_fqn(db, hir),
-            source_code,
-            span,
-            causes,
-        }))
+    if let Some(error) =
+        check_function_substituted(db, hir, &impl_.partial_type_args(db), Vec::new())
+    {
+        return Err(Box::new(error));
     }
+
+    Ok(FunctionInherent::new(db, declaration, impl_))
 }
 
 fn check_function_substituted<'db>(
     db: &'db dyn Db,
     hir: HirFunction,
     type_args: &[ra_ap_hir::Type<'db>],
-    causes: &mut Vec<FunctionLowerCause>,
-) {
+    mut causes: Vec<FunctionLowerCause>,
+) -> Option<FunctionLowerError> {
     let crate_ = hir.module(db).krate(db);
     let check_type = |type_: &ra_ap_hir::Type<'db>| super::types::check_type(db, type_, crate_);
 
     if let Some(receiver) = hir.self_param(db) {
         let receiver_type = super::instantiate_type(db, receiver.ty(db), type_args.iter().cloned());
-        if let Err(error) = check_type(&receiver_type) {
-            causes.push(FunctionLowerCause::Type(error));
+        match check_type(&receiver_type) {
+            Ok(()) => {}
+            Err(TypeLowerErrorUnsupported::Unstable) => return Some(FunctionLowerError::Unstable),
+            Err(error) => causes.push(FunctionLowerCause::Type(error)),
         }
     }
 
@@ -247,42 +210,63 @@ fn check_function_substituted<'db>(
 
         let parameter_type =
             super::instantiate_type(db, param.ty().clone(), type_args.iter().cloned());
-        if let Err(error) = check_type(&parameter_type) {
-            causes.push(FunctionLowerCause::UnsupportedParam {
-                name,
-                causes: vec![error],
-            });
-            continue;
+
+        match check_type(&parameter_type) {
+            Ok(()) => {}
+            Err(TypeLowerErrorUnsupported::Unstable) => return Some(FunctionLowerError::Unstable),
+            Err(error) => {
+                causes.push(FunctionLowerCause::UnsupportedParam {
+                    name,
+                    causes: vec![error],
+                });
+            }
         }
     }
 
     let return_type = super::instantiate_type(db, hir.ret_type(db), type_args.iter().cloned());
-    if !return_type.is_unit()
-        && let Err(error) = check_type(&return_type)
-    {
-        causes.push(FunctionLowerCause::Type(error));
+    if !return_type.is_unit() {
+        match check_type(&return_type) {
+            Ok(()) => {}
+            Err(TypeLowerErrorUnsupported::Unstable) => return Some(FunctionLowerError::Unstable),
+            Err(error) => causes.push(FunctionLowerCause::Type(error)),
+        }
     }
+
+    if causes.is_empty() {
+        return None;
+    }
+
+    let span = lower_item_span(db, hir);
+    let (source_code, span) = diagnostic_location(db, span.as_ref());
+
+    Some(FunctionLowerError::Unsupported {
+        fqn: function_fqn(db, hir),
+        source_code,
+        span,
+        causes,
+    })
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
-#[error("the function \"{fqn}\" cannot be exported to JS")]
-#[diagnostic(code(rust_curse::skipped_fn), severity(Warning))]
-pub(super) struct FunctionLowerError {
-    fqn: String,
-    #[source_code]
-    source_code: DiagSource,
-    #[label]
-    span: Option<SourceSpan>,
-    #[related]
-    causes: Vec<FunctionLowerCause>,
+pub(super) enum FunctionLowerError {
+    #[error("unstable items are not supported")]
+    Unstable,
+
+    #[error("the function \"{fqn}\" cannot be exported to JS")]
+    #[diagnostic(code(rust_curse::skipped_fn), severity(Warning))]
+    Unsupported {
+        fqn: String,
+        #[source_code]
+        source_code: DiagSource,
+        #[label]
+        span: Option<SourceSpan>,
+        #[related]
+        causes: Vec<FunctionLowerCause>,
+    },
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
-enum FunctionLowerCause {
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    Unstable(#[from] UnstableItemError),
-
+pub(super) enum FunctionLowerCause {
     #[error("async functions are not supported")]
     #[diagnostic(code(rust_curse::unsupported_async_fn), severity(Warning))]
     UnsupportedAsync,

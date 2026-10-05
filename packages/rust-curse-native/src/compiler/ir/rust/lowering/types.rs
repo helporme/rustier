@@ -7,7 +7,7 @@ use ra_ap_hir::{
 };
 use thiserror::Error;
 
-use super::{UnstableItemError, check_stability, lower_item_span};
+use super::is_stable;
 use crate::compiler::{
     db::Db,
     ir::rust::{
@@ -129,40 +129,41 @@ pub(super) fn check_type(
         });
     };
 
-    check_stability(db, adt, adt.module(db), || lower_item_span(db, adt))?;
+    if !is_stable(db, adt, adt.module(db)) {
+        return Err(TypeLowerErrorUnsupported::Unstable);
+    }
 
     if let Adt::Enum(enum_) = adt {
         for variant in enum_.variants(db) {
-            check_stability(db, variant, enum_.module(db), || {
-                lower_item_span(db, variant)
-            })?;
+            if !is_stable(db, variant, enum_.module(db)) {
+                return Err(TypeLowerErrorUnsupported::Unstable);
+            }
         }
     }
 
+    let params = GenericDef::Adt(adt).params(db);
+
+    if params.iter().any(|param| {
+        matches!(param, HirGenericParam::TypeParam(param)
+            if param.is_unstable(db) && param.default(db).is_none())
+    }) {
+        return Err(TypeLowerErrorUnsupported::Unstable);
+    }
+
     if matches!(adt, Adt::Union(_))
-        || GenericDef::Adt(adt)
-            .params(db)
+        || params
             .iter()
-            .any(|param| match param {
-                HirGenericParam::ConstParam(_) => true,
-                HirGenericParam::TypeParam(param) => {
-                    param.is_unstable(db) && param.default(db).is_none()
-                }
-                _ => false,
-            })
+            .any(|param| matches!(param, HirGenericParam::ConstParam(_)))
     {
         return Err(TypeLowerErrorUnsupported::Type {
             type_: type_.display(db, crate_.to_display_target(db)).to_string(),
         });
     }
 
-    let params = GenericDef::Adt(adt)
-        .params(db)
-        .into_iter()
-        .filter_map(|param| match param {
-            HirGenericParam::TypeParam(param) => Some(param),
-            _ => None,
-        });
+    let params = params.into_iter().filter_map(|param| match param {
+        HirGenericParam::TypeParam(param) => Some(param),
+        _ => None,
+    });
 
     for (index, (arg, param)) in type_.type_arguments().zip(params).enumerate() {
         if param.is_unstable(db)
@@ -177,10 +178,7 @@ pub(super) fn check_type(
                     .try_rebase_into(db, &arg)
                     .is_some_and(|default| !arg.could_unify_with(db, &default))
             {
-                return Err(TypeLowerErrorUnsupported::UnstableArgument {
-                    parameter: param.name(db).display(db, crate_.edition(db)).to_string(),
-                    type_: type_.display(db, crate_.to_display_target(db)).to_string(),
-                });
+                return Err(TypeLowerErrorUnsupported::Unstable);
             }
         } else {
             check_type(db, &arg, crate_)?;
@@ -400,19 +398,8 @@ fn lower_builtin<'db>(
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 pub(super) enum TypeLowerErrorUnsupported {
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    Unstable(#[from] UnstableItemError),
-
-    #[error("the unstable parameter `{parameter}` of `{type_}` has a non-default argument")]
-    #[diagnostic(
-        code(rust_curse::unsupported_unstable_generic_argument),
-        help(
-            "#[unstable] generic parameters must have a default type and use that default; use the default argument, change the parameter's default type, or remove #[unstable]"
-        ),
-        severity(Warning)
-    )]
-    UnstableArgument { parameter: String, type_: String },
+    #[error("unstable items are not supported")]
+    Unstable,
 
     #[error("unsupported type: {type_}")]
     #[diagnostic(code(rust_curse::unsupported_type), severity(Warning))]

@@ -7,7 +7,6 @@ mod generics;
 mod impls;
 mod modules;
 mod shapes;
-mod stability;
 mod structs;
 mod type_impls;
 mod types;
@@ -18,12 +17,11 @@ use self::{
     functions::lower_function,
     impls::lower_impl,
     shapes::lower_shape,
-    stability::{UnstableItemError, check_stability},
     structs::lower_struct,
     types::{TypeLowerErrorUnsupported, instantiate_adt_type, instantiate_type, lower_type},
 };
 use miette::SourceSpan;
-use ra_ap_hir::{Adt, GenericParam as HirGenericParam, HirDisplay as _};
+use ra_ap_hir::{Adt, GenericParam as HirGenericParam, HasAttrs, HirDisplay as _};
 
 use super::{Crate, Function, FunctionParent, GenArg, GenericParam, Rust, Span, TypeOrigin};
 use crate::compiler::{db::Db, diag::DiagSource, path::FilePath};
@@ -123,6 +121,15 @@ impl<'db> Rust<'db> {
                 .collect::<Vec<_>>(),
         )
     }
+}
+
+pub(super) fn is_stable(db: &dyn Db, hir: impl HasAttrs + Copy, module: ra_ap_hir::Module) -> bool {
+    if hir.attrs(db).is_unstable() {
+        return false;
+    }
+
+    !std::iter::successors(Some(module), |module| module.parent(db))
+        .any(|module| module.attrs(db).is_unstable())
 }
 
 pub(super) fn function_fqn(db: &dyn Db, function: ra_ap_hir::Function) -> String {

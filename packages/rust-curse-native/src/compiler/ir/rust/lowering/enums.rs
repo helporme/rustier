@@ -2,9 +2,7 @@ use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{Adt, GenericDef, GenericParam as HirGenericParam, HasAttrs as _};
 use thiserror::Error;
 
-use super::{
-    UnstableItemError, adt_fqn, check_stability, diagnostic_location, lower_item_span, lower_shape,
-};
+use super::{adt_fqn, diagnostic_location, is_stable, lower_item_span, lower_shape};
 use crate::compiler::{
     db::Db,
     diag::DiagSource,
@@ -107,39 +105,33 @@ pub(super) fn lower_enum<'db>(
     db: &'db dyn Db,
     hir: ra_ap_hir::Enum,
 ) -> Result<Enum<'db>, Box<EnumLowerError>> {
-    let cause = check_stability(db, hir, hir.module(db), || lower_item_span(db, hir))
-        .err()
-        .map(EnumLowerCause::Unstable)
-        .or_else(|| {
-            hir.variants(db).into_iter().find_map(|variant| {
-                check_stability(db, variant, hir.module(db), || lower_item_span(db, variant))
-                    .err()
-                    .map(EnumLowerCause::Unstable)
-            })
-        })
-        .or_else(|| {
-            GenericDef::Adt(Adt::Enum(hir))
-                .params(db)
-                .into_iter()
-                .find_map(|param| match param {
-                    HirGenericParam::ConstParam(_) => Some(EnumLowerCause::UnsupportedConstGeneric),
-                    HirGenericParam::TypeParam(param)
-                        if param.is_unstable(db) && param.default(db).is_none() =>
-                    {
-                        Some(EnumLowerCause::UnsupportedUnstableGeneric)
-                    }
-                    _ => None,
-                })
-        });
+    let params = GenericDef::Adt(Adt::Enum(hir)).params(db);
 
-    if let Some(cause) = cause {
+    if !is_stable(db, hir, hir.module(db))
+        || hir
+            .variants(db)
+            .into_iter()
+            .any(|variant| !is_stable(db, variant, hir.module(db)))
+        || params.iter().any(|param| {
+            matches!(param, HirGenericParam::TypeParam(param)
+                if param.is_unstable(db) && param.default(db).is_none())
+        })
+    {
+        return Err(Box::new(EnumLowerError::Unstable));
+    }
+
+    if params
+        .iter()
+        .any(|param| matches!(param, HirGenericParam::ConstParam(_)))
+    {
         let span = lower_item_span(db, hir);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
-        return Err(Box::new(EnumLowerError {
+
+        return Err(Box::new(EnumLowerError::Unsupported {
             fqn: adt_fqn(db, Adt::Enum(hir)),
             source_code,
             span,
-            causes: vec![cause],
+            causes: vec![EnumLowerCause::UnsupportedConstGeneric],
         }));
     }
 
@@ -147,24 +139,25 @@ pub(super) fn lower_enum<'db>(
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
-#[error("the enum \"{fqn}\" cannot be exported to JS")]
-#[diagnostic(code(rust_curse::skipped_enum), severity(Warning))]
-pub(super) struct EnumLowerError {
-    fqn: String,
-    #[source_code]
-    source_code: DiagSource,
-    #[label]
-    span: Option<SourceSpan>,
-    #[related]
-    causes: Vec<EnumLowerCause>,
+pub(super) enum EnumLowerError {
+    #[error("unstable items are not supported")]
+    Unstable,
+
+    #[error("the enum \"{fqn}\" cannot be exported to JS")]
+    #[diagnostic(code(rust_curse::skipped_enum), severity(Warning))]
+    Unsupported {
+        fqn: String,
+        #[source_code]
+        source_code: DiagSource,
+        #[label]
+        span: Option<SourceSpan>,
+        #[related]
+        causes: Vec<EnumLowerCause>,
+    },
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
-enum EnumLowerCause {
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    Unstable(#[from] UnstableItemError),
-
+pub(super) enum EnumLowerCause {
     #[error("const-generic enums are not supported")]
     #[diagnostic(
         code(rust_curse::unsupported_const_generic_enum),
@@ -172,12 +165,4 @@ enum EnumLowerCause {
         severity(Warning)
     )]
     UnsupportedConstGeneric,
-
-    #[error("unstable generic parameters without default types are not supported")]
-    #[diagnostic(
-        code(rust_curse::unsupported_unstable_generic),
-        help("specify a default type for the #[unstable] generic parameter or remove #[unstable]"),
-        severity(Warning)
-    )]
-    UnsupportedUnstableGeneric,
 }

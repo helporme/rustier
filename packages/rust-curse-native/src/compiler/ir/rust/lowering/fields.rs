@@ -7,8 +7,7 @@ use ra_ap_syntax::SyntaxKind;
 use thiserror::Error;
 
 use super::{
-    TypeLowerErrorUnsupported, UnstableItemError, check_stability, diagnostic_location,
-    lower_item_span, lower_type,
+    TypeLowerErrorUnsupported, diagnostic_location, is_stable, lower_item_span, lower_type,
 };
 use crate::compiler::{
     db::Db,
@@ -55,7 +54,11 @@ fn lower_qualified_field<'db>(
 ) -> Option<FieldQualified<'db>> {
     let field = FieldQualified::new(db, Field::new(db, hir), target);
     validate_field(db, hir, TypeOrigin::QualifiedField(field))
-        .map_err(|error| (*error).accumulate(db))
+        .map_err(|error| {
+            if matches!(*error, FieldLowerError::Unsupported { .. }) {
+                (*error).accumulate(db);
+            }
+        })
         .ok()
         .flatten()
         .map(|_| field)
@@ -147,18 +150,8 @@ fn validate_field<'db>(
     }
     let crate_ = field.parent_def(db).module(db).krate(db);
 
-    if let Err(error) = check_stability(db, field, field.parent_def(db).module(db), || {
-        lower_item_span(db, field)
-    }) {
-        let span = lower_item_span(db, field);
-        let (source_code, span) = diagnostic_location(db, span.as_ref());
-
-        return Err(Box::new(FieldLowerError {
-            field_name: field_name(db, field).to_string(),
-            source_code,
-            span,
-            causes: vec![FieldLowerCause::Unstable(error)],
-        }));
+    if !is_stable(db, field, field.parent_def(db).module(db)) {
+        return Err(Box::new(FieldLowerError::Unstable));
     }
 
     let mut causes = Vec::new();
@@ -168,6 +161,9 @@ fn validate_field<'db>(
     }
     let lowered_type = match lower_type(db, origin, crate_) {
         Ok(type_) => Some(type_.deborrow(db)),
+        Err(TypeLowerErrorUnsupported::Unstable) => {
+            return Err(Box::new(FieldLowerError::Unstable));
+        }
         Err(error) => {
             causes.push(FieldLowerCause::Type(error));
             None
@@ -176,7 +172,8 @@ fn validate_field<'db>(
     if !causes.is_empty() {
         let span = lower_item_span(db, field);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
-        return Err(Box::new(FieldLowerError {
+
+        return Err(Box::new(FieldLowerError::Unsupported {
             field_name: field_name(db, field).to_string(),
             source_code,
             span,
@@ -199,24 +196,25 @@ fn field_name(db: &dyn Db, field: ra_ap_hir::Field) -> FieldName {
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
-#[error("the field \"{field_name}\" cannot be exported to JS")]
-#[diagnostic(code(rust_curse::skipped_field), severity(Warning))]
-pub(super) struct FieldLowerError {
-    field_name: String,
-    #[source_code]
-    source_code: DiagSource,
-    #[label]
-    span: Option<SourceSpan>,
-    #[related]
-    causes: Vec<FieldLowerCause>,
+pub(super) enum FieldLowerError {
+    #[error("unstable items are not supported")]
+    Unstable,
+
+    #[error("the field \"{field_name}\" cannot be exported to JS")]
+    #[diagnostic(code(rust_curse::skipped_field), severity(Warning))]
+    Unsupported {
+        field_name: String,
+        #[source_code]
+        source_code: DiagSource,
+        #[label]
+        span: Option<SourceSpan>,
+        #[related]
+        causes: Vec<FieldLowerCause>,
+    },
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
-enum FieldLowerCause {
-    #[error(transparent)]
-    #[diagnostic(transparent)]
-    Unstable(#[from] UnstableItemError),
-
+pub(super) enum FieldLowerCause {
     #[error("fields containing borrowed values are not supported")]
     #[diagnostic(code(rust_curse::unsupported_borrowed_field), severity(Warning))]
     BorrowedField,

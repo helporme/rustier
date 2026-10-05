@@ -5,7 +5,10 @@ use ra_ap_hir::{
     TypeParam as HirTypeParam, Visibility,
 };
 
-use super::{check_stability, functions::lower_inherent_function, lower_function, lower_item_span};
+use super::{
+    functions::{FunctionLowerError, lower_inherent_function},
+    is_stable, lower_function, lower_item_span,
+};
 use crate::compiler::{
     db::Db,
     diag::DiagAccumulateExt as _,
@@ -38,7 +41,11 @@ impl<'db> Impl<'db> {
             })
             .filter_map(|function| {
                 lower_function(db, function)
-                    .map_err(|error| (*error).accumulate(db))
+                    .map_err(|error| {
+                        if matches!(*error, FunctionLowerError::Unsupported { .. }) {
+                            (*error).accumulate(db);
+                        }
+                    })
                     .ok()
             })
             .collect()
@@ -88,7 +95,11 @@ impl<'db> ImplInherent<'db> {
             .filter_map(|item| match item {
                 AssocItem::Function(function) if function.visibility(db) == Visibility::Public => {
                     lower_inherent_function(db, function, self)
-                        .map_err(|error| (*error).accumulate(db))
+                        .map_err(|error| {
+                            if matches!(*error, FunctionLowerError::Unsupported { .. }) {
+                                (*error).accumulate(db);
+                            }
+                        })
                         .ok()
                 }
                 _ => None,
@@ -110,25 +121,12 @@ pub(super) fn lower_impl<'db>(db: &'db dyn Db, hir: ra_ap_hir::Impl) -> Option<I
         return None;
     }
 
-    let unstable = check_stability(db, hir, hir.module(db), || lower_item_span(db, hir))
-        .err()
-        .or_else(|| {
-            GenericDef::Impl(hir)
-                .params(db)
-                .into_iter()
-                .find_map(|param| match param {
-                    GenericParam::TypeParam(param)
-                        if param.is_unstable(db) && param.default(db).is_none() =>
-                    {
-                        check_stability(db, param, hir.module(db), || lower_item_span(db, hir))
-                            .err()
-                    }
-                    _ => None,
-                })
-        });
-
-    if let Some(error) = unstable {
-        error.accumulate(db);
+    if !is_stable(db, hir, hir.module(db))
+        || GenericDef::Impl(hir).params(db).iter().any(|param| {
+            matches!(param, GenericParam::TypeParam(param)
+                if param.is_unstable(db) && param.default(db).is_none())
+        })
+    {
         return None;
     }
 

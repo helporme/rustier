@@ -2,7 +2,7 @@ use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::StructKind;
 use thiserror::Error;
 
-use super::{diagnostic_location, lower_field};
+use super::{FieldLowerError, diagnostic_location, lower_field};
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
@@ -24,7 +24,10 @@ pub(super) fn lower_shape<'db>(
                 .map(|field| match lower_field(db, field) {
                     Ok(field) => field,
                     Err(error) => {
-                        errors.push(*error);
+                        if matches!(*error, FieldLowerError::Unsupported { .. }) {
+                            errors.push(*error);
+                        }
+
                         None
                     }
                 })
@@ -37,7 +40,10 @@ pub(super) fn lower_shape<'db>(
                 .filter_map(|field| match lower_field(db, field) {
                     Ok(field) => field,
                     Err(error) => {
-                        errors.push(*error);
+                        if matches!(*error, FieldLowerError::Unsupported { .. }) {
+                            errors.push(*error);
+                        }
+
                         None
                     }
                 })
