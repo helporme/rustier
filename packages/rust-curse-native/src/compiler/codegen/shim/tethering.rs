@@ -47,11 +47,14 @@
 //! ```
 //! This ignores the fact that we can deadlock ourselves.
 //!
-//! However, it is not reasonable for rust-curse to use this design.
-//! It implies that we need to generate a "binding struct" that contains all the
-//! same fields as the source struct and wrap all non-copy fields in
-//! `Arc<Mutex<T>>`. It's enough to say that it's impossible to do for private
-//! fields.
+//! However, it is impractical for rust-curse to use this design.
+//! It would require generating a "binding struct" with the same fields as the
+//! source struct, but with all non-copy fields wrapped in `Arc<Mutex<T>>`.
+//! We cannot pass the binding struct directly to the source code, so we would
+//! need to convert it back to the source struct. This conversion breaks, for
+//! example, mutable borrowing through `&mut` references. Other libraries use
+//! macros to transform the source struct in place, but rust-curse should work
+//! with unannotated Rust code.
 //!
 //! Instead, we introduce the concept that we **clone** values on
 //! move. With this constraint, we can expose fields that hold struct (like
