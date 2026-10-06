@@ -132,7 +132,7 @@ where
                 frag!(
                     constructor(token) {{
                         if (token !== ~{class_name}.#_construction_token) {{
-                            throw new TypeError("rust-backed structs cannot be constructed directly (yet)");
+                            throw new TypeError("rust-backed structs cannot be constructed directly");
                         }}
                     }}
                 )

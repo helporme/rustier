@@ -4,7 +4,10 @@ use thiserror::Error;
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
-    ir::rust::{AsItem as _, EnumType, StructType, Type},
+    ir::{
+        rust::{AsItem as _, EnumType, StructType, Type},
+        shim::ShimFunctionAssociated,
+    },
 };
 
 #[salsa::tracked]
@@ -24,7 +27,18 @@ impl<'db> EnumType<'db> {
 }
 
 fn check_method_field_collisions<'db>(db: &'db dyn Db, target: Type<'db>) {
-    for method in target.lower_methods(db) {
+    let methods = target
+        .impls(db)
+        .iter()
+        .flat_map(|impl_| impl_.functions(db))
+        .filter(|function| {
+            let declaration = function.declaration(db);
+            declaration.receiver(db).is_some() || declaration.name(db) != "prototype"
+        })
+        .filter_map(|function| function.as_callible(db))
+        .map(|callable| ShimFunctionAssociated::new(db, callable));
+
+    for method in methods {
         if !method.is_shadowed_by_field(db) {
             continue;
         }

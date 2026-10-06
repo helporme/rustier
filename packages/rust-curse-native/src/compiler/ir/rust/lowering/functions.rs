@@ -1,7 +1,7 @@
 use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{
     Access, AsAssocItem as _, AssocItemContainer, Function as HirFunction, GenericDef,
-    GenericParam as HirGenericParam, HasAttrs as _, HasSource as _,
+    GenericParam as HirGenericParam, HasAttrs as _, HasSource as _, HirDisplay as _,
 };
 use ra_ap_syntax::AstNode as _;
 use thiserror::Error;
@@ -9,6 +9,7 @@ use thiserror::Error;
 use super::{
     TypeLowerErrorUnsupported, diagnostic_location, function_fqn, is_stable, lower_item_span,
     lower_type,
+    types::{contains_borrowed_values, is_clonable, is_string},
 };
 use crate::compiler::{
     db::Db,
@@ -192,28 +193,50 @@ fn check_function_substituted<'db>(
 ) -> Option<FunctionLowerError> {
     let crate_ = hir.module(db).krate(db);
     let check_type = |type_: &ra_ap_hir::Type<'db>| super::types::check_type(db, type_, crate_);
+    let parameters = hir
+        .self_param(db)
+        .map(|receiver| ("self".to_owned(), receiver.ty(db)))
+        .into_iter()
+        .chain(
+            hir.params_without_self(db)
+                .into_iter()
+                .enumerate()
+                .map(|(index, param)| {
+                    let name = param
+                        .name(db)
+                        .map(|name| name.display(db, crate_.edition(db)).to_string())
+                        .unwrap_or_else(|| format!("arg{index}"));
 
-    if let Some(receiver) = hir.self_param(db) {
-        let receiver_type = super::instantiate_type(db, receiver.ty(db), type_args.iter().cloned());
-        match check_type(&receiver_type) {
-            Ok(()) => {}
-            Err(TypeLowerErrorUnsupported::Unstable) => return Some(FunctionLowerError::Unstable),
-            Err(error) => causes.push(FunctionLowerCause::Type(error)),
-        }
-    }
+                    (name, param.ty().clone())
+                }),
+        );
 
-    for (index, param) in hir.params_without_self(db).into_iter().enumerate() {
-        let name = param
-            .name(db)
-            .map(|name| name.display(db, crate_.edition(db)).to_string())
-            .unwrap_or_else(|| format!("arg{index}"));
-
-        let parameter_type =
-            super::instantiate_type(db, param.ty().clone(), type_args.iter().cloned());
+    for (name, type_) in parameters {
+        let parameter_type = super::instantiate_type(db, type_, type_args.iter().cloned());
 
         match check_type(&parameter_type) {
+            Ok(())
+                if parameter_type.as_adt().is_some()
+                    && !is_string(db, &parameter_type, crate_)
+                    && is_clonable(db, &parameter_type, crate_) == Some(false) =>
+            {
+                causes.push(FunctionLowerCause::NonClonableMovedParam {
+                    name,
+                    type_fqn: parameter_type
+                        .display(db, crate_.to_display_target(db))
+                        .to_string(),
+                });
+            }
             Ok(()) => {}
             Err(TypeLowerErrorUnsupported::Unstable) => return Some(FunctionLowerError::Unstable),
+            Err(TypeLowerErrorUnsupported::BorrowedValues { .. }) => {
+                causes.push(FunctionLowerCause::BorrowedParam {
+                    name,
+                    type_fqn: parameter_type
+                        .display(db, crate_.to_display_target(db))
+                        .to_string(),
+                });
+            }
             Err(error) => {
                 causes.push(FunctionLowerCause::UnsupportedParam {
                     name,
@@ -226,8 +249,14 @@ fn check_function_substituted<'db>(
     let return_type = super::instantiate_type(db, hir.ret_type(db), type_args.iter().cloned());
     if !return_type.is_unit() {
         match check_type(&return_type) {
+            Ok(()) if contains_borrowed_values(db, &return_type) => {
+                causes.push(FunctionLowerCause::BorrowedReturn);
+            }
             Ok(()) => {}
             Err(TypeLowerErrorUnsupported::Unstable) => return Some(FunctionLowerError::Unstable),
+            Err(TypeLowerErrorUnsupported::BorrowedValues { .. }) => {
+                causes.push(FunctionLowerCause::BorrowedReturn);
+            }
             Err(error) => causes.push(FunctionLowerCause::Type(error)),
         }
     }
@@ -305,4 +334,27 @@ pub(super) enum FunctionLowerCause {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Type(#[from] TypeLowerErrorUnsupported),
+    #[error("the parameter `{name}` has type \"{type_fqn}\", which contains borrowed values")]
+    #[diagnostic(
+        code(rust_curse::borrowed_param),
+        help("use owned values inside the ADT; a reference to an owned ADT is supported"),
+        severity(Warning)
+    )]
+    BorrowedParam { name: String, type_fqn: String },
+    #[error("the parameter `{name}` moves \"{type_fqn}\", which does not implement `Clone`")]
+    #[diagnostic(
+        code(rust_curse::non_clonable_moved_param),
+        help("pass the value by reference or implement `Clone` for the type"),
+        severity(Warning)
+    )]
+    NonClonableMovedParam { name: String, type_fqn: String },
+    #[error("functions cannot return borrowed values")]
+    #[diagnostic(
+        code(rust_curse::borrowed_return),
+        help(
+            "return owned values, including inside ADTs; cloning an ADT containing references does not remove its borrows"
+        ),
+        severity(Warning)
+    )]
+    BorrowedReturn,
 }

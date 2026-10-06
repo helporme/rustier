@@ -1,4 +1,3 @@
-mod functions;
 mod modules;
 
 use miette::{Diagnostic, SourceSpan};

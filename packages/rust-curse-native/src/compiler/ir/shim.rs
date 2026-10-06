@@ -18,8 +18,8 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Callable, Crate, Enum, EnumType, FieldName, FieldQualified, FunctionQualified, Module,
-        ModuleParent, Rust, Struct, StructType, Type, TypeKind, VariantQualified,
+        Callable, Crate, Enum, EnumType, FieldName, FieldQualified, FunctionQualified, GenArg,
+        Module, ModuleParent, Rust, Struct, StructType, Type, TypeKind, VariantQualified,
         usages::UsageGraph,
     },
 };
@@ -185,7 +185,22 @@ pub enum ShimClassTemplate<'db> {
     Discriminated(ShimClassDiscriminatedTemplate<'db>),
 }
 
+#[salsa::tracked]
 impl<'db> ShimClassTemplate<'db> {
+    pub fn module(self, db: &'db dyn Db) -> ShimParentModule<'db> {
+        match self {
+            Self::Plain(template) => template.src(db).module(db).shim_parent(db),
+            Self::Discriminated(template) => template.src(db).module(db).shim_parent(db),
+        }
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
+        match self {
+            Self::Plain(template) => template.src(db).segment(db).name(db),
+            Self::Discriminated(template) => template.src(db).segment(db).name(db),
+        }
+    }
+
     pub fn classes(self, db: &'db dyn Db) -> impl Iterator<Item = ShimClass<'db>> + 'db {
         match self {
             Self::Plain(template) => Either::Left(template.classes(db).map(ShimClass::Plain)),
@@ -194,6 +209,39 @@ impl<'db> ShimClassTemplate<'db> {
             }
         }
     }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn mappings(self, db: &'db dyn Db) -> Vec<(Vec<ShimGeneric<'db>>, ShimClass<'db>)> {
+        let mut entries: Vec<_> = self
+            .classes(db)
+            .map(|class| {
+                let args = match class {
+                    ShimClass::Plain(class) => class.src(db).gen_args(db),
+                    ShimClass::Discriminated(class) => class.src(db).gen_args(db),
+                };
+
+                let generics = args
+                    .iter()
+                    .map(|GenArg::Type(type_)| match type_.shim_out(db) {
+                        ShimType::Class { inner, .. } => ShimGeneric::Class(inner),
+                        _ => ShimGeneric::Symbol(type_.display(db).to_owned()),
+                    })
+                    .collect();
+
+                (generics, class)
+            })
+            .collect();
+
+        entries.sort_by(|(_, left), (_, right)| left.name(db).cmp(right.name(db)));
+
+        entries
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
+pub enum ShimGeneric<'db> {
+    Symbol(String),
+    Class(ShimClass<'db>),
 }
 
 #[salsa::interned(debug)]
@@ -208,7 +256,6 @@ impl<'db> ShimClassPlainTemplate<'db> {
 
         self.usages(db)
             .types(db)
-            .filter(|type_| !type_.contains_borrowed_values(db))
             .filter_map(move |type_| match type_.kind(db) {
                 TypeKind::Struct(type_) if type_.def(db) == src => Some(type_.shim(db)),
                 _ => None,
@@ -231,7 +278,6 @@ impl<'db> ShimClassDiscriminatedTemplate<'db> {
 
         self.usages(db)
             .types(db)
-            .filter(|type_| !type_.contains_borrowed_values(db))
             .filter_map(move |type_| match type_.kind(db) {
                 TypeKind::Enum(type_) if type_.def(db) == src => Some(type_.shim(db)),
                 _ => None,
@@ -309,6 +355,8 @@ impl<'db> ShimClass<'db> {
 /// A POD-like class.
 #[salsa::interned(debug)]
 pub struct ShimClassPlain<'db> {
+    /// FIXME: derives identity from the struct type which deends on the
+    /// "unstable" Type
     pub src: StructType<'db>,
 }
 
@@ -351,9 +399,15 @@ impl<'db> ShimClassPlain<'db> {
     pub fn methods(self, db: &'db dyn Db) -> Vec<ShimFunctionAssociated<'db>> {
         self.src(db)
             .into_type(db)
-            .lower_methods(db)
+            .impls(db)
             .iter()
-            .copied()
+            .flat_map(|impl_| impl_.functions(db))
+            .filter(|function| {
+                let declaration = function.declaration(db);
+                declaration.receiver(db).is_some() || declaration.name(db) != "prototype"
+            })
+            .filter_map(|function| function.as_callible(db))
+            .map(|callable| ShimFunctionAssociated::new(db, callable))
             .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
     }
@@ -392,6 +446,8 @@ impl<'db> From<ShimClassPlain<'db>> for ShimClass<'db> {
 /// A tagged discriminated union class.
 #[salsa::interned(debug)]
 pub struct ShimClassDiscriminated<'db> {
+    /// FIXME: derives identity from the struct type which deends on the
+    /// "unstable" Type
     pub src: EnumType<'db>,
 }
 
@@ -444,9 +500,15 @@ impl<'db> ShimClassDiscriminated<'db> {
     pub fn methods(self, db: &'db dyn Db) -> Vec<ShimFunctionAssociated<'db>> {
         self.src(db)
             .into_type(db)
-            .lower_methods(db)
+            .impls(db)
             .iter()
-            .copied()
+            .flat_map(|impl_| impl_.functions(db))
+            .filter(|function| {
+                let declaration = function.declaration(db);
+                declaration.receiver(db).is_some() || declaration.name(db) != "prototype"
+            })
+            .filter_map(|function| function.as_callible(db))
+            .map(|callable| ShimFunctionAssociated::new(db, callable))
             .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
     }

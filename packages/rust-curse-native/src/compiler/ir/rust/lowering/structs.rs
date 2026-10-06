@@ -2,7 +2,9 @@ use miette::{Diagnostic, SourceSpan};
 use ra_ap_hir::{Adt, GenericDef, GenericParam as HirGenericParam, HasAttrs as _};
 use thiserror::Error;
 
-use super::{adt_fqn, diagnostic_location, is_stable, lower_item_span, lower_shape};
+use super::{
+    adt_fqn, diagnostic_location, instantiate_adt_type, is_stable, lower_item_span, lower_shape,
+};
 use crate::compiler::{
     db::Db,
     diag::DiagSource,
@@ -73,10 +75,22 @@ pub(super) fn lower_struct<'db>(
         return Err(Box::new(StructLowerError::Unstable));
     }
 
+    let mut causes = Vec::new();
+
     if params
         .iter()
         .any(|param| matches!(param, HirGenericParam::ConstParam(_)))
     {
+        causes.push(StructLowerCause::UnsupportedConstGeneric);
+    }
+
+    let type_ = instantiate_adt_type(db, hir.ty(db), Adt::Struct(hir), std::iter::empty());
+
+    if super::types::contains_borrowed_values(db, &type_) {
+        causes.push(StructLowerCause::BorrowedValues);
+    }
+
+    if !causes.is_empty() {
         let span = lower_item_span(db, hir);
         let (source_code, span) = diagnostic_location(db, span.as_ref());
 
@@ -84,7 +98,7 @@ pub(super) fn lower_struct<'db>(
             fqn: adt_fqn(db, Adt::Struct(hir)),
             source_code,
             span,
-            causes: vec![StructLowerCause::UnsupportedConstGeneric],
+            causes,
         }));
     }
 
@@ -118,4 +132,11 @@ pub(super) enum StructLowerCause {
         severity(Warning)
     )]
     UnsupportedConstGeneric,
+    #[error("structs containing borrowed values are not supported")]
+    #[diagnostic(
+        code(rust_curse::borrowed_struct),
+        help("use owned values inside the struct"),
+        severity(Warning)
+    )]
+    BorrowedValues,
 }

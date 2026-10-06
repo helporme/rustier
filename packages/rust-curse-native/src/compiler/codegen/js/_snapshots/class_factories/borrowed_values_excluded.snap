@@ -1,0 +1,19 @@
+---
+source: src/compiler/codegen/js/class_factories.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Wrap<T>(pub T);
+pub enum Event<T> {
+    Value(T),
+}
+pub fn consume(value: &Wrap<&u32>, event: &Event<&u32>) {}
+```
+
+# Compiled
+
+```js
+
+```

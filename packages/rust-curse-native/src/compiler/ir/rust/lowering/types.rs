@@ -91,6 +91,47 @@ pub(super) fn is_clonable(
     (clonable || type_.generic_params(db).is_empty()).then_some(clonable)
 }
 
+pub(super) fn contains_borrowed_values(db: &dyn Db, type_: &HirType<'_>) -> bool {
+    let mut pending = vec![type_.clone()];
+    let mut visited = HashSet::new();
+
+    while let Some(type_) = pending.pop() {
+        if type_.is_reference() {
+            return true;
+        }
+
+        pending.extend(type_.type_arguments());
+        pending.extend(type_.tuple_fields(db));
+        pending.extend(type_.as_slice());
+        pending.extend(type_.as_array(db).map(|(inner, _)| inner));
+        pending.extend(type_.as_raw_ptr().map(|(inner, _)| inner));
+
+        if let Some(adt) = type_.as_adt()
+            && visited.insert(adt)
+        {
+            match adt {
+                Adt::Struct(struct_) => {
+                    pending.extend(struct_.fields(db).into_iter().map(|field| field.ty(db)));
+                }
+                Adt::Enum(enum_) => {
+                    pending.extend(
+                        enum_
+                            .variants(db)
+                            .into_iter()
+                            .flat_map(|variant| variant.fields(db))
+                            .map(|field| field.ty(db)),
+                    );
+                }
+                Adt::Union(union) => {
+                    pending.extend(union.fields(db).into_iter().map(|field| field.ty(db)));
+                }
+            }
+        }
+    }
+
+    false
+}
+
 /// Lowers a type origin to Rust IR after validating its HIR type.
 pub(super) fn lower_type<'db>(
     db: &'db dyn Db,
@@ -160,6 +201,12 @@ pub(super) fn check_type(
         });
     }
 
+    if contains_borrowed_values(db, type_) {
+        return Err(TypeLowerErrorUnsupported::BorrowedValues {
+            type_: type_.display(db, crate_.to_display_target(db)).to_string(),
+        });
+    }
+
     let params = params.into_iter().filter_map(|param| match param {
         HirGenericParam::TypeParam(param) => Some(param),
         _ => None,
@@ -196,51 +243,6 @@ impl<'db> Type<'db> {
             .strip_references()
             .as_adt()
             .is_some_and(|adt| Crate::new(db, adt.module(db).krate(db)).name(db) == "alloc")
-    }
-
-    #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_contains_borrowed_values(
-        self,
-        db: &'db dyn Db,
-    ) -> bool {
-        let mut pending = vec![self.hir(db)];
-        let mut visited = HashSet::new();
-
-        while let Some(type_) = pending.pop() {
-            if type_.is_reference() {
-                return true;
-            }
-
-            pending.extend(type_.type_arguments());
-            pending.extend(type_.tuple_fields(db));
-            pending.extend(type_.as_slice());
-            pending.extend(type_.as_array(db).map(|(inner, _)| inner));
-            pending.extend(type_.as_raw_ptr().map(|(inner, _)| inner));
-
-            if let Some(adt) = type_.as_adt()
-                && visited.insert(adt)
-            {
-                match adt {
-                    Adt::Struct(struct_) => {
-                        pending.extend(struct_.fields(db).into_iter().map(|field| field.ty(db)));
-                    }
-                    Adt::Enum(enum_) => {
-                        pending.extend(
-                            enum_
-                                .variants(db)
-                                .into_iter()
-                                .flat_map(|variant| variant.fields(db))
-                                .map(|field| field.ty(db)),
-                        );
-                    }
-                    Adt::Union(union) => {
-                        pending.extend(union.fields(db).into_iter().map(|field| field.ty(db)));
-                    }
-                }
-            }
-        }
-
-        false
     }
 
     #[salsa::tracked]
@@ -404,6 +406,14 @@ pub(super) enum TypeLowerErrorUnsupported {
     #[error("unsupported type: {type_}")]
     #[diagnostic(code(rust_curse::unsupported_type), severity(Warning))]
     Type { type_: String },
+
+    #[error("the type \"{type_}\" contains borrowed values")]
+    #[diagnostic(
+        code(rust_curse::borrowed_type),
+        help("use owned values inside the ADT"),
+        severity(Warning)
+    )]
+    BorrowedValues { type_: String },
 
     #[error("the primitive type `{name}` is not supported")]
     #[diagnostic(

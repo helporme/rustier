@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/js/classes.rs
-assertion_line: 826
 expression: snapshot
 ---
 # Source
@@ -85,7 +84,7 @@ export class Test {
 			token !== Test.#_construction_token
 		){
 			throw new TypeError(
-				"rust-backed structs cannot be constructed directly (yet)"
+				"rust-backed structs cannot be constructed directly"
 			);
 		}
 	}

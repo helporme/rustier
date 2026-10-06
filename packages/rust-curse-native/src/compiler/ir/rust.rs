@@ -1012,10 +1012,6 @@ impl<'db> Type<'db> {
         self.lower_is_from_alloc_crate(db)
     }
 
-    pub fn contains_borrowed_values(self, db: &'db dyn Db) -> bool {
-        self.lower_contains_borrowed_values(db)
-    }
-
     pub fn impls(self, db: &'db dyn Db) -> &'db Vec<ImplQualified<'db>> {
         self.lower_impls(db)
     }

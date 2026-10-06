@@ -451,7 +451,7 @@ impl<'db> DecalClassPlain<'db> {
                     Some(ShimType::Class {
                         is_borrowed: false,
                         inner,
-                    }) if inner == self.shim(db).into()
+                    }) if inner.symbol(db) == self.shim(db).symbol(db)
                 )
         })
     }

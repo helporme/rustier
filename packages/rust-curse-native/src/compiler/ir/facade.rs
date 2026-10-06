@@ -14,9 +14,10 @@ use crate::compiler::{
         ffi::{Ffi, FfiClass, FfiFunction},
         rust::{Callable, FieldName},
         shim::{
-            Shim, ShimClassDiscriminated, ShimClassPlain, ShimField, ShimFunctionAssociated,
-            ShimFunctionDiscriminator, ShimFunctionFree, ShimFunctionPlainCoerce, ShimMember,
-            ShimModule, ShimParam, ShimParentModule, ShimType,
+            Shim, ShimClassDiscriminated, ShimClassPlain, ShimClassTemplate, ShimField,
+            ShimFunctionAssociated, ShimFunctionDiscriminator, ShimFunctionFree,
+            ShimFunctionPlainCoerce, ShimGeneric, ShimMember, ShimModule, ShimParam,
+            ShimParentModule, ShimType,
         },
     },
     path::FilePath,
@@ -119,30 +120,20 @@ impl<'db> FacadeModule<'db> {
 
     /// All members defined in this module.
     pub fn members(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeMember<'db>> + 'db {
-        self.shim(db)
-            .members(db)
-            .flat_map(move |member| match member {
-                ShimMember::Class(class) => {
-                    Either::Left(std::iter::once(FacadeMember::Class(class.facade(db))))
-                }
-                ShimMember::Template(template) => Either::Right(
-                    template
-                        .classes(db)
-                        .map(|class| FacadeMember::Class(class.facade(db))),
-                ),
-                ShimMember::Function(function) => {
-                    Either::Left(std::iter::once(FacadeMember::Function(function.facade(db))))
-                }
-                ShimMember::Module(module) => {
-                    Either::Left(std::iter::once(FacadeMember::Module(module.facade(db))))
-                }
-            })
+        self.shim(db).members(db).map(move |member| match member {
+            ShimMember::Class(class) => FacadeMember::Class(class.facade(db)),
+            ShimMember::Template(template) => {
+                FacadeMember::ClassFactory(FacadeClassFactory::new(db, template))
+            }
+            ShimMember::Function(function) => FacadeMember::Function(function.facade(db)),
+            ShimMember::Module(module) => FacadeMember::Module(module.facade(db)),
+        })
     }
 
     /// Imports needed for this module.
     #[salsa::tracked(returns(ref))]
     pub fn imports(self, db: &'db dyn Db) -> Vec<FacadeImport<'db>> {
-        let mut items = HashSet::new();
+        let mut items = Vec::new();
 
         for member in self.members(db) {
             match member {
@@ -151,6 +142,9 @@ impl<'db> FacadeModule<'db> {
                 }
                 FacadeMember::Class(class) => {
                     items.extend(class.imports(db));
+                }
+                FacadeMember::ClassFactory(factory) => {
+                    items.extend(factory.imports(db));
                 }
                 FacadeMember::Module(_) => {}
             }
@@ -163,6 +157,14 @@ impl<'db> FacadeModule<'db> {
                     item,
                     FacadeImportItem::FacadeClass(class) if class.module(db) == self.as_parent(db)
                 )
+            })
+            .unique_by(|item| {
+                let module = match item {
+                    FacadeImportItem::FacadeClass(class) => Some(class.module(db)),
+                    FacadeImportItem::FfiClass(_) | FacadeImportItem::FfiFunction(_) => None,
+                };
+
+                (module, item.name(db))
             })
             .map(|item| FacadeImport::new(db, self, item))
             .collect()
@@ -177,8 +179,62 @@ impl<'db> FacadeModule<'db> {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
 pub enum FacadeMember<'db> {
     Class(FacadeClass<'db>),
+    ClassFactory(FacadeClassFactory<'db>),
     Function(FacadeFreeFunction<'db>),
     Module(FacadeModule<'db>),
+}
+
+#[salsa::interned(debug)]
+pub struct FacadeClassFactory<'db> {
+    shim: ShimClassTemplate<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> FacadeClassFactory<'db> {
+    pub fn module(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
+        self.shim(db).module(db).facade(db)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
+        self.shim(db).name(db)
+    }
+
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> + 'db {
+        self.mappings(db).iter().flat_map(move |(generics, class)| {
+            generics
+                .iter()
+                .filter_map(|generic| match generic {
+                    FacadeGeneric::Class(class) => Some(FacadeImportItem::FacadeClass(*class)),
+                    FacadeGeneric::Symbol(_) => None,
+                })
+                .chain(class.imports(db))
+        })
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn mappings(self, db: &'db dyn Db) -> Vec<(Vec<FacadeGeneric<'db>>, FacadeClass<'db>)> {
+        self.shim(db)
+            .mappings(db)
+            .iter()
+            .map(|(generics, class)| {
+                let generics = generics
+                    .iter()
+                    .map(|generic| match generic {
+                        ShimGeneric::Symbol(symbol) => FacadeGeneric::Symbol(symbol.clone()),
+                        ShimGeneric::Class(class) => FacadeGeneric::Class(class.facade(db)),
+                    })
+                    .collect();
+
+                (generics, class.facade(db))
+            })
+            .collect()
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, salsa::Update)]
+pub enum FacadeGeneric<'db> {
+    Symbol(String),
+    Class(FacadeClass<'db>),
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
@@ -600,7 +656,7 @@ impl<'db> FacadeClassPlain<'db> {
                     Some(ShimType::Class {
                         is_borrowed: false,
                         inner,
-                    }) if inner == self.shim(db).into()
+                    }) if inner.symbol(db) == self.shim(db).symbol(db)
                 )
         })
     }

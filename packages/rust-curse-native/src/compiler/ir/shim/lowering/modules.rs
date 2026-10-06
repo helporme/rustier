@@ -1,11 +1,10 @@
 use crate::compiler::{
     db::Db,
-    diag::DiagAccumulateExt as _,
     ir::{
         rust::{Member, TypeKind},
         shim::{
             ShimClass, ShimClassDiscriminatedTemplate, ShimClassPlainTemplate, ShimClassTemplate,
-            ShimFunction, ShimMember, ShimModule,
+            ShimFunctionFree, ShimMember, ShimModule,
         },
     },
 };
@@ -41,7 +40,6 @@ impl<'db> ShimModule<'db> {
                 Member::Struct(_) | Member::Enum(_) => lowered.extend(
                     usages
                         .types(db)
-                        .filter(|type_| !type_.contains_borrowed_values(db))
                         .filter_map(|type_| match (*member, type_.kind(db)) {
                             (Member::Struct(src), TypeKind::Struct(type_))
                                 if type_.def(db) == src =>
@@ -57,13 +55,7 @@ impl<'db> ShimModule<'db> {
                 ),
                 Member::Function(function) => {
                     if let Some(callable) = function.as_qualified().as_callible(db) {
-                        match callable.lower(db) {
-                            Ok(ShimFunction::Free(function)) => {
-                                lowered.push(ShimMember::Function(function));
-                            }
-                            Ok(_) => unreachable!("free functions lower to free shim functions"),
-                            Err(error) => (*error).accumulate(db),
-                        }
+                        lowered.push(ShimMember::Function(ShimFunctionFree::new(db, callable)));
                     }
                 }
                 Member::Module(module) => {

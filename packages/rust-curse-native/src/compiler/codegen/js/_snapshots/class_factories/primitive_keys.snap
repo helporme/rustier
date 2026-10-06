@@ -1,0 +1,704 @@
+---
+source: src/compiler/codegen/js/class_factories.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Wrap<T>(T);
+pub fn consume(
+    boolean: &Wrap<bool>,
+    character: &Wrap<char>,
+    i8_value: &Wrap<i8>,
+    u8_value: &Wrap<u8>,
+    i16_value: &Wrap<i16>,
+    u16_value: &Wrap<u16>,
+    i32_value: &Wrap<i32>,
+    u32_value: &Wrap<u32>,
+    f32_value: &Wrap<f32>,
+    f64_value: &Wrap<f64>,
+    string: &Wrap<String>,
+) {}
+```
+
+# Compiled
+
+```js
+import{
+	__fn__free__10_test_crate__7_consume
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGP2_i8E
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGP2_u8E
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGP3_f32E
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGP3_f64E
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGP3_i16E
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGP3_i32E
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGP3_u16E
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGP3_u32E
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGP4_boolE
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGP4_charE
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGP6_StringE
+}from"$rust/unstable!/node"
+
+export class _4_WrapGP2_i8E {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGP2_i8E.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGP2_i8E(
+			 _4_WrapGP2_i8E.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGP2_u8E {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGP2_u8E.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGP2_u8E(
+			 _4_WrapGP2_u8E.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGP3_f32E {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGP3_f32E.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGP3_f32E(
+			 _4_WrapGP3_f32E.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGP3_f64E {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGP3_f64E.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGP3_f64E(
+			 _4_WrapGP3_f64E.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGP3_i16E {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGP3_i16E.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGP3_i16E(
+			 _4_WrapGP3_i16E.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGP3_i32E {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGP3_i32E.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGP3_i32E(
+			 _4_WrapGP3_i32E.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGP3_u16E {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGP3_u16E.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGP3_u16E(
+			 _4_WrapGP3_u16E.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGP3_u32E {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGP3_u32E.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGP3_u32E(
+			 _4_WrapGP3_u32E.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGP4_boolE {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGP4_boolE.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGP4_boolE(
+			 _4_WrapGP4_boolE.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGP4_charE {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGP4_charE.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGP4_charE(
+			 _4_WrapGP4_charE.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGP6_StringE {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGP6_StringE.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGP6_StringE(
+			 _4_WrapGP6_StringE.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export function Wrap (
+	...types
+) {
+	if(
+		types.length ===1 && types[0]==="i8"
+	){
+		return _4_WrapGP2_i8E;
+	}
+
+	if(
+		types.length ===1 && types[0]==="u8"
+	){
+		return _4_WrapGP2_u8E;
+	}
+
+	if(
+		types.length ===1 && types[0]==="f32"
+	){
+		return _4_WrapGP3_f32E;
+	}
+
+	if(
+		types.length ===1 && types[0]==="f64"
+	){
+		return _4_WrapGP3_f64E;
+	}
+
+	if(
+		types.length ===1 && types[0]==="i16"
+	){
+		return _4_WrapGP3_i16E;
+	}
+
+	if(
+		types.length ===1 && types[0]==="i32"
+	){
+		return _4_WrapGP3_i32E;
+	}
+
+	if(
+		types.length ===1 && types[0]==="u16"
+	){
+		return _4_WrapGP3_u16E;
+	}
+
+	if(
+		types.length ===1 && types[0]==="u32"
+	){
+		return _4_WrapGP3_u32E;
+	}
+
+	if(
+		types.length ===1 && types[0]==="bool"
+	){
+		return _4_WrapGP4_boolE;
+	}
+
+	if(
+		types.length ===1 && types[0]==="char"
+	){
+		return _4_WrapGP4_charE;
+	}
+
+	if(
+		types.length ===1 && types[0]==="String"
+	){
+		return _4_WrapGP6_StringE;
+	}
+
+	throw new TypeError(
+		"Unsupported generic arguments for Wrap"
+	);
+}
+
+export function consume (
+	_0,
+	_1,
+	_2,
+	_3,
+	_4,
+	_5,
+	_6,
+	_7,
+	_8,
+	_9,
+	_10
+) {
+	{
+		const __cast_input = _0;
+		if(
+			!(
+				__cast_input instanceof _4_WrapGP4_boolE
+			)
+		) {
+			throw new TypeError(
+				"Expected a value of type \"_4_WrapGP4_boolE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+					__cast_input
+				) + "\""
+			);
+		}
+		const __0 = __cast_input.$ffi();
+		{
+			const __cast_input = _1;
+			if(
+				!(
+					__cast_input instanceof _4_WrapGP4_charE
+				)
+			) {
+				throw new TypeError(
+					"Expected a value of type \"_4_WrapGP4_charE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+						__cast_input
+					) + "\""
+				);
+			}
+			const __1 = __cast_input.$ffi();
+			{
+				const __cast_input = _2;
+				if(
+					!(
+						__cast_input instanceof _4_WrapGP2_i8E
+					)
+				) {
+					throw new TypeError(
+						"Expected a value of type \"_4_WrapGP2_i8E\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+							__cast_input
+						) + "\""
+					);
+				}
+				const __2 = __cast_input.$ffi();
+				{
+					const __cast_input = _3;
+					if(
+						!(
+							__cast_input instanceof _4_WrapGP2_u8E
+						)
+					) {
+						throw new TypeError(
+							"Expected a value of type \"_4_WrapGP2_u8E\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+								__cast_input
+							) + "\""
+						);
+					}
+					const __3 = __cast_input.$ffi();
+					{
+						const __cast_input = _4;
+						if(
+							!(
+								__cast_input instanceof _4_WrapGP3_i16E
+							)
+						) {
+							throw new TypeError(
+								"Expected a value of type \"_4_WrapGP3_i16E\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+									__cast_input
+								) + "\""
+							);
+						}
+						const __4 = __cast_input.$ffi();
+						{
+							const __cast_input = _5;
+							if(
+								!(
+									__cast_input instanceof _4_WrapGP3_u16E
+								)
+							) {
+								throw new TypeError(
+									"Expected a value of type \"_4_WrapGP3_u16E\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+										__cast_input
+									) + "\""
+								);
+							}
+							const __5 = __cast_input.$ffi();
+							{
+								const __cast_input = _6;
+								if(
+									!(
+										__cast_input instanceof _4_WrapGP3_i32E
+									)
+								) {
+									throw new TypeError(
+										"Expected a value of type \"_4_WrapGP3_i32E\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+											__cast_input
+										) + "\""
+									);
+								}
+								const __6 = __cast_input.$ffi();
+								{
+									const __cast_input = _7;
+									if(
+										!(
+											__cast_input instanceof _4_WrapGP3_u32E
+										)
+									) {
+										throw new TypeError(
+											"Expected a value of type \"_4_WrapGP3_u32E\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+												__cast_input
+											) + "\""
+										);
+									}
+									const __7 = __cast_input.$ffi();
+									{
+										const __cast_input = _8;
+										if(
+											!(
+												__cast_input instanceof _4_WrapGP3_f32E
+											)
+										) {
+											throw new TypeError(
+												"Expected a value of type \"_4_WrapGP3_f32E\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+													__cast_input
+												) + "\""
+											);
+										}
+										const __8 = __cast_input.$ffi();
+										{
+											const __cast_input = _9;
+											if(
+												!(
+													__cast_input instanceof _4_WrapGP3_f64E
+												)
+											) {
+												throw new TypeError(
+													"Expected a value of type \"_4_WrapGP3_f64E\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+														__cast_input
+													) + "\""
+												);
+											}
+											const __9 = __cast_input.$ffi();
+											{
+												const __cast_input = _10;
+												if(
+													!(
+														__cast_input instanceof _4_WrapGP6_StringE
+													)
+												) {
+													throw new TypeError(
+														"Expected a value of type \"_4_WrapGP6_StringE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+															__cast_input
+														) + "\""
+													);
+												}
+												const __10 = __cast_input.$ffi();
+												__fn__free__10_test_crate__7_consume(
+													__0,
+													__1,
+													__2,
+													__3,
+													__4,
+													__5,
+													__6,
+													__7,
+													__8,
+													__9,
+													__10
+												);
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+```

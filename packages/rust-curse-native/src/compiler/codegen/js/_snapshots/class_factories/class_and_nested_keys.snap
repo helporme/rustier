@@ -1,0 +1,251 @@
+---
+source: src/compiler/codegen/js/class_factories.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Holder(u32);
+pub struct Wrap<T>(T);
+pub fn consume(number: &Wrap<u32>, holder: &Wrap<Holder>, nested: &Wrap<Wrap<u32>>) {}
+pub fn borrowed(value: &Wrap<&u32>) {}
+```
+
+# Compiled
+
+```js
+import{
+	__fn__free__10_test_crate__7_consume
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGP3_u32E
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__6_Holder
+}from"$rust/unstable!/node"
+
+export class Holder {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== Holder.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new Holder(
+			 Holder.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGP3_u32E {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGP3_u32E.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGP3_u32E(
+			 _4_WrapGP3_u32E.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGS10_test_crate__4_WrapGP3_u32EE {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGS10_test_crate__4_WrapGP3_u32EE.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGS10_test_crate__4_WrapGP3_u32EE(
+			 _4_WrapGS10_test_crate__4_WrapGP3_u32EE.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export class _4_WrapGS10_test_crate__6_HolderE {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== _4_WrapGS10_test_crate__6_HolderE.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new _4_WrapGS10_test_crate__6_HolderE(
+			 _4_WrapGS10_test_crate__6_HolderE.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+}
+
+export function Wrap (
+	...types
+) {
+	if(
+		types.length ===1 && types[0]==="u32"
+	){
+		return _4_WrapGP3_u32E;
+	}
+
+	if(
+		types.length ===1 && types[0]===_4_WrapGP3_u32E
+	){
+		return _4_WrapGS10_test_crate__4_WrapGP3_u32EE;
+	}
+
+	if(
+		types.length ===1 && types[0]===Holder
+	){
+		return _4_WrapGS10_test_crate__6_HolderE;
+	}
+
+	throw new TypeError(
+		"Unsupported generic arguments for Wrap"
+	);
+}
+
+export function consume (
+	_0,
+	_1,
+	_2
+) {
+	{
+		const __cast_input = _0;
+		if(
+			!(
+				__cast_input instanceof _4_WrapGP3_u32E
+			)
+		) {
+			throw new TypeError(
+				"Expected a value of type \"_4_WrapGP3_u32E\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+					__cast_input
+				) + "\""
+			);
+		}
+		const __0 = __cast_input.$ffi();
+		{
+			const __cast_input = _1;
+			if(
+				!(
+					__cast_input instanceof _4_WrapGS10_test_crate__6_HolderE
+				)
+			) {
+				throw new TypeError(
+					"Expected a value of type \"_4_WrapGS10_test_crate__6_HolderE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+						__cast_input
+					) + "\""
+				);
+			}
+			const __1 = __cast_input.$ffi();
+			{
+				const __cast_input = _2;
+				if(
+					!(
+						__cast_input instanceof _4_WrapGS10_test_crate__4_WrapGP3_u32EE
+					)
+				) {
+					throw new TypeError(
+						"Expected a value of type \"_4_WrapGS10_test_crate__4_WrapGP3_u32EE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+							__cast_input
+						) + "\""
+					);
+				}
+				const __2 = __cast_input.$ffi();
+				__fn__free__10_test_crate__7_consume(
+					__0,
+					__1,
+					__2
+				);
+			}
+		}
+	}
+}
+```
