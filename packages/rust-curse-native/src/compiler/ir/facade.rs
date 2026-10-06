@@ -3,15 +3,12 @@
 pub mod ext;
 mod lowering;
 
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
 
 use itertools::{Either, Itertools};
 
 use crate::compiler::{
-    codegen::{
-        fragment::{FragmentPrint, frag},
-        utils::to_camel_case,
-    },
+    codegen::fragment::{FragmentPrint, frag},
     db::Db,
     ir::{
         ffi::{Ffi, FfiClass, FfiFunction},
@@ -846,30 +843,11 @@ impl<'db> FacadeFieldDiscriminator<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn variant_names(self, db: &'db dyn Db) -> Vec<String> {
-        let shim = self.shim(db).class(db);
-
-        let camel_case_names = shim
+        self.shim(db)
+            .class(db)
             .variants(db)
             .iter()
-            .map(|variant| to_camel_case(variant.name(db)))
-            .collect::<Vec<_>>();
-
-        let mut occurrences = HashMap::new();
-
-        for name in &camel_case_names {
-            *occurrences.entry(name.clone()).or_insert(0) += 1;
-        }
-
-        shim.variants(db)
-            .iter()
-            .zip(camel_case_names)
-            .map(|(variant, camel_case_name)| {
-                if occurrences[&camel_case_name] > 1 {
-                    variant.name(db).to_owned()
-                } else {
-                    camel_case_name
-                }
-            })
+            .map(|variant| variant.name(db).clone())
             .collect()
     }
 

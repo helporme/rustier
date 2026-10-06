@@ -79,10 +79,10 @@ export declare const Choice: {};
 export declare namespace Choice {
 	export type Plain =
 		| {
-			readonly type: "empty";
+			readonly type: "Empty";
 		}
 		| {
-			readonly type: "value";
+			readonly type: "Value";
 			get number(): number;
 			set number(
 				value: number

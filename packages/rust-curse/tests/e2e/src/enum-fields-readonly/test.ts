@@ -9,7 +9,7 @@ import {
 it('replaces Document::Draft.content because DraftContent is cloneable', () => {
   const document = make_draft_document(10)
   const replacement = make_draft_content(20)
-  if (document.type !== 'draft') throw new Error('expected Document::Draft')
+  if (document.type !== 'Draft') throw new Error('expected Document::Draft')
 
   document.content = replacement
   replacement.value = 30
@@ -19,7 +19,7 @@ it('replaces Document::Draft.content because DraftContent is cloneable', () => {
 
 it('returns Document::Published.content as a live readonly projection', () => {
   const document = make_published_document(10)
-  if (document.type !== 'published')
+  if (document.type !== 'Published')
     throw new Error('expected Document::Published')
 
   set_published_content_value(document.content, 20)

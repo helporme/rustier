@@ -21,11 +21,11 @@ pub enum Test {
 const $facade__discr__10_test_crate__4_Test = class Test {
 	static #_construction_token = Symbol();
 	#_ffi;
-	static #_types = ["unit",
-	"emptyTuple",
-	"emptyRecord",
-	"tuple",
-	"record"];
+	static #_types = ["Unit",
+	"EmptyTuple",
+	"EmptyRecord",
+	"Tuple",
+	"Record"];
 
 	get [0]() {
 		const type_ = __fn__disc__10_test_crate__4_Test(
@@ -210,7 +210,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		switch(
 			value["type"]
 		){
-			case "unit":{
+			case "Unit":{
 				{
 					const result = cast.from(
 						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
@@ -224,7 +224,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 					return result;
 				}
 			}
-			case "emptyTuple":{
+			case "EmptyTuple":{
 				{
 					const result = cast.from(
 						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
@@ -238,7 +238,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 					return result;
 				}
 			}
-			case "emptyRecord":{
+			case "EmptyRecord":{
 				{
 					const result = cast.from(
 						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
@@ -252,7 +252,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 					return result;
 				}
 			}
-			case "tuple":{
+			case "Tuple":{
 				{
 					const __0 = cast.from(
 						"Facade(number)"
@@ -285,7 +285,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 					}
 				}
 			}
-			case "record":{
+			case "Record":{
 				{
 					const __0 = cast.from(
 						"Facade(number)"

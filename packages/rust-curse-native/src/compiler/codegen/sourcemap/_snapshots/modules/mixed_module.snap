@@ -77,7 +77,7 @@ TypeScript:
  71 | 	export type Plain =
  72 | 		/** An acronym-prefixed request. */
  73 | 		| {
- 74 | 			readonly type: "httpRequest";
+ 74 | 			readonly type: "HTTPRequest";
  75 | 			/** A named field. */
  76 | 			get response_code(): number;
  77 | 			set response_code(
@@ -91,7 +91,7 @@ TypeScript:
  85 | 		}
  86 | 		/** Coordinates represented by tuple fields. */
  87 | 		| {
- 88 | 			readonly type: "point";
+ 88 | 			readonly type: "Point";
  89 | 			/** A writable Rust-backed value. */
  90 | 			get [0](): Holder;
  91 | 			set [0](
@@ -104,7 +104,7 @@ TypeScript:
  98 | 		}
  99 | 		/** A variant without fields. */
 100 | 		| {
-101 | 			readonly type: "unit";
+101 | 			readonly type: "Unit";
 102 | 		};
 103 | 
 104 | 	export interface Instance {

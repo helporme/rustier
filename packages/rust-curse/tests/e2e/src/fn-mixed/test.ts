@@ -67,9 +67,9 @@ it('accepts every supported argument by value, shared reference, and mutable ref
   expect(structRef.value).toBe(2)
   expect(structMutRef.value).toBe(4)
 
-  if (enumValue.type !== 'value') throw new Error('expected ValueEnum::Value')
-  if (enumRef.type !== 'value') throw new Error('expected ValueEnum::Value')
-  if (enumMutRef.type !== 'value') throw new Error('expected ValueEnum::Value')
+  if (enumValue.type !== 'Value') throw new Error('expected ValueEnum::Value')
+  if (enumRef.type !== 'Value') throw new Error('expected ValueEnum::Value')
+  if (enumMutRef.type !== 'Value') throw new Error('expected ValueEnum::Value')
   expect(enumValue.value).toBe(1)
   expect(enumRef.value).toBe(2)
   expect(enumMutRef.value).toBe(4)

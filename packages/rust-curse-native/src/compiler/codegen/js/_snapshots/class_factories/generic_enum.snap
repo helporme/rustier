@@ -83,7 +83,7 @@ export {
 const $facade__discr__10_test_crate__5_EventGP3_u32E = class _5_EventGP3_u32E {
 	static #_construction_token = Symbol();
 	#_ffi;
-	static #_types = ["value"];
+	static #_types = ["Value"];
 
 	get [0]() {
 		const type_ = __fn__disc__10_test_crate__5_EventGP3_u32E(
@@ -187,7 +187,7 @@ const $facade__discr__10_test_crate__5_EventGS10_test_crate__6_HolderE = class _
 	static #_construction_token = Symbol();
 	#_ffi;
 	#__field_0_0;
-	static #_types = ["value"];
+	static #_types = ["Value"];
 
 	get [0]() {
 		const type_ = __fn__disc__10_test_crate__5_EventGS10_test_crate__6_HolderE(

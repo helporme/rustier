@@ -5,8 +5,8 @@ test('declares enum associated functions on its static value and instance', () =
   const phase = Phase.running(1)
 
   expectTypeOf(phase).toEqualTypeOf<Phase>()
-  expectTypeOf(phase.type).toEqualTypeOf<'waiting' | 'running' | 'complete'>()
-  if (phase.type === 'running') {
+  expectTypeOf(phase.type).toEqualTypeOf<'Waiting' | 'Running' | 'Complete'>()
+  if (phase.type === 'Running') {
     expectTypeOf(phase.step).toEqualTypeOf<number>()
     phase.step = 2
     // @ts-expect-error The field replaces the method rather than overloading it.
@@ -41,9 +41,9 @@ test('exposes Phase.Instance only as a type', () => {
 
 test('includes colliding fields in the enum Plain union', () => {
   expectTypeOf<Phase.Plain>().toEqualTypeOf<
-    | { readonly type: 'waiting' }
-    | { readonly type: 'running'; step: number }
-    | { readonly type: 'complete' }
+    | { readonly type: 'Waiting' }
+    | { readonly type: 'Running'; step: number }
+    | { readonly type: 'Complete' }
   >()
 })
 
@@ -51,25 +51,25 @@ test('narrows branded enum instances by their variant tag', () => {
   const state = UploadState.new(25)
 
   expectTypeOf(state).toEqualTypeOf<UploadState>()
-  expectTypeOf(state.type).toEqualTypeOf<'idle' | 'active'>()
-  if (state.type === 'active') {
+  expectTypeOf(state.type).toEqualTypeOf<'Idle' | 'Active'>()
+  if (state.type === 'Active') {
     expectTypeOf(state.progress).toEqualTypeOf<number>()
-    expectTypeOf(state.type).toEqualTypeOf<'active'>()
+    expectTypeOf(state.type).toEqualTypeOf<'Active'>()
   } else {
-    expectTypeOf(state.type).toEqualTypeOf<'idle'>()
+    expectTypeOf(state.type).toEqualTypeOf<'Idle'>()
     // @ts-expect-error The idle variant has no progress field.
     state.progress
   }
 })
 
 test('accepts variant function inputs without making plain values branded instances', () => {
-  const plain: UploadState.Plain = { type: 'active', progress: 25 }
+  const plain: UploadState.Plain = { type: 'Active', progress: 25 }
 
   // @ts-expect-error Matching variant fields do not create a Rust wrapper.
   const state: UploadState = plain
   // @ts-expect-error Even an enum without instance methods has a private brand.
   const instance: UploadState.Instance = {}
-  expectTypeOf(Phase.clone_of({ type: 'waiting' })).toEqualTypeOf<Phase>()
+  expectTypeOf(Phase.clone_of({ type: 'Waiting' })).toEqualTypeOf<Phase>()
 
   expectTypeOf(state).toEqualTypeOf<UploadState>()
   expectTypeOf(instance).toEqualTypeOf<UploadState.Instance>()

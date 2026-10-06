@@ -17,8 +17,8 @@ pub enum Test {
 const $facade__discr__10_test_crate__4_Test = class Test {
 	static #_construction_token = Symbol();
 	#_ffi;
-	static #_types = ["first",
-	"second"];
+	static #_types = ["First",
+	"Second"];
 
 	get ["type"]() {
 		return $facade__discr__10_test_crate__4_Test.#_types[__fn__disc__10_test_crate__4_Test(

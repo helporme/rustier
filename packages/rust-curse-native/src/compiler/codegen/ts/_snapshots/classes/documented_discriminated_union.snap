@@ -55,7 +55,7 @@ export declare namespace Shape {
 		}
 		/** Coordinates represented by tuple fields. */
 		| {
-			readonly type: "point";
+			readonly type: "Point";
 			/** A Rust-backed value. */
 			get [0](): Local;
 			get [1](): number;
@@ -65,7 +65,7 @@ export declare namespace Shape {
 		}
 		/** A variant without fields. */
 		| {
-			readonly type: "unit";
+			readonly type: "Unit";
 		};
 
 	export interface Instance {

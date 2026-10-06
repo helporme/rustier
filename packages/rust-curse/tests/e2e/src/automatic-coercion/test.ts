@@ -37,29 +37,29 @@ it('coerces named and tuple struct setters without widening getter values', () =
   circle.center = { x: 4, y: 5 }
   expect(circle.center).toBeInstanceOf(Point)
   expect(circle.center.x).toBe(4)
-  const pair = Pair.of({ 0: { x: 1, y: 2 }, 1: { type: 'clear' } })
+  const pair = Pair.of({ 0: { x: 1, y: 2 }, 1: { type: 'Clear' } })
   pair[0] = { x: 6, y: 7 }
-  pair[1] = { type: 'rgb', red: 8 }
+  pair[1] = { type: 'Rgb', red: 8 }
   expect(pair[0]).toBeInstanceOf(Point)
   expect(pair[0].y).toBe(7)
-  expect(pair[1].type).toBe('rgb')
-  if (pair[1].type !== 'rgb') throw new Error('expected Color::Rgb')
+  expect(pair[1].type).toBe('Rgb')
+  if (pair[1].type !== 'Rgb') throw new Error('expected Color::Rgb')
   expect(pair[1].red).toBe(8)
 })
 
 it('coerces struct and enum fields on named and tuple enum variants', () => {
-  const named = Drawing.of({ type: 'named', point: { x: 1, y: 2 }, color: { type: 'clear' } })
-  if (named.type !== 'named') throw new Error('expected Drawing::Named')
+  const named = Drawing.of({ type: 'Named', point: { x: 1, y: 2 }, color: { type: 'Clear' } })
+  if (named.type !== 'Named') throw new Error('expected Drawing::Named')
   named.point = { x: 3, y: 4 }
-  named.color = { type: 'rgb', red: 5 }
+  named.color = { type: 'Rgb', red: 5 }
   expect(named.point.x).toBe(3)
-  expect(named.color.type).toBe('rgb')
-  const tuple = Drawing.of({ type: 'tuple', 0: { x: 1, y: 2 }, 1: { type: 'clear' } })
-  if (tuple.type !== 'tuple') throw new Error('expected Drawing::Tuple')
+  expect(named.color.type).toBe('Rgb')
+  const tuple = Drawing.of({ type: 'Tuple', 0: { x: 1, y: 2 }, 1: { type: 'Clear' } })
+  if (tuple.type !== 'Tuple') throw new Error('expected Drawing::Tuple')
   tuple[0] = { x: 6, y: 7 }
-  tuple[1] = { type: 'rgb', red: 8 }
+  tuple[1] = { type: 'Rgb', red: 8 }
   expect(tuple[0].y).toBe(7)
-  expect(tuple[1].type).toBe('rgb')
+  expect(tuple[1].type).toBe('Rgb')
 })
 
 it('accepts opaque Clone wrappers in inputs without requiring the nested class to be coercible', () => {

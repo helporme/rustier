@@ -44,14 +44,14 @@ export declare const Wave: {
 export declare namespace Wave {
 	export type Plain =
 		| {
-			readonly type: "sine";
+			readonly type: "Sine";
 			get [0](): number;
 			set [0](
 				value: number
 			);
 		}
 		| {
-			readonly type: "square";
+			readonly type: "Square";
 			get [0](): number;
 			set [0](
 				value: number
@@ -62,7 +62,7 @@ export declare namespace Wave {
 			);
 		}
 		| {
-			readonly type: "triangle";
+			readonly type: "Triangle";
 			get [0](): number;
 			set [0](
 				value: number

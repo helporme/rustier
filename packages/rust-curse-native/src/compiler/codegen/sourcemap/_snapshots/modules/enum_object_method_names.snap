@@ -14,7 +14,7 @@ TypeScript:
   8 | export declare namespace StaticNames {
   9 | 	export type Plain =
  10 | 		| {
- 11 | 			readonly type: "value";
+ 11 | 			readonly type: "Value";
  12 | 		};
  13 | 
  14 | 	export interface Instance {
@@ -31,7 +31,7 @@ TypeScript:
  25 | export declare namespace InstanceNames {
  26 | 	export type Plain =
  27 | 		| {
- 28 | 			readonly type: "value";
+ 28 | 			readonly type: "Value";
  29 | 		};
  30 | 
  31 | 	export interface Instance {

@@ -10,7 +10,7 @@ const rocket = '🚀'.codePointAt(0)!
 
 it('reads and writes every supported MixedStruct field type', () => {
   const value = make_mixed_struct()
-  if (value.enum_value.type !== 'value')
+  if (value.enum_value.type !== 'Value')
     throw new Error('expected NestedEnum::Value')
 
   expect({
@@ -41,7 +41,7 @@ it('reads and writes every supported MixedStruct field type', () => {
     f32_value: 32.5,
     f64_value: 64.5,
     struct_value: 100,
-    enum_type: 'value',
+    enum_type: 'Value',
     enum_value: 200,
   })
 
@@ -59,7 +59,7 @@ it('reads and writes every supported MixedStruct field type', () => {
   value.struct_value = make_nested_struct(300)
   value.enum_value = make_nested_enum(400)
 
-  if (value.enum_value.type !== 'value')
+  if (value.enum_value.type !== 'Value')
     throw new Error('expected NestedEnum::Value')
 
   expect({
@@ -90,7 +90,7 @@ it('reads and writes every supported MixedStruct field type', () => {
     f32_value: 42.5,
     f64_value: 84.5,
     struct_value: 300,
-    enum_type: 'value',
+    enum_type: 'Value',
     enum_value: 400,
   })
 })

@@ -17,12 +17,12 @@ it('exhaustively exposes every MixedEnum variant and supported field type', () =
 
   for (const value of values) {
     switch (value.type) {
-      case 'unit':
-        expect({ type: value.type }).toEqual({ type: 'unit' })
+      case 'Unit':
+        expect({ type: value.type }).toEqual({ type: 'Unit' })
         break
 
-      case 'tuple': {
-        if (value[12].type !== 'value')
+      case 'Tuple': {
+        if (value[12].type !== 'Value')
           throw new Error('expected NestedEnum::Value')
 
         expect({
@@ -42,7 +42,7 @@ it('exhaustively exposes every MixedEnum variant and supported field type', () =
           enum_type: value[12].type,
           enum_value: value[12].value,
         }).toEqual({
-          type: 'tuple',
+          type: 'Tuple',
           flag: true,
           character: crab,
           text: 'tuple',
@@ -55,14 +55,14 @@ it('exhaustively exposes every MixedEnum variant and supported field type', () =
           f32_value: 32.5,
           f64_value: 64.5,
           struct_value: 100,
-          enum_type: 'value',
+          enum_type: 'Value',
           enum_value: 200,
         })
         break
       }
 
-      case 'struct': {
-        if (value.enum_value.type !== 'value')
+      case 'Struct': {
+        if (value.enum_value.type !== 'Value')
           throw new Error('expected NestedEnum::Value')
 
         expect({
@@ -82,7 +82,7 @@ it('exhaustively exposes every MixedEnum variant and supported field type', () =
           enum_type: value.enum_value.type,
           enum_value: value.enum_value.value,
         }).toEqual({
-          type: 'struct',
+          type: 'Struct',
           flag: false,
           character: rocket,
           text: 'struct',
@@ -95,7 +95,7 @@ it('exhaustively exposes every MixedEnum variant and supported field type', () =
           f32_value: 42.5,
           f64_value: 84.5,
           struct_value: 300,
-          enum_type: 'value',
+          enum_type: 'Value',
           enum_value: 400,
         })
         break

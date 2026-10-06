@@ -31,7 +31,7 @@ export declare const Wave: {};
 export declare namespace Wave {
 	export type Plain =
 		| {
-			readonly type: "sine";
+			readonly type: "Sine";
 		};
 
 	export interface Instance {

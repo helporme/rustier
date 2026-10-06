@@ -26,14 +26,14 @@ export declare const Test: {};
 export declare namespace Test {
 	export type Plain =
 		| {
-			readonly type: "first";
+			readonly type: "First";
 			get value(): number;
 			set value(
 				value: number
 			);
 		}
 		| {
-			readonly type: "second";
+			readonly type: "Second";
 			get value(): number;
 			set value(
 				value: number

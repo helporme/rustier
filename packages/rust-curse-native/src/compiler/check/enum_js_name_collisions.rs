@@ -2,7 +2,6 @@ use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 use crate::compiler::{
-    codegen::utils::to_camel_case,
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::EnumType,
@@ -15,14 +14,7 @@ impl<'db> EnumType<'db> {
         let facade = self.shim(db).facade(db);
         let discriminator = facade.discriminator(db);
 
-        let has_type_field_collision = discriminator.name(db) == "$type";
-        let expected_variant_names = self
-            .variants(db)
-            .map(|variant| to_camel_case(variant.declaration(db).name(db)))
-            .collect::<Vec<_>>();
-        let has_variant_tag_collision = discriminator.variant_names(db) != &expected_variant_names;
-
-        if !has_type_field_collision && !has_variant_tag_collision {
+        if discriminator.name(db) != "$type" {
             return;
         }
 
@@ -33,51 +25,24 @@ impl<'db> EnumType<'db> {
             .unwrap_or_default();
         let span = source_span.map(|span| (span.offset, span.length).into());
 
-        if has_type_field_collision {
-            EnumJsNameCollision::TypeField {
-                source_code: source_code.clone(),
-                span,
-            }
-            .accumulate(db);
-        }
-
-        if has_variant_tag_collision {
-            EnumJsNameCollision::VariantTags { source_code, span }.accumulate(db);
-        }
+        EnumTypeFieldCollision { source_code, span }.accumulate(db);
     }
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
-pub enum EnumJsNameCollision {
-    #[error(
-        "enum field `type` conflicts with the generated JS discriminant. The discriminant is renamed to `$type`."
-    )]
-    #[diagnostic(
-        code(rust_curse::enum_type_field_collision),
-        help("use a different field name to avoid this collision"),
-        severity(Warning)
-    )]
-    TypeField {
-        #[source_code]
-        source_code: DiagSource,
-        #[label]
-        span: Option<SourceSpan>,
-    },
-
-    #[error(
-        "enum variant names collide after conversion to lower camel case. The generated JS tags will preserve their Rust names"
-    )]
-    #[diagnostic(
-        code(rust_curse::enum_variant_tag_collision),
-        help("use a different variant name to avoid this collision"),
-        severity(Warning)
-    )]
-    VariantTags {
-        #[source_code]
-        source_code: DiagSource,
-        #[label]
-        span: Option<SourceSpan>,
-    },
+#[error(
+    "enum field `type` conflicts with the generated JS discriminant. The discriminant is renamed to `$type`."
+)]
+#[diagnostic(
+    code(rust_curse::enum_type_field_collision),
+    help("use a different field name to avoid this collision"),
+    severity(Warning)
+)]
+pub struct EnumTypeFieldCollision {
+    #[source_code]
+    source_code: DiagSource,
+    #[label]
+    span: Option<SourceSpan>,
 }
 
 #[cfg(test)]
@@ -100,7 +65,7 @@ mod tests {
     }
 
     #[test]
-    fn warns_when_camel_cased_variant_tags_collide() {
+    fn accepts_variant_names_that_collide_when_camel_cased() {
         let db = test_db! {
             #[allow(non_camel_case_types)]
             #[derive(Clone)]
@@ -110,14 +75,11 @@ mod tests {
             }
         };
 
-        assert_eq!(
-            diagnostic_codes(&db),
-            ["rust_curse::enum_variant_tag_collision"]
-        );
+        assert!(diagnostic_codes(&db).is_empty());
     }
 
     #[test]
-    fn emits_both_collision_diagnostics_in_stable_order() {
+    fn warns_only_for_type_field_when_variant_names_collide_when_camel_cased() {
         let db = test_db! {
             #[allow(non_camel_case_types)]
             #[derive(Clone)]
@@ -129,10 +91,7 @@ mod tests {
 
         assert_eq!(
             diagnostic_codes(&db),
-            [
-                "rust_curse::enum_type_field_collision",
-                "rust_curse::enum_variant_tag_collision",
-            ]
+            ["rust_curse::enum_type_field_collision"]
         );
     }
 

@@ -24,7 +24,7 @@ it('throws when actual Color::Rgb is assigned to Canvas.shape of expected type S
 it('throws when actual Color::Rgb is assigned to Drawing::Selected.shape of expected type Shape', () => {
   const drawing = make_selected_drawing(10, 20, 30)
   const color = make_rgb_color(40, 50, 60)
-  if (drawing.type !== 'selected') throw new Error('expected Drawing::Selected')
+  if (drawing.type !== 'Selected') throw new Error('expected Drawing::Selected')
 
   expect(() => {
     drawing.shape = color as never

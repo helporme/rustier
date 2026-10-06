@@ -77,7 +77,7 @@ export declare const Blocked: {};
 export declare namespace Blocked {
 	export type Plain =
 		| {
-			readonly type: "unit";
+			readonly type: "Unit";
 		};
 
 	export interface Instance {

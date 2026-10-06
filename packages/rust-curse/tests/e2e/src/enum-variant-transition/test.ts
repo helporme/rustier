@@ -6,8 +6,8 @@ it('keeps the Shape wrapper live when replace_with_square changes Circle to Squa
 
   replace_with_square(shape, 60, 40, 50)
 
-  expect(shape.type).toBe('square')
-  if (shape.type !== 'square') throw new Error('expected Shape::Square')
+  expect(shape.type).toBe('Square')
+  if (shape.type !== 'Square') throw new Error('expected Shape::Square')
 
   expect(shape.layer).toBe(40)
   expect(shape.center.x).toBe(50)

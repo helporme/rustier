@@ -13,8 +13,8 @@ import {
 
 it('reads non-exhaustive variants returned by Rust without exposing coerce', () => {
   const value = closed_tuple(42)
-  expect(value.type).toBe('tuple')
-  if (value.type !== 'tuple') throw new Error('expected ClosedEnum::Tuple')
+  expect(value.type).toBe('Tuple')
+  if (value.type !== 'Tuple') throw new Error('expected ClosedEnum::Tuple')
   expect(value[0]).toBe(42)
 })
 

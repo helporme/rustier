@@ -45,7 +45,7 @@ export declare namespace Shape {
 	export type Plain =
 		/** A circle with named fields. */
 		| {
-			readonly type: "circle";
+			readonly type: "Circle";
 			/** The circle radius. */
 			get radius(): number;
 			set radius(
@@ -61,7 +61,7 @@ export declare namespace Shape {
 		}
 		/** Coordinates represented by tuple fields. */
 		| {
-			readonly type: "point";
+			readonly type: "Point";
 			get [0](): number;
 			set [0](
 				value: number
@@ -73,11 +73,11 @@ export declare namespace Shape {
 		}
 		/** A variant without fields. */
 		| {
-			readonly type: "unit";
+			readonly type: "Unit";
 		}
 		/** Checks acronym conversion. */
 		| {
-			readonly type: "httpRequest";
+			readonly type: "HTTPRequest";
 		};
 
 	export interface Instance {

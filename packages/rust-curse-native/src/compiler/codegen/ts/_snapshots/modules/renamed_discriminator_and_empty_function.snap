@@ -23,7 +23,7 @@ export declare const Example: {};
 export declare namespace Example {
 	export type Plain =
 		| {
-			readonly $type: "value";
+			readonly $type: "Value";
 			get type(): string;
 			set type(
 				value: string

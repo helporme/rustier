@@ -38,7 +38,7 @@ export declare const Wave: {
 export declare namespace Wave {
 	export type Plain =
 		| {
-			readonly $type: "unit";
+			readonly $type: "Unit";
 		}
 		/** A named variant. */
 		| {
@@ -56,7 +56,7 @@ export declare namespace Wave {
 			);
 		}
 		| {
-			readonly $type: "hidden";
+			readonly $type: "Hidden";
 			get [0](): number;
 			set [0](
 				value: number
@@ -66,7 +66,7 @@ export declare namespace Wave {
 	export type Coerce =
 		| Instance & Plain
 		| {
-			readonly $type: "unit";
+			readonly $type: "Unit";
 		}
 		/** A named variant. */
 		| {

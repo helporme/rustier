@@ -12,7 +12,7 @@ TypeScript:
   6 | export declare namespace Example {
   7 | 	export type Plain =
   8 | 		| {
-  9 | 			readonly $type: "value";
+  9 | 			readonly $type: "Value";
  10 | 			get type(): string;
  11 | 			set type(
  12 | 				value: string

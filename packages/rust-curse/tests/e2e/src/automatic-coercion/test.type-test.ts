@@ -4,7 +4,7 @@ import { Coerce as NamedCoerce, Plain as NamedPlain } from './test.rs'
 
 test('accepts instances whose class names overlap generated namespace types', () => {
   const record = NamedCoerce.of({ value: 42 })
-  const variant = NamedPlain.of({ type: 'unit' })
+  const variant = NamedPlain.of({ type: 'Unit' })
   expectTypeOf<NamedCoerce>().toExtend<NamedCoerce.Coerce>()
   expectTypeOf<NamedPlain>().toExtend<NamedPlain.Coerce>()
   expectTypeOf(NamedCoerce.of(record)).toEqualTypeOf<NamedCoerce>()
@@ -28,22 +28,22 @@ test('widens every class input boundary while keeping results as exact wrappers'
 })
 
 test('accepts setter input objects while named and tuple getter types stay exact', () => {
-  const pair = Pair.of({ 0: { x: 1, y: 2 }, 1: { type: 'clear' } })
+  const pair = Pair.of({ 0: { x: 1, y: 2 }, 1: { type: 'Clear' } })
   pair[0] = { x: 3, y: 4 }
-  pair[1] = { type: 'rgb', red: 5 }
+  pair[1] = { type: 'Rgb', red: 5 }
   expectTypeOf(pair[0]).toEqualTypeOf<Point>()
   expectTypeOf(pair[1]).toEqualTypeOf<Color>()
-  const named = Drawing.of({ type: 'named', point: { x: 1, y: 2 }, color: { type: 'clear' } })
-  if (named.type === 'named') {
+  const named = Drawing.of({ type: 'Named', point: { x: 1, y: 2 }, color: { type: 'Clear' } })
+  if (named.type === 'Named') {
     named.point = { x: 3, y: 4 }
-    named.color = { type: 'rgb', red: 5 }
+    named.color = { type: 'Rgb', red: 5 }
     expectTypeOf(named.point).toEqualTypeOf<Point>()
     expectTypeOf(named.color).toEqualTypeOf<Color>()
   }
-  const tuple = Drawing.of({ type: 'tuple', 0: { x: 1, y: 2 }, 1: { type: 'clear' } })
-  if (tuple.type === 'tuple') {
+  const tuple = Drawing.of({ type: 'Tuple', 0: { x: 1, y: 2 }, 1: { type: 'Clear' } })
+  if (tuple.type === 'Tuple') {
     tuple[0] = { x: 3, y: 4 }
-    tuple[1] = { type: 'rgb', red: 5 }
+    tuple[1] = { type: 'Rgb', red: 5 }
     expectTypeOf(tuple[0]).toEqualTypeOf<Point>()
     expectTypeOf(tuple[1]).toEqualTypeOf<Color>()
   }

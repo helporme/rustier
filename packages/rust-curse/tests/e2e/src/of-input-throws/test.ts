@@ -3,21 +3,21 @@ import { Label, Message, Mixed, Point, Shape, point_x } from './test.rs'
 
 it('rejects incomplete nested Point inputs', () => {
   expect(() => Label.of({ position: { 0: 1 } } as any)).toThrow()
-  expect(() => Shape.of({ type: 'circle', center: { 0: 1 } } as any)).toThrow()
+  expect(() => Shape.of({ type: 'Circle', center: { 0: 1 } } as any)).toThrow()
 })
 
 it('rejects invalid scalar fields in an ordinary Point argument', () => {
   expect(() => point_x({ 0: '1', 1: 2 } as any)).toThrow()
 })
 
-it.each(['triangle', 'reserved', undefined])('rejects unavailable Shape tag %s', type => {
+it.each(['triangle', 'Reserved', undefined])('rejects unavailable Shape tag %s', type => {
   expect(() => Shape.of({ type, value: 1 } as any)).toThrow(
     /Unknown or nonconstructible Shape discriminator/,
   )
 })
 
 it('reads the collision-safe $type discriminator rather than the type field', () => {
-  expect(() => Message.of({ type: 'empty' } as any)).toThrow(
+  expect(() => Message.of({ type: 'Empty' } as any)).toThrow(
     /Unknown or nonconstructible Message discriminator/,
   )
 })
@@ -25,8 +25,8 @@ it('reads the collision-safe $type discriminator rather than the type field', ()
 it('rejects missing required struct and enum fields with valid enum tags', () => {
   expect(() => Label.of({} as any)).toThrow()
   expect(() => Point.of({ 0: 1 } as any)).toThrow()
-  expect(() => Shape.of({ type: 'circle' } as any)).toThrow()
-  expect(() => Message.of({ $type: 'text' } as any)).toThrow()
+  expect(() => Shape.of({ type: 'Circle' } as any)).toThrow()
+  expect(() => Message.of({ $type: 'Text' } as any)).toThrow()
 })
 
 it.each(['position', 'count', 'enabled', 'text'] as const)('rejects missing Mixed field %s', field => {
@@ -74,16 +74,16 @@ it.each([-128, 0, 127])('accepts valid i8 boundary/control value %s', count => {
 })
 
 it('rejects wrappers lacking required Point fields in struct and enum inputs', () => {
-  const wrong = Message.of({ $type: 'empty' })
+  const wrong = Message.of({ $type: 'Empty' })
   expect(() => Label.of({ position: wrong } as any)).toThrow()
-  expect(() => Shape.of({ type: 'circle', center: wrong } as any)).toThrow()
-  expect(wrong.$type).toBe('empty')
+  expect(() => Shape.of({ type: 'Circle', center: wrong } as any)).toThrow()
+  expect(wrong.$type).toBe('Empty')
 
   const position = Point.of({ 0: 10, 1: 20 })
   expect(point_x(Label.of({ position }).position)).toBe(10)
-  const circle = Shape.of({ type: 'circle', center: position })
-  expect(circle.type).toBe('circle')
-  if (circle.type !== 'circle') throw new Error('expected Shape::Circle')
+  const circle = Shape.of({ type: 'Circle', center: position })
+  expect(circle.type).toBe('Circle')
+  if (circle.type !== 'Circle') throw new Error('expected Shape::Circle')
   expect(point_x(circle.center)).toBe(10)
   expect(point_x(position)).toBe(10)
 })

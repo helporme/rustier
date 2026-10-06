@@ -17,19 +17,19 @@ TypeScript:
  11 | export declare namespace Status {
  12 | 	export type Plain =
  13 | 		| {
- 14 | 			readonly type: "pending";
+ 14 | 			readonly type: "Pending";
  15 | 		}
  16 | 		| {
- 17 | 			readonly type: "complete";
+ 17 | 			readonly type: "Complete";
  18 | 		};
  19 | 
  20 | 	export type Coerce =
  21 | 		| Instance & Plain
  22 | 		| {
- 23 | 			readonly type: "pending";
+ 23 | 			readonly type: "Pending";
  24 | 		}
  25 | 		| {
- 26 | 			readonly type: "complete";
+ 26 | 			readonly type: "Complete";
  27 | 		};
  28 | 
  29 | 	export interface Instance {

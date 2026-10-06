@@ -21,14 +21,14 @@ it('throws when the same Circle is passed as shared and mutable Shape references
 
 it('throws when Shape::Circle aliases its mutable center projection', () => {
   const circle = make_circle(10, 20, 30)
-  if (circle.type !== 'circle') throw new Error('expected the Circle variant')
+  if (circle.type !== 'Circle') throw new Error('expected the Circle variant')
 
   expect(() => read_shape_and_mutate_center(circle, circle.center)).toThrow()
 })
 
 it('throws when repeated Circle.center getters alias shared and mutable references', () => {
   const circle = make_circle(10, 20, 30)
-  if (circle.type !== 'circle') throw new Error('expected the Circle variant')
+  if (circle.type !== 'Circle') throw new Error('expected the Circle variant')
   const read = circle.center
   const mutate = circle.center
 

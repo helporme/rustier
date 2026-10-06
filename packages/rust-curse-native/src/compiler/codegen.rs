@@ -4,4 +4,3 @@ pub mod js;
 pub mod shim;
 pub mod sourcemap;
 pub mod ts;
-pub(super) mod utils;
