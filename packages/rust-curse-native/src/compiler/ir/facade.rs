@@ -8,7 +8,10 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use itertools::{Either, Itertools};
 
 use crate::compiler::{
-    codegen::utils::to_camel_case,
+    codegen::{
+        fragment::{FragmentPrint, frag},
+        utils::to_camel_case,
+    },
     db::Db,
     ir::{
         ffi::{Ffi, FfiClass, FfiFunction},
@@ -582,6 +585,11 @@ impl<'db> FacadeClass<'db> {
             FacadeClass::Plain(plain) => plain.name(db),
             FacadeClass::Discriminated(discriminated) => discriminated.name(db),
         }
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn import_alias(self, db: &'db dyn Db) -> String {
+        frag!({"$facade"}{self.ffi(db).symbol(db)}).print()
     }
 
     pub fn methods(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeMethod<'db>> + 'db {

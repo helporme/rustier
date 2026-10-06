@@ -13,9 +13,13 @@ impl<'db> FacadeImport<'db> {
     pub(super) fn render(self, db: &'db dyn Db, paths: JsCodegenPaths) -> String {
         let item = self.item(db);
         let name = item.name(db);
+        let alias = match item {
+            FacadeImportItem::FacadeClass(class) => Some(frag!(~as~{class.import_alias(db)})),
+            _ => None,
+        };
 
         frag!(
-            import {{ {name} }} from {doubles(self.render_path(db, paths))}
+            import {{ {name}{alias} }} from {doubles(self.render_path(db, paths))}
         )
         .print()
     }

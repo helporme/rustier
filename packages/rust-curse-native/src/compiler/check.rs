@@ -13,6 +13,7 @@ mod coerce_name_collisions;
 mod coerce_requires_clone;
 mod enum_js_name_collisions;
 mod f32_precision_loss;
+#[cfg(test)]
 mod method_field_collisions;
 mod mutable_reference_ignored;
 
@@ -56,7 +57,6 @@ fn check_module<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
                     struct_.check_coerce_name_collisions(db);
                     struct_.check_coerce_requires_clone(db);
                     struct_.check_f32_precision_loss(db);
-                    struct_.check_method_field_collisions(db);
                 }
                 ShimClass::Discriminated(class) => {
                     let enum_ = class.src(db);
@@ -64,7 +64,6 @@ fn check_module<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
                     enum_.check_coerce_requires_clone(db);
                     enum_.check_f32_precision_loss(db);
                     enum_.check_js_name_collisions(db);
-                    enum_.check_method_field_collisions(db);
                 }
             }
 

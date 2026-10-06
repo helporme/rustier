@@ -22,7 +22,7 @@ impl<'db> FacadeClassFactory<'db> {
                             frag!(~&&~ types[{index}] === {doubles(symbol)}).apply(p);
                         }
                         FacadeGeneric::Class(class) => {
-                            frag!(~&&~ types[{index}] === {class.name(db)}).apply(p);
+                            frag!(~&&~ types[{index}] === {class.import_alias(db)}).apply(p);
                         }
                     }
                 }
@@ -30,7 +30,7 @@ impl<'db> FacadeClassFactory<'db> {
 
             frag!(
                 if (types.length === {arity}{conditions}) {{
-                    return~{class.name(db)};
+                    return~{class.import_alias(db)};
                 }}
             )
         }));
@@ -118,10 +118,17 @@ mod tests {
             }
         }
 
+        pub mod other {
+            pub struct Holder(u32);
+        }
+
+        pub struct Holder(u32);
         pub struct Wrap<T>(T);
 
         pub fn consume(
             holder: &Wrap<models::Holder>,
+            other: &Wrap<other::Holder>,
+            local: &Wrap<Holder>,
             boxed: &Wrap<models::Boxed<u32>>,
             status: &Wrap<models::Status>,
         ) {

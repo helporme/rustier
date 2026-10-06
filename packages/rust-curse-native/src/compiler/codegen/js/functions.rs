@@ -174,7 +174,7 @@ where
     Casts: CastRenderer<'db> + Copy + Clone + 'db,
 {
     fn render(self) -> impl FragmentOnce + 'db {
-        let class_name = self.method.class(self.db).name(self.db);
+        let class_name = self.method.class(self.db).import_alias(self.db);
         let body = self.render_param_casts(frag!(
             this.#_ffi~ = ~{self.render_call_expr()};
         ));

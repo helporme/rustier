@@ -13,10 +13,10 @@ use super::{
 };
 use crate::compiler::{
     db::Db,
-    diag::DiagSource,
+    diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::{
-        Function, FunctionInherent, FunctionParent, Impl, ImplInherent, Module, Param, Receiver,
-        Span, Type, TypeOrigin,
+        FieldName, Function, FunctionInherent, FunctionParent, Impl, ImplInherent, Module, Param,
+        Receiver, Span, Type, TypeKind, TypeOrigin,
     },
 };
 
@@ -173,8 +173,49 @@ pub(super) fn lower_inherent_function<'db>(
     db: &'db dyn Db,
     hir: HirFunction,
     impl_: ImplInherent<'db>,
-) -> Result<FunctionInherent<'db>, Box<FunctionLowerError>> {
+) -> Result<Option<FunctionInherent<'db>>, Box<FunctionLowerError>> {
     let declaration = lower_function(db, hir)?;
+
+    if declaration.receiver(db).is_none() && declaration.name(db) == "prototype" {
+        return Ok(None);
+    }
+
+    let shadowed = declaration.receiver(db).is_some()
+        && match impl_.target(db).kind(db) {
+            TypeKind::Struct(type_) => type_.fields(db).any(
+                |field| matches!(field.declaration(db).name(db), FieldName::Name(name) if name == declaration.name(db)),
+            ),
+            TypeKind::Enum(type_) => type_
+                .variants(db)
+                .flat_map(|variant| variant.fields(db))
+                .any(
+                    |field| matches!(field.declaration(db).name(db), FieldName::Name(name) if name == declaration.name(db)),
+                ),
+            _ => false,
+        };
+
+    if shadowed {
+        if impl_
+            .declaration(db)
+            .module(db)
+            .path(db)
+            .crate_(db)
+            // FIXME: should be filtered out elsewhere, ideally by server, not here.
+            .is_local(db)
+        {
+            let source_span = declaration.span(db);
+            let (source_code, span) = diagnostic_location(db, source_span);
+
+            MethodShadowedByField {
+                fqn: function_fqn(db, hir),
+                source_code,
+                span,
+            }
+            .accumulate(db);
+        }
+
+        return Ok(None);
+    }
 
     if let Some(error) =
         check_function_substituted(db, hir, &impl_.partial_type_args(db), Vec::new())
@@ -182,7 +223,24 @@ pub(super) fn lower_inherent_function<'db>(
         return Err(Box::new(error));
     }
 
-    Ok(FunctionInherent::new(db, declaration, impl_))
+    Ok(Some(FunctionInherent::new(db, declaration, impl_)))
+}
+
+#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
+#[error(
+    "the instance method \"{fqn}\" is not exported to JS because it is shadowed by a field with the same name"
+)]
+#[diagnostic(
+    code(rust_curse::method_shadowed_by_field),
+    help("rename either the field or the method to export both"),
+    severity(Warning)
+)]
+struct MethodShadowedByField {
+    fqn: String,
+    #[source_code]
+    source_code: DiagSource,
+    #[label("shadowed instance method")]
+    span: Option<SourceSpan>,
 }
 
 fn check_function_substituted<'db>(

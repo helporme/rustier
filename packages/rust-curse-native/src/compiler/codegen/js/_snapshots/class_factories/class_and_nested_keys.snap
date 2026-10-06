@@ -34,7 +34,7 @@ import{
 	__plain__10_test_crate__6_Holder
 }from"$rust/unstable!/node"
 
-export class Holder {
+const $facade__plain__10_test_crate__6_Holder = class Holder {
 	static #_construction_token = Symbol();
 	#_ffi;
 
@@ -44,7 +44,7 @@ export class Holder {
 		token
 	){
 		if(
-			token !== Holder.#_construction_token
+			token !== $facade__plain__10_test_crate__6_Holder.#_construction_token
 		){
 			throw new TypeError(
 				"rust-backed structs cannot be constructed directly"
@@ -55,8 +55,8 @@ export class Holder {
 	static $from_ffi(
 		ffi
 	){
-		const obj = new Holder(
-			 Holder.#_construction_token
+		const obj = new $facade__plain__10_test_crate__6_Holder(
+			 $facade__plain__10_test_crate__6_Holder.#_construction_token
 		);
 		obj.#_ffi = ffi;
 		return obj;
@@ -65,9 +65,13 @@ export class Holder {
 	$ffi(){
 		return this.#_ffi;
 	}
-}
+};
 
-export class _4_WrapGP3_u32E {
+export {
+	$facade__plain__10_test_crate__6_Holder as Holder
+};
+
+const $facade__plain__10_test_crate__4_WrapGP3_u32E = class _4_WrapGP3_u32E {
 	static #_construction_token = Symbol();
 	#_ffi;
 
@@ -77,7 +81,7 @@ export class _4_WrapGP3_u32E {
 		token
 	){
 		if(
-			token !== _4_WrapGP3_u32E.#_construction_token
+			token !== $facade__plain__10_test_crate__4_WrapGP3_u32E.#_construction_token
 		){
 			throw new TypeError(
 				"rust-backed structs cannot be constructed directly"
@@ -88,8 +92,8 @@ export class _4_WrapGP3_u32E {
 	static $from_ffi(
 		ffi
 	){
-		const obj = new _4_WrapGP3_u32E(
-			 _4_WrapGP3_u32E.#_construction_token
+		const obj = new $facade__plain__10_test_crate__4_WrapGP3_u32E(
+			 $facade__plain__10_test_crate__4_WrapGP3_u32E.#_construction_token
 		);
 		obj.#_ffi = ffi;
 		return obj;
@@ -98,9 +102,13 @@ export class _4_WrapGP3_u32E {
 	$ffi(){
 		return this.#_ffi;
 	}
-}
+};
 
-export class _4_WrapGS10_test_crate__4_WrapGP3_u32EE {
+export {
+	$facade__plain__10_test_crate__4_WrapGP3_u32E as _4_WrapGP3_u32E
+};
+
+const $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE = class _4_WrapGS10_test_crate__4_WrapGP3_u32EE {
 	static #_construction_token = Symbol();
 	#_ffi;
 
@@ -110,7 +118,7 @@ export class _4_WrapGS10_test_crate__4_WrapGP3_u32EE {
 		token
 	){
 		if(
-			token !== _4_WrapGS10_test_crate__4_WrapGP3_u32EE.#_construction_token
+			token !== $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE.#_construction_token
 		){
 			throw new TypeError(
 				"rust-backed structs cannot be constructed directly"
@@ -121,8 +129,8 @@ export class _4_WrapGS10_test_crate__4_WrapGP3_u32EE {
 	static $from_ffi(
 		ffi
 	){
-		const obj = new _4_WrapGS10_test_crate__4_WrapGP3_u32EE(
-			 _4_WrapGS10_test_crate__4_WrapGP3_u32EE.#_construction_token
+		const obj = new $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE(
+			 $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE.#_construction_token
 		);
 		obj.#_ffi = ffi;
 		return obj;
@@ -131,9 +139,13 @@ export class _4_WrapGS10_test_crate__4_WrapGP3_u32EE {
 	$ffi(){
 		return this.#_ffi;
 	}
-}
+};
 
-export class _4_WrapGS10_test_crate__6_HolderE {
+export {
+	$facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE as _4_WrapGS10_test_crate__4_WrapGP3_u32EE
+};
+
+const $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE = class _4_WrapGS10_test_crate__6_HolderE {
 	static #_construction_token = Symbol();
 	#_ffi;
 
@@ -143,7 +155,7 @@ export class _4_WrapGS10_test_crate__6_HolderE {
 		token
 	){
 		if(
-			token !== _4_WrapGS10_test_crate__6_HolderE.#_construction_token
+			token !== $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE.#_construction_token
 		){
 			throw new TypeError(
 				"rust-backed structs cannot be constructed directly"
@@ -154,8 +166,8 @@ export class _4_WrapGS10_test_crate__6_HolderE {
 	static $from_ffi(
 		ffi
 	){
-		const obj = new _4_WrapGS10_test_crate__6_HolderE(
-			 _4_WrapGS10_test_crate__6_HolderE.#_construction_token
+		const obj = new $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE(
+			 $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE.#_construction_token
 		);
 		obj.#_ffi = ffi;
 		return obj;
@@ -164,7 +176,11 @@ export class _4_WrapGS10_test_crate__6_HolderE {
 	$ffi(){
 		return this.#_ffi;
 	}
-}
+};
+
+export {
+	$facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE as _4_WrapGS10_test_crate__6_HolderE
+};
 
 export function Wrap (
 	...types
@@ -172,19 +188,19 @@ export function Wrap (
 	if(
 		types.length ===1 && types[0]==="u32"
 	){
-		return _4_WrapGP3_u32E;
+		return $facade__plain__10_test_crate__4_WrapGP3_u32E;
 	}
 
 	if(
-		types.length ===1 && types[0]===_4_WrapGP3_u32E
+		types.length ===1 && types[0]===$facade__plain__10_test_crate__4_WrapGP3_u32E
 	){
-		return _4_WrapGS10_test_crate__4_WrapGP3_u32EE;
+		return $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE;
 	}
 
 	if(
-		types.length ===1 && types[0]===Holder
+		types.length ===1 && types[0]===$facade__plain__10_test_crate__6_Holder
 	){
-		return _4_WrapGS10_test_crate__6_HolderE;
+		return $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE;
 	}
 
 	throw new TypeError(
@@ -201,7 +217,7 @@ export function consume (
 		const __cast_input = _0;
 		if(
 			!(
-				__cast_input instanceof _4_WrapGP3_u32E
+				__cast_input instanceof $facade__plain__10_test_crate__4_WrapGP3_u32E
 			)
 		) {
 			throw new TypeError(
@@ -215,7 +231,7 @@ export function consume (
 			const __cast_input = _1;
 			if(
 				!(
-					__cast_input instanceof _4_WrapGS10_test_crate__6_HolderE
+					__cast_input instanceof $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE
 				)
 			) {
 				throw new TypeError(
@@ -229,7 +245,7 @@ export function consume (
 				const __cast_input = _2;
 				if(
 					!(
-						__cast_input instanceof _4_WrapGS10_test_crate__4_WrapGP3_u32EE
+						__cast_input instanceof $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE
 					)
 				) {
 					throw new TypeError(

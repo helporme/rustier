@@ -12,9 +12,15 @@ pub mod models {
         Ready,
     }
 }
+pub mod other {
+    pub struct Holder(u32);
+}
+pub struct Holder(u32);
 pub struct Wrap<T>(T);
 pub fn consume(
     holder: &Wrap<models::Holder>,
+    other: &Wrap<other::Holder>,
+    local: &Wrap<Holder>,
     boxed: &Wrap<models::Boxed<u32>>,
     status: &Wrap<models::Status>,
 ) {}
@@ -24,19 +30,31 @@ pub fn consume(
 
 ```js
 import{
-	Holder
+	Holder as $facade__plain__10_test_crate__6_models__6_Holder
 }from"$rust/test_crate/models"
 
 import{
-	Status
+	Status as $facade__discr__10_test_crate__6_models__6_Status
 }from"$rust/test_crate/models"
 
 import{
-	_5_BoxedGP3_u32E
+	_5_BoxedGP3_u32E as $facade__plain__10_test_crate__6_models__5_BoxedGP3_u32E
 }from"$rust/test_crate/models"
+
+import{
+	Holder as $facade__plain__10_test_crate__5_other__6_Holder
+}from"$rust/test_crate/other"
 
 import{
 	__fn__free__10_test_crate__7_consume
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGS10_test_crate__5_other__6_HolderE
+}from"$rust/unstable!/node"
+
+import{
+	__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE
 }from"$rust/unstable!/node"
 
 import{
@@ -51,7 +69,11 @@ import{
 	__plain__10_test_crate__4_WrapGV10_test_crate__6_models__6_StatusE
 }from"$rust/unstable!/node"
 
-export class _4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE {
+import{
+	__plain__10_test_crate__6_Holder
+}from"$rust/unstable!/node"
+
+const $facade__plain__10_test_crate__6_Holder = class Holder {
 	static #_construction_token = Symbol();
 	#_ffi;
 
@@ -61,7 +83,7 @@ export class _4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE {
 		token
 	){
 		if(
-			token !== _4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE.#_construction_token
+			token !== $facade__plain__10_test_crate__6_Holder.#_construction_token
 		){
 			throw new TypeError(
 				"rust-backed structs cannot be constructed directly"
@@ -72,8 +94,8 @@ export class _4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE {
 	static $from_ffi(
 		ffi
 	){
-		const obj = new _4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE(
-			 _4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE.#_construction_token
+		const obj = new $facade__plain__10_test_crate__6_Holder(
+			 $facade__plain__10_test_crate__6_Holder.#_construction_token
 		);
 		obj.#_ffi = ffi;
 		return obj;
@@ -82,9 +104,13 @@ export class _4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE {
 	$ffi(){
 		return this.#_ffi;
 	}
-}
+};
 
-export class _4_WrapGS10_test_crate__6_models__6_HolderE {
+export {
+	$facade__plain__10_test_crate__6_Holder as Holder
+};
+
+const $facade__plain__10_test_crate__4_WrapGS10_test_crate__5_other__6_HolderE = class _4_WrapGS10_test_crate__5_other__6_HolderE {
 	static #_construction_token = Symbol();
 	#_ffi;
 
@@ -94,7 +120,7 @@ export class _4_WrapGS10_test_crate__6_models__6_HolderE {
 		token
 	){
 		if(
-			token !== _4_WrapGS10_test_crate__6_models__6_HolderE.#_construction_token
+			token !== $facade__plain__10_test_crate__4_WrapGS10_test_crate__5_other__6_HolderE.#_construction_token
 		){
 			throw new TypeError(
 				"rust-backed structs cannot be constructed directly"
@@ -105,8 +131,8 @@ export class _4_WrapGS10_test_crate__6_models__6_HolderE {
 	static $from_ffi(
 		ffi
 	){
-		const obj = new _4_WrapGS10_test_crate__6_models__6_HolderE(
-			 _4_WrapGS10_test_crate__6_models__6_HolderE.#_construction_token
+		const obj = new $facade__plain__10_test_crate__4_WrapGS10_test_crate__5_other__6_HolderE(
+			 $facade__plain__10_test_crate__4_WrapGS10_test_crate__5_other__6_HolderE.#_construction_token
 		);
 		obj.#_ffi = ffi;
 		return obj;
@@ -115,9 +141,13 @@ export class _4_WrapGS10_test_crate__6_models__6_HolderE {
 	$ffi(){
 		return this.#_ffi;
 	}
-}
+};
 
-export class _4_WrapGV10_test_crate__6_models__6_StatusE {
+export {
+	$facade__plain__10_test_crate__4_WrapGS10_test_crate__5_other__6_HolderE as _4_WrapGS10_test_crate__5_other__6_HolderE
+};
+
+const $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE = class _4_WrapGS10_test_crate__6_HolderE {
 	static #_construction_token = Symbol();
 	#_ffi;
 
@@ -127,7 +157,7 @@ export class _4_WrapGV10_test_crate__6_models__6_StatusE {
 		token
 	){
 		if(
-			token !== _4_WrapGV10_test_crate__6_models__6_StatusE.#_construction_token
+			token !== $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE.#_construction_token
 		){
 			throw new TypeError(
 				"rust-backed structs cannot be constructed directly"
@@ -138,8 +168,8 @@ export class _4_WrapGV10_test_crate__6_models__6_StatusE {
 	static $from_ffi(
 		ffi
 	){
-		const obj = new _4_WrapGV10_test_crate__6_models__6_StatusE(
-			 _4_WrapGV10_test_crate__6_models__6_StatusE.#_construction_token
+		const obj = new $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE(
+			 $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE.#_construction_token
 		);
 		obj.#_ffi = ffi;
 		return obj;
@@ -148,27 +178,154 @@ export class _4_WrapGV10_test_crate__6_models__6_StatusE {
 	$ffi(){
 		return this.#_ffi;
 	}
-}
+};
+
+export {
+	$facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE as _4_WrapGS10_test_crate__6_HolderE
+};
+
+const $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE = class _4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE(
+			 $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+};
+
+export {
+	$facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE as _4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE
+};
+
+const $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__6_HolderE = class _4_WrapGS10_test_crate__6_models__6_HolderE {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__6_HolderE.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__6_HolderE(
+			 $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__6_HolderE.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+};
+
+export {
+	$facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__6_HolderE as _4_WrapGS10_test_crate__6_models__6_HolderE
+};
+
+const $facade__plain__10_test_crate__4_WrapGV10_test_crate__6_models__6_StatusE = class _4_WrapGV10_test_crate__6_models__6_StatusE {
+	static #_construction_token = Symbol();
+	#_ffi;
+
+
+
+	constructor(
+		token
+	){
+		if(
+			token !== $facade__plain__10_test_crate__4_WrapGV10_test_crate__6_models__6_StatusE.#_construction_token
+		){
+			throw new TypeError(
+				"rust-backed structs cannot be constructed directly"
+			);
+		}
+	}
+
+	static $from_ffi(
+		ffi
+	){
+		const obj = new $facade__plain__10_test_crate__4_WrapGV10_test_crate__6_models__6_StatusE(
+			 $facade__plain__10_test_crate__4_WrapGV10_test_crate__6_models__6_StatusE.#_construction_token
+		);
+		obj.#_ffi = ffi;
+		return obj;
+	}
+
+	$ffi(){
+		return this.#_ffi;
+	}
+};
+
+export {
+	$facade__plain__10_test_crate__4_WrapGV10_test_crate__6_models__6_StatusE as _4_WrapGV10_test_crate__6_models__6_StatusE
+};
 
 export function Wrap (
 	...types
 ) {
 	if(
-		types.length ===1 && types[0]===_5_BoxedGP3_u32E
+		types.length ===1 && types[0]===$facade__plain__10_test_crate__5_other__6_Holder
 	){
-		return _4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE;
+		return $facade__plain__10_test_crate__4_WrapGS10_test_crate__5_other__6_HolderE;
 	}
 
 	if(
-		types.length ===1 && types[0]===Holder
+		types.length ===1 && types[0]===$facade__plain__10_test_crate__6_Holder
 	){
-		return _4_WrapGS10_test_crate__6_models__6_HolderE;
+		return $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE;
 	}
 
 	if(
-		types.length ===1 && types[0]===Status
+		types.length ===1 && types[0]===$facade__plain__10_test_crate__6_models__5_BoxedGP3_u32E
 	){
-		return _4_WrapGV10_test_crate__6_models__6_StatusE;
+		return $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE;
+	}
+
+	if(
+		types.length ===1 && types[0]===$facade__plain__10_test_crate__6_models__6_Holder
+	){
+		return $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__6_HolderE;
+	}
+
+	if(
+		types.length ===1 && types[0]===$facade__discr__10_test_crate__6_models__6_Status
+	){
+		return $facade__plain__10_test_crate__4_WrapGV10_test_crate__6_models__6_StatusE;
 	}
 
 	throw new TypeError(
@@ -179,13 +336,15 @@ export function Wrap (
 export function consume (
 	_0,
 	_1,
-	_2
+	_2,
+	_3,
+	_4
 ) {
 	{
 		const __cast_input = _0;
 		if(
 			!(
-				__cast_input instanceof _4_WrapGS10_test_crate__6_models__6_HolderE
+				__cast_input instanceof $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__6_HolderE
 			)
 		) {
 			throw new TypeError(
@@ -199,11 +358,11 @@ export function consume (
 			const __cast_input = _1;
 			if(
 				!(
-					__cast_input instanceof _4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE
+					__cast_input instanceof $facade__plain__10_test_crate__4_WrapGS10_test_crate__5_other__6_HolderE
 				)
 			) {
 				throw new TypeError(
-					"Expected a value of type \"_4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+					"Expected a value of type \"_4_WrapGS10_test_crate__5_other__6_HolderE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
 						__cast_input
 					) + "\""
 				);
@@ -213,21 +372,53 @@ export function consume (
 				const __cast_input = _2;
 				if(
 					!(
-						__cast_input instanceof _4_WrapGV10_test_crate__6_models__6_StatusE
+						__cast_input instanceof $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_HolderE
 					)
 				) {
 					throw new TypeError(
-						"Expected a value of type \"_4_WrapGV10_test_crate__6_models__6_StatusE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+						"Expected a value of type \"_4_WrapGS10_test_crate__6_HolderE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
 							__cast_input
 						) + "\""
 					);
 				}
 				const __2 = __cast_input.$ffi();
-				__fn__free__10_test_crate__7_consume(
-					__0,
-					__1,
-					__2
-				);
+				{
+					const __cast_input = _3;
+					if(
+						!(
+							__cast_input instanceof $facade__plain__10_test_crate__4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE
+						)
+					) {
+						throw new TypeError(
+							"Expected a value of type \"_4_WrapGS10_test_crate__6_models__5_BoxedGP3_u32EE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+								__cast_input
+							) + "\""
+						);
+					}
+					const __3 = __cast_input.$ffi();
+					{
+						const __cast_input = _4;
+						if(
+							!(
+								__cast_input instanceof $facade__plain__10_test_crate__4_WrapGV10_test_crate__6_models__6_StatusE
+							)
+						) {
+							throw new TypeError(
+								"Expected a value of type \"_4_WrapGV10_test_crate__6_models__6_StatusE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+									__cast_input
+								) + "\""
+							);
+						}
+						const __4 = __cast_input.$ffi();
+						__fn__free__10_test_crate__7_consume(
+							__0,
+							__1,
+							__2,
+							__3,
+							__4
+						);
+					}
+				}
 			}
 		}
 	}

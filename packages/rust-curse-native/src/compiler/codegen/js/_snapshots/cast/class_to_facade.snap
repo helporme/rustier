@@ -28,7 +28,7 @@ function cast(
 				) + "\""
 			);
 		}
-		const output = ExampleStruct.$from_ffi(
+		const output = $facade__plain__10_test_crate__13_ExampleStruct.$from_ffi(
 			__cast_input
 		);
 		consume(

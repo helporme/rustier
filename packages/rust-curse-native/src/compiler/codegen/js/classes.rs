@@ -57,10 +57,11 @@ where
     Casts: CastRenderer<'db> + Copy + Clone + 'db,
 {
     fn render(self) -> impl FragmentOnce + 'db {
-        let name = self.class.name(self.db);
+        let name = self.class.import_alias(self.db);
+        let public_name = self.class.name(self.db);
 
         frag!(
-            export class~{name}~{{
+            const~{name}~=~class~{public_name}~{{
                 static #_construction_token = Symbol();@
                 #_ffi;@
                 {self.render_private_declarations()}@
@@ -78,7 +79,8 @@ where
                 $ffi() {{
                     return this.#_ffi;
                 }}
-            }}
+            }};@@
+            export~{{{name}~as~{public_name}}};
         )
     }
 
@@ -128,7 +130,7 @@ where
                     .render_as_constructor_with(self.db, self.casts)
                     .apply(p);
             } else {
-                let class_name = self.class.name(self.db);
+                let class_name = self.class.import_alias(self.db);
                 frag!(
                     constructor(token) {{
                         if (token !== ~{class_name}.#_construction_token) {{
@@ -234,7 +236,7 @@ where
     fn apply(self, p: &mut Printer) {
         let db = self.db;
         let name = self.coerce.name(db);
-        let class_name = self.coerce.class(db).name(db);
+        let class_name = self.coerce.class(db).import_alias(db);
         match self.coerce {
             FacadeCoerce::Plain(coerce) => {
                 let body = self.render_body(coerce.ffi(db), coerce.fields(db).collect());
@@ -604,7 +606,7 @@ where
     fn render_discriminator(self, field: FacadeFieldDiscriminator<'db>) -> impl FragmentOnce + 'db {
         let accessor = squares(doubles(field.name(self.db)));
         let ffi_getter = field.ffi_getter(self.db);
-        let class_name = self.class.name(self.db);
+        let class_name = self.class.import_alias(self.db);
 
         frag!(
             get ~{accessor}()~{{

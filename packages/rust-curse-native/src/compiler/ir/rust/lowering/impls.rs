@@ -101,6 +101,7 @@ impl<'db> ImplInherent<'db> {
                             }
                         })
                         .ok()
+                        .flatten()
                 }
                 _ => None,
             })

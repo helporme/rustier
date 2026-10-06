@@ -16,7 +16,7 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    let expected_class = source.name(db);
+    let expected_class = source.import_alias(db);
 
     let input = fragment(move |p| match source.coerce(db) {
         Some(coerce) => frag!({expected_class}.{coerce.name(db)}({in_expr})).apply(p),
@@ -26,7 +26,7 @@ where
     let error_message = frag!(
         {doubles((
             r#"Expected a value of type \""#,
-            expected_class,
+            source.name(db),
             r#"\", but value of type \""#,
         ))}~ + typeof __cast_input + ~{doubles(r#"\" was passed: \""#)}~ + String(__cast_input) ~+~ {doubles(r#"\""#)}
     );
@@ -72,7 +72,7 @@ where
                 {error_message}
             );
         }}@
-        const ~{out_var_name}~ = ~{target.name(db)}.$from_ffi(__cast_input);@
+        const ~{out_var_name}~ = ~{target.import_alias(db)}.$from_ffi(__cast_input);@
         {continue_with}
     }})
 }

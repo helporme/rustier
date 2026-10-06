@@ -175,8 +175,9 @@ impl<'db> ImplInherent<'db> {
 
 /// Evaluates a method's substituted where-clause in its impl's environment.
 ///
-/// It's kind of workaround since there is no clear way how to evaluate hir function
-/// bounds that discard the function based on the impl generic constraints
+/// It's kind of workaround since there is no clear way how to evaluate hir
+/// function bounds that discard the function based on the impl generic
+/// constraints
 fn evaluate_where_clause<'db>(db: &'db dyn Db, callable: Callable<'db>) -> Option<bool> {
     let FunctionQualified::Inherent(function) = callable.function(db) else {
         return None;

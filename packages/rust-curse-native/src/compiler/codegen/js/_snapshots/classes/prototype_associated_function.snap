@@ -16,7 +16,7 @@ impl Test {
 # Compiled
 
 ```js
-export class Test {
+const $facade__plain__10_test_crate__4_Test = class Test {
 	static #_construction_token = Symbol();
 	#_ffi;
 
@@ -26,7 +26,7 @@ export class Test {
 		token
 	){
 		if(
-			token !== Test.#_construction_token
+			token !== $facade__plain__10_test_crate__4_Test.#_construction_token
 		){
 			throw new TypeError(
 				"rust-backed structs cannot be constructed directly"
@@ -37,8 +37,8 @@ export class Test {
 	static $from_ffi(
 		ffi
 	){
-		const obj = new Test(
-			 Test.#_construction_token
+		const obj = new $facade__plain__10_test_crate__4_Test(
+			 $facade__plain__10_test_crate__4_Test.#_construction_token
 		);
 		obj.#_ffi = ffi;
 		return obj;
@@ -47,5 +47,9 @@ export class Test {
 	$ffi(){
 		return this.#_ffi;
 	}
-}
+};
+
+export {
+	$facade__plain__10_test_crate__4_Test as Test
+};
 ```

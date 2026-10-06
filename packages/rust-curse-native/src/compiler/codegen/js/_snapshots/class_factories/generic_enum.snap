@@ -43,7 +43,7 @@ import{
 	__plain__10_test_crate__6_Holder
 }from"$rust/unstable!/node"
 
-export class Holder {
+const $facade__plain__10_test_crate__6_Holder = class Holder {
 	static #_construction_token = Symbol();
 	#_ffi;
 
@@ -53,7 +53,7 @@ export class Holder {
 		token
 	){
 		if(
-			token !== Holder.#_construction_token
+			token !== $facade__plain__10_test_crate__6_Holder.#_construction_token
 		){
 			throw new TypeError(
 				"rust-backed structs cannot be constructed directly"
@@ -64,8 +64,8 @@ export class Holder {
 	static $from_ffi(
 		ffi
 	){
-		const obj = new Holder(
-			 Holder.#_construction_token
+		const obj = new $facade__plain__10_test_crate__6_Holder(
+			 $facade__plain__10_test_crate__6_Holder.#_construction_token
 		);
 		obj.#_ffi = ffi;
 		return obj;
@@ -74,9 +74,13 @@ export class Holder {
 	$ffi(){
 		return this.#_ffi;
 	}
-}
+};
 
-export class _5_EventGP3_u32E {
+export {
+	$facade__plain__10_test_crate__6_Holder as Holder
+};
+
+const $facade__discr__10_test_crate__5_EventGP3_u32E = class _5_EventGP3_u32E {
 	static #_construction_token = Symbol();
 	#_ffi;
 	static #_types = ["value"];
@@ -143,7 +147,7 @@ export class _5_EventGP3_u32E {
 	}
 
 	get ["type"]() {
-		return _5_EventGP3_u32E.#_types[__fn__disc__10_test_crate__5_EventGP3_u32E(
+		return $facade__discr__10_test_crate__5_EventGP3_u32E.#_types[__fn__disc__10_test_crate__5_EventGP3_u32E(
 			this.#_ffi
 		)];
 	}
@@ -152,7 +156,7 @@ export class _5_EventGP3_u32E {
 		token
 	){
 		if(
-			token !== _5_EventGP3_u32E.#_construction_token
+			token !== $facade__discr__10_test_crate__5_EventGP3_u32E.#_construction_token
 		){
 			throw new TypeError(
 				"rust-backed structs cannot be constructed directly"
@@ -163,8 +167,8 @@ export class _5_EventGP3_u32E {
 	static $from_ffi(
 		ffi
 	){
-		const obj = new _5_EventGP3_u32E(
-			 _5_EventGP3_u32E.#_construction_token
+		const obj = new $facade__discr__10_test_crate__5_EventGP3_u32E(
+			 $facade__discr__10_test_crate__5_EventGP3_u32E.#_construction_token
 		);
 		obj.#_ffi = ffi;
 		return obj;
@@ -173,9 +177,13 @@ export class _5_EventGP3_u32E {
 	$ffi(){
 		return this.#_ffi;
 	}
-}
+};
 
-export class _5_EventGS10_test_crate__6_HolderE {
+export {
+	$facade__discr__10_test_crate__5_EventGP3_u32E as _5_EventGP3_u32E
+};
+
+const $facade__discr__10_test_crate__5_EventGS10_test_crate__6_HolderE = class _5_EventGS10_test_crate__6_HolderE {
 	static #_construction_token = Symbol();
 	#_ffi;
 	#__field_0_0;
@@ -206,7 +214,7 @@ export class _5_EventGS10_test_crate__6_HolderE {
 							) + "\""
 						);
 					}
-					const out = Holder.$from_ffi(
+					const out = $facade__plain__10_test_crate__6_Holder.$from_ffi(
 						__cast_input
 					);
 					this.#__field_0_0 = out;
@@ -220,7 +228,7 @@ export class _5_EventGS10_test_crate__6_HolderE {
 	}
 
 	get ["type"]() {
-		return _5_EventGS10_test_crate__6_HolderE.#_types[__fn__disc__10_test_crate__5_EventGS10_test_crate__6_HolderE(
+		return $facade__discr__10_test_crate__5_EventGS10_test_crate__6_HolderE.#_types[__fn__disc__10_test_crate__5_EventGS10_test_crate__6_HolderE(
 			this.#_ffi
 		)];
 	}
@@ -229,7 +237,7 @@ export class _5_EventGS10_test_crate__6_HolderE {
 		token
 	){
 		if(
-			token !== _5_EventGS10_test_crate__6_HolderE.#_construction_token
+			token !== $facade__discr__10_test_crate__5_EventGS10_test_crate__6_HolderE.#_construction_token
 		){
 			throw new TypeError(
 				"rust-backed structs cannot be constructed directly"
@@ -240,8 +248,8 @@ export class _5_EventGS10_test_crate__6_HolderE {
 	static $from_ffi(
 		ffi
 	){
-		const obj = new _5_EventGS10_test_crate__6_HolderE(
-			 _5_EventGS10_test_crate__6_HolderE.#_construction_token
+		const obj = new $facade__discr__10_test_crate__5_EventGS10_test_crate__6_HolderE(
+			 $facade__discr__10_test_crate__5_EventGS10_test_crate__6_HolderE.#_construction_token
 		);
 		obj.#_ffi = ffi;
 		return obj;
@@ -250,7 +258,11 @@ export class _5_EventGS10_test_crate__6_HolderE {
 	$ffi(){
 		return this.#_ffi;
 	}
-}
+};
+
+export {
+	$facade__discr__10_test_crate__5_EventGS10_test_crate__6_HolderE as _5_EventGS10_test_crate__6_HolderE
+};
 
 export function Event (
 	...types
@@ -258,13 +270,13 @@ export function Event (
 	if(
 		types.length ===1 && types[0]==="u32"
 	){
-		return _5_EventGP3_u32E;
+		return $facade__discr__10_test_crate__5_EventGP3_u32E;
 	}
 
 	if(
-		types.length ===1 && types[0]===Holder
+		types.length ===1 && types[0]===$facade__plain__10_test_crate__6_Holder
 	){
-		return _5_EventGS10_test_crate__6_HolderE;
+		return $facade__discr__10_test_crate__5_EventGS10_test_crate__6_HolderE;
 	}
 
 	throw new TypeError(
@@ -280,7 +292,7 @@ export function consume (
 		const __cast_input = _0;
 		if(
 			!(
-				__cast_input instanceof _5_EventGP3_u32E
+				__cast_input instanceof $facade__discr__10_test_crate__5_EventGP3_u32E
 			)
 		) {
 			throw new TypeError(
@@ -294,7 +306,7 @@ export function consume (
 			const __cast_input = _1;
 			if(
 				!(
-					__cast_input instanceof _5_EventGS10_test_crate__6_HolderE
+					__cast_input instanceof $facade__discr__10_test_crate__5_EventGS10_test_crate__6_HolderE
 				)
 			) {
 				throw new TypeError(

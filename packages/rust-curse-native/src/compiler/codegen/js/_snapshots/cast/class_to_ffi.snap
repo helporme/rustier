@@ -16,12 +16,12 @@ function cast(
 	input
 ) {
 	{
-		const __cast_input = ExampleStruct.of(
+		const __cast_input = $facade__plain__10_test_crate__13_ExampleStruct.of(
 			input
 		);
 		if(
 			!(
-				__cast_input instanceof ExampleStruct
+				__cast_input instanceof $facade__plain__10_test_crate__13_ExampleStruct
 			)
 		) {
 			throw new TypeError(

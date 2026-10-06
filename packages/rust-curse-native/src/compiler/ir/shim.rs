@@ -402,13 +402,8 @@ impl<'db> ShimClassPlain<'db> {
             .impls(db)
             .iter()
             .flat_map(|impl_| impl_.functions(db))
-            .filter(|function| {
-                let declaration = function.declaration(db);
-                declaration.receiver(db).is_some() || declaration.name(db) != "prototype"
-            })
             .filter_map(|function| function.as_callible(db))
             .map(|callable| ShimFunctionAssociated::new(db, callable))
-            .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
     }
 
@@ -503,13 +498,8 @@ impl<'db> ShimClassDiscriminated<'db> {
             .impls(db)
             .iter()
             .flat_map(|impl_| impl_.functions(db))
-            .filter(|function| {
-                let declaration = function.declaration(db);
-                declaration.receiver(db).is_some() || declaration.name(db) != "prototype"
-            })
             .filter_map(|function| function.as_callible(db))
             .map(|callable| ShimFunctionAssociated::new(db, callable))
-            .filter(|method| !method.is_shadowed_by_field(db))
             .collect()
     }
 
@@ -701,14 +691,6 @@ pub struct ShimFunctionAssociated<'db> {
 
 #[salsa::tracked]
 impl<'db> ShimFunctionAssociated<'db> {
-    pub fn is_shadowed_by_field(self, db: &'db dyn Db) -> bool {
-        let src = self.src(db).declaration(db);
-        src.receiver(db).is_some()
-            && self.self_class(db).fields(db).iter().any(
-                |field| matches!(field.name(db), FieldName::Name(name) if name == src.name(db)),
-            )
-    }
-
     #[salsa::tracked(returns(ref))]
     pub fn symbol(self, db: &'db dyn Db) -> String {
         format!("__fn__associated__{}", self.src(db).path(db).mangled(db))

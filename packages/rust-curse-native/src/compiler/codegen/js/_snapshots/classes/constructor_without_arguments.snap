@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/js/classes.rs
-assertion_line: 837
 expression: snapshot
 ---
 # Source
@@ -18,7 +17,7 @@ impl Test {
 # Compiled
 
 ```js
-export class Test {
+const $facade__plain__10_test_crate__4_Test = class Test {
 	static #_construction_token = Symbol();
 	#_ffi;
 
@@ -28,7 +27,7 @@ export class Test {
 		value
 	){
 		if(
-			value instanceof Test
+			value instanceof $facade__plain__10_test_crate__4_Test
 		){
 			return value;
 		}
@@ -57,7 +56,7 @@ export class Test {
 
 	) {
 		if(
-			arguments[0] === Test.#_construction_token
+			arguments[0] === $facade__plain__10_test_crate__4_Test.#_construction_token
 		){
 			return;
 		}
@@ -69,8 +68,8 @@ export class Test {
 	static $from_ffi(
 		ffi
 	){
-		const obj = new Test(
-			 Test.#_construction_token
+		const obj = new $facade__plain__10_test_crate__4_Test(
+			 $facade__plain__10_test_crate__4_Test.#_construction_token
 		);
 		obj.#_ffi = ffi;
 		return obj;
@@ -79,5 +78,9 @@ export class Test {
 	$ffi(){
 		return this.#_ffi;
 	}
-}
+};
+
+export {
+	$facade__plain__10_test_crate__4_Test as Test
+};
 ```
