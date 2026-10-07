@@ -89,7 +89,11 @@ fn numbered_lines(source: &str) -> String {
     source
         .lines()
         .enumerate()
-        .map(|(line, source)| format!("{line:>3} | {source}"))
+        .map(|(line, source)| {
+            let separator = if source.is_empty() { "" } else { " " };
+
+            format!("{line:>3} |{separator}{source}")
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }

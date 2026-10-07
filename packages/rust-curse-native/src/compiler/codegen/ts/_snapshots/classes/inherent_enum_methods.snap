@@ -39,6 +39,7 @@ export declare const Test: {
 	of(
 		value: Test.Coerce
 	): Test;
+	readonly [$TestClassBrand]: never;
 };
 
 export declare namespace Test {
@@ -70,4 +71,5 @@ export declare namespace Test {
 }
 
 declare const $TestBrand: unique symbol;
+declare const $TestClassBrand: unique symbol;
 ```

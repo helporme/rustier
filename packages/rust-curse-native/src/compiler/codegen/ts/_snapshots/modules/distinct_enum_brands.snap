@@ -28,7 +28,9 @@ export declare namespace WaveBrand {
 
 export type Wave = Wave.Instance & Wave.Plain;
 
-export declare const Wave: {};
+export declare const Wave: {
+	readonly [$WaveClassBrand]: never;
+};
 
 export declare namespace Wave {
 	export type Plain =
@@ -46,10 +48,13 @@ export declare namespace Wave {
 }
 
 declare const $WaveBrand: unique symbol;
+declare const $WaveClassBrand: unique symbol;
 
 export type OtherWave = OtherWave.Instance & OtherWave.Plain;
 
-export declare const OtherWave: {};
+export declare const OtherWave: {
+	readonly [$OtherWaveClassBrand]: never;
+};
 
 export declare namespace OtherWave {
 	export type Plain =
@@ -67,4 +72,7 @@ export declare namespace OtherWave {
 }
 
 declare const $OtherWaveBrand: unique symbol;
+declare const $OtherWaveClassBrand: unique symbol;
+
+export {};
 ```

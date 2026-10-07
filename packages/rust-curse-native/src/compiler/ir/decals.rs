@@ -32,28 +32,36 @@ impl<'db> Decals<'db> {
     /// Reachable local modules, sorted by virtual path.
     #[salsa::tracked(returns(ref))]
     pub fn local_modules(self, db: &'db dyn Db) -> Vec<DecalModule<'db>> {
-        let mut modules = self
-            .shim(db)
-            .crates(db)
-            .filter(move |crate_| crate_.is_local(db))
-            .flat_map(move |crate_| crate_.all_modules(db))
-            .map(move |module| module.decals(db))
-            .collect::<Vec<_>>();
-        modules.sort_by_key(|module| module.virtual_path(db));
-        modules
+        self.modules(db, true)
     }
 
     /// Reachable external modules, sorted by virtual path.
     #[salsa::tracked(returns(ref))]
     pub fn external_modules(self, db: &'db dyn Db) -> Vec<DecalModule<'db>> {
+        self.modules(db, false)
+    }
+
+    fn modules(self, db: &'db dyn Db, is_local: bool) -> Vec<DecalModule<'db>> {
         let mut modules = self
             .shim(db)
             .crates(db)
-            .filter(move |crate_| !crate_.is_local(db))
+            .filter(move |crate_| crate_.is_local(db) == is_local)
             .flat_map(move |crate_| crate_.all_modules(db))
             .map(move |module| module.decals(db))
+            .filter(|module| {
+                module.members(db).any(|member| {
+                    matches!(
+                        member,
+                        DecalMember::Class(_)
+                            | DecalMember::ClassTemplate(_)
+                            | DecalMember::Function(_)
+                    )
+                })
+            })
             .collect::<Vec<_>>();
+
         modules.sort_by_key(|module| module.virtual_path(db));
+
         modules
     }
 }

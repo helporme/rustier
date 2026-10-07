@@ -54,12 +54,10 @@ impl<'db> DecalClassTemplate<'db> {
             {classes}@@
 
             {render_jsdoc(self.docs(db).map(String::as_str))}
-            export type ~{name}<{params()}> = ~_{name}<{params()}> & Partial<_{name}<{params()}>>;@
-            type ~_{name}<{params()}> =@{idented(instance_branches)};@@
+            export type ~{name}<{params()}> =@{idented(instance_branches)};@@
 
             export ~{scope.declare_prefix()}namespace ~{name}~{{
-                export type Class<{params()}> = _Class<{params()}> & Partial<_Class<{params()}>>;@
-                type _Class<{params()}> =@{idented(class_branches)};@@
+                export type Class<{params()}> =@{idented(class_branches)};@@
 
                 export type Plain<{constrained_params()}> =@{idented(plain_branches)};@@
 
@@ -158,4 +156,204 @@ enum TemplateProjection {
     Class,
     Plain,
     Coerce,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        assert_ts_snap,
+        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Rust},
+    };
+
+    macro_rules! test_template {
+        ($name:ident, { $($source:tt)* }) => {
+            #[test]
+            fn $name() {
+                assert_ts_snap! {
+                    source: { $($source)* },
+                    expression: |db, p| {
+                        let root = Rust::get(db)
+                            .shim_complete(db)
+                            .crates(db)
+                            .next()
+                            .expect("test crate should be lowered")
+                            .root(db)
+                            .decals(db);
+
+                        root.render_ts_mod(db).apply(p);
+                    },
+                }
+            }
+        };
+    }
+
+    test_template!(primitive_keys, {
+        pub struct Wrap<T>(pub T);
+
+        pub fn consume(
+            boolean: &Wrap<bool>,
+            character: &Wrap<char>,
+            i8_value: &Wrap<i8>,
+            u8_value: &Wrap<u8>,
+            i16_value: &Wrap<i16>,
+            u16_value: &Wrap<u16>,
+            i32_value: &Wrap<i32>,
+            u32_value: &Wrap<u32>,
+            f32_value: &Wrap<f32>,
+            f64_value: &Wrap<f64>,
+            string: &Wrap<String>,
+        ) {
+        }
+    });
+
+    test_template!(class_and_nested_keys, {
+        #[derive(Clone)]
+        pub struct Holder(pub u32);
+
+        #[derive(Clone)]
+        pub struct Wrap<T>(pub T);
+
+        pub fn consume(number: &Wrap<u32>, holder: &Wrap<Holder>, nested: &Wrap<Wrap<u32>>) {}
+    });
+
+    test_template!(cross_module_keys, {
+        pub mod models {
+            #[derive(Clone)]
+            pub struct Holder(pub u32);
+
+            #[derive(Clone)]
+            pub struct Boxed<T>(pub T);
+
+            #[derive(Clone)]
+            pub enum Status {
+                Ready,
+            }
+        }
+
+        #[derive(Clone)]
+        pub struct Wrap<T>(pub T);
+
+        pub fn consume(boxed: &Wrap<models::Boxed<models::Holder>>, status: &Wrap<models::Status>) {
+        }
+    });
+
+    test_template!(multiple_generic_arguments, {
+        #[derive(Clone)]
+        pub struct Pair<T, U>(pub T, pub U);
+
+        pub fn consume(first: &Pair<u32, bool>, second: &Pair<bool, u32>) {}
+    });
+
+    test_template!(generic_constructor, {
+        #[doc = "A generic wrapper."]
+        #[derive(Clone)]
+        pub struct Wrap<T>(pub T);
+
+        impl<T> Wrap<T> {
+            #[doc = "Constructs a wrapper."]
+            pub fn new(value: T) -> Self {
+                Self(value)
+            }
+
+            pub fn identity(value: T) -> T {
+                value
+            }
+        }
+
+        impl Wrap<u32> {
+            pub fn number_only(&self) -> bool {
+                true
+            }
+        }
+
+        pub fn consume(number: &Wrap<u32>, string: &Wrap<String>, nested: &Wrap<Wrap<u32>>) {}
+    });
+
+    test_template!(generic_enum, {
+        pub struct Holder(pub u32);
+
+        #[doc = "An event carrying a generic value."]
+        #[derive(Clone)]
+        pub enum Event<T> {
+            #[doc = "Carries a value."]
+            Value(T),
+            Empty,
+        }
+
+        impl<T> Event<T> {
+            pub fn new(value: T) -> Self {
+                Self::Value(value)
+            }
+
+            pub fn is_empty(&self) -> bool {
+                false
+            }
+        }
+
+        pub fn consume(number: &Event<u32>, holder: &Event<Holder>) {}
+    });
+
+    test_template!(coerce_availability, {
+        pub struct Holder(pub u32);
+
+        #[derive(Clone)]
+        pub struct Wrap<T>(pub T);
+
+        pub fn consume(number: &Wrap<u32>, holder: &Wrap<Holder>) {}
+    });
+
+    test_template!(borrowed_values_excluded, {
+        pub struct Wrap<T>(pub T);
+        pub enum Event<T> {
+            Value(T),
+        }
+
+        pub fn consume(value: &Wrap<&u32>, event: &Event<&u32>) {}
+    });
+
+    test_template!(unreachable_template, {
+        pub struct Wrap<T>(T);
+    });
+
+    #[test]
+    fn ambient_templates() {
+        assert_ts_snap! {
+            source: {
+                pub mod models {
+                    #[derive(Clone)]
+                    pub struct Holder(pub u32);
+
+                    #[derive(Clone)]
+                    pub struct Boxed<T>(pub T);
+
+                    #[derive(Clone)]
+                    pub enum Status {
+                        Ready,
+                    }
+                }
+
+                #[derive(Clone)]
+                pub struct Wrap<T>(pub T);
+
+                #[derive(Clone)]
+                pub enum Event<T> {
+                    Value { value: T },
+                    Empty,
+                }
+
+                pub fn consume(
+                    wrap: &Wrap<models::Boxed<models::Holder>>,
+                    status: &Wrap<models::Status>,
+                    event: &Event<String>,
+                ) {}
+            },
+            expression: |db, p| {
+                Rust::get(db)
+                    .shim_complete(db)
+                    .decals(db)
+                    .render_ambient_ts_mods(db)
+                    .apply(p);
+            },
+        }
+    }
 }

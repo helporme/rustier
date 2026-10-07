@@ -21,7 +21,9 @@ impl Test {
 ```ts
 export type Test = Test.Instance & Test.Plain;
 
-export declare const Test: {};
+export declare const Test: {
+	readonly [$TestClassBrand]: never;
+};
 
 export declare namespace Test {
 	export type Plain =
@@ -46,4 +48,5 @@ export declare namespace Test {
 }
 
 declare const $TestBrand: unique symbol;
+declare const $TestClassBrand: unique symbol;
 ```

@@ -1,3 +1,3 @@
-pub fn greet() -> String {
-    "Hello from rust".to_owned()
+pub fn greet() -> Option<String> {
+    Some("Hello from rust".to_owned())
 }

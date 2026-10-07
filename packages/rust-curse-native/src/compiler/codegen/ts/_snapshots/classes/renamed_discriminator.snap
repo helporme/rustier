@@ -15,7 +15,9 @@ pub enum Example {
 ```ts
 export type Example = Example.Instance & Example.Plain;
 
-export declare const Example: {};
+export declare const Example: {
+	readonly [$ExampleClassBrand]: never;
+};
 
 export declare namespace Example {
 	export type Plain =
@@ -33,4 +35,5 @@ export declare namespace Example {
 }
 
 declare const $ExampleBrand: unique symbol;
+declare const $ExampleClassBrand: unique symbol;
 ```

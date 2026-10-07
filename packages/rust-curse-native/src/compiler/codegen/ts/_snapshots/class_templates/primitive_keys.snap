@@ -1,0 +1,247 @@
+---
+source: src/compiler/codegen/ts/class_templates.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Wrap<T>(pub T);
+pub fn consume(
+    boolean: &Wrap<bool>,
+    character: &Wrap<char>,
+    i8_value: &Wrap<i8>,
+    u8_value: &Wrap<u8>,
+    i16_value: &Wrap<i16>,
+    u16_value: &Wrap<u16>,
+    i32_value: &Wrap<i32>,
+    u32_value: &Wrap<u32>,
+    f32_value: &Wrap<f32>,
+    f64_value: &Wrap<f64>,
+    string: &Wrap<String>,
+) {}
+```
+
+# Compiled
+
+```ts
+export function consume(
+	boolean: Wrap<"bool">,
+	character: Wrap<"char">,
+	i8_value: Wrap<"i8">,
+	u8_value: Wrap<"u8">,
+	i16_value: Wrap<"i16">,
+	u16_value: Wrap<"u16">,
+	i32_value: Wrap<"i32">,
+	u32_value: Wrap<"u32">,
+	f32_value: Wrap<"f32">,
+	f64_value: Wrap<"f64">,
+	string: Wrap<"String">,
+): void;
+
+declare class _4_WrapGP2_i8E {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+declare class _4_WrapGP2_u8E {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+declare class _4_WrapGP3_f32E {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+declare class _4_WrapGP3_f64E {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+declare class _4_WrapGP3_i16E {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+declare class _4_WrapGP3_i32E {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+declare class _4_WrapGP3_u16E {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+declare class _4_WrapGP3_u32E {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+declare class _4_WrapGP4_boolE {
+	public get [0](): boolean;
+	public set [0](
+		value: boolean
+	);
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+declare class _4_WrapGP4_charE {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+declare class _4_WrapGP6_StringE {
+	public get [0](): string;
+	public set [0](
+		value: string
+	);
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+export type Wrap<T> =
+	T extends "i8" ? _4_WrapGP2_i8E :
+	T extends "u8" ? _4_WrapGP2_u8E :
+	T extends "f32" ? _4_WrapGP3_f32E :
+	T extends "f64" ? _4_WrapGP3_f64E :
+	T extends "i16" ? _4_WrapGP3_i16E :
+	T extends "i32" ? _4_WrapGP3_i32E :
+	T extends "u16" ? _4_WrapGP3_u16E :
+	T extends "u32" ? _4_WrapGP3_u32E :
+	T extends "bool" ? _4_WrapGP4_boolE :
+	T extends "char" ? _4_WrapGP4_charE :
+	T extends "String" ? _4_WrapGP6_StringE :
+	never;
+
+export declare namespace Wrap {
+	export type Class<T> =
+		T extends "i8" ? typeof _4_WrapGP2_i8E :
+		T extends "u8" ? typeof _4_WrapGP2_u8E :
+		T extends "f32" ? typeof _4_WrapGP3_f32E :
+		T extends "f64" ? typeof _4_WrapGP3_f64E :
+		T extends "i16" ? typeof _4_WrapGP3_i16E :
+		T extends "i32" ? typeof _4_WrapGP3_i32E :
+		T extends "u16" ? typeof _4_WrapGP3_u16E :
+		T extends "u32" ? typeof _4_WrapGP3_u32E :
+		T extends "bool" ? typeof _4_WrapGP4_boolE :
+		T extends "char" ? typeof _4_WrapGP4_charE :
+		T extends "String" ? typeof _4_WrapGP6_StringE :
+		never;
+
+	export type Plain<T extends "i8" | "u8" | "f32" | "f64" | "i16" | "i32" | "u16" | "u32" | "bool" | "char" | "String"> =
+		T extends "i8" ?
+			{
+				[0]: number;
+			} :
+		T extends "u8" ?
+			{
+				[0]: number;
+			} :
+		T extends "f32" ?
+			{
+				[0]: number;
+			} :
+		T extends "f64" ?
+			{
+				[0]: number;
+			} :
+		T extends "i16" ?
+			{
+				[0]: number;
+			} :
+		T extends "i32" ?
+			{
+				[0]: number;
+			} :
+		T extends "u16" ?
+			{
+				[0]: number;
+			} :
+		T extends "u32" ?
+			{
+				[0]: number;
+			} :
+		T extends "bool" ?
+			{
+				[0]: boolean;
+			} :
+		T extends "char" ?
+			{
+				[0]: number;
+			} :
+		T extends "String" ?
+			{
+				[0]: string;
+			} :
+		never;
+
+	export type Coerce<T extends "i8" | "u8" | "f32" | "f64" | "i16" | "i32" | "u16" | "u32" | "bool" | "char" | "String"> =
+		T extends "i8" ?
+			never :
+		T extends "u8" ?
+			never :
+		T extends "f32" ?
+			never :
+		T extends "f64" ?
+			never :
+		T extends "i16" ?
+			never :
+		T extends "i32" ?
+			never :
+		T extends "u16" ?
+			never :
+		T extends "u32" ?
+			never :
+		T extends "bool" ?
+			never :
+		T extends "char" ?
+			never :
+		T extends "String" ?
+			never :
+		never;
+}
+
+export function Wrap<Args extends ["i8"] | ["u8"] | ["f32"] | ["f64"] | ["i16"] | ["i32"] | ["u16"] | ["u32"] | ["bool"] | ["char"] | ["String"]>(
+	...args: Args
+): Wrap.Class<Args[0]>;
+
+export {};
+```

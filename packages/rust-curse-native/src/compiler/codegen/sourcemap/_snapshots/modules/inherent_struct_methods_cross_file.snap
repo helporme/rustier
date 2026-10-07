@@ -20,12 +20,14 @@ TypeScript:
  14 | 	private __rust_curse_brand: never;
  15 | 	private constructor();
  16 | }
- 17 | 
+ 17 |
  18 | export declare namespace Counter {
  19 | 	export type Plain = {};
- 20 | 
+ 20 |
  21 | 	export type Coerce = {};
  22 | }
+ 23 |
+ 24 | export {};
 
 Source map:
 {

@@ -32,7 +32,9 @@ pub enum Shape {
 /** A shape represented by several layouts. */
 export type Shape = Shape.Instance & Shape.Plain;
 
-export declare const Shape: {};
+export declare const Shape: {
+	readonly [$ShapeClassBrand]: never;
+};
 
 export declare namespace Shape {
 	export type Plain =
@@ -74,4 +76,5 @@ export declare namespace Shape {
 }
 
 declare const $ShapeBrand: unique symbol;
+declare const $ShapeClassBrand: unique symbol;
 ```

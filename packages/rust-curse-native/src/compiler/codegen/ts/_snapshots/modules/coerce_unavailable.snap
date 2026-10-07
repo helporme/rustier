@@ -72,7 +72,9 @@ export declare namespace NonExhaustive {
 
 export type Blocked = Blocked.Instance & Blocked.Plain;
 
-export declare const Blocked: {};
+export declare const Blocked: {
+	readonly [$BlockedClassBrand]: never;
+};
 
 export declare namespace Blocked {
 	export type Plain =
@@ -86,4 +88,7 @@ export declare namespace Blocked {
 }
 
 declare const $BlockedBrand: unique symbol;
+declare const $BlockedClassBrand: unique symbol;
+
+export {};
 ```

@@ -1,6 +1,7 @@
 ## Rust
 
 - Do not add tests unless requested. You may add temporary tests during implementation, but remove them before finishing.
+- Do not spawn subagents unless requrested.
 - Do not introduce utility functions under 10 lines if they are used a few times. Inline them instead.
 - All code is private, there are no breaking changes.
 - Avoid adding assertions.

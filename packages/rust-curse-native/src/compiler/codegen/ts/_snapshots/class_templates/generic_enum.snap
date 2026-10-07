@@ -1,0 +1,164 @@
+---
+source: src/compiler/codegen/ts/class_templates.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Holder(pub u32);
+///An event carrying a generic value.
+#[derive(Clone)]
+pub enum Event<T> {
+    ///Carries a value.
+    Value(T),
+    Empty,
+}
+impl<T> Event<T> {
+    pub fn new(value: T) -> Self {
+        Self::Value(value)
+    }
+    pub fn is_empty(&self) -> bool {
+        false
+    }
+}
+pub fn consume(number: &Event<u32>, holder: &Event<Holder>) {}
+```
+
+# Compiled
+
+```ts
+export function consume(
+	number: Event.Coerce<"u32">,
+	holder: Event<typeof Holder>,
+): void;
+
+export class Holder {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+export declare namespace Holder {
+	export type Plain = {
+		[0]: number;
+	};
+}
+
+type _5_EventGP3_u32E = $_5_EventGP3_u32EInstance & (
+	/** Carries a value. */
+	| {
+		readonly type: "Value";
+		get [0](): number;
+		set [0](
+			value: number
+		);
+	}
+	| {
+		readonly type: "Empty";
+	}
+);
+
+declare const _5_EventGP3_u32E: {
+	"new"(
+		value: number,
+	): Event<"u32">;
+
+	of(
+		value: Event.Coerce<"u32">
+	): Event<"u32">;
+	readonly [$_5_EventGP3_u32EClassBrand]: never;
+};
+
+interface $_5_EventGP3_u32EInstance {
+	is_empty(): boolean;
+	readonly [$_5_EventGP3_u32EBrand]: never;
+}
+
+declare const $_5_EventGP3_u32EBrand: unique symbol;
+declare const $_5_EventGP3_u32EClassBrand: unique symbol;
+
+type _5_EventGS10_test_crate__6_HolderE = $_5_EventGS10_test_crate__6_HolderEInstance & (
+	/** Carries a value. */
+	| {
+		readonly type: "Value";
+		get [0](): Holder;
+	}
+	| {
+		readonly type: "Empty";
+	}
+);
+
+declare const _5_EventGS10_test_crate__6_HolderE: {
+	readonly [$_5_EventGS10_test_crate__6_HolderEClassBrand]: never;
+};
+
+interface $_5_EventGS10_test_crate__6_HolderEInstance {
+	is_empty(): boolean;
+	readonly [$_5_EventGS10_test_crate__6_HolderEBrand]: never;
+}
+
+declare const $_5_EventGS10_test_crate__6_HolderEBrand: unique symbol;
+declare const $_5_EventGS10_test_crate__6_HolderEClassBrand: unique symbol;
+
+/** An event carrying a generic value. */
+export type Event<T> =
+	T extends "u32" ? _5_EventGP3_u32E :
+	T extends typeof Holder ? _5_EventGS10_test_crate__6_HolderE :
+	never;
+
+export declare namespace Event {
+	export type Class<T> =
+		T extends "u32" ? typeof _5_EventGP3_u32E :
+		T extends typeof Holder ? typeof _5_EventGS10_test_crate__6_HolderE :
+		never;
+
+	export type Plain<T extends "u32" | typeof Holder> =
+		T extends "u32" ?
+			/** Carries a value. */
+			| {
+				readonly type: "Value";
+				get [0](): number;
+				set [0](
+					value: number
+				);
+			}
+			| {
+				readonly type: "Empty";
+			} :
+		T extends typeof Holder ?
+			/** Carries a value. */
+			| {
+				readonly type: "Value";
+				get [0](): Holder;
+			}
+			| {
+				readonly type: "Empty";
+			} :
+		never;
+
+	export type Coerce<T extends "u32" | typeof Holder> =
+		T extends "u32" ?
+			| Event<"u32">
+			/** Carries a value. */
+			| {
+				readonly type: "Value";
+				[0]: number;
+			}
+			| {
+				readonly type: "Empty";
+			} :
+		T extends typeof Holder ?
+			never :
+		never;
+}
+
+/** An event carrying a generic value. */
+export function Event<Args extends ["u32"] | [typeof Holder]>(
+	...args: Args
+): Event.Class<Args[0]>;
+
+export {};
+```

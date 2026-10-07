@@ -74,7 +74,9 @@ export declare namespace Local {
 
 export type Choice = Choice.Instance & Choice.Plain;
 
-export declare const Choice: {};
+export declare const Choice: {
+	readonly [$ChoiceClassBrand]: never;
+};
 
 export declare namespace Choice {
 	export type Plain =
@@ -95,4 +97,7 @@ export declare namespace Choice {
 }
 
 declare const $ChoiceBrand: unique symbol;
+declare const $ChoiceClassBrand: unique symbol;
+
+export {};
 ```

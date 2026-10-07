@@ -6,13 +6,13 @@ TypeScript:
   0 | import type {
   1 | 	External
   2 | } from '$rust/test_crate/models';
-  3 | 
+  3 |
   4 | /** Transforms values. */
   5 | export function transform(
   6 | 	value: number,
   7 | 	external: External.Coerce,
   8 | ): number;
-  9 | 
+  9 |
  10 | export class Tuple {
  11 | 	public get [0](): number;
  12 | 	public set [0](
@@ -25,14 +25,14 @@ TypeScript:
  19 | 	private __rust_curse_brand: never;
  20 | 	private constructor();
  21 | }
- 22 | 
+ 22 |
  23 | export declare namespace Tuple {
  24 | 	export type Plain = {
  25 | 		[0]: number;
  26 | 		[2]: Holder;
  27 | 	};
  28 | }
- 29 | 
+ 29 |
  30 | /** Stores values. */
  31 | export class Holder {
  32 | 	/** A writable number. */
@@ -51,7 +51,7 @@ TypeScript:
  45 | 	private __rust_curse_brand: never;
  46 | 	private constructor();
  47 | }
- 48 | 
+ 48 |
  49 | export declare namespace Holder {
  50 | 	export type Plain = {
  51 | 		/** A writable number. */
@@ -59,7 +59,7 @@ TypeScript:
  53 | 		/** A Rust-backed value. */
  54 | 		external: External;
  55 | 	};
- 56 | 
+ 56 |
  57 | 	export type Coerce = {
  58 | 		/** A writable number. */
  59 | 		number: number;
@@ -67,52 +67,57 @@ TypeScript:
  61 | 		external: External.Coerce;
  62 | 	};
  63 | }
- 64 | 
+ 64 |
  65 | /** A shape represented by several layouts. */
  66 | export type Shape = Shape.Instance & Shape.Plain;
- 67 | 
- 68 | export declare const Shape: {};
- 69 | 
- 70 | export declare namespace Shape {
- 71 | 	export type Plain =
- 72 | 		/** An acronym-prefixed request. */
- 73 | 		| {
- 74 | 			readonly type: "HTTPRequest";
- 75 | 			/** A named field. */
- 76 | 			get response_code(): number;
- 77 | 			set response_code(
- 78 | 				value: number
- 79 | 			);
- 80 | 			/** A writable Rust-backed value. */
- 81 | 			get external(): External;
- 82 | 			set external(
- 83 | 				value: External.Coerce
- 84 | 			);
- 85 | 		}
- 86 | 		/** Coordinates represented by tuple fields. */
- 87 | 		| {
- 88 | 			readonly type: "Point";
- 89 | 			/** A writable Rust-backed value. */
- 90 | 			get [0](): Holder;
- 91 | 			set [0](
- 92 | 				value: Holder.Coerce
- 93 | 			);
- 94 | 			get [1](): number;
- 95 | 			set [1](
- 96 | 				value: number
- 97 | 			);
- 98 | 		}
- 99 | 		/** A variant without fields. */
-100 | 		| {
-101 | 			readonly type: "Unit";
-102 | 		};
-103 | 
-104 | 	export interface Instance {
-105 | 		readonly [$ShapeBrand]: never;
-106 | 	}
-107 | }
-108 | 
-109 | declare const $ShapeBrand: unique symbol;
+ 67 |
+ 68 | export declare const Shape: {
+ 69 | 	readonly [$ShapeClassBrand]: never;
+ 70 | };
+ 71 |
+ 72 | export declare namespace Shape {
+ 73 | 	export type Plain =
+ 74 | 		/** An acronym-prefixed request. */
+ 75 | 		| {
+ 76 | 			readonly type: "HTTPRequest";
+ 77 | 			/** A named field. */
+ 78 | 			get response_code(): number;
+ 79 | 			set response_code(
+ 80 | 				value: number
+ 81 | 			);
+ 82 | 			/** A writable Rust-backed value. */
+ 83 | 			get external(): External;
+ 84 | 			set external(
+ 85 | 				value: External.Coerce
+ 86 | 			);
+ 87 | 		}
+ 88 | 		/** Coordinates represented by tuple fields. */
+ 89 | 		| {
+ 90 | 			readonly type: "Point";
+ 91 | 			/** A writable Rust-backed value. */
+ 92 | 			get [0](): Holder;
+ 93 | 			set [0](
+ 94 | 				value: Holder.Coerce
+ 95 | 			);
+ 96 | 			get [1](): number;
+ 97 | 			set [1](
+ 98 | 				value: number
+ 99 | 			);
+100 | 		}
+101 | 		/** A variant without fields. */
+102 | 		| {
+103 | 			readonly type: "Unit";
+104 | 		};
+105 |
+106 | 	export interface Instance {
+107 | 		readonly [$ShapeBrand]: never;
+108 | 	}
+109 | }
+110 |
+111 | declare const $ShapeBrand: unique symbol;
+112 | declare const $ShapeClassBrand: unique symbol;
+113 |
+114 | export {};
 
 Source map:
 {
@@ -137,7 +142,7 @@ Source map:
     "1",
     "Unit"
   ],
-  "mappings": ";;;;;AAEAA,gBAAOA;;;;;AAYPC,aAAWA;AAAMC,aAAAA;AAAAA,aAAAA;;;AAAiBC,aAAAA;AAAAA,aAAAA;;;;;;;AAAlCF,yBAAWA;AAAXA,aAAWA;AAAMC,GAAAA;AAAiBC,GAAAA;;;;;AARlCC,aAAWA;;AAGPC,YAAIA;AAAJA,YAAIA;;;;AAEJC,YAAIA;AAAJA,YAAIA;;;AALRF,QAAWA;;;;;;;AAAXA,yBAAWA;AAAXA,aAAWA;;AAGPC,EAAIA;;AAEJC,EAAIA;;;AALRF,aAAWA;;AAGPC,EAAIA;;AAEJC,EAAIA;;;;;AAIRC,YAASA;;AAATA,qBAASA;;AAATA,yBAASA;AAATA,aAASA;;;AAELC,YAAAA;;AAEIC,OAAAA;AAAAA,OAAAA;;;;AAEAH,OAAAA;AAAAA,OAAAA;;;;;;AAGJI,YAAAA;;AAEIR,QAAAA;AAAAA,QAAAA;;;AAEAS,QAAAA;AAAAA,QAAAA;;;;;;AAEJC,YAAAA;;;AAfJL,kBAASA"
+  "mappings": ";;;;;AAEAA,gBAAOA;;;;;AAYPC,aAAWA;AAAMC,aAAAA;AAAAA,aAAAA;;;AAAiBC,aAAAA;AAAAA,aAAAA;;;;;;;AAAlCF,yBAAWA;AAAXA,aAAWA;AAAMC,GAAAA;AAAiBC,GAAAA;;;;;AARlCC,aAAWA;;AAGPC,YAAIA;AAAJA,YAAIA;;;;AAEJC,YAAIA;AAAJA,YAAIA;;;AALRF,QAAWA;;;;;;;AAAXA,yBAAWA;AAAXA,aAAWA;;AAGPC,EAAIA;;AAEJC,EAAIA;;;AALRF,aAAWA;;AAGPC,EAAIA;;AAEJC,EAAIA;;;;;AAIRC,YAASA;;AAATA,qBAASA;;;;AAATA,yBAASA;AAATA,aAASA;;;AAELC,YAAAA;;AAEIC,OAAAA;AAAAA,OAAAA;;;;AAEAH,OAAAA;AAAAA,OAAAA;;;;;;AAGJI,YAAAA;;AAEIR,QAAAA;AAAAA,QAAAA;;;AAEAS,QAAAA;AAAAA,QAAAA;;;;;;AAEJC,YAAAA;;;AAfJL,kBAASA"
 }
 
 Mappings:
@@ -543,7 +548,7 @@ Mappings:
         name: "Shape",
     },
     Mapping {
-        generated_line: 70,
+        generated_line: 72,
         generated_column: 0,
         source: "lib.rs",
         original_line: 15,
@@ -551,7 +556,7 @@ Mappings:
         name: "Shape",
     },
     Mapping {
-        generated_line: 70,
+        generated_line: 72,
         generated_column: 25,
         source: "lib.rs",
         original_line: 15,
@@ -559,7 +564,7 @@ Mappings:
         name: "Shape",
     },
     Mapping {
-        generated_line: 71,
+        generated_line: 73,
         generated_column: 0,
         source: "lib.rs",
         original_line: 15,
@@ -567,7 +572,7 @@ Mappings:
         name: "Shape",
     },
     Mapping {
-        generated_line: 71,
+        generated_line: 73,
         generated_column: 13,
         source: "lib.rs",
         original_line: 15,
@@ -575,7 +580,7 @@ Mappings:
         name: "Shape",
     },
     Mapping {
-        generated_line: 74,
+        generated_line: 76,
         generated_column: 0,
         source: "lib.rs",
         original_line: 17,
@@ -583,7 +588,7 @@ Mappings:
         name: "HTTPRequest",
     },
     Mapping {
-        generated_line: 74,
+        generated_line: 76,
         generated_column: 12,
         source: "lib.rs",
         original_line: 17,
@@ -591,7 +596,7 @@ Mappings:
         name: "HTTPRequest",
     },
     Mapping {
-        generated_line: 76,
+        generated_line: 78,
         generated_column: 0,
         source: "lib.rs",
         original_line: 19,
@@ -599,7 +604,7 @@ Mappings:
         name: "response_code",
     },
     Mapping {
-        generated_line: 76,
+        generated_line: 78,
         generated_column: 7,
         source: "lib.rs",
         original_line: 19,
@@ -607,7 +612,7 @@ Mappings:
         name: "response_code",
     },
     Mapping {
-        generated_line: 77,
+        generated_line: 79,
         generated_column: 0,
         source: "lib.rs",
         original_line: 19,
@@ -615,7 +620,7 @@ Mappings:
         name: "response_code",
     },
     Mapping {
-        generated_line: 77,
+        generated_line: 79,
         generated_column: 7,
         source: "lib.rs",
         original_line: 19,
@@ -623,7 +628,7 @@ Mappings:
         name: "response_code",
     },
     Mapping {
-        generated_line: 81,
+        generated_line: 83,
         generated_column: 0,
         source: "lib.rs",
         original_line: 21,
@@ -631,7 +636,7 @@ Mappings:
         name: "external",
     },
     Mapping {
-        generated_line: 81,
+        generated_line: 83,
         generated_column: 7,
         source: "lib.rs",
         original_line: 21,
@@ -639,7 +644,7 @@ Mappings:
         name: "external",
     },
     Mapping {
-        generated_line: 82,
+        generated_line: 84,
         generated_column: 0,
         source: "lib.rs",
         original_line: 21,
@@ -647,7 +652,7 @@ Mappings:
         name: "external",
     },
     Mapping {
-        generated_line: 82,
+        generated_line: 84,
         generated_column: 7,
         source: "lib.rs",
         original_line: 21,
@@ -655,7 +660,7 @@ Mappings:
         name: "external",
     },
     Mapping {
-        generated_line: 88,
+        generated_line: 90,
         generated_column: 0,
         source: "lib.rs",
         original_line: 24,
@@ -663,7 +668,7 @@ Mappings:
         name: "Point",
     },
     Mapping {
-        generated_line: 88,
+        generated_line: 90,
         generated_column: 12,
         source: "lib.rs",
         original_line: 24,
@@ -671,7 +676,7 @@ Mappings:
         name: "Point",
     },
     Mapping {
-        generated_line: 90,
+        generated_line: 92,
         generated_column: 0,
         source: "lib.rs",
         original_line: 26,
@@ -679,7 +684,7 @@ Mappings:
         name: "0",
     },
     Mapping {
-        generated_line: 90,
+        generated_line: 92,
         generated_column: 8,
         source: "lib.rs",
         original_line: 26,
@@ -687,7 +692,7 @@ Mappings:
         name: "0",
     },
     Mapping {
-        generated_line: 91,
+        generated_line: 93,
         generated_column: 0,
         source: "lib.rs",
         original_line: 26,
@@ -695,7 +700,7 @@ Mappings:
         name: "0",
     },
     Mapping {
-        generated_line: 91,
+        generated_line: 93,
         generated_column: 8,
         source: "lib.rs",
         original_line: 26,
@@ -703,7 +708,7 @@ Mappings:
         name: "0",
     },
     Mapping {
-        generated_line: 94,
+        generated_line: 96,
         generated_column: 0,
         source: "lib.rs",
         original_line: 28,
@@ -711,7 +716,7 @@ Mappings:
         name: "1",
     },
     Mapping {
-        generated_line: 94,
+        generated_line: 96,
         generated_column: 8,
         source: "lib.rs",
         original_line: 28,
@@ -719,7 +724,7 @@ Mappings:
         name: "1",
     },
     Mapping {
-        generated_line: 95,
+        generated_line: 97,
         generated_column: 0,
         source: "lib.rs",
         original_line: 28,
@@ -727,7 +732,7 @@ Mappings:
         name: "1",
     },
     Mapping {
-        generated_line: 95,
+        generated_line: 97,
         generated_column: 8,
         source: "lib.rs",
         original_line: 28,
@@ -735,7 +740,7 @@ Mappings:
         name: "1",
     },
     Mapping {
-        generated_line: 101,
+        generated_line: 103,
         generated_column: 0,
         source: "lib.rs",
         original_line: 30,
@@ -743,7 +748,7 @@ Mappings:
         name: "Unit",
     },
     Mapping {
-        generated_line: 101,
+        generated_line: 103,
         generated_column: 12,
         source: "lib.rs",
         original_line: 30,
@@ -751,7 +756,7 @@ Mappings:
         name: "Unit",
     },
     Mapping {
-        generated_line: 104,
+        generated_line: 106,
         generated_column: 0,
         source: "lib.rs",
         original_line: 15,
@@ -759,7 +764,7 @@ Mappings:
         name: "Shape",
     },
     Mapping {
-        generated_line: 104,
+        generated_line: 106,
         generated_column: 18,
         source: "lib.rs",
         original_line: 15,

@@ -1,0 +1,104 @@
+---
+source: src/compiler/codegen/ts/class_templates.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Pair<T, U>(pub T, pub U);
+pub fn consume(first: &Pair<u32, bool>, second: &Pair<bool, u32>) {}
+```
+
+# Compiled
+
+```ts
+export function consume(
+	first: Pair.Coerce<"u32", "bool">,
+	second: Pair.Coerce<"bool", "u32">,
+): void;
+
+declare class _4_PairGP3_u32P4_boolE {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	public get [1](): boolean;
+	public set [1](
+		value: boolean
+	);
+	static of(
+		value: Pair.Coerce<"u32", "bool">
+	): Pair<"u32", "bool">;
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+declare class _4_PairGP4_boolP3_u32E {
+	public get [0](): boolean;
+	public set [0](
+		value: boolean
+	);
+	public get [1](): number;
+	public set [1](
+		value: number
+	);
+	static of(
+		value: Pair.Coerce<"bool", "u32">
+	): Pair<"bool", "u32">;
+	private __rust_curse_brand: never;
+	private constructor();
+}
+
+export type Pair<T, U> =
+	T extends unknown ?
+	U extends unknown ?
+	[T, U] extends ["u32", "bool"] ? _4_PairGP3_u32P4_boolE :
+	[T, U] extends ["bool", "u32"] ? _4_PairGP4_boolP3_u32E :
+	never : never : never;
+
+export declare namespace Pair {
+	export type Class<T, U> =
+		T extends unknown ?
+		U extends unknown ?
+		[T, U] extends ["u32", "bool"] ? typeof _4_PairGP3_u32P4_boolE :
+		[T, U] extends ["bool", "u32"] ? typeof _4_PairGP4_boolP3_u32E :
+		never : never : never;
+
+	export type Plain<T extends "u32" | "bool", U extends "bool" | "u32"> =
+		T extends unknown ?
+		U extends unknown ?
+		[T, U] extends ["u32", "bool"] ?
+			{
+				[0]: number;
+				[1]: boolean;
+			} :
+		[T, U] extends ["bool", "u32"] ?
+			{
+				[0]: boolean;
+				[1]: number;
+			} :
+		never : never : never;
+
+	export type Coerce<T extends "u32" | "bool", U extends "bool" | "u32"> =
+		T extends unknown ?
+		U extends unknown ?
+		[T, U] extends ["u32", "bool"] ?
+			{
+				[0]: number;
+				[1]: boolean;
+			} :
+		[T, U] extends ["bool", "u32"] ?
+			{
+				[0]: boolean;
+				[1]: number;
+			} :
+		never : never : never;
+}
+
+export function Pair<Args extends ["u32", "bool"] | ["bool", "u32"]>(
+	...args: Args
+): Pair.Class<Args[0], Args[1]>;
+
+export {};
+```

@@ -39,6 +39,7 @@ export declare const Wave: {
 	static_fn(): number;
 
 	default(): Wave;
+	readonly [$WaveClassBrand]: never;
 };
 
 export declare namespace Wave {
@@ -80,4 +81,5 @@ export declare namespace Wave {
 }
 
 declare const $WaveBrand: unique symbol;
+declare const $WaveClassBrand: unique symbol;
 ```

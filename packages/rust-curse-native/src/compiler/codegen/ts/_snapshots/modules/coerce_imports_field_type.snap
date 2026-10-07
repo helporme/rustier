@@ -44,4 +44,6 @@ export declare namespace Circle {
 		radius: number;
 	};
 }
+
+export {};
 ```

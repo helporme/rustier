@@ -4,7 +4,7 @@ expression: snapshot
 ---
 TypeScript:
   0 | export function first(): void;
-  1 | 
+  1 |
   2 | export class Value {
   3 | 	public get number(): number;
   4 | 	public set number(
@@ -13,12 +13,14 @@ TypeScript:
   7 | 	private __rust_curse_brand: never;
   8 | 	private constructor();
   9 | }
- 10 | 
+ 10 |
  11 | export declare namespace Value {
  12 | 	export type Plain = {
  13 | 		number: number;
  14 | 	};
  15 | }
+ 16 |
+ 17 | export {};
 
 Source map:
 {

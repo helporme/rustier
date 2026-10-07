@@ -1,0 +1,15 @@
+---
+source: src/compiler/codegen/ts/class_templates.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Wrap<T>(T);
+```
+
+# Compiled
+
+```ts
+export {};
+```

@@ -1,6 +1,6 @@
 use crate::compiler::{
     codegen::{
-        fragment::{FragmentPrint, frag},
+        fragment::FragmentPrint,
         sourcemap::{
             classes::declaration_mappings,
             mappings::{Mapping, find_name_line, original_location},
@@ -51,14 +51,11 @@ impl<'db> DecalClassTemplate<'db> {
                 "pub struct ".len()
             };
         let name = self.name(db);
-        let private_name = frag!(_{name}).print();
         let type_line = find_name_line(generated, start_line, "export type ", name, "<")
             .expect("rendered TypeScript template alias should exist");
-        let private_line = find_name_line(generated, type_line + 1, "type ", &private_name, "<")
-            .expect("rendered TypeScript private template alias should exist");
         let namespace_line = find_name_line(
             generated,
-            private_line + 1,
+            type_line + 1,
             "export declare namespace ",
             name,
             " {",
@@ -67,7 +64,6 @@ impl<'db> DecalClassTemplate<'db> {
 
         for (line, column) in [
             (type_line, "export type ".len()),
-            (private_line, "type ".len()),
             (namespace_line, "export declare namespace ".len()),
         ] {
             mappings.extend(declaration_mappings(
@@ -80,13 +76,9 @@ impl<'db> DecalClassTemplate<'db> {
         }
 
         start_line = namespace_line + 1;
+        let prefix = "\texport type ";
 
-        for (alias, prefix) in [
-            ("Class", "\texport type "),
-            ("_Class", "\ttype "),
-            ("Plain", "\texport type "),
-            ("Coerce", "\texport type "),
-        ] {
+        for alias in ["Class", "Plain", "Coerce"] {
             let line = find_name_line(generated, start_line, prefix, alias, "<")
                 .expect("rendered TypeScript template projection should exist");
             start_line = line + 1;

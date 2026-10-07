@@ -88,6 +88,10 @@ impl<'db> DecalModule<'db> {
                     ),
             )
             .apply(p);
+
+            if scope == DeclarationScope::Module {
+                frag!(@@export {};).apply(p);
+            }
         })
         .print()
     }

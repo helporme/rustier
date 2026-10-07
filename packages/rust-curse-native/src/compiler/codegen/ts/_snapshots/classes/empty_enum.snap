@@ -13,7 +13,9 @@ pub enum Never {}
 ```ts
 export type Never = Never.Instance & Never.Plain;
 
-export declare const Never: {};
+export declare const Never: {
+	readonly [$NeverClassBrand]: never;
+};
 
 export declare namespace Never {
 	export type Plain =never;
@@ -24,4 +26,5 @@ export declare namespace Never {
 }
 
 declare const $NeverBrand: unique symbol;
+declare const $NeverClassBrand: unique symbol;
 ```

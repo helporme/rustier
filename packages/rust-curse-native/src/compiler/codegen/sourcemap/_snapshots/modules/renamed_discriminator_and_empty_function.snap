@@ -4,41 +4,49 @@ expression: snapshot
 ---
 TypeScript:
   0 | export function empty(): void;
-  1 | 
+  1 |
   2 | export type Example = Example.Instance & Example.Plain;
-  3 | 
-  4 | export declare const Example: {};
-  5 | 
-  6 | export declare namespace Example {
-  7 | 	export type Plain =
-  8 | 		| {
-  9 | 			readonly $type: "Value";
- 10 | 			get type(): string;
- 11 | 			set type(
- 12 | 				value: string
- 13 | 			);
- 14 | 		};
- 15 | 
- 16 | 	export interface Instance {
- 17 | 		readonly [$ExampleBrand]: never;
- 18 | 	}
- 19 | }
- 20 | 
- 21 | declare const $ExampleBrand: unique symbol;
- 22 | 
- 23 | export type Never = Never.Instance & Never.Plain;
- 24 | 
- 25 | export declare const Never: {};
- 26 | 
- 27 | export declare namespace Never {
- 28 | 	export type Plain =never;
- 29 | 
- 30 | 	export interface Instance {
- 31 | 		readonly [$NeverBrand]: never;
- 32 | 	}
- 33 | }
- 34 | 
- 35 | declare const $NeverBrand: unique symbol;
+  3 |
+  4 | export declare const Example: {
+  5 | 	readonly [$ExampleClassBrand]: never;
+  6 | };
+  7 |
+  8 | export declare namespace Example {
+  9 | 	export type Plain =
+ 10 | 		| {
+ 11 | 			readonly $type: "Value";
+ 12 | 			get type(): string;
+ 13 | 			set type(
+ 14 | 				value: string
+ 15 | 			);
+ 16 | 		};
+ 17 |
+ 18 | 	export interface Instance {
+ 19 | 		readonly [$ExampleBrand]: never;
+ 20 | 	}
+ 21 | }
+ 22 |
+ 23 | declare const $ExampleBrand: unique symbol;
+ 24 | declare const $ExampleClassBrand: unique symbol;
+ 25 |
+ 26 | export type Never = Never.Instance & Never.Plain;
+ 27 |
+ 28 | export declare const Never: {
+ 29 | 	readonly [$NeverClassBrand]: never;
+ 30 | };
+ 31 |
+ 32 | export declare namespace Never {
+ 33 | 	export type Plain =never;
+ 34 |
+ 35 | 	export interface Instance {
+ 36 | 		readonly [$NeverBrand]: never;
+ 37 | 	}
+ 38 | }
+ 39 |
+ 40 | declare const $NeverBrand: unique symbol;
+ 41 | declare const $NeverClassBrand: unique symbol;
+ 42 |
+ 43 | export {};
 
 Source map:
 {
@@ -55,7 +63,7 @@ Source map:
     "type",
     "Never"
   ],
-  "mappings": "AAIAA,gBAAOA;;AAJPC,YAASA;;AAATA,qBAASA;;AAATA,yBAASA;AAATA,aAASA;;AACLC,YAAAA;AAAQC,OAAAA;AAAAA,OAAAA;;;;;AADZF,kBAASA;;;;;;;AAGTG,YAASA;;AAATA,qBAASA;;AAATA,yBAASA;AAATA,aAASA;;AAATA,kBAASA"
+  "mappings": "AAIAA,gBAAOA;;AAJPC,YAASA;;AAATA,qBAASA;;;;AAATA,yBAASA;AAATA,aAASA;;AACLC,YAAAA;AAAQC,OAAAA;AAAAA,OAAAA;;;;;AADZF,kBAASA;;;;;;;;AAGTG,YAASA;;AAATA,qBAASA;;;;AAATA,yBAASA;AAATA,aAASA;;AAATA,kBAASA"
 }
 
 Mappings:
@@ -109,7 +117,7 @@ Mappings:
         name: "Example",
     },
     Mapping {
-        generated_line: 6,
+        generated_line: 8,
         generated_column: 0,
         source: "lib.rs",
         original_line: 0,
@@ -117,7 +125,7 @@ Mappings:
         name: "Example",
     },
     Mapping {
-        generated_line: 6,
+        generated_line: 8,
         generated_column: 25,
         source: "lib.rs",
         original_line: 0,
@@ -125,7 +133,7 @@ Mappings:
         name: "Example",
     },
     Mapping {
-        generated_line: 7,
+        generated_line: 9,
         generated_column: 0,
         source: "lib.rs",
         original_line: 0,
@@ -133,7 +141,7 @@ Mappings:
         name: "Example",
     },
     Mapping {
-        generated_line: 7,
+        generated_line: 9,
         generated_column: 13,
         source: "lib.rs",
         original_line: 0,
@@ -141,7 +149,7 @@ Mappings:
         name: "Example",
     },
     Mapping {
-        generated_line: 9,
+        generated_line: 11,
         generated_column: 0,
         source: "lib.rs",
         original_line: 1,
@@ -149,7 +157,7 @@ Mappings:
         name: "Value",
     },
     Mapping {
-        generated_line: 9,
+        generated_line: 11,
         generated_column: 12,
         source: "lib.rs",
         original_line: 1,
@@ -157,7 +165,7 @@ Mappings:
         name: "Value",
     },
     Mapping {
-        generated_line: 10,
+        generated_line: 12,
         generated_column: 0,
         source: "lib.rs",
         original_line: 1,
@@ -165,7 +173,7 @@ Mappings:
         name: "type",
     },
     Mapping {
-        generated_line: 10,
+        generated_line: 12,
         generated_column: 7,
         source: "lib.rs",
         original_line: 1,
@@ -173,7 +181,7 @@ Mappings:
         name: "type",
     },
     Mapping {
-        generated_line: 11,
+        generated_line: 13,
         generated_column: 0,
         source: "lib.rs",
         original_line: 1,
@@ -181,7 +189,7 @@ Mappings:
         name: "type",
     },
     Mapping {
-        generated_line: 11,
+        generated_line: 13,
         generated_column: 7,
         source: "lib.rs",
         original_line: 1,
@@ -189,7 +197,7 @@ Mappings:
         name: "type",
     },
     Mapping {
-        generated_line: 16,
+        generated_line: 18,
         generated_column: 0,
         source: "lib.rs",
         original_line: 0,
@@ -197,7 +205,7 @@ Mappings:
         name: "Example",
     },
     Mapping {
-        generated_line: 16,
+        generated_line: 18,
         generated_column: 18,
         source: "lib.rs",
         original_line: 0,
@@ -205,7 +213,7 @@ Mappings:
         name: "Example",
     },
     Mapping {
-        generated_line: 23,
+        generated_line: 26,
         generated_column: 0,
         source: "lib.rs",
         original_line: 3,
@@ -213,7 +221,7 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 23,
+        generated_line: 26,
         generated_column: 12,
         source: "lib.rs",
         original_line: 3,
@@ -221,7 +229,7 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 25,
+        generated_line: 28,
         generated_column: 0,
         source: "lib.rs",
         original_line: 3,
@@ -229,7 +237,7 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 25,
+        generated_line: 28,
         generated_column: 21,
         source: "lib.rs",
         original_line: 3,
@@ -237,7 +245,7 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 27,
+        generated_line: 32,
         generated_column: 0,
         source: "lib.rs",
         original_line: 3,
@@ -245,7 +253,7 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 27,
+        generated_line: 32,
         generated_column: 25,
         source: "lib.rs",
         original_line: 3,
@@ -253,7 +261,7 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 28,
+        generated_line: 33,
         generated_column: 0,
         source: "lib.rs",
         original_line: 3,
@@ -261,7 +269,7 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 28,
+        generated_line: 33,
         generated_column: 13,
         source: "lib.rs",
         original_line: 3,
@@ -269,7 +277,7 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 30,
+        generated_line: 35,
         generated_column: 0,
         source: "lib.rs",
         original_line: 3,
@@ -277,7 +285,7 @@ Mappings:
         name: "Never",
     },
     Mapping {
-        generated_line: 30,
+        generated_line: 35,
         generated_column: 18,
         source: "lib.rs",
         original_line: 3,

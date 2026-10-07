@@ -129,6 +129,11 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
             }
         });
 
+        // Rust identifiers cannot contain `$`, so this per-enum, module-private
+        // brand cannot collide with source declarations or imported Rust types.
+        let brand_name = || frag!(${class.name(db)}Brand);
+        let class_brand_name = || frag!(${class.name(db)}ClassBrand);
+
         let static_methods = class
             .methods(db)
             .filter(|method| method.is_static(db))
@@ -137,15 +142,18 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
                 class
                     .coerce(db)
                     .map(|coerce| coerce.render_fn_ts(db, false)),
-            )
-            .collect::<Vec<_>>();
-        let static_members = fragment(move |p| {
-            if static_methods.is_empty() {
-                frag!({}).apply(p);
-            } else {
-                curlies(spaced(static_methods)).apply(p);
+            );
+
+        let static_members = curlies(fragment(move |p| {
+            let mut static_methods = static_methods.peekable();
+
+            if static_methods.peek().is_some() {
+                spaced(static_methods).apply(p);
+                blank().apply(p);
             }
-        });
+
+            frag!(readonly ~[{class_brand_name()}]: never;).apply(p);
+        }));
 
         let instance_methods = class
             .methods(db)
@@ -153,9 +161,6 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
             .map(|method| method.render_in_object_ts(db))
             .collect::<Vec<_>>();
 
-        // Rust identifiers cannot contain `$`, so this per-enum, module-private
-        // brand cannot collide with source declarations or imported Rust types.
-        let brand_name = || frag!(${class.name(db)}Brand);
         let instance_members = fragment(move |p| {
             if !instance_methods.is_empty() {
                 spaced(instance_methods).apply(p);
@@ -178,7 +183,8 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
                     {instance_members}
                 }}@@
 
-                {declare}const ~{brand_name()}: unique symbol;
+                {declare}const ~{brand_name()}: unique symbol;@
+                {declare}const ~{class_brand_name()}: unique symbol;
             )
             .apply(printer);
 
@@ -206,7 +212,8 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
                 }}
             }}@@
 
-            {declare}const ~{brand_name()}: unique symbol;
+            {declare}const ~{brand_name()}: unique symbol;@
+            {declare}const ~{class_brand_name()}: unique symbol;
         )
         .apply(printer);
     }
