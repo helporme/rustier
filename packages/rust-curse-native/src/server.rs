@@ -105,19 +105,23 @@ impl Server {
     pub fn change(&mut self, change: ServerChange) -> ServerChangeResult {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
         tracing::debug!(path = %change.file_path, "Updating Rust source");
-        self.node_builds.clear();
-        self.wasm_builds.clear();
         (|| -> Result<bool, ServerDiagnostic> {
             let changed = self
                 .ws
                 .change(change.into())
                 .map_err(ServerDiagnostic::from)?;
 
-            if changed && self.config.ts {
-                self.ws
-                    .with_db(|db| self.ws.project(db).ts().sync(db).exec(db))
-                    .map_err(ServerDiagnostic::from)?;
+            if changed {
+                self.node_builds.clear();
+                self.wasm_builds.clear();
+
+                if self.config.ts {
+                    self.ws
+                        .with_db(|db| self.ws.project(db).ts().sync(db).exec(db))
+                        .map_err(ServerDiagnostic::from)?;
+                }
             }
+
             Ok(changed)
         })()
         .into()
