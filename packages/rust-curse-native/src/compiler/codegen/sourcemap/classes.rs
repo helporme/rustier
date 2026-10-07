@@ -1,12 +1,13 @@
 //! Generates source map mappings for TypeScript class declarations.
 
 use crate::compiler::{
-    codegen::sourcemap::mappings::{Mapping, OriginalLocation, find_name_line, original_location},
+    codegen::{
+        fragment::{FragmentPrint, frag},
+        sourcemap::mappings::{Mapping, OriginalLocation, find_name_line, original_location},
+    },
     db::Db,
     ir::{
-        decals::{
-            DecalClass, DecalDiscriminator, DecalField, DecalMethod, DecalModule, DecalVariant,
-        },
+        decals::{DecalClass, DecalField, DecalMethod, DecalModule},
         rust::FieldName,
     },
 };
@@ -28,14 +29,9 @@ impl<'db> DecalClass<'db> {
                 plain.fields(db).collect(),
                 generated_line,
             ),
-            DecalClass::Discriminated(discriminated) => self
-                .render_discriminated_sourcemap_mappings(
-                    db,
-                    module,
-                    discriminated.variants(db),
-                    discriminated.discriminator(db),
-                    generated_line,
-                ),
+            DecalClass::Discriminated(_) => {
+                self.render_discriminated_sourcemap_mappings(db, module, generated_line)
+            }
         }
     }
 
@@ -48,7 +44,12 @@ impl<'db> DecalClass<'db> {
     ) -> Vec<Mapping> {
         let generated = module.render_ts_mod(db);
         let name = self.name(db);
-        let class_line = find_name_line(generated, generated_line, "export class ", name, " {")
+        let prefix = if self.is_template_instance(db) {
+            "declare class "
+        } else {
+            "export class "
+        };
+        let class_line = find_name_line(generated, generated_line, prefix, name, " {")
             .expect("rendered TypeScript class declaration should exist");
         let Some(span) = self.span(db) else {
             return Vec::new();
@@ -56,7 +57,7 @@ impl<'db> DecalClass<'db> {
         let original = original_location(db, span);
         let mut mappings = declaration_mappings(
             class_line,
-            "export class ".len(),
+            prefix.len(),
             &original,
             original.column + "pub struct ".len(),
             name,
@@ -130,6 +131,10 @@ impl<'db> DecalClass<'db> {
             ));
         }
 
+        if self.is_template_instance(db) {
+            return mappings;
+        }
+
         let namespace_line = find_name_line(
             generated,
             field_start_line,
@@ -145,12 +150,13 @@ impl<'db> DecalClass<'db> {
             original.column + "pub struct ".len(),
             name,
         ));
-        let mut projections = vec![("Plain", fields)];
-        if let Some(coerce) = self.coerce(db) {
-            projections.push(("Coerce", coerce.input_fields(db)));
-        }
         let mut projection_start_line = namespace_line + 1;
-        for (alias, fields) in projections {
+
+        for (alias, coerce) in [("Plain", false), ("Coerce", true)] {
+            if coerce && self.coerce(db).is_none() {
+                continue;
+            }
+
             let projection_line = find_name_line(
                 generated,
                 projection_start_line,
@@ -167,43 +173,15 @@ impl<'db> DecalClass<'db> {
                 name,
             ));
 
-            let mut field_start_line = projection_line + 1;
-            for field in fields {
-                let field_name = field.name(db).to_string();
-                let wrapped = match field.name(db) {
-                    FieldName::Idx(_) => true,
-                    FieldName::Name(name) => name.parse::<usize>().is_ok(),
-                };
-                let locations = field_declaration_locations(
-                    &field,
-                    db,
-                    generated,
-                    &mut field_start_line,
-                    "\t\t",
-                    false,
-                    true,
-                );
+            projection_start_line = projection_line + 1;
 
-                let Some(span) = field.span(db) else {
-                    continue;
-                };
-                let original = original_location(db, span);
-                let original_name_column = if wrapped {
-                    original.column
-                } else {
-                    original.column + "pub ".len()
-                };
-                for (field_line, name_column) in locations {
-                    mappings.extend(declaration_mappings(
-                        field_line,
-                        name_column,
-                        &original,
-                        original_name_column,
-                        &field_name,
-                    ));
-                }
-            }
-            projection_start_line = field_start_line;
+            mappings.extend(self.render_projection_sourcemap_mappings(
+                db,
+                generated,
+                projection_start_line,
+                "\t\t",
+                coerce,
+            ));
         }
 
         mappings
@@ -213,10 +191,12 @@ impl<'db> DecalClass<'db> {
         self,
         db: &'db dyn Db,
         module: DecalModule<'db>,
-        variants: &'db [DecalVariant<'db>],
-        discriminator: DecalDiscriminator<'db>,
         generated_line: usize,
     ) -> Vec<Mapping> {
+        if self.is_template_instance(db) {
+            return self.render_template_enum_sourcemap_mappings(db, module, generated_line);
+        }
+
         let generated = module.render_ts_mod(db);
         let name = self.name(db);
         let type_line = find_name_line(generated, generated_line, "export type ", name, " =")
@@ -308,7 +288,6 @@ impl<'db> DecalClass<'db> {
             mappings.extend(method_mappings(&method, db, method_line, prefix.len()));
         }
 
-        let tag_prefix = format!("\t\t\treadonly {}: \"", discriminator.name(db));
         let mut projections = vec![(plain_line, false)];
         if self.coerce(db).is_some() {
             let coerce_line =
@@ -324,70 +303,208 @@ impl<'db> DecalClass<'db> {
             projections.push((coerce_line, true));
         }
         for (projection_line, coerce) in projections {
-            let mut variant_start_line = projection_line + 1;
-
-            for variant in variants
-                .iter()
-                .filter(|variant| !coerce || variant.if_coercible(db))
-            {
-                let tag_line = find_name_line(
-                    generated,
-                    variant_start_line,
-                    &tag_prefix,
-                    variant.name(db),
-                    "\";",
-                )
-                .expect("rendered TypeScript union variant discriminant should exist");
-                variant_start_line = tag_line + 1;
-
-                let Some(span) = variant.span(db) else {
-                    continue;
-                };
-                let original = original_location(db, span);
-                mappings.extend(declaration_mappings(
-                    tag_line,
-                    "\t\t\treadonly ".len(),
-                    &original,
-                    original.column,
-                    variant.source_name(db),
-                ));
-
-                for field in variant.fields(db) {
-                    let field_name = field.name(db).to_string();
-                    let locations = field_declaration_locations(
-                        &field,
-                        db,
-                        generated,
-                        &mut variant_start_line,
-                        "\t\t\t",
-                        !coerce,
-                        true,
-                    );
-
-                    let Some(span) = field.span(db) else {
-                        continue;
-                    };
-                    let original = original_location(db, span);
-                    for (field_line, name_column) in locations {
-                        mappings.extend(declaration_mappings(
-                            field_line,
-                            name_column,
-                            &original,
-                            original.column,
-                            &field_name,
-                        ));
-                    }
-                }
-            }
+            mappings.extend(self.render_projection_sourcemap_mappings(
+                db,
+                generated,
+                projection_line + 1,
+                "\t\t\t",
+                coerce,
+            ));
         }
 
         mappings.sort_by_key(|mapping| (mapping.generated_line, mapping.generated_column));
         mappings
     }
 
+    fn render_template_enum_sourcemap_mappings(
+        self,
+        db: &'db dyn Db,
+        module: DecalModule<'db>,
+        generated_line: usize,
+    ) -> Vec<Mapping> {
+        let Some(span) = self.span(db) else {
+            return Vec::new();
+        };
+        let generated = module.render_ts_mod(db);
+        let name = self.name(db);
+        let original = original_location(db, span);
+        let type_line = find_name_line(generated, generated_line, "type ", name, " =")
+            .expect("rendered TypeScript template enum type should exist");
+        let value_line = find_name_line(generated, type_line + 1, "declare const ", name, ":")
+            .expect("rendered TypeScript template enum value should exist");
+        let instance_name = frag!(${name}Instance).print();
+        let instance_line = find_name_line(
+            generated,
+            value_line + 1,
+            "interface ",
+            &instance_name,
+            " {",
+        )
+        .expect("rendered TypeScript template enum instance should exist");
+        let mut mappings = Vec::new();
+
+        for (line, column) in [
+            (type_line, "type ".len()),
+            (value_line, "declare const ".len()),
+            (instance_line, "interface ".len()),
+        ] {
+            mappings.extend(declaration_mappings(
+                line,
+                column,
+                &original,
+                original.column + "pub enum ".len(),
+                name,
+            ));
+        }
+
+        mappings.extend(self.render_projection_sourcemap_mappings(
+            db,
+            generated,
+            type_line + 1,
+            "\t\t",
+            false,
+        ));
+
+        for (is_static, mut start_line) in [(true, value_line + 1), (false, instance_line + 1)] {
+            for method in self
+                .methods(db)
+                .filter(|method| method.is_static(db) == is_static)
+            {
+                let (prefix, suffix) = object_method_search(&method, db, "\t");
+                let line = find_name_line(generated, start_line, &prefix, method.name(db), suffix)
+                    .expect("rendered TypeScript template enum method should exist");
+                start_line = line + 1;
+
+                mappings.extend(method_mappings(&method, db, line, prefix.len()));
+            }
+
+            if is_static {
+                mappings.extend(self.coerce_mappings(db, generated, start_line, "\t"));
+            }
+        }
+
+        mappings
+    }
+
+    pub(super) fn render_projection_sourcemap_mappings(
+        self,
+        db: &'db dyn Db,
+        generated: &str,
+        mut start_line: usize,
+        indent: &str,
+        coerce: bool,
+    ) -> Vec<Mapping> {
+        let mut mappings = Vec::new();
+
+        match self {
+            Self::Plain(class) => {
+                let fields = if coerce {
+                    let Some(coerce) = self.coerce(db) else {
+                        return mappings;
+                    };
+
+                    coerce.input_fields(db)
+                } else {
+                    class.fields(db).collect()
+                };
+
+                for field in fields {
+                    let locations = field_declaration_locations(
+                        &field,
+                        db,
+                        generated,
+                        &mut start_line,
+                        indent,
+                        false,
+                        true,
+                    );
+                    let Some(span) = field.span(db) else {
+                        continue;
+                    };
+                    let original = original_location(db, span);
+                    let original_name_column = match field.name(db) {
+                        FieldName::Name(name) if name.parse::<usize>().is_err() => {
+                            original.column + "pub ".len()
+                        }
+                        _ => original.column,
+                    };
+
+                    for (line, column) in locations {
+                        mappings.extend(declaration_mappings(
+                            line,
+                            column,
+                            &original,
+                            original_name_column,
+                            &field.name(db).to_string(),
+                        ));
+                    }
+                }
+            }
+            Self::Discriminated(class) => {
+                if coerce && self.coerce(db).is_none() {
+                    return mappings;
+                }
+
+                let tag_prefix =
+                    frag!({indent}readonly ~{class.discriminator(db).name(db)}:~{"\""}).print();
+
+                for variant in class
+                    .variants(db)
+                    .iter()
+                    .filter(|variant| !coerce || variant.if_coercible(db))
+                {
+                    let line =
+                        find_name_line(generated, start_line, &tag_prefix, variant.name(db), "\";")
+                            .expect("rendered TypeScript template variant should exist");
+                    start_line = line + 1;
+
+                    if let Some(span) = variant.span(db) {
+                        let original = original_location(db, span);
+
+                        mappings.extend(declaration_mappings(
+                            line,
+                            indent.len() + "readonly ".len(),
+                            &original,
+                            original.column,
+                            variant.source_name(db),
+                        ));
+                    }
+
+                    for field in variant.fields(db) {
+                        let locations = field_declaration_locations(
+                            &field,
+                            db,
+                            generated,
+                            &mut start_line,
+                            indent,
+                            !coerce,
+                            true,
+                        );
+                        let Some(span) = field.span(db) else {
+                            continue;
+                        };
+                        let original = original_location(db, span);
+
+                        for (line, column) in locations {
+                            mappings.extend(declaration_mappings(
+                                line,
+                                column,
+                                &original,
+                                original.column,
+                                &field.name(db).to_string(),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        mappings
+    }
+
     /// Synthetic coerce methods navigate to the class they construct, not a
     /// source method.
-    fn coerce_mappings(
+    pub(super) fn coerce_mappings(
         self,
         db: &'db dyn Db,
         generated: &str,
@@ -422,7 +539,7 @@ impl<'db> DecalClass<'db> {
 /// Accessors share one Rust field origin, with setters only for writable
 /// fields. Input projections remain ordinary properties regardless of
 /// coercibility.
-fn field_declaration_locations<'db>(
+pub(super) fn field_declaration_locations<'db>(
     field: &DecalField<'db>,
     db: &'db dyn Db,
     generated: &str,
@@ -512,7 +629,7 @@ fn method_mappings<'db>(
     .to_vec()
 }
 
-fn declaration_mappings(
+pub(super) fn declaration_mappings(
     generated_line: usize,
     generated_name_column: usize,
     original: &OriginalLocation,

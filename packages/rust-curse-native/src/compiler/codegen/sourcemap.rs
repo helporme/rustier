@@ -4,6 +4,7 @@
 // rest of the project which is hand written) since it's not the most important
 // part of the project and my lack of time and interest in it.
 
+mod class_templates;
 mod classes;
 mod functions;
 mod mappings;

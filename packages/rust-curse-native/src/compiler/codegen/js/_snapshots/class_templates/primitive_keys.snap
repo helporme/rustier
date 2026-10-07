@@ -1,5 +1,5 @@
 ---
-source: src/compiler/codegen/js/class_factories.rs
+source: src/compiler/codegen/js/class_templates.rs
 expression: snapshot
 ---
 # Source

@@ -119,6 +119,25 @@ impl<'db> DecalModule<'db> {
             );
         }
 
+        for template in self.members(db).filter_map(|member| match member {
+            DecalMember::ClassTemplate(template) => Some(template),
+            _ => None,
+        }) {
+            let template_mappings = template.render_sourcemap_mappings(db, self, search_line);
+
+            if let Some(line) = template_mappings
+                .iter()
+                .map(|mapping| mapping.generated_line)
+                .max()
+            {
+                search_line = line + 1;
+            }
+
+            mappings.extend(template_mappings.iter().cloned());
+        }
+
+        mappings.sort_by_key(|mapping| (mapping.generated_line, mapping.generated_column));
+
         mappings
     }
 }

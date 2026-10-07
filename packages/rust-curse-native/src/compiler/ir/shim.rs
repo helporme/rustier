@@ -201,6 +201,24 @@ impl<'db> ShimClassTemplate<'db> {
         }
     }
 
+    #[salsa::tracked(returns(ref))]
+    pub fn param_names(self, db: &'db dyn Db) -> Vec<String> {
+        let params = match self {
+            Self::Plain(template) => template.src(db).generic_params(db),
+            Self::Discriminated(template) => template.src(db).generic_params(db),
+        };
+
+        params
+            .iter()
+            .map(|param| {
+                param
+                    .name(db)
+                    .expect("ADT type parameters are named")
+                    .to_owned()
+            })
+            .collect()
+    }
+
     pub fn classes(self, db: &'db dyn Db) -> impl Iterator<Item = ShimClass<'db>> + 'db {
         match self {
             Self::Plain(template) => Either::Left(template.classes(db).map(ShimClass::Plain)),
@@ -214,22 +232,7 @@ impl<'db> ShimClassTemplate<'db> {
     pub fn mappings(self, db: &'db dyn Db) -> Vec<(Vec<ShimGeneric<'db>>, ShimClass<'db>)> {
         let mut entries: Vec<_> = self
             .classes(db)
-            .map(|class| {
-                let args = match class {
-                    ShimClass::Plain(class) => class.src(db).gen_args(db),
-                    ShimClass::Discriminated(class) => class.src(db).gen_args(db),
-                };
-
-                let generics = args
-                    .iter()
-                    .map(|GenArg::Type(type_)| match type_.shim_out(db) {
-                        ShimType::Class { inner, .. } => ShimGeneric::Class(inner),
-                        _ => ShimGeneric::Symbol(type_.display(db).to_owned()),
-                    })
-                    .collect();
-
-                (generics, class)
-            })
+            .map(|class| (class.generics(db).collect(), class))
             .collect();
 
         entries.sort_by(|(_, left), (_, right)| left.name(db).cmp(right.name(db)));
@@ -324,6 +327,19 @@ impl<'db> ShimClass<'db> {
             ShimClass::Plain(p) => p.src(db).into_type(db),
             ShimClass::Discriminated(d) => d.src(db).into_type(db),
         }
+    }
+
+    pub fn generics(self, db: &'db dyn Db) -> impl Iterator<Item = ShimGeneric<'db>> + 'db {
+        let args = match self {
+            Self::Plain(class) => class.src(db).gen_args(db),
+            Self::Discriminated(class) => class.src(db).gen_args(db),
+        };
+
+        args.iter()
+            .map(move |GenArg::Type(type_)| match type_.shim_out(db) {
+                ShimType::Class { inner, .. } => ShimGeneric::Class(inner),
+                _ => ShimGeneric::Symbol(type_.display(db).to_owned()),
+            })
     }
 
     /// Fields of this class, mapped from the source Rust ADT.

@@ -1,5 +1,5 @@
 mod cast;
-mod class_factories;
+mod class_templates;
 mod classes;
 mod functions;
 mod imports;

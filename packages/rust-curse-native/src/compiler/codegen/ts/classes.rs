@@ -79,11 +79,16 @@ impl FragmentOnce for DecalPlainClassFragment<'_> {
             }
         });
 
-        let plain = render_record_fields(
-            fields
-                .iter()
-                .map(|field| field.render_property_ts(db, field.get_type(db))),
-        );
+        if class.is_template_instance(db) {
+            frag!(
+                {scope.declare_prefix()}class ~{class.name(db)}~{{ {members} }}
+            )
+            .apply(printer);
+
+            return;
+        }
+
+        let plain = DecalClass::Plain(class).render_plain_body_ts(db);
         let coerce_type = fragment(|p| {
             if let Some(coerce) = class.coerce(db) {
                 frag!(@@).apply(p);
@@ -112,33 +117,15 @@ struct DecalDiscriminatedClassFragment<'db> {
 impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
     fn apply(self, printer: &mut Printer) {
         let Self { class, db, scope } = self;
-        let variants = class.variants(db);
-        let discriminator = class.discriminator(db);
-        let rendered_variants = fragment(move |p| {
-            for (index, variant) in variants.iter().enumerate() {
-                if index > 0 {
-                    blank().apply(p);
-                }
-                variant
-                    .render_ts(
-                        db,
-                        discriminator.name(db),
-                        variant
-                            .fields(db)
-                            .map(move |field| field.render_accessors_ts(db, "")),
-                    )
-                    .apply(p);
-            }
-            frag!(;).apply(p);
-        });
         let plain = fragment(move |p| {
             frag!(export type Plain =).apply(p);
 
-            if variants.is_empty() {
+            if class.variants(db).is_empty() {
                 frag!( never;).apply(p);
             } else {
                 blank().apply(p);
-                idented(rendered_variants).apply(p);
+                idented(frag!({DecalClass::Discriminated(class).render_plain_body_ts(db)};))
+                    .apply(p);
             }
         });
 
@@ -178,6 +165,26 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
         });
 
         let declare = scope.declare_prefix();
+
+        if class.is_template_instance(db) {
+            frag!(
+                type ~{class.name(db)}~ = ~${class.name(db)}Instance & ~(
+                    {DecalClass::Discriminated(class).render_plain_body_ts(db)}
+                );@@
+
+                {declare}const ~{class.name(db)}:~{static_members};@@
+
+                interface ~${class.name(db)}Instance~{{
+                    {instance_members}
+                }}@@
+
+                {declare}const ~{brand_name()}: unique symbol;
+            )
+            .apply(printer);
+
+            return;
+        }
+
         let coerce_type = fragment(move |p| {
             if let Some(coerce) = class.coerce(db) {
                 frag!(@@).apply(p);
@@ -208,25 +215,85 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
 impl<'db> DecalCoerceFunction<'db> {
     fn render_fn_ts(self, db: &'db dyn Db, in_class: bool) -> String {
         let static_prefix = in_class.then_some("static ");
-        let class = self.class(db).name(db);
-        frag!({static_prefix}{self.name(db)}(value:~{class}.Coerce):~{class};).print()
+        let class = self.class(db).type_name(db);
+
+        frag!(
+            {static_prefix}{self.name(db)}(value:~{class.render_ts(db, Some("Coerce"))}):~{class.render_ts(db, None)};
+        ).print()
     }
 
     fn render_coerce_ts(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
         fragment(move |p| match self.class(db) {
             DecalClass::Plain(_) => {
-                frag!(
-                    export type Coerce = ~{
-                        render_record_fields(self.input_fields(db).into_iter().map(move |field| {
-                            field.render_property_ts(db, field.set_type(db))
-                        }))
-                    };
+                frag!(export type Coerce = ~{self.class(db).render_coerce_body_ts(db)};).apply(p);
+            }
+            DecalClass::Discriminated(_) => {
+                frag!(export type Coerce =@{idented(frag!({self.class(db).render_coerce_body_ts(db)};))}).apply(p);
+            }
+        })
+    }
+}
+
+impl<'db> DecalClass<'db> {
+    pub(super) fn render_plain_body_ts(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+        fragment(move |p| match self {
+            Self::Plain(class) => {
+                render_record_fields(
+                    class
+                        .fields(db)
+                        .map(move |field| field.render_property_ts(db, field.get_type(db))),
                 )
                 .apply(p);
             }
-            DecalClass::Discriminated(class) => {
-                let variants = fragment(move |p| {
-                    frag!(| Instance & Plain).apply(p);
+            Self::Discriminated(class) => {
+                if class.variants(db).is_empty() {
+                    frag!(never).apply(p);
+                }
+
+                for (index, variant) in class.variants(db).iter().enumerate() {
+                    if index > 0 {
+                        blank().apply(p);
+                    }
+
+                    variant
+                        .render_ts(
+                            db,
+                            class.discriminator(db).name(db),
+                            variant
+                                .fields(db)
+                                .map(move |field| field.render_accessors_ts(db, "")),
+                        )
+                        .apply(p);
+                }
+            }
+        })
+    }
+
+    pub(super) fn render_coerce_body_ts(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+        fragment(move |p| {
+            let Some(coerce) = self.coerce(db) else {
+                frag!(never).apply(p);
+
+                return;
+            };
+
+            match self {
+                Self::Plain(_) => {
+                    render_record_fields(
+                        coerce
+                            .input_fields(db)
+                            .into_iter()
+                            .map(move |field| field.render_property_ts(db, field.set_type(db))),
+                    )
+                    .apply(p);
+                }
+                Self::Discriminated(class) => {
+                    if self.is_template_instance(db) {
+                        frag!(|~{self.type_name(db).render_ts(db, None)}).apply(p);
+                    } else {
+                        frag!(| Instance & Plain).apply(p);
+                    }
+
                     for variant in class
                         .variants(db)
                         .iter()
@@ -243,9 +310,7 @@ impl<'db> DecalCoerceFunction<'db> {
                             )
                             .apply(p);
                     }
-                    frag!(;).apply(p);
-                });
-                frag!(export type Coerce =@{idented(variants)}).apply(p);
+                }
             }
         })
     }

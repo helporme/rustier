@@ -1,11 +1,11 @@
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment, spaced},
     db::Db,
-    ir::facade::{FacadeClassFactory, FacadeGeneric},
+    ir::facade::{FacadeClassTemplate, FacadeGeneric},
 };
 
 #[salsa::tracked]
-impl<'db> FacadeClassFactory<'db> {
+impl<'db> FacadeClassTemplate<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render(self, db: &'db dyn Db) -> String {
         // FIXME: we render "monomorphized" classes as usual _exported_ classes.
@@ -56,7 +56,7 @@ mod tests {
         },
     };
 
-    macro_rules! test_factory {
+    macro_rules! test_template {
         ($name:ident, { $($source:tt)* }) => {
             #[test]
             fn $name() {
@@ -81,7 +81,7 @@ mod tests {
         };
     }
 
-    test_factory!(primitive_keys, {
+    test_template!(primitive_keys, {
         pub struct Wrap<T>(T);
 
         pub fn consume(
@@ -100,7 +100,7 @@ mod tests {
         }
     });
 
-    test_factory!(class_and_nested_keys, {
+    test_template!(class_and_nested_keys, {
         pub struct Holder(u32);
         pub struct Wrap<T>(T);
 
@@ -109,7 +109,7 @@ mod tests {
         pub fn borrowed(value: &Wrap<&u32>) {}
     });
 
-    test_factory!(cross_module_keys, {
+    test_template!(cross_module_keys, {
         pub mod models {
             pub struct Holder(u32);
             pub struct Boxed<T>(T);
@@ -135,7 +135,7 @@ mod tests {
         }
     });
 
-    test_factory!(generic_enum, {
+    test_template!(generic_enum, {
         pub struct Holder(u32);
         pub enum Event<T> {
             Value(T),
@@ -144,13 +144,13 @@ mod tests {
         pub fn consume(number: &Event<u32>, holder: &Event<Holder>) {}
     });
 
-    test_factory!(multiple_generic_arguments, {
+    test_template!(multiple_generic_arguments, {
         pub struct Pair<T, U>(T, U);
 
         pub fn consume(first: &Pair<u32, bool>, second: &Pair<bool, u32>) {}
     });
 
-    test_factory!(generic_constructor, {
+    test_template!(generic_constructor, {
         pub struct Wrap<T>(pub T);
 
         impl<T> Wrap<T> {
@@ -165,7 +165,7 @@ mod tests {
         pub fn consume(number: &Wrap<u32>, string: &Wrap<String>, nested: &Wrap<Wrap<u32>>) {}
     });
 
-    test_factory!(borrowed_values_excluded, {
+    test_template!(borrowed_values_excluded, {
         pub struct Wrap<T>(pub T);
         pub enum Event<T> {
             Value(T),
@@ -174,7 +174,7 @@ mod tests {
         pub fn consume(value: &Wrap<&u32>, event: &Event<&u32>) {}
     });
 
-    test_factory!(unreachable_template, {
+    test_template!(unreachable_template, {
         pub struct Wrap<T>(T);
     });
 }

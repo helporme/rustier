@@ -123,7 +123,7 @@ impl<'db> FacadeModule<'db> {
         self.shim(db).members(db).map(move |member| match member {
             ShimMember::Class(class) => FacadeMember::Class(class.facade(db)),
             ShimMember::Template(template) => {
-                FacadeMember::ClassFactory(FacadeClassFactory::new(db, template))
+                FacadeMember::ClassTemplate(FacadeClassTemplate::new(db, template))
             }
             ShimMember::Function(function) => FacadeMember::Function(function.facade(db)),
             ShimMember::Module(module) => FacadeMember::Module(module.facade(db)),
@@ -143,8 +143,8 @@ impl<'db> FacadeModule<'db> {
                 FacadeMember::Class(class) => {
                     items.extend(class.imports(db));
                 }
-                FacadeMember::ClassFactory(factory) => {
-                    items.extend(factory.imports(db));
+                FacadeMember::ClassTemplate(template) => {
+                    items.extend(template.imports(db));
                 }
                 FacadeMember::Module(_) => {}
             }
@@ -179,18 +179,18 @@ impl<'db> FacadeModule<'db> {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
 pub enum FacadeMember<'db> {
     Class(FacadeClass<'db>),
-    ClassFactory(FacadeClassFactory<'db>),
+    ClassTemplate(FacadeClassTemplate<'db>),
     Function(FacadeFreeFunction<'db>),
     Module(FacadeModule<'db>),
 }
 
 #[salsa::interned(debug)]
-pub struct FacadeClassFactory<'db> {
+pub struct FacadeClassTemplate<'db> {
     shim: ShimClassTemplate<'db>,
 }
 
 #[salsa::tracked]
-impl<'db> FacadeClassFactory<'db> {
+impl<'db> FacadeClassTemplate<'db> {
     pub fn module(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
         self.shim(db).module(db).facade(db)
     }

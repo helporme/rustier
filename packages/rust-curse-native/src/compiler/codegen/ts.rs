@@ -1,5 +1,6 @@
 //! Compiles IR into TypeScript declarations.
 
+mod class_templates;
 mod classes;
 mod functions;
 mod imports;

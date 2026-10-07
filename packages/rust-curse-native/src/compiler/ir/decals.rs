@@ -12,9 +12,10 @@ use crate::compiler::{
     ir::{
         rust::{Callable, FieldName, Span},
         shim::{
-            Shim, ShimClassDiscriminated, ShimClassDiscriminatedVariant, ShimClassPlain, ShimField,
-            ShimFunctionAssociated, ShimFunctionDiscriminator, ShimFunctionFree, ShimMember,
-            ShimModule, ShimParam, ShimParentModule, ShimType,
+            Shim, ShimClass, ShimClassDiscriminated, ShimClassDiscriminatedVariant, ShimClassPlain,
+            ShimClassTemplate, ShimField, ShimFunctionAssociated, ShimFunctionDiscriminator,
+            ShimFunctionFree, ShimGeneric, ShimMember, ShimModule, ShimParam, ShimParentModule,
+            ShimType,
         },
     },
     path::FilePath,
@@ -119,24 +120,14 @@ impl<'db> DecalModule<'db> {
 
     /// Members defined in this module.
     pub fn members(self, db: &'db dyn Db) -> impl Iterator<Item = DecalMember<'db>> + 'db {
-        self.shim(db)
-            .members(db)
-            .flat_map(move |member| match member {
-                ShimMember::Class(class) => {
-                    Either::Left(std::iter::once(DecalMember::Class(class.decals(db))))
-                }
-                ShimMember::Template(template) => Either::Right(
-                    template
-                        .classes(db)
-                        .map(|class| DecalMember::Class(class.decals(db))),
-                ),
-                ShimMember::Function(function) => {
-                    Either::Left(std::iter::once(DecalMember::Function(function.decals(db))))
-                }
-                ShimMember::Module(module) => {
-                    Either::Left(std::iter::once(DecalMember::Module(module.decals(db))))
-                }
-            })
+        self.shim(db).members(db).map(move |member| match member {
+            ShimMember::Class(class) => DecalMember::Class(class.decals(db)),
+            ShimMember::Template(template) => {
+                DecalMember::ClassTemplate(DecalClassTemplate::new(db, template))
+            }
+            ShimMember::Function(function) => DecalMember::Function(function.decals(db)),
+            ShimMember::Module(module) => DecalMember::Module(module.decals(db)),
+        })
     }
 
     /// Imports needed for this module.
@@ -147,20 +138,38 @@ impl<'db> DecalModule<'db> {
         for member in self.members(db) {
             match member {
                 DecalMember::Function(function) => {
-                    classes.extend(function.referenced_classes(db));
+                    classes.extend(function.imports(db));
                 }
                 DecalMember::Class(class) => {
-                    classes.extend(class.referenced_classes(db));
+                    classes.extend(class.imports(db));
+                }
+                DecalMember::ClassTemplate(template) => {
+                    classes.extend(template.imports(db));
                 }
                 DecalMember::Module(_) => {}
             }
         }
 
-        classes
+        let mut imports = classes
             .into_iter()
             .filter(|class| class.module(db) != self.as_parent(db))
             .map(|class| DecalImport::new(db, self, class))
-            .collect()
+            .collect::<Vec<_>>();
+
+        imports.sort_by_key(|import| {
+            let class = import.class(db);
+
+            (
+                class.type_name(db).name(db),
+                class.module(db).virtual_path(db),
+            )
+        });
+        imports.dedup_by(|left, right| {
+            left.class(db).module(db) == right.class(db).module(db)
+                && left.class(db).type_name(db).name(db) == right.class(db).type_name(db).name(db)
+        });
+
+        imports
     }
 
     pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
@@ -171,8 +180,99 @@ impl<'db> DecalModule<'db> {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
 pub enum DecalMember<'db> {
     Class(DecalClass<'db>),
+    ClassTemplate(DecalClassTemplate<'db>),
     Function(DecalFreeFunction<'db>),
     Module(DecalModule<'db>),
+}
+
+#[salsa::interned(debug)]
+pub struct DecalClassTemplate<'db> {
+    shim: ShimClassTemplate<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> DecalClassTemplate<'db> {
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
+        self.shim(db).name(db)
+    }
+
+    pub fn is_discriminated(self, db: &'db dyn Db) -> bool {
+        matches!(self.shim(db), ShimClassTemplate::Discriminated(_))
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        match self.shim(db) {
+            ShimClassTemplate::Plain(template) => template.src(db).docs(db),
+            ShimClassTemplate::Discriminated(template) => template.src(db).docs(db),
+        }
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        match self.shim(db) {
+            ShimClassTemplate::Plain(template) => template.src(db).span(db),
+            ShimClassTemplate::Discriminated(template) => template.src(db).span(db),
+        }
+    }
+
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<String> {
+        self.shim(db).param_names(db)
+    }
+
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
+        self.mappings(db)
+            .iter()
+            .flat_map(move |(_, class)| class.imports(db))
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn mappings(self, db: &'db dyn Db) -> Vec<(Vec<DecalGeneric<'db>>, DecalClass<'db>)> {
+        self.shim(db)
+            .mappings(db)
+            .iter()
+            .map(|(generics, class)| {
+                let generics = generics
+                    .iter()
+                    .map(|generic| match generic {
+                        ShimGeneric::Symbol(symbol) => DecalGeneric::Symbol(symbol.clone()),
+                        ShimGeneric::Class(class) => DecalGeneric::Class(class.decals(db)),
+                    })
+                    .collect();
+
+                (generics, class.decals(db))
+            })
+            .collect()
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, salsa::Update)]
+pub enum DecalGeneric<'db> {
+    Symbol(String),
+    Class(DecalClass<'db>),
+}
+
+#[salsa::interned(debug)]
+pub struct TypeName<'db> {
+    #[returns(ref)]
+    pub name: String,
+    #[returns(ref)]
+    pub args: Option<Vec<DecalGeneric<'db>>>,
+}
+
+#[salsa::tracked]
+impl<'db> TypeName<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn imports(self, db: &'db dyn Db) -> Vec<DecalClass<'db>> {
+        self.args(db)
+            .iter()
+            .flatten()
+            .flat_map(move |generic| match generic {
+                DecalGeneric::Class(class) => Either::Left(
+                    std::iter::once(*class).chain(class.type_name(db).imports(db).iter().copied()),
+                ),
+                DecalGeneric::Symbol(_) => Either::Right(std::iter::empty()),
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
@@ -217,6 +317,16 @@ impl<'db> DecalFunction<'db> {
             Self::Method(method) => method.ret_type(db),
         }
     }
+
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
+        self.params(db)
+            .flat_map(move |param| param.imports(db))
+            .chain(
+                self.ret_type(db)
+                    .into_iter()
+                    .flat_map(move |type_| type_.imports(db)),
+            )
+    }
 }
 
 #[salsa::interned(debug)]
@@ -260,14 +370,8 @@ impl<'db> DecalFreeFunction<'db> {
         self.shim(db).src(db)
     }
 
-    fn referenced_classes(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
-        self.params(db)
-            .map(|param| param.type_(db))
-            .chain(self.ret_type(db))
-            .filter_map(|type_| match type_ {
-                DecalType::Class { inner, .. } => Some(inner),
-                _ => None,
-            })
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
+        self.as_fn().imports(db)
     }
 }
 
@@ -316,11 +420,8 @@ impl<'db> DecalMethod<'db> {
         self.shim(db).src(db)
     }
 
-    fn referenced_classes(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
-        self.params(db)
-            .map(|param| param.type_(db))
-            .chain(self.ret_type(db))
-            .filter_map(DecalType::class)
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
+        self.as_fn().imports(db)
     }
 }
 
@@ -336,6 +437,10 @@ impl<'db> DecalParam<'db> {
 
     pub fn type_(self, db: &'db dyn Db) -> DecalType<'db> {
         self.shim(db).type_(db).lower_decals(db).try_as_coerced(db)
+    }
+
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
+        self.type_(db).imports(db)
     }
 }
 
@@ -356,9 +461,39 @@ impl<'db> DecalClass<'db> {
 
     pub fn name(self, db: &'db dyn Db) -> &'db str {
         match self {
-            DecalClass::Plain(plain) => plain.name(db),
-            DecalClass::Discriminated(discriminated) => discriminated.name(db),
+            Self::Plain(class) => class.name(db),
+            Self::Discriminated(class) => class.name(db),
         }
+    }
+
+    pub fn is_template_instance(self, db: &'db dyn Db) -> bool {
+        match self {
+            DecalClass::Plain(class) => class.is_template_instance(db),
+            DecalClass::Discriminated(class) => class.is_template_instance(db),
+        }
+    }
+
+    pub fn type_name(self, db: &'db dyn Db) -> TypeName<'db> {
+        let (segment, generics) = match self {
+            DecalClass::Plain(class) => (
+                class.shim(db).src(db).segment(db),
+                ShimClass::Plain(class.shim(db)).generics(db),
+            ),
+            DecalClass::Discriminated(class) => (
+                class.shim(db).src(db).segment(db),
+                ShimClass::Discriminated(class.shim(db)).generics(db),
+            ),
+        };
+        let args = self.is_template_instance(db).then(|| {
+            generics
+                .map(|generic| match generic {
+                    ShimGeneric::Class(class) => DecalGeneric::Class(class.decals(db)),
+                    ShimGeneric::Symbol(symbol) => DecalGeneric::Symbol(symbol),
+                })
+                .collect()
+        });
+
+        TypeName::new(db, segment.name(db).clone(), args)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
@@ -396,12 +531,10 @@ impl<'db> DecalClass<'db> {
         }
     }
 
-    fn referenced_classes(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
         match self {
-            DecalClass::Plain(plain) => Either::Left(plain.referenced_classes(db)),
-            DecalClass::Discriminated(discriminated) => {
-                Either::Right(discriminated.referenced_classes(db))
-            }
+            DecalClass::Plain(plain) => Either::Left(plain.imports(db)),
+            DecalClass::Discriminated(discriminated) => Either::Right(discriminated.imports(db)),
         }
     }
 }
@@ -418,6 +551,14 @@ impl<'db> DecalClassPlain<'db> {
 
     pub fn name(self, db: &'db dyn Db) -> &'db str {
         self.shim(db).name(db)
+    }
+
+    pub fn is_template_instance(self, db: &'db dyn Db) -> bool {
+        !self.shim(db).src(db).gen_args(db).is_empty()
+    }
+
+    pub fn type_name(self, db: &'db dyn Db) -> TypeName<'db> {
+        DecalClass::Plain(self).type_name(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
@@ -463,13 +604,11 @@ impl<'db> DecalClassPlain<'db> {
             .map(|_| DecalCoerceFunction::new(db, DecalClass::Plain(self)))
     }
 
-    fn referenced_classes(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
         self.fields(db)
-            .filter_map(|field| field.get_type(db).class())
-            .chain(
-                self.methods(db)
-                    .flat_map(|method| method.referenced_classes(db)),
-            )
+            .flat_map(move |field| field.imports(db))
+            .chain(self.methods(db).flat_map(move |method| method.imports(db)))
+            .chain(self.type_name(db).imports(db).iter().copied())
     }
 }
 
@@ -486,6 +625,14 @@ impl<'db> DecalClassDiscriminated<'db> {
 
     pub fn name(self, db: &'db dyn Db) -> &'db str {
         self.shim(db).name(db)
+    }
+
+    pub fn is_template_instance(self, db: &'db dyn Db) -> bool {
+        !self.shim(db).src(db).gen_args(db).is_empty()
+    }
+
+    pub fn type_name(self, db: &'db dyn Db) -> TypeName<'db> {
+        DecalClass::Discriminated(self).type_name(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
@@ -524,15 +671,12 @@ impl<'db> DecalClassDiscriminated<'db> {
             .map(|_| DecalCoerceFunction::new(db, DecalClass::Discriminated(self)))
     }
 
-    fn referenced_classes(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
         self.variants(db)
             .iter()
-            .flat_map(|variant| variant.fields(db))
-            .filter_map(|field| field.get_type(db).class())
-            .chain(
-                self.methods(db)
-                    .flat_map(|method| method.referenced_classes(db)),
-            )
+            .flat_map(move |variant| variant.imports(db))
+            .chain(self.methods(db).flat_map(move |method| method.imports(db)))
+            .chain(self.type_name(db).imports(db).iter().copied())
     }
 }
 
@@ -566,6 +710,10 @@ impl<'db> DecalVariant<'db> {
             .fields(db)
             .map(|field| DecalField::new(db, field))
     }
+
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
+        self.fields(db).flat_map(move |field| field.imports(db))
+    }
 }
 
 #[salsa::interned(debug)]
@@ -596,6 +744,10 @@ impl<'db> DecalField<'db> {
 
     pub fn set_type(self, db: &'db dyn Db) -> DecalType<'db> {
         self.get_type(db).try_as_coerced(db)
+    }
+
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
+        self.get_type(db).imports(db)
     }
 }
 
@@ -669,10 +821,12 @@ impl<'db> DecalType<'db> {
         }
     }
 
-    fn class(self) -> Option<DecalClass<'db>> {
+    pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
         match self {
-            DecalType::Class { inner, .. } => Some(inner),
-            _ => None,
+            Self::Class { inner, .. } => Either::Left(
+                std::iter::once(inner).chain(inner.type_name(db).imports(db).iter().copied()),
+            ),
+            _ => Either::Right(std::iter::empty()),
         }
     }
 }

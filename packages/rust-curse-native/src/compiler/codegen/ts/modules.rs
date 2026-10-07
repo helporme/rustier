@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use crate::compiler::{
     codegen::{
         fragment::{FragmentOnce, FragmentPrint, frag, fragment, singles, spaced},
@@ -32,13 +30,20 @@ impl<'db> DecalModule<'db> {
                 _ => None,
             })
             .collect::<Vec<_>>();
+        let templates = members
+            .iter()
+            .filter_map(|member| match member {
+                DecalMember::ClassTemplate(template) => Some(*template),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
 
-        if functions.is_empty() && classes.is_empty() {
+        if functions.is_empty() && classes.is_empty() && templates.is_empty() {
             // make sure that returned stirng is always valid typescript module
             return frag!(export {};).print();
         }
 
-        let imports = self.ts_imports(db);
+        let imports = self.imports(db);
         let has_imports = !imports.is_empty();
         let functions = functions.into_iter().map(|function| function.render_ts(db));
 
@@ -55,11 +60,11 @@ impl<'db> DecalModule<'db> {
             .map(|class| class.render_in_scope_ts(db, scope));
 
         fragment(move |p| {
-            spaced(imports.into_iter().map(|(name, path)| {
+            spaced(imports.iter().map(|import| {
                 frag!(
                     import type ~{{@
-                        {name}@
-                    }}~ from ~{singles(path)};
+                        {import.class(db).type_name(db).name(db)}@
+                    }}~ from ~{singles(import.path(db))};
                 )
             }))
             .apply(p);
@@ -72,22 +77,19 @@ impl<'db> DecalModule<'db> {
                 render_jsdoc(Some(docs)).apply(p);
             }
 
-            spaced(functions.chain(plain_classes).chain(discriminated_classes)).apply(p);
+            spaced(
+                functions
+                    .chain(plain_classes)
+                    .chain(discriminated_classes)
+                    .chain(
+                        templates
+                            .into_iter()
+                            .map(|template| template.render_in_scope_ts(db, scope)),
+                    ),
+            )
+            .apply(p);
         })
         .print()
-    }
-
-    // todo: remove it and make sure Module.imports() are sorted instead.
-    fn ts_imports(self, db: &'db dyn Db) -> BTreeSet<(String, String)> {
-        self.imports(db)
-            .iter()
-            .map(|import| {
-                (
-                    import.class(db).name(db).to_owned(),
-                    import.path(db).to_owned(),
-                )
-            })
-            .collect()
     }
 }
 

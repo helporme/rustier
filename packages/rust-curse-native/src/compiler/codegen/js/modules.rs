@@ -29,7 +29,7 @@ impl<'db> FacadeModule<'db> {
 
         let declarations = spaced(self.members(db).filter_map(|member| match member {
             FacadeMember::Class(class) => Some(class.render(db)),
-            FacadeMember::ClassFactory(factory) => Some(factory.render(db)),
+            FacadeMember::ClassTemplate(template) => Some(template.render(db)),
             FacadeMember::Function(function) => Some(function.render(db)),
             FacadeMember::Module(_) => None,
         }));
