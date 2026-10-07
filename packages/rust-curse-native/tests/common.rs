@@ -9,6 +9,7 @@ use ra_ap_project_model::{CargoConfig, RustLibSource};
 use rust_curse::compiler::{
     codegen::shim::{Platform, manifest::Manifest},
     diag::Diag,
+    inputs::LocalCrates,
     ir::rust::{Rust, usages::UsageGraph},
 };
 use serde_json::Value;
@@ -107,15 +108,15 @@ impl ProgramCompiler {
         fs::write(workspace.source_dir.join("src/lib.rs"), &program.src)
             .map_err(|error| format!("write source program: {error}"))?;
 
-        let diagnostics = Vec::new();
-        for &platform in &program.platforms {
+        let mut diagnostics = Vec::new();
+        for (platform_index, &platform) in program.platforms.iter().enumerate() {
             let (platform_name, generated_dir_name) = match platform {
                 Platform::Wasm => ("wasm", "wasm"),
                 Platform::Node => ("node", "node"),
                 _ => return Err("program test selected an unsupported platform".to_string()),
             };
             let generated_dir = workspace.generated_root.join(generated_dir_name);
-            let (db, _, _) = load_workspace_at(
+            let (mut db, _, _) = load_workspace_at(
                 &workspace.source_dir,
                 &CargoConfig {
                     sysroot: Some(RustLibSource::Discover),
@@ -131,6 +132,19 @@ impl ProgramCompiler {
                 &|_| {},
             )
             .map_err(|error| format!("configure {platform_name} compiler workspace: {error}"))?;
+            let root_file = ra_ap_hir::attach_db(&db, || {
+                Rust::get(&db)
+                    .crates(&db)
+                    .iter()
+                    .find(|crate_| crate_.name(&db) == SOURCE_CRATE_NAME)
+                    .expect("source crate should be lowered")
+                    .root(&db)
+                    .file_path(&db)
+                    .clone()
+            });
+
+            LocalCrates::set(&mut db, [root_file]);
+
             let db = &db;
             let shim = ra_ap_hir::attach_db(db, || {
                 let rust = Rust::get(db);
@@ -141,8 +155,12 @@ impl ProgramCompiler {
                     .copied()
                     .expect("source crate should be lowered");
 
-                rust.shim_reachable_from(db, UsageGraph::new(db, vec![source.root(db)]))
-                    .render(db, platform)
+                let shim = rust.shim_reachable_from(db, UsageGraph::new(db, vec![source.root(db)]));
+                if platform_index == 0 {
+                    diagnostics.extend(shim.check(db).into_iter().cloned());
+                }
+
+                shim.render(db, platform)
             });
 
             write_generated_crate(&generated_dir, &workspace.source_dir, platform, shim)?;

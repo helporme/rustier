@@ -1,5 +1,6 @@
 use std::{fs, io::ErrorKind, path::Path};
 
+use itertools::Itertools;
 use rust_curse::compiler::{codegen::shim::Platform, diag::Theme};
 
 use crate::common::ProgramTest;
@@ -7,9 +8,15 @@ use crate::common::ProgramTest;
 #[allow(dead_code)]
 mod common;
 
-fn parse_ui_test(src: String) -> Result<ProgramTest, String> {
+struct UiTest {
+    program: ProgramTest,
+    diagnostic_codes: Vec<String>,
+}
+
+fn parse_ui_test(src: String) -> Result<UiTest, String> {
     let mut platforms = None;
     let mut cargo_check = false;
+    let mut diagnostic_codes = Vec::new();
 
     for (line_index, line) in src.lines().enumerate() {
         let Some(directive) = line.trim_start().strip_prefix("//@") else {
@@ -59,6 +66,13 @@ fn parse_ui_test(src: String) -> Result<ProgramTest, String> {
                 ));
             }
             cargo_check = true;
+        } else if let Some(code) = directive.strip_prefix("diagnostic-code:") {
+            let code = code.trim();
+            if code.is_empty() {
+                return Err(format!("empty diagnostic code on line {}", line_index + 1));
+            }
+
+            diagnostic_codes.push(code.to_owned());
         } else {
             return Err(format!(
                 "unknown UI test directive `//@ {directive}` on line {}",
@@ -72,10 +86,13 @@ fn parse_ui_test(src: String) -> Result<ProgramTest, String> {
             .to_string()
     })?;
 
-    Ok(ProgramTest {
-        src,
-        cargo_check,
-        platforms,
+    Ok(UiTest {
+        program: ProgramTest {
+            src,
+            cargo_check,
+            platforms,
+        },
+        diagnostic_codes,
     })
 }
 
@@ -87,19 +104,44 @@ fn ui(fixture_path: &Path) -> datatest_stable::Result<()> {
         )
     });
 
-    let program = parse_ui_test(source).unwrap_or_else(|error| {
+    let test = parse_ui_test(source).unwrap_or_else(|error| {
         panic!(
             "failed to parse UI fixture {}: {error}",
             fixture_path.display()
         )
     });
 
-    let diagnostics = program
+    let diagnostics = test
+        .program
         .compile()
         .unwrap_or_else(|error| panic!("UI fixture {} failed:\n{error}", fixture_path.display()));
 
-    let actual = diagnostics
+    let mut actual = diagnostics
         .iter()
+        .filter(|diagnostic| {
+            if test.diagnostic_codes.is_empty() {
+                return true;
+            }
+            let mut pending: Vec<&dyn miette::Diagnostic> = vec![diagnostic.inner.as_ref()];
+
+            while let Some(diagnostic) = pending.pop() {
+                if diagnostic
+                    .code()
+                    .is_some_and(|code| test.diagnostic_codes.contains(&code.to_string()))
+                {
+                    return true;
+                }
+
+                if let Some(related) = diagnostic.related() {
+                    pending.extend(related);
+                }
+                if let Some(source) = diagnostic.diagnostic_source() {
+                    pending.push(source);
+                }
+            }
+
+            false
+        })
         .map(|diagnostic| diagnostic.render(Theme::UnicodeNoColor))
         .collect::<Result<Vec<_>, _>>()
         .unwrap_or_else(|error| {
@@ -107,8 +149,10 @@ fn ui(fixture_path: &Path) -> datatest_stable::Result<()> {
                 "failed to render diagnostics for {}: {error}",
                 fixture_path.display()
             )
-        })
-        .join("\n");
+        });
+    actual.sort();
+
+    let actual = actual.join("\n");
 
     let expected_path = fixture_path.with_extension("stderr");
     let expected = match fs::read_to_string(&expected_path) {
@@ -119,12 +163,16 @@ fn ui(fixture_path: &Path) -> datatest_stable::Result<()> {
             expected_path.display()
         ),
     };
-    assert_eq!(
-        actual,
-        expected,
-        "diagnostics differ for UI fixture {}",
-        fixture_path.display()
-    );
+    let actual = actual.lines().map(str::trim_end).join("\n");
+    let expected = expected.lines().map(str::trim_end).join("\n");
+
+    if actual != expected {
+        return Err(format!(
+            "diagnostics differ for UI fixture {}\n\nexpected:\n{expected}\n\nactual:\n{actual}",
+            fixture_path.display()
+        )
+        .into());
+    }
 
     Ok(())
 }

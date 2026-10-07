@@ -1,0 +1,47 @@
+rust_curse::coerce_requires_clone
+
+  ☞ implement `Clone` for "test_source::NotClone" to make it coercible
+   ╭────
+ 3 │ pub struct NotClone;
+   · ──────────┬─────────
+   ·           ╰── Clone is required for .of function
+   ╰────
+  help: add #[derive(Clone)] or implement Clone to enable the generated coerce method
+
+rust_curse::skipped_fn
+
+  ⚠ the function "test_source::NotClone::consume" cannot be exported to JS
+   ╭────
+ 6 │ pub fn consume(self) {}
+   · ───────────────────────
+   ╰────
+  ╰─▶ rust_curse::non_clonable_moved_param
+
+        ⚠ the parameter `self` moves "NotClone", which does not implement `Clone`
+        help: pass the value by reference or implement `Clone` for the type
+
+rust_curse::skipped_fn
+
+  ⚠ the function "test_source::moved" cannot be exported to JS
+    ╭─[9:1]
+  9 │ ╭─▶ pub fn moved(value: NotClone) {
+ 10 │ │       drop(value);
+ 11 │ ╰─▶ }
+    ╰────
+  ╰─▶ rust_curse::non_clonable_moved_param
+
+        ⚠ the parameter `value` moves "NotClone", which does not implement `Clone`
+        help: pass the value by reference or implement `Clone` for the type
+
+rust_curse::skipped_fn
+
+  ⚠ the function "test_source::moved_generic" cannot be exported to JS
+    ╭─[21:1]
+ 21 │ ╭─▶ pub fn moved_generic(value: Wrapper<NotClone>) {
+ 22 │ │       drop(value);
+ 23 │ ╰─▶ }
+    ╰────
+  ╰─▶ rust_curse::non_clonable_moved_param
+
+        ⚠ the parameter `value` moves "Wrapper<NotClone>", which does not implement `Clone`
+        help: pass the value by reference or implement `Clone` for the type
