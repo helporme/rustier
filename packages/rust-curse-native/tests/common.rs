@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fs,
     path::{Path, PathBuf},
     process::Command,
@@ -10,7 +11,7 @@ use rust_curse::compiler::{
     codegen::shim::{Platform, manifest::Manifest},
     diag::Diag,
     inputs::LocalCrates,
-    ir::rust::{Rust, usages::UsageGraph},
+    ir::rust::{PathSegment, Rust, usages::UsageGraph},
 };
 use serde_json::Value;
 use tempfile::TempDir;
@@ -100,8 +101,20 @@ impl ProgramCompiler {
     /// Compiles one program while retaining artifacts from earlier
     /// compilations.
     pub fn compile(&self, program: &ProgramTest) -> Result<Vec<Diag>, String> {
+        self.compile_with_exports(program, &[])
+    }
+
+    pub fn compile_with_exports(
+        &self,
+        program: &ProgramTest,
+        exported_functions: &[Vec<String>],
+    ) -> Result<Vec<Diag>, String> {
         if program.platforms.is_empty() {
             return Err("program test must select at least one platform".to_string());
+        }
+
+        if exported_functions.iter().any(Vec::is_empty) {
+            return Err("expected function path must not be empty".to_owned());
         }
 
         let workspace = &self.workspace;
@@ -146,7 +159,7 @@ impl ProgramCompiler {
             LocalCrates::set(&mut db, [root_file]);
 
             let db = &db;
-            let shim = ra_ap_hir::attach_db(db, || {
+            let (shim, expected_symbols) = ra_ap_hir::attach_db(db, || {
                 let rust = Rust::get(db);
                 let source = rust
                     .crates(db)
@@ -156,24 +169,52 @@ impl ProgramCompiler {
                     .expect("source crate should be lowered");
 
                 let shim = rust.shim_reachable_from(db, UsageGraph::new(db, vec![source.root(db)]));
+
                 if platform_index == 0 {
                     diagnostics.extend(shim.check(db).into_iter().cloned());
                 }
 
-                shim.render(db, platform)
+                let expected_symbols = exported_functions
+                    .iter()
+                    .map(|names| {
+                        let path = names.iter().fold(source.root(db).path(db), |path, name| {
+                            path.append(db, PathSegment::plain(db, name.clone()))
+                        });
+
+                        format!("__fn__free__{}", path.mangled(db))
+                    })
+                    .collect::<Vec<_>>();
+
+                (shim.render(db, platform).to_owned(), expected_symbols)
             });
 
-            write_generated_crate(&generated_dir, &workspace.source_dir, platform, shim)?;
+            write_generated_crate(&generated_dir, &workspace.source_dir, platform, &shim)?;
 
             let generated_source_path = generated_dir.join("src/lib.rs");
             let generated_source = fs::read_to_string(&generated_source_path)
                 .map_err(|error| format!("read generated {platform_name} bindings: {error}"))?;
-            syn::parse_file(&generated_source).map_err(|error| {
+            let parsed = syn::parse_file(&generated_source).map_err(|error| {
                 format!(
                     "generated {platform_name} Rust did not parse at {}: {error}\n\n{generated_source}",
                     generated_source_path.display()
                 )
             })?;
+            let emitted_functions = parsed
+                .items
+                .iter()
+                .filter_map(|item| match item {
+                    syn::Item::Fn(function) => Some(function.sig.ident.to_string()),
+                    _ => None,
+                })
+                .collect::<HashSet<_>>();
+
+            for symbol in expected_symbols {
+                if !emitted_functions.contains(&symbol) {
+                    return Err(format!(
+                        "{platform_name} bindings omitted expected exported function `{symbol}`\n\n{generated_source}"
+                    ));
+                }
+            }
 
             if program.cargo_check {
                 cargo_check_without_warnings(
