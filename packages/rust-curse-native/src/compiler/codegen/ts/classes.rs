@@ -48,10 +48,7 @@ impl FragmentOnce for DecalPlainClassFragment<'_> {
             }
 
             let mut rendered_method = false;
-            for method in class
-                .methods(db)
-                .filter(|method| Some(*method) != constructor)
-            {
+            for method in class.methods(db) {
                 if !fields.is_empty() || rendered_method {
                     frag!(@).apply(p);
                 }

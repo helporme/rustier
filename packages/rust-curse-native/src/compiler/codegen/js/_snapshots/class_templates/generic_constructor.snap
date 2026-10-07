@@ -116,6 +116,44 @@ const $facade__plain__10_test_crate__4_WrapGP3_u32E = class _4_WrapGP3_u32E {
 		}
 	}
 
+	static new(
+		_0
+	) {
+		{
+			const __cast_input = _0;
+			if(
+				typeof __cast_input !== "number"
+			) {
+				throw new TypeError(
+					"Expected a value of type \"number\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+						__cast_input
+					) + "\""
+				);
+			}
+			const __0 = __cast_input;
+			{
+				const __cast_input = __fn__associated__10_test_crate__4_WrapGP3_u32E__3_new(
+					__0
+				);
+				if(
+					!(
+						__cast_input instanceof __plain__10_test_crate__4_WrapGP3_u32E
+					)
+				) {
+					throw new TypeError(
+						"Expected a value of type \"__plain__10_test_crate__4_WrapGP3_u32E\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+							__cast_input
+						) + "\""
+					);
+				}
+				const result = $facade__plain__10_test_crate__4_WrapGP3_u32E.$from_ffi(
+					__cast_input
+				);
+				return result;
+			}
+		}
+	}
+
 	static identity(
 		_0
 	) {
@@ -158,22 +196,9 @@ const $facade__plain__10_test_crate__4_WrapGP3_u32E = class _4_WrapGP3_u32E {
 		){
 			return;
 		}
-		{
-			const __cast_input = _0;
-			if(
-				typeof __cast_input !== "number"
-			) {
-				throw new TypeError(
-					"Expected a value of type \"number\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
-						__cast_input
-					) + "\""
-				);
-			}
-			const __0 = __cast_input;
-			this.#_ffi = __fn__associated__10_test_crate__4_WrapGP3_u32E__3_new(
-				__0
-			);
-		}
+		return $facade__plain__10_test_crate__4_WrapGP3_u32E.new(
+			_0
+		);
 	}
 
 	static $from_ffi(
@@ -239,6 +264,44 @@ const $facade__plain__10_test_crate__4_WrapGP6_StringE = class _4_WrapGP6_String
 		}
 	}
 
+	static new(
+		_0
+	) {
+		{
+			const __cast_input = _0;
+			if(
+				typeof __cast_input !== "string"
+			) {
+				throw new TypeError(
+					"Expected a value of type \"string\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+						__cast_input
+					) + "\""
+				);
+			}
+			const __0 = __cast_input;
+			{
+				const __cast_input = __fn__associated__10_test_crate__4_WrapGP6_StringE__3_new(
+					__0
+				);
+				if(
+					!(
+						__cast_input instanceof __plain__10_test_crate__4_WrapGP6_StringE
+					)
+				) {
+					throw new TypeError(
+						"Expected a value of type \"__plain__10_test_crate__4_WrapGP6_StringE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+							__cast_input
+						) + "\""
+					);
+				}
+				const result = $facade__plain__10_test_crate__4_WrapGP6_StringE.$from_ffi(
+					__cast_input
+				);
+				return result;
+			}
+		}
+	}
+
 	static identity(
 		_0
 	) {
@@ -281,22 +344,9 @@ const $facade__plain__10_test_crate__4_WrapGP6_StringE = class _4_WrapGP6_String
 		){
 			return;
 		}
-		{
-			const __cast_input = _0;
-			if(
-				typeof __cast_input !== "string"
-			) {
-				throw new TypeError(
-					"Expected a value of type \"string\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
-						__cast_input
-					) + "\""
-				);
-			}
-			const __0 = __cast_input;
-			this.#_ffi = __fn__associated__10_test_crate__4_WrapGP6_StringE__3_new(
-				__0
-			);
-		}
+		return $facade__plain__10_test_crate__4_WrapGP6_StringE.new(
+			_0
+		);
 	}
 
 	static $from_ffi(

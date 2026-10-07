@@ -37,6 +37,7 @@ export class Sine {
 	public set frequency(
 		value: number
 	);
+	static new(): Sine;
 	static static_fn(): number;
 	method_fn(): number;
 	private __rust_curse_brand: never;

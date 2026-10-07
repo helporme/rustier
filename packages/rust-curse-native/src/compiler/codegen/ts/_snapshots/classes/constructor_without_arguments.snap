@@ -19,6 +19,8 @@ impl Test {
 
 ```ts
 export class Test {
+	/** Creates a test value. */
+	static new(): Test;
 	static of(
 		value: Test.Coerce
 	): Test;

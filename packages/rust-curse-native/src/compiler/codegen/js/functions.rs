@@ -40,19 +40,24 @@ impl<'db> FacadeMethod<'db> {
         }
     }
 
-    pub(super) fn render_as_constructor_with<Casts>(
-        self,
-        db: &'db dyn Db,
-        casts: Casts,
-    ) -> impl FragmentOnce
-    where
-        Casts: CastRenderer<'db> + Copy + Clone + 'db,
-    {
-        ConstructorRenderer {
-            method: self,
-            db,
-            casts,
-        }
+    pub(super) fn render_as_constructor(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+        let class_name = self.class(db).import_alias(db);
+        let params = || {
+            comma_list(
+                self.params(db)
+                    .enumerate()
+                    .map(|(index, _)| param_name(index)),
+            )
+        };
+
+        frag!(
+            constructor({params()})~{{
+                if (arguments[0]~ === ~{class_name}.#_construction_token) {{
+                    return;
+                }}@
+                return ~{class_name}.new({params()});@
+            }}
+        )
     }
 }
 
@@ -137,60 +142,6 @@ where
 }
 
 impl<'db, Casts> FunctionRenderer<'db, Casts> for MethodRenderer<'db, Casts>
-where
-    Casts: CastRenderer<'db> + Copy + Clone + 'db,
-{
-    fn db(self) -> &'db dyn Db {
-        self.db
-    }
-
-    fn function(self) -> FacadeFunction<'db> {
-        self.method.as_fn()
-    }
-
-    fn casts(self) -> Casts {
-        self.casts
-    }
-}
-
-#[derive(Copy, Clone)]
-struct ConstructorRenderer<'db, Casts> {
-    method: FacadeMethod<'db>,
-    db: &'db dyn Db,
-    casts: Casts,
-}
-
-impl<'db, Casts> FragmentOnce for ConstructorRenderer<'db, Casts>
-where
-    Casts: CastRenderer<'db> + Copy + Clone + 'db,
-{
-    fn apply(self, p: &mut Printer) {
-        self.render().apply(p);
-    }
-}
-
-impl<'db, Casts> ConstructorRenderer<'db, Casts>
-where
-    Casts: CastRenderer<'db> + Copy + Clone + 'db,
-{
-    fn render(self) -> impl FragmentOnce + 'db {
-        let class_name = self.method.class(self.db).import_alias(self.db);
-        let body = self.render_param_casts(frag!(
-            this.#_ffi~ = ~{self.render_call_expr()};
-        ));
-
-        frag!(
-            constructor({self.render_params()})~{{
-                if (arguments[0]~ === ~{class_name}.#_construction_token) {{
-                    return;
-                }}@
-                {body}@
-            }}
-        )
-    }
-}
-
-impl<'db, Casts> FunctionRenderer<'db, Casts> for ConstructorRenderer<'db, Casts>
 where
     Casts: CastRenderer<'db> + Copy + Clone + 'db,
 {

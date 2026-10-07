@@ -88,12 +88,7 @@ where
         fragment(move |p| {
             self.render_fields().apply(p);
 
-            let constructor = self.class.constructor(self.db);
-            let methods = self
-                .class
-                .methods(self.db)
-                .filter(|method| Some(*method) != constructor)
-                .collect::<Vec<_>>();
+            let methods = self.class.methods(self.db).collect::<Vec<_>>();
 
             if !methods.is_empty() {
                 if self.has_rendered_fields() {
@@ -126,9 +121,7 @@ where
     fn render_constructor(self) -> impl FragmentOnce + 'db {
         fragment(move |p| {
             if let Some(constructor) = self.class.constructor(self.db) {
-                constructor
-                    .render_as_constructor_with(self.db, self.casts)
-                    .apply(p);
+                constructor.render_as_constructor(self.db).apply(p);
             } else {
                 let class_name = self.class.import_alias(self.db);
                 frag!(

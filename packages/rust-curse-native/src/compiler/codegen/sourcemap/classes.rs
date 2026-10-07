@@ -99,10 +99,8 @@ impl<'db> DecalClass<'db> {
         }
 
         let constructor = self.constructor(db);
-        for method in self
-            .methods(db)
-            .filter(|method| Some(*method) != constructor)
-        {
+
+        for method in self.methods(db) {
             let (prefix, suffix) = class_method_search(&method, db, "\t");
             let method_line = find_name_line(
                 generated,

@@ -39,6 +39,10 @@ declare class _4_WrapGP3_u32E {
 	public set [0](
 		value: number
 	);
+	/** Constructs a wrapper. */
+	static new(
+		value: number,
+	): Wrap<"u32">;
 	static identity(
 		value: number,
 	): number;
@@ -58,6 +62,10 @@ declare class _4_WrapGP6_StringE {
 	public set [0](
 		value: string
 	);
+	/** Constructs a wrapper. */
+	static new(
+		value: string,
+	): Wrap<"String">;
 	static identity(
 		value: string,
 	): string;
@@ -76,6 +84,10 @@ declare class _4_WrapGS10_test_crate__4_WrapGP3_u32EE {
 	public set [0](
 		value: Wrap.Coerce<"u32">
 	);
+	/** Constructs a wrapper. */
+	static new(
+		value: Wrap.Coerce<"u32">,
+	): Wrap<Wrap.Class<"u32">>;
 	static identity(
 		value: Wrap.Coerce<"u32">,
 	): Wrap<"u32">;

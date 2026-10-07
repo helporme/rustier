@@ -19,6 +19,10 @@ impl Test {
 
 ```ts
 export class Test {
+	static new(
+		value: number,
+		enabled: boolean,
+	): Test;
 	static of(
 		value: Test.Coerce
 	): Test;
