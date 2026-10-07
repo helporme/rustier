@@ -148,7 +148,18 @@ impl<'db> Callable<'db> {
             type_.hir(db)
         }));
 
-        super::instantiate_type(db, type_, args)
+        super::instantiate_type(db, type_, args, self.context(db))
+    }
+
+    pub(super) fn context(self, db: &'db dyn Db) -> ra_ap_hir::GenericDef {
+        match self.function(db) {
+            FunctionQualified::Free(function) => {
+                ra_ap_hir::GenericDef::Function(function.declaration(db).hir(db))
+            }
+            FunctionQualified::Inherent(function) => {
+                function.impl_(db).target(db).origin(db).context(db)
+            }
+        }
     }
 }
 

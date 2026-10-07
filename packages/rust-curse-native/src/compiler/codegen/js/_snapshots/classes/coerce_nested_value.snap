@@ -27,9 +27,9 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 		) {
 			{
 				const out = cast.from(
-					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } }) }))"
+					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5002) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5002) } }) }) } }) } }) }))"
 				).to(
-					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } } })))"
+					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5002) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5002) } }) }) } }) } } })))"
 				).an(
 					__fn__getter__10_test_crate__4_Test__nested(
 						this.#_ffi
@@ -46,9 +46,9 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 	) {
 		{
 			const out = cast.from(
-				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } } })))"
+				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5002) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5002) } }) }) } }) } } })))"
 			).to(
-				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } }) }))"
+				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5002) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5002) } }) }) } }) } }) }))"
 			).an(
 				value
 			);
@@ -76,17 +76,17 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 		}
 		{
 			const __0 = cast.from(
-				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } } })))"
+				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5002) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5002) } }) }) } }) } } })))"
 			).to(
-				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } }) }))"
+				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5002) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5002) } }) }) } }) } }) }))"
 			).an(
 				value["nested"]
 			);
 			{
 				const result = cast.from(
-					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [] } }) }))"
+					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5002) } }) } }) }))"
 				).to(
-					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [] } } })))"
+					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5002) } }) } } })))"
 				).an(
 					__fn__coe__10_test_crate__4_Test(
 						__0

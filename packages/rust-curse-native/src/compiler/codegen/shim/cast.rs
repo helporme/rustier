@@ -28,17 +28,22 @@ pub enum CastType<'db> {
 impl<'db> CastType<'db> {
     fn same_representation(self, db: &'db dyn Db, other: Self) -> bool {
         match (self, other) {
-            (Self::Shim(a), Self::Shim(b)) => a == b,
-            (Self::Tethered(a), Self::Tethered(b)) => {
-                a.source_type.kind(db) == b.source_type.kind(db)
+            (
+                Self::Shim(ShimType::Class {
+                    is_borrowed: left_borrowed,
+                    inner: left,
+                }),
+                Self::Shim(ShimType::Class {
+                    is_borrowed: right_borrowed,
+                    inner: right,
+                }),
+            ) => {
+                left_borrowed == right_borrowed
+                    && left.src_type(db).same_type_as(db, right.src_type(db))
             }
-            (Self::Rust(a), Self::Rust(b)) => match (a.kind(db), b.kind(db)) {
-                (TypeKind::Borrowed(a), TypeKind::Borrowed(b)) => {
-                    a.is_mutable(db) == b.is_mutable(db)
-                        && a.inner(db).kind(db) == b.inner(db).kind(db)
-                }
-                (a, b) => a == b,
-            },
+            (Self::Shim(left), Self::Shim(right)) => left == right,
+            (Self::Tethered(a), Self::Tethered(b)) => a.source_type.same_type_as(db, b.source_type),
+            (Self::Rust(a), Self::Rust(b)) => a.same_type_as(db, b),
             _ => false,
         }
     }

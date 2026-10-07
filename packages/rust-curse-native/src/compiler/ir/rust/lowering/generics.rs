@@ -3,8 +3,7 @@ use ra_ap_hir::{Adt, GenericDef, GenericParam as HirGenericParam, HirDisplay as 
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Enum, EnumType, Function, GenArg, GenericOwner, GenericParam, Impl, Struct, StructType,
-        Type, TypeParam,
+        Enum, Function, GenericOwner, GenericParam, Impl, Struct, Type, TypeOrigin, TypeParam,
     },
 };
 
@@ -51,7 +50,7 @@ impl<'db> Struct<'db> {
     ) -> Option<Type<'db>> {
         self.generic_params(db)
             .is_empty()
-            .then(|| StructType::new(db, self, Vec::<GenArg<'db>>::new()).into_type(db))
+            .then(|| Type::new(db, TypeOrigin::StructDeclaration(self)))
     }
 }
 
@@ -72,7 +71,7 @@ impl<'db> Enum<'db> {
     ) -> Option<Type<'db>> {
         self.generic_params(db)
             .is_empty()
-            .then(|| EnumType::new(db, self, Vec::<GenArg<'db>>::new()).into_type(db))
+            .then(|| Type::new(db, TypeOrigin::EnumDeclaration(self)))
     }
 }
 

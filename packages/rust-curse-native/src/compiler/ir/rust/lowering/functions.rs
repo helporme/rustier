@@ -162,7 +162,8 @@ pub(super) fn lower_function<'db>(
         }
     }
 
-    if let Some(error) = check_function_substituted(db, hir, &[], causes) {
+    if let Some(error) = check_function_substituted(db, hir, &[], GenericDef::Function(hir), causes)
+    {
         return Err(Box::new(error));
     }
 
@@ -217,9 +218,13 @@ pub(super) fn lower_inherent_function<'db>(
         return Ok(None);
     }
 
-    if let Some(error) =
-        check_function_substituted(db, hir, &impl_.partial_type_args(db), Vec::new())
-    {
+    if let Some(error) = check_function_substituted(
+        db,
+        hir,
+        &impl_.partial_type_args(db),
+        impl_.target(db).origin(db).context(db),
+        Vec::new(),
+    ) {
         return Err(Box::new(error));
     }
 
@@ -247,6 +252,7 @@ fn check_function_substituted<'db>(
     db: &'db dyn Db,
     hir: HirFunction,
     type_args: &[ra_ap_hir::Type<'db>],
+    context: GenericDef,
     mut causes: Vec<FunctionLowerCause>,
 ) -> Option<FunctionLowerError> {
     let crate_ = hir.module(db).krate(db);
@@ -270,7 +276,7 @@ fn check_function_substituted<'db>(
         );
 
     for (name, type_) in parameters {
-        let parameter_type = super::instantiate_type(db, type_, type_args.iter().cloned());
+        let parameter_type = super::instantiate_type(db, type_, type_args.iter().cloned(), context);
 
         match check_type(&parameter_type) {
             Ok(())
@@ -304,7 +310,8 @@ fn check_function_substituted<'db>(
         }
     }
 
-    let return_type = super::instantiate_type(db, hir.ret_type(db), type_args.iter().cloned());
+    let return_type =
+        super::instantiate_type(db, hir.ret_type(db), type_args.iter().cloned(), context);
     if !return_type.is_unit() {
         match check_type(&return_type) {
             Ok(()) if contains_borrowed_values(db, &return_type) => {

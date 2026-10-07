@@ -131,7 +131,13 @@ pub(super) fn lower_enum<'db>(
         causes.push(EnumLowerCause::UnsupportedConstGeneric);
     }
 
-    let type_ = instantiate_adt_type(db, hir.ty(db), Adt::Enum(hir), std::iter::empty());
+    let type_ = instantiate_adt_type(
+        db,
+        hir.ty(db),
+        Adt::Enum(hir),
+        std::iter::empty(),
+        GenericDef::Adt(Adt::Enum(hir)),
+    );
 
     if super::types::contains_borrowed_values(db, &type_) {
         causes.push(EnumLowerCause::BorrowedValues);

@@ -943,6 +943,8 @@ pub enum TypeOrigin<'db> {
         type_: Type<'db>,
         index: usize,
     },
+    StructDeclaration(Struct<'db>),
+    EnumDeclaration(Enum<'db>),
     Struct(StructType<'db>),
     Enum(EnumType<'db>),
     TypeParameter(TypeParam<'db>),
@@ -967,6 +969,8 @@ impl<'db> TypeOrigin<'db> {
             TypeOrigin::CallableReturn(callable) | TypeOrigin::CallableReceiver(callable) => {
                 callable.declaration(db).span(db)
             }
+            TypeOrigin::StructDeclaration(struct_) => struct_.span(db),
+            TypeOrigin::EnumDeclaration(enum_) => enum_.span(db),
             TypeOrigin::Struct(type_) => type_.def(db).span(db),
             TypeOrigin::Enum(type_) => type_.def(db).span(db),
             TypeOrigin::Borrowed(reference) => reference.inner(db).origin(db).span(db),
@@ -1002,6 +1006,29 @@ pub enum TypeKind<'db> {
 impl<'db> Type<'db> {
     pub fn kind(self, db: &'db dyn Db) -> TypeKind<'db> {
         self.lower_kind(db)
+    }
+
+    pub fn same_type_as(self, db: &'db dyn Db, other: Self) -> bool {
+        let (left_args, right_args) = match (self.kind(db), other.kind(db)) {
+            (TypeKind::Struct(left), TypeKind::Struct(right)) if left.def(db) == right.def(db) => {
+                (left.gen_args(db), right.gen_args(db))
+            }
+            (TypeKind::Enum(left), TypeKind::Enum(right)) if left.def(db) == right.def(db) => {
+                (left.gen_args(db), right.gen_args(db))
+            }
+            (TypeKind::Borrowed(left), TypeKind::Borrowed(right)) => {
+                return left.is_mutable(db) == right.is_mutable(db)
+                    && left.inner(db).same_type_as(db, right.inner(db));
+            }
+            (left, right) => return left == right,
+        };
+
+        left_args.len() == right_args.len()
+            && left_args.iter().zip(right_args).all(|(left, right)| {
+                let (GenArg::Type(left), GenArg::Type(right)) = (left, right);
+
+                left.same_type_as(db, *right)
+            })
     }
 
     pub fn is_clonable(self, db: &'db dyn Db) -> Option<bool> {
@@ -1068,6 +1095,7 @@ pub struct StructType<'db> {
     pub def: Struct<'db>,
     #[returns(ref)]
     pub gen_args: Vec<GenArg<'db>>,
+    pub origin: TypeOrigin<'db>,
 }
 
 #[salsa::tracked]
@@ -1128,6 +1156,7 @@ pub struct EnumType<'db> {
     pub def: Enum<'db>,
     #[returns(ref)]
     pub gen_args: Vec<GenArg<'db>>,
+    pub origin: TypeOrigin<'db>,
 }
 
 #[salsa::tracked]

@@ -34,11 +34,13 @@ impl<'db> TypeOrigin<'db> {
                 field.hir(db).ty(db),
                 field.hir(db).parent_def(db).adt(db),
                 std::iter::empty(),
+                self.context(db),
             ),
             Self::QualifiedField(field) => instantiate_type(
                 db,
                 field.declaration(db).hir(db).ty(db),
                 field.target(db).hir(db).type_arguments(),
+                self.context(db),
             ),
             Self::FunctionParameter { function, index } => {
                 function.hir(db).params_without_self(db)[index].ty().clone()
@@ -72,6 +74,28 @@ impl<'db> TypeOrigin<'db> {
                 .self_param(db)
                 .expect("receiver origin requires a self parameter")
                 .ty(db),
+            Self::StructDeclaration(struct_) => {
+                let hir = struct_.hir(db);
+
+                instantiate_adt_type(
+                    db,
+                    hir.ty(db),
+                    Adt::Struct(hir),
+                    std::iter::empty(),
+                    self.context(db),
+                )
+            }
+            Self::EnumDeclaration(enum_) => {
+                let hir = enum_.hir(db);
+
+                instantiate_adt_type(
+                    db,
+                    hir.ty(db),
+                    Adt::Enum(hir),
+                    std::iter::empty(),
+                    self.context(db),
+                )
+            }
             Self::Struct(type_) => instantiate_adt_type(
                 db,
                 type_.def(db).hir(db).ty(db),
@@ -80,6 +104,7 @@ impl<'db> TypeOrigin<'db> {
                     let GenArg::Type(type_) = arg;
                     type_.hir(db)
                 }),
+                type_.origin(db).context(db),
             ),
             Self::Enum(type_) => instantiate_adt_type(
                 db,
@@ -89,6 +114,7 @@ impl<'db> TypeOrigin<'db> {
                     let GenArg::Type(type_) = arg;
                     type_.hir(db)
                 }),
+                type_.origin(db).context(db),
             ),
             Self::TypeParameter(param) => param.hir(db).ty(db),
             Self::Borrowed(reference) => reference.inner(db).hir(db).add_reference(

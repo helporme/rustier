@@ -84,7 +84,13 @@ pub(super) fn lower_struct<'db>(
         causes.push(StructLowerCause::UnsupportedConstGeneric);
     }
 
-    let type_ = instantiate_adt_type(db, hir.ty(db), Adt::Struct(hir), std::iter::empty());
+    let type_ = instantiate_adt_type(
+        db,
+        hir.ty(db),
+        Adt::Struct(hir),
+        std::iter::empty(),
+        GenericDef::Adt(Adt::Struct(hir)),
+    );
 
     if super::types::contains_borrowed_values(db, &type_) {
         causes.push(StructLowerCause::BorrowedValues);

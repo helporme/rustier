@@ -1,6 +1,6 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 645
+assertion_line: 651
 expression: snapshot
 ---
 # Source
@@ -22,10 +22,10 @@ pub fn __fn__disc__10_test_crate__4_Test(
 ) -> napi::Result<f64> {
     let result = cast
         .from(
-            "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] } }) })",
+            "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
         )
         .to(
-            "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] }) } })",
+            "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } })",
         )
         .an(_0)
         .access(|src| {
@@ -49,10 +49,10 @@ pub fn __fn__disc__10_test_crate__4_Test(
 ) -> Result<f64, JsValue> {
     let result = cast
         .from(
-            "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] } }) })",
+            "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
         )
         .to(
-            "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [] }) } })",
+            "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } })",
         )
         .an(_0)
         .access(|src| {

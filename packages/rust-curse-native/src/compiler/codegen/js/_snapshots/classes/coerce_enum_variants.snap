@@ -213,9 +213,9 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "Unit":{
 				{
 					const result = cast.from(
-						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
+						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }))"
 					).to(
-						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } } })))"
+						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } } })))"
 					).an(
 						__fn__coe__10_test_crate__4_Test__4_Unit(
 
@@ -227,9 +227,9 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "EmptyTuple":{
 				{
 					const result = cast.from(
-						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
+						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }))"
 					).to(
-						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } } })))"
+						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } } })))"
 					).an(
 						__fn__coe__10_test_crate__4_Test__10_EmptyTuple(
 
@@ -241,9 +241,9 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "EmptyRecord":{
 				{
 					const result = cast.from(
-						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
+						"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }))"
 					).to(
-						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } } })))"
+						"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } } })))"
 					).an(
 						__fn__coe__10_test_crate__4_Test__11_EmptyRecord(
 
@@ -271,9 +271,9 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 						);
 						{
 							const result = cast.from(
-								"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
+								"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }))"
 							).to(
-								"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } } })))"
+								"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } } })))"
 							).an(
 								__fn__coe__10_test_crate__4_Test__5_Tuple(
 									__0,
@@ -296,9 +296,9 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 					);
 					{
 						const result = cast.from(
-							"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } }) }))"
+							"Ffi(Class(FfiClass { shim: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }))"
 						).to(
-							"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [] } } })))"
+							"Facade(Class(Discriminated(FacadeClassDiscriminated { shim: ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } } })))"
 						).an(
 							__fn__coe__10_test_crate__4_Test__6_Record(
 								__0

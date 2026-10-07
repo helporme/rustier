@@ -35,9 +35,9 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			);
 			{
 				const result = cast.from(
-					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } }) }))"
+					"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8001)) }) } }) }))"
 				).to(
-					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } } })))"
+					"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8001)) }) } } })))"
 				).an(
 					__fn__associated__10_test_crate__4_Test__6_create(
 						__0
@@ -65,9 +65,9 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 		}
 		{
 			const result = cast.from(
-				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } }) }))"
+				"Ffi(Class(FfiClass { shim: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) }))"
 			).to(
-				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [] } } })))"
+				"Facade(Class(Plain(FacadeClassPlain { shim: ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } } })))"
 			).an(
 				__fn__coe__10_test_crate__4_Test(
 

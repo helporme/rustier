@@ -21,43 +21,41 @@ pub(super) fn instantiate_adt_type<'db>(
     source: HirType<'db>,
     adt: Adt,
     args: impl IntoIterator<Item = HirType<'db>>,
+    context: GenericDef,
 ) -> HirType<'db> {
     let mut args = args.into_iter();
     let mut full_args = Vec::new();
+
     for param in GenericDef::Adt(adt).params(db) {
         let HirGenericParam::TypeParam(param) = param else {
             continue;
         };
+
         let arg = match param.is_unstable(db).then(|| param.default(db)).flatten() {
-            Some(default) => instantiate_type(db, default, full_args.iter().cloned()),
+            Some(default) => instantiate_type(db, default, full_args.iter().cloned(), context),
             None => args.next().unwrap_or_else(|| param.ty(db)),
         };
         full_args.push(arg);
     }
-    instantiate_type(db, source, full_args)
+
+    instantiate_type(db, source, full_args, context)
 }
 
 pub(super) fn instantiate_type<'db>(
     db: &'db dyn Db,
     source: HirType<'db>,
     args: impl IntoIterator<Item = HirType<'db>>,
+    context: GenericDef,
 ) -> HirType<'db> {
-    let args = args.into_iter().collect::<Vec<_>>();
-    if args.is_empty() {
-        return source;
+    let mut args = args.into_iter().peekable();
+    if args.peek().is_none() {
+        return source.rebase_into_owner_or_error(db, context);
     }
-    let context = args
-        .iter()
-        .find(|context| {
-            args.iter()
-                .all(|arg| arg.try_rebase_into(db, context).is_some())
-        })
-        .unwrap_or(&source);
+
     let instantiated =
-        source.instantiate(args.iter().map(|arg| arg.rebase_into_or_error(db, context)));
-    instantiated
-        .try_rebase_into(db, &source)
-        .unwrap_or(instantiated)
+        source.instantiate(args.map(|arg| arg.rebase_into_owner_or_error(db, context)));
+
+    instantiated.rebase_into_owner_or_error(db, context)
 }
 
 /// Checks whether the HIR type is the builtin `String` declaration.
@@ -88,6 +86,7 @@ pub(super) fn is_clonable(
 
     let clonable = Trait::lang(db, crate_, ra_ap_hir::LangItem::Clone)
         .is_some_and(|clone| type_.impls_trait(db, clone, &[]));
+
     (clonable || type_.generic_params(db).is_empty()).then_some(clonable)
 }
 
@@ -216,7 +215,12 @@ pub(super) fn check_type(
         if param.is_unstable(db)
             && let Some(default) = param.default(db)
         {
-            let default = instantiate_type(db, default, type_.type_arguments().take(index));
+            let args = type_
+                .type_arguments()
+                .take(index)
+                .map(|arg| arg.rebase_into_or_error(db, type_));
+            let default = default.instantiate(args).rebase_into_or_error(db, type_);
+
             if !arg.contains_unknown()
                 && arg.generic_params(db).is_empty()
                 && !default.contains_unknown()
@@ -247,7 +251,9 @@ impl<'db> Type<'db> {
 
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_is_clonable(self, db: &'db dyn Db) -> Option<bool> {
-        is_clonable(db, &self.hir(db), self.origin(db).crate_(db))
+        let crate_ = self.origin(db).context(db).module(db).krate(db);
+
+        is_clonable(db, &self.hir(db), crate_)
     }
 
     #[salsa::tracked]
@@ -293,15 +299,20 @@ impl<'db> Type<'db> {
                 })
                 .collect::<Vec<_>>();
             return match adt {
-                Adt::Struct(hir) => {
-                    TypeKind::Struct(StructType::new(db, Struct::new(db, hir), args))
+                Adt::Struct(hir) => TypeKind::Struct(StructType::new(
+                    db,
+                    Struct::new(db, hir),
+                    args,
+                    self.origin(db),
+                )),
+                Adt::Enum(hir) => {
+                    TypeKind::Enum(EnumType::new(db, Enum::new(db, hir), args, self.origin(db)))
                 }
-                Adt::Enum(hir) => TypeKind::Enum(EnumType::new(db, Enum::new(db, hir), args)),
                 Adt::Union(_) => unreachable!("unions are unsupported"),
             };
         }
 
-        let crate_ = self.origin(db).crate_(db);
+        let crate_ = self.origin(db).context(db).module(db).krate(db);
         if let Some(builtin) = hir.as_builtin() {
             return lower_builtin(db, builtin, crate_)
                 .expect("unsupported types are discarded during lowering");
@@ -322,34 +333,42 @@ impl<'db> Type<'db> {
 
         match adt {
             Adt::Struct(_) if is_string(db, &hir, crate_) => TypeKind::String,
-            Adt::Struct(struct_) => {
-                TypeKind::Struct(StructType::new(db, Struct::new(db, struct_), args))
-            }
-            Adt::Enum(enum_) => TypeKind::Enum(EnumType::new(db, Enum::new(db, enum_), args)),
+            Adt::Struct(struct_) => TypeKind::Struct(StructType::new(
+                db,
+                Struct::new(db, struct_),
+                args,
+                self.origin(db),
+            )),
+            Adt::Enum(enum_) => TypeKind::Enum(EnumType::new(
+                db,
+                Enum::new(db, enum_),
+                args,
+                self.origin(db),
+            )),
             Adt::Union(_) => unreachable!("unions are unsupported"),
         }
     }
 }
 
 impl<'db> TypeOrigin<'db> {
-    fn crate_(self, db: &'db dyn Db) -> ra_ap_hir::Crate {
+    pub(super) fn context(self, db: &'db dyn Db) -> GenericDef {
         match self {
-            Self::Field(field) => field.hir(db).parent_def(db).module(db).krate(db),
-            Self::QualifiedField(field) => field.target(db).origin(db).crate_(db),
+            Self::Field(field) => GenericDef::Adt(field.hir(db).parent_def(db).adt(db)),
+            Self::QualifiedField(field) => field.target(db).origin(db).context(db),
             Self::CallableParameter { callable, .. }
             | Self::CallableReturn(callable)
-            | Self::CallableReceiver(callable) => {
-                callable.declaration(db).hir(db).module(db).krate(db)
-            }
-            Self::TypeArgument { type_, .. } => type_.origin(db).crate_(db),
+            | Self::CallableReceiver(callable) => callable.context(db),
+            Self::TypeArgument { type_, .. } => type_.origin(db).context(db),
             Self::FunctionParameter { function, .. }
             | Self::FunctionReturn(function)
-            | Self::FunctionReceiver(function) => function.hir(db).module(db).krate(db),
-            Self::Struct(type_) => type_.def(db).hir(db).module(db).krate(db),
-            Self::Enum(type_) => type_.def(db).hir(db).module(db).krate(db),
-            Self::TypeParameter(param) => param.hir(db).module(db).krate(db),
-            Self::Borrowed(reference) => reference.inner(db).origin(db).crate_(db),
-            Self::Dereferenced(type_) => type_.origin(db).crate_(db),
+            | Self::FunctionReceiver(function) => GenericDef::Function(function.hir(db)),
+            Self::StructDeclaration(struct_) => GenericDef::Adt(Adt::Struct(struct_.hir(db))),
+            Self::EnumDeclaration(enum_) => GenericDef::Adt(Adt::Enum(enum_.hir(db))),
+            Self::Struct(type_) => type_.origin(db).context(db),
+            Self::Enum(type_) => type_.origin(db).context(db),
+            Self::TypeParameter(param) => param.hir(db).parent(db),
+            Self::Borrowed(reference) => reference.inner(db).origin(db).context(db),
+            Self::Dereferenced(type_) => type_.origin(db).context(db),
         }
     }
 }
