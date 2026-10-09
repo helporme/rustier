@@ -364,6 +364,11 @@ rust_curse::skipped_fn
 
 </td></tr></tbody></table>
 
+## Example projects
+
+- [SvelteKit with vite](examples/sveltekit-example)
+- [Library with tsdown](examples/library-example)
+
 ## When to use
 
 Rust Curse aims to make using Rust inside JS/TS projects as easy as possible. Its goal is to reduce glue code, configuration, and common performance and memory-management pitfalls.
@@ -377,11 +382,6 @@ If you need finer control over the FFI boundary or features Rust Curse does not 
 - [Neon](https://github.com/neon-bindings/neon) for native Node.js addons with explicit bindings written using its Rust APIs.
 
 Rust Curse is experimental; check the [limitations](#limitations) against your project's needs.
-
-## Example projects
-
-- [SvelteKit with vite](examples/sveltekit-example)
-- [Library with tsdown](examples/library-example)
 
 ## Limitations
 
