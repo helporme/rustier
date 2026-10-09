@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use miette::Diagnostic;
 use ra_ap_hir::{
     Adt, GenericDef, GenericParam as HirGenericParam, HirDisplay as _, Mutability, Trait,
@@ -92,10 +90,13 @@ pub(super) fn is_clonable(
 
 pub(super) fn contains_borrowed_values(db: &dyn Db, type_: &HirType<'_>) -> bool {
     let mut pending = vec![type_.clone()];
-    let mut visited = HashSet::new();
 
     while let Some(type_) = pending.pop() {
-        if type_.is_reference() {
+        if type_.is_reference()
+            || type_
+                .as_adt()
+                .is_some_and(|adt| !GenericDef::Adt(adt).lifetime_params(db).is_empty())
+        {
             return true;
         }
 
@@ -104,28 +105,6 @@ pub(super) fn contains_borrowed_values(db: &dyn Db, type_: &HirType<'_>) -> bool
         pending.extend(type_.as_slice());
         pending.extend(type_.as_array(db).map(|(inner, _)| inner));
         pending.extend(type_.as_raw_ptr().map(|(inner, _)| inner));
-
-        if let Some(adt) = type_.as_adt()
-            && visited.insert(adt)
-        {
-            match adt {
-                Adt::Struct(struct_) => {
-                    pending.extend(struct_.fields(db).into_iter().map(|field| field.ty(db)));
-                }
-                Adt::Enum(enum_) => {
-                    pending.extend(
-                        enum_
-                            .variants(db)
-                            .into_iter()
-                            .flat_map(|variant| variant.fields(db))
-                            .map(|field| field.ty(db)),
-                    );
-                }
-                Adt::Union(union) => {
-                    pending.extend(union.fields(db).into_iter().map(|field| field.ty(db)));
-                }
-            }
-        }
     }
 
     false
