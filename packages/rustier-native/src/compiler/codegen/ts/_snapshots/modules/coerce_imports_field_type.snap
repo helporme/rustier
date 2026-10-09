@@ -1,0 +1,49 @@
+---
+source: src/compiler/codegen/ts/modules.rs
+expression: snapshot
+---
+# Source
+
+```rust
+@file: "models.rs"; pub mod models
+{ #[derive(Clone)] pub struct Point { pub x: u32, } } #[derive(Clone)] pub
+struct Circle { pub center: models::Point, pub radius: f64, } impl Circle
+{ pub fn center(&self) -> bool { true } }```
+
+# Compiled
+
+```ts
+import type {
+	Point
+} from '$rust/test_crate/models';
+
+export class Circle {
+	public get center(): Point;
+	public set center(
+		value: Point.Coerce
+	);
+	public get radius(): number;
+	public set radius(
+		value: number
+	);
+	static of(
+		value: Circle.Coerce
+	): Circle;
+	private __rustier_brand: never;
+	private constructor();
+}
+
+export declare namespace Circle {
+	export type Plain = {
+		center: Point;
+		radius: number;
+	};
+
+	export type Coerce = {
+		center: Point.Coerce;
+		radius: number;
+	};
+}
+
+export {};
+```

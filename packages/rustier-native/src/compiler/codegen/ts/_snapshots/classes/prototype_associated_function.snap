@@ -1,0 +1,27 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Test;
+impl Test {
+    pub fn prototype() -> bool {
+        true
+    }
+}
+```
+
+# Compiled
+
+```ts
+export class Test {
+	private __rustier_brand: never;
+	private constructor();
+}
+
+export declare namespace Test {
+	export type Plain = {};
+}
+```

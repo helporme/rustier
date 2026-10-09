@@ -1,0 +1,53 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Sine {
+    pub amplitude: f64,
+    pub frequency: f64,
+}
+impl Sine {
+    pub fn new() -> Self {
+        Self {
+            amplitude: 1.0,
+            frequency: 1.0,
+        }
+    }
+    pub fn static_fn() -> u32 {
+        0
+    }
+    pub fn method_fn(&self) -> u32 {
+        0
+    }
+}
+```
+
+# Compiled
+
+```ts
+export class Sine {
+	public get amplitude(): number;
+	public set amplitude(
+		value: number
+	);
+	public get frequency(): number;
+	public set frequency(
+		value: number
+	);
+	static new(): Sine;
+	static static_fn(): number;
+	method_fn(): number;
+	private __rustier_brand: never;
+	constructor();
+}
+
+export declare namespace Sine {
+	export type Plain = {
+		amplitude: number;
+		frequency: number;
+	};
+}
+```

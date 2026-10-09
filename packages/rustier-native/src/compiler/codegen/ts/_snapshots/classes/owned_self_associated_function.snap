@@ -1,0 +1,34 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Test;
+impl Test {
+    pub fn owned(self) -> bool {
+        true
+    }
+}
+```
+
+# Compiled
+
+```ts
+export class Test {
+	owned(): boolean;
+	static of(
+		value: Test.Coerce
+	): Test;
+	private __rustier_brand: never;
+	private constructor();
+}
+
+export declare namespace Test {
+	export type Plain = {};
+
+	export type Coerce = {};
+}
+```

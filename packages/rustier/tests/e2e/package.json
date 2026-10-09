@@ -1,0 +1,14 @@
+{
+  "name": "e2e",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "rustier": "workspace:*",
+    "vitest": "^4.1.7",
+    "typescript": "^6.0.2"
+  }
+}

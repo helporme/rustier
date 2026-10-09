@@ -1,0 +1,94 @@
+---
+source: src/compiler/codegen/ts/modules.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct NoClone {
+    pub value: u32,
+}
+#[derive(Clone)]
+pub struct Private(pub u32, u32);
+#[derive(Clone)]
+#[non_exhaustive]
+pub struct NonExhaustive {
+    pub value: u32,
+}
+#[derive(Clone)]
+pub enum Blocked {
+    #[non_exhaustive]
+    Unit,
+}
+```
+
+# Compiled
+
+```ts
+export class NoClone {
+	public get value(): number;
+	public set value(
+		value: number
+	);
+	private __rustier_brand: never;
+	private constructor();
+}
+
+export declare namespace NoClone {
+	export type Plain = {
+		value: number;
+	};
+}
+
+export class Private {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	private __rustier_brand: never;
+	private constructor();
+}
+
+export declare namespace Private {
+	export type Plain = {
+		[0]: number;
+	};
+}
+
+export class NonExhaustive {
+	public get value(): number;
+	public set value(
+		value: number
+	);
+	private __rustier_brand: never;
+	private constructor();
+}
+
+export declare namespace NonExhaustive {
+	export type Plain = {
+		value: number;
+	};
+}
+
+export type Blocked = Blocked.Instance & Blocked.Plain;
+
+export declare const Blocked: {
+	readonly [$BlockedClassBrand]: never;
+};
+
+export declare namespace Blocked {
+	export type Plain =
+		| {
+			readonly type: "Unit";
+		};
+
+	export interface Instance {
+		readonly [$BlockedBrand]: never;
+	}
+}
+
+declare const $BlockedBrand: unique symbol;
+declare const $BlockedClassBrand: unique symbol;
+
+export {};
+```

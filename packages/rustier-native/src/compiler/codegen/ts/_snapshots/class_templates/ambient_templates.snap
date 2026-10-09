@@ -1,0 +1,280 @@
+---
+source: src/compiler/codegen/ts/class_templates.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub mod models {
+    #[derive(Clone)]
+    pub struct Holder(pub u32);
+    #[derive(Clone)]
+    pub struct Boxed<T>(pub T);
+    #[derive(Clone)]
+    pub enum Status {
+        Ready,
+    }
+}
+#[derive(Clone)]
+pub struct Wrap<T>(pub T);
+#[derive(Clone)]
+pub enum Event<T> {
+    Value { value: T },
+    Empty,
+}
+pub fn consume(
+    wrap: &Wrap<models::Boxed<models::Holder>>,
+    status: &Wrap<models::Status>,
+    event: &Event<String>,
+) {}
+```
+
+# Compiled
+
+```ts
+declare module "$rust/test_crate" {
+	import type {
+		Boxed
+	} from '$rust/test_crate/models';
+
+	import type {
+		Holder
+	} from '$rust/test_crate/models';
+
+	import type {
+		Status
+	} from '$rust/test_crate/models';
+
+	export function consume(
+		wrap: Wrap.Coerce<Boxed.Class<typeof Holder>>,
+		status: Wrap.Coerce<typeof Status>,
+		event: Event.Coerce<"String">,
+	): void;
+
+	class _4_WrapGS10_test_crate__6_models__5_BoxedGS10_test_crate__6_models__6_HolderEE {
+		public get [0](): Boxed<typeof Holder>;
+		public set [0](
+			value: Boxed.Coerce<typeof Holder>
+		);
+		static of(
+			value: Wrap.Coerce<Boxed.Class<typeof Holder>>
+		): Wrap<Boxed.Class<typeof Holder>>;
+		private __rustier_brand: never;
+		private constructor();
+	}
+
+	class _4_WrapGV10_test_crate__6_models__6_StatusE {
+		public get [0](): Status;
+		public set [0](
+			value: Status.Coerce
+		);
+		static of(
+			value: Wrap.Coerce<typeof Status>
+		): Wrap<typeof Status>;
+		private __rustier_brand: never;
+		private constructor();
+	}
+
+	export type Wrap<T> =
+		T extends Boxed.Class<typeof Holder> ? _4_WrapGS10_test_crate__6_models__5_BoxedGS10_test_crate__6_models__6_HolderEE :
+		T extends typeof Status ? _4_WrapGV10_test_crate__6_models__6_StatusE :
+		never;
+
+	export namespace Wrap {
+		export type Class<T> =
+			T extends Boxed.Class<typeof Holder> ? typeof _4_WrapGS10_test_crate__6_models__5_BoxedGS10_test_crate__6_models__6_HolderEE :
+			T extends typeof Status ? typeof _4_WrapGV10_test_crate__6_models__6_StatusE :
+			never;
+
+		export type Plain<T extends Boxed.Class<typeof Holder> | typeof Status> =
+			T extends Boxed.Class<typeof Holder> ?
+				{
+					[0]: Boxed<typeof Holder>;
+				} :
+			T extends typeof Status ?
+				{
+					[0]: Status;
+				} :
+			never;
+
+		export type Coerce<T extends Boxed.Class<typeof Holder> | typeof Status> =
+			T extends Boxed.Class<typeof Holder> ?
+				{
+					[0]: Boxed.Coerce<typeof Holder>;
+				} :
+			T extends typeof Status ?
+				{
+					[0]: Status.Coerce;
+				} :
+			never;
+	}
+
+	export function Wrap<Args extends [Boxed.Class<typeof Holder>] | [typeof Status]>(
+		...args: Args
+	): Wrap.Class<Args[0]>;
+
+	type _5_EventGP6_StringE = $_5_EventGP6_StringEInstance & (
+		| {
+			readonly type: "Value";
+			get value(): string;
+			set value(
+				value: string
+			);
+		}
+		| {
+			readonly type: "Empty";
+		}
+	);
+
+	const _5_EventGP6_StringE: {
+		of(
+			value: Event.Coerce<"String">
+		): Event<"String">;
+		readonly [$_5_EventGP6_StringEClassBrand]: never;
+	};
+
+	interface $_5_EventGP6_StringEInstance {
+		readonly [$_5_EventGP6_StringEBrand]: never;
+	}
+
+	const $_5_EventGP6_StringEBrand: unique symbol;
+	const $_5_EventGP6_StringEClassBrand: unique symbol;
+
+	export type Event<T> =
+		T extends "String" ? _5_EventGP6_StringE :
+		never;
+
+	export namespace Event {
+		export type Class<T> =
+			T extends "String" ? typeof _5_EventGP6_StringE :
+			never;
+
+		export type Plain<T extends "String"> =
+			T extends "String" ?
+				| {
+					readonly type: "Value";
+					get value(): string;
+					set value(
+						value: string
+					);
+				}
+				| {
+					readonly type: "Empty";
+				} :
+			never;
+
+		export type Coerce<T extends "String"> =
+			T extends "String" ?
+				| Event<"String">
+				| {
+					readonly type: "Value";
+					value: string;
+				}
+				| {
+					readonly type: "Empty";
+				} :
+			never;
+	}
+
+	export function Event<Args extends ["String"]>(
+		...args: Args
+	): Event.Class<Args[0]>;
+
+	export {};
+}
+
+declare module "$rust/test_crate/models" {
+	export class Holder {
+		public get [0](): number;
+		public set [0](
+			value: number
+		);
+		static of(
+			value: Holder.Coerce
+		): Holder;
+		private __rustier_brand: never;
+		private constructor();
+	}
+
+	export namespace Holder {
+		export type Plain = {
+			[0]: number;
+		};
+
+		export type Coerce = {
+			[0]: number;
+		};
+	}
+
+	export type Status = Status.Instance & Status.Plain;
+
+	export const Status: {
+		of(
+			value: Status.Coerce
+		): Status;
+		readonly [$StatusClassBrand]: never;
+	};
+
+	export namespace Status {
+		export type Plain =
+			| {
+				readonly type: "Ready";
+			};
+
+		export type Coerce =
+			| Instance & Plain
+			| {
+				readonly type: "Ready";
+			};
+
+		export interface Instance {
+			readonly [$StatusBrand]: never;
+		}
+	}
+
+	const $StatusBrand: unique symbol;
+	const $StatusClassBrand: unique symbol;
+
+	class _5_BoxedGS10_test_crate__6_models__6_HolderE {
+		public get [0](): Holder;
+		public set [0](
+			value: Holder.Coerce
+		);
+		static of(
+			value: Boxed.Coerce<typeof Holder>
+		): Boxed<typeof Holder>;
+		private __rustier_brand: never;
+		private constructor();
+	}
+
+	export type Boxed<T> =
+		T extends typeof Holder ? _5_BoxedGS10_test_crate__6_models__6_HolderE :
+		never;
+
+	export namespace Boxed {
+		export type Class<T> =
+			T extends typeof Holder ? typeof _5_BoxedGS10_test_crate__6_models__6_HolderE :
+			never;
+
+		export type Plain<T extends typeof Holder> =
+			T extends typeof Holder ?
+				{
+					[0]: Holder;
+				} :
+			never;
+
+		export type Coerce<T extends typeof Holder> =
+			T extends typeof Holder ?
+				{
+					[0]: Holder.Coerce;
+				} :
+			never;
+	}
+
+	export function Boxed<Args extends [typeof Holder]>(
+		...args: Args
+	): Boxed.Class<Args[0]>;
+
+	export {};
+}
+```

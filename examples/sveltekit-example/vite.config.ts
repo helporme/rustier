@@ -1,6 +1,6 @@
 import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
-import rustCurse from "rust-curse/vite"
+import rustier from "rustier/vite"
 import { defineConfig } from 'vite';
 
 export default defineConfig({
@@ -18,15 +18,15 @@ export default defineConfig({
       adapter: adapter(),
       typescript: {
         config: (c) => {
-          c.include = ["../.rust-curse/types/**/*", "../.rust-curse/ambient.d.ts", ...c.include ?? []]
+          c.include = ["../.rustier/types/**/*", "../.rustier/ambient.d.ts", ...c.include ?? []]
           c.compilerOptions = {
             ...(c.compilerOptions ?? {}),
-            rootDirs: ["../.rust-curse/types", ...c?.compilerOptions?.rootDirs ?? []]
+            rootDirs: ["../.rustier/types", ...c?.compilerOptions?.rootDirs ?? []]
           }
           return c
         }
       }
     }),
-		rustCurse()
+		rustier()
   ]
 });

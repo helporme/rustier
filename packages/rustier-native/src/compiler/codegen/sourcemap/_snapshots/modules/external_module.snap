@@ -1,0 +1,155 @@
+---
+source: src/compiler/codegen/sourcemap/modules.rs
+expression: snapshot
+---
+TypeScript:
+  0 | export function first(): void;
+  1 |
+  2 | export class Value {
+  3 | 	public get number(): number;
+  4 | 	public set number(
+  5 | 		value: number
+  6 | 	);
+  7 | 	private __rustier_brand: never;
+  8 | 	private constructor();
+  9 | }
+ 10 |
+ 11 | export declare namespace Value {
+ 12 | 	export type Plain = {
+ 13 | 		number: number;
+ 14 | 	};
+ 15 | }
+ 16 |
+ 17 | export {};
+
+Source map:
+{
+  "version": 3,
+  "file": "items.rs.d.ts",
+  "sourceRoot": "",
+  "sources": [
+    "nested/items.rs"
+  ],
+  "names": [
+    "first",
+    "Value",
+    "number"
+  ],
+  "mappings": "AAAAA,gBAAOA;;AACPC,aAAWA;AACPC,YAAIA;AAAJA,YAAIA;;;;;;;AADRD,yBAAWA;AAAXA,aAAWA;AACPC,EAAIA"
+}
+
+Mappings:
+[
+    Mapping {
+        generated_line: 0,
+        generated_column: 0,
+        source: "nested/items.rs",
+        original_line: 0,
+        original_column: 0,
+        name: "first",
+    },
+    Mapping {
+        generated_line: 0,
+        generated_column: 16,
+        source: "nested/items.rs",
+        original_line: 0,
+        original_column: 7,
+        name: "first",
+    },
+    Mapping {
+        generated_line: 2,
+        generated_column: 0,
+        source: "nested/items.rs",
+        original_line: 1,
+        original_column: 0,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 2,
+        generated_column: 13,
+        source: "nested/items.rs",
+        original_line: 1,
+        original_column: 11,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 3,
+        generated_column: 0,
+        source: "nested/items.rs",
+        original_line: 2,
+        original_column: 4,
+        name: "number",
+    },
+    Mapping {
+        generated_line: 3,
+        generated_column: 12,
+        source: "nested/items.rs",
+        original_line: 2,
+        original_column: 8,
+        name: "number",
+    },
+    Mapping {
+        generated_line: 4,
+        generated_column: 0,
+        source: "nested/items.rs",
+        original_line: 2,
+        original_column: 4,
+        name: "number",
+    },
+    Mapping {
+        generated_line: 4,
+        generated_column: 12,
+        source: "nested/items.rs",
+        original_line: 2,
+        original_column: 8,
+        name: "number",
+    },
+    Mapping {
+        generated_line: 11,
+        generated_column: 0,
+        source: "nested/items.rs",
+        original_line: 1,
+        original_column: 0,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 11,
+        generated_column: 25,
+        source: "nested/items.rs",
+        original_line: 1,
+        original_column: 11,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 12,
+        generated_column: 0,
+        source: "nested/items.rs",
+        original_line: 1,
+        original_column: 0,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 12,
+        generated_column: 13,
+        source: "nested/items.rs",
+        original_line: 1,
+        original_column: 11,
+        name: "Value",
+    },
+    Mapping {
+        generated_line: 13,
+        generated_column: 0,
+        source: "nested/items.rs",
+        original_line: 2,
+        original_column: 4,
+        name: "number",
+    },
+    Mapping {
+        generated_line: 13,
+        generated_column: 2,
+        source: "nested/items.rs",
+        original_line: 2,
+        original_column: 8,
+        name: "number",
+    },
+]

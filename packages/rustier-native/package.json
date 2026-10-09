@@ -1,0 +1,19 @@
+{
+  "name": "rustier-native",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "rustier.d.ts",
+  "main": "rustier.js",
+  "scripts": {
+    "build:release": "napi build --manifest-path ./Cargo.toml --platform --release --esm --js rustier.js --dts rustier.d.ts --output-dir . --features napi-binding",
+    "build": "napi build --manifest-path ./Cargo.toml --platform --esm --js rustier.js --dts rustier.d.ts --output-dir . --features napi-binding"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.6.2"
+  },
+  "napi": {
+    "binaryName": "rustier",
+    "targets": []
+  }
+}

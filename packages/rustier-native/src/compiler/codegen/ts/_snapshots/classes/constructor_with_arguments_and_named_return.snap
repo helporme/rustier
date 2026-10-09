@@ -1,0 +1,41 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Test;
+impl Test {
+    pub fn new(value: i32, enabled: bool) -> Test {
+        let _ = (value, enabled);
+        Test
+    }
+}
+```
+
+# Compiled
+
+```ts
+export class Test {
+	static new(
+		value: number,
+		enabled: boolean,
+	): Test;
+	static of(
+		value: Test.Coerce
+	): Test;
+	private __rustier_brand: never;
+	constructor(
+		value: number,
+		enabled: boolean,
+	);
+}
+
+export declare namespace Test {
+	export type Plain = {};
+
+	export type Coerce = {};
+}
+```

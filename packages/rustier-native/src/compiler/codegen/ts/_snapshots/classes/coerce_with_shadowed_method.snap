@@ -1,0 +1,54 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Sine {
+    /// The initial amplitude.
+    pub amplitude: f64,
+    pub frequency: f64,
+}
+impl Sine {
+    pub fn amplitude(&self) -> f64 {
+        self.amplitude
+    }
+}
+```
+
+# Compiled
+
+```ts
+export class Sine {
+	/** The initial amplitude. */
+	public get amplitude(): number;
+	public set amplitude(
+		value: number
+	);
+	public get frequency(): number;
+	public set frequency(
+		value: number
+	);
+	static of(
+		value: Sine.Coerce
+	): Sine;
+	private __rustier_brand: never;
+	private constructor();
+}
+
+export declare namespace Sine {
+	export type Plain = {
+		/** The initial amplitude. */
+		amplitude: number;
+		frequency: number;
+	};
+
+	export type Coerce = {
+		/** The initial amplitude. */
+		amplitude: number;
+		frequency: number;
+	};
+}
+```

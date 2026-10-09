@@ -1,0 +1,22 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Empty;
+```
+
+# Compiled
+
+```ts
+export class Empty {
+	private __rustier_brand: never;
+	private constructor();
+}
+
+export declare namespace Empty {
+	export type Plain = {};
+}
+```

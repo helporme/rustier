@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "rootDirs": ["./", ".rustier/types"],
+    "moduleResolution": "bundler",
+    "module": "Preserve",
+  },
+  "include": ["src/**/*", ".rustier/types/**/*", ".rustier/ambient.d.ts"],
+}

@@ -1,0 +1,131 @@
+---
+source: src/compiler/codegen/ts/class_templates.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Holder(pub u32);
+#[derive(Clone)]
+pub struct Wrap<T>(pub T);
+pub fn consume(number: &Wrap<u32>, holder: &Wrap<Holder>, nested: &Wrap<Wrap<u32>>) {}
+```
+
+# Compiled
+
+```ts
+export function consume(
+	number: Wrap.Coerce<"u32">,
+	holder: Wrap.Coerce<typeof Holder>,
+	nested: Wrap.Coerce<Wrap.Class<"u32">>,
+): void;
+
+export class Holder {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	static of(
+		value: Holder.Coerce
+	): Holder;
+	private __rustier_brand: never;
+	private constructor();
+}
+
+export declare namespace Holder {
+	export type Plain = {
+		[0]: number;
+	};
+
+	export type Coerce = {
+		[0]: number;
+	};
+}
+
+declare class _4_WrapGP3_u32E {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	static of(
+		value: Wrap.Coerce<"u32">
+	): Wrap<"u32">;
+	private __rustier_brand: never;
+	private constructor();
+}
+
+declare class _4_WrapGS10_test_crate__4_WrapGP3_u32EE {
+	public get [0](): Wrap<"u32">;
+	public set [0](
+		value: Wrap.Coerce<"u32">
+	);
+	static of(
+		value: Wrap.Coerce<Wrap.Class<"u32">>
+	): Wrap<Wrap.Class<"u32">>;
+	private __rustier_brand: never;
+	private constructor();
+}
+
+declare class _4_WrapGS10_test_crate__6_HolderE {
+	public get [0](): Holder;
+	public set [0](
+		value: Holder.Coerce
+	);
+	static of(
+		value: Wrap.Coerce<typeof Holder>
+	): Wrap<typeof Holder>;
+	private __rustier_brand: never;
+	private constructor();
+}
+
+export type Wrap<T> =
+	T extends "u32" ? _4_WrapGP3_u32E :
+	T extends Wrap.Class<"u32"> ? _4_WrapGS10_test_crate__4_WrapGP3_u32EE :
+	T extends typeof Holder ? _4_WrapGS10_test_crate__6_HolderE :
+	never;
+
+export declare namespace Wrap {
+	export type Class<T> =
+		T extends "u32" ? typeof _4_WrapGP3_u32E :
+		T extends Wrap.Class<"u32"> ? typeof _4_WrapGS10_test_crate__4_WrapGP3_u32EE :
+		T extends typeof Holder ? typeof _4_WrapGS10_test_crate__6_HolderE :
+		never;
+
+	export type Plain<T extends "u32" | Wrap.Class<"u32"> | typeof Holder> =
+		T extends "u32" ?
+			{
+				[0]: number;
+			} :
+		T extends Wrap.Class<"u32"> ?
+			{
+				[0]: Wrap<"u32">;
+			} :
+		T extends typeof Holder ?
+			{
+				[0]: Holder;
+			} :
+		never;
+
+	export type Coerce<T extends "u32" | Wrap.Class<"u32"> | typeof Holder> =
+		T extends "u32" ?
+			{
+				[0]: number;
+			} :
+		T extends Wrap.Class<"u32"> ?
+			{
+				[0]: Wrap.Coerce<"u32">;
+			} :
+		T extends typeof Holder ?
+			{
+				[0]: Holder.Coerce;
+			} :
+		never;
+}
+
+export function Wrap<Args extends ["u32"] | [Wrap.Class<"u32">] | [typeof Holder]>(
+	...args: Args
+): Wrap.Class<Args[0]>;
+
+export {};
+```

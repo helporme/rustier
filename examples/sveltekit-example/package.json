@@ -11,10 +11,10 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"rebuild": "pnpm run rebuild:plugin && pnpm run build",
-    "rebuild:plugin": "cd ../../packages/rust-curse && pnpm run build"
+    "rebuild:plugin": "cd ../../packages/rustier && pnpm run build"
 	},
 	"devDependencies": {
-  	"rust-curse": "workspace:*",
+  	"rustier": "workspace:*",
 		"@fontsource/fira-mono": "^5.2.7",
 		"@neoconfetti/svelte": "^2.2.2",
 		"@sveltejs/adapter-auto": "^7.0.1",

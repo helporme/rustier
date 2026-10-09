@@ -1,4 +1,4 @@
-# Rust Curse
+# Rustier
 
 An experimental Rust-JavaScript interop tool for generating JS/TS bindings for any Rust crate, targeting WebAssembly or N-API.
 
@@ -378,7 +378,7 @@ pub async fn summon() -> String {
 </td><td valign="top">
 
 ```text
-rust_curse::skipped_fn
+rustier::skipped_fn
 
   ⚠ the function "example::summon::summon"
     cannot be exported to JS
@@ -387,10 +387,10 @@ rust_curse::skipped_fn
  2 │ │       "A slime appears!".to_owned()
  3 │ ╰─▶ }
    ╰────
-  ├─▶ rust_curse::unsupported_async_fn
+  ├─▶ rustier::unsupported_async_fn
   │
   │     ⚠ async functions are not supported
-  ╰─▶ rust_curse::unsupported_type
+  ╰─▶ rustier::unsupported_type
 
         ⚠ unsupported type:
           impl Future<Output = String>
@@ -405,15 +405,15 @@ rust_curse::skipped_fn
 
 ## When to use
 
-Rust Curse aims to make using Rust inside JS/TS projects as easy as possible. Its goal is to reduce glue code, configuration, and common performance and memory-management pitfalls.
+Rustier aims to make using Rust inside JS/TS projects as easy as possible. Its goal is to reduce glue code, configuration, and common performance and memory-management pitfalls.
 
-That said, Rust Curse works at a higher level than tools such as [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) and [NAPI-RS](https://github.com/napi-rs/napi-rs), which it uses underneath. If you need finer control over the FFI boundary or features Rust Curse does not yet support, consider using these projects directly:
+That said, Rustier works at a higher level than tools such as [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) and [NAPI-RS](https://github.com/napi-rs/napi-rs), which it uses underneath. If you need finer control over the FFI boundary or features Rustier does not yet support, consider using these projects directly:
 
 - [NAPI-RS](https://github.com/napi-rs/napi-rs) for Node.js addons, with direct access to JS values, async support, and callbacks. It also supports WASI/WebAssembly.
 - [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) for Rust-WebAssembly interop, including calling JS APIs from Rust.
 - [Neon](https://github.com/neon-bindings/neon) for native Node.js addons with explicit bindings written using its Rust APIs.
 
-Rust Curse is experimental; check the [limitations](#limitations) against your project's needs.
+Rustier is experimental; check the [limitations](#limitations) against your project's needs.
 
 ## Limitations
 
@@ -430,36 +430,36 @@ The following are not yet supported or remain limited. This list is not exhausti
 
 ## How it works
 
-rust-curse uses [rust-analyzer](https://rust-analyzer.github.io/) to analyze the Cargo project. It generates a separate Rust bridge crate for supported public APIs, along with JavaScript wrappers and TypeScript declarations, without modifying the original crate.
+rustier uses [rust-analyzer](https://rust-analyzer.github.io/) to analyze the Cargo project. It generates a separate Rust bridge crate for supported public APIs, along with JavaScript wrappers and TypeScript declarations, without modifying the original crate.
 
 It consists of three parts:
 
-1. [Build-tool plugins](packages/rust-curse/src) for Vite, Rolldown, and tsdown.
-2. A [server](packages/rust-curse-native/src/server.rs) that handles plugin requests, such as `build` and `change`.
-3. A [compiler](packages/rust-curse-native/src/compiler.rs) responsible for generating Rust and JS glue code and TypeScript declarations.
+1. [Build-tool plugins](packages/rustier/src) for Vite, Rolldown, and tsdown.
+2. A [server](packages/rustier-native/src/server.rs) that handles plugin requests, such as `build` and `change`.
+3. A [compiler](packages/rustier-native/src/compiler.rs) responsible for generating Rust and JS glue code and TypeScript declarations.
 
-The most interesting part is the compiler, which is built on top of rust-analyzer's `hir` IR and uses the [Salsa](https://salsa-rs.github.io/salsa/) framework for incremental computation. It defines several additional [IRs](packages/rust-curse-native/src/compiler/ir):
+The most interesting part is the compiler, which is built on top of rust-analyzer's `hir` IR and uses the [Salsa](https://salsa-rs.github.io/salsa/) framework for incremental computation. It defines several additional [IRs](packages/rustier-native/src/compiler/ir):
 
-1. [Rust IR](packages/rust-curse-native/src/compiler/ir/rust.rs) represents the supported subset of Rust features. It is lowered from rust-analyzer's `hir`, and most diagnostics are emitted during this step.
-2. [Shim IR](packages/rust-curse-native/src/compiler/ir/shim.rs) is the central IR used by the compiler. Lowered from Rust IR, it represents JS concepts, such as classes, with references back to Rust IR entities, such as structs and enums.
-3. [Facade](packages/rust-curse-native/src/compiler/ir/facade.rs) is lowered from Shim IR and used for JS code generation.
-4. [Decals](packages/rust-curse-native/src/compiler/ir/decals.rs) is lowered from Shim IR and used for TypeScript declaration and source map generation.
-5. [FFI](packages/rust-curse-native/src/compiler/ir/ffi.rs) represents the exact functions exposed across the Rust-JS boundary. It is intended to support future tree-shaking work.
+1. [Rust IR](packages/rustier-native/src/compiler/ir/rust.rs) represents the supported subset of Rust features. It is lowered from rust-analyzer's `hir`, and most diagnostics are emitted during this step.
+2. [Shim IR](packages/rustier-native/src/compiler/ir/shim.rs) is the central IR used by the compiler. Lowered from Rust IR, it represents JS concepts, such as classes, with references back to Rust IR entities, such as structs and enums.
+3. [Facade](packages/rustier-native/src/compiler/ir/facade.rs) is lowered from Shim IR and used for JS code generation.
+4. [Decals](packages/rustier-native/src/compiler/ir/decals.rs) is lowered from Shim IR and used for TypeScript declaration and source map generation.
+5. [FFI](packages/rustier-native/src/compiler/ir/ffi.rs) represents the exact functions exposed across the Rust-JS boundary. It is intended to support future tree-shaking work.
 
-The compiler also contains code generation machinery with its own concepts, such as [tethering](packages/rust-curse-native/src/compiler/codegen/shim/tethering.rs), [fragments](packages/rust-curse-native/src/compiler/codegen/fragment.rs), and [cast graphs](packages/rust-curse-native/src/compiler/codegen/shim/cast.rs).
+The compiler also contains code generation machinery with its own concepts, such as [tethering](packages/rustier-native/src/compiler/codegen/shim/tethering.rs), [fragments](packages/rustier-native/src/compiler/codegen/fragment.rs), and [cast graphs](packages/rustier-native/src/compiler/codegen/shim/cast.rs).
 
 The generated Rust bindings use [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) for the WebAssembly target and [NAPI-RS](https://github.com/napi-rs/napi-rs) for native Node.js addons.
 
 All of the above is covered by the following testing strategies, in order of importance:
 
-1. [E2E tests](packages/rust-curse/tests/e2e) are the main corpus of tests, written in TypeScript.
-2. [Property-based tests](packages/rust-curse-native/tests/proptests.rs) generate random Rust programs and check that the expected bindings are produced and the generated Rust code passes `cargo check`.
-3. [Snapshot tests](packages/rust-curse-native/src/compiler/codegen) are mainly used for documentation, so developers can see what each part of the generated code looks like.
-4. [UI tests](packages/rust-curse-native/tests/ui) prevent regressions for historical issues.
+1. [E2E tests](packages/rustier/tests/e2e) are the main corpus of tests, written in TypeScript.
+2. [Property-based tests](packages/rustier-native/tests/proptests.rs) generate random Rust programs and check that the expected bindings are produced and the generated Rust code passes `cargo check`.
+3. [Snapshot tests](packages/rustier-native/src/compiler/codegen) are mainly used for documentation, so developers can see what each part of the generated code looks like.
+4. [UI tests](packages/rustier-native/tests/ui) prevent regressions for historical issues.
 
 ## AI
 
-The project is primarily written by hand, with some AI help here and there. The notable exception is [source map code generation](packages/rust-curse-native/src/compiler/codegen/sourcemap.rs), which was mostly written by AI.
+The project is primarily written by hand, with some AI help here and there. The notable exception is [source map code generation](packages/rustier-native/src/compiler/codegen/sourcemap.rs), which was mostly written by AI.
 
 The main reason for writing it by hand is that even frontier LLMs struggle to maintain an extensible compiler architecture over time, and the initial attempts to implement this project using AI failed. This may change in the future, however.
 

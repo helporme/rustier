@@ -1,0 +1,42 @@
+---
+source: src/compiler/codegen/ts/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Local;
+/// Stores primitive and Rust-backed values.
+pub struct Record {
+    /// A writable numeric value.
+    pub number: i32,
+    /// A value that cannot be replaced from JavaScript.
+    pub local: Local,
+}
+```
+
+# Compiled
+
+```ts
+/** Stores primitive and Rust-backed values. */
+export class Record {
+	/** A writable numeric value. */
+	public get number(): number;
+	public set number(
+		value: number
+	);
+	/** A value that cannot be replaced from JavaScript. */
+	public get local(): Local;
+	private __rustier_brand: never;
+	private constructor();
+}
+
+export declare namespace Record {
+	export type Plain = {
+		/** A writable numeric value. */
+		number: number;
+		/** A value that cannot be replaced from JavaScript. */
+		readonly local: Local;
+	};
+}
+```

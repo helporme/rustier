@@ -1,0 +1,155 @@
+---
+source: src/compiler/codegen/ts/class_templates.rs
+expression: snapshot
+---
+# Source
+
+```rust
+///A generic wrapper.
+#[derive(Clone)]
+pub struct Wrap<T>(pub T);
+impl<T> Wrap<T> {
+    ///Constructs a wrapper.
+    pub fn new(value: T) -> Self {
+        Self(value)
+    }
+    pub fn identity(value: T) -> T {
+        value
+    }
+}
+impl Wrap<u32> {
+    pub fn number_only(&self) -> bool {
+        true
+    }
+}
+pub fn consume(number: &Wrap<u32>, string: &Wrap<String>, nested: &Wrap<Wrap<u32>>) {}
+```
+
+# Compiled
+
+```ts
+export function consume(
+	number: Wrap.Coerce<"u32">,
+	string: Wrap.Coerce<"String">,
+	nested: Wrap.Coerce<Wrap.Class<"u32">>,
+): void;
+
+declare class _4_WrapGP3_u32E {
+	public get [0](): number;
+	public set [0](
+		value: number
+	);
+	/** Constructs a wrapper. */
+	static new(
+		value: number,
+	): Wrap<"u32">;
+	static identity(
+		value: number,
+	): number;
+	number_only(): boolean;
+	static of(
+		value: Wrap.Coerce<"u32">
+	): Wrap<"u32">;
+	private __rustier_brand: never;
+	/** Constructs a wrapper. */
+	constructor(
+		value: number,
+	);
+}
+
+declare class _4_WrapGP6_StringE {
+	public get [0](): string;
+	public set [0](
+		value: string
+	);
+	/** Constructs a wrapper. */
+	static new(
+		value: string,
+	): Wrap<"String">;
+	static identity(
+		value: string,
+	): string;
+	static of(
+		value: Wrap.Coerce<"String">
+	): Wrap<"String">;
+	private __rustier_brand: never;
+	/** Constructs a wrapper. */
+	constructor(
+		value: string,
+	);
+}
+
+declare class _4_WrapGS10_test_crate__4_WrapGP3_u32EE {
+	public get [0](): Wrap<"u32">;
+	public set [0](
+		value: Wrap.Coerce<"u32">
+	);
+	/** Constructs a wrapper. */
+	static new(
+		value: Wrap.Coerce<"u32">,
+	): Wrap<Wrap.Class<"u32">>;
+	static identity(
+		value: Wrap.Coerce<"u32">,
+	): Wrap<"u32">;
+	static of(
+		value: Wrap.Coerce<Wrap.Class<"u32">>
+	): Wrap<Wrap.Class<"u32">>;
+	private __rustier_brand: never;
+	/** Constructs a wrapper. */
+	constructor(
+		value: Wrap.Coerce<"u32">,
+	);
+}
+
+/** A generic wrapper. */
+export type Wrap<T> =
+	T extends "u32" ? _4_WrapGP3_u32E :
+	T extends "String" ? _4_WrapGP6_StringE :
+	T extends Wrap.Class<"u32"> ? _4_WrapGS10_test_crate__4_WrapGP3_u32EE :
+	never;
+
+export declare namespace Wrap {
+	export type Class<T> =
+		T extends "u32" ? typeof _4_WrapGP3_u32E :
+		T extends "String" ? typeof _4_WrapGP6_StringE :
+		T extends Wrap.Class<"u32"> ? typeof _4_WrapGS10_test_crate__4_WrapGP3_u32EE :
+		never;
+
+	export type Plain<T extends "u32" | "String" | Wrap.Class<"u32">> =
+		T extends "u32" ?
+			{
+				[0]: number;
+			} :
+		T extends "String" ?
+			{
+				[0]: string;
+			} :
+		T extends Wrap.Class<"u32"> ?
+			{
+				[0]: Wrap<"u32">;
+			} :
+		never;
+
+	export type Coerce<T extends "u32" | "String" | Wrap.Class<"u32">> =
+		T extends "u32" ?
+			{
+				[0]: number;
+			} :
+		T extends "String" ?
+			{
+				[0]: string;
+			} :
+		T extends Wrap.Class<"u32"> ?
+			{
+				[0]: Wrap.Coerce<"u32">;
+			} :
+		never;
+}
+
+/** A generic wrapper. */
+export function Wrap<Args extends ["u32"] | ["String"] | [Wrap.Class<"u32">]>(
+	...args: Args
+): Wrap.Class<Args[0]>;
+
+export {};
+```

@@ -1,8 +1,8 @@
 import { defineConfig } from "tsdown";
-import rustCurse from "rust-curse/tsdown";
+import rustier from "rustier/tsdown";
 
 export default defineConfig({
-  plugins: [rustCurse({ target: "node" })],
+  plugins: [rustier({ target: "node" })],
   dts: true,
   exports: true,
 });

@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "rootDirs": ["./", ".rust-curse/types"],
+    "rootDirs": ["./", ".rustier/types"],
     "moduleResolution": "bundler",
     "module": "Preserve",
   },
-  "include": ["src/**/*", ".rust-curse/types/**/*", ".rust-curse/ambient.d.ts"],
+  "include": ["src/**/*", ".rustier/types/**/*", ".rustier/ambient.d.ts"],
 }
