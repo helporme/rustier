@@ -10,10 +10,8 @@ An experimental Rust-JavaScript interop tool for generating JS/TS bindings for a
 - Has great diagnostics!
 
 ## Installation
-To conviniently add Rust curse to existing project or create a new project run:
-```sh
-npx rust-curse init
-```
+
+The package is not yet published to npm. Clone the repository locally, navigate to an example project under `examples/`, and run `pnpm run rebuild`, followed by `pnpm dev`, to try it out.
 
 ## Examples
 
@@ -409,12 +407,10 @@ rust_curse::skipped_fn
 
 Rust Curse aims to make using Rust inside JS/TS projects as easy as possible. Its goal is to reduce glue code, configuration, and common performance and memory-management pitfalls.
 
-It works at a higher level than wasm-bindgen and NAPI-RS, which it uses underneath, and It generates bindings for supported Rust APIs, including concrete generic types, without requiring binding macros in your source code. Structs and enums are exposed through JS classes and typed variant access, so you can work with them from JS without managing Rust ownership directly.
+That said, Rust Curse works at a higher level than tools such as [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) and [NAPI-RS](https://github.com/napi-rs/napi-rs), which it uses underneath. If you need finer control over the FFI boundary or features Rust Curse does not yet support, consider using these projects directly:
 
-If you need finer control over the FFI boundary or features Rust Curse does not yet support, consider using these projects directly:
-
-- [NAPI-RS](https://github.com/napi-rs/napi-rs) for Node-API addons, with direct access to JS values, async support, and callbacks. It also supports WASI/WebAssembly.
-- [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) for Rust–WebAssembly interop, including calling JS APIs from Rust.
+- [NAPI-RS](https://github.com/napi-rs/napi-rs) for Node.js addons, with direct access to JS values, async support, and callbacks. It also supports WASI/WebAssembly.
+- [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) for Rust-WebAssembly interop, including calling JS APIs from Rust.
 - [Neon](https://github.com/neon-bindings/neon) for native Node.js addons with explicit bindings written using its Rust APIs.
 
 Rust Curse is experimental; check the [limitations](#limitations) against your project's needs.
