@@ -105,8 +105,10 @@ pub fn is_fluffy(sheep: &Sheep) -> bool {
     sheep.wool >= 5
 }
 
-// Sheep implements Clone, so it can be passed by value from JS.
-// Without Clone, this function is skipped with a diagnostic.
+// Sheep implements Clone, so it can be
+// passed by value from JS.
+// Without Clone, this function is skipped
+// with a diagnostic.
 pub fn shear(mut sheep: Sheep) -> Sheep {
     sheep.wool = 0;
 
@@ -117,15 +119,22 @@ pub fn shear(mut sheep: Sheep) -> Sheep {
 </td><td valign="top">
 
 ```ts
-import { adopt, is_fluffy, shear } from './sheep.rs'
+import {
+  adopt,
+  is_fluffy,
+  shear,
+} from './sheep.rs'
 
-// Keep this handle to work with the Sheep stored in Rust.
+// Keep this handle to work with the Sheep
+// stored in Rust.
 const sheep = adopt()
 
-// A reference parameter avoids cloning the Sheep.
+// A reference parameter avoids cloning
+// the Sheep.
 console.log(is_fluffy(sheep)) // true
 
-// You can keep using sheep: this by-value call receives a clone.
+// You can keep using sheep: this by-value
+// call receives a clone.
 const shorn = shear(sheep)
 console.log(shorn.wool) // 0
 console.log(sheep.wool) // 10 — still usable
@@ -172,27 +181,27 @@ impl Pasture {
 </td><td valign="top">
 
 ```ts
-import { Pasture, Sheep } from './pasture.rs'
+import { Pasture } from './pasture.rs'
 
 const pasture = new Pasture()
 
-// This refers to the Sheep inside pasture, so changes affect pasture.
+// This refers to the Sheep inside pasture,
+// so changes affect pasture.
 const old_sheep = pasture.sheep
 old_sheep.wool = 5
 console.log(pasture.sheep.wool) // 5
 
-pasture.sheep = { wool: 10 } // shorthand to `Sheep { wool: 10 }`
-
-// This changes only the JS object; the Rust Sheep still has wool = 10.
-replacement.wool = 20
+// shorthand to `Sheep { wool: 10 }`
+pasture.sheep = { wool: 10 }
 console.log(pasture.sheep.wool) // 10
 
-// This refers to the new field; old_sheep still holds the previous value.
+// This refers to the new field; old_sheep
+// still holds the previous value.
 const sheep = pasture.sheep
 console.log(old_sheep.wool) // 5
 console.log(sheep.wool)     // 10
 
-// The method mutates the Sheep stored inside pasture.
+// This mutates the Sheep in pasture.
 console.log(sheep.shear())      // 10
 console.log(pasture.sheep.wool) // 0
 console.log(old_sheep.wool)     // 5
@@ -208,19 +217,28 @@ Functions can accept generic structs and enums, but the function itself must not
 <td valign="top">
 
 ```rust
-pub fn item_count(items: Vec<String>) -> u32 {
+pub fn item_count(
+    items: Vec<String>,
+) -> u32 {
     items.len() as u32
 }
 
-pub fn total_items(bags: Vec<Vec<String>>) -> u32 {
-    bags.iter().map(|bag| bag.len() as u32).sum()
+pub fn total_items(
+    bags: Vec<Vec<String>>,
+) -> u32 {
+    bags.iter()
+        .map(|bag| bag.len() as u32)
+        .sum()
 }
 ```
 
 </td><td valign="top">
 
 ```ts
-import { item_count, total_items } from './inventory.rs'
+import {
+  item_count,
+  total_items,
+} from './inventory.rs'
 import { Vec } from '$rust/alloc/vec'
 
 const Strings = Vec('String')
@@ -248,7 +266,8 @@ pub struct Pouch<T> {
 }
 
 impl<T> Pouch<T> {
-    // For Pouch<String>, this becomes new(item: String).
+    // For Pouch<String>, this becomes
+    // new(item: String).
     pub fn new(item: T) -> Self {
         Self { item }
     }
@@ -258,7 +277,8 @@ impl<T> Pouch<T>
 where
     T: Clone,
 {
-    // Available for Pouch<String> because String implements Clone.
+    // Available for Pouch<String> because
+    // String implements Clone.
     pub fn duplicate(&self) -> Self {
         Self::new(self.item.clone())
     }
@@ -268,7 +288,8 @@ impl<T> Pouch<T>
 where
     T: Default,
 {
-    // For Pouch<String>, returns a String and leaves an empty string.
+    // For Pouch<String>, returns a String
+    // and leaves an empty string.
     pub fn take(&mut self) -> T {
         std::mem::take(&mut self.item)
     }
@@ -282,7 +303,10 @@ pub fn starter_pack() -> Pouch<String> {
 </td><td valign="top">
 
 ```ts
-import { Pouch, starter_pack } from './pouch.rs'
+import {
+  Pouch,
+  starter_pack,
+} from './pouch.rs'
 
 const pouch = starter_pack()
 const backup = pouch.duplicate()
@@ -292,7 +316,9 @@ console.log(pouch.item)     // ""
 console.log(backup.item)    // healing potion
 
 const StringPouch = Pouch('String')
-const snacks = new StringPouch('dried mushrooms')
+const snacks = new StringPouch(
+  'dried mushrooms',
+)
 console.log(snacks.take()) // dried mushrooms
 ```
 
@@ -311,8 +337,14 @@ pub struct Point {
 }
 
 impl Point {
-    pub fn distance_to(&self, other: &Point) -> f64 {
-        (self.x - other.x).hypot(self.y - other.y)
+    pub fn distance_to(
+        &self,
+        other: &Point,
+    ) -> f64 {
+        let dx = self.x - other.x;
+        let dy = self.y - other.y;
+
+        dx.hypot(dy)
     }
 }
 ```
@@ -326,7 +358,9 @@ const camp = Point.of({ x: 0, y: 0 })
 const pond = Point.of({ x: 3, y: 4 })
 
 console.log(camp.distance_to(pond)) // 5
-console.log(camp.distance_to({ x: 3, y: 4 })) // 5
+console.log(
+  camp.distance_to({ x: 3, y: 4 }),
+) // 5
 console.log(Point.of(camp) === camp) // true
 ```
 
@@ -348,7 +382,8 @@ pub async fn summon() -> String {
 ```text
 rust_curse::skipped_fn
 
-  ⚠ the function "example::summon::summon" cannot be exported to JS
+  ⚠ the function "example::summon::summon"
+    cannot be exported to JS
    ╭─[1:1]
  1 │ ╭─▶ pub async fn summon() -> String {
  2 │ │       "A slime appears!".to_owned()
@@ -359,7 +394,8 @@ rust_curse::skipped_fn
   │     ⚠ async functions are not supported
   ╰─▶ rust_curse::unsupported_type
 
-        ⚠ unsupported type: impl Future<Output = String>
+        ⚠ unsupported type:
+          impl Future<Output = String>
 ```
 
 </td></tr></tbody></table>
@@ -427,7 +463,7 @@ All of the above is covered by the following testing strategies, in order of imp
 
 ## AI
 
-The project is primarily written by hand, with some AI help here and there. The notable exception is [source map code generation](packages/rust-curse-native/src/compiler/codegen/sourcemap), which was mostly written by AI.
+The project is primarily written by hand, with some AI help here and there. The notable exception is [source map code generation](packages/rust-curse-native/src/compiler/codegen/sourcemap.rs), which was mostly written by AI.
 
 The main reason for writing it by hand is that even frontier LLMs struggle to maintain an extensible compiler architecture over time, and the initial attempts to implement this project using AI failed. This may change in the future, however.
 
