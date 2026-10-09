@@ -414,12 +414,6 @@ pub(super) enum FunctionLowerCause {
     )]
     NonClonableMovedParam { name: String, type_fqn: String },
     #[error("functions cannot return borrowed values")]
-    #[diagnostic(
-        code(rustier::borrowed_return),
-        help(
-            "return owned values, including inside ADTs; cloning an ADT containing references does not remove its borrows"
-        ),
-        severity(Warning)
-    )]
+    #[diagnostic(code(rustier::borrowed_return), severity(Warning))]
     BorrowedReturn,
 }
