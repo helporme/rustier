@@ -1,0 +1,15 @@
+{
+  "name": "tsdown-project",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch"
+  },
+  "devDependencies": {
+    "tsdown": "^0.22.0",
+    "typescript": "^6.0.2"
+  }
+}
