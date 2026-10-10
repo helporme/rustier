@@ -1,8 +1,12 @@
 [package]
 name = "rustier"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2024"
-publish = false
+description = "Import Rust code in JavaScript and TypeScript builds."
+license = "MIT"
+license-file = "../../LICENSE"
+repository = "https://github.com/helporme/rustier"
+readme = "../../README.md"
 
 [lib]
 crate-type = ["cdylib", "lib"]
