@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::{
     compiler::{
@@ -68,11 +68,17 @@ impl<'a> BridgeCrate<'a> {
     ///
     /// Doesn't do anything until executed.
     pub fn sync(self, db: &'a dyn Db) -> BridgeCrateSync {
+        let runtime_path = cfg!(feature = "local-runtime").then_some(Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../rustier-rt"
+        )));
+
         let manifest = Manifest {
             name: self.name(),
             source_package_name: &self.project(db).cfg(db).package_name,
             source_crate_name: self.project(db).src_crate(db).name(db),
             source_package_path: self.project(db).root_dir(db),
+            runtime_path,
             platform: self.platform(),
         };
 

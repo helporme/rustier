@@ -2578,6 +2578,7 @@ dependencies = [
  "ra_ap_test_fixture",
  "ra_ap_vfs",
  "rustdoc-types",
+ "rustier-rt",
  "salsa",
  "serde",
  "serde_json",
@@ -2588,6 +2589,10 @@ dependencies = [
  "tracing-subscriber",
  "triomphe",
 ]
+
+[[package]]
+name = "rustier-rt"
+version = "0.0.1"
 
 [[package]]
 name = "rustix"

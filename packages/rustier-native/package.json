@@ -7,7 +7,8 @@
   "main": "rustier.js",
   "scripts": {
     "build:release": "napi build --manifest-path ./Cargo.toml --platform --release --esm --js rustier.js --dts rustier.d.ts --output-dir . --features napi-binding",
-    "build": "napi build --manifest-path ./Cargo.toml --platform --esm --js rustier.js --dts rustier.d.ts --output-dir . --features napi-binding"
+    "build:release:local": "napi build --manifest-path ./Cargo.toml --platform --release --esm --js rustier.js --dts rustier.d.ts --output-dir . --features napi-binding,local-runtime",
+    "build": "napi build --manifest-path ./Cargo.toml --platform --esm --js rustier.js --dts rustier.d.ts --output-dir . --features napi-binding,local-runtime"
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.6.2"

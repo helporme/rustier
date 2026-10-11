@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use crate::compiler::codegen::{
-    fragment::{FragmentOnce, FragmentPrint, frag, fragment},
+    fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment},
     shim::Platform,
 };
 
@@ -19,6 +19,9 @@ pub struct Manifest<'a> {
     /// Source package directory, absolute or relative to the generated
     /// manifest.
     pub source_package_path: &'a Path,
+    /// Optional runtime crate path used when developing Rustier.
+    /// If omitted, the runtime dependency is resolved from crates.io.
+    pub runtime_path: Option<&'a Path>,
     /// The platform.
     pub platform: Platform,
 }
@@ -74,13 +77,26 @@ impl Manifest<'_> {
     }
 
     fn deps(&self) -> Option<impl FragmentOnce> {
-        Some(fragment(move |p| match self.platform {
-            Platform::Wasm => frag!({ r#"wasm-bindgen = "0.2""# }).apply(p),
-            Platform::Node => frag!(
-                {r#"napi = { version = "3", features = ["napi10"] }"#}@
-                {r#"napi-derive = { version = "3" }"#}
+        Some(fragment(move |p| {
+            frag!(
+                { "rustier-rt = { version = " }{doubles(("=", rustier_rt::VERSION))}
             )
-            .apply(p),
+            .apply(p);
+
+            if let Some(path) = self.runtime_path {
+                frag!(,~path~=~{toml_string(path.to_string_lossy().as_ref())}).apply(p);
+            }
+
+            frag!({ " }\n" }).apply(p);
+
+            match self.platform {
+                Platform::Wasm => frag!({ r#"wasm-bindgen = "0.2""# }).apply(p),
+                Platform::Node => frag!(
+                    {r#"napi = { version = "3", features = ["napi10"] }"#}@
+                    {r#"napi-derive = { version = "3" }"#}
+                )
+                .apply(p),
+            }
         }))
     }
 
@@ -116,6 +132,7 @@ mod tests {
             source_package_name: "source-package",
             source_crate_name: "source_crate",
             source_package_path: Path::new("../source"),
+            runtime_path: None,
             platform: platform.into(),
         }
         .render()
@@ -138,6 +155,7 @@ mod tests {
                 "crate-type = [\"cdylib\", \"rlib\"]\n\n",
                 "[dependencies]\n",
                 "\"source_crate\" = { package = \"source-package\", path = \"../source\" }\n",
+                "rustier-rt = { version = \"=0.0.1\" }\n",
                 "napi = { version = \"3\", features = [\"napi10\"] }\n",
                 "napi-derive = { version = \"3\" }\n\n",
                 "[build-dependencies]\n",

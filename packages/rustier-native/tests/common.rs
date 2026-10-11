@@ -246,6 +246,10 @@ fn write_generated_crate(
         source_package_name: "test-source",
         source_crate_name: SOURCE_CRATE_NAME,
         source_package_path: source_dir,
+        runtime_path: Some(Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../rustier-rt"
+        ))),
         platform: platform.into(),
     };
     fs::write(generated_dir.join("Cargo.toml"), manifest.render())
