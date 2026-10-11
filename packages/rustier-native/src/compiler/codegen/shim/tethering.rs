@@ -155,21 +155,16 @@ pub fn compile_tethering_prelude(platform: Platform) -> impl FragmentOnce {
 
         pub type AccessResult<T> = ~{access_result};@@
 
-        /// Borrows a tethered value or returns a platform-specific aliasing error.@
         pub fn try_borrow<T>(value: &RefCell<T>) -> AccessResult<std::cell::Ref<'_, T>>~{{
             value.try_borrow().map_err(|_|~{borrow_error})
         }}@@
 
-        /// Mutably borrows a tethered value or returns a platform-specific aliasing error.@
         pub fn try_borrow_mut<T>(value: &RefCell<T>) -> AccessResult<std::cell::RefMut<'_, T>>~{{
             value.try_borrow_mut().map_err(|_|~{borrow_mut_error})
         }}@@
 
-        /// Provides object-safe access to a potentially projected value.@
         pub trait Accessor<T>~{{
-            /// Invokes `f` with shared access to the value.@
             fn access_dyn(&self, f: &mut dyn FnMut(&T) -> AccessResult<()>) -> AccessResult<()>;@
-            /// Invokes `f` with exclusive access to the value.@
             fn access_mut_dyn(&self, f: &mut dyn FnMut(&mut T) -> AccessResult<()>) -> AccessResult<()>;
         }}@@
 
@@ -186,9 +181,7 @@ pub fn compile_tethering_prelude(platform: Platform) -> impl FragmentOnce {
     );
 
     let accessor_ext = frag!(
-        /// Adds allocation-free one-shot callbacks to every accessor.@
         pub trait AccessorExt<T>: Accessor<T>~{{
-            /// Invokes `f` exactly once when shared access succeeds.@
             fn access<R, F>(&self, f: F) -> AccessResult<R>@
             where@
                 F: FnOnce(&T) -> AccessResult<R>,@
@@ -202,7 +195,6 @@ pub fn compile_tethering_prelude(platform: Platform) -> impl FragmentOnce {
                 Ok(result.unwrap())
             }}@@
 
-            /// Invokes `f` exactly once when exclusive access succeeds.@
             fn access_mut<R, F>(&self, f: F) -> AccessResult<R>@
             where@
                 F: FnOnce(&mut T) -> AccessResult<R>,@
@@ -570,7 +562,6 @@ impl<'a, GetRefExpr, GetMutExpr> TetheringStructField<'a, GetRefExpr, GetMutExpr
                 pub fn get_{self.name}(
                     self: &std::rc::Rc<Self>,@
                 ) -> __tethering::AccessResult<std::rc::Rc<{tethered_name()}>>~{{
-                    // Try to access the field first so we can return early if it's invalid
                     self.access(|parent|~{{
                         {validate_get_ref_expr}?;@
                         Ok(())
@@ -609,7 +600,6 @@ impl<'a, GetRefExpr, GetMutExpr> TetheringStructField<'a, GetRefExpr, GetMutExpr
 
             frag!(
                 pub fn set_{self.name}(&self, value: ~{source_type}) -> __tethering::AccessResult<()>~{{
-                    // Try to access the field first so we can return early if it's invalid
                     self.access_mut(|src|~{{
                         {validate_get_mut_expr}?;@
                         Ok(())
