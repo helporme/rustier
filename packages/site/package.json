@@ -24,6 +24,7 @@
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.19.0",
 		"globals": "^17.6.0",
+		"monaco-editor-core": "0.57.0",
 		"prettier": "^3.8.3",
 		"prettier-plugin-svelte": "^4.1.0",
 		"prettier-plugin-tailwindcss": "^0.8.0",
@@ -35,7 +36,20 @@
 		"vite": "^8.3.0"
 	},
 	"imports": {
-		"#lib": "./src/lib/index.js",
-		"#lib/*": "./src/lib/*"
+		"#lib": "./src/lib/index.ts",
+		"#lib/assets/*": "./src/lib/assets/*",
+		"#lib/*.svelte": "./src/lib/*.svelte",
+		"#lib/ui/components/*": "./src/lib/ui/components/*/index.ts",
+		"#lib/*": "./src/lib/*.ts"
+	},
+	"dependencies": {
+		"@fontsource/anonymous-pro": "^5.3.0",
+		"@shikijs/monaco": "^4.5.0",
+		"bits-ui": "^2.19.5",
+		"clsx": "^2.1.1",
+		"monaco-editor": "^0.57.0",
+		"shiki": "^4.5.0",
+		"tailwind-merge": "^3.7.0",
+		"tailwind-variants": "^3.3.1"
 	}
 }

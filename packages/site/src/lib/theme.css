@@ -1,0 +1,118 @@
+@theme static {
+	--font-sans:
+		'Anonymous Pro', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono',
+		'Courier New', monospace;
+	--font-mono: var(--font-sans);
+
+	--color-*: initial;
+
+	--color-surface: light-dark(hsl(310 4% 97%), hsl(310 4% 8%));
+	--color-surface-dim: hsl(from var(--color-surface) h s calc(l - 3));
+	--color-surface-dimest: light-dark(
+		hsl(from var(--color-surface) h s calc(l - 6)),
+		hsl(from var(--color-surface) h s calc(l - 5))
+	);
+	--color-surface-bright: light-dark(
+		hsl(from var(--color-surface) h s calc(l + 1)),
+		hsl(from var(--color-surface) h s calc(l + 3))
+	);
+	--color-surface-brightest: light-dark(
+		hsl(from var(--color-surface) h s calc(l + 2)),
+		hsl(from var(--color-surface) h s calc(l + 6))
+	);
+	--color-on-surface: light-dark(#332d2a, #f2ebe7);
+	--color-on-surface-alt: light-dark(#625b57, #bfb4ae);
+	--color-selection: var(--color-surface-dim);
+
+	--color-red: light-dark(#a62b22, #ee8e82);
+	--color-red-container: light-dark(
+		hsl(from var(--color-red) h calc(s * 0.5) 90),
+		hsl(from var(--color-red) h calc(s * 0.5) 22)
+	);
+	--color-on-red: light-dark(#fff6f2, #35110c);
+	--color-on-red-container: light-dark(
+		hsl(from var(--color-red) h s calc(l - 10)),
+		hsl(from var(--color-red) h s calc(l + 10))
+	);
+
+	--color-green: light-dark(#176c3d, #77cc99);
+	--color-green-container: light-dark(
+		hsl(from var(--color-green) h calc(s * 0.5) 90),
+		hsl(from var(--color-green) h calc(s * 0.5) 22)
+	);
+	--color-on-green: light-dark(#f2fff3, #082c19);
+	--color-on-green-container: light-dark(
+		hsl(from var(--color-green) h s calc(l - 10)),
+		hsl(from var(--color-green) h s calc(l + 10))
+	);
+
+	--color-yellow: light-dark(#715500, #ddc66e);
+	--color-yellow-container: light-dark(
+		hsl(from var(--color-yellow) h calc(s * 0.5) 90),
+		hsl(from var(--color-yellow) h calc(s * 0.5) 22)
+	);
+	--color-on-yellow: light-dark(#fff9df, #2e2303);
+	--color-on-yellow-container: light-dark(
+		hsl(from var(--color-yellow) h s calc(l - 10)),
+		hsl(from var(--color-yellow) h s calc(l + 10))
+	);
+
+	--color-blue: light-dark(#00658f, #72c5ea);
+	--color-blue-container: light-dark(
+		hsl(from var(--color-blue) h calc(s * 0.5) 90),
+		hsl(from var(--color-blue) h calc(s * 0.5) 22)
+	);
+	--color-on-blue: light-dark(#f2fbff, #082935);
+	--color-on-blue-container: light-dark(
+		hsl(from var(--color-blue) h s calc(l - 10)),
+		hsl(from var(--color-blue) h s calc(l + 10))
+	);
+
+	--color-magenta: light-dark(#82476f, #dca0c9);
+	--color-magenta-container: light-dark(
+		hsl(from var(--color-magenta) h calc(s * 0.5) 90),
+		hsl(from var(--color-magenta) h calc(s * 0.5) 22)
+	);
+	--color-on-magenta: light-dark(#fff5fc, #321128);
+	--color-on-magenta-container: light-dark(
+		hsl(from var(--color-magenta) h s calc(l - 10)),
+		hsl(from var(--color-magenta) h s calc(l + 10))
+	);
+
+	--color-primary: var(--color-magenta);
+	--color-primary-container: var(--color-magenta-container);
+	--color-on-primary: var(--color-on-magenta);
+	--color-on-primary-container: var(--color-on-magenta-container);
+
+	--color-cyan: light-dark(#006873, #72d1d1);
+	--color-cyan-container: light-dark(
+		hsl(from var(--color-cyan) h calc(s * 0.5) 90),
+		hsl(from var(--color-cyan) h calc(s * 0.5) 22)
+	);
+	--color-on-cyan: light-dark(#efffff, #092c2c);
+	--color-on-cyan-container: light-dark(
+		hsl(from var(--color-cyan) h s calc(l - 10)),
+		hsl(from var(--color-cyan) h s calc(l + 10))
+	);
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+	color-scheme: light dark;
+	background-color: var(--color-surface);
+	color: var(--color-on-surface);
+	font-size: 100%;
+	line-height: 1.5;
+	letter-spacing: -0.3px;
+	font-variant-ligatures: none;
+}
+
+.dark {
+	color-scheme: dark;
+}
+
+::selection {
+	background-color: var(--color-selection);
+	color: var(--color-on-surface);
+}
