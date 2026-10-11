@@ -1,20 +1,18 @@
 import { expect, it } from 'vitest'
 import { make_receiver_new, NamedReturn, NoArgs, WrongReturn } from './test.rs'
 
-it('maps zero-argument new returning Self to a constructor', () => {
+it('exposes zero-argument new returning Self as a constructor and static method', () => {
   const value = new NoArgs()
 
   expect(value.works()).toBe(true)
-  expect((NoArgs as unknown as Record<string, unknown>).new).toBeUndefined()
+  expect(NoArgs.new().works()).toBe(true)
 })
 
-it('maps argument-taking new with a named self return to a constructor', () => {
+it('exposes argument-taking new with a named self return as a constructor and static method', () => {
   const value = new NamedReturn(42)
 
   expect(value.value()).toBe(42)
-  expect(
-    (NamedReturn as unknown as Record<string, unknown>).new,
-  ).toBeUndefined()
+  expect(NamedReturn.new(21).value()).toBe(21)
 })
 
 it('keeps a receiver-taking new as an instance method', () => {
