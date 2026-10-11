@@ -46,7 +46,7 @@ Source map:
     "consume",
     "constructor"
   ],
-  "mappings": "AAAAA,aAAWA;;ACCPC,QAAOA;;;AAKPC,CAAOA;AAGPC,CAAOA;;;AAGPC,CAAOA;AAGPC,GAAOA;ADfXL,QAAWA;;;;;;;AAAXA,yBAAWA;AAAXA,aAAWA;;AAAXA,aAAWA"
+  "mappings": "AAAAA,aACWA;;ACAPC,QACOA;;;AAIPC,CAAOA;AAGPC,CAAOA;;;AAGPC,CAAOA;AAGPC,GAAOA;ADfXL,QACWA;;;;;;;AADXA,yBACWA;AADXA,aACWA;;AADXA,aACWA"
 }
 
 Mappings:
@@ -63,7 +63,7 @@ Mappings:
         generated_line: 0,
         generated_column: 13,
         source: "lib.rs",
-        original_line: 0,
+        original_line: 1,
         original_column: 11,
         name: "Counter",
     },
@@ -79,7 +79,7 @@ Mappings:
         generated_line: 2,
         generated_column: 8,
         source: "counter_methods.rs",
-        original_line: 1,
+        original_line: 2,
         original_column: 11,
         name: "create",
     },
@@ -159,7 +159,7 @@ Mappings:
         generated_line: 11,
         generated_column: 8,
         source: "lib.rs",
-        original_line: 0,
+        original_line: 1,
         original_column: 11,
         name: "Counter",
     },
@@ -175,7 +175,7 @@ Mappings:
         generated_line: 18,
         generated_column: 25,
         source: "lib.rs",
-        original_line: 0,
+        original_line: 1,
         original_column: 11,
         name: "Counter",
     },
@@ -191,7 +191,7 @@ Mappings:
         generated_line: 19,
         generated_column: 13,
         source: "lib.rs",
-        original_line: 0,
+        original_line: 1,
         original_column: 11,
         name: "Counter",
     },
@@ -207,7 +207,7 @@ Mappings:
         generated_line: 21,
         generated_column: 13,
         source: "lib.rs",
-        original_line: 0,
+        original_line: 1,
         original_column: 11,
         name: "Counter",
     },

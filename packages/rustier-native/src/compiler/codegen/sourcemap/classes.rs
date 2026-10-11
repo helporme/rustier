@@ -634,6 +634,10 @@ pub(super) fn declaration_mappings(
     original_name_column: usize,
     name: &str,
 ) -> [Mapping; 2] {
+    let (name_line, name_column) = original
+        .name
+        .unwrap_or((original.line, original_name_column));
+
     [
         Mapping {
             generated_line,
@@ -647,8 +651,8 @@ pub(super) fn declaration_mappings(
             generated_line,
             generated_column: generated_name_column,
             source: original.source.clone(),
-            original_line: original.line,
-            original_column: original_name_column,
+            original_line: name_line,
+            original_column: name_column,
             name: name.to_owned(),
         },
     ]

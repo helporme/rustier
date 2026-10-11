@@ -2,7 +2,8 @@
 	"extends": "$app/tsconfig",
 	"compilerOptions": {
 		"strict": true,
-		"types": ["$app/types", "node"]
+		"types": ["$app/types", "node"],
+		"rootDirs": [".", ".svelte-kit/types", ".rustier/types"]
 	},
-	"include": ["src", "vite.config.ts"]
+	"include": ["src", "vite.config.ts", ".rustier/types", ".rustier/ambient.d.ts"]
 }

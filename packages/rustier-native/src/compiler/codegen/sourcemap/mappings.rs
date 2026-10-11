@@ -2,6 +2,8 @@
 
 use std::collections::BTreeMap;
 
+use ra_ap_syntax::{AstNode, SourceFile, ast};
+
 use crate::compiler::{db::Db, ir::rust::Span};
 
 /// A single source map mapping before source and name indexes are assigned.
@@ -26,6 +28,7 @@ pub(super) struct OriginalLocation {
     pub source: String,
     pub line: usize,
     pub column: usize,
+    pub name: Option<(usize, usize)>,
 }
 
 /// Resolves the beginning of an IR span into a source-map location.
@@ -35,7 +38,29 @@ pub(super) fn original_location(db: &dyn Db, span: &Span) -> OriginalLocation {
     let line = prefix.bytes().filter(|byte| *byte == b'\n').count();
     let column = prefix
         .rsplit_once('\n')
-        .map_or(prefix.len(), |(_, line)| line.len());
+        .map_or(prefix, |(_, line)| line)
+        .encode_utf16()
+        .count();
+
+    let parsed = SourceFile::parse(&source, ra_ap_edition::Edition::CURRENT);
+    let name = parsed
+        .tree()
+        .syntax()
+        .descendants()
+        .filter_map(ast::Name::cast)
+        .map(|name| usize::from(name.syntax().text_range().start()))
+        .find(|offset| *offset >= span.offset && *offset < span.offset + span.length)
+        .map(|offset| {
+            let prefix = &source[..offset];
+            let line = prefix.bytes().filter(|byte| *byte == b'\n').count();
+            let column = prefix
+                .rsplit_once('\n')
+                .map_or(prefix, |(_, line)| line)
+                .encode_utf16()
+                .count();
+
+            (line, column)
+        });
 
     OriginalLocation {
         source: span
@@ -45,6 +70,7 @@ pub(super) fn original_location(db: &dyn Db, span: &Span) -> OriginalLocation {
             .replace(std::path::MAIN_SEPARATOR, "/"),
         line,
         column,
+        name,
     }
 }
 

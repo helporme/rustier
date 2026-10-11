@@ -52,6 +52,8 @@ impl Diag {
     pub fn render(&self, theme: Theme) -> Result<String, std::fmt::Error> {
         let handler = match theme {
             Theme::Unicode => GraphicalReportHandler::new(),
+            Theme::UnicodeAnsi => GraphicalReportHandler::new_themed(GraphicalTheme::unicode())
+                .without_syntax_highlighting(),
             Theme::UnicodeNoColor => {
                 GraphicalReportHandler::new_themed(GraphicalTheme::unicode_nocolor())
                     .without_syntax_highlighting()
@@ -94,5 +96,6 @@ impl<T: Diagnostic + RefUnwindSafe + Send + Sync + 'static> DiagAccumulateExt fo
 #[derive(Clone, Copy)]
 pub enum Theme {
     Unicode,
+    UnicodeAnsi,
     UnicodeNoColor,
 }

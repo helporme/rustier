@@ -13,7 +13,7 @@ crate-type = ["cdylib", "lib"]
 
 [features]
 default = []
-napi-binding = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
+napi-binding = ["dep:napi", "dep:napi-derive", "dep:napi-build", "dep:ra_ap_load-cargo", "dep:ra_ap_project_model"]
 local-runtime = []
 
 [dependencies]
@@ -30,23 +30,28 @@ ra_ap_syntax = "=0.0.345"
 ra_ap_vfs = "=0.0.345"
 ra_ap_cfg = "=0.0.345"
 ra_ap_edition = "=0.0.345"
-ra_ap_load-cargo = "=0.0.345"
-ra_ap_project_model = "=0.0.345"
+ra_ap_load-cargo = { version = "=0.0.345", optional = true }
+ra_ap_project_model = { version = "=0.0.345", optional = true }
 triomphe = "0.1"
 glob = "0.3"
 indoc = "2"
 thiserror = "2.0.18"
 cargo_metadata = "0.23.1"
-miette = { version = "7", features = ["fancy", "syntect-highlighter"] }
+miette = { version = "7", features = ["fancy-no-syscall"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", default-features = false, features = ["registry"] }
 anyhow = "1.0.104"
 itertools = "0.15.0"
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+miette = { version = "7", features = ["fancy", "syntect-highlighter"] }
+
 [build-dependencies]
 napi-build = { version = "2", optional = true }
 
 [dev-dependencies]
+ra_ap_load-cargo = "=0.0.345"
+ra_ap_project_model = "=0.0.345"
 datatest-stable = "0.3"
 tempfile = "3.27.0"
 insta = { version = "1", features = ["filters"] }

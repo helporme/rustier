@@ -2,6 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import rustier from 'rustier/vite';
 
 export default defineConfig({
 	plugins: [
@@ -19,6 +20,11 @@ export default defineConfig({
 			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
 			adapter: adapter(),
 			experimental: { remoteFunctions: true }
-		})
-	]
+		}),
+		rustier()
+	],
+	worker: {
+		plugins: () => [rustier(j)],
+		format: 'es'
+	}
 });

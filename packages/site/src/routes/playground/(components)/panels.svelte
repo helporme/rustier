@@ -2,11 +2,24 @@
 	import type { Snippet } from 'svelte';
 	import { cn } from '#lib/ui/utils';
 
-	let { rust, typescript, results }: { rust: Snippet; typescript: Snippet; results: Snippet } =
-		$props();
+	let {
+		rust,
+		typescript,
+		results
+	}: {
+		rust: Snippet<[() => void]>;
+		typescript: Snippet<[() => void]>;
+		results: Snippet<[() => void]>;
+	} = $props();
 
 	let active = $state('rust');
 	let secondary = $state('typescript');
+
+	function selectPane(pane: 'rust' | 'typescript' | 'results') {
+		active = pane;
+
+		if (pane !== 'rust') secondary = pane;
+	}
 </script>
 
 <div
@@ -19,7 +32,7 @@
 				active === 'rust' ? 'bg-surface' : 'bg-transparent'
 			)}
 			aria-controls="rust-pane"
-			onclick={() => (active = 'rust')}>lib.rs</button
+			onclick={() => selectPane('rust')}>lib.rs</button
 		>
 		<div class="flex min-w-0 @min-[72rem]:contents">
 			<button
@@ -29,10 +42,7 @@
 					secondary === 'typescript' ? '@min-[48rem]:bg-surface-dim' : '@min-[48rem]:bg-transparent'
 				)}
 				aria-controls="typescript-pane"
-				onclick={() => {
-					active = 'typescript';
-					secondary = 'typescript';
-				}}>index.ts</button
+				onclick={() => selectPane('typescript')}>index.ts</button
 			>
 			<button
 				class={cn(
@@ -41,10 +51,7 @@
 					secondary === 'results' ? '@min-[48rem]:bg-surface-dim' : '@min-[48rem]:bg-transparent'
 				)}
 				aria-controls="results-pane"
-				onclick={() => {
-					active = 'results';
-					secondary = 'results';
-				}}>Results</button
+				onclick={() => selectPane('results')}>Results</button
 			>
 		</div>
 	</div>
@@ -57,7 +64,7 @@
 			)}
 			aria-label="lib.rs"
 		>
-			{@render rust()}
+			{@render rust(() => selectPane('rust'))}
 		</section>
 		<section
 			id="typescript-pane"
@@ -68,7 +75,7 @@
 			)}
 			aria-label="index.ts"
 		>
-			{@render typescript()}
+			{@render typescript(() => selectPane('typescript'))}
 		</section>
 		<section
 			id="results-pane"
@@ -79,7 +86,7 @@
 			)}
 			aria-label="Results"
 		>
-			{@render results()}
+			{@render results(() => selectPane('results'))}
 		</section>
 	</div>
 </div>

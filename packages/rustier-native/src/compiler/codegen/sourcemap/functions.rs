@@ -19,6 +19,9 @@ impl<'db> DecalFreeFunction<'db> {
             return Vec::new();
         };
         let original = original_location(db, span);
+        let (name_line, name_column) = original
+            .name
+            .unwrap_or((original.line, original.column + "pub fn ".len()));
         let name = self.name(db).to_owned();
 
         vec![
@@ -34,8 +37,8 @@ impl<'db> DecalFreeFunction<'db> {
                 generated_line,
                 generated_column: "export function ".len(),
                 source: original.source,
-                original_line: original.line,
-                original_column: original.column + "pub fn ".len(),
+                original_line: name_line,
+                original_column: name_column,
                 name,
             },
         ]
