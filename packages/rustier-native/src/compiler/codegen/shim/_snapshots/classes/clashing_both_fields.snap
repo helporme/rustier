@@ -49,13 +49,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn get___Plain1__field(&self) -> __tethering::AccessResult<u32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Plain1 { field: __field, .. } => Ok(__field),
+                test_crate::Test::Plain1 { field: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        napi::Error::from_reason(
-                            "cannot access inactive enum variant field `test_crate::Test::Plain1::field`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Plain1",
+                            field: "field",
+                        }
+                            .into(),
                     )
                 }
             }?
@@ -65,13 +69,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn set___Plain1__field(&self, value: u32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Plain1 { field: __field, .. } => Ok(__field),
+                test_crate::Test::Plain1 { field: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        napi::Error::from_reason(
-                            "cannot access inactive enum variant field `test_crate::Test::Plain1::field`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Plain1",
+                            field: "field",
+                        }
+                            .into(),
                     )
                 }
             }? = value;
@@ -81,13 +89,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn get___Plain1__field2(&self) -> __tethering::AccessResult<i32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Plain1 { field2: __field, .. } => Ok(__field),
+                test_crate::Test::Plain1 { field2: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        napi::Error::from_reason(
-                            "cannot access inactive enum variant field `test_crate::Test::Plain1::field2`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Plain1",
+                            field: "field2",
+                        }
+                            .into(),
                     )
                 }
             }?
@@ -97,13 +109,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn set___Plain1__field2(&self, value: i32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Plain1 { field2: __field, .. } => Ok(__field),
+                test_crate::Test::Plain1 { field2: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        napi::Error::from_reason(
-                            "cannot access inactive enum variant field `test_crate::Test::Plain1::field2`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Plain1",
+                            field: "field2",
+                        }
+                            .into(),
                     )
                 }
             }? = value;
@@ -113,13 +129,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn get___Plain2__field(&self) -> __tethering::AccessResult<i32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Plain2 { field: __field, .. } => Ok(__field),
+                test_crate::Test::Plain2 { field: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        napi::Error::from_reason(
-                            "cannot access inactive enum variant field `test_crate::Test::Plain2::field`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Plain2",
+                            field: "field",
+                        }
+                            .into(),
                     )
                 }
             }?
@@ -129,13 +149,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn set___Plain2__field(&self, value: i32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Plain2 { field: __field, .. } => Ok(__field),
+                test_crate::Test::Plain2 { field: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        napi::Error::from_reason(
-                            "cannot access inactive enum variant field `test_crate::Test::Plain2::field`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Plain2",
+                            field: "field",
+                        }
+                            .into(),
                     )
                 }
             }? = value;
@@ -145,13 +169,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn get___Tuple1__0(&self) -> __tethering::AccessResult<u32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Tuple1 { 0: __field, .. } => Ok(__field),
+                test_crate::Test::Tuple1 { 0: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        napi::Error::from_reason(
-                            "cannot access inactive enum variant field `test_crate::Test::Tuple1::0`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Tuple1",
+                            field: "0",
+                        }
+                            .into(),
                     )
                 }
             }?
@@ -161,13 +189,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn set___Tuple1__0(&self, value: u32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Tuple1 { 0: __field, .. } => Ok(__field),
+                test_crate::Test::Tuple1 { 0: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        napi::Error::from_reason(
-                            "cannot access inactive enum variant field `test_crate::Test::Tuple1::0`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Tuple1",
+                            field: "0",
+                        }
+                            .into(),
                     )
                 }
             }? = value;
@@ -177,13 +209,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn get___Tuple2__0(&self) -> __tethering::AccessResult<i32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Tuple2 { 0: __field, .. } => Ok(__field),
+                test_crate::Test::Tuple2 { 0: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        napi::Error::from_reason(
-                            "cannot access inactive enum variant field `test_crate::Test::Tuple2::0`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Tuple2",
+                            field: "0",
+                        }
+                            .into(),
                     )
                 }
             }?
@@ -193,13 +229,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn set___Tuple2__0(&self, value: i32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Tuple2 { 0: __field, .. } => Ok(__field),
+                test_crate::Test::Tuple2 { 0: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        napi::Error::from_reason(
-                            "cannot access inactive enum variant field `test_crate::Test::Tuple2::0`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Tuple2",
+                            field: "0",
+                        }
+                            .into(),
                     )
                 }
             }? = value;
@@ -248,13 +288,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn get___Plain1__field(&self) -> __tethering::AccessResult<u32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Plain1 { field: __field, .. } => Ok(__field),
+                test_crate::Test::Plain1 { field: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        JsValue::from_str(
-                            &"cannot access inactive enum variant field `test_crate::Test::Plain1::field`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Plain1",
+                            field: "field",
+                        }
+                            .into(),
                     )
                 }
             }?
@@ -264,13 +308,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn set___Plain1__field(&self, value: u32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Plain1 { field: __field, .. } => Ok(__field),
+                test_crate::Test::Plain1 { field: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        JsValue::from_str(
-                            &"cannot access inactive enum variant field `test_crate::Test::Plain1::field`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Plain1",
+                            field: "field",
+                        }
+                            .into(),
                     )
                 }
             }? = value;
@@ -280,13 +328,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn get___Plain1__field2(&self) -> __tethering::AccessResult<i32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Plain1 { field2: __field, .. } => Ok(__field),
+                test_crate::Test::Plain1 { field2: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        JsValue::from_str(
-                            &"cannot access inactive enum variant field `test_crate::Test::Plain1::field2`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Plain1",
+                            field: "field2",
+                        }
+                            .into(),
                     )
                 }
             }?
@@ -296,13 +348,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn set___Plain1__field2(&self, value: i32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Plain1 { field2: __field, .. } => Ok(__field),
+                test_crate::Test::Plain1 { field2: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        JsValue::from_str(
-                            &"cannot access inactive enum variant field `test_crate::Test::Plain1::field2`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Plain1",
+                            field: "field2",
+                        }
+                            .into(),
                     )
                 }
             }? = value;
@@ -312,13 +368,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn get___Plain2__field(&self) -> __tethering::AccessResult<i32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Plain2 { field: __field, .. } => Ok(__field),
+                test_crate::Test::Plain2 { field: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        JsValue::from_str(
-                            &"cannot access inactive enum variant field `test_crate::Test::Plain2::field`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Plain2",
+                            field: "field",
+                        }
+                            .into(),
                     )
                 }
             }?
@@ -328,13 +388,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn set___Plain2__field(&self, value: i32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Plain2 { field: __field, .. } => Ok(__field),
+                test_crate::Test::Plain2 { field: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        JsValue::from_str(
-                            &"cannot access inactive enum variant field `test_crate::Test::Plain2::field`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Plain2",
+                            field: "field",
+                        }
+                            .into(),
                     )
                 }
             }? = value;
@@ -344,13 +408,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn get___Tuple1__0(&self) -> __tethering::AccessResult<u32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Tuple1 { 0: __field, .. } => Ok(__field),
+                test_crate::Test::Tuple1 { 0: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        JsValue::from_str(
-                            &"cannot access inactive enum variant field `test_crate::Test::Tuple1::0`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Tuple1",
+                            field: "0",
+                        }
+                            .into(),
                     )
                 }
             }?
@@ -360,13 +428,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn set___Tuple1__0(&self, value: u32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Tuple1 { 0: __field, .. } => Ok(__field),
+                test_crate::Test::Tuple1 { 0: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        JsValue::from_str(
-                            &"cannot access inactive enum variant field `test_crate::Test::Tuple1::0`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Tuple1",
+                            field: "0",
+                        }
+                            .into(),
                     )
                 }
             }? = value;
@@ -376,13 +448,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn get___Tuple2__0(&self) -> __tethering::AccessResult<i32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Tuple2 { 0: __field, .. } => Ok(__field),
+                test_crate::Test::Tuple2 { 0: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        JsValue::from_str(
-                            &"cannot access inactive enum variant field `test_crate::Test::Tuple2::0`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Tuple2",
+                            field: "0",
+                        }
+                            .into(),
                     )
                 }
             }?
@@ -392,13 +468,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn set___Tuple2__0(&self, value: i32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Tuple2 { 0: __field, .. } => Ok(__field),
+                test_crate::Test::Tuple2 { 0: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        JsValue::from_str(
-                            &"cannot access inactive enum variant field `test_crate::Test::Tuple2::0`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Tuple2",
+                            field: "0",
+                        }
+                            .into(),
                     )
                 }
             }? = value;

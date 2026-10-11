@@ -12,117 +12,8 @@ impl Platform {
     pub fn prelude(&self) -> &str {
         match self {
             Platform::Wasm { .. } => "use wasm_bindgen::prelude::*;\n",
-            Platform::Node => "use napi::{Unknown, ValueType};\nuse napi_derive::napi;\n",
+            Platform::Node => "use napi_derive::napi;\n",
         }
-    }
-
-    /// The Rust boundary type used for incoming JavaScript values.
-    pub fn js_type(&self) -> &'static str {
-        match self {
-            Platform::Wasm { .. } => "JsValue",
-            Platform::Node => "Unknown<'_>",
-        }
-    }
-
-    /// A platform-specific error expression for casting a JavaScript
-    /// value to `bool`.
-    pub fn cast_to_bool(self) -> impl FragmentOnce {
-        self.cast_to_primitive("bool", "as_bool", "Boolean")
-    }
-
-    /// A platform-specific error expression for casting a JavaScript
-    /// value to `String`.
-    pub fn cast_to_string(self) -> impl FragmentOnce {
-        self.cast_to_primitive("String", "as_string", "String")
-    }
-
-    /// A platform-specific error expression for casting a JavaScript
-    /// value to `f64`.
-    pub fn cast_to_f64(self) -> impl FragmentOnce {
-        self.cast_to_primitive("f64", "as_f64", "Number")
-    }
-
-    /// A string-error expression for the legacy JavaScript-to-`bool`
-    /// cast function.
-    pub fn cast_to_bool_with_string_error(self) -> impl FragmentOnce {
-        self.cast_to_primitive_with_string_error("bool", "as_bool", "Boolean")
-    }
-
-    /// A string-error expression for the legacy JavaScript-to-`String`
-    /// cast function.
-    pub fn cast_to_string_with_string_error(self) -> impl FragmentOnce {
-        self.cast_to_primitive_with_string_error("String", "as_string", "String")
-    }
-
-    /// A string-error expression for the legacy JavaScript-to-`f64`
-    /// cast function.
-    pub fn cast_to_f64_with_string_error(self) -> impl FragmentOnce {
-        self.cast_to_primitive_with_string_error("f64", "as_f64", "Number")
-    }
-
-    fn cast_to_primitive(
-        self,
-        rust_type: &'static str,
-        wasm_accessor: &'static str,
-        node_value_type: &'static str,
-    ) -> impl FragmentOnce {
-        let wasm_error = self.error(frag!(
-            { doubles(("cannot cast value to ", rust_type)) }.to_string()
-        ));
-        let node_get_type_error = self.error("err.reason");
-        let node_cast_error = self.error(frag!(
-            { doubles(("cannot cast value to ", rust_type)) }.to_string()
-        ));
-        let node_value_type_error = self.error(frag!(
-            { doubles(("cannot cast value to ", rust_type)) }.to_string()
-        ));
-
-        fragment(move |p| {
-            match self {
-            Platform::Wasm { .. } => frag!(
-                value.{wasm_accessor}().ok_or_else(||~{wasm_error})
-            )
-            .apply(p),
-            Platform::Node => frag!(
-                if value.get_type().map_err(|err|~{node_get_type_error})?~ == ValueType::{node_value_type}~{{
-                    unsafe~{{
-                        value.cast::<{rust_type}>()
-                    }}.map_err(|_|~{node_cast_error})
-                }}@
-                else~{{
-                    Err({node_value_type_error})
-                }}
-            )
-            .apply(p),
-        }
-        })
-    }
-
-    fn cast_to_primitive_with_string_error(
-        self,
-        rust_type: &'static str,
-        wasm_accessor: &'static str,
-        node_value_type: &'static str,
-    ) -> impl FragmentOnce {
-        fragment(move |p| match self {
-            Platform::Wasm { .. } => frag!(
-                value.{wasm_accessor}().ok_or_else(||~
-                    {doubles(("cannot cast value to ", rust_type))}.to_string()
-                )
-            )
-            .apply(p),
-            Platform::Node => frag!(
-                if value.get_type().map_err(|err| err.reason)?~ == ValueType::{node_value_type}~{{
-                    unsafe~{{
-                        value.cast::<{rust_type}>()
-                    }}.map_err(|_|~{doubles(("cannot cast value to ", rust_type))}.to_string())
-                }}@
-                else~{{
-                    Err({doubles(("cannot cast value to ", rust_type))}.to_string())
-                }}
-            )
-            .apply(p),
-        })
     }
 
     pub fn header_renamed<'a>(self, name: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
@@ -179,11 +70,11 @@ impl Platform {
         })
     }
 
-    /// An error expression with the given reason.
-    pub fn error<'a>(self, reason: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
+    /// Converts a runtime error into this platform's boundary error.
+    pub fn error<'a>(self, error: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         fragment(move |p| match self {
-            Platform::Wasm { .. } => frag!(JsValue::from_str(&{ reason })).apply(p),
-            Platform::Node => frag!(napi::Error::from_reason({ reason })).apply(p),
+            Platform::Wasm { .. } => frag!(JsValue::from_str(&{ error }.to_string())).apply(p),
+            Platform::Node => frag!(napi::Error::from_reason({ error }.to_string())).apply(p),
         })
     }
 

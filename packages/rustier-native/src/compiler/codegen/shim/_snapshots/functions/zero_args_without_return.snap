@@ -13,8 +13,11 @@ pub fn test_fn() {}
 ```rust
 #[napi(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn() -> napi::Result<()> {
-    test_crate::test_fn();
-    Ok(())
+    let result = (|| -> rustier_rt::CallResult<()> {
+        test_crate::test_fn();
+        Ok(())
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 ```
 
@@ -22,7 +25,10 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> napi::Result<()> {
 ```rust
 #[wasm_bindgen(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn() -> Result<(), JsValue> {
-    test_crate::test_fn();
-    Ok(())
+    let result = (|| -> rustier_rt::CallResult<()> {
+        test_crate::test_fn();
+        Ok(())
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
 }
 ```

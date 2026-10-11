@@ -20,20 +20,23 @@ pub fn __fn__coe__10_test_crate__6_Record(
     _0: f64,
     _1: bool,
 ) -> napi::Result<__plain__10_test_crate__6_Record> {
-    Ok(__plain__10_test_crate__6_Record {
-        src: std::rc::Rc::new(
-            __tethering__10_test_crate__6_Record::new_owned({
-                let _0 = _0;
-                {
-                    let _1 = _1;
-                    test_crate::Record {
-                        number: _0,
-                        flag: _1,
+    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__6_Record> {
+        Ok(__plain__10_test_crate__6_Record {
+            src: std::rc::Rc::new(
+                __tethering__10_test_crate__6_Record::new_owned({
+                    let _0 = _0;
+                    {
+                        let _1 = _1;
+                        test_crate::Record {
+                            number: _0,
+                            flag: _1,
+                        }
                     }
-                }
-            }),
-        ),
-    })
+                }),
+            ),
+        })
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 ```
 
@@ -44,19 +47,22 @@ pub fn __fn__coe__10_test_crate__6_Record(
     _0: f64,
     _1: bool,
 ) -> Result<__plain__10_test_crate__6_Record, JsValue> {
-    Ok(__plain__10_test_crate__6_Record {
-        src: std::rc::Rc::new(
-            __tethering__10_test_crate__6_Record::new_owned({
-                let _0 = _0;
-                {
-                    let _1 = _1;
-                    test_crate::Record {
-                        number: _0,
-                        flag: _1,
+    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__6_Record> {
+        Ok(__plain__10_test_crate__6_Record {
+            src: std::rc::Rc::new(
+                __tethering__10_test_crate__6_Record::new_owned({
+                    let _0 = _0;
+                    {
+                        let _1 = _1;
+                        test_crate::Record {
+                            number: _0,
+                            flag: _1,
+                        }
                     }
-                }
-            }),
-        ),
-    })
+                }),
+            ),
+        })
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
 }
 ```

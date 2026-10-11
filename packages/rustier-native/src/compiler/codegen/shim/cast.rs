@@ -9,7 +9,7 @@ mod tethering;
 use crate::compiler::{
     codegen::{
         fragment::{FragmentOnce, Printer, frag, fragment},
-        shim::{Platform, tethering::TetheringStructType},
+        shim::tethering::TetheringStructType,
     },
     db::Db,
     ir::{
@@ -175,9 +175,7 @@ pub trait CastRenderer<'db>: Copy + 'db {
 }
 
 #[derive(Clone, Copy)]
-pub struct ShimCastRenderer {
-    pub platform: Platform,
-}
+pub struct ShimCastRenderer;
 
 impl<'db> CastRenderer<'db> for ShimCastRenderer {
     fn render<InExpr, OutVar, Continue>(
@@ -234,8 +232,7 @@ impl<'db> CastRenderer<'db> for ShimCastRenderer {
 
                 // numbers
                 (Shim(ShimType::f64), Rust(target)) => {
-                    numbers::render_f64_to_type(db, self.platform, target, in_expr, output)
-                        .apply(printer);
+                    numbers::render_f64_to_type(db, target, in_expr, output).apply(printer);
                 }
                 (Rust(source), Shim(ShimType::f64)) => {
                     numbers::render_type_to_f64(db, source, in_expr, output).apply(printer);
@@ -431,7 +428,7 @@ mod tests {
                             frag!(
                                 fn cast(input: ())~{{
                                     {$crate::compiler::codegen::shim::cast::CastRenderer::render_stmt(
-                                        $crate::compiler::codegen::shim::cast::ShimCastRenderer { platform: __platform },
+                                        $crate::compiler::codegen::shim::cast::ShimCastRenderer,
                                         __db,
                                         $crate::compiler::codegen::shim::cast::Cast {
                                             from: __from,
@@ -825,7 +822,7 @@ mod tests {
     #[test]
     fn identity_casts_ignore_origins_but_preserve_mutability() {
         use super::{CastRenderer, CastType, ShimCastRenderer};
-        use crate::compiler::codegen::{fragment::FragmentPrint as _, shim::Platform};
+        use crate::compiler::codegen::fragment::FragmentPrint as _;
 
         let db = crate::test_db! {
             #[derive(Clone)]
@@ -848,9 +845,8 @@ mod tests {
             let second = CastType::Rust(type_at(1));
             assert_ne!(first, second);
             assert!(!first.same_representation(&db, CastType::Rust(type_at(2))));
-            let renderer = ShimCastRenderer {
-                platform: Platform::Node,
-            };
+            let renderer = ShimCastRenderer;
+
             assert_eq!(
                 renderer.render_expr(&db, first, second, "input").print(),
                 "input"

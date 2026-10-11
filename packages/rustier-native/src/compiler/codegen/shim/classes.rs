@@ -52,7 +52,7 @@ impl<'db> ClassFragment<'db> {
             .class
             .fields(self.db)
             .iter()
-            .map(|field| field.get_tethered_field(self.db, self.platform));
+            .map(|field| field.get_tethered_field(self.db));
 
         let tethering_struct = TetheringStruct {
             source_type: self.class.src_type(self.db),
@@ -82,18 +82,15 @@ impl<'db> ShimField<'db> {
     fn get_tethered_field(
         &self,
         db: &'db dyn Db,
-        platform: Platform,
     ) -> TetheredField<'db, ShimFieldExpr<'_, 'db>, ShimFieldExpr<'_, 'db>> {
         let ref_field_expr = ShimFieldExpr {
             field: self,
             db,
-            platform,
             is_mutable: false,
         };
         let mut_field_expr = ShimFieldExpr {
             field: self,
             db,
-            platform,
             is_mutable: true,
         };
 
@@ -121,7 +118,6 @@ impl<'db> ShimField<'db> {
 struct ShimFieldExpr<'field, 'db> {
     field: &'field ShimField<'db>,
     db: &'db dyn Db,
-    platform: Platform,
     is_mutable: bool,
 }
 
@@ -130,7 +126,6 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
         let Self {
             field,
             db,
-            platform,
             is_mutable,
         } = *self;
 
@@ -149,21 +144,14 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
             FieldParent::Variant(variant) => {
                 let enum_ = src_field.target(db);
                 let field_name = src_field.declaration(db).name(db);
-                let reason = frag!(
-                    {
-                        doubles((
-                            "cannot access inactive enum variant field `",
-                            enum_.display(db),
-                            "::",
-                            variant.name(db),
-                            "::",
-                            field_name,
-                            "`",
-                        ))
-                    }
-                    .to_string()
+                let error = frag!(
+                    rustier_rt::EnumError::InactiveField~{{
+                        type_name: {doubles(enum_.display(db))},@
+                        variant: {doubles(variant.name(db))},@
+                        field: {doubles(field_name)},
+                    }}.into()
                 );
-                let error = platform.error(reason);
+
                 let TypeKind::Enum(enum_type) = enum_.kind(db) else {
                     unreachable!("variant fields belong to enums")
                 };
@@ -173,8 +161,8 @@ impl<'field, 'db: 'field> FieldExpr for ShimFieldExpr<'field, 'db> {
 
                 frag!(
                     match ~{source}~{{
-                        {enum_name}::{variant_name}~{{ {field_name}: __field, .. }} => Ok(__field),@
-                        _ => Err({error}),
+                        {enum_name}::{variant_name}~{{ {field_name}: __field, .. }} => __tethering::AccessResult::Ok(__field),@
+                        _ => __tethering::AccessResult::Err({error}),
                     }}
                 )
                 .apply(p);

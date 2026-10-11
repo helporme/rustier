@@ -16,11 +16,14 @@ pub struct Unit;
 pub fn __fn__coe__10_test_crate__4_Unit() -> napi::Result<
     __plain__10_test_crate__4_Unit,
 > {
-    Ok(__plain__10_test_crate__4_Unit {
-        src: std::rc::Rc::new(
-            __tethering__10_test_crate__4_Unit::new_owned(test_crate::Unit),
-        ),
-    })
+    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__4_Unit> {
+        Ok(__plain__10_test_crate__4_Unit {
+            src: std::rc::Rc::new(
+                __tethering__10_test_crate__4_Unit::new_owned(test_crate::Unit),
+            ),
+        })
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 ```
 
@@ -31,10 +34,13 @@ pub fn __fn__coe__10_test_crate__4_Unit() -> Result<
     __plain__10_test_crate__4_Unit,
     JsValue,
 > {
-    Ok(__plain__10_test_crate__4_Unit {
-        src: std::rc::Rc::new(
-            __tethering__10_test_crate__4_Unit::new_owned(test_crate::Unit),
-        ),
-    })
+    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__4_Unit> {
+        Ok(__plain__10_test_crate__4_Unit {
+            src: std::rc::Rc::new(
+                __tethering__10_test_crate__4_Unit::new_owned(test_crate::Unit),
+            ),
+        })
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
 }
 ```

@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 643
 expression: snapshot
 ---
 # Source
@@ -19,23 +18,26 @@ pub fn __fn__setter__10_test_crate__4_Test__field(
     _0: &__plain__10_test_crate__4_Test,
     _1: f64,
 ) -> napi::Result<()> {
-    {
-        let value = cast
-            .from("Shim(f64)")
-            .to(
-                "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) })",
-            )
-            .an(_1);
-        cast.from(
-                "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) })",
-            )
-            .to(
-                "Tethered(TetheringStructType { source_type: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } })",
-            )
-            .an(_0)
-            .set_field(value)?;
-    }
-    Ok(())
+    let result = (|| -> rustier_rt::CallResult<()> {
+        {
+            let value = cast
+                .from("Shim(f64)")
+                .to(
+                    "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) })",
+                )
+                .an(_1);
+            cast.from(
+                    "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) })",
+                )
+                .to(
+                    "Tethered(TetheringStructType { source_type: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } })",
+                )
+                .an(_0)
+                .set_field(value)?;
+        }
+        Ok(())
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 ```
 
@@ -46,22 +48,25 @@ pub fn __fn__setter__10_test_crate__4_Test__field(
     _0: &__plain__10_test_crate__4_Test,
     _1: f64,
 ) -> Result<(), JsValue> {
-    {
-        let value = cast
-            .from("Shim(f64)")
-            .to(
-                "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) })",
-            )
-            .an(_1);
-        cast.from(
-                "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) })",
-            )
-            .to(
-                "Tethered(TetheringStructType { source_type: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } })",
-            )
-            .an(_0)
-            .set_field(value)?;
-    }
-    Ok(())
+    let result = (|| -> rustier_rt::CallResult<()> {
+        {
+            let value = cast
+                .from("Shim(f64)")
+                .to(
+                    "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) })",
+                )
+                .an(_1);
+            cast.from(
+                    "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) })",
+                )
+                .to(
+                    "Tethered(TetheringStructType { source_type: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } })",
+                )
+                .an(_0)
+                .set_field(value)?;
+        }
+        Ok(())
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
 }
 ```

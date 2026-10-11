@@ -16,13 +16,16 @@ pub struct EmptyTuple();
 pub fn __fn__coe__10_test_crate__10_EmptyTuple() -> napi::Result<
     __plain__10_test_crate__10_EmptyTuple,
 > {
-    Ok(__plain__10_test_crate__10_EmptyTuple {
-        src: std::rc::Rc::new(
-            __tethering__10_test_crate__10_EmptyTuple::new_owned(
-                test_crate::EmptyTuple(),
+    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__10_EmptyTuple> {
+        Ok(__plain__10_test_crate__10_EmptyTuple {
+            src: std::rc::Rc::new(
+                __tethering__10_test_crate__10_EmptyTuple::new_owned(
+                    test_crate::EmptyTuple(),
+                ),
             ),
-        ),
-    })
+        })
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 ```
 
@@ -33,12 +36,15 @@ pub fn __fn__coe__10_test_crate__10_EmptyTuple() -> Result<
     __plain__10_test_crate__10_EmptyTuple,
     JsValue,
 > {
-    Ok(__plain__10_test_crate__10_EmptyTuple {
-        src: std::rc::Rc::new(
-            __tethering__10_test_crate__10_EmptyTuple::new_owned(
-                test_crate::EmptyTuple(),
+    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__10_EmptyTuple> {
+        Ok(__plain__10_test_crate__10_EmptyTuple {
+            src: std::rc::Rc::new(
+                __tethering__10_test_crate__10_EmptyTuple::new_owned(
+                    test_crate::EmptyTuple(),
+                ),
             ),
-        ),
-    })
+        })
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
 }
 ```

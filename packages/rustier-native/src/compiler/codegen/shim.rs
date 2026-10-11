@@ -68,7 +68,7 @@ impl<'db> Shim<'db> {
             #![allow(unused_mut, dead_code, unused_imports, nonstandard_style, unreachable_patterns)]@@
             {alloc_import}
             {platform.prelude()}@@
-            {compile_tethering_prelude(platform)}@@
+            {compile_tethering_prelude()}@@
             {members}
         );
 

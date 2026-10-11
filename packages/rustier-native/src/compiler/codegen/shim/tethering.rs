@@ -129,38 +129,26 @@
 //! code generation, so they do not and should not depend on IR.
 
 use crate::compiler::{
-    codegen::{
-        fragment::{Fragment, FragmentOnce, doubles, frag, fragment, spaced},
-        shim::Platform,
-    },
+    codegen::fragment::{Fragment, FragmentOnce, frag, fragment, spaced},
     db::Db,
     ir::rust::Type,
 };
 
-/// Compiles the platform-specific supporting code used by generated tethering
-/// structs.
-pub fn compile_tethering_prelude(platform: Platform) -> impl FragmentOnce {
-    let access_result = platform.result_type("T");
-    let borrow_error = platform.error(frag!(
-        { doubles("cannot access a tethered value while it is mutably borrowed") }.to_string()
-    ));
-    let borrow_mut_error = platform.error(frag!(
-        { doubles("cannot mutably access a tethered value while it is borrowed") }.to_string()
-    ));
-
+/// Compiles the supporting code used by generated tethering structs.
+pub fn compile_tethering_prelude() -> impl FragmentOnce {
     let borrow_support = frag!(
         use super::*;@
         use std::cell::RefCell;@
         use std::rc::Rc;@@
 
-        pub type AccessResult<T> = ~{access_result};@@
+        pub type AccessResult<T> = rustier_rt::CallResult<T>;@@
 
-        pub fn try_borrow<T>(value: &RefCell<T>) -> AccessResult<std::cell::Ref<'_, T>>~{{
-            value.try_borrow().map_err(|_|~{borrow_error})
+        pub fn try_borrow<T>(value: &RefCell<T>) -> Result<std::cell::Ref<'_, T>, std::cell::BorrowError>~{{
+            value.try_borrow()
         }}@@
 
-        pub fn try_borrow_mut<T>(value: &RefCell<T>) -> AccessResult<std::cell::RefMut<'_, T>>~{{
-            value.try_borrow_mut().map_err(|_|~{borrow_mut_error})
+        pub fn try_borrow_mut<T>(value: &RefCell<T>) -> Result<std::cell::RefMut<'_, T>, std::cell::BorrowMutError>~{{
+            value.try_borrow_mut()
         }}@@
 
         pub trait Accessor<T>~{{
@@ -227,7 +215,7 @@ pub fn compile_tethering_prelude(platform: Platform) -> impl FragmentOnce {
             pub fn projected(accessor: Rc<dyn Accessor<T>>) -> Self~{{
                 SourceSlot(RefCell::new(Source::Projected(accessor)))
             }}@
-            pub fn replace_with_owned(&self, value: T) -> AccessResult<()>~{{
+            pub fn replace_with_owned(&self, value: T) -> Result<(), std::cell::BorrowMutError>~{{
                 *try_borrow_mut(&self.0)? = Source::Owned(value);@
                 Ok(())
             }}

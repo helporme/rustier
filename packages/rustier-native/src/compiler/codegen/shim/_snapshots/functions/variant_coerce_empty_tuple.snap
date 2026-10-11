@@ -18,11 +18,16 @@ pub enum Test {
 pub fn __fn__coe__10_test_crate__4_Test__10_EmptyTuple() -> napi::Result<
     __discr__10_test_crate__4_Test,
 > {
-    Ok(__discr__10_test_crate__4_Test {
-        src: std::rc::Rc::new(
-            __tethering__10_test_crate__4_Test::new_owned(test_crate::Test::EmptyTuple()),
-        ),
-    })
+    let result = (|| -> rustier_rt::CallResult<__discr__10_test_crate__4_Test> {
+        Ok(__discr__10_test_crate__4_Test {
+            src: std::rc::Rc::new(
+                __tethering__10_test_crate__4_Test::new_owned(
+                    test_crate::Test::EmptyTuple(),
+                ),
+            ),
+        })
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 ```
 
@@ -33,10 +38,15 @@ pub fn __fn__coe__10_test_crate__4_Test__10_EmptyTuple() -> Result<
     __discr__10_test_crate__4_Test,
     JsValue,
 > {
-    Ok(__discr__10_test_crate__4_Test {
-        src: std::rc::Rc::new(
-            __tethering__10_test_crate__4_Test::new_owned(test_crate::Test::EmptyTuple()),
-        ),
-    })
+    let result = (|| -> rustier_rt::CallResult<__discr__10_test_crate__4_Test> {
+        Ok(__discr__10_test_crate__4_Test {
+            src: std::rc::Rc::new(
+                __tethering__10_test_crate__4_Test::new_owned(
+                    test_crate::Test::EmptyTuple(),
+                ),
+            ),
+        })
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
 }
 ```

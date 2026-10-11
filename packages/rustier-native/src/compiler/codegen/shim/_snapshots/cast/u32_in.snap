@@ -17,9 +17,11 @@ fn cast(input: ()) {
             let value = input;
             if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64 {
                 return Err(
-                    napi::Error::from_reason(
-                        format!("cannot cast {value} to {type_name}"),
-                    ),
+                    rustier_rt::CastError {
+                        value,
+                        target: type_name,
+                    }
+                        .into(),
                 );
             }
             value as u32
@@ -38,7 +40,11 @@ fn cast(input: ()) {
             let value = input;
             if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64 {
                 return Err(
-                    JsValue::from_str(&format!("cannot cast {value} to {type_name}")),
+                    rustier_rt::CastError {
+                        value,
+                        target: type_name,
+                    }
+                        .into(),
                 );
             }
             value as u32

@@ -26,8 +26,7 @@ use crate::compiler::{
 impl<'db> ShimFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render(self, db: &'db dyn Db, platform: Platform) -> String {
-        self.render_with(db, platform, ShimCastRenderer { platform })
-            .print()
+        self.render_with(db, platform, ShimCastRenderer).print()
     }
 
     fn render_with<Renderer>(
@@ -140,21 +139,24 @@ where
         let platform = self.platform;
 
         let ret_type = self.function.ret_type(self.db);
-
-        let result_type = fragment(move |p| match ret_type {
-            Some(type_) => platform
-                .result_type(type_.render_type_decl(self.db))
-                .apply(p),
-
-            None => platform.result_type("()").apply(p),
-        });
+        let ok_type = || {
+            fragment(move |p| match ret_type {
+                Some(type_) => type_.render_type_decl(self.db).apply(p),
+                None => "()".apply(p),
+            })
+        };
+        let result_type = platform.result_type(ok_type());
 
         let symbol = self.function.symbol(self.db);
 
         frag!(
             {platform.header_renamed(symbol)}@
             pub fn ~{symbol}({self.render_params()})~ -> ~{result_type}~ {{
-                {self.render_body()}
+                let result = (|| -> rustier_rt::CallResult<{ok_type()}>~{{
+                    {self.render_body()}
+                }})();@@
+
+                result.map_err(|error| {platform.error("error")})
             }}
         )
     }
@@ -376,10 +378,7 @@ where
             }
 
             if src.def(self.db).is_non_exhaustive(self.db) {
-                let error = self.platform.error(frag!(
-                    "cannot discriminate an unknown non-exhaustive enum variant".to_string()
-                ));
-                frag!(_ => return Err({error}),).apply(p);
+                frag!(_ => return Err(rustier_rt::EnumError::UnknownVariant.into()),).apply(p);
             }
         });
 

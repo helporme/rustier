@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 674
 expression: snapshot
 ---
 # Source
@@ -22,24 +21,27 @@ impl Test {
 pub fn __fn__associated__10_test_crate__4_Test__5_owned(
     _0: &__plain__10_test_crate__4_Test,
 ) -> napi::Result<bool> {
-    Ok(
-        cast
-            .from(
-                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7c01)) }) })",
-            )
-            .to("Shim(bool)")
-            .an({
-                let _0 = cast
-                    .from(
-                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7c01)) }) } }) })",
-                    )
-                    .to(
-                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7c01)) }) })",
-                    )
-                    .an(_0);
-                test_crate::Test::owned(_0)
-            }),
-    )
+    let result = (|| -> rustier_rt::CallResult<bool> {
+        Ok(
+            cast
+                .from(
+                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7c01)) }) })",
+                )
+                .to("Shim(bool)")
+                .an({
+                    let _0 = cast
+                        .from(
+                            "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7c01)) }) } }) })",
+                        )
+                        .to(
+                            "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7c01)) }) })",
+                        )
+                        .an(_0);
+                    test_crate::Test::owned(_0)
+                }),
+        )
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 ```
 
@@ -49,23 +51,26 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
 pub fn __fn__associated__10_test_crate__4_Test__5_owned(
     _0: &__plain__10_test_crate__4_Test,
 ) -> Result<bool, JsValue> {
-    Ok(
-        cast
-            .from(
-                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7c01)) }) })",
-            )
-            .to("Shim(bool)")
-            .an({
-                let _0 = cast
-                    .from(
-                        "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7c01)) }) } }) })",
-                    )
-                    .to(
-                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7c01)) }) })",
-                    )
-                    .an(_0);
-                test_crate::Test::owned(_0)
-            }),
-    )
+    let result = (|| -> rustier_rt::CallResult<bool> {
+        Ok(
+            cast
+                .from(
+                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7c01)) }) })",
+                )
+                .to("Shim(bool)")
+                .an({
+                    let _0 = cast
+                        .from(
+                            "Shim(Class { is_borrowed: true, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7c01)) }) } }) })",
+                        )
+                        .to(
+                            "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7c01)) }) })",
+                        )
+                        .an(_0);
+                    test_crate::Test::owned(_0)
+                }),
+        )
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
 }
 ```

@@ -19,20 +19,23 @@ pub fn __fn__coe__10_test_crate__4_Test__6_Record(
     _0: String,
     _1: bool,
 ) -> napi::Result<__discr__10_test_crate__4_Test> {
-    Ok(__discr__10_test_crate__4_Test {
-        src: std::rc::Rc::new(
-            __tethering__10_test_crate__4_Test::new_owned({
-                let _0 = _0;
-                {
-                    let _1 = _1;
-                    test_crate::Test::Record {
-                        text: _0,
-                        flag: _1,
+    let result = (|| -> rustier_rt::CallResult<__discr__10_test_crate__4_Test> {
+        Ok(__discr__10_test_crate__4_Test {
+            src: std::rc::Rc::new(
+                __tethering__10_test_crate__4_Test::new_owned({
+                    let _0 = _0;
+                    {
+                        let _1 = _1;
+                        test_crate::Test::Record {
+                            text: _0,
+                            flag: _1,
+                        }
                     }
-                }
-            }),
-        ),
-    })
+                }),
+            ),
+        })
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 ```
 
@@ -43,19 +46,22 @@ pub fn __fn__coe__10_test_crate__4_Test__6_Record(
     _0: String,
     _1: bool,
 ) -> Result<__discr__10_test_crate__4_Test, JsValue> {
-    Ok(__discr__10_test_crate__4_Test {
-        src: std::rc::Rc::new(
-            __tethering__10_test_crate__4_Test::new_owned({
-                let _0 = _0;
-                {
-                    let _1 = _1;
-                    test_crate::Test::Record {
-                        text: _0,
-                        flag: _1,
+    let result = (|| -> rustier_rt::CallResult<__discr__10_test_crate__4_Test> {
+        Ok(__discr__10_test_crate__4_Test {
+            src: std::rc::Rc::new(
+                __tethering__10_test_crate__4_Test::new_owned({
+                    let _0 = _0;
+                    {
+                        let _1 = _1;
+                        test_crate::Test::Record {
+                            text: _0,
+                            flag: _1,
+                        }
                     }
-                }
-            }),
-        ),
-    })
+                }),
+            ),
+        })
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
 }
 ```

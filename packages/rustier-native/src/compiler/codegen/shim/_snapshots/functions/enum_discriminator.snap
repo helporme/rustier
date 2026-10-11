@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 651
 expression: snapshot
 ---
 # Source
@@ -20,24 +19,27 @@ pub enum Test {
 pub fn __fn__disc__10_test_crate__4_Test(
     _0: &__discr__10_test_crate__4_Test,
 ) -> napi::Result<f64> {
-    let result = cast
-        .from(
-            "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
-        )
-        .to(
-            "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } })",
-        )
-        .an(_0)
-        .access(|src| {
-            Ok(
-                match src {
-                    test_crate::Test::Unit { .. } => 0f64,
-                    test_crate::Test::Tuple { .. } => 1f64,
-                    test_crate::Test::Plain { .. } => 2f64,
-                },
+    let result = (|| -> rustier_rt::CallResult<f64> {
+        let result = cast
+            .from(
+                "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
             )
-        })?;
-    Ok(result)
+            .to(
+                "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } })",
+            )
+            .an(_0)
+            .access(|src| {
+                Ok(
+                    match src {
+                        test_crate::Test::Unit { .. } => 0f64,
+                        test_crate::Test::Tuple { .. } => 1f64,
+                        test_crate::Test::Plain { .. } => 2f64,
+                    },
+                )
+            })?;
+        Ok(result)
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 ```
 
@@ -47,23 +49,26 @@ pub fn __fn__disc__10_test_crate__4_Test(
 pub fn __fn__disc__10_test_crate__4_Test(
     _0: &__discr__10_test_crate__4_Test,
 ) -> Result<f64, JsValue> {
-    let result = cast
-        .from(
-            "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
-        )
-        .to(
-            "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } })",
-        )
-        .an(_0)
-        .access(|src| {
-            Ok(
-                match src {
-                    test_crate::Test::Unit { .. } => 0f64,
-                    test_crate::Test::Tuple { .. } => 1f64,
-                    test_crate::Test::Plain { .. } => 2f64,
-                },
+    let result = (|| -> rustier_rt::CallResult<f64> {
+        let result = cast
+            .from(
+                "Shim(Class { is_borrowed: true, inner: Discriminated(ShimClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
             )
-        })?;
-    Ok(result)
+            .to(
+                "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } })",
+            )
+            .an(_0)
+            .access(|src| {
+                Ok(
+                    match src {
+                        test_crate::Test::Unit { .. } => 0f64,
+                        test_crate::Test::Tuple { .. } => 1f64,
+                        test_crate::Test::Plain { .. } => 2f64,
+                    },
+                )
+            })?;
+        Ok(result)
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
 }
 ```

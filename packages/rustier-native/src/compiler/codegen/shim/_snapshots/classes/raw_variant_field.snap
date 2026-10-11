@@ -47,13 +47,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn get___Value__type(&self) -> __tethering::AccessResult<u32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Value { r#type: __field, .. } => Ok(__field),
+                test_crate::Test::Value { r#type: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        napi::Error::from_reason(
-                            "cannot access inactive enum variant field `test_crate::Test::Value::type`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Value",
+                            field: "type",
+                        }
+                            .into(),
                     )
                 }
             }?
@@ -63,13 +67,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn set___Value__type(&self, value: u32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Value { r#type: __field, .. } => Ok(__field),
+                test_crate::Test::Value { r#type: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        napi::Error::from_reason(
-                            "cannot access inactive enum variant field `test_crate::Test::Value::type`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Value",
+                            field: "type",
+                        }
+                            .into(),
                     )
                 }
             }? = value;
@@ -118,13 +126,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn get___Value__type(&self) -> __tethering::AccessResult<u32> {
         self.access(|src| Ok(
             match src {
-                test_crate::Test::Value { r#type: __field, .. } => Ok(__field),
+                test_crate::Test::Value { r#type: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        JsValue::from_str(
-                            &"cannot access inactive enum variant field `test_crate::Test::Value::type`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Value",
+                            field: "type",
+                        }
+                            .into(),
                     )
                 }
             }?
@@ -134,13 +146,17 @@ impl __tethering__10_test_crate__4_Test {
     pub fn set___Value__type(&self, value: u32) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
             *match src {
-                test_crate::Test::Value { r#type: __field, .. } => Ok(__field),
+                test_crate::Test::Value { r#type: __field, .. } => {
+                    __tethering::AccessResult::Ok(__field)
+                }
                 _ => {
-                    Err(
-                        JsValue::from_str(
-                            &"cannot access inactive enum variant field `test_crate::Test::Value::type`"
-                                .to_string(),
-                        ),
+                    __tethering::AccessResult::Err(
+                        rustier_rt::EnumError::InactiveField {
+                            type_name: "test_crate::Test",
+                            variant: "Value",
+                            field: "type",
+                        }
+                            .into(),
                     )
                 }
             }? = value;

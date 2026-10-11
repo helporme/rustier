@@ -19,17 +19,20 @@ fn cast(input: ()) {
                 if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64
                 {
                     return Err(
-                        napi::Error::from_reason(
-                            format!("cannot cast {value} to {type_name}"),
-                        ),
+                        rustier_rt::CastError {
+                            value,
+                            target: type_name,
+                        }
+                            .into(),
                     );
                 }
                 value as u32
             };
             char::from_u32(value)
-                .ok_or_else(|| napi::Error::from_reason(
-                    format!("cannot cast {value} to char"),
-                ))?
+                .ok_or(rustier_rt::CastError {
+                    value: value as f64,
+                    target: "char",
+                })?
         };
         let output = &__cast_owned_value;
         consume(output);
@@ -48,15 +51,20 @@ fn cast(input: ()) {
                 if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64
                 {
                     return Err(
-                        JsValue::from_str(&format!("cannot cast {value} to {type_name}")),
+                        rustier_rt::CastError {
+                            value,
+                            target: type_name,
+                        }
+                            .into(),
                     );
                 }
                 value as u32
             };
             char::from_u32(value)
-                .ok_or_else(|| JsValue::from_str(
-                    &format!("cannot cast {value} to char"),
-                ))?
+                .ok_or(rustier_rt::CastError {
+                    value: value as f64,
+                    target: "char",
+                })?
         };
         let output = &__cast_owned_value;
         consume(output);

@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 606
 expression: snapshot
 ---
 # Source
@@ -14,16 +13,19 @@ pub fn test_fn(_value: i32) {}
 ```rust
 #[napi(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn(_0: f64) -> napi::Result<()> {
-    {
-        let _0 = cast
-            .from("Shim(f64)")
-            .to(
-                "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
-            )
-            .an(_0);
-        test_crate::test_fn(_0)
-    };
-    Ok(())
+    let result = (|| -> rustier_rt::CallResult<()> {
+        {
+            let _0 = cast
+                .from("Shim(f64)")
+                .to(
+                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
+                )
+                .an(_0);
+            test_crate::test_fn(_0)
+        };
+        Ok(())
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 ```
 
@@ -31,15 +33,18 @@ pub fn __fn__free__10_test_crate__7_test_fn(_0: f64) -> napi::Result<()> {
 ```rust
 #[wasm_bindgen(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn(_0: f64) -> Result<(), JsValue> {
-    {
-        let _0 = cast
-            .from("Shim(f64)")
-            .to(
-                "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
-            )
-            .an(_0);
-        test_crate::test_fn(_0)
-    };
-    Ok(())
+    let result = (|| -> rustier_rt::CallResult<()> {
+        {
+            let _0 = cast
+                .from("Shim(f64)")
+                .to(
+                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
+                )
+                .an(_0);
+            test_crate::test_fn(_0)
+        };
+        Ok(())
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
 }
 ```

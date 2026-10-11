@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/shim/functions.rs
-assertion_line: 661
 expression: snapshot
 ---
 # Source
@@ -22,24 +21,27 @@ impl Test {
 pub fn __fn__associated__10_test_crate__4_Test__6_create(
     _0: f64,
 ) -> napi::Result<__plain__10_test_crate__4_Test> {
-    Ok(
-        cast
-            .from(
-                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
-            )
-            .to(
-                "Shim(Class { is_borrowed: false, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) } }) })",
-            )
-            .an({
-                let _0 = cast
-                    .from("Shim(f64)")
-                    .to(
-                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7401)) }, index: 0 } })",
-                    )
-                    .an(_0);
-                test_crate::Test::create(_0)
-            }),
-    )
+    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__4_Test> {
+        Ok(
+            cast
+                .from(
+                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                )
+                .to(
+                    "Shim(Class { is_borrowed: false, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) } }) })",
+                )
+                .an({
+                    let _0 = cast
+                        .from("Shim(f64)")
+                        .to(
+                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7401)) }, index: 0 } })",
+                        )
+                        .an(_0);
+                    test_crate::Test::create(_0)
+                }),
+        )
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 ```
 
@@ -49,23 +51,26 @@ pub fn __fn__associated__10_test_crate__4_Test__6_create(
 pub fn __fn__associated__10_test_crate__4_Test__6_create(
     _0: f64,
 ) -> Result<__plain__10_test_crate__4_Test, JsValue> {
-    Ok(
-        cast
-            .from(
-                "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
-            )
-            .to(
-                "Shim(Class { is_borrowed: false, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) } }) })",
-            )
-            .an({
-                let _0 = cast
-                    .from("Shim(f64)")
-                    .to(
-                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7401)) }, index: 0 } })",
-                    )
-                    .an(_0);
-                test_crate::Test::create(_0)
-            }),
-    )
+    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__4_Test> {
+        Ok(
+            cast
+                .from(
+                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                )
+                .to(
+                    "Shim(Class { is_borrowed: false, inner: Plain(ShimClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) } }) })",
+                )
+                .an({
+                    let _0 = cast
+                        .from("Shim(f64)")
+                        .to(
+                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7401)) }, index: 0 } })",
+                        )
+                        .an(_0);
+                    test_crate::Test::create(_0)
+                }),
+        )
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
 }
 ```
