@@ -1,10 +1,7 @@
 use itertools::Either;
 
 use crate::compiler::{
-    codegen::{
-        fragment::{FragmentPrint, frag, spaced},
-        shim::tethering::compile_tethering_prelude,
-    },
+    codegen::fragment::{FragmentPrint, frag, spaced},
     db::Db,
     ir::shim::{Shim, ShimClass, ShimFunction, ShimMember},
 };
@@ -68,7 +65,8 @@ impl<'db> Shim<'db> {
             #![allow(unused_mut, dead_code, unused_imports, nonstandard_style, unreachable_patterns)]@@
             {alloc_import}
             {platform.prelude()}@@
-            {compile_tethering_prelude()}@@
+            use rustier_rt::tethering as __tethering;@
+            use __tethering::{Accessor as _, AccessorExt as _};@@
             {members}
         );
 

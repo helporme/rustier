@@ -1,4 +1,5 @@
 mod error;
+pub mod tethering;
 
 pub use error::{CallError, CastError, EnumError};
 
