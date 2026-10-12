@@ -87,6 +87,7 @@ impl<'a> BridgeCrate<'a> {
         let lib = self
             .project(db)
             .reachable_interface(db)
+            .runtime(db)
             .render(db, self.platform())
             .clone();
 

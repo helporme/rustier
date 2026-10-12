@@ -25,17 +25,17 @@ pub fn __fn__associated__10_test_crate__4_Test__9_exclusive(
         {
             let _0 = cast
                 .from(
-                    "Interface(Class { is_borrowed: true, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: Dereferenced(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) }) } }) })",
+                    "Interface(Class { is_borrowed: true, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: Dereferenced(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) }) } }) })",
                 )
                 .to(
-                    "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                    "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
                 )
                 .an(_0);
             {
                 let _1 = cast
                     .from("Interface(f64)")
                     .to(
-                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7401)) }, index: 0 } })",
+                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
                     )
                     .an(_1);
                 test_crate::Test::exclusive(_0, _1)
@@ -58,17 +58,17 @@ pub fn __fn__associated__10_test_crate__4_Test__9_exclusive(
         {
             let _0 = cast
                 .from(
-                    "Interface(Class { is_borrowed: true, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: Dereferenced(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) }) } }) })",
+                    "Interface(Class { is_borrowed: true, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: Dereferenced(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) }) } }) })",
                 )
                 .to(
-                    "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                    "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
                 )
                 .an(_0);
             {
                 let _1 = cast
                     .from("Interface(f64)")
                     .to(
-                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7401)) }, index: 0 } })",
+                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
                     )
                     .an(_1);
                 test_crate::Test::exclusive(_0, _1)

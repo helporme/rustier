@@ -1,0 +1,380 @@
+//! Intermediate representation of the generated Rust runtime.
+//!
+//! It describes what the generated Rust code contains for an interface: the
+//! exported operations, including synthetic ones such as field accessors,
+//! discriminators and coerce functions, and their symbols.
+
+pub mod ext;
+
+use itertools::Either;
+
+use crate::compiler::{
+    db::Db,
+    ir::{
+        interface::{
+            InterClass, InterClassDiscriminated, InterClassDiscriminatedVariant, InterClassPlain,
+            InterField, InterFunctionAssociated, InterFunctionFree, InterParam, InterType,
+            Interface,
+        },
+        rust::{Type, TypeKind},
+    },
+};
+
+/// The runtime of a reachable interface API.
+#[salsa::interned(debug)]
+pub struct Runtime<'db> {
+    pub interface: Interface<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> Runtime<'db> {
+    /// All classes exported by the runtime.
+    #[salsa::tracked(returns(ref))]
+    pub fn classes(self, db: &'db dyn Db) -> Vec<RuntimeClass<'db>> {
+        self.interface(db)
+            .crates(db)
+            .flat_map(|crate_| crate_.all_modules(db))
+            .flat_map(|module| module.classes(db))
+            .map(|class| class.runtime(db))
+            .collect()
+    }
+
+    /// All functions exported by the runtime, including methods, field
+    /// accessors and other synthetic functions.
+    #[salsa::tracked(returns(ref))]
+    pub fn functions(self, db: &'db dyn Db) -> Vec<RuntimeFunction<'db>> {
+        self.interface(db)
+            .crates(db)
+            .flat_map(|crate_| crate_.all_modules(db))
+            .flat_map(|module| {
+                module.functions(db).map(RuntimeFunction::from).chain(
+                    module
+                        .classes(db)
+                        .flat_map(|class| class.runtime(db).functions(db)),
+                )
+            })
+            .collect()
+    }
+}
+
+/// A wrapper class exported by the runtime for an interface class.
+#[salsa::interned(debug)]
+pub struct RuntimeClass<'db> {
+    pub interface: InterClass<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> RuntimeClass<'db> {
+    /// The mangled unique symbol name of this class.
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        match self.interface(db) {
+            InterClass::Plain(class) => format!("__plain__{}", class.src(db).path(db).mangled(db)),
+            InterClass::Discriminated(class) => {
+                format!("__discr__{}", class.src(db).path(db).mangled(db))
+            }
+        }
+    }
+
+    // FIXME: remove
+    fn functions(self, db: &'db dyn Db) -> impl Iterator<Item = RuntimeFunction<'db>> + 'db {
+        let class = self.interface(db);
+
+        let methods = class.methods(db).iter().copied().map(RuntimeFunction::from);
+        let getters = class.fields(db).iter().map(|f| f.getter(db).into());
+        let setters = class
+            .fields(db)
+            .iter()
+            .filter_map(|f| f.setter(db).map(RuntimeFunction::from));
+
+        let synthetic = match class {
+            InterClass::Plain(class) => {
+                Either::Left(class.coerce(db).map(RuntimeFunction::from).into_iter())
+            }
+            InterClass::Discriminated(class) => Either::Right(
+                std::iter::once(class.discriminator(db).into()).chain(
+                    class
+                        .variants(db)
+                        .iter()
+                        .filter_map(|v| v.coerce(db).map(RuntimeFunction::from)),
+                ),
+            ),
+        };
+
+        methods.chain(getters).chain(setters).chain(synthetic)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
+pub enum RuntimeFunction<'db> {
+    /// A function declared in the source API.
+    Free(InterFunctionFree<'db>),
+    /// A source-defined function in an inherent impl block.
+    Associated(InterFunctionAssociated<'db>),
+    /// A synthetic field-read operation.
+    Getter(RuntimeGetter<'db>),
+    /// A synthetic field-write operation.
+    Setter(RuntimeSetter<'db>),
+    /// A synthetic operation that identifies an enum variant.
+    Discriminator(RuntimeDiscriminator<'db>),
+    /// A synthetic operation that coerces a plain struct to a class.
+    PlainCoerce(RuntimePlainCoerce<'db>),
+    /// A synthetic operation that coerces a discriminated struct to a class.
+    DiscriminatedCoerce(RuntimeDiscriminatedCoerce<'db>),
+}
+
+#[salsa::tracked]
+impl<'db> RuntimeFunction<'db> {
+    /// The mangled unique symbol name of this function.
+    pub fn symbol(self, db: &'db dyn Db) -> &'db str {
+        match self {
+            Self::Free(function) => function.symbol(db),
+            Self::Associated(function) => function.symbol(db),
+            Self::Getter(getter) => getter.symbol(db),
+            Self::Setter(setter) => setter.symbol(db),
+            Self::Discriminator(discriminator) => discriminator.symbol(db),
+            Self::PlainCoerce(coerce) => coerce.symbol(db),
+            Self::DiscriminatedCoerce(coerce) => coerce.symbol(db),
+        }
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn params(self, db: &'db dyn Db) -> Vec<RuntimeParam<'db>> {
+        match self {
+            Self::Free(function) => function
+                .params(db)
+                .iter()
+                .map(|p| p.into_runtime(db))
+                .collect(),
+            Self::Associated(function) => function
+                .params(db)
+                .iter()
+                .map(|p| p.into_runtime(db))
+                .collect(),
+            Self::Getter(getter) => {
+                let field = getter.field(db).src(db);
+
+                vec![RuntimeParam::new(db, field.target(db))]
+            }
+            Self::Setter(setter) => {
+                let field = setter.field(db).src(db);
+
+                vec![
+                    RuntimeParam::new(db, field.target(db)),
+                    RuntimeParam::new(db, field._type(db)),
+                ]
+            }
+            Self::Discriminator(discriminator) => {
+                let src_type = discriminator.class(db).src(db).into_type(db);
+
+                vec![RuntimeParam::new(db, src_type)]
+            }
+            Self::PlainCoerce(coerce) => coerce
+                .class(db)
+                .src(db)
+                .fields(db)
+                .map(|field| RuntimeParam::new(db, field._type(db)))
+                .collect(),
+            Self::DiscriminatedCoerce(coerce) => coerce
+                .variant(db)
+                .src(db)
+                .fields(db)
+                .map(|field| RuntimeParam::new(db, field._type(db)))
+                .collect(),
+        }
+    }
+
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<InterType<'db>> {
+        match self {
+            Self::Free(function) => function.ret_type(db),
+            Self::Associated(function) => function.ret_type(db),
+            Self::Getter(getter) => Some(getter.field(db).type_(db)),
+            Self::Setter(_) => None,
+            Self::Discriminator(_) => Some(InterType::f64),
+            Self::PlainCoerce(coerce) => Some(InterType::Class {
+                is_borrowed: false,
+                inner: coerce.class(db).into(),
+            }),
+            Self::DiscriminatedCoerce(coerce) => Some(InterType::Class {
+                is_borrowed: false,
+                inner: coerce.variant(db).class(db).into(),
+            }),
+        }
+    }
+}
+
+impl<'db> From<InterFunctionFree<'db>> for RuntimeFunction<'db> {
+    fn from(value: InterFunctionFree<'db>) -> Self {
+        Self::Free(value)
+    }
+}
+
+impl<'db> From<InterFunctionAssociated<'db>> for RuntimeFunction<'db> {
+    fn from(value: InterFunctionAssociated<'db>) -> Self {
+        Self::Associated(value)
+    }
+}
+
+#[salsa::tracked]
+impl<'db> InterFunctionFree<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        format!("__fn__free__{}", self.src(db).path(db).mangled(db))
+    }
+}
+
+#[salsa::tracked]
+impl<'db> InterFunctionAssociated<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        format!("__fn__associated__{}", self.src(db).path(db).mangled(db))
+    }
+}
+
+/// A parameter of a [`RuntimeFunction`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub struct RuntimeParam<'db> {
+    pub src_type: Type<'db>,
+    pub type_: InterType<'db>,
+}
+
+impl<'db> RuntimeParam<'db> {
+    fn new(db: &'db dyn Db, src_type: Type<'db>) -> Self {
+        Self {
+            src_type,
+            type_: src_type.interface_in(db),
+        }
+    }
+}
+
+impl<'db> InterParam<'db> {
+    fn into_runtime(self, db: &'db dyn Db) -> RuntimeParam<'db> {
+        RuntimeParam {
+            src_type: self.src_type(db),
+            type_: self.type_(db),
+        }
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct RuntimeGetter<'db> {
+    pub field: InterField<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> RuntimeGetter<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        let src = self.field(db).src(db);
+        let parent_name = match src.target(db).kind(db) {
+            TypeKind::Struct(type_) => type_.path(db).mangled(db),
+            TypeKind::Enum(type_) => type_.path(db).mangled(db),
+            _ => unreachable!("fields belong to classes"),
+        };
+
+        format!(
+            "__fn__getter__{}__{}",
+            parent_name,
+            src.declaration(db).mangled_name(db)
+        )
+    }
+}
+
+impl<'db> From<RuntimeGetter<'db>> for RuntimeFunction<'db> {
+    fn from(value: RuntimeGetter<'db>) -> Self {
+        Self::Getter(value)
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct RuntimeSetter<'db> {
+    pub field: InterField<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> RuntimeSetter<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        let src = self.field(db).src(db);
+        let parent_name = match src.target(db).kind(db) {
+            TypeKind::Struct(type_) => type_.path(db).mangled(db),
+            TypeKind::Enum(type_) => type_.path(db).mangled(db),
+            _ => unreachable!("fields belong to classes"),
+        };
+
+        format!(
+            "__fn__setter__{}__{}",
+            parent_name,
+            src.declaration(db).mangled_name(db)
+        )
+    }
+}
+
+impl<'db> From<RuntimeSetter<'db>> for RuntimeFunction<'db> {
+    fn from(value: RuntimeSetter<'db>) -> Self {
+        Self::Setter(value)
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct RuntimeDiscriminator<'db> {
+    pub class: InterClassDiscriminated<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> RuntimeDiscriminator<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        format!(
+            "__fn__disc__{}",
+            self.class(db).src(db).path(db).mangled(db)
+        )
+    }
+}
+
+impl<'db> From<RuntimeDiscriminator<'db>> for RuntimeFunction<'db> {
+    fn from(value: RuntimeDiscriminator<'db>) -> Self {
+        Self::Discriminator(value)
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct RuntimePlainCoerce<'db> {
+    pub class: InterClassPlain<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> RuntimePlainCoerce<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        format!("__fn__coe__{}", self.class(db).src(db).path(db).mangled(db))
+    }
+}
+
+impl<'db> From<RuntimePlainCoerce<'db>> for RuntimeFunction<'db> {
+    fn from(value: RuntimePlainCoerce<'db>) -> Self {
+        Self::PlainCoerce(value)
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct RuntimeDiscriminatedCoerce<'db> {
+    pub variant: InterClassDiscriminatedVariant<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> RuntimeDiscriminatedCoerce<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        format!(
+            "__fn__coe__{}",
+            self.variant(db).src(db).path(db).mangled(db)
+        )
+    }
+}
+
+impl<'db> From<RuntimeDiscriminatedCoerce<'db>> for RuntimeFunction<'db> {
+    fn from(value: RuntimeDiscriminatedCoerce<'db>) -> Self {
+        Self::DiscriminatedCoerce(value)
+    }
+}

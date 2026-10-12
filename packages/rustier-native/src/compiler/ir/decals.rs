@@ -12,9 +12,9 @@ use crate::compiler::{
     ir::{
         interface::{
             InterClass, InterClassDiscriminated, InterClassDiscriminatedVariant, InterClassPlain,
-            InterClassTemplate, InterField, InterFunctionAssociated, InterFunctionDiscriminator,
-            InterFunctionFree, InterGeneric, InterMember, InterModule, InterParam,
-            InterParentModule, InterType, Interface,
+            InterClassTemplate, InterField, InterFunctionAssociated, InterFunctionFree,
+            InterGeneric, InterMember, InterModule, InterParam, InterParentModule, InterType,
+            Interface,
         },
         rust::{Callable, FieldName, Span},
     },
@@ -605,7 +605,9 @@ impl<'db> DecalClassPlain<'db> {
                     Some(InterType::Class {
                         is_borrowed: false,
                         inner,
-                    }) if inner.symbol(db) == self.interface(db).symbol(db)
+                    }) if inner
+                        .src_type(db)
+                        .same_type_as(db, self.interface(db).src(db).into_type(db))
                 )
         })
     }
@@ -669,13 +671,13 @@ impl<'db> DecalClassDiscriminated<'db> {
         interface
             .variants(db)
             .iter()
-            .zip(interface.discriminator(db).facade(db).variant_names(db))
+            .zip(interface.facade(db).discriminator(db).variant_names(db))
             .map(|(variant, name)| DecalVariant::new(db, *variant, name.clone()))
             .collect()
     }
 
     pub fn discriminator(self, db: &'db dyn Db) -> DecalDiscriminator<'db> {
-        DecalDiscriminator::new(db, self.interface(db).discriminator(db))
+        DecalDiscriminator::new(db, self.interface(db))
     }
 
     pub fn coerce(self, db: &'db dyn Db) -> Option<DecalCoerceFunction<'db>> {
@@ -704,7 +706,7 @@ pub struct DecalVariant<'db> {
 
 impl<'db> DecalVariant<'db> {
     pub fn if_coercible(self, db: &'db dyn Db) -> bool {
-        self.interface(db).coerce(db).is_some()
+        self.interface(db).is_constructible(db)
     }
 
     pub fn source_name(self, db: &'db dyn Db) -> &'db String {
@@ -749,11 +751,11 @@ impl<'db> DecalField<'db> {
     }
 
     pub fn is_readonly(self, db: &'db dyn Db) -> bool {
-        self.interface(db).setter(db).is_none()
+        self.interface(db).is_readonly(db)
     }
 
     pub fn get_type(self, db: &'db dyn Db) -> DecalType<'db> {
-        self.interface(db).getter(db).ret_type(db).lower_decals(db)
+        self.interface(db).type_(db).lower_decals(db)
     }
 
     pub fn set_type(self, db: &'db dyn Db) -> DecalType<'db> {
@@ -767,12 +769,12 @@ impl<'db> DecalField<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalDiscriminator<'db> {
-    src: InterFunctionDiscriminator<'db>,
+    src: InterClassDiscriminated<'db>,
 }
 
 impl<'db> DecalDiscriminator<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.src(db).facade(db).name(db)
+        self.src(db).facade(db).discriminator(db).name(db)
     }
 }
 

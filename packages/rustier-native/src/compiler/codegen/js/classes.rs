@@ -10,7 +10,7 @@ use crate::compiler::{
     ir::{
         facade::{
             FacadeClass, FacadeCoerce, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
-            FacadeFieldPlain, FacadeParam, FacadeType,
+            FacadeFieldPlain, FacadeType,
         },
         ffi::FfiFunction,
         rust::FieldName,
@@ -279,7 +279,7 @@ where
     fn render_body(
         self,
         ffi: FfiFunction<'db>,
-        fields: Vec<(FieldName, FacadeParam<'db>)>,
+        fields: Vec<FacadeFieldPlain<'db>>,
     ) -> impl FragmentOnce + 'db {
         let db = self.db;
         let class = self.coerce.class(db);
@@ -296,10 +296,10 @@ where
             frag!(return result;),
         );
         let casts = fields.into_iter().zip(ffi.params(db)).enumerate().map(
-            |(i, ((name, param), ffi_param))| Cast {
-                from: param.type_(db),
+            move |(i, (field, ffi_param))| Cast {
+                from: field.type_(db),
                 to: ffi_param.type_(db),
-                in_expr: fragment(move |p| match name {
+                in_expr: fragment(move |p| match field.name(db) {
                     FieldName::Name(name) => frag!(value[{ doubles(name) }]).apply(p),
                     FieldName::Idx(index) => frag!(value[{ index }]).apply(p),
                 }),

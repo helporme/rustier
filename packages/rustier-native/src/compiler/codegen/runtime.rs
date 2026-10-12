@@ -1,9 +1,7 @@
-use itertools::Either;
-
 use crate::compiler::{
     codegen::fragment::{FragmentPrint, frag, spaced},
     db::Db,
-    ir::interface::{InterClass, InterFunction, InterMember, Interface},
+    ir::runtime::Runtime,
 };
 
 mod cast;
@@ -26,42 +24,28 @@ pub enum Platform {
 }
 
 #[salsa::tracked]
-impl<'db> Interface<'db> {
+impl<'db> Runtime<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn render(self, db: &'db dyn Db, platform: Platform) -> String {
         let alloc_import = self
+            .interface(db)
             .usages(db)
             .types(db)
             .any(|type_| type_.is_from_alloc_crate(db))
             .then_some(frag!(extern crate alloc;@@));
 
-        let render_class = |class: InterClass<'db>| {
-            std::iter::once(class.render(db, platform)).chain(
-                class
-                    .all_functions(db)
-                    .iter()
-                    .map(move |function| function.render(db, platform)),
-            )
-        };
+        let classes = self
+            .classes(db)
+            .iter()
+            .map(move |class| class.render(db, platform));
+        let functions = self
+            .functions(db)
+            .iter()
+            .map(move |function| function.render(db, platform));
 
-        let members = spaced(
-            self.crates(db)
-                .flat_map(|crate_| crate_.all_modules(db))
-                .flat_map(|module| module.members(db))
-                .flat_map(|member| match member {
-                    InterMember::Class(class) => Either::Left(Either::Left(render_class(class))),
-                    InterMember::Template(template) => {
-                        Either::Left(Either::Right(template.classes(db).flat_map(render_class)))
-                    }
-                    InterMember::Function(interface_function_free) => Either::Right(
-                        Some(InterFunction::from(interface_function_free).render(db, platform))
-                            .into_iter(),
-                    ),
-                    InterMember::Module(_) => Either::Right(None.into_iter()),
-                }),
-        );
+        let members = spaced(classes.chain(functions));
 
-        let interface = frag!(
+        let runtime = frag!(
             #![allow(unused_mut, dead_code, unused_imports, nonstandard_style, unreachable_patterns)]@@
             {alloc_import}
             {platform.prelude()}@@
@@ -70,6 +54,6 @@ impl<'db> Interface<'db> {
             {members}
         );
 
-        interface.print()
+        runtime.print()
     }
 }

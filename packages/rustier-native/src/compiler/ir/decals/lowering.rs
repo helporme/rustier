@@ -83,7 +83,6 @@ impl<'db> DecalParam<'db> {
                     usize::from(function.src(db).declaration(db).receiver(db).is_some());
                 (function.src(db), interface.idx(db) - receiver_offset)
             }
-            _ => unreachable!("declaration parameters only belong to source-defined functions"),
         };
 
         let name = function.params(db)[param_idx].name(db).as_str();

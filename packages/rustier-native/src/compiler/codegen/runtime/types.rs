@@ -16,11 +16,11 @@ impl<'db> InterType<'db> {
             InterType::Class {
                 is_borrowed: true,
                 inner,
-            } => frag!(&{ inner.symbol(db) }).apply(p),
+            } => frag!(&{ inner.runtime(db).symbol(db) }).apply(p),
             InterType::Class {
                 is_borrowed: false,
                 inner,
-            } => inner.symbol(db).apply(p),
+            } => inner.runtime(db).symbol(db).apply(p),
         })
     }
 

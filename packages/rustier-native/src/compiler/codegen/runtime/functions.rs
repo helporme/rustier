@@ -14,16 +14,16 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        interface::{
-            InterFunction, InterFunctionDiscriminatedCoerce, InterFunctionDiscriminator,
-            InterFunctionGetter, InterFunctionPlainCoerce, InterFunctionSetter,
+        runtime::{
+            RuntimeDiscriminatedCoerce, RuntimeDiscriminator, RuntimeFunction, RuntimeGetter,
+            RuntimePlainCoerce, RuntimeSetter,
         },
         rust::{Callable, Shape},
     },
 };
 
 #[salsa::tracked]
-impl<'db> InterFunction<'db> {
+impl<'db> RuntimeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render(self, db: &'db dyn Db, platform: Platform) -> String {
         self.render_with(db, platform, RuntimeCastRenderer).print()
@@ -49,7 +49,7 @@ impl<'db> InterFunction<'db> {
 
 #[derive(Copy, Clone)]
 struct FunctionFragment<'db, CastCompiler> {
-    function: InterFunction<'db>,
+    function: RuntimeFunction<'db>,
     platform: Platform,
     cast_compiler: CastCompiler,
     db: &'db dyn Db,
@@ -57,7 +57,7 @@ struct FunctionFragment<'db, CastCompiler> {
 
 #[derive(Copy, Clone)]
 struct CoerceFnFragment<'db, CastCompiler> {
-    coerce: Either<InterFunctionPlainCoerce<'db>, InterFunctionDiscriminatedCoerce<'db>>,
+    coerce: Either<RuntimePlainCoerce<'db>, RuntimeDiscriminatedCoerce<'db>>,
     cast_compiler: CastCompiler,
     db: &'db dyn Db,
 }
@@ -72,7 +72,7 @@ where
             Either::Left(coerce) => {
                 let src = coerce.class(db).src(db);
                 (
-                    InterFunction::from(coerce),
+                    RuntimeFunction::from(coerce),
                     src.path(db).fqn(db),
                     src.def(db).shape(db),
                     src.into_type(db),
@@ -81,7 +81,7 @@ where
             Either::Right(coerce) => {
                 let src = coerce.variant(db).src(db);
                 (
-                    InterFunction::from(coerce),
+                    RuntimeFunction::from(coerce),
                     src.path(db).fqn(db),
                     src.declaration(db).shape(db),
                     src.target(db).into_type(db),
@@ -90,8 +90,8 @@ where
         };
         let params = function.params(db);
         let casts = params.iter().enumerate().map(|(i, param)| Cast {
-            from: param.type_(db),
-            to: param.src_type(db),
+            from: param.type_,
+            to: param.src_type,
             in_expr: frag!(_{i}),
             out_var_name: frag!(_{i}),
         });
@@ -171,7 +171,7 @@ where
                 .map(move |(i, param)| {
                     fragment(move |p| {
                         frag!(
-                            _{i}: ~{param.type_(self.db).render_type_decl(self.db)}
+                            _{i}: ~{param.type_.render_type_decl(self.db)}
                         )
                         .apply(p);
                     })
@@ -181,24 +181,24 @@ where
 
     fn render_body(self) -> impl FragmentOnce {
         fragment(move |p| match self.function {
-            InterFunction::Free(free_fn) => self
+            RuntimeFunction::Free(free_fn) => self
                 .render_source_fn_call_body(free_fn.src(self.db))
                 .apply(p),
-            InterFunction::Associated(function) => self
+            RuntimeFunction::Associated(function) => self
                 .render_source_fn_call_body(function.src(self.db))
                 .apply(p),
-            InterFunction::Getter(getter) => self.render_fn_getter_body(getter).apply(p),
-            InterFunction::Setter(setter) => self.render_fn_setter_body(setter).apply(p),
-            InterFunction::EnumDiscriminator(discriminator) => {
+            RuntimeFunction::Getter(getter) => self.render_fn_getter_body(getter).apply(p),
+            RuntimeFunction::Setter(setter) => self.render_fn_setter_body(setter).apply(p),
+            RuntimeFunction::Discriminator(discriminator) => {
                 self.render_enum_discriminator_body(discriminator).apply(p)
             }
-            InterFunction::PlainCoerce(coerce) => CoerceFnFragment {
+            RuntimeFunction::PlainCoerce(coerce) => CoerceFnFragment {
                 coerce: Either::Left(coerce),
                 cast_compiler: self.cast_compiler,
                 db: self.db,
             }
             .apply(p),
-            InterFunction::DiscriminatedCoerce(coerce) => CoerceFnFragment {
+            RuntimeFunction::DiscriminatedCoerce(coerce) => CoerceFnFragment {
                 coerce: Either::Right(coerce),
                 cast_compiler: self.cast_compiler,
                 db: self.db,
@@ -215,8 +215,8 @@ where
             .copied()
             .enumerate()
             .map(|(i, param)| Cast {
-                from: param.type_(self.db),
-                to: param.src_type(self.db),
+                from: param.type_,
+                to: param.src_type,
                 in_expr: frag!(_{i}),
                 out_var_name: frag!(_{i}),
             });
@@ -267,26 +267,24 @@ where
         )
     }
 
-    fn render_fn_getter_body(self, getter: InterFunctionGetter<'db>) -> impl FragmentOnce {
-        let [class_param] = getter.params(self.db);
+    fn render_fn_getter_body(self, getter: RuntimeGetter<'db>) -> impl FragmentOnce {
+        let field = getter.field(self.db).src(self.db);
+        let class_param = self.function.params(self.db)[0];
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
             self.db,
-            class_param.type_(self.db),
+            class_param.type_,
             TetheringStructType {
-                source_type: class_param.src_type(self.db).deborrow(self.db),
+                source_type: class_param.src_type.deborrow(self.db),
             },
             frag!(_0),
         );
 
         let field_tethering_value_expr = render_tethering_struct_get_field_expr(
             cls_tethering_struct_expr,
-            getter
-                .src(self.db)
-                .declaration(self.db)
-                .mangled_name(self.db),
+            field.declaration(self.db).mangled_name(self.db),
         );
 
-        let ret_type = getter.ret_type(self.db);
+        let ret_type = getter.field(self.db).type_(self.db);
 
         let output = fragment(move |p| {
             if ret_type.uses_tethering() {
@@ -294,7 +292,7 @@ where
                     .render_expr(
                         self.db,
                         TetheringStructType {
-                            source_type: getter.src(self.db)._type(self.db),
+                            source_type: field._type(self.db),
                         },
                         ret_type,
                         field_tethering_value_expr,
@@ -304,7 +302,7 @@ where
                 self.cast_compiler
                     .render_expr(
                         self.db,
-                        getter.src(self.db)._type(self.db),
+                        field._type(self.db),
                         ret_type,
                         field_tethering_value_expr,
                     )
@@ -315,31 +313,30 @@ where
         frag!(Ok({ output }))
     }
 
-    fn render_fn_setter_body(self, setter: InterFunctionSetter<'db>) -> impl FragmentOnce {
-        let [class_param, value_param] = setter.params(self.db);
+    fn render_fn_setter_body(self, setter: RuntimeSetter<'db>) -> impl FragmentOnce {
+        let field = setter.field(self.db).src(self.db);
+        let params = self.function.params(self.db);
+        let (class_param, value_param) = (params[0], params[1]);
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
             self.db,
-            class_param.type_(self.db),
+            class_param.type_,
             TetheringStructType {
-                source_type: class_param.src_type(self.db).deborrow(self.db),
+                source_type: class_param.src_type.deborrow(self.db),
             },
             frag!(_0),
         );
 
         let set_tethered_field_stmt = render_tethering_struct_set_field_stmt(
             cls_tethering_struct_expr,
-            setter
-                .src(self.db)
-                .declaration(self.db)
-                .mangled_name(self.db),
+            field.declaration(self.db).mangled_name(self.db),
             frag!(value),
         );
 
         let set_tethered_field_stmt = self.cast_compiler.render_stmt(
             self.db,
             Cast {
-                from: value_param.type_(self.db),
-                to: setter.src(self.db)._type(self.db),
+                from: value_param.type_,
+                to: field._type(self.db),
                 in_expr: frag!(_1),
                 out_var_name: frag!(value),
             },
@@ -354,12 +351,12 @@ where
 
     fn render_enum_discriminator_body(
         self,
-        discriminator: InterFunctionDiscriminator<'db>,
+        discriminator: RuntimeDiscriminator<'db>,
     ) -> impl FragmentOnce {
-        let src = discriminator.src(self.db);
+        let src = discriminator.class(self.db).src(self.db);
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
             self.db,
-            discriminator.params(self.db)[0].type_(self.db),
+            self.function.params(self.db)[0].type_,
             TetheringStructType {
                 source_type: src.into_type(self.db),
             },
@@ -403,23 +400,16 @@ mod tests {
 
     fn find_test_function<'db>(
         db: &'db dyn Db,
-        predicate: impl Fn(InterFunction<'db>) -> bool,
-    ) -> InterFunction<'db> {
-        let root = Rust::get(db)
+        predicate: impl Fn(RuntimeFunction<'db>) -> bool,
+    ) -> RuntimeFunction<'db> {
+        Rust::get(db)
             .interface_complete(db)
-            .crates(db)
-            .next()
-            .expect("test crate should be lowered")
-            .root(db);
-
-        root.functions(db)
-            .map(InterFunction::from)
-            .chain(
-                root.classes(db)
-                    .flat_map(|class| class.all_functions(db).iter().copied()),
-            )
+            .runtime(db)
+            .functions(db)
+            .iter()
+            .copied()
             .find(|function| predicate(*function))
-            .expect("fixture should lower the requested interface function")
+            .expect("fixture should lower the requested runtime function")
     }
 
     macro_rules! test_function {
@@ -445,7 +435,7 @@ mod tests {
 
     test_function!(
         zero_args_without_return,
-        InterFunction::Free(_),
+        RuntimeFunction::Free(_),
         pub fn test_fn() {}
     );
 
@@ -458,10 +448,10 @@ mod tests {
                     expression: |db, platform, printer| {
                         let db: &dyn Db = &*db;
                         let function = find_test_function(db, |function| match function {
-                            InterFunction::PlainCoerce(coerce) => {
+                            RuntimeFunction::PlainCoerce(coerce) => {
                                 coerce.class(db).name(db) == $target
                             }
-                            InterFunction::DiscriminatedCoerce(coerce) => {
+                            RuntimeFunction::DiscriminatedCoerce(coerce) => {
                                 coerce.variant(db).name(db) == $target
                             }
                             _ => false,
@@ -597,7 +587,7 @@ mod tests {
 
     test_function!(
         zero_args_with_return,
-        InterFunction::Free(_),
+        RuntimeFunction::Free(_),
         pub fn test_fn() -> i32 {
             0
         }
@@ -605,13 +595,13 @@ mod tests {
 
     test_function!(
         one_arg_without_return,
-        InterFunction::Free(_),
+        RuntimeFunction::Free(_),
         pub fn test_fn(_value: i32) {}
     );
 
     test_function!(
         one_arg_with_return,
-        InterFunction::Free(_),
+        RuntimeFunction::Free(_),
         pub fn test_fn(value: i32) -> i32 {
             value
         }
@@ -619,13 +609,13 @@ mod tests {
 
     test_function!(
         two_args_without_return,
-        InterFunction::Free(_),
+        RuntimeFunction::Free(_),
         pub fn test_fn(_direct: i32, _borrowed: &i32) {}
     );
 
     test_function!(
         two_args_with_return,
-        InterFunction::Free(_),
+        RuntimeFunction::Free(_),
         pub fn test_fn(direct: i32, borrowed: &i32) -> i32 {
             direct + borrowed
         }
@@ -633,7 +623,7 @@ mod tests {
 
     test_function!(
         getter,
-        InterFunction::Getter(_),
+        RuntimeFunction::Getter(_),
         pub struct Test {
             pub field: i32,
         }
@@ -641,7 +631,7 @@ mod tests {
 
     test_function!(
         setter,
-        InterFunction::Setter(_),
+        RuntimeFunction::Setter(_),
         pub struct Test {
             pub field: i32,
         }
@@ -649,7 +639,7 @@ mod tests {
 
     test_function!(
         enum_discriminator,
-        InterFunction::EnumDiscriminator(_),
+        RuntimeFunction::Discriminator(_),
         pub enum Test {
             Unit,
             Tuple(i32),
@@ -659,7 +649,7 @@ mod tests {
 
     test_function!(
         no_self_associated_function,
-        InterFunction::Associated(_),
+        RuntimeFunction::Associated(_),
         pub struct Test;
 
         impl Test {
@@ -672,7 +662,7 @@ mod tests {
 
     test_function!(
         owned_self_associated_function,
-        InterFunction::Associated(_),
+        RuntimeFunction::Associated(_),
         #[derive(Clone)]
         pub struct Test;
 
@@ -685,7 +675,7 @@ mod tests {
 
     test_function!(
         shared_self_associated_function,
-        InterFunction::Associated(_),
+        RuntimeFunction::Associated(_),
         pub struct Test;
 
         impl Test {
@@ -697,7 +687,7 @@ mod tests {
 
     test_function!(
         exclusive_self_associated_function,
-        InterFunction::Associated(_),
+        RuntimeFunction::Associated(_),
         pub struct Test;
 
         impl Test {

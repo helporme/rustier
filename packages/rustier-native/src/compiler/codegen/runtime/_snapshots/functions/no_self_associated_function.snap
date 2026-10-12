@@ -25,16 +25,16 @@ pub fn __fn__associated__10_test_crate__4_Test__6_create(
         Ok(
             cast
                 .from(
-                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) })",
                 )
                 .to(
-                    "Interface(Class { is_borrowed: false, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) } }) })",
+                    "Interface(Class { is_borrowed: false, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) } }) })",
                 )
                 .an({
                     let _0 = cast
                         .from("Interface(f64)")
                         .to(
-                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7401)) }, index: 0 } })",
+                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
                         )
                         .an(_0);
                     test_crate::Test::create(_0)
@@ -55,16 +55,16 @@ pub fn __fn__associated__10_test_crate__4_Test__6_create(
         Ok(
             cast
                 .from(
-                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) })",
                 )
                 .to(
-                    "Interface(Class { is_borrowed: false, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) } }) })",
+                    "Interface(Class { is_borrowed: false, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) } }) })",
                 )
                 .an({
                     let _0 = cast
                         .from("Interface(f64)")
                         .to(
-                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7401)) }, index: 0 } })",
+                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
                         )
                         .an(_0);
                     test_crate::Test::create(_0)

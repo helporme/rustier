@@ -9,13 +9,14 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        interface::{InterClass, InterField},
+        interface::InterField,
+        runtime::RuntimeClass,
         rust::{FieldParent, TypeKind},
     },
 };
 
 #[salsa::tracked]
-impl<'db> InterClass<'db> {
+impl<'db> RuntimeClass<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render(self, db: &'db dyn Db, platform: Platform) -> String {
         ClassFragment {
@@ -28,7 +29,7 @@ impl<'db> InterClass<'db> {
 }
 
 struct ClassFragment<'db> {
-    class: InterClass<'db>,
+    class: RuntimeClass<'db>,
     db: &'db dyn Db,
     platform: Platform,
 }
@@ -50,12 +51,13 @@ impl<'db> ClassFragment<'db> {
     fn render_tethering_struct<'a>(&'a self) -> impl FragmentOnce + 'a {
         let tethered_fields = self
             .class
+            .interface(self.db)
             .fields(self.db)
             .iter()
             .map(|field| field.get_tethered_field(self.db));
 
         let tethering_struct = TetheringStruct {
-            source_type: self.class.src_type(self.db),
+            source_type: self.class.interface(self.db).src_type(self.db),
             fields: tethered_fields,
         };
 
@@ -65,9 +67,13 @@ impl<'db> ClassFragment<'db> {
     fn render_struct<'a>(&'a self) -> impl FragmentOnce + 'a {
         let platform = self.platform;
 
-        let tethering_type_name = self.class.src_type(self.db).tethering_struct_name(self.db);
+        let tethering_type_name = self
+            .class
+            .interface(self.db)
+            .src_type(self.db)
+            .tethering_struct_name(self.db);
 
-        let symbol = self.class.ffi(self.db).symbol(self.db);
+        let symbol = self.class.symbol(self.db);
 
         frag!(
             {platform.header_renamed(symbol)}
@@ -196,7 +202,7 @@ mod tests {
                         let Some(class) = root.classes(db).next() else {
                             panic!("test crate root should contain exactly one interface class");
                         };
-                        class.render(db, platform).apply(printer);
+                        class.runtime(db).render(db, platform).apply(printer);
                     },
                 }
             }

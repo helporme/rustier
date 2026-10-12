@@ -14,9 +14,8 @@ use crate::compiler::{
         ffi::{Ffi, FfiClass, FfiFunction},
         interface::{
             InterClassDiscriminated, InterClassPlain, InterClassTemplate, InterField,
-            InterFunctionAssociated, InterFunctionDiscriminator, InterFunctionFree,
-            InterFunctionPlainCoerce, InterGeneric, InterMember, InterModule, InterParam,
-            InterParentModule, InterType, Interface,
+            InterFunctionAssociated, InterFunctionFree, InterGeneric, InterMember, InterModule,
+            InterParam, InterParentModule, InterType, Interface,
         },
         rust::{Callable, FieldName},
     },
@@ -421,7 +420,7 @@ impl<'db> FacadeCoerce<'db> {
 
 #[salsa::interned(debug)]
 pub struct FacadePlainCoerceFunction<'db> {
-    interface: InterFunctionPlainCoerce<'db>,
+    interface: InterClassPlain<'db>,
 }
 
 impl<'db> FacadePlainCoerceFunction<'db> {
@@ -438,11 +437,11 @@ impl<'db> FacadePlainCoerceFunction<'db> {
     }
 
     pub fn class(self, db: &'db dyn Db) -> FacadeClassPlain<'db> {
-        self.interface(db).class(db).facade(db)
+        self.interface(db).facade(db)
     }
 
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.interface(db).ffi(db)
+        self.interface(db).ffi_coerce(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItem<'db>> {
@@ -453,21 +452,15 @@ impl<'db> FacadePlainCoerceFunction<'db> {
             FacadeImportItem::FacadeClass(class),
         ]
         .into_iter()
-        .chain(
-            self.fields(db)
-                .filter_map(|(_, param)| match param.type_(db) {
-                    FacadeType::Class(class) => Some(FacadeImportItem::FacadeClass(class)),
-                    _ => None,
-                }),
-        )
+        .chain(self.fields(db).filter_map(|field| match field.type_(db) {
+            FacadeType::Class(class) => Some(FacadeImportItem::FacadeClass(class)),
+            _ => None,
+        }))
         .collect()
     }
 
-    pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = (FieldName, FacadeParam<'db>)> {
-        self.interface(db)
-            .field_param_coerce(db)
-            .iter()
-            .map(|(name, param)| (name.clone(), FacadeParam::new(db, *param)))
+    pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeFieldPlain<'db>> + 'db {
+        self.class(db).fields(db)
     }
 }
 
@@ -509,7 +502,7 @@ impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
                     variant
                         .fields
                         .iter()
-                        .filter_map(|(_, param)| match param.type_(db) {
+                        .filter_map(|field| match field.type_(db) {
                             FacadeType::Class(class) => Some(FacadeImportItem::FacadeClass(class)),
                             _ => None,
                         }),
@@ -524,16 +517,14 @@ impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
             .variants(db)
             .iter()
             .zip(self.class(db).discriminator(db).variant_names(db))
-            .filter_map(|(v, name)| {
-                v.coerce(db).map(|coerce| CoerceVariant {
-                    name: name.clone(),
-                    ffi: coerce.ffi(db),
-                    fields: coerce
-                        .field_to_params(db)
-                        .iter()
-                        .map(|(name, param)| (name.clone(), FacadeParam::new(db, *param)))
-                        .collect(),
-                })
+            .filter(|(v, _)| v.is_constructible(db))
+            .map(|(v, name)| CoerceVariant {
+                name: name.clone(),
+                ffi: v.ffi_coerce(db),
+                fields: v
+                    .fields(db)
+                    .map(|field| FacadeFieldPlain::new(db, field))
+                    .collect(),
             })
             .collect()
     }
@@ -543,7 +534,7 @@ impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
 pub struct CoerceVariant<'db> {
     pub name: String,
     pub ffi: FfiFunction<'db>,
-    pub fields: Vec<(FieldName, FacadeParam<'db>)>,
+    pub fields: Vec<FacadeFieldPlain<'db>>,
 }
 
 #[salsa::interned(debug)]
@@ -663,15 +654,18 @@ impl<'db> FacadeClassPlain<'db> {
                     Some(InterType::Class {
                         is_borrowed: false,
                         inner,
-                    }) if inner.symbol(db) == self.interface(db).symbol(db)
+                    }) if inner
+                        .src_type(db)
+                        .same_type_as(db, self.interface(db).src(db).into_type(db))
                 )
         })
     }
 
     pub fn coerce(self, db: &'db dyn Db) -> Option<FacadePlainCoerceFunction<'db>> {
-        self.interface(db)
-            .coerce(db)
-            .map(|fn_| FacadePlainCoerceFunction::new(db, fn_))
+        let interface = self.interface(db);
+        interface
+            .is_constructible(db)
+            .then(|| FacadePlainCoerceFunction::new(db, interface))
     }
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> + 'db {
@@ -740,7 +734,7 @@ impl<'db> FacadeClassDiscriminated<'db> {
     }
 
     pub fn discriminator(self, db: &'db dyn Db) -> FacadeFieldDiscriminator<'db> {
-        FacadeFieldDiscriminator::new(db, self.interface(db).discriminator(db))
+        FacadeFieldDiscriminator::new(db, self.interface(db))
     }
 
     pub fn coerce(self, db: &'db dyn Db) -> Option<FacadeDiscriminatedCoerceFunction<'db>> {
@@ -775,15 +769,15 @@ impl<'db> FacadeFieldPlain<'db> {
     }
 
     pub fn ffi_setter(self, db: &'db dyn Db) -> Option<FfiFunction<'db>> {
-        self.interface(db).setter(db).map(|f| f.ffi(db))
+        self.interface(db).ffi_setter(db)
     }
 
     pub fn ffi_getter(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.interface(db).getter(db).ffi(db)
+        self.interface(db).ffi_getter(db)
     }
 
     pub fn type_(self, db: &'db dyn Db) -> FacadeType<'db> {
-        self.interface(db).getter(db).ret_type(db).lower_facade(db)
+        self.interface(db).type_(db).lower_facade(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> {
@@ -825,7 +819,7 @@ impl<'db> FacadeFieldDiscriminated<'db> {
 /// Discriminator field of a [`FacadeClassDiscriminated`].
 #[salsa::interned(debug)]
 pub struct FacadeFieldDiscriminator<'db> {
-    interface: InterFunctionDiscriminator<'db>,
+    interface: InterClassDiscriminated<'db>,
 }
 
 #[salsa::tracked]
@@ -847,7 +841,6 @@ impl<'db> FacadeFieldDiscriminator<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn variant_names(self, db: &'db dyn Db) -> Vec<String> {
         self.interface(db)
-            .class(db)
             .variants(db)
             .iter()
             .map(|variant| variant.name(db).clone())
@@ -855,7 +848,7 @@ impl<'db> FacadeFieldDiscriminator<'db> {
     }
 
     pub fn ffi_getter(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.interface(db).ffi(db)
+        self.interface(db).ffi_discriminator(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> {

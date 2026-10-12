@@ -2,14 +2,12 @@ use crate::compiler::{
     db::Db,
     ir::{
         facade::{
-            Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain,
-            FacadeFieldDiscriminator, FacadeFreeFunction, FacadeMethod, FacadeModule,
-            FacadeParentModule,
+            Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFreeFunction,
+            FacadeMethod, FacadeModule, FacadeParentModule,
         },
         interface::{
             InterClass, InterClassDiscriminated, InterClassPlain, InterFunctionAssociated,
-            InterFunctionDiscriminator, InterFunctionFree, InterModule, InterParentModule,
-            Interface,
+            InterFunctionFree, InterModule, InterParentModule, Interface,
         },
     },
 };
@@ -64,11 +62,5 @@ impl<'db> InterFunctionFree<'db> {
 impl<'db> InterFunctionAssociated<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeMethod<'db> {
         FacadeMethod::new(db, self)
-    }
-}
-
-impl<'db> InterFunctionDiscriminator<'db> {
-    pub fn facade(self, db: &'db dyn Db) -> FacadeFieldDiscriminator<'db> {
-        FacadeFieldDiscriminator::new(db, self)
     }
 }

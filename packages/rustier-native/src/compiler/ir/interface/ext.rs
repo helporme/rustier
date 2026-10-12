@@ -74,7 +74,7 @@ impl<'db> FieldQualified<'db> {
 }
 
 impl<'db> Type<'db> {
-    pub(super) fn interface_in(self, db: &'db dyn Db) -> InterType<'db> {
+    pub fn interface_in(self, db: &'db dyn Db) -> InterType<'db> {
         match self.kind(db) {
             TypeKind::bool => InterType::bool,
             TypeKind::char
@@ -102,7 +102,7 @@ impl<'db> Type<'db> {
         }
     }
 
-    pub(super) fn interface_out(self, db: &'db dyn Db) -> InterType<'db> {
+    pub fn interface_out(self, db: &'db dyn Db) -> InterType<'db> {
         match self.interface_in(db) {
             InterType::f64 => InterType::f64,
             InterType::String => InterType::String,

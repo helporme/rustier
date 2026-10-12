@@ -186,7 +186,10 @@ impl ProgramCompiler {
                     })
                     .collect::<Vec<_>>();
 
-                (interface.render(db, platform).to_owned(), expected_symbols)
+                (
+                    interface.runtime(db).render(db, platform).to_owned(),
+                    expected_symbols,
+                )
             });
 
             write_generated_crate(&generated_dir, &workspace.source_dir, platform, &interface)?;

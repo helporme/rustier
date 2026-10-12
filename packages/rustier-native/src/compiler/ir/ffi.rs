@@ -6,11 +6,12 @@
 pub mod ext;
 mod lowering;
 
-use itertools::Either;
-
 use crate::compiler::{
     db::Db,
-    ir::interface::{InterClass, InterFunction, InterMember, InterParam, Interface},
+    ir::{
+        interface::{InterClass, Interface},
+        runtime::{RuntimeFunction, RuntimeParam},
+    },
 };
 
 /// The actual exports of a reachable interface API.
@@ -23,30 +24,18 @@ pub struct Ffi<'db> {
 impl<'db> Ffi<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn symbols(self, db: &'db dyn Db) -> Vec<String> {
-        let mut symbols = std::collections::BTreeSet::new();
+        let runtime = self.interface(db).runtime(db);
 
-        for member in self
-            .interface(db)
-            .crates(db)
-            .flat_map(|crate_| crate_.all_modules(db))
-            .flat_map(|module| module.members(db))
-        {
-            let classes = match member {
-                InterMember::Class(class) => Either::Left(std::iter::once(class)),
-                InterMember::Template(template) => Either::Right(template.classes(db)),
-                InterMember::Function(function) => {
-                    symbols.insert(function.ffi(db).symbol(db));
+        let classes = runtime
+            .classes(db)
+            .iter()
+            .map(|class| class.interface(db).ffi(db).symbol(db));
+        let functions = runtime
+            .functions(db)
+            .iter()
+            .map(|function| function.ffi(db).symbol(db));
 
-                    continue;
-                }
-                InterMember::Module(_) => continue,
-            };
-
-            for class in classes {
-                symbols.insert(class.ffi(db).symbol(db));
-                symbols.extend(class.all_functions(db).iter().map(|f| f.ffi(db).symbol(db)));
-            }
-        }
+        let symbols: std::collections::BTreeSet<_> = classes.chain(functions).collect();
 
         symbols.into_iter().map(str::to_owned).collect()
     }
@@ -63,18 +52,18 @@ impl<'db> FfiClass<'db> {
     }
 
     pub fn symbol(self, db: &'db dyn Db) -> &'db str {
-        self.interface(db).symbol(db)
+        self.interface(db).runtime(db).symbol(db)
     }
 }
 
 #[salsa::interned(debug)]
 pub struct FfiFunction<'db> {
-    interface: InterFunction<'db>,
+    runtime: RuntimeFunction<'db>,
 }
 
 impl<'db> FfiFunction<'db> {
     pub fn symbol(self, db: &'db dyn Db) -> &'db str {
-        self.interface(db).symbol(db)
+        self.runtime(db).symbol(db)
     }
 
     pub fn params(self, db: &'db dyn Db) -> &'db Vec<FfiParam<'db>> {
@@ -88,7 +77,7 @@ impl<'db> FfiFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct FfiParam<'db> {
-    interface: InterParam<'db>,
+    runtime: RuntimeParam<'db>,
 }
 
 impl<'db> FfiParam<'db> {

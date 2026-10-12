@@ -1,9 +1,8 @@
 //! The main intermediate representation used by rustier.
 //!
 //! Interface IR is the bridge between the supported Rust source API and the
-//! generated JavaScript-facing API. It is used directly to generate the Rust
-//! runtime code and is also the source representation lowered into the facade
-//! and FFI IRs.
+//! generated JavaScript-facing API. It is the source representation lowered
+//! into the runtime, facade, decals and FFI IRs.
 //!
 //! Unlike the downstream IRs, interface entities deliberately keep references
 //! to the higher-level Rust IR public.
@@ -314,14 +313,6 @@ impl<'db> InterClass<'db> {
         }
     }
 
-    /// The symbol of this class.
-    pub fn symbol(self, db: &'db dyn Db) -> &'db String {
-        match self {
-            InterClass::Plain(p) => p.symbol(db),
-            InterClass::Discriminated(d) => d.symbol(db),
-        }
-    }
-
     /// The source type of this class.
     pub fn src_type(self, db: &'db dyn Db) -> Type<'db> {
         match self {
@@ -358,15 +349,6 @@ impl<'db> InterClass<'db> {
             InterClass::Discriminated(d) => d.methods(db),
         }
     }
-
-    /// All functions of this class, including associated functions,
-    /// getters/setters and other synthetic functions.
-    pub fn all_functions(self, db: &'db dyn Db) -> &'db Vec<InterFunction<'db>> {
-        match self {
-            InterClass::Plain(p) => p.all_functions(db),
-            InterClass::Discriminated(d) => d.all_functions(db),
-        }
-    }
 }
 
 /// A POD-like class.
@@ -396,12 +378,6 @@ impl<'db> InterClassPlain<'db> {
         }
     }
 
-    /// The symbol of this class.
-    #[salsa::tracked(returns(ref))]
-    pub fn symbol(self, db: &'db dyn Db) -> String {
-        format!("__plain__{}", self.src(db).path(db).mangled(db))
-    }
-
     /// Fields of this class.
     #[salsa::tracked(returns(ref))]
     pub fn fields(self, db: &'db dyn Db) -> Vec<InterField<'db>> {
@@ -424,28 +400,9 @@ impl<'db> InterClassPlain<'db> {
             .collect()
     }
 
-    pub fn coerce(self, db: &'db dyn Db) -> Option<InterFunctionPlainCoerce<'db>> {
-        self.src(db)
-            .is_constructible(db)
-            .then(|| InterFunctionPlainCoerce::new(db, self))
-    }
-
-    /// All functions defined by this class, including field accessors and
-    /// methods.
-    #[salsa::tracked(returns(ref))]
-    pub fn all_functions(self, db: &'db dyn Db) -> Vec<InterFunction<'db>> {
-        self.methods(db)
-            .iter()
-            .copied()
-            .map(|function| function.into())
-            .chain(self.fields(db).iter().map(|f| f.getter(db).into()))
-            .chain(
-                self.fields(db)
-                    .iter()
-                    .filter_map(|f| f.setter(db).map(|f| f.into())),
-            )
-            .chain(self.coerce(db).map(|f| f.into()).into_iter())
-            .collect()
+    /// Whether this class can be constructed from its fields.
+    pub fn is_constructible(self, db: &'db dyn Db) -> bool {
+        self.src(db).is_constructible(db)
     }
 }
 
@@ -482,12 +439,6 @@ impl<'db> InterClassDiscriminated<'db> {
         }
     }
 
-    /// The mangled unique symbol name of this class.
-    #[salsa::tracked(returns(ref))]
-    pub fn symbol(self, db: &'db dyn Db) -> String {
-        format!("__discr__{}", self.src(db).path(db).mangled(db))
-    }
-
     /// The discriminated variants of this class.
     #[salsa::tracked(returns(ref))]
     pub fn variants(self, db: &'db dyn Db) -> Vec<InterClassDiscriminatedVariant<'db>> {
@@ -520,36 +471,8 @@ impl<'db> InterClassDiscriminated<'db> {
             .collect()
     }
 
-    /// A synthetic function that identifies current tag of a class.
-    pub fn discriminator(self, db: &'db dyn Db) -> InterFunctionDiscriminator<'db> {
-        InterFunctionDiscriminator::new(db, self.src(db))
-    }
-
     pub fn is_coercable(self, db: &'db dyn Db) -> bool {
-        self.variants(db).iter().any(|v| v.coerce(db).is_some())
-    }
-
-    /// All functions defined by this class, including field accessors,
-    /// discriminator function and methods.
-    #[salsa::tracked(returns(ref))]
-    pub fn all_functions(self, db: &'db dyn Db) -> Vec<InterFunction<'db>> {
-        self.methods(db)
-            .iter()
-            .copied()
-            .map(|function| function.into())
-            .chain(self.fields(db).iter().map(|f| f.getter(db).into()))
-            .chain(
-                self.fields(db)
-                    .iter()
-                    .filter_map(|f| f.setter(db).map(|f| f.into())),
-            )
-            .chain(std::iter::once(self.discriminator(db).into()))
-            .chain(
-                self.variants(db)
-                    .iter()
-                    .filter_map(|v| v.coerce(db).map(|f| f.into())),
-            )
-            .collect()
+        self.variants(db).iter().any(|v| v.is_constructible(db))
     }
 }
 
@@ -577,11 +500,9 @@ impl<'db> InterClassDiscriminatedVariant<'db> {
         self.src(db).fields(db).map(move |f| f.interface(db))
     }
 
-    /// Coerce function for this variant.
-    pub fn coerce(self, db: &'db dyn Db) -> Option<InterFunctionDiscriminatedCoerce<'db>> {
-        self.src(db)
-            .is_constructible(db)
-            .then(|| InterFunctionDiscriminatedCoerce::new(db, self))
+    /// Whether this variant can be constructed from its fields.
+    pub fn is_constructible(self, db: &'db dyn Db) -> bool {
+        self.src(db).is_constructible(db)
     }
 }
 
@@ -595,13 +516,13 @@ impl<'db> InterField<'db> {
         self.src(db).declaration(db).name(db)
     }
 
-    pub fn getter(self, db: &'db dyn Db) -> InterFunctionGetter<'db> {
-        InterFunctionGetter::new(db, self.src(db))
+    pub fn is_readonly(self, db: &'db dyn Db) -> bool {
+        self.src(db).is_readonly(db)
     }
 
-    pub fn setter(self, db: &'db dyn Db) -> Option<InterFunctionSetter<'db>> {
-        let src = self.src(db);
-        (!src.is_readonly(db)).then(|| InterFunctionSetter::new(db, src))
+    /// The type of a value read from this field.
+    pub fn type_(self, db: &'db dyn Db) -> InterType<'db> {
+        self.src(db)._type(db).interface_out(db)
     }
 }
 
@@ -611,53 +532,20 @@ pub enum InterFunction<'db> {
     Free(InterFunctionFree<'db>),
     /// A source-defined function in an inherent impl block.
     Associated(InterFunctionAssociated<'db>),
-    /// A synthetic field-read operation.
-    Getter(InterFunctionGetter<'db>),
-    /// A synthetic field-write operation.
-    Setter(InterFunctionSetter<'db>),
-    /// A synthetic operation that identifies an enum variant.
-    EnumDiscriminator(InterFunctionDiscriminator<'db>),
-    /// A synthetic operation that coerces a plain struct to a class.
-    PlainCoerce(InterFunctionPlainCoerce<'db>),
-    /// A synthetic operation that coerces a discriminated struct to a class.
-    DiscriminatedCoerce(InterFunctionDiscriminatedCoerce<'db>),
 }
 
-#[salsa::tracked]
 impl<'db> InterFunction<'db> {
-    pub fn symbol(self, db: &'db dyn Db) -> &'db str {
-        match self {
-            InterFunction::Free(f) => f.symbol(db),
-            InterFunction::Associated(f) => f.symbol(db),
-            InterFunction::Getter(g) => g.symbol(db),
-            InterFunction::Setter(s) => s.symbol(db),
-            InterFunction::EnumDiscriminator(e) => e.symbol(db),
-            InterFunction::PlainCoerce(p) => p.symbol(db),
-            InterFunction::DiscriminatedCoerce(d) => d.symbol(db),
-        }
-    }
-
     pub fn ret_type(self, db: &'db dyn Db) -> Option<InterType<'db>> {
         match self {
             InterFunction::Free(f) => f.ret_type(db),
             InterFunction::Associated(f) => f.ret_type(db),
-            InterFunction::Getter(g) => Some(g.ret_type(db)),
-            InterFunction::Setter(_) => None,
-            InterFunction::EnumDiscriminator(d) => Some(d.ret_type()),
-            InterFunction::PlainCoerce(p) => Some(p.ret_type(db)),
-            InterFunction::DiscriminatedCoerce(d) => Some(d.ret_type(db)),
         }
     }
-    #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> Vec<InterParam<'db>> {
+
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<InterParam<'db>> {
         match self {
-            InterFunction::Free(function) => function.params(db).clone(),
-            InterFunction::Associated(function) => function.params(db).clone(),
-            InterFunction::Getter(getter) => getter.params(db).to_vec(),
-            InterFunction::Setter(setter) => setter.params(db).to_vec(),
-            InterFunction::EnumDiscriminator(discriminator) => discriminator.params(db).to_vec(),
-            InterFunction::PlainCoerce(coerce) => coerce.params(db).collect(),
-            InterFunction::DiscriminatedCoerce(coerce) => coerce.params(db).collect(),
+            InterFunction::Free(function) => function.params(db),
+            InterFunction::Associated(function) => function.params(db),
         }
     }
 }
@@ -669,11 +557,6 @@ pub struct InterFunctionFree<'db> {
 
 #[salsa::tracked]
 impl<'db> InterFunctionFree<'db> {
-    #[salsa::tracked(returns(ref))]
-    pub fn symbol(self, db: &'db dyn Db) -> String {
-        format!("__fn__free__{}", self.src(db).path(db).mangled(db))
-    }
-
     pub fn ret_type(self, db: &'db dyn Db) -> Option<InterType<'db>> {
         self.src(db).ret_type(db).map(|ret| ret.interface_out(db))
     }
@@ -708,11 +591,6 @@ pub struct InterFunctionAssociated<'db> {
 
 #[salsa::tracked]
 impl<'db> InterFunctionAssociated<'db> {
-    #[salsa::tracked(returns(ref))]
-    pub fn symbol(self, db: &'db dyn Db) -> String {
-        format!("__fn__associated__{}", self.src(db).path(db).mangled(db))
-    }
-
     #[salsa::tracked]
     pub fn self_class(self, db: &'db dyn Db) -> InterClass<'db> {
         let FunctionQualified::Inherent(function) = self.src(db).function(db) else {
@@ -783,235 +661,6 @@ pub struct InterParam<'db> {
     pub src_type: Type<'db>,
     #[tracked]
     pub type_: InterType<'db>,
-}
-
-#[salsa::interned(debug)]
-pub struct InterFunctionGetter<'db> {
-    pub src: FieldQualified<'db>,
-}
-
-#[salsa::tracked]
-impl<'db> InterFunctionGetter<'db> {
-    #[salsa::tracked(returns(ref))]
-    pub fn symbol(self, db: &'db dyn Db) -> String {
-        let src = self.src(db);
-        let parent_name = match src.target(db).kind(db) {
-            TypeKind::Struct(type_) => type_.path(db).mangled(db),
-            TypeKind::Enum(type_) => type_.path(db).mangled(db),
-            _ => unreachable!("fields belong to classes"),
-        };
-
-        format!(
-            "__fn__getter__{}__{}",
-            parent_name,
-            src.declaration(db).mangled_name(db)
-        )
-    }
-
-    pub fn ret_type(self, db: &'db dyn Db) -> InterType<'db> {
-        self.src(db)._type(db).interface_out(db)
-    }
-
-    #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> [InterParam<'db>; 1] {
-        let field = self.src(db);
-        let class_src_type = field.target(db);
-        let class_interface_type = class_src_type.interface_in(db);
-
-        [InterParam::new(
-            db,
-            self.into(),
-            0,
-            class_src_type,
-            class_interface_type,
-        )]
-    }
-}
-
-impl<'db> From<InterFunctionGetter<'db>> for InterFunction<'db> {
-    fn from(value: InterFunctionGetter<'db>) -> Self {
-        InterFunction::Getter(value)
-    }
-}
-
-#[salsa::interned(debug)]
-pub struct InterFunctionSetter<'db> {
-    pub src: FieldQualified<'db>,
-}
-
-#[salsa::tracked]
-impl<'db> InterFunctionSetter<'db> {
-    #[salsa::tracked(returns(ref))]
-    pub fn symbol(self, db: &'db dyn Db) -> String {
-        let src = self.src(db);
-        let parent_name = match src.target(db).kind(db) {
-            TypeKind::Struct(type_) => type_.path(db).mangled(db),
-            TypeKind::Enum(type_) => type_.path(db).mangled(db),
-            _ => unreachable!("fields belong to classes"),
-        };
-
-        format!(
-            "__fn__setter__{}__{}",
-            parent_name,
-            src.declaration(db).mangled_name(db)
-        )
-    }
-
-    #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> [InterParam<'db>; 2] {
-        let field = self.src(db);
-        let class_src_type = field.target(db);
-        let class_interface_type = class_src_type.interface_in(db);
-        let value_src_type = field._type(db);
-        let value_interface_type = value_src_type.interface_in(db);
-        let function = self.into();
-
-        [
-            InterParam::new(db, function, 0, class_src_type, class_interface_type),
-            InterParam::new(db, function, 1, value_src_type, value_interface_type),
-        ]
-    }
-}
-
-impl<'db> From<InterFunctionSetter<'db>> for InterFunction<'db> {
-    fn from(value: InterFunctionSetter<'db>) -> Self {
-        InterFunction::Setter(value)
-    }
-}
-
-#[salsa::interned(debug)]
-pub struct InterFunctionDiscriminator<'db> {
-    pub src: EnumType<'db>,
-}
-
-#[salsa::tracked]
-impl<'db> InterFunctionDiscriminator<'db> {
-    #[salsa::tracked(returns(ref))]
-    pub fn symbol(self, db: &'db dyn Db) -> String {
-        format!("__fn__disc__{}", self.src(db).path(db).mangled(db))
-    }
-
-    pub fn ret_type(self) -> InterType<'db> {
-        InterType::f64
-    }
-
-    pub fn class(self, db: &'db dyn Db) -> InterClassDiscriminated<'db> {
-        self.src(db).interface(db)
-    }
-
-    #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> [InterParam<'db>; 1] {
-        let src_type = self.src(db).into_type(db);
-
-        [InterParam::new(
-            db,
-            self.into(),
-            0,
-            src_type,
-            src_type.interface_in(db),
-        )]
-    }
-}
-
-impl<'db> From<InterFunctionDiscriminator<'db>> for InterFunction<'db> {
-    fn from(value: InterFunctionDiscriminator<'db>) -> Self {
-        InterFunction::EnumDiscriminator(value)
-    }
-}
-
-#[salsa::interned(debug)]
-pub struct InterFunctionPlainCoerce<'db> {
-    pub class: InterClassPlain<'db>,
-}
-
-#[salsa::tracked]
-impl<'db> InterFunctionPlainCoerce<'db> {
-    #[salsa::tracked(returns(ref))]
-    pub fn symbol(self, db: &'db dyn Db) -> String {
-        format!("__fn__coe__{}", self.class(db).src(db).path(db).mangled(db))
-    }
-
-    pub fn ret_type(self, db: &'db dyn Db) -> InterType<'db> {
-        InterType::Class {
-            is_borrowed: false,
-            inner: self.class(db).into(),
-        }
-    }
-
-    #[salsa::tracked(returns(ref))]
-    pub fn field_param_coerce(self, db: &'db dyn Db) -> Vec<(FieldName, InterParam<'db>)> {
-        self.class(db)
-            .src(db)
-            .fields(db)
-            .enumerate()
-            .map(move |(idx, field)| {
-                let type_ = field._type(db);
-                (
-                    field.declaration(db).name(db).clone(),
-                    InterParam::new(db, self.into(), idx, type_, type_.interface_in(db)),
-                )
-            })
-            .collect()
-    }
-
-    pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = InterParam<'db>> + 'db {
-        self.field_param_coerce(db).iter().map(|(_, param)| *param)
-    }
-}
-
-impl<'db> From<InterFunctionPlainCoerce<'db>> for InterFunction<'db> {
-    fn from(value: InterFunctionPlainCoerce<'db>) -> Self {
-        InterFunction::PlainCoerce(value)
-    }
-}
-
-#[salsa::interned(debug)]
-pub struct InterFunctionDiscriminatedCoerce<'db> {
-    pub variant: InterClassDiscriminatedVariant<'db>,
-}
-
-#[salsa::tracked]
-impl<'db> InterFunctionDiscriminatedCoerce<'db> {
-    #[salsa::tracked(returns(ref))]
-    pub fn symbol(self, db: &'db dyn Db) -> String {
-        format!(
-            "__fn__coe__{}",
-            self.variant(db).src(db).path(db).mangled(db)
-        )
-    }
-
-    pub fn ret_type(self, db: &'db dyn Db) -> InterType<'db> {
-        InterType::Class {
-            is_borrowed: false,
-            inner: self.variant(db).class(db).into(),
-        }
-    }
-
-    #[salsa::tracked(returns(ref))]
-    pub fn field_to_params(self, db: &'db dyn Db) -> Vec<(FieldName, InterParam<'db>)> {
-        self.variant(db)
-            .src(db)
-            .fields(db)
-            .enumerate()
-            .map(move |(idx, field)| {
-                let type_ = field._type(db);
-                (
-                    field.declaration(db).name(db).clone(),
-                    InterParam::new(db, self.into(), idx, type_, type_.interface_in(db)),
-                )
-            })
-            .collect()
-    }
-
-    pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = InterParam<'db>> + 'db {
-        self.field_to_params(db).iter().map(|(_, param)| *param)
-    }
-}
-
-impl<'db> From<InterFunctionDiscriminatedCoerce<'db>> for InterFunction<'db> {
-    fn from(value: InterFunctionDiscriminatedCoerce<'db>) -> Self {
-        InterFunction::DiscriminatedCoerce(value)
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]

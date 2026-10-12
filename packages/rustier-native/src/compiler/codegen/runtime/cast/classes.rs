@@ -62,7 +62,7 @@ where
     };
 
     adapt_to_cast_output(
-        frag!({inner.symbol(db)}~{{ handle: ({in_expr}).into() }}),
+        frag!({inner.runtime(db).symbol(db)}~{{ handle: ({in_expr}).into() }}),
         output,
     )
 }

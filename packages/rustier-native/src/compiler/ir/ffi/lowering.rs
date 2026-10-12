@@ -10,15 +10,15 @@ use crate::compiler::{
 impl<'db> FfiFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_params(self, db: &'db dyn Db) -> Vec<FfiParam<'db>> {
-        self.interface(db)
+        self.runtime(db)
             .params(db)
             .iter()
-            .map(|param| param.ffi(db))
+            .map(|param| FfiParam::new(db, *param))
             .collect()
     }
 
     pub(super) fn lower_ret_type(self, db: &'db dyn Db) -> Option<FfiType<'db>> {
-        self.interface(db)
+        self.runtime(db)
             .ret_type(db)
             .map(|type_| type_.lower_ffi(db))
     }
@@ -27,7 +27,7 @@ impl<'db> FfiFunction<'db> {
 #[salsa::tracked]
 impl<'db> FfiParam<'db> {
     pub(super) fn lower_type(self, db: &'db dyn Db) -> FfiType<'db> {
-        self.interface(db).type_(db).lower_ffi(db)
+        self.runtime(db).type_.lower_ffi(db)
     }
 }
 
