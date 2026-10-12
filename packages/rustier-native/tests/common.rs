@@ -8,7 +8,7 @@ use std::{
 use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice, load_workspace_at};
 use ra_ap_project_model::{CargoConfig, RustLibSource};
 use rustier::compiler::{
-    codegen::runtime::{Platform, manifest::Manifest},
+    codegen::{abi::AbiTransport, runtime::manifest::Manifest},
     diag::Diag,
     inputs::LocalCrates,
     ir::rust::{PathSegment, Rust, usages::UsageGraph},
@@ -29,7 +29,7 @@ pub struct ProgramTest {
     /// validation.
     pub cargo_check: bool,
     /// Platforms for which the source program should be compiled.
-    pub platforms: Vec<Platform>,
+    pub platforms: Vec<AbiTransport>,
 }
 
 /// Reuses one filesystem workspace and Cargo target directory across program
@@ -124,9 +124,8 @@ impl ProgramCompiler {
         let mut diagnostics = Vec::new();
         for (platform_index, &platform) in program.platforms.iter().enumerate() {
             let (platform_name, generated_dir_name) = match platform {
-                Platform::Wasm => ("wasm", "wasm"),
-                Platform::Node => ("node", "node"),
-                _ => return Err("program test selected an unsupported platform".to_string()),
+                AbiTransport::WasmBindgen => ("wasm", "wasm"),
+                AbiTransport::Napi => ("node", "node"),
             };
             let generated_dir = workspace.generated_root.join(generated_dir_name);
             let (mut db, _, _) = load_workspace_at(
@@ -237,7 +236,7 @@ impl ProgramCompiler {
 fn write_generated_crate(
     generated_dir: &Path,
     source_dir: &Path,
-    platform: Platform,
+    platform: AbiTransport,
     interface: &str,
 ) -> Result<(), String> {
     fs::create_dir_all(generated_dir.join("src"))
@@ -254,12 +253,12 @@ fn write_generated_crate(
             env!("CARGO_MANIFEST_DIR"),
             "/../rustier-rt"
         ))),
-        platform: platform.into(),
+        transport: platform,
     };
     fs::write(generated_dir.join("Cargo.toml"), manifest.render())
         .map_err(|error| format!("write generated manifest: {error}"))?;
 
-    if let Some(body) = manifest.platform.build_script_body() {
+    if let Some(body) = manifest.transport.build_script_body() {
         fs::write(
             generated_dir.join("build.rs"),
             format!("fn main() {{ {body} }}\n"),

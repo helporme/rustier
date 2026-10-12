@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     compiler::{
-        codegen::runtime::{Platform, manifest::Manifest},
+        codegen::{abi::AbiTransport, runtime::manifest::Manifest},
         db::Db,
         ir::facade::FacadeModule,
     },
@@ -11,7 +11,7 @@ use crate::{
 
 use super::Project;
 
-pub use crate::compiler::codegen::ffi::WasmLoading;
+pub use crate::compiler::codegen::abi::js::WasmLoading;
 
 mod common;
 mod node;
@@ -44,10 +44,10 @@ impl<'a> BridgeCrate<'a> {
         }
     }
 
-    pub const fn platform(self) -> Platform {
+    pub const fn transport(self) -> AbiTransport {
         match self {
-            Self::Node(..) => Platform::Node,
-            Self::Wasm(..) => Platform::Wasm,
+            Self::Node(..) => AbiTransport::Napi,
+            Self::Wasm(..) => AbiTransport::WasmBindgen,
         }
     }
 
@@ -81,18 +81,18 @@ impl<'a> BridgeCrate<'a> {
             source_crate_name: self.project(db).src_crate(db).name(db),
             source_package_path: self.project(db).root_dir(db),
             runtime_path,
-            platform: self.platform(),
+            transport: self.transport(),
         };
 
         let lib = self
             .project(db)
             .reachable_interface(db)
             .runtime(db)
-            .render(db, self.platform())
+            .render(db, self.transport())
             .clone();
 
         let build = manifest
-            .platform
+            .transport
             .build_script_body()
             .map(|body| format!("fn main() {{ {body} }}\n"));
 

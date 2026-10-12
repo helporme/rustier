@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use crate::{
     compiler::{
         codegen::{
-            ffi::{FfiTarget, WasmLoading},
+            abi::js::{AbiJsTarget, WasmLoading},
             js::JsCodegenPaths,
         },
         db::Db,
@@ -46,9 +46,9 @@ impl<'a> BridgeCrateWasm<'a> {
         loading: WasmLoading,
         artifact: Option<&WasmBuildArtifact>,
     ) -> Option<String> {
-        const FFI_MODULE_ID: &str = "$rust/unstable!/wasm";
+        const ABI_MODULE_ID: &str = "$rust/unstable!/wasm";
 
-        if path == FFI_MODULE_ID {
+        if path == ABI_MODULE_ID {
             let artifact = artifact?;
 
             return Some(
@@ -58,7 +58,7 @@ impl<'a> BridgeCrateWasm<'a> {
                     .abi(db)
                     .render(
                         db,
-                        FfiTarget::Wasm {
+                        AbiJsTarget::Wasm {
                             loading,
                             path: artifact.js_path.as_str(),
                             wasm_path: artifact.bin_path.as_str(),
@@ -73,7 +73,7 @@ impl<'a> BridgeCrateWasm<'a> {
                 .render(
                     db,
                     JsCodegenPaths {
-                        ffi_js_mod_id: FFI_MODULE_ID.to_owned(),
+                        abi_js_mod_id: ABI_MODULE_ID.to_owned(),
                     },
                 )
                 .clone(),

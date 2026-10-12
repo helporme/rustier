@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use crate::{
     compiler::{
         codegen::{
-            ffi::{FfiTarget, NAPI_LOADER},
+            abi::js::{AbiJsTarget, NAPI_LOADER},
             js::JsCodegenPaths,
         },
         db::Db,
@@ -38,9 +38,9 @@ impl<'a> BridgeCrateNode<'a> {
         path: &str,
         artifact: Option<&NodeBuildArtifact>,
     ) -> Option<String> {
-        const FFI_MODULE_ID: &str = "$rust/unstable!/node";
+        const ABI_MODULE_ID: &str = "$rust/unstable!/node";
 
-        if path == FFI_MODULE_ID {
+        if path == ABI_MODULE_ID {
             return Some(
                 self.project(db)
                     .reachable_interface(db)
@@ -48,7 +48,7 @@ impl<'a> BridgeCrateNode<'a> {
                     .abi(db)
                     .render(
                         db,
-                        FfiTarget::Native {
+                        AbiJsTarget::Native {
                             path: artifact?.js_path.as_str(),
                         },
                     ),
@@ -61,7 +61,7 @@ impl<'a> BridgeCrateNode<'a> {
                 .render(
                     db,
                     JsCodegenPaths {
-                        ffi_js_mod_id: FFI_MODULE_ID.to_owned(),
+                        abi_js_mod_id: ABI_MODULE_ID.to_owned(),
                     },
                 )
                 .clone(),

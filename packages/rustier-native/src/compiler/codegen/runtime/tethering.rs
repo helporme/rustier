@@ -319,7 +319,7 @@ where
 ///  - A source type otherwise
 ///
 /// The expression must be inserted into a scope that returns the
-/// platform-specific result type because it uses `?`.
+/// transport-specific result type because it uses `?`.
 pub fn render_tethering_struct_get_field_expr<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,
@@ -334,7 +334,7 @@ pub fn render_tethering_struct_get_field_expr<'a>(
 ///  - A source type otherwise
 ///
 /// The statement must be inserted into a scope that returns the
-/// platform-specific result type because it uses `?`.
+/// transport-specific result type because it uses `?`.
 pub fn render_tethering_struct_set_field_stmt<'a>(
     tethered_struct_expr: impl FragmentOnce + 'a,
     field_name: &'a str,
@@ -588,7 +588,7 @@ mod tests {
             source: {
                 pub struct Empty;
             },
-            expression: |db, _platform, p| {
+            expression: |db, _transport, p| {
                 let db: &dyn Db = db;
                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 0] = [];
 
@@ -612,7 +612,7 @@ mod tests {
                     pub count: u32,
                 }
             },
-            expression: |db, _platform, p| {
+            expression: |db, _transport, p| {
                 let db: &dyn Db = db;
                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 1] =
                     [TetheredField::Cloned(ClonedField {
@@ -643,7 +643,7 @@ mod tests {
                     pub child: Child,
                 }
             },
-            expression: |db, _platform, p| {
+            expression: |db, _transport, p| {
                 let db: &dyn Db = db;
                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 1] =
                     [TetheredField::TetheringStruct(TetheringStructField {
@@ -678,7 +678,7 @@ mod tests {
                     pub readonly_child: ReadonlyChild,
                 }
             },
-            expression: |db, _platform, p| {
+            expression: |db, _transport, p| {
                 let db: &dyn Db = db;
                 let fields: [TetheredField<'_, TestFieldExpr, TestFieldExpr>; 3] = [
                     TetheredField::Cloned(ClonedField {

@@ -2,9 +2,9 @@ use itertools::Either;
 
 use crate::compiler::{
     codegen::{
+        abi::{AbiArgs, AbiTransport},
         fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, frag, fragment},
         runtime::{
-            Platform,
             cast::{Cast, CastRenderer, RuntimeCastRenderer},
             tethering::{
                 TetheringStructType, render_tethering_struct_get_field_expr,
@@ -25,14 +25,14 @@ use crate::compiler::{
 #[salsa::tracked]
 impl<'db> RuntimeFunction<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn render(self, db: &'db dyn Db, platform: Platform) -> String {
-        self.render_with(db, platform, RuntimeCastRenderer).print()
+    pub(super) fn render(self, db: &'db dyn Db, transport: AbiTransport) -> String {
+        self.render_with(db, transport, RuntimeCastRenderer).print()
     }
 
     fn render_with<Renderer>(
         self,
         db: &'db dyn Db,
-        platform: Platform,
+        transport: AbiTransport,
         cast_compiler: Renderer,
     ) -> impl FragmentOnce
     where
@@ -40,7 +40,7 @@ impl<'db> RuntimeFunction<'db> {
     {
         FunctionFragment {
             function: self,
-            platform,
+            transport,
             cast_compiler,
             db,
         }
@@ -50,7 +50,7 @@ impl<'db> RuntimeFunction<'db> {
 #[derive(Copy, Clone)]
 struct FunctionFragment<'db, CastCompiler> {
     function: RuntimeFunction<'db>,
-    platform: Platform,
+    transport: AbiTransport,
     cast_compiler: CastCompiler,
     db: &'db dyn Db,
 }
@@ -58,6 +58,7 @@ struct FunctionFragment<'db, CastCompiler> {
 #[derive(Copy, Clone)]
 struct CoerceFnFragment<'db, CastCompiler> {
     coerce: Either<RuntimePlainCoerce<'db>, RuntimeDiscriminatedCoerce<'db>>,
+    args: AbiArgs<'db>,
     cast_compiler: CastCompiler,
     db: &'db dyn Db,
 }
@@ -89,10 +90,10 @@ where
             }
         };
         let params = function.params(db);
-        let casts = params.iter().enumerate().map(|(i, param)| Cast {
+        let casts = params.iter().enumerate().map(move |(i, param)| Cast {
             from: param.type_,
             to: param.src_type,
-            in_expr: frag!(_{i}),
+            in_expr: self.args.get(i).expr(),
             out_var_name: frag!(_{i}),
         });
         let value = fragment(move |p| match shape {
@@ -136,70 +137,34 @@ where
     CastCompiler: CastRenderer<'db> + Copy + Clone + 'db,
 {
     fn render(self) -> impl FragmentOnce {
-        let platform = self.platform;
-
-        let ret_type = self.function.ret_type(self.db);
-        let ok_type = || {
-            fragment(move |p| match ret_type {
-                Some(type_) => type_.render_type_decl(self.db).apply(p),
-                None => "()".apply(p),
-            })
-        };
-        let result_type = platform.result_type(ok_type());
-
-        let symbol = self.function.symbol(self.db);
-
-        frag!(
-            {platform.header_renamed(symbol)}@
-            pub fn ~{symbol}({self.render_params()})~ -> ~{result_type}~ {{
-                let result = (|| -> rustier_rt::CallResult<{ok_type()}>~{{
-                    {self.render_body()}
-                }})();@@
-
-                result.map_err(|error| {platform.error("error")})
-            }}
-        )
+        self.function
+            .abi(self.db)
+            .render_rust_with_body(self.db, self.transport, move |args| self.render_body(args))
     }
 
-    fn render_params(self) -> impl FragmentOnce {
-        comma_list(
-            self.function
-                .params(self.db)
-                .iter()
-                .copied()
-                .enumerate()
-                .map(move |(i, param)| {
-                    fragment(move |p| {
-                        frag!(
-                            _{i}: ~{param.type_.render_type_decl(self.db)}
-                        )
-                        .apply(p);
-                    })
-                }),
-        )
-    }
-
-    fn render_body(self) -> impl FragmentOnce {
+    fn render_body(self, args: AbiArgs<'db>) -> impl FragmentOnce {
         fragment(move |p| match self.function {
             RuntimeFunction::Free(free_fn) => self
-                .render_source_fn_call_body(free_fn.src(self.db))
+                .render_source_fn_call_body(free_fn.src(self.db), args)
                 .apply(p),
             RuntimeFunction::Associated(function) => self
-                .render_source_fn_call_body(function.src(self.db))
+                .render_source_fn_call_body(function.src(self.db), args)
                 .apply(p),
-            RuntimeFunction::Getter(getter) => self.render_fn_getter_body(getter).apply(p),
-            RuntimeFunction::Setter(setter) => self.render_fn_setter_body(setter).apply(p),
-            RuntimeFunction::Discriminator(discriminator) => {
-                self.render_enum_discriminator_body(discriminator).apply(p)
-            }
+            RuntimeFunction::Getter(getter) => self.render_fn_getter_body(getter, args).apply(p),
+            RuntimeFunction::Setter(setter) => self.render_fn_setter_body(setter, args).apply(p),
+            RuntimeFunction::Discriminator(discriminator) => self
+                .render_enum_discriminator_body(discriminator, args)
+                .apply(p),
             RuntimeFunction::PlainCoerce(coerce) => CoerceFnFragment {
                 coerce: Either::Left(coerce),
+                args,
                 cast_compiler: self.cast_compiler,
                 db: self.db,
             }
             .apply(p),
             RuntimeFunction::DiscriminatedCoerce(coerce) => CoerceFnFragment {
                 coerce: Either::Right(coerce),
+                args,
                 cast_compiler: self.cast_compiler,
                 db: self.db,
             }
@@ -207,17 +172,21 @@ where
         })
     }
 
-    fn render_source_fn_call_body(self, src_fn: Callable<'db>) -> impl FragmentOnce {
+    fn render_source_fn_call_body(
+        self,
+        src_fn: Callable<'db>,
+        args: AbiArgs<'db>,
+    ) -> impl FragmentOnce {
         let cast_param_to_source_types = self
             .function
             .params(self.db)
             .iter()
             .copied()
             .enumerate()
-            .map(|(i, param)| Cast {
+            .map(move |(i, param)| Cast {
                 from: param.type_,
                 to: param.src_type,
-                in_expr: frag!(_{i}),
+                in_expr: args.get(i).expr(),
                 out_var_name: frag!(_{i}),
             });
 
@@ -267,7 +236,11 @@ where
         )
     }
 
-    fn render_fn_getter_body(self, getter: RuntimeGetter<'db>) -> impl FragmentOnce {
+    fn render_fn_getter_body(
+        self,
+        getter: RuntimeGetter<'db>,
+        args: AbiArgs<'db>,
+    ) -> impl FragmentOnce {
         let field = getter.field(self.db).src(self.db);
         let class_param = self.function.params(self.db)[0];
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
@@ -276,7 +249,7 @@ where
             TetheringStructType {
                 source_type: class_param.src_type.deborrow(self.db),
             },
-            frag!(_0),
+            args.get(0).expr(),
         );
 
         let field_tethering_value_expr = render_tethering_struct_get_field_expr(
@@ -313,7 +286,11 @@ where
         frag!(Ok({ output }))
     }
 
-    fn render_fn_setter_body(self, setter: RuntimeSetter<'db>) -> impl FragmentOnce {
+    fn render_fn_setter_body(
+        self,
+        setter: RuntimeSetter<'db>,
+        args: AbiArgs<'db>,
+    ) -> impl FragmentOnce {
         let field = setter.field(self.db).src(self.db);
         let params = self.function.params(self.db);
         let (class_param, value_param) = (params[0], params[1]);
@@ -323,7 +300,7 @@ where
             TetheringStructType {
                 source_type: class_param.src_type.deborrow(self.db),
             },
-            frag!(_0),
+            args.get(0).expr(),
         );
 
         let set_tethered_field_stmt = render_tethering_struct_set_field_stmt(
@@ -337,7 +314,7 @@ where
             Cast {
                 from: value_param.type_,
                 to: field._type(self.db),
-                in_expr: frag!(_1),
+                in_expr: args.get(1).expr(),
                 out_var_name: frag!(value),
             },
             set_tethered_field_stmt,
@@ -352,6 +329,7 @@ where
     fn render_enum_discriminator_body(
         self,
         discriminator: RuntimeDiscriminator<'db>,
+        args: AbiArgs<'db>,
     ) -> impl FragmentOnce {
         let src = discriminator.class(self.db).src(self.db);
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
@@ -360,7 +338,7 @@ where
             TetheringStructType {
                 source_type: src.into_type(self.db),
             },
-            frag!(_0),
+            args.get(0).expr(),
         );
 
         let variants = fragment(move |p| {
@@ -418,14 +396,14 @@ mod tests {
             fn $name() {
                 assert_rust_snap! {
                     source: { $($source)* },
-                    expression: |db, platform, printer| {
+                    expression: |db, transport, printer| {
                         let db: &dyn Db = &*db;
                         let function = find_test_function(db, |function| {
                             matches!(function, $variant)
                         });
 
                         function
-                            .render_with(db, platform, TestCastRenderer)
+                            .render_with(db, transport, TestCastRenderer)
                             .apply(printer);
                     },
                 }
@@ -445,7 +423,7 @@ mod tests {
             fn $name() {
                 assert_rust_snap! {
                     source: { $($source)* },
-                    expression: |db, platform, printer| {
+                    expression: |db, transport, printer| {
                         let db: &dyn Db = &*db;
                         let function = find_test_function(db, |function| match function {
                             RuntimeFunction::PlainCoerce(coerce) => {
@@ -456,7 +434,7 @@ mod tests {
                             }
                             _ => false,
                         });
-                        function.render(db, platform).apply(printer);
+                        function.render(db, transport).apply(printer);
                     },
                 }
             }

@@ -71,7 +71,7 @@ mod tests {
                             .root(db)
                             .facade(db);
                         let paths = JsCodegenPaths {
-                            ffi_js_mod_id: "$rust/unstable!/node".to_owned(),
+                            abi_js_mod_id: "$rust/unstable!/node".to_owned(),
                         };
 
                         root.render(db, paths).apply(p);

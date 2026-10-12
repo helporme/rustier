@@ -6,7 +6,7 @@ use napi::threadsafe_function::ThreadsafeFunction;
 use napi_derive::napi;
 
 use crate::{
-    compiler::codegen::runtime::Platform,
+    compiler::codegen::abi::AbiTransport,
     server::{
         effects::Effect,
         log::ServerLogs,
@@ -137,9 +137,9 @@ impl Server {
         } = opts;
         let features = features.unwrap_or_default();
 
-        let compiler_platform = match &platform {
-            ServerPlatform::Node { .. } => Platform::Node,
-            ServerPlatform::Wasm { .. } => Platform::Wasm,
+        let transport = match &platform {
+            ServerPlatform::Node { .. } => AbiTransport::Napi,
+            ServerPlatform::Wasm { .. } => AbiTransport::WasmBindgen,
         };
         let platform_label = match &platform {
             ServerPlatform::Node { .. } => "node",
@@ -173,7 +173,7 @@ impl Server {
                     .with_db(|db| {
                         self.ws
                             .project(db)
-                            .bridge_crate(db, compiler_platform)
+                            .bridge_crate(db, transport)
                             .sync(db)
                             .exec()
                     })
@@ -321,11 +321,11 @@ pub enum ServerPlatform {
     Node { target: Option<ServerNodeTarget> },
 }
 
-impl From<ServerPlatform> for Platform {
+impl From<ServerPlatform> for AbiTransport {
     fn from(value: ServerPlatform) -> Self {
         match value {
-            ServerPlatform::Wasm { .. } => Platform::Wasm,
-            ServerPlatform::Node { .. } => Platform::Node,
+            ServerPlatform::Wasm { .. } => AbiTransport::WasmBindgen,
+            ServerPlatform::Node { .. } => AbiTransport::Napi,
         }
     }
 }

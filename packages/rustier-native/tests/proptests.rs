@@ -16,7 +16,7 @@ mod strategy;
 
 use common::fragment::FragmentPrint as _;
 use program::Program;
-use rustier::compiler::codegen::runtime::Platform;
+use rustier::compiler::codegen::abi::AbiTransport;
 
 const REGRESSION_FILE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -24,7 +24,7 @@ const REGRESSION_FILE: &str = concat!(
 );
 static PROGRAM_COMPILER: OnceLock<Result<Mutex<common::ProgramCompiler>, String>> = OnceLock::new();
 
-fn compile_generated_program(program: Program, platforms: Vec<Platform>) -> TestCaseResult {
+fn compile_generated_program(program: Program, platforms: Vec<AbiTransport>) -> TestCaseResult {
     let exported_functions = program.exported_functions();
     let program = common::ProgramTest {
         src: program.print(),
@@ -93,14 +93,14 @@ proptest! {
     fn generated_program_compiles_and_passes_cargo_check(
         program in strategy::program(),
     ) {
-        compile_generated_program(program, vec![Platform::Node])?;
+        compile_generated_program(program, vec![AbiTransport::Napi])?;
     }
 
     #[test]
     fn generated_generic_program_compiles_and_passes_cargo_check(
         program in strategy::generic_program(),
     ) {
-        compile_generated_program(program, vec![Platform::Node, Platform::Wasm])?;
+        compile_generated_program(program, vec![AbiTransport::Napi, AbiTransport::WasmBindgen])?;
     }
 }
 
@@ -132,7 +132,7 @@ fn omitted_rust_exports_are_rejected() -> Result<(), String> {
         let program = common::ProgramTest {
             src,
             cargo_check: false,
-            platforms: vec![Platform::Node],
+            platforms: vec![AbiTransport::Napi],
         };
 
         match compiler.compile_with_exports(&program, &[export]) {

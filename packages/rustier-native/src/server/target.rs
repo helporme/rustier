@@ -110,7 +110,7 @@ impl ServerNodeTarget {
         })
     }
 
-    /// The sibling filename expected by `compiler/codegen/ffi/napi-loader.mjs`.
+    /// The sibling filename expected by `compiler/codegen/abi/napi-loader.mjs`.
     pub fn native_binary_name(self) -> String {
         let suffix = match self {
             Self::Aarch64AppleDarwin => "darwin-arm64",

@@ -6,7 +6,7 @@ use crate::compiler::{
     ir::abi::Abi,
 };
 
-pub const NAPI_LOADER: &str = include_str!("ffi/napi-loader.mjs");
+pub const NAPI_LOADER: &str = include_str!("napi-loader.mjs");
 
 /// How the generated WebAssembly module is initialized.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
@@ -16,7 +16,7 @@ pub enum WasmLoading {
     Module,
 }
 
-pub enum FfiTarget<'a> {
+pub enum AbiJsTarget<'a> {
     Native {
         path: &'a str,
     },
@@ -28,12 +28,12 @@ pub enum FfiTarget<'a> {
 }
 
 impl<'db> Abi<'db> {
-    pub fn render(self, db: &'db dyn Db, target: FfiTarget<'_>) -> String {
+    pub fn render(self, db: &'db dyn Db, target: AbiJsTarget<'_>) -> String {
         let symbols = self.symbols(db);
 
         let mut js = fragment(move |p| {
             match target {
-                FfiTarget::Native { path } => {
+                AbiJsTarget::Native { path } => {
                     let path = fragment(move |p| write!(p, "{path:?}").unwrap());
 
                     frag!(
@@ -41,7 +41,7 @@ impl<'db> Abi<'db> {
                     )
                     .apply(p);
                 }
-                FfiTarget::Wasm {
+                AbiJsTarget::Wasm {
                     loading,
                     path,
                     wasm_path,

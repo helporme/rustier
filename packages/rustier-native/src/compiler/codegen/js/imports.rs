@@ -28,7 +28,7 @@ impl<'db> FacadeImport<'db> {
     pub(super) fn render_path(self, db: &'db dyn Db, paths: JsCodegenPaths) -> String {
         let to_path = match self.item(db) {
             FacadeImportItem::AbiFunction(_) | FacadeImportItem::AbiClass(_) => {
-                return paths.ffi_js_mod_id.as_str().to_owned();
+                return paths.abi_js_mod_id.as_str().to_owned();
             }
             FacadeImportItem::FacadeClass(class) => {
                 let target = class.module(db);

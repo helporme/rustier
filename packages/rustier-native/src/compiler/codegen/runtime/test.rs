@@ -38,14 +38,14 @@ pub fn build_rust_snapshot(
 macro_rules! assert_rust_snap {
     (
         source: { $($source:tt)* },
-        expression: |$db:ident, $platform:ident, $printer:ident| $expression:block $(,)?
+        expression: |$db:ident, $transport:ident, $printer:ident| $expression:block $(,)?
     ) => {{
         let __db = $crate::test_db! { $($source)* };
         let (__node, __wasm) = ::ra_ap_hir::attach_db(&__db, || {
             let __node = $crate::compiler::codegen::fragment::FragmentPrint::print(
                 $crate::compiler::codegen::fragment::fragment(|$printer| {
                     let $db = &__db;
-                    let $platform = $crate::compiler::codegen::runtime::Platform::Node;
+                    let $transport = $crate::compiler::codegen::abi::AbiTransport::Napi;
                     $expression
                 }),
             );
@@ -53,7 +53,7 @@ macro_rules! assert_rust_snap {
             let __wasm = $crate::compiler::codegen::fragment::FragmentPrint::print(
                 $crate::compiler::codegen::fragment::fragment(|$printer| {
                     let $db = &__db;
-                    let $platform = $crate::compiler::codegen::runtime::Platform::Wasm;
+                    let $transport = $crate::compiler::codegen::abi::AbiTransport::WasmBindgen;
                     $expression
                 }),
             );

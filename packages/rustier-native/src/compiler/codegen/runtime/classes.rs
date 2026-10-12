@@ -1,7 +1,7 @@
 use crate::compiler::{
     codegen::{
+        abi::AbiTransport,
         fragment::{FragmentOnce, FragmentPrint, Printer, doubles, frag, fragment},
-        runtime::Platform,
         runtime::tethering::{
             ClonedField, FieldExpr, TetheredField, TetheringStruct, TetheringStructField,
             render_tethering_struct,
@@ -18,11 +18,11 @@ use crate::compiler::{
 #[salsa::tracked]
 impl<'db> RuntimeClass<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn render(self, db: &'db dyn Db, platform: Platform) -> String {
+    pub(super) fn render(self, db: &'db dyn Db, transport: AbiTransport) -> String {
         ClassFragment {
             class: self,
             db,
-            platform,
+            transport,
         }
         .print()
     }
@@ -31,7 +31,7 @@ impl<'db> RuntimeClass<'db> {
 struct ClassFragment<'db> {
     class: RuntimeClass<'db>,
     db: &'db dyn Db,
-    platform: Platform,
+    transport: AbiTransport,
 }
 
 impl<'db> FragmentOnce for ClassFragment<'db> {
@@ -65,21 +65,13 @@ impl<'db> ClassFragment<'db> {
     }
 
     fn render_struct<'a>(&'a self) -> impl FragmentOnce + 'a {
-        let platform = self.platform;
+        let class = self.class.interface(self.db);
+        let tethering_type_name = class.src_type(self.db).tethering_struct_name(self.db);
 
-        let tethering_type_name = self
-            .class
-            .interface(self.db)
-            .src_type(self.db)
-            .tethering_struct_name(self.db);
-
-        let symbol = self.class.symbol(self.db);
-
-        frag!(
-            {platform.header_renamed(symbol)}
-            pub struct ~{symbol}~{{
-                handle: rustier_rt::Handle<{tethering_type_name}>
-            }}
+        class.abi(self.db).render_rust_with_fields(
+            self.db,
+            self.transport,
+            frag!(handle: rustier_rt::Handle<{tethering_type_name}>),
         )
     }
 }
@@ -190,7 +182,7 @@ mod tests {
             fn $name() {
                 assert_rust_snap! {
                     source: { $($source)* },
-                    expression: |db, platform, printer| {
+                    expression: |db, transport, printer| {
                         let db = &*db;
                         let root = Rust::get(db)
                             .interface_complete(db)
@@ -202,7 +194,7 @@ mod tests {
                         let Some(class) = root.classes(db).next() else {
                             panic!("test crate root should contain exactly one interface class");
                         };
-                        class.runtime(db).render(db, platform).apply(printer);
+                        class.runtime(db).render(db, transport).apply(printer);
                     },
                 }
             }

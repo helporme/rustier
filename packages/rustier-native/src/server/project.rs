@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::compiler::{
-    codegen::runtime::Platform,
+    codegen::abi::AbiTransport,
     db::Db,
     ir::{
         interface::Interface,
@@ -35,10 +35,10 @@ pub struct ProjectConfig {
 
 impl<'a> Project<'a> {
     /// Bridge crate of the project.
-    pub fn bridge_crate(self, db: &'a dyn Db, platform: Platform) -> BridgeCrate<'a> {
-        match platform {
-            Platform::Node => BridgeCrate::Node(BridgeCrateNode::new(db, self)),
-            Platform::Wasm => BridgeCrate::Wasm(BridgeCrateWasm::new(db, self)),
+    pub fn bridge_crate(self, db: &'a dyn Db, transport: AbiTransport) -> BridgeCrate<'a> {
+        match transport {
+            AbiTransport::Napi => BridgeCrate::Node(BridgeCrateNode::new(db, self)),
+            AbiTransport::WasmBindgen => BridgeCrate::Wasm(BridgeCrateWasm::new(db, self)),
         }
     }
 

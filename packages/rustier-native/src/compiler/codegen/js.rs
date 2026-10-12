@@ -11,6 +11,6 @@ mod test;
 /// Output paths used for a single JavaScript code generation.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]
 pub struct JsCodegenPaths {
-    /// Module specifier exposing all FFI functions.
-    pub ffi_js_mod_id: String,
+    /// Module specifier exposing all ABI functions.
+    pub abi_js_mod_id: String,
 }

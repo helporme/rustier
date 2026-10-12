@@ -1,5 +1,5 @@
 use crate::compiler::{
-    codegen::fragment::{FragmentOnce, Printer, frag, fragment},
+    codegen::fragment::{FragmentOnce, Printer, fragment},
     db::Db,
     ir::{
         interface::InterType,
@@ -8,22 +8,6 @@ use crate::compiler::{
 };
 
 impl<'db> InterType<'db> {
-    pub(super) fn render_type_decl(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
-        fragment(move |p| match self {
-            InterType::f64 => "f64".apply(p),
-            InterType::String => "String".apply(p),
-            InterType::bool => "bool".apply(p),
-            InterType::Class {
-                is_borrowed: true,
-                inner,
-            } => frag!(&{ inner.runtime(db).symbol(db) }).apply(p),
-            InterType::Class {
-                is_borrowed: false,
-                inner,
-            } => inner.runtime(db).symbol(db).apply(p),
-        })
-    }
-
     pub(super) fn uses_tethering(self) -> bool {
         matches!(self, InterType::Class { .. })
     }

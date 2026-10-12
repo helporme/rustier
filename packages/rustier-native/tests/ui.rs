@@ -1,7 +1,7 @@
 use std::{fs, io::ErrorKind, path::Path};
 
 use itertools::Itertools;
-use rustier::compiler::{codegen::runtime::Platform, diag::Theme};
+use rustier::compiler::{codegen::abi::AbiTransport, diag::Theme};
 
 use crate::common::ProgramTest;
 
@@ -34,8 +34,8 @@ fn parse_ui_test(src: String) -> Result<UiTest, String> {
             let mut parsed_platforms = Vec::new();
             for value in value.split(',').map(str::trim) {
                 let platform = match value {
-                    "wasm" | "wasm(web)" => Platform::Wasm,
-                    "node" => Platform::Node,
+                    "wasm" | "wasm(web)" => AbiTransport::WasmBindgen,
+                    "node" => AbiTransport::Napi,
                     "" => {
                         return Err(format!(
                             "empty API target in `//@ api` directive on line {}",
