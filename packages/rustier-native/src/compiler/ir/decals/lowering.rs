@@ -2,7 +2,7 @@ use crate::compiler::{
     db::Db,
     ir::{
         decals::{DecalParam, DecalType},
-        shim::{ShimFunction, ShimType},
+        interface::{InterFunction, InterType},
     },
 };
 
@@ -57,13 +57,13 @@ const RESERVED_PARAM_NAMES: &[&str] = &[
     "yield",
 ];
 
-impl<'db> ShimType<'db> {
+impl<'db> InterType<'db> {
     pub(super) fn lower_decals(self, db: &'db dyn Db) -> DecalType<'db> {
         match self {
-            ShimType::f64 => DecalType::number,
-            ShimType::String => DecalType::string,
-            ShimType::bool => DecalType::boolean,
-            ShimType::Class { inner, .. } => DecalType::Class {
+            InterType::f64 => DecalType::number,
+            InterType::String => DecalType::string,
+            InterType::bool => DecalType::boolean,
+            InterType::Class { inner, .. } => DecalType::Class {
                 inner: inner.decals(db),
                 coerced: false,
             },
@@ -75,13 +75,13 @@ impl<'db> ShimType<'db> {
 impl<'db> DecalParam<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn lower_name(self, db: &'db dyn Db) -> String {
-        let shim = self.shim(db);
-        let (function, param_idx) = match shim.parent(db) {
-            ShimFunction::Free(function) => (function.src(db), shim.idx(db)),
-            ShimFunction::Associated(function) => {
+        let interface = self.interface(db);
+        let (function, param_idx) = match interface.parent(db) {
+            InterFunction::Free(function) => (function.src(db), interface.idx(db)),
+            InterFunction::Associated(function) => {
                 let receiver_offset =
                     usize::from(function.src(db).declaration(db).receiver(db).is_some());
-                (function.src(db), shim.idx(db) - receiver_offset)
+                (function.src(db), interface.idx(db) - receiver_offset)
             }
             _ => unreachable!("declaration parameters only belong to source-defined functions"),
         };

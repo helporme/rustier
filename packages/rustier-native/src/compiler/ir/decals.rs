@@ -10,21 +10,21 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     ir::{
-        rust::{Callable, FieldName, Span},
-        shim::{
-            Shim, ShimClass, ShimClassDiscriminated, ShimClassDiscriminatedVariant, ShimClassPlain,
-            ShimClassTemplate, ShimField, ShimFunctionAssociated, ShimFunctionDiscriminator,
-            ShimFunctionFree, ShimGeneric, ShimMember, ShimModule, ShimParam, ShimParentModule,
-            ShimType,
+        interface::{
+            InterClass, InterClassDiscriminated, InterClassDiscriminatedVariant, InterClassPlain,
+            InterClassTemplate, InterField, InterFunctionAssociated, InterFunctionDiscriminator,
+            InterFunctionFree, InterGeneric, InterMember, InterModule, InterParam,
+            InterParentModule, InterType, Interface,
         },
+        rust::{Callable, FieldName, Span},
     },
     path::FilePath,
 };
 
-/// TypeScript declarations for the reachable shim API.
+/// TypeScript declarations for the reachable interface API.
 #[salsa::interned(debug)]
 pub struct Decals<'db> {
-    shim: Shim<'db>,
+    interface: Interface<'db>,
 }
 
 #[salsa::tracked]
@@ -43,7 +43,7 @@ impl<'db> Decals<'db> {
 
     fn modules(self, db: &'db dyn Db, is_local: bool) -> Vec<DecalModule<'db>> {
         let mut modules = self
-            .shim(db)
+            .interface(db)
             .crates(db)
             .filter(move |crate_| crate_.is_local(db) == is_local)
             .flat_map(move |crate_| crate_.all_modules(db))
@@ -76,46 +76,46 @@ pub struct DecalImport<'db> {
 /// entity.
 #[salsa::interned(debug)]
 pub struct DecalParentModule<'db> {
-    shim: ShimParentModule<'db>,
+    interface: InterParentModule<'db>,
 }
 
 #[salsa::tracked]
 impl<'db> DecalParentModule<'db> {
     pub fn is_local(self, db: &'db dyn Db) -> bool {
-        self.shim(db).src(db).path(db).crate_(db).is_local(db)
+        self.interface(db).src(db).path(db).crate_(db).is_local(db)
     }
 
     pub fn virtual_path(self, db: &'db dyn Db) -> &'db String {
-        self.shim(db).facade(db).virtual_path(db)
+        self.interface(db).facade(db).virtual_path(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.shim(db).src(db).docs(db)
+        self.interface(db).src(db).docs(db)
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.shim(db).src(db).span(db)
+        self.interface(db).src(db).span(db)
     }
 
     pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
-        self.shim(db).src(db).file_path(db)
+        self.interface(db).src(db).file_path(db)
     }
 }
 
 /// A reachable TypeScript declaration module.
 #[salsa::interned(debug)]
 pub struct DecalModule<'db> {
-    shim: ShimModule<'db>,
+    interface: InterModule<'db>,
 }
 
 #[salsa::tracked]
 impl<'db> DecalModule<'db> {
     pub fn virtual_path(self, db: &'db dyn Db) -> &'db String {
-        self.shim(db).facade(db).virtual_path(db)
+        self.interface(db).facade(db).virtual_path(db)
     }
 
     pub fn as_parent(self, db: &'db dyn Db) -> DecalParentModule<'db> {
-        self.shim(db).as_parent(db).decals(db)
+        self.interface(db).as_parent(db).decals(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
@@ -128,14 +128,16 @@ impl<'db> DecalModule<'db> {
 
     /// Members defined in this module.
     pub fn members(self, db: &'db dyn Db) -> impl Iterator<Item = DecalMember<'db>> + 'db {
-        self.shim(db).members(db).map(move |member| match member {
-            ShimMember::Class(class) => DecalMember::Class(class.decals(db)),
-            ShimMember::Template(template) => {
-                DecalMember::ClassTemplate(DecalClassTemplate::new(db, template))
-            }
-            ShimMember::Function(function) => DecalMember::Function(function.decals(db)),
-            ShimMember::Module(module) => DecalMember::Module(module.decals(db)),
-        })
+        self.interface(db)
+            .members(db)
+            .map(move |member| match member {
+                InterMember::Class(class) => DecalMember::Class(class.decals(db)),
+                InterMember::Template(template) => {
+                    DecalMember::ClassTemplate(DecalClassTemplate::new(db, template))
+                }
+                InterMember::Function(function) => DecalMember::Function(function.decals(db)),
+                InterMember::Module(module) => DecalMember::Module(module.decals(db)),
+            })
     }
 
     /// Imports needed for this module.
@@ -195,35 +197,35 @@ pub enum DecalMember<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalClassTemplate<'db> {
-    shim: ShimClassTemplate<'db>,
+    interface: InterClassTemplate<'db>,
 }
 
 #[salsa::tracked]
 impl<'db> DecalClassTemplate<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.shim(db).name(db)
+        self.interface(db).name(db)
     }
 
     pub fn is_discriminated(self, db: &'db dyn Db) -> bool {
-        matches!(self.shim(db), ShimClassTemplate::Discriminated(_))
+        matches!(self.interface(db), InterClassTemplate::Discriminated(_))
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        match self.shim(db) {
-            ShimClassTemplate::Plain(template) => template.src(db).docs(db),
-            ShimClassTemplate::Discriminated(template) => template.src(db).docs(db),
+        match self.interface(db) {
+            InterClassTemplate::Plain(template) => template.src(db).docs(db),
+            InterClassTemplate::Discriminated(template) => template.src(db).docs(db),
         }
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        match self.shim(db) {
-            ShimClassTemplate::Plain(template) => template.src(db).span(db),
-            ShimClassTemplate::Discriminated(template) => template.src(db).span(db),
+        match self.interface(db) {
+            InterClassTemplate::Plain(template) => template.src(db).span(db),
+            InterClassTemplate::Discriminated(template) => template.src(db).span(db),
         }
     }
 
     pub fn params(self, db: &'db dyn Db) -> &'db Vec<String> {
-        self.shim(db).param_names(db)
+        self.interface(db).param_names(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
@@ -234,15 +236,15 @@ impl<'db> DecalClassTemplate<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn mappings(self, db: &'db dyn Db) -> Vec<(Vec<DecalGeneric<'db>>, DecalClass<'db>)> {
-        self.shim(db)
+        self.interface(db)
             .mappings(db)
             .iter()
             .map(|(generics, class)| {
                 let generics = generics
                     .iter()
                     .map(|generic| match generic {
-                        ShimGeneric::Symbol(symbol) => DecalGeneric::Symbol(symbol.clone()),
-                        ShimGeneric::Class(class) => DecalGeneric::Class(class.decals(db)),
+                        InterGeneric::Symbol(symbol) => DecalGeneric::Symbol(symbol.clone()),
+                        InterGeneric::Class(class) => DecalGeneric::Class(class.decals(db)),
                     })
                     .collect();
 
@@ -339,7 +341,7 @@ impl<'db> DecalFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalFreeFunction<'db> {
-    shim: ShimFunctionFree<'db>,
+    interface: InterFunctionFree<'db>,
 }
 
 #[salsa::tracked]
@@ -361,7 +363,7 @@ impl<'db> DecalFreeFunction<'db> {
     }
 
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = DecalParam<'db>> + 'db {
-        self.shim(db)
+        self.interface(db)
             .params(db)
             .iter()
             .copied()
@@ -369,13 +371,13 @@ impl<'db> DecalFreeFunction<'db> {
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<DecalType<'db>> {
-        self.shim(db)
+        self.interface(db)
             .ret_type(db)
             .map(|type_| type_.lower_decals(db))
     }
 
     fn src(self, db: &'db dyn Db) -> Callable<'db> {
-        self.shim(db).src(db)
+        self.interface(db).src(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
@@ -385,7 +387,7 @@ impl<'db> DecalFreeFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalMethod<'db> {
-    shim: ShimFunctionAssociated<'db>,
+    interface: InterFunctionAssociated<'db>,
 }
 
 #[salsa::tracked]
@@ -411,7 +413,7 @@ impl<'db> DecalMethod<'db> {
     }
 
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = DecalParam<'db>> + 'db {
-        self.shim(db)
+        self.interface(db)
             .params_without_self(db)
             .iter()
             .copied()
@@ -419,13 +421,13 @@ impl<'db> DecalMethod<'db> {
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<DecalType<'db>> {
-        self.shim(db)
+        self.interface(db)
             .ret_type(db)
             .map(|type_| type_.lower_decals(db))
     }
 
     fn src(self, db: &'db dyn Db) -> Callable<'db> {
-        self.shim(db).src(db)
+        self.interface(db).src(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
@@ -435,7 +437,7 @@ impl<'db> DecalMethod<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalParam<'db> {
-    shim: ShimParam<'db>,
+    interface: InterParam<'db>,
 }
 
 impl<'db> DecalParam<'db> {
@@ -444,7 +446,10 @@ impl<'db> DecalParam<'db> {
     }
 
     pub fn type_(self, db: &'db dyn Db) -> DecalType<'db> {
-        self.shim(db).type_(db).lower_decals(db).try_as_coerced(db)
+        self.interface(db)
+            .type_(db)
+            .lower_decals(db)
+            .try_as_coerced(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = DecalClass<'db>> + 'db {
@@ -484,19 +489,19 @@ impl<'db> DecalClass<'db> {
     pub fn type_name(self, db: &'db dyn Db) -> TypeName<'db> {
         let (segment, generics) = match self {
             DecalClass::Plain(class) => (
-                class.shim(db).src(db).segment(db),
-                ShimClass::Plain(class.shim(db)).generics(db),
+                class.interface(db).src(db).segment(db),
+                InterClass::Plain(class.interface(db)).generics(db),
             ),
             DecalClass::Discriminated(class) => (
-                class.shim(db).src(db).segment(db),
-                ShimClass::Discriminated(class.shim(db)).generics(db),
+                class.interface(db).src(db).segment(db),
+                InterClass::Discriminated(class.interface(db)).generics(db),
             ),
         };
         let args = self.is_template_instance(db).then(|| {
             generics
                 .map(|generic| match generic {
-                    ShimGeneric::Class(class) => DecalGeneric::Class(class.decals(db)),
-                    ShimGeneric::Symbol(symbol) => DecalGeneric::Symbol(symbol),
+                    InterGeneric::Class(class) => DecalGeneric::Class(class.decals(db)),
+                    InterGeneric::Symbol(symbol) => DecalGeneric::Symbol(symbol),
                 })
                 .collect()
         });
@@ -549,20 +554,20 @@ impl<'db> DecalClass<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalClassPlain<'db> {
-    shim: ShimClassPlain<'db>,
+    interface: InterClassPlain<'db>,
 }
 
 impl<'db> DecalClassPlain<'db> {
     pub fn module(self, db: &'db dyn Db) -> DecalParentModule<'db> {
-        self.shim(db).module(db).decals(db)
+        self.interface(db).module(db).decals(db)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.shim(db).name(db)
+        self.interface(db).name(db)
     }
 
     pub fn is_template_instance(self, db: &'db dyn Db) -> bool {
-        !self.shim(db).src(db).gen_args(db).is_empty()
+        !self.interface(db).src(db).gen_args(db).is_empty()
     }
 
     pub fn type_name(self, db: &'db dyn Db) -> TypeName<'db> {
@@ -570,22 +575,22 @@ impl<'db> DecalClassPlain<'db> {
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.shim(db).src(db).def(db).docs(db)
+        self.interface(db).src(db).def(db).docs(db)
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.shim(db).src(db).def(db).span(db)
+        self.interface(db).src(db).def(db).span(db)
     }
 
     pub fn methods(self, db: &'db dyn Db) -> impl Iterator<Item = DecalMethod<'db>> + 'db {
-        self.shim(db)
+        self.interface(db)
             .methods(db)
             .iter()
             .map(|function| function.decals(db))
     }
 
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = DecalField<'db>> + 'db {
-        self.shim(db)
+        self.interface(db)
             .fields(db)
             .iter()
             .map(|field| DecalField::new(db, *field))
@@ -596,17 +601,17 @@ impl<'db> DecalClassPlain<'db> {
             method.name(db) == "new"
                 && method.is_static(db)
                 && matches!(
-                    method.shim(db).ret_type(db),
-                    Some(ShimType::Class {
+                    method.interface(db).ret_type(db),
+                    Some(InterType::Class {
                         is_borrowed: false,
                         inner,
-                    }) if inner.symbol(db) == self.shim(db).symbol(db)
+                    }) if inner.symbol(db) == self.interface(db).symbol(db)
                 )
         })
     }
 
     pub fn coerce(self, db: &'db dyn Db) -> Option<DecalCoerceFunction<'db>> {
-        self.shim(db)
+        self.interface(db)
             .facade(db)
             .coerce(db)
             .map(|_| DecalCoerceFunction::new(db, DecalClass::Plain(self)))
@@ -622,21 +627,21 @@ impl<'db> DecalClassPlain<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalClassDiscriminated<'db> {
-    shim: ShimClassDiscriminated<'db>,
+    interface: InterClassDiscriminated<'db>,
 }
 
 #[salsa::tracked]
 impl<'db> DecalClassDiscriminated<'db> {
     pub fn module(self, db: &'db dyn Db) -> DecalParentModule<'db> {
-        self.shim(db).module(db).decals(db)
+        self.interface(db).module(db).decals(db)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.shim(db).name(db)
+        self.interface(db).name(db)
     }
 
     pub fn is_template_instance(self, db: &'db dyn Db) -> bool {
-        !self.shim(db).src(db).gen_args(db).is_empty()
+        !self.interface(db).src(db).gen_args(db).is_empty()
     }
 
     pub fn type_name(self, db: &'db dyn Db) -> TypeName<'db> {
@@ -644,15 +649,15 @@ impl<'db> DecalClassDiscriminated<'db> {
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.shim(db).src(db).def(db).docs(db)
+        self.interface(db).src(db).def(db).docs(db)
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.shim(db).src(db).def(db).span(db)
+        self.interface(db).src(db).def(db).span(db)
     }
 
     pub fn methods(self, db: &'db dyn Db) -> impl Iterator<Item = DecalMethod<'db>> + 'db {
-        self.shim(db)
+        self.interface(db)
             .methods(db)
             .iter()
             .map(|function| function.decals(db))
@@ -660,20 +665,21 @@ impl<'db> DecalClassDiscriminated<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn variants(self, db: &'db dyn Db) -> Vec<DecalVariant<'db>> {
-        let shim = self.shim(db);
-        shim.variants(db)
+        let interface = self.interface(db);
+        interface
+            .variants(db)
             .iter()
-            .zip(shim.discriminator(db).facade(db).variant_names(db))
+            .zip(interface.discriminator(db).facade(db).variant_names(db))
             .map(|(variant, name)| DecalVariant::new(db, *variant, name.clone()))
             .collect()
     }
 
     pub fn discriminator(self, db: &'db dyn Db) -> DecalDiscriminator<'db> {
-        DecalDiscriminator::new(db, self.shim(db).discriminator(db))
+        DecalDiscriminator::new(db, self.interface(db).discriminator(db))
     }
 
     pub fn coerce(self, db: &'db dyn Db) -> Option<DecalCoerceFunction<'db>> {
-        self.shim(db)
+        self.interface(db)
             .facade(db)
             .coerce(db)
             .map(|_| DecalCoerceFunction::new(db, DecalClass::Discriminated(self)))
@@ -690,7 +696,7 @@ impl<'db> DecalClassDiscriminated<'db> {
 
 #[salsa::tracked(debug)]
 pub struct DecalVariant<'db> {
-    shim: ShimClassDiscriminatedVariant<'db>,
+    interface: InterClassDiscriminatedVariant<'db>,
     #[returns(ref)]
     #[tracked]
     pub name: String,
@@ -698,23 +704,23 @@ pub struct DecalVariant<'db> {
 
 impl<'db> DecalVariant<'db> {
     pub fn if_coercible(self, db: &'db dyn Db) -> bool {
-        self.shim(db).coerce(db).is_some()
+        self.interface(db).coerce(db).is_some()
     }
 
     pub fn source_name(self, db: &'db dyn Db) -> &'db String {
-        self.shim(db).name(db)
+        self.interface(db).name(db)
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.shim(db).src(db).declaration(db).span(db)
+        self.interface(db).src(db).declaration(db).span(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.shim(db).src(db).declaration(db).docs(db)
+        self.interface(db).src(db).declaration(db).docs(db)
     }
 
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = DecalField<'db>> + 'db {
-        self.shim(db)
+        self.interface(db)
             .fields(db)
             .map(|field| DecalField::new(db, field))
     }
@@ -726,28 +732,28 @@ impl<'db> DecalVariant<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalField<'db> {
-    shim: ShimField<'db>,
+    interface: InterField<'db>,
 }
 
 impl<'db> DecalField<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db FieldName {
-        self.shim(db).src(db).declaration(db).name(db)
+        self.interface(db).src(db).declaration(db).name(db)
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
-        self.shim(db).src(db).declaration(db).span(db)
+        self.interface(db).src(db).declaration(db).span(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
-        self.shim(db).src(db).declaration(db).docs(db)
+        self.interface(db).src(db).declaration(db).docs(db)
     }
 
     pub fn is_readonly(self, db: &'db dyn Db) -> bool {
-        self.shim(db).setter(db).is_none()
+        self.interface(db).setter(db).is_none()
     }
 
     pub fn get_type(self, db: &'db dyn Db) -> DecalType<'db> {
-        self.shim(db).getter(db).ret_type(db).lower_decals(db)
+        self.interface(db).getter(db).ret_type(db).lower_decals(db)
     }
 
     pub fn set_type(self, db: &'db dyn Db) -> DecalType<'db> {
@@ -761,7 +767,7 @@ impl<'db> DecalField<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalDiscriminator<'db> {
-    src: ShimFunctionDiscriminator<'db>,
+    src: InterFunctionDiscriminator<'db>,
 }
 
 impl<'db> DecalDiscriminator<'db> {
@@ -791,13 +797,13 @@ impl<'db> DecalCoerceFunction<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db str {
         match self.class(db) {
             DecalClass::Plain(c) => c
-                .shim(db)
+                .interface(db)
                 .facade(db)
                 .coerce(db)
                 .expect("coerce must exist")
                 .name(db),
             DecalClass::Discriminated(c) => c
-                .shim(db)
+                .interface(db)
                 .facade(db)
                 .coerce(db)
                 .expect("coerce must exist")

@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     compiler::{
-        codegen::shim::{Platform, manifest::Manifest},
+        codegen::runtime::{Platform, manifest::Manifest},
         db::Db,
         ir::facade::FacadeModule,
     },
@@ -86,7 +86,7 @@ impl<'a> BridgeCrate<'a> {
 
         let lib = self
             .project(db)
-            .reachable_shim(db)
+            .reachable_interface(db)
             .render(db, self.platform())
             .clone();
 
@@ -142,7 +142,7 @@ impl BridgeCrateSync {
 
 impl<'db> Project<'db> {
     fn js_module(self, db: &'db dyn Db, path: &str) -> Option<FacadeModule<'db>> {
-        self.reachable_shim(db)
+        self.reachable_interface(db)
             .crates(db)
             .flat_map(|c| c.all_modules(db))
             .find(|m| {

@@ -1,20 +1,20 @@
 use crate::compiler::{
     db::Db,
-    ir::{facade::FacadeType, shim::ShimType},
+    ir::{facade::FacadeType, interface::InterType},
 };
 
-impl<'db> ShimType<'db> {
-    /// Lowers a shim type to facade.
+impl<'db> InterType<'db> {
+    /// Lowers an interface type to facade.
     ///
     /// Do not make this function public, it just happened that we can lower the
-    /// shim type to facade type directly, but it's not neccessary a thing in
-    /// future.
+    /// interface type to facade type directly, but it's not neccessary a thing
+    /// in future.
     pub(super) fn lower_facade(self, db: &'db dyn Db) -> FacadeType<'db> {
         match self {
-            ShimType::f64 => FacadeType::number,
-            ShimType::String => FacadeType::string,
-            ShimType::bool => FacadeType::boolean,
-            ShimType::Class { inner, .. } => FacadeType::Class(inner.facade(db)),
+            InterType::f64 => FacadeType::number,
+            InterType::String => FacadeType::string,
+            InterType::bool => FacadeType::boolean,
+            InterType::Class { inner, .. } => FacadeType::Class(inner.facade(db)),
         }
     }
 }

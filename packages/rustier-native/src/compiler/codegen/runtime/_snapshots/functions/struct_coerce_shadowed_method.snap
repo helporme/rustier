@@ -1,0 +1,60 @@
+---
+source: src/compiler/codegen/runtime/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Record {
+    pub number: f64,
+}
+impl Record {
+    pub fn number(&self) -> f64 {
+        self.number
+    }
+}
+```
+
+# Compiled
+## Node
+```rust
+#[napi(js_name = "__fn__coe__10_test_crate__6_Record")]
+pub fn __fn__coe__10_test_crate__6_Record(
+    _0: f64,
+) -> napi::Result<__plain__10_test_crate__6_Record> {
+    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__6_Record> {
+        Ok(__plain__10_test_crate__6_Record {
+            handle: (std::rc::Rc::new(
+                __tethering__10_test_crate__6_Record::new_owned({
+                    let _0 = _0;
+                    test_crate::Record { number: _0 }
+                }),
+            ))
+                .into(),
+        })
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
+}
+```
+
+## Wasm
+```rust
+#[wasm_bindgen(js_name = "__fn__coe__10_test_crate__6_Record")]
+pub fn __fn__coe__10_test_crate__6_Record(
+    _0: f64,
+) -> Result<__plain__10_test_crate__6_Record, JsValue> {
+    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__6_Record> {
+        Ok(__plain__10_test_crate__6_Record {
+            handle: (std::rc::Rc::new(
+                __tethering__10_test_crate__6_Record::new_owned({
+                    let _0 = _0;
+                    test_crate::Record { number: _0 }
+                }),
+            ))
+                .into(),
+        })
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
+}
+```

@@ -1,0 +1,39 @@
+---
+source: src/compiler/codegen/runtime/cast.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub enum ExampleEnum {
+    Variant,
+}
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    input
+        .handle
+        .clone_rc()
+        .access_mut(|value| Ok({
+            let output = value;
+            consume(output);
+        }))?
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    input
+        .handle
+        .clone_rc()
+        .access_mut(|value| Ok({
+            let output = value;
+            consume(output);
+        }))?
+}
+```

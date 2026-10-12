@@ -1,11 +1,11 @@
 use std::path::{Path, PathBuf};
 
 use crate::compiler::{
-    codegen::shim::Platform,
+    codegen::runtime::Platform,
     db::Db,
     ir::{
+        interface::Interface,
         rust::{Crate, Rust, usages::UsageGraph},
-        shim::Shim,
     },
 };
 
@@ -53,9 +53,10 @@ impl<'a> Project<'a> {
             .expect("Project must have a local crate")
     }
 
-    /// A shim reachable from the project's local crate.
-    pub fn reachable_shim(self, db: &'a dyn Db) -> Shim<'a> {
-        Rust::get(db).shim_reachable_from(db, UsageGraph::new(db, [self.src_crate(db).root(db)]))
+    /// An interface reachable from the project's local crate.
+    pub fn reachable_interface(self, db: &'a dyn Db) -> Interface<'a> {
+        Rust::get(db)
+            .interface_reachable_from(db, UsageGraph::new(db, [self.src_crate(db).root(db)]))
     }
 
     /// Project root directory.

@@ -1,0 +1,91 @@
+---
+source: src/compiler/codegen/runtime/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Tuple(pub i32, pub String);
+```
+
+# Compiled
+## Node
+```rust
+#[napi(js_name = "__fn__coe__10_test_crate__5_Tuple")]
+pub fn __fn__coe__10_test_crate__5_Tuple(
+    _0: f64,
+    _1: String,
+) -> napi::Result<__plain__10_test_crate__5_Tuple> {
+    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__5_Tuple> {
+        Ok(__plain__10_test_crate__5_Tuple {
+            handle: (std::rc::Rc::new(
+                __tethering__10_test_crate__5_Tuple::new_owned({
+                    let _0 = {
+                        let type_name = "i32";
+                        let value = _0;
+                        if value.trunc() != value || value < i32::MIN as f64
+                            || value > i32::MAX as f64
+                        {
+                            return Err(
+                                rustier_rt::CastError {
+                                    value,
+                                    target: type_name,
+                                }
+                                    .into(),
+                            );
+                        }
+                        value as i32
+                    };
+                    {
+                        let _1 = _1;
+                        test_crate::Tuple(_0, _1)
+                    }
+                }),
+            ))
+                .into(),
+        })
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
+}
+```
+
+## Wasm
+```rust
+#[wasm_bindgen(js_name = "__fn__coe__10_test_crate__5_Tuple")]
+pub fn __fn__coe__10_test_crate__5_Tuple(
+    _0: f64,
+    _1: String,
+) -> Result<__plain__10_test_crate__5_Tuple, JsValue> {
+    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__5_Tuple> {
+        Ok(__plain__10_test_crate__5_Tuple {
+            handle: (std::rc::Rc::new(
+                __tethering__10_test_crate__5_Tuple::new_owned({
+                    let _0 = {
+                        let type_name = "i32";
+                        let value = _0;
+                        if value.trunc() != value || value < i32::MIN as f64
+                            || value > i32::MAX as f64
+                        {
+                            return Err(
+                                rustier_rt::CastError {
+                                    value,
+                                    target: type_name,
+                                }
+                                    .into(),
+                            );
+                        }
+                        value as i32
+                    };
+                    {
+                        let _1 = _1;
+                        test_crate::Tuple(_0, _1)
+                    }
+                }),
+            ))
+                .into(),
+        })
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
+}
+```

@@ -1,0 +1,35 @@
+---
+source: src/compiler/codegen/runtime/cast.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct ExampleStruct;
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    {
+        let output = __plain__10_test_crate__13_ExampleStruct {
+            handle: (input).into(),
+        };
+        consume(output);
+    }
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    {
+        let output = __plain__10_test_crate__13_ExampleStruct {
+            handle: (input).into(),
+        };
+        consume(output);
+    }
+}
+```

@@ -1,7 +1,7 @@
 use std::{fs, io::ErrorKind, path::Path};
 
 use itertools::Itertools;
-use rustier::compiler::{codegen::shim::Platform, diag::Theme};
+use rustier::compiler::{codegen::runtime::Platform, diag::Theme};
 
 use crate::common::ProgramTest;
 

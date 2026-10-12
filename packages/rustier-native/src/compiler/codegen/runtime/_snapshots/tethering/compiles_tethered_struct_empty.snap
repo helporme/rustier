@@ -1,0 +1,80 @@
+---
+source: src/compiler/codegen/runtime/tethering.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Empty;
+```
+
+# Compiled
+## Node
+```rust
+struct __tethering__10_test_crate__5_Empty {
+    src: __tethering::SourceSlot<test_crate::Empty>,
+}
+impl __tethering::Accessor<test_crate::Empty> for __tethering__10_test_crate__5_Empty {
+    fn access_dyn(
+        &self,
+        f: &mut dyn FnMut(&test_crate::Empty) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_dyn(f)
+    }
+    fn access_mut_dyn(
+        &self,
+        f: &mut dyn FnMut(&mut test_crate::Empty) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut_dyn(f)
+    }
+}
+impl __tethering__10_test_crate__5_Empty {
+    pub fn new_owned(input: test_crate::Empty) -> Self {
+        __tethering__10_test_crate__5_Empty {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<test_crate::Empty>>,
+    ) -> Self {
+        __tethering__10_test_crate__5_Empty {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+}
+```
+
+## Wasm
+```rust
+struct __tethering__10_test_crate__5_Empty {
+    src: __tethering::SourceSlot<test_crate::Empty>,
+}
+impl __tethering::Accessor<test_crate::Empty> for __tethering__10_test_crate__5_Empty {
+    fn access_dyn(
+        &self,
+        f: &mut dyn FnMut(&test_crate::Empty) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_dyn(f)
+    }
+    fn access_mut_dyn(
+        &self,
+        f: &mut dyn FnMut(&mut test_crate::Empty) -> __tethering::AccessResult<()>,
+    ) -> __tethering::AccessResult<()> {
+        self.src.access_mut_dyn(f)
+    }
+}
+impl __tethering__10_test_crate__5_Empty {
+    pub fn new_owned(input: test_crate::Empty) -> Self {
+        __tethering__10_test_crate__5_Empty {
+            src: __tethering::SourceSlot::owned(input),
+        }
+    }
+    pub fn new_projected(
+        accessor: std::rc::Rc<dyn __tethering::Accessor<test_crate::Empty>>,
+    ) -> Self {
+        __tethering__10_test_crate__5_Empty {
+            src: __tethering::SourceSlot::projected(accessor),
+        }
+    }
+}
+```

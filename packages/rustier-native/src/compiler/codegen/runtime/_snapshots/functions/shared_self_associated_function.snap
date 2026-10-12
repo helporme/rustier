@@ -1,0 +1,93 @@
+---
+source: src/compiler/codegen/runtime/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub struct Test;
+impl Test {
+    pub fn shared(&self, value: i32) -> i32 {
+        value
+    }
+}
+```
+
+# Compiled
+## Node
+```rust
+#[napi(js_name = "__fn__associated__10_test_crate__4_Test__6_shared")]
+pub fn __fn__associated__10_test_crate__4_Test__6_shared(
+    _0: &__plain__10_test_crate__4_Test,
+    _1: f64,
+) -> napi::Result<f64> {
+    let result = (|| -> rustier_rt::CallResult<f64> {
+        Ok(
+            cast
+                .from(
+                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                )
+                .to("Interface(f64)")
+                .an({
+                    let _0 = cast
+                        .from(
+                            "Interface(Class { is_borrowed: true, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: Dereferenced(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) }) } }) })",
+                        )
+                        .to(
+                            "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                        )
+                        .an(_0);
+                    {
+                        let _1 = cast
+                            .from("Interface(f64)")
+                            .to(
+                                "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7401)) }, index: 0 } })",
+                            )
+                            .an(_1);
+                        test_crate::Test::shared(_0, _1)
+                    }
+                }),
+        )
+    })();
+    result.map_err(|error| napi::Error::from_reason(error.to_string()))
+}
+```
+
+## Wasm
+```rust
+#[wasm_bindgen(js_name = "__fn__associated__10_test_crate__4_Test__6_shared")]
+pub fn __fn__associated__10_test_crate__4_Test__6_shared(
+    _0: &__plain__10_test_crate__4_Test,
+    _1: f64,
+) -> Result<f64, JsValue> {
+    let result = (|| -> rustier_rt::CallResult<f64> {
+        Ok(
+            cast
+                .from(
+                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                )
+                .to("Interface(f64)")
+                .an({
+                    let _0 = cast
+                        .from(
+                            "Interface(Class { is_borrowed: true, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: Dereferenced(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) }) } }) })",
+                        )
+                        .to(
+                            "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) })",
+                        )
+                        .an(_0);
+                    {
+                        let _1 = cast
+                            .from("Interface(f64)")
+                            .to(
+                                "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7401)) }, index: 0 } })",
+                            )
+                            .an(_1);
+                        test_crate::Test::shared(_0, _1)
+                    }
+                }),
+        )
+    })();
+    result.map_err(|error| JsValue::from_str(&error.to_string()))
+}
+```

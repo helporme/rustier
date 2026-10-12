@@ -6,7 +6,7 @@ use napi::threadsafe_function::ThreadsafeFunction;
 use napi_derive::napi;
 
 use crate::{
-    compiler::codegen::shim::Platform,
+    compiler::codegen::runtime::Platform,
     server::{
         effects::Effect,
         log::ServerLogs,
@@ -168,7 +168,7 @@ impl Server {
             }
 
             {
-                let _span = tracing::debug_span!("Rust shim generation").entered();
+                let _span = tracing::debug_span!("Rust runtime generation").entered();
                 self.ws
                     .with_db(|db| {
                         self.ws
@@ -240,8 +240,8 @@ impl Server {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
         let _span = tracing::info_span!("Rust API check").entered();
         self.ws.with_db(|db| {
-            let shim = self.ws.project(db).reachable_shim(db);
-            let diagnostics = shim.check(db);
+            let interface = self.ws.project(db).reachable_interface(db);
+            let diagnostics = interface.check(db);
 
             diagnostics
                 .into_iter()

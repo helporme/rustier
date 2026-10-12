@@ -6,67 +6,68 @@ use crate::compiler::{
             FacadeFieldDiscriminator, FacadeFreeFunction, FacadeMethod, FacadeModule,
             FacadeParentModule,
         },
-        shim::{
-            Shim, ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimFunctionAssociated,
-            ShimFunctionDiscriminator, ShimFunctionFree, ShimModule, ShimParentModule,
+        interface::{
+            InterClass, InterClassDiscriminated, InterClassPlain, InterFunctionAssociated,
+            InterFunctionDiscriminator, InterFunctionFree, InterModule, InterParentModule,
+            Interface,
         },
     },
 };
 
-impl<'db> Shim<'db> {
+impl<'db> Interface<'db> {
     pub fn facade(self, db: &'db dyn Db) -> Facade<'db> {
         Facade::new(db, self)
     }
 }
 
-impl<'db> ShimParentModule<'db> {
+impl<'db> InterParentModule<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
         FacadeParentModule::new(db, self)
     }
 }
 
-impl<'db> ShimModule<'db> {
+impl<'db> InterModule<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeModule<'db> {
         FacadeModule::new(db, self)
     }
 }
 
-impl<'db> ShimClassPlain<'db> {
+impl<'db> InterClassPlain<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeClassPlain<'db> {
         FacadeClassPlain::new(db, self)
     }
 }
 
-impl<'db> ShimClassDiscriminated<'db> {
+impl<'db> InterClassDiscriminated<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeClassDiscriminated<'db> {
         FacadeClassDiscriminated::new(db, self)
     }
 }
 
-impl<'db> ShimClass<'db> {
+impl<'db> InterClass<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeClass<'db> {
         match self {
-            ShimClass::Plain(plain) => FacadeClass::Plain(plain.facade(db)),
-            ShimClass::Discriminated(discriminated) => {
+            InterClass::Plain(plain) => FacadeClass::Plain(plain.facade(db)),
+            InterClass::Discriminated(discriminated) => {
                 FacadeClass::Discriminated(discriminated.facade(db))
             }
         }
     }
 }
 
-impl<'db> ShimFunctionFree<'db> {
+impl<'db> InterFunctionFree<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeFreeFunction<'db> {
         FacadeFreeFunction::new(db, self)
     }
 }
 
-impl<'db> ShimFunctionAssociated<'db> {
+impl<'db> InterFunctionAssociated<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeMethod<'db> {
         FacadeMethod::new(db, self)
     }
 }
 
-impl<'db> ShimFunctionDiscriminator<'db> {
+impl<'db> InterFunctionDiscriminator<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeFieldDiscriminator<'db> {
         FacadeFieldDiscriminator::new(db, self)
     }

@@ -21,7 +21,7 @@ struct TestSourceMap {
 
 pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalModule<'db> {
     Rust::get(db)
-        .shim_complete(db)
+        .interface_complete(db)
         .crates(db)
         .next()
         .expect("test crate should be lowered")
@@ -31,7 +31,7 @@ pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalModule<'db> {
 
 pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalModule<'db> {
     let mut module = Rust::get(db)
-        .shim_complete(db)
+        .interface_complete(db)
         .crates(db)
         .next()
         .expect("test crate should be lowered")

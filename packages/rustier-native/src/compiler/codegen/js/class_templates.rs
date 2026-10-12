@@ -64,7 +64,7 @@ mod tests {
                     source: { $($source)* },
                     expression: |db, p| {
                         let root = Rust::get(db)
-                            .shim_complete(db)
+                            .interface_complete(db)
                             .crates(db)
                             .next()
                             .expect("test crate should be lowered")

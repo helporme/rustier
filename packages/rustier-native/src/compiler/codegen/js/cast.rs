@@ -401,7 +401,7 @@ mod tests {
 
     fn test_facade_class<'db>(db: &'db dyn Db) -> FacadeClass<'db> {
         let crate_ = Rust::get(db)
-            .shim_complete(db)
+            .interface_complete(db)
             .crates(db)
             .next()
             .expect("test crate should be lowered");

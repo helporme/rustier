@@ -3,5 +3,5 @@
 pub mod decals;
 pub mod facade;
 pub mod ffi;
+pub mod interface;
 pub mod rust;
-pub mod shim;

@@ -1,0 +1,55 @@
+---
+source: src/compiler/codegen/runtime/cast.rs
+expression: snapshot
+---
+# Source
+
+```rust
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    {
+        let output = {
+            let type_name = "u8";
+            let value = input;
+            if value.trunc() != value || value < 0 as f64 || value > u8::MAX as f64 {
+                return Err(
+                    rustier_rt::CastError {
+                        value,
+                        target: type_name,
+                    }
+                        .into(),
+                );
+            }
+            value as u8
+        };
+        consume(output);
+    }
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    {
+        let output = {
+            let type_name = "u8";
+            let value = input;
+            if value.trunc() != value || value < 0 as f64 || value > u8::MAX as f64 {
+                return Err(
+                    rustier_rt::CastError {
+                        value,
+                        target: type_name,
+                    }
+                        .into(),
+                );
+            }
+            value as u8
+        };
+        consume(output);
+    }
+}
+```

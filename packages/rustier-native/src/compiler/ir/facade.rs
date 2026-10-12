@@ -12,26 +12,26 @@ use crate::compiler::{
     db::Db,
     ir::{
         ffi::{Ffi, FfiClass, FfiFunction},
-        rust::{Callable, FieldName},
-        shim::{
-            Shim, ShimClassDiscriminated, ShimClassPlain, ShimClassTemplate, ShimField,
-            ShimFunctionAssociated, ShimFunctionDiscriminator, ShimFunctionFree,
-            ShimFunctionPlainCoerce, ShimGeneric, ShimMember, ShimModule, ShimParam,
-            ShimParentModule, ShimType,
+        interface::{
+            InterClassDiscriminated, InterClassPlain, InterClassTemplate, InterField,
+            InterFunctionAssociated, InterFunctionDiscriminator, InterFunctionFree,
+            InterFunctionPlainCoerce, InterGeneric, InterMember, InterModule, InterParam,
+            InterParentModule, InterType, Interface,
         },
+        rust::{Callable, FieldName},
     },
     path::FilePath,
 };
 
-/// The facade for a complete reachable shim API.
+/// The facade for a complete reachable interface API.
 #[salsa::interned(debug)]
 pub struct Facade<'db> {
-    shim: Shim<'db>,
+    interface: Interface<'db>,
 }
 
 impl<'db> Facade<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> Ffi<'db> {
-        Ffi::new(db, self.shim(db))
+        Ffi::new(db, self.interface(db))
     }
 }
 
@@ -74,19 +74,19 @@ impl<'db> FacadeImportItem<'db> {
 /// js.
 #[salsa::interned(debug)]
 pub struct FacadeParentModule<'db> {
-    shim: ShimParentModule<'db>,
+    interface: InterParentModule<'db>,
 }
 
 #[salsa::tracked]
 impl<'db> FacadeParentModule<'db> {
     pub fn is_local(self, db: &'db dyn Db) -> bool {
-        self.shim(db).src(db).path(db).crate_(db).is_local(db)
+        self.interface(db).src(db).path(db).crate_(db).is_local(db)
     }
 
     /// Stable module specifier independent of source file layout.
     #[salsa::tracked(returns(ref))]
     pub fn virtual_path(self, db: &'db dyn Db) -> String {
-        let path = self.shim(db).src(db).path(db);
+        let path = self.interface(db).src(db).path(db);
         let names = path
             .segments(db)
             .iter()
@@ -98,14 +98,14 @@ impl<'db> FacadeParentModule<'db> {
 
     /// File path of the source rust module.
     pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
-        self.shim(db).src(db).file_path(db)
+        self.interface(db).src(db).file_path(db)
     }
 }
 
 /// A reachable facade module.
 #[salsa::interned(debug)]
 pub struct FacadeModule<'db> {
-    shim: ShimModule<'db>,
+    interface: InterModule<'db>,
 }
 
 #[salsa::tracked]
@@ -115,19 +115,21 @@ impl<'db> FacadeModule<'db> {
     }
 
     pub fn as_parent(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
-        self.shim(db).as_parent(db).facade(db)
+        self.interface(db).as_parent(db).facade(db)
     }
 
     /// All members defined in this module.
     pub fn members(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeMember<'db>> + 'db {
-        self.shim(db).members(db).map(move |member| match member {
-            ShimMember::Class(class) => FacadeMember::Class(class.facade(db)),
-            ShimMember::Template(template) => {
-                FacadeMember::ClassTemplate(FacadeClassTemplate::new(db, template))
-            }
-            ShimMember::Function(function) => FacadeMember::Function(function.facade(db)),
-            ShimMember::Module(module) => FacadeMember::Module(module.facade(db)),
-        })
+        self.interface(db)
+            .members(db)
+            .map(move |member| match member {
+                InterMember::Class(class) => FacadeMember::Class(class.facade(db)),
+                InterMember::Template(template) => {
+                    FacadeMember::ClassTemplate(FacadeClassTemplate::new(db, template))
+                }
+                InterMember::Function(function) => FacadeMember::Function(function.facade(db)),
+                InterMember::Module(module) => FacadeMember::Module(module.facade(db)),
+            })
     }
 
     /// Imports needed for this module.
@@ -186,17 +188,17 @@ pub enum FacadeMember<'db> {
 
 #[salsa::interned(debug)]
 pub struct FacadeClassTemplate<'db> {
-    shim: ShimClassTemplate<'db>,
+    interface: InterClassTemplate<'db>,
 }
 
 #[salsa::tracked]
 impl<'db> FacadeClassTemplate<'db> {
     pub fn module(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
-        self.shim(db).module(db).facade(db)
+        self.interface(db).module(db).facade(db)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.shim(db).name(db)
+        self.interface(db).name(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> + 'db {
@@ -213,15 +215,15 @@ impl<'db> FacadeClassTemplate<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn mappings(self, db: &'db dyn Db) -> Vec<(Vec<FacadeGeneric<'db>>, FacadeClass<'db>)> {
-        self.shim(db)
+        self.interface(db)
             .mappings(db)
             .iter()
             .map(|(generics, class)| {
                 let generics = generics
                     .iter()
                     .map(|generic| match generic {
-                        ShimGeneric::Symbol(symbol) => FacadeGeneric::Symbol(symbol.clone()),
-                        ShimGeneric::Class(class) => FacadeGeneric::Class(class.facade(db)),
+                        InterGeneric::Symbol(symbol) => FacadeGeneric::Symbol(symbol.clone()),
+                        InterGeneric::Class(class) => FacadeGeneric::Class(class.facade(db)),
                     })
                     .collect();
 
@@ -276,7 +278,7 @@ impl<'db> FacadeFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct FacadeFreeFunction<'db> {
-    shim: ShimFunctionFree<'db>,
+    interface: InterFunctionFree<'db>,
 }
 
 #[salsa::tracked]
@@ -286,7 +288,7 @@ impl<'db> FacadeFreeFunction<'db> {
     }
 
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.shim(db).ffi(db)
+        self.interface(db).ffi(db)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {
@@ -294,7 +296,7 @@ impl<'db> FacadeFreeFunction<'db> {
     }
 
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeParam<'db>> + 'db {
-        self.shim(db)
+        self.interface(db)
             .params(db)
             .iter()
             .copied()
@@ -302,7 +304,7 @@ impl<'db> FacadeFreeFunction<'db> {
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<FacadeType<'db>> {
-        self.shim(db)
+        self.interface(db)
             .ret_type(db)
             .map(|type_| type_.lower_facade(db))
     }
@@ -329,13 +331,13 @@ impl<'db> FacadeFreeFunction<'db> {
     }
 
     fn src(self, db: &'db dyn Db) -> Callable<'db> {
-        self.shim(db).src(db)
+        self.interface(db).src(db)
     }
 }
 
 #[salsa::interned(debug)]
 pub struct FacadeMethod<'db> {
-    shim: ShimFunctionAssociated<'db>,
+    interface: InterFunctionAssociated<'db>,
 }
 
 #[salsa::tracked]
@@ -349,7 +351,7 @@ impl<'db> FacadeMethod<'db> {
     }
 
     pub fn class(self, db: &'db dyn Db) -> FacadeClass<'db> {
-        self.shim(db).self_class(db).facade(db)
+        self.interface(db).self_class(db).facade(db)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {
@@ -357,11 +359,11 @@ impl<'db> FacadeMethod<'db> {
     }
 
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.shim(db).ffi(db)
+        self.interface(db).ffi(db)
     }
 
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeParam<'db>> + 'db {
-        self.shim(db)
+        self.interface(db)
             .params_without_self(db)
             .iter()
             .copied()
@@ -369,7 +371,7 @@ impl<'db> FacadeMethod<'db> {
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<FacadeType<'db>> {
-        self.shim(db)
+        self.interface(db)
             .ret_type(db)
             .map(|type_| type_.lower_facade(db))
     }
@@ -391,7 +393,7 @@ impl<'db> FacadeMethod<'db> {
     }
 
     fn src(self, db: &'db dyn Db) -> Callable<'db> {
-        self.shim(db).src(db)
+        self.interface(db).src(db)
     }
 }
 
@@ -419,7 +421,7 @@ impl<'db> FacadeCoerce<'db> {
 
 #[salsa::interned(debug)]
 pub struct FacadePlainCoerceFunction<'db> {
-    shim: ShimFunctionPlainCoerce<'db>,
+    interface: InterFunctionPlainCoerce<'db>,
 }
 
 impl<'db> FacadePlainCoerceFunction<'db> {
@@ -436,11 +438,11 @@ impl<'db> FacadePlainCoerceFunction<'db> {
     }
 
     pub fn class(self, db: &'db dyn Db) -> FacadeClassPlain<'db> {
-        self.shim(db).class(db).facade(db)
+        self.interface(db).class(db).facade(db)
     }
 
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.shim(db).ffi(db)
+        self.interface(db).ffi(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItem<'db>> {
@@ -462,7 +464,7 @@ impl<'db> FacadePlainCoerceFunction<'db> {
     }
 
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = (FieldName, FacadeParam<'db>)> {
-        self.shim(db)
+        self.interface(db)
             .field_param_coerce(db)
             .iter()
             .map(|(name, param)| (name.clone(), FacadeParam::new(db, *param)))
@@ -471,7 +473,7 @@ impl<'db> FacadePlainCoerceFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct FacadeDiscriminatedCoerceFunction<'db> {
-    shim: ShimClassDiscriminated<'db>,
+    interface: InterClassDiscriminated<'db>,
 }
 
 #[salsa::tracked]
@@ -489,7 +491,7 @@ impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
     }
 
     pub fn class(self, db: &'db dyn Db) -> FacadeClassDiscriminated<'db> {
-        self.shim(db).facade(db)
+        self.interface(db).facade(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItem<'db>> {
@@ -518,7 +520,7 @@ impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn coerce_variants(self, db: &'db dyn Db) -> Vec<CoerceVariant<'db>> {
-        self.shim(db)
+        self.interface(db)
             .variants(db)
             .iter()
             .zip(self.class(db).discriminator(db).variant_names(db))
@@ -546,12 +548,12 @@ pub struct CoerceVariant<'db> {
 
 #[salsa::interned(debug)]
 pub struct FacadeParam<'db> {
-    shim: ShimParam<'db>,
+    interface: InterParam<'db>,
 }
 
 impl<'db> FacadeParam<'db> {
     pub fn type_(self, db: &'db dyn Db) -> FacadeType<'db> {
-        self.shim(db).type_(db).lower_facade(db)
+        self.interface(db).type_(db).lower_facade(db)
     }
 }
 
@@ -622,31 +624,31 @@ impl<'db> FacadeClass<'db> {
 
 #[salsa::interned(debug)]
 pub struct FacadeClassPlain<'db> {
-    shim: ShimClassPlain<'db>,
+    interface: InterClassPlain<'db>,
 }
 
 impl<'db> FacadeClassPlain<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
-        self.shim(db).ffi(db)
+        self.interface(db).ffi(db)
     }
 
     pub fn module(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
-        self.shim(db).module(db).facade(db)
+        self.interface(db).module(db).facade(db)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.shim(db).name(db)
+        self.interface(db).name(db)
     }
 
     pub fn methods(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeMethod<'db>> + 'db {
-        self.shim(db)
+        self.interface(db)
             .methods(db)
             .iter()
             .map(|function| function.facade(db))
     }
 
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeFieldPlain<'db>> + 'db {
-        self.shim(db)
+        self.interface(db)
             .fields(db)
             .iter()
             .map(|field| FacadeFieldPlain::new(db, *field))
@@ -657,17 +659,17 @@ impl<'db> FacadeClassPlain<'db> {
             method.name(db) == "new"
                 && method.is_static(db)
                 && matches!(
-                    method.shim(db).ret_type(db),
-                    Some(ShimType::Class {
+                    method.interface(db).ret_type(db),
+                    Some(InterType::Class {
                         is_borrowed: false,
                         inner,
-                    }) if inner.symbol(db) == self.shim(db).symbol(db)
+                    }) if inner.symbol(db) == self.interface(db).symbol(db)
                 )
         })
     }
 
     pub fn coerce(self, db: &'db dyn Db) -> Option<FacadePlainCoerceFunction<'db>> {
-        self.shim(db)
+        self.interface(db)
             .coerce(db)
             .map(|fn_| FacadePlainCoerceFunction::new(db, fn_))
     }
@@ -687,25 +689,25 @@ impl<'db> FacadeClassPlain<'db> {
 
 #[salsa::interned(debug)]
 pub struct FacadeClassDiscriminated<'db> {
-    shim: ShimClassDiscriminated<'db>,
+    interface: InterClassDiscriminated<'db>,
 }
 
 #[salsa::tracked]
 impl<'db> FacadeClassDiscriminated<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
-        self.shim(db).ffi(db)
+        self.interface(db).ffi(db)
     }
 
     pub fn module(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
-        self.shim(db).module(db).facade(db)
+        self.interface(db).module(db).facade(db)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.shim(db).name(db)
+        self.interface(db).name(db)
     }
 
     pub fn methods(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeMethod<'db>> + 'db {
-        self.shim(db)
+        self.interface(db)
             .methods(db)
             .iter()
             .map(|function| function.facade(db))
@@ -713,7 +715,7 @@ impl<'db> FacadeClassDiscriminated<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn fields(self, db: &'db dyn Db) -> Vec<FacadeFieldDiscriminated<'db>> {
-        self.shim(db)
+        self.interface(db)
             .variants(db)
             .iter()
             .copied()
@@ -738,13 +740,14 @@ impl<'db> FacadeClassDiscriminated<'db> {
     }
 
     pub fn discriminator(self, db: &'db dyn Db) -> FacadeFieldDiscriminator<'db> {
-        FacadeFieldDiscriminator::new(db, self.shim(db).discriminator(db))
+        FacadeFieldDiscriminator::new(db, self.interface(db).discriminator(db))
     }
 
     pub fn coerce(self, db: &'db dyn Db) -> Option<FacadeDiscriminatedCoerceFunction<'db>> {
-        let shim = self.shim(db);
-        shim.is_coercable(db)
-            .then(|| FacadeDiscriminatedCoerceFunction::new(db, shim))
+        let interface = self.interface(db);
+        interface
+            .is_coercable(db)
+            .then(|| FacadeDiscriminatedCoerceFunction::new(db, interface))
     }
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> + 'db {
@@ -763,24 +766,24 @@ impl<'db> FacadeClassDiscriminated<'db> {
 
 #[salsa::interned(debug)]
 pub struct FacadeFieldPlain<'db> {
-    shim: ShimField<'db>,
+    interface: InterField<'db>,
 }
 
 impl<'db> FacadeFieldPlain<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db FieldName {
-        self.shim(db).src(db).declaration(db).name(db)
+        self.interface(db).src(db).declaration(db).name(db)
     }
 
     pub fn ffi_setter(self, db: &'db dyn Db) -> Option<FfiFunction<'db>> {
-        self.shim(db).setter(db).map(|f| f.ffi(db))
+        self.interface(db).setter(db).map(|f| f.ffi(db))
     }
 
     pub fn ffi_getter(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.shim(db).getter(db).ffi(db)
+        self.interface(db).getter(db).ffi(db)
     }
 
     pub fn type_(self, db: &'db dyn Db) -> FacadeType<'db> {
-        self.shim(db).getter(db).ret_type(db).lower_facade(db)
+        self.interface(db).getter(db).ret_type(db).lower_facade(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> {
@@ -822,13 +825,13 @@ impl<'db> FacadeFieldDiscriminated<'db> {
 /// Discriminator field of a [`FacadeClassDiscriminated`].
 #[salsa::interned(debug)]
 pub struct FacadeFieldDiscriminator<'db> {
-    shim: ShimFunctionDiscriminator<'db>,
+    interface: InterFunctionDiscriminator<'db>,
 }
 
 #[salsa::tracked]
 impl<'db> FacadeFieldDiscriminator<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'static str {
-        let enum_ = self.shim(db).src(db);
+        let enum_ = self.interface(db).src(db);
 
         if enum_.variants(db).any(|variant| {
             variant
@@ -843,7 +846,7 @@ impl<'db> FacadeFieldDiscriminator<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn variant_names(self, db: &'db dyn Db) -> Vec<String> {
-        self.shim(db)
+        self.interface(db)
             .class(db)
             .variants(db)
             .iter()
@@ -852,7 +855,7 @@ impl<'db> FacadeFieldDiscriminator<'db> {
     }
 
     pub fn ffi_getter(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.shim(db).ffi(db)
+        self.interface(db).ffi(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> {

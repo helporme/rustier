@@ -173,7 +173,7 @@ mod tests {
                     source: { $($source)* },
                     expression: |db, p| {
                         let root = Rust::get(db)
-                            .shim_complete(db)
+                            .interface_complete(db)
                             .crates(db)
                             .next()
                             .expect("test crate should be lowered")
@@ -349,7 +349,7 @@ mod tests {
             },
             expression: |db, p| {
                 Rust::get(db)
-                    .shim_complete(db)
+                    .interface_complete(db)
                     .decals(db)
                     .render_ambient_ts_mods(db)
                     .apply(p);

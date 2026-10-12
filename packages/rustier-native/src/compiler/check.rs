@@ -6,7 +6,7 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     diag::Diag,
-    ir::shim::{Shim, ShimClass, ShimMember, ShimModule},
+    ir::interface::{InterClass, InterMember, InterModule, Interface},
 };
 
 mod coerce_name_collisions;
@@ -17,7 +17,7 @@ mod f32_precision_loss;
 mod method_field_collisions;
 mod mutable_reference_ignored;
 
-impl<'db> Shim<'db> {
+impl<'db> Interface<'db> {
     /// Collect diagnostics from lowering and checking reachable local modules.
     pub fn check(self, db: &'db dyn Db) -> Vec<&'db Diag> {
         accumulate_checks::accumulated::<Diag>(db, self)
@@ -25,8 +25,8 @@ impl<'db> Shim<'db> {
 }
 
 #[salsa::tracked]
-fn accumulate_checks<'db>(db: &'db dyn Db, shim: Shim<'db>) {
-    for crate_ in shim.crates(db).filter(|crate_| crate_.is_local(db)) {
+fn accumulate_checks<'db>(db: &'db dyn Db, interface: Interface<'db>) {
+    for crate_ in interface.crates(db).filter(|crate_| crate_.is_local(db)) {
         for module in crate_.all_modules(db) {
             check_module(db, module);
         }
@@ -34,31 +34,31 @@ fn accumulate_checks<'db>(db: &'db dyn Db, shim: Shim<'db>) {
 }
 
 #[salsa::tracked]
-fn check_module<'db>(db: &'db dyn Db, module: ShimModule<'db>) {
+fn check_module<'db>(db: &'db dyn Db, module: InterModule<'db>) {
     for member in module.members(db) {
         let classes = match member {
-            ShimMember::Class(class) => Either::Left(std::iter::once(class)),
-            ShimMember::Template(template) => Either::Right(template.classes(db)),
-            ShimMember::Function(function) => {
+            InterMember::Class(class) => Either::Left(std::iter::once(class)),
+            InterMember::Template(template) => Either::Right(template.classes(db)),
+            InterMember::Function(function) => {
                 function.src(db).check_f32_precision_loss(db);
                 function.src(db).check_mutable_reference_ignored(db);
 
                 continue;
             }
-            ShimMember::Module(_) => continue,
+            InterMember::Module(_) => continue,
         };
 
         for class in classes {
             let _ = class.fields(db);
 
             match class {
-                ShimClass::Plain(class) => {
+                InterClass::Plain(class) => {
                     let struct_ = class.src(db);
                     struct_.check_coerce_name_collisions(db);
                     struct_.check_coerce_requires_clone(db);
                     struct_.check_f32_precision_loss(db);
                 }
-                ShimClass::Discriminated(class) => {
+                InterClass::Discriminated(class) => {
                     let enum_ = class.src(db);
                     enum_.check_coerce_name_collisions(db);
                     enum_.check_coerce_requires_clone(db);
@@ -105,7 +105,7 @@ mod tests {
                 .expect("test crate should be lowered");
 
             Rust::get(db)
-                .shim_reachable_from(db, UsageGraph::new(db, [crate_.root(db)]))
+                .interface_reachable_from(db, UsageGraph::new(db, [crate_.root(db)]))
                 .check(db)
                 .iter()
                 .filter_map(|diag| diag.inner.code().map(|code| code.to_string()))

@@ -53,7 +53,7 @@ impl<'a> BridgeCrateWasm<'a> {
 
             return Some(
                 self.project(db)
-                    .reachable_shim(db)
+                    .reachable_interface(db)
                     .facade(db)
                     .ffi(db)
                     .render(

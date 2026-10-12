@@ -1,0 +1,31 @@
+---
+source: src/compiler/codegen/runtime/cast.rs
+expression: snapshot
+---
+# Source
+
+```rust
+```
+
+# Compiled
+## Node
+```rust
+fn cast(input: ()) {
+    {
+        let mut __cast_owned_value = input;
+        let output = __cast_owned_value.as_mut_str();
+        consume(output);
+    }
+}
+```
+
+## Wasm
+```rust
+fn cast(input: ()) {
+    {
+        let mut __cast_owned_value = input;
+        let output = __cast_owned_value.as_mut_str();
+        consume(output);
+    }
+}
+```

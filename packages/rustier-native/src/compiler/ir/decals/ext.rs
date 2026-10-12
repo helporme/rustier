@@ -5,61 +5,61 @@ use crate::compiler::{
             DecalClass, DecalClassDiscriminated, DecalClassPlain, DecalFreeFunction, DecalMethod,
             DecalModule, DecalParentModule, Decals,
         },
-        shim::{
-            Shim, ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimFunctionAssociated,
-            ShimFunctionFree, ShimModule, ShimParentModule,
+        interface::{
+            InterClass, InterClassDiscriminated, InterClassPlain, InterFunctionAssociated,
+            InterFunctionFree, InterModule, InterParentModule, Interface,
         },
     },
 };
 
-impl<'db> Shim<'db> {
+impl<'db> Interface<'db> {
     pub fn decals(self, db: &'db dyn Db) -> Decals<'db> {
         Decals::new(db, self)
     }
 }
 
-impl<'db> ShimParentModule<'db> {
+impl<'db> InterParentModule<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalParentModule<'db> {
         DecalParentModule::new(db, self)
     }
 }
 
-impl<'db> ShimModule<'db> {
+impl<'db> InterModule<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalModule<'db> {
         DecalModule::new(db, self)
     }
 }
 
-impl<'db> ShimClassPlain<'db> {
+impl<'db> InterClassPlain<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalClassPlain<'db> {
         DecalClassPlain::new(db, self)
     }
 }
 
-impl<'db> ShimClassDiscriminated<'db> {
+impl<'db> InterClassDiscriminated<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalClassDiscriminated<'db> {
         DecalClassDiscriminated::new(db, self)
     }
 }
 
-impl<'db> ShimClass<'db> {
+impl<'db> InterClass<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalClass<'db> {
         match self {
-            ShimClass::Plain(plain) => DecalClass::Plain(plain.decals(db)),
-            ShimClass::Discriminated(discriminated) => {
+            InterClass::Plain(plain) => DecalClass::Plain(plain.decals(db)),
+            InterClass::Discriminated(discriminated) => {
                 DecalClass::Discriminated(discriminated.decals(db))
             }
         }
     }
 }
 
-impl<'db> ShimFunctionFree<'db> {
+impl<'db> InterFunctionFree<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalFreeFunction<'db> {
         DecalFreeFunction::new(db, self)
     }
 }
 
-impl<'db> ShimFunctionAssociated<'db> {
+impl<'db> InterFunctionAssociated<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalMethod<'db> {
         DecalMethod::new(db, self)
     }

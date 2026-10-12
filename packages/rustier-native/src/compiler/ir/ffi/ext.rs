@@ -2,82 +2,82 @@ use crate::compiler::{
     db::Db,
     ir::{
         ffi::{FfiClass, FfiFunction, FfiParam},
-        shim::{
-            ShimClass, ShimClassDiscriminated, ShimClassPlain, ShimFunction,
-            ShimFunctionAssociated, ShimFunctionDiscriminatedCoerce, ShimFunctionDiscriminator,
-            ShimFunctionFree, ShimFunctionGetter, ShimFunctionPlainCoerce, ShimFunctionSetter,
-            ShimParam,
+        interface::{
+            InterClass, InterClassDiscriminated, InterClassPlain, InterFunction,
+            InterFunctionAssociated, InterFunctionDiscriminatedCoerce, InterFunctionDiscriminator,
+            InterFunctionFree, InterFunctionGetter, InterFunctionPlainCoerce, InterFunctionSetter,
+            InterParam,
         },
     },
 };
 
-impl<'db> ShimClass<'db> {
+impl<'db> InterClass<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
         FfiClass::new(db, self)
     }
 }
 
-impl<'db> ShimClassPlain<'db> {
+impl<'db> InterClassPlain<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
-        FfiClass::new(db, ShimClass::Plain(self))
+        FfiClass::new(db, InterClass::Plain(self))
     }
 }
 
-impl<'db> ShimClassDiscriminated<'db> {
+impl<'db> InterClassDiscriminated<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
-        FfiClass::new(db, ShimClass::Discriminated(self))
+        FfiClass::new(db, InterClass::Discriminated(self))
     }
 }
 
-impl<'db> ShimFunction<'db> {
+impl<'db> InterFunction<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
         FfiFunction::new(db, self)
     }
 }
 
-impl<'db> ShimFunctionFree<'db> {
+impl<'db> InterFunctionFree<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        FfiFunction::new(db, ShimFunction::from(self))
+        FfiFunction::new(db, InterFunction::from(self))
     }
 }
 
-impl<'db> ShimFunctionAssociated<'db> {
+impl<'db> InterFunctionAssociated<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        FfiFunction::new(db, ShimFunction::from(self))
+        FfiFunction::new(db, InterFunction::from(self))
     }
 }
 
-impl<'db> ShimFunctionGetter<'db> {
+impl<'db> InterFunctionGetter<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        FfiFunction::new(db, ShimFunction::from(self))
+        FfiFunction::new(db, InterFunction::from(self))
     }
 }
 
-impl<'db> ShimFunctionSetter<'db> {
+impl<'db> InterFunctionSetter<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        FfiFunction::new(db, ShimFunction::from(self))
+        FfiFunction::new(db, InterFunction::from(self))
     }
 }
 
-impl<'db> ShimFunctionDiscriminator<'db> {
+impl<'db> InterFunctionDiscriminator<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        FfiFunction::new(db, ShimFunction::from(self))
+        FfiFunction::new(db, InterFunction::from(self))
     }
 }
 
-impl<'db> ShimFunctionPlainCoerce<'db> {
+impl<'db> InterFunctionPlainCoerce<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        FfiFunction::new(db, ShimFunction::from(self))
+        FfiFunction::new(db, InterFunction::from(self))
     }
 }
 
-impl<'db> ShimFunctionDiscriminatedCoerce<'db> {
+impl<'db> InterFunctionDiscriminatedCoerce<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        FfiFunction::new(db, ShimFunction::from(self))
+        FfiFunction::new(db, InterFunction::from(self))
     }
 }
 
-impl<'db> ShimParam<'db> {
+impl<'db> InterParam<'db> {
     pub fn ffi(self, db: &'db dyn Db) -> FfiParam<'db> {
         FfiParam::new(db, self)
     }

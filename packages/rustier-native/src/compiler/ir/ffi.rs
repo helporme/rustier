@@ -10,13 +10,13 @@ use itertools::Either;
 
 use crate::compiler::{
     db::Db,
-    ir::shim::{Shim, ShimClass, ShimFunction, ShimMember, ShimParam},
+    ir::interface::{InterClass, InterFunction, InterMember, InterParam, Interface},
 };
 
-/// The actual exports of a reachable shim API.
+/// The actual exports of a reachable interface API.
 #[salsa::interned(debug)]
 pub struct Ffi<'db> {
-    shim: Shim<'db>,
+    interface: Interface<'db>,
 }
 
 #[salsa::tracked]
@@ -26,20 +26,20 @@ impl<'db> Ffi<'db> {
         let mut symbols = std::collections::BTreeSet::new();
 
         for member in self
-            .shim(db)
+            .interface(db)
             .crates(db)
             .flat_map(|crate_| crate_.all_modules(db))
             .flat_map(|module| module.members(db))
         {
             let classes = match member {
-                ShimMember::Class(class) => Either::Left(std::iter::once(class)),
-                ShimMember::Template(template) => Either::Right(template.classes(db)),
-                ShimMember::Function(function) => {
+                InterMember::Class(class) => Either::Left(std::iter::once(class)),
+                InterMember::Template(template) => Either::Right(template.classes(db)),
+                InterMember::Function(function) => {
                     symbols.insert(function.ffi(db).symbol(db));
 
                     continue;
                 }
-                ShimMember::Module(_) => continue,
+                InterMember::Module(_) => continue,
             };
 
             for class in classes {
@@ -54,7 +54,7 @@ impl<'db> Ffi<'db> {
 
 #[salsa::interned(debug)]
 pub struct FfiClass<'db> {
-    shim: ShimClass<'db>,
+    interface: InterClass<'db>,
 }
 
 impl<'db> FfiClass<'db> {
@@ -63,18 +63,18 @@ impl<'db> FfiClass<'db> {
     }
 
     pub fn symbol(self, db: &'db dyn Db) -> &'db str {
-        self.shim(db).symbol(db)
+        self.interface(db).symbol(db)
     }
 }
 
 #[salsa::interned(debug)]
 pub struct FfiFunction<'db> {
-    shim: ShimFunction<'db>,
+    interface: InterFunction<'db>,
 }
 
 impl<'db> FfiFunction<'db> {
     pub fn symbol(self, db: &'db dyn Db) -> &'db str {
-        self.shim(db).symbol(db)
+        self.interface(db).symbol(db)
     }
 
     pub fn params(self, db: &'db dyn Db) -> &'db Vec<FfiParam<'db>> {
@@ -88,7 +88,7 @@ impl<'db> FfiFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct FfiParam<'db> {
-    shim: ShimParam<'db>,
+    interface: InterParam<'db>,
 }
 
 impl<'db> FfiParam<'db> {

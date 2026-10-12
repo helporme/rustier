@@ -43,7 +43,7 @@ impl<'a> BridgeCrateNode<'a> {
         if path == FFI_MODULE_ID {
             return Some(
                 self.project(db)
-                    .reachable_shim(db)
+                    .reachable_interface(db)
                     .facade(db)
                     .ffi(db)
                     .render(

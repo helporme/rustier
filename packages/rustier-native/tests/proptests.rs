@@ -16,7 +16,7 @@ mod strategy;
 
 use common::fragment::FragmentPrint as _;
 use program::Program;
-use rustier::compiler::codegen::shim::Platform;
+use rustier::compiler::codegen::runtime::Platform;
 
 const REGRESSION_FILE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),

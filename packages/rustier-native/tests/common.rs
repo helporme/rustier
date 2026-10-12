@@ -8,7 +8,7 @@ use std::{
 use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice, load_workspace_at};
 use ra_ap_project_model::{CargoConfig, RustLibSource};
 use rustier::compiler::{
-    codegen::shim::{Platform, manifest::Manifest},
+    codegen::runtime::{Platform, manifest::Manifest},
     diag::Diag,
     inputs::LocalCrates,
     ir::rust::{PathSegment, Rust, usages::UsageGraph},
@@ -159,7 +159,7 @@ impl ProgramCompiler {
             LocalCrates::set(&mut db, [root_file]);
 
             let db = &db;
-            let (shim, expected_symbols) = ra_ap_hir::attach_db(db, || {
+            let (interface, expected_symbols) = ra_ap_hir::attach_db(db, || {
                 let rust = Rust::get(db);
                 let source = rust
                     .crates(db)
@@ -168,10 +168,11 @@ impl ProgramCompiler {
                     .copied()
                     .expect("source crate should be lowered");
 
-                let shim = rust.shim_reachable_from(db, UsageGraph::new(db, vec![source.root(db)]));
+                let interface =
+                    rust.interface_reachable_from(db, UsageGraph::new(db, vec![source.root(db)]));
 
                 if platform_index == 0 {
-                    diagnostics.extend(shim.check(db).into_iter().cloned());
+                    diagnostics.extend(interface.check(db).into_iter().cloned());
                 }
 
                 let expected_symbols = exported_functions
@@ -185,10 +186,10 @@ impl ProgramCompiler {
                     })
                     .collect::<Vec<_>>();
 
-                (shim.render(db, platform).to_owned(), expected_symbols)
+                (interface.render(db, platform).to_owned(), expected_symbols)
             });
 
-            write_generated_crate(&generated_dir, &workspace.source_dir, platform, &shim)?;
+            write_generated_crate(&generated_dir, &workspace.source_dir, platform, &interface)?;
 
             let generated_source_path = generated_dir.join("src/lib.rs");
             let generated_source = fs::read_to_string(&generated_source_path)
@@ -234,12 +235,12 @@ fn write_generated_crate(
     generated_dir: &Path,
     source_dir: &Path,
     platform: Platform,
-    shim: &str,
+    interface: &str,
 ) -> Result<(), String> {
     fs::create_dir_all(generated_dir.join("src"))
         .map_err(|error| format!("create generated crate directory: {error}"))?;
-    fs::write(generated_dir.join("src/lib.rs"), shim)
-        .map_err(|error| format!("write generated shim: {error}"))?;
+    fs::write(generated_dir.join("src/lib.rs"), interface)
+        .map_err(|error| format!("write generated runtime: {error}"))?;
 
     let manifest = Manifest {
         name: "test-source",
