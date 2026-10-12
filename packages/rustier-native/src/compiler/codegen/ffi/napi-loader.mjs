@@ -61,4 +61,4 @@ function nativeTarget() {
 }
 
 // Load exactly one sibling. Preserve Node's original missing-file/dlopen error.
-const native = require(`./index.${nativeTarget()}.node`);
+export const native = require(`./index.${nativeTarget()}.node`);

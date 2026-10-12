@@ -11,12 +11,14 @@ use crate::{
 
 use super::Project;
 
+pub use crate::compiler::codegen::ffi::WasmLoading;
+
 mod common;
 mod node;
 mod wasm;
 
 pub use node::{BridgeCrateNode, NodeBuild};
-pub use wasm::{BridgeCrateWasm, WasmBuild, WasmLoading};
+pub use wasm::{BridgeCrateWasm, WasmBuild};
 
 /// A glue crate that contains rendered bindings code from source rust crate
 /// to the JavaScript.

@@ -1,7 +1,14 @@
 use std::path::PathBuf;
 
 use crate::{
-    compiler::{codegen::js::JsCodegenPaths, db::Db, path::FilePath},
+    compiler::{
+        codegen::{
+            ffi::{FfiTarget, NAPI_LOADER},
+            js::JsCodegenPaths,
+        },
+        db::Db,
+        path::FilePath,
+    },
     server::{
         ServerNodeTarget,
         effects::Effect,
@@ -32,11 +39,20 @@ impl<'a> BridgeCrateNode<'a> {
         artifact: Option<&NodeBuildArtifact>,
     ) -> Option<String> {
         const FFI_MODULE_ID: &str = "$rust/unstable!/node";
+
         if path == FFI_MODULE_ID {
-            return Some(format!(
-                "export * from {:?};\n",
-                artifact?.js_path.as_str()
-            ));
+            return Some(
+                self.project(db)
+                    .reachable_shim(db)
+                    .facade(db)
+                    .ffi(db)
+                    .render(
+                        db,
+                        FfiTarget::Native {
+                            path: artifact?.js_path.as_str(),
+                        },
+                    ),
+            );
         }
 
         Some(
@@ -70,12 +86,7 @@ impl<'a> BridgeCrateNode<'a> {
             release,
             target,
             features: crate_.dependency_features(db, dep_features),
-            napi_ffi: self
-                .project(db)
-                .reachable_shim(db)
-                .facade(db)
-                .ffi(db)
-                .render_napi_ffi(db),
+            napi_loader: NAPI_LOADER,
         }
     }
 }
@@ -87,7 +98,7 @@ pub struct NodeBuild {
     workspace_version: u128,
     release: bool,
     target: Option<ServerNodeTarget>,
-    napi_ffi: String,
+    napi_loader: &'static str,
     features: Vec<String>,
 }
 
@@ -131,7 +142,7 @@ impl Effect for NodeBuild {
         let name = target.native_binary_name();
         let bin_path = copy_artifact(&binary, &artifact_dir.join(name))?;
         let js_path = artifact_dir.join("index.mjs");
-        write_file(&js_path, &self.napi_ffi)?;
+        write_file(&js_path, self.napi_loader)?;
 
         Ok(NodeBuildArtifact {
             bin_path,

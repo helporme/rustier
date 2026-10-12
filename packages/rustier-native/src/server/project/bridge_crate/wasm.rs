@@ -1,7 +1,14 @@
 use std::path::PathBuf;
 
 use crate::{
-    compiler::{codegen::js::JsCodegenPaths, db::Db, path::FilePath},
+    compiler::{
+        codegen::{
+            ffi::{FfiTarget, WasmLoading},
+            js::JsCodegenPaths,
+        },
+        db::Db,
+        path::FilePath,
+    },
     server::{
         effects::Effect,
         toolchain::{CargoBuild, Toolchain, ToolchainError, WasmBindgen, WasmBindgenTarget},
@@ -13,32 +20,11 @@ use super::{
     common::{ArtifactError, reserve_unique_artifact_dir},
 };
 
-/// How the generated WebAssembly module is initialized.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
-pub enum WasmLoading {
-    Fetch,
-    ModuleNode,
-    Module,
-}
-
 impl WasmLoading {
     pub(in crate::server) fn bindgen_target(self) -> WasmBindgenTarget {
         match self {
             Self::Fetch | Self::Module => WasmBindgenTarget::Web,
             Self::ModuleNode => WasmBindgenTarget::NodeJsModule,
-        }
-    }
-
-    pub fn js(self, path: &str, wasm_path: &str) -> String {
-        match self {
-            Self::Fetch => {
-                format!("import init from {path:?};\nawait init();\nexport * from {path:?};\n")
-            }
-            Self::ModuleNode => format!("export * from {path:?};\n"),
-            Self::Module => format!(
-                "import wasmModule from {wasm_path:?};\nimport init from {path:?};\n\
-                 await init({{ module_or_path: wasmModule }});\nexport * from {path:?};\n"
-            ),
         }
     }
 }
@@ -64,7 +50,21 @@ impl<'a> BridgeCrateWasm<'a> {
 
         if path == FFI_MODULE_ID {
             let artifact = artifact?;
-            return Some(loading.js(artifact.js_path.as_str(), artifact.bin_path.as_str()));
+
+            return Some(
+                self.project(db)
+                    .reachable_shim(db)
+                    .facade(db)
+                    .ffi(db)
+                    .render(
+                        db,
+                        FfiTarget::Wasm {
+                            loading,
+                            path: artifact.js_path.as_str(),
+                            wasm_path: artifact.bin_path.as_str(),
+                        },
+                    ),
+            );
         }
 
         Some(
