@@ -34,7 +34,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		) {
 			{
 				const out = cast.from(
-					"Ffi(number)"
+					"Abi(F64)"
 				).to(
 					"Facade(number)"
 				).an(
@@ -50,7 +50,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		) {
 			{
 				const out = cast.from(
-					"Ffi(number)"
+					"Abi(F64)"
 				).to(
 					"Facade(number)"
 				).an(
@@ -79,7 +79,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 				const out = cast.from(
 					"Facade(number)"
 				).to(
-					"Ffi(number)"
+					"Abi(F64)"
 				).an(
 					value
 				);
@@ -96,7 +96,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 				const out = cast.from(
 					"Facade(number)"
 				).to(
-					"Ffi(number)"
+					"Abi(F64)"
 				).an(
 					value
 				);

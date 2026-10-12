@@ -36,7 +36,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		) {
 			{
 				const out = cast.from(
-					"Ffi(number)"
+					"Abi(F64)"
 				).to(
 					"Facade(number)"
 				).an(
@@ -65,7 +65,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 				const out = cast.from(
 					"Facade(number)"
 				).to(
-					"Ffi(number)"
+					"Abi(F64)"
 				).an(
 					value
 				);
@@ -89,7 +89,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		) {
 			{
 				const out = cast.from(
-					"Ffi(string)"
+					"Abi(String)"
 				).to(
 					"Facade(string)"
 				).an(
@@ -118,7 +118,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 				const out = cast.from(
 					"Facade(string)"
 				).to(
-					"Ffi(string)"
+					"Abi(String)"
 				).an(
 					value
 				);
@@ -142,7 +142,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		) {
 			{
 				const out = cast.from(
-					"Ffi(number)"
+					"Abi(F64)"
 				).to(
 					"Facade(number)"
 				).an(
@@ -171,7 +171,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 				const out = cast.from(
 					"Facade(number)"
 				).to(
-					"Ffi(number)"
+					"Abi(F64)"
 				).an(
 					value
 				);
@@ -213,7 +213,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "Unit":{
 				{
 					const result = cast.from(
-						"Ffi(Class(FfiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }))"
+						"Abi(Class { class: AbiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }, borrowed: false })"
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { interface: InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } } })))"
 					).an(
@@ -227,7 +227,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "EmptyTuple":{
 				{
 					const result = cast.from(
-						"Ffi(Class(FfiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }))"
+						"Abi(Class { class: AbiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }, borrowed: false })"
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { interface: InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } } })))"
 					).an(
@@ -241,7 +241,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "EmptyRecord":{
 				{
 					const result = cast.from(
-						"Ffi(Class(FfiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }))"
+						"Abi(Class { class: AbiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }, borrowed: false })"
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { interface: InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } } })))"
 					).an(
@@ -257,7 +257,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 					const __0 = cast.from(
 						"Facade(number)"
 					).to(
-						"Ffi(number)"
+						"Abi(F64)"
 					).an(
 						value[0]
 					);
@@ -265,13 +265,13 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 						const __1 = cast.from(
 							"Facade(string)"
 						).to(
-							"Ffi(string)"
+							"Abi(String)"
 						).an(
 							value[1]
 						);
 						{
 							const result = cast.from(
-								"Ffi(Class(FfiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }))"
+								"Abi(Class { class: AbiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }, borrowed: false })"
 							).to(
 								"Facade(Class(Discriminated(FacadeClassDiscriminated { interface: InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } } })))"
 							).an(
@@ -290,13 +290,13 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 					const __0 = cast.from(
 						"Facade(number)"
 					).to(
-						"Ffi(number)"
+						"Abi(F64)"
 					).an(
 						value["value"]
 					);
 					{
 						const result = cast.from(
-							"Ffi(Class(FfiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }))"
+							"Abi(Class { class: AbiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }, borrowed: false })"
 						).to(
 							"Facade(Class(Discriminated(FacadeClassDiscriminated { interface: InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } } })))"
 						).an(

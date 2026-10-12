@@ -34,7 +34,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		) {
 			{
 				const out = cast.from(
-					"Ffi(number)"
+					"Abi(F64)"
 				).to(
 					"Facade(number)"
 				).an(
@@ -63,7 +63,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 				const out = cast.from(
 					"Facade(number)"
 				).to(
-					"Ffi(number)"
+					"Abi(F64)"
 				).an(
 					value
 				);
@@ -87,7 +87,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		) {
 			{
 				const out = cast.from(
-					"Ffi(number)"
+					"Abi(F64)"
 				).to(
 					"Facade(number)"
 				).an(
@@ -116,7 +116,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 				const out = cast.from(
 					"Facade(number)"
 				).to(
-					"Ffi(number)"
+					"Abi(F64)"
 				).an(
 					value
 				);
@@ -143,7 +143,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			) {
 				{
 					const out = cast.from(
-						"Ffi(Class(FfiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: EnumVariant(EnumVariant { id: EnumVariantId(7c00) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } }) } }) }))"
+						"Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: EnumVariant(EnumVariant { id: EnumVariantId(7c00) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } }) } }) }, borrowed: false })"
 					).to(
 						"Facade(Class(Plain(FacadeClassPlain { interface: InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: EnumVariant(EnumVariant { id: EnumVariantId(7c00) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } }) } } })))"
 					).an(
@@ -164,7 +164,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			) {
 				{
 					const out = cast.from(
-						"Ffi(Class(FfiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: EnumVariant(EnumVariant { id: EnumVariantId(7c01) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } }) } }) }))"
+						"Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: EnumVariant(EnumVariant { id: EnumVariantId(7c01) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } }) } }) }, borrowed: false })"
 					).to(
 						"Facade(Class(Plain(FacadeClassPlain { interface: InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: EnumVariant(EnumVariant { id: EnumVariantId(7c01) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } }) } } })))"
 					).an(
@@ -195,7 +195,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 				const out = cast.from(
 					"Facade(Class(Plain(FacadeClassPlain { interface: InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: EnumVariant(EnumVariant { id: EnumVariantId(7c00) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } }) } } })))"
 				).to(
-					"Ffi(Class(FfiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: EnumVariant(EnumVariant { id: EnumVariantId(7c00) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } }) } }) }))"
+					"Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: EnumVariant(EnumVariant { id: EnumVariantId(7c00) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } }) } }) }, borrowed: true })"
 				).an(
 					value
 				);

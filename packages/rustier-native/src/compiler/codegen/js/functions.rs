@@ -171,16 +171,16 @@ where
     fn render_body(self) -> impl FragmentOnce + 'db {
         let db = self.db();
         let function = self.function();
-        let ffi_ret_type = function.ffi(db).ret_type(db);
+        let abi_ret_type = function.abi(db).ret_type(db);
         let facade_ret_type = function.ret_type(db);
 
-        fragment(move |p| match (ffi_ret_type, facade_ret_type) {
-            (Some(ffi_ret_type), Some(facade_ret_type)) => {
+        fragment(move |p| match (abi_ret_type, facade_ret_type) {
+            (Some(abi_ret_type), Some(facade_ret_type)) => {
                 self.render_param_casts({
                     self.casts().render_stmt(
                         db,
                         Cast {
-                            from: ffi_ret_type,
+                            from: abi_ret_type,
                             to: facade_ret_type,
                             in_expr: self.render_call_expr(),
                             out_var_name: "result",
@@ -211,21 +211,21 @@ where
     fn render_param_casts(self, continuation: impl FragmentOnce + 'db) -> impl FragmentOnce + 'db {
         let db = self.db();
         let function = self.function();
-        let ffi_params = function.ffi(db).params(db);
+        let abi_params = function.abi(db).params(db);
         let receiver_offset = usize::from(matches!(
             function,
             FacadeFunction::Method(method) if !method.is_static(db)
         ));
-        let ffi_params = &ffi_params[receiver_offset..];
+        let abi_params = &abi_params[receiver_offset..];
 
         let param_casts =
             function
                 .params(db)
-                .zip(ffi_params)
+                .zip(abi_params)
                 .enumerate()
-                .map(|(i, (param, ffi_param))| Cast {
+                .map(|(i, (param, abi_param))| Cast {
                     from: param.type_(db),
-                    to: ffi_param.type_(db),
+                    to: abi_param.type_(db),
                     in_expr: param_name(i),
                     out_var_name: casted_param_name(i),
                 });
@@ -236,7 +236,7 @@ where
     fn render_call_expr(self) -> impl FragmentOnce {
         let db = self.db();
         let function = self.function();
-        let ffi_fn_symbol = function.ffi(db).symbol(db);
+        let abi_fn_symbol = function.abi(db).symbol(db);
         let is_instance_method = matches!(
             function,
             FacadeFunction::Method(method) if !method.is_static(db)
@@ -258,7 +258,7 @@ where
             .apply(p);
         });
 
-        frag!({ ffi_fn_symbol }({ params }))
+        frag!({ abi_fn_symbol }({ params }))
     }
 }
 

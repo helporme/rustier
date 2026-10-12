@@ -27,7 +27,7 @@ impl<'db> FacadeImport<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_path(self, db: &'db dyn Db, paths: JsCodegenPaths) -> String {
         let to_path = match self.item(db) {
-            FacadeImportItem::FfiFunction(_) | FacadeImportItem::FfiClass(_) => {
+            FacadeImportItem::AbiFunction(_) | FacadeImportItem::AbiClass(_) => {
                 return paths.ffi_js_mod_id.as_str().to_owned();
             }
             FacadeImportItem::FacadeClass(class) => {

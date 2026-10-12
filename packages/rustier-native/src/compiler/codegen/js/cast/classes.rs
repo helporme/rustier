@@ -1,10 +1,10 @@
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, doubles, frag, fragment},
     db::Db,
-    ir::{facade::FacadeClass, ffi::FfiClass},
+    ir::{abi::AbiClass, facade::FacadeClass},
 };
 
-pub fn render_facade_class_to_ffi<'db, InExpr, OutVar, Continue>(
+pub fn render_facade_class_to_abi<'db, InExpr, OutVar, Continue>(
     db: &'db dyn Db,
     source: FacadeClass<'db>,
     in_expr: InExpr,
@@ -43,9 +43,9 @@ where
     }})
 }
 
-pub fn render_ffi_class_to_facade<'db, InExpr, OutVar, Continue>(
+pub fn render_abi_class_to_facade<'db, InExpr, OutVar, Continue>(
     db: &'db dyn Db,
-    source: FfiClass<'db>,
+    source: AbiClass<'db>,
     target: FacadeClass<'db>,
     in_expr: InExpr,
     out_var_name: OutVar,

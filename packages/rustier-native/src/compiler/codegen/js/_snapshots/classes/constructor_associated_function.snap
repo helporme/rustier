@@ -25,7 +25,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 	) {
 		{
 			const result = cast.from(
-				"Ffi(boolean)"
+				"Abi(Bool)"
 			).to(
 				"Facade(boolean)"
 			).an(

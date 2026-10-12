@@ -26,7 +26,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 		) {
 			{
 				const out = cast.from(
-					"Ffi(Class(FfiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) } }) }))"
+					"Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) } }) }, borrowed: false })"
 				).to(
 					"Facade(Class(Plain(FacadeClassPlain { interface: InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) } } })))"
 				).an(
@@ -47,7 +47,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			const out = cast.from(
 				"Facade(Class(Plain(FacadeClassPlain { interface: InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) } } })))"
 			).to(
-				"Ffi(Class(FfiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) } }) }))"
+				"Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5002) } }, gen_args: [], origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) } }) }, borrowed: true })"
 			).an(
 				value
 			);

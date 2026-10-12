@@ -8,11 +8,11 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
+        abi::AbiFunction,
         facade::{
             FacadeClass, FacadeCoerce, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
             FacadeFieldPlain, FacadeType,
         },
-        ffi::FfiFunction,
         rust::FieldName,
     },
 };
@@ -232,7 +232,7 @@ where
         let class_name = self.coerce.class(db).import_alias(db);
         match self.coerce {
             FacadeCoerce::Plain(coerce) => {
-                let body = self.render_body(coerce.ffi(db), coerce.fields(db).collect());
+                let body = self.render_body(coerce.abi(db), coerce.fields(db).collect());
                 frag!(static ~{name}(value) {{
                     if (value instanceof ~{class_name}) {{
                         return value;
@@ -248,7 +248,7 @@ where
                 let cases = fragment(move |p| {
                     for variant in coerce.coerce_variants(db) {
                         let tag = doubles(&variant.name);
-                        let body = self.render_body(variant.ffi, variant.fields.clone());
+                        let body = self.render_body(variant.abi, variant.fields.clone());
                         frag!(case ~{tag}: {{ {body}@ }}@).apply(p);
                     }
                 });
@@ -278,27 +278,27 @@ where
 {
     fn render_body(
         self,
-        ffi: FfiFunction<'db>,
+        abi: AbiFunction<'db>,
         fields: Vec<FacadeFieldPlain<'db>>,
     ) -> impl FragmentOnce + 'db {
         let db = self.db;
         let class = self.coerce.class(db);
         let args = comma_list((0..fields.len()).map(|i| frag!(__ { i })));
-        let symbol = ffi.symbol(db);
+        let symbol = abi.symbol(db);
         let result = self.casts.render_stmt(
             db,
             Cast {
-                from: ffi.ret_type(db).expect("coerce returns its class"),
+                from: abi.ret_type(db).expect("coerce returns its class"),
                 to: FacadeType::Class(class),
                 in_expr: frag!({ symbol }({ args })),
                 out_var_name: "result",
             },
             frag!(return result;),
         );
-        let casts = fields.into_iter().zip(ffi.params(db)).enumerate().map(
-            move |(i, (field, ffi_param))| Cast {
+        let casts = fields.into_iter().zip(abi.params(db)).enumerate().map(
+            move |(i, (field, abi_param))| Cast {
                 from: field.type_(db),
-                to: ffi_param.type_(db),
+                to: abi_param.type_(db),
                 in_expr: fragment(move |p| match field.name(db) {
                     FieldName::Name(name) => frag!(value[{ doubles(name) }]).apply(p),
                     FieldName::Idx(index) => frag!(value[{ index }]).apply(p),
@@ -335,7 +335,7 @@ where
             )
             .apply(p);
 
-            if field.ffi_setter(self.db).is_some() {
+            if field.abi_setter(self.db).is_some() {
                 let accessor = render_field_accessor(name);
                 frag!(@@
                     set ~{accessor}(value)~{{
@@ -348,10 +348,10 @@ where
     }
 
     fn render_plain_getter(self, field: FacadeFieldPlain<'db>) -> impl FragmentOnce + 'db {
-        let ffi_getter = field.ffi_getter(self.db);
-        let ffi_type = ffi_getter
+        let abi_getter = field.abi_getter(self.db);
+        let abi_type = abi_getter
             .ret_type(self.db)
-            .expect("facade field getter should return an FFI value");
+            .expect("facade field getter should return an ABI value");
         let facade_type = field.type_(self.db);
 
         fragment(move |p| {
@@ -359,9 +359,9 @@ where
                 let cast = self.casts.render_stmt(
                     self.db,
                     Cast {
-                        from: ffi_type,
+                        from: abi_type,
                         to: facade_type,
-                        in_expr: frag!({ ffi_getter.symbol(self.db) }(this.#_ffi)),
+                        in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_ffi)),
                         out_var_name: "out",
                     },
                     frag!(this.#{cache_name(self.index, None)}~ = ~out;),
@@ -379,9 +379,9 @@ where
                     .render_stmt(
                         self.db,
                         Cast {
-                            from: ffi_type,
+                            from: abi_type,
                             to: facade_type,
-                            in_expr: frag!({ ffi_getter.symbol(self.db) }(this.#_ffi)),
+                            in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_ffi)),
                             out_var_name: "out",
                         },
                         frag!(return out;),
@@ -392,15 +392,15 @@ where
     }
 
     fn render_plain_setter(self, field: FacadeFieldPlain<'db>) -> impl FragmentOnce + 'db {
-        let ffi_setter = field
-            .ffi_setter(self.db)
+        let abi_setter = field
+            .abi_setter(self.db)
             .expect("plain field setter should exist");
-        let [_, value_param] = ffi_setter.params(self.db).as_slice() else {
+        let [_, value_param] = abi_setter.params(self.db).as_slice() else {
             unreachable!("facade field setter should have class and value parameters");
         };
         let facade_type = field.type_(self.db);
         let continuation = fragment(move |p| {
-            frag!({ ffi_setter.symbol(self.db) }(this.#_ffi, out);).apply(p);
+            frag!({ abi_setter.symbol(self.db) }(this.#_ffi, out);).apply(p);
 
             if matches!(facade_type, FacadeType::Class(_)) {
                 frag!(@this.#{cache_name(self.index, None)}~ = undefined;).apply(p);
@@ -437,7 +437,7 @@ where
             if field
                 .sub(self.db)
                 .values()
-                .any(|sub| sub.ffi_setter(self.db).is_some())
+                .any(|sub| sub.abi_setter(self.db).is_some())
             {
                 let accessor = render_field_accessor(field.name(self.db));
                 frag!(@@
@@ -455,7 +455,7 @@ where
         field: FacadeFieldDiscriminated<'db>,
         discriminator: FacadeFieldDiscriminator<'db>,
     ) -> impl FragmentOnce + 'db {
-        let ffi_discriminator = discriminator.ffi_getter(self.db);
+        let abi_discriminator = discriminator.abi_getter(self.db);
         let branches = fragment(move |p| {
             for (discriminator, sub) in field.sub(self.db) {
                 frag!(
@@ -468,7 +468,7 @@ where
         });
 
         frag!(
-            const type_ = ~{ffi_discriminator.symbol(self.db)}(this.#_ffi);@
+            const type_ = ~{abi_discriminator.symbol(self.db)}(this.#_ffi);@
             {branches}
             {self.render_unavailable_field_error(field)}
         )
@@ -479,10 +479,10 @@ where
         discriminator: u32,
         field: FacadeFieldPlain<'db>,
     ) -> impl FragmentOnce + 'db {
-        let ffi_getter = field.ffi_getter(self.db);
-        let ffi_type = ffi_getter
+        let abi_getter = field.abi_getter(self.db);
+        let abi_type = abi_getter
             .ret_type(self.db)
-            .expect("facade field getter should return an FFI value");
+            .expect("facade field getter should return an ABI value");
         let facade_type = field.type_(self.db);
 
         fragment(move |p| {
@@ -490,9 +490,9 @@ where
                 let cast = self.casts.render_stmt(
                     self.db,
                     Cast {
-                        from: ffi_type,
+                        from: abi_type,
                         to: facade_type,
-                        in_expr: frag!({ ffi_getter.symbol(self.db) }(this.#_ffi)),
+                        in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_ffi)),
                         out_var_name: "out",
                     },
                     frag!(
@@ -514,9 +514,9 @@ where
                     .render_stmt(
                         self.db,
                         Cast {
-                            from: ffi_type,
+                            from: abi_type,
                             to: facade_type,
-                            in_expr: frag!({ ffi_getter.symbol(self.db) }(this.#_ffi)),
+                            in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_ffi)),
                             out_var_name: "out",
                         },
                         frag!(return out;),
@@ -531,10 +531,10 @@ where
         field: FacadeFieldDiscriminated<'db>,
         discriminator: FacadeFieldDiscriminator<'db>,
     ) -> impl FragmentOnce + 'db {
-        let ffi_discriminator = discriminator.ffi_getter(self.db);
+        let abi_discriminator = discriminator.abi_getter(self.db);
         let branches = fragment(move |p| {
             for (discriminator, sub) in field.sub(self.db) {
-                if sub.ffi_setter(self.db).is_some() {
+                if sub.abi_setter(self.db).is_some() {
                     frag!(
                         if (type_ === ~{discriminator})~{{
                             {self.render_discriminated_setter_branch(*discriminator, *sub)}
@@ -553,7 +553,7 @@ where
         });
 
         frag!(
-            const type_ = ~{ffi_discriminator.symbol(self.db)}(this.#_ffi);@
+            const type_ = ~{abi_discriminator.symbol(self.db)}(this.#_ffi);@
             {branches}
             {self.render_unavailable_field_error(field)}
         )
@@ -564,15 +564,15 @@ where
         discriminator: u32,
         field: FacadeFieldPlain<'db>,
     ) -> impl FragmentOnce + 'db {
-        let ffi_setter = field
-            .ffi_setter(self.db)
+        let abi_setter = field
+            .abi_setter(self.db)
             .expect("discriminated field setter branch should be writable");
-        let [_, value_param] = ffi_setter.params(self.db).as_slice() else {
+        let [_, value_param] = abi_setter.params(self.db).as_slice() else {
             unreachable!("facade field setter should have class and value parameters");
         };
         let facade_type = field.type_(self.db);
         let continuation = fragment(move |p| {
-            frag!({ ffi_setter.symbol(self.db) }(this.#_ffi, out);).apply(p);
+            frag!({ abi_setter.symbol(self.db) }(this.#_ffi, out);).apply(p);
 
             if matches!(facade_type, FacadeType::Class(_)) {
                 frag!(@
@@ -598,12 +598,12 @@ where
 
     fn render_discriminator(self, field: FacadeFieldDiscriminator<'db>) -> impl FragmentOnce + 'db {
         let accessor = squares(doubles(field.name(self.db)));
-        let ffi_getter = field.ffi_getter(self.db);
+        let abi_getter = field.abi_getter(self.db);
         let class_name = self.class.import_alias(self.db);
 
         frag!(
             get ~{accessor}()~{{
-                return ~{class_name}.#_types[{ffi_getter.symbol(self.db)}(this.#_ffi)];
+                return ~{class_name}.#_types[{abi_getter.symbol(self.db)}(this.#_ffi)];
             }}
         )
     }

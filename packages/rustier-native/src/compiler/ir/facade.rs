@@ -11,7 +11,7 @@ use crate::compiler::{
     codegen::fragment::{FragmentPrint, frag},
     db::Db,
     ir::{
-        ffi::{Ffi, FfiClass, FfiFunction},
+        abi::{Abi, AbiClass, AbiFunction},
         interface::{
             InterClassDiscriminated, InterClassPlain, InterClassTemplate, InterField,
             InterFunctionAssociated, InterFunctionFree, InterGeneric, InterMember, InterModule,
@@ -29,8 +29,8 @@ pub struct Facade<'db> {
 }
 
 impl<'db> Facade<'db> {
-    pub fn ffi(self, db: &'db dyn Db) -> Ffi<'db> {
-        Ffi::new(db, self.interface(db))
+    pub fn abi(self, db: &'db dyn Db) -> Abi<'db> {
+        Abi::new(db, self.interface(db))
     }
 }
 
@@ -47,10 +47,10 @@ pub struct FacadeImport<'db> {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
 pub enum FacadeImportItem<'db> {
-    /// Import of an FFI function.
-    FfiFunction(FfiFunction<'db>),
-    /// Import of an FFI class.
-    FfiClass(FfiClass<'db>),
+    /// Import of an ABI function.
+    AbiFunction(AbiFunction<'db>),
+    /// Import of an ABI class.
+    AbiClass(AbiClass<'db>),
     /// Import of a facade class.
     FacadeClass(FacadeClass<'db>),
 }
@@ -59,8 +59,8 @@ impl<'db> FacadeImportItem<'db> {
     /// The symbol of the import item.
     pub fn name(self, db: &'db dyn Db) -> &'db str {
         match self {
-            FacadeImportItem::FfiFunction(f) => f.symbol(db),
-            FacadeImportItem::FfiClass(c) => c.symbol(db),
+            FacadeImportItem::AbiFunction(f) => f.symbol(db),
+            FacadeImportItem::AbiClass(c) => c.symbol(db),
             FacadeImportItem::FacadeClass(c) => c.name(db),
         }
     }
@@ -162,7 +162,7 @@ impl<'db> FacadeModule<'db> {
             .unique_by(|item| {
                 let module = match item {
                     FacadeImportItem::FacadeClass(class) => Some(class.module(db)),
-                    FacadeImportItem::FfiClass(_) | FacadeImportItem::FfiFunction(_) => None,
+                    FacadeImportItem::AbiClass(_) | FacadeImportItem::AbiFunction(_) => None,
                 };
 
                 (module, item.name(db))
@@ -253,10 +253,10 @@ impl<'db> FacadeFunction<'db> {
         }
     }
 
-    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
+    pub fn abi(self, db: &'db dyn Db) -> AbiFunction<'db> {
         match self {
-            Self::Free(function) => function.ffi(db),
-            Self::Method(method) => method.ffi(db),
+            Self::Free(function) => function.abi(db),
+            Self::Method(method) => method.abi(db),
         }
     }
 
@@ -286,8 +286,8 @@ impl<'db> FacadeFreeFunction<'db> {
         FacadeFunction::Free(self)
     }
 
-    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.interface(db).ffi(db)
+    pub fn abi(self, db: &'db dyn Db) -> AbiFunction<'db> {
+        self.interface(db).abi(db)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {
@@ -310,10 +310,10 @@ impl<'db> FacadeFreeFunction<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItem<'db>> {
-        let mut imports = HashSet::from([FacadeImportItem::FfiFunction(self.ffi(db))]);
+        let mut imports = HashSet::from([FacadeImportItem::AbiFunction(self.abi(db))]);
 
         if let Some(FacadeType::Class(class)) = self.ret_type(db) {
-            imports.insert(FacadeImportItem::FfiClass(class.ffi(db)));
+            imports.insert(FacadeImportItem::AbiClass(class.abi(db)));
         }
 
         for type_ in self
@@ -357,8 +357,8 @@ impl<'db> FacadeMethod<'db> {
         self.src(db).declaration(db).name(db)
     }
 
-    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.interface(db).ffi(db)
+    pub fn abi(self, db: &'db dyn Db) -> AbiFunction<'db> {
+        self.interface(db).abi(db)
     }
 
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeParam<'db>> + 'db {
@@ -384,9 +384,9 @@ impl<'db> FacadeMethod<'db> {
                 _ => None,
             })
             .map(FacadeImportItem::FacadeClass)
-            .chain(std::iter::once(FacadeImportItem::FfiFunction(self.ffi(db))))
+            .chain(std::iter::once(FacadeImportItem::AbiFunction(self.abi(db))))
             .chain(self.ret_type(db).and_then(|type_| match type_ {
-                FacadeType::Class(class) => Some(FacadeImportItem::FfiClass(class.ffi(db))),
+                FacadeType::Class(class) => Some(FacadeImportItem::AbiClass(class.abi(db))),
                 _ => None,
             }))
     }
@@ -440,15 +440,15 @@ impl<'db> FacadePlainCoerceFunction<'db> {
         self.interface(db).facade(db)
     }
 
-    pub fn ffi(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.interface(db).ffi_coerce(db)
+    pub fn abi(self, db: &'db dyn Db) -> AbiFunction<'db> {
+        self.interface(db).abi_coerce(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItem<'db>> {
         let class = FacadeClass::Plain(self.class(db));
         [
-            FacadeImportItem::FfiFunction(self.ffi(db)),
-            FacadeImportItem::FfiClass(class.ffi(db)),
+            FacadeImportItem::AbiFunction(self.abi(db)),
+            FacadeImportItem::AbiClass(class.abi(db)),
             FacadeImportItem::FacadeClass(class),
         ]
         .into_iter()
@@ -493,8 +493,8 @@ impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
             .iter()
             .flat_map(|variant| {
                 [
-                    FacadeImportItem::FfiFunction(variant.ffi),
-                    FacadeImportItem::FfiClass(class.ffi(db)),
+                    FacadeImportItem::AbiFunction(variant.abi),
+                    FacadeImportItem::AbiClass(class.abi(db)),
                     FacadeImportItem::FacadeClass(class),
                 ]
                 .into_iter()
@@ -520,7 +520,7 @@ impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
             .filter(|(v, _)| v.is_constructible(db))
             .map(|(v, name)| CoerceVariant {
                 name: name.clone(),
-                ffi: v.ffi_coerce(db),
+                abi: v.abi_coerce(db),
                 fields: v
                     .fields(db)
                     .map(|field| FacadeFieldPlain::new(db, field))
@@ -533,7 +533,7 @@ impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
 #[derive(Debug, Clone, Eq, PartialEq, Hash, salsa::Update)]
 pub struct CoerceVariant<'db> {
     pub name: String,
-    pub ffi: FfiFunction<'db>,
+    pub abi: AbiFunction<'db>,
     pub fields: Vec<FacadeFieldPlain<'db>>,
 }
 
@@ -556,10 +556,10 @@ pub enum FacadeClass<'db> {
 
 #[salsa::tracked]
 impl<'db> FacadeClass<'db> {
-    pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
+    pub fn abi(self, db: &'db dyn Db) -> AbiClass<'db> {
         match self {
-            FacadeClass::Plain(plain) => plain.ffi(db),
-            FacadeClass::Discriminated(discriminated) => discriminated.ffi(db),
+            FacadeClass::Plain(plain) => plain.abi(db),
+            FacadeClass::Discriminated(discriminated) => discriminated.abi(db),
         }
     }
 
@@ -579,7 +579,7 @@ impl<'db> FacadeClass<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn import_alias(self, db: &'db dyn Db) -> String {
-        frag!({"$facade"}{self.ffi(db).symbol(db)}).print()
+        frag!({"$facade"}{self.abi(db).symbol(db)}).print()
     }
 
     pub fn methods(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeMethod<'db>> + 'db {
@@ -619,8 +619,8 @@ pub struct FacadeClassPlain<'db> {
 }
 
 impl<'db> FacadeClassPlain<'db> {
-    pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
-        self.interface(db).ffi(db)
+    pub fn abi(self, db: &'db dyn Db) -> AbiClass<'db> {
+        self.interface(db).abi(db)
     }
 
     pub fn module(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
@@ -677,7 +677,7 @@ impl<'db> FacadeClassPlain<'db> {
                     .into_iter()
                     .flat_map(move |coerce| coerce.imports(db)),
             )
-            .chain(std::iter::once(FacadeImportItem::FfiClass(self.ffi(db))))
+            .chain(std::iter::once(FacadeImportItem::AbiClass(self.abi(db))))
     }
 }
 
@@ -688,8 +688,8 @@ pub struct FacadeClassDiscriminated<'db> {
 
 #[salsa::tracked]
 impl<'db> FacadeClassDiscriminated<'db> {
-    pub fn ffi(self, db: &'db dyn Db) -> FfiClass<'db> {
-        self.interface(db).ffi(db)
+    pub fn abi(self, db: &'db dyn Db) -> AbiClass<'db> {
+        self.interface(db).abi(db)
     }
 
     pub fn module(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
@@ -768,12 +768,12 @@ impl<'db> FacadeFieldPlain<'db> {
         self.interface(db).src(db).declaration(db).name(db)
     }
 
-    pub fn ffi_setter(self, db: &'db dyn Db) -> Option<FfiFunction<'db>> {
-        self.interface(db).ffi_setter(db)
+    pub fn abi_setter(self, db: &'db dyn Db) -> Option<AbiFunction<'db>> {
+        self.interface(db).abi_setter(db)
     }
 
-    pub fn ffi_getter(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.interface(db).ffi_getter(db)
+    pub fn abi_getter(self, db: &'db dyn Db) -> AbiFunction<'db> {
+        self.interface(db).abi_getter(db)
     }
 
     pub fn type_(self, db: &'db dyn Db) -> FacadeType<'db> {
@@ -782,14 +782,14 @@ impl<'db> FacadeFieldPlain<'db> {
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> {
         [
-            Some(FacadeImportItem::FfiFunction(self.ffi_getter(db))),
-            self.ffi_setter(db).map(FacadeImportItem::FfiFunction),
+            Some(FacadeImportItem::AbiFunction(self.abi_getter(db))),
+            self.abi_setter(db).map(FacadeImportItem::AbiFunction),
             match self.type_(db) {
                 FacadeType::Class(class) => Some(FacadeImportItem::FacadeClass(class)),
                 _ => None,
             },
             match self.type_(db) {
-                FacadeType::Class(class) => Some(FacadeImportItem::FfiClass(class.ffi(db))),
+                FacadeType::Class(class) => Some(FacadeImportItem::AbiClass(class.abi(db))),
                 _ => None,
             },
         ]
@@ -847,12 +847,12 @@ impl<'db> FacadeFieldDiscriminator<'db> {
             .collect()
     }
 
-    pub fn ffi_getter(self, db: &'db dyn Db) -> FfiFunction<'db> {
-        self.interface(db).ffi_discriminator(db)
+    pub fn abi_getter(self, db: &'db dyn Db) -> AbiFunction<'db> {
+        self.interface(db).abi_discriminator(db)
     }
 
     pub fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> {
-        std::iter::once(FacadeImportItem::FfiFunction(self.ffi_getter(db)))
+        std::iter::once(FacadeImportItem::AbiFunction(self.abi_getter(db)))
     }
 }
 

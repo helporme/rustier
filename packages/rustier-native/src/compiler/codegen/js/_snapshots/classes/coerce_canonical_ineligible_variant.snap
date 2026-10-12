@@ -49,7 +49,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "http":{
 				{
 					const result = cast.from(
-						"Ffi(Class(FfiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }))"
+						"Abi(Class { class: AbiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }, borrowed: false })"
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { interface: InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } } })))"
 					).an(

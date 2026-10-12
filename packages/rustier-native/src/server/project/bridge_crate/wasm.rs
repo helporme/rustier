@@ -55,7 +55,7 @@ impl<'a> BridgeCrateWasm<'a> {
                 self.project(db)
                     .reachable_interface(db)
                     .facade(db)
-                    .ffi(db)
+                    .abi(db)
                     .render(
                         db,
                         FfiTarget::Wasm {

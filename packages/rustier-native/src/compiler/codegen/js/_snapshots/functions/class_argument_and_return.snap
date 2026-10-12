@@ -1,6 +1,5 @@
 ---
 source: src/compiler/codegen/js/functions.rs
-assertion_line: 404
 expression: snapshot
 ---
 # Source
@@ -23,13 +22,13 @@ export function test_fn (
 		const __0 = cast.from(
 			"Facade(Class(Plain(FacadeClassPlain { interface: InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } } } })))"
 		).to(
-			"Ffi(Class(FfiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } } }) }))"
+			"Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } } }) }, borrowed: true })"
 		).an(
 			_0
 		);
 		{
 			const result = cast.from(
-				"Ffi(Class(FfiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) } }) }))"
+				"Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) } }) }, borrowed: false })"
 			).to(
 				"Facade(Class(Plain(FacadeClassPlain { interface: InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) } } })))"
 			).an(

@@ -3,7 +3,7 @@ use std::fmt::Write as _;
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, FragmentPrint, frag, fragment},
     db::Db,
-    ir::ffi::Ffi,
+    ir::abi::Abi,
 };
 
 pub const NAPI_LOADER: &str = include_str!("ffi/napi-loader.mjs");
@@ -27,7 +27,7 @@ pub enum FfiTarget<'a> {
     },
 }
 
-impl<'db> Ffi<'db> {
+impl<'db> Abi<'db> {
     pub fn render(self, db: &'db dyn Db, target: FfiTarget<'_>) -> String {
         let symbols = self.symbols(db);
 

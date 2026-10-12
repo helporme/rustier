@@ -21,7 +21,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 	get ["first"]() {
 		{
 			const out = cast.from(
-				"Ffi(number)"
+				"Abi(F64)"
 			).to(
 				"Facade(number)"
 			).an(
@@ -40,7 +40,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			const out = cast.from(
 				"Facade(number)"
 			).to(
-				"Ffi(number)"
+				"Abi(F64)"
 			).an(
 				value
 			);
@@ -53,7 +53,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 	get ["second"]() {
 		{
 			const out = cast.from(
-				"Ffi(string)"
+				"Abi(String)"
 			).to(
 				"Facade(string)"
 			).an(
@@ -72,7 +72,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			const out = cast.from(
 				"Facade(string)"
 			).to(
-				"Ffi(string)"
+				"Abi(String)"
 			).an(
 				value
 			);

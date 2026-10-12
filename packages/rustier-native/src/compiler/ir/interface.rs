@@ -2,7 +2,7 @@
 //!
 //! Interface IR is the bridge between the supported Rust source API and the
 //! generated JavaScript-facing API. It is the source representation lowered
-//! into the runtime, facade, decals and FFI IRs.
+//! into the runtime, facade, decals and ABI IRs.
 //!
 //! Unlike the downstream IRs, interface entities deliberately keep references
 //! to the higher-level Rust IR public.

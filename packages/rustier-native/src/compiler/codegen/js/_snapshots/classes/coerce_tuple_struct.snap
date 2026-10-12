@@ -19,7 +19,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 	get [0]() {
 		{
 			const out = cast.from(
-				"Ffi(number)"
+				"Abi(F64)"
 			).to(
 				"Facade(number)"
 			).an(
@@ -38,7 +38,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			const out = cast.from(
 				"Facade(number)"
 			).to(
-				"Ffi(number)"
+				"Abi(F64)"
 			).an(
 				value
 			);
@@ -51,7 +51,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 	get [1]() {
 		{
 			const out = cast.from(
-				"Ffi(string)"
+				"Abi(String)"
 			).to(
 				"Facade(string)"
 			).an(
@@ -70,7 +70,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			const out = cast.from(
 				"Facade(string)"
 			).to(
-				"Ffi(string)"
+				"Abi(String)"
 			).an(
 				value
 			);
@@ -99,7 +99,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			const __0 = cast.from(
 				"Facade(number)"
 			).to(
-				"Ffi(number)"
+				"Abi(F64)"
 			).an(
 				value[0]
 			);
@@ -107,13 +107,13 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 				const __1 = cast.from(
 					"Facade(string)"
 				).to(
-					"Ffi(string)"
+					"Abi(String)"
 				).an(
 					value[1]
 				);
 				{
 					const result = cast.from(
-						"Ffi(Class(FfiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) }))"
+						"Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) }, borrowed: false })"
 					).to(
 						"Facade(Class(Plain(FacadeClassPlain { interface: InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } } })))"
 					).an(
