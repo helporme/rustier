@@ -22,13 +22,13 @@ pub fn __fn__coe__10_test_crate__4_Test__6_Nested(
 ) -> napi::Result<__discr__10_test_crate__4_Test> {
     let result = (|| -> rustier_rt::CallResult<__discr__10_test_crate__4_Test> {
         Ok(__discr__10_test_crate__4_Test {
-            src: std::rc::Rc::new(
+            handle: (std::rc::Rc::new(
                 __tethering__10_test_crate__4_Test::new_owned({
-                    let _0 = std::rc::Rc::clone(&_0.src)
-                        .access(|value| Ok(value.clone()))?;
+                    let _0 = _0.handle.clone_rc().access(|value| Ok(value.clone()))?;
                     test_crate::Test::Nested(_0)
                 }),
-            ),
+            ))
+                .into(),
         })
     })();
     result.map_err(|error| napi::Error::from_reason(error.to_string()))
@@ -43,13 +43,13 @@ pub fn __fn__coe__10_test_crate__4_Test__6_Nested(
 ) -> Result<__discr__10_test_crate__4_Test, JsValue> {
     let result = (|| -> rustier_rt::CallResult<__discr__10_test_crate__4_Test> {
         Ok(__discr__10_test_crate__4_Test {
-            src: std::rc::Rc::new(
+            handle: (std::rc::Rc::new(
                 __tethering__10_test_crate__4_Test::new_owned({
-                    let _0 = std::rc::Rc::clone(&_0.src)
-                        .access(|value| Ok(value.clone()))?;
+                    let _0 = _0.handle.clone_rc().access(|value| Ok(value.clone()))?;
                     test_crate::Test::Nested(_0)
                 }),
-            ),
+            ))
+                .into(),
         })
     })();
     result.map_err(|error| JsValue::from_str(&error.to_string()))

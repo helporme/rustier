@@ -127,7 +127,7 @@ impl __tethering__10_test_crate__4_Test {
 }
 #[napi(js_name = "__discr__10_test_crate__4_Test")]
 pub struct __discr__10_test_crate__4_Test {
-    src: std::rc::Rc<__tethering__10_test_crate__4_Test>,
+    handle: rustier_rt::Handle<__tethering__10_test_crate__4_Test>,
 }
 ```
 
@@ -246,6 +246,6 @@ impl __tethering__10_test_crate__4_Test {
 }
 #[wasm_bindgen(js_name = "__discr__10_test_crate__4_Test")]
 pub struct __discr__10_test_crate__4_Test {
-    src: std::rc::Rc<__tethering__10_test_crate__4_Test>,
+    handle: rustier_rt::Handle<__tethering__10_test_crate__4_Test>,
 }
 ```

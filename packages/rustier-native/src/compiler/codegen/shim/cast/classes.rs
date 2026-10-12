@@ -39,9 +39,9 @@ where
 
     fragment(move |printer| {
         if is_borrowed {
-            frag!(std::rc::Rc::clone(&{ in_expr }.src)).apply(printer);
+            frag!({ in_expr }.handle.clone_rc()).apply(printer);
         } else {
-            frag!({ in_expr }.src).apply(printer);
+            frag!({ in_expr }.handle.into_rc()).apply(printer);
         }
     })
 }
@@ -61,7 +61,10 @@ where
         unreachable!("tethered-to-class cast requires a class target");
     };
 
-    adapt_to_cast_output(frag!({inner.symbol(db)}~{{ src: {in_expr} }}), output)
+    adapt_to_cast_output(
+        frag!({inner.symbol(db)}~{{ handle: ({in_expr}).into() }}),
+        output,
+    )
 }
 
 pub fn render_class_to_type<'db, InExpr, OutVar, Continue>(
@@ -106,7 +109,6 @@ where
         source_type: inner.src_type(db),
     };
     let tethered_expr = render_type_to_tethered_expr(db, source, tethered, in_expr);
-    let class_expr = frag!({inner.symbol(db)}~{{ src: {tethered_expr} }});
 
-    adapt_to_cast_output(class_expr, output)
+    render_tethered_to_class(db, class, tethered_expr, output)
 }

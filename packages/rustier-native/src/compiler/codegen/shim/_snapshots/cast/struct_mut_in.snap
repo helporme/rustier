@@ -13,7 +13,9 @@ pub struct ExampleStruct;
 ## Node
 ```rust
 fn cast(input: ()) {
-    std::rc::Rc::clone(&input.src)
+    input
+        .handle
+        .clone_rc()
         .access_mut(|value| Ok({
             let output = value;
             consume(output);
@@ -24,7 +26,9 @@ fn cast(input: ()) {
 ## Wasm
 ```rust
 fn cast(input: ()) {
-    std::rc::Rc::clone(&input.src)
+    input
+        .handle
+        .clone_rc()
         .access_mut(|value| Ok({
             let output = value;
             consume(output);

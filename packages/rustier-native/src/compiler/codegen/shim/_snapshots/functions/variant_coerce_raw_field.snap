@@ -20,7 +20,7 @@ pub fn __fn__coe__10_test_crate__4_Test__8_RawField(
 ) -> napi::Result<__discr__10_test_crate__4_Test> {
     let result = (|| -> rustier_rt::CallResult<__discr__10_test_crate__4_Test> {
         Ok(__discr__10_test_crate__4_Test {
-            src: std::rc::Rc::new(
+            handle: (std::rc::Rc::new(
                 __tethering__10_test_crate__4_Test::new_owned({
                     let _0 = {
                         let type_name = "u32";
@@ -42,7 +42,8 @@ pub fn __fn__coe__10_test_crate__4_Test__8_RawField(
                         r#type: _0,
                     }
                 }),
-            ),
+            ))
+                .into(),
         })
     })();
     result.map_err(|error| napi::Error::from_reason(error.to_string()))
@@ -57,7 +58,7 @@ pub fn __fn__coe__10_test_crate__4_Test__8_RawField(
 ) -> Result<__discr__10_test_crate__4_Test, JsValue> {
     let result = (|| -> rustier_rt::CallResult<__discr__10_test_crate__4_Test> {
         Ok(__discr__10_test_crate__4_Test {
-            src: std::rc::Rc::new(
+            handle: (std::rc::Rc::new(
                 __tethering__10_test_crate__4_Test::new_owned({
                     let _0 = {
                         let type_name = "u32";
@@ -79,7 +80,8 @@ pub fn __fn__coe__10_test_crate__4_Test__8_RawField(
                         r#type: _0,
                     }
                 }),
-            ),
+            ))
+                .into(),
         })
     })();
     result.map_err(|error| JsValue::from_str(&error.to_string()))

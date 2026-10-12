@@ -14,7 +14,7 @@ pub struct ExampleStruct;
 ```rust
 fn cast(input: ()) {
     {
-        let output = std::rc::Rc::clone(&input.src).access(|value| Ok(value.clone()))?;
+        let output = input.handle.clone_rc().access(|value| Ok(value.clone()))?;
         consume(output);
     }
 }
@@ -24,7 +24,7 @@ fn cast(input: ()) {
 ```rust
 fn cast(input: ()) {
     {
-        let output = std::rc::Rc::clone(&input.src).access(|value| Ok(value.clone()))?;
+        let output = input.handle.clone_rc().access(|value| Ok(value.clone()))?;
         consume(output);
     }
 }

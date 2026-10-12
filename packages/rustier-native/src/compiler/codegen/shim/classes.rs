@@ -72,7 +72,7 @@ impl<'db> ClassFragment<'db> {
         frag!(
             {platform.header_renamed(symbol)}
             pub struct ~{symbol}~{{
-                src: std::rc::Rc<{tethering_type_name}>
+                handle: rustier_rt::Handle<{tethering_type_name}>
             }}
         )
     }

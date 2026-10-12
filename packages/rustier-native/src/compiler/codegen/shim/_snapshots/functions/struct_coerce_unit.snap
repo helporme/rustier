@@ -18,9 +18,10 @@ pub fn __fn__coe__10_test_crate__4_Unit() -> napi::Result<
 > {
     let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__4_Unit> {
         Ok(__plain__10_test_crate__4_Unit {
-            src: std::rc::Rc::new(
+            handle: (std::rc::Rc::new(
                 __tethering__10_test_crate__4_Unit::new_owned(test_crate::Unit),
-            ),
+            ))
+                .into(),
         })
     })();
     result.map_err(|error| napi::Error::from_reason(error.to_string()))
@@ -36,9 +37,10 @@ pub fn __fn__coe__10_test_crate__4_Unit() -> Result<
 > {
     let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__4_Unit> {
         Ok(__plain__10_test_crate__4_Unit {
-            src: std::rc::Rc::new(
+            handle: (std::rc::Rc::new(
                 __tethering__10_test_crate__4_Unit::new_owned(test_crate::Unit),
-            ),
+            ))
+                .into(),
         })
     })();
     result.map_err(|error| JsValue::from_str(&error.to_string()))

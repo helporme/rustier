@@ -15,7 +15,7 @@ pub struct ExampleStruct;
 fn cast(input: ()) {
     {
         let output = __plain__10_test_crate__13_ExampleStruct {
-            src: input,
+            handle: (input).into(),
         };
         consume(output);
     }
@@ -27,7 +27,7 @@ fn cast(input: ()) {
 fn cast(input: ()) {
     {
         let output = __plain__10_test_crate__13_ExampleStruct {
-            src: input,
+            handle: (input).into(),
         };
         consume(output);
     }
