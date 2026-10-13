@@ -438,18 +438,6 @@ It consists of three parts:
 2. A [server](packages/rustier-native/src/server.rs) that handles plugin requests, such as `build` and `change`.
 3. A [compiler](packages/rustier-native/src/compiler.rs) responsible for generating Rust and JS glue code and TypeScript declarations.
 
-The most interesting part is the compiler, which is built on top of rust-analyzer's `hir` IR and uses the [Salsa](https://salsa-rs.github.io/salsa/) framework for incremental computation. It defines several additional [IRs](packages/rustier-native/src/compiler/ir):
-
-1. [Rust IR](packages/rustier-native/src/compiler/ir/rust.rs) represents the supported subset of Rust features. It is lowered from rust-analyzer's `hir`, and most diagnostics are emitted during this step.
-2. [Shim IR](packages/rustier-native/src/compiler/ir/shim.rs) is the central IR used by the compiler. Lowered from Rust IR, it represents JS concepts, such as classes, with references back to Rust IR entities, such as structs and enums.
-3. [Facade](packages/rustier-native/src/compiler/ir/facade.rs) is lowered from Shim IR and used for JS code generation.
-4. [Decals](packages/rustier-native/src/compiler/ir/decals.rs) is lowered from Shim IR and used for TypeScript declaration and source map generation.
-5. [FFI](packages/rustier-native/src/compiler/ir/ffi.rs) represents the exact functions exposed across the Rust-JS boundary. It is intended to support future tree-shaking work.
-
-The compiler also contains code generation machinery with its own concepts, such as [tethering](packages/rustier-native/src/compiler/codegen/shim/tethering.rs), [fragments](packages/rustier-native/src/compiler/codegen/fragment.rs), and [cast graphs](packages/rustier-native/src/compiler/codegen/shim/cast.rs).
-
-The generated Rust bindings use [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) for the WebAssembly target and [NAPI-RS](https://github.com/napi-rs/napi-rs) for native Node.js addons.
-
 All of the above is covered by the following testing strategies, in order of importance:
 
 1. [E2E tests](packages/rustier/tests/e2e) are the main corpus of tests, written in TypeScript.
