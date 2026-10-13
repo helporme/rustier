@@ -21,7 +21,7 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> napi::Result<f64> {
                 .from(
                     "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
                 )
-                .to("Interface(f64)")
+                .to("Abi(F64)")
                 .an(test_crate::test_fn()),
         )
     })();
@@ -39,7 +39,7 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> Result<f64, JsValue> {
                 .from(
                     "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
                 )
-                .to("Interface(f64)")
+                .to("Abi(F64)")
                 .an(test_crate::test_fn()),
         )
     })();

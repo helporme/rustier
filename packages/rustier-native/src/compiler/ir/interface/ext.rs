@@ -2,8 +2,8 @@ use crate::compiler::{
     db::Db,
     ir::{
         interface::{
-            InterClassDiscriminated, InterClassPlain, InterCrate, InterField, InterModule,
-            InterParentCrate, InterParentModule, InterType, Interface,
+            InterClass, InterClassDiscriminated, InterClassPlain, InterCrate, InterField,
+            InterModule, InterParentCrate, InterParentModule, Interface,
         },
         rust::{
             Crate, EnumType, FieldQualified, Module, Rust, StructType, Type, TypeKind,
@@ -74,43 +74,14 @@ impl<'db> FieldQualified<'db> {
 }
 
 impl<'db> Type<'db> {
-    pub fn interface_in(self, db: &'db dyn Db) -> InterType<'db> {
+    /// The class representing this type, looking through references, or `None`
+    /// if type is not representable as a class.
+    pub fn interface_class(self, db: &'db dyn Db) -> Option<InterClass<'db>> {
         match self.kind(db) {
-            TypeKind::bool => InterType::bool,
-            TypeKind::char
-            | TypeKind::i8
-            | TypeKind::u8
-            | TypeKind::i16
-            | TypeKind::u16
-            | TypeKind::i32
-            | TypeKind::u32
-            | TypeKind::f32
-            | TypeKind::f64 => InterType::f64,
-            TypeKind::Str | TypeKind::String => InterType::String,
-            TypeKind::Struct(struct_) => InterType::Class {
-                is_borrowed: true,
-                inner: struct_.interface(db).into(),
-            },
-            TypeKind::Enum(enum_) => InterType::Class {
-                is_borrowed: true,
-                inner: enum_.interface(db).into(),
-            },
-            TypeKind::Borrowed(borrowed) => borrowed.inner(db).interface_in(db),
-            TypeKind::Generic(_) => {
-                unreachable!("unsupported Rust types do not enter the interface")
-            }
-        }
-    }
-
-    pub fn interface_out(self, db: &'db dyn Db) -> InterType<'db> {
-        match self.interface_in(db) {
-            InterType::f64 => InterType::f64,
-            InterType::String => InterType::String,
-            InterType::bool => InterType::bool,
-            InterType::Class { inner, .. } => InterType::Class {
-                is_borrowed: false,
-                inner,
-            },
+            TypeKind::Struct(struct_) => Some(struct_.interface(db).into()),
+            TypeKind::Enum(enum_) => Some(enum_.interface(db).into()),
+            TypeKind::Borrowed(borrowed) => borrowed.inner(db).interface_class(db),
+            _ => None,
         }
     }
 }

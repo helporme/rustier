@@ -298,7 +298,7 @@ where
         let casts = fields.into_iter().zip(abi.params(db)).enumerate().map(
             move |(i, (field, abi_param))| Cast {
                 from: field.type_(db),
-                to: abi_param.type_(db),
+                to: *abi_param,
                 in_expr: fragment(move |p| match field.name(db) {
                     FieldName::Name(name) => frag!(value[{ doubles(name) }]).apply(p),
                     FieldName::Idx(index) => frag!(value[{ index }]).apply(p),
@@ -411,7 +411,7 @@ where
             self.db,
             Cast {
                 from: facade_type,
-                to: value_param.type_(self.db),
+                to: *value_param,
                 in_expr: "value",
                 out_var_name: "out",
             },
@@ -588,7 +588,7 @@ where
             self.db,
             Cast {
                 from: facade_type,
-                to: value_param.type_(self.db),
+                to: *value_param,
                 in_expr: "value",
                 out_var_name: "out",
             },

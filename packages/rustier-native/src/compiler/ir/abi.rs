@@ -6,8 +6,9 @@ pub mod ext;
 use crate::compiler::{
     db::Db,
     ir::{
-        interface::{InterClass, InterType, Interface},
-        runtime::{RuntimeFunction, RuntimeParam},
+        interface::{InterClass, Interface},
+        runtime::{RuntimeFunction, RuntimeType},
+        rust::{Type, TypeKind},
     },
 };
 
@@ -40,7 +41,7 @@ impl<'db> Abi<'db> {
 
 #[salsa::interned(debug)]
 pub struct AbiClass<'db> {
-    interface: InterClass<'db>,
+    pub interface: InterClass<'db>,
 }
 
 impl<'db> AbiClass<'db> {
@@ -61,43 +62,19 @@ impl<'db> AbiFunction<'db> {
     }
 
     #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> Vec<AbiParam<'db>> {
+    pub fn params(self, db: &'db dyn Db) -> Vec<AbiType<'db>> {
         self.runtime(db)
             .params(db)
             .iter()
-            .map(|param| AbiParam::new(db, *param))
+            .map(|type_| AbiType::new(db, *type_, true))
             .collect()
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<AbiType<'db>> {
         self.runtime(db).ret_type(db).map(|type_| match type_ {
-            InterType::f64 => AbiType::F64,
-            InterType::String => AbiType::String,
-            InterType::bool => AbiType::Bool,
-            InterType::Class { is_borrowed, inner } => AbiType::Class {
-                class: inner.abi(db),
-                borrowed: is_borrowed,
-            },
+            RuntimeType::Source(type_) => AbiType::new(db, type_, false),
+            RuntimeType::u32 => AbiType::F64,
         })
-    }
-}
-
-#[salsa::interned(debug)]
-pub struct AbiParam<'db> {
-    runtime: RuntimeParam<'db>,
-}
-
-impl<'db> AbiParam<'db> {
-    pub fn type_(self, db: &'db dyn Db) -> AbiType<'db> {
-        match self.runtime(db).type_ {
-            InterType::f64 => AbiType::F64,
-            InterType::String => AbiType::String,
-            InterType::bool => AbiType::Bool,
-            InterType::Class { is_borrowed, inner } => AbiType::Class {
-                class: inner.abi(db),
-                borrowed: is_borrowed,
-            },
-        }
     }
 }
 
@@ -111,4 +88,33 @@ pub enum AbiType<'db> {
         class: AbiClass<'db>,
         borrowed: bool,
     },
+}
+
+impl<'db> AbiType<'db> {
+    fn new(db: &'db dyn Db, type_: Type<'db>, borrowed: bool) -> Self {
+        if let Some(class) = type_.interface_class(db) {
+            return Self::Class {
+                class: class.abi(db),
+                borrowed,
+            };
+        }
+
+        match type_.kind(db) {
+            TypeKind::bool => Self::Bool,
+            TypeKind::char
+            | TypeKind::i8
+            | TypeKind::u8
+            | TypeKind::i16
+            | TypeKind::u16
+            | TypeKind::i32
+            | TypeKind::u32
+            | TypeKind::f32
+            | TypeKind::f64 => Self::F64,
+            TypeKind::Str | TypeKind::String => Self::String,
+            TypeKind::Borrowed(borrowed_type) => Self::new(db, borrowed_type.inner(db), borrowed),
+            TypeKind::Struct(_) | TypeKind::Enum(_) | TypeKind::Generic(_) => {
+                unreachable!("unsupported Rust types do not cross the ABI")
+            }
+        }
+    }
 }

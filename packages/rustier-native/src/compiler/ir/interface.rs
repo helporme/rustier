@@ -328,9 +328,9 @@ impl<'db> InterClass<'db> {
         };
 
         args.iter()
-            .map(move |GenArg::Type(type_)| match type_.interface_out(db) {
-                InterType::Class { inner, .. } => InterGeneric::Class(inner),
-                _ => InterGeneric::Symbol(type_.display(db).to_owned()),
+            .map(move |GenArg::Type(type_)| match type_.interface_class(db) {
+                Some(class) => InterGeneric::Class(class),
+                None => InterGeneric::Symbol(type_.display(db).to_owned()),
             })
     }
 
@@ -520,9 +520,8 @@ impl<'db> InterField<'db> {
         self.src(db).is_readonly(db)
     }
 
-    /// The type of a value read from this field.
-    pub fn type_(self, db: &'db dyn Db) -> InterType<'db> {
-        self.src(db)._type(db).interface_out(db)
+    pub fn type_(self, db: &'db dyn Db) -> Type<'db> {
+        self.src(db)._type(db)
     }
 }
 
@@ -535,7 +534,7 @@ pub enum InterFunction<'db> {
 }
 
 impl<'db> InterFunction<'db> {
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<InterType<'db>> {
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
         match self {
             InterFunction::Free(f) => f.ret_type(db),
             InterFunction::Associated(f) => f.ret_type(db),
@@ -557,8 +556,8 @@ pub struct InterFunctionFree<'db> {
 
 #[salsa::tracked]
 impl<'db> InterFunctionFree<'db> {
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<InterType<'db>> {
-        self.src(db).ret_type(db).map(|ret| ret.interface_out(db))
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+        self.src(db).ret_type(db)
     }
 
     #[salsa::tracked(returns(ref))]
@@ -569,11 +568,7 @@ impl<'db> InterFunctionFree<'db> {
             .params(db)
             .iter()
             .enumerate()
-            .map(|(idx, src)| {
-                let src_type = src.type_(db);
-                let interface_type = src_type.interface_in(db);
-                InterParam::new(db, function, idx, *src_type, interface_type)
-            })
+            .map(|(idx, src)| InterParam::new(db, function, idx, *src.type_(db)))
             .collect()
     }
 }
@@ -596,28 +591,23 @@ impl<'db> InterFunctionAssociated<'db> {
         let FunctionQualified::Inherent(function) = self.src(db).function(db) else {
             unreachable!("associated interface functions must be inherent")
         };
-        match function.impl_(db).target(db).interface_in(db) {
-            InterType::Class { inner, .. } => inner,
-            _ => unreachable!("associated interface functions must target a class"),
-        }
+        let Some(class) = function.impl_(db).target(db).interface_class(db) else {
+            unreachable!("associated interface functions must target a class")
+        };
+
+        class
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<InterType<'db>> {
-        self.src(db).ret_type(db).map(|ret| ret.interface_out(db))
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+        self.src(db).ret_type(db)
     }
 
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> Vec<InterParam<'db>> {
         if let Some(src_type) = self.src(db).receiver_type(db) {
-            std::iter::once(InterParam::new(
-                db,
-                self.into(),
-                0,
-                src_type,
-                src_type.interface_in(db),
-            ))
-            .chain(self.params_without_self(db).iter().copied())
-            .collect()
+            std::iter::once(InterParam::new(db, self.into(), 0, src_type))
+                .chain(self.params_without_self(db).iter().copied())
+                .collect()
         } else {
             self.params_without_self(db).clone()
         }
@@ -633,16 +623,7 @@ impl<'db> InterFunctionAssociated<'db> {
             .params(db)
             .iter()
             .enumerate()
-            .map(move |(idx, src)| {
-                let src_type = *src.type_(db);
-                InterParam::new(
-                    db,
-                    self.into(),
-                    idx + offset,
-                    src_type,
-                    src_type.interface_in(db),
-                )
-            })
+            .map(move |(idx, src)| InterParam::new(db, self.into(), idx + offset, *src.type_(db)))
             .collect()
     }
 }
@@ -659,18 +640,4 @@ pub struct InterParam<'db> {
     pub idx: usize,
     #[tracked]
     pub src_type: Type<'db>,
-    #[tracked]
-    pub type_: InterType<'db>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
-#[allow(non_camel_case_types)]
-pub enum InterType<'db> {
-    f64,
-    String,
-    bool,
-    Class {
-        is_borrowed: bool,
-        inner: InterClass<'db>,
-    },
 }

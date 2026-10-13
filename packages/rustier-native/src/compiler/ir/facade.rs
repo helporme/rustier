@@ -15,7 +15,7 @@ use crate::compiler::{
         interface::{
             InterClassDiscriminated, InterClassPlain, InterClassTemplate, InterField,
             InterFunctionAssociated, InterFunctionFree, InterGeneric, InterMember, InterModule,
-            InterParam, InterParentModule, InterType, Interface,
+            InterParam, InterParentModule, Interface,
         },
         rust::{Callable, FieldName},
     },
@@ -544,7 +544,7 @@ pub struct FacadeParam<'db> {
 
 impl<'db> FacadeParam<'db> {
     pub fn type_(self, db: &'db dyn Db) -> FacadeType<'db> {
-        self.interface(db).type_(db).lower_facade(db)
+        self.interface(db).src_type(db).lower_facade(db)
     }
 }
 
@@ -649,15 +649,9 @@ impl<'db> FacadeClassPlain<'db> {
         self.methods(db).find(|method| {
             method.name(db) == "new"
                 && method.is_static(db)
-                && matches!(
-                    method.interface(db).ret_type(db),
-                    Some(InterType::Class {
-                        is_borrowed: false,
-                        inner,
-                    }) if inner
-                        .src_type(db)
-                        .same_type_as(db, self.interface(db).src(db).into_type(db))
-                )
+                && method.interface(db).ret_type(db).is_some_and(|ret| {
+                    ret.same_type_as(db, self.interface(db).src(db).into_type(db))
+                })
         })
     }
 

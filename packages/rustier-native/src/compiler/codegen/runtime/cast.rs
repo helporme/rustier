@@ -1,4 +1,4 @@
-//! Code to cast values from interface to source types back and forth
+//! Code to cast values from ABI to source types back and forth
 
 mod borrowing;
 mod classes;
@@ -13,7 +13,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        interface::InterType,
+        abi::AbiType,
         rust::{Type, TypeKind},
     },
 };
@@ -21,7 +21,7 @@ use crate::compiler::{
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CastType<'db> {
     Tethered(TetheringStructType<'db>),
-    Interface(InterType<'db>),
+    Abi(AbiType<'db>),
     Rust(Type<'db>),
 }
 
@@ -29,19 +29,22 @@ impl<'db> CastType<'db> {
     fn same_representation(self, db: &'db dyn Db, other: Self) -> bool {
         match (self, other) {
             (
-                Self::Interface(InterType::Class {
-                    is_borrowed: left_borrowed,
-                    inner: left,
+                Self::Abi(AbiType::Class {
+                    borrowed: left_borrowed,
+                    class: left,
                 }),
-                Self::Interface(InterType::Class {
-                    is_borrowed: right_borrowed,
-                    inner: right,
+                Self::Abi(AbiType::Class {
+                    borrowed: right_borrowed,
+                    class: right,
                 }),
             ) => {
                 left_borrowed == right_borrowed
-                    && left.src_type(db).same_type_as(db, right.src_type(db))
+                    && left
+                        .interface(db)
+                        .src_type(db)
+                        .same_type_as(db, right.interface(db).src_type(db))
             }
-            (Self::Interface(left), Self::Interface(right)) => left == right,
+            (Self::Abi(left), Self::Abi(right)) => left == right,
             (Self::Tethered(a), Self::Tethered(b)) => a.source_type.same_type_as(db, b.source_type),
             (Self::Rust(a), Self::Rust(b)) => a.same_type_as(db, b),
             _ => false,
@@ -55,9 +58,9 @@ impl<'db> From<TetheringStructType<'db>> for CastType<'db> {
     }
 }
 
-impl<'db> From<InterType<'db>> for CastType<'db> {
-    fn from(value: InterType<'db>) -> Self {
-        Self::Interface(value)
+impl<'db> From<AbiType<'db>> for CastType<'db> {
+    fn from(value: AbiType<'db>) -> Self {
+        Self::Abi(value)
     }
 }
 
@@ -215,31 +218,31 @@ impl<'db> CastRenderer<'db> for RuntimeCastRenderer {
                 }
 
                 // classes
-                (Interface(class @ InterType::Class { .. }), Tethered(_)) => {
+                (Abi(class @ AbiType::Class { .. }), Tethered(_)) => {
                     classes::render_class_to_tethered(class, in_expr, output).apply(printer);
                 }
-                (Tethered(_), Interface(class @ InterType::Class { .. })) => {
+                (Tethered(_), Abi(class @ AbiType::Class { .. })) => {
                     classes::render_tethered_to_class(db, class, in_expr, output).apply(printer);
                 }
-                (Interface(class @ InterType::Class { .. }), Rust(target)) => {
+                (Abi(class @ AbiType::Class { .. }), Rust(target)) => {
                     classes::render_class_to_type(db, class, target, in_expr, output)
                         .apply(printer);
                 }
-                (Rust(source), Interface(class @ InterType::Class { .. })) => {
+                (Rust(source), Abi(class @ AbiType::Class { .. })) => {
                     classes::render_type_to_class(db, source, class, in_expr, output)
                         .apply(printer);
                 }
 
                 // numbers
-                (Interface(InterType::f64), Rust(target)) => {
+                (Abi(AbiType::F64), Rust(target)) => {
                     numbers::render_f64_to_type(db, target, in_expr, output).apply(printer);
                 }
-                (Rust(source), Interface(InterType::f64)) => {
+                (Rust(source), Abi(AbiType::F64)) => {
                     numbers::render_type_to_f64(db, source, in_expr, output).apply(printer);
                 }
 
                 // booleans
-                (Interface(InterType::bool), Rust(target))
+                (Abi(AbiType::Bool), Rust(target))
                     if matches!(target.kind(db), TypeKind::Borrowed(borrowed)
                         if borrowed.inner(db).kind(db) == TypeKind::bool) =>
                 {
@@ -247,27 +250,25 @@ impl<'db> CastRenderer<'db> for RuntimeCastRenderer {
                 }
 
                 // strings
-                (Interface(InterType::String), Rust(target))
+                (Abi(AbiType::String), Rust(target))
                     if matches!(target.kind(db), TypeKind::Borrowed(_)) =>
                 {
                     strings::render_string_to_type(db, target, in_expr, output).apply(printer);
                 }
 
                 // identity casts
-                (Interface(InterType::bool), Rust(type_))
-                | (Rust(type_), Interface(InterType::bool))
+                (Abi(AbiType::Bool), Rust(type_)) | (Rust(type_), Abi(AbiType::Bool))
                     if type_.kind(db) == TypeKind::bool =>
                 {
                     adapt_to_cast_output(in_expr, output).apply(printer);
                 }
-                (Interface(InterType::String), Rust(type_))
-                | (Rust(type_), Interface(InterType::String))
+                (Abi(AbiType::String), Rust(type_)) | (Rust(type_), Abi(AbiType::String))
                     if type_.kind(db) == TypeKind::String =>
                 {
                     adapt_to_cast_output(in_expr, output).apply(printer);
                 }
 
-                _ => unreachable!("unsupported interface cast from `{src:?}` to `{dst:?}`"),
+                _ => unreachable!("unsupported runtime cast from `{src:?}` to `{dst:?}`"),
             }
         })
     }
@@ -396,7 +397,7 @@ mod tests {
         codegen::runtime::tethering::TetheringStructType,
         db::Db,
         ir::{
-            interface::InterType,
+            abi::AbiType,
             rust::{Member, Rust, Type, TypeKind},
         },
     };
@@ -413,7 +414,7 @@ mod tests {
             fn $name() {
                 $crate::assert_rust_snap! {
                     source: { $($source)* },
-                    expression: |__db, __platform, __printer| {
+                    expression: |__db, __transport, __printer| {
                         $(let __fixture_db = $crate::test_db! { $($fixture)* };
                           let __db = &__fixture_db;)?
                         let __db: &dyn $crate::compiler::db::Db = &*__db;
@@ -479,26 +480,26 @@ mod tests {
         ) => {
             cast_snapshot! {
                 name: $in_name,
-                from: |_db| InterType::f64,
+                from: |_db| AbiType::F64,
                 to: |db| test_type(db, stringify!($value)),
             }
 
             cast_snapshot! {
                 name: $ref_name,
-                from: |_db| InterType::f64,
+                from: |_db| AbiType::F64,
                 to: |db| test_type(db, stringify!($value)).borrowed(db),
             }
 
             cast_snapshot! {
                 name: $mut_name,
-                from: |_db| InterType::f64,
+                from: |_db| AbiType::F64,
                 to: |db| test_type(db, stringify!($value)).borrowed_mut(db),
             }
 
             cast_snapshot! {
                 name: $out_name,
                 from: |db| test_type(db, stringify!($value)),
-                to: |_db| InterType::f64,
+                to: |_db| AbiType::F64,
             }
         };
     }
@@ -577,62 +578,62 @@ mod tests {
 
     cast_snapshot! {
         name: bool_in,
-        from: |_db| InterType::bool,
+        from: |_db| AbiType::Bool,
         to: |db| test_type(db, "bool"),
     }
 
     cast_snapshot! {
         name: bool_ref_in,
-        from: |_db| InterType::bool,
+        from: |_db| AbiType::Bool,
         to: |db| test_type(db, "bool").borrowed(db),
     }
 
     cast_snapshot! {
         name: bool_mut_in,
-        from: |_db| InterType::bool,
+        from: |_db| AbiType::Bool,
         to: |db| test_type(db, "bool").borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: bool_out,
         from: |db| test_type(db, "bool"),
-        to: |_db| InterType::bool,
+        to: |_db| AbiType::Bool,
     }
 
     cast_snapshot! {
         name: string_in,
-        from: |_db| InterType::String,
+        from: |_db| AbiType::String,
         to: |db| test_type(db, "string"),
     }
 
     cast_snapshot! {
         name: string_ref_in,
-        from: |_db| InterType::String,
+        from: |_db| AbiType::String,
         to: |db| test_type(db, "string").borrowed(db),
     }
 
     cast_snapshot! {
         name: string_mut_in,
-        from: |_db| InterType::String,
+        from: |_db| AbiType::String,
         to: |db| test_type(db, "string").borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: str_ref_in,
-        from: |_db| InterType::String,
+        from: |_db| AbiType::String,
         to: |db| test_type(db, "str").borrowed(db),
     }
 
     cast_snapshot! {
         name: str_mut_in,
-        from: |_db| InterType::String,
+        from: |_db| AbiType::String,
         to: |db| test_type(db, "str").borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: string_out,
         from: |db| test_type(db, "string"),
-        to: |_db| InterType::String,
+        to: |_db| AbiType::String,
     }
 
     cast_snapshot! {
@@ -641,7 +642,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| test_interface_class_type(db, "ExampleStruct", true),
+        from: |db| test_abi_class_type(db, "ExampleStruct", true),
         to: |db| test_type(db, "ExampleStruct"),
     }
 
@@ -651,7 +652,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| test_interface_class_type(db, "ExampleStruct", true),
+        from: |db| test_abi_class_type(db, "ExampleStruct", true),
         to: |db| test_type(db, "ExampleStruct").borrowed(db),
     }
 
@@ -661,7 +662,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| test_interface_class_type(db, "ExampleStruct", true),
+        from: |db| test_abi_class_type(db, "ExampleStruct", true),
         to: |db| test_type(db, "ExampleStruct").borrowed_mut(db),
     }
 
@@ -672,7 +673,7 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| test_type(db, "ExampleStruct"),
-        to: |db| test_interface_class_type(db, "ExampleStruct", false),
+        to: |db| test_abi_class_type(db, "ExampleStruct", false),
     }
 
     cast_snapshot! {
@@ -683,7 +684,7 @@ mod tests {
                 Variant,
             }
         },
-        from: |db| test_interface_class_type(db, "ExampleEnum", true),
+        from: |db| test_abi_class_type(db, "ExampleEnum", true),
         to: |db| test_type(db, "ExampleEnum"),
     }
 
@@ -695,7 +696,7 @@ mod tests {
                 Variant,
             }
         },
-        from: |db| test_interface_class_type(db, "ExampleEnum", true),
+        from: |db| test_abi_class_type(db, "ExampleEnum", true),
         to: |db| test_type(db, "ExampleEnum").borrowed(db),
     }
 
@@ -707,7 +708,7 @@ mod tests {
                 Variant,
             }
         },
-        from: |db| test_interface_class_type(db, "ExampleEnum", true),
+        from: |db| test_abi_class_type(db, "ExampleEnum", true),
         to: |db| test_type(db, "ExampleEnum").borrowed_mut(db),
     }
 
@@ -720,7 +721,7 @@ mod tests {
             }
         },
         from: |db| test_type(db, "ExampleEnum"),
-        to: |db| test_interface_class_type(db, "ExampleEnum", false),
+        to: |db| test_abi_class_type(db, "ExampleEnum", false),
     }
 
     cast_snapshot! {
@@ -777,7 +778,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| test_interface_class_type(db, "ExampleStruct", true),
+        from: |db| test_abi_class_type(db, "ExampleStruct", true),
         to: |db| TetheringStructType {
             source_type: test_type(db, "ExampleStruct"),
         },
@@ -792,7 +793,7 @@ mod tests {
         from: |db| TetheringStructType {
             source_type: test_type(db, "ExampleStruct"),
         },
-        to: |db| test_interface_class_type(db, "ExampleStruct", false),
+        to: |db| test_abi_class_type(db, "ExampleStruct", false),
     }
 
     cast_snapshot! {
@@ -802,9 +803,9 @@ mod tests {
     }
 
     cast_snapshot! {
-        name: interface_identity,
-        from: |_db| InterType::bool,
-        to: |_db| InterType::bool,
+        name: abi_identity,
+        from: |_db| AbiType::Bool,
+        to: |_db| AbiType::Bool,
     }
 
     cast_snapshot! {
@@ -895,17 +896,13 @@ mod tests {
             .unwrap_or_else(|| panic!("test value type `{name}` should be lowered"))
     }
 
-    fn test_interface_class_type<'db>(
-        db: &'db dyn Db,
-        name: &str,
-        is_borrowed: bool,
-    ) -> InterType<'db> {
-        let inner = match test_type(db, name).kind(db) {
-            TypeKind::Struct(struct_) => struct_.interface(db).into(),
-            TypeKind::Enum(enum_) => enum_.interface(db).into(),
+    fn test_abi_class_type<'db>(db: &'db dyn Db, name: &str, borrowed: bool) -> AbiType<'db> {
+        let class = match test_type(db, name).kind(db) {
+            TypeKind::Struct(struct_) => struct_.interface(db).abi(db),
+            TypeKind::Enum(enum_) => enum_.interface(db).abi(db),
             _ => unreachable!("class cast test requires a struct or enum"),
         };
 
-        InterType::Class { is_borrowed, inner }
+        AbiType::Class { class, borrowed }
     }
 }

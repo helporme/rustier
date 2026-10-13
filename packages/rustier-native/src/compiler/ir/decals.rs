@@ -13,8 +13,7 @@ use crate::compiler::{
         interface::{
             InterClass, InterClassDiscriminated, InterClassDiscriminatedVariant, InterClassPlain,
             InterClassTemplate, InterField, InterFunctionAssociated, InterFunctionFree,
-            InterGeneric, InterMember, InterModule, InterParam, InterParentModule, InterType,
-            Interface,
+            InterGeneric, InterMember, InterModule, InterParam, InterParentModule, Interface,
         },
         rust::{Callable, FieldName, Span},
     },
@@ -447,7 +446,7 @@ impl<'db> DecalParam<'db> {
 
     pub fn type_(self, db: &'db dyn Db) -> DecalType<'db> {
         self.interface(db)
-            .type_(db)
+            .src_type(db)
             .lower_decals(db)
             .try_as_coerced(db)
     }
@@ -600,15 +599,9 @@ impl<'db> DecalClassPlain<'db> {
         self.methods(db).find(|method| {
             method.name(db) == "new"
                 && method.is_static(db)
-                && matches!(
-                    method.interface(db).ret_type(db),
-                    Some(InterType::Class {
-                        is_borrowed: false,
-                        inner,
-                    }) if inner
-                        .src_type(db)
-                        .same_type_as(db, self.interface(db).src(db).into_type(db))
-                )
+                && method.interface(db).ret_type(db).is_some_and(|ret| {
+                    ret.same_type_as(db, self.interface(db).src(db).into_type(db))
+                })
         })
     }
 

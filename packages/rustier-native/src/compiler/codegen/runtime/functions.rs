@@ -91,8 +91,8 @@ where
         };
         let params = function.params(db);
         let casts = params.iter().enumerate().map(move |(i, param)| Cast {
-            from: param.type_,
-            to: param.src_type,
+            from: self.args.get(i).type_(),
+            to: *param,
             in_expr: self.args.get(i).expr(),
             out_var_name: frag!(_{i}),
         });
@@ -115,6 +115,7 @@ where
             db,
             source_type,
             function
+                .abi(db)
                 .ret_type(db)
                 .expect("coerce methods return a class"),
             value,
@@ -184,8 +185,8 @@ where
             .copied()
             .enumerate()
             .map(move |(i, param)| Cast {
-                from: param.type_,
-                to: param.src_type,
+                from: args.get(i).type_(),
+                to: param,
                 in_expr: args.get(i).expr(),
                 out_var_name: frag!(_{i}),
             });
@@ -201,9 +202,12 @@ where
             frag!({ src_fn.path(self.db).fqn(self.db) }({ params }))
         };
 
-        fragment(
-            move |p| match (src_fn.ret_type(self.db), self.function.ret_type(self.db)) {
-                (Some(src_ret_type), Some(interface_ret_type)) => {
+        fragment(move |p| {
+            match (
+                src_fn.ret_type(self.db),
+                self.function.abi(self.db).ret_type(self.db),
+            ) {
+                (Some(src_ret_type), Some(abi_ret_type)) => {
                     let result_expr = self.cast_compiler.render_many(
                         self.db,
                         cast_param_to_source_types,
@@ -213,7 +217,7 @@ where
                     let casted_result_expr = self.cast_compiler.render_expr(
                         self.db,
                         src_ret_type,
-                        interface_ret_type,
+                        abi_ret_type,
                         result_expr,
                     );
 
@@ -232,8 +236,8 @@ where
                     )
                     .apply(p);
                 }
-            },
-        )
+            }
+        })
     }
 
     fn render_fn_getter_body(
@@ -245,9 +249,9 @@ where
         let class_param = self.function.params(self.db)[0];
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
             self.db,
-            class_param.type_,
+            args.get(0).type_(),
             TetheringStructType {
-                source_type: class_param.src_type.deborrow(self.db),
+                source_type: class_param.deborrow(self.db),
             },
             args.get(0).expr(),
         );
@@ -257,7 +261,11 @@ where
             field.declaration(self.db).mangled_name(self.db),
         );
 
-        let ret_type = getter.field(self.db).type_(self.db);
+        let ret_type = self
+            .function
+            .abi(self.db)
+            .ret_type(self.db)
+            .expect("getters return the field value");
 
         let output = fragment(move |p| {
             if ret_type.uses_tethering() {
@@ -293,12 +301,12 @@ where
     ) -> impl FragmentOnce {
         let field = setter.field(self.db).src(self.db);
         let params = self.function.params(self.db);
-        let (class_param, value_param) = (params[0], params[1]);
+        let class_param = params[0];
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
             self.db,
-            class_param.type_,
+            args.get(0).type_(),
             TetheringStructType {
-                source_type: class_param.src_type.deborrow(self.db),
+                source_type: class_param.deborrow(self.db),
             },
             args.get(0).expr(),
         );
@@ -312,7 +320,7 @@ where
         let set_tethered_field_stmt = self.cast_compiler.render_stmt(
             self.db,
             Cast {
-                from: value_param.type_,
+                from: args.get(1).type_(),
                 to: field._type(self.db),
                 in_expr: args.get(1).expr(),
                 out_var_name: frag!(value),
@@ -334,7 +342,7 @@ where
         let src = discriminator.class(self.db).src(self.db);
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
             self.db,
-            self.function.params(self.db)[0].type_,
+            args.get(0).type_(),
             TetheringStructType {
                 source_type: src.into_type(self.db),
             },

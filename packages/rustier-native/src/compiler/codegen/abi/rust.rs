@@ -6,7 +6,7 @@ use crate::compiler::{
         fragment::{FragmentOnce, comma_list, doubles, frag, fragment},
     },
     db::Db,
-    ir::abi::{AbiClass, AbiFunction, AbiParam, AbiType},
+    ir::abi::{AbiClass, AbiFunction, AbiType},
 };
 
 impl AbiTransport {
@@ -100,9 +100,9 @@ impl<'db> AbiFunction<'db> {
                 })
             };
 
-            let params = comma_list(self.params(db).iter().enumerate().map(|(i, param)| {
+            let params = comma_list(self.params(db).iter().enumerate().map(|(i, type_)| {
                 frag!(
-                    _{i}: ~{param.type_(db).render_rust(db)}
+                    _{i}: ~{type_.render_rust(db)}
                 )
             }));
 
@@ -129,14 +129,14 @@ impl<'db> AbiFunction<'db> {
 /// The logical arguments of an exported wrapper function.
 #[derive(Clone, Copy)]
 pub struct AbiArgs<'db> {
-    params: &'db [AbiParam<'db>],
+    params: &'db [AbiType<'db>],
 }
 
 impl<'db> AbiArgs<'db> {
     pub fn get(self, idx: usize) -> AbiArg<'db> {
         AbiArg {
             idx,
-            param: self.params[idx],
+            type_: self.params[idx],
         }
     }
 }
@@ -145,13 +145,13 @@ impl<'db> AbiArgs<'db> {
 #[derive(Clone, Copy)]
 pub struct AbiArg<'db> {
     idx: usize,
-    param: AbiParam<'db>,
+    type_: AbiType<'db>,
 }
 
 impl<'db> AbiArg<'db> {
     /// The logical ABI type of this argument.
-    pub fn type_(self, db: &'db dyn Db) -> AbiType<'db> {
-        self.param.type_(db)
+    pub fn type_(self) -> AbiType<'db> {
+        self.type_
     }
 
     /// An expression evaluating to the value of this argument.

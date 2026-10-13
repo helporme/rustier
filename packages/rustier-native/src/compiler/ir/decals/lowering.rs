@@ -2,7 +2,8 @@ use crate::compiler::{
     db::Db,
     ir::{
         decals::{DecalParam, DecalType},
-        interface::{InterFunction, InterType},
+        interface::InterFunction,
+        rust::{Type, TypeKind},
     },
 };
 
@@ -57,16 +58,31 @@ const RESERVED_PARAM_NAMES: &[&str] = &[
     "yield",
 ];
 
-impl<'db> InterType<'db> {
+impl<'db> Type<'db> {
     pub(super) fn lower_decals(self, db: &'db dyn Db) -> DecalType<'db> {
-        match self {
-            InterType::f64 => DecalType::number,
-            InterType::String => DecalType::string,
-            InterType::bool => DecalType::boolean,
-            InterType::Class { inner, .. } => DecalType::Class {
-                inner: inner.decals(db),
+        if let Some(class) = self.interface_class(db) {
+            return DecalType::Class {
+                inner: class.decals(db),
                 coerced: false,
-            },
+            };
+        }
+
+        match self.kind(db) {
+            TypeKind::bool => DecalType::boolean,
+            TypeKind::char
+            | TypeKind::i8
+            | TypeKind::u8
+            | TypeKind::i16
+            | TypeKind::u16
+            | TypeKind::i32
+            | TypeKind::u32
+            | TypeKind::f32
+            | TypeKind::f64 => DecalType::number,
+            TypeKind::Str | TypeKind::String => DecalType::string,
+            TypeKind::Borrowed(borrowed) => borrowed.inner(db).lower_decals(db),
+            TypeKind::Struct(_) | TypeKind::Enum(_) | TypeKind::Generic(_) => {
+                unreachable!("unsupported Rust types do not enter the declarations")
+            }
         }
     }
 }

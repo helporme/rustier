@@ -13,8 +13,7 @@ use crate::compiler::{
     ir::{
         interface::{
             InterClass, InterClassDiscriminated, InterClassDiscriminatedVariant, InterClassPlain,
-            InterField, InterFunctionAssociated, InterFunctionFree, InterParam, InterType,
-            Interface,
+            InterField, InterFunctionAssociated, InterFunctionFree, Interface,
         },
         rust::{Type, TypeKind},
     },
@@ -138,69 +137,63 @@ impl<'db> RuntimeFunction<'db> {
         }
     }
 
+    /// The exact Rust types of the parameters of this function.
     #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> Vec<RuntimeParam<'db>> {
+    pub fn params(self, db: &'db dyn Db) -> Vec<Type<'db>> {
         match self {
-            Self::Free(function) => function
-                .params(db)
-                .iter()
-                .map(|p| p.into_runtime(db))
-                .collect(),
-            Self::Associated(function) => function
-                .params(db)
-                .iter()
-                .map(|p| p.into_runtime(db))
-                .collect(),
-            Self::Getter(getter) => {
-                let field = getter.field(db).src(db);
-
-                vec![RuntimeParam::new(db, field.target(db))]
+            Self::Free(function) => function.params(db).iter().map(|p| p.src_type(db)).collect(),
+            Self::Associated(function) => {
+                function.params(db).iter().map(|p| p.src_type(db)).collect()
             }
+            Self::Getter(getter) => vec![getter.field(db).src(db).target(db)],
             Self::Setter(setter) => {
                 let field = setter.field(db).src(db);
 
-                vec![
-                    RuntimeParam::new(db, field.target(db)),
-                    RuntimeParam::new(db, field._type(db)),
-                ]
+                vec![field.target(db), field._type(db)]
             }
             Self::Discriminator(discriminator) => {
-                let src_type = discriminator.class(db).src(db).into_type(db);
-
-                vec![RuntimeParam::new(db, src_type)]
+                vec![discriminator.class(db).src(db).into_type(db)]
             }
             Self::PlainCoerce(coerce) => coerce
                 .class(db)
                 .src(db)
                 .fields(db)
-                .map(|field| RuntimeParam::new(db, field._type(db)))
+                .map(|field| field._type(db))
                 .collect(),
             Self::DiscriminatedCoerce(coerce) => coerce
                 .variant(db)
                 .src(db)
                 .fields(db)
-                .map(|field| RuntimeParam::new(db, field._type(db)))
+                .map(|field| field._type(db))
                 .collect(),
         }
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<InterType<'db>> {
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<RuntimeType<'db>> {
         match self {
-            Self::Free(function) => function.ret_type(db),
-            Self::Associated(function) => function.ret_type(db),
-            Self::Getter(getter) => Some(getter.field(db).type_(db)),
+            Self::Free(function) => function.ret_type(db).map(RuntimeType::Source),
+            Self::Associated(function) => function.ret_type(db).map(RuntimeType::Source),
+            Self::Getter(getter) => Some(RuntimeType::Source(getter.field(db).type_(db))),
             Self::Setter(_) => None,
-            Self::Discriminator(_) => Some(InterType::f64),
-            Self::PlainCoerce(coerce) => Some(InterType::Class {
-                is_borrowed: false,
-                inner: coerce.class(db).into(),
-            }),
-            Self::DiscriminatedCoerce(coerce) => Some(InterType::Class {
-                is_borrowed: false,
-                inner: coerce.variant(db).class(db).into(),
-            }),
+            Self::Discriminator(_) => Some(RuntimeType::u32),
+            Self::PlainCoerce(coerce) => {
+                Some(RuntimeType::Source(coerce.class(db).src(db).into_type(db)))
+            }
+            Self::DiscriminatedCoerce(coerce) => Some(RuntimeType::Source(
+                coerce.variant(db).class(db).src(db).into_type(db),
+            )),
         }
     }
+}
+
+/// A type used by the generated Rust runtime.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+#[allow(non_camel_case_types)]
+pub enum RuntimeType<'db> {
+    /// A value of an exact Rust type.
+    Source(Type<'db>),
+    /// A "synthetic" u32 type, without the hir provenance.
+    u32,
 }
 
 impl<'db> From<InterFunctionFree<'db>> for RuntimeFunction<'db> {
@@ -228,31 +221,6 @@ impl<'db> InterFunctionAssociated<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn symbol(self, db: &'db dyn Db) -> String {
         format!("__fn__associated__{}", self.src(db).path(db).mangled(db))
-    }
-}
-
-/// A parameter of a [`RuntimeFunction`].
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub struct RuntimeParam<'db> {
-    pub src_type: Type<'db>,
-    pub type_: InterType<'db>,
-}
-
-impl<'db> RuntimeParam<'db> {
-    fn new(db: &'db dyn Db, src_type: Type<'db>) -> Self {
-        Self {
-            src_type,
-            type_: src_type.interface_in(db),
-        }
-    }
-}
-
-impl<'db> InterParam<'db> {
-    fn into_runtime(self, db: &'db dyn Db) -> RuntimeParam<'db> {
-        RuntimeParam {
-            src_type: self.src_type(db),
-            type_: self.type_(db),
-        }
     }
 }
 

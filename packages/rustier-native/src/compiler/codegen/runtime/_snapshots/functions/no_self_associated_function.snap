@@ -28,11 +28,11 @@ pub fn __fn__associated__10_test_crate__4_Test__6_create(
                     "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) })",
                 )
                 .to(
-                    "Interface(Class { is_borrowed: false, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) } }) })",
+                    "Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) } }) }, borrowed: false })",
                 )
                 .an({
                     let _0 = cast
-                        .from("Interface(f64)")
+                        .from("Abi(F64)")
                         .to(
                             "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
                         )
@@ -58,11 +58,11 @@ pub fn __fn__associated__10_test_crate__4_Test__6_create(
                     "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) })",
                 )
                 .to(
-                    "Interface(Class { is_borrowed: false, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) } }) })",
+                    "Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) } }) }, borrowed: false })",
                 )
                 .an({
                     let _0 = cast
-                        .from("Interface(f64)")
+                        .from("Abi(F64)")
                         .to(
                             "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
                         )

@@ -21,13 +21,13 @@ pub fn __fn__setter__10_test_crate__4_Test__field(
     let result = (|| -> rustier_rt::CallResult<()> {
         {
             let value = cast
-                .from("Interface(f64)")
+                .from("Abi(F64)")
                 .to(
                     "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) })",
                 )
                 .an(_1);
             cast.from(
-                    "Interface(Class { is_borrowed: true, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) })",
+                    "Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) }, borrowed: true })",
                 )
                 .to(
                     "Tethered(TetheringStructType { source_type: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } })",
@@ -51,13 +51,13 @@ pub fn __fn__setter__10_test_crate__4_Test__field(
     let result = (|| -> rustier_rt::CallResult<()> {
         {
             let value = cast
-                .from("Interface(f64)")
+                .from("Abi(F64)")
                 .to(
                     "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) })",
                 )
                 .an(_1);
             cast.from(
-                    "Interface(Class { is_borrowed: true, inner: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) })",
+                    "Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) }, borrowed: true })",
                 )
                 .to(
                     "Tethered(TetheringStructType { source_type: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } })",

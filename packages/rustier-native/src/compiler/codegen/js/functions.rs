@@ -225,7 +225,7 @@ where
                 .enumerate()
                 .map(|(i, (param, abi_param))| Cast {
                     from: param.type_(db),
-                    to: abi_param.type_(db),
+                    to: *abi_param,
                     in_expr: param_name(i),
                     out_var_name: casted_param_name(i),
                 });

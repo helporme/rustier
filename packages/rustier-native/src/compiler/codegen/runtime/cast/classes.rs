@@ -4,7 +4,7 @@ use crate::compiler::{
         runtime::tethering::TetheringStructType,
     },
     db::Db,
-    ir::{interface::InterType, rust::Type},
+    ir::{abi::AbiType, rust::Type},
 };
 
 use super::{
@@ -13,7 +13,7 @@ use super::{
 };
 
 pub fn render_class_to_tethered<'db, InExpr, OutVar, Continue>(
-    class: InterType<'db>,
+    class: AbiType<'db>,
     in_expr: InExpr,
     output: CastOutput<OutVar, Continue>,
 ) -> impl FragmentOnce + 'db
@@ -27,18 +27,18 @@ where
 }
 
 fn render_class_to_tethered_expr<'db, InExpr>(
-    class: InterType<'db>,
+    class: AbiType<'db>,
     in_expr: InExpr,
 ) -> impl FragmentOnce + 'db
 where
     InExpr: FragmentOnce + 'db,
 {
-    let InterType::Class { is_borrowed, .. } = class else {
+    let AbiType::Class { borrowed, .. } = class else {
         unreachable!("class-to-tethered cast requires a class source");
     };
 
     fragment(move |printer| {
-        if is_borrowed {
+        if borrowed {
             frag!({ in_expr }.handle.clone_rc()).apply(printer);
         } else {
             frag!({ in_expr }.handle.into_rc()).apply(printer);
@@ -48,7 +48,7 @@ where
 
 pub fn render_tethered_to_class<'db, InExpr, OutVar, Continue>(
     db: &'db dyn Db,
-    class: InterType<'db>,
+    class: AbiType<'db>,
     in_expr: InExpr,
     output: CastOutput<OutVar, Continue>,
 ) -> impl FragmentOnce + 'db
@@ -57,19 +57,19 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    let InterType::Class { inner, .. } = class else {
+    let AbiType::Class { class: inner, .. } = class else {
         unreachable!("tethered-to-class cast requires a class target");
     };
 
     adapt_to_cast_output(
-        frag!({inner.runtime(db).symbol(db)}~{{ handle: ({in_expr}).into() }}),
+        frag!({inner.symbol(db)}~{{ handle: ({in_expr}).into() }}),
         output,
     )
 }
 
 pub fn render_class_to_type<'db, InExpr, OutVar, Continue>(
     db: &'db dyn Db,
-    class: InterType<'db>,
+    class: AbiType<'db>,
     target: Type<'db>,
     in_expr: InExpr,
     output: CastOutput<OutVar, Continue>,
@@ -79,11 +79,11 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    let InterType::Class { inner, .. } = class else {
+    let AbiType::Class { class: inner, .. } = class else {
         unreachable!("class-to-type cast requires a class source");
     };
     let tethered = TetheringStructType {
-        source_type: inner.src_type(db),
+        source_type: inner.interface(db).src_type(db),
     };
     let tethered_expr = render_class_to_tethered_expr(class, in_expr);
 
@@ -93,7 +93,7 @@ where
 pub fn render_type_to_class<'db, InExpr, OutVar, Continue>(
     db: &'db dyn Db,
     source: Type<'db>,
-    class: InterType<'db>,
+    class: AbiType<'db>,
     in_expr: InExpr,
     output: CastOutput<OutVar, Continue>,
 ) -> impl FragmentOnce + 'db
@@ -102,11 +102,11 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    let InterType::Class { inner, .. } = class else {
+    let AbiType::Class { class: inner, .. } = class else {
         unreachable!("type-to-class cast requires a class target");
     };
     let tethered = TetheringStructType {
-        source_type: inner.src_type(db),
+        source_type: inner.interface(db).src_type(db),
     };
     let tethered_expr = render_type_to_tethered_expr(db, source, tethered, in_expr);
 

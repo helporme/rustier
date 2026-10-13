@@ -22,7 +22,7 @@ pub fn __fn__disc__10_test_crate__4_Test(
     let result = (|| -> rustier_rt::CallResult<f64> {
         let result = cast
             .from(
-                "Interface(Class { is_borrowed: true, inner: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
+                "Abi(Class { class: AbiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) }, borrowed: true })",
             )
             .to(
                 "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } })",
@@ -52,7 +52,7 @@ pub fn __fn__disc__10_test_crate__4_Test(
     let result = (|| -> rustier_rt::CallResult<f64> {
         let result = cast
             .from(
-                "Interface(Class { is_borrowed: true, inner: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
+                "Abi(Class { class: AbiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) }, borrowed: true })",
             )
             .to(
                 "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } })",

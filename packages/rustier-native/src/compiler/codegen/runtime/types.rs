@@ -2,14 +2,14 @@ use crate::compiler::{
     codegen::fragment::{FragmentOnce, Printer, fragment},
     db::Db,
     ir::{
-        interface::InterType,
+        abi::AbiType,
         rust::{FieldName, Type, TypeKind},
     },
 };
 
-impl<'db> InterType<'db> {
+impl<'db> AbiType<'db> {
     pub(super) fn uses_tethering(self) -> bool {
-        matches!(self, InterType::Class { .. })
+        matches!(self, AbiType::Class { .. })
     }
 }
 
