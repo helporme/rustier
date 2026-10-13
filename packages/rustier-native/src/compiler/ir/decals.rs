@@ -10,10 +10,10 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     ir::{
-        interface::{
-            InterClass, InterClassDiscriminated, InterClassDiscriminatedVariant, InterClassPlain,
-            InterClassTemplate, InterField, InterFunctionAssociated, InterFunctionFree,
-            InterGeneric, InterMember, InterModule, InterParam, InterParentModule, Interface,
+        facade::{
+            Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeClassTemplate,
+            FacadeFieldPlain, FacadeFreeFunction, FacadeGeneric, FacadeMember, FacadeMethod,
+            FacadeModule, FacadeParam, FacadeParentModule, FacadeVariant,
         },
         rust::{Callable, FieldName, Span},
     },
@@ -23,7 +23,7 @@ use crate::compiler::{
 /// TypeScript declarations for the reachable interface API.
 #[salsa::interned(debug)]
 pub struct Decals<'db> {
-    interface: Interface<'db>,
+    interface: Facade<'db>,
 }
 
 #[salsa::tracked]
@@ -75,7 +75,7 @@ pub struct DecalImport<'db> {
 /// entity.
 #[salsa::interned(debug)]
 pub struct DecalParentModule<'db> {
-    interface: InterParentModule<'db>,
+    interface: FacadeParentModule<'db>,
 }
 
 #[salsa::tracked]
@@ -85,7 +85,7 @@ impl<'db> DecalParentModule<'db> {
     }
 
     pub fn virtual_path(self, db: &'db dyn Db) -> &'db String {
-        self.interface(db).facade(db).virtual_path(db)
+        self.interface(db).virtual_path(db)
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
@@ -104,13 +104,13 @@ impl<'db> DecalParentModule<'db> {
 /// A reachable TypeScript declaration module.
 #[salsa::interned(debug)]
 pub struct DecalModule<'db> {
-    interface: InterModule<'db>,
+    interface: FacadeModule<'db>,
 }
 
 #[salsa::tracked]
 impl<'db> DecalModule<'db> {
     pub fn virtual_path(self, db: &'db dyn Db) -> &'db String {
-        self.interface(db).facade(db).virtual_path(db)
+        self.interface(db).virtual_path(db)
     }
 
     pub fn as_parent(self, db: &'db dyn Db) -> DecalParentModule<'db> {
@@ -129,13 +129,15 @@ impl<'db> DecalModule<'db> {
     pub fn members(self, db: &'db dyn Db) -> impl Iterator<Item = DecalMember<'db>> + 'db {
         self.interface(db)
             .members(db)
+            .iter()
+            .copied()
             .map(move |member| match member {
-                InterMember::Class(class) => DecalMember::Class(class.decals(db)),
-                InterMember::Template(template) => {
+                FacadeMember::Class(class) => DecalMember::Class(class.decals(db)),
+                FacadeMember::ClassTemplate(template) => {
                     DecalMember::ClassTemplate(DecalClassTemplate::new(db, template))
                 }
-                InterMember::Function(function) => DecalMember::Function(function.decals(db)),
-                InterMember::Module(module) => DecalMember::Module(module.decals(db)),
+                FacadeMember::Function(function) => DecalMember::Function(function.decals(db)),
+                FacadeMember::Module(module) => DecalMember::Module(module.decals(db)),
             })
     }
 
@@ -196,7 +198,7 @@ pub enum DecalMember<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalClassTemplate<'db> {
-    interface: InterClassTemplate<'db>,
+    interface: FacadeClassTemplate<'db>,
 }
 
 #[salsa::tracked]
@@ -206,20 +208,20 @@ impl<'db> DecalClassTemplate<'db> {
     }
 
     pub fn is_discriminated(self, db: &'db dyn Db) -> bool {
-        matches!(self.interface(db), InterClassTemplate::Discriminated(_))
+        matches!(self.interface(db), FacadeClassTemplate::Discriminated(_))
     }
 
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
         match self.interface(db) {
-            InterClassTemplate::Plain(template) => template.src(db).docs(db),
-            InterClassTemplate::Discriminated(template) => template.src(db).docs(db),
+            FacadeClassTemplate::Plain(template) => template.src(db).docs(db),
+            FacadeClassTemplate::Discriminated(template) => template.src(db).docs(db),
         }
     }
 
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
         match self.interface(db) {
-            InterClassTemplate::Plain(template) => template.src(db).span(db),
-            InterClassTemplate::Discriminated(template) => template.src(db).span(db),
+            FacadeClassTemplate::Plain(template) => template.src(db).span(db),
+            FacadeClassTemplate::Discriminated(template) => template.src(db).span(db),
         }
     }
 
@@ -242,8 +244,8 @@ impl<'db> DecalClassTemplate<'db> {
                 let generics = generics
                     .iter()
                     .map(|generic| match generic {
-                        InterGeneric::Symbol(symbol) => DecalGeneric::Symbol(symbol.clone()),
-                        InterGeneric::Class(class) => DecalGeneric::Class(class.decals(db)),
+                        FacadeGeneric::Symbol(symbol) => DecalGeneric::Symbol(symbol.clone()),
+                        FacadeGeneric::Class(class) => DecalGeneric::Class(class.decals(db)),
                     })
                     .collect();
 
@@ -340,7 +342,7 @@ impl<'db> DecalFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalFreeFunction<'db> {
-    interface: InterFunctionFree<'db>,
+    interface: FacadeFreeFunction<'db>,
 }
 
 #[salsa::tracked]
@@ -364,13 +366,12 @@ impl<'db> DecalFreeFunction<'db> {
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = DecalParam<'db>> + 'db {
         self.interface(db)
             .params(db)
-            .iter()
-            .copied()
             .map(|param| DecalParam::new(db, param))
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<DecalType<'db>> {
         self.interface(db)
+            .src(db)
             .ret_type(db)
             .map(|type_| type_.lower_decals(db))
     }
@@ -386,7 +387,7 @@ impl<'db> DecalFreeFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalMethod<'db> {
-    interface: InterFunctionAssociated<'db>,
+    interface: FacadeMethod<'db>,
 }
 
 #[salsa::tracked]
@@ -413,14 +414,13 @@ impl<'db> DecalMethod<'db> {
 
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = DecalParam<'db>> + 'db {
         self.interface(db)
-            .params_without_self(db)
-            .iter()
-            .copied()
+            .params(db)
             .map(|param| DecalParam::new(db, param))
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<DecalType<'db>> {
         self.interface(db)
+            .src(db)
             .ret_type(db)
             .map(|type_| type_.lower_decals(db))
     }
@@ -436,7 +436,7 @@ impl<'db> DecalMethod<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalParam<'db> {
-    interface: InterParam<'db>,
+    interface: FacadeParam<'db>,
 }
 
 impl<'db> DecalParam<'db> {
@@ -489,18 +489,18 @@ impl<'db> DecalClass<'db> {
         let (segment, generics) = match self {
             DecalClass::Plain(class) => (
                 class.interface(db).src(db).segment(db),
-                InterClass::Plain(class.interface(db)).generics(db),
+                FacadeClass::Plain(class.interface(db)).generics(db),
             ),
             DecalClass::Discriminated(class) => (
                 class.interface(db).src(db).segment(db),
-                InterClass::Discriminated(class.interface(db)).generics(db),
+                FacadeClass::Discriminated(class.interface(db)).generics(db),
             ),
         };
         let args = self.is_template_instance(db).then(|| {
             generics
                 .map(|generic| match generic {
-                    InterGeneric::Class(class) => DecalGeneric::Class(class.decals(db)),
-                    InterGeneric::Symbol(symbol) => DecalGeneric::Symbol(symbol),
+                    FacadeGeneric::Class(class) => DecalGeneric::Class(class.decals(db)),
+                    FacadeGeneric::Symbol(symbol) => DecalGeneric::Symbol(symbol),
                 })
                 .collect()
         });
@@ -553,7 +553,7 @@ impl<'db> DecalClass<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalClassPlain<'db> {
-    interface: InterClassPlain<'db>,
+    interface: FacadeClassPlain<'db>,
 }
 
 impl<'db> DecalClassPlain<'db> {
@@ -584,30 +584,23 @@ impl<'db> DecalClassPlain<'db> {
     pub fn methods(self, db: &'db dyn Db) -> impl Iterator<Item = DecalMethod<'db>> + 'db {
         self.interface(db)
             .methods(db)
-            .iter()
             .map(|function| function.decals(db))
     }
 
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = DecalField<'db>> + 'db {
         self.interface(db)
             .fields(db)
-            .iter()
-            .map(|field| DecalField::new(db, *field))
+            .map(|field| DecalField::new(db, field))
     }
 
     pub fn constructor(self, db: &'db dyn Db) -> Option<DecalMethod<'db>> {
-        self.methods(db).find(|method| {
-            method.name(db) == "new"
-                && method.is_static(db)
-                && method.interface(db).ret_type(db).is_some_and(|ret| {
-                    ret.same_type_as(db, self.interface(db).src(db).into_type(db))
-                })
-        })
+        self.interface(db)
+            .constructor(db)
+            .map(|method| method.decals(db))
     }
 
     pub fn coerce(self, db: &'db dyn Db) -> Option<DecalCoerceFunction<'db>> {
         self.interface(db)
-            .facade(db)
             .coerce(db)
             .map(|_| DecalCoerceFunction::new(db, DecalClass::Plain(self)))
     }
@@ -622,7 +615,7 @@ impl<'db> DecalClassPlain<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalClassDiscriminated<'db> {
-    interface: InterClassDiscriminated<'db>,
+    interface: FacadeClassDiscriminated<'db>,
 }
 
 #[salsa::tracked]
@@ -654,7 +647,6 @@ impl<'db> DecalClassDiscriminated<'db> {
     pub fn methods(self, db: &'db dyn Db) -> impl Iterator<Item = DecalMethod<'db>> + 'db {
         self.interface(db)
             .methods(db)
-            .iter()
             .map(|function| function.decals(db))
     }
 
@@ -664,7 +656,7 @@ impl<'db> DecalClassDiscriminated<'db> {
         interface
             .variants(db)
             .iter()
-            .zip(interface.facade(db).discriminator(db).variant_names(db))
+            .zip(interface.discriminator(db).variant_names(db))
             .map(|(variant, name)| DecalVariant::new(db, *variant, name.clone()))
             .collect()
     }
@@ -675,7 +667,6 @@ impl<'db> DecalClassDiscriminated<'db> {
 
     pub fn coerce(self, db: &'db dyn Db) -> Option<DecalCoerceFunction<'db>> {
         self.interface(db)
-            .facade(db)
             .coerce(db)
             .map(|_| DecalCoerceFunction::new(db, DecalClass::Discriminated(self)))
     }
@@ -691,7 +682,7 @@ impl<'db> DecalClassDiscriminated<'db> {
 
 #[salsa::tracked(debug)]
 pub struct DecalVariant<'db> {
-    interface: InterClassDiscriminatedVariant<'db>,
+    interface: FacadeVariant<'db>,
     #[returns(ref)]
     #[tracked]
     pub name: String,
@@ -727,7 +718,7 @@ impl<'db> DecalVariant<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalField<'db> {
-    interface: InterField<'db>,
+    interface: FacadeFieldPlain<'db>,
 }
 
 impl<'db> DecalField<'db> {
@@ -748,7 +739,7 @@ impl<'db> DecalField<'db> {
     }
 
     pub fn get_type(self, db: &'db dyn Db) -> DecalType<'db> {
-        self.interface(db).type_(db).lower_decals(db)
+        self.interface(db).src_type(db).lower_decals(db)
     }
 
     pub fn set_type(self, db: &'db dyn Db) -> DecalType<'db> {
@@ -762,12 +753,12 @@ impl<'db> DecalField<'db> {
 
 #[salsa::interned(debug)]
 pub struct DecalDiscriminator<'db> {
-    src: InterClassDiscriminated<'db>,
+    src: FacadeClassDiscriminated<'db>,
 }
 
 impl<'db> DecalDiscriminator<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.src(db).facade(db).discriminator(db).name(db)
+        self.src(db).discriminator(db).name(db)
     }
 }
 
@@ -793,13 +784,11 @@ impl<'db> DecalCoerceFunction<'db> {
         match self.class(db) {
             DecalClass::Plain(c) => c
                 .interface(db)
-                .facade(db)
                 .coerce(db)
                 .expect("coerce must exist")
                 .name(db),
             DecalClass::Discriminated(c) => c
                 .interface(db)
-                .facade(db)
                 .coerce(db)
                 .expect("coerce must exist")
                 .name(db),

@@ -31,7 +31,7 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
                 .an({
                     let _0 = cast
                         .from(
-                            "Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) } }) }, borrowed: true })",
+                            "Abi(Class { class: AbiClass { facade: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) } }) }, borrowed: true })",
                         )
                         .to(
                             "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) })",
@@ -61,7 +61,7 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
                 .an({
                     let _0 = cast
                         .from(
-                            "Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) } }) }, borrowed: true })",
+                            "Abi(Class { class: AbiClass { facade: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) } }) }, borrowed: true })",
                         )
                         .to(
                             "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) })",

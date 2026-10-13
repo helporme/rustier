@@ -168,7 +168,7 @@ impl ProgramCompiler {
                     .expect("source crate should be lowered");
 
                 let interface =
-                    rust.interface_reachable_from(db, UsageGraph::new(db, vec![source.root(db)]));
+                    rust.facade_reachable_from(db, UsageGraph::new(db, vec![source.root(db)]));
 
                 if platform_index == 0 {
                     diagnostics.extend(interface.check(db).into_iter().cloned());

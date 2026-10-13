@@ -40,7 +40,7 @@ impl<'db> ClassFragment<'db> {
     }
 
     fn render_struct<'a>(&'a self) -> impl FragmentOnce + 'a {
-        let class = self.class.interface(self.db);
+        let class = self.class.facade(self.db);
         let tethering_type_name = class.tethering(self.db).tethering_struct_name(self.db);
 
         class.abi(self.db).render_rust_with_fields(
@@ -70,7 +70,7 @@ mod tests {
                     expression: |db, transport, printer| {
                         let db = &*db;
                         let root = Rust::get(db)
-                            .interface_complete(db)
+                            .facade_complete(db)
                             .crates(db)
                             .next()
                             .expect("test crate should be lowered")

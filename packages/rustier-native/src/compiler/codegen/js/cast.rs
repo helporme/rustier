@@ -6,17 +6,17 @@ mod primitives;
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, Printer, fragment},
     db::Db,
-    ir::{abi::AbiType, facade::FacadeType},
+    ir::{abi::AbiType, facade::js_type::FacadeJsType},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CastType<'db> {
-    Facade(FacadeType<'db>),
+    Facade(FacadeJsType<'db>),
     Abi(AbiType<'db>),
 }
 
-impl<'db> From<FacadeType<'db>> for CastType<'db> {
-    fn from(value: FacadeType<'db>) -> Self {
+impl<'db> From<FacadeJsType<'db>> for CastType<'db> {
+    fn from(value: FacadeJsType<'db>) -> Self {
         Self::Facade(value)
     }
 }
@@ -103,7 +103,7 @@ impl<'db> CastRenderer<'db> for Renderer {
 
             match (src, dst) {
                 // classes
-                (Facade(FacadeType::Class(source)), Abi(AbiType::Class { .. })) => {
+                (Facade(FacadeJsType::Class(source)), Abi(AbiType::Class { .. })) => {
                     classes::render_facade_class_to_abi(
                         db,
                         source,
@@ -113,7 +113,10 @@ impl<'db> CastRenderer<'db> for Renderer {
                     )
                     .apply(printer);
                 }
-                (Abi(AbiType::Class { class: source, .. }), Facade(FacadeType::Class(target))) => {
+                (
+                    Abi(AbiType::Class { class: source, .. }),
+                    Facade(FacadeJsType::Class(target)),
+                ) => {
                     classes::render_abi_class_to_facade(
                         db,
                         source,
@@ -125,27 +128,27 @@ impl<'db> CastRenderer<'db> for Renderer {
                     .apply(printer);
                 }
                 // boolean
-                (Facade(FacadeType::boolean), Abi(AbiType::Bool))
-                | (Abi(AbiType::Bool), Facade(FacadeType::boolean))
-                | (Facade(FacadeType::boolean), Facade(FacadeType::boolean))
+                (Facade(FacadeJsType::boolean), Abi(AbiType::Bool))
+                | (Abi(AbiType::Bool), Facade(FacadeJsType::boolean))
+                | (Facade(FacadeJsType::boolean), Facade(FacadeJsType::boolean))
                 | (Abi(AbiType::Bool), Abi(AbiType::Bool)) => {
                     primitives::render_bool_cast(in_expr, out_var_name, continue_with)
                         .apply(printer);
                 }
 
                 // string
-                (Facade(FacadeType::string), Abi(AbiType::String))
-                | (Abi(AbiType::String), Facade(FacadeType::string))
-                | (Facade(FacadeType::string), Facade(FacadeType::string))
+                (Facade(FacadeJsType::string), Abi(AbiType::String))
+                | (Abi(AbiType::String), Facade(FacadeJsType::string))
+                | (Facade(FacadeJsType::string), Facade(FacadeJsType::string))
                 | (Abi(AbiType::String), Abi(AbiType::String)) => {
                     primitives::render_string_cast(in_expr, out_var_name, continue_with)
                         .apply(printer);
                 }
 
                 // number
-                (Facade(FacadeType::number), Abi(AbiType::F64))
-                | (Abi(AbiType::F64), Facade(FacadeType::number))
-                | (Facade(FacadeType::number), Facade(FacadeType::number))
+                (Facade(FacadeJsType::number), Abi(AbiType::F64))
+                | (Abi(AbiType::F64), Facade(FacadeJsType::number))
+                | (Facade(FacadeJsType::number), Facade(FacadeJsType::number))
                 | (Abi(AbiType::F64), Abi(AbiType::F64)) => {
                     primitives::render_number_cast(in_expr, out_var_name, continue_with)
                         .apply(printer);
@@ -268,7 +271,7 @@ mod tests {
         db::Db,
         ir::{
             abi::AbiType,
-            facade::{FacadeClass, FacadeMember, FacadeType},
+            facade::{FacadeClass, FacadeMember, js_type::FacadeJsType},
             rust::Rust,
         },
     };
@@ -333,38 +336,38 @@ mod tests {
 
     cast_snapshot! {
         name: boolean_to_abi,
-        from: |_db| FacadeType::boolean,
+        from: |_db| FacadeJsType::boolean,
         to: |_db| AbiType::Bool,
     }
 
     cast_snapshot! {
         name: boolean_to_facade,
         from: |_db| AbiType::Bool,
-        to: |_db| FacadeType::boolean,
+        to: |_db| FacadeJsType::boolean,
     }
 
     cast_snapshot! {
         name: string_to_abi,
-        from: |_db| FacadeType::string,
+        from: |_db| FacadeJsType::string,
         to: |_db| AbiType::String,
     }
 
     cast_snapshot! {
         name: string_to_facade,
         from: |_db| AbiType::String,
-        to: |_db| FacadeType::string,
+        to: |_db| FacadeJsType::string,
     }
 
     cast_snapshot! {
         name: number_to_abi,
-        from: |_db| FacadeType::number,
+        from: |_db| FacadeJsType::number,
         to: |_db| AbiType::F64,
     }
 
     cast_snapshot! {
         name: number_to_facade,
         from: |_db| AbiType::F64,
-        to: |_db| FacadeType::number,
+        to: |_db| FacadeJsType::number,
     }
 
     cast_snapshot! {
@@ -373,7 +376,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| FacadeType::Class(test_facade_class(db)),
+        from: |db| FacadeJsType::Class(test_facade_class(db)),
         to: |db| AbiType::Class {
             class: test_facade_class(db).abi(db),
             borrowed: true,
@@ -390,13 +393,13 @@ mod tests {
             class: test_facade_class(db).abi(db),
             borrowed: false,
         },
-        to: |db| FacadeType::Class(test_facade_class(db)),
+        to: |db| FacadeJsType::Class(test_facade_class(db)),
     }
 
     cast_snapshot! {
         name: facade_identity,
-        from: |_db| FacadeType::number,
-        to: |_db| FacadeType::number,
+        from: |_db| FacadeJsType::number,
+        to: |_db| FacadeJsType::number,
     }
 
     cast_snapshot! {
@@ -407,15 +410,19 @@ mod tests {
 
     fn test_facade_class<'db>(db: &'db dyn Db) -> FacadeClass<'db> {
         let crate_ = Rust::get(db)
-            .interface_complete(db)
+            .facade_complete(db)
             .crates(db)
             .next()
             .expect("test crate should be lowered");
-        let root = crate_.root(db).facade(db);
-        let mut classes = root.members(db).filter_map(|member| match member {
-            FacadeMember::Class(class) => Some(class),
-            _ => None,
-        });
+        let root = crate_.root(db);
+        let mut classes = root
+            .members(db)
+            .iter()
+            .copied()
+            .filter_map(|member| match member {
+                FacadeMember::Class(class) => Some(class),
+                _ => None,
+            });
         let (Some(class), None) = (classes.next(), classes.next()) else {
             panic!("test crate root should contain exactly one facade class");
         };

@@ -28,7 +28,7 @@ impl<'a> ProjectTs<'a> {
     ///
     /// Doesn't do anything until executed.
     pub fn sync(self, db: &'a dyn Db) -> ProjectTsSync<'a> {
-        let decals = self.project.reachable_interface(db).decals(db);
+        let decals = self.project.reachable_facade(db).decals(db);
         let out_dir = self.project.out_dir(db);
 
         ProjectTsSync {

@@ -6,7 +6,7 @@ pub mod ext;
 use crate::compiler::{
     db::Db,
     ir::{
-        interface::{InterClass, Interface},
+        facade::{Facade, FacadeClass},
         runtime::{RuntimeFunction, RuntimeType},
         rust::{Type, TypeKind},
     },
@@ -15,19 +15,19 @@ use crate::compiler::{
 /// The ABI exports of a reachable interface API.
 #[salsa::interned(debug)]
 pub struct Abi<'db> {
-    interface: Interface<'db>,
+    facade: Facade<'db>,
 }
 
 #[salsa::tracked]
 impl<'db> Abi<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn symbols(self, db: &'db dyn Db) -> Vec<String> {
-        let runtime = self.interface(db).runtime(db);
+        let runtime = self.facade(db).runtime(db);
 
         let classes = runtime
             .classes(db)
             .iter()
-            .map(|class| class.interface(db).abi(db).symbol(db));
+            .map(|class| class.facade(db).abi(db).symbol(db));
         let functions = runtime
             .functions(db)
             .iter()
@@ -41,12 +41,12 @@ impl<'db> Abi<'db> {
 
 #[salsa::interned(debug)]
 pub struct AbiClass<'db> {
-    pub interface: InterClass<'db>,
+    pub facade: FacadeClass<'db>,
 }
 
 impl<'db> AbiClass<'db> {
     pub fn symbol(self, db: &'db dyn Db) -> &'db str {
-        self.interface(db).runtime(db).symbol(db)
+        self.facade(db).runtime(db).symbol(db)
     }
 }
 
@@ -96,7 +96,7 @@ pub enum AbiType<'db> {
 
 impl<'db> AbiType<'db> {
     fn new(db: &'db dyn Db, type_: Type<'db>, borrowed: bool) -> Self {
-        if let Some(class) = type_.interface_class(db) {
+        if let Some(class) = type_.facade_class(db) {
             return Self::Class {
                 class: class.abi(db),
                 borrowed,

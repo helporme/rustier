@@ -8,7 +8,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        interface::InterClass,
+        facade::FacadeClass,
         runtime::{
             RuntimeDiscriminatedCoerce, RuntimeDiscriminator, RuntimeFunction, RuntimeGetter,
             RuntimePlainCoerce, RuntimeSetter, tethering::RuntimeTetheredFieldKind,
@@ -322,7 +322,7 @@ where
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
             self.db,
             args.get(0).type_(),
-            InterClass::Discriminated(discriminator.class(self.db)).tethering(self.db),
+            FacadeClass::Discriminated(discriminator.class(self.db)).tethering(self.db),
             args.get(0).expr(),
         );
 
@@ -366,7 +366,7 @@ mod tests {
         predicate: impl Fn(RuntimeFunction<'db>) -> bool,
     ) -> RuntimeFunction<'db> {
         Rust::get(db)
-            .interface_complete(db)
+            .facade_complete(db)
             .runtime(db)
             .functions(db)
             .iter()

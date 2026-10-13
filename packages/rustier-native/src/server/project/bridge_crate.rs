@@ -86,7 +86,7 @@ impl<'a> BridgeCrate<'a> {
 
         let lib = self
             .project(db)
-            .reachable_interface(db)
+            .reachable_facade(db)
             .runtime(db)
             .render(db, self.transport())
             .clone();
@@ -143,12 +143,9 @@ impl BridgeCrateSync {
 
 impl<'db> Project<'db> {
     fn js_module(self, db: &'db dyn Db, path: &str) -> Option<FacadeModule<'db>> {
-        self.reachable_interface(db)
+        self.reachable_facade(db)
             .crates(db)
             .flat_map(|c| c.all_modules(db))
-            .find(|m| {
-                m.decals(db).virtual_path(db) == path || m.src(db).file_path(db).as_str() == path
-            })
-            .map(|m| m.facade(db))
+            .find(|m| m.virtual_path(db) == path || m.src(db).file_path(db).as_str() == path)
     }
 }

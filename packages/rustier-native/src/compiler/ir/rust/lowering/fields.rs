@@ -53,6 +53,7 @@ fn lower_qualified_field<'db>(
     target: Type<'db>,
 ) -> Option<FieldQualified<'db>> {
     let field = FieldQualified::new(db, Field::new(db, hir), target);
+
     validate_field(db, hir, TypeOrigin::QualifiedField(field))
         .map_err(|error| {
             if matches!(*error, FieldLowerError::Unsupported { .. }) {
@@ -61,7 +62,11 @@ fn lower_qualified_field<'db>(
         })
         .ok()
         .flatten()
-        .map(|_| field)
+        .map(|_| {
+            field.is_readonly(db);
+
+            field
+        })
 }
 
 #[salsa::tracked]
@@ -69,11 +74,48 @@ impl<'db> FieldQualified<'db> {
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_is_readonly(self, db: &'db dyn Db) -> bool {
         let type_ = Type::new(db, TypeOrigin::QualifiedField(self));
-        matches!(
-            type_.deborrow(db).kind(db),
-            TypeKind::Struct(_) | TypeKind::Enum(_)
-        ) && type_.is_clonable(db) != Some(true)
+        let value_type = type_.deborrow(db);
+
+        if !matches!(value_type.kind(db), TypeKind::Struct(_) | TypeKind::Enum(_)) {
+            return false;
+        }
+
+        if value_type.is_clonable(db) == Some(false) {
+            let source_span = self.declaration(db).span(db);
+
+            FieldReadonlyWarning {
+                field_name: self.declaration(db).name(db).to_string(),
+                field_type_fqn: value_type.display(db).to_owned(),
+                source_code: source_span
+                    .map(|span| span.src(db).into())
+                    .unwrap_or_default(),
+                span: source_span.map(|span| (span.offset, span.length).into()),
+            }
+            .accumulate(db);
+        }
+
+        type_.is_clonable(db) != Some(true)
     }
+}
+
+#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
+#[error(
+    "the field `{field_name}` is readonly in JS because \"{field_type_fqn}\" does not implement `Clone`"
+)]
+#[diagnostic(
+    code(rustier::readonly_field),
+    help(
+        "derive or implement `Clone` for \"{field_type_fqn}\" to make this field writable from JS"
+    ),
+    severity(Warning)
+)]
+struct FieldReadonlyWarning {
+    field_name: String,
+    field_type_fqn: String,
+    #[source_code]
+    source_code: DiagSource,
+    #[label]
+    span: Option<SourceSpan>,
 }
 
 #[salsa::tracked]

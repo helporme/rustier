@@ -2,7 +2,7 @@ use crate::compiler::{
     db::Db,
     ir::{
         decals::{DecalParam, DecalType},
-        interface::InterFunction,
+        facade::FacadeFunction,
         rust::{Type, TypeKind},
     },
 };
@@ -60,7 +60,7 @@ const RESERVED_PARAM_NAMES: &[&str] = &[
 
 impl<'db> Type<'db> {
     pub(super) fn lower_decals(self, db: &'db dyn Db) -> DecalType<'db> {
-        if let Some(class) = self.interface_class(db) {
+        if let Some(class) = self.facade_class(db) {
             return DecalType::Class {
                 inner: class.decals(db),
                 coerced: false,
@@ -93,8 +93,8 @@ impl<'db> DecalParam<'db> {
     pub(super) fn lower_name(self, db: &'db dyn Db) -> String {
         let interface = self.interface(db);
         let (function, param_idx) = match interface.parent(db) {
-            InterFunction::Free(function) => (function.src(db), interface.idx(db)),
-            InterFunction::Associated(function) => {
+            FacadeFunction::Free(function) => (function.src(db), interface.idx(db)),
+            FacadeFunction::Method(function) => {
                 let receiver_offset =
                     usize::from(function.src(db).declaration(db).receiver(db).is_some());
                 (function.src(db), interface.idx(db) - receiver_offset)

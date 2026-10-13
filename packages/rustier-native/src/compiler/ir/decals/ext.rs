@@ -5,61 +5,61 @@ use crate::compiler::{
             DecalClass, DecalClassDiscriminated, DecalClassPlain, DecalFreeFunction, DecalMethod,
             DecalModule, DecalParentModule, Decals,
         },
-        interface::{
-            InterClass, InterClassDiscriminated, InterClassPlain, InterFunctionAssociated,
-            InterFunctionFree, InterModule, InterParentModule, Interface,
+        facade::{
+            Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFreeFunction,
+            FacadeMethod, FacadeModule, FacadeParentModule,
         },
     },
 };
 
-impl<'db> Interface<'db> {
+impl<'db> Facade<'db> {
     pub fn decals(self, db: &'db dyn Db) -> Decals<'db> {
         Decals::new(db, self)
     }
 }
 
-impl<'db> InterParentModule<'db> {
+impl<'db> FacadeParentModule<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalParentModule<'db> {
         DecalParentModule::new(db, self)
     }
 }
 
-impl<'db> InterModule<'db> {
+impl<'db> FacadeModule<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalModule<'db> {
         DecalModule::new(db, self)
     }
 }
 
-impl<'db> InterClassPlain<'db> {
+impl<'db> FacadeClassPlain<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalClassPlain<'db> {
         DecalClassPlain::new(db, self)
     }
 }
 
-impl<'db> InterClassDiscriminated<'db> {
+impl<'db> FacadeClassDiscriminated<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalClassDiscriminated<'db> {
         DecalClassDiscriminated::new(db, self)
     }
 }
 
-impl<'db> InterClass<'db> {
+impl<'db> FacadeClass<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalClass<'db> {
         match self {
-            InterClass::Plain(plain) => DecalClass::Plain(plain.decals(db)),
-            InterClass::Discriminated(discriminated) => {
+            FacadeClass::Plain(plain) => DecalClass::Plain(plain.decals(db)),
+            FacadeClass::Discriminated(discriminated) => {
                 DecalClass::Discriminated(discriminated.decals(db))
             }
         }
     }
 }
 
-impl<'db> InterFunctionFree<'db> {
+impl<'db> FacadeFreeFunction<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalFreeFunction<'db> {
         DecalFreeFunction::new(db, self)
     }
 }
 
-impl<'db> InterFunctionAssociated<'db> {
+impl<'db> FacadeMethod<'db> {
     pub fn decals(self, db: &'db dyn Db) -> DecalMethod<'db> {
         DecalMethod::new(db, self)
     }

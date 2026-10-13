@@ -22,7 +22,7 @@ impl<'db> Runtime<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn render(self, db: &'db dyn Db, transport: AbiTransport) -> String {
         let alloc_import = self
-            .interface(db)
+            .facade(db)
             .usages(db)
             .types(db)
             .any(|type_| type_.is_from_alloc_crate(db))

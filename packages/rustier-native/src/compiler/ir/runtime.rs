@@ -12,9 +12,9 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     ir::{
-        interface::{
-            InterClass, InterClassDiscriminated, InterClassDiscriminatedVariant, InterClassPlain,
-            InterField, InterFunctionAssociated, InterFunctionFree, Interface,
+        facade::{
+            Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldPlain,
+            FacadeFreeFunction, FacadeMethod, FacadeVariant,
         },
         runtime::tethering::RuntimeTethering,
         rust::{Type, TypeKind},
@@ -24,7 +24,7 @@ use crate::compiler::{
 /// The runtime of a reachable interface API.
 #[salsa::interned(debug)]
 pub struct Runtime<'db> {
-    pub interface: Interface<'db>,
+    pub facade: Facade<'db>,
 }
 
 #[salsa::tracked]
@@ -32,7 +32,7 @@ impl<'db> Runtime<'db> {
     /// All classes exported by the runtime.
     #[salsa::tracked(returns(ref))]
     pub fn classes(self, db: &'db dyn Db) -> Vec<RuntimeClass<'db>> {
-        self.interface(db)
+        self.facade(db)
             .crates(db)
             .flat_map(|crate_| crate_.all_modules(db))
             .flat_map(|module| module.classes(db))
@@ -42,7 +42,7 @@ impl<'db> Runtime<'db> {
 
     #[salsa::tracked(returns(ref))]
     pub fn tetherings(self, db: &'db dyn Db) -> Vec<RuntimeTethering<'db>> {
-        self.interface(db)
+        self.facade(db)
             .crates(db)
             .flat_map(|crate_| crate_.all_modules(db))
             .flat_map(|module| module.classes(db))
@@ -54,7 +54,7 @@ impl<'db> Runtime<'db> {
     /// accessors and other synthetic functions.
     #[salsa::tracked(returns(ref))]
     pub fn functions(self, db: &'db dyn Db) -> Vec<RuntimeFunction<'db>> {
-        self.interface(db)
+        self.facade(db)
             .crates(db)
             .flat_map(|crate_| crate_.all_modules(db))
             .flat_map(|module| {
@@ -71,7 +71,7 @@ impl<'db> Runtime<'db> {
 /// A wrapper class exported by the runtime for an interface class.
 #[salsa::interned(debug)]
 pub struct RuntimeClass<'db> {
-    pub interface: InterClass<'db>,
+    pub facade: FacadeClass<'db>,
 }
 
 #[salsa::tracked]
@@ -79,9 +79,9 @@ impl<'db> RuntimeClass<'db> {
     /// The mangled unique symbol name of this class.
     #[salsa::tracked(returns(ref))]
     pub fn symbol(self, db: &'db dyn Db) -> String {
-        match self.interface(db) {
-            InterClass::Plain(class) => format!("__plain__{}", class.src(db).path(db).mangled(db)),
-            InterClass::Discriminated(class) => {
+        match self.facade(db) {
+            FacadeClass::Plain(class) => format!("__plain__{}", class.src(db).path(db).mangled(db)),
+            FacadeClass::Discriminated(class) => {
                 format!("__discr__{}", class.src(db).path(db).mangled(db))
             }
         }
@@ -89,25 +89,28 @@ impl<'db> RuntimeClass<'db> {
 
     // FIXME: remove
     fn functions(self, db: &'db dyn Db) -> impl Iterator<Item = RuntimeFunction<'db>> + 'db {
-        let class = self.interface(db);
+        let class = self.facade(db);
 
-        let methods = class.methods(db).iter().copied().map(RuntimeFunction::from);
-        let getters = class.fields(db).iter().map(|f| f.getter(db).into());
+        let methods = class.methods(db).map(RuntimeFunction::from);
+        let getters = class.source_fields(db).iter().map(|f| f.getter(db).into());
         let setters = class
-            .fields(db)
+            .source_fields(db)
             .iter()
             .filter_map(|f| f.setter(db).map(RuntimeFunction::from));
 
         let synthetic = match class {
-            InterClass::Plain(class) => {
-                Either::Left(class.coerce(db).map(RuntimeFunction::from).into_iter())
-            }
-            InterClass::Discriminated(class) => Either::Right(
-                std::iter::once(class.discriminator(db).into()).chain(
+            FacadeClass::Plain(class) => Either::Left(
+                class
+                    .runtime_coerce(db)
+                    .map(RuntimeFunction::from)
+                    .into_iter(),
+            ),
+            FacadeClass::Discriminated(class) => Either::Right(
+                std::iter::once(class.runtime_discriminator(db).into()).chain(
                     class
                         .variants(db)
                         .iter()
-                        .filter_map(|v| v.coerce(db).map(RuntimeFunction::from)),
+                        .filter_map(|v| v.runtime_coerce(db).map(RuntimeFunction::from)),
                 ),
             ),
         };
@@ -119,9 +122,9 @@ impl<'db> RuntimeClass<'db> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
 pub enum RuntimeFunction<'db> {
     /// A function declared in the source API.
-    Free(InterFunctionFree<'db>),
+    Free(FacadeFreeFunction<'db>),
     /// A source-defined function in an inherent impl block.
-    Associated(InterFunctionAssociated<'db>),
+    Associated(FacadeMethod<'db>),
     /// A synthetic field-read operation.
     Getter(RuntimeGetter<'db>),
     /// A synthetic field-write operation.
@@ -153,10 +156,16 @@ impl<'db> RuntimeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> Vec<Type<'db>> {
         match self {
-            Self::Free(function) => function.params(db).iter().map(|p| p.src_type(db)).collect(),
-            Self::Associated(function) => {
-                function.params(db).iter().map(|p| p.src_type(db)).collect()
-            }
+            Self::Free(function) => function
+                .source_params(db)
+                .iter()
+                .map(|p| p.src_type(db))
+                .collect(),
+            Self::Associated(function) => function
+                .source_params(db)
+                .iter()
+                .map(|p| p.src_type(db))
+                .collect(),
             Self::Getter(getter) => vec![getter.field(db).src(db).target(db)],
             Self::Setter(setter) => {
                 let field = setter.field(db).src(db);
@@ -183,8 +192,8 @@ impl<'db> RuntimeFunction<'db> {
 
     pub fn ret_type(self, db: &'db dyn Db) -> Option<RuntimeType<'db>> {
         match self {
-            Self::Free(function) => function.ret_type(db).map(RuntimeType::Source),
-            Self::Associated(function) => function.ret_type(db).map(RuntimeType::Source),
+            Self::Free(function) => function.src(db).ret_type(db).map(RuntimeType::Source),
+            Self::Associated(function) => function.src(db).ret_type(db).map(RuntimeType::Source),
             Self::Getter(getter) => Some(getter.field(db).tethered(db).value_type(db)),
             Self::Setter(_) => None,
             Self::Discriminator(_) => Some(RuntimeType::u32),
@@ -209,20 +218,20 @@ pub enum RuntimeType<'db> {
     Tethered(RuntimeTethering<'db>),
 }
 
-impl<'db> From<InterFunctionFree<'db>> for RuntimeFunction<'db> {
-    fn from(value: InterFunctionFree<'db>) -> Self {
+impl<'db> From<FacadeFreeFunction<'db>> for RuntimeFunction<'db> {
+    fn from(value: FacadeFreeFunction<'db>) -> Self {
         Self::Free(value)
     }
 }
 
-impl<'db> From<InterFunctionAssociated<'db>> for RuntimeFunction<'db> {
-    fn from(value: InterFunctionAssociated<'db>) -> Self {
+impl<'db> From<FacadeMethod<'db>> for RuntimeFunction<'db> {
+    fn from(value: FacadeMethod<'db>) -> Self {
         Self::Associated(value)
     }
 }
 
 #[salsa::tracked]
-impl<'db> InterFunctionFree<'db> {
+impl<'db> FacadeFreeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn symbol(self, db: &'db dyn Db) -> String {
         format!("__fn__free__{}", self.src(db).path(db).mangled(db))
@@ -230,7 +239,7 @@ impl<'db> InterFunctionFree<'db> {
 }
 
 #[salsa::tracked]
-impl<'db> InterFunctionAssociated<'db> {
+impl<'db> FacadeMethod<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn symbol(self, db: &'db dyn Db) -> String {
         format!("__fn__associated__{}", self.src(db).path(db).mangled(db))
@@ -239,7 +248,7 @@ impl<'db> InterFunctionAssociated<'db> {
 
 #[salsa::interned(debug)]
 pub struct RuntimeGetter<'db> {
-    pub field: InterField<'db>,
+    pub field: FacadeFieldPlain<'db>,
 }
 
 #[salsa::tracked]
@@ -269,7 +278,7 @@ impl<'db> From<RuntimeGetter<'db>> for RuntimeFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct RuntimeSetter<'db> {
-    pub field: InterField<'db>,
+    pub field: FacadeFieldPlain<'db>,
 }
 
 #[salsa::tracked]
@@ -299,7 +308,7 @@ impl<'db> From<RuntimeSetter<'db>> for RuntimeFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct RuntimeDiscriminator<'db> {
-    pub class: InterClassDiscriminated<'db>,
+    pub class: FacadeClassDiscriminated<'db>,
 }
 
 #[salsa::tracked]
@@ -321,7 +330,7 @@ impl<'db> From<RuntimeDiscriminator<'db>> for RuntimeFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct RuntimePlainCoerce<'db> {
-    pub class: InterClassPlain<'db>,
+    pub class: FacadeClassPlain<'db>,
 }
 
 #[salsa::tracked]
@@ -340,7 +349,7 @@ impl<'db> From<RuntimePlainCoerce<'db>> for RuntimeFunction<'db> {
 
 #[salsa::interned(debug)]
 pub struct RuntimeDiscriminatedCoerce<'db> {
-    pub variant: InterClassDiscriminatedVariant<'db>,
+    pub variant: FacadeVariant<'db>,
 }
 
 #[salsa::tracked]

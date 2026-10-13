@@ -240,7 +240,7 @@ impl Server {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
         let _span = tracing::info_span!("Rust API check").entered();
         self.ws.with_db(|db| {
-            let interface = self.ws.project(db).reachable_interface(db);
+            let interface = self.ws.project(db).reachable_facade(db);
             let diagnostics = interface.check(db);
 
             diagnostics

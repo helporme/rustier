@@ -79,7 +79,7 @@ where
     let AbiType::Class { class: inner, .. } = class else {
         unreachable!("class-to-type cast requires a class source");
     };
-    let tethered = inner.interface(db).tethering(db);
+    let tethered = inner.facade(db).tethering(db);
     let tethered_expr = render_class_to_tethered_expr(class, in_expr);
 
     render_tethered_to_type(db, tethered, target, tethered_expr, output)
@@ -100,7 +100,7 @@ where
     let AbiType::Class { class: inner, .. } = class else {
         unreachable!("type-to-class cast requires a class target");
     };
-    let tethered = inner.interface(db).tethering(db);
+    let tethered = inner.facade(db).tethering(db);
     let tethered_expr = render_type_to_tethered_expr(db, source, tethered, in_expr);
 
     render_tethered_to_class(db, class, tethered_expr, output)

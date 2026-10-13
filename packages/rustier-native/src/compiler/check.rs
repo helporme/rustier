@@ -6,7 +6,7 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     diag::Diag,
-    ir::interface::{InterClass, InterMember, InterModule, Interface},
+    ir::facade::{Facade, FacadeClass, FacadeMember, FacadeModule},
 };
 
 mod coerce_name_collisions;
@@ -17,7 +17,7 @@ mod f32_precision_loss;
 mod method_field_collisions;
 mod mutable_reference_ignored;
 
-impl<'db> Interface<'db> {
+impl<'db> Facade<'db> {
     /// Collect diagnostics from lowering and checking reachable local modules.
     pub fn check(self, db: &'db dyn Db) -> Vec<&'db Diag> {
         accumulate_checks::accumulated::<Diag>(db, self)
@@ -25,7 +25,7 @@ impl<'db> Interface<'db> {
 }
 
 #[salsa::tracked]
-fn accumulate_checks<'db>(db: &'db dyn Db, interface: Interface<'db>) {
+fn accumulate_checks<'db>(db: &'db dyn Db, interface: Facade<'db>) {
     for crate_ in interface.crates(db).filter(|crate_| crate_.is_local(db)) {
         for module in crate_.all_modules(db) {
             check_module(db, module);
@@ -34,31 +34,31 @@ fn accumulate_checks<'db>(db: &'db dyn Db, interface: Interface<'db>) {
 }
 
 #[salsa::tracked]
-fn check_module<'db>(db: &'db dyn Db, module: InterModule<'db>) {
-    for member in module.members(db) {
+fn check_module<'db>(db: &'db dyn Db, module: FacadeModule<'db>) {
+    for member in module.members(db).iter().copied() {
         let classes = match member {
-            InterMember::Class(class) => Either::Left(std::iter::once(class)),
-            InterMember::Template(template) => Either::Right(template.classes(db)),
-            InterMember::Function(function) => {
+            FacadeMember::Class(class) => Either::Left(std::iter::once(class)),
+            FacadeMember::ClassTemplate(template) => Either::Right(template.classes(db)),
+            FacadeMember::Function(function) => {
                 function.src(db).check_f32_precision_loss(db);
                 function.src(db).check_mutable_reference_ignored(db);
 
                 continue;
             }
-            InterMember::Module(_) => continue,
+            FacadeMember::Module(_) => continue,
         };
 
         for class in classes {
-            let _ = class.fields(db);
+            let _ = class.source_fields(db);
 
             match class {
-                InterClass::Plain(class) => {
+                FacadeClass::Plain(class) => {
                     let struct_ = class.src(db);
                     struct_.check_coerce_name_collisions(db);
                     struct_.check_coerce_requires_clone(db);
                     struct_.check_f32_precision_loss(db);
                 }
-                InterClass::Discriminated(class) => {
+                FacadeClass::Discriminated(class) => {
                     let enum_ = class.src(db);
                     enum_.check_coerce_name_collisions(db);
                     enum_.check_coerce_requires_clone(db);
@@ -105,7 +105,7 @@ mod tests {
                 .expect("test crate should be lowered");
 
             Rust::get(db)
-                .interface_reachable_from(db, UsageGraph::new(db, [crate_.root(db)]))
+                .facade_reachable_from(db, UsageGraph::new(db, [crate_.root(db)]))
                 .check(db)
                 .iter()
                 .filter_map(|diag| diag.inner.code().map(|code| code.to_string()))

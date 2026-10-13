@@ -20,17 +20,17 @@ export function test_fn (
 ) {
 	{
 		const __0 = cast.from(
-			"Facade(Class(Plain(FacadeClassPlain { interface: InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } } } })))"
+			"Facade(Class(Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } } })))"
 		).to(
-			"Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } } }) }, borrowed: true })"
+			"Abi(Class { class: AbiClass { facade: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } } }) }, borrowed: true })"
 		).an(
 			_0
 		);
 		{
 			const result = cast.from(
-				"Abi(Class { class: AbiClass { interface: Plain(InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) } }) }, borrowed: false })"
+				"Abi(Class { class: AbiClass { facade: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) } }) }, borrowed: false })"
 			).to(
-				"Facade(Class(Plain(FacadeClassPlain { interface: InterClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) } } })))"
+				"Facade(Class(Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) } })))"
 			).an(
 				__fn__free__10_test_crate__7_test_fn(
 					__0

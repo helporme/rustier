@@ -2,65 +2,64 @@ use crate::compiler::{
     db::Db,
     ir::{
         facade::{
-            Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFreeFunction,
-            FacadeMethod, FacadeModule, FacadeParentModule,
+            Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldPlain,
+            FacadeModule, FacadeParentModule,
         },
-        interface::{
-            InterClass, InterClassDiscriminated, InterClassPlain, InterFunctionAssociated,
-            InterFunctionFree, InterModule, InterParentModule, Interface,
+        rust::{
+            EnumType, FieldQualified, Module, Rust, StructType, Type, TypeKind, usages::UsageGraph,
         },
     },
 };
 
-impl<'db> Interface<'db> {
-    pub fn facade(self, db: &'db dyn Db) -> Facade<'db> {
-        Facade::new(db, self)
+impl<'db> Rust<'db> {
+    pub fn facade_complete(self, db: &'db dyn Db) -> Facade<'db> {
+        self.facade_reachable_from(db, UsageGraph::complete(db))
+    }
+
+    pub fn facade_reachable_from(self, db: &'db dyn Db, usages: UsageGraph<'db>) -> Facade<'db> {
+        Facade::new(db, self, usages)
     }
 }
 
-impl<'db> InterParentModule<'db> {
-    pub fn facade(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
+impl<'db> Module<'db> {
+    pub fn facade_reachable_from(
+        self,
+        db: &'db dyn Db,
+        usages: UsageGraph<'db>,
+    ) -> FacadeModule<'db> {
+        FacadeModule::new(db, self, usages)
+    }
+
+    pub fn facade_parent(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
         FacadeParentModule::new(db, self)
     }
 }
 
-impl<'db> InterModule<'db> {
-    pub fn facade(self, db: &'db dyn Db) -> FacadeModule<'db> {
-        FacadeModule::new(db, self)
-    }
-}
-
-impl<'db> InterClassPlain<'db> {
+impl<'db> StructType<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeClassPlain<'db> {
         FacadeClassPlain::new(db, self)
     }
 }
 
-impl<'db> InterClassDiscriminated<'db> {
+impl<'db> EnumType<'db> {
     pub fn facade(self, db: &'db dyn Db) -> FacadeClassDiscriminated<'db> {
         FacadeClassDiscriminated::new(db, self)
     }
 }
 
-impl<'db> InterClass<'db> {
-    pub fn facade(self, db: &'db dyn Db) -> FacadeClass<'db> {
-        match self {
-            InterClass::Plain(plain) => FacadeClass::Plain(plain.facade(db)),
-            InterClass::Discriminated(discriminated) => {
-                FacadeClass::Discriminated(discriminated.facade(db))
-            }
+impl<'db> FieldQualified<'db> {
+    pub fn facade(self, db: &'db dyn Db) -> FacadeFieldPlain<'db> {
+        FacadeFieldPlain::new(db, self)
+    }
+}
+
+impl<'db> Type<'db> {
+    pub fn facade_class(self, db: &'db dyn Db) -> Option<FacadeClass<'db>> {
+        match self.kind(db) {
+            TypeKind::Struct(struct_) => Some(FacadeClass::Plain(struct_.facade(db))),
+            TypeKind::Enum(enum_) => Some(FacadeClass::Discriminated(enum_.facade(db))),
+            TypeKind::Borrowed(borrowed) => borrowed.inner(db).facade_class(db),
+            _ => None,
         }
-    }
-}
-
-impl<'db> InterFunctionFree<'db> {
-    pub fn facade(self, db: &'db dyn Db) -> FacadeFreeFunction<'db> {
-        FacadeFreeFunction::new(db, self)
-    }
-}
-
-impl<'db> InterFunctionAssociated<'db> {
-    pub fn facade(self, db: &'db dyn Db) -> FacadeMethod<'db> {
-        FacadeMethod::new(db, self)
     }
 }

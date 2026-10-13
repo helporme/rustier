@@ -1,24 +1,31 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        abi::{AbiClass, AbiFunction},
-        interface::{
-            InterClass, InterClassDiscriminated, InterClassDiscriminatedVariant, InterClassPlain,
-            InterField, InterFunctionAssociated, InterFunctionFree,
+        abi::{Abi, AbiClass, AbiFunction},
+        facade::{
+            Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain,
+            FacadeFieldDiscriminator, FacadeFieldPlain, FacadeFreeFunction, FacadeFunction,
+            FacadeMethod, FacadeVariant, coerce::FacadePlainCoerceFunction,
         },
         runtime::{RuntimeDiscriminatedCoerce, RuntimeFunction, RuntimePlainCoerce},
     },
 };
 
-impl<'db> InterClass<'db> {
+impl<'db> Facade<'db> {
+    pub fn abi(self, db: &'db dyn Db) -> Abi<'db> {
+        Abi::new(db, self)
+    }
+}
+
+impl<'db> FacadeClass<'db> {
     pub fn abi(self, db: &'db dyn Db) -> AbiClass<'db> {
         AbiClass::new(db, self)
     }
 }
 
-impl<'db> InterClassPlain<'db> {
+impl<'db> FacadeClassPlain<'db> {
     pub fn abi(self, db: &'db dyn Db) -> AbiClass<'db> {
-        AbiClass::new(db, InterClass::Plain(self))
+        AbiClass::new(db, FacadeClass::Plain(self))
     }
 
     pub fn abi_coerce(self, db: &'db dyn Db) -> AbiFunction<'db> {
@@ -26,23 +33,23 @@ impl<'db> InterClassPlain<'db> {
     }
 }
 
-impl<'db> InterClassDiscriminated<'db> {
+impl<'db> FacadeClassDiscriminated<'db> {
     pub fn abi(self, db: &'db dyn Db) -> AbiClass<'db> {
-        AbiClass::new(db, InterClass::Discriminated(self))
+        AbiClass::new(db, FacadeClass::Discriminated(self))
     }
 
     pub fn abi_discriminator(self, db: &'db dyn Db) -> AbiFunction<'db> {
-        RuntimeFunction::from(self.discriminator(db)).abi(db)
+        RuntimeFunction::from(self.runtime_discriminator(db)).abi(db)
     }
 }
 
-impl<'db> InterClassDiscriminatedVariant<'db> {
+impl<'db> FacadeVariant<'db> {
     pub fn abi_coerce(self, db: &'db dyn Db) -> AbiFunction<'db> {
         RuntimeFunction::from(RuntimeDiscriminatedCoerce::new(db, self)).abi(db)
     }
 }
 
-impl<'db> InterField<'db> {
+impl<'db> FacadeFieldPlain<'db> {
     pub fn abi_getter(self, db: &'db dyn Db) -> AbiFunction<'db> {
         RuntimeFunction::from(self.getter(db)).abi(db)
     }
@@ -53,13 +60,34 @@ impl<'db> InterField<'db> {
     }
 }
 
-impl<'db> InterFunctionFree<'db> {
+impl<'db> FacadeFreeFunction<'db> {
     pub fn abi(self, db: &'db dyn Db) -> AbiFunction<'db> {
         RuntimeFunction::from(self).abi(db)
     }
 }
 
-impl<'db> InterFunctionAssociated<'db> {
+impl<'db> FacadeFunction<'db> {
+    pub fn abi(self, db: &'db dyn Db) -> AbiFunction<'db> {
+        match self {
+            Self::Free(function) => function.abi(db),
+            Self::Method(method) => method.abi(db),
+        }
+    }
+}
+
+impl<'db> FacadePlainCoerceFunction<'db> {
+    pub fn abi(self, db: &'db dyn Db) -> AbiFunction<'db> {
+        self.class(db).abi_coerce(db)
+    }
+}
+
+impl<'db> FacadeFieldDiscriminator<'db> {
+    pub fn abi_getter(self, db: &'db dyn Db) -> AbiFunction<'db> {
+        self.class(db).abi_discriminator(db)
+    }
+}
+
+impl<'db> FacadeMethod<'db> {
     pub fn abi(self, db: &'db dyn Db) -> AbiFunction<'db> {
         RuntimeFunction::from(self).abi(db)
     }

@@ -38,9 +38,9 @@ impl<'db> CastType<'db> {
             ) => {
                 left_borrowed == right_borrowed
                     && left
-                        .interface(db)
+                        .facade(db)
                         .src_type(db)
-                        .same_type_as(db, right.interface(db).src_type(db))
+                        .same_type_as(db, right.facade(db).src_type(db))
             }
             (Self::Abi(left), Self::Abi(right)) => left == right,
             (Self::Tethered(a), Self::Tethered(b)) => a
@@ -878,8 +878,8 @@ mod tests {
 
     fn test_abi_class_type<'db>(db: &'db dyn Db, name: &str, borrowed: bool) -> AbiType<'db> {
         let class = match test_type(db, name).kind(db) {
-            TypeKind::Struct(struct_) => struct_.interface(db).abi(db),
-            TypeKind::Enum(enum_) => enum_.interface(db).abi(db),
+            TypeKind::Struct(struct_) => struct_.facade(db).abi(db),
+            TypeKind::Enum(enum_) => enum_.facade(db).abi(db),
             _ => unreachable!("class cast test requires a struct or enum"),
         };
 

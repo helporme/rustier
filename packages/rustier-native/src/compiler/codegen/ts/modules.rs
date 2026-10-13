@@ -113,7 +113,7 @@ mod tests {
                     expression: |db, p| {
                         let db = &*db;
                         let root = Rust::get(db)
-                            .interface_complete(db)
+                            .facade_complete(db)
                             .crates(db)
                             .next()
                             .expect("test crate should be lowered")

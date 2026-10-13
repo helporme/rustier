@@ -172,7 +172,7 @@ where
         let db = self.db();
         let function = self.function();
         let abi_ret_type = function.abi(db).ret_type(db);
-        let facade_ret_type = function.ret_type(db);
+        let facade_ret_type = function.ret_js_type(db);
 
         fragment(move |p| match (abi_ret_type, facade_ret_type) {
             (Some(abi_ret_type), Some(facade_ret_type)) => {
@@ -224,7 +224,7 @@ where
                 .zip(abi_params)
                 .enumerate()
                 .map(|(i, (param, abi_param))| Cast {
-                    from: param.type_(db),
+                    from: param.js_type(db),
                     to: *abi_param,
                     in_expr: param_name(i),
                     out_var_name: casted_param_name(i),
@@ -299,13 +299,12 @@ mod tests {
                     expression: |db, printer| {
                         let db = &*db;
                         let root = Rust::get(db)
-                            .interface_complete(db)
+                            .facade_complete(db)
                             .crates(db)
                             .next()
                             .expect("test crate should be lowered")
-                            .root(db)
-                            .facade(db);
-                        let mut functions = root.members(db).filter_map(|member| match member {
+                            .root(db);
+                        let mut functions = root.members(db).iter().copied().filter_map(|member| match member {
                             FacadeMember::Function(function) => Some(function),
                             _ => None,
                         });

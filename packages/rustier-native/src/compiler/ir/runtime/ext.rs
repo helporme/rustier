@@ -1,9 +1,9 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        interface::{
-            InterClass, InterClassDiscriminated, InterClassDiscriminatedVariant, InterClassPlain,
-            InterField, Interface,
+        facade::{
+            Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldPlain,
+            FacadeVariant,
         },
         runtime::{
             Runtime, RuntimeClass, RuntimeDiscriminatedCoerce, RuntimeDiscriminator, RuntimeGetter,
@@ -14,13 +14,13 @@ use crate::compiler::{
     },
 };
 
-impl<'db> Interface<'db> {
+impl<'db> Facade<'db> {
     pub fn runtime(self, db: &'db dyn Db) -> Runtime<'db> {
         Runtime::new(db, self)
     }
 }
 
-impl<'db> InterClass<'db> {
+impl<'db> FacadeClass<'db> {
     pub fn runtime(self, db: &'db dyn Db) -> RuntimeClass<'db> {
         RuntimeClass::new(db, self)
     }
@@ -32,11 +32,11 @@ impl<'db> InterClass<'db> {
 
 impl<'db> Type<'db> {
     pub fn tethering(self, db: &'db dyn Db) -> Option<RuntimeTethering<'db>> {
-        self.interface_class(db).map(|class| class.tethering(db))
+        self.facade_class(db).map(|class| class.tethering(db))
     }
 }
 
-impl<'db> InterField<'db> {
+impl<'db> FacadeFieldPlain<'db> {
     pub fn tethered(self, db: &'db dyn Db) -> RuntimeTetheredField<'db> {
         RuntimeTetheredField::new(db, self.src(db))
     }
@@ -50,21 +50,21 @@ impl<'db> InterField<'db> {
     }
 }
 
-impl<'db> InterClassPlain<'db> {
-    pub fn coerce(self, db: &'db dyn Db) -> Option<RuntimePlainCoerce<'db>> {
+impl<'db> FacadeClassPlain<'db> {
+    pub fn runtime_coerce(self, db: &'db dyn Db) -> Option<RuntimePlainCoerce<'db>> {
         self.is_constructible(db)
             .then(|| RuntimePlainCoerce::new(db, self))
     }
 }
 
-impl<'db> InterClassDiscriminated<'db> {
-    pub fn discriminator(self, db: &'db dyn Db) -> RuntimeDiscriminator<'db> {
+impl<'db> FacadeClassDiscriminated<'db> {
+    pub fn runtime_discriminator(self, db: &'db dyn Db) -> RuntimeDiscriminator<'db> {
         RuntimeDiscriminator::new(db, self)
     }
 }
 
-impl<'db> InterClassDiscriminatedVariant<'db> {
-    pub fn coerce(self, db: &'db dyn Db) -> Option<RuntimeDiscriminatedCoerce<'db>> {
+impl<'db> FacadeVariant<'db> {
+    pub fn runtime_coerce(self, db: &'db dyn Db) -> Option<RuntimeDiscriminatedCoerce<'db>> {
         self.is_constructible(db)
             .then(|| RuntimeDiscriminatedCoerce::new(db, self))
     }

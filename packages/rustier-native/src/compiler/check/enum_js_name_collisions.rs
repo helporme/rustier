@@ -11,7 +11,7 @@ use crate::compiler::{
 impl<'db> EnumType<'db> {
     #[salsa::tracked]
     pub(super) fn check_js_name_collisions(self, db: &'db dyn Db) {
-        let facade = self.interface(db).facade(db);
+        let facade = self.facade(db);
         let discriminator = facade.discriminator(db);
 
         if discriminator.name(db) != "$type" {

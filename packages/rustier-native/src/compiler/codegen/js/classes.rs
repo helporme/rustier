@@ -10,8 +10,8 @@ use crate::compiler::{
     ir::{
         abi::AbiFunction,
         facade::{
-            FacadeClass, FacadeCoerce, FacadeFieldDiscriminated, FacadeFieldDiscriminator,
-            FacadeFieldPlain, FacadeType,
+            FacadeClass, FacadeFieldDiscriminated, FacadeFieldDiscriminator, FacadeFieldPlain,
+            coerce::FacadeCoerce, js_type::FacadeJsType,
         },
         rust::FieldName,
     },
@@ -179,7 +179,7 @@ where
         fragment(move |p| match self.class {
             FacadeClass::Plain(plain) => {
                 for (field_index, field) in plain.fields(self.db).enumerate() {
-                    if matches!(field.type_(self.db), FacadeType::Class(_)) {
+                    if matches!(field.js_type(self.db), FacadeJsType::Class(_)) {
                         frag!(#{cache_name(field_index, None)};@).apply(p);
                     }
                 }
@@ -187,7 +187,7 @@ where
             FacadeClass::Discriminated(discriminated) => {
                 for (field_index, field) in discriminated.fields(self.db).iter().enumerate() {
                     for (discriminator, sub) in field.sub(self.db) {
-                        if matches!(sub.type_(self.db), FacadeType::Class(_)) {
+                        if matches!(sub.js_type(self.db), FacadeJsType::Class(_)) {
                             frag!(#{cache_name(field_index, Some(*discriminator))};@).apply(p);
                         }
                     }
@@ -289,7 +289,7 @@ where
             db,
             Cast {
                 from: abi.ret_type(db).expect("coerce returns its class"),
-                to: FacadeType::Class(class),
+                to: FacadeJsType::Class(class),
                 in_expr: frag!({ symbol }({ args })),
                 out_var_name: "result",
             },
@@ -297,7 +297,7 @@ where
         );
         let casts = fields.into_iter().zip(abi.params(db)).enumerate().map(
             move |(i, (field, abi_param))| Cast {
-                from: field.type_(db),
+                from: field.js_type(db),
                 to: *abi_param,
                 in_expr: fragment(move |p| match field.name(db) {
                     FieldName::Name(name) => frag!(value[{ doubles(name) }]).apply(p),
@@ -352,10 +352,10 @@ where
         let abi_type = abi_getter
             .ret_type(self.db)
             .expect("facade field getter should return an ABI value");
-        let facade_type = field.type_(self.db);
+        let facade_type = field.js_type(self.db);
 
         fragment(move |p| {
-            if matches!(facade_type, FacadeType::Class(_)) {
+            if matches!(facade_type, FacadeJsType::Class(_)) {
                 let cast = self.casts.render_stmt(
                     self.db,
                     Cast {
@@ -398,11 +398,11 @@ where
         let [_, value_param] = abi_setter.params(self.db).as_slice() else {
             unreachable!("facade field setter should have class and value parameters");
         };
-        let facade_type = field.type_(self.db);
+        let facade_type = field.js_type(self.db);
         let continuation = fragment(move |p| {
             frag!({ abi_setter.symbol(self.db) }(this.#_ffi, out);).apply(p);
 
-            if matches!(facade_type, FacadeType::Class(_)) {
+            if matches!(facade_type, FacadeJsType::Class(_)) {
                 frag!(@this.#{cache_name(self.index, None)}~ = undefined;).apply(p);
             }
         });
@@ -483,10 +483,10 @@ where
         let abi_type = abi_getter
             .ret_type(self.db)
             .expect("facade field getter should return an ABI value");
-        let facade_type = field.type_(self.db);
+        let facade_type = field.js_type(self.db);
 
         fragment(move |p| {
-            if matches!(facade_type, FacadeType::Class(_)) {
+            if matches!(facade_type, FacadeJsType::Class(_)) {
                 let cast = self.casts.render_stmt(
                     self.db,
                     Cast {
@@ -570,11 +570,11 @@ where
         let [_, value_param] = abi_setter.params(self.db).as_slice() else {
             unreachable!("facade field setter should have class and value parameters");
         };
-        let facade_type = field.type_(self.db);
+        let facade_type = field.js_type(self.db);
         let continuation = fragment(move |p| {
             frag!({ abi_setter.symbol(self.db) }(this.#_ffi, out);).apply(p);
 
-            if matches!(facade_type, FacadeType::Class(_)) {
+            if matches!(facade_type, FacadeJsType::Class(_)) {
                 frag!(@
                     this.#{cache_name(self.index, Some(discriminator))}~ = undefined;
                 )
@@ -665,14 +665,15 @@ mod tests {
                     expression: |db, printer| {
                         let db = &*db;
                         let root = Rust::get(db)
-                            .interface_complete(db)
+                            .facade_complete(db)
                             .crates(db)
                             .next()
                             .expect("test crate should be lowered")
-                            .root(db)
-                            .facade(db);
+                            .root(db);
                         let class = root
                             .members(db)
+                            .iter()
+                            .copied()
                             .find_map(|member| match member {
                                 FacadeMember::Class(class) if class.name(db) == "Test" => {
                                     Some(class)

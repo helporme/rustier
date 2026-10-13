@@ -4,7 +4,7 @@ use crate::compiler::{
         js::JsCodegenPaths,
     },
     db::Db,
-    ir::facade::{FacadeImport, FacadeImportItem},
+    ir::facade::imports::{FacadeImport, FacadeImportItem},
 };
 
 #[salsa::tracked]

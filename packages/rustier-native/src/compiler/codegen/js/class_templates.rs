@@ -64,12 +64,11 @@ mod tests {
                     source: { $($source)* },
                     expression: |db, p| {
                         let root = Rust::get(db)
-                            .interface_complete(db)
+                            .facade_complete(db)
                             .crates(db)
                             .next()
                             .expect("test crate should be lowered")
-                            .root(db)
-                            .facade(db);
+                            .root(db);
                         let paths = JsCodegenPaths {
                             abi_js_mod_id: "$rust/unstable!/node".to_owned(),
                         };

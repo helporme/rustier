@@ -4,7 +4,7 @@ use crate::compiler::{
     codegen::abi::AbiTransport,
     db::Db,
     ir::{
-        interface::Interface,
+        facade::Facade,
         rust::{Crate, Rust, usages::UsageGraph},
     },
 };
@@ -53,10 +53,9 @@ impl<'a> Project<'a> {
             .expect("Project must have a local crate")
     }
 
-    /// An interface reachable from the project's local crate.
-    pub fn reachable_interface(self, db: &'a dyn Db) -> Interface<'a> {
-        Rust::get(db)
-            .interface_reachable_from(db, UsageGraph::new(db, [self.src_crate(db).root(db)]))
+    /// A facade reachable from the project's local crate.
+    pub fn reachable_facade(self, db: &'a dyn Db) -> Facade<'a> {
+        Rust::get(db).facade_reachable_from(db, UsageGraph::new(db, [self.src_crate(db).root(db)]))
     }
 
     /// Project root directory.

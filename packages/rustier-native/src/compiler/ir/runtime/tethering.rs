@@ -131,7 +131,7 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        interface::InterClass,
+        facade::FacadeClass,
         runtime::RuntimeType,
         rust::{FieldQualified, TypeKind},
     },
@@ -139,7 +139,7 @@ use crate::compiler::{
 
 #[salsa::interned(debug)]
 pub struct RuntimeTethering<'db> {
-    pub source: InterClass<'db>,
+    pub source: FacadeClass<'db>,
 }
 
 #[salsa::tracked]
@@ -147,7 +147,7 @@ impl<'db> RuntimeTethering<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn fields(self, db: &'db dyn Db) -> Vec<RuntimeTetheredField<'db>> {
         self.source(db)
-            .fields(db)
+            .source_fields(db)
             .iter()
             .map(|field| RuntimeTetheredField::new(db, field.src(db)))
             .collect()
@@ -161,9 +161,9 @@ pub struct RuntimeTetheredField<'db> {
 
 impl<'db> RuntimeTetheredField<'db> {
     pub fn parent(self, db: &'db dyn Db) -> RuntimeTethering<'db> {
-        let class: InterClass<'db> = match self.src(db).target(db).kind(db) {
-            TypeKind::Struct(struct_) => struct_.interface(db).into(),
-            TypeKind::Enum(enum_) => enum_.interface(db).into(),
+        let class = match self.src(db).target(db).kind(db) {
+            TypeKind::Struct(struct_) => FacadeClass::Plain(struct_.facade(db)),
+            TypeKind::Enum(enum_) => FacadeClass::Discriminated(enum_.facade(db)),
             _ => unreachable!("fields belong to classes"),
         };
 
