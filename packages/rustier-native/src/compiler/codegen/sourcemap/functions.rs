@@ -3,11 +3,11 @@
 use crate::compiler::{
     codegen::sourcemap::mappings::{Mapping, original_location},
     db::Db,
-    ir::decals::DecalFreeFunction,
+    ir::facade::FacadeFreeFunction,
 };
 
 #[salsa::tracked]
-impl<'db> DecalFreeFunction<'db> {
+impl<'db> FacadeFreeFunction<'db> {
     /// Renders mappings for this function at its declaration line.
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_sourcemap_mappings(

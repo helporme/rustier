@@ -1,7 +1,7 @@
-use crate::compiler::{db::Db, ir::decals::DecalImport};
+use crate::compiler::{db::Db, ir::facade::imports_ts::FacadeImportTs};
 
 #[salsa::tracked]
-impl<'db> DecalImport<'db> {
+impl<'db> FacadeImportTs<'db> {
     /// Local declarations use file paths; external declarations use ambient
     /// modules.
     #[salsa::tracked(returns(ref))]

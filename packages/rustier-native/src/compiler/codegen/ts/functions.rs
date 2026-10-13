@@ -6,24 +6,24 @@ use crate::compiler::{
         ts::jsdoc::render_jsdoc,
     },
     db::Db,
-    ir::decals::{DecalFreeFunction, DecalMethod, DecalParam, DecalType},
+    ir::facade::{FacadeFreeFunction, FacadeMethod, FacadeParam, type_ts::FacadeTypeTs},
 };
 
 #[salsa::tracked]
-impl<'db> DecalFreeFunction<'db> {
+impl<'db> FacadeFreeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_ts(self, db: &'db dyn Db) -> String {
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
             export function ~{self.name(db)}{render_params(db, self.params(db))}:~{
-                render_return_type(db, self.ret_type(db))
+                render_return_type(db, self.ret_type_ts(db))
             };
         )
         .print()
     }
 }
 
-impl<'db> DecalMethod<'db> {
+impl<'db> FacadeMethod<'db> {
     /// Renders method inside the ts class declaration.
     pub(super) fn render_in_class_ts(self, db: &'db dyn Db) -> String {
         let static_prefix = self.is_static(db).then_some("static ");
@@ -32,7 +32,7 @@ impl<'db> DecalMethod<'db> {
             {render_jsdoc(self.docs(db).map(String::as_str))}
             {static_prefix}{render_class_method_name(self.name(db))}{
                 render_params(db, self.params(db))
-            }:~{render_return_type(db, self.ret_type(db))};
+            }:~{render_return_type(db, self.ret_type_ts(db))};
         )
         .print()
     }
@@ -51,7 +51,7 @@ impl<'db> DecalMethod<'db> {
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
             {name}{render_params(db, self.params(db))}:~{
-                render_return_type(db, self.ret_type(db))
+                render_return_type(db, self.ret_type_ts(db))
             };
         )
         .print()
@@ -68,7 +68,7 @@ impl<'db> DecalMethod<'db> {
 
 fn render_params<'db>(
     db: &'db dyn Db,
-    params: impl Iterator<Item = DecalParam<'db>> + 'db,
+    params: impl Iterator<Item = FacadeParam<'db>> + 'db,
 ) -> impl FragmentOnce + 'db {
     let params = params.collect::<Vec<_>>();
 
@@ -78,9 +78,9 @@ fn render_params<'db>(
         } else {
             frag!(({
                 comma_list(
-                    params
-                        .iter()
-                        .map(|param| frag!({param.name(db)}:~{param.type_(db).render_ts(db)})),
+                    params.iter().map(
+                        |param| frag!({param.decl_name(db)}:~{param.type_ts(db).render_ts(db)}),
+                    ),
                 )
             },))
             .apply(p);
@@ -90,7 +90,7 @@ fn render_params<'db>(
 
 fn render_return_type<'db>(
     db: &'db dyn Db,
-    ret_type: Option<DecalType<'db>>,
+    ret_type: Option<FacadeTypeTs<'db>>,
 ) -> impl FragmentOnce + 'db {
     fragment(move |p: &mut Printer| match ret_type {
         Some(type_) => type_.render_ts(db).apply(p),
@@ -114,7 +114,7 @@ mod tests {
         assert_ts_snap,
         compiler::{
             codegen::fragment::FragmentOnce as _,
-            ir::{decals::DecalMember, rust::Rust},
+            ir::{facade::FacadeMember, rust::Rust},
         },
     };
 
@@ -131,12 +131,13 @@ mod tests {
                             .crates(db)
                             .next()
                             .expect("test crate should be lowered")
-                            .root(db)
-                            .decals(db);
+                            .root(db);
                         let function = root
                             .members(db)
+                            .iter()
+                            .copied()
                             .find_map(|member| match member {
-                                DecalMember::Function(function)
+                                FacadeMember::Function(function)
                                     if function.name(db) == $function_name =>
                                 {
                                     Some(function)

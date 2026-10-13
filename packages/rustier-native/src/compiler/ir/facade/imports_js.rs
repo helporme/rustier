@@ -11,25 +11,25 @@ use crate::compiler::{
             FacadeFieldDiscriminated, FacadeFieldDiscriminator, FacadeFieldPlain,
             FacadeFreeFunction, FacadeGeneric, FacadeMember, FacadeMethod, FacadeModule,
             coerce::{FacadeDiscriminatedCoerceFunction, FacadePlainCoerceFunction},
-            js_type::FacadeJsType,
+            type_js::FacadeTypeJs,
         },
     },
 };
 
 #[salsa::tracked(debug)]
-pub struct FacadeImport<'db> {
+pub struct FacadeImportJs<'db> {
     pub originating_from: FacadeModule<'db>,
-    pub item: FacadeImportItem<'db>,
+    pub item: FacadeImportItemJs<'db>,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
-pub enum FacadeImportItem<'db> {
+pub enum FacadeImportItemJs<'db> {
     AbiFunction(AbiFunction<'db>),
     AbiClass(AbiClass<'db>),
     FacadeClass(FacadeClass<'db>),
 }
 
-impl<'db> FacadeImportItem<'db> {
+impl<'db> FacadeImportItemJs<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db str {
         match self {
             Self::AbiFunction(f) => f.symbol(db),
@@ -42,7 +42,7 @@ impl<'db> FacadeImportItem<'db> {
 #[salsa::tracked]
 impl<'db> FacadeModule<'db> {
     #[salsa::tracked(returns(ref))]
-    pub fn imports(self, db: &'db dyn Db) -> Vec<FacadeImport<'db>> {
+    pub fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportJs<'db>> {
         let mut items = Vec::new();
 
         for member in self.members(db).iter().copied() {
@@ -57,27 +57,27 @@ impl<'db> FacadeModule<'db> {
         }
 
         items.into_iter()
-            .filter(|item| !matches!(item, FacadeImportItem::FacadeClass(class) if class.module(db) == self.as_parent(db)))
+            .filter(|item| !matches!(item, FacadeImportItemJs::FacadeClass(class) if class.module(db) == self.as_parent(db)))
             .unique_by(|item| {
                 let module = match item {
-                    FacadeImportItem::FacadeClass(class) => Some(class.module(db)),
-                    FacadeImportItem::AbiClass(_) | FacadeImportItem::AbiFunction(_) => None,
+                    FacadeImportItemJs::FacadeClass(class) => Some(class.module(db)),
+                    FacadeImportItemJs::AbiClass(_) | FacadeImportItemJs::AbiFunction(_) => None,
                 };
 
                 (module, item.name(db))
             })
-            .map(|item| FacadeImport::new(db, self, item))
+            .map(|item| FacadeImportJs::new(db, self, item))
             .collect()
     }
 }
 
 impl<'db> FacadeClassTemplate<'db> {
-    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> + 'db {
+    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItemJs<'db>> + 'db {
         self.mappings(db).iter().flat_map(move |(generics, class)| {
             generics
                 .iter()
                 .filter_map(|generic| match generic {
-                    FacadeGeneric::Class(class) => Some(FacadeImportItem::FacadeClass(*class)),
+                    FacadeGeneric::Class(class) => Some(FacadeImportItemJs::FacadeClass(*class)),
                     FacadeGeneric::Symbol(_) => None,
                 })
                 .chain(class.imports(db))
@@ -88,20 +88,20 @@ impl<'db> FacadeClassTemplate<'db> {
 #[salsa::tracked]
 impl<'db> FacadeFreeFunction<'db> {
     #[salsa::tracked(returns(ref))]
-    fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItem<'db>> {
-        let mut imports = HashSet::from([FacadeImportItem::AbiFunction(self.abi(db))]);
+    fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItemJs<'db>> {
+        let mut imports = HashSet::from([FacadeImportItemJs::AbiFunction(self.abi(db))]);
 
-        if let Some(FacadeJsType::Class(class)) = self.ret_js_type(db) {
-            imports.insert(FacadeImportItem::AbiClass(class.abi(db)));
+        if let Some(FacadeTypeJs::Class(class)) = self.ret_type_js(db) {
+            imports.insert(FacadeImportItemJs::AbiClass(class.abi(db)));
         }
 
         for type_ in self
             .params(db)
-            .map(|param| param.js_type(db))
-            .chain(self.ret_js_type(db))
+            .map(|param| param.type_js(db))
+            .chain(self.ret_type_js(db))
         {
-            if let FacadeJsType::Class(class) = type_ {
-                imports.insert(FacadeImportItem::FacadeClass(class));
+            if let FacadeTypeJs::Class(class) = type_ {
+                imports.insert(FacadeImportItemJs::FacadeClass(class));
             }
         }
 
@@ -110,35 +110,37 @@ impl<'db> FacadeFreeFunction<'db> {
 }
 
 impl<'db> FacadeMethod<'db> {
-    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> + 'db {
+    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItemJs<'db>> + 'db {
         self.params(db)
-            .map(|param| param.js_type(db))
-            .chain(self.ret_js_type(db))
+            .map(|param| param.type_js(db))
+            .chain(self.ret_type_js(db))
             .filter_map(|type_| match type_ {
-                FacadeJsType::Class(class) => Some(class),
+                FacadeTypeJs::Class(class) => Some(class),
                 _ => None,
             })
-            .map(FacadeImportItem::FacadeClass)
-            .chain(std::iter::once(FacadeImportItem::AbiFunction(self.abi(db))))
-            .chain(self.ret_js_type(db).and_then(|type_| match type_ {
-                FacadeJsType::Class(class) => Some(FacadeImportItem::AbiClass(class.abi(db))),
+            .map(FacadeImportItemJs::FacadeClass)
+            .chain(std::iter::once(FacadeImportItemJs::AbiFunction(
+                self.abi(db),
+            )))
+            .chain(self.ret_type_js(db).and_then(|type_| match type_ {
+                FacadeTypeJs::Class(class) => Some(FacadeImportItemJs::AbiClass(class.abi(db))),
                 _ => None,
             }))
     }
 }
 
 impl<'db> FacadePlainCoerceFunction<'db> {
-    fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItem<'db>> {
+    fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItemJs<'db>> {
         let class = FacadeClass::Plain(self.class(db));
 
         [
-            FacadeImportItem::AbiFunction(self.abi(db)),
-            FacadeImportItem::AbiClass(class.abi(db)),
-            FacadeImportItem::FacadeClass(class),
+            FacadeImportItemJs::AbiFunction(self.abi(db)),
+            FacadeImportItemJs::AbiClass(class.abi(db)),
+            FacadeImportItemJs::FacadeClass(class),
         ]
         .into_iter()
-        .chain(self.fields(db).filter_map(|field| match field.js_type(db) {
-            FacadeJsType::Class(class) => Some(FacadeImportItem::FacadeClass(class)),
+        .chain(self.fields(db).filter_map(|field| match field.type_js(db) {
+            FacadeTypeJs::Class(class) => Some(FacadeImportItemJs::FacadeClass(class)),
             _ => None,
         }))
         .collect()
@@ -147,25 +149,25 @@ impl<'db> FacadePlainCoerceFunction<'db> {
 
 #[salsa::tracked]
 impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
-    fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItem<'db>> {
+    fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItemJs<'db>> {
         let class = FacadeClass::Discriminated(self.class(db));
 
         self.coerce_variants(db)
             .iter()
             .flat_map(|variant| {
                 [
-                    FacadeImportItem::AbiFunction(variant.abi),
-                    FacadeImportItem::AbiClass(class.abi(db)),
-                    FacadeImportItem::FacadeClass(class),
+                    FacadeImportItemJs::AbiFunction(variant.abi),
+                    FacadeImportItemJs::AbiClass(class.abi(db)),
+                    FacadeImportItemJs::FacadeClass(class),
                 ]
                 .into_iter()
                 .chain(
                     variant
                         .fields
                         .iter()
-                        .filter_map(|field| match field.js_type(db) {
-                            FacadeJsType::Class(class) => {
-                                Some(FacadeImportItem::FacadeClass(class))
+                        .filter_map(|field| match field.type_js(db) {
+                            FacadeTypeJs::Class(class) => {
+                                Some(FacadeImportItemJs::FacadeClass(class))
                             }
                             _ => None,
                         }),
@@ -182,7 +184,7 @@ impl<'db> FacadeClass<'db> {
         format!("$facade{}", self.abi(db).symbol(db))
     }
 
-    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> + 'db {
+    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItemJs<'db>> + 'db {
         match self {
             Self::Plain(class) => Either::Left(class.imports(db)),
             Self::Discriminated(class) => Either::Right(class.imports(db)),
@@ -191,7 +193,7 @@ impl<'db> FacadeClass<'db> {
 }
 
 impl<'db> FacadeClassPlain<'db> {
-    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> + 'db {
+    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItemJs<'db>> + 'db {
         self.fields(db)
             .flat_map(|field| field.imports(db))
             .chain(self.methods(db).flat_map(|method| method.imports(db)))
@@ -200,12 +202,12 @@ impl<'db> FacadeClassPlain<'db> {
                     .into_iter()
                     .flat_map(move |coerce| coerce.imports(db)),
             )
-            .chain(std::iter::once(FacadeImportItem::AbiClass(self.abi(db))))
+            .chain(std::iter::once(FacadeImportItemJs::AbiClass(self.abi(db))))
     }
 }
 
 impl<'db> FacadeClassDiscriminated<'db> {
-    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> + 'db {
+    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItemJs<'db>> + 'db {
         self.fields(db)
             .iter()
             .flat_map(|field| field.imports(db))
@@ -220,16 +222,16 @@ impl<'db> FacadeClassDiscriminated<'db> {
 }
 
 impl<'db> FacadeFieldPlain<'db> {
-    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> {
+    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItemJs<'db>> {
         [
-            Some(FacadeImportItem::AbiFunction(self.abi_getter(db))),
-            self.abi_setter(db).map(FacadeImportItem::AbiFunction),
-            match self.js_type(db) {
-                FacadeJsType::Class(class) => Some(FacadeImportItem::FacadeClass(class)),
+            Some(FacadeImportItemJs::AbiFunction(self.abi_getter(db))),
+            self.abi_setter(db).map(FacadeImportItemJs::AbiFunction),
+            match self.type_js(db) {
+                FacadeTypeJs::Class(class) => Some(FacadeImportItemJs::FacadeClass(class)),
                 _ => None,
             },
-            match self.js_type(db) {
-                FacadeJsType::Class(class) => Some(FacadeImportItem::AbiClass(class.abi(db))),
+            match self.type_js(db) {
+                FacadeTypeJs::Class(class) => Some(FacadeImportItemJs::AbiClass(class.abi(db))),
                 _ => None,
             },
         ]
@@ -239,13 +241,13 @@ impl<'db> FacadeFieldPlain<'db> {
 }
 
 impl<'db> FacadeFieldDiscriminated<'db> {
-    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> {
+    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItemJs<'db>> {
         self.sub(db).values().flat_map(|field| field.imports(db))
     }
 }
 
 impl<'db> FacadeFieldDiscriminator<'db> {
-    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItem<'db>> {
-        std::iter::once(FacadeImportItem::AbiFunction(self.abi_getter(db)))
+    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItemJs<'db>> {
+        std::iter::once(FacadeImportItemJs::AbiFunction(self.abi_getter(db)))
     }
 }

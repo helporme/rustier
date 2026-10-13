@@ -4,17 +4,17 @@ use crate::compiler::{
         js::JsCodegenPaths,
     },
     db::Db,
-    ir::facade::imports::{FacadeImport, FacadeImportItem},
+    ir::facade::imports_js::{FacadeImportItemJs, FacadeImportJs},
 };
 
 #[salsa::tracked]
-impl<'db> FacadeImport<'db> {
+impl<'db> FacadeImportJs<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render(self, db: &'db dyn Db, paths: JsCodegenPaths) -> String {
         let item = self.item(db);
         let name = item.name(db);
         let alias = match item {
-            FacadeImportItem::FacadeClass(class) => Some(frag!(~as~{class.import_alias(db)})),
+            FacadeImportItemJs::FacadeClass(class) => Some(frag!(~as~{class.import_alias(db)})),
             _ => None,
         };
 
@@ -27,10 +27,10 @@ impl<'db> FacadeImport<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_path(self, db: &'db dyn Db, paths: JsCodegenPaths) -> String {
         let to_path = match self.item(db) {
-            FacadeImportItem::AbiFunction(_) | FacadeImportItem::AbiClass(_) => {
+            FacadeImportItemJs::AbiFunction(_) | FacadeImportItemJs::AbiClass(_) => {
                 return paths.abi_js_mod_id.as_str().to_owned();
             }
-            FacadeImportItem::FacadeClass(class) => {
+            FacadeImportItemJs::FacadeClass(class) => {
                 let target = class.module(db);
                 if !target.is_local(db) {
                     // We assume here that vite (rolldown) is used which can resolve such virtual

@@ -11,14 +11,14 @@ use crate::compiler::{
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
 #[allow(non_camel_case_types)]
-pub enum FacadeJsType<'db> {
+pub enum FacadeTypeJs<'db> {
     boolean,
     string,
     number,
     Class(FacadeClass<'db>),
 }
 
-impl<'db> FacadeJsType<'db> {
+impl<'db> FacadeTypeJs<'db> {
     fn from_source(db: &'db dyn Db, source: Type<'db>) -> Self {
         if let Some(class) = source.facade_class(db) {
             return Self::Class(class);
@@ -45,36 +45,36 @@ impl<'db> FacadeJsType<'db> {
 }
 
 impl<'db> FacadeFunction<'db> {
-    pub fn ret_js_type(self, db: &'db dyn Db) -> Option<FacadeJsType<'db>> {
+    pub fn ret_type_js(self, db: &'db dyn Db) -> Option<FacadeTypeJs<'db>> {
         match self {
-            Self::Free(function) => function.ret_js_type(db),
-            Self::Method(method) => method.ret_js_type(db),
+            Self::Free(function) => function.ret_type_js(db),
+            Self::Method(method) => method.ret_type_js(db),
         }
     }
 }
 
 impl<'db> FacadeFreeFunction<'db> {
-    pub fn ret_js_type(self, db: &'db dyn Db) -> Option<FacadeJsType<'db>> {
+    pub fn ret_type_js(self, db: &'db dyn Db) -> Option<FacadeTypeJs<'db>> {
         self.ret_type(db)
-            .map(|type_| FacadeJsType::from_source(db, type_))
+            .map(|type_| FacadeTypeJs::from_source(db, type_))
     }
 }
 
 impl<'db> FacadeMethod<'db> {
-    pub fn ret_js_type(self, db: &'db dyn Db) -> Option<FacadeJsType<'db>> {
+    pub fn ret_type_js(self, db: &'db dyn Db) -> Option<FacadeTypeJs<'db>> {
         self.ret_type(db)
-            .map(|type_| FacadeJsType::from_source(db, type_))
+            .map(|type_| FacadeTypeJs::from_source(db, type_))
     }
 }
 
 impl<'db> FacadeParam<'db> {
-    pub fn js_type(self, db: &'db dyn Db) -> FacadeJsType<'db> {
-        FacadeJsType::from_source(db, self.src_type(db))
+    pub fn type_js(self, db: &'db dyn Db) -> FacadeTypeJs<'db> {
+        FacadeTypeJs::from_source(db, self.src_type(db))
     }
 }
 
 impl<'db> FacadeFieldPlain<'db> {
-    pub fn js_type(self, db: &'db dyn Db) -> FacadeJsType<'db> {
-        FacadeJsType::from_source(db, self.src_type(db))
+    pub fn type_js(self, db: &'db dyn Db) -> FacadeTypeJs<'db> {
+        FacadeTypeJs::from_source(db, self.src_type(db))
     }
 }

@@ -1,16 +1,19 @@
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, doubles, frag, fragment},
     db::Db,
-    ir::decals::{DecalGeneric, DecalType, TypeName},
+    ir::facade::{
+        FacadeGeneric,
+        type_ts::{FacadeTypeNameTs, FacadeTypeTs},
+    },
 };
 
-impl<'db> DecalType<'db> {
+impl<'db> FacadeTypeTs<'db> {
     pub(super) fn render_ts(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
         fragment(move |p| match self {
-            DecalType::boolean => frag!(boolean).apply(p),
-            DecalType::string => frag!(string).apply(p),
-            DecalType::number => frag!(number).apply(p),
-            DecalType::Class { inner, coerced } => {
+            FacadeTypeTs::boolean => frag!(boolean).apply(p),
+            FacadeTypeTs::string => frag!(string).apply(p),
+            FacadeTypeTs::number => frag!(number).apply(p),
+            FacadeTypeTs::Class { inner, coerced } => {
                 inner
                     .type_name(db)
                     .render_ts(db, coerced.then_some("Coerce"))
@@ -20,7 +23,7 @@ impl<'db> DecalType<'db> {
     }
 }
 
-impl<'db> TypeName<'db> {
+impl<'db> FacadeTypeNameTs<'db> {
     pub(super) fn render_ts(
         self,
         db: &'db dyn Db,
@@ -40,7 +43,7 @@ impl<'db> TypeName<'db> {
     }
 }
 
-impl<'db> DecalGeneric<'db> {
+impl<'db> FacadeGeneric<'db> {
     pub(super) fn render_ts(&'db self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
         fragment(move |p| match self {
             Self::Symbol(symbol) => doubles(symbol).apply(p),

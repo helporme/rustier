@@ -26,6 +26,18 @@ impl<'db> FacadeCoerce<'db> {
             Self::Discriminated(coerce) => FacadeClass::Discriminated(coerce.class(db)),
         }
     }
+
+    pub fn input_fields(self, db: &'db dyn Db) -> Vec<FacadeFieldPlain<'db>> {
+        match self.class(db) {
+            FacadeClass::Plain(class) => class.fields(db).collect(),
+            FacadeClass::Discriminated(class) => class
+                .variants(db)
+                .iter()
+                .filter(|variant| variant.is_constructible(db))
+                .flat_map(|variant| variant.fields(db))
+                .collect(),
+        }
+    }
 }
 
 #[salsa::interned(debug)]

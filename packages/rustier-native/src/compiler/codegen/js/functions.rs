@@ -172,7 +172,7 @@ where
         let db = self.db();
         let function = self.function();
         let abi_ret_type = function.abi(db).ret_type(db);
-        let facade_ret_type = function.ret_js_type(db);
+        let facade_ret_type = function.ret_type_js(db);
 
         fragment(move |p| match (abi_ret_type, facade_ret_type) {
             (Some(abi_ret_type), Some(facade_ret_type)) => {
@@ -224,7 +224,7 @@ where
                 .zip(abi_params)
                 .enumerate()
                 .map(|(i, (param, abi_param))| Cast {
-                    from: param.js_type(db),
+                    from: param.type_js(db),
                     to: *abi_param,
                     in_expr: param_name(i),
                     out_var_name: casted_param_name(i),

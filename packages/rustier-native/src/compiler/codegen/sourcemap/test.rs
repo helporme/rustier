@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::compiler::{
     codegen::sourcemap::mappings::Mapping,
     db::RootDatabase,
-    ir::{decals::DecalModule, rust::Rust},
+    ir::{facade::FacadeModule, rust::Rust},
 };
 
 #[derive(Deserialize, Serialize)]
@@ -19,17 +19,16 @@ struct TestSourceMap {
     mappings: String,
 }
 
-pub fn root_decals<'db>(db: &'db RootDatabase) -> DecalModule<'db> {
+pub fn root_decals<'db>(db: &'db RootDatabase) -> FacadeModule<'db> {
     Rust::get(db)
         .facade_complete(db)
         .crates(db)
         .next()
         .expect("test crate should be lowered")
         .root(db)
-        .decals(db)
 }
 
-pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalModule<'db> {
+pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> FacadeModule<'db> {
     let mut module = Rust::get(db)
         .facade_complete(db)
         .crates(db)
@@ -44,10 +43,10 @@ pub fn decals_by_path<'db>(db: &'db RootDatabase, path: &str) -> DecalModule<'db
             .expect("test module should be lowered");
     }
 
-    module.decals(db)
+    module
 }
 
-pub fn snapshot_module(db: &RootDatabase, module: DecalModule<'_>) -> String {
+pub fn snapshot_module(db: &RootDatabase, module: FacadeModule<'_>) -> String {
     let crate_dir = Rust::get(db)
         .crates(db)
         .first()

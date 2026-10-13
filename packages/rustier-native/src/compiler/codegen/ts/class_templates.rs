@@ -4,17 +4,17 @@ use crate::compiler::{
         ts::{DeclarationScope, jsdoc::render_jsdoc, types::render_inline_list},
     },
     db::Db,
-    ir::decals::{DecalClassTemplate, DecalGeneric},
+    ir::facade::{FacadeClassTemplate, FacadeGeneric},
 };
 
 #[salsa::tracked]
-impl<'db> DecalClassTemplate<'db> {
+impl<'db> FacadeClassTemplate<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_in_scope_ts(self, db: &'db dyn Db, scope: DeclarationScope) -> String {
         let name = self.name(db);
-        let params = || render_inline_list(self.params(db).iter());
+        let params = || render_inline_list(self.param_names(db).iter());
         let constrained_params = || {
-            render_inline_list(self.params(db).iter().enumerate().map(|(index, param)| {
+            render_inline_list(self.param_names(db).iter().enumerate().map(|(index, param)| {
             frag!({param}~extends~{self.render_param_constraint_ts(db, index)})
         }))
         };
@@ -44,7 +44,7 @@ impl<'db> DecalClassTemplate<'db> {
             }
         });
         let return_args = render_inline_list(
-            self.params(db)
+            self.param_names(db)
                 .iter()
                 .enumerate()
                 .map(|(index, _)| frag!(Args[{ index }])),
@@ -99,8 +99,8 @@ impl<'db> DecalClassTemplate<'db> {
         projection: TemplateProjection,
     ) -> impl FragmentOnce + 'db {
         fragment(move |p| {
-            if self.params(db).len() > 1 {
-                for param in self.params(db) {
+            if self.param_names(db).len() > 1 {
+                for param in self.param_names(db) {
                     frag!({param}~extends unknown ?@).apply(p);
                 }
             }
@@ -124,8 +124,8 @@ impl<'db> DecalClassTemplate<'db> {
 
             frag!(never).apply(p);
 
-            if self.params(db).len() > 1 {
-                for _ in self.params(db) {
+            if self.param_names(db).len() > 1 {
+                for _ in self.param_names(db) {
                     frag!(~: never).apply(p);
                 }
             }
@@ -135,13 +135,13 @@ impl<'db> DecalClassTemplate<'db> {
     pub(in crate::compiler::codegen) fn render_condition_ts(
         self,
         db: &'db dyn Db,
-        generics: &'db [DecalGeneric<'db>],
+        generics: &'db [FacadeGeneric<'db>],
     ) -> impl FragmentOnce + 'db {
-        let params = render_inline_list(self.params(db).iter());
+        let params = render_inline_list(self.param_names(db).iter());
         let generics = render_inline_list(generics.iter().map(|generic| generic.render_ts(db)));
 
         fragment(move |p| {
-            if self.params(db).len() == 1 {
+            if self.param_names(db).len() == 1 {
                 frag!({params}~extends ~{generics}~?).apply(p);
             } else {
                 frag!([{params}]~extends~[{generics}]~?).apply(p);
@@ -177,8 +177,7 @@ mod tests {
                             .crates(db)
                             .next()
                             .expect("test crate should be lowered")
-                            .root(db)
-                            .decals(db);
+                            .root(db);
 
                         root.render_ts_mod(db).apply(p);
                     },
@@ -350,7 +349,6 @@ mod tests {
             expression: |db, p| {
                 Rust::get(db)
                     .facade_complete(db)
-                    .decals(db)
                     .render_ambient_ts_mods(db)
                     .apply(p);
             },

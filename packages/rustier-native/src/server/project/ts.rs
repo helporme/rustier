@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    compiler::{db::Db, ir::decals::Decals},
+    compiler::{db::Db, ir::facade::Facade},
     server::{
         project::Project,
         write_file::{WriteFileError, write_file},
@@ -28,11 +28,11 @@ impl<'a> ProjectTs<'a> {
     ///
     /// Doesn't do anything until executed.
     pub fn sync(self, db: &'a dyn Db) -> ProjectTsSync<'a> {
-        let decals = self.project.reachable_facade(db).decals(db);
+        let facade = self.project.reachable_facade(db);
         let out_dir = self.project.out_dir(db);
 
         ProjectTsSync {
-            decals,
+            facade,
             out_types_dir: out_dir.join("types"),
             out_ambient_file: out_dir.join("ambient.d.ts"),
             root_dir: self.project.root_dir(db),
@@ -42,18 +42,18 @@ impl<'a> ProjectTs<'a> {
 
 /// Synchronization of the project's TypeScript declarations.
 pub struct ProjectTsSync<'a> {
-    decals: Decals<'a>,
+    facade: Facade<'a>,
     out_types_dir: PathBuf,
     out_ambient_file: PathBuf,
     root_dir: &'a Path,
 }
 
 impl<'db> ProjectTsSync<'db> {
-    /// Syncs the decals IR to the file system.
+    /// Syncs facade declarations to the file system.
     pub fn exec(&self, db: &'db dyn Db) -> Result<(), ProjectTsError> {
         // Validate every local module before writing any output.
         let modules = self
-            .decals
+            .facade
             .local_modules(db)
             .iter()
             .map(|module| {
@@ -106,7 +106,7 @@ impl<'db> ProjectTsSync<'db> {
         })?;
         write_file(
             &self.out_ambient_file,
-            self.decals.render_ambient_ts_mods(db),
+            self.facade.render_ambient_ts_mods(db),
         )?;
 
         Ok(())

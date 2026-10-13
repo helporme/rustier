@@ -7,29 +7,29 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        decals::{DecalClass, DecalField, DecalMethod, DecalModule},
+        facade::{FacadeClass, FacadeFieldPlain, FacadeMethod, FacadeModule},
         rust::FieldName,
     },
 };
 
 #[salsa::tracked]
-impl<'db> DecalClass<'db> {
+impl<'db> FacadeClass<'db> {
     /// Renders mappings for this class at its first declaration line.
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_sourcemap_mappings(
         self,
         db: &'db dyn Db,
-        module: DecalModule<'db>,
+        module: FacadeModule<'db>,
         generated_line: usize,
     ) -> Vec<Mapping> {
         match self {
-            DecalClass::Plain(plain) => self.render_plain_sourcemap_mappings(
+            FacadeClass::Plain(plain) => self.render_plain_sourcemap_mappings(
                 db,
                 module,
                 plain.fields(db).collect(),
                 generated_line,
             ),
-            DecalClass::Discriminated(_) => {
+            FacadeClass::Discriminated(_) => {
                 self.render_discriminated_sourcemap_mappings(db, module, generated_line)
             }
         }
@@ -38,8 +38,8 @@ impl<'db> DecalClass<'db> {
     fn render_plain_sourcemap_mappings(
         self,
         db: &'db dyn Db,
-        module: DecalModule<'db>,
-        fields: Vec<DecalField<'db>>,
+        module: FacadeModule<'db>,
+        fields: Vec<FacadeFieldPlain<'db>>,
         generated_line: usize,
     ) -> Vec<Mapping> {
         let generated = module.render_ts_mod(db);
@@ -188,7 +188,7 @@ impl<'db> DecalClass<'db> {
     fn render_discriminated_sourcemap_mappings(
         self,
         db: &'db dyn Db,
-        module: DecalModule<'db>,
+        module: FacadeModule<'db>,
         generated_line: usize,
     ) -> Vec<Mapping> {
         if self.is_template_instance(db) {
@@ -317,7 +317,7 @@ impl<'db> DecalClass<'db> {
     fn render_template_enum_sourcemap_mappings(
         self,
         db: &'db dyn Db,
-        module: DecalModule<'db>,
+        module: FacadeModule<'db>,
         generated_line: usize,
     ) -> Vec<Mapping> {
         let Some(span) = self.span(db) else {
@@ -449,7 +449,7 @@ impl<'db> DecalClass<'db> {
                 for variant in class
                     .variants(db)
                     .iter()
-                    .filter(|variant| !coerce || variant.if_coercible(db))
+                    .filter(|variant| !coerce || variant.is_constructible(db))
                 {
                     let line =
                         find_name_line(generated, start_line, &tag_prefix, variant.name(db), "\";")
@@ -464,7 +464,7 @@ impl<'db> DecalClass<'db> {
                             indent.len() + "readonly ".len(),
                             &original,
                             original.column,
-                            variant.source_name(db),
+                            variant.name(db),
                         ));
                     }
 
@@ -520,8 +520,8 @@ impl<'db> DecalClass<'db> {
             .expect("rendered TypeScript coerce method should exist");
         let original = original_location(db, span);
         let declaration_prefix = match class {
-            DecalClass::Plain(_) => "pub struct ",
-            DecalClass::Discriminated(_) => "pub enum ",
+            FacadeClass::Plain(_) => "pub struct ",
+            FacadeClass::Discriminated(_) => "pub enum ",
         };
         declaration_mappings(
             line,
@@ -538,7 +538,7 @@ impl<'db> DecalClass<'db> {
 /// fields. Input projections remain ordinary properties regardless of
 /// coercibility.
 pub(super) fn field_declaration_locations<'db>(
-    field: &DecalField<'db>,
+    field: &FacadeFieldPlain<'db>,
     db: &'db dyn Db,
     generated: &str,
     start_line: &mut usize,
@@ -582,7 +582,7 @@ pub(super) fn field_declaration_locations<'db>(
 }
 
 fn object_method_search<'db>(
-    method: &DecalMethod<'db>,
+    method: &FacadeMethod<'db>,
     db: &'db dyn Db,
     indent: &str,
 ) -> (String, &'static str) {
@@ -594,7 +594,7 @@ fn object_method_search<'db>(
 }
 
 fn class_method_search<'db>(
-    method: &DecalMethod<'db>,
+    method: &FacadeMethod<'db>,
     db: &'db dyn Db,
     indent: &str,
 ) -> (String, &'static str) {
@@ -607,7 +607,7 @@ fn class_method_search<'db>(
 }
 
 fn method_mappings<'db>(
-    method: &DecalMethod<'db>,
+    method: &FacadeMethod<'db>,
     db: &'db dyn Db,
     generated_line: usize,
     generated_name_column: usize,

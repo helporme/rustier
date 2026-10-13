@@ -7,33 +7,33 @@ use crate::compiler::{
         ts::{DeclarationScope, jsdoc::render_jsdoc},
     },
     db::Db,
-    ir::decals::{
-        DecalClass, DecalClassDiscriminated, DecalClassPlain, DecalCoerceFunction, DecalField,
-        DecalType, DecalVariant,
+    ir::facade::{
+        FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldPlain, FacadeVariant,
+        coerce::FacadeCoerce, type_ts::FacadeTypeTs,
     },
     ir::rust::FieldName,
 };
 
 #[salsa::tracked]
-impl<'db> DecalClass<'db> {
+impl<'db> FacadeClass<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_in_scope_ts(self, db: &'db dyn Db, scope: DeclarationScope) -> String {
         match self {
-            DecalClass::Plain(class) => DecalPlainClassFragment { class, db, scope }.print(),
-            DecalClass::Discriminated(class) => {
-                DecalDiscriminatedClassFragment { class, db, scope }.print()
+            FacadeClass::Plain(class) => PlainClassFragment { class, db, scope }.print(),
+            FacadeClass::Discriminated(class) => {
+                DiscriminatedClassFragment { class, db, scope }.print()
             }
         }
     }
 }
 
-struct DecalPlainClassFragment<'db> {
-    class: DecalClassPlain<'db>,
+struct PlainClassFragment<'db> {
+    class: FacadeClassPlain<'db>,
     db: &'db dyn Db,
     scope: DeclarationScope,
 }
 
-impl FragmentOnce for DecalPlainClassFragment<'_> {
+impl FragmentOnce for PlainClassFragment<'_> {
     fn apply(self, printer: &mut Printer) {
         let Self { class, db, scope } = self;
         let fields: Vec<_> = class.fields(db).collect();
@@ -60,7 +60,7 @@ impl FragmentOnce for DecalPlainClassFragment<'_> {
                 if !fields.is_empty() || rendered_method {
                     blank().apply(p);
                 }
-                coerce.render_fn_ts(db, true).apply(p);
+                FacadeCoerce::Plain(coerce).render_fn_ts(db, true).apply(p);
                 rendered_method = true;
             }
 
@@ -85,11 +85,11 @@ impl FragmentOnce for DecalPlainClassFragment<'_> {
             return;
         }
 
-        let plain = DecalClass::Plain(class).render_plain_body_ts(db);
+        let plain = FacadeClass::Plain(class).render_plain_body_ts(db);
         let coerce_type = fragment(|p| {
             if let Some(coerce) = class.coerce(db) {
                 frag!(@@).apply(p);
-                coerce.render_coerce_ts(db).apply(p);
+                FacadeCoerce::Plain(coerce).render_coerce_ts(db).apply(p);
             }
         });
 
@@ -105,13 +105,13 @@ impl FragmentOnce for DecalPlainClassFragment<'_> {
     }
 }
 
-struct DecalDiscriminatedClassFragment<'db> {
-    class: DecalClassDiscriminated<'db>,
+struct DiscriminatedClassFragment<'db> {
+    class: FacadeClassDiscriminated<'db>,
     db: &'db dyn Db,
     scope: DeclarationScope,
 }
 
-impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
+impl FragmentOnce for DiscriminatedClassFragment<'_> {
     fn apply(self, printer: &mut Printer) {
         let Self { class, db, scope } = self;
         let plain = fragment(move |p| {
@@ -121,7 +121,7 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
                 frag!( never;).apply(p);
             } else {
                 blank().apply(p);
-                idented(frag!({DecalClass::Discriminated(class).render_plain_body_ts(db)};))
+                idented(frag!({FacadeClass::Discriminated(class).render_plain_body_ts(db)};))
                     .apply(p);
             }
         });
@@ -138,7 +138,7 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
             .chain(
                 class
                     .coerce(db)
-                    .map(|coerce| coerce.render_fn_ts(db, false)),
+                    .map(|coerce| FacadeCoerce::Discriminated(coerce).render_fn_ts(db, false)),
             );
 
         let static_members = curlies(fragment(move |p| {
@@ -171,7 +171,7 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
         if class.is_template_instance(db) {
             frag!(
                 type ~{class.name(db)}~ = ~${class.name(db)}Instance & ~(
-                    {DecalClass::Discriminated(class).render_plain_body_ts(db)}
+                    {FacadeClass::Discriminated(class).render_plain_body_ts(db)}
                 );@@
 
                 {declare}const ~{class.name(db)}:~{static_members};@@
@@ -191,7 +191,9 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
         let coerce_type = fragment(move |p| {
             if let Some(coerce) = class.coerce(db) {
                 frag!(@@).apply(p);
-                coerce.render_coerce_ts(db).apply(p);
+                FacadeCoerce::Discriminated(coerce)
+                    .render_coerce_ts(db)
+                    .apply(p);
             }
         });
 
@@ -216,7 +218,7 @@ impl FragmentOnce for DecalDiscriminatedClassFragment<'_> {
     }
 }
 
-impl<'db> DecalCoerceFunction<'db> {
+impl<'db> FacadeCoerce<'db> {
     fn render_fn_ts(self, db: &'db dyn Db, in_class: bool) -> String {
         let static_prefix = in_class.then_some("static ");
         let class = self.class(db).type_name(db);
@@ -228,24 +230,24 @@ impl<'db> DecalCoerceFunction<'db> {
 
     fn render_coerce_ts(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
         fragment(move |p| match self.class(db) {
-            DecalClass::Plain(_) => {
+            FacadeClass::Plain(_) => {
                 frag!(export type Coerce = ~{self.class(db).render_coerce_body_ts(db)};).apply(p);
             }
-            DecalClass::Discriminated(_) => {
+            FacadeClass::Discriminated(_) => {
                 frag!(export type Coerce =@{idented(frag!({self.class(db).render_coerce_body_ts(db)};))}).apply(p);
             }
         })
     }
 }
 
-impl<'db> DecalClass<'db> {
+impl<'db> FacadeClass<'db> {
     pub(super) fn render_plain_body_ts(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
         fragment(move |p| match self {
             Self::Plain(class) => {
                 render_record_fields(
                     class
                         .fields(db)
-                        .map(move |field| field.render_property_ts(db, field.get_type(db))),
+                        .map(move |field| field.render_property_ts(db, field.get_type_ts(db))),
                 )
                 .apply(p);
             }
@@ -287,7 +289,7 @@ impl<'db> DecalClass<'db> {
                         coerce
                             .input_fields(db)
                             .into_iter()
-                            .map(move |field| field.render_property_ts(db, field.set_type(db))),
+                            .map(move |field| field.render_property_ts(db, field.set_type_ts(db))),
                     )
                     .apply(p);
                 }
@@ -301,7 +303,7 @@ impl<'db> DecalClass<'db> {
                     for variant in class
                         .variants(db)
                         .iter()
-                        .filter(|variant| variant.if_coercible(db))
+                        .filter(|variant| variant.is_constructible(db))
                     {
                         blank().apply(p);
                         variant
@@ -309,7 +311,7 @@ impl<'db> DecalClass<'db> {
                                 db,
                                 class.discriminator(db).name(db),
                                 variant.fields(db).map(move |field| {
-                                    field.render_property_ts(db, field.set_type(db))
+                                    field.render_property_ts(db, field.set_type_ts(db))
                                 }),
                             )
                             .apply(p);
@@ -344,7 +346,7 @@ where
     })
 }
 
-impl<'db> DecalVariant<'db> {
+impl<'db> FacadeVariant<'db> {
     fn render_ts<Field>(
         self,
         db: &'db dyn Db,
@@ -370,7 +372,7 @@ impl<'db> DecalVariant<'db> {
     }
 }
 
-impl<'db> DecalField<'db> {
+impl<'db> FacadeFieldPlain<'db> {
     fn render_accessors_ts(
         self,
         db: &'db dyn Db,
@@ -379,20 +381,24 @@ impl<'db> DecalField<'db> {
         fragment(move |p| {
             frag!(
                 {render_jsdoc(self.docs(db).map(String::as_str))}
-                {visibility}get ~{self.render_name_ts(db)}():~{self.get_type(db).render_ts(db)};
+                {visibility}get ~{self.render_name_ts(db)}():~{self.get_type_ts(db).render_ts(db)};
             )
             .apply(p);
             if !self.is_readonly(db) {
                 frag!(
                     @
-                    {visibility}set ~{self.render_name_ts(db)}(value:~{self.set_type(db).render_ts(db)});
+                    {visibility}set ~{self.render_name_ts(db)}(value:~{self.set_type_ts(db).render_ts(db)});
                 )
                 .apply(p);
             }
         })
     }
 
-    fn render_property_ts(self, db: &'db dyn Db, type_: DecalType<'db>) -> impl FragmentOnce + 'db {
+    fn render_property_ts(
+        self,
+        db: &'db dyn Db,
+        type_: FacadeTypeTs<'db>,
+    ) -> impl FragmentOnce + 'db {
         let readonly = self.is_readonly(db).then_some("readonly ");
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
@@ -426,7 +432,7 @@ mod tests {
         assert_ts_snap,
         compiler::{
             codegen::{fragment::FragmentOnce as _, ts::DeclarationScope},
-            ir::{decals::DecalMember, rust::Rust},
+            ir::{facade::FacadeMember, rust::Rust},
         },
     };
 
@@ -443,12 +449,13 @@ mod tests {
                             .crates(db)
                             .next()
                             .expect("test crate should be lowered")
-                            .root(db)
-                            .decals(db);
+                            .root(db);
                         let class = root
                             .members(db)
+                            .iter()
+                            .copied()
                             .find_map(|member| match member {
-                                DecalMember::Class(class) if class.name(db) == $class_name => {
+                                FacadeMember::Class(class) if class.name(db) == $class_name => {
                                     Some(class)
                                 }
                                 _ => None,

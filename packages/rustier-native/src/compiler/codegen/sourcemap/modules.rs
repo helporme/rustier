@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::compiler::{
     codegen::sourcemap::mappings::{Mapping, compile_mappings, find_name_line},
     db::Db,
-    ir::decals::{DecalClass, DecalMember, DecalModule},
+    ir::facade::{FacadeClass, FacadeMember, FacadeModule},
 };
 
 /// A Source Map v3 document for generated TypeScript declarations.
@@ -21,7 +21,7 @@ struct SourceMap {
 }
 
 #[salsa::tracked]
-impl<'db> DecalModule<'db> {
+impl<'db> FacadeModule<'db> {
     /// Renders a Source Map v3 document for this module's TypeScript
     /// declarations.
     #[salsa::tracked(returns(ref))]
@@ -53,10 +53,15 @@ impl<'db> DecalModule<'db> {
         let mut mappings = Vec::new();
         let mut search_line = 0;
 
-        for function in self.members(db).filter_map(|member| match member {
-            DecalMember::Function(function) => Some(function),
-            _ => None,
-        }) {
+        for function in self
+            .members(db)
+            .iter()
+            .copied()
+            .filter_map(|member| match member {
+                FacadeMember::Function(function) => Some(function),
+                _ => None,
+            })
+        {
             let generated_line = find_name_line(
                 generated,
                 search_line,
@@ -76,11 +81,13 @@ impl<'db> DecalModule<'db> {
 
         for class in self
             .members(db)
+            .iter()
+            .copied()
             .filter_map(|member| match member {
-                DecalMember::Class(class) => Some(class),
+                FacadeMember::Class(class) => Some(class),
                 _ => None,
             })
-            .filter(|class| matches!(class, DecalClass::Plain(_)))
+            .filter(|class| matches!(class, FacadeClass::Plain(_)))
         {
             let generated_line = find_name_line(
                 generated,
@@ -101,11 +108,13 @@ impl<'db> DecalModule<'db> {
 
         for class in self
             .members(db)
+            .iter()
+            .copied()
             .filter_map(|member| match member {
-                DecalMember::Class(class) => Some(class),
+                FacadeMember::Class(class) => Some(class),
                 _ => None,
             })
-            .filter(|class| matches!(class, DecalClass::Discriminated(_)))
+            .filter(|class| matches!(class, FacadeClass::Discriminated(_)))
         {
             let generated_line =
                 find_name_line(generated, search_line, "export type ", class.name(db), " =")
@@ -119,10 +128,15 @@ impl<'db> DecalModule<'db> {
             );
         }
 
-        for template in self.members(db).filter_map(|member| match member {
-            DecalMember::ClassTemplate(template) => Some(template),
-            _ => None,
-        }) {
+        for template in self
+            .members(db)
+            .iter()
+            .copied()
+            .filter_map(|member| match member {
+                FacadeMember::ClassTemplate(template) => Some(template),
+                _ => None,
+            })
+        {
             let template_mappings = template.render_sourcemap_mappings(db, self, search_line);
 
             if let Some(line) = template_mappings

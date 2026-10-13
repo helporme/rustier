@@ -4,36 +4,36 @@ use crate::compiler::{
         ts::{DeclarationScope, jsdoc::render_jsdoc},
     },
     db::Db,
-    ir::decals::{DecalClass, DecalMember, DecalModule},
+    ir::facade::{FacadeClass, FacadeMember, FacadeModule},
 };
 
 #[salsa::tracked]
-impl<'db> DecalModule<'db> {
+impl<'db> FacadeModule<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn render_ts_mod(self, db: &'db dyn Db) -> String {
         self.render_ts_in(db, DeclarationScope::Module)
     }
 
     pub(super) fn render_ts_in(self, db: &'db dyn Db, scope: DeclarationScope) -> String {
-        let members = self.members(db).collect::<Vec<_>>();
+        let members = self.members(db);
         let functions = members
             .iter()
             .filter_map(|member| match member {
-                DecalMember::Function(function) => Some(*function),
+                FacadeMember::Function(function) => Some(*function),
                 _ => None,
             })
             .collect::<Vec<_>>();
         let classes = members
             .iter()
             .filter_map(|member| match member {
-                DecalMember::Class(class) => Some(*class),
+                FacadeMember::Class(class) => Some(*class),
                 _ => None,
             })
             .collect::<Vec<_>>();
         let templates = members
             .iter()
             .filter_map(|member| match member {
-                DecalMember::ClassTemplate(template) => Some(*template),
+                FacadeMember::ClassTemplate(template) => Some(*template),
                 _ => None,
             })
             .collect::<Vec<_>>();
@@ -43,20 +43,20 @@ impl<'db> DecalModule<'db> {
             return frag!(export {};).print();
         }
 
-        let imports = self.imports(db);
+        let imports = self.decl_imports(db);
         let has_imports = !imports.is_empty();
         let functions = functions.into_iter().map(|function| function.render_ts(db));
 
         let plain_classes = classes
             .iter()
             .copied()
-            .filter(|class| matches!(class, DecalClass::Plain(_)))
+            .filter(|class| matches!(class, FacadeClass::Plain(_)))
             .map(|class| class.render_in_scope_ts(db, scope));
 
         let discriminated_classes = classes
             .iter()
             .copied()
-            .filter(|class| matches!(class, DecalClass::Discriminated(_)))
+            .filter(|class| matches!(class, FacadeClass::Discriminated(_)))
             .map(|class| class.render_in_scope_ts(db, scope));
 
         fragment(move |p| {
@@ -117,8 +117,7 @@ mod tests {
                             .crates(db)
                             .next()
                             .expect("test crate should be lowered")
-                            .root(db)
-                            .decals(db);
+                            .root(db);
 
                         root.render_ts_mod(db).apply(p);
                     },

@@ -6,17 +6,17 @@ mod primitives;
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, Printer, fragment},
     db::Db,
-    ir::{abi::AbiType, facade::js_type::FacadeJsType},
+    ir::{abi::AbiType, facade::type_js::FacadeTypeJs},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CastType<'db> {
-    Facade(FacadeJsType<'db>),
+    Facade(FacadeTypeJs<'db>),
     Abi(AbiType<'db>),
 }
 
-impl<'db> From<FacadeJsType<'db>> for CastType<'db> {
-    fn from(value: FacadeJsType<'db>) -> Self {
+impl<'db> From<FacadeTypeJs<'db>> for CastType<'db> {
+    fn from(value: FacadeTypeJs<'db>) -> Self {
         Self::Facade(value)
     }
 }
@@ -103,7 +103,7 @@ impl<'db> CastRenderer<'db> for Renderer {
 
             match (src, dst) {
                 // classes
-                (Facade(FacadeJsType::Class(source)), Abi(AbiType::Class { .. })) => {
+                (Facade(FacadeTypeJs::Class(source)), Abi(AbiType::Class { .. })) => {
                     classes::render_facade_class_to_abi(
                         db,
                         source,
@@ -115,7 +115,7 @@ impl<'db> CastRenderer<'db> for Renderer {
                 }
                 (
                     Abi(AbiType::Class { class: source, .. }),
-                    Facade(FacadeJsType::Class(target)),
+                    Facade(FacadeTypeJs::Class(target)),
                 ) => {
                     classes::render_abi_class_to_facade(
                         db,
@@ -128,27 +128,27 @@ impl<'db> CastRenderer<'db> for Renderer {
                     .apply(printer);
                 }
                 // boolean
-                (Facade(FacadeJsType::boolean), Abi(AbiType::Bool))
-                | (Abi(AbiType::Bool), Facade(FacadeJsType::boolean))
-                | (Facade(FacadeJsType::boolean), Facade(FacadeJsType::boolean))
+                (Facade(FacadeTypeJs::boolean), Abi(AbiType::Bool))
+                | (Abi(AbiType::Bool), Facade(FacadeTypeJs::boolean))
+                | (Facade(FacadeTypeJs::boolean), Facade(FacadeTypeJs::boolean))
                 | (Abi(AbiType::Bool), Abi(AbiType::Bool)) => {
                     primitives::render_bool_cast(in_expr, out_var_name, continue_with)
                         .apply(printer);
                 }
 
                 // string
-                (Facade(FacadeJsType::string), Abi(AbiType::String))
-                | (Abi(AbiType::String), Facade(FacadeJsType::string))
-                | (Facade(FacadeJsType::string), Facade(FacadeJsType::string))
+                (Facade(FacadeTypeJs::string), Abi(AbiType::String))
+                | (Abi(AbiType::String), Facade(FacadeTypeJs::string))
+                | (Facade(FacadeTypeJs::string), Facade(FacadeTypeJs::string))
                 | (Abi(AbiType::String), Abi(AbiType::String)) => {
                     primitives::render_string_cast(in_expr, out_var_name, continue_with)
                         .apply(printer);
                 }
 
                 // number
-                (Facade(FacadeJsType::number), Abi(AbiType::F64))
-                | (Abi(AbiType::F64), Facade(FacadeJsType::number))
-                | (Facade(FacadeJsType::number), Facade(FacadeJsType::number))
+                (Facade(FacadeTypeJs::number), Abi(AbiType::F64))
+                | (Abi(AbiType::F64), Facade(FacadeTypeJs::number))
+                | (Facade(FacadeTypeJs::number), Facade(FacadeTypeJs::number))
                 | (Abi(AbiType::F64), Abi(AbiType::F64)) => {
                     primitives::render_number_cast(in_expr, out_var_name, continue_with)
                         .apply(printer);
@@ -271,7 +271,7 @@ mod tests {
         db::Db,
         ir::{
             abi::AbiType,
-            facade::{FacadeClass, FacadeMember, js_type::FacadeJsType},
+            facade::{FacadeClass, FacadeMember, type_js::FacadeTypeJs},
             rust::Rust,
         },
     };
@@ -336,38 +336,38 @@ mod tests {
 
     cast_snapshot! {
         name: boolean_to_abi,
-        from: |_db| FacadeJsType::boolean,
+        from: |_db| FacadeTypeJs::boolean,
         to: |_db| AbiType::Bool,
     }
 
     cast_snapshot! {
         name: boolean_to_facade,
         from: |_db| AbiType::Bool,
-        to: |_db| FacadeJsType::boolean,
+        to: |_db| FacadeTypeJs::boolean,
     }
 
     cast_snapshot! {
         name: string_to_abi,
-        from: |_db| FacadeJsType::string,
+        from: |_db| FacadeTypeJs::string,
         to: |_db| AbiType::String,
     }
 
     cast_snapshot! {
         name: string_to_facade,
         from: |_db| AbiType::String,
-        to: |_db| FacadeJsType::string,
+        to: |_db| FacadeTypeJs::string,
     }
 
     cast_snapshot! {
         name: number_to_abi,
-        from: |_db| FacadeJsType::number,
+        from: |_db| FacadeTypeJs::number,
         to: |_db| AbiType::F64,
     }
 
     cast_snapshot! {
         name: number_to_facade,
         from: |_db| AbiType::F64,
-        to: |_db| FacadeJsType::number,
+        to: |_db| FacadeTypeJs::number,
     }
 
     cast_snapshot! {
@@ -376,7 +376,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| FacadeJsType::Class(test_facade_class(db)),
+        from: |db| FacadeTypeJs::Class(test_facade_class(db)),
         to: |db| AbiType::Class {
             class: test_facade_class(db).abi(db),
             borrowed: true,
@@ -393,13 +393,13 @@ mod tests {
             class: test_facade_class(db).abi(db),
             borrowed: false,
         },
-        to: |db| FacadeJsType::Class(test_facade_class(db)),
+        to: |db| FacadeTypeJs::Class(test_facade_class(db)),
     }
 
     cast_snapshot! {
         name: facade_identity,
-        from: |_db| FacadeJsType::number,
-        to: |_db| FacadeJsType::number,
+        from: |_db| FacadeTypeJs::number,
+        to: |_db| FacadeTypeJs::number,
     }
 
     cast_snapshot! {

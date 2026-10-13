@@ -1,9 +1,12 @@
 //! Intermediate representation used to generate the JavaScript API.
 
 pub mod coerce;
+pub mod decls;
 pub mod ext;
-pub mod imports;
-pub mod js_type;
+pub mod imports_js;
+pub mod imports_ts;
+pub mod type_js;
+pub mod type_ts;
 
 use std::collections::{BTreeMap, VecDeque};
 
@@ -13,7 +16,7 @@ use crate::compiler::{
     db::Db,
     ir::rust::{
         Callable, Crate, Enum, EnumType, FieldName, FieldQualified, FunctionQualified, GenArg,
-        Member, Module, Rust, Struct, StructType, Type, TypeKind, VariantQualified,
+        Member, Module, Rust, Span, Struct, StructType, Type, TypeKind, VariantQualified,
         usages::UsageGraph,
     },
     path::FilePath,
@@ -26,12 +29,45 @@ pub struct Facade<'db> {
     pub usages: UsageGraph<'db>,
 }
 
+#[salsa::tracked]
 impl<'db> Facade<'db> {
     pub fn crates(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeCrate<'db>> {
         self.rust(db)
             .crates(db)
             .iter()
             .map(move |crate_| FacadeCrate::new(db, *crate_, self.usages(db)))
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn local_modules(self, db: &'db dyn Db) -> Vec<FacadeModule<'db>> {
+        self.modules_by_locality(db, true)
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn external_modules(self, db: &'db dyn Db) -> Vec<FacadeModule<'db>> {
+        self.modules_by_locality(db, false)
+    }
+
+    fn modules_by_locality(self, db: &'db dyn Db, is_local: bool) -> Vec<FacadeModule<'db>> {
+        let mut modules = self
+            .crates(db)
+            .filter(move |crate_| crate_.is_local(db) == is_local)
+            .flat_map(move |crate_| crate_.all_modules(db))
+            .filter(|module| {
+                module.members(db).iter().any(|member| {
+                    matches!(
+                        member,
+                        FacadeMember::Class(_)
+                            | FacadeMember::ClassTemplate(_)
+                            | FacadeMember::Function(_)
+                    )
+                })
+            })
+            .collect::<Vec<_>>();
+
+        modules.sort_by_key(|module| module.virtual_path(db));
+
+        modules
     }
 }
 
@@ -95,6 +131,14 @@ impl<'db> FacadeParentModule<'db> {
     /// File path of the source rust module.
     pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
         self.src(db).file_path(db)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.src(db).docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.src(db).span(db)
     }
 }
 
@@ -209,6 +253,14 @@ impl<'db> FacadeModule<'db> {
     pub fn file_path(self, db: &'db dyn Db) -> &'db FilePath {
         self.as_parent(db).file_path(db)
     }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.src(db).docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.src(db).span(db)
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
@@ -278,6 +330,20 @@ impl<'db> FacadeClassTemplate<'db> {
         entries.sort_by(|(_, left), (_, right)| left.name(db).cmp(right.name(db)));
 
         entries
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        match self {
+            Self::Plain(template) => template.src(db).docs(db),
+            Self::Discriminated(template) => template.src(db).docs(db),
+        }
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        match self {
+            Self::Plain(template) => template.src(db).span(db),
+            Self::Discriminated(template) => template.src(db).span(db),
+        }
     }
 }
 
@@ -356,6 +422,20 @@ impl<'db> FacadeFunction<'db> {
             Self::Method(method) => method.ret_type(db),
         }
     }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        match self {
+            Self::Free(function) => function.docs(db),
+            Self::Method(method) => method.docs(db),
+        }
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        match self {
+            Self::Free(function) => function.span(db),
+            Self::Method(method) => method.span(db),
+        }
+    }
 }
 
 #[salsa::interned(debug)]
@@ -367,6 +447,14 @@ pub struct FacadeFreeFunction<'db> {
 impl<'db> FacadeFreeFunction<'db> {
     pub fn as_fn(self) -> FacadeFunction<'db> {
         FacadeFunction::Free(self)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.src(db).declaration(db).docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.src(db).declaration(db).span(db)
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db String {
@@ -401,6 +489,14 @@ pub struct FacadeMethod<'db> {
 impl<'db> FacadeMethod<'db> {
     pub fn as_fn(self) -> FacadeFunction<'db> {
         FacadeFunction::Method(self)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.src(db).declaration(db).docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.src(db).declaration(db).span(db)
     }
 
     pub fn is_static(self, db: &'db dyn Db) -> bool {
@@ -523,6 +619,20 @@ impl<'db> FacadeClass<'db> {
             FacadeClass::Discriminated(_) => None,
         }
     }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        match self {
+            Self::Plain(class) => class.docs(db),
+            Self::Discriminated(class) => class.docs(db),
+        }
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        match self {
+            Self::Plain(class) => class.span(db),
+            Self::Discriminated(class) => class.span(db),
+        }
+    }
 }
 
 #[salsa::interned(debug)]
@@ -534,6 +644,14 @@ pub struct FacadeClassPlain<'db> {
 impl<'db> FacadeClassPlain<'db> {
     pub fn module(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
         self.src(db).def(db).module(db).facade_parent(db)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.src(db).def(db).docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.src(db).def(db).span(db)
     }
 
     #[salsa::tracked(returns(ref))]
@@ -600,6 +718,14 @@ pub struct FacadeClassDiscriminated<'db> {
 impl<'db> FacadeClassDiscriminated<'db> {
     pub fn module(self, db: &'db dyn Db) -> FacadeParentModule<'db> {
         self.src(db).def(db).module(db).facade_parent(db)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.src(db).def(db).docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.src(db).def(db).span(db)
     }
 
     #[salsa::tracked(returns(ref))]
@@ -692,6 +818,14 @@ impl<'db> FacadeVariant<'db> {
         self.src(db).declaration(db).name(db)
     }
 
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.src(db).declaration(db).docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.src(db).declaration(db).span(db)
+    }
+
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeFieldPlain<'db>> + 'db {
         self.src(db).fields(db).map(move |field| field.facade(db))
     }
@@ -709,6 +843,14 @@ pub struct FacadeFieldPlain<'db> {
 impl<'db> FacadeFieldPlain<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db FieldName {
         self.src(db).declaration(db).name(db)
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.src(db).declaration(db).docs(db)
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.src(db).declaration(db).span(db)
     }
 
     pub fn is_readonly(self, db: &'db dyn Db) -> bool {

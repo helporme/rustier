@@ -7,16 +7,16 @@ use crate::compiler::{
         },
     },
     db::Db,
-    ir::decals::{DecalClass, DecalClassTemplate, DecalModule},
+    ir::facade::{FacadeClass, FacadeClassTemplate, FacadeModule},
 };
 
 #[salsa::tracked]
-impl<'db> DecalClassTemplate<'db> {
+impl<'db> FacadeClassTemplate<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_sourcemap_mappings(
         self,
         db: &'db dyn Db,
-        module: DecalModule<'db>,
+        module: FacadeModule<'db>,
         generated_line: usize,
     ) -> Vec<Mapping> {
         let generated = module.render_ts_mod(db);
@@ -25,8 +25,8 @@ impl<'db> DecalClassTemplate<'db> {
 
         for (_, class) in self.mappings(db) {
             let (prefix, suffix) = match class {
-                DecalClass::Plain(_) => ("declare class ", " {"),
-                DecalClass::Discriminated(_) => ("type ", " ="),
+                FacadeClass::Plain(_) => ("declare class ", " {"),
+                FacadeClass::Discriminated(_) => ("type ", " ="),
             };
             let line = find_name_line(generated, start_line, prefix, class.name(db), suffix)
                 .expect("rendered TypeScript template class should exist");
@@ -45,7 +45,7 @@ impl<'db> DecalClassTemplate<'db> {
         };
         let original = original_location(db, span);
         let original_name_column = original.column
-            + if self.is_discriminated(db) {
+            + if matches!(self, FacadeClassTemplate::Discriminated(_)) {
                 "pub enum ".len()
             } else {
                 "pub struct ".len()

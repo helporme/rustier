@@ -14,10 +14,10 @@ mod test;
 use crate::compiler::{
     codegen::fragment::{FragmentPrint, doubles, frag, spaced},
     db::Db,
-    ir::decals::Decals,
+    ir::facade::Facade,
 };
 
-impl<'db> Decals<'db> {
+impl<'db> Facade<'db> {
     /// Renders external declarations as ambient modules.
     pub fn render_ambient_ts_mods(self, db: &'db dyn Db) -> String {
         spaced(self.external_modules(db).iter().map(|module| {
