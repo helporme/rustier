@@ -5,6 +5,7 @@
 //! discriminators and coerce functions, and their symbols.
 
 pub mod ext;
+pub mod tethering;
 
 use itertools::Either;
 
@@ -15,6 +16,7 @@ use crate::compiler::{
             InterClass, InterClassDiscriminated, InterClassDiscriminatedVariant, InterClassPlain,
             InterField, InterFunctionAssociated, InterFunctionFree, Interface,
         },
+        runtime::tethering::RuntimeTethering,
         rust::{Type, TypeKind},
     },
 };
@@ -35,6 +37,16 @@ impl<'db> Runtime<'db> {
             .flat_map(|crate_| crate_.all_modules(db))
             .flat_map(|module| module.classes(db))
             .map(|class| class.runtime(db))
+            .collect()
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn tetherings(self, db: &'db dyn Db) -> Vec<RuntimeTethering<'db>> {
+        self.interface(db)
+            .crates(db)
+            .flat_map(|crate_| crate_.all_modules(db))
+            .flat_map(|module| module.classes(db))
+            .map(|class| class.tethering(db))
             .collect()
     }
 
@@ -173,7 +185,7 @@ impl<'db> RuntimeFunction<'db> {
         match self {
             Self::Free(function) => function.ret_type(db).map(RuntimeType::Source),
             Self::Associated(function) => function.ret_type(db).map(RuntimeType::Source),
-            Self::Getter(getter) => Some(RuntimeType::Source(getter.field(db).type_(db))),
+            Self::Getter(getter) => Some(getter.field(db).tethered(db).value_type(db)),
             Self::Setter(_) => None,
             Self::Discriminator(_) => Some(RuntimeType::u32),
             Self::PlainCoerce(coerce) => {
@@ -194,6 +206,7 @@ pub enum RuntimeType<'db> {
     Source(Type<'db>),
     /// A "synthetic" u32 type, without the hir provenance.
     u32,
+    Tethered(RuntimeTethering<'db>),
 }
 
 impl<'db> From<InterFunctionFree<'db>> for RuntimeFunction<'db> {

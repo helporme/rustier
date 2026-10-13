@@ -25,7 +25,7 @@ pub fn __fn__disc__10_test_crate__4_Test(
                 "Abi(Class { class: AbiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) }, borrowed: true })",
             )
             .to(
-                "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } })",
+                "Tethered(RuntimeTethering { source: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
             )
             .an(_0)
             .access(|src| {
@@ -55,7 +55,7 @@ pub fn __fn__disc__10_test_crate__4_Test(
                 "Abi(Class { class: AbiClass { interface: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) }, borrowed: true })",
             )
             .to(
-                "Tethered(TetheringStructType { source_type: Type { origin: Enum(EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) }) } })",
+                "Tethered(RuntimeTethering { source: Discriminated(InterClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
             )
             .an(_0)
             .access(|src| {

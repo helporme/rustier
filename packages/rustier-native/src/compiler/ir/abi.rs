@@ -74,6 +74,10 @@ impl<'db> AbiFunction<'db> {
         self.runtime(db).ret_type(db).map(|type_| match type_ {
             RuntimeType::Source(type_) => AbiType::new(db, type_, false),
             RuntimeType::u32 => AbiType::F64,
+            RuntimeType::Tethered(tethering) => AbiType::Class {
+                class: tethering.source(db).abi(db),
+                borrowed: false,
+            },
         })
     }
 }

@@ -28,6 +28,10 @@ impl<'db> Runtime<'db> {
             .any(|type_| type_.is_from_alloc_crate(db))
             .then_some(frag!(extern crate alloc;@@));
 
+        let tetherings = self
+            .tetherings(db)
+            .iter()
+            .map(move |tethering| tethering.render(db));
         let classes = self
             .classes(db)
             .iter()
@@ -37,7 +41,7 @@ impl<'db> Runtime<'db> {
             .iter()
             .map(move |function| function.render(db, transport));
 
-        let members = spaced(classes.chain(functions));
+        let members = spaced(tetherings.chain(classes).chain(functions));
 
         let runtime = frag!(
             #![allow(unused_mut, dead_code, unused_imports, nonstandard_style, unreachable_patterns)]@@

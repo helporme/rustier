@@ -5,6 +5,7 @@ expression: snapshot
 # Source
 
 ```rust
+#[derive(Clone)]
 pub struct Child;
 pub struct Parent {
     pub child: Child,
@@ -53,7 +54,7 @@ impl __tethering__10_test_crate__6_Parent {
         self: &std::rc::Rc<Self>,
     ) -> __tethering::AccessResult<std::rc::Rc<__tethering__10_test_crate__5_Child>> {
         self.access(|parent| {
-            Ok(&parent.child)?;
+            __tethering::AccessResult::Ok(&parent.child)?;
             Ok(())
         })?;
         if let Some(tethered) = __tethering::try_borrow(&self.__c__child)?
@@ -64,8 +65,8 @@ impl __tethering__10_test_crate__6_Parent {
         }
         let field_access: std::rc::Rc<dyn __tethering::Accessor<test_crate::Child>> = std::rc::Rc::new(__tethering::FieldAccess {
             parent: self.clone(),
-            get: |parent| Ok(&parent.child),
-            get_mut: |parent| Ok(&mut parent.child),
+            get: |parent| __tethering::AccessResult::Ok(&parent.child),
+            get_mut: |parent| __tethering::AccessResult::Ok(&mut parent.child),
         });
         let tethered = std::rc::Rc::new(
             __tethering__10_test_crate__5_Child::new_projected(field_access),
@@ -77,14 +78,21 @@ impl __tethering__10_test_crate__6_Parent {
     }
     pub fn set_child(&self, value: test_crate::Child) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
-            Ok(&mut src.child)?;
+            __tethering::AccessResult::Ok(&mut src.child)?;
             Ok(())
         })?;
         let cached_value = __tethering::try_borrow_mut(&self.__c__child)?
             .take()
             .and_then(|tethered| tethered.upgrade());
         let old_value = self
-            .access_mut(|src| { Ok(std::mem::replace(Ok(&mut src.child)?, value)) })?;
+            .access_mut(|src| {
+                Ok(
+                    std::mem::replace(
+                        __tethering::AccessResult::Ok(&mut src.child)?,
+                        value,
+                    ),
+                )
+            })?;
         if let Some(cached_value) = cached_value {
             cached_value.src.replace_with_owned(old_value)?;
         }
@@ -134,7 +142,7 @@ impl __tethering__10_test_crate__6_Parent {
         self: &std::rc::Rc<Self>,
     ) -> __tethering::AccessResult<std::rc::Rc<__tethering__10_test_crate__5_Child>> {
         self.access(|parent| {
-            Ok(&parent.child)?;
+            __tethering::AccessResult::Ok(&parent.child)?;
             Ok(())
         })?;
         if let Some(tethered) = __tethering::try_borrow(&self.__c__child)?
@@ -145,8 +153,8 @@ impl __tethering__10_test_crate__6_Parent {
         }
         let field_access: std::rc::Rc<dyn __tethering::Accessor<test_crate::Child>> = std::rc::Rc::new(__tethering::FieldAccess {
             parent: self.clone(),
-            get: |parent| Ok(&parent.child),
-            get_mut: |parent| Ok(&mut parent.child),
+            get: |parent| __tethering::AccessResult::Ok(&parent.child),
+            get_mut: |parent| __tethering::AccessResult::Ok(&mut parent.child),
         });
         let tethered = std::rc::Rc::new(
             __tethering__10_test_crate__5_Child::new_projected(field_access),
@@ -158,14 +166,21 @@ impl __tethering__10_test_crate__6_Parent {
     }
     pub fn set_child(&self, value: test_crate::Child) -> __tethering::AccessResult<()> {
         self.access_mut(|src| {
-            Ok(&mut src.child)?;
+            __tethering::AccessResult::Ok(&mut src.child)?;
             Ok(())
         })?;
         let cached_value = __tethering::try_borrow_mut(&self.__c__child)?
             .take()
             .and_then(|tethered| tethered.upgrade());
         let old_value = self
-            .access_mut(|src| { Ok(std::mem::replace(Ok(&mut src.child)?, value)) })?;
+            .access_mut(|src| {
+                Ok(
+                    std::mem::replace(
+                        __tethering::AccessResult::Ok(&mut src.child)?,
+                        value,
+                    ),
+                )
+            })?;
         if let Some(cached_value) = cached_value {
             cached_value.src.replace_with_owned(old_value)?;
         }

@@ -4,19 +4,14 @@ use crate::compiler::{
     codegen::{
         abi::{AbiArgs, AbiTransport},
         fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, frag, fragment},
-        runtime::{
-            cast::{Cast, CastRenderer, RuntimeCastRenderer},
-            tethering::{
-                TetheringStructType, render_tethering_struct_get_field_expr,
-                render_tethering_struct_set_field_stmt,
-            },
-        },
+        runtime::cast::{Cast, CastRenderer, RuntimeCastRenderer},
     },
     db::Db,
     ir::{
+        interface::InterClass,
         runtime::{
             RuntimeDiscriminatedCoerce, RuntimeDiscriminator, RuntimeFunction, RuntimeGetter,
-            RuntimePlainCoerce, RuntimeSetter,
+            RuntimePlainCoerce, RuntimeSetter, tethering::RuntimeTetheredFieldKind,
         },
         rust::{Callable, Shape},
     },
@@ -245,21 +240,18 @@ where
         getter: RuntimeGetter<'db>,
         args: AbiArgs<'db>,
     ) -> impl FragmentOnce {
-        let field = getter.field(self.db).src(self.db);
-        let class_param = self.function.params(self.db)[0];
+        let tethered_field = getter.field(self.db).tethered(self.db);
+        let field = tethered_field.src(self.db);
+
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
             self.db,
             args.get(0).type_(),
-            TetheringStructType {
-                source_type: class_param.deborrow(self.db),
-            },
+            tethered_field.parent(self.db),
             args.get(0).expr(),
         );
 
-        let field_tethering_value_expr = render_tethering_struct_get_field_expr(
-            cls_tethering_struct_expr,
-            field.declaration(self.db).mangled_name(self.db),
-        );
+        let field_tethering_value_expr =
+            tethered_field.render_get_expr(self.db, cls_tethering_struct_expr);
 
         let ret_type = self
             .function
@@ -267,28 +259,20 @@ where
             .ret_type(self.db)
             .expect("getters return the field value");
 
-        let output = fragment(move |p| {
-            if ret_type.uses_tethering() {
-                self.cast_compiler
-                    .render_expr(
-                        self.db,
-                        TetheringStructType {
-                            source_type: field._type(self.db),
-                        },
-                        ret_type,
-                        field_tethering_value_expr,
-                    )
-                    .apply(p);
-            } else {
-                self.cast_compiler
-                    .render_expr(
-                        self.db,
-                        field._type(self.db),
-                        ret_type,
-                        field_tethering_value_expr,
-                    )
-                    .apply(p);
-            }
+        let output = fragment(move |p| match tethered_field.kind(self.db) {
+            RuntimeTetheredFieldKind::Tethered(tethering) => self
+                .cast_compiler
+                .render_expr(self.db, tethering, ret_type, field_tethering_value_expr)
+                .apply(p),
+            RuntimeTetheredFieldKind::Cloned => self
+                .cast_compiler
+                .render_expr(
+                    self.db,
+                    field._type(self.db),
+                    ret_type,
+                    field_tethering_value_expr,
+                )
+                .apply(p),
         });
 
         frag!(Ok({ output }))
@@ -299,23 +283,18 @@ where
         setter: RuntimeSetter<'db>,
         args: AbiArgs<'db>,
     ) -> impl FragmentOnce {
-        let field = setter.field(self.db).src(self.db);
-        let params = self.function.params(self.db);
-        let class_param = params[0];
+        let tethered_field = setter.field(self.db).tethered(self.db);
+        let field = tethered_field.src(self.db);
+
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
             self.db,
             args.get(0).type_(),
-            TetheringStructType {
-                source_type: class_param.deborrow(self.db),
-            },
+            tethered_field.parent(self.db),
             args.get(0).expr(),
         );
 
-        let set_tethered_field_stmt = render_tethering_struct_set_field_stmt(
-            cls_tethering_struct_expr,
-            field.declaration(self.db).mangled_name(self.db),
-            frag!(value),
-        );
+        let set_tethered_field_stmt =
+            tethered_field.render_set_stmt(self.db, cls_tethering_struct_expr, frag!(value));
 
         let set_tethered_field_stmt = self.cast_compiler.render_stmt(
             self.db,
@@ -343,9 +322,7 @@ where
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
             self.db,
             args.get(0).type_(),
-            TetheringStructType {
-                source_type: src.into_type(self.db),
-            },
+            InterClass::Discriminated(discriminator.class(self.db)).tethering(self.db),
             args.get(0).expr(),
         );
 

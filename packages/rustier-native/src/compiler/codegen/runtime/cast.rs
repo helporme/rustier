@@ -7,20 +7,18 @@ mod strings;
 mod tethering;
 
 use crate::compiler::{
-    codegen::{
-        fragment::{FragmentOnce, Printer, frag, fragment},
-        runtime::tethering::TetheringStructType,
-    },
+    codegen::fragment::{FragmentOnce, Printer, frag, fragment},
     db::Db,
     ir::{
         abi::AbiType,
+        runtime::tethering::RuntimeTethering,
         rust::{Type, TypeKind},
     },
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CastType<'db> {
-    Tethered(TetheringStructType<'db>),
+    Tethered(RuntimeTethering<'db>),
     Abi(AbiType<'db>),
     Rust(Type<'db>),
 }
@@ -45,15 +43,18 @@ impl<'db> CastType<'db> {
                         .same_type_as(db, right.interface(db).src_type(db))
             }
             (Self::Abi(left), Self::Abi(right)) => left == right,
-            (Self::Tethered(a), Self::Tethered(b)) => a.source_type.same_type_as(db, b.source_type),
+            (Self::Tethered(a), Self::Tethered(b)) => a
+                .source(db)
+                .src_type(db)
+                .same_type_as(db, b.source(db).src_type(db)),
             (Self::Rust(a), Self::Rust(b)) => a.same_type_as(db, b),
             _ => false,
         }
     }
 }
 
-impl<'db> From<TetheringStructType<'db>> for CastType<'db> {
-    fn from(value: TetheringStructType<'db>) -> Self {
+impl<'db> From<RuntimeTethering<'db>> for CastType<'db> {
+    fn from(value: RuntimeTethering<'db>) -> Self {
         Self::Tethered(value)
     }
 }
@@ -394,7 +395,6 @@ pub mod test {
 mod tests {
     use crate::compiler::{
         codegen::fragment::frag,
-        codegen::runtime::tethering::TetheringStructType,
         db::Db,
         ir::{
             abi::AbiType,
@@ -731,9 +731,7 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| test_type(db, "ExampleStruct"),
-        to: |db| TetheringStructType {
-            source_type: test_type(db, "ExampleStruct"),
-        },
+        to: |db| test_type(db, "ExampleStruct").tethering(db).unwrap(),
     }
 
     cast_snapshot! {
@@ -742,9 +740,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| TetheringStructType {
-            source_type: test_type(db, "ExampleStruct"),
-        },
+        from: |db| test_type(db, "ExampleStruct").tethering(db).unwrap(),
         to: |db| test_type(db, "ExampleStruct"),
     }
 
@@ -754,9 +750,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| TetheringStructType {
-            source_type: test_type(db, "ExampleStruct"),
-        },
+        from: |db| test_type(db, "ExampleStruct").tethering(db).unwrap(),
         to: |db| test_type(db, "ExampleStruct").borrowed(db),
     }
 
@@ -766,9 +760,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| TetheringStructType {
-            source_type: test_type(db, "ExampleStruct"),
-        },
+        from: |db| test_type(db, "ExampleStruct").tethering(db).unwrap(),
         to: |db| test_type(db, "ExampleStruct").borrowed_mut(db),
     }
 
@@ -779,9 +771,7 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| test_abi_class_type(db, "ExampleStruct", true),
-        to: |db| TetheringStructType {
-            source_type: test_type(db, "ExampleStruct"),
-        },
+        to: |db| test_type(db, "ExampleStruct").tethering(db).unwrap(),
     }
 
     cast_snapshot! {
@@ -790,9 +780,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| TetheringStructType {
-            source_type: test_type(db, "ExampleStruct"),
-        },
+        from: |db| test_type(db, "ExampleStruct").tethering(db).unwrap(),
         to: |db| test_abi_class_type(db, "ExampleStruct", false),
     }
 
@@ -814,12 +802,8 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| TetheringStructType {
-            source_type: test_type(db, "ExampleStruct"),
-        },
-        to: |db| TetheringStructType {
-            source_type: test_type(db, "ExampleStruct"),
-        },
+        from: |db| test_type(db, "ExampleStruct").tethering(db).unwrap(),
+        to: |db| test_type(db, "ExampleStruct").tethering(db).unwrap(),
     }
 
     #[test]
@@ -854,12 +838,8 @@ mod tests {
                 renderer.render_expr(&db, first, second, "input").print(),
                 "input"
             );
-            let first = TetheringStructType {
-                source_type: type_at(3),
-            };
-            let second = TetheringStructType {
-                source_type: type_at(4),
-            };
+            let first = type_at(3).tethering(&db).unwrap();
+            let second = type_at(4).tethering(&db).unwrap();
             assert_ne!(first, second);
             assert_eq!(
                 renderer.render_expr(&db, first, second, "input").print(),

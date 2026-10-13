@@ -1,17 +1,8 @@
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, Printer, fragment},
     db::Db,
-    ir::{
-        abi::AbiType,
-        rust::{FieldName, Type, TypeKind},
-    },
+    ir::rust::{FieldName, Type, TypeKind},
 };
-
-impl<'db> AbiType<'db> {
-    pub(super) fn uses_tethering(self) -> bool {
-        matches!(self, AbiType::Class { .. })
-    }
-}
 
 impl FragmentOnce for &FieldName {
     fn apply(self, p: &mut Printer) {
@@ -53,25 +44,5 @@ impl<'db> Type<'db> {
             }
             TypeKind::Generic(_) => unreachable!("unsupported type cannot reach runtime codegen"),
         })
-    }
-
-    pub(super) fn uses_tethering(self, db: &'db dyn Db) -> bool {
-        match self.kind(db) {
-            TypeKind::bool
-            | TypeKind::char
-            | TypeKind::i8
-            | TypeKind::u8
-            | TypeKind::i16
-            | TypeKind::u16
-            | TypeKind::i32
-            | TypeKind::u32
-            | TypeKind::f32
-            | TypeKind::f64
-            | TypeKind::Str
-            | TypeKind::String => false,
-            TypeKind::Struct(_) | TypeKind::Enum(_) => true,
-            TypeKind::Borrowed(borrowed) => borrowed.inner(db).uses_tethering(db),
-            TypeKind::Generic(_) => unreachable!("unsupported type cannot reach runtime codegen"),
-        }
     }
 }

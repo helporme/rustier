@@ -8,7 +8,9 @@ use crate::compiler::{
         runtime::{
             Runtime, RuntimeClass, RuntimeDiscriminatedCoerce, RuntimeDiscriminator, RuntimeGetter,
             RuntimePlainCoerce, RuntimeSetter,
+            tethering::{RuntimeTetheredField, RuntimeTethering},
         },
+        rust::Type,
     },
 };
 
@@ -22,9 +24,23 @@ impl<'db> InterClass<'db> {
     pub fn runtime(self, db: &'db dyn Db) -> RuntimeClass<'db> {
         RuntimeClass::new(db, self)
     }
+
+    pub fn tethering(self, db: &'db dyn Db) -> RuntimeTethering<'db> {
+        RuntimeTethering::new(db, self)
+    }
+}
+
+impl<'db> Type<'db> {
+    pub fn tethering(self, db: &'db dyn Db) -> Option<RuntimeTethering<'db>> {
+        self.interface_class(db).map(|class| class.tethering(db))
+    }
 }
 
 impl<'db> InterField<'db> {
+    pub fn tethered(self, db: &'db dyn Db) -> RuntimeTetheredField<'db> {
+        RuntimeTetheredField::new(db, self.src(db))
+    }
+
     pub fn getter(self, db: &'db dyn Db) -> RuntimeGetter<'db> {
         RuntimeGetter::new(db, self)
     }

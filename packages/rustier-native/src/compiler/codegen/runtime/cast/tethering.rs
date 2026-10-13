@@ -1,10 +1,10 @@
 use crate::compiler::{
-    codegen::{
-        fragment::{FragmentOnce, frag, fragment},
-        runtime::tethering::TetheringStructType,
-    },
+    codegen::fragment::{FragmentOnce, frag, fragment},
     db::Db,
-    ir::rust::{Type, TypeKind},
+    ir::{
+        runtime::tethering::RuntimeTethering,
+        rust::{Type, TypeKind},
+    },
 };
 
 use super::{CastOutput, adapt_to_cast_output};
@@ -12,7 +12,7 @@ use super::{CastOutput, adapt_to_cast_output};
 pub fn render_type_to_tethered<'db, InExpr, OutVar, Continue>(
     db: &'db dyn Db,
     source: Type<'db>,
-    target: TetheringStructType<'db>,
+    target: RuntimeTethering<'db>,
     in_expr: InExpr,
     output: CastOutput<OutVar, Continue>,
 ) -> impl FragmentOnce + 'db
@@ -28,13 +28,13 @@ where
 pub fn render_type_to_tethered_expr<'db, InExpr>(
     db: &'db dyn Db,
     _source: Type<'db>,
-    target: TetheringStructType<'db>,
+    target: RuntimeTethering<'db>,
     in_expr: InExpr,
 ) -> impl FragmentOnce + 'db
 where
     InExpr: FragmentOnce + 'db,
 {
-    let tethering_struct_name = target.source_type.tethering_struct_name(db);
+    let tethering_struct_name = target.tethering_struct_name(db);
 
     // TODO: remove Rc once class ownership no longer requires it.
     frag!(std::rc::Rc::new({tethering_struct_name}::new_owned({in_expr})))
@@ -42,7 +42,7 @@ where
 
 pub fn render_tethered_to_type<'db, InExpr, OutVar, Continue>(
     db: &'db dyn Db,
-    _source: TetheringStructType<'db>,
+    _source: RuntimeTethering<'db>,
     target: Type<'db>,
     in_expr: InExpr,
     output: CastOutput<OutVar, Continue>,

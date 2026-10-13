@@ -1,18 +1,10 @@
 use crate::compiler::{
     codegen::{
         abi::AbiTransport,
-        fragment::{FragmentOnce, FragmentPrint, Printer, doubles, frag, fragment},
-        runtime::tethering::{
-            ClonedField, FieldExpr, TetheredField, TetheringStruct, TetheringStructField,
-            render_tethering_struct,
-        },
+        fragment::{FragmentOnce, FragmentPrint, Printer, frag},
     },
     db::Db,
-    ir::{
-        interface::InterField,
-        runtime::RuntimeClass,
-        rust::{FieldParent, TypeKind},
-    },
+    ir::runtime::RuntimeClass,
 };
 
 #[salsa::tracked]
@@ -43,30 +35,13 @@ impl<'db> FragmentOnce for ClassFragment<'db> {
 impl<'db> ClassFragment<'db> {
     fn render(&self) -> impl FragmentOnce {
         frag!(
-            {self.render_tethering_struct()}@@
             {self.render_struct()}@@
         )
     }
 
-    fn render_tethering_struct<'a>(&'a self) -> impl FragmentOnce + 'a {
-        let tethered_fields = self
-            .class
-            .interface(self.db)
-            .fields(self.db)
-            .iter()
-            .map(|field| field.get_tethered_field(self.db));
-
-        let tethering_struct = TetheringStruct {
-            source_type: self.class.interface(self.db).src_type(self.db),
-            fields: tethered_fields,
-        };
-
-        render_tethering_struct(self.db, tethering_struct)
-    }
-
     fn render_struct<'a>(&'a self) -> impl FragmentOnce + 'a {
         let class = self.class.interface(self.db);
-        let tethering_type_name = class.src_type(self.db).tethering_struct_name(self.db);
+        let tethering_type_name = class.tethering(self.db).tethering_struct_name(self.db);
 
         class.abi(self.db).render_rust_with_fields(
             self.db,
@@ -76,104 +51,14 @@ impl<'db> ClassFragment<'db> {
     }
 }
 
-impl<'db> InterField<'db> {
-    fn get_tethered_field(
-        &self,
-        db: &'db dyn Db,
-    ) -> TetheredField<'db, InterFieldExpr<'_, 'db>, InterFieldExpr<'_, 'db>> {
-        let ref_field_expr = InterFieldExpr {
-            field: self,
-            db,
-            is_mutable: false,
-        };
-        let mut_field_expr = InterFieldExpr {
-            field: self,
-            db,
-            is_mutable: true,
-        };
-
-        let src_field = self.src(db);
-        if src_field._type(db).uses_tethering(db) {
-            TetheredField::TetheringStruct(TetheringStructField {
-                name: src_field.declaration(db).mangled_name(db),
-                get_ref_expr: ref_field_expr,
-                get_mut_expr: mut_field_expr,
-                source_type: src_field._type(db),
-                with_setter: !src_field.is_readonly(db),
-            })
-        } else {
-            TetheredField::Cloned(ClonedField {
-                name: src_field.declaration(db).mangled_name(db),
-                get_ref_expr: ref_field_expr,
-                get_mut_expr: mut_field_expr,
-                source_type: src_field._type(db),
-            })
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-struct InterFieldExpr<'field, 'db> {
-    field: &'field InterField<'db>,
-    db: &'db dyn Db,
-    is_mutable: bool,
-}
-
-impl<'field, 'db: 'field> FieldExpr for InterFieldExpr<'field, 'db> {
-    fn render(&self, source: &str) -> impl FragmentOnce {
-        let Self {
-            field,
-            db,
-            is_mutable,
-        } = *self;
-
-        let src_field = field.src(db);
-
-        fragment(move |p| match &src_field.declaration(db).parent(db) {
-            FieldParent::Struct(..) => {
-                let field_name = src_field.declaration(db).escaped_name(db);
-
-                if is_mutable {
-                    frag!(__tethering::AccessResult::Ok(&mut ~{source}.{field_name})).apply(p);
-                } else {
-                    frag!(__tethering::AccessResult::Ok(&{source}.{field_name})).apply(p);
-                }
-            }
-            FieldParent::Variant(variant) => {
-                let enum_ = src_field.target(db);
-                let field_name = src_field.declaration(db).name(db);
-                let error = frag!(
-                    rustier_rt::EnumError::InactiveField~{{
-                        type_name: {doubles(enum_.display(db))},@
-                        variant: {doubles(variant.name(db))},@
-                        field: {doubles(field_name)},
-                    }}.into()
-                );
-
-                let TypeKind::Enum(enum_type) = enum_.kind(db) else {
-                    unreachable!("variant fields belong to enums")
-                };
-                let enum_name = enum_type.path(db).fqn(db);
-                let variant_name = variant.name(db);
-                let field_name = src_field.declaration(db).escaped_name(db);
-
-                frag!(
-                    match ~{source}~{{
-                        {enum_name}::{variant_name}~{{ {field_name}: __field, .. }} => __tethering::AccessResult::Ok(__field),@
-                        _ => __tethering::AccessResult::Err({error}),
-                    }}
-                )
-                .apply(p);
-            }
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{
         assert_rust_snap,
-        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Rust},
+        compiler::{
+            codegen::fragment::{FragmentOnce as _, frag},
+            ir::rust::Rust,
+        },
     };
 
     macro_rules! test_class {
@@ -194,7 +79,11 @@ mod tests {
                         let Some(class) = root.classes(db).next() else {
                             panic!("test crate root should contain exactly one interface class");
                         };
-                        class.runtime(db).render(db, transport).apply(printer);
+                        frag!(
+                            {class.tethering(db).render(db)}@@
+                            {class.runtime(db).render(db, transport)}
+                        )
+                        .apply(printer);
                     },
                 }
             }
