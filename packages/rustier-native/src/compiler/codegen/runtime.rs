@@ -1,10 +1,7 @@
 use crate::compiler::{
-    codegen::{
-        abi::AbiTransport,
-        fragment::{FragmentPrint, frag, spaced},
-    },
+    codegen::fragment::{FragmentPrint, frag, spaced},
     db::Db,
-    ir::runtime::Runtime,
+    ir::{abi::transport::AbiTransport, runtime::Runtime},
 };
 
 mod cast;

@@ -2,9 +2,9 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     compiler::{
-        codegen::{abi::AbiTransport, runtime::manifest::Manifest},
+        codegen::runtime::manifest::Manifest,
         db::Db,
-        ir::facade::FacadeModule,
+        ir::{abi::transport::AbiTransport, facade::FacadeModule},
     },
     server::write_file::{WriteFileError, write_file},
 };
@@ -37,17 +37,17 @@ impl<'a> BridgeCrate<'a> {
         }
     }
 
-    pub const fn name(self) -> &'static str {
+    pub fn name(self, db: &'a dyn Db) -> &'static str {
         match self {
             Self::Node(crate_) => crate_.name(),
-            Self::Wasm(crate_) => crate_.name(),
+            Self::Wasm(crate_) => crate_.name(db),
         }
     }
 
-    pub const fn transport(self) -> AbiTransport {
+    pub fn transport(self, db: &'a dyn Db) -> AbiTransport {
         match self {
             Self::Node(..) => AbiTransport::Napi,
-            Self::Wasm(..) => AbiTransport::WasmBindgen,
+            Self::Wasm(crate_) => AbiTransport::Wasm(crate_.transport(db)),
         }
     }
 
@@ -57,7 +57,7 @@ impl<'a> BridgeCrate<'a> {
         self.project(db)
             .out_dir(db)
             .join("crates")
-            .join(self.name())
+            .join(self.name(db))
     }
 
     /// Path to the manifest file of the bridge crate.
@@ -76,19 +76,19 @@ impl<'a> BridgeCrate<'a> {
         )));
 
         let manifest = Manifest {
-            name: self.name(),
+            name: self.name(db),
             source_package_name: &self.project(db).cfg(db).package_name,
             source_crate_name: self.project(db).src_crate(db).name(db),
             source_package_path: self.project(db).root_dir(db),
             runtime_path,
-            transport: self.transport(),
+            transport: self.transport(db),
         };
 
         let lib = self
             .project(db)
             .reachable_facade(db)
             .runtime(db)
-            .render(db, self.transport())
+            .render(db, self.transport(db))
             .clone();
 
         let build = manifest

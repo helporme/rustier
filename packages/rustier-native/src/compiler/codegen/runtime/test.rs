@@ -45,7 +45,7 @@ macro_rules! assert_rust_snap {
             let __node = $crate::compiler::codegen::fragment::FragmentPrint::print(
                 $crate::compiler::codegen::fragment::fragment(|$printer| {
                     let $db = &__db;
-                    let $transport = $crate::compiler::codegen::abi::AbiTransport::Napi;
+                    let $transport = $crate::compiler::ir::abi::transport::AbiTransport::Napi;
                     $expression
                 }),
             );
@@ -53,7 +53,11 @@ macro_rules! assert_rust_snap {
             let __wasm = $crate::compiler::codegen::fragment::FragmentPrint::print(
                 $crate::compiler::codegen::fragment::fragment(|$printer| {
                     let $db = &__db;
-                    let $transport = $crate::compiler::codegen::abi::AbiTransport::WasmBindgen;
+                    let $transport = $crate::compiler::ir::abi::transport::AbiTransport::Wasm(
+                        $crate::compiler::ir::abi::transport::WasmTransport {
+                            memory: $crate::compiler::ir::abi::transport::WasmMemory::x32,
+                        },
+                    );
                     $expression
                 }),
             );

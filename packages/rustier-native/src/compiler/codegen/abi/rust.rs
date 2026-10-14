@@ -1,18 +1,15 @@
 //! Rust side of the ABI: exported wrapper functions and carrier classes.
 
 use crate::compiler::{
-    codegen::{
-        abi::AbiTransport,
-        fragment::{FragmentOnce, comma_list, doubles, frag, fragment},
-    },
+    codegen::fragment::{FragmentOnce, comma_list, doubles, frag, fragment},
     db::Db,
-    ir::abi::{AbiClass, AbiFunction, AbiType},
+    ir::abi::{AbiClass, AbiFunction, AbiType, transport::AbiTransport},
 };
 
 impl AbiTransport {
     fn render_header<'a>(self, name: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         let attr = match self {
-            AbiTransport::WasmBindgen => "wasm_bindgen",
+            AbiTransport::Wasm(_) => "wasm_bindgen",
             AbiTransport::Napi => "napi",
         };
 
@@ -23,14 +20,14 @@ impl AbiTransport {
 
     fn render_result_type<'a>(self, ok_type: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         fragment(move |p| match self {
-            AbiTransport::WasmBindgen => frag!(Result<{ok_type}, JsValue>).apply(p),
+            AbiTransport::Wasm(_) => frag!(Result<{ok_type}, JsValue>).apply(p),
             AbiTransport::Napi => frag!(napi::Result<{ ok_type }>).apply(p),
         })
     }
 
     fn render_error<'a>(self, error: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
         fragment(move |p| match self {
-            AbiTransport::WasmBindgen => frag!(JsValue::from_str(&{ error }.to_string())).apply(p),
+            AbiTransport::Wasm(_) => frag!(JsValue::from_str(&{ error }.to_string())).apply(p),
             AbiTransport::Napi => frag!(napi::Error::from_reason({ error }.to_string())).apply(p),
         })
     }

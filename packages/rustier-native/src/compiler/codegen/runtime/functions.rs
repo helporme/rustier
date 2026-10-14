@@ -2,12 +2,13 @@ use itertools::Either;
 
 use crate::compiler::{
     codegen::{
-        abi::{AbiArgs, AbiTransport},
+        abi::AbiArgs,
         fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, frag, fragment},
         runtime::cast::{Cast, CastRenderer, RuntimeCastRenderer},
     },
     db::Db,
     ir::{
+        abi::transport::AbiTransport,
         facade::FacadeClass,
         runtime::{
             RuntimeDiscriminatedCoerce, RuntimeDiscriminator, RuntimeFunction, RuntimeGetter,

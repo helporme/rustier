@@ -16,7 +16,7 @@ mod strategy;
 
 use common::fragment::FragmentPrint as _;
 use program::Program;
-use rustier::compiler::codegen::abi::AbiTransport;
+use rustier::compiler::ir::abi::transport::{AbiTransport, WasmMemory, WasmTransport};
 
 const REGRESSION_FILE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -100,7 +100,10 @@ proptest! {
     fn generated_generic_program_compiles_and_passes_cargo_check(
         program in strategy::generic_program(),
     ) {
-        compile_generated_program(program, vec![AbiTransport::Napi, AbiTransport::WasmBindgen])?;
+        compile_generated_program(program, vec![
+            AbiTransport::Napi,
+            AbiTransport::Wasm(WasmTransport { memory: WasmMemory::x32 }),
+        ])?;
     }
 }
 

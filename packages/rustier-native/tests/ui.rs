@@ -1,7 +1,10 @@
 use std::{fs, io::ErrorKind, path::Path};
 
 use itertools::Itertools;
-use rustier::compiler::{codegen::abi::AbiTransport, diag::Theme};
+use rustier::compiler::{
+    diag::Theme,
+    ir::abi::transport::{AbiTransport, WasmMemory, WasmTransport},
+};
 
 use crate::common::ProgramTest;
 
@@ -34,7 +37,9 @@ fn parse_ui_test(src: String) -> Result<UiTest, String> {
             let mut parsed_platforms = Vec::new();
             for value in value.split(',').map(str::trim) {
                 let platform = match value {
-                    "wasm" | "wasm(web)" => AbiTransport::WasmBindgen,
+                    "wasm" | "wasm(web)" => AbiTransport::Wasm(WasmTransport {
+                        memory: WasmMemory::x32,
+                    }),
                     "node" => AbiTransport::Napi,
                     "" => {
                         return Err(format!(

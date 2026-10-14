@@ -6,7 +6,7 @@ use napi::threadsafe_function::ThreadsafeFunction;
 use napi_derive::napi;
 
 use crate::{
-    compiler::codegen::abi::AbiTransport,
+    compiler::ir::abi::transport::{AbiTransport, WasmMemory, WasmTransport},
     server::{
         effects::Effect,
         log::ServerLogs,
@@ -139,7 +139,9 @@ impl Server {
 
         let transport = match &platform {
             ServerPlatform::Node { .. } => AbiTransport::Napi,
-            ServerPlatform::Wasm { .. } => AbiTransport::WasmBindgen,
+            ServerPlatform::Wasm { .. } => AbiTransport::Wasm(WasmTransport {
+                memory: WasmMemory::x32,
+            }),
         };
         let platform_label = match &platform {
             ServerPlatform::Node { .. } => "node",
@@ -206,7 +208,14 @@ impl Server {
                         let target = loading.bindgen_target();
                         self.wasm_builds.remove(&target);
                         let build = self.ws.with_db(|db| {
-                            BridgeCrateWasm::new(db, self.ws.project(db)).build(
+                            BridgeCrateWasm::new(
+                                db,
+                                self.ws.project(db),
+                                WasmTransport {
+                                    memory: WasmMemory::x32,
+                                },
+                            )
+                            .build(
                                 db,
                                 self.ws.version(),
                                 release,
@@ -307,7 +316,14 @@ impl Server {
                         .transpose()
                         .map_err(|error| napi::Error::from_reason(error.to_string()))?
                         .flatten();
-                    Ok(BridgeCrateWasm::new(db, project).js(db, &path, loading, artifact.as_ref()))
+                    Ok(BridgeCrateWasm::new(
+                        db,
+                        project,
+                        WasmTransport {
+                            memory: WasmMemory::x32,
+                        },
+                    )
+                    .js(db, &path, loading, artifact.as_ref()))
                 }
             }
         })
@@ -324,7 +340,9 @@ pub enum ServerPlatform {
 impl From<ServerPlatform> for AbiTransport {
     fn from(value: ServerPlatform) -> Self {
         match value {
-            ServerPlatform::Wasm { .. } => AbiTransport::WasmBindgen,
+            ServerPlatform::Wasm { .. } => AbiTransport::Wasm(WasmTransport {
+                memory: WasmMemory::x32,
+            }),
             ServerPlatform::Node { .. } => AbiTransport::Napi,
         }
     }

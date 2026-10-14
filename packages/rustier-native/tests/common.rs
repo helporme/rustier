@@ -8,10 +8,13 @@ use std::{
 use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice, load_workspace_at};
 use ra_ap_project_model::{CargoConfig, RustLibSource};
 use rustier::compiler::{
-    codegen::{abi::AbiTransport, runtime::manifest::Manifest},
+    codegen::runtime::manifest::Manifest,
     diag::Diag,
     inputs::LocalCrates,
-    ir::rust::{PathSegment, Rust, usages::UsageGraph},
+    ir::{
+        abi::transport::{AbiTransport, WasmMemory, WasmTransport},
+        rust::{PathSegment, Rust, usages::UsageGraph},
+    },
 };
 use serde_json::Value;
 use tempfile::TempDir;
@@ -124,7 +127,12 @@ impl ProgramCompiler {
         let mut diagnostics = Vec::new();
         for (platform_index, &platform) in program.platforms.iter().enumerate() {
             let (platform_name, generated_dir_name) = match platform {
-                AbiTransport::WasmBindgen => ("wasm", "wasm"),
+                AbiTransport::Wasm(WasmTransport {
+                    memory: WasmMemory::x32,
+                }) => ("wasm", "wasm"),
+                AbiTransport::Wasm(WasmTransport {
+                    memory: WasmMemory::x64,
+                }) => ("wasm64", "wasm64"),
                 AbiTransport::Napi => ("node", "node"),
             };
             let generated_dir = workspace.generated_root.join(generated_dir_name);

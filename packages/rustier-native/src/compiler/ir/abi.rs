@@ -2,6 +2,7 @@
 //! JavaScript.
 
 pub mod ext;
+pub mod transport;
 
 use crate::compiler::{
     db::Db,

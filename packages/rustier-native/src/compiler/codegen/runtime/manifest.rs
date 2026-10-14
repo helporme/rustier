@@ -2,9 +2,9 @@
 
 use std::path::Path;
 
-use crate::compiler::codegen::{
-    abi::AbiTransport,
-    fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment},
+use crate::compiler::{
+    codegen::fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment},
+    ir::abi::transport::AbiTransport,
 };
 
 /// Manifest expected by the runtime code.
@@ -92,7 +92,7 @@ impl Manifest<'_> {
             frag!({ " }\n" }).apply(p);
 
             match self.transport {
-                AbiTransport::WasmBindgen => frag!({ r#"wasm-bindgen = "0.2""# }).apply(p),
+                AbiTransport::Wasm(_) => frag!({ r#"wasm-bindgen = "0.2""# }).apply(p),
                 AbiTransport::Napi => frag!(
                     {r#"napi = { version = "3", features = ["napi10"] }"#}@
                     {r#"napi-derive = { version = "3" }"#}
@@ -126,6 +126,8 @@ fn toml_string(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use crate::compiler::ir::abi::transport::{WasmMemory, WasmTransport};
+
     use super::*;
 
     fn render(transport: AbiTransport) -> String {
@@ -168,7 +170,9 @@ mod tests {
 
     #[test]
     fn wasm_manifests_follow_supplied_transport() {
-        let manifest = render(AbiTransport::WasmBindgen);
+        let manifest = render(AbiTransport::Wasm(WasmTransport {
+            memory: WasmMemory::x32,
+        }));
         assert!(manifest.contains("crate-type = [\"cdylib\", \"rlib\"]"));
         assert!(manifest.ends_with("wasm-bindgen = \"0.2\"\n"));
         assert!(!manifest.contains("napi"));

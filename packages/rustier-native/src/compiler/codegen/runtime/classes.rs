@@ -1,10 +1,7 @@
 use crate::compiler::{
-    codegen::{
-        abi::AbiTransport,
-        fragment::{FragmentOnce, FragmentPrint, Printer, frag},
-    },
+    codegen::fragment::{FragmentOnce, FragmentPrint, Printer, frag},
     db::Db,
-    ir::runtime::RuntimeClass,
+    ir::{abi::transport::AbiTransport, runtime::RuntimeClass},
 };
 
 #[salsa::tracked]

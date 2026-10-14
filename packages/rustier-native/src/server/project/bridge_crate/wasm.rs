@@ -7,6 +7,7 @@ use crate::{
             js::JsCodegenPaths,
         },
         db::Db,
+        ir::abi::transport::{WasmMemory, WasmTransport},
         path::FilePath,
     },
     server::{
@@ -32,11 +33,15 @@ impl WasmLoading {
 #[salsa::interned(debug)]
 pub struct BridgeCrateWasm<'db> {
     pub(super) project: Project<'db>,
+    pub(super) transport: WasmTransport,
 }
 
 impl<'a> BridgeCrateWasm<'a> {
-    pub const fn name(self) -> &'static str {
-        "wasm"
+    pub fn name(self, db: &'a dyn Db) -> &'static str {
+        match self.transport(db).memory {
+            WasmMemory::x32 => "wasm",
+            WasmMemory::x64 => "wasm64",
+        }
     }
 
     pub fn js(
@@ -91,6 +96,7 @@ impl<'a> BridgeCrateWasm<'a> {
             workspace_version,
             release,
             target: loading.bindgen_target(),
+            memory: self.transport(db).memory,
             features: crate_.dependency_features(db, dep_features),
         }
     }
@@ -103,6 +109,7 @@ pub struct WasmBuild {
     workspace_version: u128,
     release: bool,
     target: WasmBindgenTarget,
+    memory: WasmMemory,
     features: Vec<String>,
 }
 
@@ -122,7 +129,10 @@ impl Effect for WasmBuild {
             workspace_version: self.workspace_version,
             manifest_path,
             target_dir: self.out_dir.join("target"),
-            target: Some("wasm32-unknown-unknown"),
+            target: Some(match self.memory {
+                WasmMemory::x32 => "wasm32-unknown-unknown",
+                WasmMemory::x64 => "wasm64-unknown-unknown",
+            }),
             release: self.release,
             features: self.features.clone(),
         }
