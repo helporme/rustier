@@ -22,13 +22,13 @@ export function test_fn (
 		const __0 = cast.from(
 			"Facade(Class(Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } } })))"
 		).to(
-			"Abi(Class { class: AbiClass { facade: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } } }) }, borrowed: true })"
+			"Abi(usize)"
 		).an(
 			_0
 		);
 		{
 			const result = cast.from(
-				"Abi(Class { class: AbiClass { facade: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) } }) }, borrowed: false })"
+				"Abi(usize)"
 			).to(
 				"Facade(Class(Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) } })))"
 			).an(

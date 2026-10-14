@@ -17,18 +17,7 @@ function cast(
 ) {
 	{
 		const __cast_input = input;
-		if(
-			!(
-				__cast_input instanceof __plain__10_test_crate__13_ExampleStruct
-			)
-		) {
-			throw new TypeError(
-				"Expected a value of type \"__plain__10_test_crate__13_ExampleStruct\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
-					__cast_input
-				) + "\""
-			);
-		}
-		const output = $facade__plain__10_test_crate__13_ExampleStruct.$from_ffi(
+		const output = $facade__plain__10_test_crate__13_ExampleStruct.$from_handle(
 			__cast_input
 		);
 		consume(

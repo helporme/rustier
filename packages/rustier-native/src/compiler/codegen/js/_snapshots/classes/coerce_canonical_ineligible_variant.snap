@@ -18,13 +18,18 @@ pub enum Test {
 ```js
 const $facade__discr__10_test_crate__4_Test = class Test {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_Test(
+			handle
+		)
+	);
+	#_handle;
 	static #_types = ["http",
 	"Http"];
 
 	get ["type"]() {
 		return $facade__discr__10_test_crate__4_Test.#_types[__fn__disc__10_test_crate__4_Test(
-			this.#_ffi
+			this.#_handle
 		)];
 	}
 
@@ -49,7 +54,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "http":{
 				{
 					const result = cast.from(
-						"Abi(Class { class: AbiClass { facade: Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }, borrowed: false })"
+						"Abi(usize)"
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } })))"
 					).an(
@@ -80,18 +85,21 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__discr__10_test_crate__4_Test(
 			 $facade__discr__10_test_crate__4_Test.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__discr__10_test_crate__4_Test.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 

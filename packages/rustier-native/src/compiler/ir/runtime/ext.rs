@@ -6,8 +6,8 @@ use crate::compiler::{
             FacadeVariant,
         },
         runtime::{
-            Runtime, RuntimeClass, RuntimeDiscriminatedCoerce, RuntimeDiscriminator, RuntimeGetter,
-            RuntimePlainCoerce, RuntimeSetter,
+            Runtime, RuntimeDiscriminatedCoerce, RuntimeDiscriminator, RuntimeDropHandle,
+            RuntimeGetter, RuntimePlainCoerce, RuntimeSetter,
             tethering::{RuntimeTetheredField, RuntimeTethering},
         },
         rust::Type,
@@ -21,8 +21,8 @@ impl<'db> Facade<'db> {
 }
 
 impl<'db> FacadeClass<'db> {
-    pub fn runtime(self, db: &'db dyn Db) -> RuntimeClass<'db> {
-        RuntimeClass::new(db, self)
+    pub fn drop_handle_fn(self, db: &'db dyn Db) -> RuntimeDropHandle<'db> {
+        RuntimeDropHandle::new(db, self.tethering(db))
     }
 
     pub fn tethering(self, db: &'db dyn Db) -> RuntimeTethering<'db> {

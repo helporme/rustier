@@ -1,13 +1,15 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        abi::{Abi, AbiClass, AbiFunction},
+        abi::{Abi, AbiFunction},
         facade::{
-            Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain,
-            FacadeFieldDiscriminator, FacadeFieldPlain, FacadeFreeFunction, FacadeFunction,
-            FacadeMethod, FacadeVariant, coerce::FacadePlainCoerceFunction,
+            Facade, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldDiscriminator,
+            FacadeFieldPlain, FacadeFreeFunction, FacadeFunction, FacadeMethod, FacadeVariant,
+            coerce::FacadePlainCoerceFunction,
         },
-        runtime::{RuntimeDiscriminatedCoerce, RuntimeFunction, RuntimePlainCoerce},
+        runtime::{
+            RuntimeDiscriminatedCoerce, RuntimeDropHandle, RuntimeFunction, RuntimePlainCoerce,
+        },
     },
 };
 
@@ -17,27 +19,19 @@ impl<'db> Facade<'db> {
     }
 }
 
-impl<'db> FacadeClass<'db> {
-    pub fn abi(self, db: &'db dyn Db) -> AbiClass<'db> {
-        AbiClass::new(db, self)
+impl<'db> RuntimeDropHandle<'db> {
+    pub fn abi(self, db: &'db dyn Db) -> AbiFunction<'db> {
+        RuntimeFunction::DropHandle(self).abi(db)
     }
 }
 
 impl<'db> FacadeClassPlain<'db> {
-    pub fn abi(self, db: &'db dyn Db) -> AbiClass<'db> {
-        AbiClass::new(db, FacadeClass::Plain(self))
-    }
-
     pub fn abi_coerce(self, db: &'db dyn Db) -> AbiFunction<'db> {
         RuntimeFunction::from(RuntimePlainCoerce::new(db, self)).abi(db)
     }
 }
 
 impl<'db> FacadeClassDiscriminated<'db> {
-    pub fn abi(self, db: &'db dyn Db) -> AbiClass<'db> {
-        AbiClass::new(db, FacadeClass::Discriminated(self))
-    }
-
     pub fn abi_discriminator(self, db: &'db dyn Db) -> AbiFunction<'db> {
         RuntimeFunction::from(self.runtime_discriminator(db)).abi(db)
     }

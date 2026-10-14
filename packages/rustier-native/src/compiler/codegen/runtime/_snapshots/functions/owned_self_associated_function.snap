@@ -19,20 +19,32 @@ impl Test {
 ```rust
 #[napi(js_name = "__fn__associated__10_test_crate__4_Test__5_owned")]
 pub fn __fn__associated__10_test_crate__4_Test__5_owned(
-    _0: &__plain__10_test_crate__4_Test,
+    _0: napi::bindgen_prelude::BigInt,
 ) -> napi::Result<bool> {
+    let _0 = usize::try_from({
+            let (negative, value, lossless) = _0.get_u64();
+            if negative || !lossless {
+                return Err(
+                    napi::Error::from_reason(
+                        "ABI value is outside the usize range".to_string(),
+                    ),
+                );
+            }
+            value
+        })
+        .map_err(|_| napi::Error::from_reason(
+            "ABI value is outside the usize range".to_string(),
+        ))?;
     let result = (|| -> rustier_rt::CallResult<bool> {
         Ok(
             cast
                 .from(
                     "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8001)) }) })",
                 )
-                .to("Abi(Bool)")
+                .to("Abi(bool)")
                 .an({
                     let _0 = cast
-                        .from(
-                            "Abi(Class { class: AbiClass { facade: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) } }) }, borrowed: true })",
-                        )
+                        .from("Abi(usize)")
                         .to(
                             "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) })",
                         )
@@ -49,20 +61,22 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
 ```rust
 #[wasm_bindgen(js_name = "__fn__associated__10_test_crate__4_Test__5_owned")]
 pub fn __fn__associated__10_test_crate__4_Test__5_owned(
-    _0: &__plain__10_test_crate__4_Test,
+    _0: u32,
 ) -> Result<bool, JsValue> {
+    let _0 = usize::try_from(_0)
+        .map_err(|_| JsValue::from_str(
+            &"ABI value is outside the usize range".to_string(),
+        ))?;
     let result = (|| -> rustier_rt::CallResult<bool> {
         Ok(
             cast
                 .from(
                     "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8001)) }) })",
                 )
-                .to("Abi(Bool)")
+                .to("Abi(bool)")
                 .an({
                     let _0 = cast
-                        .from(
-                            "Abi(Class { class: AbiClass { facade: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) } }) }, borrowed: true })",
-                        )
+                        .from("Abi(usize)")
                         .to(
                             "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) })",
                         )

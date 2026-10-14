@@ -37,6 +37,18 @@ import{
 }from"$rust/unstable!/node"
 
 import{
+	__fn__drop_handle__10_test_crate__4_WrapGP3_u32E
+}from"$rust/unstable!/node"
+
+import{
+	__fn__drop_handle__10_test_crate__4_WrapGP6_StringE
+}from"$rust/unstable!/node"
+
+import{
+	__fn__drop_handle__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE
+}from"$rust/unstable!/node"
+
+import{
 	__fn__free__10_test_crate__7_consume
 }from"$rust/unstable!/node"
 
@@ -60,26 +72,19 @@ import{
 	__fn__setter__10_test_crate__4_WrapGP6_StringE__0
 }from"$rust/unstable!/node"
 
-import{
-	__plain__10_test_crate__4_WrapGP3_u32E
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGP6_StringE
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE
-}from"$rust/unstable!/node"
-
 const $facade__plain__10_test_crate__4_WrapGP3_u32E = class _4_WrapGP3_u32E {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP3_u32E(
+			handle
+		)
+	);
+	#_handle;
 
 	get [0]() {
 		{
 			const __cast_input = __fn__getter__10_test_crate__4_WrapGP3_u32E__0(
-				this.#_ffi
+				this.#_handle
 			);
 			if(
 				typeof __cast_input !== "number"
@@ -111,7 +116,7 @@ const $facade__plain__10_test_crate__4_WrapGP3_u32E = class _4_WrapGP3_u32E {
 			}
 			const out = __cast_input;
 			__fn__setter__10_test_crate__4_WrapGP3_u32E__0(
-				this.#_ffi, out
+				this.#_handle, out
 			);
 		}
 	}
@@ -135,18 +140,7 @@ const $facade__plain__10_test_crate__4_WrapGP3_u32E = class _4_WrapGP3_u32E {
 				const __cast_input = __fn__associated__10_test_crate__4_WrapGP3_u32E__3_new(
 					__0
 				);
-				if(
-					!(
-						__cast_input instanceof __plain__10_test_crate__4_WrapGP3_u32E
-					)
-				) {
-					throw new TypeError(
-						"Expected a value of type \"__plain__10_test_crate__4_WrapGP3_u32E\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
-							__cast_input
-						) + "\""
-					);
-				}
-				const result = $facade__plain__10_test_crate__4_WrapGP3_u32E.$from_ffi(
+				const result = $facade__plain__10_test_crate__4_WrapGP3_u32E.$from_handle(
 					__cast_input
 				);
 				return result;
@@ -201,18 +195,21 @@ const $facade__plain__10_test_crate__4_WrapGP3_u32E = class _4_WrapGP3_u32E {
 		);
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP3_u32E(
 			 $facade__plain__10_test_crate__4_WrapGP3_u32E.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP3_u32E.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -222,12 +219,17 @@ export {
 
 const $facade__plain__10_test_crate__4_WrapGP6_StringE = class _4_WrapGP6_StringE {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP6_StringE(
+			handle
+		)
+	);
+	#_handle;
 
 	get [0]() {
 		{
 			const __cast_input = __fn__getter__10_test_crate__4_WrapGP6_StringE__0(
-				this.#_ffi
+				this.#_handle
 			);
 			if(
 				typeof __cast_input !== "string"
@@ -259,7 +261,7 @@ const $facade__plain__10_test_crate__4_WrapGP6_StringE = class _4_WrapGP6_String
 			}
 			const out = __cast_input;
 			__fn__setter__10_test_crate__4_WrapGP6_StringE__0(
-				this.#_ffi, out
+				this.#_handle, out
 			);
 		}
 	}
@@ -283,18 +285,7 @@ const $facade__plain__10_test_crate__4_WrapGP6_StringE = class _4_WrapGP6_String
 				const __cast_input = __fn__associated__10_test_crate__4_WrapGP6_StringE__3_new(
 					__0
 				);
-				if(
-					!(
-						__cast_input instanceof __plain__10_test_crate__4_WrapGP6_StringE
-					)
-				) {
-					throw new TypeError(
-						"Expected a value of type \"__plain__10_test_crate__4_WrapGP6_StringE\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
-							__cast_input
-						) + "\""
-					);
-				}
-				const result = $facade__plain__10_test_crate__4_WrapGP6_StringE.$from_ffi(
+				const result = $facade__plain__10_test_crate__4_WrapGP6_StringE.$from_handle(
 					__cast_input
 				);
 				return result;
@@ -349,18 +340,21 @@ const $facade__plain__10_test_crate__4_WrapGP6_StringE = class _4_WrapGP6_String
 		);
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP6_StringE(
 			 $facade__plain__10_test_crate__4_WrapGP6_StringE.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP6_StringE.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -370,7 +364,12 @@ export {
 
 const $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE = class _4_WrapGS10_test_crate__4_WrapGP3_u32EE {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE(
+			handle
+		)
+	);
+	#_handle;
 	#__field_0;
 
 	get [0]() {
@@ -379,20 +378,9 @@ const $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE = cl
 		) {
 			{
 				const __cast_input = __fn__getter__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE__0(
-					this.#_ffi
+					this.#_handle
 				);
-				if(
-					!(
-						__cast_input instanceof __plain__10_test_crate__4_WrapGP3_u32E
-					)
-				) {
-					throw new TypeError(
-						"Expected a value of type \"__plain__10_test_crate__4_WrapGP3_u32E\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
-							__cast_input
-						) + "\""
-					);
-				}
-				const out = $facade__plain__10_test_crate__4_WrapGP3_u32E.$from_ffi(
+				const out = $facade__plain__10_test_crate__4_WrapGP3_u32E.$from_handle(
 					__cast_input
 				);
 				this.#__field_0 = out;
@@ -413,18 +401,21 @@ const $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE = cl
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE(
 			 $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGP3_u32EE.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -476,7 +467,7 @@ export function consume (
 				) + "\""
 			);
 		}
-		const __0 = __cast_input.$ffi();
+		const __0 = __cast_input.$handle();
 		{
 			const __cast_input = _1;
 			if(
@@ -490,7 +481,7 @@ export function consume (
 					) + "\""
 				);
 			}
-			const __1 = __cast_input.$ffi();
+			const __1 = __cast_input.$handle();
 			{
 				const __cast_input = _2;
 				if(
@@ -504,7 +495,7 @@ export function consume (
 						) + "\""
 					);
 				}
-				const __2 = __cast_input.$ffi();
+				const __2 = __cast_input.$handle();
 				__fn__free__10_test_crate__7_consume(
 					__0,
 					__1,

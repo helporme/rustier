@@ -25,56 +25,61 @@ pub fn consume(
 
 ```js
 import{
+	__fn__drop_handle__10_test_crate__4_WrapGP2_i8E
+}from"$rust/unstable!/node"
+
+import{
+	__fn__drop_handle__10_test_crate__4_WrapGP2_u8E
+}from"$rust/unstable!/node"
+
+import{
+	__fn__drop_handle__10_test_crate__4_WrapGP3_f32E
+}from"$rust/unstable!/node"
+
+import{
+	__fn__drop_handle__10_test_crate__4_WrapGP3_f64E
+}from"$rust/unstable!/node"
+
+import{
+	__fn__drop_handle__10_test_crate__4_WrapGP3_i16E
+}from"$rust/unstable!/node"
+
+import{
+	__fn__drop_handle__10_test_crate__4_WrapGP3_i32E
+}from"$rust/unstable!/node"
+
+import{
+	__fn__drop_handle__10_test_crate__4_WrapGP3_u16E
+}from"$rust/unstable!/node"
+
+import{
+	__fn__drop_handle__10_test_crate__4_WrapGP3_u32E
+}from"$rust/unstable!/node"
+
+import{
+	__fn__drop_handle__10_test_crate__4_WrapGP4_boolE
+}from"$rust/unstable!/node"
+
+import{
+	__fn__drop_handle__10_test_crate__4_WrapGP4_charE
+}from"$rust/unstable!/node"
+
+import{
+	__fn__drop_handle__10_test_crate__4_WrapGP6_StringE
+}from"$rust/unstable!/node"
+
+import{
 	__fn__free__10_test_crate__7_consume
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGP2_i8E
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGP2_u8E
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGP3_f32E
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGP3_f64E
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGP3_i16E
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGP3_i32E
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGP3_u16E
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGP3_u32E
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGP4_boolE
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGP4_charE
-}from"$rust/unstable!/node"
-
-import{
-	__plain__10_test_crate__4_WrapGP6_StringE
 }from"$rust/unstable!/node"
 
 const $facade__plain__10_test_crate__4_WrapGP2_i8E = class _4_WrapGP2_i8E {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP2_i8E(
+			handle
+		)
+	);
+	#_handle;
 
 
 
@@ -90,18 +95,21 @@ const $facade__plain__10_test_crate__4_WrapGP2_i8E = class _4_WrapGP2_i8E {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP2_i8E(
 			 $facade__plain__10_test_crate__4_WrapGP2_i8E.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP2_i8E.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -111,7 +119,12 @@ export {
 
 const $facade__plain__10_test_crate__4_WrapGP2_u8E = class _4_WrapGP2_u8E {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP2_u8E(
+			handle
+		)
+	);
+	#_handle;
 
 
 
@@ -127,18 +140,21 @@ const $facade__plain__10_test_crate__4_WrapGP2_u8E = class _4_WrapGP2_u8E {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP2_u8E(
 			 $facade__plain__10_test_crate__4_WrapGP2_u8E.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP2_u8E.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -148,7 +164,12 @@ export {
 
 const $facade__plain__10_test_crate__4_WrapGP3_f32E = class _4_WrapGP3_f32E {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP3_f32E(
+			handle
+		)
+	);
+	#_handle;
 
 
 
@@ -164,18 +185,21 @@ const $facade__plain__10_test_crate__4_WrapGP3_f32E = class _4_WrapGP3_f32E {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP3_f32E(
 			 $facade__plain__10_test_crate__4_WrapGP3_f32E.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP3_f32E.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -185,7 +209,12 @@ export {
 
 const $facade__plain__10_test_crate__4_WrapGP3_f64E = class _4_WrapGP3_f64E {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP3_f64E(
+			handle
+		)
+	);
+	#_handle;
 
 
 
@@ -201,18 +230,21 @@ const $facade__plain__10_test_crate__4_WrapGP3_f64E = class _4_WrapGP3_f64E {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP3_f64E(
 			 $facade__plain__10_test_crate__4_WrapGP3_f64E.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP3_f64E.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -222,7 +254,12 @@ export {
 
 const $facade__plain__10_test_crate__4_WrapGP3_i16E = class _4_WrapGP3_i16E {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP3_i16E(
+			handle
+		)
+	);
+	#_handle;
 
 
 
@@ -238,18 +275,21 @@ const $facade__plain__10_test_crate__4_WrapGP3_i16E = class _4_WrapGP3_i16E {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP3_i16E(
 			 $facade__plain__10_test_crate__4_WrapGP3_i16E.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP3_i16E.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -259,7 +299,12 @@ export {
 
 const $facade__plain__10_test_crate__4_WrapGP3_i32E = class _4_WrapGP3_i32E {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP3_i32E(
+			handle
+		)
+	);
+	#_handle;
 
 
 
@@ -275,18 +320,21 @@ const $facade__plain__10_test_crate__4_WrapGP3_i32E = class _4_WrapGP3_i32E {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP3_i32E(
 			 $facade__plain__10_test_crate__4_WrapGP3_i32E.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP3_i32E.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -296,7 +344,12 @@ export {
 
 const $facade__plain__10_test_crate__4_WrapGP3_u16E = class _4_WrapGP3_u16E {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP3_u16E(
+			handle
+		)
+	);
+	#_handle;
 
 
 
@@ -312,18 +365,21 @@ const $facade__plain__10_test_crate__4_WrapGP3_u16E = class _4_WrapGP3_u16E {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP3_u16E(
 			 $facade__plain__10_test_crate__4_WrapGP3_u16E.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP3_u16E.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -333,7 +389,12 @@ export {
 
 const $facade__plain__10_test_crate__4_WrapGP3_u32E = class _4_WrapGP3_u32E {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP3_u32E(
+			handle
+		)
+	);
+	#_handle;
 
 
 
@@ -349,18 +410,21 @@ const $facade__plain__10_test_crate__4_WrapGP3_u32E = class _4_WrapGP3_u32E {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP3_u32E(
 			 $facade__plain__10_test_crate__4_WrapGP3_u32E.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP3_u32E.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -370,7 +434,12 @@ export {
 
 const $facade__plain__10_test_crate__4_WrapGP4_boolE = class _4_WrapGP4_boolE {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP4_boolE(
+			handle
+		)
+	);
+	#_handle;
 
 
 
@@ -386,18 +455,21 @@ const $facade__plain__10_test_crate__4_WrapGP4_boolE = class _4_WrapGP4_boolE {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP4_boolE(
 			 $facade__plain__10_test_crate__4_WrapGP4_boolE.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP4_boolE.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -407,7 +479,12 @@ export {
 
 const $facade__plain__10_test_crate__4_WrapGP4_charE = class _4_WrapGP4_charE {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP4_charE(
+			handle
+		)
+	);
+	#_handle;
 
 
 
@@ -423,18 +500,21 @@ const $facade__plain__10_test_crate__4_WrapGP4_charE = class _4_WrapGP4_charE {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP4_charE(
 			 $facade__plain__10_test_crate__4_WrapGP4_charE.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP4_charE.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -444,7 +524,12 @@ export {
 
 const $facade__plain__10_test_crate__4_WrapGP6_StringE = class _4_WrapGP6_StringE {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_WrapGP6_StringE(
+			handle
+		)
+	);
+	#_handle;
 
 
 
@@ -460,18 +545,21 @@ const $facade__plain__10_test_crate__4_WrapGP6_StringE = class _4_WrapGP6_String
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_WrapGP6_StringE(
 			 $facade__plain__10_test_crate__4_WrapGP6_StringE.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_WrapGP6_StringE.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 
@@ -579,7 +667,7 @@ export function consume (
 				) + "\""
 			);
 		}
-		const __0 = __cast_input.$ffi();
+		const __0 = __cast_input.$handle();
 		{
 			const __cast_input = _1;
 			if(
@@ -593,7 +681,7 @@ export function consume (
 					) + "\""
 				);
 			}
-			const __1 = __cast_input.$ffi();
+			const __1 = __cast_input.$handle();
 			{
 				const __cast_input = _2;
 				if(
@@ -607,7 +695,7 @@ export function consume (
 						) + "\""
 					);
 				}
-				const __2 = __cast_input.$ffi();
+				const __2 = __cast_input.$handle();
 				{
 					const __cast_input = _3;
 					if(
@@ -621,7 +709,7 @@ export function consume (
 							) + "\""
 						);
 					}
-					const __3 = __cast_input.$ffi();
+					const __3 = __cast_input.$handle();
 					{
 						const __cast_input = _4;
 						if(
@@ -635,7 +723,7 @@ export function consume (
 								) + "\""
 							);
 						}
-						const __4 = __cast_input.$ffi();
+						const __4 = __cast_input.$handle();
 						{
 							const __cast_input = _5;
 							if(
@@ -649,7 +737,7 @@ export function consume (
 									) + "\""
 								);
 							}
-							const __5 = __cast_input.$ffi();
+							const __5 = __cast_input.$handle();
 							{
 								const __cast_input = _6;
 								if(
@@ -663,7 +751,7 @@ export function consume (
 										) + "\""
 									);
 								}
-								const __6 = __cast_input.$ffi();
+								const __6 = __cast_input.$handle();
 								{
 									const __cast_input = _7;
 									if(
@@ -677,7 +765,7 @@ export function consume (
 											) + "\""
 										);
 									}
-									const __7 = __cast_input.$ffi();
+									const __7 = __cast_input.$handle();
 									{
 										const __cast_input = _8;
 										if(
@@ -691,7 +779,7 @@ export function consume (
 												) + "\""
 											);
 										}
-										const __8 = __cast_input.$ffi();
+										const __8 = __cast_input.$handle();
 										{
 											const __cast_input = _9;
 											if(
@@ -705,7 +793,7 @@ export function consume (
 													) + "\""
 												);
 											}
-											const __9 = __cast_input.$ffi();
+											const __9 = __cast_input.$handle();
 											{
 												const __cast_input = _10;
 												if(
@@ -719,7 +807,7 @@ export function consume (
 														) + "\""
 													);
 												}
-												const __10 = __cast_input.$ffi();
+												const __10 = __cast_input.$handle();
 												__fn__free__10_test_crate__7_consume(
 													__0,
 													__1,

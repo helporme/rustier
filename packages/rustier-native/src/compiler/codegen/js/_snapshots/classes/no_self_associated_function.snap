@@ -20,7 +20,12 @@ impl Test {
 ```js
 const $facade__plain__10_test_crate__4_Test = class Test {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_Test(
+			handle
+		)
+	);
+	#_handle;
 
 	static create(
 		_0
@@ -29,13 +34,13 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			const __0 = cast.from(
 				"Facade(number)"
 			).to(
-				"Abi(F64)"
+				"Abi(f64)"
 			).an(
 				_0
 			);
 			{
 				const result = cast.from(
-					"Abi(Class { class: AbiClass { facade: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7c01)) }) } }) }, borrowed: false })"
+					"Abi(usize)"
 				).to(
 					"Facade(Class(Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7c01)) }) } })))"
 				).an(
@@ -65,7 +70,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 		}
 		{
 			const result = cast.from(
-				"Abi(Class { class: AbiClass { facade: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) }, borrowed: false })"
+				"Abi(usize)"
 			).to(
 				"Facade(Class(Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } })))"
 			).an(
@@ -89,18 +94,21 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_Test(
 			 $facade__plain__10_test_crate__4_Test.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_Test.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 

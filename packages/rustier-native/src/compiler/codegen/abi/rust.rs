@@ -1,9 +1,12 @@
-//! Rust side of the ABI: exported wrapper functions and carrier classes.
+//! Rust side of the ABI: exported wrapper functions.
 
 use crate::compiler::{
-    codegen::fragment::{FragmentOnce, comma_list, doubles, frag, fragment},
+    codegen::fragment::{FragmentOnce, Printer, comma_list, doubles, frag, fragment},
     db::Db,
-    ir::abi::{AbiClass, AbiFunction, AbiType, transport::AbiTransport},
+    ir::abi::{
+        AbiFunction, AbiType,
+        transport::{AbiTransport, WasmMemory, WasmTransport},
+    },
 };
 
 impl AbiTransport {
@@ -31,45 +34,55 @@ impl AbiTransport {
             AbiTransport::Napi => frag!(napi::Error::from_reason({ error }.to_string())).apply(p),
         })
     }
-}
 
-impl<'db> AbiType<'db> {
-    /// The Rust type a value of this ABI type has at the transport boundary.
-    pub fn render_rust(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
-        fragment(move |p| match self {
-            AbiType::F64 => "f64".apply(p),
-            AbiType::Bool => "bool".apply(p),
-            AbiType::String => "String".apply(p),
-            AbiType::Class {
-                class,
-                borrowed: true,
-            } => frag!(&{ class.symbol(db) }).apply(p),
-            AbiType::Class {
-                class,
-                borrowed: false,
-            } => class.symbol(db).apply(p),
+    fn render_param_type(self, type_: AbiType) -> impl FragmentOnce {
+        fragment(move |p| match (type_, self) {
+            (
+                AbiType::usize,
+                AbiTransport::Wasm(WasmTransport {
+                    memory: WasmMemory::x32,
+                }),
+            ) => {
+                "u32".apply(p);
+            }
+            (
+                AbiType::usize,
+                AbiTransport::Wasm(WasmTransport {
+                    memory: WasmMemory::x64,
+                }),
+            ) => {
+                "u64".apply(p);
+            }
+            (AbiType::usize, AbiTransport::Napi) => "napi::bindgen_prelude::BigInt".apply(p),
+            (type_, _) => type_.render_rust().apply(p),
+        })
+    }
+
+    fn render_return_type(self, type_: AbiType) -> impl FragmentOnce {
+        fragment(move |p| match (type_, self) {
+            (
+                AbiType::usize,
+                AbiTransport::Wasm(WasmTransport {
+                    memory: WasmMemory::x32,
+                }),
+            ) => {
+                "u32".apply(p);
+            }
+            (AbiType::usize, _) => "u64".apply(p),
+            (type_, _) => type_.render_rust().apply(p),
         })
     }
 }
 
-impl<'db> AbiClass<'db> {
-    /// Renders the transport-decorated carrier struct of this class with the
-    /// given fields.
-    // FIXME: remove once classes are transferred as handles.
-    pub fn render_rust_with_fields(
-        self,
-        db: &'db dyn Db,
-        transport: AbiTransport,
-        fields: impl FragmentOnce + 'db,
-    ) -> impl FragmentOnce + 'db {
-        let symbol = self.symbol(db);
-
-        frag!(
-            {transport.render_header(symbol)}
-            pub struct ~{symbol}~{{
-                {fields}
-            }}
-        )
+impl AbiType {
+    /// The Rust type of a logical ABI value inside the wrapper body.
+    pub fn render_rust(self) -> &'static str {
+        match self {
+            AbiType::f64 => "f64",
+            AbiType::bool => "bool",
+            AbiType::String => "String",
+            AbiType::usize => "usize",
+        }
     }
 }
 
@@ -89,48 +102,121 @@ impl<'db> AbiFunction<'db> {
     where
         Body: FragmentOnce + 'db,
     {
-        fragment(move |p| {
-            let ok_type = || {
-                fragment(move |p| match self.ret_type(db) {
-                    Some(type_) => type_.render_rust(db).apply(p),
-                    None => "()".apply(p),
-                })
-            };
+        let params = self.params(db);
 
-            let params = comma_list(self.params(db).iter().enumerate().map(|(i, type_)| {
-                frag!(
-                    _{i}: ~{type_.render_rust(db)}
-                )
-            }));
+        FunctionFragment {
+            symbol: self.symbol(db),
+            params,
+            ret_type: self.ret_type(db),
+            transport,
+            body: body(AbiArgs { params }),
+        }
+    }
+}
 
-            let symbol = self.symbol(db);
-            let body = body(AbiArgs {
-                params: self.params(db),
-            });
+struct FunctionFragment<'db, Body> {
+    symbol: &'db str,
+    params: &'db [AbiType],
+    ret_type: Option<AbiType>,
+    transport: AbiTransport,
+    body: Body,
+}
 
+impl<'db, Body: FragmentOnce + 'db> FragmentOnce for FunctionFragment<'db, Body> {
+    fn apply(self, p: &mut Printer) {
+        let Self {
+            symbol,
+            params,
+            ret_type,
+            transport,
+            body,
+        } = self;
+
+        let body_ok_type = || {
+            fragment(move |p| match ret_type {
+                Some(type_) => type_.render_rust().apply(p),
+                None => "()".apply(p),
+            })
+        };
+
+        let boundary_ok_type = fragment(move |p| match ret_type {
+            Some(type_) => transport.render_return_type(type_).apply(p),
+            None => "()".apply(p),
+        });
+
+        let declarations = comma_list(params.iter().enumerate().map(|(i, type_)| {
             frag!(
-                {transport.render_header(symbol)}@
-                pub fn ~{symbol}({params})~ -> ~{transport.render_result_type(ok_type())}~ {{
-                    let result = (|| -> rustier_rt::CallResult<{ok_type()}>~{{
-                        {body}
-                    }})();@@
-
-                    result.map_err(|error| {transport.render_error("error")})
-                }}
+                _{i}: ~{transport.render_param_type(*type_)}
             )
-            .apply(p);
-        })
+        }));
+
+        let decode = fragment(move |p| {
+            for (i, type_) in params.iter().enumerate() {
+                if *type_ != AbiType::usize {
+                    continue;
+                }
+
+                let error =
+                    || transport.render_error(doubles("ABI value is outside the usize range"));
+
+                let value = fragment(move |p| match transport {
+                    AbiTransport::Wasm(_) => frag!(_{i}).apply(p),
+                    AbiTransport::Napi => frag!({{
+                        let (negative, value, lossless) = _{i}.get_u64();@@
+
+                        if negative || !lossless {{
+                            return Err({error()});
+                        }}@@
+
+                        value
+                    }})
+                    .apply(p),
+                });
+
+                frag!(
+                    let _{i} = usize::try_from({value})
+                        .map_err(|_| {error()})?;@@
+                )
+                .apply(p);
+            }
+        });
+
+        let encode = fragment(move |p| {
+            if ret_type == Some(AbiType::usize) {
+                let type_ = transport.render_return_type(AbiType::usize);
+                let error =
+                    transport.render_error(doubles("usize value is outside the transport range"));
+
+                frag!(
+                    .and_then(|result| {type_}::try_from(result).map_err(|_| {error}))
+                )
+                .apply(p);
+            }
+        });
+
+        frag!(
+            {transport.render_header(symbol)}@
+            pub fn ~{symbol}({declarations})~ -> ~{transport.render_result_type(boundary_ok_type)}~ {{
+                {decode}
+                let result = (|| -> rustier_rt::CallResult<{body_ok_type()}>~{{
+                    {body}
+                }})();@@
+
+                result.map_err(|error| {transport.render_error("error")}){encode}
+            }}
+        )
+        .apply(p);
     }
 }
 
 /// The logical arguments of an exported wrapper function.
 #[derive(Clone, Copy)]
 pub struct AbiArgs<'db> {
-    params: &'db [AbiType<'db>],
+    params: &'db [AbiType],
 }
 
 impl<'db> AbiArgs<'db> {
-    pub fn get(self, idx: usize) -> AbiArg<'db> {
+    pub fn get(self, idx: usize) -> AbiArg {
         AbiArg {
             idx,
             type_: self.params[idx],
@@ -140,14 +226,14 @@ impl<'db> AbiArgs<'db> {
 
 /// A logical argument of an exported wrapper function.
 #[derive(Clone, Copy)]
-pub struct AbiArg<'db> {
+pub struct AbiArg {
     idx: usize,
-    type_: AbiType<'db>,
+    type_: AbiType,
 }
 
-impl<'db> AbiArg<'db> {
+impl AbiArg {
     /// The logical ABI type of this argument.
-    pub fn type_(self) -> AbiType<'db> {
+    pub fn type_(self) -> AbiType {
         self.type_
     }
 

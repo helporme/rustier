@@ -18,21 +18,17 @@ impl Test {
 ## Node
 ```rust
 #[napi(js_name = "__fn__associated__10_test_crate__4_Test__6_create")]
-pub fn __fn__associated__10_test_crate__4_Test__6_create(
-    _0: f64,
-) -> napi::Result<__plain__10_test_crate__4_Test> {
-    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__4_Test> {
+pub fn __fn__associated__10_test_crate__4_Test__6_create(_0: f64) -> napi::Result<u64> {
+    let result = (|| -> rustier_rt::CallResult<usize> {
         Ok(
             cast
                 .from(
                     "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) })",
                 )
-                .to(
-                    "Abi(Class { class: AbiClass { facade: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) } }) }, borrowed: false })",
-                )
+                .to("Abi(usize)")
                 .an({
                     let _0 = cast
-                        .from("Abi(F64)")
+                        .from("Abi(f64)")
                         .to(
                             "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
                         )
@@ -41,7 +37,14 @@ pub fn __fn__associated__10_test_crate__4_Test__6_create(
                 }),
         )
     })();
-    result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    result
+        .map_err(|error| napi::Error::from_reason(error.to_string()))
+        .and_then(|result| {
+            u64::try_from(result)
+                .map_err(|_| napi::Error::from_reason(
+                    "usize value is outside the transport range".to_string(),
+                ))
+        })
 }
 ```
 
@@ -50,19 +53,17 @@ pub fn __fn__associated__10_test_crate__4_Test__6_create(
 #[wasm_bindgen(js_name = "__fn__associated__10_test_crate__4_Test__6_create")]
 pub fn __fn__associated__10_test_crate__4_Test__6_create(
     _0: f64,
-) -> Result<__plain__10_test_crate__4_Test, JsValue> {
-    let result = (|| -> rustier_rt::CallResult<__plain__10_test_crate__4_Test> {
+) -> Result<u32, JsValue> {
+    let result = (|| -> rustier_rt::CallResult<usize> {
         Ok(
             cast
                 .from(
                     "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) })",
                 )
-                .to(
-                    "Abi(Class { class: AbiClass { facade: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) } }) }, borrowed: false })",
-                )
+                .to("Abi(usize)")
                 .an({
                     let _0 = cast
-                        .from("Abi(F64)")
+                        .from("Abi(f64)")
                         .to(
                             "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
                         )
@@ -71,6 +72,13 @@ pub fn __fn__associated__10_test_crate__4_Test__6_create(
                 }),
         )
     })();
-    result.map_err(|error| JsValue::from_str(&error.to_string()))
+    result
+        .map_err(|error| JsValue::from_str(&error.to_string()))
+        .and_then(|result| {
+            u32::try_from(result)
+                .map_err(|_| JsValue::from_str(
+                    &"usize value is outside the transport range".to_string(),
+                ))
+        })
 }
 ```

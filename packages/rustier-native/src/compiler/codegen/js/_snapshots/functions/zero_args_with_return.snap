@@ -18,7 +18,7 @@ export function test_fn (
 ) {
 	{
 		const result = cast.from(
-			"Abi(F64)"
+			"Abi(f64)"
 		).to(
 			"Facade(number)"
 		).an(

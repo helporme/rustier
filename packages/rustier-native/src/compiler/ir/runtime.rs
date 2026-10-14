@@ -29,17 +29,6 @@ pub struct Runtime<'db> {
 
 #[salsa::tracked]
 impl<'db> Runtime<'db> {
-    /// All classes exported by the runtime.
-    #[salsa::tracked(returns(ref))]
-    pub fn classes(self, db: &'db dyn Db) -> Vec<RuntimeClass<'db>> {
-        self.facade(db)
-            .crates(db)
-            .flat_map(|crate_| crate_.all_modules(db))
-            .flat_map(|module| module.classes(db))
-            .map(|class| class.runtime(db))
-            .collect()
-    }
-
     #[salsa::tracked(returns(ref))]
     pub fn tetherings(self, db: &'db dyn Db) -> Vec<RuntimeTethering<'db>> {
         self.facade(db)
@@ -61,62 +50,48 @@ impl<'db> Runtime<'db> {
                 module.functions(db).map(RuntimeFunction::from).chain(
                     module
                         .classes(db)
-                        .flat_map(|class| class.runtime(db).functions(db)),
+                        .flat_map(|class| class_functions(db, class)),
                 )
             })
             .collect()
     }
 }
 
-/// A wrapper class exported by the runtime for an interface class.
-#[salsa::interned(debug)]
-pub struct RuntimeClass<'db> {
-    pub facade: FacadeClass<'db>,
-}
+fn class_functions<'db>(
+    db: &'db dyn Db,
+    class: FacadeClass<'db>,
+) -> impl Iterator<Item = RuntimeFunction<'db>> + 'db {
+    let methods = class.methods(db).map(RuntimeFunction::from);
+    let getters = class.source_fields(db).iter().map(|f| f.getter(db).into());
+    let setters = class
+        .source_fields(db)
+        .iter()
+        .filter_map(|f| f.setter(db).map(RuntimeFunction::from));
 
-#[salsa::tracked]
-impl<'db> RuntimeClass<'db> {
-    /// The mangled unique symbol name of this class.
-    #[salsa::tracked(returns(ref))]
-    pub fn symbol(self, db: &'db dyn Db) -> String {
-        match self.facade(db) {
-            FacadeClass::Plain(class) => format!("__plain__{}", class.src(db).path(db).mangled(db)),
-            FacadeClass::Discriminated(class) => {
-                format!("__discr__{}", class.src(db).path(db).mangled(db))
-            }
-        }
-    }
-
-    // FIXME: remove
-    fn functions(self, db: &'db dyn Db) -> impl Iterator<Item = RuntimeFunction<'db>> + 'db {
-        let class = self.facade(db);
-
-        let methods = class.methods(db).map(RuntimeFunction::from);
-        let getters = class.source_fields(db).iter().map(|f| f.getter(db).into());
-        let setters = class
-            .source_fields(db)
-            .iter()
-            .filter_map(|f| f.setter(db).map(RuntimeFunction::from));
-
-        let synthetic = match class {
-            FacadeClass::Plain(class) => Either::Left(
+    let synthetic = match class {
+        FacadeClass::Plain(class) => Either::Left(
+            class
+                .runtime_coerce(db)
+                .map(RuntimeFunction::from)
+                .into_iter(),
+        ),
+        FacadeClass::Discriminated(class) => Either::Right(
+            std::iter::once(class.runtime_discriminator(db).into()).chain(
                 class
-                    .runtime_coerce(db)
-                    .map(RuntimeFunction::from)
-                    .into_iter(),
+                    .variants(db)
+                    .iter()
+                    .filter_map(|v| v.runtime_coerce(db).map(RuntimeFunction::from)),
             ),
-            FacadeClass::Discriminated(class) => Either::Right(
-                std::iter::once(class.runtime_discriminator(db).into()).chain(
-                    class
-                        .variants(db)
-                        .iter()
-                        .filter_map(|v| v.runtime_coerce(db).map(RuntimeFunction::from)),
-                ),
-            ),
-        };
+        ),
+    };
 
-        methods.chain(getters).chain(setters).chain(synthetic)
-    }
+    methods
+        .chain(getters)
+        .chain(setters)
+        .chain(synthetic)
+        .chain(std::iter::once(RuntimeFunction::DropHandle(
+            class.drop_handle_fn(db),
+        )))
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
@@ -135,6 +110,7 @@ pub enum RuntimeFunction<'db> {
     PlainCoerce(RuntimePlainCoerce<'db>),
     /// A synthetic operation that coerces a discriminated struct to a class.
     DiscriminatedCoerce(RuntimeDiscriminatedCoerce<'db>),
+    DropHandle(RuntimeDropHandle<'db>),
 }
 
 #[salsa::tracked]
@@ -149,6 +125,7 @@ impl<'db> RuntimeFunction<'db> {
             Self::Discriminator(discriminator) => discriminator.symbol(db),
             Self::PlainCoerce(coerce) => coerce.symbol(db),
             Self::DiscriminatedCoerce(coerce) => coerce.symbol(db),
+            Self::DropHandle(drop) => drop.symbol(db),
         }
     }
 
@@ -187,6 +164,7 @@ impl<'db> RuntimeFunction<'db> {
                 .fields(db)
                 .map(|field| field._type(db))
                 .collect(),
+            Self::DropHandle(drop) => vec![drop.tethering(db).source(db).src_type(db)],
         }
     }
 
@@ -195,7 +173,7 @@ impl<'db> RuntimeFunction<'db> {
             Self::Free(function) => function.src(db).ret_type(db).map(RuntimeType::Source),
             Self::Associated(function) => function.src(db).ret_type(db).map(RuntimeType::Source),
             Self::Getter(getter) => Some(getter.field(db).tethered(db).value_type(db)),
-            Self::Setter(_) => None,
+            Self::Setter(_) | Self::DropHandle(_) => None,
             Self::Discriminator(_) => Some(RuntimeType::u32),
             Self::PlainCoerce(coerce) => {
                 Some(RuntimeType::Source(coerce.class(db).src(db).into_type(db)))
@@ -204,6 +182,25 @@ impl<'db> RuntimeFunction<'db> {
                 coerce.variant(db).class(db).src(db).into_type(db),
             )),
         }
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct RuntimeDropHandle<'db> {
+    pub tethering: RuntimeTethering<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> RuntimeDropHandle<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        let source = self.tethering(db).source(db);
+        let path = match source {
+            FacadeClass::Plain(class) => class.src(db).path(db),
+            FacadeClass::Discriminated(class) => class.src(db).path(db),
+        };
+
+        format!("__fn__drop_handle__{}", path.mangled(db))
     }
 }
 

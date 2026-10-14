@@ -1,7 +1,7 @@
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, doubles, frag, fragment},
     db::Db,
-    ir::{abi::AbiClass, facade::FacadeClass},
+    ir::facade::FacadeClass,
 };
 
 pub fn render_facade_class_to_abi<'db, InExpr, OutVar, Continue>(
@@ -38,14 +38,13 @@ where
                 {error_message}
             );
         }}@
-        const ~{out_var_name}~ = __cast_input.$ffi();@
+        const ~{out_var_name}~ = __cast_input.$handle();@
         {continue_with}
     }})
 }
 
-pub fn render_abi_class_to_facade<'db, InExpr, OutVar, Continue>(
+pub fn render_abi_handle_to_facade<'db, InExpr, OutVar, Continue>(
     db: &'db dyn Db,
-    source: AbiClass<'db>,
     target: FacadeClass<'db>,
     in_expr: InExpr,
     out_var_name: OutVar,
@@ -56,23 +55,9 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    let expected_class = source.symbol(db);
-    let error_message = frag!(
-        {doubles((
-            r#"Expected a value of type \""#,
-            expected_class,
-            r#"\", but value of type \""#,
-        ))}~ + typeof __cast_input + ~{doubles(r#"\" was passed: \""#)}~ + String(__cast_input) ~+~ {doubles(r#"\""#)}
-    );
-
     frag!({{
         const __cast_input~ = ~{in_expr};@
-        if (!(__cast_input~ instanceof ~{expected_class}))~{{
-            throw new TypeError(
-                {error_message}
-            );
-        }}@
-        const ~{out_var_name}~ = ~{target.import_alias(db)}.$from_ffi(__cast_input);@
+        const ~{out_var_name}~ = ~{target.import_alias(db)}.$from_handle(__cast_input);@
         {continue_with}
     }})
 }

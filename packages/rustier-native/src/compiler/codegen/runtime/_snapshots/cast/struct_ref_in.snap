@@ -13,9 +13,11 @@ pub struct ExampleStruct;
 ## Node
 ```rust
 fn cast(input: ()) {
-    input
-        .handle
-        .clone_rc()
+    unsafe {
+        rustier_rt::handles::clone_from_handle::<
+            __tethering__10_test_crate__13_ExampleStruct,
+        >(input)
+    }
         .access(|value| Ok({
             let output = value;
             consume(output);
@@ -26,9 +28,11 @@ fn cast(input: ()) {
 ## Wasm
 ```rust
 fn cast(input: ()) {
-    input
-        .handle
-        .clone_rc()
+    unsafe {
+        rustier_rt::handles::clone_from_handle::<
+            __tethering__10_test_crate__13_ExampleStruct,
+        >(input)
+    }
         .access(|value| Ok({
             let output = value;
             consume(output);

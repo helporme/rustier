@@ -243,7 +243,7 @@ where
         );
         let params = fragment(move |p| {
             if is_instance_method {
-                frag!(this.#_ffi).apply(p);
+                frag!(this.#_handle).apply(p);
                 if function.params(db).next().is_some() {
                     frag!(,~).apply(p);
                 }

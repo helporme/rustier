@@ -166,6 +166,19 @@ where
                 db: self.db,
             }
             .apply(p),
+            RuntimeFunction::DropHandle(drop) => {
+                let target = drop.tethering(self.db).tethering_struct_name(self.db);
+                let handle = args.get(0).expr();
+
+                frag!(
+                    unsafe {{
+                        rustier_rt::handles::drop_handle::<{target}>({handle});
+                    }}@@
+
+                    Ok(())
+                )
+                .apply(p);
+            }
         })
     }
 

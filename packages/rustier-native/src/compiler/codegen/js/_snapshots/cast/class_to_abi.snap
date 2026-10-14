@@ -30,7 +30,7 @@ function cast(
 				) + "\""
 			);
 		}
-		const output = __cast_input.$ffi();
+		const output = __cast_input.$handle();
 		consume(
 			output
 		);

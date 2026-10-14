@@ -20,7 +20,12 @@ pub enum Test {
 ```js
 const $facade__discr__10_test_crate__4_Test = class Test {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_Test(
+			handle
+		)
+	);
+	#_handle;
 	static #_types = ["Unit",
 	"EmptyTuple",
 	"EmptyRecord",
@@ -29,19 +34,19 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 
 	get [0]() {
 		const type_ = __fn__disc__10_test_crate__4_Test(
-			this.#_ffi
+			this.#_handle
 		);
 		if(
 			type_ === 3
 		) {
 			{
 				const out = cast.from(
-					"Abi(F64)"
+					"Abi(f64)"
 				).to(
 					"Facade(number)"
 				).an(
 					__fn__getter__10_test_crate__4_Test____Tuple__0(
-						this.#_ffi
+						this.#_handle
 					)
 				);
 				return out;
@@ -56,7 +61,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		value
 	) {
 		const type_ = __fn__disc__10_test_crate__4_Test(
-			this.#_ffi
+			this.#_handle
 		);
 		if(
 			type_ === 3
@@ -65,12 +70,12 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 				const out = cast.from(
 					"Facade(number)"
 				).to(
-					"Abi(F64)"
+					"Abi(f64)"
 				).an(
 					value
 				);
 				__fn__setter__10_test_crate__4_Test____Tuple__0(
-					this.#_ffi, out
+					this.#_handle, out
 				);
 				return;
 			}
@@ -82,7 +87,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 
 	get [1]() {
 		const type_ = __fn__disc__10_test_crate__4_Test(
-			this.#_ffi
+			this.#_handle
 		);
 		if(
 			type_ === 3
@@ -94,7 +99,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 					"Facade(string)"
 				).an(
 					__fn__getter__10_test_crate__4_Test____Tuple__1(
-						this.#_ffi
+						this.#_handle
 					)
 				);
 				return out;
@@ -109,7 +114,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		value
 	) {
 		const type_ = __fn__disc__10_test_crate__4_Test(
-			this.#_ffi
+			this.#_handle
 		);
 		if(
 			type_ === 3
@@ -123,7 +128,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 					value
 				);
 				__fn__setter__10_test_crate__4_Test____Tuple__1(
-					this.#_ffi, out
+					this.#_handle, out
 				);
 				return;
 			}
@@ -135,19 +140,19 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 
 	get ["value"]() {
 		const type_ = __fn__disc__10_test_crate__4_Test(
-			this.#_ffi
+			this.#_handle
 		);
 		if(
 			type_ === 4
 		) {
 			{
 				const out = cast.from(
-					"Abi(F64)"
+					"Abi(f64)"
 				).to(
 					"Facade(number)"
 				).an(
 					__fn__getter__10_test_crate__4_Test____Record__value(
-						this.#_ffi
+						this.#_handle
 					)
 				);
 				return out;
@@ -162,7 +167,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		value
 	) {
 		const type_ = __fn__disc__10_test_crate__4_Test(
-			this.#_ffi
+			this.#_handle
 		);
 		if(
 			type_ === 4
@@ -171,12 +176,12 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 				const out = cast.from(
 					"Facade(number)"
 				).to(
-					"Abi(F64)"
+					"Abi(f64)"
 				).an(
 					value
 				);
 				__fn__setter__10_test_crate__4_Test____Record__value(
-					this.#_ffi, out
+					this.#_handle, out
 				);
 				return;
 			}
@@ -188,7 +193,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 
 	get ["type"]() {
 		return $facade__discr__10_test_crate__4_Test.#_types[__fn__disc__10_test_crate__4_Test(
-			this.#_ffi
+			this.#_handle
 		)];
 	}
 
@@ -213,7 +218,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "Unit":{
 				{
 					const result = cast.from(
-						"Abi(Class { class: AbiClass { facade: Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }, borrowed: false })"
+						"Abi(usize)"
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } })))"
 					).an(
@@ -227,7 +232,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "EmptyTuple":{
 				{
 					const result = cast.from(
-						"Abi(Class { class: AbiClass { facade: Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }, borrowed: false })"
+						"Abi(usize)"
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } })))"
 					).an(
@@ -241,7 +246,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "EmptyRecord":{
 				{
 					const result = cast.from(
-						"Abi(Class { class: AbiClass { facade: Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }, borrowed: false })"
+						"Abi(usize)"
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } })))"
 					).an(
@@ -257,7 +262,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 					const __0 = cast.from(
 						"Facade(number)"
 					).to(
-						"Abi(F64)"
+						"Abi(f64)"
 					).an(
 						value[0]
 					);
@@ -271,7 +276,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 						);
 						{
 							const result = cast.from(
-								"Abi(Class { class: AbiClass { facade: Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }, borrowed: false })"
+								"Abi(usize)"
 							).to(
 								"Facade(Class(Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } })))"
 							).an(
@@ -290,13 +295,13 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 					const __0 = cast.from(
 						"Facade(number)"
 					).to(
-						"Abi(F64)"
+						"Abi(f64)"
 					).an(
 						value["value"]
 					);
 					{
 						const result = cast.from(
-							"Abi(Class { class: AbiClass { facade: Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } }) }, borrowed: false })"
+							"Abi(usize)"
 						).to(
 							"Facade(Class(Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } })))"
 						).an(
@@ -328,18 +333,21 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__discr__10_test_crate__4_Test(
 			 $facade__discr__10_test_crate__4_Test.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__discr__10_test_crate__4_Test.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 

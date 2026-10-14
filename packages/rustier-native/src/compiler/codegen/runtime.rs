@@ -5,7 +5,6 @@ use crate::compiler::{
 };
 
 mod cast;
-mod classes;
 mod functions;
 pub mod manifest;
 mod tethering;
@@ -29,16 +28,12 @@ impl<'db> Runtime<'db> {
             .tetherings(db)
             .iter()
             .map(move |tethering| tethering.render(db));
-        let classes = self
-            .classes(db)
-            .iter()
-            .map(move |class| class.render(db, transport));
         let functions = self
             .functions(db)
             .iter()
             .map(move |function| function.render(db, transport));
 
-        let members = spaced(tetherings.chain(classes).chain(functions));
+        let members = spaced(tetherings.chain(functions));
 
         let runtime = frag!(
             #![allow(unused_mut, dead_code, unused_imports, nonstandard_style, unreachable_patterns)]@@

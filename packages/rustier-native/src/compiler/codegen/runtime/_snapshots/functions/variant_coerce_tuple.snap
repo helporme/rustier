@@ -18,37 +18,45 @@ pub enum Test {
 pub fn __fn__coe__10_test_crate__4_Test__5_Tuple(
     _0: f64,
     _1: String,
-) -> napi::Result<__discr__10_test_crate__4_Test> {
-    let result = (|| -> rustier_rt::CallResult<__discr__10_test_crate__4_Test> {
-        Ok(__discr__10_test_crate__4_Test {
-            handle: (std::rc::Rc::new(
-                __tethering__10_test_crate__4_Test::new_owned({
-                    let _0 = {
-                        let type_name = "i32";
-                        let value = _0;
-                        if value.trunc() != value || value < i32::MIN as f64
-                            || value > i32::MAX as f64
+) -> napi::Result<u64> {
+    let result = (|| -> rustier_rt::CallResult<usize> {
+        Ok(
+            rustier_rt::handles::into_handle(
+                std::rc::Rc::new(
+                    __tethering__10_test_crate__4_Test::new_owned({
+                        let _0 = {
+                            let type_name = "i32";
+                            let value = _0;
+                            if value.trunc() != value || value < i32::MIN as f64
+                                || value > i32::MAX as f64
+                            {
+                                return Err(
+                                    rustier_rt::CastError {
+                                        value,
+                                        target: type_name,
+                                    }
+                                        .into(),
+                                );
+                            }
+                            value as i32
+                        };
                         {
-                            return Err(
-                                rustier_rt::CastError {
-                                    value,
-                                    target: type_name,
-                                }
-                                    .into(),
-                            );
+                            let _1 = _1;
+                            test_crate::Test::Tuple(_0, _1)
                         }
-                        value as i32
-                    };
-                    {
-                        let _1 = _1;
-                        test_crate::Test::Tuple(_0, _1)
-                    }
-                }),
-            ))
-                .into(),
-        })
+                    }),
+                ),
+            ),
+        )
     })();
-    result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    result
+        .map_err(|error| napi::Error::from_reason(error.to_string()))
+        .and_then(|result| {
+            u64::try_from(result)
+                .map_err(|_| napi::Error::from_reason(
+                    "usize value is outside the transport range".to_string(),
+                ))
+        })
 }
 ```
 
@@ -58,36 +66,44 @@ pub fn __fn__coe__10_test_crate__4_Test__5_Tuple(
 pub fn __fn__coe__10_test_crate__4_Test__5_Tuple(
     _0: f64,
     _1: String,
-) -> Result<__discr__10_test_crate__4_Test, JsValue> {
-    let result = (|| -> rustier_rt::CallResult<__discr__10_test_crate__4_Test> {
-        Ok(__discr__10_test_crate__4_Test {
-            handle: (std::rc::Rc::new(
-                __tethering__10_test_crate__4_Test::new_owned({
-                    let _0 = {
-                        let type_name = "i32";
-                        let value = _0;
-                        if value.trunc() != value || value < i32::MIN as f64
-                            || value > i32::MAX as f64
+) -> Result<u32, JsValue> {
+    let result = (|| -> rustier_rt::CallResult<usize> {
+        Ok(
+            rustier_rt::handles::into_handle(
+                std::rc::Rc::new(
+                    __tethering__10_test_crate__4_Test::new_owned({
+                        let _0 = {
+                            let type_name = "i32";
+                            let value = _0;
+                            if value.trunc() != value || value < i32::MIN as f64
+                                || value > i32::MAX as f64
+                            {
+                                return Err(
+                                    rustier_rt::CastError {
+                                        value,
+                                        target: type_name,
+                                    }
+                                        .into(),
+                                );
+                            }
+                            value as i32
+                        };
                         {
-                            return Err(
-                                rustier_rt::CastError {
-                                    value,
-                                    target: type_name,
-                                }
-                                    .into(),
-                            );
+                            let _1 = _1;
+                            test_crate::Test::Tuple(_0, _1)
                         }
-                        value as i32
-                    };
-                    {
-                        let _1 = _1;
-                        test_crate::Test::Tuple(_0, _1)
-                    }
-                }),
-            ))
-                .into(),
-        })
+                    }),
+                ),
+            ),
+        )
     })();
-    result.map_err(|error| JsValue::from_str(&error.to_string()))
+    result
+        .map_err(|error| JsValue::from_str(&error.to_string()))
+        .and_then(|result| {
+            u32::try_from(result)
+                .map_err(|_| JsValue::from_str(
+                    &"usize value is outside the transport range".to_string(),
+                ))
+        })
 }
 ```

@@ -15,9 +15,11 @@ pub enum ExampleEnum {
 ## Node
 ```rust
 fn cast(input: ()) {
-    input
-        .handle
-        .clone_rc()
+    unsafe {
+        rustier_rt::handles::clone_from_handle::<
+            __tethering__10_test_crate__11_ExampleEnum,
+        >(input)
+    }
         .access_mut(|value| Ok({
             let output = value;
             consume(output);
@@ -28,9 +30,11 @@ fn cast(input: ()) {
 ## Wasm
 ```rust
 fn cast(input: ()) {
-    input
-        .handle
-        .clone_rc()
+    unsafe {
+        rustier_rt::handles::clone_from_handle::<
+            __tethering__10_test_crate__11_ExampleEnum,
+        >(input)
+    }
         .access_mut(|value| Ok({
             let output = value;
             consume(output);

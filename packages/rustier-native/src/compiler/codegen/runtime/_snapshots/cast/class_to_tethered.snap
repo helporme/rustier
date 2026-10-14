@@ -14,7 +14,11 @@ pub struct ExampleStruct;
 ```rust
 fn cast(input: ()) {
     {
-        let output = input.handle.clone_rc();
+        let output = unsafe {
+            rustier_rt::handles::clone_from_handle::<
+                __tethering__10_test_crate__13_ExampleStruct,
+            >(input)
+        };
         consume(output);
     }
 }
@@ -24,7 +28,11 @@ fn cast(input: ()) {
 ```rust
 fn cast(input: ()) {
     {
-        let output = input.handle.clone_rc();
+        let output = unsafe {
+            rustier_rt::handles::clone_from_handle::<
+                __tethering__10_test_crate__13_ExampleStruct,
+            >(input)
+        };
         consume(output);
     }
 }

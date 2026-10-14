@@ -59,25 +59,32 @@ where
     fn render(self) -> impl FragmentOnce + 'db {
         let name = self.class.import_alias(self.db);
         let public_name = self.class.name(self.db);
+        let drop_handle = self
+            .class
+            .drop_handle_fn(self.db)
+            .abi(self.db)
+            .symbol(self.db);
 
         frag!(
             const~{name}~=~class~{public_name}~{{
                 static #_construction_token = Symbol();@
-                #_ffi;@
+                static #_finalization = new FinalizationRegistry(handle => {drop_handle}(handle));@
+                #_handle;@
                 {self.render_private_declarations()}@
 
                 {self.render_members()}{self.render_coerce()}@@
 
                 {self.render_constructor()}@@
 
-                static $from_ffi(ffi) {{
+                static $from_handle(handle) {{
                     const obj = new ~{name}(~{name}.#_construction_token);@
-                    obj.#_ffi = ffi;@
+                    obj.#_handle = handle;@
+                    ~{name}.#_finalization.register(obj, handle);@
                     return obj;
                 }}@@
 
-                $ffi() {{
-                    return this.#_ffi;
+                $handle() {{
+                    return this.#_handle;
                 }}
             }};@@
             export~{{{name}~as~{public_name}}};
@@ -361,7 +368,7 @@ where
                     Cast {
                         from: abi_type,
                         to: facade_type,
-                        in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_ffi)),
+                        in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_handle)),
                         out_var_name: "out",
                     },
                     frag!(this.#{cache_name(self.index, None)}~ = ~out;),
@@ -381,7 +388,7 @@ where
                         Cast {
                             from: abi_type,
                             to: facade_type,
-                            in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_ffi)),
+                            in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_handle)),
                             out_var_name: "out",
                         },
                         frag!(return out;),
@@ -400,7 +407,7 @@ where
         };
         let facade_type = field.type_js(self.db);
         let continuation = fragment(move |p| {
-            frag!({ abi_setter.symbol(self.db) }(this.#_ffi, out);).apply(p);
+            frag!({ abi_setter.symbol(self.db) }(this.#_handle, out);).apply(p);
 
             if matches!(facade_type, FacadeTypeJs::Class(_)) {
                 frag!(@this.#{cache_name(self.index, None)}~ = undefined;).apply(p);
@@ -468,7 +475,7 @@ where
         });
 
         frag!(
-            const type_ = ~{abi_discriminator.symbol(self.db)}(this.#_ffi);@
+            const type_ = ~{abi_discriminator.symbol(self.db)}(this.#_handle);@
             {branches}
             {self.render_unavailable_field_error(field)}
         )
@@ -492,7 +499,7 @@ where
                     Cast {
                         from: abi_type,
                         to: facade_type,
-                        in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_ffi)),
+                        in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_handle)),
                         out_var_name: "out",
                     },
                     frag!(
@@ -516,7 +523,7 @@ where
                         Cast {
                             from: abi_type,
                             to: facade_type,
-                            in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_ffi)),
+                            in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_handle)),
                             out_var_name: "out",
                         },
                         frag!(return out;),
@@ -553,7 +560,7 @@ where
         });
 
         frag!(
-            const type_ = ~{abi_discriminator.symbol(self.db)}(this.#_ffi);@
+            const type_ = ~{abi_discriminator.symbol(self.db)}(this.#_handle);@
             {branches}
             {self.render_unavailable_field_error(field)}
         )
@@ -572,7 +579,7 @@ where
         };
         let facade_type = field.type_js(self.db);
         let continuation = fragment(move |p| {
-            frag!({ abi_setter.symbol(self.db) }(this.#_ffi, out);).apply(p);
+            frag!({ abi_setter.symbol(self.db) }(this.#_handle, out);).apply(p);
 
             if matches!(facade_type, FacadeTypeJs::Class(_)) {
                 frag!(@
@@ -603,7 +610,7 @@ where
 
         frag!(
             get ~{accessor}()~{{
-                return ~{class_name}.#_types[{abi_getter.symbol(self.db)}(this.#_ffi)];
+                return ~{class_name}.#_types[{abi_getter.symbol(self.db)}(this.#_handle)];
             }}
         )
     }

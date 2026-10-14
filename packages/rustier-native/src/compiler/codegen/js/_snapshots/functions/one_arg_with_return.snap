@@ -20,13 +20,13 @@ export function test_fn (
 		const __0 = cast.from(
 			"Facade(number)"
 		).to(
-			"Abi(F64)"
+			"Abi(f64)"
 		).an(
 			_0
 		);
 		{
 			const result = cast.from(
-				"Abi(F64)"
+				"Abi(f64)"
 			).to(
 				"Facade(number)"
 			).an(

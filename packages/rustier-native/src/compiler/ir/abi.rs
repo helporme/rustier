@@ -7,7 +7,7 @@ pub mod transport;
 use crate::compiler::{
     db::Db,
     ir::{
-        facade::{Facade, FacadeClass},
+        facade::Facade,
         runtime::{RuntimeFunction, RuntimeType},
         rust::{Type, TypeKind},
     },
@@ -25,29 +25,14 @@ impl<'db> Abi<'db> {
     pub fn symbols(self, db: &'db dyn Db) -> Vec<String> {
         let runtime = self.facade(db).runtime(db);
 
-        let classes = runtime
-            .classes(db)
-            .iter()
-            .map(|class| class.facade(db).abi(db).symbol(db));
         let functions = runtime
             .functions(db)
             .iter()
             .map(|function| function.abi(db).symbol(db));
 
-        let symbols: std::collections::BTreeSet<_> = classes.chain(functions).collect();
+        let symbols: std::collections::BTreeSet<_> = functions.collect();
 
         symbols.into_iter().map(str::to_owned).collect()
-    }
-}
-
-#[salsa::interned(debug)]
-pub struct AbiClass<'db> {
-    pub facade: FacadeClass<'db>,
-}
-
-impl<'db> AbiClass<'db> {
-    pub fn symbol(self, db: &'db dyn Db) -> &'db str {
-        self.facade(db).runtime(db).symbol(db)
     }
 }
 
@@ -63,49 +48,37 @@ impl<'db> AbiFunction<'db> {
     }
 
     #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> Vec<AbiType<'db>> {
+    pub fn params(self, db: &'db dyn Db) -> Vec<AbiType> {
         self.runtime(db)
             .params(db)
             .iter()
-            .map(|type_| AbiType::new(db, *type_, true))
+            .map(|type_| AbiType::new(db, *type_))
             .collect()
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<AbiType<'db>> {
+    pub fn ret_type(self, db: &'db dyn Db) -> Option<AbiType> {
         self.runtime(db).ret_type(db).map(|type_| match type_ {
-            RuntimeType::Source(type_) => AbiType::new(db, type_, false),
-            RuntimeType::u32 => AbiType::F64,
-            RuntimeType::Tethered(tethering) => AbiType::Class {
-                class: tethering.source(db).abi(db),
-                borrowed: false,
-            },
+            RuntimeType::Source(type_) => AbiType::new(db, type_),
+            RuntimeType::u32 => AbiType::f64,
+            RuntimeType::Tethered(_) => AbiType::usize,
         })
     }
 }
 
 /// A logical type transferred across the ABI.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub enum AbiType<'db> {
-    F64,
-    Bool,
+#[allow(non_camel_case_types)]
+pub enum AbiType {
+    f64,
+    bool,
     String,
-    Class {
-        class: AbiClass<'db>,
-        borrowed: bool,
-    },
+    usize,
 }
 
-impl<'db> AbiType<'db> {
-    fn new(db: &'db dyn Db, type_: Type<'db>, borrowed: bool) -> Self {
-        if let Some(class) = type_.facade_class(db) {
-            return Self::Class {
-                class: class.abi(db),
-                borrowed,
-            };
-        }
-
+impl AbiType {
+    fn new<'db>(db: &'db dyn Db, type_: Type<'db>) -> Self {
         match type_.kind(db) {
-            TypeKind::bool => Self::Bool,
+            TypeKind::bool => Self::bool,
             TypeKind::char
             | TypeKind::i8
             | TypeKind::u8
@@ -114,10 +87,11 @@ impl<'db> AbiType<'db> {
             | TypeKind::i32
             | TypeKind::u32
             | TypeKind::f32
-            | TypeKind::f64 => Self::F64,
+            | TypeKind::f64 => Self::f64,
             TypeKind::Str | TypeKind::String => Self::String,
-            TypeKind::Borrowed(borrowed_type) => Self::new(db, borrowed_type.inner(db), borrowed),
-            TypeKind::Struct(_) | TypeKind::Enum(_) | TypeKind::Generic(_) => {
+            TypeKind::Borrowed(borrowed_type) => Self::new(db, borrowed_type.inner(db)),
+            TypeKind::Struct(_) | TypeKind::Enum(_) => Self::usize,
+            TypeKind::Generic(_) => {
                 unreachable!("unsupported Rust types do not cross the ABI")
             }
         }

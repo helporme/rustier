@@ -16,17 +16,22 @@ pub struct Test {
 ```js
 const $facade__plain__10_test_crate__4_Test = class Test {
 	static #_construction_token = Symbol();
-	#_ffi;
+	static #_finalization = new FinalizationRegistry(
+		handle =>__fn__drop_handle__10_test_crate__4_Test(
+			handle
+		)
+	);
+	#_handle;
 
 	get ["first"]() {
 		{
 			const out = cast.from(
-				"Abi(F64)"
+				"Abi(f64)"
 			).to(
 				"Facade(number)"
 			).an(
 				__fn__getter__10_test_crate__4_Test__first(
-					this.#_ffi
+					this.#_handle
 				)
 			);
 			return out;
@@ -40,12 +45,12 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			const out = cast.from(
 				"Facade(number)"
 			).to(
-				"Abi(F64)"
+				"Abi(f64)"
 			).an(
 				value
 			);
 			__fn__setter__10_test_crate__4_Test__first(
-				this.#_ffi, out
+				this.#_handle, out
 			);
 		}
 	}
@@ -58,7 +63,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 				"Facade(string)"
 			).an(
 				__fn__getter__10_test_crate__4_Test__second(
-					this.#_ffi
+					this.#_handle
 				)
 			);
 			return out;
@@ -77,7 +82,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 				value
 			);
 			__fn__setter__10_test_crate__4_Test__second(
-				this.#_ffi, out
+				this.#_handle, out
 			);
 		}
 	}
@@ -94,18 +99,21 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 		}
 	}
 
-	static $from_ffi(
-		ffi
+	static $from_handle(
+		handle
 	){
 		const obj = new $facade__plain__10_test_crate__4_Test(
 			 $facade__plain__10_test_crate__4_Test.#_construction_token
 		);
-		obj.#_ffi = ffi;
+		obj.#_handle = handle;
+		 $facade__plain__10_test_crate__4_Test.#_finalization.register(
+			obj, handle
+		);
 		return obj;
 	}
 
-	$ffi(){
-		return this.#_ffi;
+	$handle(){
+		return this.#_handle;
 	}
 };
 

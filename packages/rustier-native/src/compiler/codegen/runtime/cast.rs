@@ -1,7 +1,7 @@
 //! Code to cast values from ABI to source types back and forth
 
 mod borrowing;
-mod classes;
+mod handles;
 mod numbers;
 mod strings;
 mod tethering;
@@ -19,29 +19,13 @@ use crate::compiler::{
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CastType<'db> {
     Tethered(RuntimeTethering<'db>),
-    Abi(AbiType<'db>),
+    Abi(AbiType),
     Rust(Type<'db>),
 }
 
 impl<'db> CastType<'db> {
     fn same_representation(self, db: &'db dyn Db, other: Self) -> bool {
         match (self, other) {
-            (
-                Self::Abi(AbiType::Class {
-                    borrowed: left_borrowed,
-                    class: left,
-                }),
-                Self::Abi(AbiType::Class {
-                    borrowed: right_borrowed,
-                    class: right,
-                }),
-            ) => {
-                left_borrowed == right_borrowed
-                    && left
-                        .facade(db)
-                        .src_type(db)
-                        .same_type_as(db, right.facade(db).src_type(db))
-            }
             (Self::Abi(left), Self::Abi(right)) => left == right,
             (Self::Tethered(a), Self::Tethered(b)) => a
                 .source(db)
@@ -59,8 +43,8 @@ impl<'db> From<RuntimeTethering<'db>> for CastType<'db> {
     }
 }
 
-impl<'db> From<AbiType<'db>> for CastType<'db> {
-    fn from(value: AbiType<'db>) -> Self {
+impl<'db> From<AbiType> for CastType<'db> {
+    fn from(value: AbiType) -> Self {
         Self::Abi(value)
     }
 }
@@ -218,32 +202,30 @@ impl<'db> CastRenderer<'db> for RuntimeCastRenderer {
                         .apply(printer);
                 }
 
-                // classes
-                (Abi(class @ AbiType::Class { .. }), Tethered(_)) => {
-                    classes::render_class_to_tethered(class, in_expr, output).apply(printer);
+                // handles
+                (Abi(AbiType::usize), Tethered(target)) => {
+                    handles::render_handle_to_tethered(db, target, in_expr, output).apply(printer);
                 }
-                (Tethered(_), Abi(class @ AbiType::Class { .. })) => {
-                    classes::render_tethered_to_class(db, class, in_expr, output).apply(printer);
+                (Tethered(_), Abi(AbiType::usize)) => {
+                    handles::render_tethered_to_handle(in_expr, output).apply(printer);
                 }
-                (Abi(class @ AbiType::Class { .. }), Rust(target)) => {
-                    classes::render_class_to_type(db, class, target, in_expr, output)
-                        .apply(printer);
+                (Abi(AbiType::usize), Rust(target)) => {
+                    handles::render_handle_to_type(db, target, in_expr, output).apply(printer);
                 }
-                (Rust(source), Abi(class @ AbiType::Class { .. })) => {
-                    classes::render_type_to_class(db, source, class, in_expr, output)
-                        .apply(printer);
+                (Rust(source), Abi(AbiType::usize)) => {
+                    handles::render_type_to_handle(db, source, in_expr, output).apply(printer);
                 }
 
                 // numbers
-                (Abi(AbiType::F64), Rust(target)) => {
+                (Abi(AbiType::f64), Rust(target)) => {
                     numbers::render_f64_to_type(db, target, in_expr, output).apply(printer);
                 }
-                (Rust(source), Abi(AbiType::F64)) => {
+                (Rust(source), Abi(AbiType::f64)) => {
                     numbers::render_type_to_f64(db, source, in_expr, output).apply(printer);
                 }
 
                 // booleans
-                (Abi(AbiType::Bool), Rust(target))
+                (Abi(AbiType::bool), Rust(target))
                     if matches!(target.kind(db), TypeKind::Borrowed(borrowed)
                         if borrowed.inner(db).kind(db) == TypeKind::bool) =>
                 {
@@ -258,7 +240,7 @@ impl<'db> CastRenderer<'db> for RuntimeCastRenderer {
                 }
 
                 // identity casts
-                (Abi(AbiType::Bool), Rust(type_)) | (Rust(type_), Abi(AbiType::Bool))
+                (Abi(AbiType::bool), Rust(type_)) | (Rust(type_), Abi(AbiType::bool))
                     if type_.kind(db) == TypeKind::bool =>
                 {
                     adapt_to_cast_output(in_expr, output).apply(printer);
@@ -398,7 +380,7 @@ mod tests {
         db::Db,
         ir::{
             abi::AbiType,
-            rust::{Member, Rust, Type, TypeKind},
+            rust::{Member, Rust, Type},
         },
     };
 
@@ -480,26 +462,26 @@ mod tests {
         ) => {
             cast_snapshot! {
                 name: $in_name,
-                from: |_db| AbiType::F64,
+                from: |_db| AbiType::f64,
                 to: |db| test_type(db, stringify!($value)),
             }
 
             cast_snapshot! {
                 name: $ref_name,
-                from: |_db| AbiType::F64,
+                from: |_db| AbiType::f64,
                 to: |db| test_type(db, stringify!($value)).borrowed(db),
             }
 
             cast_snapshot! {
                 name: $mut_name,
-                from: |_db| AbiType::F64,
+                from: |_db| AbiType::f64,
                 to: |db| test_type(db, stringify!($value)).borrowed_mut(db),
             }
 
             cast_snapshot! {
                 name: $out_name,
                 from: |db| test_type(db, stringify!($value)),
-                to: |_db| AbiType::F64,
+                to: |_db| AbiType::f64,
             }
         };
     }
@@ -578,26 +560,26 @@ mod tests {
 
     cast_snapshot! {
         name: bool_in,
-        from: |_db| AbiType::Bool,
+        from: |_db| AbiType::bool,
         to: |db| test_type(db, "bool"),
     }
 
     cast_snapshot! {
         name: bool_ref_in,
-        from: |_db| AbiType::Bool,
+        from: |_db| AbiType::bool,
         to: |db| test_type(db, "bool").borrowed(db),
     }
 
     cast_snapshot! {
         name: bool_mut_in,
-        from: |_db| AbiType::Bool,
+        from: |_db| AbiType::bool,
         to: |db| test_type(db, "bool").borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: bool_out,
         from: |db| test_type(db, "bool"),
-        to: |_db| AbiType::Bool,
+        to: |_db| AbiType::bool,
     }
 
     cast_snapshot! {
@@ -642,7 +624,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| test_abi_class_type(db, "ExampleStruct", true),
+        from: |_db| AbiType::usize,
         to: |db| test_type(db, "ExampleStruct"),
     }
 
@@ -652,7 +634,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| test_abi_class_type(db, "ExampleStruct", true),
+        from: |_db| AbiType::usize,
         to: |db| test_type(db, "ExampleStruct").borrowed(db),
     }
 
@@ -662,7 +644,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| test_abi_class_type(db, "ExampleStruct", true),
+        from: |_db| AbiType::usize,
         to: |db| test_type(db, "ExampleStruct").borrowed_mut(db),
     }
 
@@ -673,7 +655,7 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| test_type(db, "ExampleStruct"),
-        to: |db| test_abi_class_type(db, "ExampleStruct", false),
+        to: |_db| AbiType::usize,
     }
 
     cast_snapshot! {
@@ -684,7 +666,7 @@ mod tests {
                 Variant,
             }
         },
-        from: |db| test_abi_class_type(db, "ExampleEnum", true),
+        from: |_db| AbiType::usize,
         to: |db| test_type(db, "ExampleEnum"),
     }
 
@@ -696,7 +678,7 @@ mod tests {
                 Variant,
             }
         },
-        from: |db| test_abi_class_type(db, "ExampleEnum", true),
+        from: |_db| AbiType::usize,
         to: |db| test_type(db, "ExampleEnum").borrowed(db),
     }
 
@@ -708,7 +690,7 @@ mod tests {
                 Variant,
             }
         },
-        from: |db| test_abi_class_type(db, "ExampleEnum", true),
+        from: |_db| AbiType::usize,
         to: |db| test_type(db, "ExampleEnum").borrowed_mut(db),
     }
 
@@ -721,7 +703,7 @@ mod tests {
             }
         },
         from: |db| test_type(db, "ExampleEnum"),
-        to: |db| test_abi_class_type(db, "ExampleEnum", false),
+        to: |_db| AbiType::usize,
     }
 
     cast_snapshot! {
@@ -770,7 +752,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |db| test_abi_class_type(db, "ExampleStruct", true),
+        from: |_db| AbiType::usize,
         to: |db| test_type(db, "ExampleStruct").tethering(db).unwrap(),
     }
 
@@ -781,7 +763,7 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| test_type(db, "ExampleStruct").tethering(db).unwrap(),
-        to: |db| test_abi_class_type(db, "ExampleStruct", false),
+        to: |_db| AbiType::usize,
     }
 
     cast_snapshot! {
@@ -792,8 +774,8 @@ mod tests {
 
     cast_snapshot! {
         name: abi_identity,
-        from: |_db| AbiType::Bool,
-        to: |_db| AbiType::Bool,
+        from: |_db| AbiType::bool,
+        to: |_db| AbiType::bool,
     }
 
     cast_snapshot! {
@@ -874,15 +856,5 @@ mod tests {
                 _ => None,
             })
             .unwrap_or_else(|| panic!("test value type `{name}` should be lowered"))
-    }
-
-    fn test_abi_class_type<'db>(db: &'db dyn Db, name: &str, borrowed: bool) -> AbiType<'db> {
-        let class = match test_type(db, name).kind(db) {
-            TypeKind::Struct(struct_) => struct_.facade(db).abi(db),
-            TypeKind::Enum(enum_) => enum_.facade(db).abi(db),
-            _ => unreachable!("class cast test requires a struct or enum"),
-        };
-
-        AbiType::Class { class, borrowed }
     }
 }
