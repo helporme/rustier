@@ -23,8 +23,14 @@ export default defineConfig({
 		}),
 		rustier()
 	],
+	ssr: {
+		external: ['rustier', 'rustier-native']
+	},
+	build: {
+		cssTarget: ['chrome123', 'edge123', 'firefox120', 'safari17.5', 'ios17.5']
+	},
 	worker: {
-		plugins: () => [rustier(j)],
+		plugins: () => [rustier()],
 		format: 'es'
 	}
 });

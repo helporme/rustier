@@ -230,6 +230,7 @@ impl Workspace {
         if rust_markers.iter().any(|marker| marker.severity == 8) {
             return Compilation {
                 diagnostics: analyzer_report,
+                diagnostic_count: rust_markers.len() as u32,
                 rust_markers: EditorMarkers {
                     items: rust_markers,
                 },
@@ -253,8 +254,11 @@ impl Workspace {
             ts_code.push_str("\n//# sourceMappingURL=lib.rs.d.ts.map\n");
 
             let mut diagnostics = analyzer_report;
+            let mut diagnostic_count = rust_markers.len() as u32;
 
             for diagnostic in shim.check(db) {
+                diagnostic_count += 1;
+
                 if !diagnostics.is_empty() {
                     diagnostics.push('\n');
                 }
@@ -281,6 +285,7 @@ impl Workspace {
                 ambient_ts_code: shim.decals(db).render_ambient_ts_mods(db),
                 ts_sourcemap: module.decals(db).render_sourcemap(db).clone(),
                 diagnostics,
+                diagnostic_count,
                 rust_markers: EditorMarkers {
                     items: rust_markers,
                 },
@@ -401,6 +406,7 @@ pub struct Compilation {
     pub ambient_ts_code: String,
     pub ts_sourcemap: String,
     pub diagnostics: String,
+    pub diagnostic_count: u32,
     pub rust_markers: EditorMarkers,
 }
 

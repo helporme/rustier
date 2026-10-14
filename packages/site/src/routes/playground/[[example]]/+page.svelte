@@ -1,101 +1,226 @@
-<script lang="ts">
-	import { Button } from '#lib/ui/components/button';
-	import { CodeEditor } from '#lib/ui/components/code-editor';
-	import { examples } from '#lib/playground/examples';
-	import { Compiler } from '../(components)/compiler.svelte.ts';
-	import Navigation from '../(components)/navigation.svelte';
-	import Panels from '../(components)/panels.svelte';
-	import type { PageProps } from './$types';
+<script lang="ts" module>
+	import type { load } from './+page.server';
 
-	let { data }: PageProps = $props();
-	let snippets = $state(examples.map((example) => ({ ...example })));
-	const compiler = new Compiler(() => snippets[data.selected].code);
+	export type PageData = Awaited<ReturnType<typeof load>>;
+	export type PaneSide = 'left' | 'right';
+	export type PaneSelection = Record<PaneSide, string>;
+	export type PlaygroundMode = 'run' | 'analysis';
+
+	const sources = [
+		{ id: 'rust', label: 'lib.rs', language: 'rust', filename: 'lib.rs' },
+		{ id: 'typescript', label: 'index.ts', language: 'typescript', filename: 'index.ts' }
+	] as const;
 
 	const representations = [
-		{ value: 'ts_code', label: 'TS declarations', language: 'typescript', filename: 'lib.rs.d.ts' },
+		{ id: 'ts_code', label: 'TS', language: 'typescript', filename: 'lib.rs.d.ts' },
 		{
-			value: 'ambient_ts_code',
-			label: 'Ambient declarations',
+			id: 'ambient_ts_code',
+			label: 'TS Ambient',
 			language: 'typescript',
 			filename: 'ambient.d.ts'
 		},
-		{ value: 'js_code', label: 'JS facade', language: 'typescript', filename: 'lib.rs.js' },
-		{ value: 'rust_code', label: 'Rust facade', language: 'rust', filename: 'facade.rs' },
-		{ value: 'diagnostics', label: 'Diagnostics', language: 'ansi', filename: 'diagnostics.txt' }
+		{ id: 'js_code', label: 'JS Bridge', language: 'typescript', filename: 'lib.rs.js' },
+		{ id: 'rust_code', label: 'Rust Bridge', language: 'rust', filename: 'facade.rs' },
+		{ id: 'diagnostics', label: 'Diagnostics', language: 'ansi', filename: 'diagnostics.txt' }
 	] as const;
-	let representation = $state<(typeof representations)[number]['value']>('ts_code');
-	let output = $derived(representations.find((item) => item.value === representation)!);
-	let content = $derived(compiler.compilation?.[representation]);
-	let status = $derived(compiler.ready ? 'Compiling…' : 'Loading compiler…');
-	let value = $derived(
-		compiler.error ||
-			content ||
-			(compiler.pending
-				? `# ${status}`
-				: representation === 'diagnostics'
-					? '# No diagnostics'
-					: '# No declarations')
-	);
-	let language: 'text' | (typeof representations)[number]['language'] = $derived(
-		compiler.error || compiler.pending || !content ? 'text' : output.language
-	);
+
+	const views = [...sources, ...representations];
 </script>
 
-<div class="flex h-dvh min-h-0 flex-col bg-[light-dark(#fff,#000)] text-on-surface">
-	<Navigation examples={snippets} selected={snippets[data.selected].slug} />
-	<main class="@container min-h-0 min-w-0 flex-1 overflow-hidden" aria-label="playground">
-		<Panels>
-			{#snippet rust(activate)}
+<script lang="ts">
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { tick } from 'svelte';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { CodeEditor, EditorPane } from '#lib/ui/components/code-editor';
+	import { Panels } from '#lib/ui/components/panels';
+	import { PanelTabs } from '#lib/ui/components/panel-tabs';
+	import { PlasmaAnimation } from '#lib/ui/components/plasma-animation';
+	import { examples } from '#lib/playground/examples';
+	import { Playground } from '#lib/playground/playground.svelte.ts';
+	import Navigation from '../(components)/navigation.svelte';
+
+	let { data }: { data: PageData } = $props();
+
+	let snippets = $state(
+		examples.map((example) => ({
+			...example,
+			code: String(example.code),
+			typescript: String(example.typescript)
+		}))
+	);
+
+	const { compiler, builder } = new Playground(() => snippets[data.selected]);
+
+	let mode: PlaygroundMode = $derived(
+		page.url.searchParams.get('mode') === 'analysis' ? 'analysis' : 'run'
+	);
+
+	const panelId = $props.id();
+	let selectedPanes = $state<{ mode: typeof mode; panes: PaneSelection }>();
+	let panes: PaneSelection = $derived(
+		selectedPanes?.mode === mode
+			? selectedPanes.panes
+			: { left: 'rust', right: mode === 'analysis' ? 'ts_code' : 'typescript' }
+	);
+
+	let generatedTabs = $derived(
+		representations.map((view) =>
+			view.id === 'diagnostics'
+				? { ...view, label: `Diagnostics ${compiler.compilation?.diagnostic_count ?? 0}` }
+				: view
+		)
+	);
+
+	let tabs = $derived({
+		left: mode === 'analysis' ? sources : [sources[0]],
+		right:
+			mode === 'analysis' ? generatedTabs : [sources[1], generatedTabs[generatedTabs.length - 1]]
+	});
+
+	let split = $state(0.5);
+	let animateSidebar = $state(false);
+	let panelRefs = $state<Partial<Record<PaneSide, HTMLDivElement>>>({});
+
+	function build() {
+		animateSidebar = true;
+		void builder.build(snippets[data.selected].code, snippets[data.selected].typescript);
+	}
+
+	async function open(value: string, side: PaneSide) {
+		selectedPanes = { mode, panes: { ...panes, [side]: value } };
+
+		await tick();
+
+		// Focus the updated panel, not Monaco: Enter opts into editing, while Tab skips the editor.
+		panelRefs[side]?.focus({ preventScroll: true });
+	}
+
+	async function selectMode(mode: PlaygroundMode) {
+		const search = new SvelteURLSearchParams(page.url.search);
+
+		if (mode === 'analysis') search.set('mode', 'analysis');
+		else search.delete('mode');
+
+		const query = search.toString();
+		const route = query
+			? (`/playground/[[example]]?${query}${page.url.hash}` as const)
+			: page.url.hash
+				? (`/playground/[[example]]${page.url.hash}` as `/playground/[[example]]#${string}`)
+				: '/playground/[[example]]';
+
+		await goto(resolve(route, { example: page.params.example }), { reset: false });
+	}
+</script>
+
+{#snippet output()}
+	<PlasmaAnimation busy={builder.status === 'building'}>
+		<CodeEditor
+			value={builder.output}
+			language="ansi"
+			filename="output.txt"
+			colorScheme="rustier-dark"
+			readOnly
+			class="[--editor-background:#000]"
+		/>
+	</PlasmaAnimation>
+{/snippet}
+
+{#snippet pane(side: PaneSide)}
+	{@const view = views.find((item) => item.id === panes[side])!}
+	{@const source = view.id === 'rust' || view.id === 'typescript'}
+	{@const content = source ? undefined : compiler.compilation?.[view.id]}
+	<div
+		class={[
+			'h-full min-h-0 min-w-0 bg-(--editor-background)',
+			view.id === 'diagnostics'
+				? '[--editor-background:var(--color-surface-dimest)]'
+				: side === 'left'
+					? '[--editor-background:var(--color-surface)]'
+					: '[--editor-background:var(--color-surface-dim)]'
+		]}
+	>
+		<PlasmaAnimation busy={!source && compiler.pending} class="flex flex-col">
+			<PanelTabs
+				id={`${panelId}-${side}`}
+				label={`${side} pane views`}
+				tabs={tabs[side].map((item) => ({ ...item, controls: `${panelId}-${side}-view` }))}
+				value={view.id}
+				onSelect={(value) => open(value, side)}
+				activeClass="bg-inherit"
+				class="shrink-0 bg-inherit"
+			/>
+			<EditorPane
+				bind:ref={panelRefs[side]}
+				id={`${panelId}-${side}-view`}
+				value={view.id}
+				labelledby={`${panelId}-${side}-${view.id}-tab`}
+			>
 				<CodeEditor
-					bind:value={snippets[data.selected].code}
-					language="rust"
-					filename="lib.rs"
-					markers={compiler.markers}
-					languageService={compiler}
-					onNavigate={activate}
-				/>
-			{/snippet}
-			{#snippet typescript(activate)}
-				<CodeEditor
-					bind:value={snippets[data.selected].typescript}
-					language="typescript"
-					filename="index.ts"
+					bind:value={
+						() =>
+							view.id === 'rust'
+								? snippets[data.selected].code
+								: view.id === 'typescript'
+									? snippets[data.selected].typescript
+									: compiler.error ||
+										content ||
+										(compiler.pending
+											? ''
+											: view.id === 'diagnostics'
+												? '# No diagnostics'
+												: '# No declarations'),
+						(value) => {
+							if (view.id === 'rust') snippets[data.selected].code = value;
+							else if (view.id === 'typescript') snippets[data.selected].typescript = value;
+						}
+					}
+					language={!source && (compiler.error || !content) ? 'text' : view.language}
+					filename={view.filename}
+					tabIndex={-1}
+					readOnly={!source}
+					markers={view.id === 'rust' ? compiler.markers : []}
+					initialPreview={view.id === 'rust'
+						? data.preview.rust
+						: view.id === 'typescript'
+							? data.preview.typescript
+							: undefined}
+					languageService={view.id === 'rust' ? compiler : undefined}
 					extraLibs={compiler.libraries}
-					onNavigate={activate}
+					onNavigate={() => open(view.id, side)}
 					class="bg-inherit"
 				/>
-			{/snippet}
-			{#snippet results(activate)}
-				<div class="flex h-full min-h-0 flex-col">
-					<div class="flex flex-wrap items-center gap-x-2 px-2 py-1 text-on-surface">
-						<select
-							aria-label="Generated representation"
-							bind:value={representation}
-							class="min-w-0 cursor-pointer bg-inherit outline-none"
-						>
-							{#each representations as item (item.value)}
-								<option value={item.value}>{item.label}</option>
-							{/each}
-						</select>
-						{#if compiler.workerError}
-							<Button onclick={compiler.activate}>Restart compiler</Button>
-						{:else if compiler.pending}
-							<span role="status" class="text-on-surface-alt">{status}</span>
-						{/if}
-					</div>
-					<div class="min-h-0 flex-1">
-						<CodeEditor
-							{value}
-							{language}
-							filename={output.filename}
-							onNavigate={activate}
-							readOnly
-							colorScheme="rustier-dark-dimmest"
-							class="dark bg-surface-dim"
-						/>
-					</div>
-				</div>
-			{/snippet}
+			</EditorPane>
+		</PlasmaAnimation>
+	</div>
+{/snippet}
+
+<div
+	class={[
+		'grid h-dvh min-h-0 overflow-hidden text-on-surface',
+		animateSidebar &&
+			'transition-[grid-template-columns] duration-200 motion-reduce:transition-none',
+		builder.status === 'idle' ? 'grid-cols-[minmax(0,1fr)_36ch]' : 'grid-cols-[minmax(0,1fr)_60ch]'
+	]}
+>
+	<main class="min-h-0 min-w-0 overflow-hidden" aria-label="playground">
+		<Panels bind:split>
+			{#snippet left()}{@render pane('left')}{/snippet}
+			{#snippet right()}{@render pane('right')}{/snippet}
 		</Panels>
 	</main>
+	<Navigation
+		examples={snippets}
+		selected={snippets[data.selected].slug}
+		{mode}
+		onModeChange={selectMode}
+		building={builder.status === 'building'}
+		onBuild={build}
+		onCloseOutput={builder.clear}
+		{output}
+		showOutput={builder.status !== 'idle'}
+		error={compiler.workerError}
+		onRestart={compiler.activate}
+	/>
 </div>

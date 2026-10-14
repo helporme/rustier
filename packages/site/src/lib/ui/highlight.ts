@@ -4,6 +4,16 @@ import rust from 'shiki/langs/rust.mjs';
 import typescript from 'shiki/langs/typescript.mjs';
 import shellscript from 'shiki/langs/shellscript.mjs';
 
+export const tokenColors = [
+	'on-surface',
+	'on-surface-alt',
+	'red',
+	'green',
+	'yellow',
+	'blue',
+	'magenta'
+] as const;
+
 export const ansiColorClasses: Record<string, string> = {
 	'var(--color-on-surface)': 'ansi-on-surface',
 	'var(--color-on-surface-alt)': 'ansi-on-surface-alt',

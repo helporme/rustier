@@ -189,6 +189,9 @@ importers:
       prettier-plugin-tailwindcss:
         specifier: ^0.8.0
         version: 0.8.1(prettier-plugin-svelte@4.1.1(prettier@3.9.10)(svelte@5.57.2(@typescript-eslint/types@8.71.2)))(prettier@3.9.10)
+      rolldown:
+        specifier: ~1.2.9
+        version: 1.2.13
       rustier:
         specifier: workspace:*
         version: link:../rustier

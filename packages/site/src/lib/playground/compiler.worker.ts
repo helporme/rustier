@@ -50,6 +50,7 @@ self.onmessage = ({ data }: MessageEvent<CompilerRequest>) => {
 					ambient_ts_code: result.ambient_ts_code,
 					ts_sourcemap: result.ts_sourcemap,
 					diagnostics: result.diagnostics,
+					diagnostic_count: result.diagnostic_count,
 					rust_markers
 				}
 			};

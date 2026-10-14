@@ -7,10 +7,13 @@
 	--color-*: initial;
 
 	--color-surface: light-dark(hsl(310 4% 97%), hsl(310 4% 8%));
-	--color-surface-dim: hsl(from var(--color-surface) h s calc(l - 3));
+	--color-surface-dim: light-dark(
+		hsl(from var(--color-surface) h s calc(l - 3)),
+		hsl(from var(--color-surface) h s calc(l - 2))
+	);
 	--color-surface-dimest: light-dark(
 		hsl(from var(--color-surface) h s calc(l - 6)),
-		hsl(from var(--color-surface) h s calc(l - 5))
+		hsl(from var(--color-surface) h s calc(l - 3.5))
 	);
 	--color-surface-bright: light-dark(
 		hsl(from var(--color-surface) h s calc(l + 1)),
@@ -103,7 +106,7 @@
 	background-color: var(--color-surface);
 	color: var(--color-on-surface);
 	font-size: 100%;
-	line-height: 1.5;
+	line-height: 1.25;
 	letter-spacing: -0.3px;
 	font-variant-ligatures: none;
 }

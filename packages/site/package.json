@@ -30,6 +30,7 @@
 		"prettier": "^3.8.3",
 		"prettier-plugin-svelte": "^4.1.0",
 		"prettier-plugin-tailwindcss": "^0.8.0",
+		"rolldown": "~1.2.9",
 		"rustier": "workspace:*",
 		"svelte": "^5.57.1",
 		"svelte-check": "^4.6.0",
@@ -42,6 +43,7 @@
 		"#lib": "./src/lib/index.ts",
 		"#lib/assets/*": "./src/lib/assets/*",
 		"#lib/*.svelte": "./src/lib/*.svelte",
+		"#lib/*.svelte.ts": "./src/lib/*.svelte.ts",
 		"#lib/ui/components/*": "./src/lib/ui/components/*/index.ts",
 		"#lib/*": "./src/lib/*.ts"
 	},

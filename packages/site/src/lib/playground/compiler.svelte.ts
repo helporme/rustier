@@ -22,7 +22,7 @@ export class Compiler implements LanguageService {
 	pending = $state(true);
 	workerError = $state('');
 	ready = $derived(!!this.#worker);
-	markers = $derived(this.#compilation?.rust_markers ?? []);
+	markers = $derived(this.pending ? [] : (this.#compilation?.rust_markers ?? []));
 	libraries = $derived.by(() => {
 		const compilation = this.#compilation;
 
@@ -56,7 +56,8 @@ export class Compiler implements LanguageService {
 			const failure = this.workerError;
 			const id = ++this.#request;
 
-			this.#compilation = undefined;
+			if (failure) this.#compilation = undefined;
+
 			this.#error = failure;
 			this.pending = !failure;
 

@@ -1,17 +1,18 @@
 <script lang="ts" module>
 	import { cn, type WithElementRef } from '#lib/ui/utils';
-	import type { HTMLButtonAttributes } from 'svelte/elements';
+	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
 	import { tv, type VariantProps } from 'tailwind-variants';
 
 	export const buttonVariants = tv({
-		base: 'group/button cursor-pointer inline-flex shrink-0 items-center justify-start px-1 text-left font-normal whitespace-nowrap text-on-surface outline-none select-none hover:bg-selection focus-visible:bg-selection data-highlighted:bg-selection disabled:pointer-events-none disabled:opacity-50',
+		base: 'group/button cursor-pointer inline-flex shrink-0 items-center justify-start rounded-none px-1 text-left font-normal whitespace-nowrap text-on-surface outline-none select-none hover:bg-selection focus-visible:bg-selection focus-visible:outline-2 focus-visible:outline-solid focus-visible:-outline-offset-2 focus-visible:outline-magenta data-highlighted:bg-selection disabled:pointer-events-none disabled:opacity-50',
 		variants: {
 			variant: {
-				ghost: '',
+				background: '',
 				foreground: ''
 			},
 			color: {
 				white: 'text-on-surface',
+				black: 'text-on-surface',
 				red: 'text-red',
 				green: 'text-green',
 				yellow: 'text-yellow',
@@ -21,7 +22,7 @@
 			}
 		},
 		defaultVariants: {
-			variant: 'ghost',
+			variant: 'background',
 			color: 'white'
 		},
 		compoundVariants: [
@@ -29,6 +30,12 @@
 				variant: 'foreground',
 				color: 'white',
 				className: 'bg-surface-bright text-on-surface'
+			},
+			{
+				variant: 'foreground',
+				color: 'black',
+				className:
+					'scheme-dark bg-surface-dimest text-on-surface hover:bg-surface-dim focus-visible:bg-surface-dim data-highlighted:bg-surface-dim'
 			},
 			{
 				variant: 'foreground',
@@ -69,34 +76,33 @@
 		]
 	});
 
-	export type ButtonProps = WithElementRef<HTMLButtonAttributes, HTMLButtonElement> & {
+	export type ButtonProps = WithElementRef<
+		Omit<HTMLButtonAttributes & HTMLAnchorAttributes, 'prefix'>,
+		HTMLButtonElement | HTMLAnchorElement
+	> & {
 		variant?: NonNullable<VariantProps<typeof buttonVariants>['variant']>;
 		color?: NonNullable<VariantProps<typeof buttonVariants>['color']>;
+		prefix?: boolean;
 	};
 </script>
 
 <script lang="ts">
 	let {
 		class: className,
-		variant = 'ghost',
+		variant = 'background',
 		color = 'white',
+		prefix = false,
 		ref = $bindable(null),
 		type = 'button',
 		disabled,
+		href,
 		children,
 		...restProps
 	}: ButtonProps = $props();
 </script>
 
-<button
-	bind:this={ref}
-	data-slot="button"
-	class={buttonVariants({ variant, color, class: cn(className) })}
-	{type}
-	{disabled}
-	{...restProps}
->
-	{#if variant === 'ghost'}
+{#snippet content()}
+	{#if prefix}
 		<span
 			aria-hidden="true"
 			class="hidden w-[2ch] shrink-0 group-hover/button:block group-focus-visible/button:block group-data-highlighted/button:block"
@@ -104,4 +110,38 @@
 		>
 	{/if}
 	{@render children?.()}
-</button>
+{/snippet}
+
+{#if href !== undefined}
+	<a
+		bind:this={ref}
+		data-slot="button"
+		class={buttonVariants({ variant, color, class: cn(className) })}
+		href={disabled ? undefined : href}
+		{...restProps}
+		aria-disabled={disabled || undefined}
+		tabindex={disabled ? -1 : restProps.tabindex}
+		onclick={(event) => {
+			if (disabled) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				return;
+			}
+
+			restProps.onclick?.(event);
+		}}
+	>
+		{@render content()}
+	</a>
+{:else}
+	<button
+		bind:this={ref}
+		data-slot="button"
+		class={buttonVariants({ variant, color, class: cn(className) })}
+		{type}
+		{disabled}
+		{...restProps}
+	>
+		{@render content()}
+	</button>
+{/if}

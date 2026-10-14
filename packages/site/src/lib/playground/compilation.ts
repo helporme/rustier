@@ -11,6 +11,7 @@ export interface Compilation {
 	ambient_ts_code: string;
 	ts_sourcemap: string;
 	diagnostics: string;
+	diagnostic_count: number;
 	rust_markers: EditorMarker[];
 }
 

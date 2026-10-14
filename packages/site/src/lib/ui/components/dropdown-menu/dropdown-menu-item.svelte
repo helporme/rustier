@@ -14,7 +14,7 @@
 
 <DropdownMenuPrimitive.Item bind:ref data-slot="dropdown-menu-item" {...restProps}>
 	{#snippet child({ props })}
-		<Button {...props} {color} variant="ghost" class={cn('w-full ', className)}>
+		<Button {...props} {color} variant="background" class={cn('w-full ', className)}>
 			{@render children?.()}
 		</Button>
 	{/snippet}

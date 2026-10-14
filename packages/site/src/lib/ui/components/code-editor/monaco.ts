@@ -10,16 +10,36 @@ import 'monaco-editor/editor/contrib/suggest/browser/suggestController';
 import 'monaco-editor/editor/contrib/gotoSymbol/browser/goToCommands';
 import 'monaco-editor/editor/contrib/gotoSymbol/browser/link/goToDefinitionAtPosition';
 import {
+	ModuleKind,
+	ModuleResolutionKind,
+	ScriptTarget,
 	getTypeScriptWorker,
 	typescriptDefaults
 } from 'monaco-editor/languages/features/typescript/register';
+import 'monaco-editor/languages/features/typescript/tsMode';
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
 import TypeScriptWorker from 'monaco-editor/language/typescript/ts.worker?worker';
-import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco';
+import { textmateThemeToMonacoTheme } from '@shikijs/monaco';
 import { TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
-import { highlighter } from '#lib/ui/highlight';
+import { highlighter, tokenColors } from '#lib/ui/highlight';
+import { registerTokenization, tokenModifiers } from './tokenization';
 
 const sourceMaps = new Map<string, TraceMap>();
+const modelReferences = new Map<monaco.editor.ITextModel, number>();
+
+export function retainModel(model: monaco.editor.ITextModel) {
+	modelReferences.set(model, (modelReferences.get(model) ?? 0) + 1);
+
+	return () => {
+		const references = (modelReferences.get(model) ?? 1) - 1;
+
+		if (references > 0) modelReferences.set(model, references);
+		else {
+			modelReferences.delete(model);
+			if (!model.isDisposed()) model.dispose();
+		}
+	};
+}
 
 self.MonacoEnvironment = {
 	getWorker(_moduleId, label) {
@@ -37,7 +57,10 @@ typescriptDefaults.setDiagnosticsOptions({
 
 typescriptDefaults.setCompilerOptions({
 	...typescriptDefaults.getCompilerOptions(),
-	strict: true
+	strict: true,
+	target: ScriptTarget.ESNext,
+	module: ModuleKind.ESNext,
+	moduleResolution: ModuleResolutionKind.NodeJs
 });
 
 typescriptDefaults.setModeConfiguration({
@@ -124,7 +147,7 @@ monaco.languages.registerDefinitionProvider('typescript', {
 
 monaco.languages.register({ id: 'shellscript', extensions: ['.sh'], aliases: ['Shell'] });
 
-shikiToMonaco(highlighter, monaco as unknown as Parameters<typeof shikiToMonaco>[1]);
+registerTokenization(monaco);
 
 export function registerSourceMap(content: string, filePath: string) {
 	const resource = filePath.slice(0, -'.map'.length);
@@ -137,6 +160,25 @@ export function registerSourceMap(content: string, filePath: string) {
 			if (sourceMaps.get(resource) === map) sourceMaps.delete(resource);
 		}
 	};
+}
+
+export async function transpile(source: string, filename: string) {
+	const uri = monaco.Uri.parse(`file:///playground/${filename}`);
+	const existing = monaco.editor.getModel(uri);
+	const model = existing ?? monaco.editor.createModel(source, 'typescript', uri);
+
+	try {
+		const accessor = await getTypeScriptWorker();
+		const worker = await accessor(model.uri);
+		const output = await worker.getEmitOutput(model.uri.toString());
+		const script = output.outputFiles.find((file) => file.name.endsWith('.js'));
+
+		if (!script) throw new Error(`TypeScript produced no JavaScript for ${filename}`);
+
+		return script.text;
+	} finally {
+		if (!existing) model.dispose();
+	}
 }
 
 export function applyTheme(container: HTMLElement) {
@@ -202,6 +244,17 @@ export function applyTheme(container: HTMLElement) {
 		],
 		rules: [
 			{ token: '', foreground: colors['on-surface'].slice(1) },
+			...tokenColors.flatMap((color) =>
+				Array.from({ length: 16 }, (_, mask) => {
+					const modifiers = tokenModifiers.filter((_, index) => mask & (1 << index));
+
+					return {
+						token: [`rustier-${color}`, ...modifiers].join('.'),
+						foreground: colors[color].slice(1),
+						fontStyle: modifiers.join(' ')
+					};
+				})
+			),
 			...syntaxTheme.rules.map((rule) => {
 				const color = textmateTheme.colorReplacements?.[`#${rule.foreground}`];
 

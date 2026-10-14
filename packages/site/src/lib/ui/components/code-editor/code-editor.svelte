@@ -5,14 +5,18 @@
 	import { ansiColorClasses, highlight } from '#lib/ui/highlight';
 	import type { EditorMarker, LanguageService } from './language-service';
 
+	const browser = typeof window !== 'undefined';
+
 	let {
 		value = $bindable(),
 		language,
 		filename,
 		colorScheme,
 		readOnly = false,
+		tabIndex = 0,
 		extraLibs = [],
 		markers = [],
+		initialPreview,
 		languageService,
 		onNavigate,
 		class: className
@@ -28,8 +32,14 @@
 			| 'rustier-light-dim'
 			| 'rustier-light-dimmest';
 		readOnly?: boolean;
+		tabIndex?: number;
 		extraLibs?: readonly { filePath: string; content: string }[];
 		markers?: readonly EditorMarker[];
+		initialPreview?: {
+			value: string;
+			language: 'rust' | 'typescript' | 'shellscript' | 'text' | 'ansi';
+			tokens: ReturnType<typeof highlight>;
+		};
 		languageService?: LanguageService;
 		onNavigate?: () => void;
 		class?: string;
@@ -42,13 +52,26 @@
 	let decorations: editor.IEditorDecorationsCollection | undefined;
 	let monacoAPI: typeof import('monaco-editor/editor') | undefined;
 	let registerMap: typeof import('./monaco.js').registerSourceMap | undefined;
+	let retainModel: typeof import('./monaco.js').retainModel | undefined;
+	const models: Record<string, () => void> = {};
+	const viewStates: Record<string, editor.ICodeEditorViewState | null> = {};
 	let defaults:
 		| typeof import('monaco-editor/languages/features/typescript/register').typescriptDefaults
 		| undefined;
 	let mounted = $state(false);
 	let loading = $state(true);
 	let failed = $state(false);
-	let tokens = $derived(language === 'ansi' || loading || failed ? highlight(value, language) : []);
+	let tokens = $derived(
+		language === 'ansi'
+			? highlight(value, language)
+			: loading || failed
+				? initialPreview?.value === value && initialPreview.language === language
+					? initialPreview.tokens
+					: browser
+						? value.split('\n').map((content) => [{ content, color: undefined, fontStyle: 0 }])
+						: highlight(value, language)
+				: []
+	);
 	let displayValue = $derived(
 		language === 'ansi'
 			? tokens.map((line) => line.map((token) => token.content).join('')).join('\n')
@@ -67,140 +90,216 @@
 
 		let disposed = false;
 		let cleanup: (() => void) | undefined;
+		const panel = container.closest<HTMLElement>('[data-editor-pane], [role="tabpanel"]');
+		const enterEditor = (event: KeyboardEvent) => {
+			if (event.target !== panel || event.key !== 'Enter' || tabIndex !== -1) return;
+
+			event.preventDefault();
+
+			if (instance) instance.focus();
+			else fallback?.focus();
+		};
+
+		panel?.addEventListener('keydown', enterEditor);
 
 		import('./monaco.js')
-			.then(async ({ monaco, applyTheme, typescriptDefaults, registerSourceMap }) => {
-				if (disposed) return;
+			.then(
+				async ({
+					monaco,
+					applyTheme,
+					typescriptDefaults,
+					registerSourceMap,
+					retainModel: retain
+				}) => {
+					if (disposed) return;
 
-				const styles = getComputedStyle(container);
-				const fontFamily = styles.fontFamily;
-				const fontSize = Number.parseFloat(styles.fontSize);
-				const lineHeight = Number.parseFloat(styles.lineHeight);
-				const letterSpacing = Number.parseFloat(styles.letterSpacing) || 0;
-				await document.fonts.load(`${fontSize}px ${fontFamily}`);
+					const styles = getComputedStyle(container);
+					const fontFamily = styles.fontFamily;
+					const fontSize = Number.parseFloat(styles.fontSize);
+					const lineHeight = Number.parseFloat(styles.lineHeight);
+					const letterSpacing = Number.parseFloat(styles.letterSpacing) || 0;
+					await document.fonts.load(`${fontSize}px ${fontFamily}`);
 
-				if (disposed) return;
+					if (disposed) return;
 
-				const colorScheme = matchMedia('(prefers-color-scheme: dark)');
-				const updateTheme = () => applyTheme(container);
-				updateTheme();
+					const colorScheme = matchMedia('(prefers-color-scheme: dark)');
+					let palette = '';
+					const updateTheme = () => {
+						const styles = getComputedStyle(container);
+						const next = [
+							styles.colorScheme,
+							colorScheme.matches,
+							...[
+								'surface',
+								'surface-bright',
+								'selection',
+								'on-surface',
+								'on-surface-alt',
+								'red',
+								'green',
+								'yellow',
+								'blue',
+								'magenta'
+							].map((name) => styles.getPropertyValue(`--color-${name}`))
+						].join('|');
 
-				const uri = monaco.Uri.parse(`file:///playground/${filename}`);
-				const model =
-					monaco.editor.getModel(uri) ??
-					monaco.editor.createModel(
-						displayValue,
-						language === 'text' || language === 'ansi' ? 'plaintext' : language,
-						uri
-					);
+						if (next === palette) return;
 
-				model.updateOptions({
-					tabSize: language === 'rust' ? 4 : 2,
-					bracketColorizationOptions: {
-						enabled: false,
-						independentColorPoolPerBracketType: false
-					}
-				});
+						palette = next;
+						applyTheme(container);
+					};
+					updateTheme();
 
-				const codeEditor = monaco.editor.create(container, {
-					model,
-					readOnly: readOnly || language === 'ansi',
-					renderValidationDecorations: readOnly || language === 'ansi' ? 'off' : 'on',
-					theme: 'rustier',
-					automaticLayout: true,
-					ariaLabel: `${language} code editor`,
-					fontFamily,
-					fontSize,
-					lineHeight,
-					letterSpacing,
-					minimap: { enabled: false },
-					padding: { top: 0, bottom: 0 },
-					scrollBeyondLastLine: false,
-					scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, useShadows: false },
-					lineNumbers: 'off',
-					lineDecorationsWidth: 8,
-					glyphMargin: false,
-					folding: false,
-					guides: { indentation: false, bracketPairs: false, highlightActiveIndentation: false },
-					renderWhitespace: 'none',
-					renderLineHighlight: 'all',
-					renderLineHighlightOnlyWhenFocus: true,
-					overviewRulerLanes: 0,
-					hideCursorInOverviewRuler: true,
-					stickyScroll: { enabled: false },
-					fixedOverflowWidgets: true
-				});
+					const uri = monaco.Uri.parse(`file:///playground/${filename}`);
+					const model =
+						monaco.editor.getModel(uri) ??
+						monaco.editor.createModel(
+							displayValue,
+							language === 'text' || language === 'ansi' ? 'plaintext' : language,
+							uri
+						);
 
-				const opener = monaco.editor.registerEditorOpener({
-					async openCodeEditor(_source, resource, selection) {
-						if (codeEditor.getModel()?.uri.toString() !== resource.toString()) return false;
+					models[uri.toString()] = retain(model);
+					retainModel = retain;
 
-						onNavigate?.();
-						await tick();
-						codeEditor.layout();
-
-						if (selection && monaco.Range.isIRange(selection)) {
-							codeEditor.setSelection(selection);
-							codeEditor.revealRangeInCenter(selection);
-						} else if (selection) {
-							codeEditor.setPosition(selection);
-							codeEditor.revealPositionInCenter(selection);
+					model.updateOptions({
+						tabSize: language === 'rust' ? 4 : 2,
+						bracketColorizationOptions: {
+							enabled: false,
+							independentColorPoolPerBracketType: false
 						}
+					});
 
-						codeEditor.focus();
-						return true;
+					const codeEditor = monaco.editor.create(container, {
+						model,
+						readOnly: readOnly || language === 'ansi',
+						renderValidationDecorations: readOnly || language === 'ansi' ? 'off' : 'on',
+						theme: 'rustier',
+						automaticLayout: true,
+						ariaLabel: `${language} code editor. Press Escape then Tab or Shift+Tab to move focus out.`,
+						tabIndex,
+						fontFamily,
+						fontSize,
+						lineHeight,
+						letterSpacing,
+						minimap: { enabled: false },
+						padding: { top: 0, bottom: 0 },
+						scrollBeyondLastLine: false,
+						scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, useShadows: false },
+						lineNumbers: 'off',
+						lineDecorationsWidth: 8,
+						glyphMargin: false,
+						folding: false,
+						guides: { indentation: false, bracketPairs: false, highlightActiveIndentation: false },
+						renderWhitespace: 'none',
+						renderLineHighlight: 'all',
+						renderLineHighlightOnlyWhenFocus: true,
+						overviewRulerLanes: 0,
+						hideCursorInOverviewRuler: true,
+						stickyScroll: { enabled: false },
+						'semanticHighlighting.enabled': true,
+						fixedOverflowWidgets: true,
+						useShadowDOM: false
+					});
+
+					const opener = monaco.editor.registerEditorOpener({
+						async openCodeEditor(_source, resource, selection) {
+							if (codeEditor.getModel()?.uri.toString() !== resource.toString()) return false;
+
+							onNavigate?.();
+							await tick();
+							codeEditor.layout();
+
+							if (selection && monaco.Range.isIRange(selection)) {
+								codeEditor.setSelection(selection);
+								codeEditor.revealRangeInCenter(selection);
+							} else if (selection) {
+								codeEditor.setPosition(selection);
+								codeEditor.revealPositionInCenter(selection);
+							}
+
+							codeEditor.focus();
+							return true;
+						}
+					});
+
+					monacoAPI = monaco;
+					defaults = typescriptDefaults;
+					registerMap = registerSourceMap;
+					decorations = codeEditor.createDecorationsCollection();
+					instance = codeEditor;
+
+					const change = codeEditor.onDidChangeModelContent(() => {
+						if (language !== 'ansi') value = codeEditor.getValue();
+					});
+
+					let escapeTab = false;
+					const tabNavigation = (event: KeyboardEvent) => {
+						if (!codeEditor.hasTextFocus()) return;
+
+						if (event.key === 'Escape') {
+							escapeTab = true;
+						} else if (escapeTab && event.key === 'Tab') {
+							escapeTab = false;
+							event.stopImmediatePropagation();
+						} else if (!['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) {
+							escapeTab = false;
+						}
+					};
+					const resetTabEscape = () => {
+						escapeTab = false;
+					};
+					const blur = codeEditor.onDidBlurEditorText(resetTabEscape);
+
+					container.addEventListener('keydown', tabNavigation, true);
+					container.addEventListener('pointerdown', resetTabEscape, true);
+					colorScheme.addEventListener('change', updateTheme);
+
+					const themeObserver = new MutationObserver(updateTheme);
+
+					for (
+						let ancestor = container.parentElement;
+						ancestor;
+						ancestor = ancestor.parentElement
+					) {
+						themeObserver.observe(ancestor, {
+							attributes: true,
+							attributeFilter: ['class', 'style']
+						});
 					}
-				});
 
-				monacoAPI = monaco;
-				defaults = typescriptDefaults;
-				registerMap = registerSourceMap;
-				decorations = codeEditor.createDecorationsCollection();
-				instance = codeEditor;
+					if (fallback && document.activeElement === fallback) {
+						const start = model.getPositionAt(fallback.selectionStart);
+						const end = model.getPositionAt(fallback.selectionEnd);
 
-				const change = codeEditor.onDidChangeModelContent(() => {
-					if (language !== 'ansi') value = codeEditor.getValue();
-				});
+						codeEditor.setSelection({
+							startLineNumber: start.lineNumber,
+							startColumn: start.column,
+							endLineNumber: end.lineNumber,
+							endColumn: end.column
+						});
+						codeEditor.focus();
+					}
 
-				colorScheme.addEventListener('change', updateTheme);
+					loading = false;
+					cleanup = () => {
+						container.removeEventListener('keydown', tabNavigation, true);
+						container.removeEventListener('pointerdown', resetTabEscape, true);
+						colorScheme.removeEventListener('change', updateTheme);
+						themeObserver.disconnect();
+						blur.dispose();
+						change.dispose();
+						opener.dispose();
 
-				const themeObserver = new MutationObserver(updateTheme);
+						decorations?.clear();
+						decorations = undefined;
+						instance = undefined;
+						codeEditor.dispose();
 
-				for (let ancestor = container.parentElement; ancestor; ancestor = ancestor.parentElement) {
-					themeObserver.observe(ancestor, {
-						attributes: true,
-						attributeFilter: ['class', 'style']
-					});
+						Object.values(models).forEach((release) => release());
+					};
 				}
-
-				if (fallback && document.activeElement === fallback) {
-					const start = model.getPositionAt(fallback.selectionStart);
-					const end = model.getPositionAt(fallback.selectionEnd);
-
-					codeEditor.setSelection({
-						startLineNumber: start.lineNumber,
-						startColumn: start.column,
-						endLineNumber: end.lineNumber,
-						endColumn: end.column
-					});
-					codeEditor.focus();
-				}
-
-				loading = false;
-				cleanup = () => {
-					colorScheme.removeEventListener('change', updateTheme);
-					themeObserver.disconnect();
-					change.dispose();
-					opener.dispose();
-
-					const currentModel = codeEditor.getModel();
-					decorations?.clear();
-					decorations = undefined;
-					instance = undefined;
-					codeEditor.dispose();
-					currentModel?.dispose();
-				};
-			})
+			)
 			.catch((error: unknown) => {
 				if (disposed) return;
 
@@ -211,6 +310,7 @@
 
 		return () => {
 			disposed = true;
+			panel?.removeEventListener('keydown', enterEditor);
 			cleanup?.();
 		};
 	});
@@ -222,7 +322,9 @@
 
 		instance?.updateOptions({
 			readOnly: readOnly || language === 'ansi',
-			renderValidationDecorations: readOnly || language === 'ansi' ? 'off' : 'on'
+			renderValidationDecorations: readOnly || language === 'ansi' ? 'off' : 'on',
+			ariaLabel: `${language} code editor. Press Escape then Tab or Shift+Tab to move focus out.`,
+			tabIndex
 		});
 
 		if (instance && monacoAPI) {
@@ -231,12 +333,18 @@
 
 			if (model?.uri.toString() !== uri.toString()) {
 				const previous = model;
+				if (previous) viewStates[previous.uri.toString()] = instance.saveViewState();
+
 				model =
 					monacoAPI.editor.getModel(uri) ??
 					monacoAPI.editor.createModel(nextValue, nextLanguage, uri);
 
+				if (!models[uri.toString()] && retainModel) models[uri.toString()] = retainModel(model);
+
 				instance.setModel(model);
-				previous?.dispose();
+
+				const state = viewStates[uri.toString()];
+				if (state) instance.restoreViewState(state);
 			} else if (model.getLanguageId() !== nextLanguage) {
 				monacoAPI.editor.setModelLanguage(model, nextLanguage);
 			}
@@ -290,7 +398,11 @@
 
 		const hover = api.languages.registerHoverProvider('rust', {
 			async provideHover(model, position, token) {
-				if (model !== codeEditor.getModel()) return;
+				if (
+					model !== codeEditor.getModel() ||
+					api.editor.getEditors().find((editor) => editor.getModel() === model) !== codeEditor
+				)
+					return;
 
 				const version = model.getVersionId();
 				const controller = new AbortController();
@@ -325,7 +437,11 @@
 		});
 		const definition = api.languages.registerDefinitionProvider('rust', {
 			async provideDefinition(model, position, token) {
-				if (model !== codeEditor.getModel()) return;
+				if (
+					model !== codeEditor.getModel() ||
+					api.editor.getEditors().find((editor) => editor.getModel() === model) !== codeEditor
+				)
+					return;
 
 				const version = model.getVersionId();
 				const controller = new AbortController();
@@ -486,6 +602,7 @@
 						}}
 						readonly={readOnly || language === 'ansi'}
 						aria-label={`${language} code editor`}
+						tabindex={tabIndex}
 						spellcheck="false"
 						wrap="off"
 						onscroll={(event) => {
@@ -541,6 +658,93 @@
 
 	.code-editor ::selection {
 		background-color: var(--editor-selection);
+	}
+
+	.code-editor :global(.monaco-menu-container) {
+		--vscode-menu-background: var(--color-surface-bright);
+		--vscode-menu-foreground: var(--color-on-surface);
+		--vscode-menu-selectionBackground: var(--color-selection);
+		--vscode-menu-selectionForeground: var(--color-on-surface);
+		--vscode-menu-separatorBackground: transparent;
+		--vscode-menu-border: transparent;
+
+		border-radius: 0 !important;
+		box-shadow: none !important;
+		font: inherit !important;
+		letter-spacing: inherit !important;
+	}
+
+	.code-editor :global(.monaco-menu-container *) {
+		font-family: inherit;
+		font-size: inherit !important;
+		line-height: inherit !important;
+		letter-spacing: inherit;
+	}
+
+	.code-editor :global(.monaco-menu-container .monaco-scrollable-element) {
+		border-radius: 0 !important;
+		box-shadow: none !important;
+		animation: none !important;
+	}
+
+	.code-editor :global(.monaco-menu .monaco-action-bar.vertical) {
+		padding: 0 !important;
+	}
+
+	.code-editor :global(.monaco-menu .monaco-action-bar.vertical .action-menu-item) {
+		height: auto !important;
+		margin: 0 !important;
+		border-radius: 0 !important;
+	}
+
+	.code-editor :global(.monaco-menu .monaco-action-bar.vertical .action-label:not(.separator)) {
+		padding: 0 0 0 1ch !important;
+	}
+
+	.code-editor :global(.monaco-menu .monaco-action-bar.vertical .keybinding) {
+		padding: 0 1ch 0 4ch !important;
+		color: var(--color-on-surface-alt);
+		opacity: 1 !important;
+	}
+
+	.code-editor :global(.monaco-menu .monaco-action-bar.vertical .menu-item-check) {
+		display: none !important;
+	}
+
+	.code-editor :global(.monaco-menu .monaco-action-bar.vertical .submenu-indicator) {
+		padding: 0 1ch 0 4ch !important;
+		font: inherit !important;
+		height: auto !important;
+	}
+
+	.code-editor :global(.monaco-menu .monaco-action-bar.vertical .submenu-indicator::before) {
+		content: '>' !important;
+		margin: 0 !important;
+		font: inherit !important;
+	}
+
+	.code-editor :global(.monaco-menu .monaco-action-bar.vertical .action-label.separator) {
+		display: block !important;
+		width: 0;
+		min-width: 100%;
+		height: auto !important;
+		margin: 0 !important;
+		padding: 0 1ch !important;
+		border: 0 !important;
+		overflow: hidden;
+		white-space: nowrap;
+		color: var(--color-on-surface-alt);
+	}
+
+	.code-editor :global(.monaco-menu .monaco-action-bar.vertical .action-label.separator::before) {
+		content: '----------------------------------------------------------------';
+	}
+
+	.code-editor
+		:global(
+			.monaco-menu .monaco-action-bar.vertical .action-item.disabled .action-label:not(.separator)
+		) {
+		color: var(--color-on-surface-alt);
 	}
 
 	.code-editor :global(.monaco-editor .margin-view-overlays .current-line) {
