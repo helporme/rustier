@@ -203,14 +203,6 @@ export default function rustier(options: RustierOptions = {}): Plugin {
 
     buildStart() {
       watchRustFiles(this, rootDir, manifestPath)
-      const ssr = this.environment.config.consumer === 'server'
-      const settings = ssr ? options.ssr : options.browser
-      buildTarget(
-        this,
-        settings?.target ?? (ssr ? 'node' : 'wasm'),
-        settings?.release,
-        settings?.features,
-      )
     },
 
     watchChange(file, change) {
@@ -276,6 +268,9 @@ export default function rustier(options: RustierOptions = {}): Plugin {
         loadOptions?.ssr === true
       const settings = ssr ? options.ssr : options.browser
       const target = settings?.target ?? (ssr ? 'node' : 'wasm')
+
+      buildTarget(this, target, settings?.release, settings?.features)
+
       const server = getServer(this)
       const code = server.load(toServerPlatform(target), filePath)
       if (code == null) return this.error(`rustier could not load ${filePath}`)
@@ -283,10 +278,12 @@ export default function rustier(options: RustierOptions = {}): Plugin {
     },
 
     generateBundle(_options, bundle) {
+      if (!native) return
+
       const ssr = this.environment.config.consumer === 'server'
       const settings = ssr ? options.ssr : options.browser
       const platform = toServerPlatform(settings?.target ?? (ssr ? 'node' : 'wasm'))
-      const binaries = getServer(this).binPaths(platform)
+      const binaries = native.binPaths(platform)
       const moduleLoading =
         platform.type === 'Wasm' && platform.target === ServerWasmLoading.Module
       const emitted = new Set<string>()

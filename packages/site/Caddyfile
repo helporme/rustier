@@ -1,0 +1,15 @@
+{
+	servers {
+		protocols h1 h2
+		trusted_proxies static {$CLOUDFLARE_TRUSTED_PROXIES}
+		trusted_proxies_strict
+		client_ip_headers CF-Connecting-IP
+	}
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy site:3000 {
+		header_up X-Forwarded-For {client_ip}
+	}
+}

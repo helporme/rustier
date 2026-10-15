@@ -13,8 +13,7 @@ export interface TokenizationRequest {
 }
 
 export type TokenizationResponse =
-	| { id: number; tokens: Uint32Array }
-	| { id: number; error: string };
+	{ id: number; tokens: Uint32Array } | { id: number; error: string };
 
 class TokenState implements Monaco.languages.IState {
 	clone() {

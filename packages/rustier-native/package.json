@@ -5,6 +5,11 @@
   "type": "module",
   "types": "rustier.d.ts",
   "main": "rustier.js",
+  "files": [
+    "rustier.js",
+    "rustier.d.ts",
+    "*.node"
+  ],
   "scripts": {
     "build:release": "napi build --manifest-path ./Cargo.toml --platform --release --esm --js rustier.js --dts rustier.d.ts --output-dir . --features napi-binding",
     "build:release:local": "napi build --manifest-path ./Cargo.toml --platform --release --esm --js rustier.js --dts rustier.d.ts --output-dir . --features napi-binding,local-runtime",

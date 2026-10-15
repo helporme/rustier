@@ -21,8 +21,7 @@ export interface CompileRequest {
 }
 
 export type CompileResponse =
-	| { id: number; compilation: Compilation }
-	| { id: number; error: string; fatal: boolean };
+	{ id: number; compilation: Compilation } | { id: number; error: string; fatal: boolean };
 
 export interface LanguageRequest {
 	type: 'hover' | 'definition';

@@ -1,0 +1,37 @@
+#include <tunables/global>
+
+profile site-compiler-service flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  / r,
+  /** r,
+  /{usr,bin,sbin,lib,lib64,opt}/** mrix,
+  /app/** mr,
+  /sandbox/** mr,
+  /sandbox/{usr,bin,sbin,lib,lib64,opt}/** ix,
+  /{tmp,work,newroot,oldroot}/{,**} rwklmix,
+  /dev/{null,zero,random,urandom,tty,ptmx} rw,
+  /dev/pts/{,**} rw,
+  /proc/{self,[0-9]*}/{uid_map,gid_map,setgroups} w,
+
+  network inet stream,
+  network inet dgram,
+  network inet6 stream,
+  network inet6 dgram,
+  network netlink raw,
+  network unix,
+  capability sys_admin,
+  capability net_admin,
+  capability sys_chroot,
+  capability setuid,
+  capability setgid,
+  capability setpcap,
+  capability chown,
+  capability fowner,
+  userns,
+  mount,
+  umount,
+  pivot_root,
+  signal (receive),
+  signal (send) peer=site-compiler-service,
+}

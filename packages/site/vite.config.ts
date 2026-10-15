@@ -1,11 +1,13 @@
 import tailwindcss from '@tailwindcss/vite';
-import adapter from '@sveltejs/adapter-auto';
+import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import rustier from 'rustier/vite';
+import { compilerService } from './dev/compiler.ts';
 
-export default defineConfig({
+export default defineConfig(({ command, isPreview }) => ({
 	plugins: [
+		command === 'serve' && !isPreview && compilerService(),
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {
@@ -15,15 +17,13 @@ export default defineConfig({
 				experimental: { async: true }
 			},
 
-			// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
-			// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
-			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
 			adapter: adapter(),
 			experimental: { remoteFunctions: true }
 		}),
 		rustier()
 	],
 	ssr: {
+		noExternal: [/.*/],
 		external: ['rustier', 'rustier-native']
 	},
 	build: {
@@ -33,4 +33,4 @@ export default defineConfig({
 		plugins: () => [rustier()],
 		format: 'es'
 	}
-});
+}));
