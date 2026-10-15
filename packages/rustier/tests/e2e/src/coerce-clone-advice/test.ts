@@ -8,8 +8,7 @@ const advice = rustierDiags.filter(diag =>
   && diag.message.includes('e2e::coerce_clone_advice::'),
 )
 
-// TODO: Include UnsupportedFields now that Vec<i32> fields support coerce.
-it.skip('suggests Clone once for each ADT where it enables coerce', () => {
+it('suggests Clone once for each ADT where it enables coerce', () => {
   const names = [
     'NeedsCloneStruct',
     'NeedsCloneTuple',
@@ -17,6 +16,7 @@ it.skip('suggests Clone once for each ADT where it enables coerce', () => {
     'NeedsCloneEnum',
     'NeedsCloneOpenEnum',
     'NeedsCloneShadowed',
+    'UnsupportedFields',
   ]
 
   expect(advice.map(diag => diag.message).sort()).toEqual(

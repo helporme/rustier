@@ -21,7 +21,15 @@ for (const [rustType, identity, belowMin, aboveMax] of cases) {
   it.each([
     ['below minimum', belowMin],
     ['above maximum', aboveMax],
+    ['positive fraction', 1.5],
+    ['negative fraction', -0.5],
+    ['NaN', Number.NaN],
+    ['positive infinity', Number.POSITIVE_INFINITY],
+    ['negative infinity', Number.NEGATIVE_INFINITY],
   ] as const)(`throws for ${rustType} %s`, (_name, value) => {
-    expect(() => identity(value)).toThrow(`cannot cast ${value} to ${rustType}`)
+    const renderedValue = value === Infinity ? 'inf' : value === -Infinity ? '-inf' : String(value)
+
+    expect(() => identity(value)).toThrow(`cannot cast ${renderedValue} to ${rustType}`)
+    expect(identity(0)).toBe(0)
   })
 }

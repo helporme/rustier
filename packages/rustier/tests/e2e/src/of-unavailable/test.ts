@@ -18,8 +18,7 @@ it('reads non-exhaustive variants returned by Rust without exposing coerce', () 
   expect(value[0]).toBe(42)
 })
 
-// TODO: Use an unsupported field type instead of the now-supported Vec<i32>.
-it.skip('does not attach coerce methods to ineligible classes', () => {
+it('does not attach coerce methods to ineligible classes', () => {
   for (const cls of [
     ClosedEnum,
     NotClone,

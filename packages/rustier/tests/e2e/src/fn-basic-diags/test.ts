@@ -34,9 +34,8 @@ it('emits an unsupported primitive diagnostic', () => {
   expect(renderedDiags).toContain('rustier::unsupported_primitive')
 })
 
-// TODO: Update diagnostic expectations now that Rust IR accepts type generics.
-it.skip('emits an unsupported generic function diagnostic', () => {
-  expect(renderedDiags).toContain('rustier::unsupported_generic_fn')
+it('does not diagnose type-generic functions as unsupported declarations', () => {
+  expect(renderedDiags).not.toContain('rustier::unsupported_generic_fn')
 })
 
 it('emits a borrowed return diagnostic', () => {

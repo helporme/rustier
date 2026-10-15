@@ -11,7 +11,7 @@ pub struct PrivateField {
 #[derive(Clone)]
 pub struct UnsupportedField {
     pub value: i32,
-    pub values: Vec<i32>,
+    pub values: u64,
 }
 
 #[non_exhaustive]

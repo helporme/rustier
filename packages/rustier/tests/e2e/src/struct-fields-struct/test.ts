@@ -124,3 +124,35 @@ it('passes projected children and parent wrappers as distinct mutable roots', ()
   expect(parent.child.value).toBe(20)
   expect(source.value).toBe(20)
 })
+
+it('keeps grandchildren attached to a detached parent rather than its replacement', () => {
+  const grandparent = make_grandparent_struct(10)
+  const oldParent = grandparent.parent
+  const oldChild = oldParent.child
+
+  grandparent.parent = make_parent_struct(20)
+  oldChild.value = 30
+
+  expect(oldParent.child).toBe(oldChild)
+  expect(oldParent.child.value).toBe(30)
+  expect(grandparent.parent.child.value).toBe(20)
+
+  oldParent.child = make_child_struct(40)
+  oldChild.value = 50
+
+  expect(oldParent.child.value).toBe(40)
+  expect(oldChild.value).toBe(50)
+  expect(grandparent.parent.child.value).toBe(20)
+})
+
+it('clones a projected child before assigning that same child back to its parent', () => {
+  const parent = make_parent_struct(10)
+  const original = parent.child
+
+  parent.child = original
+  original.value = 20
+
+  expect(original.value).toBe(20)
+  expect(parent.child.value).toBe(10)
+  expect(parent.child).not.toBe(original)
+})

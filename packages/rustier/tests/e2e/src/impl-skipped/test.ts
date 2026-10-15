@@ -29,11 +29,10 @@ it('does not export generic targets or unsupported associated items', () => {
   expect(widget.asynchronous).toBeUndefined()
 })
 
-// TODO: Update diagnostic expectations now that Rust IR accepts type generics.
-it.skip('reports unsupported methods and generic targets', () => {
+it('reports unsupported methods without rejecting type-generic declarations', () => {
   const renderedDiags = rustierDiags.map(diag => diag.rendered).join('\n')
 
-  expect(renderedDiags).toContain('rustier::unsupported_generic_fn')
+  expect(renderedDiags).not.toContain('rustier::unsupported_generic_fn')
   expect(renderedDiags).toContain('rustier::unsupported_unsafe_fn')
   expect(renderedDiags).toContain('rustier::unsupported_async_fn')
 })

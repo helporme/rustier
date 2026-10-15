@@ -64,14 +64,14 @@ impl Counter {
 #[derive(Clone)]
 pub struct Unexposed {
     private: i32,
-    pub unsupported: Vec<i32>,
+    pub unsupported: u64,
 }
 
 impl Unexposed {
     pub fn new(value: i32) -> Self {
         Self {
             private: value,
-            unsupported: vec![value],
+            unsupported: value as u64,
         }
     }
 
@@ -80,7 +80,7 @@ impl Unexposed {
     }
 
     pub fn unsupported(&self) -> i32 {
-        self.unsupported[0]
+        self.unsupported as i32
     }
 }
 

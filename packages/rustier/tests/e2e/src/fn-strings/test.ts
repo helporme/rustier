@@ -9,6 +9,9 @@ import {
 } from './test.rs'
 
 const utfValues = [
+  '',
+  '\0',
+  'before\0after',
   'ascii',
   'café',
   'Здравствуйте',
@@ -40,4 +43,12 @@ it('returns an owned String', () => {
 
 it.each(utfValues)('round-trips the owned String %s', (value) => {
   expect(identity_string(value)).toBe(value)
+})
+
+it('round-trips a large Unicode allocation and a subsequent small string', () => {
+  const value = '🦀'.repeat(32768)
+
+  expect(identity_string(value)).toBe(value)
+  expect(str_eq(value, value)).toBe(true)
+  expect(identity_string('after allocation')).toBe('after allocation')
 })

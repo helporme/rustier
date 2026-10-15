@@ -40,8 +40,7 @@ it('exposes an inherent method named constructor', () => {
   expect(negative.constructor()).toBe(false)
 })
 
-// TODO: Include the newly exposed Unexposed::unsupported field collision.
-it.skip('lets exposed fields shadow methods, including readonly fields', () => {
+it('lets exposed fields shadow methods, including readonly fields', () => {
   const counter = new Counter(7)
   const owner = new ReadonlyOwner(9)
 
@@ -59,8 +58,7 @@ it.skip('lets exposed fields shadow methods, including readonly fields', () => {
   }
 })
 
-// TODO: Use an unsupported field type instead of the now-supported Vec<i32>.
-it.skip('keeps static names and methods matching private or unsupported fields', () => {
+it('keeps static names and methods matching private or unsupported fields', () => {
   const counter = new Counter(7)
   const unexposed = new Unexposed(7)
 
@@ -69,8 +67,7 @@ it.skip('keeps static names and methods matching private or unsupported fields',
   counter.baseline = 8
   expect(counter.baseline).toBe(8)
   expect(unexposed.private()).toBe(7)
-  // TODO: Restore this assertion with a field that does not shadow the method.
-  // expect(unexposed.unsupported()).toBe(7)
+  expect(unexposed.unsupported()).toBe(7)
 })
 
 it('omits static prototype and non-public methods', () => {

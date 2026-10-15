@@ -9,4 +9,12 @@ it('throws for a char value above the Unicode range', () => {
   expect(() => identity_char(0x110000)).toThrow('cannot cast 1114112 to char')
 })
 
-it.todo('throws for a char value outside the u32 range')
+it.each([-1, 0x100000000, 65.5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+  'throws for char input %s that cannot be represented as u32',
+  value => {
+    const renderedValue = value === Infinity ? 'inf' : value === -Infinity ? '-inf' : String(value)
+
+    expect(() => identity_char(value)).toThrow(`cannot cast ${renderedValue} to u32`)
+    expect(identity_char(65)).toBe(65)
+  },
+)

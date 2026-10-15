@@ -111,3 +111,19 @@ it('preserves positive infinity', () => {
 it('preserves NaN', () => {
   expect(identity_f64(Number.NaN)).toBeNaN()
 })
+
+it('preserves the sign of floating-point negative zero', () => {
+  expect(identity_f64(-0)).toBe(-0)
+  expect(identity_f32(-0)).toBe(-0)
+})
+
+it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.MIN_VALUE, Number.MAX_VALUE])(
+  'converts f32 input %s with single-precision semantics',
+  value => {
+    expect(identity_f32(value)).toBe(Math.fround(value))
+  },
+)
+
+it.each([0, 0xd7ff, 0xe000, 0x10ffff])('preserves Unicode scalar boundary %s', value => {
+  expect(identity_char(value)).toBe(value)
+})

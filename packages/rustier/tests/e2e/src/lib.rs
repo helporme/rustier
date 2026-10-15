@@ -1,5 +1,7 @@
 #[path = "automatic-coercion/test.rs"]
 pub mod automatic_coercion;
+#[path = "clone-and-borrow/test.rs"]
+pub mod clone_and_borrow;
 #[path = "coerce-clone-advice/test.rs"]
 pub mod coerce_clone_advice;
 #[path = "coerce-only-imports/test.rs"]
@@ -50,6 +52,8 @@ pub mod fn_strings;
 pub mod fn_struct;
 #[path = "fn-wrong-type-throws/test.rs"]
 pub mod fn_wrong_type_throws;
+#[path = "generic-bindings/test.rs"]
+pub mod generic_bindings;
 #[path = "impl-enum/test.rs"]
 pub mod impl_enum;
 #[path = "impl-multiple-modules/test.rs"]
@@ -60,10 +64,16 @@ pub mod impl_skipped;
 pub mod impl_struct;
 #[path = "impl-struct-constructor/test.rs"]
 pub mod impl_struct_constructor;
+#[path = "js-names/test.rs"]
+pub mod js_names;
 #[path = "of-input-throws/test.rs"]
 pub mod of_input_throws;
 #[path = "of-unavailable/test.rs"]
 pub mod of_unavailable;
+#[path = "owned-cleanup-throws/test.rs"]
+pub mod owned_cleanup_throws;
+#[path = "std-generics/test.rs"]
+pub mod std_generics;
 #[path = "struct-bad-alias-throws/test.rs"]
 pub mod struct_bad_alias_throws;
 #[path = "struct-field-wrong-type-throws/test.rs"]
