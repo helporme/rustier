@@ -13,27 +13,30 @@ pub fn test_fn(_direct: i32, _borrowed: &i32) {}
 ```rust
 #[napi(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn(_0: f64, _1: f64) -> napi::Result<()> {
-    let result = (|| -> rustier_rt::CallResult<()> {
-        {
-            let _0 = cast
-                .from("Abi(f64)")
-                .to(
-                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
-                )
-                .an(_0);
+    let result: napi::Result<()> = {
+        let result = (|| -> rustier_rt::CallResult<()> {
             {
-                let _1 = cast
+                let _0 = cast
                     .from("Abi(f64)")
                     .to(
-                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 1 } })",
+                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
                     )
-                    .an(_1);
-                test_crate::test_fn(_0, _1)
-            }
-        };
-        Ok(())
-    })();
-    result.map_err(|error| napi::Error::from_reason(error.to_string()))
+                    .an(_0);
+                {
+                    let _1 = cast
+                        .from("Abi(f64)")
+                        .to(
+                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 1 } })",
+                        )
+                        .an(_1);
+                    test_crate::test_fn(_0, _1)
+                }
+            };
+            Ok(())
+        })();
+        result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    };
+    result
 }
 ```
 
@@ -41,26 +44,29 @@ pub fn __fn__free__10_test_crate__7_test_fn(_0: f64, _1: f64) -> napi::Result<()
 ```rust
 #[wasm_bindgen(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn(_0: f64, _1: f64) -> Result<(), JsValue> {
-    let result = (|| -> rustier_rt::CallResult<()> {
-        {
-            let _0 = cast
-                .from("Abi(f64)")
-                .to(
-                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
-                )
-                .an(_0);
+    let result: Result<(), JsValue> = {
+        let result = (|| -> rustier_rt::CallResult<()> {
             {
-                let _1 = cast
+                let _0 = cast
                     .from("Abi(f64)")
                     .to(
-                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 1 } })",
+                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
                     )
-                    .an(_1);
-                test_crate::test_fn(_0, _1)
-            }
-        };
-        Ok(())
-    })();
-    result.map_err(|error| JsValue::from_str(&error.to_string()))
+                    .an(_0);
+                {
+                    let _1 = cast
+                        .from("Abi(f64)")
+                        .to(
+                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 1 } })",
+                        )
+                        .an(_1);
+                    test_crate::test_fn(_0, _1)
+                }
+            };
+            Ok(())
+        })();
+        result.map_err(|error| JsValue::from_str(&error.to_string()))
+    };
+    result
 }
 ```

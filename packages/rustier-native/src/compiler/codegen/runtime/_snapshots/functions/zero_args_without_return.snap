@@ -13,11 +13,14 @@ pub fn test_fn() {}
 ```rust
 #[napi(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn() -> napi::Result<()> {
-    let result = (|| -> rustier_rt::CallResult<()> {
-        test_crate::test_fn();
-        Ok(())
-    })();
-    result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    let result: napi::Result<()> = {
+        let result = (|| -> rustier_rt::CallResult<()> {
+            test_crate::test_fn();
+            Ok(())
+        })();
+        result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    };
+    result
 }
 ```
 
@@ -25,10 +28,13 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> napi::Result<()> {
 ```rust
 #[wasm_bindgen(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn() -> Result<(), JsValue> {
-    let result = (|| -> rustier_rt::CallResult<()> {
-        test_crate::test_fn();
-        Ok(())
-    })();
-    result.map_err(|error| JsValue::from_str(&error.to_string()))
+    let result: Result<(), JsValue> = {
+        let result = (|| -> rustier_rt::CallResult<()> {
+            test_crate::test_fn();
+            Ok(())
+        })();
+        result.map_err(|error| JsValue::from_str(&error.to_string()))
+    };
+    result
 }
 ```

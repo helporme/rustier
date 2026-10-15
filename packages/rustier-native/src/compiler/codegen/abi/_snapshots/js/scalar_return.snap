@@ -1,0 +1,12 @@
+---
+source: src/compiler/codegen/abi/js.rs
+expression: snapshot
+---
+```js
+export function call(){
+	{
+		const __abi_return =abi.call();
+		return __abi_return;
+	}
+}
+```

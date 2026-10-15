@@ -8,7 +8,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        abi::AbiFunction,
+        abi::{AbiFunction, AbiReturn},
         facade::{
             FacadeClass, FacadeFieldDiscriminated, FacadeFieldDiscriminator, FacadeFieldPlain,
             coerce::FacadeCoerce, type_js::FacadeTypeJs,
@@ -292,10 +292,15 @@ where
         let class = self.coerce.class(db);
         let args = comma_list((0..fields.len()).map(|i| frag!(__ { i })));
         let symbol = abi.symbol(db);
+
+        let AbiReturn::Value(ret_type) = abi.ret_type(db) else {
+            unreachable!("coerce returns its class");
+        };
+
         let result = self.casts.render_stmt(
             db,
             Cast {
-                from: abi.ret_type(db).expect("coerce returns its class"),
+                from: ret_type,
                 to: FacadeTypeJs::Class(class),
                 in_expr: frag!({ symbol }({ args })),
                 out_var_name: "result",
@@ -356,9 +361,11 @@ where
 
     fn render_plain_getter(self, field: FacadeFieldPlain<'db>) -> impl FragmentOnce + 'db {
         let abi_getter = field.abi_getter(self.db);
-        let abi_type = abi_getter
-            .ret_type(self.db)
-            .expect("facade field getter should return an ABI value");
+
+        let AbiReturn::Value(abi_type) = abi_getter.ret_type(self.db) else {
+            unreachable!("facade field getter should return an ABI value");
+        };
+
         let facade_type = field.type_js(self.db);
 
         fragment(move |p| {
@@ -487,9 +494,10 @@ where
         field: FacadeFieldPlain<'db>,
     ) -> impl FragmentOnce + 'db {
         let abi_getter = field.abi_getter(self.db);
-        let abi_type = abi_getter
-            .ret_type(self.db)
-            .expect("facade field getter should return an ABI value");
+        let AbiReturn::Value(abi_type) = abi_getter.ret_type(self.db) else {
+            unreachable!("facade field getter should return an ABI value");
+        };
+
         let facade_type = field.type_js(self.db);
 
         fragment(move |p| {

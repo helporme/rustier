@@ -137,13 +137,16 @@ const $facade__plain__10_test_crate__4_WrapGP3_u32E = class _4_WrapGP3_u32E {
 			}
 			const __0 = __cast_input;
 			{
-				const __cast_input = __fn__associated__10_test_crate__4_WrapGP3_u32E__3_new(
+				const __abi_return =__fn__associated__10_test_crate__4_WrapGP3_u32E__3_new(
 					__0
 				);
-				const result = $facade__plain__10_test_crate__4_WrapGP3_u32E.$from_handle(
-					__cast_input
-				);
-				return result;
+				{
+					const __cast_input = __abi_return;
+					const result = $facade__plain__10_test_crate__4_WrapGP3_u32E.$from_handle(
+						__cast_input
+					);
+					return result;
+				}
 			}
 		}
 	}
@@ -164,20 +167,23 @@ const $facade__plain__10_test_crate__4_WrapGP3_u32E = class _4_WrapGP3_u32E {
 			}
 			const __0 = __cast_input;
 			{
-				const __cast_input = __fn__associated__10_test_crate__4_WrapGP3_u32E__8_identity(
+				const __abi_return =__fn__associated__10_test_crate__4_WrapGP3_u32E__8_identity(
 					__0
 				);
-				if(
-					typeof __cast_input !== "number"
-				) {
-					throw new TypeError(
-						"Expected a value of type \"number\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
-							__cast_input
-						) + "\""
-					);
+				{
+					const __cast_input = __abi_return;
+					if(
+						typeof __cast_input !== "number"
+					) {
+						throw new TypeError(
+							"Expected a value of type \"number\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+								__cast_input
+							) + "\""
+						);
+					}
+					const result = __cast_input;
+					return result;
 				}
-				const result = __cast_input;
-				return result;
 			}
 		}
 	}
@@ -282,13 +288,16 @@ const $facade__plain__10_test_crate__4_WrapGP6_StringE = class _4_WrapGP6_String
 			}
 			const __0 = __cast_input;
 			{
-				const __cast_input = __fn__associated__10_test_crate__4_WrapGP6_StringE__3_new(
+				const __abi_return =__fn__associated__10_test_crate__4_WrapGP6_StringE__3_new(
 					__0
 				);
-				const result = $facade__plain__10_test_crate__4_WrapGP6_StringE.$from_handle(
-					__cast_input
-				);
-				return result;
+				{
+					const __cast_input = __abi_return;
+					const result = $facade__plain__10_test_crate__4_WrapGP6_StringE.$from_handle(
+						__cast_input
+					);
+					return result;
+				}
 			}
 		}
 	}
@@ -309,20 +318,23 @@ const $facade__plain__10_test_crate__4_WrapGP6_StringE = class _4_WrapGP6_String
 			}
 			const __0 = __cast_input;
 			{
-				const __cast_input = __fn__associated__10_test_crate__4_WrapGP6_StringE__8_identity(
+				const __abi_return =__fn__associated__10_test_crate__4_WrapGP6_StringE__8_identity(
 					__0
 				);
-				if(
-					typeof __cast_input !== "string"
-				) {
-					throw new TypeError(
-						"Expected a value of type \"string\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
-							__cast_input
-						) + "\""
-					);
+				{
+					const __cast_input = __abi_return;
+					if(
+						typeof __cast_input !== "string"
+					) {
+						throw new TypeError(
+							"Expected a value of type \"string\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+								__cast_input
+							) + "\""
+						);
+					}
+					const result = __cast_input;
+					return result;
 				}
-				const result = __cast_input;
-				return result;
 			}
 		}
 	}
@@ -496,11 +508,13 @@ export function consume (
 					);
 				}
 				const __2 = __cast_input.$handle();
-				__fn__free__10_test_crate__7_consume(
-					__0,
-					__1,
-					__2
-				);
+				{
+					const __abi_return =__fn__free__10_test_crate__7_consume(
+						__0,
+						__1,
+						__2
+					);
+				}
 			}
 		}
 	}

@@ -1,0 +1,30 @@
+---
+source: src/compiler/codegen/abi/js.rs
+expression: snapshot
+---
+```js
+export function call(){
+	{
+		const __abi_return =abi.call();
+		switch(
+			__abi_return[0]
+		){
+			case 0:{
+				consume(
+					0,__abi_return[1]
+				);
+				break;
+			}
+			case 1:{
+				consume(
+					1,__abi_return[1]
+				);
+				break;
+			}
+			default: throw new TypeError(
+				"Unknown ABI return tag"
+			);
+		}
+	}
+}
+```

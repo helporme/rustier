@@ -1,0 +1,133 @@
+---
+source: src/compiler/codegen/abi/rust.rs
+expression: snapshot
+---
+## N-API
+
+```rust
+#[napi(js_name = "unit")]
+pub fn unit() -> napi::Result<()> {
+    let result: napi::Result<()> = { Ok(()) };
+    result
+}
+#[napi(js_name = "number")]
+pub fn number(_0: f64) -> napi::Result<f64> {
+    let result: napi::Result<f64> = { Ok(_0) };
+    result
+}
+#[napi(js_name = "boolean")]
+pub fn boolean(_0: bool) -> napi::Result<bool> {
+    let result: napi::Result<bool> = { Ok(_0) };
+    result
+}
+#[napi(js_name = "string")]
+pub fn string(_0: String) -> napi::Result<String> {
+    let result: napi::Result<String> = { Ok(_0) };
+    result
+}
+#[napi(js_name = "handle")]
+pub fn handle(_0: napi::bindgen_prelude::BigInt) -> napi::Result<u64> {
+    let _0 = usize::try_from({
+            let (negative, value, lossless) = _0.get_u64();
+            if negative || !lossless {
+                return Err(
+                    napi::Error::from_reason(
+                        "ABI value is outside the usize range".to_string(),
+                    ),
+                );
+            }
+            value
+        })
+        .map_err(|_| napi::Error::from_reason(
+            "ABI value is outside the usize range".to_string(),
+        ))?;
+    let result: napi::Result<usize> = { Ok(_0) };
+    result
+        .and_then(|result| {
+            u64::try_from(result)
+                .map_err(|_| napi::Error::from_reason(
+                    "usize value is outside the transport range".to_string(),
+                ))
+        })
+}
+```
+
+## WASM32
+
+```rust
+#[wasm_bindgen(js_name = "unit")]
+pub fn unit() -> Result<(), JsValue> {
+    let result: Result<(), JsValue> = { Ok(()) };
+    result
+}
+#[wasm_bindgen(js_name = "number")]
+pub fn number(_0: f64) -> Result<f64, JsValue> {
+    let result: Result<f64, JsValue> = { Ok(_0) };
+    result
+}
+#[wasm_bindgen(js_name = "boolean")]
+pub fn boolean(_0: bool) -> Result<bool, JsValue> {
+    let result: Result<bool, JsValue> = { Ok(_0) };
+    result
+}
+#[wasm_bindgen(js_name = "string")]
+pub fn string(_0: String) -> Result<String, JsValue> {
+    let result: Result<String, JsValue> = { Ok(_0) };
+    result
+}
+#[wasm_bindgen(js_name = "handle")]
+pub fn handle(_0: u32) -> Result<u32, JsValue> {
+    let _0 = usize::try_from(_0)
+        .map_err(|_| JsValue::from_str(
+            &"ABI value is outside the usize range".to_string(),
+        ))?;
+    let result: Result<usize, JsValue> = { Ok(_0) };
+    result
+        .and_then(|result| {
+            u32::try_from(result)
+                .map_err(|_| JsValue::from_str(
+                    &"usize value is outside the transport range".to_string(),
+                ))
+        })
+}
+```
+
+## WASM64
+
+```rust
+#[wasm_bindgen(js_name = "unit")]
+pub fn unit() -> Result<(), JsValue> {
+    let result: Result<(), JsValue> = { Ok(()) };
+    result
+}
+#[wasm_bindgen(js_name = "number")]
+pub fn number(_0: f64) -> Result<f64, JsValue> {
+    let result: Result<f64, JsValue> = { Ok(_0) };
+    result
+}
+#[wasm_bindgen(js_name = "boolean")]
+pub fn boolean(_0: bool) -> Result<bool, JsValue> {
+    let result: Result<bool, JsValue> = { Ok(_0) };
+    result
+}
+#[wasm_bindgen(js_name = "string")]
+pub fn string(_0: String) -> Result<String, JsValue> {
+    let result: Result<String, JsValue> = { Ok(_0) };
+    result
+}
+#[wasm_bindgen(js_name = "handle")]
+pub fn handle(_0: u64) -> Result<u64, JsValue> {
+    let _0 = usize::try_from(_0)
+        .map_err(|_| JsValue::from_str(
+            &"ABI value is outside the usize range".to_string(),
+        ))?;
+    let result: Result<usize, JsValue> = { Ok(_0) };
+    result
+        .and_then(|result| {
+            u64::try_from(result)
+                .map_err(|_| JsValue::from_str(
+                    &"usize value is outside the transport range".to_string(),
+                ))
+        })
+}
+```

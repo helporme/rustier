@@ -39,7 +39,7 @@ impl<'db> FacadeClassTemplate<'db> {
             {classes}@@
             export function~{name}~(...types)~{{
                 {branches}@@
-                throw new TypeError({doubles(frag!({"Unsupported generic arguments for "}{name}))});
+                throw new TypeError({doubles(("Unsupported generic arguments for ", name))});
             }}
         )
         .print()

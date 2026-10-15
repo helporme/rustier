@@ -1,7 +1,7 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        abi::{Abi, AbiFunction},
+        abi::{Abi, AbiFunction, AbiType},
         facade::{
             Facade, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldDiscriminator,
             FacadeFieldPlain, FacadeFreeFunction, FacadeFunction, FacadeMethod, FacadeVariant,
@@ -10,6 +10,7 @@ use crate::compiler::{
         runtime::{
             RuntimeDiscriminatedCoerce, RuntimeDropHandle, RuntimeFunction, RuntimePlainCoerce,
         },
+        rust::{Type, TypeKind},
     },
 };
 
@@ -90,5 +91,28 @@ impl<'db> FacadeMethod<'db> {
 impl<'db> RuntimeFunction<'db> {
     pub fn abi(self, db: &'db dyn Db) -> AbiFunction<'db> {
         AbiFunction::new(db, self)
+    }
+}
+
+impl<'db> Type<'db> {
+    pub fn abi(self, db: &'db dyn Db) -> AbiType {
+        match self.kind(db) {
+            TypeKind::bool => AbiType::bool,
+            TypeKind::char
+            | TypeKind::i8
+            | TypeKind::u8
+            | TypeKind::i16
+            | TypeKind::u16
+            | TypeKind::i32
+            | TypeKind::u32
+            | TypeKind::f32
+            | TypeKind::f64 => AbiType::f64,
+            TypeKind::Str | TypeKind::String => AbiType::String,
+            TypeKind::Borrowed(borrowed) => borrowed.inner(db).abi(db),
+            TypeKind::Struct(_) | TypeKind::Enum(_) => AbiType::usize,
+            TypeKind::Generic(_) => {
+                unreachable!("unsupported Rust types do not cross the ABI")
+            }
+        }
     }
 }

@@ -9,6 +9,7 @@
 - Add blank lines between logical groups of statements in generated and edited Rust code, especially between setup, checks, traversal, and final returns.
 - When a function returns `Result`, its error type should cover exactly the errors that function can produce. Prefer fine-grained error types over a single module-wide error type.
 - When generating source code, prefer `frag!()` over `format!()` whenever possible to avoid intermediate allocations. Prefer `IntoIterator` over vectors where possible, adding `+ Clone` to `IntoIter` when needed. Only materialize an owned `String` when required by an API.
+- In `frag!`, write source tokens directly; use `{expr}` for interpolation, `{{ ... }}` for braces, `~` for spaces, and `@` for newlines.
 
 ### Module ordering
 

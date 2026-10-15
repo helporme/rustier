@@ -56,7 +56,7 @@ impl<'a> BridgeCrateWasm<'a> {
         if path == ABI_MODULE_ID {
             let artifact = artifact?;
 
-            return Some(self.project(db).reachable_facade(db).abi(db).render(
+            return Some(self.project(db).reachable_facade(db).abi(db).render_js(
                 db,
                 AbiJsTarget::Wasm {
                     loading,

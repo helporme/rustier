@@ -21,20 +21,22 @@ impl Record {
 ```rust
 #[napi(js_name = "__fn__coe__10_test_crate__6_Record")]
 pub fn __fn__coe__10_test_crate__6_Record(_0: f64) -> napi::Result<u64> {
-    let result = (|| -> rustier_rt::CallResult<usize> {
-        Ok(
-            rustier_rt::handles::into_handle(
-                std::rc::Rc::new(
-                    __tethering__10_test_crate__6_Record::new_owned({
-                        let _0 = _0;
-                        test_crate::Record { number: _0 }
-                    }),
+    let result: napi::Result<usize> = {
+        let result = (|| -> rustier_rt::CallResult<usize> {
+            Ok(
+                rustier_rt::handles::into_handle(
+                    std::rc::Rc::new(
+                        __tethering__10_test_crate__6_Record::new_owned({
+                            let _0 = _0;
+                            test_crate::Record { number: _0 }
+                        }),
+                    ),
                 ),
-            ),
-        )
-    })();
+            )
+        })();
+        result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    };
     result
-        .map_err(|error| napi::Error::from_reason(error.to_string()))
         .and_then(|result| {
             u64::try_from(result)
                 .map_err(|_| napi::Error::from_reason(
@@ -48,20 +50,22 @@ pub fn __fn__coe__10_test_crate__6_Record(_0: f64) -> napi::Result<u64> {
 ```rust
 #[wasm_bindgen(js_name = "__fn__coe__10_test_crate__6_Record")]
 pub fn __fn__coe__10_test_crate__6_Record(_0: f64) -> Result<u32, JsValue> {
-    let result = (|| -> rustier_rt::CallResult<usize> {
-        Ok(
-            rustier_rt::handles::into_handle(
-                std::rc::Rc::new(
-                    __tethering__10_test_crate__6_Record::new_owned({
-                        let _0 = _0;
-                        test_crate::Record { number: _0 }
-                    }),
+    let result: Result<usize, JsValue> = {
+        let result = (|| -> rustier_rt::CallResult<usize> {
+            Ok(
+                rustier_rt::handles::into_handle(
+                    std::rc::Rc::new(
+                        __tethering__10_test_crate__6_Record::new_owned({
+                            let _0 = _0;
+                            test_crate::Record { number: _0 }
+                        }),
+                    ),
                 ),
-            ),
-        )
-    })();
+            )
+        })();
+        result.map_err(|error| JsValue::from_str(&error.to_string()))
+    };
     result
-        .map_err(|error| JsValue::from_str(&error.to_string()))
         .and_then(|result| {
             u32::try_from(result)
                 .map_err(|_| JsValue::from_str(

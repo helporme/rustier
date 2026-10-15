@@ -37,16 +37,19 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 				_0
 			);
 			{
-				const result = cast.from(
-					"Abi(f64)"
-				).to(
-					"Facade(number)"
-				).an(
-					__fn__associated__10_test_crate__4_Test__6_shared(
-						this.#_handle, __0
-					)
+				const __abi_return =__fn__associated__10_test_crate__4_Test__6_shared(
+					this.#_handle, __0
 				);
-				return result;
+				{
+					const result = cast.from(
+						"Abi(f64)"
+					).to(
+						"Facade(number)"
+					).an(
+						__abi_return
+					);
+					return result;
+				}
 			}
 		}
 	}

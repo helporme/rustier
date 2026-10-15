@@ -4,7 +4,7 @@ use crate::compiler::{
     codegen::fragment::{FragmentOnce, Printer, comma_list, doubles, frag, fragment},
     db::Db,
     ir::abi::{
-        AbiFunction, AbiType,
+        AbiFunction, AbiReturn, AbiType, AbiUnion,
         transport::{AbiTransport, WasmMemory, WasmTransport},
     },
 };
@@ -28,7 +28,10 @@ impl AbiTransport {
         })
     }
 
-    fn render_error<'a>(self, error: impl FragmentOnce + 'a) -> impl FragmentOnce + 'a {
+    pub(crate) fn render_rust_error<'a>(
+        self,
+        error: impl FragmentOnce + 'a,
+    ) -> impl FragmentOnce + 'a {
         fragment(move |p| match self {
             AbiTransport::Wasm(_) => frag!(JsValue::from_str(&{ error }.to_string())).apply(p),
             AbiTransport::Napi => frag!(napi::Error::from_reason({ error }.to_string())).apply(p),
@@ -78,6 +81,7 @@ impl AbiType {
     /// The Rust type of a logical ABI value inside the wrapper body.
     pub fn render_rust(self) -> &'static str {
         match self {
+            AbiType::Unit => "()",
             AbiType::f64 => "f64",
             AbiType::bool => "bool",
             AbiType::String => "String",
@@ -86,13 +90,85 @@ impl AbiType {
     }
 }
 
+impl AbiReturn<'_> {
+    pub fn render_rust(self) -> &'static str {
+        match self {
+            Self::Value(type_) => type_.render_rust(),
+            Self::Union(_) => "__AbiReturn",
+        }
+    }
+
+    pub fn render_rust_variant(self, index: usize, value: impl FragmentOnce) -> impl FragmentOnce {
+        fragment(move |p| match self {
+            Self::Value(_) => value.apply(p),
+            Self::Union(_) => frag!(__AbiReturn::V { index }({ value })).apply(p),
+        })
+    }
+}
+
+impl<'db> AbiUnion<'db> {
+    fn render_encode(self, db: &'db dyn Db, transport: AbiTransport) -> impl FragmentOnce + 'db {
+        let branches = self
+            .variants(db)
+            .iter()
+            .enumerate()
+            .map(move |(index, type_)| {
+                let binding = if *type_ == AbiType::Unit {
+                    "()"
+                } else {
+                    "value"
+                };
+                let value = fragment(move |p| {
+                    if *type_ == AbiType::usize {
+                        let type_ = transport.render_return_type(*type_);
+                        let error = transport.render_rust_error(doubles(
+                            "usize value is outside the transport range",
+                        ));
+
+                        frag!({type_}::try_from(value).map_err(|_| {error})?).apply(p);
+                    } else {
+                        binding.apply(p);
+                    }
+                });
+
+                let encoded = fragment(move |p| match transport {
+                    AbiTransport::Wasm(_) => {
+                        let payload = fragment(move |p| {
+                            if *type_ == AbiType::Unit {
+                                "JsValue::UNDEFINED".apply(p);
+                            } else {
+                                frag!(JsValue::from({ value })).apply(p);
+                            }
+                        });
+
+                        frag!(vec![JsValue::from({index}u32), {payload}]).apply(p);
+                    }
+                    AbiTransport::Napi => {
+                        let variant = match type_ {
+                            AbiType::Unit => "A",
+                            AbiType::f64 => "B",
+                            AbiType::bool => "C",
+                            AbiType::String => "D",
+                            AbiType::usize => "E",
+                        };
+
+                        frag!(({index}u32, napi::bindgen_prelude::Either5::{variant}({value})))
+                            .apply(p);
+                    }
+                });
+
+                frag!(__AbiReturn::V{index}({binding}) => Ok({encoded}))
+            });
+
+        frag!(
+            result.and_then(|result| match result {{
+                {comma_list(branches)}
+            }})
+        )
+    }
+}
+
 impl<'db> AbiFunction<'db> {
-    /// Renders the exported wrapper of this function.
-    ///
-    /// The body receives the logical arguments of the function and must
-    /// evaluate to a `rustier_rt::CallResult` of the Rust form of the return
-    /// type. It may use `?` and `return` on runtime errors; the wrapper
-    /// converts them into the transport's error convention.
     pub fn render_rust_with_body<Body>(
         self,
         db: &'db dyn Db,
@@ -105,6 +181,7 @@ impl<'db> AbiFunction<'db> {
         let params = self.params(db);
 
         FunctionFragment {
+            db,
             symbol: self.symbol(db),
             params,
             ret_type: self.ret_type(db),
@@ -115,9 +192,10 @@ impl<'db> AbiFunction<'db> {
 }
 
 struct FunctionFragment<'db, Body> {
+    db: &'db dyn Db,
     symbol: &'db str,
     params: &'db [AbiType],
-    ret_type: Option<AbiType>,
+    ret_type: AbiReturn<'db>,
     transport: AbiTransport,
     body: Body,
 }
@@ -125,6 +203,7 @@ struct FunctionFragment<'db, Body> {
 impl<'db, Body: FragmentOnce + 'db> FragmentOnce for FunctionFragment<'db, Body> {
     fn apply(self, p: &mut Printer) {
         let Self {
+            db,
             symbol,
             params,
             ret_type,
@@ -132,16 +211,26 @@ impl<'db, Body: FragmentOnce + 'db> FragmentOnce for FunctionFragment<'db, Body>
             body,
         } = self;
 
-        let body_ok_type = || {
-            fragment(move |p| match ret_type {
-                Some(type_) => type_.render_rust().apply(p),
-                None => "()".apply(p),
-            })
-        };
+        let boundary_ok_type = fragment(move |p| match (ret_type, transport) {
+            (AbiReturn::Value(type_), _) => transport.render_return_type(type_).apply(p),
+            (AbiReturn::Union(_), AbiTransport::Wasm(_)) => "Vec<JsValue>".apply(p),
+            (AbiReturn::Union(_), AbiTransport::Napi) => {
+                "(u32, napi::bindgen_prelude::Either5<(), f64, bool, String, u64>)".apply(p);
+            }
+        });
 
-        let boundary_ok_type = fragment(move |p| match ret_type {
-            Some(type_) => transport.render_return_type(type_).apply(p),
-            None => "()".apply(p),
+        let definition = fragment(move |p| {
+            if let AbiReturn::Union(union) = ret_type {
+                let variants = comma_list(
+                    union
+                        .variants(db)
+                        .iter()
+                        .enumerate()
+                        .map(|(index, type_)| frag!(V { index }({ type_.render_rust() }))),
+                );
+
+                frag!(enum __AbiReturn {{ {variants} }}@@).apply(p);
+            }
         });
 
         let declarations = comma_list(params.iter().enumerate().map(|(i, type_)| {
@@ -157,7 +246,7 @@ impl<'db, Body: FragmentOnce + 'db> FragmentOnce for FunctionFragment<'db, Body>
                 }
 
                 let error =
-                    || transport.render_error(doubles("ABI value is outside the usize range"));
+                    || transport.render_rust_error(doubles("ABI value is outside the usize range"));
 
                 let value = fragment(move |p| match transport {
                     AbiTransport::Wasm(_) => frag!(_{i}).apply(p),
@@ -181,28 +270,31 @@ impl<'db, Body: FragmentOnce + 'db> FragmentOnce for FunctionFragment<'db, Body>
             }
         });
 
-        let encode = fragment(move |p| {
-            if ret_type == Some(AbiType::usize) {
+        let encode = fragment(move |p| match ret_type {
+            AbiReturn::Value(AbiType::usize) => {
                 let type_ = transport.render_return_type(AbiType::usize);
-                let error =
-                    transport.render_error(doubles("usize value is outside the transport range"));
+                let error = transport
+                    .render_rust_error(doubles("usize value is outside the transport range"));
 
                 frag!(
-                    .and_then(|result| {type_}::try_from(result).map_err(|_| {error}))
+                    result.and_then(|result| {type_}::try_from(result).map_err(|_| {error}))
                 )
                 .apply(p);
             }
+            AbiReturn::Value(_) => "result".apply(p),
+            AbiReturn::Union(union) => union.render_encode(db, transport).apply(p),
         });
 
         frag!(
             {transport.render_header(symbol)}@
             pub fn ~{symbol}({declarations})~ -> ~{transport.render_result_type(boundary_ok_type)}~ {{
                 {decode}
-                let result = (|| -> rustier_rt::CallResult<{body_ok_type()}>~{{
+                {definition}
+                let result: {transport.render_result_type(ret_type.render_rust())} = {{
                     {body}
-                }})();@@
+                }};@@
 
-                result.map_err(|error| {transport.render_error("error")}){encode}
+                {encode}
             }}
         )
         .apply(p);
@@ -242,5 +334,148 @@ impl AbiArg {
         let idx = self.idx;
 
         frag!(_{idx})
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compiler::{codegen::fragment::FragmentPrint, db::RootDatabase};
+
+    fn snapshot(name: &str, render: impl Fn(&dyn Db, AbiTransport) -> String) {
+        let db = RootDatabase::default();
+        let snapshot = fragment(|p| {
+            for (label, transport) in [
+                ("N-API", AbiTransport::Napi),
+                (
+                    "WASM32",
+                    AbiTransport::Wasm(WasmTransport {
+                        memory: WasmMemory::x32,
+                    }),
+                ),
+                (
+                    "WASM64",
+                    AbiTransport::Wasm(WasmTransport {
+                        memory: WasmMemory::x64,
+                    }),
+                ),
+            ] {
+                let compiled = render(&db, transport);
+                let syntax = syn::parse_file(&compiled)
+                    .unwrap_or_else(|error| panic!("invalid generated Rust: {error}\n{compiled}"));
+                let formatted = prettyplease::unparse(&syntax);
+
+                ("## ", label, "\n\n```rust\n", formatted, "```\n\n").apply(p);
+            }
+        })
+        .print();
+
+        insta::with_settings!({
+            snapshot_path => "_snapshots/rust",
+            prepend_module_to_snapshot => false,
+        }, {
+            insta::assert_snapshot!(name, snapshot);
+        });
+    }
+
+    #[test]
+    fn value_returns() {
+        snapshot("value_returns", |db, transport| {
+            fragment(|p| {
+                for (symbol, type_) in [
+                    ("unit", AbiType::Unit),
+                    ("number", AbiType::f64),
+                    ("boolean", AbiType::bool),
+                    ("string", AbiType::String),
+                    ("handle", AbiType::usize),
+                ] {
+                    let params = [type_];
+                    let (params, body) = if type_ == AbiType::Unit {
+                        (&[][..], "Ok(())")
+                    } else {
+                        (&params[..], "Ok(_0)")
+                    };
+
+                    FunctionFragment {
+                        db,
+                        symbol,
+                        params,
+                        ret_type: AbiReturn::Value(type_),
+                        transport,
+                        body,
+                    }
+                    .apply(p);
+                    frag!(@@).apply(p);
+                }
+            })
+            .print()
+        });
+    }
+
+    #[test]
+    fn union_returns() {
+        snapshot("union_returns", |db, transport| {
+            let union = AbiUnion::new(
+                db,
+                vec![
+                    AbiType::Unit,
+                    AbiType::f64,
+                    AbiType::bool,
+                    AbiType::String,
+                    AbiType::usize,
+                    AbiType::String,
+                    AbiType::Unit,
+                ],
+            );
+            let ret_type = AbiReturn::Union(union);
+            let values = [
+                "()",
+                "42.5",
+                "true",
+                r#"String::from("first")"#,
+                "7usize",
+                "String::new()",
+                "()",
+            ];
+            let branches = comma_list(values.into_iter().enumerate().map(|(index, value)| {
+                let value = ret_type.render_rust_variant(index, value);
+
+                frag!({index} => Ok({value}))
+            }));
+            let fallback = ret_type.render_rust_variant(0, "()");
+            let body = frag!(
+                match _0 as u32 {{
+                    {branches},@
+                    _ => Ok({fallback}),
+                }}
+            );
+
+            FunctionFragment {
+                db,
+                symbol: "choose",
+                params: &[AbiType::f64],
+                ret_type,
+                transport,
+                body,
+            }
+            .print()
+        });
+    }
+
+    #[test]
+    fn transport_error() {
+        snapshot("transport_error", |db, transport| {
+            let error = transport.render_rust_error(doubles("fixture failure"));
+
+            FunctionFragment {
+                db,
+                symbol: "fail",
+                params: &[],
+                ret_type: AbiReturn::Value(AbiType::Unit),
+                transport,
+                body: frag!(Err({ error })),
+            }
+            .print()
+        });
     }
 }

@@ -50,16 +50,19 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 
 	) {
 		{
-			const result = cast.from(
-				"Abi(usize)"
-			).to(
-				"Facade(Class(Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8c01)) }) } })))"
-			).an(
-				__fn__associated__10_test_crate__4_Test__5_first(
+			const __abi_return =__fn__associated__10_test_crate__4_Test__5_first(
 
-				)
 			);
-			return result;
+			{
+				const result = cast.from(
+					"Abi(usize)"
+				).to(
+					"Facade(Class(Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8c01)) }) } })))"
+				).an(
+					__abi_return
+				);
+				return result;
+			}
 		}
 	}
 
@@ -67,41 +70,49 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 
 	) {
 		{
-			const result = cast.from(
-				"Abi(bool)"
-			).to(
-				"Facade(boolean)"
-			).an(
-				__fn__associated__10_test_crate__4_Test__8_is_first(
-					this.#_handle
-				)
+			const __abi_return =__fn__associated__10_test_crate__4_Test__8_is_first(
+				this.#_handle
 			);
-			return result;
+			{
+				const result = cast.from(
+					"Abi(bool)"
+				).to(
+					"Facade(boolean)"
+				).an(
+					__abi_return
+				);
+				return result;
+			}
 		}
 	}
 
 	make_second(
 
 	) {
-		__fn__associated__10_test_crate__4_Test__11_make_second(
-			this.#_handle
-		);
+		{
+			const __abi_return =__fn__associated__10_test_crate__4_Test__11_make_second(
+				this.#_handle
+			);
+		}
 	}
 
 	into_bool(
 
 	) {
 		{
-			const result = cast.from(
-				"Abi(bool)"
-			).to(
-				"Facade(boolean)"
-			).an(
-				__fn__associated__10_test_crate__4_Test__9_into_bool(
-					this.#_handle
-				)
+			const __abi_return =__fn__associated__10_test_crate__4_Test__9_into_bool(
+				this.#_handle
 			);
-			return result;
+			{
+				const result = cast.from(
+					"Abi(bool)"
+				).to(
+					"Facade(boolean)"
+				).an(
+					__abi_return
+				);
+				return result;
+			}
 		}
 	}
 

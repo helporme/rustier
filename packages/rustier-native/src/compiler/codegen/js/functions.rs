@@ -171,31 +171,29 @@ where
     fn render_body(self) -> impl FragmentOnce + 'db {
         let db = self.db();
         let function = self.function();
-        let abi_ret_type = function.abi(db).ret_type(db);
+        let abi = function.abi(db);
         let facade_ret_type = function.ret_type_js(db);
 
-        fragment(move |p| match (abi_ret_type, facade_ret_type) {
-            (Some(abi_ret_type), Some(facade_ret_type)) => {
-                self.render_param_casts({
-                    self.casts().render_stmt(
-                        db,
-                        Cast {
-                            from: abi_ret_type,
-                            to: facade_ret_type,
-                            in_expr: self.render_call_expr(),
-                            out_var_name: "result",
-                        },
-                        frag!(return result;),
-                    )
+        self.render_param_casts(
+            abi.render_js_with(db, self.render_call_expr(), move |result| {
+                fragment(move |p| {
+                    if let Some(facade_ret_type) = facade_ret_type {
+                        self.casts()
+                            .render_stmt(
+                                db,
+                                Cast {
+                                    from: result.type_,
+                                    to: facade_ret_type,
+                                    in_expr: result.expr,
+                                    out_var_name: "result",
+                                },
+                                frag!(return result;),
+                            )
+                            .apply(p);
+                    }
                 })
-                .apply(p);
-            }
-            (None, None) => {
-                let call_stmt = frag!({ self.render_call_expr()};);
-                self.render_param_casts(call_stmt).apply(p);
-            }
-            _ => unreachable!(),
-        })
+            }),
+        )
     }
 
     fn render_params(self) -> impl FragmentOnce {

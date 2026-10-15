@@ -287,11 +287,13 @@ export function consume (
 					);
 				}
 				const __2 = __cast_input.$handle();
-				__fn__free__10_test_crate__7_consume(
-					__0,
-					__1,
-					__2
-				);
+				{
+					const __abi_return =__fn__free__10_test_crate__7_consume(
+						__0,
+						__1,
+						__2
+					);
+				}
 			}
 		}
 	}

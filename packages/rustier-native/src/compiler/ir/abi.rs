@@ -9,7 +9,6 @@ use crate::compiler::{
     ir::{
         facade::Facade,
         runtime::{RuntimeFunction, RuntimeType},
-        rust::{Type, TypeKind},
     },
 };
 
@@ -52,48 +51,41 @@ impl<'db> AbiFunction<'db> {
         self.runtime(db)
             .params(db)
             .iter()
-            .map(|type_| AbiType::new(db, *type_))
+            .map(|type_| type_.abi(db))
             .collect()
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<AbiType> {
-        self.runtime(db).ret_type(db).map(|type_| match type_ {
-            RuntimeType::Source(type_) => AbiType::new(db, type_),
-            RuntimeType::u32 => AbiType::f64,
-            RuntimeType::Tethered(_) => AbiType::usize,
-        })
+    pub fn ret_type(self, db: &'db dyn Db) -> AbiReturn<'db> {
+        let type_ = match self.runtime(db).ret_type(db) {
+            Some(RuntimeType::Source(type_)) => type_.abi(db),
+            Some(RuntimeType::u32) => AbiType::f64,
+            Some(RuntimeType::Tethered(_)) => AbiType::usize,
+            None => AbiType::Unit,
+        };
+
+        AbiReturn::Value(type_)
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub enum AbiReturn<'db> {
+    Value(AbiType),
+    Union(AbiUnion<'db>),
+}
+
+#[salsa::interned(debug)]
+pub struct AbiUnion<'db> {
+    #[returns(ref)]
+    pub variants: Vec<AbiType>,
 }
 
 /// A logical type transferred across the ABI.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 #[allow(non_camel_case_types)]
 pub enum AbiType {
+    Unit,
     f64,
     bool,
     String,
     usize,
-}
-
-impl AbiType {
-    fn new<'db>(db: &'db dyn Db, type_: Type<'db>) -> Self {
-        match type_.kind(db) {
-            TypeKind::bool => Self::bool,
-            TypeKind::char
-            | TypeKind::i8
-            | TypeKind::u8
-            | TypeKind::i16
-            | TypeKind::u16
-            | TypeKind::i32
-            | TypeKind::u32
-            | TypeKind::f32
-            | TypeKind::f64 => Self::f64,
-            TypeKind::Str | TypeKind::String => Self::String,
-            TypeKind::Borrowed(borrowed_type) => Self::new(db, borrowed_type.inner(db)),
-            TypeKind::Struct(_) | TypeKind::Enum(_) => Self::usize,
-            TypeKind::Generic(_) => {
-                unreachable!("unsupported Rust types do not cross the ABI")
-            }
-        }
-    }
 }

@@ -35,25 +35,28 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
         .map_err(|_| napi::Error::from_reason(
             "ABI value is outside the usize range".to_string(),
         ))?;
-    let result = (|| -> rustier_rt::CallResult<bool> {
-        Ok(
-            cast
-                .from(
-                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8001)) }) })",
-                )
-                .to("Abi(bool)")
-                .an({
-                    let _0 = cast
-                        .from("Abi(usize)")
-                        .to(
-                            "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) })",
-                        )
-                        .an(_0);
-                    test_crate::Test::owned(_0)
-                }),
-        )
-    })();
-    result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    let result: napi::Result<bool> = {
+        let result = (|| -> rustier_rt::CallResult<bool> {
+            Ok(
+                cast
+                    .from(
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8001)) }) })",
+                    )
+                    .to("Abi(bool)")
+                    .an({
+                        let _0 = cast
+                            .from("Abi(usize)")
+                            .to(
+                                "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) })",
+                            )
+                            .an(_0);
+                        test_crate::Test::owned(_0)
+                    }),
+            )
+        })();
+        result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    };
+    result
 }
 ```
 
@@ -67,24 +70,27 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
         .map_err(|_| JsValue::from_str(
             &"ABI value is outside the usize range".to_string(),
         ))?;
-    let result = (|| -> rustier_rt::CallResult<bool> {
-        Ok(
-            cast
-                .from(
-                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8001)) }) })",
-                )
-                .to("Abi(bool)")
-                .an({
-                    let _0 = cast
-                        .from("Abi(usize)")
-                        .to(
-                            "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) })",
-                        )
-                        .an(_0);
-                    test_crate::Test::owned(_0)
-                }),
-        )
-    })();
-    result.map_err(|error| JsValue::from_str(&error.to_string()))
+    let result: Result<bool, JsValue> = {
+        let result = (|| -> rustier_rt::CallResult<bool> {
+            Ok(
+                cast
+                    .from(
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8001)) }) })",
+                    )
+                    .to("Abi(bool)")
+                    .an({
+                        let _0 = cast
+                            .from("Abi(usize)")
+                            .to(
+                                "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) })",
+                            )
+                            .an(_0);
+                        test_crate::Test::owned(_0)
+                    }),
+            )
+        })();
+        result.map_err(|error| JsValue::from_str(&error.to_string()))
+    };
+    result
 }
 ```

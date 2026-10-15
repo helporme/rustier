@@ -33,25 +33,28 @@ pub fn __fn__disc__10_test_crate__4_Test(
         .map_err(|_| napi::Error::from_reason(
             "ABI value is outside the usize range".to_string(),
         ))?;
-    let result = (|| -> rustier_rt::CallResult<f64> {
-        let result = cast
-            .from("Abi(usize)")
-            .to(
-                "Tethered(RuntimeTethering { source: Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
-            )
-            .an(_0)
-            .access(|src| {
-                Ok(
-                    match src {
-                        test_crate::Test::Unit { .. } => 0f64,
-                        test_crate::Test::Tuple { .. } => 1f64,
-                        test_crate::Test::Plain { .. } => 2f64,
-                    },
+    let result: napi::Result<f64> = {
+        let result = (|| -> rustier_rt::CallResult<f64> {
+            let result = cast
+                .from("Abi(usize)")
+                .to(
+                    "Tethered(RuntimeTethering { source: Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
                 )
-            })?;
-        Ok(result)
-    })();
-    result.map_err(|error| napi::Error::from_reason(error.to_string()))
+                .an(_0)
+                .access(|src| {
+                    Ok(
+                        match src {
+                            test_crate::Test::Unit { .. } => 0f64,
+                            test_crate::Test::Tuple { .. } => 1f64,
+                            test_crate::Test::Plain { .. } => 2f64,
+                        },
+                    )
+                })?;
+            Ok(result)
+        })();
+        result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    };
+    result
 }
 ```
 
@@ -63,24 +66,27 @@ pub fn __fn__disc__10_test_crate__4_Test(_0: u32) -> Result<f64, JsValue> {
         .map_err(|_| JsValue::from_str(
             &"ABI value is outside the usize range".to_string(),
         ))?;
-    let result = (|| -> rustier_rt::CallResult<f64> {
-        let result = cast
-            .from("Abi(usize)")
-            .to(
-                "Tethered(RuntimeTethering { source: Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
-            )
-            .an(_0)
-            .access(|src| {
-                Ok(
-                    match src {
-                        test_crate::Test::Unit { .. } => 0f64,
-                        test_crate::Test::Tuple { .. } => 1f64,
-                        test_crate::Test::Plain { .. } => 2f64,
-                    },
+    let result: Result<f64, JsValue> = {
+        let result = (|| -> rustier_rt::CallResult<f64> {
+            let result = cast
+                .from("Abi(usize)")
+                .to(
+                    "Tethered(RuntimeTethering { source: Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5400) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5400) } }) } }) })",
                 )
-            })?;
-        Ok(result)
-    })();
-    result.map_err(|error| JsValue::from_str(&error.to_string()))
+                .an(_0)
+                .access(|src| {
+                    Ok(
+                        match src {
+                            test_crate::Test::Unit { .. } => 0f64,
+                            test_crate::Test::Tuple { .. } => 1f64,
+                            test_crate::Test::Plain { .. } => 2f64,
+                        },
+                    )
+                })?;
+            Ok(result)
+        })();
+        result.map_err(|error| JsValue::from_str(&error.to_string()))
+    };
+    result
 }
 ```

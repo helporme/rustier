@@ -72,7 +72,7 @@ impl Manifest<'_> {
         let deps = frag!(
             @@
             [build-dependencies]@
-            {r#"napi-build = "2""#}
+            napi-build = "2"
         );
 
         (matches!(self.transport, AbiTransport::Napi)).then_some(deps)
@@ -80,22 +80,20 @@ impl Manifest<'_> {
 
     fn deps(&self) -> Option<impl FragmentOnce> {
         Some(fragment(move |p| {
+            let path = self
+                .runtime_path
+                .map(|path| frag!(,~path = ~{toml_string(path.to_string_lossy().as_ref())}));
+
             frag!(
-                { "rustier-rt = { version = " }{doubles(("=", rustier_rt::VERSION))}
+                rustier-rt = ~{"{"}~version = ~{doubles(("=", rustier_rt::VERSION))}{path}~{"}"}@
             )
             .apply(p);
 
-            if let Some(path) = self.runtime_path {
-                frag!(,~path~=~{toml_string(path.to_string_lossy().as_ref())}).apply(p);
-            }
-
-            frag!({ " }\n" }).apply(p);
-
             match self.transport {
-                AbiTransport::Wasm(_) => frag!({ r#"wasm-bindgen = "0.2""# }).apply(p),
+                AbiTransport::Wasm(_) => frag!(wasm-bindgen~=~"0.2").apply(p),
                 AbiTransport::Napi => frag!(
-                    {r#"napi = { version = "3", features = ["napi10"] }"#}@
-                    {r#"napi-derive = { version = "3" }"#}
+                    napi = ~{"{"}~version = "3", features = ~["napi10"]~{"}"}@
+                    napi-derive = ~{"{"}~version = "3"~{"}"}
                 )
                 .apply(p),
             }

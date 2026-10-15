@@ -1,0 +1,14 @@
+---
+source: src/compiler/codegen/abi/js.rs
+expression: snapshot
+---
+```js
+import wasmModule from "./bindings_bg.wasm";
+import init, * as abi from "./bindings.js";
+await init(
+	{
+		module_or_path: wasmModule
+	}
+);
+export const __fn__free__10_test_crate__4_echo = abi.__fn__free__10_test_crate__4_echo;
+```

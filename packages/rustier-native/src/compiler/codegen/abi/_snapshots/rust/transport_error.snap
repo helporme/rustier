@@ -1,0 +1,39 @@
+---
+source: src/compiler/codegen/abi/rust.rs
+expression: snapshot
+---
+## N-API
+
+```rust
+#[napi(js_name = "fail")]
+pub fn fail() -> napi::Result<()> {
+    let result: napi::Result<()> = {
+        Err(napi::Error::from_reason("fixture failure".to_string()))
+    };
+    result
+}
+```
+
+## WASM32
+
+```rust
+#[wasm_bindgen(js_name = "fail")]
+pub fn fail() -> Result<(), JsValue> {
+    let result: Result<(), JsValue> = {
+        Err(JsValue::from_str(&"fixture failure".to_string()))
+    };
+    result
+}
+```
+
+## WASM64
+
+```rust
+#[wasm_bindgen(js_name = "fail")]
+pub fn fail() -> Result<(), JsValue> {
+    let result: Result<(), JsValue> = {
+        Err(JsValue::from_str(&"fixture failure".to_string()))
+    };
+    result
+}
+```

@@ -27,9 +27,11 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 	static of(
 
 	) {
-		__fn__associated__10_test_crate__4_Test__2_of(
+		{
+			const __abi_return =__fn__associated__10_test_crate__4_Test__2_of(
 
-		);
+			);
+		}
 	}
 
 	static $of(

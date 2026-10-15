@@ -15,17 +15,20 @@ pub fn test_fn() -> i32 {
 ```rust
 #[napi(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn() -> napi::Result<f64> {
-    let result = (|| -> rustier_rt::CallResult<f64> {
-        Ok(
-            cast
-                .from(
-                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
-                )
-                .to("Abi(f64)")
-                .an(test_crate::test_fn()),
-        )
-    })();
-    result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    let result: napi::Result<f64> = {
+        let result = (|| -> rustier_rt::CallResult<f64> {
+            Ok(
+                cast
+                    .from(
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
+                    )
+                    .to("Abi(f64)")
+                    .an(test_crate::test_fn()),
+            )
+        })();
+        result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    };
+    result
 }
 ```
 
@@ -33,16 +36,19 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> napi::Result<f64> {
 ```rust
 #[wasm_bindgen(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn() -> Result<f64, JsValue> {
-    let result = (|| -> rustier_rt::CallResult<f64> {
-        Ok(
-            cast
-                .from(
-                    "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
-                )
-                .to("Abi(f64)")
-                .an(test_crate::test_fn()),
-        )
-    })();
-    result.map_err(|error| JsValue::from_str(&error.to_string()))
+    let result: Result<f64, JsValue> = {
+        let result = (|| -> rustier_rt::CallResult<f64> {
+            Ok(
+                cast
+                    .from(
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
+                    )
+                    .to("Abi(f64)")
+                    .an(test_crate::test_fn()),
+            )
+        })();
+        result.map_err(|error| JsValue::from_str(&error.to_string()))
+    };
+    result
 }
 ```

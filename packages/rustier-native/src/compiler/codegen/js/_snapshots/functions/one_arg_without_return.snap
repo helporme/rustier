@@ -22,9 +22,11 @@ export function test_fn (
 		).an(
 			_0
 		);
-		__fn__free__10_test_crate__7_test_fn(
-			__0
-		);
+		{
+			const __abi_return =__fn__free__10_test_crate__7_test_fn(
+				__0
+			);
+		}
 	}
 }
 ```

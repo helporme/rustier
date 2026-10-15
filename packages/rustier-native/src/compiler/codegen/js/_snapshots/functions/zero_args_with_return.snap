@@ -17,16 +17,19 @@ export function test_fn (
 
 ) {
 	{
-		const result = cast.from(
-			"Abi(f64)"
-		).to(
-			"Facade(number)"
-		).an(
-			__fn__free__10_test_crate__7_test_fn(
+		const __abi_return =__fn__free__10_test_crate__7_test_fn(
 
-			)
 		);
-		return result;
+		{
+			const result = cast.from(
+				"Abi(f64)"
+			).to(
+				"Facade(number)"
+			).an(
+				__abi_return
+			);
+			return result;
+		}
 	}
 }
 ```

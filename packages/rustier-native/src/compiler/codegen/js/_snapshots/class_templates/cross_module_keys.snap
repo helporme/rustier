@@ -458,13 +458,15 @@ export function consume (
 							);
 						}
 						const __4 = __cast_input.$handle();
-						__fn__free__10_test_crate__7_consume(
-							__0,
-							__1,
-							__2,
-							__3,
-							__4
-						);
+						{
+							const __abi_return =__fn__free__10_test_crate__7_consume(
+								__0,
+								__1,
+								__2,
+								__3,
+								__4
+							);
+						}
 					}
 				}
 			}

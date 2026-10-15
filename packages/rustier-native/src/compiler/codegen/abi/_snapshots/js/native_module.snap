@@ -1,0 +1,10 @@
+---
+source: src/compiler/codegen/abi/js.rs
+expression: snapshot
+---
+```js
+import {
+	native as abi
+} from "./native.js";
+export const __fn__free__10_test_crate__4_echo = abi.__fn__free__10_test_crate__4_echo;
+```

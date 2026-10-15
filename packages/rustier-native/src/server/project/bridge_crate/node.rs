@@ -41,7 +41,7 @@ impl<'a> BridgeCrateNode<'a> {
         const ABI_MODULE_ID: &str = "$rust/unstable!/node";
 
         if path == ABI_MODULE_ID {
-            return Some(self.project(db).reachable_facade(db).abi(db).render(
+            return Some(self.project(db).reachable_facade(db).abi(db).render_js(
                 db,
                 AbiJsTarget::Native {
                     path: artifact?.js_path.as_str(),

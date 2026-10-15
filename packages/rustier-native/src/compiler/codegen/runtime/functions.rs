@@ -8,7 +8,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        abi::transport::AbiTransport,
+        abi::{AbiReturn, transport::AbiTransport},
         facade::FacadeClass,
         runtime::{
             RuntimeDiscriminatedCoerce, RuntimeDiscriminator, RuntimeFunction, RuntimeGetter,
@@ -107,15 +107,11 @@ where
             }
         });
         let value = self.cast_compiler.render_many(db, casts, value);
-        let result = self.cast_compiler.render_expr(
-            db,
-            source_type,
-            function
-                .abi(db)
-                .ret_type(db)
-                .expect("coerce methods return a class"),
-            value,
-        );
+        let ret_type = source_type.abi(db);
+
+        let result = self
+            .cast_compiler
+            .render_expr(db, source_type, ret_type, value);
         frag!(Ok({ result })).apply(p);
     }
 }
@@ -134,9 +130,18 @@ where
     CastCompiler: CastRenderer<'db> + Copy + Clone + 'db,
 {
     fn render(self) -> impl FragmentOnce {
-        self.function
-            .abi(self.db)
-            .render_rust_with_body(self.db, self.transport, move |args| self.render_body(args))
+        let abi = self.function.abi(self.db);
+        let ret_type = abi.ret_type(self.db).render_rust();
+
+        abi.render_rust_with_body(self.db, self.transport, move |args| {
+            frag!(
+                let result = (|| -> rustier_rt::CallResult<{ret_type}> {{
+                    {self.render_body(args)}
+                }})();@@
+
+                result.map_err(|error| {self.transport.render_rust_error("error")})
+            )
+        })
     }
 
     fn render_body(self, args: AbiArgs<'db>) -> impl FragmentOnce {
@@ -216,7 +221,7 @@ where
                 src_fn.ret_type(self.db),
                 self.function.abi(self.db).ret_type(self.db),
             ) {
-                (Some(src_ret_type), Some(abi_ret_type)) => {
+                (Some(src_ret_type), AbiReturn::Value(abi_ret_type)) => {
                     let result_expr = self.cast_compiler.render_many(
                         self.db,
                         cast_param_to_source_types,
@@ -267,11 +272,9 @@ where
         let field_tethering_value_expr =
             tethered_field.render_get_expr(self.db, cls_tethering_struct_expr);
 
-        let ret_type = self
-            .function
-            .abi(self.db)
-            .ret_type(self.db)
-            .expect("getters return the field value");
+        let AbiReturn::Value(ret_type) = self.function.abi(self.db).ret_type(self.db) else {
+            unreachable!("getters return the field value");
+        };
 
         let output = fragment(move |p| match tethered_field.kind(self.db) {
             RuntimeTetheredFieldKind::Tethered(tethering) => self

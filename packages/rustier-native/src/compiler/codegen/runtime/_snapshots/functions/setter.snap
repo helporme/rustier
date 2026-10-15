@@ -32,24 +32,27 @@ pub fn __fn__setter__10_test_crate__4_Test__field(
         .map_err(|_| napi::Error::from_reason(
             "ABI value is outside the usize range".to_string(),
         ))?;
-    let result = (|| -> rustier_rt::CallResult<()> {
-        {
-            let value = cast
-                .from("Abi(f64)")
-                .to(
-                    "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) })",
-                )
-                .an(_1);
-            cast.from("Abi(usize)")
-                .to(
-                    "Tethered(RuntimeTethering { source: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) })",
-                )
-                .an(_0)
-                .set_field(value)?;
-        }
-        Ok(())
-    })();
-    result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    let result: napi::Result<()> = {
+        let result = (|| -> rustier_rt::CallResult<()> {
+            {
+                let value = cast
+                    .from("Abi(f64)")
+                    .to(
+                        "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) })",
+                    )
+                    .an(_1);
+                cast.from("Abi(usize)")
+                    .to(
+                        "Tethered(RuntimeTethering { source: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) })",
+                    )
+                    .an(_0)
+                    .set_field(value)?;
+            }
+            Ok(())
+        })();
+        result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    };
+    result
 }
 ```
 
@@ -64,23 +67,26 @@ pub fn __fn__setter__10_test_crate__4_Test__field(
         .map_err(|_| JsValue::from_str(
             &"ABI value is outside the usize range".to_string(),
         ))?;
-    let result = (|| -> rustier_rt::CallResult<()> {
-        {
-            let value = cast
-                .from("Abi(f64)")
-                .to(
-                    "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) })",
-                )
-                .an(_1);
-            cast.from("Abi(usize)")
-                .to(
-                    "Tethered(RuntimeTethering { source: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) })",
-                )
-                .an(_0)
-                .set_field(value)?;
-        }
-        Ok(())
-    })();
-    result.map_err(|error| JsValue::from_str(&error.to_string()))
+    let result: Result<(), JsValue> = {
+        let result = (|| -> rustier_rt::CallResult<()> {
+            {
+                let value = cast
+                    .from("Abi(f64)")
+                    .to(
+                        "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) })",
+                    )
+                    .an(_1);
+                cast.from("Abi(usize)")
+                    .to(
+                        "Tethered(RuntimeTethering { source: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) })",
+                    )
+                    .an(_0)
+                    .set_field(value)?;
+            }
+            Ok(())
+        })();
+        result.map_err(|error| JsValue::from_str(&error.to_string()))
+    };
+    result
 }
 ```

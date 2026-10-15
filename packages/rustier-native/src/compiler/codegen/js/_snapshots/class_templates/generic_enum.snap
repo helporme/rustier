@@ -337,10 +337,12 @@ export function consume (
 				);
 			}
 			const __1 = __cast_input.$handle();
-			__fn__free__10_test_crate__7_consume(
-				__0,
-				__1
-			);
+			{
+				const __abi_return =__fn__free__10_test_crate__7_consume(
+					__0,
+					__1
+				);
+			}
 		}
 	}
 }

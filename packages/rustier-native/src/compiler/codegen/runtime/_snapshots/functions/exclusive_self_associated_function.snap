@@ -35,27 +35,30 @@ pub fn __fn__associated__10_test_crate__4_Test__9_exclusive(
         .map_err(|_| napi::Error::from_reason(
             "ABI value is outside the usize range".to_string(),
         ))?;
-    let result = (|| -> rustier_rt::CallResult<()> {
-        {
-            let _0 = cast
-                .from("Abi(usize)")
-                .to(
-                    "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
-                )
-                .an(_0);
+    let result: napi::Result<()> = {
+        let result = (|| -> rustier_rt::CallResult<()> {
             {
-                let _1 = cast
-                    .from("Abi(f64)")
+                let _0 = cast
+                    .from("Abi(usize)")
                     .to(
-                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
+                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
                     )
-                    .an(_1);
-                test_crate::Test::exclusive(_0, _1)
-            }
-        };
-        Ok(())
-    })();
-    result.map_err(|error| napi::Error::from_reason(error.to_string()))
+                    .an(_0);
+                {
+                    let _1 = cast
+                        .from("Abi(f64)")
+                        .to(
+                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
+                        )
+                        .an(_1);
+                    test_crate::Test::exclusive(_0, _1)
+                }
+            };
+            Ok(())
+        })();
+        result.map_err(|error| napi::Error::from_reason(error.to_string()))
+    };
+    result
 }
 ```
 
@@ -70,26 +73,29 @@ pub fn __fn__associated__10_test_crate__4_Test__9_exclusive(
         .map_err(|_| JsValue::from_str(
             &"ABI value is outside the usize range".to_string(),
         ))?;
-    let result = (|| -> rustier_rt::CallResult<()> {
-        {
-            let _0 = cast
-                .from("Abi(usize)")
-                .to(
-                    "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
-                )
-                .an(_0);
+    let result: Result<(), JsValue> = {
+        let result = (|| -> rustier_rt::CallResult<()> {
             {
-                let _1 = cast
-                    .from("Abi(f64)")
+                let _0 = cast
+                    .from("Abi(usize)")
                     .to(
-                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
+                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
                     )
-                    .an(_1);
-                test_crate::Test::exclusive(_0, _1)
-            }
-        };
-        Ok(())
-    })();
-    result.map_err(|error| JsValue::from_str(&error.to_string()))
+                    .an(_0);
+                {
+                    let _1 = cast
+                        .from("Abi(f64)")
+                        .to(
+                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
+                        )
+                        .an(_1);
+                    test_crate::Test::exclusive(_0, _1)
+                }
+            };
+            Ok(())
+        })();
+        result.map_err(|error| JsValue::from_str(&error.to_string()))
+    };
+    result
 }
 ```
