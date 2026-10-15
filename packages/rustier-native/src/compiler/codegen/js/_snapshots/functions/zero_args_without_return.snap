@@ -14,10 +14,8 @@ pub fn test_fn() {}
 export function test_fn (
 
 ) {
-	{
-		const __abi_return =__fn__free__10_test_crate__7_test_fn(
+	__fn__free__10_test_crate__7_test_fn(
 
-		);
-	}
+	);
 }
 ```

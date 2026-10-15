@@ -12,8 +12,14 @@ pub fn test_fn(_value: i32) {}
 ## Node
 ```rust
 #[napi(js_name = "__fn__free__10_test_crate__7_test_fn")]
-pub fn __fn__free__10_test_crate__7_test_fn(_0: f64) -> napi::Result<()> {
-    let result: napi::Result<()> = {
+pub fn __fn__free__10_test_crate__7_test_fn(
+    _0: f64,
+) -> (u32, napi::bindgen_prelude::Either5<(), f64, bool, String, u64>) {
+    enum __AbiReturn {
+        V0(()),
+        V1(String),
+    }
+    let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<()> {
             {
                 let _0 = cast
@@ -26,17 +32,27 @@ pub fn __fn__free__10_test_crate__7_test_fn(_0: f64) -> napi::Result<()> {
             };
             Ok(())
         })();
-        result.map_err(|error| napi::Error::from_reason(error.to_string()))
+        match result {
+            Ok(value) => __AbiReturn::V0(value),
+            Err(error) => __AbiReturn::V1(error.to_string()),
+        }
     };
-    result
+    match result {
+        __AbiReturn::V0(()) => (0u32, napi::bindgen_prelude::Either5::A(())),
+        __AbiReturn::V1(value) => (1u32, napi::bindgen_prelude::Either5::D(value)),
+    }
 }
 ```
 
 ## Wasm
 ```rust
 #[wasm_bindgen(js_name = "__fn__free__10_test_crate__7_test_fn")]
-pub fn __fn__free__10_test_crate__7_test_fn(_0: f64) -> Result<(), JsValue> {
-    let result: Result<(), JsValue> = {
+pub fn __fn__free__10_test_crate__7_test_fn(_0: f64) -> Vec<JsValue> {
+    enum __AbiReturn {
+        V0(()),
+        V1(String),
+    }
+    let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<()> {
             {
                 let _0 = cast
@@ -49,8 +65,14 @@ pub fn __fn__free__10_test_crate__7_test_fn(_0: f64) -> Result<(), JsValue> {
             };
             Ok(())
         })();
-        result.map_err(|error| JsValue::from_str(&error.to_string()))
+        match result {
+            Ok(value) => __AbiReturn::V0(value),
+            Err(error) => __AbiReturn::V1(error.to_string()),
+        }
     };
-    result
+    match result {
+        __AbiReturn::V0(()) => vec![JsValue::from(0u32), JsValue::UNDEFINED],
+        __AbiReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
+    }
 }
 ```

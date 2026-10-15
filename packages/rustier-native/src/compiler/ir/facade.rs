@@ -14,10 +14,13 @@ use itertools::{Either, Itertools};
 
 use crate::compiler::{
     db::Db,
-    ir::rust::{
-        Callable, Crate, Enum, EnumType, FieldName, FieldQualified, FunctionQualified, GenArg,
-        Member, Module, Rust, Span, Struct, StructType, Type, TypeKind, VariantQualified,
-        usages::UsageGraph,
+    ir::{
+        runtime::RuntimeModule,
+        rust::{
+            Callable, Crate, Enum, EnumType, FieldName, FieldQualified, FunctionQualified, GenArg,
+            Member, Module, Rust, Span, Struct, StructType, Type, TypeKind, VariantQualified,
+            usages::UsageGraph,
+        },
     },
     path::FilePath,
 };
@@ -31,6 +34,14 @@ pub struct Facade<'db> {
 
 #[salsa::tracked]
 impl<'db> Facade<'db> {
+    pub fn modules(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeModuleEntry<'db>> + 'db {
+        std::iter::once(FacadeModuleEntry::Runtime(RuntimeModule)).chain(
+            self.crates(db)
+                .flat_map(move |crate_| crate_.all_modules(db))
+                .map(FacadeModuleEntry::Source),
+        )
+    }
+
     pub fn crates(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeCrate<'db>> {
         self.rust(db)
             .crates(db)
@@ -41,33 +52,68 @@ impl<'db> Facade<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn local_modules(self, db: &'db dyn Db) -> Vec<FacadeModule<'db>> {
         self.modules_by_locality(db, true)
+            .into_iter()
+            .filter_map(|module| match module {
+                FacadeModuleEntry::Source(module) => Some(module),
+                FacadeModuleEntry::Runtime(_) => None, // always external
+            })
+            .collect()
     }
 
     #[salsa::tracked(returns(ref))]
-    pub fn external_modules(self, db: &'db dyn Db) -> Vec<FacadeModule<'db>> {
+    pub fn external_modules(self, db: &'db dyn Db) -> Vec<FacadeModuleEntry<'db>> {
         self.modules_by_locality(db, false)
     }
 
-    fn modules_by_locality(self, db: &'db dyn Db, is_local: bool) -> Vec<FacadeModule<'db>> {
+    fn modules_by_locality(self, db: &'db dyn Db, is_local: bool) -> Vec<FacadeModuleEntry<'db>> {
         let mut modules = self
-            .crates(db)
-            .filter(move |crate_| crate_.is_local(db) == is_local)
-            .flat_map(move |crate_| crate_.all_modules(db))
-            .filter(|module| {
-                module.members(db).iter().any(|member| {
+            .modules(db)
+            .filter(|module| module.is_local(db) == is_local)
+            .filter(|module| match module {
+                FacadeModuleEntry::Source(module) => module.members(db).iter().any(|member| {
                     matches!(
                         member,
                         FacadeMember::Class(_)
                             | FacadeMember::ClassTemplate(_)
                             | FacadeMember::Function(_)
                     )
-                })
+                }),
+                FacadeModuleEntry::Runtime(_) => true,
             })
             .collect::<Vec<_>>();
 
         modules.sort_by_key(|module| module.virtual_path(db));
 
         modules
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update)]
+pub enum FacadeModuleEntry<'db> {
+    Source(FacadeModule<'db>),
+    Runtime(RuntimeModule),
+}
+
+impl<'db> FacadeModuleEntry<'db> {
+    pub fn is_local(self, db: &'db dyn Db) -> bool {
+        match self {
+            Self::Source(module) => module.as_parent(db).is_local(db),
+            Self::Runtime(_) => false,
+        }
+    }
+
+    pub fn virtual_path(self, db: &'db dyn Db) -> &'db str {
+        match self {
+            Self::Source(module) => module.virtual_path(db),
+            Self::Runtime(module) => module.virtual_path(),
+        }
+    }
+
+    pub fn file_path(self, db: &'db dyn Db) -> Option<&'db FilePath> {
+        match self {
+            Self::Source(module) => Some(module.file_path(db)),
+            Self::Runtime(_) => None,
+        }
     }
 }
 

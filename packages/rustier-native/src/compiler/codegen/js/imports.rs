@@ -1,6 +1,6 @@
 use crate::compiler::{
     codegen::{
-        fragment::{FragmentPrint, doubles, frag},
+        fragment::{FragmentOnce, FragmentPrint, doubles, frag},
         js::JsCodegenPaths,
     },
     db::Db,
@@ -11,17 +11,9 @@ use crate::compiler::{
 impl<'db> FacadeImportJs<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render(self, db: &'db dyn Db, paths: JsCodegenPaths) -> String {
-        let item = self.item(db);
-        let name = item.name(db);
-        let alias = match item {
-            FacadeImportItemJs::FacadeClass(class) => Some(frag!(~as~{class.import_alias(db)})),
-            _ => None,
-        };
-
-        frag!(
-            import {{ {name}{alias} }} from {doubles(self.render_path(db, paths))}
-        )
-        .print()
+        self.item(db)
+            .render_js_from(db, self.render_path(db, paths))
+            .print()
     }
 
     #[salsa::tracked(returns(ref))]
@@ -29,6 +21,9 @@ impl<'db> FacadeImportJs<'db> {
         let to_path = match self.item(db) {
             FacadeImportItemJs::AbiFunction(_) => {
                 return paths.abi_js_mod_id.as_str().to_owned();
+            }
+            FacadeImportItemJs::Runtime(export) => {
+                return export.module().virtual_path().to_owned();
             }
             FacadeImportItemJs::FacadeClass(class) => {
                 let target = class.module(db);
@@ -49,5 +44,21 @@ impl<'db> FacadeImportJs<'db> {
             .file_path(db)
             .relative_path(to_path)
             .expect("relative path must exist")
+    }
+}
+
+impl<'db> FacadeImportItemJs<'db> {
+    pub(crate) fn render_js_from(self, db: &'db dyn Db, path: &'db str) -> impl FragmentOnce + 'db {
+        let name = self.name(db);
+        let alias = match self {
+            Self::FacadeClass(class) => Some(class.import_alias(db).as_str()),
+            Self::Runtime(export) => Some(export.import_alias()),
+            Self::AbiFunction(_) => None,
+        }
+        .map(|alias| frag!(~as~{alias}));
+
+        frag!(
+            import {{ {name}{alias} }} from {doubles(path)}
+        )
     }
 }

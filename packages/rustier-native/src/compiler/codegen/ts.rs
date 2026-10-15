@@ -14,7 +14,7 @@ mod test;
 use crate::compiler::{
     codegen::fragment::{FragmentPrint, doubles, frag, spaced},
     db::Db,
-    ir::facade::Facade,
+    ir::{facade::Facade, runtime::RuntimeModule},
 };
 
 impl<'db> Facade<'db> {
@@ -31,6 +31,12 @@ impl<'db> Facade<'db> {
             )
         }))
         .print()
+    }
+}
+
+impl RuntimeModule {
+    pub fn render_ts_mod(self) -> &'static str {
+        include_str!("runtime/rustier-rt.d.ts")
     }
 }
 

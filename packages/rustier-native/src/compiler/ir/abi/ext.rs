@@ -1,7 +1,7 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        abi::{Abi, AbiFunction, AbiType},
+        abi::{Abi, AbiFunction, AbiReturn, AbiType, AbiUnion},
         facade::{
             Facade, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldDiscriminator,
             FacadeFieldPlain, FacadeFreeFunction, FacadeFunction, FacadeMethod, FacadeVariant,
@@ -9,6 +9,7 @@ use crate::compiler::{
         },
         runtime::{
             RuntimeDiscriminatedCoerce, RuntimeDropHandle, RuntimeFunction, RuntimePlainCoerce,
+            RuntimeType,
         },
         rust::{Type, TypeKind},
     },
@@ -91,6 +92,26 @@ impl<'db> FacadeMethod<'db> {
 impl<'db> RuntimeFunction<'db> {
     pub fn abi(self, db: &'db dyn Db) -> AbiFunction<'db> {
         AbiFunction::new(db, self)
+    }
+
+    pub fn abi_ret(self, db: &'db dyn Db) -> AbiReturn<'db> {
+        let value = self.ret_type(db).abi(db);
+
+        match self {
+            Self::DropHandle(_) => AbiReturn::Value(value),
+            _ => AbiReturn::Union(AbiUnion::new(db, vec![value, AbiType::String])),
+        }
+    }
+}
+
+impl<'db> RuntimeType<'db> {
+    pub fn abi(self, db: &'db dyn Db) -> AbiType {
+        match self {
+            Self::Unit => AbiType::Unit,
+            Self::Source(type_) => type_.abi(db),
+            Self::u32 => AbiType::f64,
+            Self::Tethered(_) => AbiType::usize,
+        }
     }
 }
 

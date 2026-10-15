@@ -8,7 +8,7 @@ expression: snapshot
 #[napi(js_name = "choose")]
 pub fn choose(
     _0: f64,
-) -> napi::Result<(u32, napi::bindgen_prelude::Either5<(), f64, bool, String, u64>)> {
+) -> (u32, napi::bindgen_prelude::Either5<(), f64, bool, String, u64>) {
     enum __AbiReturn {
         V0(()),
         V1(f64),
@@ -18,46 +18,27 @@ pub fn choose(
         V5(String),
         V6(()),
     }
-    let result: napi::Result<__AbiReturn> = {
+    let result: __AbiReturn = {
         match _0 as u32 {
-            0 => Ok(__AbiReturn::V0(())),
-            1 => Ok(__AbiReturn::V1(42.5)),
-            2 => Ok(__AbiReturn::V2(true)),
-            3 => Ok(__AbiReturn::V3(String::from("first"))),
-            4 => Ok(__AbiReturn::V4(7usize)),
-            5 => Ok(__AbiReturn::V5(String::new())),
-            6 => Ok(__AbiReturn::V6(())),
-            _ => Ok(__AbiReturn::V0(())),
+            0 => __AbiReturn::V0(()),
+            1 => __AbiReturn::V1(42.5),
+            2 => __AbiReturn::V2(true),
+            3 => __AbiReturn::V3(String::from("first")),
+            4 => __AbiReturn::V4(7usize),
+            5 => __AbiReturn::V5(String::new()),
+            6 => __AbiReturn::V6(()),
+            _ => __AbiReturn::V0(()),
         }
     };
-    result
-        .and_then(|result| match result {
-            __AbiReturn::V0(()) => Ok((0u32, napi::bindgen_prelude::Either5::A(()))),
-            __AbiReturn::V1(value) => {
-                Ok((1u32, napi::bindgen_prelude::Either5::B(value)))
-            }
-            __AbiReturn::V2(value) => {
-                Ok((2u32, napi::bindgen_prelude::Either5::C(value)))
-            }
-            __AbiReturn::V3(value) => {
-                Ok((3u32, napi::bindgen_prelude::Either5::D(value)))
-            }
-            __AbiReturn::V4(value) => {
-                Ok((
-                    4u32,
-                    napi::bindgen_prelude::Either5::E(
-                        u64::try_from(value)
-                            .map_err(|_| napi::Error::from_reason(
-                                "usize value is outside the transport range".to_string(),
-                            ))?,
-                    ),
-                ))
-            }
-            __AbiReturn::V5(value) => {
-                Ok((5u32, napi::bindgen_prelude::Either5::D(value)))
-            }
-            __AbiReturn::V6(()) => Ok((6u32, napi::bindgen_prelude::Either5::A(()))),
-        })
+    match result {
+        __AbiReturn::V0(()) => (0u32, napi::bindgen_prelude::Either5::A(())),
+        __AbiReturn::V1(value) => (1u32, napi::bindgen_prelude::Either5::B(value)),
+        __AbiReturn::V2(value) => (2u32, napi::bindgen_prelude::Either5::C(value)),
+        __AbiReturn::V3(value) => (3u32, napi::bindgen_prelude::Either5::D(value)),
+        __AbiReturn::V4(value) => (4u32, napi::bindgen_prelude::Either5::E(value as u64)),
+        __AbiReturn::V5(value) => (5u32, napi::bindgen_prelude::Either5::D(value)),
+        __AbiReturn::V6(()) => (6u32, napi::bindgen_prelude::Either5::A(())),
+    }
 }
 ```
 
@@ -65,7 +46,7 @@ pub fn choose(
 
 ```rust
 #[wasm_bindgen(js_name = "choose")]
-pub fn choose(_0: f64) -> Result<Vec<JsValue>, JsValue> {
+pub fn choose(_0: f64) -> Vec<JsValue> {
     enum __AbiReturn {
         V0(()),
         V1(f64),
@@ -75,36 +56,27 @@ pub fn choose(_0: f64) -> Result<Vec<JsValue>, JsValue> {
         V5(String),
         V6(()),
     }
-    let result: Result<__AbiReturn, JsValue> = {
+    let result: __AbiReturn = {
         match _0 as u32 {
-            0 => Ok(__AbiReturn::V0(())),
-            1 => Ok(__AbiReturn::V1(42.5)),
-            2 => Ok(__AbiReturn::V2(true)),
-            3 => Ok(__AbiReturn::V3(String::from("first"))),
-            4 => Ok(__AbiReturn::V4(7usize)),
-            5 => Ok(__AbiReturn::V5(String::new())),
-            6 => Ok(__AbiReturn::V6(())),
-            _ => Ok(__AbiReturn::V0(())),
+            0 => __AbiReturn::V0(()),
+            1 => __AbiReturn::V1(42.5),
+            2 => __AbiReturn::V2(true),
+            3 => __AbiReturn::V3(String::from("first")),
+            4 => __AbiReturn::V4(7usize),
+            5 => __AbiReturn::V5(String::new()),
+            6 => __AbiReturn::V6(()),
+            _ => __AbiReturn::V0(()),
         }
     };
-    result
-        .and_then(|result| match result {
-            __AbiReturn::V0(()) => Ok(vec![JsValue::from(0u32), JsValue::UNDEFINED]),
-            __AbiReturn::V1(value) => Ok(vec![JsValue::from(1u32), JsValue::from(value)]),
-            __AbiReturn::V2(value) => Ok(vec![JsValue::from(2u32), JsValue::from(value)]),
-            __AbiReturn::V3(value) => Ok(vec![JsValue::from(3u32), JsValue::from(value)]),
-            __AbiReturn::V4(value) => {
-                Ok(
-                    vec![
-                        JsValue::from(4u32), JsValue::from(u32::try_from(value).map_err(|
-                        _ | JsValue::from_str(&
-                        "usize value is outside the transport range".to_string())) ?)
-                    ],
-                )
-            }
-            __AbiReturn::V5(value) => Ok(vec![JsValue::from(5u32), JsValue::from(value)]),
-            __AbiReturn::V6(()) => Ok(vec![JsValue::from(6u32), JsValue::UNDEFINED]),
-        })
+    match result {
+        __AbiReturn::V0(()) => vec![JsValue::from(0u32), JsValue::UNDEFINED],
+        __AbiReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
+        __AbiReturn::V2(value) => vec![JsValue::from(2u32), JsValue::from(value)],
+        __AbiReturn::V3(value) => vec![JsValue::from(3u32), JsValue::from(value)],
+        __AbiReturn::V4(value) => vec![JsValue::from(4u32), JsValue::from(value as u32)],
+        __AbiReturn::V5(value) => vec![JsValue::from(5u32), JsValue::from(value)],
+        __AbiReturn::V6(()) => vec![JsValue::from(6u32), JsValue::UNDEFINED],
+    }
 }
 ```
 
@@ -112,7 +84,7 @@ pub fn choose(_0: f64) -> Result<Vec<JsValue>, JsValue> {
 
 ```rust
 #[wasm_bindgen(js_name = "choose")]
-pub fn choose(_0: f64) -> Result<Vec<JsValue>, JsValue> {
+pub fn choose(_0: f64) -> Vec<JsValue> {
     enum __AbiReturn {
         V0(()),
         V1(f64),
@@ -122,35 +94,26 @@ pub fn choose(_0: f64) -> Result<Vec<JsValue>, JsValue> {
         V5(String),
         V6(()),
     }
-    let result: Result<__AbiReturn, JsValue> = {
+    let result: __AbiReturn = {
         match _0 as u32 {
-            0 => Ok(__AbiReturn::V0(())),
-            1 => Ok(__AbiReturn::V1(42.5)),
-            2 => Ok(__AbiReturn::V2(true)),
-            3 => Ok(__AbiReturn::V3(String::from("first"))),
-            4 => Ok(__AbiReturn::V4(7usize)),
-            5 => Ok(__AbiReturn::V5(String::new())),
-            6 => Ok(__AbiReturn::V6(())),
-            _ => Ok(__AbiReturn::V0(())),
+            0 => __AbiReturn::V0(()),
+            1 => __AbiReturn::V1(42.5),
+            2 => __AbiReturn::V2(true),
+            3 => __AbiReturn::V3(String::from("first")),
+            4 => __AbiReturn::V4(7usize),
+            5 => __AbiReturn::V5(String::new()),
+            6 => __AbiReturn::V6(()),
+            _ => __AbiReturn::V0(()),
         }
     };
-    result
-        .and_then(|result| match result {
-            __AbiReturn::V0(()) => Ok(vec![JsValue::from(0u32), JsValue::UNDEFINED]),
-            __AbiReturn::V1(value) => Ok(vec![JsValue::from(1u32), JsValue::from(value)]),
-            __AbiReturn::V2(value) => Ok(vec![JsValue::from(2u32), JsValue::from(value)]),
-            __AbiReturn::V3(value) => Ok(vec![JsValue::from(3u32), JsValue::from(value)]),
-            __AbiReturn::V4(value) => {
-                Ok(
-                    vec![
-                        JsValue::from(4u32), JsValue::from(u64::try_from(value).map_err(|
-                        _ | JsValue::from_str(&
-                        "usize value is outside the transport range".to_string())) ?)
-                    ],
-                )
-            }
-            __AbiReturn::V5(value) => Ok(vec![JsValue::from(5u32), JsValue::from(value)]),
-            __AbiReturn::V6(()) => Ok(vec![JsValue::from(6u32), JsValue::UNDEFINED]),
-        })
+    match result {
+        __AbiReturn::V0(()) => vec![JsValue::from(0u32), JsValue::UNDEFINED],
+        __AbiReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
+        __AbiReturn::V2(value) => vec![JsValue::from(2u32), JsValue::from(value)],
+        __AbiReturn::V3(value) => vec![JsValue::from(3u32), JsValue::from(value)],
+        __AbiReturn::V4(value) => vec![JsValue::from(4u32), JsValue::from(value as u64)],
+        __AbiReturn::V5(value) => vec![JsValue::from(5u32), JsValue::from(value)],
+        __AbiReturn::V6(()) => vec![JsValue::from(6u32), JsValue::UNDEFINED],
+    }
 }
 ```

@@ -1,11 +1,24 @@
 use crate::compiler::{
     codegen::{
-        fragment::{FragmentOnce, FragmentPrint, frag, fragment, singles, spaced},
+        fragment::{FragmentOnce, FragmentPrint, frag, fragment, spaced},
         ts::{DeclarationScope, jsdoc::render_jsdoc},
     },
     db::Db,
-    ir::facade::{FacadeClass, FacadeMember, FacadeModule},
+    ir::facade::{FacadeClass, FacadeMember, FacadeModule, FacadeModuleEntry},
 };
+
+impl<'db> FacadeModuleEntry<'db> {
+    pub(super) fn render_ts_in(
+        self,
+        db: &'db dyn Db,
+        scope: DeclarationScope,
+    ) -> impl FragmentOnce + 'db {
+        fragment(move |p| match self {
+            Self::Source(module) => module.render_ts_in(db, scope).apply(p),
+            Self::Runtime(module) => module.render_ts_mod().trim_end().apply(p),
+        })
+    }
+}
 
 #[salsa::tracked]
 impl<'db> FacadeModule<'db> {
@@ -60,14 +73,7 @@ impl<'db> FacadeModule<'db> {
             .map(|class| class.render_in_scope_ts(db, scope));
 
         fragment(move |p| {
-            spaced(imports.iter().map(|import| {
-                frag!(
-                    import type ~{{@
-                        {import.class(db).type_name(db).name(db)}@
-                    }}~ from ~{singles(import.path(db))};
-                )
-            }))
-            .apply(p);
+            spaced(imports.iter().map(|import| import.render_ts(db))).apply(p);
 
             if has_imports {
                 frag!(@@).apply(p);

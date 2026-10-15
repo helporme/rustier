@@ -6,7 +6,10 @@ use napi::threadsafe_function::ThreadsafeFunction;
 use napi_derive::napi;
 
 use crate::{
-    compiler::ir::abi::transport::{AbiTransport, WasmMemory, WasmTransport},
+    compiler::ir::{
+        abi::transport::{AbiTransport, WasmMemory, WasmTransport},
+        runtime::RuntimeModule,
+    },
     server::{
         effects::Effect,
         log::ServerLogs,
@@ -293,6 +296,10 @@ impl Server {
     pub fn load(&self, platform: ServerPlatform, path: String) -> napi::Result<Option<String>> {
         let _dispatch = tracing::dispatcher::set_default(self.logs.dispatch());
         let _span = tracing::debug_span!("Rust facade rendering", %path).entered();
+
+        if let Some(module) = RuntimeModule::resolve(&path) {
+            return Ok(Some(module.render_js().to_owned()));
+        }
 
         self.ws.with_db(|db| {
             let project = self.ws.project(db);

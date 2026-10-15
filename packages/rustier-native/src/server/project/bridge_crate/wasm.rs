@@ -56,7 +56,7 @@ impl<'a> BridgeCrateWasm<'a> {
         if path == ABI_MODULE_ID {
             let artifact = artifact?;
 
-            return Some(self.project(db).reachable_facade(db).abi(db).render_js(
+            return Some(self.project(db).reachable_facade(db).runtime(db).render_js(
                 db,
                 AbiJsTarget::Wasm {
                     loading,
@@ -66,17 +66,12 @@ impl<'a> BridgeCrateWasm<'a> {
             ));
         }
 
-        Some(
-            self.project(db)
-                .js_module(db, path)?
-                .render(
-                    db,
-                    JsCodegenPaths {
-                        abi_js_mod_id: ABI_MODULE_ID.to_owned(),
-                    },
-                )
-                .clone(),
-        )
+        Some(self.project(db).js_module(db, path)?.render_js(
+            db,
+            JsCodegenPaths {
+                abi_js_mod_id: ABI_MODULE_ID.to_owned(),
+            },
+        ))
     }
 
     /// WebAssembly build of the bridge crate.

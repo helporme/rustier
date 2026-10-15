@@ -4,8 +4,17 @@ use crate::compiler::{
         js::JsCodegenPaths,
     },
     db::Db,
-    ir::facade::{FacadeMember, FacadeModule},
+    ir::facade::{FacadeMember, FacadeModule, FacadeModuleEntry},
 };
+
+impl<'db> FacadeModuleEntry<'db> {
+    pub fn render_js(self, db: &'db dyn Db, paths: JsCodegenPaths) -> String {
+        match self {
+            Self::Source(module) => module.render(db, paths).to_owned(),
+            Self::Runtime(module) => module.render_js().to_owned(),
+        }
+    }
+}
 
 #[salsa::tracked]
 impl<'db> FacadeModule<'db> {

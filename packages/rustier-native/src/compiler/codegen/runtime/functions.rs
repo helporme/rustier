@@ -21,7 +21,7 @@ use crate::compiler::{
 #[salsa::tracked]
 impl<'db> RuntimeFunction<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn render(self, db: &'db dyn Db, transport: AbiTransport) -> String {
+    pub(super) fn render_rust(self, db: &'db dyn Db, transport: AbiTransport) -> String {
         self.render_with(db, transport, RuntimeCastRenderer).print()
     }
 
@@ -131,16 +131,31 @@ where
 {
     fn render(self) -> impl FragmentOnce {
         let abi = self.function.abi(self.db);
-        let ret_type = abi.ret_type(self.db).render_rust();
+        let ret_type = self.function.ret_type(self.db).abi(self.db).render_rust();
+        let abi_return = abi.ret_type(self.db);
 
         abi.render_rust_with_body(self.db, self.transport, move |args| {
-            frag!(
-                let result = (|| -> rustier_rt::CallResult<{ret_type}> {{
-                    {self.render_body(args)}
-                }})();@@
+            fragment(move |p| {
+                let AbiReturn::Union(union) = abi_return else {
+                    self.render_body(args).apply(p);
+                    return;
+                };
 
-                result.map_err(|error| {self.transport.render_rust_error("error")})
-            )
+                let success = union.render_rust_variant(0, "value");
+                let failure = union.render_rust_variant(1, frag!(error.to_string()));
+
+                frag!(
+                    let result = (|| -> rustier_rt::CallResult<{ret_type}> {{
+                        {self.render_body(args)}
+                    }})();@@
+
+                    match result {{
+                        Ok(value) => {success},@
+                        Err(error) => {failure},
+                    }}
+                )
+                .apply(p);
+            })
         })
     }
 
@@ -175,13 +190,11 @@ where
                 let target = drop.tethering(self.db).tethering_struct_name(self.db);
                 let handle = args.get(0).expr();
 
-                frag!(
-                    unsafe {{
-                        rustier_rt::handles::drop_handle::<{target}>({handle});
-                    }}@@
-
-                    Ok(())
-                )
+                frag!(unsafe {
+                    {
+                        rustier_rt::handles::drop_handle::<{ target }>({ handle });
+                    }
+                })
                 .apply(p);
             }
         })
@@ -216,40 +229,35 @@ where
             frag!({ src_fn.path(self.db).fqn(self.db) }({ params }))
         };
 
-        fragment(move |p| {
-            match (
-                src_fn.ret_type(self.db),
-                self.function.abi(self.db).ret_type(self.db),
-            ) {
-                (Some(src_ret_type), AbiReturn::Value(abi_ret_type)) => {
-                    let result_expr = self.cast_compiler.render_many(
-                        self.db,
-                        cast_param_to_source_types,
-                        src_fn_call_expr,
-                    );
+        fragment(move |p| match src_fn.ret_type(self.db) {
+            Some(src_ret_type) => {
+                let result_expr = self.cast_compiler.render_many(
+                    self.db,
+                    cast_param_to_source_types,
+                    src_fn_call_expr,
+                );
 
-                    let casted_result_expr = self.cast_compiler.render_expr(
-                        self.db,
-                        src_ret_type,
-                        abi_ret_type,
-                        result_expr,
-                    );
+                let casted_result_expr = self.cast_compiler.render_expr(
+                    self.db,
+                    src_ret_type,
+                    src_ret_type.abi(self.db),
+                    result_expr,
+                );
 
-                    frag!(Ok({ casted_result_expr })).apply(p);
-                }
-                _ => {
-                    let fn_call_stmt = self.cast_compiler.render_many(
-                        self.db,
-                        cast_param_to_source_types,
-                        src_fn_call_expr,
-                    );
+                frag!(Ok({ casted_result_expr })).apply(p);
+            }
+            None => {
+                let fn_call_stmt = self.cast_compiler.render_many(
+                    self.db,
+                    cast_param_to_source_types,
+                    src_fn_call_expr,
+                );
 
-                    frag!(
-                        {fn_call_stmt};@
-                        Ok(())
-                    )
-                    .apply(p);
-                }
+                frag!(
+                    {fn_call_stmt};@
+                    Ok(())
+                )
+                .apply(p);
             }
         })
     }
@@ -272,9 +280,7 @@ where
         let field_tethering_value_expr =
             tethered_field.render_get_expr(self.db, cls_tethering_struct_expr);
 
-        let AbiReturn::Value(ret_type) = self.function.abi(self.db).ret_type(self.db) else {
-            unreachable!("getters return the field value");
-        };
+        let ret_type = field._type(self.db).abi(self.db);
 
         let output = fragment(move |p| match tethered_field.kind(self.db) {
             RuntimeTetheredFieldKind::Tethered(tethering) => self
@@ -436,7 +442,7 @@ mod tests {
                             }
                             _ => false,
                         });
-                        function.render(db, transport).apply(printer);
+                        function.render_rust(db, transport).apply(printer);
                     },
                 }
             }

@@ -6,10 +6,7 @@ pub mod transport;
 
 use crate::compiler::{
     db::Db,
-    ir::{
-        facade::Facade,
-        runtime::{RuntimeFunction, RuntimeType},
-    },
+    ir::{facade::Facade, runtime::RuntimeFunction},
 };
 
 /// The ABI exports of a reachable interface API.
@@ -56,14 +53,7 @@ impl<'db> AbiFunction<'db> {
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> AbiReturn<'db> {
-        let type_ = match self.runtime(db).ret_type(db) {
-            Some(RuntimeType::Source(type_)) => type_.abi(db),
-            Some(RuntimeType::u32) => AbiType::f64,
-            Some(RuntimeType::Tethered(_)) => AbiType::usize,
-            None => AbiType::Unit,
-        };
-
-        AbiReturn::Value(type_)
+        self.runtime(db).abi_ret(db)
     }
 }
 

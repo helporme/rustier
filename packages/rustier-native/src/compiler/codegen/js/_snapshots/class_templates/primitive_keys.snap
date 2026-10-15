@@ -808,21 +808,19 @@ export function consume (
 													);
 												}
 												const __10 = __cast_input.$handle();
-												{
-													const __abi_return =__fn__free__10_test_crate__7_consume(
-														__0,
-														__1,
-														__2,
-														__3,
-														__4,
-														__5,
-														__6,
-														__7,
-														__8,
-														__9,
-														__10
-													);
-												}
+												__fn__free__10_test_crate__7_consume(
+													__0,
+													__1,
+													__2,
+													__3,
+													__4,
+													__5,
+													__6,
+													__7,
+													__8,
+													__9,
+													__10
+												);
 											}
 										}
 									}

@@ -27,19 +27,16 @@ export function test_fn (
 			_0
 		);
 		{
-			const __abi_return =__fn__free__10_test_crate__7_test_fn(
-				__0
+			const result = cast.from(
+				"Abi(usize)"
+			).to(
+				"Facade(Class(Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) } })))"
+			).an(
+				__fn__free__10_test_crate__7_test_fn(
+					__0
+				)
 			);
-			{
-				const result = cast.from(
-					"Abi(usize)"
-				).to(
-					"Facade(Class(Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) } })))"
-				).an(
-					__abi_return
-				);
-				return result;
-			}
+			return result;
 		}
 	}
 }

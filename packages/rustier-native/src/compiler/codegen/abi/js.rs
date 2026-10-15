@@ -31,8 +31,18 @@ impl<'db> Abi<'db> {
     pub fn render_js(self, db: &'db dyn Db, target: AbiJsTarget<'_>) -> String {
         let symbols = self.symbols(db);
 
+        target.render_js_with(fragment(move |p| {
+            for symbol in symbols {
+                frag!(export~const~{symbol}~=~abi.{symbol};@).apply(p);
+            }
+        }))
+    }
+}
+
+impl AbiJsTarget<'_> {
+    pub fn render_js_with(self, body: impl FragmentOnce) -> String {
         let mut js = fragment(move |p| {
-            match target {
+            match self {
                 AbiJsTarget::Native { path } => {
                     let path = fragment(move |p| write!(p, "{path:?}").unwrap());
 
@@ -72,9 +82,7 @@ impl<'db> Abi<'db> {
                 }
             }
 
-            for symbol in symbols {
-                frag!(export~const~{symbol}~=~abi.{symbol};@).apply(p);
-            }
+            body.apply(p);
         })
         .print();
 

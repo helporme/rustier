@@ -36,11 +36,9 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			).an(
 				_0
 			);
-			{
-				const __abi_return =__fn__associated__10_test_crate__4_Test__9_exclusive(
-					this.#_handle, __0
-				);
-			}
+			__fn__associated__10_test_crate__4_Test__9_exclusive(
+				this.#_handle, __0
+			);
 		}
 	}
 

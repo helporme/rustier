@@ -171,29 +171,26 @@ where
     fn render_body(self) -> impl FragmentOnce + 'db {
         let db = self.db();
         let function = self.function();
-        let abi = function.abi(db);
-        let facade_ret_type = function.ret_type_js(db);
 
-        self.render_param_casts(
-            abi.render_js_with(db, self.render_call_expr(), move |result| {
-                fragment(move |p| {
-                    if let Some(facade_ret_type) = facade_ret_type {
-                        self.casts()
-                            .render_stmt(
-                                db,
-                                Cast {
-                                    from: result.type_,
-                                    to: facade_ret_type,
-                                    in_expr: result.expr,
-                                    out_var_name: "result",
-                                },
-                                frag!(return result;),
-                            )
-                            .apply(p);
-                    }
-                })
-            }),
-        )
+        self.render_param_casts(fragment(move |p| {
+            match (function.ret_type(db), function.ret_type_js(db)) {
+                (Some(source), Some(target)) => self
+                    .casts()
+                    .render_stmt(
+                        db,
+                        Cast {
+                            from: source.abi(db),
+                            to: target,
+                            in_expr: self.render_call_expr(),
+                            out_var_name: "result",
+                        },
+                        frag!(return result;),
+                    )
+                    .apply(p),
+                (None, None) => frag!({self.render_call_expr()};).apply(p),
+                _ => unreachable!("source and facade return types must agree"),
+            }
+        }))
     }
 
     fn render_params(self) -> impl FragmentOnce {

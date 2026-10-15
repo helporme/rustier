@@ -4,13 +4,38 @@ use itertools::Either;
 
 use crate::compiler::{
     db::Db,
-    ir::facade::{FacadeClass, FacadeClassTemplate, FacadeFunction, FacadeMember, FacadeModule},
+    ir::{
+        facade::{FacadeClass, FacadeClassTemplate, FacadeFunction, FacadeMember, FacadeModule},
+        runtime::RuntimeExport,
+    },
 };
 
 #[salsa::tracked(debug)]
 pub struct FacadeImportTs<'db> {
     pub originating_from: FacadeModule<'db>,
-    pub class: FacadeClass<'db>,
+    pub item: FacadeImportItemTs<'db>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
+pub enum FacadeImportItemTs<'db> {
+    FacadeClass(FacadeClass<'db>),
+    Runtime(RuntimeExport),
+}
+
+impl<'db> FacadeImportItemTs<'db> {
+    pub fn name(self, db: &'db dyn Db) -> &'db str {
+        match self {
+            Self::FacadeClass(class) => class.type_name(db).name(db),
+            Self::Runtime(export) => export.name(),
+        }
+    }
+
+    pub fn module_path(self, db: &'db dyn Db) -> &'db str {
+        match self {
+            Self::FacadeClass(class) => class.module(db).virtual_path(db),
+            Self::Runtime(export) => export.module().virtual_path(),
+        }
+    }
 }
 
 #[salsa::tracked]
@@ -33,20 +58,23 @@ impl<'db> FacadeModule<'db> {
         let mut imports = classes
             .into_iter()
             .filter(|class| class.module(db) != self.as_parent(db))
-            .map(|class| FacadeImportTs::new(db, self, class))
+            .map(|class| FacadeImportTs::new(db, self, FacadeImportItemTs::FacadeClass(class)))
             .collect::<Vec<_>>();
 
         imports.sort_by_key(|import| {
-            let class = import.class(db);
+            let item = import.item(db);
 
-            (
-                class.type_name(db).name(db),
-                class.module(db).virtual_path(db),
-            )
+            (item.name(db), item.module_path(db))
         });
-        imports.dedup_by(|left, right| {
-            left.class(db).module(db) == right.class(db).module(db)
-                && left.class(db).type_name(db).name(db) == right.class(db).type_name(db).name(db)
+        imports.dedup_by(|left, right| match (left.item(db), right.item(db)) {
+            (FacadeImportItemTs::FacadeClass(left), FacadeImportItemTs::FacadeClass(right)) => {
+                left.module(db) == right.module(db)
+                    && left.type_name(db).name(db) == right.type_name(db).name(db)
+            }
+            (FacadeImportItemTs::Runtime(left), FacadeImportItemTs::Runtime(right)) => {
+                left == right
+            }
+            _ => false,
         });
 
         imports

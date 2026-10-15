@@ -12,6 +12,7 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     ir::{
+        abi::AbiReturn,
         facade::{
             Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldPlain,
             FacadeFreeFunction, FacadeMethod, FacadeVariant,
@@ -29,6 +30,19 @@ pub struct Runtime<'db> {
 
 #[salsa::tracked]
 impl<'db> Runtime<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn imports_js(self, db: &'db dyn Db) -> Vec<RuntimeExport> {
+        if self
+            .functions(db)
+            .iter()
+            .any(|function| matches!(function.abi_ret(db), AbiReturn::Union(_)))
+        {
+            vec![RuntimeExport::RuntimeError]
+        } else {
+            vec![]
+        }
+    }
+
     #[salsa::tracked(returns(ref))]
     pub fn tetherings(self, db: &'db dyn Db) -> Vec<RuntimeTethering<'db>> {
         self.facade(db)
@@ -54,6 +68,48 @@ impl<'db> Runtime<'db> {
                 )
             })
             .collect()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
+pub struct RuntimeModule;
+
+impl RuntimeModule {
+    pub fn virtual_path(self) -> &'static str {
+        "$rust"
+    }
+
+    pub fn resolve(path: &str) -> Option<Self> {
+        (path == Self.virtual_path()).then_some(Self)
+    }
+
+    pub fn exports(self) -> &'static [RuntimeExport] {
+        &[RuntimeExport::RuntimeError]
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
+pub enum RuntimeExport {
+    RuntimeError,
+}
+
+impl RuntimeExport {
+    pub fn module(self) -> RuntimeModule {
+        match self {
+            Self::RuntimeError => RuntimeModule,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::RuntimeError => "RuntimeError",
+        }
+    }
+
+    pub fn import_alias(self) -> &'static str {
+        match self {
+            Self::RuntimeError => "$runtime__RuntimeError",
+        }
     }
 }
 
@@ -168,19 +224,25 @@ impl<'db> RuntimeFunction<'db> {
         }
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<RuntimeType<'db>> {
+    pub fn ret_type(self, db: &'db dyn Db) -> RuntimeType<'db> {
         match self {
-            Self::Free(function) => function.src(db).ret_type(db).map(RuntimeType::Source),
-            Self::Associated(function) => function.src(db).ret_type(db).map(RuntimeType::Source),
-            Self::Getter(getter) => Some(getter.field(db).tethered(db).value_type(db)),
-            Self::Setter(_) | Self::DropHandle(_) => None,
-            Self::Discriminator(_) => Some(RuntimeType::u32),
+            Self::Free(function) => function
+                .src(db)
+                .ret_type(db)
+                .map_or(RuntimeType::Unit, RuntimeType::Source),
+            Self::Associated(function) => function
+                .src(db)
+                .ret_type(db)
+                .map_or(RuntimeType::Unit, RuntimeType::Source),
+            Self::Getter(getter) => getter.field(db).tethered(db).value_type(db),
+            Self::Setter(_) | Self::DropHandle(_) => RuntimeType::Unit,
+            Self::Discriminator(_) => RuntimeType::u32,
             Self::PlainCoerce(coerce) => {
-                Some(RuntimeType::Source(coerce.class(db).src(db).into_type(db)))
+                RuntimeType::Source(coerce.class(db).src(db).into_type(db))
             }
-            Self::DiscriminatedCoerce(coerce) => Some(RuntimeType::Source(
-                coerce.variant(db).class(db).src(db).into_type(db),
-            )),
+            Self::DiscriminatedCoerce(coerce) => {
+                RuntimeType::Source(coerce.variant(db).class(db).src(db).into_type(db))
+            }
         }
     }
 }
@@ -208,6 +270,7 @@ impl<'db> RuntimeDropHandle<'db> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 #[allow(non_camel_case_types)]
 pub enum RuntimeType<'db> {
+    Unit,
     /// A value of an exact Rust type.
     Source(Type<'db>),
     /// A "synthetic" u32 type, without the hir provenance.

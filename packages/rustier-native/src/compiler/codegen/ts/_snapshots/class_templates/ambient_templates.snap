@@ -32,6 +32,14 @@ pub fn consume(
 # Compiled
 
 ```ts
+declare module "$rust" {
+	export class RuntimeError extends Error {
+	  constructor(message: string)
+	}
+
+	export {};
+}
+
 declare module "$rust/test_crate" {
 	import type {
 		Boxed

@@ -6,7 +6,7 @@ use crate::compiler::{
 
 mod cast;
 mod functions;
-pub mod manifest;
+mod js;
 mod tethering;
 mod types;
 
@@ -16,7 +16,7 @@ mod test;
 #[salsa::tracked]
 impl<'db> Runtime<'db> {
     #[salsa::tracked(returns(ref))]
-    pub fn render(self, db: &'db dyn Db, transport: AbiTransport) -> String {
+    pub fn render_rust(self, db: &'db dyn Db, transport: AbiTransport) -> String {
         let alloc_import = self
             .facade(db)
             .usages(db)
@@ -31,7 +31,7 @@ impl<'db> Runtime<'db> {
         let functions = self
             .functions(db)
             .iter()
-            .map(move |function| function.render(db, transport));
+            .map(move |function| function.render_rust(db, transport));
 
         let members = spaced(tetherings.chain(functions));
 

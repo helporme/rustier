@@ -13,6 +13,7 @@ use crate::compiler::{
             coerce::{FacadeDiscriminatedCoerceFunction, FacadePlainCoerceFunction},
             type_js::FacadeTypeJs,
         },
+        runtime::RuntimeExport,
     },
 };
 
@@ -22,10 +23,11 @@ pub struct FacadeImportJs<'db> {
     pub item: FacadeImportItemJs<'db>,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update, salsa::Supertype)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, salsa::Update)]
 pub enum FacadeImportItemJs<'db> {
     AbiFunction(AbiFunction<'db>),
     FacadeClass(FacadeClass<'db>),
+    Runtime(RuntimeExport),
 }
 
 impl<'db> FacadeImportItemJs<'db> {
@@ -33,6 +35,7 @@ impl<'db> FacadeImportItemJs<'db> {
         match self {
             Self::AbiFunction(f) => f.symbol(db),
             Self::FacadeClass(c) => c.name(db),
+            Self::Runtime(export) => export.name(),
         }
     }
 }
@@ -59,10 +62,10 @@ impl<'db> FacadeModule<'db> {
             .unique_by(|item| {
                 let module = match item {
                     FacadeImportItemJs::FacadeClass(class) => Some(class.module(db)),
-                    FacadeImportItemJs::AbiFunction(_) => None,
+                    FacadeImportItemJs::AbiFunction(_) | FacadeImportItemJs::Runtime(_) => None,
                 };
 
-                (module, item.name(db))
+                (std::mem::discriminant(item), module, item.name(db))
             })
             .map(|item| FacadeImportJs::new(db, self, item))
             .collect()

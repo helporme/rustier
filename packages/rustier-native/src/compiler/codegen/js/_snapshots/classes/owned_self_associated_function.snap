@@ -30,19 +30,16 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 
 	) {
 		{
-			const __abi_return =__fn__associated__10_test_crate__4_Test__5_owned(
-				this.#_handle
+			const result = cast.from(
+				"Abi(bool)"
+			).to(
+				"Facade(boolean)"
+			).an(
+				__fn__associated__10_test_crate__4_Test__5_owned(
+					this.#_handle
+				)
 			);
-			{
-				const result = cast.from(
-					"Abi(bool)"
-				).to(
-					"Facade(boolean)"
-				).an(
-					__abi_return
-				);
-				return result;
-			}
+			return result;
 		}
 	}
 

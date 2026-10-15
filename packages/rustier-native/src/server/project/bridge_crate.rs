@@ -2,9 +2,9 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     compiler::{
-        codegen::runtime::manifest::Manifest,
+        codegen::manifest::Manifest,
         db::Db,
-        ir::{abi::transport::AbiTransport, facade::FacadeModule},
+        ir::{abi::transport::AbiTransport, facade::FacadeModuleEntry},
     },
     server::write_file::{WriteFileError, write_file},
 };
@@ -88,7 +88,7 @@ impl<'a> BridgeCrate<'a> {
             .project(db)
             .reachable_facade(db)
             .runtime(db)
-            .render(db, self.transport(db))
+            .render_rust(db, self.transport(db))
             .clone();
 
         let build = manifest
@@ -142,10 +142,12 @@ impl BridgeCrateSync {
 }
 
 impl<'db> Project<'db> {
-    fn js_module(self, db: &'db dyn Db, path: &str) -> Option<FacadeModule<'db>> {
-        self.reachable_facade(db)
-            .crates(db)
-            .flat_map(|c| c.all_modules(db))
-            .find(|m| m.virtual_path(db) == path || m.src(db).file_path(db).as_str() == path)
+    fn js_module(self, db: &'db dyn Db, path: &str) -> Option<FacadeModuleEntry<'db>> {
+        self.reachable_facade(db).modules(db).find(|module| {
+            module.virtual_path(db) == path
+                || module
+                    .file_path(db)
+                    .is_some_and(|file| file.as_str() == path)
+        })
     }
 }

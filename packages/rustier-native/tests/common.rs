@@ -8,7 +8,7 @@ use std::{
 use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice, load_workspace_at};
 use ra_ap_project_model::{CargoConfig, RustLibSource};
 use rustier::compiler::{
-    codegen::runtime::manifest::Manifest,
+    codegen::manifest::Manifest,
     diag::Diag,
     inputs::LocalCrates,
     ir::{
@@ -194,7 +194,7 @@ impl ProgramCompiler {
                     .collect::<Vec<_>>();
 
                 (
-                    interface.runtime(db).render(db, platform).to_owned(),
+                    interface.runtime(db).render_rust(db, platform).to_owned(),
                     expected_symbols,
                 )
             });
