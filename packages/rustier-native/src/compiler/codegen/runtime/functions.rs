@@ -14,7 +14,7 @@ use crate::compiler::{
             RuntimeDiscriminatedCoerce, RuntimeDiscriminator, RuntimeFunction, RuntimeGetter,
             RuntimePlainCoerce, RuntimeSetter, tethering::RuntimeTetheredFieldKind,
         },
-        rust::{Callable, Shape},
+        rust::{Callable, Shape, TypeKind},
     },
 };
 
@@ -205,18 +205,32 @@ where
         src_fn: Callable<'db>,
         args: AbiArgs<'db>,
     ) -> impl FragmentOnce {
-        let cast_param_to_source_types = self
-            .function
-            .params(self.db)
+        let params = self.function.params(self.db);
+
+        // Owned arguments must be cloned before reference borrows are held, so an
+        // owned argument can alias a mutable argument or receiver regardless of
+        // parameter order.
+        let owned_params = params
             .iter()
             .copied()
             .enumerate()
-            .map(move |(i, param)| Cast {
-                from: args.get(i).type_(),
-                to: param,
-                in_expr: args.get(i).expr(),
-                out_var_name: frag!(_{i}),
-            });
+            .filter(|(_, param)| !matches!(param.kind(self.db), TypeKind::Borrowed(_)));
+
+        let borrowed_params = params
+            .iter()
+            .copied()
+            .enumerate()
+            .filter(|(_, param)| matches!(param.kind(self.db), TypeKind::Borrowed(_)));
+
+        let cast_param_to_source_types =
+            owned_params
+                .chain(borrowed_params)
+                .map(move |(i, param)| Cast {
+                    from: args.get(i).type_(),
+                    to: param,
+                    in_expr: args.get(i).expr(),
+                    out_var_name: frag!(_{i}),
+                });
 
         let src_fn_call_expr = {
             let params = comma_list(

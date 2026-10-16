@@ -1,5 +1,13 @@
 import { expect, it } from 'vitest'
-import { Counter, add_owned_first, add_owned_last, read_twice } from './test.rs'
+import {
+  Counter,
+  Ledger,
+  add_and_return,
+  add_owned_first,
+  add_owned_last,
+  add_projected,
+  read_twice,
+} from './test.rs'
 
 it('accepts two shared references to the same Rust allocation', () => {
   const counter = Counter.of({ value: 21 })
@@ -31,4 +39,24 @@ it('clones an owned method argument that is also its mutable receiver', () => {
   counter.add(counter)
 
   expect(counter.value).toBe(42)
+})
+
+it('returns an independent owned result after cloning an aliased argument', () => {
+  const counter = Counter.of({ value: 21 })
+  const result = add_and_return(counter, counter)
+
+  expect(counter.value).toBe(42)
+  expect(result.value).toBe(42)
+  result.value = 99
+
+  expect(counter.value).toBe(42)
+})
+
+it('clones a projected child before mutably borrowing its parent', () => {
+  const ledger = Ledger.of({ counter: { value: 21 } })
+  const child = ledger.counter
+
+  expect(add_projected(ledger, child)).toBe(42)
+  expect(ledger.counter.value).toBe(42)
+  expect(child.value).toBe(42)
 })

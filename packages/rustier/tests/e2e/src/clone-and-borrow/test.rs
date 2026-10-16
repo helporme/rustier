@@ -9,12 +9,29 @@ impl Counter {
     }
 }
 
+#[derive(Clone)]
+pub struct Ledger {
+    pub counter: Counter,
+}
+
 pub fn add_owned_first(snapshot: Counter, target: &mut Counter) {
     target.value += snapshot.value;
 }
 
 pub fn add_owned_last(target: &mut Counter, snapshot: Counter) {
     target.value += snapshot.value;
+}
+
+pub fn add_and_return(target: &mut Counter, snapshot: Counter) -> Counter {
+    target.value += snapshot.value;
+
+    target.clone()
+}
+
+pub fn add_projected(target: &mut Ledger, snapshot: Counter) -> i32 {
+    target.counter.value += snapshot.value;
+
+    target.counter.value
 }
 
 pub fn read_twice(first: &Counter, second: &Counter) -> i32 {

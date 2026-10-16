@@ -35,19 +35,19 @@ pub fn __fn__associated__10_test_crate__4_Test__9_exclusive(
                     )
                     .to("Abi(Unit)")
                     .an({
-                        let _0 = cast
-                            .from("Abi(usize)")
+                        let _1 = cast
+                            .from("Abi(f64)")
                             .to(
-                                "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
+                                "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
                             )
-                            .an(_0);
+                            .an(_1);
                         {
-                            let _1 = cast
-                                .from("Abi(f64)")
+                            let _0 = cast
+                                .from("Abi(usize)")
                                 .to(
-                                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
+                                    "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
                                 )
-                                .an(_1);
+                                .an(_0);
                             test_crate::Test::exclusive(_0, _1)
                         }
                     }),
@@ -86,19 +86,19 @@ pub fn __fn__associated__10_test_crate__4_Test__9_exclusive(
                     )
                     .to("Abi(Unit)")
                     .an({
-                        let _0 = cast
-                            .from("Abi(usize)")
+                        let _1 = cast
+                            .from("Abi(f64)")
                             .to(
-                                "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
+                                "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
                             )
-                            .an(_0);
+                            .an(_1);
                         {
-                            let _1 = cast
-                                .from("Abi(f64)")
+                            let _0 = cast
+                                .from("Abi(usize)")
                                 .to(
-                                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
+                                    "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
                                 )
-                                .an(_1);
+                                .an(_0);
                             test_crate::Test::exclusive(_0, _1)
                         }
                     }),

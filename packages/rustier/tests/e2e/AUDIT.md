@@ -9,12 +9,21 @@ pnpm run test/e2e
 ```
 
 The added bug reproductions are ordinary tests, not skipped tests or expected
-failures. The suite is deliberately red until the two issues below are fixed.
-No compiler or runtime implementation was changed as part of this audit.
+failures. No compiler or runtime implementation was changed in the original audit.
 
-## Confirmed failures
+## Fix review status
 
-### Owned clones are sensitive to parameter order
+The clone-order fix converts owned parameters before borrowed parameters, retaining
+their original indices for the Rust call. Additional regressions cover an owned
+return value and cloning a projected child before mutably borrowing its parent.
+
+Validation: all 235 Rust unit tests and all 676 binding e2e test cases pass.
+The e2e command still exits unsuccessfully with four generated-declaration source
+errors from the separate `constructor` accessor bug, which remains unfixed.
+
+## Original audit findings
+
+### Owned clones are sensitive to parameter order (fixed; awaiting review)
 
 `src/clone-and-borrow/test.ts` includes a passing control and two failing cases:
 
