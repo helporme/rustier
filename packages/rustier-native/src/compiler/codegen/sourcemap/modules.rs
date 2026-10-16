@@ -62,14 +62,16 @@ impl<'db> FacadeModule<'db> {
                 _ => None,
             })
         {
-            let generated_line = find_name_line(
-                generated,
-                search_line,
-                "export function ",
-                function.name(db),
-                "(",
-            )
-            .expect("rendered TypeScript function declaration should exist");
+            let name = function.name(db);
+            let decl_name = function.decl_name(db);
+            let prefix = if name == decl_name {
+                "export function "
+            } else {
+                "declare function "
+            };
+
+            let generated_line = find_name_line(generated, search_line, prefix, decl_name, "(")
+                .expect("rendered TypeScript function declaration should exist");
             search_line = generated_line + 1;
             mappings.extend(
                 function

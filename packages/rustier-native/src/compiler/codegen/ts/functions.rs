@@ -13,11 +13,24 @@ use crate::compiler::{
 impl<'db> FacadeFreeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_ts(self, db: &'db dyn Db) -> String {
+        let name = self.name(db);
+        let decl_name = self.decl_name(db);
+        let prefix = if name == decl_name {
+            "export "
+        } else {
+            "declare "
+        };
+        let export_alias = fragment(move |p| {
+            if name != decl_name {
+                frag!(@@export~{{{decl_name}~as~{name}}};).apply(p);
+            }
+        });
+
         frag!(
             {render_jsdoc(self.docs(db).map(String::as_str))}
-            export function ~{self.name(db)}{render_params(db, self.params(db))}:~{
+            {prefix}function ~{decl_name}{render_params(db, self.params(db))}:~{
                 render_return_type(db, self.ret_type_ts(db))
-            };
+            };{export_alias}
         )
         .print()
     }

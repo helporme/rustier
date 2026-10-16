@@ -23,6 +23,11 @@ impl<'db> FacadeFreeFunction<'db> {
             .name
             .unwrap_or((original.line, original.column + "pub fn ".len()));
         let name = self.name(db).to_owned();
+        let prefix = if &name == self.decl_name(db) {
+            "export function "
+        } else {
+            "declare function "
+        };
 
         vec![
             Mapping {
@@ -35,7 +40,7 @@ impl<'db> FacadeFreeFunction<'db> {
             },
             Mapping {
                 generated_line,
-                generated_column: "export function ".len(),
+                generated_column: prefix.len(),
                 source: original.source,
                 original_line: name_line,
                 original_column: name_column,

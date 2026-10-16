@@ -83,12 +83,24 @@ where
 {
     fn render(self) -> impl FragmentOnce + 'db {
         let name = self.function.name(self.db);
+        let decl_name = self.function.decl_name(self.db);
 
-        frag!(
-            export function~{name}~({self.render_params()})~{{
-                {self.render_body()}@
-            }}
-        )
+        fragment(move |p| {
+            if name == decl_name {
+                frag!(export~).apply(p);
+            }
+
+            frag!(
+                function~{decl_name}~({self.render_params()})~{{
+                    {self.render_body()}@
+                }}
+            )
+            .apply(p);
+
+            if name != decl_name {
+                frag!(@@export~{{{decl_name}~as~{name}}};).apply(p);
+            }
+        })
     }
 }
 

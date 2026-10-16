@@ -66,6 +66,8 @@ pub mod impl_struct;
 pub mod impl_struct_constructor;
 #[path = "js-names/test.rs"]
 pub mod js_names;
+#[path = "keyword-exports/test.rs"]
+pub mod keyword_exports;
 #[path = "of-input-throws/test.rs"]
 pub mod of_input_throws;
 #[path = "of-unavailable/test.rs"]

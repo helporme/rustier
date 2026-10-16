@@ -503,8 +503,11 @@ impl<'db> FacadeFreeFunction<'db> {
         self.src(db).declaration(db).span(db)
     }
 
-    pub fn name(self, db: &'db dyn Db) -> &'db String {
-        self.src(db).declaration(db).name(db)
+    #[salsa::tracked(returns(ref))]
+    pub fn name(self, db: &'db dyn Db) -> String {
+        let name = self.src(db).declaration(db).name(db);
+
+        name.strip_prefix("r#").unwrap_or(name).to_owned()
     }
 
     pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeParam<'db>> + 'db {

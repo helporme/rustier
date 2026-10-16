@@ -1,9 +1,9 @@
 use crate::compiler::{
     db::Db,
-    ir::facade::{FacadeFunction, FacadeParam},
+    ir::facade::{FacadeFreeFunction, FacadeFunction, FacadeParam},
 };
 
-const RESERVED_PARAM_NAMES: &[&str] = &[
+const RESERVED_BINDING_NAMES: &[&str] = &[
     "arguments",
     "await",
     "break",
@@ -55,6 +55,20 @@ const RESERVED_PARAM_NAMES: &[&str] = &[
 ];
 
 #[salsa::tracked]
+impl<'db> FacadeFreeFunction<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn decl_name(self, db: &'db dyn Db) -> String {
+        let mut name = self.name(db).to_owned();
+
+        if RESERVED_BINDING_NAMES.contains(&name.as_str()) {
+            name.push('$');
+        }
+
+        name
+    }
+}
+
+#[salsa::tracked]
 impl<'db> FacadeParam<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn decl_name(self, db: &'db dyn Db) -> String {
@@ -71,7 +85,7 @@ impl<'db> FacadeParam<'db> {
         let name = name.strip_prefix("r#").unwrap_or(name);
         let mut lowered_name = name.to_owned();
 
-        if RESERVED_PARAM_NAMES.contains(&name) {
+        if RESERVED_BINDING_NAMES.contains(&name) {
             lowered_name.push('$');
         }
 
