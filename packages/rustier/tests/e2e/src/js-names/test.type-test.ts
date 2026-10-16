@@ -6,6 +6,9 @@ test('declares JS-sensitive fields, methods, and escaped parameter names', () =>
 
   expectTypeOf(header.type).toEqualTypeOf<string>()
   expectTypeOf(header.constructor).toEqualTypeOf<number>()
+  header.constructor = 7
+  expectTypeOf<Header.Plain>().toEqualTypeOf<{ type: string; constructor: number; __proto__: number }>()
+  expectTypeOf<Header.Coerce>().toEqualTypeOf<{ type: string; constructor: number; __proto__: number }>()
   expectTypeOf(header.__proto__).toEqualTypeOf<number>()
   expectTypeOf(header.delete()).toEqualTypeOf<void>()
   expectTypeOf(Header.default()).toEqualTypeOf<Header>()

@@ -410,6 +410,9 @@ impl<'db> FacadeFieldPlain<'db> {
         let name = self.name(db);
         fragment(move |p| match name {
             FieldName::Idx(_) => frag!([{ name }]).apply(p),
+            FieldName::Name(value) if value == "constructor" => {
+                frag!([{ doubles(value) }]).apply(p);
+            }
             FieldName::Name(value) if value.parse::<usize>().is_ok() => {
                 frag!([{ name }]).apply(p);
             }

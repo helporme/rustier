@@ -552,6 +552,14 @@ pub(super) fn field_declaration_locations<'db>(
             FieldName::Idx(_) => true,
             FieldName::Name(name) => name.parse::<usize>().is_ok(),
         };
+    let (opening, closing) = if field_name == "constructor" {
+        ("[\"", "\"]")
+    } else if wrapped {
+        ("[", "]")
+    } else {
+        ("", "")
+    };
+
     let modifiers: &[&str] = if accessors {
         if field.is_readonly(db) {
             &["get "]
@@ -566,14 +574,9 @@ pub(super) fn field_declaration_locations<'db>(
     modifiers
         .iter()
         .map(|modifier| {
-            let prefix = format!("{indent}{modifier}{}", if wrapped { "[" } else { "" });
-            let suffix = match (accessors, wrapped) {
-                (true, true) => "](",
-                (true, false) => "(",
-                (false, true) => "]:",
-                (false, false) => ":",
-            };
-            let line = find_name_line(generated, *start_line, &prefix, &field_name, suffix)
+            let prefix = format!("{indent}{modifier}{opening}");
+            let suffix = format!("{closing}{}", if accessors { "(" } else { ":" });
+            let line = find_name_line(generated, *start_line, &prefix, &field_name, &suffix)
                 .expect("rendered TypeScript field declaration should exist");
             *start_line = line + 1;
             (line, prefix.len())

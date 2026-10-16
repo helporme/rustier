@@ -8,3 +8,9 @@ target/
 .env
 .env.*
 !.env.example
+
+/packages/.rustier-native.napi-stage-*/
+/packages/rustier-native/.napi-rs-filesystem-transaction*.swp/
+/packages/rustier-native/.*.prepared.tmp
+/packages/rustier-native/.*.retired.tmp
+/packages/rustier-native/.*.rollback.tmp
