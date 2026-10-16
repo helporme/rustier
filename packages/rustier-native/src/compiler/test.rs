@@ -4,8 +4,7 @@ use ra_ap_test_fixture::ChangeFixture;
 
 use crate::compiler::db::RootDatabase;
 
-const TEST_CRATE_FIXTURE_HEADER: &str = r#"//- minicore: clone, derive
-//- /src/lib.rs crate:test_crate deps:std edition:2024
+const TEST_CRATE_FIXTURE_HEADER: &str = r#"//- /src/lib.rs crate:test_crate deps:std edition:2024
 "#;
 
 const TEST_STD_FIXTURE: &str = r#"
@@ -36,8 +35,12 @@ pub(super) fn format_rust_source(source: &str) -> String {
 }
 
 #[doc(hidden)]
-pub(super) fn build_test_db(source: String, files: &[(&str, String)]) -> RootDatabase {
-    let mut fixture = String::from(TEST_CRATE_FIXTURE_HEADER);
+pub(super) fn build_test_db(
+    source: String,
+    files: &[(&str, String)],
+    minicore: &str,
+) -> RootDatabase {
+    let mut fixture = format!("//- minicore: {minicore}\n{TEST_CRATE_FIXTURE_HEADER}");
     fixture.push_str(&source);
     fixture.push('\n');
     for (path, source) in files {
@@ -92,6 +95,7 @@ pub(super) fn build_test_db(source: String, files: &[(&str, String)]) -> RootDat
 macro_rules! test_db {
     (
         @parse;
+        @minicore: $minicore:literal;
         @source: [$($source:tt)*];
         @bodies: [$($bodies:tt)*];
         @file: $path:literal;
@@ -100,6 +104,7 @@ macro_rules! test_db {
     ) => {
         $crate::test_db! {
             @parse;
+            @minicore: $minicore;
             @source: [
                 $($source)*
                 #[path = $path]
@@ -114,6 +119,7 @@ macro_rules! test_db {
     };
     (
         @parse;
+        @minicore: $minicore:literal;
         @source: [$($source:tt)*];
         @bodies: [$($bodies:tt)*];
         $token:tt
@@ -121,6 +127,7 @@ macro_rules! test_db {
     ) => {
         $crate::test_db! {
             @parse;
+            @minicore: $minicore;
             @source: [$($source)* $token];
             @bodies: [$($bodies)*];
             $($rest)*
@@ -128,6 +135,7 @@ macro_rules! test_db {
     };
     (
         @parse;
+        @minicore: $minicore:literal;
         @source: [$($source:tt)*];
         @bodies: [$(($path:literal, { $($body:tt)* }))*];
     ) => {{
@@ -142,11 +150,21 @@ macro_rules! test_db {
                 ),
             )
         ),*];
-        $crate::compiler::test::build_test_db(__source, __files)
+        $crate::compiler::test::build_test_db(__source, __files, $minicore)
     }};
+    (@minicore: $minicore:literal; $($source:tt)*) => {
+        $crate::test_db! {
+            @parse;
+            @minicore: $minicore;
+            @source: [];
+            @bodies: [];
+            $($source)*
+        }
+    };
     ($($source:tt)*) => {
         $crate::test_db! {
             @parse;
+            @minicore: "clone, derive";
             @source: [];
             @bodies: [];
             $($source)*

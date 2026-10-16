@@ -96,6 +96,7 @@ impl<'db> FacadeFreeFunction<'db> {
             .params(db)
             .map(|param| param.type_js(db))
             .chain(std::iter::once(self.ret_type_js(db)))
+            .chain(self.as_fn().ret_err_type_js(db))
         {
             if let FacadeTypeJs::Class(class) = type_ {
                 imports.insert(FacadeImportItemJs::FacadeClass(class));
@@ -111,6 +112,7 @@ impl<'db> FacadeMethod<'db> {
         self.params(db)
             .map(|param| param.type_js(db))
             .chain(std::iter::once(self.ret_type_js(db)))
+            .chain(self.as_fn().ret_err_type_js(db))
             .filter_map(|type_| match type_ {
                 FacadeTypeJs::Class(class) => Some(class),
                 _ => None,

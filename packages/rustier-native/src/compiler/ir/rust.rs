@@ -1009,6 +1009,20 @@ impl<'db> Type<'db> {
         self.lower_kind(db)
     }
 
+    pub fn as_result_variants(self, db: &'db dyn Db) -> Option<(Type<'db>, Type<'db>)> {
+        let TypeKind::Enum(enum_) = self.kind(db) else {
+            return None;
+        };
+        if !enum_.is_result(db) {
+            return None;
+        }
+
+        let GenArg::Type(ok) = enum_.gen_args(db)[0];
+        let GenArg::Type(err) = enum_.gen_args(db)[1];
+
+        Some((ok, err))
+    }
+
     pub fn same_type_as(self, db: &'db dyn Db, other: Self) -> bool {
         let (left_args, right_args) = match (self.kind(db), other.kind(db)) {
             (TypeKind::Struct(left), TypeKind::Struct(right)) if left.def(db) == right.def(db) => {

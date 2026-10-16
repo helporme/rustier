@@ -107,7 +107,7 @@ impl<'db> AbiFunction<'db> {
 }
 
 impl<'db> AbiReturn<'db> {
-    fn render_js_with<Body>(
+    pub(crate) fn render_js_with<Body>(
         self,
         db: &'db dyn Db,
         call: impl FragmentOnce + 'db,
@@ -121,6 +121,7 @@ impl<'db> AbiReturn<'db> {
                 index: 0,
                 type_,
                 expr: "__abi_return",
+                whole_expr: "__abi_return",
             })
             .apply(p),
             AbiReturn::Union(union) => {
@@ -130,6 +131,7 @@ impl<'db> AbiReturn<'db> {
                             index,
                             type_,
                             expr: "__abi_return[1]",
+                            whole_expr: "__abi_return",
                         });
 
                         frag!(
@@ -163,6 +165,7 @@ pub struct AbiJsReturn {
     pub index: usize,
     pub type_: AbiType,
     pub expr: &'static str,
+    pub whole_expr: &'static str,
 }
 
 #[cfg(test)]

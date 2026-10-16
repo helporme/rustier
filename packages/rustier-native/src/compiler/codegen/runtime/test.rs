@@ -37,10 +37,11 @@ pub fn build_rust_snapshot(
 #[macro_export]
 macro_rules! assert_rust_snap {
     (
+        $(minicore: $minicore:literal,)?
         source: { $($source:tt)* },
         expression: |$db:ident, $transport:ident, $printer:ident| $expression:block $(,)?
     ) => {{
-        let __db = $crate::test_db! { $($source)* };
+        let __db = $crate::test_db! { $(@minicore: $minicore;)? $($source)* };
         let (__node, __wasm) = ::ra_ap_hir::attach_db(&__db, || {
             let __node = $crate::compiler::codegen::fragment::FragmentPrint::print(
                 $crate::compiler::codegen::fragment::fragment(|$printer| {

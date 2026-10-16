@@ -95,22 +95,33 @@ impl<'db> RuntimeFunction<'db> {
     }
 
     pub fn abi_ret(self, db: &'db dyn Db) -> AbiReturn<'db> {
-        let value = self.ret_type(db).abi(db);
+        let value = self.ret_type(db).as_abi_return(db);
 
         match self {
-            Self::DropHandle(_) => AbiReturn::Value(value),
-            _ => AbiReturn::Union(AbiUnion::new(db, vec![value, AbiType::String])),
+            Self::DropHandle(_) => value,
+            _ => {
+                let mut variants = match value {
+                    AbiReturn::Value(type_) => vec![type_],
+                    AbiReturn::Union(union) => union.variants(db).clone(),
+                };
+                variants.push(AbiType::String);
+
+                AbiReturn::Union(AbiUnion::new(db, variants))
+            }
         }
     }
 }
 
 impl<'db> RuntimeType<'db> {
-    pub fn abi(self, db: &'db dyn Db) -> AbiType {
+    pub fn as_abi_return(self, db: &'db dyn Db) -> AbiReturn<'db> {
         match self {
-            Self::Unit => AbiType::Unit,
-            Self::Source(type_) => type_.abi(db),
-            Self::u32 => AbiType::f64,
-            Self::Tethered(_) => AbiType::usize,
+            Self::Unit => AbiReturn::Value(AbiType::Unit),
+            Self::Source(type_) => AbiReturn::Value(type_.abi(db)),
+            Self::u32 => AbiReturn::Value(AbiType::f64),
+            Self::Tethered(_) => AbiReturn::Value(AbiType::usize),
+            Self::Result { ok, err } => {
+                AbiReturn::Union(AbiUnion::new(db, vec![ok.abi(db), err.abi(db)]))
+            }
         }
     }
 }

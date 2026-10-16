@@ -6,6 +6,7 @@ import {
   add_owned_first,
   add_owned_last,
   add_projected,
+  checked_add,
   read_twice,
 } from './test.rs'
 
@@ -30,6 +31,13 @@ it('clones an owned argument even when the mutable reference is the first parame
 
   add_owned_last(counter, counter)
 
+  expect(counter.value).toBe(42)
+})
+
+it('clones an aliased owned argument before borrowing for a Result-returning function', () => {
+  const counter = Counter.of({ value: 21 })
+
+  expect(checked_add(counter, counter, true)).toBe(42)
   expect(counter.value).toBe(42)
 })
 

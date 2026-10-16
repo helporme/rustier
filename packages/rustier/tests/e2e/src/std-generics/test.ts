@@ -26,11 +26,12 @@ it('reads and constructs both Option<i32> variants through the standard library 
   expect(OptionalNumber.of({ type: 'None' }).is_none()).toBe(true)
 })
 
-it('uses a Rust Result as an enum value rather than throwing on Err', () => {
+it('constructs Rust Result enum values and unwraps a returned Ok', () => {
   const CheckedNumber = Result('i32', 'String')
-  const ok = checked_number(true)
-  const error = checked_number(false)
+  const ok = CheckedNumber.of({ type: 'Ok', 0: 42 })
+  const error = CheckedNumber.of({ type: 'Err', 0: 'invalid' })
 
+  expect(checked_number(true)).toBe(42)
   expect(ok).toBeInstanceOf(CheckedNumber)
   expect(error).toBeInstanceOf(CheckedNumber)
   expect(ok.type).toBe('Ok')

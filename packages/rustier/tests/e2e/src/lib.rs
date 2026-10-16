@@ -46,6 +46,10 @@ pub mod fn_oob_char_throws;
 pub mod fn_oob_number_throws;
 #[path = "fn-primitives/test.rs"]
 pub mod fn_primitives;
+#[path = "fn-result/test.rs"]
+pub mod fn_result;
+#[path = "fn-result-throws/test.rs"]
+pub mod fn_result_throws;
 #[path = "fn-strings/test.rs"]
 pub mod fn_strings;
 #[path = "fn-struct/test.rs"]

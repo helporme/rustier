@@ -1,8 +1,49 @@
 use crate::compiler::{
-    codegen::fragment::{FragmentOnce, Printer, fragment},
+    codegen::fragment::{FragmentOnce, Printer, frag, fragment},
     db::Db,
-    ir::rust::{FieldName, Type, TypeKind},
+    ir::{
+        runtime::RuntimeType,
+        rust::{FieldName, Type, TypeKind},
+    },
 };
+
+impl<'db> RuntimeType<'db> {
+    pub(super) fn render_rust(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
+        fragment(move |p| match self {
+            Self::Unit => "()".apply(p),
+            Self::Source(type_) => match type_.kind(db) {
+                TypeKind::Unit => "()".apply(p),
+                TypeKind::bool => "bool".apply(p),
+                TypeKind::char
+                | TypeKind::i8
+                | TypeKind::u8
+                | TypeKind::i16
+                | TypeKind::u16
+                | TypeKind::i32
+                | TypeKind::u32
+                | TypeKind::f32
+                | TypeKind::f64 => "f64".apply(p),
+                TypeKind::Str | TypeKind::String => "String".apply(p),
+                TypeKind::Borrowed(borrowed) => {
+                    Self::Source(borrowed.inner(db)).render_rust(db).apply(p);
+                }
+                TypeKind::Struct(_) | TypeKind::Enum(_) => "usize".apply(p),
+                TypeKind::Generic(_) => {
+                    unreachable!("unsupported type cannot reach runtime codegen")
+                }
+            },
+            Self::u32 => "f64".apply(p),
+            Self::Tethered(_) => "usize".apply(p),
+            Self::Result { ok, err } => frag!(
+                core::result::Result<
+                    {Self::Source(ok).render_rust(db)},
+                    {Self::Source(err).render_rust(db)}
+                >
+            )
+            .apply(p),
+        })
+    }
+}
 
 impl FragmentOnce for &FieldName {
     fn apply(self, p: &mut Printer) {

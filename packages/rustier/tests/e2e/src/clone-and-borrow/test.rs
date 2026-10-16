@@ -28,6 +28,16 @@ pub fn add_and_return(target: &mut Counter, snapshot: Counter) -> Counter {
     target.clone()
 }
 
+pub fn checked_add(target: &mut Counter, snapshot: Counter, accepted: bool) -> Result<i32, String> {
+    if !accepted {
+        return Err(String::from("rejected"));
+    }
+
+    target.value += snapshot.value;
+
+    Ok(target.value)
+}
+
 pub fn add_projected(target: &mut Ledger, snapshot: Counter) -> i32 {
     target.counter.value += snapshot.value;
 

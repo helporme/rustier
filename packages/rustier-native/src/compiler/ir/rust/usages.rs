@@ -183,7 +183,17 @@ impl<'db> Visitor<'db> {
         for param in callable.params(self.db) {
             self.visit_type(*param.type_(self.db), depth);
         }
-        self.visit_type(callable.ret_type(self.db), depth);
+        let ret_type = callable.ret_type(self.db);
+        let (ret_type, ret_err_type) = match ret_type.as_result_variants(self.db) {
+            Some((ok, err)) => (ok, Some(err)),
+            None => (ret_type, None),
+        };
+
+        self.visit_type(ret_type, depth);
+
+        if let Some(err) = ret_err_type {
+            self.visit_type(err, depth);
+        }
     }
 
     fn visit_struct(&mut self, struct_: StructType<'db>, depth: usize) {

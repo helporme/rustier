@@ -469,6 +469,13 @@ impl<'db> FacadeFunction<'db> {
         }
     }
 
+    pub fn ret_err_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+        match self {
+            Self::Free(function) => function.ret_err_type(db),
+            Self::Method(method) => method.ret_err_type(db),
+        }
+    }
+
     pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
         match self {
             Self::Free(function) => function.docs(db),
@@ -525,7 +532,16 @@ impl<'db> FacadeFreeFunction<'db> {
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Type<'db> {
-        self.src(db).ret_type(db)
+        let type_ = self.src(db).ret_type(db);
+
+        type_.as_result_variants(db).map_or(type_, |(ok, _)| ok)
+    }
+
+    pub fn ret_err_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+        self.src(db)
+            .ret_type(db)
+            .as_result_variants(db)
+            .map(|(_, err)| err)
     }
 }
 
@@ -594,7 +610,16 @@ impl<'db> FacadeMethod<'db> {
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> Type<'db> {
-        self.src(db).ret_type(db)
+        let type_ = self.src(db).ret_type(db);
+
+        type_.as_result_variants(db).map_or(type_, |(ok, _)| ok)
+    }
+
+    pub fn ret_err_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+        self.src(db)
+            .ret_type(db)
+            .as_result_variants(db)
+            .map(|(_, err)| err)
     }
 }
 

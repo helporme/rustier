@@ -225,18 +225,27 @@ impl<'db> RuntimeFunction<'db> {
     }
 
     pub fn ret_type(self, db: &'db dyn Db) -> RuntimeType<'db> {
-        match self {
-            Self::Free(function) => RuntimeType::Source(function.src(db).ret_type(db)),
-            Self::Associated(function) => RuntimeType::Source(function.src(db).ret_type(db)),
-            Self::Getter(getter) => getter.field(db).tethered(db).value_type(db),
-            Self::Setter(_) | Self::DropHandle(_) => RuntimeType::Unit,
-            Self::Discriminator(_) => RuntimeType::u32,
+        let type_ = match self {
+            Self::Free(function) => function.src(db).ret_type(db),
+            Self::Associated(function) => function.src(db).ret_type(db),
+            Self::Getter(getter) => {
+                return getter.field(db).tethered(db).value_type(db);
+            }
+            Self::Setter(_) | Self::DropHandle(_) => {
+                return RuntimeType::Unit;
+            }
+            Self::Discriminator(_) => return RuntimeType::u32,
             Self::PlainCoerce(coerce) => {
-                RuntimeType::Source(coerce.class(db).src(db).into_type(db))
+                return RuntimeType::Source(coerce.class(db).src(db).into_type(db));
             }
             Self::DiscriminatedCoerce(coerce) => {
-                RuntimeType::Source(coerce.variant(db).class(db).src(db).into_type(db))
+                return RuntimeType::Source(coerce.variant(db).class(db).src(db).into_type(db));
             }
+        };
+
+        match type_.as_result_variants(db) {
+            Some((ok, err)) => RuntimeType::Result { ok, err },
+            None => RuntimeType::Source(type_),
         }
     }
 }
@@ -270,6 +279,10 @@ pub enum RuntimeType<'db> {
     /// A "synthetic" u32 type, without the hir provenance.
     u32,
     Tethered(RuntimeTethering<'db>),
+    Result {
+        ok: Type<'db>,
+        err: Type<'db>,
+    },
 }
 
 impl<'db> From<FacadeFreeFunction<'db>> for RuntimeFunction<'db> {

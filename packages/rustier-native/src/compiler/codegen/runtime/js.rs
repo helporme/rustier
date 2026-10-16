@@ -9,7 +9,7 @@ use crate::compiler::{
     ir::{
         abi::AbiReturn,
         facade::imports_js::FacadeImportItemJs,
-        runtime::{Runtime, RuntimeExport, RuntimeFunction, RuntimeModule},
+        runtime::{Runtime, RuntimeExport, RuntimeFunction, RuntimeModule, RuntimeType},
     },
 };
 
@@ -46,18 +46,22 @@ impl<'db> RuntimeFunction<'db> {
         let abi = self.abi(db);
 
         fragment(move |p| {
-            if matches!(abi.ret_type(db), AbiReturn::Value(_)) {
+            let AbiReturn::Union(union) = abi.ret_type(db) else {
                 frag!(export const ~{symbol}~= abi.{symbol};).apply(p);
                 return;
-            }
+            };
 
+            let error_index = union.variants(db).len() - 1;
+            let is_result = matches!(self.ret_type(db), RuntimeType::Result { .. });
             let params = || comma_list((0..self.params(db).len()).map(|index| frag!(_{index})));
             let body = abi.render_js_with(db, frag!(abi.{symbol}({params()})), |value| {
                 fragment(move |p| {
-                    if value.index == 1 {
+                    if value.index == error_index {
                         let error = RuntimeExport::RuntimeError.import_alias();
 
                         frag!(throw new ~{error}({value.expr});).apply(p);
+                    } else if is_result {
+                        frag!(return ~{value.whole_expr};).apply(p);
                     } else {
                         frag!(return ~{value.expr};).apply(p);
                     }

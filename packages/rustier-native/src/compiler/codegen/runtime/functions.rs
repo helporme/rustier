@@ -12,9 +12,9 @@ use crate::compiler::{
         facade::FacadeClass,
         runtime::{
             RuntimeDiscriminatedCoerce, RuntimeDiscriminator, RuntimeFunction, RuntimeGetter,
-            RuntimePlainCoerce, RuntimeSetter, tethering::RuntimeTetheredFieldKind,
+            RuntimePlainCoerce, RuntimeSetter, RuntimeType, tethering::RuntimeTetheredFieldKind,
         },
-        rust::{Callable, Shape, TypeKind},
+        rust::{Callable, Shape, Type, TypeKind},
     },
 };
 
@@ -131,8 +131,8 @@ where
 {
     fn render(self) -> impl FragmentOnce {
         let abi = self.function.abi(self.db);
-        let ret_type = self.function.ret_type(self.db).abi(self.db).render_rust();
         let abi_return = abi.ret_type(self.db);
+        let ret_type = self.function.ret_type(self.db);
 
         abi.render_rust_with_body(self.db, self.transport, move |args| {
             fragment(move |p| {
@@ -142,15 +142,30 @@ where
                 };
 
                 let success = union.render_rust_variant(0, "value");
-                let failure = union.render_rust_variant(1, frag!(error.to_string()));
+                let user_error = union.render_rust_variant(1, "error");
+                let failure = union.render_rust_variant(
+                    union.variants(self.db).len() - 1,
+                    frag!(error.to_string()),
+                );
+                let branches = fragment(move |p| match ret_type {
+                    RuntimeType::Result { .. } => frag!(
+                        Ok(core::result::Result::Ok(value)) => {success},@
+                        Ok(core::result::Result::Err(error)) => {user_error},@
+                    )
+                    .apply(p),
+                    _ => frag!(
+                        Ok(value) => {success},@
+                    )
+                    .apply(p),
+                });
 
                 frag!(
-                    let result = (|| -> rustier_rt::CallResult<{ret_type}> {{
+                    let result = (|| -> rustier_rt::CallResult<{ret_type.render_rust(self.db)}> {{
                         {self.render_body(args)}
                     }})();@@
 
                     match result {{
-                        Ok(value) => {success},@
+                        {branches}
                         Err(error) => {failure},
                     }}
                 )
@@ -200,11 +215,7 @@ where
         })
     }
 
-    fn render_source_fn_call_body(
-        self,
-        src_fn: Callable<'db>,
-        args: AbiArgs<'db>,
-    ) -> impl FragmentOnce {
+    fn render_source_fn_call(self, src_fn: Callable<'db>, args: AbiArgs<'db>) -> impl FragmentOnce {
         let params = self.function.params(self.db);
 
         // Owned arguments must be cloned before reference borrows are held, so an
@@ -243,19 +254,54 @@ where
             frag!({ src_fn.path(self.db).fqn(self.db) }({ params }))
         };
 
+        self.cast_compiler
+            .render_many(self.db, cast_param_to_source_types, src_fn_call_expr)
+    }
+
+    fn render_source_fn_call_body(
+        self,
+        src_fn: Callable<'db>,
+        args: AbiArgs<'db>,
+    ) -> impl FragmentOnce {
         let src_ret_type = src_fn.ret_type(self.db);
-        let result_expr =
-            self.cast_compiler
-                .render_many(self.db, cast_param_to_source_types, src_fn_call_expr);
 
-        let casted_result_expr = self.cast_compiler.render_expr(
-            self.db,
-            src_ret_type,
-            src_ret_type.abi(self.db),
-            result_expr,
-        );
+        fragment(move |p| match self.function.ret_type(self.db) {
+            RuntimeType::Result { ok, err } => {
+                self.render_source_fn_result_body(src_fn, args, ok, err)
+                    .apply(p);
+            }
+            _ => {
+                let casted_result_expr = self.cast_compiler.render_expr(
+                    self.db,
+                    src_ret_type,
+                    src_ret_type.abi(self.db),
+                    self.render_source_fn_call(src_fn, args),
+                );
 
-        frag!(Ok({ casted_result_expr }))
+                frag!(Ok({ casted_result_expr })).apply(p);
+            }
+        })
+    }
+
+    fn render_source_fn_result_body(
+        self,
+        src_fn: Callable<'db>,
+        args: AbiArgs<'db>,
+        ok: Type<'db>,
+        err: Type<'db>,
+    ) -> impl FragmentOnce {
+        let ok_value = self
+            .cast_compiler
+            .render_expr(self.db, ok, ok.abi(self.db), "value");
+        let err_value = self
+            .cast_compiler
+            .render_expr(self.db, err, err.abi(self.db), "error");
+        frag!(
+            Ok(match ~{self.render_source_fn_call(src_fn, args)}~{{
+                core::result::Result::Ok(value) => core::result::Result::Ok({ok_value}),@
+                core::result::Result::Err(error) => core::result::Result::Err({err_value}),
+            }})
+        )
     }
 
     fn render_fn_getter_body(
@@ -396,9 +442,13 @@ mod tests {
 
     macro_rules! test_function {
         ($name:ident, $variant:pat, $($source:tt)*) => {
+            test_function!(@fixture $name, $variant, [], $($source)*);
+        };
+        (@fixture $name:ident, $variant:pat, [$($settings:tt)*], $($source:tt)*) => {
             #[test]
             fn $name() {
                 assert_rust_snap! {
+                    $($settings)*
                     source: { $($source)* },
                     expression: |db, transport, printer| {
                         let db: &dyn Db = &*db;
@@ -572,6 +622,15 @@ mod tests {
         RuntimeFunction::Free(_),
         pub fn test_fn() -> i32 {
             0
+        }
+    );
+
+    test_function!(
+        @fixture result_return,
+        RuntimeFunction::Free(_),
+        [minicore: "clone, derive, result",],
+        pub fn test_fn() -> Result<i32, String> {
+            loop {}
         }
     );
 

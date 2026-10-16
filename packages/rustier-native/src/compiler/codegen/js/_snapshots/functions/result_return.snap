@@ -1,0 +1,37 @@
+---
+source: src/compiler/codegen/js/functions.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub fn test_fn() -> Result<i32, String> {
+    loop {}
+}
+```
+
+# Compiled
+
+```js
+export function test_fn (
+
+) {
+	{
+		const __abi_return =__fn__free__10_test_crate__7_test_fn(
+
+		);
+		switch(
+			__abi_return[0]
+		){
+			case 0:{
+				return __abi_return[1];
+				break;
+			}
+			case 1:{
+				throw __abi_return[1];
+				break;
+			}
+		}
+	}
+}
+```

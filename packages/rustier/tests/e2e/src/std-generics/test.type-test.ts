@@ -12,5 +12,6 @@ test('preserves standard-library specialization identity across virtual module i
   expectTypeOf(nested_words()).toEqualTypeOf<Vec<typeof Strings>>()
   expectTypeOf(words().pop()).toEqualTypeOf<Option<'String'>>()
   expectTypeOf(optional_number(true)).toEqualTypeOf<Option<'i32'>>()
-  expectTypeOf(checked_number(false)).toEqualTypeOf<Result<'i32', 'String'>>()
+  expectTypeOf(checked_number(true)).toEqualTypeOf<number>()
+  expectTypeOf(Result('i32', 'String').of({ type: 'Ok', 0: 42 })).toEqualTypeOf<Result<'i32', 'String'>>()
 })

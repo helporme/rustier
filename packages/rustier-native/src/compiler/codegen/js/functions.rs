@@ -6,7 +6,10 @@ use crate::compiler::{
         js::cast::{Cast, CastRenderer, Renderer},
     },
     db::Db,
-    ir::facade::{FacadeFreeFunction, FacadeFunction, FacadeMethod, type_js::FacadeTypeJs},
+    ir::{
+        abi::{AbiReturn, AbiUnion},
+        facade::{FacadeFreeFunction, FacadeFunction, FacadeMethod, type_js::FacadeTypeJs},
+    },
 };
 
 #[salsa::tracked]
@@ -185,6 +188,41 @@ where
         let function = self.function();
 
         self.render_param_casts(fragment(move |p| {
+            if let Some(err) = function.ret_err_type(db) {
+                let ok = function.ret_type(db);
+                let result = AbiReturn::Union(AbiUnion::new(db, vec![ok.abi(db), err.abi(db)]));
+
+                result
+                    .render_js_with(db, self.render_call_expr(), |value| {
+                        fragment(move |p| {
+                            let (target, action) = if value.index == 0 {
+                                (function.ret_type_js(db), "return")
+                            } else {
+                                (function.ret_err_type_js(db).unwrap(), "throw")
+                            };
+
+                            if matches!(target, FacadeTypeJs::Class(_)) {
+                                self.casts()
+                                    .render_stmt(
+                                        db,
+                                        Cast {
+                                            from: value.type_,
+                                            to: target,
+                                            in_expr: value.expr,
+                                            out_var_name: "result",
+                                        },
+                                        frag!({action}~result;),
+                                    )
+                                    .apply(p);
+                            } else {
+                                frag!({action}~{value.expr};).apply(p);
+                            }
+                        })
+                    })
+                    .apply(p);
+                return;
+            }
+
             let target = function.ret_type_js(db);
 
             if matches!(target, FacadeTypeJs::Class(_)) {
@@ -299,10 +337,11 @@ mod tests {
     };
 
     macro_rules! test_function {
-        ($name:ident, { $($source:tt)* }) => {
+        ($name:ident, $(minicore: $minicore:literal,)? { $($source:tt)* }) => {
             #[test]
             fn $name() {
                 assert_js_snap! {
+                    $(minicore: $minicore,)?
                     source: { $($source)* },
                     expression: |db, printer| {
                         let db = &*db;
@@ -336,6 +375,12 @@ mod tests {
     test_function!(zero_args_with_return, {
         pub fn test_fn() -> i32 {
             0
+        }
+    });
+
+    test_function!(result_return, minicore: "clone, derive, result", {
+        pub fn test_fn() -> Result<i32, String> {
+            loop {}
         }
     });
 

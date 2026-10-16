@@ -47,6 +47,11 @@ impl<'db> FacadeTypeJs<'db> {
 }
 
 impl<'db> FacadeFunction<'db> {
+    pub fn ret_err_type_js(self, db: &'db dyn Db) -> Option<FacadeTypeJs<'db>> {
+        self.ret_err_type(db)
+            .map(|type_| FacadeTypeJs::from_source(db, type_))
+    }
+
     pub fn ret_type_js(self, db: &'db dyn Db) -> FacadeTypeJs<'db> {
         match self {
             Self::Free(function) => function.ret_type_js(db),
