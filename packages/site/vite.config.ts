@@ -3,11 +3,11 @@ import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import rustier from 'rustier/vite';
-import { compilerService } from './dev/compiler.ts';
+import { devCompilerService } from '../site-compiler-service/vite.ts';
 
 export default defineConfig(({ command, isPreview }) => ({
 	plugins: [
-		command === 'serve' && !isPreview && compilerService(),
+		command === 'serve' && !isPreview && devCompilerService(),
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {

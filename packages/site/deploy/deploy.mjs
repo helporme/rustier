@@ -174,7 +174,7 @@ async function compilerFingerprint(repo, architecture) {
 			for (const [name, dependency] of Object.entries(lock.importers[importer][entry] ?? {}))
 				visitPackage(name, dependency.version);
 	}
-	const dockerfile = await fs.readFile(path.join(repo, 'packages/site/Dockerfile'), 'utf8');
+	const dockerfile = await fs.readFile(path.join(repo, 'packages/site/deploy/Dockerfile'), 'utf8');
 	const compilerStages = dockerfile
 		.replace(/FROM toolchain AS site-build[\s\S]*?(?=FROM toolchain AS compiler-build)/, '')
 		.replace(
@@ -201,7 +201,7 @@ async function compilerFingerprint(repo, architecture) {
 			'packages/site/.cargo',
 			'packages/site/src/lib.rs',
 			'packages/site/src/lib/playground/compilation-schema.ts',
-			'packages/site/Dockerfile.dockerignore'
+			'packages/site/deploy/Dockerfile.dockerignore'
 		],
 		hash
 	);
@@ -257,7 +257,7 @@ fi
 
 		await fs.mkdir(`${temporary}/config`);
 		for (const file of configFiles)
-			await fs.copyFile(`${repo}/packages/site/${file}`, `${temporary}/config/${file}`);
+			await fs.copyFile(`${repo}/packages/site/deploy/${file}`, `${temporary}/config/${file}`);
 		const configHash = (await hashFiles(temporary, ['config']))
 			.update(JSON.stringify(cloudflare))
 			.digest('hex');
@@ -276,7 +276,7 @@ fi
 					'--platform',
 					`linux/${host.architecture}`,
 					'-f',
-					'packages/site/Dockerfile',
+					'packages/site/deploy/Dockerfile',
 					'--target',
 					'compiler',
 					'--load',
@@ -1008,7 +1008,7 @@ if (!response.ok || result.type !== 'ok' || !WebAssembly.validate(Buffer.from(re
 try {
 	const [mode, argument] = process.argv.slice(2);
 	if (mode === '--help' || mode === '-h' || !mode) {
-		console.log(`Usage: node packages/site/scripts/deploy.mjs SSH_HOST [DOMAIN]
+		console.log(`Usage: node packages/site/deploy/deploy.mjs SSH_HOST [DOMAIN]
 
 DOMAIN defaults to rustier.dev.
 

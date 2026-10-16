@@ -1,8 +1,8 @@
 services:
   site:
     build:
-      context: ../..
-      dockerfile: packages/site/Dockerfile
+      context: ../../..
+      dockerfile: packages/site/deploy/Dockerfile
       target: site
     environment:
       PROTOCOL_HEADER: x-forwarded-proto
@@ -49,8 +49,8 @@ services:
 
   compiler:
     build:
-      context: ../..
-      dockerfile: packages/site/Dockerfile
+      context: ../../..
+      dockerfile: packages/site/deploy/Dockerfile
       target: compiler
     environment:
       COMPILER_TOKEN: ${COMPILER_TOKEN:?Set a compiler authentication token}

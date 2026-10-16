@@ -7,7 +7,7 @@
 	},
 	"include": [
 		"src",
-		"scripts/cache-examples.ts",
+		"deploy/cache-examples.ts",
 		"vite.config.ts",
 		".rustier/types",
 		".rustier/ambient.d.ts"

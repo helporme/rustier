@@ -17,7 +17,7 @@ const globals = globalThis as typeof globalThis & {
 const compilers = (globals[key] ??= new Map());
 
 /** Starts a private compiler for Vite dev; external compiler configurations are left alone. */
-export function compilerService(): Plugin {
+export function devCompilerService(): Plugin {
 	let stop: (() => Promise<void>) | undefined;
 
 	const attach = (compiler: ManagedCompiler) => {
@@ -62,13 +62,13 @@ export function compilerService(): Plugin {
 				const args = [
 					'compose',
 					'--project-directory',
-					server.config.root,
+					path.join(server.config.root, 'deploy'),
 					'-p',
 					project,
 					'-f',
-					path.join(server.config.root, 'compose.yaml'),
+					path.join(server.config.root, 'deploy/compose.yaml'),
 					'-f',
-					path.join(server.config.root, 'compose.dev.yaml')
+					path.join(server.config.root, 'deploy/compose.dev.yaml')
 				];
 				const environment = {
 					...process.env,
@@ -119,7 +119,7 @@ export function compilerService(): Plugin {
 				});
 
 				if ((JSON.parse(securityOptions) as string[]).includes('name=apparmor'))
-					args.push('-f', path.join(server.config.root, 'compose.apparmor.yaml'));
+					args.push('-f', path.join(server.config.root, 'deploy/compose.apparmor.yaml'));
 
 				const interrupt = () => {
 					void Promise.all([...compilers.values()].map((compiler) => compiler.dispose())).finally(

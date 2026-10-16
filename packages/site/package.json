@@ -5,9 +5,9 @@
 	"type": "module",
 	"scripts": {
 		"dev": "pnpm run cache:examples && vite dev",
-		"deploy": "node scripts/deploy.mjs",
+		"deploy": "node deploy/deploy.mjs",
 		"build": "pnpm run cache:examples && vite build",
-		"cache:examples": "node scripts/cache-examples.ts",
+		"cache:examples": "node deploy/cache-examples.ts",
 		"preview": "vite preview",
 		"rebuild": "pnpm run rebuild:plugin && pnpm run build",
 		"rebuild:plugin": "pnpm --filter rustier build",

@@ -284,7 +284,7 @@ impl Workspace {
                     .clone(),
                 rust_code: facade
                     .runtime(db)
-                    .render(
+                    .render_rust(
                         db,
                         AbiTransport::Wasm(WasmTransport {
                             memory: WasmMemory::x32,
@@ -405,6 +405,12 @@ impl Workspace {
         }
 
         TextSize::from(byte as u32)
+    }
+}
+
+impl Default for Workspace {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
