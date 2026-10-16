@@ -113,22 +113,9 @@ const $facade__discr__10_test_crate__5_EventGP3_u32E = class _5_EventGP3_u32E {
 		if(
 			type_ === 0
 		) {
-			{
-				const __cast_input = __fn__getter__10_test_crate__5_EventGP3_u32E____Value__0(
-					this.#_handle
-				);
-				if(
-					typeof __cast_input !== "number"
-				) {
-					throw new TypeError(
-						"Expected a value of type \"number\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
-							__cast_input
-						) + "\""
-					);
-				}
-				const out = __cast_input;
-				return out;
-			}
+			return __fn__getter__10_test_crate__5_EventGP3_u32E____Value__0(
+				this.#_handle
+			);
 		}
 		throw new TypeError(
 			"Field 0 is not available on the active _5_EventGP3_u32E variant"
@@ -337,7 +324,7 @@ export function consume (
 				);
 			}
 			const __1 = __cast_input.$handle();
-			__fn__free__10_test_crate__7_consume(
+			return __fn__free__10_test_crate__7_consume(
 				__0,
 				__1
 			);

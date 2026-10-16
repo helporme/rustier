@@ -752,7 +752,7 @@ impl<'db> Function<'db> {
         self.lower_params(db)
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+    pub fn ret_type(self, db: &'db dyn Db) -> Type<'db> {
         self.lower_ret_type(db)
     }
 
@@ -878,7 +878,7 @@ impl<'db> Callable<'db> {
         self.lower_params(db)
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+    pub fn ret_type(self, db: &'db dyn Db) -> Type<'db> {
         self.lower_ret_type(db)
     }
 }
@@ -985,6 +985,7 @@ impl<'db> TypeOrigin<'db> {
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum TypeKind<'db> {
+    Unit,
     bool,
     char,
     i8,
@@ -1049,6 +1050,7 @@ impl<'db> Type<'db> {
     // .decl_syntax() on this one.
     pub fn display(self, db: &'db dyn Db) -> &'db str {
         match self.kind(db) {
+            TypeKind::Unit => "()",
             TypeKind::bool => "bool",
             TypeKind::char => "char",
             TypeKind::i8 => "i8",
@@ -1163,6 +1165,10 @@ pub struct EnumType<'db> {
 impl<'db> EnumType<'db> {
     pub fn into_type(self, db: &'db dyn Db) -> Type<'db> {
         Type::new(db, TypeOrigin::from(self))
+    }
+
+    pub fn is_result(self, db: &'db dyn Db) -> bool {
+        self.def(db).lower_is_result(db)
     }
 
     pub fn is_clonable(self, db: &'db dyn Db) -> Option<bool> {

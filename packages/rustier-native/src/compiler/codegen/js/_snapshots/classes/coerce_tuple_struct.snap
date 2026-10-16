@@ -22,18 +22,9 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 	#_handle;
 
 	get [0]() {
-		{
-			const out = cast.from(
-				"Abi(f64)"
-			).to(
-				"Facade(number)"
-			).an(
-				__fn__getter__10_test_crate__4_Test__0(
-					this.#_handle
-				)
-			);
-			return out;
-		}
+		return __fn__getter__10_test_crate__4_Test__0(
+			this.#_handle
+		);
 	}
 
 	set [0](
@@ -54,18 +45,9 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 	}
 
 	get [1]() {
-		{
-			const out = cast.from(
-				"Abi(String)"
-			).to(
-				"Facade(string)"
-			).an(
-				__fn__getter__10_test_crate__4_Test__1(
-					this.#_handle
-				)
-			);
-			return out;
-		}
+		return __fn__getter__10_test_crate__4_Test__1(
+			this.#_handle
+		);
 	}
 
 	set [1](

@@ -12,6 +12,7 @@ use crate::compiler::{
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, salsa::Update)]
 #[allow(non_camel_case_types)]
 pub enum FacadeTypeTs<'db> {
+    Unit,
     boolean,
     string,
     number,
@@ -45,6 +46,7 @@ impl<'db> FacadeTypeTs<'db> {
 impl<'db> From<FacadeTypeJs<'db>> for FacadeTypeTs<'db> {
     fn from(value: FacadeTypeJs<'db>) -> Self {
         match value {
+            FacadeTypeJs::Unit => Self::Unit,
             FacadeTypeJs::boolean => Self::boolean,
             FacadeTypeJs::string => Self::string,
             FacadeTypeJs::number => Self::number,
@@ -116,20 +118,20 @@ impl<'db> FacadeClassDiscriminated<'db> {
 }
 
 impl<'db> FacadeFunction<'db> {
-    pub fn ret_type_ts(self, db: &'db dyn Db) -> Option<FacadeTypeTs<'db>> {
-        self.ret_type_js(db).map(Into::into)
+    pub fn ret_type_ts(self, db: &'db dyn Db) -> FacadeTypeTs<'db> {
+        self.ret_type_js(db).into()
     }
 }
 
 impl<'db> FacadeFreeFunction<'db> {
-    pub fn ret_type_ts(self, db: &'db dyn Db) -> Option<FacadeTypeTs<'db>> {
-        self.ret_type_js(db).map(Into::into)
+    pub fn ret_type_ts(self, db: &'db dyn Db) -> FacadeTypeTs<'db> {
+        self.ret_type_js(db).into()
     }
 }
 
 impl<'db> FacadeMethod<'db> {
-    pub fn ret_type_ts(self, db: &'db dyn Db) -> Option<FacadeTypeTs<'db>> {
-        self.ret_type_js(db).map(Into::into)
+    pub fn ret_type_ts(self, db: &'db dyn Db) -> FacadeTypeTs<'db> {
+        self.ret_type_js(db).into()
     }
 }
 

@@ -39,6 +39,20 @@ impl<'db> Enum<'db> {
         self.hir(db).attrs(db).is_non_exhaustive()
     }
 
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_is_result(self, db: &'db dyn Db) -> bool {
+        let hir = self.hir(db);
+        let variants = hir.variants(db);
+
+        hir.module(db).krate(db).is_builtin(db)
+            && variants
+                .iter()
+                .any(|variant| variant.attrs(db).lang(db) == Some(ra_ap_hir::LangItem::ResultOk))
+            && variants
+                .iter()
+                .any(|variant| variant.attrs(db).lang(db) == Some(ra_ap_hir::LangItem::ResultErr))
+    }
+
     #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir::rust) fn lower_variants(
         self,

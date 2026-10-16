@@ -10,7 +10,7 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    render_checked_identity("string", in_expr, out_var_name, continue_with)
+    render_js_checked_identity("string", in_expr, out_var_name, continue_with)
 }
 
 pub fn render_bool_cast<'db, InExpr, OutVar, Continue>(
@@ -23,7 +23,7 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    render_checked_identity("boolean", in_expr, out_var_name, continue_with)
+    render_js_checked_identity("boolean", in_expr, out_var_name, continue_with)
 }
 
 pub fn render_number_cast<'db, InExpr, OutVar, Continue>(
@@ -36,10 +36,10 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    render_checked_identity("number", in_expr, out_var_name, continue_with)
+    render_js_checked_identity("number", in_expr, out_var_name, continue_with)
 }
 
-fn render_checked_identity<'db, InExpr, OutVar, Continue>(
+pub(super) fn render_js_checked_identity<'db, InExpr, OutVar, Continue>(
     expected_type: &'static str,
     in_expr: InExpr,
     out_var_name: OutVar,

@@ -10,6 +10,7 @@ use crate::compiler::{
 impl<'db> FacadeTypeTs<'db> {
     pub(super) fn render_ts(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
         fragment(move |p| match self {
+            FacadeTypeTs::Unit => frag!(undefined).apply(p),
             FacadeTypeTs::boolean => frag!(boolean).apply(p),
             FacadeTypeTs::string => frag!(string).apply(p),
             FacadeTypeTs::number => frag!(number).apply(p),

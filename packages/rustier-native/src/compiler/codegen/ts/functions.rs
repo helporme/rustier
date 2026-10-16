@@ -90,11 +90,11 @@ fn render_params<'db>(
 
 fn render_return_type<'db>(
     db: &'db dyn Db,
-    ret_type: Option<FacadeTypeTs<'db>>,
+    ret_type: FacadeTypeTs<'db>,
 ) -> impl FragmentOnce + 'db {
     fragment(move |p: &mut Printer| match ret_type {
-        Some(type_) => type_.render_ts(db).apply(p),
-        None => frag!(void).apply(p),
+        FacadeTypeTs::Unit => frag!(void).apply(p),
+        type_ => type_.render_ts(db).apply(p),
     })
 }
 

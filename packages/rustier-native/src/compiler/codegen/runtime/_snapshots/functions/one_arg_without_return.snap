@@ -21,16 +21,22 @@ pub fn __fn__free__10_test_crate__7_test_fn(
     }
     let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<()> {
-            {
-                let _0 = cast
-                    .from("Abi(f64)")
-                    .to(
-                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
+            Ok(
+                cast
+                    .from(
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
                     )
-                    .an(_0);
-                test_crate::test_fn(_0)
-            };
-            Ok(())
+                    .to("Abi(Unit)")
+                    .an({
+                        let _0 = cast
+                            .from("Abi(f64)")
+                            .to(
+                                "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
+                            )
+                            .an(_0);
+                        test_crate::test_fn(_0)
+                    }),
+            )
         })();
         match result {
             Ok(value) => __AbiReturn::V0(value),
@@ -54,16 +60,22 @@ pub fn __fn__free__10_test_crate__7_test_fn(_0: f64) -> Vec<JsValue> {
     }
     let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<()> {
-            {
-                let _0 = cast
-                    .from("Abi(f64)")
-                    .to(
-                        "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
+            Ok(
+                cast
+                    .from(
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
                     )
-                    .an(_0);
-                test_crate::test_fn(_0)
-            };
-            Ok(())
+                    .to("Abi(Unit)")
+                    .an({
+                        let _0 = cast
+                            .from("Abi(f64)")
+                            .to(
+                                "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5400)) }, index: 0 } })",
+                            )
+                            .an(_0);
+                        test_crate::test_fn(_0)
+                    }),
+            )
         })();
         match result {
             Ok(value) => __AbiReturn::V0(value),

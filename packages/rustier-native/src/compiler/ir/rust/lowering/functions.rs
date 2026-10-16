@@ -86,22 +86,15 @@ impl<'db> Function<'db> {
     }
 
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_ret_type(
-        self,
-        db: &'db dyn Db,
-    ) -> Option<Type<'db>> {
+    pub(in crate::compiler::ir::rust) fn lower_ret_type(self, db: &'db dyn Db) -> Type<'db> {
         let hir = self.hir(db);
-        let type_ = hir.ret_type(db);
-        if type_.is_unit() {
-            return None;
-        }
-        let type_ = lower_type(
+
+        lower_type(
             db,
             TypeOrigin::FunctionReturn(self),
             hir.module(db).krate(db),
         )
-        .expect("functions with unsupported return types are not lowered");
-        Some(type_)
+        .expect("functions with unsupported return types are not lowered")
     }
 
     #[salsa::tracked(returns(ref))]
@@ -312,18 +305,16 @@ fn check_function_substituted<'db>(
 
     let return_type =
         super::instantiate_type(db, hir.ret_type(db), type_args.iter().cloned(), context);
-    if !return_type.is_unit() {
-        match check_type(&return_type) {
-            Ok(()) if contains_borrowed_values(db, &return_type) => {
-                causes.push(FunctionLowerCause::BorrowedReturn);
-            }
-            Ok(()) => {}
-            Err(TypeLowerErrorUnsupported::Unstable) => return Some(FunctionLowerError::Unstable),
-            Err(TypeLowerErrorUnsupported::BorrowedValues { .. }) => {
-                causes.push(FunctionLowerCause::BorrowedReturn);
-            }
-            Err(error) => causes.push(FunctionLowerCause::Type(error)),
+    match check_type(&return_type) {
+        Ok(()) if contains_borrowed_values(db, &return_type) => {
+            causes.push(FunctionLowerCause::BorrowedReturn);
         }
+        Ok(()) => {}
+        Err(TypeLowerErrorUnsupported::Unstable) => return Some(FunctionLowerError::Unstable),
+        Err(TypeLowerErrorUnsupported::BorrowedValues { .. }) => {
+            causes.push(FunctionLowerCause::BorrowedReturn);
+        }
+        Err(error) => causes.push(FunctionLowerCause::Type(error)),
     }
 
     if causes.is_empty() {

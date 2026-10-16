@@ -226,14 +226,8 @@ impl<'db> RuntimeFunction<'db> {
 
     pub fn ret_type(self, db: &'db dyn Db) -> RuntimeType<'db> {
         match self {
-            Self::Free(function) => function
-                .src(db)
-                .ret_type(db)
-                .map_or(RuntimeType::Unit, RuntimeType::Source),
-            Self::Associated(function) => function
-                .src(db)
-                .ret_type(db)
-                .map_or(RuntimeType::Unit, RuntimeType::Source),
+            Self::Free(function) => RuntimeType::Source(function.src(db).ret_type(db)),
+            Self::Associated(function) => RuntimeType::Source(function.src(db).ret_type(db)),
             Self::Getter(getter) => getter.field(db).tethered(db).value_type(db),
             Self::Setter(_) | Self::DropHandle(_) => RuntimeType::Unit,
             Self::Discriminator(_) => RuntimeType::u32,

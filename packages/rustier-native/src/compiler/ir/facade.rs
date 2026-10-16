@@ -462,7 +462,7 @@ impl<'db> FacadeFunction<'db> {
         }
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+    pub fn ret_type(self, db: &'db dyn Db) -> Type<'db> {
         match self {
             Self::Free(function) => function.ret_type(db),
             Self::Method(method) => method.ret_type(db),
@@ -521,7 +521,7 @@ impl<'db> FacadeFreeFunction<'db> {
             .collect()
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+    pub fn ret_type(self, db: &'db dyn Db) -> Type<'db> {
         self.src(db).ret_type(db)
     }
 }
@@ -590,7 +590,7 @@ impl<'db> FacadeMethod<'db> {
             .collect()
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
+    pub fn ret_type(self, db: &'db dyn Db) -> Type<'db> {
         self.src(db).ret_type(db)
     }
 }
@@ -750,7 +750,7 @@ impl<'db> FacadeClassPlain<'db> {
                 && method
                     .src(db)
                     .ret_type(db)
-                    .is_some_and(|ret| ret.same_type_as(db, self.src(db).into_type(db)))
+                    .same_type_as(db, self.src(db).into_type(db))
         })
     }
 }

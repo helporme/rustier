@@ -4,7 +4,7 @@ mod classes;
 mod primitives;
 
 use crate::compiler::{
-    codegen::fragment::{FragmentOnce, Printer, fragment},
+    codegen::fragment::{FragmentOnce, Printer, frag, fragment},
     db::Db,
     ir::{abi::AbiType, facade::type_js::FacadeTypeJs},
 };
@@ -102,6 +102,31 @@ impl<'db> CastRenderer<'db> for Renderer {
             use CastType::*;
 
             match (src, dst) {
+                (Abi(AbiType::Unit), Facade(FacadeTypeJs::Unit))
+                | (Abi(AbiType::bool), Facade(FacadeTypeJs::boolean))
+                | (Abi(AbiType::String), Facade(FacadeTypeJs::string))
+                | (Abi(AbiType::f64), Facade(FacadeTypeJs::number))
+                | (Abi(AbiType::Unit), Abi(AbiType::Unit))
+                | (Abi(AbiType::bool), Abi(AbiType::bool))
+                | (Abi(AbiType::String), Abi(AbiType::String))
+                | (Abi(AbiType::f64), Abi(AbiType::f64))
+                | (Abi(AbiType::usize), Abi(AbiType::usize)) => {
+                    frag!(
+                        const ~{out_var_name}~=~{in_expr};@
+                        {continue_with}
+                    )
+                    .apply(printer);
+                }
+                (Facade(FacadeTypeJs::Unit), Abi(AbiType::Unit))
+                | (Facade(FacadeTypeJs::Unit), Facade(FacadeTypeJs::Unit)) => {
+                    primitives::render_js_checked_identity(
+                        "undefined",
+                        in_expr,
+                        out_var_name,
+                        continue_with,
+                    )
+                    .apply(printer);
+                }
                 // classes
                 (Facade(FacadeTypeJs::Class(source)), Abi(AbiType::usize)) => {
                     classes::render_facade_class_to_abi(
@@ -125,27 +150,21 @@ impl<'db> CastRenderer<'db> for Renderer {
                 }
                 // boolean
                 (Facade(FacadeTypeJs::boolean), Abi(AbiType::bool))
-                | (Abi(AbiType::bool), Facade(FacadeTypeJs::boolean))
-                | (Facade(FacadeTypeJs::boolean), Facade(FacadeTypeJs::boolean))
-                | (Abi(AbiType::bool), Abi(AbiType::bool)) => {
+                | (Facade(FacadeTypeJs::boolean), Facade(FacadeTypeJs::boolean)) => {
                     primitives::render_bool_cast(in_expr, out_var_name, continue_with)
                         .apply(printer);
                 }
 
                 // string
                 (Facade(FacadeTypeJs::string), Abi(AbiType::String))
-                | (Abi(AbiType::String), Facade(FacadeTypeJs::string))
-                | (Facade(FacadeTypeJs::string), Facade(FacadeTypeJs::string))
-                | (Abi(AbiType::String), Abi(AbiType::String)) => {
+                | (Facade(FacadeTypeJs::string), Facade(FacadeTypeJs::string)) => {
                     primitives::render_string_cast(in_expr, out_var_name, continue_with)
                         .apply(printer);
                 }
 
                 // number
                 (Facade(FacadeTypeJs::number), Abi(AbiType::f64))
-                | (Abi(AbiType::f64), Facade(FacadeTypeJs::number))
-                | (Facade(FacadeTypeJs::number), Facade(FacadeTypeJs::number))
-                | (Abi(AbiType::f64), Abi(AbiType::f64)) => {
+                | (Facade(FacadeTypeJs::number), Facade(FacadeTypeJs::number)) => {
                     primitives::render_number_cast(in_expr, out_var_name, continue_with)
                         .apply(printer);
                 }

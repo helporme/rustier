@@ -118,6 +118,7 @@ impl<'db> RuntimeType<'db> {
 impl<'db> Type<'db> {
     pub fn abi(self, db: &'db dyn Db) -> AbiType {
         match self.kind(db) {
+            TypeKind::Unit => AbiType::Unit,
             TypeKind::bool => AbiType::bool,
             TypeKind::char
             | TypeKind::i8

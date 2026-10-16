@@ -22,8 +22,14 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> (
     }
     let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<()> {
-            test_crate::test_fn();
-            Ok(())
+            Ok(
+                cast
+                    .from(
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
+                    )
+                    .to("Abi(Unit)")
+                    .an(test_crate::test_fn()),
+            )
         })();
         match result {
             Ok(value) => __AbiReturn::V0(value),
@@ -47,8 +53,14 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> Vec<JsValue> {
     }
     let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<()> {
-            test_crate::test_fn();
-            Ok(())
+            Ok(
+                cast
+                    .from(
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5400)) }) })",
+                    )
+                    .to("Abi(Unit)")
+                    .an(test_crate::test_fn()),
+            )
         })();
         match result {
             Ok(value) => __AbiReturn::V0(value),

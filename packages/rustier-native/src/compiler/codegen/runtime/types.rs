@@ -20,6 +20,7 @@ impl<'db> Type<'db> {
 
     pub(super) fn render_mangled_name(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
         fragment(move |p| match self.kind(db) {
+            TypeKind::Unit => "__unit".apply(p),
             TypeKind::bool => "__bool".apply(p),
             TypeKind::i8 => "__i8".apply(p),
             TypeKind::u8 => "__u8".apply(p),

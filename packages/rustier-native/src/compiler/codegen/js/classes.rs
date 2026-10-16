@@ -385,18 +385,7 @@ where
                 )
                 .apply(p);
             } else {
-                self.casts
-                    .render_stmt(
-                        self.db,
-                        Cast {
-                            from: abi_type,
-                            to: facade_type,
-                            in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_handle)),
-                            out_var_name: "out",
-                        },
-                        frag!(return out;),
-                    )
-                    .apply(p);
+                frag!(return ~{abi_getter.symbol(self.db)}(this.#_handle);).apply(p);
             }
         })
     }
@@ -519,18 +508,7 @@ where
                 )
                 .apply(p);
             } else {
-                self.casts
-                    .render_stmt(
-                        self.db,
-                        Cast {
-                            from: abi_type,
-                            to: facade_type,
-                            in_expr: frag!({ abi_getter.symbol(self.db) }(this.#_handle)),
-                            out_var_name: "out",
-                        },
-                        frag!(return out;),
-                    )
-                    .apply(p);
+                frag!(return ~{abi_getter.symbol(self.db)}(this.#_handle);).apply(p);
             }
         })
     }

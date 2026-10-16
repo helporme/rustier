@@ -229,37 +229,19 @@ where
             frag!({ src_fn.path(self.db).fqn(self.db) }({ params }))
         };
 
-        fragment(move |p| match src_fn.ret_type(self.db) {
-            Some(src_ret_type) => {
-                let result_expr = self.cast_compiler.render_many(
-                    self.db,
-                    cast_param_to_source_types,
-                    src_fn_call_expr,
-                );
+        let src_ret_type = src_fn.ret_type(self.db);
+        let result_expr =
+            self.cast_compiler
+                .render_many(self.db, cast_param_to_source_types, src_fn_call_expr);
 
-                let casted_result_expr = self.cast_compiler.render_expr(
-                    self.db,
-                    src_ret_type,
-                    src_ret_type.abi(self.db),
-                    result_expr,
-                );
+        let casted_result_expr = self.cast_compiler.render_expr(
+            self.db,
+            src_ret_type,
+            src_ret_type.abi(self.db),
+            result_expr,
+        );
 
-                frag!(Ok({ casted_result_expr })).apply(p);
-            }
-            None => {
-                let fn_call_stmt = self.cast_compiler.render_many(
-                    self.db,
-                    cast_param_to_source_types,
-                    src_fn_call_expr,
-                );
-
-                frag!(
-                    {fn_call_stmt};@
-                    Ok(())
-                )
-                .apply(p);
-            }
-        })
+        frag!(Ok({ casted_result_expr }))
     }
 
     fn render_fn_getter_body(

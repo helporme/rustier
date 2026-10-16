@@ -24,18 +24,9 @@ export function test_fn (
 		).an(
 			_0
 		);
-		{
-			const result = cast.from(
-				"Abi(f64)"
-			).to(
-				"Facade(number)"
-			).an(
-				__fn__free__10_test_crate__7_test_fn(
-					__0
-				)
-			);
-			return result;
-		}
+		return __fn__free__10_test_crate__7_test_fn(
+			__0
+		);
 	}
 }
 ```

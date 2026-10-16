@@ -28,18 +28,9 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 	["constructor"](
 
 	) {
-		{
-			const result = cast.from(
-				"Abi(bool)"
-			).to(
-				"Facade(boolean)"
-			).an(
-				__fn__associated__10_test_crate__4_Test__11_constructor(
-					this.#_handle
-				)
-			);
-			return result;
-		}
+		return __fn__associated__10_test_crate__4_Test__11_constructor(
+			this.#_handle
+		);
 	}
 
 	constructor(

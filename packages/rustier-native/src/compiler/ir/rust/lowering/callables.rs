@@ -122,15 +122,11 @@ impl<'db> Callable<'db> {
     }
 
     #[salsa::tracked]
-    pub(in crate::compiler::ir::rust) fn lower_ret_type(
-        self,
-        db: &'db dyn Db,
-    ) -> Option<Type<'db>> {
+    pub(in crate::compiler::ir::rust) fn lower_ret_type(self, db: &'db dyn Db) -> Type<'db> {
         if !self.needs_substitution(db) {
             return self.declaration(db).ret_type(db);
         }
-        let type_ = Type::new(db, TypeOrigin::CallableReturn(self));
-        (!type_.hir(db).is_unit()).then_some(type_)
+        Type::new(db, TypeOrigin::CallableReturn(self))
     }
 
     pub(super) fn instantiate(

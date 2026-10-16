@@ -52,6 +52,7 @@ pub(super) fn mangle_segments<'db>(
 fn encode_type<'db>(db: &'db dyn Db, type_: Type<'db>) -> Result<String, MangleError> {
     // These literal tags describe constructors, never source/display spelling.
     let primitive = match type_.kind(db) {
+        TypeKind::Unit => "unit",
         TypeKind::bool => "bool",
         TypeKind::char => "char",
         TypeKind::i8 => "i8",

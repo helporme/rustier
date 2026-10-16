@@ -39,18 +39,9 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		if(
 			type_ === 3
 		) {
-			{
-				const out = cast.from(
-					"Abi(f64)"
-				).to(
-					"Facade(number)"
-				).an(
-					__fn__getter__10_test_crate__4_Test____Tuple__0(
-						this.#_handle
-					)
-				);
-				return out;
-			}
+			return __fn__getter__10_test_crate__4_Test____Tuple__0(
+				this.#_handle
+			);
 		}
 		throw new TypeError(
 			"Field 0 is not available on the active Test variant"
@@ -92,18 +83,9 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		if(
 			type_ === 3
 		) {
-			{
-				const out = cast.from(
-					"Abi(String)"
-				).to(
-					"Facade(string)"
-				).an(
-					__fn__getter__10_test_crate__4_Test____Tuple__1(
-						this.#_handle
-					)
-				);
-				return out;
-			}
+			return __fn__getter__10_test_crate__4_Test____Tuple__1(
+				this.#_handle
+			);
 		}
 		throw new TypeError(
 			"Field 1 is not available on the active Test variant"
@@ -145,18 +127,9 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 		if(
 			type_ === 4
 		) {
-			{
-				const out = cast.from(
-					"Abi(f64)"
-				).to(
-					"Facade(number)"
-				).an(
-					__fn__getter__10_test_crate__4_Test____Record__value(
-						this.#_handle
-					)
-				);
-				return out;
-			}
+			return __fn__getter__10_test_crate__4_Test____Record__value(
+				this.#_handle
+			);
 		}
 		throw new TypeError(
 			"Field value is not available on the active Test variant"

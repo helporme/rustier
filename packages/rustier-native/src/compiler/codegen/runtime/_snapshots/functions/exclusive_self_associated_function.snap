@@ -28,24 +28,30 @@ pub fn __fn__associated__10_test_crate__4_Test__9_exclusive(
     }
     let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<()> {
-            {
-                let _0 = cast
-                    .from("Abi(usize)")
-                    .to(
-                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
+            Ok(
+                cast
+                    .from(
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) })",
                     )
-                    .an(_0);
-                {
-                    let _1 = cast
-                        .from("Abi(f64)")
-                        .to(
-                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
-                        )
-                        .an(_1);
-                    test_crate::Test::exclusive(_0, _1)
-                }
-            };
-            Ok(())
+                    .to("Abi(Unit)")
+                    .an({
+                        let _0 = cast
+                            .from("Abi(usize)")
+                            .to(
+                                "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
+                            )
+                            .an(_0);
+                        {
+                            let _1 = cast
+                                .from("Abi(f64)")
+                                .to(
+                                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
+                                )
+                                .an(_1);
+                            test_crate::Test::exclusive(_0, _1)
+                        }
+                    }),
+            )
         })();
         match result {
             Ok(value) => __AbiReturn::V0(value),
@@ -73,24 +79,30 @@ pub fn __fn__associated__10_test_crate__4_Test__9_exclusive(
     }
     let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<()> {
-            {
-                let _0 = cast
-                    .from("Abi(usize)")
-                    .to(
-                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
+            Ok(
+                cast
+                    .from(
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) })",
                     )
-                    .an(_0);
-                {
-                    let _1 = cast
-                        .from("Abi(f64)")
-                        .to(
-                            "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
-                        )
-                        .an(_1);
-                    test_crate::Test::exclusive(_0, _1)
-                }
-            };
-            Ok(())
+                    .to("Abi(Unit)")
+                    .an({
+                        let _0 = cast
+                            .from("Abi(usize)")
+                            .to(
+                                "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
+                            )
+                            .an(_0);
+                        {
+                            let _1 = cast
+                                .from("Abi(f64)")
+                                .to(
+                                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
+                                )
+                                .an(_1);
+                            test_crate::Test::exclusive(_0, _1)
+                        }
+                    }),
+            )
         })();
         match result {
             Ok(value) => __AbiReturn::V0(value),

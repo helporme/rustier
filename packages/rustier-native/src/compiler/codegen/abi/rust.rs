@@ -23,6 +23,7 @@ impl AbiTransport {
 
     fn render_param_type(self, type_: AbiType) -> impl FragmentOnce {
         fragment(move |p| match (type_, self) {
+            (AbiType::Unit, AbiTransport::Wasm(_)) => "JsValue".apply(p),
             (
                 AbiType::usize,
                 AbiTransport::Wasm(WasmTransport {
@@ -218,6 +219,11 @@ impl<'db, Body: FragmentOnce + 'db> FragmentOnce for FunctionFragment<'db, Body>
 
         let decode = fragment(move |p| {
             for (i, type_) in params.iter().enumerate() {
+                if *type_ == AbiType::Unit && matches!(transport, AbiTransport::Wasm(_)) {
+                    frag!(let _{i} = ();@@).apply(p);
+                    continue;
+                }
+
                 if *type_ != AbiType::usize {
                     continue;
                 }
@@ -349,19 +355,14 @@ mod tests {
                     ("handle", AbiType::usize),
                 ] {
                     let params = [type_];
-                    let (params, body) = if type_ == AbiType::Unit {
-                        (&[][..], "()")
-                    } else {
-                        (&params[..], "_0")
-                    };
 
                     FunctionFragment {
                         db,
                         symbol,
-                        params,
+                        params: &params,
                         ret_type: AbiReturn::Value(type_),
                         transport,
-                        body,
+                        body: "_0",
                     }
                     .apply(p);
                     frag!(@@).apply(p);

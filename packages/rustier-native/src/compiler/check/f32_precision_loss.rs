@@ -15,9 +15,7 @@ impl<'db> Callable<'db> {
             .params(db)
             .iter()
             .find(|param| param.type_(db).deborrow(db).kind(db) == TypeKind::f32);
-        let has_f32_return = self
-            .ret_type(db)
-            .is_some_and(|type_| type_.deborrow(db).kind(db) == TypeKind::f32);
+        let has_f32_return = self.ret_type(db).deborrow(db).kind(db) == TypeKind::f32;
 
         if let Some(param) = f32_param {
             emit(db, param.span(db).as_ref());

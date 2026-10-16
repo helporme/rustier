@@ -21,9 +21,6 @@ export function call(){
 				);
 				break;
 			}
-			default: throw new TypeError(
-				"Unknown ABI return tag"
-			);
 		}
 	}
 }

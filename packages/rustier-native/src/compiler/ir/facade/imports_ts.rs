@@ -93,11 +93,7 @@ impl<'db> FacadeFunction<'db> {
     fn decl_imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeClass<'db>> + 'db {
         self.params(db)
             .flat_map(move |param| param.type_ts(db).decl_imports(db))
-            .chain(
-                self.ret_type_ts(db)
-                    .into_iter()
-                    .flat_map(move |type_| type_.decl_imports(db)),
-            )
+            .chain(self.ret_type_ts(db).decl_imports(db))
     }
 }
 

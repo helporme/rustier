@@ -224,7 +224,13 @@ impl<'db> CastRenderer<'db> for RuntimeCastRenderer {
                     numbers::render_type_to_f64(db, source, in_expr, output).apply(printer);
                 }
 
-                // booleans
+                // borrowed primitives
+                (Abi(AbiType::Unit), Rust(target))
+                    if matches!(target.kind(db), TypeKind::Borrowed(borrowed)
+                        if borrowed.inner(db).kind(db) == TypeKind::Unit) =>
+                {
+                    borrowing::render_owned_to_borrowed(db, target, in_expr, output).apply(printer);
+                }
                 (Abi(AbiType::bool), Rust(target))
                     if matches!(target.kind(db), TypeKind::Borrowed(borrowed)
                         if borrowed.inner(db).kind(db) == TypeKind::bool) =>
@@ -240,6 +246,11 @@ impl<'db> CastRenderer<'db> for RuntimeCastRenderer {
                 }
 
                 // identity casts
+                (Abi(AbiType::Unit), Rust(type_)) | (Rust(type_), Abi(AbiType::Unit))
+                    if type_.kind(db) == TypeKind::Unit =>
+                {
+                    adapt_to_cast_output(in_expr, output).apply(printer);
+                }
                 (Abi(AbiType::bool), Rust(type_)) | (Rust(type_), Abi(AbiType::bool))
                     if type_.kind(db) == TypeKind::bool =>
                 {

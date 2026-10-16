@@ -145,7 +145,6 @@ impl<'db> AbiReturn<'db> {
                 frag!(
                     switch (__abi_return[0]) {{
                         {cases}
-                        default: throw new TypeError("Unknown ABI return tag");
                     }}
                 )
                 .apply(p);

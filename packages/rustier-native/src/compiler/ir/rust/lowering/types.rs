@@ -127,7 +127,7 @@ pub(super) fn check_type(
     type_: &HirType<'_>,
     crate_: ra_ap_hir::Crate,
 ) -> Result<(), TypeLowerErrorUnsupported> {
-    if type_.as_type_param(db).is_some() {
+    if type_.is_unit() || type_.as_type_param(db).is_some() {
         return Ok(());
     }
 
@@ -252,6 +252,10 @@ impl<'db> Type<'db> {
         }
 
         let hir = self.hir(db);
+        if hir.is_unit() {
+            return TypeKind::Unit;
+        }
+
         if let Some(param) = hir.as_type_param(db) {
             return TypeKind::Generic(TypeParam::new(db, param));
         }

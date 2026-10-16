@@ -6,7 +6,7 @@ use crate::compiler::{
         js::cast::{Cast, CastRenderer, Renderer},
     },
     db::Db,
-    ir::facade::{FacadeFreeFunction, FacadeFunction, FacadeMethod},
+    ir::facade::{FacadeFreeFunction, FacadeFunction, FacadeMethod, type_js::FacadeTypeJs},
 };
 
 #[salsa::tracked]
@@ -173,22 +173,23 @@ where
         let function = self.function();
 
         self.render_param_casts(fragment(move |p| {
-            match (function.ret_type(db), function.ret_type_js(db)) {
-                (Some(source), Some(target)) => self
-                    .casts()
+            let target = function.ret_type_js(db);
+
+            if matches!(target, FacadeTypeJs::Class(_)) {
+                self.casts()
                     .render_stmt(
                         db,
                         Cast {
-                            from: source.abi(db),
+                            from: function.ret_type(db).abi(db),
                             to: target,
                             in_expr: self.render_call_expr(),
                             out_var_name: "result",
                         },
                         frag!(return result;),
                     )
-                    .apply(p),
-                (None, None) => frag!({self.render_call_expr()};).apply(p),
-                _ => unreachable!("source and facade return types must agree"),
+                    .apply(p);
+            } else {
+                frag!(return ~{self.render_call_expr()};).apply(p);
             }
         }))
     }
