@@ -16,6 +16,8 @@ export declare class Server {
   change(change: ServerChange): ServerChangeResult
   build(opts: BuildOpts): ServerBuildResult
   check(): Array<ServerDiagnostic>
+  /** JavaScript modules reachable from the current Rust API. */
+  modules(): Array<ServerModule>
   /** Current binary paths for the platform. Empty if no build is available. */
   binPaths(platform: ServerPlatform): Array<string>
   load(platform: ServerPlatform, path: string): string | null
@@ -106,6 +108,11 @@ export declare const enum ServerLogLevel {
   Info = 2,
   Debug = 3,
   Trace = 4,
+}
+
+export interface ServerModule {
+  path: string
+  isRoot: boolean
 }
 
 /** Supported Rust targets for native Node.js builds. */

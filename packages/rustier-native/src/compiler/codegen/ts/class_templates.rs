@@ -49,6 +49,22 @@ impl<'db> FacadeClassTemplate<'db> {
                 .enumerate()
                 .map(|(index, _)| frag!(Args[{ index }])),
         );
+        let default_overloads =
+            fragment(move |p| {
+                for (generics, class) in self.mappings(db) {
+                    for arity in class.src_type(db).minimum_generic_arity(db)..generics.len() {
+                        let args =
+                            render_inline_list(generics[..arity].iter().enumerate().map(
+                                |(index, generic)| frag!(arg{index}:~{generic.render_ts(db)}),
+                            ));
+
+                        frag!(
+                            export function ~{name}({args}): typeof ~{class.name(db)};@
+                        )
+                        .apply(p);
+                    }
+                }
+            });
 
         frag!(
             {classes}@@
@@ -65,6 +81,7 @@ impl<'db> FacadeClassTemplate<'db> {
             }}@@
 
             {render_jsdoc(self.docs(db).map(String::as_str))}
+            {default_overloads}
             export function ~{name}<Args extends ~{args}>(...args: Args):~{name}.Class<{return_args}>;
         ).print()
     }

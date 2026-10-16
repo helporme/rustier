@@ -83,7 +83,7 @@
 			aria-selected={value === tab.id}
 			tabindex={value === tab.id ? 0 : -1}
 			class={cn(
-				'shrink-0 cursor-pointer rounded-none py-1 whitespace-nowrap outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-magenta focus-visible:outline-solid',
+				'shrink-0 cursor-pointer rounded-none px-2 py-2 whitespace-nowrap outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-magenta focus-visible:outline-solid',
 				value === tab.id
 					? cn('font-bold text-on-surface', activeClass)
 					: 'bg-transparent text-on-surface-alt hover:bg-surface-bright hover:text-on-surface'

@@ -26,6 +26,44 @@ import { registerTokenization, tokenModifiers } from './tokenization';
 
 const sourceMaps = new Map<string, TraceMap>();
 const modelReferences = new Map<monaco.editor.ITextModel, number>();
+const libraries = new Map<
+	string,
+	{ content: string; references: number; registration: monaco.IDisposable }
+>();
+
+export function retainLibrary(content: string, filePath: string): monaco.IDisposable {
+	let library = libraries.get(filePath);
+
+	if (!library || library.content !== content) {
+		library = {
+			content,
+			references: 0,
+			registration: filePath.endsWith('.map')
+				? registerSourceMap(content, filePath)
+				: typescriptDefaults.addExtraLib(content, filePath)
+		};
+		libraries.set(filePath, library);
+	}
+
+	const retained = library;
+	retained.references++;
+
+	if (!filePath.endsWith('.map')) {
+		const model = monaco.editor.getModel(monaco.Uri.parse(filePath));
+
+		if (model && model.getValue() !== content) model.setValue(content);
+	}
+
+	return {
+		dispose() {
+			if (--retained.references !== 0) return;
+
+			retained.registration.dispose();
+
+			if (libraries.get(filePath) === retained) libraries.delete(filePath);
+		}
+	};
+}
 
 export function retainModel(model: monaco.editor.ITextModel) {
 	modelReferences.set(model, (modelReferences.get(model) ?? 0) + 1);
@@ -166,8 +204,11 @@ export async function transpile(source: string, filename: string) {
 	const uri = monaco.Uri.parse(`file:///playground/${filename}`);
 	const existing = monaco.editor.getModel(uri);
 	const model = existing ?? monaco.editor.createModel(source, 'typescript', uri);
+	const release = retainModel(model);
 
 	try {
+		if (model.getValue() !== source) model.setValue(source);
+
 		const accessor = await getTypeScriptWorker();
 		const worker = await accessor(model.uri);
 		const output = await worker.getEmitOutput(model.uri.toString());
@@ -177,7 +218,7 @@ export async function transpile(source: string, filename: string) {
 
 		return script.text;
 	} finally {
-		if (!existing) model.dispose();
+		release();
 	}
 }
 

@@ -32,10 +32,7 @@ const ffiModuleId = "$rust/unstable!/wasm";
 const entryId = "\0playground-entry";
 let server: Server | undefined;
 
-export async function compile({
-  code,
-  modules,
-}: BuildInput): Promise<CompilerResult> {
+export async function compile({ code }: BuildInput): Promise<CompilerResult> {
   const started = performance.now();
   const failure = (diagnostics: ServerDiagnostic[]): CompilerResult => ({
     type: "err",
@@ -88,7 +85,12 @@ export async function compile({
   if (!binary) throw new Error("The Rust build produced no WebAssembly module");
 
   const loaded = server;
-  const specifiers = ["./lib.rs", ...new Set(modules)];
+  const modules = loaded.modules();
+  const rootModule = modules.find((module) => module.isRoot)?.path;
+  const specifiers = [
+    "./lib.rs",
+    ...modules.map((module) => module.path).sort(),
+  ];
   const exports = Object.fromEntries(
     specifiers.map((specifier, index) => [specifier, `m${index}`]),
   );
@@ -99,6 +101,8 @@ export async function compile({
       {
         name: "rustier-playground",
         resolveId(id) {
+          if (id === rootModule) return source;
+
           if (
             id === entryId ||
             id === source ||

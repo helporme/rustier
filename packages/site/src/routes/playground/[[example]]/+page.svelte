@@ -51,7 +51,10 @@
 		}))
 	);
 
-	const { compiler, builder } = new Playground(() => snippets[data.selected]);
+	const { compiler, builder } = new Playground(
+		() => snippets[data.selected],
+		() => data.compiled
+	);
 
 	let mode: PlaygroundMode = $derived(
 		page.url.searchParams.get('mode') === 'analysis' ? 'analysis' : 'run'
@@ -114,6 +117,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>{snippets[data.selected].name} · rustier</title>
+</svelte:head>
+
 {#snippet output()}
 	<PlasmaAnimation busy={builder.status === 'building'}>
 		<CodeEditor
@@ -133,7 +140,7 @@
 	{@const content = source ? undefined : compiler.compilation?.[view.id]}
 	<div
 		class={[
-			'h-full min-h-0 min-w-0 bg-(--editor-background)',
+			'flex h-full min-h-0 min-w-0 flex-col bg-(--editor-background)',
 			view.id === 'diagnostics'
 				? '[--editor-background:var(--color-surface-dimest)]'
 				: side === 'left'
@@ -141,58 +148,56 @@
 					: '[--editor-background:var(--color-surface-dim)]'
 		]}
 	>
-		<PlasmaAnimation busy={!source && compiler.pending} class="flex flex-col">
-			<PanelTabs
-				id={`${panelId}-${side}`}
-				label={`${side} pane views`}
-				tabs={tabs[side].map((item) => ({ ...item, controls: `${panelId}-${side}-view` }))}
-				value={view.id}
-				onSelect={(value) => open(value, side)}
-				activeClass="bg-inherit"
-				class="shrink-0 bg-inherit"
-			/>
-			<EditorPane
-				bind:ref={panelRefs[side]}
-				id={`${panelId}-${side}-view`}
-				value={view.id}
-				labelledby={`${panelId}-${side}-${view.id}-tab`}
-			>
-				<CodeEditor
-					bind:value={
-						() =>
-							view.id === 'rust'
-								? snippets[data.selected].code
-								: view.id === 'typescript'
-									? snippets[data.selected].typescript
-									: compiler.error ||
-										content ||
-										(compiler.pending
-											? ''
-											: view.id === 'diagnostics'
-												? '# No diagnostics'
-												: '# No declarations'),
-						(value) => {
-							if (view.id === 'rust') snippets[data.selected].code = value;
-							else if (view.id === 'typescript') snippets[data.selected].typescript = value;
-						}
+		<PanelTabs
+			id={`${panelId}-${side}`}
+			label={`${side} pane views`}
+			tabs={tabs[side].map((item) => ({ ...item, controls: `${panelId}-${side}-view` }))}
+			value={view.id}
+			onSelect={(value) => open(value, side)}
+			activeClass="bg-inherit"
+			class="shrink-0 bg-inherit"
+		/>
+		<EditorPane
+			bind:ref={panelRefs[side]}
+			id={`${panelId}-${side}-view`}
+			value={view.id}
+			labelledby={`${panelId}-${side}-${view.id}-tab`}
+		>
+			<CodeEditor
+				bind:value={
+					() =>
+						view.id === 'rust'
+							? snippets[data.selected].code
+							: view.id === 'typescript'
+								? snippets[data.selected].typescript
+								: compiler.error ||
+									content ||
+									(compiler.pending
+										? ''
+										: view.id === 'diagnostics'
+											? '# No diagnostics'
+											: '# No declarations'),
+					(value) => {
+						if (view.id === 'rust') snippets[data.selected].code = value;
+						else if (view.id === 'typescript') snippets[data.selected].typescript = value;
 					}
-					language={!source && (compiler.error || !content) ? 'text' : view.language}
-					filename={view.filename}
-					tabIndex={-1}
-					readOnly={!source}
-					markers={view.id === 'rust' ? compiler.markers : []}
-					initialPreview={view.id === 'rust'
-						? data.preview.rust
-						: view.id === 'typescript'
-							? data.preview.typescript
-							: undefined}
-					languageService={view.id === 'rust' ? compiler : undefined}
-					extraLibs={compiler.libraries}
-					onNavigate={() => open(view.id, side)}
-					class="bg-inherit"
-				/>
-			</EditorPane>
-		</PlasmaAnimation>
+				}
+				language={!source && (compiler.error || !content) ? 'text' : view.language}
+				filename={view.filename}
+				tabIndex={-1}
+				readOnly={!source}
+				markers={view.id === 'rust' ? compiler.markers : []}
+				initialPreview={view.id === 'rust'
+					? data.preview.rust
+					: view.id === 'typescript'
+						? data.preview.typescript
+						: undefined}
+				languageService={view.id === 'rust' ? compiler : undefined}
+				extraLibs={compiler.libraries}
+				onNavigate={() => open(view.id, side)}
+				class="bg-inherit"
+			/>
+		</EditorPane>
 	</div>
 {/snippet}
 

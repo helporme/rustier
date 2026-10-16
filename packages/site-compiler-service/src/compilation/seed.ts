@@ -10,7 +10,6 @@ await symlink("/opt/cargo/bin/wasm-bindgen", path.join(tools, "wasm-bindgen"));
 
 const result = await compile({
   code: 'pub fn hello() -> String { "Hello, world!".to_owned() }',
-  modules: [],
 });
 
 if (result.type !== "ok") throw new Error(result.message);

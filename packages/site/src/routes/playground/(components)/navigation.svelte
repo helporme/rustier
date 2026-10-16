@@ -5,6 +5,7 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { Button } from '#lib/ui/components/button';
 	import { Toggle } from '#lib/ui/components/toggle';
+	import { ThemeToggle } from '#lib/ui/components/theme-toggle';
 	import { cn } from '#lib/ui/utils';
 
 	let {
@@ -58,7 +59,7 @@
 	<div aria-hidden="true" class="overflow-hidden whitespace-nowrap text-on-surface-alt">
 		{'-'.repeat(80)}
 	</div>
-	<h1 class="pl-[1ch] font-normal">rustier</h1>
+	<h1 class="pl-[1ch] font-normal">rustier playground (beta)</h1>
 	<div aria-hidden="true" class="overflow-hidden whitespace-nowrap text-on-surface-alt">
 		{'-'.repeat(80)}
 	</div>
@@ -73,7 +74,7 @@
 			class="gap-[1ch]"
 		>
 			<span aria-hidden="true">[>]</span>
-			Build
+			Run
 		</Button>
 		<Toggle
 			color="magenta"
@@ -82,8 +83,9 @@
 			class="gap-[1ch]"
 		>
 			<span aria-hidden="true">[?]</span>
-			Show IR
+			Inspect
 		</Toggle>
+		<ThemeToggle />
 	</nav>
 	<div aria-hidden="true" class="overflow-hidden whitespace-nowrap text-on-surface-alt">
 		{'-'.repeat(80)}

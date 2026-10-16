@@ -46,12 +46,15 @@ RUN mkdir -p packages/site/.rustier/tools/wasm_bindgen/bin \
 FROM toolchain AS site-build
 COPY packages/site/tsconfig.json packages/site/vite.config.ts ./packages/site/
 COPY packages/site/dev ./packages/site/dev
+COPY packages/site/scripts/cache-examples.ts ./packages/site/scripts/cache-examples.ts
 COPY packages/site/src ./packages/site/src
 COPY packages/site/static ./packages/site/static
 RUN --mount=type=cache,target=/app/packages/site/target,sharing=locked \
     --mount=type=cache,target=/app/packages/site/.rustier,sharing=locked \
     mkdir -p packages/site/.rustier/tools/wasm_bindgen/bin \
+      packages/site/.rustier/example-build/.rustier/tools/wasm_bindgen/bin \
     && ln -sf /opt/cargo/bin/wasm-bindgen packages/site/.rustier/tools/wasm_bindgen/bin/wasm-bindgen \
+    && ln -sf /opt/cargo/bin/wasm-bindgen packages/site/.rustier/example-build/.rustier/tools/wasm_bindgen/bin/wasm-bindgen \
     && pnpm --filter site build \
     && pnpm --filter site deploy --prod --legacy /site
 

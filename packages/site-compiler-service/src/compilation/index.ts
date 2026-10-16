@@ -74,7 +74,7 @@ class CompilationPool {
   }
 
   /**
-   * Queues one build per session, reusing its idle seat when available.
+   * Queues one build per session, reusing its idle seat when available
    * Queue capacity and wait time are bounded; cancellation also stops active work.
    */
   schedule(

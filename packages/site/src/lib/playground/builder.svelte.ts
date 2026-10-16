@@ -1,6 +1,9 @@
 import { build } from './build.remote';
 import { execute, type ExecutionLevel } from './execution';
+import type { BuildResult, ExampleCompilation } from './compilation-schema';
+import { SvelteMap } from 'svelte/reactivity';
 
+const CACHED_RUN_DELAY_MS = 300;
 const colors = { log: '', info: '', debug: '\x1b[2m', warn: '\x1b[33m', error: '\x1b[31m' };
 export type BuildStatus = 'idle' | 'building' | 'running' | 'done' | 'failed';
 
@@ -13,7 +16,7 @@ export class Builder {
 		this.status === 'idle'
 			? ''
 			: [
-					`# ${this.summary}`,
+					...(this.summary ? [`# ${this.summary}`] : []),
 					...(this.failure ? [this.failure] : []),
 					...this.entries.map(({ level, text }) =>
 						colors[level] ? `${colors[level]}${text}\x1b[0m` : text
@@ -22,6 +25,12 @@ export class Builder {
 	);
 	#urls: string[] = [];
 	#run = 0;
+	#examples = new SvelteMap<string, ExampleCompilation['result']>();
+	#latest?: { code: string; result: Promise<BuildResult> };
+
+	seed(example: ExampleCompilation) {
+		this.#examples.set(example.code, example.result);
+	}
 
 	clear = () => {
 		this.#run++;
@@ -37,22 +46,51 @@ export class Builder {
 		const run = this.#run;
 
 		this.status = 'building';
-		this.summary = 'Building lib.rs';
+		this.summary = 'Preparing run';
 		this.#urls.forEach((url) => URL.revokeObjectURL(url));
 		this.#urls = [];
 
 		try {
 			const { transpile } = await import('../ui/components/code-editor/monaco');
+
+			if (run !== this.#run) return;
+
 			const code = await transpile(typescript, 'index.ts');
-			const modules = [...code.matchAll(/(['"])(\$rust\/[^'"]+)\1/g)].map((match) => match[2]);
-			const result = await build({ code: rust, modules });
-			const duration = `${(result.duration / 1000).toFixed(2)} s`;
+
+			if (run !== this.#run) return;
+
+			const example = this.#examples.get(rust);
+			const cached = example
+				? Promise.resolve(example)
+				: this.#latest?.code === rust
+					? this.#latest.result
+					: undefined;
+			const compilation = cached ?? build({ code: rust });
+
+			if (!cached) {
+				this.summary = 'Compiling lib.rs';
+				this.#latest = { code: rust, result: compilation };
+			}
+
+			let result: BuildResult;
+
+			try {
+				const delay = cached
+					? new Promise<void>((resolve) => setTimeout(resolve, CACHED_RUN_DELAY_MS))
+					: undefined;
+
+				[result] = await Promise.all([compilation, delay]);
+			} catch (cause) {
+				if (this.#latest?.result === compilation) this.#latest = undefined;
+
+				throw cause;
+			}
 
 			if (run !== this.#run) return;
 
 			if (result.type === 'err') {
 				this.status = 'failed';
-				this.summary = `Build failed in ${duration}`;
+				this.summary = 'Compilation failed';
 				this.failure = result.message;
 				return;
 			}
@@ -77,16 +115,29 @@ export class Builder {
 			);
 
 			this.status = 'running';
-			this.summary = `Built in ${duration}`;
+			this.summary = '';
 
 			const namespaces: Record<string, object> = await import(/* @vite-ignore */ bundle);
+
+			if (run !== this.#run) return;
+
 			const wrappers = Object.fromEntries(
-				Object.entries(result.exports).map(([specifier, name]) => [
-					specifier,
-					url(
-						`import { ${name} } from ${JSON.stringify(bundle)};\nexport const { ${Object.keys(namespaces[name]).join(', ')} } = ${name};\n`
-					)
-				])
+				Object.entries(result.exports).map(([specifier, name]) => {
+					const names = Object.keys(namespaces[name]);
+					const bindings = names
+						.map((key, index) => `const e${index} = ${name}[${JSON.stringify(key)}];`)
+						.join('\n');
+					const exports = names
+						.map((key, index) => `e${index} as ${JSON.stringify(key)}`)
+						.join(', ');
+
+					return [
+						specifier,
+						url(
+							`import { ${name} } from ${JSON.stringify(bundle)};\n${bindings}\nexport { ${exports} };\n`
+						)
+					];
+				})
 			);
 
 			await execute(code, wrappers, (entry) => {
@@ -98,7 +149,7 @@ export class Builder {
 			if (run !== this.#run) return;
 
 			this.status = 'failed';
-			this.summary = 'Build failed';
+			this.summary = 'Run failed';
 			this.failure = error instanceof Error ? error.message : String(error);
 		}
 	};

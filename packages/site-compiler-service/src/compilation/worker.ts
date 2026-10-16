@@ -13,7 +13,6 @@ await cp("/opt/playground", "/work/project", {
 
 const warmed = await compile({
   code: await readFile("/work/project/src/lib.rs", "utf8"),
-  modules: [],
 });
 
 if (warmed.type !== "ok") throw new Error(warmed.message);

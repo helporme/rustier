@@ -15,21 +15,35 @@ impl<'db> FacadeClassTemplate<'db> {
         let name = self.name(db);
         let branches = spaced(self.mappings(db).iter().map(|(generics, class)| {
             let arity = generics.len();
+            let required = class.src_type(db).minimum_generic_arity(db);
+            let length = fragment(move |p| {
+                if required == arity {
+                    frag!(types.length === {arity}).apply(p);
+                } else {
+                    frag!(types.length >= { required } && types.length <= { arity }).apply(p);
+                }
+            });
             let conditions = fragment(move |p| {
                 for (index, generic) in generics.iter().enumerate() {
-                    match generic {
+                    let equality = fragment(move |p| match generic {
                         FacadeGeneric::Symbol(symbol) => {
-                            frag!(~&&~ types[{index}] === {doubles(symbol)}).apply(p);
+                            frag!(types[{index}] === {doubles(symbol)}).apply(p);
                         }
                         FacadeGeneric::Class(class) => {
-                            frag!(~&&~ types[{index}] === {class.import_alias(db)}).apply(p);
+                            frag!(types[{index}] === {class.import_alias(db)}).apply(p);
                         }
+                    });
+
+                    if index < required {
+                        frag!(~&&~{equality}).apply(p);
+                    } else {
+                        frag!(~&&~(types.length <= {index} || {equality})).apply(p);
                     }
                 }
             });
 
             frag!(
-                if (types.length === {arity}{conditions}) {{
+                if ({length}{conditions}) {{
                     return~{class.import_alias(db)};
                 }}
             )

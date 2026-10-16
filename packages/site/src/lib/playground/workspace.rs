@@ -17,10 +17,13 @@ use ra_ap_ide_db::{
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 use ra_ap_paths::Utf8PathBuf;
 use rustier::compiler::{
-    codegen::{js::JsCodegenPaths, shim::Platform},
+    codegen::js::JsCodegenPaths,
     diag::Theme,
     inputs::LocalCrates,
-    ir::rust::{Rust, usages::UsageGraph},
+    ir::{
+        abi::transport::{AbiTransport, WasmMemory, WasmTransport},
+        rust::{Rust, usages::UsageGraph},
+    },
     path::FilePath,
 };
 use triomphe::Arc;
@@ -247,16 +250,16 @@ impl Workspace {
                 .iter()
                 .find(|crate_| crate_.is_local(db))
                 .expect("workspace must contain its source crate");
-            let shim = rust.shim_reachable_from(db, UsageGraph::new(db, [source.root(db)]));
-            let module = source.root(db).shim_reachable_from(db, shim.usages(db));
+            let facade = rust.facade_reachable_from(db, UsageGraph::new(db, [source.root(db)]));
+            let module = source.root(db).facade_reachable_from(db, facade.usages(db));
 
-            let mut ts_code = module.decals(db).render_ts_mod(db).clone();
+            let mut ts_code = module.render_ts_mod(db).clone();
             ts_code.push_str("\n//# sourceMappingURL=lib.rs.d.ts.map\n");
 
             let mut diagnostics = analyzer_report;
             let mut diagnostic_count = rust_markers.len() as u32;
 
-            for diagnostic in shim.check(db) {
+            for diagnostic in facade.check(db) {
                 diagnostic_count += 1;
 
                 if !diagnostics.is_empty() {
@@ -272,18 +275,25 @@ impl Workspace {
 
             Compilation {
                 js_code: module
-                    .facade(db)
                     .render(
                         db,
                         JsCodegenPaths {
-                            ffi_js_mod_id: "$rust/unstable!/wasm".to_owned(),
+                            abi_js_mod_id: "$rust/unstable!/wasm".to_owned(),
                         },
                     )
                     .clone(),
-                rust_code: shim.render(db, Platform::Wasm).clone(),
+                rust_code: facade
+                    .runtime(db)
+                    .render(
+                        db,
+                        AbiTransport::Wasm(WasmTransport {
+                            memory: WasmMemory::x32,
+                        }),
+                    )
+                    .clone(),
                 ts_code,
-                ambient_ts_code: shim.decals(db).render_ambient_ts_mods(db),
-                ts_sourcemap: module.decals(db).render_sourcemap(db).clone(),
+                ambient_ts_code: facade.render_ambient_ts_mods(db),
+                ts_sourcemap: module.render_sourcemap(db).clone(),
                 diagnostics,
                 diagnostic_count,
                 rust_markers: EditorMarkers {

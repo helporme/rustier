@@ -55,6 +55,12 @@ pub struct BuildOpts {
     pub features: Option<Vec<String>>,
 }
 
+#[napi(object)]
+pub struct ServerModule {
+    pub path: String,
+    pub is_root: bool,
+}
+
 /// The rustier server.
 #[napi]
 pub struct Server {
@@ -259,6 +265,25 @@ impl Server {
                 .into_iter()
                 .cloned()
                 .map(ServerDiagnostic::from)
+                .collect()
+        })
+    }
+
+    /// JavaScript modules reachable from the current Rust API.
+    #[napi]
+    pub fn modules(&self) -> Vec<ServerModule> {
+        self.ws.with_db(|db| {
+            let project = self.ws.project(db);
+            let root = project.src_crate(db).root(db);
+
+            project
+                .reachable_facade(db)
+                .crates(db)
+                .flat_map(|crate_| crate_.all_modules(db))
+                .map(|module| ServerModule {
+                    path: module.virtual_path(db).to_owned(),
+                    is_root: module.src(db) == root,
+                })
                 .collect()
         })
     }

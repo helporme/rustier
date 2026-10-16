@@ -51,13 +51,10 @@
 	let instance = $state.raw<editor.IStandaloneCodeEditor>();
 	let decorations: editor.IEditorDecorationsCollection | undefined;
 	let monacoAPI: typeof import('monaco-editor/editor') | undefined;
-	let registerMap: typeof import('./monaco.js').registerSourceMap | undefined;
+	let retainLibrary: typeof import('./monaco.js').retainLibrary | undefined;
 	let retainModel: typeof import('./monaco.js').retainModel | undefined;
 	const models: Record<string, () => void> = {};
 	const viewStates: Record<string, editor.ICodeEditorViewState | null> = {};
-	let defaults:
-		| typeof import('monaco-editor/languages/features/typescript/register').typescriptDefaults
-		| undefined;
 	let mounted = $state(false);
 	let loading = $state(true);
 	let failed = $state(false);
@@ -104,13 +101,7 @@
 
 		import('./monaco.js')
 			.then(
-				async ({
-					monaco,
-					applyTheme,
-					typescriptDefaults,
-					registerSourceMap,
-					retainModel: retain
-				}) => {
+				async ({ monaco, applyTheme, retainLibrary: retainExtraLibrary, retainModel: retain }) => {
 					if (disposed) return;
 
 					const styles = getComputedStyle(container);
@@ -187,7 +178,7 @@
 						scrollBeyondLastLine: false,
 						scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, useShadows: false },
 						lineNumbers: 'off',
-						lineDecorationsWidth: 8,
+						lineDecorationsWidth: 0,
 						glyphMargin: false,
 						folding: false,
 						guides: { indentation: false, bracketPairs: false, highlightActiveIndentation: false },
@@ -224,8 +215,7 @@
 					});
 
 					monacoAPI = monaco;
-					defaults = typescriptDefaults;
-					registerMap = registerSourceMap;
+					retainLibrary = retainExtraLibrary;
 					decorations = codeEditor.createDecorationsCollection();
 					instance = codeEditor;
 
@@ -528,16 +518,11 @@
 
 	$effect(() => {
 		const libraries = extraLibs;
-		const languageDefaults = defaults;
-		const registerSourceMap = registerMap;
+		const retain = retainLibrary;
 
-		if (!instance || !languageDefaults || !registerSourceMap) return;
+		if (!instance || !retain) return;
 
-		const disposables = libraries.map(({ content, filePath }) =>
-			filePath.endsWith('.map')
-				? registerSourceMap(content, filePath)
-				: languageDefaults.addExtraLib(content, filePath)
-		);
+		const disposables = libraries.map(({ content, filePath }) => retain(content, filePath));
 
 		return () => disposables.forEach((disposable) => disposable.dispose());
 	});
@@ -545,7 +530,7 @@
 
 <div
 	class={twMerge(
-		'code-editor relative h-full min-h-0 w-full bg-surface text-on-surface',
+		'code-editor relative h-full min-h-0 w-full bg-surface p-2.5 text-on-surface',
 		'[&_.monaco-editor-overlaymessage]:animate-none! [&_.monaco-editor-overlaymessage_.anchor]:hidden! [&_.monaco-editor-overlaymessage_.message]:rounded-none! [&_.monaco-editor-overlaymessage_.message]:border-0! [&_.monaco-editor-overlaymessage_.message]:bg-surface-bright! [&_.monaco-editor-overlaymessage_.message]:text-on-surface! [&_.monaco-editor-overlaymessage_.message]:shadow-none!',
 		'[&_.cursors-layer_.cursor]:border-on-surface! [&_.cursors-layer_.cursor]:bg-on-surface! [&_.cursors-layer_.cursor]:text-surface!',
 		'[&_.cursors-layer:is(.cursor-block-outline-style,.cursor-underline-style,.cursor-underline-thin-style)_.cursor]:bg-transparent!',
@@ -570,9 +555,9 @@
 >
 	<div bind:this={container} class="h-full w-full"></div>
 	{#if loading || failed}
-		<div class="absolute inset-0 flex flex-col bg-inherit">
+		<div class="absolute inset-0 flex flex-col bg-inherit p-2.5">
 			{#if failed}
-				<p class="py-3 pl-2 text-on-surface-alt" role="alert">
+				<p class="pb-3 text-on-surface-alt" role="alert">
 					editor unavailable — highlighted text mode
 				</p>
 			{/if}
@@ -581,7 +566,7 @@
 					bind:this={preview}
 					aria-hidden={mounted}
 					aria-label={`${language} code editor`}
-					class="h-full overflow-hidden pl-2"
+					class="h-full overflow-hidden"
 					style:tab-size={language === 'rust'
 						? 4
 						: 2}>{#each tokens as line, index (index)}{#each line as token, tokenIndex (tokenIndex)}<span
@@ -612,7 +597,7 @@
 							preview.scrollLeft = event.currentTarget.scrollLeft;
 						}}
 						style:tab-size={language === 'rust' ? 4 : 2}
-						class="absolute inset-0 h-full w-full resize-none bg-transparent pl-2 text-transparent caret-on-surface outline-none selection:bg-(--editor-selection) selection:text-on-surface"
+						class="absolute inset-0 h-full w-full resize-none bg-transparent text-transparent caret-on-surface outline-none selection:bg-(--editor-selection) selection:text-on-surface"
 					></textarea>
 				{/if}
 			</div>
@@ -665,6 +650,9 @@
 		--vscode-menu-foreground: var(--color-on-surface);
 		--vscode-menu-selectionBackground: var(--color-selection);
 		--vscode-menu-selectionForeground: var(--color-on-surface);
+		--vscode-list-hoverBackground: var(--color-selection);
+		--vscode-list-hoverForeground: var(--color-on-surface);
+		--vscode-menu-selectionBorder: transparent;
 		--vscode-menu-separatorBackground: transparent;
 		--vscode-menu-border: transparent;
 

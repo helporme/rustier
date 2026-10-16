@@ -12,10 +12,6 @@ export const buildInputSchema = v.object({
 	code: v.pipe(
 		v.string(),
 		v.check((code) => new TextEncoder().encode(code).byteLength <= MAX_INPUT_BYTES)
-	),
-	modules: v.pipe(
-		v.array(v.pipe(v.string(), v.maxLength(256), v.regex(/^\$rust\/[A-Za-z0-9_:!/-]+$/))),
-		v.maxLength(64)
 	)
 });
 
@@ -47,3 +43,8 @@ export type CompilerResult = v.InferOutput<typeof compilerResultSchema>;
 export type BuildResult =
 	| (Omit<Extract<CompilerResult, { type: 'ok' }>, 'wasm'> & { wasm: Uint8Array })
 	| Extract<CompilerResult, { type: 'err' }>;
+
+export type ExampleCompilation = {
+	code: string;
+	result: Extract<BuildResult, { type: 'ok' }>;
+};

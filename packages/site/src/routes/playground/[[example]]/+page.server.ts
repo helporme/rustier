@@ -1,7 +1,14 @@
 import { error } from '@sveltejs/kit';
+import { Buffer } from 'node:buffer';
+import type { CompilerResult } from '#lib/playground/compilation-schema';
 import { examples } from '#lib/playground/examples';
 import { highlight } from '#lib/ui/highlight';
 import type { PageServerLoad } from './$types';
+
+const compiledExamples = import.meta.glob<{
+	code: string;
+	result: Extract<CompilerResult, { type: 'ok' }>;
+}>('/.rustier/example-results/*.json', { eager: true, import: 'default' });
 
 export const load = (({ params }) => {
 	const selected = params.example
@@ -13,9 +20,20 @@ export const load = (({ params }) => {
 	}
 
 	const example = examples[selected];
+	const compiled = compiledExamples[`/.rustier/example-results/${example.slug}.json`];
 
 	return {
 		selected,
+		compiled:
+			compiled?.code === example.code
+				? {
+						code: compiled.code,
+						result: {
+							...compiled.result,
+							wasm: new Uint8Array(Buffer.from(compiled.result.wasm, 'base64'))
+						}
+					}
+				: undefined,
 		preview: {
 			rust: {
 				value: example.code,

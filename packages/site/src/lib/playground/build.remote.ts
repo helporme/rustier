@@ -66,6 +66,8 @@ export const build = command(buildInputSchema, async (input): Promise<BuildResul
 
 		if (!response.ok) {
 			if (response.status === 429) error(429, 'The compiler is busy; try again shortly');
+			if (response.status === 503 || response.status === 504)
+				error(503, 'The compiler service is unavailable; try again shortly');
 
 			error(502, 'The compiler service rejected the request');
 		}

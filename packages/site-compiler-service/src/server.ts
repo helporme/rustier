@@ -48,8 +48,6 @@ app.post("/build", {
     const disconnect = () => {
       if (!reply.raw.writableFinished) controller.abort();
     };
-    const started = performance.now();
-
     reply.raw.once("close", disconnect);
 
     try {
@@ -61,11 +59,10 @@ app.post("/build", {
           .code(429)
           .send({ error: cause.message });
 
-      return {
-        type: "err",
-        message: cause instanceof Error ? cause.message : "Compilation failed",
-        duration: performance.now() - started,
-      };
+      return reply.code(503).send({
+        error:
+          cause instanceof Error ? cause.message : "Compiler worker failed",
+      });
     } finally {
       reply.raw.off("close", disconnect);
     }

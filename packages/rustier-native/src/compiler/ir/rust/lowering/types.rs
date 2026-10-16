@@ -221,6 +221,54 @@ pub(super) fn check_type(
 #[salsa::tracked]
 impl<'db> Type<'db> {
     #[salsa::tracked]
+    pub fn minimum_generic_arity(self, db: &'db dyn Db) -> usize {
+        let type_ = self.hir(db);
+        let Some(adt) = type_.as_adt() else {
+            return 0;
+        };
+        let params = GenericDef::Adt(adt)
+            .params(db)
+            .into_iter()
+            .filter_map(|param| match param {
+                HirGenericParam::TypeParam(param) => Some(param),
+                _ => None,
+            });
+        let args: Vec<_> = type_
+            .type_arguments()
+            .enumerate()
+            .zip(params)
+            .filter(|(_, param)| !param.is_unstable(db) || param.default(db).is_none())
+            .collect();
+        let mut required = args.len();
+
+        for ((index, arg), param) in args.into_iter().rev() {
+            let Some(default) = param.default(db) else {
+                break;
+            };
+            let prefix = type_
+                .type_arguments()
+                .take(index)
+                .map(|arg| arg.rebase_into_or_error(db, &type_));
+            let default = default.instantiate(prefix).rebase_into_or_error(db, &type_);
+
+            if arg.contains_unknown()
+                || default.contains_unknown()
+                || !arg.generic_params(db).is_empty()
+                || !default.generic_params(db).is_empty()
+                || !default
+                    .try_rebase_into(db, &arg)
+                    .is_some_and(|default| arg.could_unify_with(db, &default))
+            {
+                break;
+            }
+
+            required -= 1;
+        }
+
+        required
+    }
+
+    #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_is_from_alloc_crate(self, db: &'db dyn Db) -> bool {
         self.hir(db)
             .strip_references()
