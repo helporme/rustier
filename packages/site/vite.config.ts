@@ -28,9 +28,5 @@ export default defineConfig({
 	},
 	build: {
 		cssTarget: ['chrome123', 'edge123', 'firefox120', 'safari17.5', 'ios17.5']
-	},
-	worker: {
-		plugins: () => [rustier()],
-		format: 'es'
 	}
 });

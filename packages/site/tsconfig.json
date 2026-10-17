@@ -5,11 +5,5 @@
 		"types": ["$app/types", "node"],
 		"rootDirs": [".", ".svelte-kit/types", ".rustier/types"]
 	},
-	"include": [
-		"src",
-		"deploy/cache-examples.ts",
-		"vite.config.ts",
-		".rustier/types",
-		".rustier/ambient.d.ts"
-	]
+	"include": ["src", "vite.config.ts", ".rustier/types", ".rustier/ambient.d.ts"]
 }

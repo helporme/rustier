@@ -1,4 +1,1 @@
-pub mod lib {
-    #[path = "playground/workspace.rs"]
-    pub mod workspace;
-}
+// rust code to use

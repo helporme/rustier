@@ -1,7 +1,0 @@
-services:
-  compiler:
-    restart: 'no'
-    networks:
-      - default
-    ports:
-      - '${COMPILER_HOST:-127.0.0.1}:${COMPILER_PORT:-3001}:3001'

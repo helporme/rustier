@@ -1,4 +1,0 @@
-services:
-  compiler:
-    security_opt:
-      - apparmor=site-compiler-service

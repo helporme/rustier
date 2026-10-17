@@ -1,18 +1,26 @@
 # Rustier agent guide
 
+## Validation
+
+- After making changes in this package, run `pnpm check` from `packages/site`. 
+
 ## Page rules
+
 - Break the big `+page.svelte` on subcomponents. In case you need a subcomponent used specifically for this page, put it under `(components)/` folder near the `+page.svelte`.
 - Keep pages focused on layout, view metadata, and user/URL interactions. Put application lifecycle and effects in separate classes with stateful fields under the `(components)` folder as well.
 
 ## Svelte rules
+
 - Put static constants and exported types in `<script lang="ts" module>`. Keep controllers, IDs, and editable state instance-local.
 - Profile before adding performance workarounds. Avoid arbitrary delays, frame chains, and speculative warm-ups; remove ineffective workarounds rather than moving them elsewhere.
 - Validate SSR, hydration, and interactive behaviour separately using playwright or other tooling.
 
 ## Compoent rules
+
 - Keep typography and colours in the global theme, do not add new ad-hoc anywhere without explicit developer consent.
 - Keep reusable UI components inside `lib/ui/components` domain-independent and compose their content with snippets.
 - Always use a `shadcn-svelte` for component basis, do not came up with your custom component first if there is some basic variant of it in `shadcn-svelte`. Use the cli to install the component and restyle it.
+- Maintain a "UI Playground" page at `/ui` route with all components, color tokens, fonts, etc. simillar to https://www.radix-ui.com/themes/playground.
 
 ## Svelte MCP
 
