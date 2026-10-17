@@ -425,7 +425,7 @@ The following are not yet supported or remain limited. This list is not exhausti
 - Bindings for traits and trait impls. Trait bounds on inherent impls are supported.
 - Mirroring Rust `use` statements and re-exports in generated JS modules.
 - Passing arbitrary JS values into Rust, beyond the supported types and conversions.
-- Idiomatic JS representations for C-like enums, unit structs, `Option`, `Vec<T>`, `HashMap<K, V>`, and other collections. These currently use generated Rust-style bindings where supported.
+- Idiomatic JS representations for C-like enums, unit structs `Vec<T>`, `HashMap<K, V>`, and other collections. These currently use generated Rust-style bindings where supported.
 - Rust code tree-shaking based on JS usage.
 
 ## How it works
