@@ -1,6 +1,5 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 
-/** Accepts only server-signed session IDs; rotating the compiler token invalidates old leases. */
 export function compilationSession(cookie: string | undefined, secret: string) {
 	const match = cookie?.match(
 		/^([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.([A-Za-z0-9_-]{43})$/

@@ -6,104 +6,30 @@
 
 	--color-*: initial;
 
-	--color-surface: light-dark(hsl(310 4% 97%), hsl(310 4% 8%));
-	--color-surface-dim: light-dark(
-		hsl(from var(--color-surface) h s calc(l - 3)),
-		hsl(from var(--color-surface) h s calc(l - 2))
-	);
-	--color-surface-dimest: light-dark(
-		hsl(from var(--color-surface) h s calc(l - 6)),
-		hsl(from var(--color-surface) h s calc(l - 3.5))
-	);
-	--color-surface-bright: light-dark(
-		hsl(from var(--color-surface) h s calc(l + 1)),
-		hsl(from var(--color-surface) h s calc(l + 3))
-	);
-	--color-surface-brightest: light-dark(
-		hsl(from var(--color-surface) h s calc(l + 2)),
-		hsl(from var(--color-surface) h s calc(l + 6))
-	);
+	--color-background: light-dark(#eeeae7, #121011);
+	--color-surface: light-dark(#f8f5f2, #201c1e);
+	--color-surface-bright: light-dark(#ffffff, #2b2629);
+	--color-surface-dim: light-dark(#f1edeb, #191618);
 	--color-on-surface: light-dark(#332d2a, #f2ebe7);
 	--color-on-surface-alt: light-dark(#625b57, #bfb4ae);
-	--color-selection: var(--color-surface-dim);
 
-	--color-red: light-dark(#a62b22, #ee8e82);
-	--color-red-container: light-dark(
-		hsl(from var(--color-red) h calc(s * 0.5) 90),
-		hsl(from var(--color-red) h calc(s * 0.5) 22)
-	);
-	--color-on-red: light-dark(#fff6f2, #35110c);
-	--color-on-red-container: light-dark(
-		hsl(from var(--color-red) h s calc(l - 10)),
-		hsl(from var(--color-red) h s calc(l + 10))
-	);
-
-	--color-green: light-dark(#176c3d, #77cc99);
-	--color-green-container: light-dark(
-		hsl(from var(--color-green) h calc(s * 0.5) 90),
-		hsl(from var(--color-green) h calc(s * 0.5) 22)
-	);
-	--color-on-green: light-dark(#f2fff3, #082c19);
-	--color-on-green-container: light-dark(
-		hsl(from var(--color-green) h s calc(l - 10)),
-		hsl(from var(--color-green) h s calc(l + 10))
-	);
-
-	--color-yellow: light-dark(#715500, #ddc66e);
-	--color-yellow-container: light-dark(
-		hsl(from var(--color-yellow) h calc(s * 0.5) 90),
-		hsl(from var(--color-yellow) h calc(s * 0.5) 22)
-	);
-	--color-on-yellow: light-dark(#fff9df, #2e2303);
-	--color-on-yellow-container: light-dark(
-		hsl(from var(--color-yellow) h s calc(l - 10)),
-		hsl(from var(--color-yellow) h s calc(l + 10))
-	);
-
-	--color-blue: light-dark(#00658f, #72c5ea);
-	--color-blue-container: light-dark(
-		hsl(from var(--color-blue) h calc(s * 0.5) 90),
-		hsl(from var(--color-blue) h calc(s * 0.5) 22)
-	);
-	--color-on-blue: light-dark(#f2fbff, #082935);
-	--color-on-blue-container: light-dark(
-		hsl(from var(--color-blue) h s calc(l - 10)),
-		hsl(from var(--color-blue) h s calc(l + 10))
-	);
-
-	--color-magenta: light-dark(#82476f, #dca0c9);
-	--color-magenta-container: light-dark(
-		hsl(from var(--color-magenta) h calc(s * 0.5) 90),
-		hsl(from var(--color-magenta) h calc(s * 0.5) 22)
-	);
-	--color-on-magenta: light-dark(#fff5fc, #321128);
-	--color-on-magenta-container: light-dark(
-		hsl(from var(--color-magenta) h s calc(l - 10)),
-		hsl(from var(--color-magenta) h s calc(l + 10))
-	);
-
-	--color-primary: var(--color-magenta);
-	--color-primary-container: var(--color-magenta-container);
-	--color-on-primary: var(--color-on-magenta);
-	--color-on-primary-container: var(--color-on-magenta-container);
-
-	--color-cyan: light-dark(#006873, #72d1d1);
-	--color-cyan-container: light-dark(
-		hsl(from var(--color-cyan) h calc(s * 0.5) 90),
-		hsl(from var(--color-cyan) h calc(s * 0.5) 22)
-	);
-	--color-on-cyan: light-dark(#efffff, #092c2c);
-	--color-on-cyan-container: light-dark(
-		hsl(from var(--color-cyan) h s calc(l - 10)),
-		hsl(from var(--color-cyan) h s calc(l + 10))
-	);
+	--color-green-surface: light-dark(#d9f0df, #163824);
+	--color-on-green-surface: light-dark(#176c3d, #77cc99);
+	--color-red-surface: light-dark(#fbe0da, #44221e);
+	--color-on-red-surface: light-dark(#a62b22, #ee8e82);
+	--color-blue-surface: light-dark(#d8edf8, #153542);
+	--color-on-blue-surface: light-dark(#00658f, #72c5ea);
+	--color-yellow-surface: light-dark(#f6edc8, #3b3218);
+	--color-on-yellow-surface: light-dark(#715500, #ddc66e);
+	--color-magenta-surface: light-dark(#f2dfed, #3d2536);
+	--color-on-magenta-surface: light-dark(#82476f, #dca0c9);
+	--color-cyan-surface: light-dark(#d3efee, #153a3a);
+	--color-on-cyan-surface: light-dark(#006873, #72d1d1);
 }
-
-@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
 	color-scheme: light dark;
-	background-color: var(--color-surface);
+	background-color: var(--color-background);
 	color: var(--color-on-surface);
 	font-size: 100%;
 	line-height: 1.25;
@@ -111,11 +37,7 @@
 	font-variant-ligatures: none;
 }
 
-.dark {
-	color-scheme: dark;
-}
-
 ::selection {
-	background-color: var(--color-selection);
-	color: var(--color-on-surface);
+	background-color: var(--color-magenta-surface);
+	color: var(--color-on-magenta-surface);
 }

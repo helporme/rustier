@@ -4,4 +4,4 @@ services:
     networks:
       - default
     ports:
-      - '127.0.0.1:${COMPILER_PORT:-3001}:3001'
+      - '${COMPILER_HOST:-127.0.0.1}:${COMPILER_PORT:-3001}:3001'

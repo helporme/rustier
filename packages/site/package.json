@@ -4,7 +4,7 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"dev": "pnpm run cache:examples && vite dev",
+		"dev": "vite dev",
 		"deploy": "node deploy/deploy.mjs",
 		"build": "pnpm run cache:examples && vite build",
 		"cache:examples": "node deploy/cache-examples.ts",

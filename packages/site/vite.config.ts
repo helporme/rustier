@@ -1,13 +1,13 @@
 import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import rustier from 'rustier/vite';
-import { devCompilerService } from '../site-compiler-service/vite.ts';
 
-export default defineConfig(({ command, isPreview }) => ({
+export default defineConfig({
+	envDir: fileURLToPath(new URL('../../', import.meta.url)),
 	plugins: [
-		command === 'serve' && !isPreview && devCompilerService(),
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {
@@ -33,4 +33,4 @@ export default defineConfig(({ command, isPreview }) => ({
 		plugins: () => [rustier()],
 		format: 'es'
 	}
-}));
+});
