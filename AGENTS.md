@@ -1,28 +1,8 @@
-## Rust
+# Rustier agent guide
 
-- Do not add tests unless requested. You may add temporary tests during implementation, but remove them before finishing.
-- Do not spawn subagents unless requrested.
-- Do not introduce utility functions under 10 lines if they are used a few times. Inline them instead.
-- All code is private, there are no breaking changes.
-- Avoid adding assertions.
-- Do not add comments unless requested.
-- Add blank lines between logical groups of statements in generated and edited Rust code, especially between setup, checks, traversal, and final returns.
-- When a function returns `Result`, its error type should cover exactly the errors that function can produce. Prefer fine-grained error types over a single module-wide error type.
-- When generating source code, prefer `frag!()` over `format!()` whenever possible to avoid intermediate allocations. Prefer `IntoIterator` over vectors where possible, adding `+ Clone` to `IntoIter` when needed. Only materialize an owned `String` when required by an API.
-- In `frag!`, write source tokens directly; use `{expr}` for interpolation, `{{ ... }}` for braces, `~` for spaces, and `@` for newlines.
+This guide is for AI agents working in the repository. The rules are intended to force the preferred code style by maintainers.
 
-### Module ordering
+**Important:** Read the ./README.md for more details about the project, read each `package/*/AGENTS.md` file if you are working on it.
 
-Order Rust module members roughly as follows:
-
-1. Module documentation and attributes
-2. `use` imports
-3. Constants and statics
-4. Type-centric items:
-   - Type definition (`struct`, `enum`, `trait`, etc.)
-   - Inherent `impl` blocks
-   - Trait `impl` blocks
-   - Public free functions
-   - Private helper functions
-   - Other related items
-5. Tests
+## General rules
+- Never ever change the README.md or any other public documentaiton without consent. Notify the developer about possible outdated information instead.
