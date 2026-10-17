@@ -10,7 +10,7 @@ use crate::compiler::{
             FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeClassTemplate,
             FacadeFieldDiscriminated, FacadeFieldDiscriminator, FacadeFieldPlain,
             FacadeFreeFunction, FacadeGeneric, FacadeMember, FacadeMethod, FacadeModule,
-            coerce::{FacadeDiscriminatedCoerceFunction, FacadePlainCoerceFunction},
+            coerce::{FacadeCoerce, FacadeDiscriminatedCoerceFunction, FacadePlainCoerceFunction},
             type_js::FacadeTypeJs,
         },
         runtime::RuntimeExport,
@@ -124,6 +124,34 @@ impl<'db> FacadeMethod<'db> {
     }
 }
 
+impl<'db> FacadeCoerce<'db> {
+    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItemJs<'db>> + 'db {
+        match self {
+            Self::Plain(coerce) => Either::Left(coerce.imports(db).into_iter()),
+            Self::Discriminated(coerce) => Either::Left(coerce.imports(db).into_iter()),
+            Self::Option(coerce) => {
+                let imports = [
+                    FacadeImportItemJs::AbiFunction(coerce.some(db).abi_coerce(db)),
+                    FacadeImportItemJs::AbiFunction(coerce.none(db).abi_coerce(db)),
+                    FacadeImportItemJs::FacadeClass(self.class(db)),
+                ];
+                let payload_imports =
+                    coerce
+                        .some(db)
+                        .fields(db)
+                        .filter_map(|field| match field.type_js(db) {
+                            FacadeTypeJs::Class(class) => {
+                                Some(FacadeImportItemJs::FacadeClass(class))
+                            }
+                            _ => None,
+                        });
+
+                Either::Right(imports.into_iter().chain(payload_imports))
+            }
+        }
+    }
+}
+
 impl<'db> FacadePlainCoerceFunction<'db> {
     fn imports(self, db: &'db dyn Db) -> Vec<FacadeImportItemJs<'db>> {
         let class = FacadeClass::Plain(self.class(db));
@@ -187,6 +215,19 @@ impl<'db> FacadeClass<'db> {
             Self::Plain(class) => Either::Left(class.imports(db)),
             Self::Discriminated(class) => Either::Right(class.imports(db)),
         })
+        .chain(
+            self.coerce(db)
+                .into_iter()
+                .flat_map(move |coerce| coerce.imports(db)),
+        )
+        .chain(
+            match self {
+                Self::Plain(_) => None,
+                Self::Discriminated(class) => Some(class.discriminator(db)),
+            }
+            .into_iter()
+            .flat_map(move |discriminator| discriminator.imports(db)),
+        )
         .chain(std::iter::once(FacadeImportItemJs::AbiFunction(
             self.drop_handle_fn(db).abi(db),
         )))
@@ -198,11 +239,6 @@ impl<'db> FacadeClassPlain<'db> {
         self.fields(db)
             .flat_map(|field| field.imports(db))
             .chain(self.methods(db).flat_map(|method| method.imports(db)))
-            .chain(
-                self.coerce(db)
-                    .into_iter()
-                    .flat_map(move |coerce| coerce.imports(db)),
-            )
     }
 }
 
@@ -212,12 +248,6 @@ impl<'db> FacadeClassDiscriminated<'db> {
             .iter()
             .flat_map(|field| field.imports(db))
             .chain(self.methods(db).flat_map(|method| method.imports(db)))
-            .chain(
-                self.coerce(db)
-                    .into_iter()
-                    .flat_map(move |coerce| coerce.imports(db)),
-            )
-            .chain(self.discriminator(db).imports(db))
     }
 }
 

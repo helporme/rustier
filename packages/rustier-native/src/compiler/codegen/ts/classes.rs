@@ -56,11 +56,11 @@ impl FragmentOnce for PlainClassFragment<'_> {
                 rendered_method = true;
             }
 
-            if let Some(coerce) = class.coerce(db) {
+            if let Some(coerce) = FacadeClass::Plain(class).coerce(db) {
                 if !fields.is_empty() || rendered_method {
                     blank().apply(p);
                 }
-                FacadeCoerce::Plain(coerce).render_fn_ts(db, true).apply(p);
+                coerce.render_fn_ts(db, true).apply(p);
                 rendered_method = true;
             }
 
@@ -87,9 +87,9 @@ impl FragmentOnce for PlainClassFragment<'_> {
 
         let plain = FacadeClass::Plain(class).render_plain_body_ts(db);
         let coerce_type = fragment(|p| {
-            if let Some(coerce) = class.coerce(db) {
+            if let Some(coerce) = FacadeClass::Plain(class).coerce(db) {
                 frag!(@@).apply(p);
-                FacadeCoerce::Plain(coerce).render_coerce_ts(db).apply(p);
+                coerce.render_coerce_ts(db).apply(p);
             }
         });
 
@@ -136,9 +136,9 @@ impl FragmentOnce for DiscriminatedClassFragment<'_> {
             .filter(|method| method.is_static(db))
             .map(|method| method.render_in_object_ts(db))
             .chain(
-                class
+                FacadeClass::Discriminated(class)
                     .coerce(db)
-                    .map(|coerce| FacadeCoerce::Discriminated(coerce).render_fn_ts(db, false)),
+                    .map(|coerce| coerce.render_fn_ts(db, false)),
             );
 
         let static_members = curlies(fragment(move |p| {
@@ -189,11 +189,9 @@ impl FragmentOnce for DiscriminatedClassFragment<'_> {
         }
 
         let coerce_type = fragment(move |p| {
-            if let Some(coerce) = class.coerce(db) {
+            if let Some(coerce) = FacadeClass::Discriminated(class).coerce(db) {
                 frag!(@@).apply(p);
-                FacadeCoerce::Discriminated(coerce)
-                    .render_coerce_ts(db)
-                    .apply(p);
+                coerce.render_coerce_ts(db).apply(p);
             }
         });
 
@@ -229,11 +227,11 @@ impl<'db> FacadeCoerce<'db> {
     }
 
     fn render_coerce_ts(self, db: &'db dyn Db) -> impl FragmentOnce + 'db {
-        fragment(move |p| match self.class(db) {
-            FacadeClass::Plain(_) => {
+        fragment(move |p| match self {
+            Self::Plain(_) => {
                 frag!(export type Coerce = ~{self.class(db).render_coerce_body_ts(db)};).apply(p);
             }
-            FacadeClass::Discriminated(_) => {
+            Self::Discriminated(_) | Self::Option(_) => {
                 frag!(export type Coerce =@{idented(frag!({self.class(db).render_coerce_body_ts(db)};))}).apply(p);
             }
         })
@@ -283,8 +281,8 @@ impl<'db> FacadeClass<'db> {
                 return;
             };
 
-            match self {
-                Self::Plain(_) => {
+            match coerce {
+                FacadeCoerce::Plain(_) => {
                     render_record_fields(
                         coerce
                             .input_fields(db)
@@ -293,7 +291,9 @@ impl<'db> FacadeClass<'db> {
                     )
                     .apply(p);
                 }
-                Self::Discriminated(class) => {
+                FacadeCoerce::Discriminated(coerce) => {
+                    let class = coerce.class(db);
+
                     if self.is_template_instance(db) {
                         frag!(|~{self.type_name(db).render_ts(db, None)}).apply(p);
                     } else {
@@ -316,6 +316,21 @@ impl<'db> FacadeClass<'db> {
                             )
                             .apply(p);
                     }
+                }
+                FacadeCoerce::Option(coerce) => {
+                    let payload = coerce
+                        .some(db)
+                        .fields(db)
+                        .next()
+                        .expect("Option::Some has one field");
+
+                    if self.is_template_instance(db) {
+                        frag!(|~{self.type_name(db).render_ts(db, None)}).apply(p);
+                    } else {
+                        frag!(| Instance & Plain).apply(p);
+                    }
+
+                    frag!(@|~{payload.set_type_ts(db).render_ts(db)}@| null@| undefined).apply(p);
                 }
             }
         })

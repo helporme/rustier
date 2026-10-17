@@ -1,0 +1,31 @@
+---
+source: src/compiler/codegen/ts/class_templates.rs
+expression: snapshot
+---
+# Source
+
+```rust
+impl<T: Clone> Clone for core::option::Option<T> {
+    fn clone(&self) -> Self {
+        loop {}
+    }
+}
+pub fn consume(value: Option<Option<i32>>) {}
+```
+
+# Compiled
+
+```ts
+export type Coerce < T extends "i32" | Option.Class<"i32">> =
+	T extends "i32" ?
+		| Option<"i32">
+		| number
+		| null
+		| undefined :
+	T extends Option.Class<"i32"> ?
+		| Option<Option.Class<"i32">>
+		| Option.Coerce<"i32">
+		| null
+		| undefined :
+	never;
+```

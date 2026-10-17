@@ -76,6 +76,8 @@ pub mod keyword_exports;
 pub mod of_input_throws;
 #[path = "of-unavailable/test.rs"]
 pub mod of_unavailable;
+#[path = "option-coercion/test.rs"]
+pub mod option_coercion;
 #[path = "owned-cleanup-throws/test.rs"]
 pub mod owned_cleanup_throws;
 #[path = "std-generics/test.rs"]

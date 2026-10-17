@@ -7,7 +7,7 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        facade::{FacadeClass, FacadeFieldPlain, FacadeMethod, FacadeModule},
+        facade::{FacadeClass, FacadeFieldPlain, FacadeMethod, FacadeModule, coerce::FacadeCoerce},
         rust::FieldName,
     },
 };
@@ -393,6 +393,10 @@ impl<'db> FacadeClass<'db> {
         coerce: bool,
     ) -> Vec<Mapping> {
         let mut mappings = Vec::new();
+
+        if coerce && matches!(self.coerce(db), Some(FacadeCoerce::Option(_))) {
+            return mappings;
+        }
 
         match self {
             Self::Plain(class) => {

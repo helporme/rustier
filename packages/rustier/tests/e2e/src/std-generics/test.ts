@@ -22,8 +22,9 @@ it('reads and constructs both Option<i32> variants through the standard library 
   if (some.type !== 'Some') throw new Error('expected Option::Some')
   expect(some[0]).toBe(42)
   expect(none.type).toBe('None')
-  expect(OptionalNumber.of({ type: 'Some', 0: 7 }).is_some()).toBe(true)
-  expect(OptionalNumber.of({ type: 'None' }).is_none()).toBe(true)
+  expect(OptionalNumber.of(7).is_some()).toBe(true)
+  expect(OptionalNumber.of(null).is_none()).toBe(true)
+  expect(OptionalNumber.of(undefined).is_none()).toBe(true)
 })
 
 it('constructs Rust Result enum values and unwraps a returned Ok', () => {

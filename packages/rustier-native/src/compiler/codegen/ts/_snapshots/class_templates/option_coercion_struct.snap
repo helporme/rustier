@@ -1,0 +1,31 @@
+---
+source: src/compiler/codegen/ts/class_templates.rs
+expression: snapshot
+---
+# Source
+
+```rust
+impl<T: Clone> Clone for core::option::Option<T> {
+    fn clone(&self) -> Self {
+        loop {}
+    }
+}
+#[derive(Clone)]
+pub struct Point {
+    pub x: i32,
+    pub y: i32,
+}
+pub fn consume(value: Option<Point>) {}
+```
+
+# Compiled
+
+```ts
+export type Coerce < T extends typeof Point> =
+	T extends typeof Point ?
+		| Option<typeof Point>
+		| Point.Coerce
+		| null
+		| undefined :
+	never;
+```

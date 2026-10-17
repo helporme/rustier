@@ -2,7 +2,10 @@ use crate::compiler::{
     db::Db,
     ir::{
         abi::AbiFunction,
-        facade::{FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldPlain},
+        facade::{
+            FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldPlain,
+            FacadeVariant,
+        },
     },
 };
 
@@ -10,42 +13,10 @@ use crate::compiler::{
 pub enum FacadeCoerce<'db> {
     Plain(FacadePlainCoerceFunction<'db>),
     Discriminated(FacadeDiscriminatedCoerceFunction<'db>),
+    Option(FacadeOptionCoerceFunction<'db>),
 }
 
 impl<'db> FacadeCoerce<'db> {
-    pub fn name(self, db: &'db dyn Db) -> &'db str {
-        match self {
-            Self::Plain(coerce) => coerce.name(db),
-            Self::Discriminated(coerce) => coerce.name(db),
-        }
-    }
-
-    pub fn class(self, db: &'db dyn Db) -> FacadeClass<'db> {
-        match self {
-            Self::Plain(coerce) => FacadeClass::Plain(coerce.class(db)),
-            Self::Discriminated(coerce) => FacadeClass::Discriminated(coerce.class(db)),
-        }
-    }
-
-    pub fn input_fields(self, db: &'db dyn Db) -> Vec<FacadeFieldPlain<'db>> {
-        match self.class(db) {
-            FacadeClass::Plain(class) => class.fields(db).collect(),
-            FacadeClass::Discriminated(class) => class
-                .variants(db)
-                .iter()
-                .filter(|variant| variant.is_constructible(db))
-                .flat_map(|variant| variant.fields(db))
-                .collect(),
-        }
-    }
-}
-
-#[salsa::interned(debug)]
-pub struct FacadePlainCoerceFunction<'db> {
-    pub class: FacadeClassPlain<'db>,
-}
-
-impl<'db> FacadePlainCoerceFunction<'db> {
     pub fn name(self, db: &'db dyn Db) -> &'db str {
         if self
             .class(db)
@@ -58,6 +29,35 @@ impl<'db> FacadePlainCoerceFunction<'db> {
         }
     }
 
+    pub fn class(self, db: &'db dyn Db) -> FacadeClass<'db> {
+        match self {
+            Self::Plain(coerce) => FacadeClass::Plain(coerce.class(db)),
+            Self::Discriminated(coerce) => FacadeClass::Discriminated(coerce.class(db)),
+            Self::Option(coerce) => FacadeClass::Discriminated(coerce.class(db)),
+        }
+    }
+
+    pub fn input_fields(self, db: &'db dyn Db) -> Vec<FacadeFieldPlain<'db>> {
+        match self {
+            Self::Plain(coerce) => coerce.fields(db).collect(),
+            Self::Discriminated(coerce) => coerce
+                .class(db)
+                .variants(db)
+                .iter()
+                .filter(|variant| variant.is_constructible(db))
+                .flat_map(|variant| variant.fields(db))
+                .collect(),
+            Self::Option(coerce) => coerce.some(db).fields(db).collect(),
+        }
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct FacadePlainCoerceFunction<'db> {
+    pub class: FacadeClassPlain<'db>,
+}
+
+impl<'db> FacadePlainCoerceFunction<'db> {
     pub fn fields(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeFieldPlain<'db>> + 'db {
         self.class(db).fields(db)
     }
@@ -70,18 +70,6 @@ pub struct FacadeDiscriminatedCoerceFunction<'db> {
 
 #[salsa::tracked]
 impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
-    pub fn name(self, db: &'db dyn Db) -> &'db str {
-        if self
-            .class(db)
-            .methods(db)
-            .any(|method| method.is_static(db) && method.name(db) == "of")
-        {
-            "$of"
-        } else {
-            "of"
-        }
-    }
-
     #[salsa::tracked(returns(ref))]
     pub fn coerce_variants(self, db: &'db dyn Db) -> Vec<CoerceVariant<'db>> {
         self.class(db)
@@ -105,25 +93,39 @@ pub struct CoerceVariant<'db> {
     pub fields: Vec<FacadeFieldPlain<'db>>,
 }
 
+#[salsa::interned(debug)]
+pub struct FacadeOptionCoerceFunction<'db> {
+    pub class: FacadeClassDiscriminated<'db>,
+    pub some: FacadeVariant<'db>,
+    pub none: FacadeVariant<'db>,
+}
+
 impl<'db> FacadeClass<'db> {
     pub fn coerce(self, db: &'db dyn Db) -> Option<FacadeCoerce<'db>> {
         match self {
-            Self::Plain(class) => class.coerce(db).map(FacadeCoerce::Plain),
-            Self::Discriminated(class) => class.coerce(db).map(FacadeCoerce::Discriminated),
+            Self::Plain(class) => class
+                .is_constructible(db)
+                .then(|| FacadeCoerce::Plain(FacadePlainCoerceFunction::new(db, class))),
+            Self::Discriminated(class) => {
+                if class.src(db).is_option(db) {
+                    let some = class.variants(db).iter().copied().find(|variant| {
+                        variant.name(db) == "Some" && variant.is_constructible(db)
+                    })?;
+                    let none = class.variants(db).iter().copied().find(|variant| {
+                        variant.name(db) == "None" && variant.is_constructible(db)
+                    })?;
+
+                    Some(FacadeCoerce::Option(FacadeOptionCoerceFunction::new(
+                        db, class, some, none,
+                    )))
+                } else {
+                    class.is_coercable(db).then(|| {
+                        FacadeCoerce::Discriminated(FacadeDiscriminatedCoerceFunction::new(
+                            db, class,
+                        ))
+                    })
+                }
+            }
         }
-    }
-}
-
-impl<'db> FacadeClassPlain<'db> {
-    pub fn coerce(self, db: &'db dyn Db) -> Option<FacadePlainCoerceFunction<'db>> {
-        self.is_constructible(db)
-            .then(|| FacadePlainCoerceFunction::new(db, self))
-    }
-}
-
-impl<'db> FacadeClassDiscriminated<'db> {
-    pub fn coerce(self, db: &'db dyn Db) -> Option<FacadeDiscriminatedCoerceFunction<'db>> {
-        self.is_coercable(db)
-            .then(|| FacadeDiscriminatedCoerceFunction::new(db, self))
     }
 }

@@ -60,6 +60,9 @@ impl<'db> AbiFunction<'db> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum AbiReturn<'db> {
     Value(AbiType),
+    // There is currently no need for abi to support union as input type (e.g as argument),
+    // however once we will need it, the AbiReturn should be removed and Union should be placed as
+    // AbiType variant.
     Union(AbiUnion<'db>),
 }
 

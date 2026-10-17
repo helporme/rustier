@@ -177,9 +177,16 @@ enum TemplateProjection {
 
 #[cfg(test)]
 mod tests {
+    use super::TemplateProjection;
     use crate::{
         assert_ts_snap,
-        compiler::{codegen::fragment::FragmentOnce as _, ir::rust::Rust},
+        compiler::{
+            codegen::fragment::{FragmentOnce as _, frag, idented},
+            ir::{
+                facade::{FacadeMember, FacadeModuleEntry},
+                rust::Rust,
+            },
+        },
     };
 
     macro_rules! test_template {
@@ -202,6 +209,67 @@ mod tests {
             }
         };
     }
+
+    macro_rules! test_option_coercion {
+        ($name:ident, $type:ty $(, { $($source:tt)* })?) => {
+            #[test]
+            fn $name() {
+                assert_ts_snap! {
+                    minicore: "option, clone, derive",
+                    source: {
+                        impl<T: Clone> Clone for core::option::Option<T> {
+                            fn clone(&self) -> Self {
+                                loop {}
+                            }
+                        }
+
+                        $($($source)*)?
+
+                        pub fn consume(value: $type) {}
+                    },
+                    expression: |db, p| {
+                        let facade = Rust::get(db).facade_complete(db);
+                        let template = facade
+                            .modules(db)
+                            .filter_map(|entry| match entry {
+                                FacadeModuleEntry::Source(module) => Some(module),
+                                _ => None,
+                            })
+                            .flat_map(|module| module.members(db))
+                            .find_map(|member| match member {
+                                FacadeMember::ClassTemplate(template)
+                                    if template.name(db) == "Option" =>
+                                {
+                                    Some(*template)
+                                }
+                                _ => None,
+                            })
+                            .expect("Option template should be reachable");
+                        let constraint = template.render_param_constraint_ts(db, 0);
+                        let branches = template.render_branches_ts(db, TemplateProjection::Coerce);
+
+                        frag!(
+                            export type Coerce<T extends ~{constraint}> =@{idented(branches)};
+                        )
+                        .apply(p);
+                    }
+                }
+            }
+        };
+    }
+
+    test_option_coercion!(option_coercion_number, Option<i32>);
+    test_option_coercion!(option_coercion_boolean, Option<bool>);
+    test_option_coercion!(option_coercion_string, Option<String>);
+    test_option_coercion!(option_coercion_unit, Option<()>);
+    test_option_coercion!(option_coercion_nested, Option<Option<i32>>);
+    test_option_coercion!(option_coercion_struct, Option<Point>, {
+        #[derive(Clone)]
+        pub struct Point {
+            pub x: i32,
+            pub y: i32,
+        }
+    });
 
     test_template!(primitive_keys, {
         pub struct Wrap<T>(pub T);

@@ -1,0 +1,65 @@
+---
+source: src/compiler/codegen/js/classes.rs
+expression: snapshot
+---
+# Source
+
+```rust
+impl<T: Clone> Clone for core::option::Option<T> {
+    fn clone(&self) -> Self {
+        loop {}
+    }
+}
+pub fn consume(value: core::option::Option<i32>) {}
+```
+
+# Compiled
+
+```js
+class OptionalNumber{
+	static of(
+		value
+	){
+		if(
+			value instanceof $facade__discr__4_core__6_option__6_OptionGP3_i32E
+		){
+			return value;
+		}
+		if(
+			value === null || value === undefined
+		){
+			{
+				const __cast_input = __fn__coe__4_core__6_option__6_OptionGP3_i32E__4_None(
+
+				);
+				const result = $facade__discr__4_core__6_option__6_OptionGP3_i32E.$from_handle(
+					__cast_input
+				);
+				return result;
+			}
+		}
+		{
+			const __cast_input = value;
+			if(
+				typeof __cast_input !== "number"
+			) {
+				throw new TypeError(
+					"Expected a value of type \"number\", but value of type \"" + typeof __cast_input + "\" was passed: \"" + String(
+						__cast_input
+					) + "\""
+				);
+			}
+			const __0 = __cast_input;
+			{
+				const __cast_input = __fn__coe__4_core__6_option__6_OptionGP3_i32E__4_Some(
+					__0
+				);
+				const result = $facade__discr__4_core__6_option__6_OptionGP3_i32E.$from_handle(
+					__cast_input
+				);
+				return result;
+			}
+		}
+	}
+}
+```

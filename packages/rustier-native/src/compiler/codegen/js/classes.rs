@@ -237,9 +237,19 @@ where
         let db = self.db;
         let name = self.coerce.name(db);
         let class_name = self.coerce.class(db).import_alias(db);
+        let field_input = move |field: FacadeFieldPlain<'db>| {
+            (
+                field.type_js(db),
+                fragment(move |p| match field.name(db) {
+                    FieldName::Name(name) => frag!(value[{ doubles(name) }]).apply(p),
+                    FieldName::Idx(index) => frag!(value[{ index }]).apply(p),
+                }),
+            )
+        };
+
         match self.coerce {
             FacadeCoerce::Plain(coerce) => {
-                let body = self.render_body(coerce.abi(db), coerce.fields(db).collect());
+                let body = self.render_body(coerce.abi(db), coerce.fields(db).map(field_input));
                 frag!(static ~{name}(value) {{
                     if (value instanceof ~{class_name}) {{
                         return value;
@@ -255,7 +265,10 @@ where
                 let cases = fragment(move |p| {
                     for variant in coerce.coerce_variants(db) {
                         let tag = doubles(&variant.name);
-                        let body = self.render_body(variant.abi, variant.fields.clone());
+                        let body = self.render_body(
+                            variant.abi,
+                            variant.fields.iter().copied().map(field_input),
+                        );
                         frag!(case ~{tag}: {{ {body}@ }}@).apply(p);
                     }
                 });
@@ -275,6 +288,29 @@ where
                     }}
                 }}).apply(p);
             }
+            FacadeCoerce::Option(coerce) => {
+                let some = coerce.some(db);
+                let payload = some.fields(db).next().expect("Option::Some has one field");
+                let none_body = self.render_body(
+                    coerce.none(db).abi_coerce(db),
+                    std::iter::empty::<(FacadeTypeJs<'db>, &str)>(),
+                );
+                let some_body = self.render_body(
+                    some.abi_coerce(db),
+                    std::iter::once((payload.type_js(db), frag!(value))),
+                );
+
+                frag!(static ~{name}(value) {{
+                    if (value instanceof ~{class_name}) {{
+                        return value;
+                    }}@
+                    if (value === null || value === undefined) {{
+                        {none_body}@
+                    }}@
+                    {some_body}@
+                }})
+                .apply(p);
+            }
         }
     }
 }
@@ -283,14 +319,14 @@ impl<'db, Casts> CoerceFragment<'db, Casts>
 where
     Casts: CastRenderer<'db> + Copy + Clone + 'db,
 {
-    fn render_body(
+    fn render_body<InExpr: FragmentOnce + 'db>(
         self,
         abi: AbiFunction<'db>,
-        fields: Vec<FacadeFieldPlain<'db>>,
+        inputs: impl IntoIterator<Item = (FacadeTypeJs<'db>, InExpr), IntoIter: 'db>,
     ) -> impl FragmentOnce + 'db {
         let db = self.db;
         let class = self.coerce.class(db);
-        let args = comma_list((0..fields.len()).map(|i| frag!(__ { i })));
+        let args = comma_list((0..abi.params(db).len()).map(|i| frag!(__ { i })));
         let symbol = abi.symbol(db);
 
         let ret_type = class.src_type(db).abi(db);
@@ -305,14 +341,11 @@ where
             },
             frag!(return result;),
         );
-        let casts = fields.into_iter().zip(abi.params(db)).enumerate().map(
-            move |(i, (field, abi_param))| Cast {
-                from: field.type_js(db),
+        let casts = inputs.into_iter().zip(abi.params(db)).enumerate().map(
+            move |(i, ((type_, in_expr), abi_param))| Cast {
+                from: type_,
                 to: *abi_param,
-                in_expr: fragment(move |p| match field.name(db) {
-                    FieldName::Name(name) => frag!(value[{ doubles(name) }]).apply(p),
-                    FieldName::Idx(index) => frag!(value[{ index }]).apply(p),
-                }),
+                in_expr,
                 out_var_name: frag!(__ { i }),
             },
         );
@@ -635,11 +668,18 @@ fn cache_name(field_index: usize, discriminator: Option<u32>) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::{CoerceFragment, Renderer};
     use crate::{
         assert_js_snap,
         compiler::{
-            codegen::{fragment::FragmentOnce as _, js::cast::test::TestCastRenderer},
-            ir::{facade::FacadeMember, rust::Rust},
+            codegen::{
+                fragment::{FragmentOnce as _, frag},
+                js::cast::test::TestCastRenderer,
+            },
+            ir::{
+                facade::{FacadeMember, type_js::FacadeTypeJs},
+                rust::Rust,
+            },
         },
     };
 
@@ -695,6 +735,50 @@ mod tests {
             pub nested: Nested,
         }
     });
+
+    #[test]
+    fn coerce_option() {
+        assert_js_snap! {
+            minicore: "option, clone, derive",
+            source: {
+                impl<T: Clone> Clone for core::option::Option<T> {
+                    fn clone(&self) -> Self {
+                        loop {}
+                    }
+                }
+
+                pub fn consume(value: core::option::Option<i32>) {}
+            },
+            expression: |db, printer| {
+                let root = Rust::get(db)
+                    .facade_complete(db)
+                    .crates(db)
+                    .next()
+                    .expect("test crate should be lowered")
+                    .root(db);
+                let function = root
+                    .members(db)
+                    .iter()
+                    .find_map(|member| match member {
+                        FacadeMember::Function(function) => Some(*function),
+                        _ => None,
+                    })
+                    .expect("test crate should contain consume");
+                let parameter = function.params(db).next().expect("consume has one parameter");
+                let FacadeTypeJs::Class(class) = parameter.type_js(db) else {
+                    panic!("consume should accept an Option class");
+                };
+                let coerce = CoerceFragment {
+                    coerce: class.coerce(db).expect("Option<i32> should be coercible"),
+                    db,
+                    casts: Renderer,
+                };
+
+                frag!(class OptionalNumber {{ {coerce} }}).apply(printer);
+            },
+        }
+    }
+
     test_class!(coerce_static_of_collision, {
         #[derive(Clone)]
         pub struct Test;

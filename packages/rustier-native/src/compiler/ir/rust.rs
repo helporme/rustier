@@ -1185,6 +1185,10 @@ impl<'db> EnumType<'db> {
         self.def(db).lower_is_result(db)
     }
 
+    pub fn is_option(self, db: &'db dyn Db) -> bool {
+        self.def(db).lower_is_option(db)
+    }
+
     pub fn is_clonable(self, db: &'db dyn Db) -> Option<bool> {
         self.into_type(db).is_clonable(db)
     }

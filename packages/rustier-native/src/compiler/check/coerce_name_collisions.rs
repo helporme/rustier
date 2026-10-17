@@ -4,6 +4,7 @@ use thiserror::Error;
 use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
+    ir::facade::FacadeClass,
     ir::rust::{EnumType, Span, StructType},
 };
 
@@ -11,7 +12,7 @@ use crate::compiler::{
 impl<'db> StructType<'db> {
     #[salsa::tracked]
     pub(super) fn check_coerce_name_collisions(self, db: &'db dyn Db) {
-        let facade = self.facade(db);
+        let facade = FacadeClass::Plain(self.facade(db));
         if facade.coerce(db).map(|coerce| coerce.name(db)) == Some("$of") {
             emit(db, self.def(db).span(db));
         }
@@ -22,7 +23,7 @@ impl<'db> StructType<'db> {
 impl<'db> EnumType<'db> {
     #[salsa::tracked]
     pub(super) fn check_coerce_name_collisions(self, db: &'db dyn Db) {
-        let facade = self.facade(db);
+        let facade = FacadeClass::Discriminated(self.facade(db));
         if facade.coerce(db).map(|coerce| coerce.name(db)) == Some("$of") {
             emit(db, self.def(db).span(db));
         }

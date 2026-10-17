@@ -1,0 +1,26 @@
+---
+source: src/compiler/codegen/ts/class_templates.rs
+expression: snapshot
+---
+# Source
+
+```rust
+impl<T: Clone> Clone for core::option::Option<T> {
+    fn clone(&self) -> Self {
+        loop {}
+    }
+}
+pub fn consume(value: Option<String>) {}
+```
+
+# Compiled
+
+```ts
+export type Coerce < T extends "String"> =
+	T extends "String" ?
+		| Option<"String">
+		| string
+		| null
+		| undefined :
+	never;
+```

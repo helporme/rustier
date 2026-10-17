@@ -53,6 +53,14 @@ impl<'db> Enum<'db> {
                 .any(|variant| variant.attrs(db).lang(db) == Some(ra_ap_hir::LangItem::ResultErr))
     }
 
+    #[salsa::tracked]
+    pub(in crate::compiler::ir::rust) fn lower_is_option(self, db: &'db dyn Db) -> bool {
+        let hir = self.hir(db);
+
+        hir.module(db).krate(db).is_builtin(db)
+            && hir.attrs(db).lang(db) == Some(ra_ap_hir::LangItem::Option)
+    }
+
     #[salsa::tracked(returns(ref))]
     pub(in crate::compiler::ir::rust) fn lower_variants(
         self,
