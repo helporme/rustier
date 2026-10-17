@@ -1,9 +1,23 @@
-# SvelteKit site
+# Rustier agent guide
 
-- Keep pages focused on layout, view metadata, and user/URL interactions. Put application lifecycle and effects in playground classes; keep reusable UI components domain-independent and compose their content with snippets.
+## Page rules
+- Break the big `+page.svelte` on subcomponents. In case you need a subcomponent used specifically for this page, put it under `(components)/` folder near the `+page.svelte`.
+- Keep pages focused on layout, view metadata, and user/URL interactions. Put application lifecycle and effects in separate classes with stateful fields under the `(components)` folder as well.
+
+## Svelte rules
 - Put static constants and exported types in `<script lang="ts" module>`. Keep controllers, IDs, and editable state instance-local.
-- Prefer existing sources of truth and fewer concepts over additional flags, overrides, or wrappers. Use one consistent name per feature.
-- Keep typography and colours in the global theme. Select palettes with `color-scheme`, not duplicated dark-only tokens.
-- Reuse Monaco editors and cache models across tab/mode changes. Do not recreate editors or redefine themes merely because layout changes.
 - Profile before adding performance workarounds. Avoid arbitrary delays, frame chains, and speculative warm-ups; remove ineffective workarounds rather than moving them elsewhere.
-- Validate SSR, hydration, and interactive behaviour separately. Reproduce performance issues in the reported browser, and distinguish measured causes.
+- Validate SSR, hydration, and interactive behaviour separately using playwright or other tooling.
+
+## Compoent rules
+- Keep typography and colours in the global theme, do not add new ad-hoc anywhere without explicit developer consent.
+- Keep reusable UI components inside `lib/ui/components` domain-independent and compose their content with snippets.
+- Always use a `shadcn-svelte` for component basis, do not came up with your custom component first if there is some basic variant of it in `shadcn-svelte`. Use the cli to install the component and restyle it.
+
+## Svelte MCP
+
+- For Svelte and SvelteKit work, use the official Svelte MCP server via `npx -y @sveltejs/mcp`. See https://svelte.dev/docs/ai/local-setup for client configuration.
+- Start with `list-sections` to discover relevant documentation, then use `get-documentation` to read the sections needed for the task. Prefer current documentation over remembered framework APIs.
+- Run `svelte-autofixer` on new or changed Svelte code, address its findings, and repeat until no actionable issues remain. This does not replace the site's checks or browser validation.
+- Use `playground-link` for standalone examples only when useful or requested. Do not generate a playground link for code already written into the project.
+- If the tools are unavailable, say so and consult the official documentation directly; do not claim MCP validation was performed.
