@@ -8,36 +8,24 @@
 
 	--color-java: #f5d75d;
 	--color-on-java: var(--color-ink);
+	--color-on-java-variant: #62512c;
 	--color-java-surface: light-dark(#fff1d1, #352c19);
 	--color-on-java-surface: light-dark(#55400b, #f5d75d);
+	--color-on-java-surface-variant: light-dark(#786033, #c6b878);
+
 	--color-rust: #cf7752;
 	--color-on-rust: var(--color-ink);
+	--color-on-rust-variant: #302422;
 	--color-rust-surface: light-dark(#f6dfd2, #3b2922);
 	--color-on-rust-surface: light-dark(#71391f, #e8c0ab);
+	--color-on-rust-surface-variant: light-dark(#905536, #c69b83);
+
 	--color-ink: #24201f;
 	--color-on-ink: #fffbe9;
+	--color-on-ink-variant: #b6a597;
 	--color-ink-surface: light-dark(#e9e0d5, #302a27);
 	--color-on-ink-surface: light-dark(#24201f, #e9e0d5);
-
-	--color-background: light-dark(#fffbe9, #1b1817);
-	--color-surface: light-dark(#fffcf2, #24201f);
-	--color-surface-bright: light-dark(#fffef8, #352e2b);
-	--color-surface-dim: light-dark(#f5efdf, #201c1a);
-	--color-on-surface: light-dark(var(--color-ink), #fffbe9);
-	--color-on-surface-alt: light-dark(#776453, #c8b7a7);
-
-	--color-green-surface: light-dark(#d9f0df, #163824);
-	--color-on-green-surface: light-dark(#176c3d, #77cc99);
-	--color-red-surface: light-dark(#fbe0da, #44221e);
-	--color-on-red-surface: light-dark(#a62b22, #ee8e82);
-	--color-blue-surface: light-dark(#d8edf8, #153542);
-	--color-on-blue-surface: light-dark(#00658f, #72c5ea);
-	--color-yellow-surface: var(--color-java-surface);
-	--color-on-yellow-surface: var(--color-on-java-surface);
-	--color-magenta-surface: light-dark(#f2dfed, #3d2536);
-	--color-on-magenta-surface: light-dark(#82476f, #dca0c9);
-	--color-cyan-surface: light-dark(#d3efee, #153a3a);
-	--color-on-cyan-surface: light-dark(#006873, #72d1d1);
+	--color-on-ink-surface-variant: light-dark(#6f6257, #b6a597);
 }
 
 :root {
