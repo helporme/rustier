@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	import { ArrowUpRight, Plus } from '@lucide/svelte';
 	import { Button, type ButtonVariant } from '#lib/ui/components/button';
 
 	const variants: ButtonVariant[] = ['default', 'outline', 'ghost'];
@@ -22,8 +23,12 @@
 		</div>
 	{/each}
 	<div class="flex flex-wrap items-center gap-4">
-		<Button size="lg" onclick={() => clicks++}>Large action ↗</Button>
-		<Button size="icon" aria-label="Increment button clicks" onclick={() => clicks++}>+</Button>
+		<Button size="lg" onclick={() => clicks++}
+			>Large action <ArrowUpRight aria-hidden="true" class="size-4" /></Button
+		>
+		<Button size="icon" aria-label="Increment button clicks" onclick={() => clicks++}>
+			<Plus aria-hidden="true" class="size-4" />
+		</Button>
 	</div>
 	<p role="status" class="text-ui">Button clicks: {clicks}</p>
 </section>

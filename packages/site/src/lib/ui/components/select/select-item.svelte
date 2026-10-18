@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Check } from '@lucide/svelte';
 	import { Select as SelectPrimitive } from 'bits-ui';
 	import { cn } from '#lib/ui/utils';
 
@@ -28,13 +29,7 @@
 >
 	{#snippet children({ selected, highlighted })}
 		{#if selected}
-			<svg
-				aria-hidden="true"
-				viewBox="0 0 16 16"
-				class="absolute left-2 size-3 fill-none stroke-current stroke-2"
-			>
-				<path d="m3 8 3 3 7-7" />
-			</svg>
+			<Check aria-hidden="true" class="absolute left-2 size-3" />
 		{/if}
 		{#if childrenProp}
 			{@render childrenProp({ selected, highlighted })}

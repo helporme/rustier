@@ -10,7 +10,7 @@
 ## Page rules
 
 - Break the big `+page.svelte` on subcomponents. In case you need a subcomponent used specifically for this page, put it under `(components)/` folder near the `+page.svelte`.
-- Keep pages focused on layout, view metadata, and user/URL interactions. Put application lifecycle and effects in separate classes with stateful fields under the `(components)` folder as well.
+- Keep pages focused on layout, view metadata, and user/URL interactions. Put application lifecycle and effects in separate classes with stateful fields or function with states inside under the `(components)` folder as well.
 
 ## Svelte rules
 

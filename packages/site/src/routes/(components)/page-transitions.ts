@@ -1,8 +1,7 @@
 import { onNavigate } from '$app/navigation';
 
-export class PageTransitions {
-	constructor() {
-		onNavigate((navigation) => {
+export function setupPageTransitions() {
+  onNavigate((navigation) => {
 			const from = navigation.from?.route.id;
 			const to = navigation.to?.route.id;
 			const betweenEditors =
@@ -29,5 +28,4 @@ export class PageTransitions {
 				}
 			});
 		});
-	}
 }

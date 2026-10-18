@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ArrowUpRight } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import { Button } from '#lib/ui/components/button';
 	import { ViteIcon, TsdownIcon, WasmIcon, NodeIcon } from '#lib/ui/components/icons';
@@ -55,7 +56,7 @@
 					>
 				</p>
 				<Button href={resolve('/playground')} size="lg"
-					>Try the playground <span aria-hidden="true">↗</span></Button
+					>Try the playground <ArrowUpRight aria-hidden="true" class="size-4" /></Button
 				>
 			</div>
 		</div>

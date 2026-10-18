@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { X } from '@lucide/svelte';
 	import { Button } from '#lib/ui/components/button';
 	import Toolbar from './(components)/toolbar.svelte';
 	import EditorWorkspace from './(components)/editor-workspace.svelte';
@@ -30,8 +31,10 @@
 				variant="ghost"
 				size="icon"
 				aria-label="Dismiss message"
-				onclick={() => (showRunNotice = false)}>×</Button
+				onclick={() => (showRunNotice = false)}
 			>
+				<X aria-hidden="true" class="size-4" />
+			</Button>
 		</div>
 	{/if}
 	<main aria-label="Playground editors" class="min-h-0 flex-1">

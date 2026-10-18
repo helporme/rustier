@@ -1,12 +1,15 @@
 <script lang="ts">
 	import './layout.css';
+	import { setLucideProps } from '@lucide/svelte';
 	import { ModeWatcher } from 'mode-watcher';
 	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
-	import { PageTransitions } from './(components)/page-transitions';
+	import { setupPageTransitions } from './(components)/page-transitions';
 
 	let { children }: LayoutProps = $props();
-	new PageTransitions();
+
+	setLucideProps({ strokeWidth: 4 });
+	setupPageTransitions();
 </script>
 
 <svelte:head>

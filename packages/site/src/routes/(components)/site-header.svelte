@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ArrowUpRight } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import { Logo } from '#lib/ui/components/icons';
 	import { Button } from '#lib/ui/components/button';
@@ -19,10 +20,11 @@
 		<a
 			href="https://github.com/helporme/rustier"
 			class="hidden hover:underline sm:inline"
-			rel="external">GitHub ↗</a
+			rel="external"
+			>GitHub <ArrowUpRight aria-hidden="true" class="inline-block size-4 align-[-0.125em]" /></a
 		>
 		<Button href={resolve('/playground')} variant="outline">
-			Playground <span aria-hidden="true">↗</span>
+			Playground <ArrowUpRight aria-hidden="true" class="size-4" />
 		</Button>
 	</nav>
 </header>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ChevronDown } from '@lucide/svelte';
 	import { Select as SelectPrimitive } from 'bits-ui';
 	import { cn } from '#lib/ui/utils';
 
@@ -20,11 +21,5 @@
 	{...restProps}
 >
 	<span class="truncate">{@render children?.()}</span>
-	<svg
-		aria-hidden="true"
-		viewBox="0 0 16 16"
-		class="size-3 shrink-0 fill-none stroke-current stroke-2"
-	>
-		<path d="m4 6 4 4 4-4" />
-	</svg>
+	<ChevronDown aria-hidden="true" class="size-3 shrink-0" />
 </SelectPrimitive.Trigger>

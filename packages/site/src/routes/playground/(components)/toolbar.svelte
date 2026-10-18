@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Play } from '@lucide/svelte';
 	import { Logo } from '#lib/ui/components/icons';
 	import { Button } from '#lib/ui/components/button';
 	import * as Select from '#lib/ui/components/select';
@@ -45,9 +46,7 @@
 			</Select.Content>
 		</Select.Root>
 		<Button onclick={onrun} title="Compiler integration is not connected yet">
-			<svg aria-hidden="true" viewBox="0 0 16 16" class="size-3 fill-current">
-				<path d="M4 2v12l9-6Z" />
-			</svg>
+			<Play aria-hidden="true" class="size-3 fill-current" />
 			Run
 		</Button>
 	</div>

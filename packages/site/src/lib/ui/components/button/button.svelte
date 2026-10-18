@@ -31,6 +31,8 @@
 </script>
 
 <script lang="ts">
+	import { LoaderCircle } from '@lucide/svelte';
+
 	let {
 		class: className,
 		variant = 'default',
@@ -54,10 +56,7 @@
 
 {#snippet content()}
 	{#if loading}
-		<span
-			aria-hidden="true"
-			class="size-3 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none"
-		></span>
+		<LoaderCircle aria-hidden="true" class="size-3 animate-spin motion-reduce:animate-none" />
 	{/if}
 	{@render children?.()}
 {/snippet}
