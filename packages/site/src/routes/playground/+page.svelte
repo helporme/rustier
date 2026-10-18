@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '#lib/ui/components/button';
 	import Toolbar from './(components)/toolbar.svelte';
-	import EditorPane from './(components)/editor-pane.svelte';
+	import EditorWorkspace from './(components)/editor-workspace.svelte';
 	import { Playground } from './(components)/playground.svelte';
 
 	const playground = new Playground();
@@ -17,7 +17,7 @@
 </svelte:head>
 
 <div
-	class="flex min-h-dvh flex-col border-b border-ink-outline bg-ink-surface text-on-ink-surface md:h-dvh md:overflow-hidden"
+	class="flex h-dvh min-h-0 flex-col overflow-hidden border-b border-ink-outline bg-ink-surface text-on-ink-surface"
 >
 	<Toolbar bind:selected={playground.selected} onrun={() => (showRunNotice = true)} />
 	{#if showRunNotice}
@@ -34,17 +34,11 @@
 			>
 		</div>
 	{/if}
-	<main
-		aria-label="Playground editors"
-		class="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-2 [&>section+section]:border-t [&>section+section]:border-ink-outline md:[&>section+section]:border-t-0 md:[&>section+section]:border-l"
-	>
-		{#key playground.selected}
-			<EditorPane language="rust" filename="lib.rs" bind:value={playground.source.rust} />
-			<EditorPane
-				language="typescript"
-				filename="index.ts"
-				bind:value={playground.source.typescript}
-			/>
-		{/key}
+	<main aria-label="Playground editors" class="min-h-0 flex-1">
+		<EditorWorkspace
+			{playground}
+			bind:rust={playground.source.rust}
+			bind:typescript={playground.source.typescript}
+		/>
 	</main>
 </div>

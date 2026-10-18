@@ -19,7 +19,7 @@
 
 <section
 	aria-label={`${name} workspace`}
-	class="flex min-h-96 min-w-0 flex-col overflow-hidden bg-ink-surface-bright md:min-h-0"
+	class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-ink-surface-bright"
 >
 	<div
 		class="flex h-9 shrink-0 items-stretch bg-ink-surface after:flex-1 after:border-b after:border-ink-outline"

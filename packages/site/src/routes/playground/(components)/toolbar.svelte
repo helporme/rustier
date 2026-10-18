@@ -24,7 +24,7 @@
 		<span class="sr-only">playground</span>
 	</h1>
 	<div
-		class="flex min-w-0 flex-wrap items-center gap-3.5 md:justify-end md:self-stretch md:border-l md:border-ink-outline md:px-6 md:py-2"
+		class="flex min-w-0 flex-wrap items-center gap-3.5 md:justify-end md:self-stretch md:px-6 md:py-2"
 	>
 		<span id="example-label" class="sr-only">Example</span>
 		<Select.Root type="single" bind:value={selected} allowDeselect={false}>

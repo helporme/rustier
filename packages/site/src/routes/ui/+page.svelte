@@ -5,6 +5,7 @@
 	import SelectExamples from './(components)/select-examples.svelte';
 	import EditorExamples from './(components)/editor-examples.svelte';
 	import ThemeExamples from './(components)/theme-examples.svelte';
+	import ResizableExamples from './(components)/resizable-examples.svelte';
 </script>
 
 <svelte:head>
@@ -20,4 +21,5 @@
 	<ButtonExamples />
 	<SelectExamples />
 	<EditorExamples />
+	<ResizableExamples />
 </main>
