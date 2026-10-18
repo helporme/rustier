@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import { Logo } from '#lib/ui/components/logo';
+	import { Logo } from '#lib/ui/components/icons';
 
 	const tokens = [
 		'primary',

@@ -6,6 +6,7 @@
 	import EditorExamples from './(components)/editor-examples.svelte';
 	import ThemeExamples from './(components)/theme-examples.svelte';
 	import ResizableExamples from './(components)/resizable-examples.svelte';
+	import IconExamples from './(components)/icon-examples.svelte';
 </script>
 
 <svelte:head>
@@ -18,6 +19,7 @@
 		<Button href={resolve('/playground')} variant="outline">Back to playground</Button>
 	</header>
 	<ThemeExamples />
+	<IconExamples />
 	<ButtonExamples />
 	<SelectExamples />
 	<EditorExamples />

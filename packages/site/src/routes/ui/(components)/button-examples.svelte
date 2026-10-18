@@ -21,5 +21,9 @@
 			<Button {variant} loading>Working…</Button>
 		</div>
 	{/each}
+	<div class="flex flex-wrap items-center gap-4">
+		<Button size="lg" onclick={() => clicks++}>Large action ↗</Button>
+		<Button size="icon" aria-label="Increment button clicks" onclick={() => clicks++}>+</Button>
+	</div>
 	<p role="status" class="text-ui">Button clicks: {clicks}</p>
 </section>

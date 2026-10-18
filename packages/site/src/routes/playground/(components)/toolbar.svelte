@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { Logo } from '#lib/ui/components/logo';
+	import { Logo } from '#lib/ui/components/icons';
 	import { Button } from '#lib/ui/components/button';
 	import * as Select from '#lib/ui/components/select';
+	import { resolve } from '$app/paths';
 	import { examples } from './examples';
 
 	let {
@@ -16,11 +17,17 @@
 </script>
 
 <header
-	class="flex min-h-15 shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-ink-outline bg-primary-surface-dim px-6 py-2 text-on-primary-surface-dim md:grid md:grid-cols-2 md:gap-0 md:p-0"
+	class="flex min-h-15 shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-ink-outline bg-rust-surface px-6 py-2 text-on-ink-surface md:grid md:grid-cols-2 md:gap-0 md:p-0"
 >
 	<h1 class="flex items-center gap-3 md:px-6">
-		<Logo class="size-10" aria-hidden="true" />
-		<span class="font-brand text-wordmark">Rustier</span>
+		<a
+			href={resolve('/')}
+			aria-label="Rustier home"
+			class="flex items-center gap-2 [view-transition-name:rustier-logo]"
+		>
+			<Logo class="size-10" aria-hidden="true" />
+			<span class="font-brand text-wordmark">rustier</span>
+		</a>
 		<span class="sr-only">playground</span>
 	</h1>
 	<div
@@ -38,8 +45,8 @@
 			</Select.Content>
 		</Select.Root>
 		<Button onclick={onrun} title="Compiler integration is not connected yet">
-			<svg aria-hidden="true" viewBox="0 0 12 12" class="size-2.5 fill-current">
-				<path d="M3 1v10l8-5Z" />
+			<svg aria-hidden="true" viewBox="0 0 16 16" class="size-3 fill-current">
+				<path d="M4 2v12l9-6Z" />
 			</svg>
 			Run
 		</Button>

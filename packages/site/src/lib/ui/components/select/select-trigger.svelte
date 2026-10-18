@@ -14,7 +14,7 @@
 	bind:ref
 	data-slot="select-trigger"
 	class={cn(
-		'flex h-8.5 min-w-0 items-center justify-between gap-4 rounded-[9px] border border-ink-outline bg-ink-surface-bright px-3.5 font-body text-ui font-bold text-on-ink-surface outline-none select-none hover:border-primary-outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary-outline focus-visible:outline-solid disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-secondary-outline data-placeholder:text-on-ink-surface-variant data-[state=open]:border-primary-outline',
+		'flex h-10 min-w-0 items-center justify-between gap-4 rounded-none border border-current bg-transparent px-3.5 font-body text-ui font-bold text-inherit outline-none select-none hover:border-rust focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary-outline focus-visible:outline-solid disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-secondary-outline data-placeholder:text-on-ink-surface-variant data-[state=open]:border-rust',
 		className
 	)}
 	{...restProps}

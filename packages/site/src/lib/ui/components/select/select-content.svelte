@@ -17,7 +17,7 @@
 		{sideOffset}
 		data-slot="select-content"
 		class={cn(
-			'z-50 max-h-(--bits-select-content-available-height) min-w-(--bits-select-anchor-width) overflow-y-auto rounded-lg border border-ink-outline bg-ink-surface-bright p-1 font-body text-ui text-on-ink-surface shadow-lg outline-none',
+			'z-50 max-h-(--bits-select-content-available-height) min-w-(--bits-select-anchor-width) overflow-y-auto rounded-none border border-rust-outline bg-rust-surface p-1 font-body text-ui text-on-ink-surface shadow-lg outline-none',
 			className
 		)}
 		{...restProps}

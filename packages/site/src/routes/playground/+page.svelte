@@ -9,7 +9,7 @@
 </script>
 
 <svelte:head>
-	<title>Rustier playground — JavaScript, but rustier</title>
+	<title>Rustier playground</title>
 	<meta
 		name="description"
 		content="Explore Rust and TypeScript side by side in the Rustier playground."
@@ -17,13 +17,13 @@
 </svelte:head>
 
 <div
-	class="flex h-dvh min-h-0 flex-col overflow-hidden border-b border-ink-outline bg-ink-surface text-on-ink-surface"
+	class="flex h-dvh min-h-0 flex-col overflow-hidden border-b border-ink-outline bg-rust-surface text-on-ink-surface"
 >
 	<Toolbar bind:selected={playground.selected} onrun={() => (showRunNotice = true)} />
 	{#if showRunNotice}
 		<div
 			role="status"
-			class="flex items-center justify-between gap-4 bg-primary-surface px-6 py-2 text-ui text-on-primary-surface"
+			class="flex shrink-0 items-center justify-between gap-4 border-y border-rust-outline bg-rust-surface px-6 py-2 text-ui text-on-ink-surface"
 		>
 			<p>Run is not connected yet. You can edit both files and explore the examples.</p>
 			<Button

@@ -31,7 +31,7 @@
 	<Resizable.Handle
 		aria-label="Resize editors"
 		aria-orientation={playground.direction === 'horizontal' ? 'vertical' : 'horizontal'}
-		class="max-md:h-px! max-md:w-full!"
+		class="focus-visible:ring-rust data-[active=pointer]:bg-rust data-[active=pointer]:ring-rust max-md:h-px! max-md:w-full!"
 	/>
 	<Resizable.Pane defaultSize={50} minSize={20} class="min-h-0 min-w-0">
 		{#key playground.selected}
