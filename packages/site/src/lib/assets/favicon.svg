@@ -1,13 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 18 124 124">
 	<title>Rustier</title>
-	<path d="M35 23Q78 16 126 25Q139 27 137 44L133 126Q132 140 116 139L35 135Q20 134 22 118L24 40Q24 25 35 23Z" fill="#f5d75d" stroke="#24201f" stroke-width="6" stroke-linejoin="round"/>
-	<path d="M105 23q22 0 30 7l1 34q-19-1-20-16-18 4-20-9Z" fill="#cf7752"/>
-	<g fill="#24201f">
+	<path d="M35 23Q78 16 126 25Q139 27 137 44L133 126Q132 140 116 139L35 135Q20 134 22 118L24 40Q24 25 35 23Z" fill="#f3d66a" stroke="#292720" stroke-width="6" stroke-linejoin="round"/>
+	<path d="M105 23q22 0 30 7l1 34q-19-1-20-16-18 4-20-9Z" fill="#d08765"/>
+	<g fill="#292720">
 		<ellipse cx="56" cy="58" rx="5" ry="7"/>
 		<ellipse cx="91" cy="56" rx="5" ry="7"/>
 	</g>
-	<g fill="none" stroke="#24201f" stroke-width="7" stroke-linecap="round">
+	<g fill="none" stroke="#292720" stroke-width="7" stroke-linecap="round">
 		<path d="M71 87v25q0 11-14 11-9 0-13-8M116 91q-19-10-22 3-2 7 11 11t9 13q-7 10-22 0"/>
 	</g>
-	<circle cx="119" cy="37" r="4" fill="#f5d75d"/>
+	<circle cx="119" cy="37" r="4" fill="#f3d66a"/>
 </svg>

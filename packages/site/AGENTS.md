@@ -1,5 +1,8 @@
 # Rustier agent guide
 
+## General rules
+- Do not add tests unless requested. You may add temporary tests during implementation, but remove them before finishing and notify the developer in a test coverage gap.
+
 ## Validation
 
 - After making changes in this package, run `pnpm check` from `packages/site`. 
@@ -21,6 +24,7 @@
 - Keep reusable UI components inside `lib/ui/components` domain-independent and compose their content with snippets.
 - Always use a `shadcn-svelte` for component basis, do not came up with your custom component first if there is some basic variant of it in `shadcn-svelte`. Use the cli to install the component and restyle it.
 - Maintain a "UI Playground" page at `/ui` route with all components, color tokens, fonts, etc. simillar to https://www.radix-ui.com/themes/playground.
+- Always use tailwindcss over regular css
 
 ## Svelte MCP
 

@@ -63,40 +63,121 @@
 	--font-sans: var(--font-body);
 	--font-mono: var(--font-code);
 
+	--text-ui: 0.8125rem;
+	--text-ui--line-height: 1.5;
+	--text-code: 0.9375rem;
+	--text-code--line-height: 1.5;
+	--text-line-number: 0.75rem;
+	--text-line-number--line-height: calc(var(--text-code) * var(--text-code--line-height));
+	--text-wordmark: 1.75rem;
+	--text-wordmark--line-height: 1;
+
 	--color-*: initial;
 
-	--color-java: #f5d75d;
+	--color-java: light-dark(#f3d66a, #f5d75d);
 	--color-on-java: var(--color-ink);
-	--color-on-java-variant: #62512c;
-	--color-java-surface: light-dark(#fff1d1, #352c19);
-	--color-on-java-surface: light-dark(#55400b, #f5d75d);
-	--color-on-java-surface-variant: light-dark(#786033, #c6b878);
+	--color-on-java-variant: #4d472d;
+	--color-java-surface: light-dark(#fdf8e1, #3d382c);
+	--color-java-surface-dim: light-dark(#fff5d8, #302c23);
+	--color-on-java-surface: light-dark(#4d472d, #efdfac);
+	--color-on-java-surface-dim: light-dark(#292720, #efdfac);
+	--color-on-java-surface-variant: light-dark(#82785e, #b8ab98);
+	--color-java-outline: light-dark(#edd88c, #9e8c53);
 
-	--color-rust: #cf7752;
+	--color-rust: light-dark(#cf7752, #d08765);
 	--color-on-rust: var(--color-ink);
-	--color-on-rust-variant: #302422;
-	--color-rust-surface: light-dark(#f6dfd2, #3b2922);
-	--color-on-rust-surface: light-dark(#71391f, #e8c0ab);
-	--color-on-rust-surface-variant: light-dark(#905536, #c69b83);
+	--color-on-rust-variant: #47382c;
+	--color-rust-surface: light-dark(#f7ebe0, #3a302b);
+	--color-rust-surface-dim: light-dark(#efdece, #302621);
+	--color-on-rust-surface: light-dark(#47382c, #dfbcaa);
+	--color-on-rust-surface-dim: light-dark(#47382c, #f4eae2);
+	--color-on-rust-surface-variant: light-dark(#7e715e, #b4a397);
+	--color-rust-outline: light-dark(#d6a589, #8d6450);
 
-	--color-ink: #24201f;
-	--color-on-ink: #fffbe9;
-	--color-on-ink-variant: #b6a597;
-	--color-ink-surface: light-dark(#e9e0d5, #302a27);
-	--color-on-ink-surface: light-dark(#24201f, #e9e0d5);
-	--color-on-ink-surface-variant: light-dark(#6f6257, #b6a597);
+	/* Theme roles swap; the Java and Rust families keep their identities. */
+	--color-primary: light-dark(var(--color-java), var(--color-rust));
+	--color-on-primary: light-dark(var(--color-on-java), var(--color-on-rust));
+	--color-on-primary-variant: light-dark(
+		var(--color-on-java-variant),
+		var(--color-on-rust-variant)
+	);
+	--color-primary-surface: light-dark(var(--color-java-surface), var(--color-rust-surface));
+	--color-primary-surface-dim: light-dark(
+		var(--color-java-surface-dim),
+		var(--color-rust-surface-dim)
+	);
+	--color-on-primary-surface: light-dark(
+		var(--color-on-java-surface),
+		var(--color-on-rust-surface)
+	);
+	--color-on-primary-surface-dim: light-dark(
+		var(--color-on-java-surface-dim),
+		var(--color-on-rust-surface-dim)
+	);
+	--color-on-primary-surface-variant: light-dark(
+		var(--color-on-java-surface-variant),
+		var(--color-on-rust-surface-variant)
+	);
+	--color-primary-outline: light-dark(var(--color-java-outline), var(--color-rust-outline));
+
+	--color-secondary: light-dark(var(--color-rust), var(--color-java));
+	--color-on-secondary: light-dark(var(--color-on-rust), var(--color-on-java));
+	--color-on-secondary-variant: light-dark(
+		var(--color-on-rust-variant),
+		var(--color-on-java-variant)
+	);
+	--color-secondary-surface: light-dark(var(--color-rust-surface), var(--color-java-surface));
+	--color-secondary-surface-dim: light-dark(
+		var(--color-rust-surface-dim),
+		var(--color-java-surface-dim)
+	);
+	--color-on-secondary-surface: light-dark(
+		var(--color-on-rust-surface),
+		var(--color-on-java-surface)
+	);
+	--color-on-secondary-surface-dim: light-dark(
+		var(--color-on-rust-surface-dim),
+		var(--color-on-java-surface-dim)
+	);
+	--color-on-secondary-surface-variant: light-dark(
+		var(--color-on-rust-surface-variant),
+		var(--color-on-java-surface-variant)
+	);
+	--color-secondary-outline: light-dark(var(--color-rust-outline), var(--color-java-outline));
+
+	/* Ink is the neutral color family. */
+	--color-ink: #292720;
+	--color-on-ink: #fffef8;
+	--color-on-ink-variant: #b1a69d;
+	--color-ink-surface: light-dark(#f3f0e5, #1d1b1a);
+	--color-ink-surface-bright: light-dark(#fffef8, #292625);
+	--color-on-ink-surface: light-dark(#292720, #ece7e2);
+	--color-on-ink-surface-variant: light-dark(#756e5d, #b1a69d);
+	--color-ink-outline: light-dark(#e2dccb, #49413b);
+
+	/* Keep editor-specific colors under the --color-editor-* prefix. */
+	--color-editor-keyword: var(--color-on-primary-surface);
+	--color-editor-string: var(--color-on-secondary-surface);
+	--color-editor-function: var(--color-on-primary-surface);
+	--color-editor-comment: var(--color-on-ink-surface-variant);
+	--color-editor-selection: color-mix(in srgb, var(--color-primary), transparent 70%);
+	--color-editor-active-line: color-mix(in srgb, var(--color-ink-surface), transparent 70%);
 }
 
 :root {
 	color-scheme: light dark;
 	background-color: var(--color-ink-surface);
-	color: var(--color-on-surface);
-	line-height: 1.25;
-	letter-spacing: -0.3px;
+	color: var(--color-on-ink-surface);
+	font-family: var(--font-body);
+	line-height: 1.5;
 	font-variant-ligatures: none;
 }
 
+input {
+	accent-color: var(--color-primary);
+}
+
 ::selection {
-	background-color: var(--color-java);
-	color: var(--color-on-java);
+	background-color: var(--color-primary);
+	color: var(--color-on-primary);
 }

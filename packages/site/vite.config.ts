@@ -3,7 +3,6 @@ import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
-import rustier from 'rustier/vite';
 
 export default defineConfig({
 	envDir: fileURLToPath(new URL('../../', import.meta.url)),
@@ -19,12 +18,10 @@ export default defineConfig({
 
 			adapter: adapter(),
 			experimental: { remoteFunctions: true }
-		}),
-		rustier()
+		})
 	],
 	ssr: {
-		noExternal: [/.*/],
-		external: ['rustier', 'rustier-native']
+		noExternal: [/.*/]
 	},
 	build: {
 		cssTarget: ['chrome123', 'edge123', 'firefox120', 'safari17.5', 'ios17.5']
