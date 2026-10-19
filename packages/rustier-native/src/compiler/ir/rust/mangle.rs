@@ -1,6 +1,6 @@
 use crate::compiler::{
     db::Db,
-    ir::rust::{GenArg, PathSegment, Type, TypeKind},
+    ir::rust::{GenArg, ImplTrait, PathSegment, Type, TypeKind},
 };
 
 /// An argument whose stable semantic identity is not available to the mangler.
@@ -47,6 +47,22 @@ pub(super) fn mangle_segments<'db>(
         }
     }
     Ok(path)
+}
+
+pub(super) fn mangle_qualified<'db>(
+    db: &'db dyn Db,
+    impl_: ImplTrait<'db>,
+    segments: &[PathSegment<'db>],
+) -> Result<String, MangleError> {
+    let target = encode_type(db, impl_.target(db))?;
+    let trait_ = mangle_segments(db, impl_.trait_path(db).segments(db))?;
+    let method = mangle_segments(db, segments)?;
+
+    Ok(format!(
+        "Q{}__{}__{method}",
+        length_prefixed(&target),
+        length_prefixed(&trait_),
+    ))
 }
 
 fn encode_type<'db>(db: &'db dyn Db, type_: Type<'db>) -> Result<String, MangleError> {

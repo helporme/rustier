@@ -3,7 +3,8 @@ use ra_ap_hir::{Adt, GenericDef, GenericParam as HirGenericParam, HirDisplay as 
 use crate::compiler::{
     db::Db,
     ir::rust::{
-        Enum, Function, GenericOwner, GenericParam, Impl, Struct, Type, TypeOrigin, TypeParam,
+        Enum, Function, GenericOwner, GenericParam, Impl, Struct, Trait, Type, TypeOrigin,
+        TypeParam,
     },
 };
 
@@ -86,6 +87,20 @@ impl<'db> Impl<'db> {
     }
 }
 
+#[salsa::tracked]
+impl<'db> Trait<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_generic_params(
+        self,
+        db: &'db dyn Db,
+    ) -> Vec<GenericParam<'db>> {
+        lower_generic_params(db, GenericDef::Trait(self.hir(db)))
+            .into_iter()
+            .filter(|param| param.name(db).is_some())
+            .collect()
+    }
+}
+
 fn lower_generic_params<'db>(db: &'db dyn Db, hir: GenericDef) -> Vec<GenericParam<'db>> {
     hir.params(db)
         .into_iter()
@@ -124,6 +139,7 @@ impl<'db> GenericParam<'db> {
             GenericDef::Adt(Adt::Struct(hir)) => GenericOwner::Struct(Struct::new(db, hir)),
             GenericDef::Adt(Adt::Enum(hir)) => GenericOwner::Enum(Enum::new(db, hir)),
             GenericDef::Impl(hir) => GenericOwner::Impl(Impl::new(db, hir)),
+            GenericDef::Trait(hir) => GenericOwner::Trait(Trait::new(db, hir)),
             _ => unreachable!("only parameters of supported generic owners enter Rust IR"),
         }
     }

@@ -425,6 +425,7 @@ impl<'db> Type<'db> {
 impl<'db> TypeOrigin<'db> {
     pub(super) fn context(self, db: &'db dyn Db) -> GenericDef {
         match self {
+            Self::ImplTraitArgument { impl_, .. } => impl_.target(db).origin(db).context(db),
             Self::Field(field) => GenericDef::Adt(field.hir(db).parent_def(db).adt(db)),
             Self::QualifiedField(field) => field.target(db).origin(db).context(db),
             Self::CallableParameter { callable, .. }

@@ -8,6 +8,7 @@ mod impls;
 mod modules;
 mod shapes;
 mod structs;
+mod trait_functions;
 mod traits;
 mod type_impls;
 mod types;
@@ -30,6 +31,22 @@ use crate::compiler::{db::Db, diag::DiagSource, path::FilePath};
 impl<'db> TypeOrigin<'db> {
     pub(super) fn hir(self, db: &'db dyn Db) -> ra_ap_hir::Type<'db> {
         match self {
+            Self::ImplTraitArgument { impl_, index } => {
+                let argument = impl_
+                    .declaration(db)
+                    .hir(db)
+                    .trait_ref(db)
+                    .expect("trait implementation")
+                    .get_type_argument(index + 1)
+                    .expect("trait type argument");
+
+                instantiate_type(
+                    db,
+                    argument,
+                    super::ImplQualified::Trait(impl_).partial_type_args(db),
+                    self.context(db),
+                )
+            }
             Self::Field(field) => instantiate_adt_type(
                 db,
                 field.hir(db).ty(db),
@@ -164,6 +181,7 @@ pub(super) fn function_fqn(db: &dyn Db, function: ra_ap_hir::Function) -> String
     let declaration = Function::new(db, function);
     let parent = match declaration.parent(db) {
         FunctionParent::Module(module) => module.path(db).fqn(db).to_owned(),
+        FunctionParent::Trait(trait_) => trait_.path(db).fqn(db).to_owned(),
         FunctionParent::Impl(impl_) => {
             let hir = impl_.hir(db);
             let self_ty = hir.self_ty(db);

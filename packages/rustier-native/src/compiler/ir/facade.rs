@@ -5,6 +5,7 @@ pub mod decls;
 pub mod ext;
 pub mod imports_js;
 pub mod imports_ts;
+pub mod traits;
 pub mod type_js;
 pub mod type_ts;
 
@@ -17,7 +18,7 @@ use crate::compiler::{
     ir::{
         runtime::RuntimeModule,
         rust::{
-            Callable, Crate, Enum, EnumType, FieldName, FieldQualified, FunctionQualified, GenArg,
+            Callable, Crate, Enum, EnumType, FieldName, FieldQualified, GenArg, ImplQualified,
             Member, Module, Rust, Span, Struct, StructType, Type, TypeKind, VariantQualified,
             usages::UsageGraph,
         },
@@ -567,10 +568,10 @@ impl<'db> FacadeMethod<'db> {
     }
 
     pub fn class(self, db: &'db dyn Db) -> FacadeClass<'db> {
-        let FunctionQualified::Inherent(function) = self.src(db).function(db) else {
-            unreachable!("facade methods must be inherent")
+        let Some(impl_) = self.src(db).function(db).impl_(db) else {
+            unreachable!("facade methods must be associated")
         };
-        let Some(class) = function.impl_(db).target(db).facade_class(db) else {
+        let Some(class) = impl_.target(db).facade_class(db) else {
             unreachable!("facade methods must target a class")
         };
 
@@ -734,6 +735,7 @@ impl<'db> FacadeClassPlain<'db> {
             .into_type(db)
             .impls(db)
             .iter()
+            .filter(|impl_| matches!(impl_, ImplQualified::Inherent(_)))
             .flat_map(|impl_| impl_.functions(db))
             .filter_map(|function| function.as_callible(db))
             .map(|callable| FacadeMethod::new(db, callable))
@@ -808,6 +810,7 @@ impl<'db> FacadeClassDiscriminated<'db> {
             .into_type(db)
             .impls(db)
             .iter()
+            .filter(|impl_| matches!(impl_, ImplQualified::Inherent(_)))
             .flat_map(|impl_| impl_.functions(db))
             .filter_map(|function| function.as_callible(db))
             .map(|callable| FacadeMethod::new(db, callable))

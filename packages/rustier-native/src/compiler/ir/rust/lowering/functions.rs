@@ -15,8 +15,8 @@ use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::{
-        FieldName, Function, FunctionInherent, FunctionParent, Impl, ImplInherent, Module, Param,
-        Receiver, Span, Type, TypeKind, TypeOrigin,
+        FieldName, Function, FunctionInherent, FunctionParent, Impl, ImplInherent, ImplQualified,
+        Module, Param, Receiver, Span, Trait, Type, TypeKind, TypeOrigin,
     },
 };
 
@@ -34,9 +34,7 @@ impl<'db> Function<'db> {
 
         match item.container(db) {
             AssocItemContainer::Impl(impl_) => FunctionParent::Impl(Impl::new(db, impl_)),
-            AssocItemContainer::Trait(_) => {
-                unreachable!("functions from trait declarations are not lowered")
-            }
+            AssocItemContainer::Trait(trait_) => FunctionParent::Trait(Trait::new(db, trait_)),
         }
     }
 
@@ -214,7 +212,7 @@ pub(super) fn lower_inherent_function<'db>(
     if let Some(error) = check_function_substituted(
         db,
         hir,
-        &impl_.partial_type_args(db),
+        &ImplQualified::Inherent(impl_).partial_type_args(db),
         impl_.target(db).origin(db).context(db),
         Vec::new(),
     ) {
@@ -241,7 +239,7 @@ struct MethodShadowedByField {
     span: Option<SourceSpan>,
 }
 
-fn check_function_substituted<'db>(
+pub(super) fn check_function_substituted<'db>(
     db: &'db dyn Db,
     hir: HirFunction,
     type_args: &[ra_ap_hir::Type<'db>],

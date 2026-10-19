@@ -7,8 +7,8 @@ use crate::compiler::{
     db::Db,
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::{
-        Callable, Enum, EnumType, FunctionFree, FunctionQualified, GenArg, Member, Module,
-        ModuleParent, Rust, Struct, StructType, Type, TypeKind,
+        Callable, Enum, EnumType, FunctionFree, FunctionQualified, GenArg, ImplQualified, Member,
+        Module, ModuleParent, Rust, Struct, StructType, Type, TypeKind,
     },
 };
 
@@ -223,6 +223,10 @@ impl<'db> Visitor<'db> {
 
     fn visit_impls(&mut self, type_: Type<'db>, depth: usize) {
         for impl_ in type_.impls(self.db) {
+            if matches!(impl_, ImplQualified::Trait(_)) {
+                continue;
+            }
+
             for function in impl_.functions(self.db) {
                 if let Some(callable) = function.as_callible(self.db) {
                     self.visit_callable(callable, depth);

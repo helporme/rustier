@@ -72,15 +72,20 @@ impl<'db> PathSegment<'db> {
     }
 }
 
-#[salsa::interned(debug)]
+#[salsa::interned(debug, constructor = new_with_qualification)]
 pub struct ItemPath<'db> {
     pub crate_: Crate<'db>,
     #[returns(ref)]
     pub segments: Vec<PathSegment<'db>>,
+    pub qualification: Option<ImplTrait<'db>>,
 }
 
 #[salsa::tracked]
 impl<'db> ItemPath<'db> {
+    pub fn new(db: &'db dyn Db, crate_: Crate<'db>, segments: Vec<PathSegment<'db>>) -> Self {
+        Self::new_with_qualification(db, crate_, segments, None)
+    }
+
     #[salsa::tracked]
     pub fn from_segment(db: &'db dyn Db, crate_: Crate<'db>, segment: PathSegment<'db>) -> Self {
         Self::new(db, crate_, vec![segment])
@@ -90,16 +95,26 @@ impl<'db> ItemPath<'db> {
     pub fn append(self, db: &'db dyn Db, segment: PathSegment<'db>) -> Self {
         let mut segments = self.segments(db).to_owned();
         segments.push(segment);
-        Self::new(db, self.crate_(db), segments)
+        Self::new_with_qualification(db, self.crate_(db), segments, self.qualification(db))
     }
 
     #[salsa::tracked(returns(ref))]
     pub fn fqn(self, db: &'db dyn Db) -> String {
-        self.segments(db)
+        let path = self
+            .segments(db)
             .iter()
             .map(|segment| segment.display(db).as_str())
             .collect::<Vec<_>>()
-            .join("::")
+            .join("::");
+
+        match self.qualification(db) {
+            Some(impl_) => format!(
+                "<{} as {}>::{path}",
+                impl_.target(db).display(db),
+                impl_.trait_path(db).fqn(db),
+            ),
+            None => path,
+        }
     }
 
     /// Mangling is fallible for arguments without a stable closed identity.
@@ -108,7 +123,10 @@ impl<'db> ItemPath<'db> {
     // include generic params and add the mangled method on this one?
     #[salsa::tracked(returns(ref))]
     pub fn try_mangled(self, db: &'db dyn Db) -> Result<String, MangleError> {
-        mangle::mangle_segments(db, self.segments(db))
+        match self.qualification(db) {
+            Some(impl_) => mangle::mangle_qualified(db, impl_, self.segments(db)),
+            None => mangle::mangle_segments(db, self.segments(db)),
+        }
     }
 
     /// For code generation, which only receives supported, closed paths.
@@ -257,6 +275,10 @@ impl<'db> Trait<'db> {
         self.lower_module(db)
     }
 
+    pub fn generic_params(self, db: &'db dyn Db) -> &'db Vec<GenericParam<'db>> {
+        self.lower_generic_params(db)
+    }
+
     pub fn name(self, db: &'db dyn Db) -> &'db String {
         self.lower_name(db)
     }
@@ -399,7 +421,7 @@ impl<'db> Enum<'db> {
 
 as_item!(Enum);
 
-/// A supported inherent impl block.
+/// A supported impl block.
 #[salsa::interned(debug)]
 pub struct Impl<'db> {
     hir: HirImpl,
@@ -427,6 +449,7 @@ impl<'db> Impl<'db> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, salsa::Update, salsa::Supertype)]
 pub enum ImplQualified<'db> {
     Inherent(ImplInherent<'db>),
+    Trait(ImplTrait<'db>),
 }
 
 #[salsa::tracked]
@@ -434,12 +457,30 @@ impl<'db> ImplQualified<'db> {
     pub fn declaration(self, db: &'db dyn Db) -> Impl<'db> {
         match self {
             Self::Inherent(impl_) => impl_.declaration(db),
+            Self::Trait(impl_) => impl_.declaration(db),
+        }
+    }
+
+    pub fn generic_args(self, db: &'db dyn Db) -> &'db Vec<(GenericParam<'db>, GenArg<'db>)> {
+        match self {
+            Self::Inherent(impl_) => impl_.generic_args(db),
+            Self::Trait(impl_) => impl_.generic_args(db),
         }
     }
 
     pub fn functions(self, db: &'db dyn Db) -> impl Iterator<Item = FunctionQualified<'db>> + 'db {
         match self {
-            Self::Inherent(impl_) => impl_.functions(db).map(FunctionQualified::Inherent),
+            Self::Inherent(impl_) => {
+                Either::Left(impl_.functions(db).map(FunctionQualified::Inherent))
+            }
+            Self::Trait(impl_) => Either::Right(impl_.functions(db).map(FunctionQualified::Trait)),
+        }
+    }
+
+    pub fn target(self, db: &'db dyn Db) -> Type<'db> {
+        match self {
+            Self::Inherent(impl_) => impl_.target(db),
+            Self::Trait(impl_) => impl_.target(db),
         }
     }
 }
@@ -458,6 +499,48 @@ impl<'db> ImplInherent<'db> {
 
     pub fn functions(self, db: &'db dyn Db) -> impl Iterator<Item = FunctionInherent<'db>> + 'db {
         self.lower_functions(db).iter().copied()
+    }
+}
+
+#[salsa::interned(debug)]
+pub struct ImplTrait<'db> {
+    pub declaration: Impl<'db>,
+    pub target: Type<'db>,
+    pub trait_: Trait<'db>,
+}
+
+#[salsa::tracked]
+impl<'db> ImplTrait<'db> {
+    pub fn generic_args(self, db: &'db dyn Db) -> &'db Vec<(GenericParam<'db>, GenArg<'db>)> {
+        self.lower_generic_args(db)
+    }
+
+    pub fn functions(self, db: &'db dyn Db) -> impl Iterator<Item = FunctionTrait<'db>> + 'db {
+        self.lower_functions(db).iter().copied()
+    }
+
+    pub fn trait_path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        let path = self.trait_(db).path(db);
+        let mut segments = path.segments(db).clone();
+        *segments.last_mut().expect("trait path") =
+            PathSegment::new(db, self.trait_(db).name(db), self.trait_args(db));
+
+        ItemPath::new(db, path.crate_(db), segments)
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn trait_args(self, db: &'db dyn Db) -> Vec<GenArg<'db>> {
+        self.trait_(db)
+            .generic_params(db)
+            .iter()
+            .enumerate()
+            .map(|(index, _)| {
+                GenArg::Type(Type::new(
+                    db,
+                    TypeOrigin::ImplTraitArgument { impl_: self, index },
+                ))
+            })
+            .collect()
     }
 }
 
@@ -724,6 +807,7 @@ pub enum GenericOwner<'db> {
     Struct(Struct<'db>),
     Enum(Enum<'db>),
     Impl(Impl<'db>),
+    Trait(Trait<'db>),
 }
 
 #[salsa::interned(debug)]
@@ -803,6 +887,7 @@ impl<'db> Function<'db> {
 pub enum FunctionQualified<'db> {
     Free(FunctionFree<'db>),
     Inherent(FunctionInherent<'db>),
+    Trait(FunctionTrait<'db>),
 }
 
 #[salsa::tracked]
@@ -811,6 +896,7 @@ impl<'db> FunctionQualified<'db> {
         match self {
             Self::Free(function) => function.declaration(db),
             Self::Inherent(function) => function.declaration(db),
+            Self::Trait(function) => function.declaration(db),
         }
     }
 
@@ -818,6 +904,7 @@ impl<'db> FunctionQualified<'db> {
         match self {
             Self::Free(function) => function.path(db),
             Self::Inherent(function) => function.path(db),
+            Self::Trait(function) => function.path(db),
         }
     }
 
@@ -825,6 +912,15 @@ impl<'db> FunctionQualified<'db> {
         match self {
             Self::Free(function) => function.as_callible(db),
             Self::Inherent(function) => function.as_callable(db),
+            Self::Trait(function) => function.as_callable(db),
+        }
+    }
+
+    pub fn impl_(self, db: &'db dyn Db) -> Option<ImplQualified<'db>> {
+        match self {
+            Self::Free(_) => None,
+            Self::Inherent(function) => Some(ImplQualified::Inherent(function.impl_(db))),
+            Self::Trait(function) => Some(ImplQualified::Trait(function.impl_(db))),
         }
     }
 }
@@ -873,6 +969,27 @@ impl<'db> FunctionInherent<'db> {
 }
 
 #[salsa::interned(debug)]
+pub struct FunctionTrait<'db> {
+    pub declaration: Function<'db>,
+    pub impl_: ImplTrait<'db>,
+}
+
+impl<'db> FunctionTrait<'db> {
+    pub fn as_callable(self, db: &'db dyn Db) -> Option<Callable<'db>> {
+        self.lower_as_callable(db)
+    }
+
+    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        ItemPath::new_with_qualification(
+            db,
+            self.impl_(db).trait_(db).path(db).crate_(db),
+            vec![self.declaration(db).segment(db)],
+            Some(self.impl_(db)),
+        )
+    }
+}
+
+#[salsa::interned(debug)]
 pub struct Callable<'db> {
     pub function: FunctionQualified<'db>,
     /// Arguments for the function's own generic parameters.
@@ -896,7 +1013,7 @@ impl<'db> Callable<'db> {
         let path = self.function(db).path(db);
         let mut segments = path.segments(db).clone();
         *segments.last_mut().expect("functions have a path segment") = self.segment(db);
-        ItemPath::new(db, path.crate_(db), segments)
+        ItemPath::new_with_qualification(db, path.crate_(db), segments, path.qualification(db))
     }
 
     pub fn receiver_type(self, db: &'db dyn Db) -> Option<Type<'db>> {
@@ -924,6 +1041,7 @@ as_item!(Callable);
 pub enum FunctionParent<'db> {
     Module(Module<'db>),
     Impl(Impl<'db>),
+    Trait(Trait<'db>),
 }
 
 /// How an associated function receives its target value.
@@ -958,6 +1076,10 @@ pub struct Type<'db> {
 /// An origin of rust type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum TypeOrigin<'db> {
+    ImplTraitArgument {
+        impl_: ImplTrait<'db>,
+        index: usize,
+    },
     Field(Field<'db>),
     QualifiedField(FieldQualified<'db>),
     /// Index into `params_without_self`, not the full parameter list.
@@ -989,6 +1111,7 @@ pub enum TypeOrigin<'db> {
 impl<'db> TypeOrigin<'db> {
     pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
         match self {
+            Self::ImplTraitArgument { impl_, .. } => impl_.declaration(db).span(db),
             TypeOrigin::Field(field) => field.span(db),
             TypeOrigin::QualifiedField(field) => field.declaration(db).span(db),
             TypeOrigin::FunctionParameter { function, index } => {

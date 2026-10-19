@@ -13,8 +13,8 @@ use crate::compiler::{
     db::Db,
     diag::DiagAccumulateExt as _,
     ir::rust::{
-        FunctionInherent, GenArg, GenericParam as RustGenericParam, Impl, ImplInherent, Module,
-        Span, Type, TypeOrigin,
+        FunctionInherent, GenArg, GenericParam as RustGenericParam, Impl, ImplInherent, ImplTrait,
+        Module, Span, Type, TypeOrigin,
     },
 };
 
@@ -64,23 +64,7 @@ impl<'db> ImplInherent<'db> {
         self,
         db: &'db dyn Db,
     ) -> Vec<(RustGenericParam<'db>, GenArg<'db>)> {
-        let mut bindings = HashMap::new();
-        bind_self_type(
-            db,
-            self.declaration(db).hir(db).self_ty(db),
-            self.target(db),
-            &mut bindings,
-        );
-        self.declaration(db)
-            .generic_params(db)
-            .iter()
-            .filter_map(|param| {
-                let RustGenericParam::Type(type_param) = param;
-                bindings
-                    .remove(&type_param.hir(db))
-                    .map(|type_| (*param, GenArg::Type(type_)))
-            })
-            .collect()
+        lower_impl_generic_args(db, self.declaration(db), self.target(db))
     }
 
     #[salsa::tracked(returns(ref))]
@@ -109,15 +93,25 @@ impl<'db> ImplInherent<'db> {
     }
 }
 
+#[salsa::tracked]
+impl<'db> ImplTrait<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub(in crate::compiler::ir::rust) fn lower_generic_args(
+        self,
+        db: &'db dyn Db,
+    ) -> Vec<(RustGenericParam<'db>, GenArg<'db>)> {
+        lower_impl_generic_args(db, self.declaration(db), self.target(db))
+    }
+}
+
 pub(super) fn lower_impl<'db>(db: &'db dyn Db, hir: ra_ap_hir::Impl) -> Option<Impl<'db>> {
-    if hir.trait_(db).is_some()
-        || GenericDef::Impl(hir)
-            .params(db)
-            .iter()
-            .any(|param| matches!(param, GenericParam::ConstParam(_)))
+    if GenericDef::Impl(hir)
+        .params(db)
+        .iter()
+        .any(|param| matches!(param, GenericParam::ConstParam(_)))
         || hir.is_unsafe(db)
         || hir.is_negative(db)
-        || hir.source(db).is_none()
+        || (hir.source(db).is_none() && hir.trait_(db).is_none())
     {
         return None;
     }
@@ -131,7 +125,43 @@ pub(super) fn lower_impl<'db>(db: &'db dyn Db, hir: ra_ap_hir::Impl) -> Option<I
         return None;
     }
 
+    if let Some(trait_) = hir.trait_(db) {
+        if trait_.visibility(db) != Visibility::Public
+            || !is_stable(db, trait_, trait_.module(db))
+            || GenericDef::Trait(trait_)
+                .params(db)
+                .iter()
+                .any(|param| match param {
+                    GenericParam::TypeParam(param) => param.is_unstable(db),
+                    _ => true,
+                })
+        {
+            return None;
+        }
+    }
+
     Some(Impl::new(db, hir))
+}
+
+fn lower_impl_generic_args<'db>(
+    db: &'db dyn Db,
+    declaration: Impl<'db>,
+    target: Type<'db>,
+) -> Vec<(RustGenericParam<'db>, GenArg<'db>)> {
+    let mut bindings = HashMap::new();
+    bind_self_type(db, declaration.hir(db).self_ty(db), target, &mut bindings);
+
+    declaration
+        .generic_params(db)
+        .iter()
+        .filter_map(|param| {
+            let RustGenericParam::Type(type_param) = param;
+
+            bindings
+                .remove(&type_param.hir(db))
+                .map(|type_| (*param, GenArg::Type(type_)))
+        })
+        .collect()
 }
 
 fn bind_self_type<'db>(
