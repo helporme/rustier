@@ -8,7 +8,7 @@
 
 	let { children }: LayoutProps = $props();
 
-	setLucideProps({ strokeWidth: 4 });
+	setLucideProps({ strokeWidth: 3 });
 	setupPageTransitions();
 </script>
 

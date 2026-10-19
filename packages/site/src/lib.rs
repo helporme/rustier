@@ -1,1 +1,2 @@
-// rust code to use
+#[path = "lib/playground/inspector/workspace.rs"]
+pub mod workspace;

@@ -21,6 +21,7 @@
 			<Select.Content>
 				<Select.Item value="rust" label="Rust" />
 				<Select.Item value="typescript" label="TypeScript" />
+				<Select.Item value="text" label="Plain text" />
 			</Select.Content>
 		</Select.Root>
 		<label class="flex items-center gap-2"

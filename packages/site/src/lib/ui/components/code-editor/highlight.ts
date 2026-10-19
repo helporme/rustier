@@ -2,7 +2,7 @@ import { rustLanguage } from '@codemirror/lang-rust';
 import { typescriptLanguage } from '@codemirror/lang-javascript';
 import { highlightTree, tagHighlighter, tags } from '@lezer/highlight';
 
-export type CodeLanguage = 'rust' | 'typescript';
+export type CodeLanguage = 'rust' | 'typescript' | 'text';
 
 export const languages = { rust: rustLanguage, typescript: typescriptLanguage };
 
@@ -17,6 +17,8 @@ export const highlighter = tagHighlighter([
 ]);
 
 export function highlight(source: string, language: CodeLanguage) {
+	if (language === 'text') return [{ from: 0, text: source, className: undefined }];
+
 	const tokens: { from: number; text: string; className?: string }[] = [];
 	let position = 0;
 

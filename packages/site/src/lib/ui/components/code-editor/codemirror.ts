@@ -27,7 +27,8 @@ import { highlighter, languages, type CodeLanguage } from './highlight';
 
 const languageExtensions = {
 	rust: [languages.rust, languages.rust.data.of({ autocomplete: completeAnyWord })],
-	typescript: javascript({ typescript: true })
+	typescript: javascript({ typescript: true }),
+	text: []
 };
 
 export type EditorOptions = {

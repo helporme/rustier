@@ -7,7 +7,9 @@
 		base: 'inline-flex shrink-0 items-center justify-center gap-2 rounded-none border-2 border-transparent font-body text-ui font-extrabold whitespace-nowrap outline-none select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-secondary-outline disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50',
 		variants: {
 			variant: {
-				default: 'border-ink bg-java text-ink hover:bg-java/80 active:bg-java/65',
+				primary: 'border-ink bg-primary text-on-primary hover:bg-primary/80 active:bg-primary/65',
+				alternative:
+					'border-ink bg-secondary text-on-secondary hover:bg-secondary/80 active:bg-secondary/65',
 				outline:
 					'border-current bg-transparent text-inherit hover:bg-current/10 active:bg-current/15',
 				ghost: 'text-on-ink-surface hover:bg-ink-surface active:bg-ink-surface/70'
@@ -18,7 +20,7 @@
 				icon: 'size-8'
 			}
 		},
-		defaultVariants: { variant: 'default', size: 'default' }
+		defaultVariants: { variant: 'primary', size: 'default' }
 	});
 
 	export type ButtonVariant = VariantProps<typeof buttonVariants>['variant'];
@@ -35,7 +37,7 @@
 
 	let {
 		class: className,
-		variant = 'default',
+		variant = 'primary',
 		size = 'default',
 		ref = $bindable(null),
 		href,

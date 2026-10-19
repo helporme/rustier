@@ -7,6 +7,8 @@
 	import ThemeExamples from './(components)/theme-examples.svelte';
 	import ResizableExamples from './(components)/resizable-examples.svelte';
 	import IconExamples from './(components)/icon-examples.svelte';
+	import TabsExamples from './(components)/tabs-examples.svelte';
+	import ToggleExamples from './(components)/toggle-examples.svelte';
 </script>
 
 <svelte:head>
@@ -21,7 +23,9 @@
 	<ThemeExamples />
 	<IconExamples />
 	<ButtonExamples />
+	<ToggleExamples />
 	<SelectExamples />
+	<TabsExamples />
 	<EditorExamples />
 	<ResizableExamples />
 </main>

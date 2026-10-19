@@ -2,7 +2,7 @@
 	import { ArrowUpRight, Plus } from '@lucide/svelte';
 	import { Button, type ButtonVariant } from '#lib/ui/components/button';
 
-	const variants: ButtonVariant[] = ['default', 'outline', 'ghost'];
+	const variants: ButtonVariant[] = ['primary', 'alternative', 'outline', 'ghost'];
 </script>
 
 <script lang="ts">
