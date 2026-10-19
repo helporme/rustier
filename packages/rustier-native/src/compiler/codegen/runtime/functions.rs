@@ -2,7 +2,7 @@ use itertools::Either;
 
 use crate::compiler::{
     codegen::{
-        abi::AbiArgs,
+        abi::{AbiArgs, AbiFunctionRenderOps},
         fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, frag, fragment},
         runtime::cast::{Cast, CastRenderer, RuntimeCastRenderer},
     },
@@ -133,8 +133,22 @@ where
         let abi = self.function.abi(self.db);
         let abi_return = abi.ret_type(self.db);
         let ret_type = self.function.ret_type(self.db);
+        let source = match self.function {
+            RuntimeFunction::Free(function) => Some(function.src(self.db)),
+            RuntimeFunction::Associated(function) => Some(function.src(self.db)),
+            _ => None,
+        };
+        let ops = AbiFunctionRenderOps {
+            transport: self.transport,
+            inject_js_env: source.is_some_and(|source| {
+                source
+                    .params(self.db)
+                    .iter()
+                    .any(|param| param.type_(self.db).is_js_env(self.db))
+            }),
+        };
 
-        abi.render_rust_with_body(self.db, self.transport, move |args| {
+        abi.render_rust_with_body(self.db, ops, move |args| {
             fragment(move |p| {
                 let AbiReturn::Union(union) = abi_return else {
                     self.render_body(args).apply(p);
@@ -244,13 +258,34 @@ where
                 });
 
         let src_fn_call_expr = {
+            let mut abi_index = 0;
             let params = comma_list(
-                self.function
-                    .params(self.db)
-                    .iter()
-                    .enumerate()
-                    .map(|(i, _)| frag!(_{i})),
+                src_fn
+                    .receiver_type(self.db)
+                    .into_iter()
+                    .chain(
+                        src_fn
+                            .params(self.db)
+                            .iter()
+                            .map(|param| *param.type_(self.db)),
+                    )
+                    .map(move |type_| {
+                        let index = if type_.is_js_env(self.db) {
+                            None
+                        } else {
+                            let index = abi_index;
+                            abi_index += 1;
+
+                            Some(index)
+                        };
+
+                        fragment(move |p| match index {
+                            Some(index) => frag!(_{index}).apply(p),
+                            None => frag!(__js_env).apply(p),
+                        })
+                    }),
             );
+
             frag!({ src_fn.path(self.db).fqn(self.db) }({ params }))
         };
 
@@ -423,7 +458,17 @@ mod tests {
     use super::*;
     use crate::{
         assert_rust_snap,
-        compiler::{codegen::runtime::cast::test::TestCastRenderer, ir::rust::Rust},
+        compiler::{
+            codegen::{
+                fragment::FragmentPrint,
+                runtime::{cast::test::TestCastRenderer, test::build_rust_snapshot},
+            },
+            ir::{
+                abi::transport::{WasmMemory, WasmTransport},
+                rust::Rust,
+            },
+            test::build_js_env_test_db,
+        },
     };
 
     fn find_test_function<'db>(
@@ -438,6 +483,91 @@ mod tests {
             .copied()
             .find(|function| predicate(*function))
             .expect("fixture should lower the requested runtime function")
+    }
+
+    fn snapshot_js_env(name: &str, source: &str) {
+        let db = build_js_env_test_db(source);
+        let (node, wasm) = ra_ap_hir::attach_db(&db, || {
+            let function = find_test_function(&db, |function| {
+                matches!(
+                    function,
+                    RuntimeFunction::Free(_) | RuntimeFunction::Associated(_)
+                )
+            });
+            let node = function
+                .render_with(&db, AbiTransport::Napi, TestCastRenderer)
+                .print();
+            let wasm = function
+                .render_with(
+                    &db,
+                    AbiTransport::Wasm(WasmTransport {
+                        memory: WasmMemory::x32,
+                    }),
+                    TestCastRenderer,
+                )
+                .print();
+
+            (node, wasm)
+        });
+        let (snapshot, snapshot_path) = build_rust_snapshot(source, &node, &wasm, file!());
+
+        insta::with_settings!({
+            snapshot_path => snapshot_path,
+            prepend_module_to_snapshot => false,
+        }, {
+            insta::assert_snapshot!(name, snapshot);
+        });
+    }
+
+    #[test]
+    fn js_env_only() {
+        snapshot_js_env(
+            "js_env_only",
+            r#"
+                use rustier_rt::js::JsEnv;
+
+                pub fn record_env(_env: JsEnv) {}
+            "#,
+        );
+    }
+
+    #[test]
+    fn js_env_mixed_args() {
+        snapshot_js_env(
+            "js_env_mixed_args",
+            r#"
+                pub use rustier_rt::js::JsEnv as Environment;
+                type Alias = Environment;
+
+                pub fn combine(
+                    _first: Environment,
+                    left: i32,
+                    _middle: Alias,
+                    right: &i32,
+                    _last: Environment,
+                ) -> i32 {
+                    left + right
+                }
+            "#,
+        );
+    }
+
+    #[test]
+    fn js_env_method() {
+        snapshot_js_env(
+            "js_env_method",
+            r#"
+                use rustier_rt::js::JsEnv;
+
+                pub struct Counter;
+
+                impl Counter {
+                    pub fn combine(&self, left: i32, _env: JsEnv, right: i32) -> i32 {
+                        left + right
+                    }
+                }
+            "#,
+        );
     }
 
     macro_rules! test_function {

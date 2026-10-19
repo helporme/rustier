@@ -527,6 +527,7 @@ impl<'db> FacadeFreeFunction<'db> {
             .params(db)
             .iter()
             .enumerate()
+            .filter(|(_, param)| !param.type_(db).is_js_env(db))
             .map(|(idx, param)| FacadeParam::new(db, self.as_fn(), idx, *param.type_(db)))
             .collect()
     }
@@ -602,6 +603,7 @@ impl<'db> FacadeMethod<'db> {
                     .params(db)
                     .iter()
                     .enumerate()
+                    .filter(|(_, param)| !param.type_(db).is_js_env(db))
                     .map(|(idx, param)| {
                         FacadeParam::new(db, self.as_fn(), idx + offset, *param.type_(db))
                     }),

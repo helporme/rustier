@@ -146,11 +146,17 @@ impl<'db> AbiUnion<'db> {
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct AbiFunctionRenderOps {
+    pub transport: AbiTransport,
+    pub inject_js_env: bool,
+}
+
 impl<'db> AbiFunction<'db> {
     pub fn render_rust_with_body<Body>(
         self,
         db: &'db dyn Db,
-        transport: AbiTransport,
+        ops: AbiFunctionRenderOps,
         body: impl FnOnce(AbiArgs<'db>) -> Body + 'db,
     ) -> impl FragmentOnce + 'db
     where
@@ -163,7 +169,7 @@ impl<'db> AbiFunction<'db> {
             symbol: self.symbol(db),
             params,
             ret_type: self.ret_type(db),
-            transport,
+            ops,
             body: body(AbiArgs { params }),
         }
     }
@@ -174,7 +180,7 @@ struct FunctionFragment<'db, Body> {
     symbol: &'db str,
     params: &'db [AbiType],
     ret_type: AbiReturn<'db>,
-    transport: AbiTransport,
+    ops: AbiFunctionRenderOps,
     body: Body,
 }
 
@@ -185,9 +191,13 @@ impl<'db, Body: FragmentOnce + 'db> FragmentOnce for FunctionFragment<'db, Body>
             symbol,
             params,
             ret_type,
-            transport,
+            ops,
             body,
         } = self;
+        let AbiFunctionRenderOps {
+            transport,
+            inject_js_env,
+        } = ops;
 
         let boundary_type = fragment(move |p| match (ret_type, transport) {
             (AbiReturn::Value(type_), _) => transport.render_return_type(type_).apply(p),
@@ -211,13 +221,37 @@ impl<'db, Body: FragmentOnce + 'db> FragmentOnce for FunctionFragment<'db, Body>
             }
         });
 
-        let declarations = comma_list(params.iter().enumerate().map(|(i, type_)| {
-            frag!(
-                _{i}: ~{transport.render_param_type(*type_)}
+        let declarations = fragment(move |p| {
+            if inject_js_env && matches!(transport, AbiTransport::Napi) {
+                frag!(__env: napi::Env).apply(p);
+
+                if !params.is_empty() {
+                    frag!(,~).apply(p);
+                }
+            }
+
+            comma_list(
+                params
+                    .iter()
+                    .enumerate()
+                    .map(|(i, type_)| frag!(_{i}: ~{transport.render_param_type(*type_)})),
             )
-        }));
+            .apply(p);
+        });
 
         let decode = fragment(move |p| {
+            if inject_js_env {
+                let raw = fragment(move |p| match transport {
+                    AbiTransport::Wasm(_) => frag!(0).apply(p),
+                    AbiTransport::Napi => frag!(__env.raw() as usize).apply(p),
+                });
+
+                frag!(
+                    let __js_env = unsafe {{ rustier_rt::js::JsEnv::from_raw({raw}) }};@@
+                )
+                .apply(p);
+            }
+
             for (i, type_) in params.iter().enumerate() {
                 if *type_ == AbiType::Unit && matches!(transport, AbiTransport::Wasm(_)) {
                     frag!(let _{i} = ();@@).apply(p);
@@ -361,7 +395,10 @@ mod tests {
                         symbol,
                         params: &params,
                         ret_type: AbiReturn::Value(type_),
-                        transport,
+                        ops: AbiFunctionRenderOps {
+                            transport,
+                            inject_js_env: false,
+                        },
                         body: "_0",
                     }
                     .apply(p);
@@ -369,6 +406,36 @@ mod tests {
                 }
             })
             .print()
+        });
+    }
+
+    #[test]
+    fn js_env_injection() {
+        snapshot("js_env_injection", |db, transport| {
+            let only_env = FunctionFragment {
+                db,
+                symbol: "only_env",
+                params: &[],
+                ret_type: AbiReturn::Value(AbiType::Unit),
+                ops: AbiFunctionRenderOps {
+                    transport,
+                    inject_js_env: true,
+                },
+                body: frag!(source::only_env(__js_env)),
+            };
+            let mixed_args = FunctionFragment {
+                db,
+                symbol: "mixed_args",
+                params: &[AbiType::f64, AbiType::bool],
+                ret_type: AbiReturn::Value(AbiType::f64),
+                ops: AbiFunctionRenderOps {
+                    transport,
+                    inject_js_env: true,
+                },
+                body: frag!(source::mixed_args(_0, __js_env, _1)),
+            };
+
+            frag!({only_env}@@{mixed_args}).print()
         });
     }
 
@@ -415,7 +482,10 @@ mod tests {
                 symbol: "choose",
                 params: &[AbiType::f64],
                 ret_type,
-                transport,
+                ops: AbiFunctionRenderOps {
+                    transport,
+                    inject_js_env: false,
+                },
                 body,
             }
             .print()

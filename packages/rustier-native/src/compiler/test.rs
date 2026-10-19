@@ -58,6 +58,23 @@ pub(super) fn build_test_db(
     db
 }
 
+pub(super) fn build_js_env_test_db(source: &str) -> RootDatabase {
+    let source = format_rust_source(source);
+    let fixture = format!(
+        "//- minicore: clone, derive\n\
+         //- /src/lib.rs crate:test_crate deps:std,rustier_rt edition:2024\n\
+         {source}\n\
+         {TEST_STD_FIXTURE}\n\
+         //- /rustier_rt/lib.rs crate:rustier_rt new_source_root:library edition:2024\n\
+         pub mod js {{ pub struct JsEnv; }}\n",
+    );
+    let mut db = RootDatabase::default();
+
+    db.apply_change(ChangeFixture::parse(&fixture).change);
+
+    db
+}
+
 /// Creates a compiler database containing rust-analyzer inputs for inline Rust
 /// code.
 ///

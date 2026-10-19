@@ -72,6 +72,23 @@ pub(super) fn is_string(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::Cra
             == ["string"]
 }
 
+pub(super) fn is_js_env(db: &dyn Db, type_: &HirType<'_>) -> bool {
+    let Some(Adt::Struct(struct_)) = type_.as_adt() else {
+        return false;
+    };
+    let module = struct_.module(db);
+    let crate_ = module.krate(db);
+
+    crate_
+        .display_name(db)
+        .is_some_and(|name| name.to_string() == "rustier_rt")
+        && struct_.name(db).as_str() == "JsEnv"
+        && module
+            .path_segments(db)
+            .map(|name| name.as_str().to_owned())
+            .eq(["js"])
+}
+
 /// Checks whether the HIR type satisfies the `Clone` trait obligation.
 pub(super) fn is_clonable(
     db: &dyn Db,
@@ -129,6 +146,10 @@ pub(super) fn check_type(
 ) -> Result<(), TypeLowerErrorUnsupported> {
     if type_.is_unit() || type_.as_type_param(db).is_some() {
         return Ok(());
+    }
+
+    if is_js_env(db, type_) {
+        return Err(TypeLowerErrorUnsupported::JsEnv);
     }
 
     if let Some((inner, _)) = type_.as_reference() {
@@ -220,6 +241,11 @@ pub(super) fn check_type(
 
 #[salsa::tracked]
 impl<'db> Type<'db> {
+    #[salsa::tracked]
+    pub fn is_js_env(self, db: &'db dyn Db) -> bool {
+        is_js_env(db, &self.hir(db))
+    }
+
     #[salsa::tracked]
     pub fn minimum_generic_arity(self, db: &'db dyn Db) -> usize {
         let type_ = self.hir(db);
@@ -452,6 +478,10 @@ fn lower_builtin<'db>(
 pub(super) enum TypeLowerErrorUnsupported {
     #[error("unstable items are not supported")]
     Unstable,
+
+    #[error("JsEnv is only supported as an owned function parameter supplied by the runtime")]
+    #[diagnostic(code(rustier::unsupported_js_env), severity(Warning))]
+    JsEnv,
 
     #[error("unsupported type: {type_}")]
     #[diagnostic(code(rustier::unsupported_type), severity(Warning))]

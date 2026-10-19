@@ -1,5 +1,6 @@
 mod error;
 pub mod handles;
+pub mod js;
 pub mod tethering;
 
 pub use error::{CallError, CastError, EnumError};

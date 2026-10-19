@@ -36,6 +36,8 @@ pub mod enum_wrong_type_throws;
 pub mod fn_basic_diags;
 #[path = "fn-enum/test.rs"]
 pub mod fn_enum;
+#[path = "fn-js-env/test.rs"]
+pub mod fn_js_env;
 #[path = "fn-mixed/test.rs"]
 pub mod fn_mixed;
 #[path = "fn-no-args-no-return/test.rs"]

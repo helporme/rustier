@@ -231,6 +231,10 @@ impl<'db> Visitor<'db> {
     }
 
     fn visit_type(&mut self, mut type_: Type<'db>, depth: usize) {
+        if type_.is_js_env(self.db) {
+            return;
+        }
+
         let hir = type_.hir(self.db);
         if let Some(&(representative, previous_depth)) = self.visited_types.get(&hir) {
             if previous_depth <= depth {
