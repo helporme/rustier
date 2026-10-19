@@ -5,7 +5,7 @@ use crate::compiler::ir::abi::transport::AbiTransport;
 pub mod js;
 mod rust;
 
-pub use rust::{AbiArg, AbiArgs, AbiFunctionRenderOps};
+pub use rust::{AbiArg, AbiArgs, AbiFunctionRenderOps, render_js_value_adapter};
 
 impl AbiTransport {
     /// The prelude code for this transport.

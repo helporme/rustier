@@ -2593,6 +2593,9 @@ dependencies = [
 [[package]]
 name = "rustier-rt"
 version = "0.0.1"
+dependencies = [
+ "napi-sys",
+]
 
 [[package]]
 name = "rustix"

@@ -16,6 +16,7 @@ pub enum FacadeTypeTs<'db> {
     boolean,
     string,
     number,
+    unknown,
     Class {
         inner: FacadeClass<'db>,
         coerced: bool,
@@ -50,6 +51,7 @@ impl<'db> From<FacadeTypeJs<'db>> for FacadeTypeTs<'db> {
             FacadeTypeJs::boolean => Self::boolean,
             FacadeTypeJs::string => Self::string,
             FacadeTypeJs::number => Self::number,
+            FacadeTypeJs::unknown => Self::unknown,
             FacadeTypeJs::Class(inner) => Self::Class {
                 inner,
                 coerced: false,

@@ -14,7 +14,7 @@ pub struct ExampleStruct;
 ```rust
 fn cast(input: ()) {
     {
-        let output = rustier_rt::handles::into_handle(input);
+        let output = rustier_rt::rust_handles::into_handle(input);
         consume(output);
     }
 }
@@ -24,7 +24,7 @@ fn cast(input: ()) {
 ```rust
 fn cast(input: ()) {
     {
-        let output = rustier_rt::handles::into_handle(input);
+        let output = rustier_rt::rust_handles::into_handle(input);
         consume(output);
     }
 }

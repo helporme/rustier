@@ -26,7 +26,7 @@ pub fn __fn__coe__10_test_crate__4_Test__4_Unit() -> (
     let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<usize> {
             Ok(
-                rustier_rt::handles::into_handle(
+                rustier_rt::rust_handles::into_handle(
                     std::rc::Rc::new(
                         __tethering__10_test_crate__4_Test::new_owned(
                             test_crate::Test::Unit,
@@ -58,7 +58,7 @@ pub fn __fn__coe__10_test_crate__4_Test__4_Unit() -> Vec<JsValue> {
     let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<usize> {
             Ok(
-                rustier_rt::handles::into_handle(
+                rustier_rt::rust_handles::into_handle(
                     std::rc::Rc::new(
                         __tethering__10_test_crate__4_Test::new_owned(
                             test_crate::Test::Unit,

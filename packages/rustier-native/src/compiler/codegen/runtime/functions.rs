@@ -221,7 +221,7 @@ where
 
                 frag!(unsafe {
                     {
-                        rustier_rt::handles::drop_handle::<{ target }>({ handle });
+                        rustier_rt::rust_handles::drop_handle::<{ target }>({ handle });
                     }
                 })
                 .apply(p);

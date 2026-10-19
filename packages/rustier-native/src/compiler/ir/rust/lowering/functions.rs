@@ -9,7 +9,7 @@ use thiserror::Error;
 use super::{
     TypeLowerErrorUnsupported, diagnostic_location, function_fqn, is_stable, lower_item_span,
     lower_type,
-    types::{contains_borrowed_values, is_clonable, is_js_env, is_string},
+    types::{contains_borrowed_values, is_clonable, is_js_type, is_string},
 };
 use crate::compiler::{
     db::Db,
@@ -271,7 +271,7 @@ fn check_function_substituted<'db>(
     for (name, type_) in parameters {
         let parameter_type = super::instantiate_type(db, type_, type_args.iter().cloned(), context);
 
-        if is_js_env(db, &parameter_type) {
+        if is_js_type(db, &parameter_type, "JsEnv") {
             continue;
         }
 

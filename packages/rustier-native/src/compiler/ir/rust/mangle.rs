@@ -65,6 +65,7 @@ fn encode_type<'db>(db: &'db dyn Db, type_: Type<'db>) -> Result<String, MangleE
         TypeKind::f64 => "f64",
         TypeKind::Str => "str",
         TypeKind::String => "String",
+        TypeKind::JsValue => "JsValue",
         TypeKind::Generic(_) => return Err(MangleError::TypeParameter),
         TypeKind::Struct(type_) => {
             return Ok(format!(

@@ -38,6 +38,8 @@ pub mod fn_basic_diags;
 pub mod fn_enum;
 #[path = "fn-js-env/test.rs"]
 pub mod fn_js_env;
+#[path = "fn-js-value/test.rs"]
+pub mod fn_js_value;
 #[path = "fn-mixed/test.rs"]
 pub mod fn_mixed;
 #[path = "fn-no-args-no-return/test.rs"]

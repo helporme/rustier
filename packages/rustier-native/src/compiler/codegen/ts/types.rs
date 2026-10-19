@@ -14,6 +14,7 @@ impl<'db> FacadeTypeTs<'db> {
             FacadeTypeTs::boolean => frag!(boolean).apply(p),
             FacadeTypeTs::string => frag!(string).apply(p),
             FacadeTypeTs::number => frag!(number).apply(p),
+            FacadeTypeTs::unknown => frag!(unknown).apply(p),
             FacadeTypeTs::Class { inner, coerced } => {
                 inner
                     .type_name(db)

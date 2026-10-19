@@ -24,6 +24,7 @@ impl<'db> RuntimeType<'db> {
                 | TypeKind::f32
                 | TypeKind::f64 => "f64".apply(p),
                 TypeKind::Str | TypeKind::String => "String".apply(p),
+                TypeKind::JsValue => "rustier_rt::js::JsValue".apply(p),
                 TypeKind::Borrowed(borrowed) => {
                     Self::Source(borrowed.inner(db)).render_rust(db).apply(p);
                 }
@@ -73,6 +74,7 @@ impl<'db> Type<'db> {
             TypeKind::f64 => "__f64".apply(p),
             TypeKind::Str => "__str".apply(p),
             TypeKind::String => "__string".apply(p),
+            TypeKind::JsValue => "__js_value".apply(p),
             TypeKind::char => "__char".apply(p),
             TypeKind::Struct(s) => s.path(db).mangled(db).apply(p),
             TypeKind::Enum(e) => e.path(db).mangled(db).apply(p),

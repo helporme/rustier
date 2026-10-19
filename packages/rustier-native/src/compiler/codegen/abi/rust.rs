@@ -1,5 +1,9 @@
 //! Rust side of the ABI: exported wrapper functions.
 
+mod js_value;
+
+pub use js_value::render_js_value_adapter;
+
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, Printer, comma_list, doubles, frag, fragment},
     db::Db,
@@ -24,6 +28,8 @@ impl AbiTransport {
     fn render_param_type(self, type_: AbiType) -> impl FragmentOnce {
         fragment(move |p| match (type_, self) {
             (AbiType::Unit, AbiTransport::Wasm(_)) => "JsValue".apply(p),
+            (AbiType::JsValue, AbiTransport::Wasm(_)) => "u32".apply(p),
+            (AbiType::JsValue, AbiTransport::Napi) => "__JsValue".apply(p),
             (
                 AbiType::usize,
                 AbiTransport::Wasm(WasmTransport {
@@ -47,6 +53,8 @@ impl AbiTransport {
 
     fn render_return_type(self, type_: AbiType) -> impl FragmentOnce {
         fragment(move |p| match (type_, self) {
+            (AbiType::JsValue, AbiTransport::Wasm(_)) => "u32".apply(p),
+            (AbiType::JsValue, AbiTransport::Napi) => "__JsValue".apply(p),
             (
                 AbiType::usize,
                 AbiTransport::Wasm(WasmTransport {
@@ -57,6 +65,18 @@ impl AbiTransport {
             }
             (AbiType::usize, _) => "u64".apply(p),
             (type_, _) => type_.render_rust().apply(p),
+        })
+    }
+
+    fn render_js_value(self, value: impl FragmentOnce) -> impl FragmentOnce {
+        fragment(move |p| match self {
+            AbiTransport::Wasm(_) => frag!({{
+                let handle: rustier_rt::js::backend::ValueHandle = ({value}).into();@@
+
+                handle.into_raw()
+            }})
+            .apply(p),
+            AbiTransport::Napi => frag!(__JsValue({ value })).apply(p),
         })
     }
 }
@@ -70,6 +90,7 @@ impl AbiType {
             AbiType::bool => "bool",
             AbiType::String => "String",
             AbiType::usize => "usize",
+            AbiType::JsValue => "rustier_rt::js::JsValue",
         }
     }
 }
@@ -100,7 +121,9 @@ impl<'db> AbiUnion<'db> {
                     "value"
                 };
                 let value = fragment(move |p| {
-                    if *type_ == AbiType::usize {
+                    if *type_ == AbiType::JsValue {
+                        transport.render_js_value(binding).apply(p);
+                    } else if *type_ == AbiType::usize {
                         let type_ = transport.render_return_type(*type_);
 
                         frag!(value as ~{type_}).apply(p);
@@ -128,9 +151,15 @@ impl<'db> AbiUnion<'db> {
                             AbiType::bool => "C",
                             AbiType::String => "D",
                             AbiType::usize => "E",
+                            AbiType::JsValue => "F",
+                        };
+                        let either = if self.variants(db).contains(&AbiType::JsValue) {
+                            "Either6"
+                        } else {
+                            "Either5"
                         };
 
-                        frag!(({index}u32, napi::bindgen_prelude::Either5::{variant}({value})))
+                        frag!(({index}u32, napi::bindgen_prelude::{either}::{variant}({value})))
                             .apply(p);
                     }
                 });
@@ -202,8 +231,13 @@ impl<'db, Body: FragmentOnce + 'db> FragmentOnce for FunctionFragment<'db, Body>
         let boundary_type = fragment(move |p| match (ret_type, transport) {
             (AbiReturn::Value(type_), _) => transport.render_return_type(type_).apply(p),
             (AbiReturn::Union(_), AbiTransport::Wasm(_)) => "Vec<JsValue>".apply(p),
-            (AbiReturn::Union(_), AbiTransport::Napi) => {
-                "(u32, napi::bindgen_prelude::Either5<(), f64, bool, String, u64>)".apply(p);
+            (AbiReturn::Union(union), AbiTransport::Napi) => {
+                if union.variants(db).contains(&AbiType::JsValue) {
+                    "(u32, napi::bindgen_prelude::Either6<(), f64, bool, String, u64, __JsValue>)"
+                        .apply(p);
+                } else {
+                    "(u32, napi::bindgen_prelude::Either5<(), f64, bool, String, u64>)".apply(p);
+                }
             }
         });
 
@@ -253,6 +287,21 @@ impl<'db, Body: FragmentOnce + 'db> FragmentOnce for FunctionFragment<'db, Body>
             }
 
             for (i, type_) in params.iter().enumerate() {
+                if *type_ == AbiType::JsValue {
+                    let value = fragment(move |p| match transport {
+                        AbiTransport::Wasm(_) => frag!(
+                            unsafe {{
+                                rustier_rt::js::backend::ValueHandle::clone_from_raw(_{i})
+                            }}.into()
+                        )
+                        .apply(p),
+                        AbiTransport::Napi => frag!(_{i}.0).apply(p),
+                    });
+
+                    frag!(let _{i}: rustier_rt::js::JsValue = {value};@@).apply(p);
+                    continue;
+                }
+
                 if *type_ == AbiType::Unit && matches!(transport, AbiTransport::Wasm(_)) {
                     frag!(let _{i} = ();@@).apply(p);
                     continue;
@@ -275,6 +324,7 @@ impl<'db, Body: FragmentOnce + 'db> FragmentOnce for FunctionFragment<'db, Body>
         });
 
         let encode = fragment(move |p| match ret_type {
+            AbiReturn::Value(AbiType::JsValue) => transport.render_js_value("result").apply(p),
             AbiReturn::Value(AbiType::usize) => {
                 let type_ = transport.render_return_type(AbiType::usize);
 

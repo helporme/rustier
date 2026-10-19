@@ -159,7 +159,13 @@ impl Effect for WasmBuild {
     }
 
     fn _synced(&self, _db: &dyn Db, artifact: &WasmBuildArtifact) -> Result<bool, WasmBuildError> {
-        Ok(artifact.bin_path.as_path().is_file() && artifact.js_path.as_path().is_file())
+        Ok(artifact.bin_path.as_path().is_file()
+            && artifact.js_path.as_path().is_file()
+            && artifact
+                .js_path
+                .as_path()
+                .with_file_name(rustier_rt::js::wasm::WASM_RUNTIME_FILENAME)
+                .is_file())
     }
 }
 

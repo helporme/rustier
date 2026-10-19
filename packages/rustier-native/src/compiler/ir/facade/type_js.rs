@@ -16,6 +16,7 @@ pub enum FacadeTypeJs<'db> {
     boolean,
     string,
     number,
+    unknown,
     Class(FacadeClass<'db>),
 }
 
@@ -38,6 +39,7 @@ impl<'db> FacadeTypeJs<'db> {
             | TypeKind::f32
             | TypeKind::f64 => Self::number,
             TypeKind::Str | TypeKind::String => Self::string,
+            TypeKind::JsValue => Self::unknown,
             TypeKind::Borrowed(borrowed) => Self::from_source(db, borrowed.inner(db)),
             TypeKind::Struct(_) | TypeKind::Enum(_) | TypeKind::Generic(_) => {
                 unreachable!("unsupported Rust types do not enter the facade")

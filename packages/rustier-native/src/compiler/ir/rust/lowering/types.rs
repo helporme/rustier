@@ -72,7 +72,7 @@ pub(super) fn is_string(db: &dyn Db, type_: &HirType<'_>, crate_: ra_ap_hir::Cra
             == ["string"]
 }
 
-pub(super) fn is_js_env(db: &dyn Db, type_: &HirType<'_>) -> bool {
+pub(super) fn is_js_type(db: &dyn Db, type_: &HirType<'_>, name: &str) -> bool {
     let Some(Adt::Struct(struct_)) = type_.as_adt() else {
         return false;
     };
@@ -82,7 +82,7 @@ pub(super) fn is_js_env(db: &dyn Db, type_: &HirType<'_>) -> bool {
     crate_
         .display_name(db)
         .is_some_and(|name| name.to_string() == "rustier_rt")
-        && struct_.name(db).as_str() == "JsEnv"
+        && struct_.name(db).as_str() == name
         && module
             .path_segments(db)
             .map(|name| name.as_str().to_owned())
@@ -148,11 +148,21 @@ pub(super) fn check_type(
         return Ok(());
     }
 
-    if is_js_env(db, type_) {
+    if is_js_type(db, type_, "JsEnv") {
         return Err(TypeLowerErrorUnsupported::JsEnv);
     }
 
+    if is_js_type(db, type_, "JsValue") {
+        return Ok(());
+    }
+
     if let Some((inner, _)) = type_.as_reference() {
+        if is_js_type(db, &inner, "JsValue") {
+            return Err(TypeLowerErrorUnsupported::Type {
+                type_: type_.display(db, crate_.to_display_target(db)).to_string(),
+            });
+        }
+
         if inner.as_reference().is_some() {
             return Err(TypeLowerErrorUnsupported::DoubleReference);
         }
@@ -243,7 +253,7 @@ pub(super) fn check_type(
 impl<'db> Type<'db> {
     #[salsa::tracked]
     pub fn is_js_env(self, db: &'db dyn Db) -> bool {
-        is_js_env(db, &self.hir(db))
+        is_js_type(db, &self.hir(db), "JsEnv")
     }
 
     #[salsa::tracked]
@@ -311,6 +321,12 @@ impl<'db> Type<'db> {
 
     #[salsa::tracked]
     pub(in crate::compiler::ir::rust) fn lower_kind(self, db: &'db dyn Db) -> TypeKind<'db> {
+        let hir = self.hir(db);
+
+        if is_js_type(db, &hir, "JsValue") {
+            return TypeKind::JsValue;
+        }
+
         // Synthesized types already describe their kind.
         match self.origin(db) {
             TypeOrigin::Struct(type_) => return TypeKind::Struct(type_),
@@ -325,7 +341,6 @@ impl<'db> Type<'db> {
             _ => {}
         }
 
-        let hir = self.hir(db);
         if hir.is_unit() {
             return TypeKind::Unit;
         }

@@ -1,3 +1,5 @@
+// Rustier runtime handles to rust memory, referenced from js code.
+
 use std::rc::Rc;
 
 pub fn into_handle<T>(value: Rc<T>) -> usize {

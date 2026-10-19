@@ -30,11 +30,11 @@ pub fn __fn__coe__10_test_crate__6_Nested(
     let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<usize> {
             Ok(
-                rustier_rt::handles::into_handle(
+                rustier_rt::rust_handles::into_handle(
                     std::rc::Rc::new(
                         __tethering__10_test_crate__6_Nested::new_owned({
                             let _0 = unsafe {
-                                rustier_rt::handles::clone_from_handle::<
+                                rustier_rt::rust_handles::clone_from_handle::<
                                     __tethering__10_test_crate__5_Child,
                                 >(_0)
                             }
@@ -69,11 +69,11 @@ pub fn __fn__coe__10_test_crate__6_Nested(_0: u32) -> Vec<JsValue> {
     let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<usize> {
             Ok(
-                rustier_rt::handles::into_handle(
+                rustier_rt::rust_handles::into_handle(
                     std::rc::Rc::new(
                         __tethering__10_test_crate__6_Nested::new_owned({
                             let _0 = unsafe {
-                                rustier_rt::handles::clone_from_handle::<
+                                rustier_rt::rust_handles::clone_from_handle::<
                                     __tethering__10_test_crate__5_Child,
                                 >(_0)
                             }

@@ -25,7 +25,7 @@ pub fn __fn__coe__10_test_crate__8_RawField(
     let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<usize> {
             Ok(
-                rustier_rt::handles::into_handle(
+                rustier_rt::rust_handles::into_handle(
                     std::rc::Rc::new(
                         __tethering__10_test_crate__8_RawField::new_owned({
                             let _0 = {
@@ -73,7 +73,7 @@ pub fn __fn__coe__10_test_crate__8_RawField(_0: f64) -> Vec<JsValue> {
     let result: __AbiReturn = {
         let result = (|| -> rustier_rt::CallResult<usize> {
             Ok(
-                rustier_rt::handles::into_handle(
+                rustier_rt::rust_handles::into_handle(
                     std::rc::Rc::new(
                         __tethering__10_test_crate__8_RawField::new_owned({
                             let _0 = {

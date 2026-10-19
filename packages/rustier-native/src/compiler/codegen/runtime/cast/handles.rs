@@ -21,8 +21,9 @@ where
     Continue: FragmentOnce + 'db,
 {
     let type_name = target.tethering_struct_name(db);
-    let value =
-        frag!(unsafe { { rustier_rt::handles::clone_from_handle::<{ type_name }>({ in_expr }) } });
+    let value = frag!(unsafe {
+        { rustier_rt::rust_handles::clone_from_handle::<{ type_name }>({ in_expr }) }
+    });
 
     adapt_to_cast_output(value, output)
 }
@@ -36,7 +37,10 @@ where
     OutVar: FragmentOnce + 'db,
     Continue: FragmentOnce + 'db,
 {
-    adapt_to_cast_output(frag!(rustier_rt::handles::into_handle({ in_expr })), output)
+    adapt_to_cast_output(
+        frag!(rustier_rt::rust_handles::into_handle({ in_expr })),
+        output,
+    )
 }
 
 pub fn render_handle_to_type<'db, InExpr, OutVar, Continue>(

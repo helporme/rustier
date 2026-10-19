@@ -55,6 +55,17 @@ impl<'db> AbiFunction<'db> {
     pub fn ret_type(self, db: &'db dyn Db) -> AbiReturn<'db> {
         self.runtime(db).abi_ret(db)
     }
+
+    pub fn uses_js_values(self, db: &'db dyn Db) -> bool {
+        if self.params(db).contains(&AbiType::JsValue) {
+            return true;
+        }
+
+        match self.ret_type(db) {
+            AbiReturn::Value(type_) => type_ == AbiType::JsValue,
+            AbiReturn::Union(union) => union.variants(db).contains(&AbiType::JsValue),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
@@ -81,4 +92,5 @@ pub enum AbiType {
     bool,
     String,
     usize,
+    JsValue,
 }

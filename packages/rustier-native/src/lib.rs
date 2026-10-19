@@ -1,6 +1,8 @@
 #![recursion_limit = "256"]
 
-pub use rustier_rt::js;
+pub mod js {
+    pub use rustier_rt::js::{JsEnv, JsValue, backend};
+}
 
 pub mod compiler;
 #[cfg(feature = "napi-binding")]

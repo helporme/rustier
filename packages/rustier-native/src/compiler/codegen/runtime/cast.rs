@@ -261,6 +261,11 @@ impl<'db> CastRenderer<'db> for RuntimeCastRenderer {
                 {
                     adapt_to_cast_output(in_expr, output).apply(printer);
                 }
+                (Abi(AbiType::JsValue), Rust(type_)) | (Rust(type_), Abi(AbiType::JsValue))
+                    if type_.kind(db) == TypeKind::JsValue =>
+                {
+                    adapt_to_cast_output(in_expr, output).apply(printer);
+                }
 
                 _ => unreachable!("unsupported runtime cast from `{src:?}` to `{dst:?}`"),
             }

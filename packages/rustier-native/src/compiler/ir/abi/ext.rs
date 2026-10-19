@@ -141,6 +141,7 @@ impl<'db> Type<'db> {
             | TypeKind::f32
             | TypeKind::f64 => AbiType::f64,
             TypeKind::Str | TypeKind::String => AbiType::String,
+            TypeKind::JsValue => AbiType::JsValue,
             TypeKind::Borrowed(borrowed) => borrowed.inner(db).abi(db),
             TypeKind::Struct(_) | TypeKind::Enum(_) => AbiType::usize,
             TypeKind::Generic(_) => {
