@@ -27,14 +27,18 @@ export function __rustier_js_new_number(value) {
   return __rustier_js_insert(value);
 }
 
-export function __rustier_js_new_string(ptr, len) {
+function stringFromMemory(ptr, len) {
   decoder ??= new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
   const bytes = new Uint8Array(
     memory.buffer,
     memoryIndex(ptr),
     memoryIndex(len),
   );
-  return __rustier_js_insert(decoder.decode(bytes));
+  return decoder.decode(bytes);
+}
+
+export function __rustier_js_new_string(ptr, len) {
+  return __rustier_js_insert(stringFromMemory(ptr, len));
 }
 
 export function __rustier_js_new_boolean(value) {
@@ -101,6 +105,41 @@ export function __rustier_js_buffer_copy(handle, ptr, len) {
     memoryIndex(len),
   );
   bytes.set(values[handle >>> 0]);
+}
+
+export function __rustier_js_get(handle, key, len, failed) {
+  let result;
+  let error = 0;
+  try {
+    result = Reflect.get(values[handle >>> 0], stringFromMemory(key, len));
+  } catch (exception) {
+    result = exception;
+    error = 1;
+  }
+  const rooted = __rustier_js_insert(result);
+  new DataView(memory.buffer).setUint32(memoryIndex(failed), error, true);
+  return rooted;
+}
+
+export function __rustier_js_set(handle, key, len, value, failed) {
+  let result;
+  let error = 0;
+  try {
+    const accepted = Reflect.set(
+      values[handle >>> 0],
+      stringFromMemory(key, len),
+      values[value >>> 0],
+    );
+    if (typeof accepted !== "boolean") {
+      throw new TypeError("Reflect.set did not return a boolean");
+    }
+    result = accepted ? 1 : 0;
+  } catch (exception) {
+    result = __rustier_js_insert(exception);
+    error = 1;
+  }
+  new DataView(memory.buffer).setUint32(memoryIndex(failed), error, true);
+  return result;
 }
 
 export function __rustier_js_clone_ref(handle) {

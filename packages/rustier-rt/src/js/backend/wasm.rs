@@ -1,3 +1,5 @@
+//! Low-level handles for WebAssembly environments and JavaScript values.
+
 use std::{marker::PhantomData, rc::Rc};
 
 use super::JsValueType;
@@ -16,13 +18,18 @@ unsafe extern "C" {
     fn __rustier_js_string_encode(handle: u32) -> u32;
     fn __rustier_js_buffer_length(handle: u32) -> f64;
     fn __rustier_js_buffer_copy(handle: u32, ptr: *mut u8, len: usize);
+    fn __rustier_js_get(handle: u32, key: *const u8, len: usize, failed: *mut u32) -> u32;
+    fn __rustier_js_set(
+        handle: u32,
+        key: *const u8,
+        len: usize,
+        value: u32,
+        failed: *mut u32,
+    ) -> u32;
     fn __rustier_js_clone_ref(handle: u32) -> u32;
     fn __rustier_js_drop_ref(handle: u32);
 }
 
-/// Wasm doesn't have environments like Node.js addons so we only need this
-/// handle to prevent Send/Sync auto traits on `JsEnv` and to have compatible api with
-/// node's backend.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct EnvHandle(PhantomData<Rc<()>>);
 
@@ -104,6 +111,26 @@ impl ValueHandle {
         Some(String::from_utf8(bytes).expect("JavaScript encoder returned invalid UTF-8"))
     }
 
+    pub fn get(&self, key: &str) -> Result<Self, Self> {
+        let mut failed = 0;
+        let raw = unsafe { __rustier_js_get(self.0, key.as_ptr(), key.len(), &mut failed) };
+        let value = Self(raw, PhantomData);
+
+        if failed == 0 { Ok(value) } else { Err(value) }
+    }
+
+    pub fn set(&self, key: &str, value: &Self) -> Result<bool, Self> {
+        let mut failed = 0;
+        let raw =
+            unsafe { __rustier_js_set(self.0, key.as_ptr(), key.len(), value.0, &mut failed) };
+
+        if failed == 0 {
+            Ok(raw != 0)
+        } else {
+            Err(Self(raw, PhantomData))
+        }
+    }
+
     pub fn into_raw(self) -> u32 {
         let raw = self.0;
 
@@ -114,13 +141,17 @@ impl ValueHandle {
 
     /// # Safety
     ///
-    /// `raw` must be a live owned slot from this Wasm instance, transferred
-    /// with `into_raw`. Each transferred owner must be reconstructed only once,
+    /// `raw` must be a live handle transferred by [`Self::into_raw`] in this
+    /// Wasm instance. Each transferred owner may be reconstructed only once,
     /// on the owning JavaScript thread.
     pub unsafe fn from_raw(raw: u32) -> Self {
         Self(raw, PhantomData)
     }
 
+    /// # Safety
+    ///
+    /// `raw` must refer to a live value in this Wasm instance for the duration
+    /// of the call. The call must be made on its owning JavaScript thread.
     pub unsafe fn clone_from_raw(raw: u32) -> Self {
         Self(unsafe { __rustier_js_clone_ref(raw) }, PhantomData)
     }

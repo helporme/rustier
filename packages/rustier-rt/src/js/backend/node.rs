@@ -1,16 +1,20 @@
+//! Low-level handles for Node.js environments and values.
+
 use std::{marker::PhantomData, ptr, rc::Rc};
 
 use napi_sys::{
-    Status, ValueType, napi_close_handle_scope, napi_create_double, napi_create_object,
-    napi_create_reference, napi_create_string_utf8, napi_delete_reference, napi_env,
-    napi_get_boolean, napi_get_null, napi_get_reference_value, napi_get_undefined,
-    napi_get_value_bool, napi_get_value_double, napi_get_value_string_utf8, napi_handle_scope,
-    napi_open_handle_scope, napi_ref, napi_reference_ref, napi_reference_unref, napi_status,
-    napi_typeof, napi_value, napi_valuetype,
+    Status, ValueType, napi_call_function, napi_close_handle_scope, napi_create_double,
+    napi_create_object, napi_create_reference, napi_create_string_utf8, napi_create_type_error,
+    napi_delete_reference, napi_env, napi_get_and_clear_last_exception, napi_get_boolean,
+    napi_get_global, napi_get_named_property, napi_get_null, napi_get_reference_value,
+    napi_get_undefined, napi_get_value_bool, napi_get_value_double, napi_get_value_string_utf8,
+    napi_handle_scope, napi_is_exception_pending, napi_open_handle_scope, napi_ref,
+    napi_reference_ref, napi_reference_unref, napi_status, napi_typeof, napi_value, napi_valuetype,
 };
 
 use super::JsValueType;
 
+/// A non-owning handle to a Node-API environment.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct EnvHandle(usize, PhantomData<Rc<()>>);
 
@@ -170,6 +174,67 @@ impl ValueHandle {
         })
     }
 
+    fn reflect<T>(
+        &self,
+        key: &str,
+        assigned: Option<&Self>,
+        read: impl FnOnce(napi_env, napi_value) -> Result<T, Self>,
+    ) -> Result<T, Self> {
+        if assigned.is_some_and(|value| value.env != self.env) {
+            return Err(property_error(
+                self.env,
+                "JsValue belongs to another JavaScript environment",
+            ));
+        }
+
+        self.with_value(|env, target| {
+            let global = checked(self.env, |output| unsafe { napi_get_global(env, output) })?;
+            let reflect = checked(self.env, |output| unsafe {
+                napi_get_named_property(env, global, c"Reflect".as_ptr(), output)
+            })?;
+            let operation = if assigned.is_some() { c"set" } else { c"get" };
+            let method = checked(self.env, |output| unsafe {
+                napi_get_named_property(env, reflect, operation.as_ptr(), output)
+            })?;
+            let key = checked(self.env, |output| unsafe {
+                napi_create_string_utf8(env, key.as_ptr().cast(), key.len() as isize, output)
+            })?;
+            let mut args = [target, key, ptr::null_mut()];
+            let argc = if let Some(value) = assigned {
+                args[2] = checked(self.env, |output| unsafe {
+                    napi_get_reference_value(env, value.raw, output)
+                })?;
+
+                3
+            } else {
+                2
+            };
+            let result = checked(self.env, |output| unsafe {
+                napi_call_function(env, reflect, method, argc, args.as_ptr(), output)
+            })?;
+
+            read(env, result)
+        })
+    }
+
+    pub fn get(&self, key: &str) -> Result<Self, Self> {
+        self.reflect(key, None, |_, result| {
+            Ok(unsafe { Self::from_napi_value(result as usize, self.env) })
+        })
+    }
+
+    pub fn set(&self, key: &str, value: &Self) -> Result<bool, Self> {
+        self.reflect(key, Some(value), |env, result| {
+            checked(self.env, |output| unsafe {
+                napi_get_value_bool(env, result, output)
+            })
+        })
+    }
+
+    /// # Safety
+    ///
+    /// `raw` must be a valid `napi_value` belonging to `env` in an open handle
+    /// scope on the current JavaScript thread.
     pub unsafe fn from_napi_value(raw: usize, env: EnvHandle) -> Self {
         Self::new(env, |_, output| {
             unsafe {
@@ -180,6 +245,10 @@ impl ValueHandle {
         })
     }
 
+    /// # Safety
+    ///
+    /// A handle scope for this environment must be open on the current thread.
+    /// The returned value must not be used after that scope closes.
     pub unsafe fn into_napi_value(self) -> usize {
         let env = self.env.into_raw() as napi_env;
         let value = call(|output| unsafe { napi_get_reference_value(env, self.raw, output) });
@@ -201,9 +270,9 @@ impl ValueHandle {
 
     /// # Safety
     ///
-    /// `raw` must own one strong reference in the live `env`, transferred
-    /// with `into_raw` or `into_raw_parts`. Each transferred owner must be
-    /// reconstructed only once, on the environment's JavaScript thread.
+    /// `raw` must come from [`Self::into_raw`] or [`Self::into_raw_parts`], with
+    /// the matching, live `env`. Each transferred owner may be reconstructed
+    /// only once, on the environment's JavaScript thread.
     pub unsafe fn from_raw_parts(raw: usize, env: usize) -> Self {
         Self {
             raw: raw as napi_ref,
@@ -251,6 +320,42 @@ impl Drop for HandleScope {
             napi_close_handle_scope(self.env, self.raw);
         }
     }
+}
+
+fn property_error(js: EnvHandle, message: &str) -> ValueHandle {
+    ValueHandle::new(js, |env, output| {
+        let message = call(|result| unsafe {
+            napi_create_string_utf8(env, message.as_ptr().cast(), message.len() as isize, result)
+        });
+
+        unsafe { napi_create_type_error(env, ptr::null_mut(), message, output) }
+    })
+}
+
+fn checked<T: Default>(
+    js: EnvHandle,
+    operation: impl FnOnce(*mut T) -> napi_status,
+) -> Result<T, ValueHandle> {
+    let mut output = T::default();
+    let status = operation(&mut output);
+
+    if status == Status::napi_ok {
+        return Ok(output);
+    }
+
+    let env = js.into_raw() as napi_env;
+    let pending = call(|result| unsafe { napi_is_exception_pending(env, result) });
+
+    if pending {
+        let exception = call(|result| unsafe { napi_get_and_clear_last_exception(env, result) });
+
+        return Err(unsafe { ValueHandle::from_napi_value(exception as usize, js) });
+    }
+
+    Err(property_error(
+        js,
+        &format!("Node-API operation failed with status {status}"),
+    ))
 }
 
 fn call<T: Default>(operation: impl FnOnce(*mut T) -> napi_status) -> T {
