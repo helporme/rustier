@@ -191,19 +191,49 @@ impl Effect for WasmBindgen {
             .arg("--out-name")
             .arg(&name)
             .arg("--target")
-            .arg(match self.target {
-                WasmBindgenTarget::Web => "web",
-                WasmBindgenTarget::NodeJsModule => "experimental-nodejs-module",
-            });
+            .arg("web");
         run(&mut command)?;
 
-        let js_path = require_file(output_dir.join(format!("{name}.js")))?;
+        let bindings_path = require_file(output_dir.join(format!("{name}.js")))?;
         let wasm_path = require_file(output_dir.join(format!("{name}_bg.wasm")))?;
-        Ok(WasmBindgenOutput { js_path, wasm_path })
+        let (js_path, bindings_path) = match self.target {
+            WasmBindgenTarget::Web => (bindings_path.clone(), bindings_path),
+            WasmBindgenTarget::NodeJsModule => {
+                let bindings_name = format!("{name}_bindings.mjs");
+                let module_path = output_dir.join(&bindings_name);
+
+                fs::rename(&bindings_path, &module_path).map_err(|source| ToolchainError::Io {
+                    operation: "prepare Node.js WASM bindings",
+                    path: module_path.clone(),
+                    source,
+                })?;
+
+                let path = output_dir.join(format!("{name}.mjs"));
+                let loader = crate::compiler::codegen::abi::js::render_wasm_node_loader(
+                    &bindings_name,
+                    &format!("{name}_bg.wasm"),
+                );
+
+                fs::write(&path, loader).map_err(|source| ToolchainError::Io {
+                    operation: "write Node.js WASM loader",
+                    path: path.clone(),
+                    source,
+                })?;
+
+                (path, module_path)
+            }
+        };
+
+        Ok(WasmBindgenOutput {
+            js_path,
+            bindings_path,
+            wasm_path,
+        })
     }
 
     fn _synced(&self, _db: &dyn Db, output: &WasmBindgenOutput) -> Result<bool, ToolchainError> {
         Ok(output.js_path.is_file()
+            && output.bindings_path.is_file()
             && output.wasm_path.is_file()
             && output
                 .js_path
@@ -217,6 +247,7 @@ impl Effect for WasmBindgen {
 pub struct WasmBindgenOutput {
     /// Absolute path to the JavaScript glue.
     pub js_path: PathBuf,
+    pub bindings_path: PathBuf,
     /// Absolute path to the processed WebAssembly binary.
     pub wasm_path: PathBuf,
 }

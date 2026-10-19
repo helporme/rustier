@@ -1,12 +1,28 @@
 use std::fmt::Write as _;
 
 use crate::compiler::{
-    codegen::fragment::{FragmentOnce, FragmentPrint, frag, fragment},
+    codegen::fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment},
     db::Db,
     ir::abi::{Abi, AbiFunction, AbiReturn, AbiType},
 };
 
 pub const NAPI_LOADER: &str = include_str!("napi-loader.mjs");
+
+pub fn render_wasm_node_loader(bindings_file: &str, wasm_file: &str) -> String {
+    let bindings = || doubles(("./", bindings_file));
+    let binary = doubles(("./", wasm_file));
+
+    frag!(
+        import ~{{ readFileSync }}~ from "node:fs";@
+        import ~{{ initSync }}~ from ~{bindings()};@
+        export * from ~{bindings()};@@
+
+        export const __rustier_wasm_exports = initSync({{
+            module: readFileSync(new URL({binary}, import.meta.url))
+        }});
+    )
+    .print()
+}
 
 /// How the generated WebAssembly module is initialized.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
@@ -61,11 +77,12 @@ impl AbiJsTarget<'_> {
                     match loading {
                         WasmLoading::ModuleNode => frag!(
                             import * as abi from ~{path};@
+                            const __wasm = abi.__rustier_wasm_exports;@
                         )
                         .apply(p),
                         WasmLoading::Fetch => frag!(
                             import init, * as abi from ~{path};@
-                            await init();@
+                            const __wasm = await init();@
                         )
                         .apply(p),
                         WasmLoading::Module => {
@@ -74,7 +91,7 @@ impl AbiJsTarget<'_> {
                             frag!(
                                 import wasmModule from ~{wasm_path};@
                                 import init, * as abi from ~{path};@
-                                await init({{ module_or_path: wasmModule }});@
+                                const __wasm = await init({{ module_or_path: wasmModule }});@
                             )
                             .apply(p);
                         }

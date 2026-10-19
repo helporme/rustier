@@ -21,6 +21,20 @@ pub mod backend;
 
 pub mod wasm;
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+#[repr(u32)]
+pub enum JsValueType {
+    String = 0,
+    Number = 1,
+    Bigint = 2,
+    Boolean = 3,
+    Symbol = 4,
+    Undefined = 5,
+    Null = 6,
+    Object = 7,
+    Function = 8,
+}
+
 /// A particular JavaScript environment, for example a web worker.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct JsEnv(backend::EnvHandle);
@@ -41,6 +55,22 @@ impl JsEnv {
 
     pub fn new_number(&self, value: f64) -> JsValue {
         self.0.new_number(value).into()
+    }
+
+    pub fn new_string(&self, value: &str) -> JsValue {
+        self.0.new_string(value).into()
+    }
+
+    pub fn new_boolean(&self, value: bool) -> JsValue {
+        self.0.new_boolean(value).into()
+    }
+
+    pub fn null(&self) -> JsValue {
+        self.0.null().into()
+    }
+
+    pub fn undefined(&self) -> JsValue {
+        self.0.undefined().into()
     }
 
     pub fn new_object(&self) -> JsValue {
@@ -68,6 +98,22 @@ pub struct JsValue {
 impl JsValue {
     pub fn env(&self) -> JsEnv {
         self.handle.env().into()
+    }
+
+    pub fn type_of(&self) -> JsValueType {
+        self.handle.type_of()
+    }
+
+    pub fn as_f64(&self) -> Option<f64> {
+        self.handle.as_f64()
+    }
+
+    pub fn as_bool(&self) -> Option<bool> {
+        self.handle.as_bool()
+    }
+
+    pub fn as_string(&self) -> Option<String> {
+        self.handle.as_string()
     }
 }
 

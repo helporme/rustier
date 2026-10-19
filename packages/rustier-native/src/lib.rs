@@ -1,7 +1,7 @@
 #![recursion_limit = "256"]
 
 pub mod js {
-    pub use rustier_rt::js::{JsEnv, JsValue, backend};
+    pub use rustier_rt::js::{JsEnv, JsValue, JsValueType, backend};
 }
 
 pub mod compiler;

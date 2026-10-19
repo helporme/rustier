@@ -5,7 +5,7 @@ expression: snapshot
 ```js
 import wasmModule from "./bindings_bg.wasm";
 import init, * as abi from "./bindings.js";
-await init(
+const __wasm = await init(
 	{
 		module_or_path: wasmModule
 	}

@@ -34,7 +34,6 @@ impl<'db> Runtime<'db> {
             }}@@
         ));
 
-
         let js_value_adapter = (matches!(transport, AbiTransport::Napi)
             && self
                 .functions(db)

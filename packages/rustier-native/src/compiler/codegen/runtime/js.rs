@@ -23,11 +23,7 @@ impl<'db> Runtime<'db> {
 
         let wasm = matches!(&target, AbiJsTarget::Wasm { .. });
         let host_import = match &target {
-            AbiJsTarget::Wasm { path, .. }
-                if functions
-                    .values()
-                    .any(|function| function.abi(db).uses_js_values(db)) =>
-            {
+            AbiJsTarget::Wasm { path, .. } => {
                 let path =
                     Path::new(path).with_file_name(rustier_rt::js::wasm::WASM_RUNTIME_FILENAME);
                 let path = fragment(move |p| write!(p, "{:?}", path.to_string_lossy()).unwrap());
@@ -35,6 +31,7 @@ impl<'db> Runtime<'db> {
                 Some(
                     frag!(
                         import ~{{
+                            __rustier_js_init_memory,
                             __rustier_js_insert,
                             __rustier_js_take,
                             __rustier_js_drop_ref
@@ -45,6 +42,9 @@ impl<'db> Runtime<'db> {
             }
             _ => None,
         };
+        let memory_init = wasm.then_some(frag!(
+            __rustier_js_init_memory(__wasm.memory);@@
+        ));
 
         let functions = spaced(
             functions
@@ -59,6 +59,7 @@ impl<'db> Runtime<'db> {
         target.render_js_with(frag!(
             {host_import}
             {imports}@@
+            {memory_init}
             {functions}
         ))
     }

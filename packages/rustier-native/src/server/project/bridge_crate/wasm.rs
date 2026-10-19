@@ -155,12 +155,15 @@ impl Effect for WasmBuild {
             bin_path: FilePath::try_from(output.wasm_path.as_path())
                 .map_err(ArtifactError::from)?,
             js_path: FilePath::try_from(output.js_path.as_path()).map_err(ArtifactError::from)?,
+            bindings_path: FilePath::try_from(output.bindings_path.as_path())
+                .map_err(ArtifactError::from)?,
         })
     }
 
     fn _synced(&self, _db: &dyn Db, artifact: &WasmBuildArtifact) -> Result<bool, WasmBuildError> {
         Ok(artifact.bin_path.as_path().is_file()
             && artifact.js_path.as_path().is_file()
+            && artifact.bindings_path.as_path().is_file()
             && artifact
                 .js_path
                 .as_path()
@@ -173,6 +176,7 @@ impl Effect for WasmBuild {
 pub struct WasmBuildArtifact {
     pub bin_path: FilePath,
     pub js_path: FilePath,
+    pub bindings_path: FilePath,
 }
 
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]

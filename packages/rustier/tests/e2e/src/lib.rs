@@ -76,6 +76,8 @@ pub mod impl_struct;
 pub mod impl_struct_constructor;
 #[path = "js-names/test.rs"]
 pub mod js_names;
+#[path = "js-value-primitives/test.rs"]
+pub mod js_value_primitives;
 #[path = "keyword-exports/test.rs"]
 pub mod keyword_exports;
 #[path = "of-input-throws/test.rs"]
