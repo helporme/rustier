@@ -455,10 +455,10 @@ impl<'db> FacadeFunction<'db> {
         }
     }
 
-    pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeParam<'db>> + 'db {
+    pub fn params(self, db: &'db dyn Db) -> &'db Vec<FacadeParam<'db>> {
         match self {
-            Self::Free(function) => Either::Left(function.params(db)),
-            Self::Method(method) => Either::Right(method.params(db)),
+            Self::Free(function) => function.params(db),
+            Self::Method(method) => method.params(db),
         }
     }
 
@@ -517,12 +517,8 @@ impl<'db> FacadeFreeFunction<'db> {
         name.strip_prefix("r#").unwrap_or(name).to_owned()
     }
 
-    pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeParam<'db>> + 'db {
-        self.source_params(db).iter().copied()
-    }
-
     #[salsa::tracked(returns(ref))]
-    pub fn source_params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
+    pub fn params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
         self.src(db)
             .params(db)
             .iter()
@@ -584,30 +580,16 @@ impl<'db> FacadeMethod<'db> {
         self.src(db).declaration(db).name(db)
     }
 
-    pub fn params(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeParam<'db>> + 'db {
+    #[salsa::tracked(returns(ref))]
+    pub fn params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
         let offset = usize::from(!self.is_static(db));
 
-        self.source_params(db).iter().skip(offset).copied()
-    }
-
-    #[salsa::tracked(returns(ref))]
-    pub fn source_params(self, db: &'db dyn Db) -> Vec<FacadeParam<'db>> {
-        let receiver = self.src(db).receiver_type(db);
-        let offset = usize::from(receiver.is_some());
-
-        receiver
-            .map(|type_| FacadeParam::new(db, self.as_fn(), 0, type_))
-            .into_iter()
-            .chain(
-                self.src(db)
-                    .params(db)
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, param)| !param.type_(db).is_js_env(db))
-                    .map(|(idx, param)| {
-                        FacadeParam::new(db, self.as_fn(), idx + offset, *param.type_(db))
-                    }),
-            )
+        self.src(db)
+            .params(db)
+            .iter()
+            .enumerate()
+            .filter(|(_, param)| !param.type_(db).is_js_env(db))
+            .map(|(idx, param)| FacadeParam::new(db, self.as_fn(), idx + offset, *param.type_(db)))
             .collect()
     }
 

@@ -189,15 +189,12 @@ impl<'db> RuntimeFunction<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn params(self, db: &'db dyn Db) -> Vec<Type<'db>> {
         match self {
-            Self::Free(function) => function
-                .source_params(db)
-                .iter()
-                .map(|p| p.src_type(db))
-                .collect(),
+            Self::Free(function) => function.params(db).iter().map(|p| p.src_type(db)).collect(),
             Self::Associated(function) => function
-                .source_params(db)
-                .iter()
-                .map(|p| p.src_type(db))
+                .src(db)
+                .receiver_type(db)
+                .into_iter()
+                .chain(function.params(db).iter().map(|p| p.src_type(db)))
                 .collect(),
             Self::Getter(getter) => vec![getter.field(db).src(db).target(db)],
             Self::Setter(setter) => {

@@ -94,6 +94,7 @@ impl<'db> FacadeFreeFunction<'db> {
 
         for type_ in self
             .params(db)
+            .iter()
             .map(|param| param.type_js(db))
             .chain(std::iter::once(self.ret_type_js(db)))
             .chain(self.as_fn().ret_err_type_js(db))
@@ -110,6 +111,7 @@ impl<'db> FacadeFreeFunction<'db> {
 impl<'db> FacadeMethod<'db> {
     fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItemJs<'db>> + 'db {
         self.params(db)
+            .iter()
             .map(|param| param.type_js(db))
             .chain(std::iter::once(self.ret_type_js(db)))
             .chain(self.as_fn().ret_err_type_js(db))

@@ -764,7 +764,7 @@ mod tests {
                         _ => None,
                     })
                     .expect("test crate should contain consume");
-                let parameter = function.params(db).next().expect("consume has one parameter");
+                let parameter = function.params(db).first().expect("consume has one parameter");
                 let FacadeTypeJs::Class(class) = parameter.type_js(db) else {
                     panic!("consume should accept an Option class");
                 };

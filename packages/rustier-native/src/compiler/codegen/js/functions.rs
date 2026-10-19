@@ -48,6 +48,7 @@ impl<'db> FacadeMethod<'db> {
         let params = || {
             comma_list(
                 self.params(db)
+                    .iter()
                     .enumerate()
                     .map(|(index, _)| param_name(index)),
             )
@@ -249,6 +250,7 @@ where
         comma_list(
             self.function()
                 .params(db)
+                .iter()
                 .enumerate()
                 .map(|(i, _)| param_name(i)),
         )
@@ -264,17 +266,14 @@ where
         ));
         let abi_params = &abi_params[receiver_offset..];
 
-        let param_casts =
-            function
-                .params(db)
-                .zip(abi_params)
-                .enumerate()
-                .map(|(i, (param, abi_param))| Cast {
-                    from: param.type_js(db),
-                    to: *abi_param,
-                    in_expr: param_name(i),
-                    out_var_name: casted_param_name(i),
-                });
+        let param_casts = function.params(db).iter().zip(abi_params).enumerate().map(
+            |(i, (param, abi_param))| Cast {
+                from: param.type_js(db),
+                to: *abi_param,
+                in_expr: param_name(i),
+                out_var_name: casted_param_name(i),
+            },
+        );
 
         self.casts().render_many(db, param_casts, continuation)
     }
@@ -290,7 +289,7 @@ where
         let params = fragment(move |p| {
             if is_instance_method {
                 frag!(this.#_handle).apply(p);
-                if function.params(db).next().is_some() {
+                if !function.params(db).is_empty() {
                     frag!(,~).apply(p);
                 }
             }
@@ -298,6 +297,7 @@ where
             comma_list(
                 function
                     .params(db)
+                    .iter()
                     .enumerate()
                     .map(|(i, _)| casted_param_name(i)),
             )

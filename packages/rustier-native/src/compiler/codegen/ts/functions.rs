@@ -79,12 +79,7 @@ impl<'db> FacadeMethod<'db> {
     }
 }
 
-fn render_params<'db>(
-    db: &'db dyn Db,
-    params: impl Iterator<Item = FacadeParam<'db>> + 'db,
-) -> impl FragmentOnce + 'db {
-    let params = params.collect::<Vec<_>>();
-
+fn render_params<'db>(db: &'db dyn Db, params: &'db [FacadeParam<'db>]) -> impl FragmentOnce + 'db {
     fragment(move |p: &mut Printer| {
         if params.is_empty() {
             frag!(()).apply(p);
