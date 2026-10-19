@@ -13,6 +13,7 @@
   ],
   "type": "module",
   "scripts": {
+    "prepare": "pnpm run build",
     "build:ts": "tsdown",
     "build:native": "cd ../rustier-native && pnpm run build",
     "build:native-release": "cd ../rustier-native && pnpm run build:release",

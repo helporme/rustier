@@ -3,8 +3,6 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --filter site dev",
-    "dev/compiler": "node packages/site/deploy/dev-compiler.mjs",
-    "prepare": "node packages/site/deploy/prepare.mjs",
     "test": "pnpm --filter rustier run test",
     "test/e2e": "pnpm --filter rustier run test/e2e",
     "test/cli": "pnpm --filter rustier run test/cli",
