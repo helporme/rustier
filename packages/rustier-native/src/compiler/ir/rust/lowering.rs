@@ -8,6 +8,7 @@ mod impls;
 mod modules;
 mod shapes;
 mod structs;
+mod traits;
 mod type_impls;
 mod types;
 

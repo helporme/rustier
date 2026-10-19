@@ -158,6 +158,7 @@ impl<'db> Visitor<'db> {
                     }
                 }
                 Member::Module(module) => self.visit_module(*module),
+                Member::Trait(_) => {}
             }
         }
     }

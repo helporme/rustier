@@ -8,7 +8,7 @@ use itertools::Either;
 use ra_ap_hir::{
     Crate as HirCrate, Enum as HirEnum, EnumVariant as HirVariant, Field as HirField,
     Function as HirFunction, Impl as HirImpl, Module as HirModule, Struct as HirStruct,
-    TypeParam as HirTypeParam,
+    Trait as HirTrait, TypeParam as HirTypeParam,
 };
 use std::{collections::VecDeque, fmt};
 use triomphe::Arc;
@@ -243,7 +243,41 @@ pub enum Member<'db> {
     Enum(Enum<'db>),
     Function(FunctionFree<'db>),
     Module(Module<'db>),
+    Trait(Trait<'db>),
 }
+
+#[salsa::interned(debug)]
+pub struct Trait<'db> {
+    hir: HirTrait,
+}
+
+#[salsa::tracked]
+impl<'db> Trait<'db> {
+    pub fn module(self, db: &'db dyn Db) -> Module<'db> {
+        self.lower_module(db)
+    }
+
+    pub fn name(self, db: &'db dyn Db) -> &'db String {
+        self.lower_name(db)
+    }
+
+    #[salsa::tracked]
+    pub fn path(self, db: &'db dyn Db) -> ItemPath<'db> {
+        self.module(db)
+            .path(db)
+            .append(db, PathSegment::plain(db, self.name(db).clone()))
+    }
+
+    pub fn docs(self, db: &'db dyn Db) -> Option<&'db String> {
+        self.lower_docs(db).as_ref()
+    }
+
+    pub fn span(self, db: &'db dyn Db) -> Option<&'db Span> {
+        self.lower_span(db).as_ref()
+    }
+}
+
+as_item!(Trait);
 
 #[salsa::interned(debug)]
 pub struct Struct<'db> {

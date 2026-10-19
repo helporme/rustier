@@ -7,7 +7,7 @@ use super::{
 use crate::compiler::{
     db::Db,
     diag::DiagAccumulateExt as _,
-    ir::rust::{Crate, FunctionFree, Member, Module, ModuleParent, Span},
+    ir::rust::{Crate, FunctionFree, Member, Module, ModuleParent, Span, Trait},
     path::FilePath,
 };
 
@@ -41,6 +41,8 @@ impl<'db> Module<'db> {
                 ModuleDef::Module(module) => {
                     is_stable(db, module, module).then(|| Member::Module(Module::new(db, module)))
                 }
+                ModuleDef::Trait(trait_) => is_stable(db, trait_, trait_.module(db))
+                    .then(|| Member::Trait(Trait::new(db, trait_))),
                 ModuleDef::Function(function) => lower_function(db, function)
                     .map(|function| Member::Function(FunctionFree::new(db, function)))
                     .map_err(|error| {

@@ -258,6 +258,7 @@ impl<'db> FacadeModule<'db> {
                 Member::Module(module) => lowered.push(FacadeMember::Module(
                     module.facade_reachable_from(db, usages),
                 )),
+                Member::Trait(_) => {}
             }
         }
 
