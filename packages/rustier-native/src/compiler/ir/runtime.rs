@@ -1,8 +1,13 @@
 //! Intermediate representation of the generated Rust runtime.
 //!
-//! It describes what the generated Rust code contains for an interface: the
-//! exported operations, including synthetic ones such as field accessors,
-//! discriminators and coerce functions, and their symbols.
+//! The runtime implements a facade semantics, i.e tethering, exceptions
+//! throwing, etc. The idea of separating it from [`abi`] is to allow having a
+//! runtime implementation separated from the concrete way of how the values are
+//! transferred from js to rust and back.
+//!
+//! The separation between runtime and abi is very hard to maintain since
+//! runtime optimization depends too much on concrete transport implementation.
+//! FIXME: refactor the abi & runtime split.
 
 pub mod ext;
 pub mod tethering;

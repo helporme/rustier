@@ -48,6 +48,8 @@ pub mod fn_no_args_no_return;
 pub mod fn_oob_char_throws;
 #[path = "fn-oob-number-throws/test.rs"]
 pub mod fn_oob_number_throws;
+#[path = "fn-option-js-value/test.rs"]
+pub mod fn_option_js_value;
 #[path = "fn-primitives/test.rs"]
 pub mod fn_primitives;
 #[path = "fn-result/test.rs"]
@@ -92,6 +94,10 @@ pub mod struct_bad_alias_throws;
 pub mod struct_field_wrong_type_throws;
 #[path = "struct-fields-enum/test.rs"]
 pub mod struct_fields_enum;
+#[path = "struct-fields-js-value/test.rs"]
+pub mod struct_fields_js_value;
+#[path = "struct-fields-option-js-value/test.rs"]
+pub mod struct_fields_option_js_value;
 #[path = "struct-fields-primitive/test.rs"]
 pub mod struct_fields_primitive;
 #[path = "struct-fields-string/test.rs"]

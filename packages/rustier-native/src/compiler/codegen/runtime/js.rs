@@ -45,6 +45,7 @@ impl<'db> Runtime<'db> {
             }
             _ => None,
         };
+
         let functions = spaced(
             functions
                 .values()

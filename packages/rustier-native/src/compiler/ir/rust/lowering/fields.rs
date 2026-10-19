@@ -202,13 +202,6 @@ fn validate_field<'db>(
         causes.push(FieldLowerCause::BorrowedField);
     }
     let lowered_type = match lower_type(db, origin, crate_) {
-        Ok(type_) if type_.kind(db) == TypeKind::JsValue => {
-            causes.push(FieldLowerCause::Type(TypeLowerErrorUnsupported::Type {
-                type_: type_.display(db).to_owned(),
-            }));
-
-            None
-        }
         Ok(type_) => Some(type_.deborrow(db)),
         Err(TypeLowerErrorUnsupported::Unstable) => {
             return Err(Box::new(FieldLowerError::Unstable));
