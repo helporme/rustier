@@ -13,7 +13,8 @@ export const variables = defineEnvVars({
 	},
 	COMPILER_URL: {
 		schema: (value) => {
-			if (!value) return undefined;
+			if (!value)
+				return process.env.NODE_ENV === 'production' ? undefined : 'http://127.0.0.1:3001';
 
 			const url = new URL(value);
 

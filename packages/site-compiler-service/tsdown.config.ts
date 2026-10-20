@@ -2,14 +2,15 @@ import { defineConfig } from "tsdown";
 
 export default defineConfig({
   entry: {
-    server: "src/server.ts",
-    worker: "src/compilation/worker.ts",
-    seed: "src/compilation/seed.ts",
+    index: "src/index.ts",
   },
   platform: "node",
   format: "esm",
   target: "node24",
   sourcemap: true,
+  outputOptions: {
+    codeSplitting: false,
+  },
   deps: {
     alwaysBundle: ["valibot"],
     neverBundle: [

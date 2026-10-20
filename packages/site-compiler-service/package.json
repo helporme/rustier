@@ -6,8 +6,9 @@
     "dist"
   ],
   "scripts": {
+    "dev": "node --env-file-if-exists=../../.env dev.mjs",
     "build": "tsdown",
-    "start": "node dist/server.mjs",
+    "start": "node dist/index.mjs",
     "check": "tsc --noEmit"
   },
   "dependencies": {

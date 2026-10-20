@@ -3,10 +3,12 @@ import {
   BUILD_TIMEOUT_MS,
   MAX_OUTPUT_BYTES,
   WORKER_START_TIMEOUT_MS,
+} from "../../../site/src/lib/playground/compilation/limits.ts";
+import {
   compilerResultSchema,
   type BuildInput,
   type CompilerResult,
-} from "../../../site/src/lib/playground/compilation-schema.ts";
+} from "../../../site/src/lib/playground/compilation/schema.ts";
 import { spawnWorker } from "./sandbox.ts";
 
 /** Supervises one persistent sandboxed compiler over bounded JSON-line messages. */

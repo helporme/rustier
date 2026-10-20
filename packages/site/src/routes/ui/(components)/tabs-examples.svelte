@@ -21,12 +21,10 @@
 			<Tabs.Trigger value="source"
 				><FileCode aria-hidden="true" class="size-4" /> Source</Tabs.Trigger
 			>
-			<Tabs.Trigger value="output" enterDelay={30}
-				><Cpu aria-hidden="true" class="size-4" /> Output</Tabs.Trigger
-			>
-			<Tabs.Trigger value="disabled" enterDelay={60} disabled>Disabled</Tabs.Trigger>
+			<Tabs.Trigger value="output"><Cpu aria-hidden="true" class="size-4" /> Output</Tabs.Trigger>
+			<Tabs.Trigger value="disabled" disabled>Disabled</Tabs.Trigger>
 			{#if inspect}
-				<Tabs.Trigger value="diagnostics" enterDelay={90}>
+				<Tabs.Trigger value="diagnostics">
 					<TriangleAlert aria-hidden="true" class="size-4" /> Diagnostics [1]
 				</Tabs.Trigger>
 			{/if}

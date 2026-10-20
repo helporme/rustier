@@ -10,10 +10,12 @@
 	let {
 		selected = $bindable(),
 		inspect = $bindable(false),
+		pending = false,
 		onrun
 	}: {
 		selected: string;
 		inspect: boolean;
+		pending?: boolean;
 		onrun: () => void;
 	} = $props();
 
@@ -49,9 +51,9 @@
 	</div>
 	<div class="flex items-center gap-3.5">
 		<Toggle variant="alternative" bind:pressed={inspect}>Inspect</Toggle>
-		<Button onclick={onrun} title="Compiler integration is not connected yet">
+		<Button onclick={onrun} disabled={pending} aria-busy={pending}>
 			<Play aria-hidden="true" class="size-3 fill-current" />
-			Run
+			{pending ? 'Running…' : 'Run'}
 		</Button>
 	</div>
 </header>

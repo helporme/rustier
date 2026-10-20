@@ -1,8 +1,8 @@
-import {
-  QUEUE_WAIT_MS,
-  type CompilationRequest,
-  type CompilerResult,
-} from "../../../site/src/lib/playground/compilation-schema.ts";
+import { QUEUE_WAIT_MS } from "../../../site/src/lib/playground/compilation/limits.ts";
+import type {
+  CompilationRequest,
+  CompilerResult,
+} from "../../../site/src/lib/playground/compilation/schema.ts";
 import { ProcessWorker } from "./process-worker.ts";
 import { probeSandbox } from "./sandbox.ts";
 

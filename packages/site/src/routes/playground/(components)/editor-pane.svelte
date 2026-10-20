@@ -56,8 +56,8 @@
 		class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
 	>
 		<Tabs.List aria-label={label ?? `${name} files`}>
-			{#each tabs as tab, index (tab.id)}
-				<Tabs.Trigger value={tab.id} enterDelay={30 * index}>
+			{#each tabs as tab (tab.id)}
+				<Tabs.Trigger value={tab.id}>
 					{#if tab.icon}
 						<tab.icon aria-hidden="true" class="size-4 shrink-0" />
 					{:else if !readonly}

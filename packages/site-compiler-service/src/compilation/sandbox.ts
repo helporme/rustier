@@ -68,7 +68,7 @@ export function probeSandbox(): void {
 }
 
 export function spawnWorker() {
-  return spawn("bwrap", [...args, "dist/worker.mjs"], {
+  return spawn("bwrap", [...args, "dist/index.mjs", "worker"], {
     detached: true,
     stdio: ["pipe", "pipe", "pipe"],
     env: { PATH: process.env.PATH },

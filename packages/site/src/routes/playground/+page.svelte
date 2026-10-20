@@ -3,14 +3,12 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { SvelteURL } from 'svelte/reactivity';
-	import { X } from '@lucide/svelte';
-	import { Button } from '#lib/ui/components/button';
 	import Toolbar from './(components)/toolbar.svelte';
 	import EditorWorkspace from './(components)/editor-workspace.svelte';
+	import TerminalWorkspace from './(components)/terminal-workspace.svelte';
 	import { Playground } from './(components)/playground.svelte';
 
 	const playground = new Playground(() => page.url.searchParams.has('inspect'));
-	let showRunNotice = $state(false);
 
 	function setInspect(inspect: boolean) {
 		const url = new SvelteURL(page.url.href);
@@ -45,29 +43,16 @@
 	<Toolbar
 		bind:selected={playground.selected}
 		bind:inspect={() => playground.inspect, setInspect}
-		onrun={() => (showRunNotice = true)}
+		pending={playground.compilation.pending}
+		onrun={playground.run}
 	/>
-	{#if showRunNotice}
-		<div
-			role="status"
-			class="flex shrink-0 items-center justify-between gap-4 border-y border-rust-outline bg-rust-surface px-6 py-2 text-ui text-on-ink-surface"
-		>
-			<p>Run is not connected yet. You can edit both files and explore the examples.</p>
-			<Button
-				variant="ghost"
-				size="icon"
-				aria-label="Dismiss message"
-				onclick={() => (showRunNotice = false)}
-			>
-				<X aria-hidden="true" class="size-4" />
-			</Button>
-		</div>
-	{/if}
 	<main aria-label="Playground editors" class="min-h-0 flex-1">
-		<EditorWorkspace
-			{playground}
-			bind:rust={playground.source.rust}
-			bind:typescript={playground.source.typescript}
-		/>
+		<TerminalWorkspace terminal={playground.terminal} compilation={playground.compilation}>
+			<EditorWorkspace
+				{playground}
+				bind:rust={playground.source.rust}
+				bind:typescript={playground.source.typescript}
+			/>
+		</TerminalWorkspace>
 	</main>
 </div>
