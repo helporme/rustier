@@ -107,6 +107,22 @@ export function __rustier_js_buffer_copy(handle, ptr, len) {
   bytes.set(values[handle >>> 0]);
 }
 
+function valueResult(failed, result, error) {
+  const rooted = __rustier_js_insert(result);
+  new DataView(memory.buffer).setUint32(memoryIndex(failed), error, true);
+  return rooted;
+}
+
+function argumentsFromMemory(ptr, len) {
+  const length = memoryIndex(len);
+  const handles = new Uint32Array(memory.buffer, memoryIndex(ptr), length);
+  const args = new Array(length);
+  for (let index = 0; index < length; index++) {
+    args[index] = values[handles[index]];
+  }
+  return args;
+}
+
 export function __rustier_js_get(handle, key, len, failed) {
   let result;
   let error = 0;
@@ -116,9 +132,7 @@ export function __rustier_js_get(handle, key, len, failed) {
     result = exception;
     error = 1;
   }
-  const rooted = __rustier_js_insert(result);
-  new DataView(memory.buffer).setUint32(memoryIndex(failed), error, true);
-  return rooted;
+  return valueResult(failed, result, error);
 }
 
 export function __rustier_js_set(handle, key, len, value, failed) {
@@ -140,6 +154,50 @@ export function __rustier_js_set(handle, key, len, value, failed) {
   }
   new DataView(memory.buffer).setUint32(memoryIndex(failed), error, true);
   return result;
+}
+
+export function __rustier_js_apply(
+  handle,
+  receiver,
+  hasReceiver,
+  args,
+  len,
+  failed,
+) {
+  let result;
+  let error = 0;
+  try {
+    const argumentsList = argumentsFromMemory(args, len);
+    const thisValue = hasReceiver ? values[receiver >>> 0] : undefined;
+    result = Reflect.apply(values[handle >>> 0], thisValue, argumentsList);
+  } catch (exception) {
+    result = exception;
+    error = 1;
+  }
+  return valueResult(failed, result, error);
+}
+
+export function __rustier_js_call(
+  handle,
+  method,
+  methodLen,
+  args,
+  len,
+  failed,
+) {
+  let result;
+  let error = 0;
+  try {
+    const object = values[handle >>> 0];
+    const key = stringFromMemory(method, methodLen);
+    const argumentsList = argumentsFromMemory(args, len);
+    const functionValue = Reflect.get(object, key);
+    result = Reflect.apply(functionValue, object, argumentsList);
+  } catch (exception) {
+    result = exception;
+    error = 1;
+  }
+  return valueResult(failed, result, error);
 }
 
 export function __rustier_js_clone_ref(handle) {

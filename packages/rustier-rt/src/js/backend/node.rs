@@ -174,12 +174,13 @@ impl ValueHandle {
         })
     }
 
-    fn reflect<T>(
+    fn reflect(
         &self,
+        env: napi_env,
+        target: napi_value,
         key: &str,
         assigned: Option<&Self>,
-        read: impl FnOnce(napi_env, napi_value) -> Result<T, Self>,
-    ) -> Result<T, Self> {
+    ) -> Result<napi_value, Self> {
         if assigned.is_some_and(|value| value.env != self.env) {
             return Err(property_error(
                 self.env,
@@ -187,47 +188,135 @@ impl ValueHandle {
             ));
         }
 
-        self.with_value(|env, target| {
-            let global = checked(self.env, |output| unsafe { napi_get_global(env, output) })?;
-            let reflect = checked(self.env, |output| unsafe {
-                napi_get_named_property(env, global, c"Reflect".as_ptr(), output)
-            })?;
-            let operation = if assigned.is_some() { c"set" } else { c"get" };
-            let method = checked(self.env, |output| unsafe {
-                napi_get_named_property(env, reflect, operation.as_ptr(), output)
-            })?;
-            let key = checked(self.env, |output| unsafe {
-                napi_create_string_utf8(env, key.as_ptr().cast(), key.len() as isize, output)
-            })?;
-            let mut args = [target, key, ptr::null_mut()];
-            let argc = if let Some(value) = assigned {
-                args[2] = checked(self.env, |output| unsafe {
-                    napi_get_reference_value(env, value.raw, output)
-                })?;
-
-                3
-            } else {
-                2
-            };
-            let result = checked(self.env, |output| unsafe {
-                napi_call_function(env, reflect, method, argc, args.as_ptr(), output)
+        let global = checked(self.env, |output| unsafe { napi_get_global(env, output) })?;
+        let reflect = checked(self.env, |output| unsafe {
+            napi_get_named_property(env, global, c"Reflect".as_ptr(), output)
+        })?;
+        let operation = if assigned.is_some() { c"set" } else { c"get" };
+        let method = checked(self.env, |output| unsafe {
+            napi_get_named_property(env, reflect, operation.as_ptr(), output)
+        })?;
+        let key = checked(self.env, |output| unsafe {
+            napi_create_string_utf8(env, key.as_ptr().cast(), key.len() as isize, output)
+        })?;
+        let mut args = [target, key, ptr::null_mut()];
+        let argc = if let Some(value) = assigned {
+            args[2] = checked(self.env, |output| unsafe {
+                napi_get_reference_value(env, value.raw, output)
             })?;
 
-            read(env, result)
+            3
+        } else {
+            2
+        };
+
+        checked(self.env, |output| unsafe {
+            napi_call_function(env, reflect, method, argc, args.as_ptr(), output)
         })
     }
 
     pub fn get(&self, key: &str) -> Result<Self, Self> {
-        self.reflect(key, None, |_, result| {
+        self.with_value(|env, target| {
+            let result = self.reflect(env, target, key, None)?;
+
             Ok(unsafe { Self::from_napi_value(result as usize, self.env) })
         })
     }
 
     pub fn set(&self, key: &str, value: &Self) -> Result<bool, Self> {
-        self.reflect(key, Some(value), |env, result| {
+        self.with_value(|env, target| {
+            let result = self.reflect(env, target, key, Some(value))?;
+
             checked(self.env, |output| unsafe {
                 napi_get_value_bool(env, result, output)
             })
+        })
+    }
+
+    fn arguments<'a>(
+        &self,
+        env: napi_env,
+        args: impl IntoIterator<Item = &'a Self>,
+    ) -> Result<Vec<napi_value>, Self> {
+        args.into_iter()
+            .map(|value| {
+                if value.env != self.env {
+                    return Err(property_error(
+                        self.env,
+                        "JsValue belongs to another JavaScript environment",
+                    ));
+                }
+
+                checked(self.env, |output| unsafe {
+                    napi_get_reference_value(env, value.raw, output)
+                })
+            })
+            .collect()
+    }
+
+    fn invoke(
+        &self,
+        env: napi_env,
+        function: napi_value,
+        this: napi_value,
+        args: &[napi_value],
+    ) -> Result<Self, Self> {
+        let result = checked(self.env, |output| unsafe {
+            napi_call_function(env, this, function, args.len(), args.as_ptr(), output)
+        })?;
+
+        Ok(unsafe { Self::from_napi_value(result as usize, self.env) })
+    }
+
+    fn apply_with<'a>(
+        &self,
+        this: Option<&Self>,
+        args: impl IntoIterator<Item = &'a Self>,
+    ) -> Result<Self, Self> {
+        if this.is_some_and(|value| value.env != self.env) {
+            return Err(property_error(
+                self.env,
+                "JsValue belongs to another JavaScript environment",
+            ));
+        }
+
+        self.with_value(|env, function| {
+            let args = self.arguments(env, args)?;
+            let this = match this {
+                Some(value) => checked(self.env, |output| unsafe {
+                    napi_get_reference_value(env, value.raw, output)
+                })?,
+                None => checked(self.env, |output| unsafe {
+                    napi_get_undefined(env, output)
+                })?,
+            };
+
+            self.invoke(env, function, this, &args)
+        })
+    }
+
+    pub fn apply<'a>(&self, args: impl IntoIterator<Item = &'a Self>) -> Result<Self, Self> {
+        self.apply_with(None, args)
+    }
+
+    pub fn apply_as<'a>(
+        &self,
+        this: &Self,
+        args: impl IntoIterator<Item = &'a Self>,
+    ) -> Result<Self, Self> {
+        self.apply_with(Some(this), args)
+    }
+
+    pub fn call<'a>(
+        &self,
+        method: &str,
+        args: impl IntoIterator<Item = &'a Self>,
+    ) -> Result<Self, Self> {
+        self.with_value(|env, target| {
+            let args = self.arguments(env, args)?;
+            let function = self.reflect(env, target, method, None)?;
+
+            self.invoke(env, function, target, &args)
         })
     }
 

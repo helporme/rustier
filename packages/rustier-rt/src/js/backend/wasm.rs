@@ -26,6 +26,22 @@ unsafe extern "C" {
         value: u32,
         failed: *mut u32,
     ) -> u32;
+    fn __rustier_js_apply(
+        function: u32,
+        this: u32,
+        has_this: bool,
+        args: *const u32,
+        len: usize,
+        failed: *mut u32,
+    ) -> u32;
+    fn __rustier_js_call(
+        object: u32,
+        method: *const u8,
+        method_len: usize,
+        args: *const u32,
+        len: usize,
+        failed: *mut u32,
+    ) -> u32;
     fn __rustier_js_clone_ref(handle: u32) -> u32;
     fn __rustier_js_drop_ref(handle: u32);
 }
@@ -114,9 +130,8 @@ impl ValueHandle {
     pub fn get(&self, key: &str) -> Result<Self, Self> {
         let mut failed = 0;
         let raw = unsafe { __rustier_js_get(self.0, key.as_ptr(), key.len(), &mut failed) };
-        let value = Self(raw, PhantomData);
 
-        if failed == 0 { Ok(value) } else { Err(value) }
+        Self::from_result(raw, failed)
     }
 
     pub fn set(&self, key: &str, value: &Self) -> Result<bool, Self> {
@@ -129,6 +144,66 @@ impl ValueHandle {
         } else {
             Err(Self(raw, PhantomData))
         }
+    }
+
+    fn from_result(raw: u32, failed: u32) -> Result<Self, Self> {
+        let value = Self(raw, PhantomData);
+
+        if failed == 0 { Ok(value) } else { Err(value) }
+    }
+
+    fn apply_with<'a>(
+        &self,
+        this: Option<&Self>,
+        args: impl IntoIterator<Item = &'a Self>,
+    ) -> Result<Self, Self> {
+        let args = args.into_iter().map(|value| value.0).collect::<Vec<_>>();
+        let mut failed = 0;
+        let raw = unsafe {
+            __rustier_js_apply(
+                self.0,
+                this.map_or(0, |value| value.0),
+                this.is_some(),
+                args.as_ptr(),
+                args.len(),
+                &mut failed,
+            )
+        };
+
+        Self::from_result(raw, failed)
+    }
+
+    pub fn apply<'a>(&self, args: impl IntoIterator<Item = &'a Self>) -> Result<Self, Self> {
+        self.apply_with(None, args)
+    }
+
+    pub fn apply_as<'a>(
+        &self,
+        this: &Self,
+        args: impl IntoIterator<Item = &'a Self>,
+    ) -> Result<Self, Self> {
+        self.apply_with(Some(this), args)
+    }
+
+    pub fn call<'a>(
+        &self,
+        method: &str,
+        args: impl IntoIterator<Item = &'a Self>,
+    ) -> Result<Self, Self> {
+        let args = args.into_iter().map(|value| value.0).collect::<Vec<_>>();
+        let mut failed = 0;
+        let raw = unsafe {
+            __rustier_js_call(
+                self.0,
+                method.as_ptr(),
+                method.len(),
+                args.as_ptr(),
+                args.len(),
+                &mut failed,
+            )
+        };
+
+        Self::from_result(raw, failed)
     }
 
     pub fn into_raw(self) -> u32 {

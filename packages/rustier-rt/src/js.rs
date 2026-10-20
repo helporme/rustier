@@ -170,6 +170,48 @@ impl JsValue {
     pub fn set(&self, key: &str, value: &JsValue) -> Result<bool, JsValue> {
         self.handle.set(key, &value.handle).map_err(Into::into)
     }
+
+    /// Calls this function with JavaScript `undefined` as its receiver.
+    ///
+    /// # Errors
+    ///
+    /// Returns the thrown value if the call raises a JavaScript exception.
+    /// A non-callable value or an argument from another environment produces a
+    /// `TypeError`.
+    pub fn apply(&self, args: &[JsValue]) -> Result<JsValue, JsValue> {
+        self.handle
+            .apply(args.iter().map(|value| &value.handle))
+            .map(Into::into)
+            .map_err(Into::into)
+    }
+
+    /// Calls this function with `this` as its receiver.
+    ///
+    /// # Errors
+    ///
+    /// Returns the thrown value if the call raises a JavaScript exception.
+    /// A non-callable value, or a receiver or argument from another environment,
+    /// produces a `TypeError`.
+    pub fn apply_as(&self, this: &JsValue, args: &[JsValue]) -> Result<JsValue, JsValue> {
+        self.handle
+            .apply_as(&this.handle, args.iter().map(|value| &value.handle))
+            .map(Into::into)
+            .map_err(Into::into)
+    }
+
+    /// Calls the method named `method`, using this value as its receiver.
+    ///
+    /// # Errors
+    ///
+    /// Returns the thrown value if property lookup or the call raises a JavaScript
+    /// exception. A non-object target, a non-callable method, or an argument from
+    /// another environment produces a `TypeError`.
+    pub fn call(&self, method: &str, args: &[JsValue]) -> Result<JsValue, JsValue> {
+        self.handle
+            .call(method, args.iter().map(|value| &value.handle))
+            .map(Into::into)
+            .map_err(Into::into)
+    }
 }
 
 impl From<backend::ValueHandle> for JsValue {
