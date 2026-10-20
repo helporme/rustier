@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { rolldown } from "rolldown";
 import {
@@ -30,6 +30,8 @@ const platform: ServerPlatform = {
   target: 0 as ServerWasmLoading.Fetch,
 };
 const entryId = "\0playground.ts";
+const bindingsLoaderId = "\0playground-bindings";
+const wasmModuleId = "playground:wasm";
 let server: Server | undefined;
 
 export async function compile({ code, typescript }: BuildInput): Promise<CompilerResult> {
@@ -84,7 +86,18 @@ export async function compile({ code, typescript }: BuildInput): Promise<Compile
 
   if (!binary) throw new Error("The Rust build produced no WebAssembly module");
 
-  const ffiModuleId = binary.replace(/_bg\.wasm$/, ".js");
+  const bindingsPath = binary.replace(/_bg\.wasm$/, ".js");
+  const artifactDir = await realpath(path.dirname(binary));
+  const isGeneratedJavaScript = (file: string) => {
+    const relative = path.relative(artifactDir, file);
+    return (
+      relative !== "" &&
+      relative !== ".." &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative) &&
+      /\.(?:js|mjs)$/.test(file)
+    );
+  };
   const loaded = server;
   const modules = loaded.modules();
   const rootModule = modules.find((module) => module.isRoot)?.path;
@@ -95,27 +108,48 @@ export async function compile({ code, typescript }: BuildInput): Promise<Compile
       input: entryId,
       platform: "browser",
       transform: { define: { console: `globalThis.${EXECUTION_CONSOLE}` } },
-      external: [ffiModuleId],
+      external: [wasmModuleId],
       plugins: [
         {
           name: "rustier-playground",
-          resolveId(id) {
+          async resolveId(id, importer) {
             if (id === rootModule || id === "./lib.rs") return source;
+            if (id === bindingsPath && importer !== bindingsLoaderId)
+              return bindingsLoaderId;
 
             if (
               id === entryId ||
               id === source ||
+              id === bindingsLoaderId ||
               id === "$rust" ||
               id.startsWith("$rust/")
             )
               return id;
 
+            const file = path.isAbsolute(id)
+              ? id
+              : importer && isGeneratedJavaScript(importer) && id.startsWith(".")
+                ? path.resolve(path.dirname(importer), id)
+                : undefined;
+
+            if (file && isGeneratedJavaScript(file)) {
+              const canonical = await realpath(file);
+              if (isGeneratedJavaScript(canonical)) return canonical;
+            }
+
             throw new Error(`Unsupported playground import: ${id}`);
           },
-          load(id) {
+          async load(id) {
             if (id === entryId) {
               return { code: typescript, moduleType: "ts" };
             }
+            if (id === bindingsLoaderId) {
+              return `import wasmUrl from ${JSON.stringify(wasmModuleId)};
+import init from ${JSON.stringify(bindingsPath)};
+export * from ${JSON.stringify(bindingsPath)};
+export default () => init({ module_or_path: wasmUrl });`;
+            }
+            if (isGeneratedJavaScript(id)) return readFile(id, "utf8");
 
             const module = loaded.load(platform, id);
 
@@ -127,20 +161,16 @@ export async function compile({ code, typescript }: BuildInput): Promise<Compile
       ],
     });
 
-    const [[wasm, glue], { output }] = await Promise.all([
-      Promise.all([
-        readFile(binary),
-        readFile(ffiModuleId, "utf8"),
-      ]),
+    const [wasm, { output }] = await Promise.all([
+      readFile(binary),
       bundle.generate({ format: "es", codeSplitting: false }),
     ]);
 
     return {
       type: "ok",
       wasm: wasm.toString("base64"),
-      glue,
       bundle: output[0].code,
-      ffiModuleId,
+      wasmModuleId,
       duration: performance.now() - started,
     };
   } catch (cause) {

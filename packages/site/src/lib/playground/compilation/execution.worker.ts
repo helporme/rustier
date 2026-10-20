@@ -37,12 +37,9 @@ self.onmessage = async ({ data }: MessageEvent<Extract<BuildResult, { type: 'ok'
 
 	try {
 		const binary = url(data.wasm, 'application/wasm');
-		const glue = url(data.glue);
-		const ffi = url(
-			`import init from ${JSON.stringify(glue)};\nexport default () => init({ module_or_path: ${JSON.stringify(binary)} });\nexport * from ${JSON.stringify(glue)};`
-		);
+		const wasmModule = url(`export default ${JSON.stringify(binary)};`);
 		const bundle = url(
-			data.bundle.replaceAll(JSON.stringify(data.ffiModuleId), JSON.stringify(ffi))
+			data.bundle.replaceAll(JSON.stringify(data.wasmModuleId), JSON.stringify(wasmModule))
 		);
 		await import(/* @vite-ignore */ bundle);
 		send({ type: 'done' });

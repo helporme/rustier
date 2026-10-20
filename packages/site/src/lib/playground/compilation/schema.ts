@@ -18,9 +18,8 @@ export const compilerResultSchema = v.variant('type', [
 	v.object({
 		type: v.literal('ok'),
 		wasm: v.string(),
-		glue: v.string(),
 		bundle: v.string(),
-		ffiModuleId: v.string(),
+		wasmModuleId: v.string(),
 		duration: durationSchema
 	}),
 	v.object({

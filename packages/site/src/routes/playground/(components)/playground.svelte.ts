@@ -9,7 +9,7 @@ export class Playground {
 
 	sourceTab = $state('lib.rs');
 	outputTab = $state('js_code');
-	selected = $state('counter');
+	selected = $state<string>(examples[0].id);
 	drafts = $state(
 		Object.fromEntries(
 			examples.map((example) => [
