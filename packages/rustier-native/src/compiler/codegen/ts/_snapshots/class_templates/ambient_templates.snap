@@ -40,6 +40,19 @@ declare module "$rust" {
 	export {};
 }
 
+declare module "$rust/core/clone" {
+	const $trait__4_core__5_clone__5_Clone: {
+		readonly $trait: "core::clone::Clone";
+		readonly $args: readonly [];
+	};
+
+	export {
+		$trait__4_core__5_clone__5_Clone as Clone
+	};
+
+	export {};
+}
+
 declare module "$rust/test_crate" {
 	import type {
 		Boxed

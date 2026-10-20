@@ -109,7 +109,7 @@ mod tests {
     }
 
     #[test]
-    fn declarations_do_not_expose_trait_bindings() {
+    fn trait_descriptors_do_not_expose_methods_directly() {
         let db = test_db! {
             pub trait Read {
                 fn read(&self) -> u32;
@@ -129,7 +129,7 @@ mod tests {
             let root = facade.crates(&db).next().expect("test crate").root(&db);
             let class = root.classes(&db).next().expect("Counter class");
 
-            assert_eq!(root.members(&db).len(), 1);
+            assert_eq!(root.members(&db).len(), 2);
             assert_eq!(class.name(&db), "Counter");
             assert_eq!(class.methods(&db).count(), 0);
         });

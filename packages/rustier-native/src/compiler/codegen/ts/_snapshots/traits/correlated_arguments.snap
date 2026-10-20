@@ -1,0 +1,41 @@
+---
+source: src/compiler/codegen/ts/traits.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub trait Pair<T, U> {
+    fn pair(&self) -> bool;
+}
+pub struct Widget;
+impl Pair<u32, bool> for Widget {
+    fn pair(&self) -> bool {
+        true
+    }
+}
+impl Pair<bool, u32> for Widget {
+    fn pair(&self) -> bool {
+        false
+    }
+}
+```
+
+# Compiled
+
+```ts
+declare function $trait__10_test_crate__4_Pair<const Args extends readonly ["u32", "bool"] | readonly ["bool", "u32"]>(
+	...types: Args
+): {
+	readonly $trait: "test_crate::Pair";
+	readonly $args: {
+		readonly [Index in keyof Args]: Args[Index] extends infer Arg
+			? Arg extends readonly unknown[] ? readonly [...Arg] : Arg
+			: never;
+	};
+};
+
+export {
+	$trait__10_test_crate__4_Pair as Pair
+};
+```

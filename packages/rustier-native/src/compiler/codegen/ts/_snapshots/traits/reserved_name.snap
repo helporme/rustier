@@ -1,0 +1,30 @@
+---
+source: src/compiler/codegen/ts/traits.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub trait r#default {
+    fn check(&self) -> bool;
+}
+pub struct Widget;
+impl r#default for Widget {
+    fn check(&self) -> bool {
+        true
+    }
+}
+```
+
+# Compiled
+
+```ts
+declare const $trait__10_test_crate__7_default: {
+	readonly $trait: "test_crate::default";
+	readonly $args: readonly [];
+};
+
+export {
+	$trait__10_test_crate__7_default as default
+};
+```

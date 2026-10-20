@@ -25,7 +25,9 @@ impl<'db> FacadeTrait<'db> {
     }
 
     pub fn name(self, db: &'db dyn Db) -> &'db str {
-        self.src(db).name(db)
+        let name = self.src(db).name(db);
+
+        name.strip_prefix("r#").unwrap_or(name)
     }
 
     pub fn views(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeTraitView<'db>> + 'db {

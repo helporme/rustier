@@ -1,0 +1,64 @@
+---
+source: src/compiler/codegen/js/traits.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub trait Pair<T, U> {
+    fn pair(&self) -> bool;
+}
+pub struct Widget;
+impl Pair<u32, bool> for Widget {
+    fn pair(&self) -> bool {
+        true
+    }
+}
+impl Pair<bool, u32> for Widget {
+    fn pair(&self) -> bool {
+        false
+    }
+}
+```
+
+# Compiled
+
+```js
+function $trait__10_test_crate__4_Pair(
+	...types
+) {
+	if (
+		types.length === 2 && types[0] === "u32" && types[1] === "bool"
+	) {
+		return globalThis.Object.freeze(
+			{
+				$trait: "test_crate::Pair",
+				$args: globalThis.Object.freeze(
+					["u32", "bool"]
+				)
+			}
+		);
+	}
+
+	if (
+		types.length === 2 && types[0] === "bool" && types[1] === "u32"
+	) {
+		return globalThis.Object.freeze(
+			{
+				$trait: "test_crate::Pair",
+				$args: globalThis.Object.freeze(
+					["bool", "u32"]
+				)
+			}
+		);
+	}
+
+	throw new globalThis.TypeError(
+		"Unsupported generic arguments for Pair"
+	);
+}
+
+export {
+	$trait__10_test_crate__4_Pair as Pair
+};
+```

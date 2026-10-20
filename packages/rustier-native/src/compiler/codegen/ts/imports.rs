@@ -31,6 +31,13 @@ impl<'db> FacadeImportTs<'db> {
             }
         };
         if target.is_local(db) {
+            if !self.originating_from(db).as_parent(db).is_local(db) {
+                return target
+                    .file_path(db)
+                    .as_str()
+                    .replace(std::path::MAIN_SEPARATOR, "/");
+            }
+
             self.originating_from(db)
                 .file_path(db)
                 .relative_path(target.file_path(db))

@@ -6,6 +6,7 @@ mod functions;
 mod imports;
 mod jsdoc;
 mod modules;
+mod traits;
 mod types;
 
 #[cfg(test)]

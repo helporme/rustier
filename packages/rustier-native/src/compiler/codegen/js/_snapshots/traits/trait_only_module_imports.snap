@@ -1,0 +1,57 @@
+---
+source: src/compiler/codegen/js/traits.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub mod contracts {
+    pub trait Probe<T> {
+        fn probe(&self) -> bool;
+    }
+}
+pub struct Seed;
+pub struct Widget;
+impl contracts::Probe<&Seed> for Widget {
+    fn probe(&self) -> bool {
+        true
+    }
+}
+```
+
+# Compiled
+
+```js
+import{
+	Seed as $facade__plain__10_test_crate__4_Seed
+}from"$rust/test_crate"
+
+function $trait__10_test_crate__9_contracts__5_Probe(
+	...types
+) {
+	if (
+		types.length === 1 && globalThis.Array.isArray(
+			types[0]
+		) && types[0].length === 2 && types[0][0] === "&" && types[0][1] === $facade__plain__10_test_crate__4_Seed
+	) {
+		return globalThis.Object.freeze(
+			{
+				$trait: "test_crate::contracts::Probe",
+				$args: globalThis.Object.freeze(
+					[globalThis.Object.freeze(
+						["&", $facade__plain__10_test_crate__4_Seed]
+					)]
+				)
+			}
+		);
+	}
+
+	throw new globalThis.TypeError(
+		"Unsupported generic arguments for Probe"
+	);
+}
+
+export {
+	$trait__10_test_crate__9_contracts__5_Probe as Probe
+};
+```

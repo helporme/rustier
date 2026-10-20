@@ -50,8 +50,15 @@ impl<'db> FacadeModule<'db> {
                 _ => None,
             })
             .collect::<Vec<_>>();
+        let traits = members
+            .iter()
+            .filter_map(|member| match member {
+                FacadeMember::Trait(trait_) => Some(*trait_),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
 
-        if functions.is_empty() && classes.is_empty() && templates.is_empty() {
+        if functions.is_empty() && classes.is_empty() && templates.is_empty() && traits.is_empty() {
             // make sure that returned stirng is always valid typescript module
             return frag!(export {};).print();
         }
@@ -91,7 +98,8 @@ impl<'db> FacadeModule<'db> {
                         templates
                             .into_iter()
                             .map(|template| template.render_in_scope_ts(db, scope)),
-                    ),
+                    )
+                    .chain(traits.into_iter().map(|trait_| trait_.render_ts(db, scope))),
             )
             .apply(p);
 

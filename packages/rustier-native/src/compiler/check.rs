@@ -45,7 +45,7 @@ fn check_module<'db>(db: &'db dyn Db, module: FacadeModule<'db>) {
 
                 continue;
             }
-            FacadeMember::Module(_) => continue,
+            FacadeMember::Module(_) | FacadeMember::Trait(_) => continue,
         };
 
         for class in classes {

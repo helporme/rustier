@@ -118,5 +118,17 @@ pub mod struct_fields_struct;
 pub mod struct_mixed;
 #[path = "struct-of/test.rs"]
 pub mod struct_of;
+#[path = "trait-descriptors/test.rs"]
+pub mod trait_descriptors;
+#[path = "trait-descriptors-availability/test.rs"]
+pub mod trait_descriptors_availability;
+#[path = "trait-descriptors-classes/test.rs"]
+pub mod trait_descriptors_classes;
+#[path = "trait-descriptors-combinations/test.rs"]
+pub mod trait_descriptors_combinations;
+#[path = "trait-descriptors-names/test.rs"]
+pub mod trait_descriptors_names;
+#[path = "trait-descriptors-references/test.rs"]
+pub mod trait_descriptors_references;
 #[path = "unsupported-type-diags/test.rs"]
 pub mod unsupported_type_diags;

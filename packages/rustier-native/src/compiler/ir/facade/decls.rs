@@ -1,6 +1,6 @@
 use crate::compiler::{
     db::Db,
-    ir::facade::{FacadeFreeFunction, FacadeFunction, FacadeParam},
+    ir::facade::{FacadeFreeFunction, FacadeFunction, FacadeParam, traits::FacadeTrait},
 };
 
 const RESERVED_BINDING_NAMES: &[&str] = &[
@@ -65,6 +65,14 @@ impl<'db> FacadeFreeFunction<'db> {
         }
 
         name
+    }
+}
+
+#[salsa::tracked]
+impl<'db> FacadeTrait<'db> {
+    #[salsa::tracked(returns(ref))]
+    pub fn decl_name(self, db: &'db dyn Db) -> String {
+        format!("$trait__{}", self.src(db).path(db).mangled(db))
     }
 }
 

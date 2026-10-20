@@ -152,6 +152,38 @@ impl<'db> FacadeModule<'db> {
             mappings.extend(template_mappings.iter().cloned());
         }
 
+        for trait_ in self.members(db).iter().filter_map(|member| match member {
+            FacadeMember::Trait(trait_) => Some(*trait_),
+            _ => None,
+        }) {
+            let generic = !trait_.src(db).generic_params(db).is_empty();
+            let prefix = if generic {
+                "declare function "
+            } else {
+                "declare const "
+            };
+            let line = find_name_line(
+                generated,
+                search_line,
+                prefix,
+                trait_.decl_name(db),
+                if generic { "<" } else { ":" },
+            )
+            .expect("rendered trait descriptor declaration should exist");
+            search_line = line + 1;
+
+            if let Some(span) = trait_.src(db).span(db) {
+                let original = super::mappings::original_location(db, span);
+                mappings.extend(super::classes::declaration_mappings(
+                    line,
+                    prefix.len(),
+                    &original,
+                    original.column + "pub trait ".len(),
+                    trait_.name(db),
+                ));
+            }
+        }
+
         mappings.sort_by_key(|mapping| (mapping.generated_line, mapping.generated_column));
 
         mappings

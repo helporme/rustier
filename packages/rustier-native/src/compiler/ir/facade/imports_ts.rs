@@ -51,7 +51,7 @@ impl<'db> FacadeModule<'db> {
                 }
                 FacadeMember::Class(class) => classes.extend(class.decl_imports(db)),
                 FacadeMember::ClassTemplate(template) => classes.extend(template.decl_imports(db)),
-                FacadeMember::Module(_) => {}
+                FacadeMember::Module(_) | FacadeMember::Trait(_) => {}
             }
         }
 

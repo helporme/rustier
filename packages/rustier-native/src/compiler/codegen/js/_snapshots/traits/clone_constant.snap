@@ -1,0 +1,27 @@
+---
+source: src/compiler/codegen/js/traits.rs
+expression: snapshot
+---
+# Source
+
+```rust
+#[derive(Clone)]
+pub struct Widget;
+```
+
+# Compiled
+
+```js
+const $trait__4_core__5_clone__5_Clone = globalThis.Object.freeze(
+	{
+		$trait: "core::clone::Clone",
+		$args: globalThis.Object.freeze(
+			[]
+		)
+	}
+);
+
+export {
+	$trait__4_core__5_clone__5_Clone as Clone
+};
+```

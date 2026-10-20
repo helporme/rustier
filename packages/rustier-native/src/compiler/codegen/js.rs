@@ -4,6 +4,7 @@ mod classes;
 mod functions;
 mod imports;
 mod modules;
+mod traits;
 
 #[cfg(test)]
 mod test;

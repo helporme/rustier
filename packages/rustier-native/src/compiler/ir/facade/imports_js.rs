@@ -11,6 +11,7 @@ use crate::compiler::{
             FacadeFieldDiscriminated, FacadeFieldDiscriminator, FacadeFieldPlain,
             FacadeFreeFunction, FacadeGeneric, FacadeMember, FacadeMethod, FacadeModule,
             coerce::{FacadeCoerce, FacadeDiscriminatedCoerceFunction, FacadePlainCoerceFunction},
+            traits::{FacadeTrait, FacadeTraitArgument},
             type_js::FacadeTypeJs,
         },
         runtime::RuntimeExport,
@@ -53,6 +54,7 @@ impl<'db> FacadeModule<'db> {
                 }
                 FacadeMember::Class(class) => items.extend(class.imports(db)),
                 FacadeMember::ClassTemplate(template) => items.extend(template.imports(db)),
+                FacadeMember::Trait(trait_) => items.extend(trait_.imports(db)),
                 FacadeMember::Module(_) => {}
             }
         }
@@ -69,6 +71,23 @@ impl<'db> FacadeModule<'db> {
             })
             .map(|item| FacadeImportJs::new(db, self, item))
             .collect()
+    }
+}
+
+impl<'db> FacadeTrait<'db> {
+    fn imports(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeImportItemJs<'db>> + 'db {
+        self.specializations(db).iter().flat_map(|mapping| {
+            mapping
+                .arguments
+                .iter()
+                .filter_map(|argument| match argument {
+                    FacadeTraitArgument::Value(FacadeGeneric::Class(class))
+                    | FacadeTraitArgument::Reference { class, .. } => {
+                        Some(FacadeImportItemJs::FacadeClass(*class))
+                    }
+                    FacadeTraitArgument::Value(FacadeGeneric::Symbol(_)) => None,
+                })
+        })
     }
 }
 

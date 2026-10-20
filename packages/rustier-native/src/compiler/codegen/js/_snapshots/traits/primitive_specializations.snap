@@ -1,0 +1,60 @@
+---
+source: src/compiler/codegen/js/traits.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub trait Convert<T> {
+    fn convert(&self, value: T);
+}
+pub struct Widget;
+impl Convert<u32> for Widget {
+    fn convert(&self, _value: u32) {}
+}
+impl Convert<bool> for Widget {
+    fn convert(&self, _value: bool) {}
+}
+```
+
+# Compiled
+
+```js
+function $trait__10_test_crate__7_Convert(
+	...types
+) {
+	if (
+		types.length === 1 && types[0] === "u32"
+	) {
+		return globalThis.Object.freeze(
+			{
+				$trait: "test_crate::Convert",
+				$args: globalThis.Object.freeze(
+					["u32"]
+				)
+			}
+		);
+	}
+
+	if (
+		types.length === 1 && types[0] === "bool"
+	) {
+		return globalThis.Object.freeze(
+			{
+				$trait: "test_crate::Convert",
+				$args: globalThis.Object.freeze(
+					["bool"]
+				)
+			}
+		);
+	}
+
+	throw new globalThis.TypeError(
+		"Unsupported generic arguments for Convert"
+	);
+}
+
+export {
+	$trait__10_test_crate__7_Convert as Convert
+};
+```

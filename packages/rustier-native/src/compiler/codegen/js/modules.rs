@@ -41,6 +41,7 @@ impl<'db> FacadeModule<'db> {
                 FacadeMember::Class(class) => Some(class.render(db)),
                 FacadeMember::ClassTemplate(template) => Some(template.render(db)),
                 FacadeMember::Function(function) => Some(function.render(db)),
+                FacadeMember::Trait(trait_) => Some(trait_.render_js(db)),
                 FacadeMember::Module(_) => None,
             },
         ));

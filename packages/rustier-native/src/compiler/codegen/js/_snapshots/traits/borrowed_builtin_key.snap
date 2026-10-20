@@ -1,0 +1,46 @@
+---
+source: src/compiler/codegen/js/traits.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub trait Probe<T: ?Sized> {
+    fn probe(&self) -> bool;
+}
+pub struct Widget;
+impl Probe<&str> for Widget {
+    fn probe(&self) -> bool {
+        true
+    }
+}
+```
+
+# Compiled
+
+```js
+function $trait__10_test_crate__5_Probe(
+	...types
+) {
+	if (
+		types.length === 1 && types[0] === "&str"
+	) {
+		return globalThis.Object.freeze(
+			{
+				$trait: "test_crate::Probe",
+				$args: globalThis.Object.freeze(
+					["&str"]
+				)
+			}
+		);
+	}
+
+	throw new globalThis.TypeError(
+		"Unsupported generic arguments for Probe"
+	);
+}
+
+export {
+	$trait__10_test_crate__5_Probe as Probe
+};
+```

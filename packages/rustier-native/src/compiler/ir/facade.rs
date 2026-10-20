@@ -13,6 +13,7 @@ use std::collections::{BTreeMap, VecDeque};
 
 use itertools::{Either, Itertools};
 
+use self::traits::FacadeTrait;
 use crate::compiler::{
     db::Db,
     ir::{
@@ -77,6 +78,7 @@ impl<'db> Facade<'db> {
                         FacadeMember::Class(_)
                             | FacadeMember::ClassTemplate(_)
                             | FacadeMember::Function(_)
+                            | FacadeMember::Trait(_)
                     )
                 }),
                 FacadeModuleEntry::Runtime(_) => true,
@@ -259,7 +261,9 @@ impl<'db> FacadeModule<'db> {
                 Member::Module(module) => lowered.push(FacadeMember::Module(
                     module.facade_reachable_from(db, usages),
                 )),
-                Member::Trait(_) => {}
+                Member::Trait(src) => {
+                    lowered.push(FacadeMember::Trait(FacadeTrait::new(db, src, usages)));
+                }
             }
         }
 
@@ -316,6 +320,7 @@ pub enum FacadeMember<'db> {
     Class(FacadeClass<'db>),
     ClassTemplate(FacadeClassTemplate<'db>),
     Function(FacadeFreeFunction<'db>),
+    Trait(FacadeTrait<'db>),
     Module(FacadeModule<'db>),
 }
 

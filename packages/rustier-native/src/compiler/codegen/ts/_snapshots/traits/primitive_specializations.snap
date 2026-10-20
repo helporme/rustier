@@ -1,0 +1,37 @@
+---
+source: src/compiler/codegen/ts/traits.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub trait Convert<T> {
+    fn convert(&self, value: T);
+}
+pub struct Widget;
+impl Convert<u32> for Widget {
+    fn convert(&self, _value: u32) {}
+}
+impl Convert<bool> for Widget {
+    fn convert(&self, _value: bool) {}
+}
+```
+
+# Compiled
+
+```ts
+declare function $trait__10_test_crate__7_Convert<const Args extends readonly ["u32"] | readonly ["bool"]>(
+	...types: Args
+): {
+	readonly $trait: "test_crate::Convert";
+	readonly $args: {
+		readonly [Index in keyof Args]: Args[Index] extends infer Arg
+			? Arg extends readonly unknown[] ? readonly [...Arg] : Arg
+			: never;
+	};
+};
+
+export {
+	$trait__10_test_crate__7_Convert as Convert
+};
+```

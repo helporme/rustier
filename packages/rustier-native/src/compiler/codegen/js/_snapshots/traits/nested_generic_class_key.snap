@@ -1,0 +1,48 @@
+---
+source: src/compiler/codegen/js/traits.rs
+expression: snapshot
+---
+# Source
+
+```rust
+pub trait Probe<T> {
+    fn probe(&self) -> bool;
+}
+pub struct Seed;
+pub struct Wrap<T>(T);
+pub struct Widget;
+impl Probe<Wrap<Wrap<Seed>>> for Widget {
+    fn probe(&self) -> bool {
+        true
+    }
+}
+```
+
+# Compiled
+
+```js
+function $trait__10_test_crate__5_Probe(
+	...types
+) {
+	if (
+		types.length === 1 && types[0] === $facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGS10_test_crate__4_SeedEE
+	) {
+		return globalThis.Object.freeze(
+			{
+				$trait: "test_crate::Probe",
+				$args: globalThis.Object.freeze(
+					[$facade__plain__10_test_crate__4_WrapGS10_test_crate__4_WrapGS10_test_crate__4_SeedEE]
+				)
+			}
+		);
+	}
+
+	throw new globalThis.TypeError(
+		"Unsupported generic arguments for Probe"
+	);
+}
+
+export {
+	$trait__10_test_crate__5_Probe as Probe
+};
+```
