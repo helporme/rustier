@@ -35,28 +35,28 @@ pub fn __fn__associated__10_test_crate__7_Counter__7_combine(
             Ok(
                 cast
                     .from(
-                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) })",
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(6c01)) }) })",
                     )
                     .to("Abi(f64)")
                     .an({
                         let _1 = cast
                             .from("Abi(f64)")
                             .to(
-                                "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
+                                "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(6c01)) }, index: 0 } })",
                             )
                             .an(_1);
                         {
                             let _2 = cast
                                 .from("Abi(f64)")
                                 .to(
-                                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 2 } })",
+                                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(6c01)) }, index: 2 } })",
                                 )
                                 .an(_2);
                             {
                                 let _0 = cast
                                     .from("Abi(usize)")
                                     .to(
-                                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
+                                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(6c01)) }) })",
                                     )
                                     .an(_0);
                                 test_crate::Counter::combine(_0, _1, __js_env, _2)
@@ -96,28 +96,28 @@ pub fn __fn__associated__10_test_crate__7_Counter__7_combine(
             Ok(
                 cast
                     .from(
-                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7801)) }) })",
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(6c01)) }) })",
                     )
                     .to("Abi(f64)")
                     .an({
                         let _1 = cast
                             .from("Abi(f64)")
                             .to(
-                                "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 0 } })",
+                                "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(6c01)) }, index: 0 } })",
                             )
                             .an(_1);
                         {
                             let _2 = cast
                                 .from("Abi(f64)")
                                 .to(
-                                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(7801)) }, index: 2 } })",
+                                    "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(6c01)) }, index: 2 } })",
                                 )
                                 .an(_2);
                             {
                                 let _0 = cast
                                     .from("Abi(usize)")
                                     .to(
-                                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7801)) }) })",
+                                        "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(6c01)) }) })",
                                     )
                                     .an(_0);
                                 test_crate::Counter::combine(_0, _1, __js_env, _2)

@@ -5,7 +5,7 @@ use ra_ap_hir::{
 };
 use thiserror::Error;
 
-use super::is_stable;
+use super::{is_public_path, is_stable};
 use crate::compiler::{
     db::Db,
     ir::rust::{
@@ -183,6 +183,14 @@ pub(super) fn check_type(
         return Err(TypeLowerErrorUnsupported::Unstable);
     }
 
+    if !is_public_path(db, adt, adt.module(db)) {
+        return Err(TypeLowerErrorUnsupported::Inaccessible {
+            type_: type_.display(db, crate_.to_display_target(db)).to_string(),
+        });
+    }
+
+    check_sized(db, type_, crate_)?;
+
     if let Adt::Enum(enum_) = adt {
         for variant in enum_.variants(db) {
             if !is_stable(db, variant, enum_.module(db)) {
@@ -244,6 +252,23 @@ pub(super) fn check_type(
         } else {
             check_type(db, &arg, crate_)?;
         }
+    }
+
+    Ok(())
+}
+
+pub(super) fn check_sized(
+    db: &dyn Db,
+    type_: &HirType<'_>,
+    crate_: ra_ap_hir::Crate,
+) -> Result<(), UnsizedType> {
+    if type_.generic_params(db).is_empty()
+        && Trait::lang(db, crate_, ra_ap_hir::LangItem::Sized)
+            .is_some_and(|sized| !type_.impls_trait(db, sized, &[]))
+    {
+        return Err(UnsizedType {
+            type_: type_.display(db, crate_.to_display_target(db)).to_string(),
+        });
     }
 
     Ok(())
@@ -503,6 +528,18 @@ pub(super) enum TypeLowerErrorUnsupported {
     #[diagnostic(code(rustier::unsupported_type), severity(Warning))]
     Type { type_: String },
 
+    #[error("the type \"{type_}\" cannot be named through a public declaration path")]
+    #[diagnostic(
+        code(rustier::inaccessible_type),
+        help("declare the type in a public module; re-export paths are not supported yet"),
+        severity(Warning)
+    )]
+    Inaccessible { type_: String },
+
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Unsized(#[from] UnsizedType),
+
     #[error("the type \"{type_}\" contains borrowed values")]
     #[diagnostic(
         code(rustier::borrowed_type),
@@ -528,4 +565,11 @@ pub(super) enum TypeLowerErrorUnsupported {
         severity(Warning)
     )]
     DoubleReference,
+}
+
+#[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
+#[error("the unsized type \"{type_}\" cannot be represented by a Rust-backed JS handle")]
+#[diagnostic(code(rustier::unsupported_unsized_type), severity(Warning))]
+pub(super) struct UnsizedType {
+    type_: String,
 }

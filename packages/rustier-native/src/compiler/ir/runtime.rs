@@ -123,7 +123,7 @@ fn class_functions<'db>(
     db: &'db dyn Db,
     class: FacadeClass<'db>,
 ) -> impl Iterator<Item = RuntimeFunction<'db>> + 'db {
-    let methods = class.methods(db).map(RuntimeFunction::from);
+    let methods = class.all_methods(db).map(RuntimeFunction::from);
     let getters = class.source_fields(db).iter().map(|f| f.getter(db).into());
     let setters = class
         .source_fields(db)

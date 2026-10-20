@@ -67,7 +67,7 @@ fn check_module<'db>(db: &'db dyn Db, module: FacadeModule<'db>) {
                 }
             }
 
-            for method in class.methods(db) {
+            for method in class.all_methods(db) {
                 method.src(db).check_f32_precision_loss(db);
                 method.src(db).check_mutable_reference_ignored(db);
             }

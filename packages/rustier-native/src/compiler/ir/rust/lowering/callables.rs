@@ -203,7 +203,9 @@ impl<'db> ImplQualified<'db> {
 /// function bounds that discard the function based on the impl generic
 /// constraints
 pub(super) fn evaluate_where_clause<'db>(db: &'db dyn Db, callable: Callable<'db>) -> Option<bool> {
-    let impl_ = callable.function(db).impl_(db)?;
+    let Some(impl_) = callable.function(db).impl_(db) else {
+        unreachable!("impl-scoped predicate evaluation requires an associated function")
+    };
 
     let sema = Semantics::new_dyn(db);
     let source = sema.source(callable.declaration(db).hir(db))?;
@@ -252,7 +254,9 @@ fn substitute_where_clause<'db>(
     callable: Callable<'db>,
     where_clause: ast::WhereClause,
 ) -> Option<ast::WhereClause> {
-    let impl_ = callable.function(db).impl_(db)?;
+    let Some(impl_) = callable.function(db).impl_(db) else {
+        unreachable!("impl-scoped predicate substitution requires an associated function")
+    };
 
     let module = impl_.declaration(db).hir(db).module(db);
     let context = impl_context(db, sema, impl_)?;

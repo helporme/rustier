@@ -121,6 +121,10 @@ pub(super) fn lower_function<'db>(
 
     let mut causes = Vec::new();
 
+    if hir.attrs(db).is_deprecated() {
+        causes.push(FunctionLowerCause::Deprecated);
+    }
+
     if hir.is_async(db) {
         causes.push(FunctionLowerCause::UnsupportedAsync);
     }
@@ -354,6 +358,10 @@ pub(super) enum FunctionLowerError {
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 pub(super) enum FunctionLowerCause {
+    #[error("deprecated functions and methods are not exported to JS")]
+    #[diagnostic(code(rustier::deprecated_item), severity(Warning))]
+    Deprecated,
+
     #[error("async functions are not supported")]
     #[diagnostic(code(rustier::unsupported_async_fn), severity(Warning))]
     UnsupportedAsync,

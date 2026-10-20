@@ -8,7 +8,7 @@ use crate::compiler::{
     diag::{DiagAccumulateExt as _, DiagSource},
     ir::rust::{
         Callable, Enum, EnumType, FunctionFree, FunctionQualified, GenArg, ImplQualified, Member,
-        Module, ModuleParent, Rust, Struct, StructType, Type, TypeKind,
+        Module, ModuleParent, Rust, Struct, StructType, Trait, Type, TypeKind,
     },
 };
 
@@ -48,6 +48,7 @@ impl<'db> UsageGraph<'db> {
             Node::Enum(value) => Some(Member::Enum(*value)),
             Node::Function(value) => Some(Member::Function(*value)),
             Node::Module(value) => Some(Member::Module(*value)),
+            Node::Trait(value) => Some(Member::Trait(*value)),
             Node::Type(_) | Node::Callable(_) => None,
         })
     }
@@ -125,8 +126,6 @@ struct Visitor<'db> {
     db: &'db dyn Db,
     reachable: HashSet<Node<'db>>,
     visited_modules: HashSet<Module<'db>>,
-    // FIXME: HIR equality ignores source origins and distinguishes actual instantiations, but
-    // rust::Type does not.
     visited_types: HashMap<ra_ap_hir::Type<'db>, (Type<'db>, usize)>,
     visited_callables: HashMap<Callable<'db>, usize>,
     depth_failures: HashMap<ra_ap_hir::Type<'db>, Type<'db>>,
@@ -171,6 +170,7 @@ impl<'db> Visitor<'db> {
         {
             return;
         }
+
         self.visited_callables.insert(callable, depth);
         self.reachable.insert(Node::Callable(callable));
 
@@ -223,14 +223,24 @@ impl<'db> Visitor<'db> {
 
     fn visit_impls(&mut self, type_: Type<'db>, depth: usize) {
         for impl_ in type_.impls(self.db) {
-            if matches!(impl_, ImplQualified::Trait(_)) {
+            let callables: Vec<_> = impl_
+                .functions(self.db)
+                .filter_map(|function| function.as_callible(self.db))
+                .collect();
+
+            if callables.is_empty() {
                 continue;
             }
 
-            for function in impl_.functions(self.db) {
-                if let Some(callable) = function.as_callible(self.db) {
-                    self.visit_callable(callable, depth);
-                }
+            if let ImplQualified::Trait(impl_) = impl_ {
+                let trait_ = impl_.trait_(self.db);
+                self.reachable.insert(Node::Trait(trait_));
+                self.add_parent_chain(trait_.module(self.db));
+                self.visit_args(impl_.trait_args(self.db), depth);
+            }
+
+            for callable in callables {
+                self.visit_callable(callable, depth);
             }
         }
     }
@@ -247,13 +257,16 @@ impl<'db> Visitor<'db> {
             }
             type_ = representative;
         }
+
         if depth >= self.max_depth {
             self.depth_failures.entry(hir).or_insert(type_);
             return;
         }
+
         self.depth_failures.remove(&hir);
         self.visited_types.insert(hir, (type_, depth));
         self.reachable.insert(Node::Type(type_));
+
         match type_.kind(self.db) {
             TypeKind::Struct(struct_) => self.visit_struct(struct_, depth),
             TypeKind::Enum(enum_) => self.visit_enum(enum_, depth),
@@ -288,6 +301,7 @@ enum Node<'db> {
     Module(Module<'db>),
     Type(Type<'db>),
     Callable(Callable<'db>),
+    Trait(Trait<'db>),
 }
 
 #[derive(Error, Diagnostic, Debug, Clone, PartialEq, Eq, Hash, salsa::Update)]

@@ -23,7 +23,9 @@ use self::{
     types::{TypeLowerErrorUnsupported, instantiate_adt_type, instantiate_type, lower_type},
 };
 use miette::SourceSpan;
-use ra_ap_hir::{Adt, GenericParam as HirGenericParam, HasAttrs, HirDisplay as _};
+use ra_ap_hir::{
+    Adt, GenericParam as HirGenericParam, HasAttrs, HasVisibility, HirDisplay as _, Visibility,
+};
 
 use super::{Crate, Function, FunctionParent, GenArg, GenericParam, Rust, Span, TypeOrigin};
 use crate::compiler::{db::Db, diag::DiagSource, path::FilePath};
@@ -174,6 +176,29 @@ pub(super) fn is_stable(db: &dyn Db, hir: impl HasAttrs + Copy, module: ra_ap_hi
 
     !std::iter::successors(Some(module), |module| module.parent(db))
         .any(|module| module.attrs(db).is_unstable())
+}
+
+// FIXME: shouldn't be a thing, rustier should find the public path
+// automatically
+pub(super) fn is_public_path(
+    db: &dyn Db,
+    hir: impl HasVisibility,
+    module: ra_ap_hir::Module,
+) -> bool {
+    if hir.visibility(db) != Visibility::Public {
+        return false;
+    }
+
+    let mut current = Some(module);
+    while let Some(module) = current {
+        if module.parent(db).is_some() && module.visibility(db) != Visibility::Public {
+            return false;
+        }
+
+        current = module.parent(db);
+    }
+
+    true
 }
 
 pub(super) fn function_fqn(db: &dyn Db, function: ra_ap_hir::Function) -> String {

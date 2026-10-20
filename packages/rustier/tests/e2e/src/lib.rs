@@ -6,6 +6,8 @@ pub mod clone_and_borrow;
 pub mod coerce_clone_advice;
 #[path = "coerce-only-imports/test.rs"]
 pub mod coerce_only_imports;
+#[path = "deprecated-items/test.rs"]
+pub mod deprecated_items;
 #[path = "enum-aliasing-throws/test.rs"]
 pub mod enum_aliasing_throws;
 #[path = "enum-fields-enum/test.rs"]
@@ -116,3 +118,5 @@ pub mod struct_fields_struct;
 pub mod struct_mixed;
 #[path = "struct-of/test.rs"]
 pub mod struct_of;
+#[path = "unsupported-type-diags/test.rs"]
+pub mod unsupported_type_diags;

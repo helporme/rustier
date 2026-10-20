@@ -51,7 +51,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 					const result = cast.from(
 						"Abi(usize)"
 					).to(
-						"Facade(Class(Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7c01)) }) } })))"
+						"Facade(Class(Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7001)) }) } })))"
 					).an(
 						__fn__associated__10_test_crate__4_Test__3_new(
 							__0,

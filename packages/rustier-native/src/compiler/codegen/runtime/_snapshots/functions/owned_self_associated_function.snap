@@ -31,14 +31,14 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(
             Ok(
                 cast
                     .from(
-                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8001)) }) })",
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
                     )
                     .to("Abi(bool)")
                     .an({
                         let _0 = cast
                             .from("Abi(usize)")
                             .to(
-                                "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) })",
+                                "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) })",
                             )
                             .an(_0);
                         test_crate::Test::owned(_0)
@@ -71,14 +71,14 @@ pub fn __fn__associated__10_test_crate__4_Test__5_owned(_0: u32) -> Vec<JsValue>
             Ok(
                 cast
                     .from(
-                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8001)) }) })",
+                        "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(7401)) }) })",
                     )
                     .to("Abi(bool)")
                     .an({
                         let _0 = cast
                             .from("Abi(usize)")
                             .to(
-                                "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(8001)) }) })",
+                                "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(7401)) }) })",
                             )
                             .an(_0);
                         test_crate::Test::owned(_0)

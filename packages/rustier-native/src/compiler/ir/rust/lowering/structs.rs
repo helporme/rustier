@@ -4,6 +4,7 @@ use thiserror::Error;
 
 use super::{
     adt_fqn, diagnostic_location, instantiate_adt_type, is_stable, lower_item_span, lower_shape,
+    types::{UnsizedType, check_sized},
 };
 use crate::compiler::{
     db::Db,
@@ -92,6 +93,10 @@ pub(super) fn lower_struct<'db>(
         GenericDef::Adt(Adt::Struct(hir)),
     );
 
+    if let Err(error) = check_sized(db, &type_, hir.module(db).krate(db)) {
+        causes.push(StructLowerCause::Unsized(error));
+    }
+
     if super::types::contains_borrowed_values(db, &type_) {
         causes.push(StructLowerCause::BorrowedValues);
     }
@@ -131,6 +136,10 @@ pub(super) enum StructLowerError {
 
 #[derive(Error, Diagnostic, Debug, Clone, Hash, Eq, PartialEq, salsa::Update)]
 pub(super) enum StructLowerCause {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Unsized(#[from] UnsizedType),
+
     #[error("const-generic structs are not supported")]
     #[diagnostic(
         code(rustier::unsupported_const_generic_struct),

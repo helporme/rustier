@@ -142,6 +142,15 @@ impl<'db> FacadeTraitView<'db> {
 
 #[salsa::tracked]
 impl<'db> FacadeClass<'db> {
+    pub fn all_methods(self, db: &'db dyn Db) -> impl Iterator<Item = FacadeMethod<'db>> + 'db {
+        let trait_methods = self
+            .trait_views(db)
+            .iter()
+            .flat_map(|view| view.methods(db).iter().copied());
+
+        self.methods(db).chain(trait_methods)
+    }
+
     #[salsa::tracked(returns(ref))]
     pub fn trait_views(self, db: &'db dyn Db) -> Vec<FacadeTraitView<'db>> {
         self.src_type(db)

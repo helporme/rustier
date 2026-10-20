@@ -7,7 +7,7 @@ use ra_ap_hir::{
 
 use super::{
     functions::{FunctionLowerError, lower_inherent_function},
-    is_stable, lower_function, lower_item_span,
+    is_public_path, is_stable, lower_function, lower_item_span,
 };
 use crate::compiler::{
     db::Db,
@@ -126,7 +126,7 @@ pub(super) fn lower_impl<'db>(db: &'db dyn Db, hir: ra_ap_hir::Impl) -> Option<I
     }
 
     if let Some(trait_) = hir.trait_(db) {
-        if trait_.visibility(db) != Visibility::Public
+        if !is_public_path(db, trait_, trait_.module(db))
             || !is_stable(db, trait_, trait_.module(db))
             || GenericDef::Trait(trait_)
                 .params(db)
