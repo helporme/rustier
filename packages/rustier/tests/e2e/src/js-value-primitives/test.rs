@@ -13,7 +13,7 @@ pub fn read_boolean(value: JsValue) -> Option<bool> {
 }
 
 pub fn read_string(value: JsValue) -> Option<String> {
-    value.as_string()
+    value.to_string()
 }
 
 pub fn make_string(env: JsEnv, value: String) -> JsValue {
@@ -33,7 +33,7 @@ pub fn make_undefined(env: JsEnv) -> JsValue {
 }
 
 pub fn local_string(env: JsEnv) -> String {
-    env.new_string("\u{feff}ready\0🦀").as_string().unwrap()
+    env.new_string("\u{feff}ready\0🦀").to_string().unwrap()
 }
 
 pub fn string_after_allocation(env: JsEnv, text: String) -> JsValue {
@@ -42,7 +42,7 @@ pub fn string_after_allocation(env: JsEnv, text: String) -> JsValue {
 
     std::hint::black_box(&allocation);
 
-    let extracted = value.as_string().unwrap();
+    let extracted = value.to_string().unwrap();
     let result = env.new_string(&extracted);
 
     drop(allocation);

@@ -1,15 +1,17 @@
 //! Low-level handles for Node.js environments and values.
 
-use std::{marker::PhantomData, ptr, rc::Rc};
+use std::{ffi::CStr, marker::PhantomData, ptr, rc::Rc};
 
 use napi_sys::{
     Status, ValueType, napi_call_function, napi_close_handle_scope, napi_create_double,
-    napi_create_object, napi_create_reference, napi_create_string_utf8, napi_create_type_error,
-    napi_delete_reference, napi_env, napi_get_and_clear_last_exception, napi_get_boolean,
-    napi_get_global, napi_get_named_property, napi_get_null, napi_get_reference_value,
-    napi_get_undefined, napi_get_value_bool, napi_get_value_double, napi_get_value_string_utf8,
-    napi_handle_scope, napi_is_exception_pending, napi_open_handle_scope, napi_ref,
-    napi_reference_ref, napi_reference_unref, napi_status, napi_typeof, napi_value, napi_valuetype,
+    napi_create_object, napi_create_reference, napi_create_string_utf8, napi_create_symbol,
+    napi_create_type_error, napi_delete_reference, napi_env, napi_get_and_clear_last_exception,
+    napi_get_array_length, napi_get_boolean, napi_get_element, napi_get_global,
+    napi_get_named_property, napi_get_null, napi_get_reference_value, napi_get_undefined,
+    napi_get_value_bool, napi_get_value_double, napi_get_value_string_utf8, napi_handle_scope,
+    napi_is_exception_pending, napi_new_instance, napi_open_handle_scope, napi_ref,
+    napi_reference_ref, napi_reference_unref, napi_status, napi_strict_equals, napi_typeof,
+    napi_value, napi_valuetype,
 };
 
 use super::JsValueType;
@@ -45,6 +47,18 @@ impl EnvHandle {
     pub fn new_boolean(&self, value: bool) -> ValueHandle {
         ValueHandle::new(*self, |env, output| unsafe {
             napi_get_boolean(env, value, output)
+        })
+    }
+
+    pub fn new_symbol(&self, description: Option<&str>) -> ValueHandle {
+        ValueHandle::new(*self, |env, output| {
+            let description = description.map_or(ptr::null_mut(), |text| {
+                call(|result| unsafe {
+                    napi_create_string_utf8(env, text.as_ptr().cast(), text.len() as isize, result)
+                })
+            });
+
+            unsafe { napi_create_symbol(env, description, output) }
         })
     }
 
@@ -149,7 +163,7 @@ impl ValueHandle {
         })
     }
 
-    pub fn as_string(&self) -> Option<String> {
+    pub fn to_string(&self) -> Option<String> {
         self.read(ValueType::napi_string, |env, value| {
             let length: usize = call(|output| unsafe {
                 napi_get_value_string_utf8(env, value, ptr::null_mut(), 0, output)
@@ -174,62 +188,122 @@ impl ValueHandle {
         })
     }
 
-    fn reflect(
+    pub fn strict_eq(&self, other: &Self) -> bool {
+        if self.env != other.env {
+            return false;
+        }
+
+        self.with_value(|env, value| {
+            let other = call(|output| unsafe { napi_get_reference_value(env, other.raw, output) });
+
+            call(|output| unsafe { napi_strict_equals(env, value, other, output) })
+        })
+    }
+
+    pub fn soft_eq(&self, other: &Self) -> bool {
+        if self.env != other.env {
+            return false;
+        }
+
+        if let (Some(left), Some(right)) = (self.as_f64(), other.as_f64()) {
+            return (left.is_nan() && right.is_nan()) || left.to_bits() == right.to_bits();
+        }
+
+        self.strict_eq(other)
+    }
+
+    fn reflect<'a>(
         &self,
         env: napi_env,
         target: napi_value,
-        key: &str,
-        assigned: Option<&Self>,
+        operation: &CStr,
+        args: impl IntoIterator<Item = &'a Self>,
     ) -> Result<napi_value, Self> {
-        if assigned.is_some_and(|value| value.env != self.env) {
-            return Err(property_error(
-                self.env,
-                "JsValue belongs to another JavaScript environment",
-            ));
-        }
+        let mut arguments = vec![target];
+        arguments.extend(self.arguments(env, args)?);
 
         let global = checked(self.env, |output| unsafe { napi_get_global(env, output) })?;
         let reflect = checked(self.env, |output| unsafe {
             napi_get_named_property(env, global, c"Reflect".as_ptr(), output)
         })?;
-        let operation = if assigned.is_some() { c"set" } else { c"get" };
         let method = checked(self.env, |output| unsafe {
             napi_get_named_property(env, reflect, operation.as_ptr(), output)
         })?;
-        let key = checked(self.env, |output| unsafe {
-            napi_create_string_utf8(env, key.as_ptr().cast(), key.len() as isize, output)
-        })?;
-        let mut args = [target, key, ptr::null_mut()];
-        let argc = if let Some(value) = assigned {
-            args[2] = checked(self.env, |output| unsafe {
-                napi_get_reference_value(env, value.raw, output)
-            })?;
-
-            3
-        } else {
-            2
-        };
 
         checked(self.env, |output| unsafe {
-            napi_call_function(env, reflect, method, argc, args.as_ptr(), output)
+            napi_call_function(
+                env,
+                reflect,
+                method,
+                arguments.len(),
+                arguments.as_ptr(),
+                output,
+            )
         })
     }
 
-    pub fn get(&self, key: &str) -> Result<Self, Self> {
+    pub fn get(&self, key: &Self) -> Result<Self, Self> {
         self.with_value(|env, target| {
-            let result = self.reflect(env, target, key, None)?;
+            let result = self.reflect(env, target, c"get", [key])?;
 
             Ok(unsafe { Self::from_napi_value(result as usize, self.env) })
         })
     }
 
-    pub fn set(&self, key: &str, value: &Self) -> Result<bool, Self> {
+    fn reflect_bool<'a>(
+        &self,
+        operation: &CStr,
+        args: impl IntoIterator<Item = &'a Self>,
+    ) -> Result<bool, Self> {
         self.with_value(|env, target| {
-            let result = self.reflect(env, target, key, Some(value))?;
+            let result = self.reflect(env, target, operation, args)?;
 
             checked(self.env, |output| unsafe {
                 napi_get_value_bool(env, result, output)
             })
+        })
+    }
+
+    pub fn set(&self, key: &Self, value: &Self) -> Result<bool, Self> {
+        self.reflect_bool(c"set", [key, value])
+    }
+
+    pub fn has(&self, key: &Self) -> Result<bool, Self> {
+        self.reflect_bool(c"has", [key])
+    }
+
+    pub fn delete(&self, key: &Self) -> Result<bool, Self> {
+        self.reflect_bool(c"deleteProperty", [key])
+    }
+
+    pub fn define_property(&self, key: &Self, descriptor: &Self) -> Result<bool, Self> {
+        self.reflect_bool(c"defineProperty", [key, descriptor])
+    }
+
+    pub fn get_own_property_descriptor(&self, key: &Self) -> Result<Self, Self> {
+        self.with_value(|env, target| {
+            let result = self.reflect(env, target, c"getOwnPropertyDescriptor", [key])?;
+
+            Ok(unsafe { Self::from_napi_value(result as usize, self.env) })
+        })
+    }
+
+    pub fn own_keys(&self) -> Result<Vec<Self>, Self> {
+        self.with_value(|env, target| {
+            let keys = self.reflect(env, target, c"ownKeys", [])?;
+            let length = checked(self.env, |output| unsafe {
+                napi_get_array_length(env, keys, output)
+            })?;
+
+            (0..length)
+                .map(|index| {
+                    let key = checked(self.env, |output| unsafe {
+                        napi_get_element(env, keys, index, output)
+                    })?;
+
+                    Ok(unsafe { Self::from_napi_value(key as usize, self.env) })
+                })
+                .collect()
         })
     }
 
@@ -309,14 +383,25 @@ impl ValueHandle {
 
     pub fn call<'a>(
         &self,
-        method: &str,
+        method: &Self,
         args: impl IntoIterator<Item = &'a Self>,
     ) -> Result<Self, Self> {
         self.with_value(|env, target| {
             let args = self.arguments(env, args)?;
-            let function = self.reflect(env, target, method, None)?;
+            let function = self.reflect(env, target, c"get", [method])?;
 
             self.invoke(env, function, target, &args)
+        })
+    }
+
+    pub fn construct<'a>(&self, args: impl IntoIterator<Item = &'a Self>) -> Result<Self, Self> {
+        self.with_value(|env, constructor| {
+            let args = self.arguments(env, args)?;
+            let result = checked(self.env, |output| unsafe {
+                napi_new_instance(env, constructor, args.len(), args.as_ptr(), output)
+            })?;
+
+            Ok(unsafe { Self::from_napi_value(result as usize, self.env) })
         })
     }
 

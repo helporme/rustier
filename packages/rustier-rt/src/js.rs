@@ -69,8 +69,13 @@ impl JsEnv {
     }
 
     /// Creates a JavaScript string containing `value`.
-    pub fn new_string(&self, value: &str) -> JsValue {
-        self.0.new_string(value).into()
+    pub fn new_string(&self, value: impl AsRef<str>) -> JsValue {
+        self.0.new_string(value.as_ref()).into()
+    }
+
+    /// Creates a unique JavaScript symbol with an optional description.
+    pub fn new_symbol(&self, description: Option<&str>) -> JsValue {
+        self.0.new_symbol(description).into()
     }
 
     /// Creates a JavaScript boolean.
@@ -140,8 +145,23 @@ impl JsValue {
     /// not a JavaScript string.
     ///
     /// Note that unpaired UTF-16 surrogates are replaced with U+FFFD.
-    pub fn as_string(&self) -> Option<String> {
-        self.handle.as_string()
+    pub fn to_string(&self) -> Option<String> {
+        self.handle.to_string()
+    }
+
+    /// Compares values using JavaScript's strict equality operator (`===`).
+    ///
+    /// Values from different environments are unequal.
+    pub fn strict_eq(&self, other: &JsValue) -> bool {
+        self.handle.strict_eq(&other.handle)
+    }
+
+    /// Compares values using JavaScript's `Object.is` semantics.
+    ///
+    /// Unlike [`Self::strict_eq`], this considers `NaN` equal to itself and
+    /// distinguishes positive and negative zero.
+    pub fn soft_eq(&self, other: &JsValue) -> bool {
+        self.handle.soft_eq(&other.handle)
     }
 
     /// The value of the property named `key`.
@@ -153,8 +173,10 @@ impl JsValue {
     ///
     /// Returns the thrown value if property access raises a JavaScript exception.
     /// A target that is neither an object nor a function produces a `TypeError`.
-    pub fn get(&self, key: &str) -> Result<JsValue, JsValue> {
-        self.handle.get(key).map(Into::into).map_err(Into::into)
+    pub fn get(&self, key: impl Into<Key>) -> Result<JsValue, JsValue> {
+        let key = key.into().into_handle(self.env());
+
+        self.handle.get(&key).map(Into::into).map_err(Into::into)
     }
 
     /// Assigns `value` to the property named `key`.
@@ -167,8 +189,10 @@ impl JsValue {
     /// Returns the thrown value if assignment raises a JavaScript exception.
     /// A target that is neither an object nor a function, or a value from another
     /// environment, produces a `TypeError`.
-    pub fn set(&self, key: &str, value: &JsValue) -> Result<bool, JsValue> {
-        self.handle.set(key, &value.handle).map_err(Into::into)
+    pub fn set(&self, key: impl Into<Key>, value: &JsValue) -> Result<bool, JsValue> {
+        let key = key.into().into_handle(self.env());
+
+        self.handle.set(&key, &value.handle).map_err(Into::into)
     }
 
     /// Calls this function with JavaScript `undefined` as its receiver.
@@ -206,10 +230,79 @@ impl JsValue {
     /// Returns the thrown value if property lookup or the call raises a JavaScript
     /// exception. A non-object target, a non-callable method, or an argument from
     /// another environment produces a `TypeError`.
-    pub fn call(&self, method: &str, args: &[JsValue]) -> Result<JsValue, JsValue> {
+    pub fn call(&self, method: impl Into<Key>, args: &[JsValue]) -> Result<JsValue, JsValue> {
+        let method = method.into().into_handle(self.env());
+
         self.handle
-            .call(method, args.iter().map(|value| &value.handle))
+            .call(&method, args.iter().map(|value| &value.handle))
             .map(Into::into)
+            .map_err(Into::into)
+    }
+
+    /// Returns whether this object or its prototype chain has `key`.
+    ///
+    /// Returns the thrown value if lookup fails.
+    pub fn has(&self, key: impl Into<Key>) -> Result<bool, JsValue> {
+        let key = key.into().into_handle(self.env());
+
+        self.handle.has(&key).map_err(Into::into)
+    }
+
+    /// Deletes an own property, returning `false` if deletion is rejected.
+    ///
+    /// Returns the thrown value if deletion fails.
+    pub fn delete(&self, key: impl Into<Key>) -> Result<bool, JsValue> {
+        let key = key.into().into_handle(self.env());
+
+        self.handle.delete(&key).map_err(Into::into)
+    }
+
+    /// Invokes this constructor with `args`.
+    ///
+    /// Returns the thrown value if construction fails.
+    pub fn construct(&self, args: &[JsValue]) -> Result<JsValue, JsValue> {
+        self.handle
+            .construct(args.iter().map(|value| &value.handle))
+            .map(Into::into)
+            .map_err(Into::into)
+    }
+
+    /// Returns all own string and symbol keys, including non-enumerable keys.
+    ///
+    /// Keys are returned as [`Key::Value`] to preserve JavaScript strings exactly.
+    /// Returns the thrown value if enumeration fails.
+    pub fn own_keys(&self) -> Result<Vec<Key>, JsValue> {
+        self.handle
+            .own_keys()
+            .map(|keys| keys.into_iter().map(|key| Key::Value(key.into())).collect())
+            .map_err(Into::into)
+    }
+
+    /// Returns an own property's descriptor, or `undefined` if it does not exist.
+    ///
+    /// Returns the thrown value if lookup fails.
+    pub fn get_own_property_descriptor(&self, key: impl Into<Key>) -> Result<JsValue, JsValue> {
+        let key = key.into().into_handle(self.env());
+
+        self.handle
+            .get_own_property_descriptor(&key)
+            .map(Into::into)
+            .map_err(Into::into)
+    }
+
+    /// Defines an own property, returning `false` if the definition is rejected.
+    ///
+    /// `descriptor` is a JavaScript property descriptor object.
+    /// Returns the thrown value if the descriptor or operation is invalid.
+    pub fn define_property(
+        &self,
+        key: impl Into<Key>,
+        descriptor: &JsValue,
+    ) -> Result<bool, JsValue> {
+        let key = key.into().into_handle(self.env());
+
+        self.handle
+            .define_property(&key, &descriptor.handle)
             .map_err(Into::into)
     }
 }
@@ -225,3 +318,71 @@ impl From<JsValue> for backend::ValueHandle {
         value.handle
     }
 }
+
+/// A JavaScript property key.
+///
+/// Numbers and JavaScript values undergo JavaScript's property-key conversion
+/// when used. Symbols retain their identity.
+#[derive(Debug, Clone)]
+pub enum Key {
+    /// A JavaScript value to use as a key.
+    Value(JsValue),
+    /// A string key.
+    String(String),
+    /// A numeric key.
+    Number(f64),
+}
+
+impl Key {
+    fn into_handle(self, env: JsEnv) -> backend::ValueHandle {
+        match self {
+            Self::Value(value) => value.handle,
+            Self::String(value) => env.0.new_string(&value),
+            Self::Number(value) => env.0.new_number(value),
+        }
+    }
+}
+
+impl From<JsValue> for Key {
+    fn from(value: JsValue) -> Self {
+        Self::Value(value)
+    }
+}
+
+impl From<&JsValue> for Key {
+    fn from(value: &JsValue) -> Self {
+        Self::Value(value.clone())
+    }
+}
+
+impl From<String> for Key {
+    fn from(value: String) -> Self {
+        Self::String(value)
+    }
+}
+
+impl From<&str> for Key {
+    fn from(value: &str) -> Self {
+        Self::String(value.to_owned())
+    }
+}
+
+impl From<&String> for Key {
+    fn from(value: &String) -> Self {
+        Self::String(value.clone())
+    }
+}
+
+macro_rules! number_keys {
+    ($($type:ty),* $(,)?) => {
+        $(
+            impl From<$type> for Key {
+                fn from(value: $type) -> Self {
+                    Self::Number(value as f64)
+                }
+            }
+        )*
+    };
+}
+
+number_keys!(f64, f32, u8, u16, u32, usize, i8, i16, i32, isize);

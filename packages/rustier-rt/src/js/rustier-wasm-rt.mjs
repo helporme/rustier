@@ -41,6 +41,11 @@ export function __rustier_js_new_string(ptr, len) {
   return __rustier_js_insert(stringFromMemory(ptr, len));
 }
 
+export function __rustier_js_new_symbol(ptr, len, hasDescription) {
+  const description = hasDescription ? stringFromMemory(ptr, len) : undefined;
+  return __rustier_js_insert(Symbol(description));
+}
+
 export function __rustier_js_new_boolean(value) {
   return __rustier_js_insert(value !== 0);
 }
@@ -123,11 +128,21 @@ function argumentsFromMemory(ptr, len) {
   return args;
 }
 
-export function __rustier_js_get(handle, key, len, failed) {
+export function __rustier_js_strict_eq(left, right) {
+  return values[left >>> 0] === values[right >>> 0];
+}
+
+export function __rustier_js_soft_eq(left, right) {
+  const a = values[left >>> 0];
+  const b = values[right >>> 0];
+  return a === b ? a !== 0 || 1 / a === 1 / b : a !== a && b !== b;
+}
+
+export function __rustier_js_get(handle, key, failed) {
   let result;
   let error = 0;
   try {
-    result = Reflect.get(values[handle >>> 0], stringFromMemory(key, len));
+    result = Reflect.get(values[handle >>> 0], values[key >>> 0]);
   } catch (exception) {
     result = exception;
     error = 1;
@@ -135,17 +150,17 @@ export function __rustier_js_get(handle, key, len, failed) {
   return valueResult(failed, result, error);
 }
 
-export function __rustier_js_set(handle, key, len, value, failed) {
+function reflectBoolean(operation, handle, key, value, failed) {
   let result;
   let error = 0;
   try {
-    const accepted = Reflect.set(
+    const accepted = Reflect[operation](
       values[handle >>> 0],
-      stringFromMemory(key, len),
+      values[key >>> 0],
       values[value >>> 0],
     );
     if (typeof accepted !== "boolean") {
-      throw new TypeError("Reflect.set did not return a boolean");
+      throw new TypeError(`Reflect.${operation} did not return a boolean`);
     }
     result = accepted ? 1 : 0;
   } catch (exception) {
@@ -154,6 +169,53 @@ export function __rustier_js_set(handle, key, len, value, failed) {
   }
   new DataView(memory.buffer).setUint32(memoryIndex(failed), error, true);
   return result;
+}
+
+export function __rustier_js_set(handle, key, value, failed) {
+  return reflectBoolean("set", handle, key, value, failed);
+}
+
+export function __rustier_js_has(handle, key, failed) {
+  return reflectBoolean("has", handle, key, 0, failed);
+}
+
+export function __rustier_js_delete(handle, key, failed) {
+  return reflectBoolean("deleteProperty", handle, key, 0, failed);
+}
+
+export function __rustier_js_define_property(handle, key, descriptor, failed) {
+  return reflectBoolean("defineProperty", handle, key, descriptor, failed);
+}
+
+export function __rustier_js_get_own_property_descriptor(handle, key, failed) {
+  let result;
+  let error = 0;
+  try {
+    result = Reflect.getOwnPropertyDescriptor(
+      values[handle >>> 0],
+      values[key >>> 0],
+    );
+  } catch (exception) {
+    result = exception;
+    error = 1;
+  }
+  return valueResult(failed, result, error);
+}
+
+export function __rustier_js_own_keys(handle, failed) {
+  let result;
+  let error = 0;
+  try {
+    result = Reflect.ownKeys(values[handle >>> 0]);
+  } catch (exception) {
+    result = exception;
+    error = 1;
+  }
+  return valueResult(failed, result, error);
+}
+
+export function __rustier_js_array_get(handle, index) {
+  return __rustier_js_insert(values[handle >>> 0][memoryIndex(index)]);
 }
 
 export function __rustier_js_apply(
@@ -177,22 +239,28 @@ export function __rustier_js_apply(
   return valueResult(failed, result, error);
 }
 
-export function __rustier_js_call(
-  handle,
-  method,
-  methodLen,
-  args,
-  len,
-  failed,
-) {
+export function __rustier_js_call(handle, method, args, len, failed) {
   let result;
   let error = 0;
   try {
     const object = values[handle >>> 0];
-    const key = stringFromMemory(method, methodLen);
+    const key = values[method >>> 0];
     const argumentsList = argumentsFromMemory(args, len);
     const functionValue = Reflect.get(object, key);
     result = Reflect.apply(functionValue, object, argumentsList);
+  } catch (exception) {
+    result = exception;
+    error = 1;
+  }
+  return valueResult(failed, result, error);
+}
+
+export function __rustier_js_construct(handle, args, len, failed) {
+  let result;
+  let error = 0;
+  try {
+    const argumentsList = argumentsFromMemory(args, len);
+    result = Reflect.construct(values[handle >>> 0], argumentsList);
   } catch (exception) {
     result = exception;
     error = 1;

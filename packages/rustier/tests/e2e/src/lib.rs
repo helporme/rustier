@@ -82,6 +82,8 @@ pub mod js_value_functions;
 pub mod js_value_primitives;
 #[path = "js-value-properties/test.rs"]
 pub mod js_value_properties;
+#[path = "js-value-utilities/test.rs"]
+pub mod js_value_utilities;
 #[path = "keyword-exports/test.rs"]
 pub mod keyword_exports;
 #[path = "of-input-throws/test.rs"]
