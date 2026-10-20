@@ -9,6 +9,7 @@
 - Do not introduce utility functions under 10 lines if they are used a few times. Inline them instead.
 - By default assume that all code is private and there are no breaking changes.
 - Avoid adding assertions in non-test code, espesially debug-only assertions. Better structure the code around `unreachable!()` macro.
+- Do not defensively handle states excluded by the program’s invariants. If such a state occurs, fail immediately (using `unreachable!()` where appropriate) so the bug remains visible and fixable; do not silently deduplicate, default, or otherwise recover. Reserve validation and recovery for external inputs, explicitly unsupported representations, and behavior required by domain semantics.
 - Add blank lines between logical groups of statements in generated and edited Rust code, especially between setup, checks, traversal, and final returns.
 - When a function returns `Result`, its error type should cover exactly the errors that function can produce. Prefer fine-grained error types over a single module-wide error type.
 
