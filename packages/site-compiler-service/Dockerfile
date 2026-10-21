@@ -34,7 +34,7 @@ ENV CARGO_NET_OFFLINE=true
 RUN pnpm --filter rustier-native build:release:local \
     && pnpm --filter rustier build:ts
 COPY packages/site-compiler-service/dist ./packages/site-compiler-service/dist
-RUN pnpm --filter site-compiler-service deploy --prod --legacy /compiler
+RUN pnpm pm deploy --filter site-compiler-service --prod --legacy /compiler
 RUN CARGO_NET_OFFLINE=false PLAYGROUND_ROOT=/work/project node packages/site-compiler-service/dist/index.mjs seed \
     && mkdir -p /opt/playground \
     && cp -a /work/project/. /opt/playground/

@@ -1,0 +1,116 @@
+name: rustier-site
+
+services:
+  site:
+    image: node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+    user: node
+    command: [node, /deploy/deployment/site-runner.mjs]
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      ORIGIN: https://${SITE_DOMAIN}
+      PROTOCOL_HEADER: x-forwarded-proto
+      HOST_HEADER: x-forwarded-host
+      ADDRESS_HEADER: x-forwarded-for
+      XFF_DEPTH: '1'
+      BODY_SIZE_LIMIT: 128K
+      COMPILER_URL: http://compiler:3001
+      COMPILER_TOKEN: ${COMPILER_TOKEN:?Compiler token is required}
+      SITE_RUNNER_VERSION: ${SITE_RUNNER_VERSION}
+    volumes:
+      - ${DEPLOY_ROOT}/releases:/deploy/releases:ro
+      - ${DEPLOY_ROOT}/deployment:/deploy/deployment:ro
+    expose: ['3000']
+    restart: unless-stopped
+    read_only: true
+    tmpfs: ['/tmp:size=32m,mode=1777']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 768m
+    cpus: 1
+    pids_limit: 128
+    networks: [default, compilation]
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/playground').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+    logging: &logging
+      driver: json-file
+      options: { max-size: 10m, max-file: '3' }
+
+  compiler:
+    image: ${COMPILER_IMAGE:?Compiler image is required}
+    environment:
+      COMPILER_TOKEN: ${COMPILER_TOKEN}
+      COMPILER_WORKERS: '1'
+      COMPILER_IDLE_MS: '120000'
+    expose: ['3001']
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs: ['/tmp:size=16m,mode=1777']
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=unconfined
+      - systempaths=unconfined
+      - apparmor=unconfined
+    mem_limit: 3g
+    memswap_limit: 3g
+    cpus: 2
+    pids_limit: 256
+    networks: [compilation]
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 70s
+    logging: *logging
+
+  caddy:
+    image: caddy:2.11.7-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+      CLOUDFLARE_TRUSTED_PROXIES: ${CLOUDFLARE_TRUSTED_PROXIES}
+      CADDY_CONFIG_VERSION: ${CADDY_CONFIG_VERSION}
+    ports: ['80:80', '443:443']
+    volumes:
+      - ${DEPLOY_ROOT}/deployment:/etc/caddy:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    read_only: true
+    tmpfs: ['/tmp:size=16m,mode=1777']
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    pids_limit: 128
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:2019/config/']
+      interval: 10s
+      timeout: 5s
+    logging: *logging
+
+networks:
+  default:
+    enable_ipv6: true
+  compilation:
+    internal: true
+
+volumes:
+  caddy_data:
+  caddy_config:

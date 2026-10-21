@@ -1,0 +1,5 @@
+{
+	"sshTarget": "hetzner-rustier",
+	"domain": "rustier.dev",
+	"directory": "/opt/rustier-site"
+}
