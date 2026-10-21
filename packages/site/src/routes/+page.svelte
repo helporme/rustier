@@ -17,11 +17,6 @@
 </svelte:head>
 
 <div class="flex min-h-svh flex-col overflow-clip bg-rust-surface text-on-ink-surface">
-	<a
-		href="#introduction"
-		class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-java focus:p-3 focus:text-ink"
-		>Skip to introduction</a
-	>
 	<SiteHeader />
 	<main
 		id="introduction"

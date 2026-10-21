@@ -2,6 +2,7 @@ export const examples = [
 	{
 		id: 'hello',
 		name: 'Hello world',
+		topic: 'Getting started',
 		rust: `pub fn greet(name: &str) -> String {
     format!("Hello {name}!")
 }`,
@@ -12,6 +13,7 @@ console.log(greet('World'))`
 	{
 		id: 'structs-and-enums',
 		name: 'Structs and enums',
+		topic: 'Structs and enums',
 		rust: `pub struct Sheep {
     pub wool: u32,
 }
@@ -45,6 +47,7 @@ switch (animal.type) {
 	{
 		id: 'borrowing-and-moving',
 		name: 'Borrowing and moving',
+		topic: 'Structs and enums',
 		rust: `#[derive(Clone)]
 pub struct Sheep {
     pub wool: u32,
@@ -90,6 +93,7 @@ console.log(sheep.wool) // 10 — still usable`
 	{
 		id: 'field-access',
 		name: 'Field access',
+		topic: 'Structs and enums',
 		rust: `#[derive(Clone)]
 pub struct Sheep {
     pub wool: u32,
@@ -140,6 +144,7 @@ console.log(old_sheep.wool)     // 5`
 	{
 		id: 'generic-types',
 		name: 'Generic types',
+		topic: 'Generics',
 		rust: `pub fn item_count(
     items: Vec<String>,
 ) -> u32 {
@@ -173,6 +178,7 @@ console.log(total_items(bags)) // 2`
 	{
 		id: 'generic-impls',
 		name: 'Generic impls with trait bounds',
+		topic: 'Generics',
 		rust: `pub struct Pouch<T> {
     pub item: T,
 }
@@ -231,6 +237,7 @@ console.log(snacks.take()) // dried mushrooms`
 	{
 		id: 'object-literals',
 		name: 'Construction from object literals',
+		topic: 'Structs and enums',
 		rust: `#[derive(Clone)]
 pub struct Point {
     pub x: f64,
@@ -262,6 +269,7 @@ console.log(Point.of(camp) === camp) // true`
 	{
 		id: 'diagnostics',
 		name: 'Diagnostics',
+		topic: 'Diagnostics',
 		rust: `pub async fn summon() -> String {
     "A slime appears!".to_owned()
 }`,
@@ -269,3 +277,11 @@ console.log(Point.of(camp) === camp) // true`
 // Enable Inspect to see why summon is skipped.`
 	}
 ] as const;
+
+export const exampleGroups = Array.from(
+	new Set(examples.map((example) => example.topic)),
+	(topic) => ({
+		topic,
+		examples: examples.filter((example) => example.topic === topic)
+	})
+);

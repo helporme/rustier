@@ -12,7 +12,7 @@
 					'border-ink bg-secondary text-on-secondary hover:bg-secondary/80 active:bg-secondary/65',
 				outline:
 					'border-current bg-transparent text-inherit hover:bg-current/10 active:bg-current/15',
-				ghost: 'text-on-ink-surface hover:bg-ink-surface active:bg-ink-surface/70'
+				ghost: 'bg-transparent text-inherit hover:bg-current/10 active:bg-current/15'
 			},
 			size: {
 				default: 'h-10 px-5',

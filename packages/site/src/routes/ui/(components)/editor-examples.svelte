@@ -21,6 +21,7 @@
 			<Select.Content>
 				<Select.Item value="rust" label="Rust" />
 				<Select.Item value="typescript" label="TypeScript" />
+				<Select.Item value="diagnostics" label="Diagnostics" />
 				<Select.Item value="text" label="Plain text" />
 			</Select.Content>
 		</Select.Root>
@@ -32,6 +33,14 @@
 		>
 		<Button variant="outline" onclick={() => (value = '')}>Clear editor</Button>
 		<Button variant="outline" onclick={() => (value = 'const answer = 42;')}>Replace value</Button>
+		<Button
+			variant="outline"
+			onclick={() => {
+				language = 'diagnostics';
+				value =
+					'rustier::skipped_fn\n\n  ⚠ async functions are not supported\n   ╭─[1:1]\n 1 │ pub async fn summon() -> String {\n 2 │     "A slime appears!".to_owned()\n 3 │ }\n   ╰────\n\nerror: expected an item';
+			}}>Show diagnostics</Button
+		>
 	</div>
 	<div class="h-64 overflow-hidden rounded-lg border border-ink-outline">
 		<CodeEditor

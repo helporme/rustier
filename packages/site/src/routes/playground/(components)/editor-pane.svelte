@@ -38,7 +38,15 @@
 		status?: Snippet;
 	} = $props();
 
-	const name = $derived(language === 'rust' ? 'Rust' : language === 'text' ? 'Text' : 'TypeScript');
+	const name = $derived(
+		language === 'rust'
+			? 'Rust'
+			: language === 'typescript'
+				? 'TypeScript'
+				: language === 'diagnostics'
+					? 'Diagnostics'
+					: 'Text'
+	);
 </script>
 
 <section

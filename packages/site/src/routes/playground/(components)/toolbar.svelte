@@ -5,7 +5,7 @@
 	import { Toggle } from '#lib/ui/components/toggle';
 	import * as Select from '#lib/ui/components/select';
 	import { resolve } from '$app/paths';
-	import { examples } from './examples';
+	import { examples, exampleGroups } from './examples';
 
 	let {
 		selected = $bindable(),
@@ -43,8 +43,17 @@
 				{current?.name ?? 'Choose an example'}
 			</Select.Trigger>
 			<Select.Content>
-				{#each examples as example (example.id)}
-					<Select.Item value={example.id} label={example.name} />
+				{#each exampleGroups as group (group.topic)}
+					<Select.Group class="not-first:mt-2 not-first:border-t not-first:border-ink-outline">
+						<Select.GroupHeading
+							class="px-3 pt-2 pb-1 text-ui font-bold text-on-ink-surface-variant"
+						>
+							{group.topic}
+						</Select.GroupHeading>
+						{#each group.examples as example (example.id)}
+							<Select.Item value={example.id} label={example.name} />
+						{/each}
+					</Select.Group>
 				{/each}
 			</Select.Content>
 		</Select.Root>

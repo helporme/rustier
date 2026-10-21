@@ -156,10 +156,14 @@
 	--color-ink-outline: light-dark(#e2dccb, #49413b);
 
 	/* Keep editor-specific colors under the --color-editor-* prefix. */
-	--color-editor-keyword: var(--color-on-primary-surface);
-	--color-editor-string: var(--color-on-secondary-surface);
-	--color-editor-function: var(--color-on-primary-surface);
-	--color-editor-comment: var(--color-on-ink-surface-variant);
+	--color-editor-keyword: light-dark(#a34628, var(--color-on-primary-surface));
+	--color-editor-type: light-dark(#80513b, var(--color-on-primary-surface));
+	--color-editor-string: light-dark(#746000, var(--color-on-secondary-surface));
+	--color-editor-number: light-dark(#915512, var(--color-on-secondary-surface));
+	--color-editor-function: light-dark(#8b3f35, var(--color-on-primary-surface));
+	--color-editor-comment: light-dark(#716a59, var(--color-on-ink-surface-variant));
+	--color-editor-warning: light-dark(#805c00, #efcf78);
+	--color-editor-error: light-dark(#a33a32, #f2a28e);
 	--color-editor-selection: color-mix(in srgb, var(--color-primary), transparent 70%);
 	--color-editor-active-line: color-mix(in srgb, var(--color-ink-surface), transparent 70%);
 }

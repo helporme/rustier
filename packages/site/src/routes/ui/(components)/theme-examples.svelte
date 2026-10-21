@@ -47,9 +47,13 @@
 		'on-ink-surface-variant',
 		'ink-outline',
 		'editor-keyword',
+		'editor-type',
 		'editor-string',
+		'editor-number',
 		'editor-function',
 		'editor-comment',
+		'editor-warning',
+		'editor-error',
 		'editor-selection',
 		'editor-active-line'
 	];
@@ -66,7 +70,7 @@
 	<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
 		{#each tokens as token (token)}
 			<div class="min-w-0">
-				{#if token.startsWith('on-') || ['editor-keyword', 'editor-string', 'editor-function', 'editor-comment'].includes(token)}
+				{#if token.startsWith('on-') || ['editor-keyword', 'editor-type', 'editor-string', 'editor-number', 'editor-function', 'editor-comment', 'editor-warning', 'editor-error'].includes(token)}
 					<div
 						class="grid h-14 place-items-center rounded-lg border border-ink-outline bg-ink-surface font-code text-code"
 						style:color={`var(--color-${token})`}

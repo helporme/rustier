@@ -18,6 +18,7 @@
 		<span class="font-brand text-wordmark">rustier</span>
 	</a>
 	<nav aria-label="Main navigation" class="flex items-center gap-2 text-ui font-extrabold sm:gap-4">
+		<ThemeToggle />
 		<a
 			href="https://github.com/helporme/rustier"
 			class="hidden hover:underline sm:inline"
@@ -27,6 +28,5 @@
 		<Button href={resolve('/playground')} variant="outline">
 			Playground <ArrowUpRight aria-hidden="true" class="size-4" />
 		</Button>
-		<ThemeToggle />
 	</nav>
 </header>

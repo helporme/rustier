@@ -15,9 +15,19 @@
 				{value || 'Choose a language'}
 			</Select.Trigger>
 			<Select.Content>
-				<Select.Item value="Rust" label="Rust" />
-				<Select.Item value="TypeScript" label="TypeScript" />
-				<Select.Item value="Unavailable" label="Unavailable" disabled />
+				<Select.Group>
+					<Select.GroupHeading class="px-3 py-1 text-ui font-bold text-on-ink-surface-variant">
+						Languages
+					</Select.GroupHeading>
+					<Select.Item value="Rust" label="Rust" />
+					<Select.Item value="TypeScript" label="TypeScript" />
+				</Select.Group>
+				<Select.Group>
+					<Select.GroupHeading class="px-3 py-1 text-ui font-bold text-on-ink-surface-variant">
+						Unavailable options
+					</Select.GroupHeading>
+					<Select.Item value="Unavailable" label="Unavailable" disabled />
+				</Select.Group>
 			</Select.Content>
 		</Select.Root>
 		<Select.Root type="single" disabled>

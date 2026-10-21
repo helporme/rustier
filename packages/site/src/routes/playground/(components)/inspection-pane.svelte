@@ -38,7 +38,7 @@
 	const diagnosticsTab = {
 		id: 'diagnostics',
 		label: 'Diagnostics',
-		language: 'text',
+		language: 'diagnostics',
 		filename: 'diagnostics.txt',
 		icon: TriangleAlert
 	} as const satisfies EditorTab & { id: keyof Inspection; filename: string };
