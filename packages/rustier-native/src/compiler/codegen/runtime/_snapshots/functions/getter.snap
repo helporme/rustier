@@ -18,21 +18,21 @@ pub fn __fn__getter__10_test_crate__4_Test__field(
     _0: napi::bindgen_prelude::BigInt,
 ) -> (u32, napi::bindgen_prelude::Either5<(), f64, bool, String, u64>) {
     let _0 = _0.get_u64().1 as usize;
-    enum __AbiReturn {
+    enum __TransportReturn {
         V0(f64),
         V1(String),
     }
-    let result: __AbiReturn = {
-        let result = (|| -> rustier_rt::CallResult<f64> {
+    let result: __TransportReturn = {
+        let result = (|| -> rustier_ext::runtime::errors::CallResult<f64> {
             Ok(
                 cast
                     .from(
                         "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) })",
                     )
-                    .to("Abi(f64)")
+                    .to("Transport(f64)")
                     .an(
                         cast
-                            .from("Abi(usize)")
+                            .from("Transport(usize)")
                             .to(
                                 "Tethered(RuntimeTethering { source: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) })",
                             )
@@ -42,13 +42,13 @@ pub fn __fn__getter__10_test_crate__4_Test__field(
             )
         })();
         match result {
-            Ok(value) => __AbiReturn::V0(value),
-            Err(error) => __AbiReturn::V1(error.to_string()),
+            Ok(value) => __TransportReturn::V0(value),
+            Err(error) => __TransportReturn::V1(error.to_string()),
         }
     };
     match result {
-        __AbiReturn::V0(value) => (0u32, napi::bindgen_prelude::Either5::B(value)),
-        __AbiReturn::V1(value) => (1u32, napi::bindgen_prelude::Either5::D(value)),
+        __TransportReturn::V0(value) => (0u32, napi::bindgen_prelude::Either5::B(value)),
+        __TransportReturn::V1(value) => (1u32, napi::bindgen_prelude::Either5::D(value)),
     }
 }
 ```
@@ -58,21 +58,21 @@ pub fn __fn__getter__10_test_crate__4_Test__field(
 #[wasm_bindgen(js_name = "__fn__getter__10_test_crate__4_Test__field")]
 pub fn __fn__getter__10_test_crate__4_Test__field(_0: u32) -> Vec<JsValue> {
     let _0 = _0 as usize;
-    enum __AbiReturn {
+    enum __TransportReturn {
         V0(f64),
         V1(String),
     }
-    let result: __AbiReturn = {
-        let result = (|| -> rustier_rt::CallResult<f64> {
+    let result: __TransportReturn = {
+        let result = (|| -> rustier_ext::runtime::errors::CallResult<f64> {
             Ok(
                 cast
                     .from(
                         "Rust(Type { origin: QualifiedField(FieldQualified { declaration: Field { hir: Field { parent: Struct(Struct { id: StructId(5001) }), id: Idx::<FieldData>(0) } }, target: Type { origin: Struct(StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) }) } }) })",
                     )
-                    .to("Abi(f64)")
+                    .to("Transport(f64)")
                     .an(
                         cast
-                            .from("Abi(usize)")
+                            .from("Transport(usize)")
                             .to(
                                 "Tethered(RuntimeTethering { source: Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } }) })",
                             )
@@ -82,13 +82,13 @@ pub fn __fn__getter__10_test_crate__4_Test__field(_0: u32) -> Vec<JsValue> {
             )
         })();
         match result {
-            Ok(value) => __AbiReturn::V0(value),
-            Err(error) => __AbiReturn::V1(error.to_string()),
+            Ok(value) => __TransportReturn::V0(value),
+            Err(error) => __TransportReturn::V1(error.to_string()),
         }
     };
     match result {
-        __AbiReturn::V0(value) => vec![JsValue::from(0u32), JsValue::from(value)],
-        __AbiReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
+        __TransportReturn::V0(value) => vec![JsValue::from(0u32), JsValue::from(value)],
+        __TransportReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
     }
 }
 ```

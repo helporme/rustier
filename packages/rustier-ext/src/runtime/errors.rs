@@ -6,6 +6,8 @@ use std::{
     fmt,
 };
 
+pub type CallResult<T> = Result<T, CallError>;
+
 #[derive(Debug)]
 pub struct CastError {
     pub value: f64,

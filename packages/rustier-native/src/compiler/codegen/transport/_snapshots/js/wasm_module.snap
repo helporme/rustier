@@ -1,5 +1,5 @@
 ---
-source: src/compiler/codegen/abi/js.rs
+source: src/compiler/codegen/transport/js.rs
 expression: snapshot
 ---
 ```js
@@ -10,5 +10,14 @@ const __wasm = await init(
 		module_or_path: wasmModule
 	}
 );
+import {
+	__rustier_js_init_memory, __rustier_js_insert, __rustier_js_take,
+	__rustier_js_drop_ref
+} from "./rustier-wasm-rt.mjs";
+
+__rustier_js_init_memory(
+	__wasm.memory
+);
+
 export const __fn__free__10_test_crate__4_echo = abi.__fn__free__10_test_crate__4_echo;
 ```

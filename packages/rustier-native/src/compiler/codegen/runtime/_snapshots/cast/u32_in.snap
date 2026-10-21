@@ -12,20 +12,7 @@ expression: snapshot
 ```rust
 fn cast(input: ()) {
     {
-        let output = {
-            let type_name = "u32";
-            let value = input;
-            if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64 {
-                return Err(
-                    rustier_rt::CastError {
-                        value,
-                        target: type_name,
-                    }
-                        .into(),
-                );
-            }
-            value as u32
-        };
+        let output = rustier_ext::runtime::casts::f64_to_u32(input)?;
         consume(output);
     }
 }
@@ -35,20 +22,7 @@ fn cast(input: ()) {
 ```rust
 fn cast(input: ()) {
     {
-        let output = {
-            let type_name = "u32";
-            let value = input;
-            if value.trunc() != value || value < 0 as f64 || value > u32::MAX as f64 {
-                return Err(
-                    rustier_rt::CastError {
-                        value,
-                        target: type_name,
-                    }
-                        .into(),
-                );
-            }
-            value as u32
-        };
+        let output = rustier_ext::runtime::casts::f64_to_u32(input)?;
         consume(output);
     }
 }

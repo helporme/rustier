@@ -5,4 +5,4 @@ edition = "2024"
 publish = false
 
 [dependencies]
-rustier-rt = { path = "../../../rustier-rt" }
+rustier-ext = { path = "../../../rustier-ext" }

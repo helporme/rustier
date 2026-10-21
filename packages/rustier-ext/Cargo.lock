@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustier-rt"
+name = "rustier-ext"
 version = "0.0.1"
 dependencies = [
  "napi-sys",

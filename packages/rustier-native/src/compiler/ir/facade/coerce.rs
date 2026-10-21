@@ -1,11 +1,11 @@
 use crate::compiler::{
     db::Db,
     ir::{
-        abi::AbiFunction,
         facade::{
             FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldPlain,
             FacadeVariant,
         },
+        transport::TransportFunction,
     },
 };
 
@@ -79,7 +79,7 @@ impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
             .filter(|(variant, _)| variant.is_constructible(db))
             .map(|(variant, name)| CoerceVariant {
                 name: name.clone(),
-                abi: variant.abi_coerce(db),
+                abi: variant.transport_coerce(db),
                 fields: variant.fields(db).collect(),
             })
             .collect()
@@ -89,7 +89,7 @@ impl<'db> FacadeDiscriminatedCoerceFunction<'db> {
 #[derive(Debug, Clone, Eq, PartialEq, Hash, salsa::Update)]
 pub struct CoerceVariant<'db> {
     pub name: String,
-    pub abi: AbiFunction<'db>,
+    pub abi: TransportFunction<'db>,
     pub fields: Vec<FacadeFieldPlain<'db>>,
 }
 

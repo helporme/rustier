@@ -4,14 +4,14 @@ use crate::{
     compiler::{
         codegen::manifest::Manifest,
         db::Db,
-        ir::{abi::transport::AbiTransport, facade::FacadeModuleEntry},
+        ir::{facade::FacadeModuleEntry, transport::backend::TransportBackend},
     },
     server::write_file::{WriteFileError, write_file},
 };
 
 use super::Project;
 
-pub use crate::compiler::codegen::abi::js::WasmLoading;
+pub use crate::compiler::codegen::transport::js::WasmLoading;
 
 mod common;
 mod node;
@@ -44,10 +44,10 @@ impl<'a> BridgeCrate<'a> {
         }
     }
 
-    pub fn transport(self, db: &'a dyn Db) -> AbiTransport {
+    pub fn transport(self, db: &'a dyn Db) -> TransportBackend {
         match self {
-            Self::Node(..) => AbiTransport::Napi,
-            Self::Wasm(crate_) => AbiTransport::Wasm(crate_.transport(db)),
+            Self::Node(..) => TransportBackend::Napi,
+            Self::Wasm(crate_) => TransportBackend::Wasm(crate_.transport(db)),
         }
     }
 
@@ -72,7 +72,7 @@ impl<'a> BridgeCrate<'a> {
     pub fn sync(self, db: &'a dyn Db) -> BridgeCrateSync {
         let runtime_path = cfg!(feature = "local-runtime").then_some(Path::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../rustier-rt"
+            "/../rustier-ext"
         )));
 
         let manifest = Manifest {

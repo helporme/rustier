@@ -33,7 +33,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			const out = cast.from(
 				"Facade(number)"
 			).to(
-				"Abi(f64)"
+				"Transport(f64)"
 			).an(
 				value
 			);

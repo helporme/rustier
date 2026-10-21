@@ -1,4 +1,4 @@
-use rustier_rt::js::JsValue;
+use rustier_ext::runtime::js::JsValue;
 
 #[derive(Clone)]
 pub struct OptionalMessage {

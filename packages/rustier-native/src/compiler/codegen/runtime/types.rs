@@ -24,7 +24,7 @@ impl<'db> RuntimeType<'db> {
                 | TypeKind::f32
                 | TypeKind::f64 => "f64".apply(p),
                 TypeKind::Str | TypeKind::String => "String".apply(p),
-                TypeKind::JsValue => "rustier_rt::js::JsValue".apply(p),
+                TypeKind::JsValue => "rustier_ext::transport::JsValueHandle".apply(p),
                 TypeKind::Borrowed(borrowed) => {
                     Self::Source(borrowed.inner(db)).render_rust(db).apply(p);
                 }

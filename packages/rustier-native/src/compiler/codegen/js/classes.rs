@@ -8,12 +8,12 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        abi::AbiFunction,
         facade::{
             FacadeClass, FacadeFieldDiscriminated, FacadeFieldDiscriminator, FacadeFieldPlain,
             coerce::FacadeCoerce, type_js::FacadeTypeJs,
         },
         rust::FieldName,
+        transport::TransportFunction,
     },
 };
 
@@ -62,7 +62,7 @@ where
         let drop_handle = self
             .class
             .drop_handle_fn(self.db)
-            .abi(self.db)
+            .transport(self.db)
             .symbol(self.db);
 
         frag!(
@@ -249,7 +249,8 @@ where
 
         match self.coerce {
             FacadeCoerce::Plain(coerce) => {
-                let body = self.render_body(coerce.abi(db), coerce.fields(db).map(field_input));
+                let body =
+                    self.render_body(coerce.transport(db), coerce.fields(db).map(field_input));
                 frag!(static ~{name}(value) {{
                     if (value instanceof ~{class_name}) {{
                         return value;
@@ -292,11 +293,11 @@ where
                 let some = coerce.some(db);
                 let payload = some.fields(db).next().expect("Option::Some has one field");
                 let none_body = self.render_body(
-                    coerce.none(db).abi_coerce(db),
+                    coerce.none(db).transport_coerce(db),
                     std::iter::empty::<(FacadeTypeJs<'db>, &str)>(),
                 );
                 let some_body = self.render_body(
-                    some.abi_coerce(db),
+                    some.transport_coerce(db),
                     std::iter::once((payload.type_js(db), frag!(value))),
                 );
 
@@ -321,7 +322,7 @@ where
 {
     fn render_body<InExpr: FragmentOnce + 'db>(
         self,
-        abi: AbiFunction<'db>,
+        abi: TransportFunction<'db>,
         inputs: impl IntoIterator<Item = (FacadeTypeJs<'db>, InExpr), IntoIter: 'db>,
     ) -> impl FragmentOnce + 'db {
         let db = self.db;
@@ -329,7 +330,7 @@ where
         let args = comma_list((0..abi.params(db).len()).map(|i| frag!(__ { i })));
         let symbol = abi.symbol(db);
 
-        let ret_type = class.src_type(db).abi(db);
+        let ret_type = class.src_type(db).transport(db);
 
         let result = self.casts.render_stmt(
             db,
@@ -378,7 +379,7 @@ where
             )
             .apply(p);
 
-            if field.abi_setter(self.db).is_some() {
+            if field.transport_setter(self.db).is_some() {
                 let accessor = render_field_accessor(name);
                 frag!(@@
                     set ~{accessor}(value)~{{
@@ -391,9 +392,9 @@ where
     }
 
     fn render_plain_getter(self, field: FacadeFieldPlain<'db>) -> impl FragmentOnce + 'db {
-        let abi_getter = field.abi_getter(self.db);
+        let abi_getter = field.transport_getter(self.db);
 
-        let abi_type = field.src_type(self.db).abi(self.db);
+        let abi_type = field.src_type(self.db).transport(self.db);
 
         let facade_type = field.type_js(self.db);
 
@@ -425,7 +426,7 @@ where
 
     fn render_plain_setter(self, field: FacadeFieldPlain<'db>) -> impl FragmentOnce + 'db {
         let abi_setter = field
-            .abi_setter(self.db)
+            .transport_setter(self.db)
             .expect("plain field setter should exist");
         let [_, value_param] = abi_setter.params(self.db).as_slice() else {
             unreachable!("facade field setter should have class and value parameters");
@@ -469,7 +470,7 @@ where
             if field
                 .sub(self.db)
                 .values()
-                .any(|sub| sub.abi_setter(self.db).is_some())
+                .any(|sub| sub.transport_setter(self.db).is_some())
             {
                 let accessor = render_field_accessor(field.name(self.db));
                 frag!(@@
@@ -487,7 +488,7 @@ where
         field: FacadeFieldDiscriminated<'db>,
         discriminator: FacadeFieldDiscriminator<'db>,
     ) -> impl FragmentOnce + 'db {
-        let abi_discriminator = discriminator.abi_getter(self.db);
+        let abi_discriminator = discriminator.transport_getter(self.db);
         let branches = fragment(move |p| {
             for (discriminator, sub) in field.sub(self.db) {
                 frag!(
@@ -511,8 +512,8 @@ where
         discriminator: u32,
         field: FacadeFieldPlain<'db>,
     ) -> impl FragmentOnce + 'db {
-        let abi_getter = field.abi_getter(self.db);
-        let abi_type = field.src_type(self.db).abi(self.db);
+        let abi_getter = field.transport_getter(self.db);
+        let abi_type = field.src_type(self.db).transport(self.db);
 
         let facade_type = field.type_js(self.db);
 
@@ -551,10 +552,10 @@ where
         field: FacadeFieldDiscriminated<'db>,
         discriminator: FacadeFieldDiscriminator<'db>,
     ) -> impl FragmentOnce + 'db {
-        let abi_discriminator = discriminator.abi_getter(self.db);
+        let abi_discriminator = discriminator.transport_getter(self.db);
         let branches = fragment(move |p| {
             for (discriminator, sub) in field.sub(self.db) {
-                if sub.abi_setter(self.db).is_some() {
+                if sub.transport_setter(self.db).is_some() {
                     frag!(
                         if (type_ === ~{discriminator})~{{
                             {self.render_discriminated_setter_branch(*discriminator, *sub)}
@@ -585,7 +586,7 @@ where
         field: FacadeFieldPlain<'db>,
     ) -> impl FragmentOnce + 'db {
         let abi_setter = field
-            .abi_setter(self.db)
+            .transport_setter(self.db)
             .expect("discriminated field setter branch should be writable");
         let [_, value_param] = abi_setter.params(self.db).as_slice() else {
             unreachable!("facade field setter should have class and value parameters");
@@ -618,7 +619,7 @@ where
 
     fn render_discriminator(self, field: FacadeFieldDiscriminator<'db>) -> impl FragmentOnce + 'db {
         let accessor = squares(doubles(field.name(self.db)));
-        let abi_getter = field.abi_getter(self.db);
+        let abi_getter = field.transport_getter(self.db);
         let class_name = self.class.import_alias(self.db);
 
         frag!(

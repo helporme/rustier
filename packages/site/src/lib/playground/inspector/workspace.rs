@@ -14,13 +14,13 @@ use ra_ap_ide_db::{
 use ra_ap_paths::Utf8PathBuf;
 use rustier::compiler::{
     codegen::{
-        abi::js::{AbiJsTarget, WasmLoading},
+        transport::js::{TransportJsTarget, WasmLoading},
         js::JsCodegenPaths,
     },
     diag::Theme,
     inputs::LocalCrates,
     ir::{
-        abi::transport::{AbiTransport, WasmMemory, WasmTransport},
+        transport::backend::{TransportBackend, WasmMemory, WasmTransport},
         rust::{Rust, usages::UsageGraph},
     },
     path::FilePath,
@@ -258,7 +258,7 @@ impl Workspace {
                 rust_code: runtime
                     .render_rust(
                         db,
-                        AbiTransport::Wasm(WasmTransport {
+                        TransportBackend::Wasm(WasmTransport {
                             memory: WasmMemory::x32,
                         }),
                     )
@@ -267,7 +267,7 @@ impl Workspace {
                 ambient_ts_code: facade.render_ambient_ts_mods(db),
                 runtime_js_code: runtime.render_js(
                     db,
-                    AbiJsTarget::Wasm {
+                    TransportJsTarget::Wasm {
                         loading: WasmLoading::Fetch,
                         path: "./playground.js",
                         wasm_path: "./playground_bg.wasm",

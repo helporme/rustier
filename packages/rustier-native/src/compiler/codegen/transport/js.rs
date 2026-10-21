@@ -1,9 +1,9 @@
-use std::fmt::Write as _;
+use std::{fmt::Write as _, path::Path};
 
 use crate::compiler::{
-    codegen::fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment},
+    codegen::fragment::{FragmentOnce, FragmentPrint, comma_list, doubles, frag, fragment},
     db::Db,
-    ir::abi::{Abi, AbiFunction, AbiReturn, AbiType},
+    ir::transport::{Transport, TransportFunction, TransportReturn, TransportType},
 };
 
 pub const NAPI_LOADER: &str = include_str!("napi-loader.mjs");
@@ -32,7 +32,8 @@ pub enum WasmLoading {
     Module,
 }
 
-pub enum AbiJsTarget<'a> {
+#[derive(Clone, Copy)]
+pub enum TransportJsTarget<'a> {
     Native {
         path: &'a str,
     },
@@ -43,8 +44,8 @@ pub enum AbiJsTarget<'a> {
     },
 }
 
-impl<'db> Abi<'db> {
-    pub fn render_js(self, db: &'db dyn Db, target: AbiJsTarget<'_>) -> String {
+impl<'db> Transport<'db> {
+    pub fn render_js(self, db: &'db dyn Db, target: TransportJsTarget<'_>) -> String {
         let symbols = self.symbols(db);
 
         target.render_js_with(fragment(move |p| {
@@ -55,11 +56,11 @@ impl<'db> Abi<'db> {
     }
 }
 
-impl AbiJsTarget<'_> {
+impl TransportJsTarget<'_> {
     pub fn render_js_with(self, body: impl FragmentOnce) -> String {
         let mut js = fragment(move |p| {
             match self {
-                AbiJsTarget::Native { path } => {
+                TransportJsTarget::Native { path } => {
                     let path = fragment(move |p| write!(p, "{path:?}").unwrap());
 
                     frag!(
@@ -67,11 +68,15 @@ impl AbiJsTarget<'_> {
                     )
                     .apply(p);
                 }
-                AbiJsTarget::Wasm {
+                TransportJsTarget::Wasm {
                     loading,
                     path,
                     wasm_path,
                 } => {
+                    let host_path = Path::new(path)
+                        .with_file_name(rustier_ext::transport::WASM_RUNTIME_FILENAME);
+                    let host_path =
+                        fragment(move |p| write!(p, "{:?}", host_path.to_string_lossy()).unwrap());
                     let path = fragment(move |p| write!(p, "{path:?}").unwrap());
 
                     match loading {
@@ -96,6 +101,17 @@ impl AbiJsTarget<'_> {
                             .apply(p);
                         }
                     }
+
+                    frag!(
+                        import ~{{
+                            __rustier_js_init_memory,
+                            __rustier_js_insert,
+                            __rustier_js_take,
+                            __rustier_js_drop_ref
+                        }}~ from ~{host_path};@@
+                        __rustier_js_init_memory(__wasm.memory);@@
+                    )
+                    .apply(p);
                 }
             }
 
@@ -107,14 +123,88 @@ impl AbiJsTarget<'_> {
 
         js
     }
+
+    pub fn render_call<'db, Body>(
+        self,
+        db: &'db dyn Db,
+        function: TransportFunction<'db>,
+        body: impl Fn(TransportJsReturn) -> Body + 'db,
+    ) -> impl FragmentOnce + 'db
+    where
+        Body: FragmentOnce + 'db,
+    {
+        let wasm = matches!(self, Self::Wasm { .. });
+        let types = function.params(db);
+        let symbol = function.symbol(db);
+        let args = comma_list(types.iter().enumerate().map(move |(index, type_)| {
+            fragment(move |p| {
+                if wasm && *type_ == TransportType::JsValueHandle {
+                    frag!(__js_ { index }).apply(p);
+                } else {
+                    frag!(_{index}).apply(p);
+                }
+            })
+        }));
+        let ret_type = function.ret_type(db);
+        let call = function.render_js_with(db, frag!(abi.{symbol}({args})), move |value| {
+            let decode = wasm && value.type_ == TransportType::JsValueHandle;
+            let union = matches!(ret_type, TransportReturn::Union(_));
+            let output = body(if decode && !union {
+                TransportJsReturn {
+                    expr: "__js_value",
+                    whole_expr: "__js_value",
+                    ..value
+                }
+            } else {
+                value
+            });
+
+            fragment(move |p| {
+                if decode {
+                    if union {
+                        frag!(__abi_return[1] = __rustier_js_take({value.expr});@).apply(p);
+                    } else {
+                        frag!(const __js_value = __rustier_js_take({value.expr});@).apply(p);
+                    }
+                }
+
+                output.apply(p);
+            })
+        });
+
+        fragment(move |p| {
+            for (index, type_) in types.iter().enumerate() {
+                if wasm && *type_ == TransportType::JsValueHandle {
+                    frag!(
+                        const __js_{index} = __rustier_js_insert(_{index});@
+                        try ~{"{"}@
+                    )
+                    .apply(p);
+                }
+            }
+
+            call.apply(p);
+
+            for (index, type_) in types.iter().enumerate().rev() {
+                if wasm && *type_ == TransportType::JsValueHandle {
+                    frag!(
+                        @{"}"}~ finally ~{"{"}@
+                        __rustier_js_drop_ref(__js_{index});@
+                        {"}"}@
+                    )
+                    .apply(p);
+                }
+            }
+        })
+    }
 }
 
-impl<'db> AbiFunction<'db> {
+impl<'db> TransportFunction<'db> {
     pub fn render_js_with<Body>(
         self,
         db: &'db dyn Db,
         call: impl FragmentOnce + 'db,
-        body: impl Fn(AbiJsReturn) -> Body + 'db,
+        body: impl Fn(TransportJsReturn) -> Body + 'db,
     ) -> impl FragmentOnce + 'db
     where
         Body: FragmentOnce + 'db,
@@ -123,28 +213,28 @@ impl<'db> AbiFunction<'db> {
     }
 }
 
-impl<'db> AbiReturn<'db> {
+impl<'db> TransportReturn<'db> {
     pub(crate) fn render_js_with<Body>(
         self,
         db: &'db dyn Db,
         call: impl FragmentOnce + 'db,
-        body: impl Fn(AbiJsReturn) -> Body + 'db,
+        body: impl Fn(TransportJsReturn) -> Body + 'db,
     ) -> impl FragmentOnce + 'db
     where
         Body: FragmentOnce + 'db,
     {
         let branches = fragment(move |p| match self {
-            AbiReturn::Value(type_) => body(AbiJsReturn {
+            TransportReturn::Value(type_) => body(TransportJsReturn {
                 index: 0,
                 type_,
                 expr: "__abi_return",
                 whole_expr: "__abi_return",
             })
             .apply(p),
-            AbiReturn::Union(union) => {
+            TransportReturn::Union(union) => {
                 let cases = fragment(move |p| {
                     for (index, type_) in union.variants(db).iter().copied().enumerate() {
-                        let branch = body(AbiJsReturn {
+                        let branch = body(TransportJsReturn {
                             index,
                             type_,
                             expr: "__abi_return[1]",
@@ -178,9 +268,9 @@ impl<'db> AbiReturn<'db> {
 }
 
 #[derive(Clone, Copy)]
-pub struct AbiJsReturn {
+pub struct TransportJsReturn {
     pub index: usize,
-    pub type_: AbiType,
+    pub type_: TransportType,
     pub expr: &'static str,
     pub whole_expr: &'static str,
 }
@@ -194,7 +284,7 @@ mod tests {
     use super::*;
     use crate::compiler::{
         db::RootDatabase,
-        ir::{abi::AbiUnion, rust::Rust},
+        ir::{rust::Rust, transport::TransportUnion},
     };
 
     fn snapshot(name: &str, compiled: &str) {
@@ -221,7 +311,7 @@ mod tests {
     #[test]
     fn scalar_return() {
         let db = RootDatabase::default();
-        let body = AbiReturn::Value(AbiType::f64).render_js_with(
+        let body = TransportReturn::Value(TransportType::f64).render_js_with(
             &db,
             frag!(abi.call()),
             |value| frag!(return ~{value.expr};),
@@ -234,8 +324,8 @@ mod tests {
     #[test]
     fn union_returns() {
         let db = RootDatabase::default();
-        let union = AbiUnion::new(&db, vec![AbiType::f64, AbiType::String]);
-        let body = AbiReturn::Union(union).render_js_with(
+        let union = TransportUnion::new(&db, vec![TransportType::f64, TransportType::String]);
+        let body = TransportReturn::Union(union).render_js_with(
             &db,
             frag!(abi.call()),
             |value| frag!(consume({value.index}, {value.expr});),
@@ -254,18 +344,18 @@ mod tests {
         };
 
         ra_ap_hir::attach_db(&db, || {
-            let abi = Rust::get(&db).facade_complete(&db).abi(&db);
+            let abi = Rust::get(&db).facade_complete(&db).transport(&db);
 
             for (name, target) in [
                 (
                     "native_module",
-                    AbiJsTarget::Native {
+                    TransportJsTarget::Native {
                         path: "./native.js",
                     },
                 ),
                 (
                     "wasm_module",
-                    AbiJsTarget::Wasm {
+                    TransportJsTarget::Wasm {
                         loading: WasmLoading::Module,
                         path: "./bindings.js",
                         wasm_path: "./bindings_bg.wasm",

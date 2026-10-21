@@ -6,13 +6,13 @@ mod primitives;
 use crate::compiler::{
     codegen::fragment::{FragmentOnce, Printer, frag, fragment},
     db::Db,
-    ir::{abi::AbiType, facade::type_js::FacadeTypeJs},
+    ir::{facade::type_js::FacadeTypeJs, transport::TransportType},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CastType<'db> {
     Facade(FacadeTypeJs<'db>),
-    Abi(AbiType),
+    Transport(TransportType),
 }
 
 impl<'db> From<FacadeTypeJs<'db>> for CastType<'db> {
@@ -21,9 +21,9 @@ impl<'db> From<FacadeTypeJs<'db>> for CastType<'db> {
     }
 }
 
-impl<'db> From<AbiType> for CastType<'db> {
-    fn from(value: AbiType) -> Self {
-        Self::Abi(value)
+impl<'db> From<TransportType> for CastType<'db> {
+    fn from(value: TransportType) -> Self {
+        Self::Transport(value)
     }
 }
 
@@ -102,25 +102,25 @@ impl<'db> CastRenderer<'db> for Renderer {
             use CastType::*;
 
             match (src, dst) {
-                (Abi(AbiType::Unit), Facade(FacadeTypeJs::Unit))
-                | (Abi(AbiType::bool), Facade(FacadeTypeJs::boolean))
-                | (Abi(AbiType::String), Facade(FacadeTypeJs::string))
-                | (Abi(AbiType::f64), Facade(FacadeTypeJs::number))
-                | (Abi(AbiType::JsValue), Facade(FacadeTypeJs::unknown))
-                | (Facade(FacadeTypeJs::unknown), Abi(AbiType::JsValue))
+                (Transport(TransportType::Unit), Facade(FacadeTypeJs::Unit))
+                | (Transport(TransportType::bool), Facade(FacadeTypeJs::boolean))
+                | (Transport(TransportType::String), Facade(FacadeTypeJs::string))
+                | (Transport(TransportType::f64), Facade(FacadeTypeJs::number))
+                | (Transport(TransportType::JsValueHandle), Facade(FacadeTypeJs::unknown))
+                | (Facade(FacadeTypeJs::unknown), Transport(TransportType::JsValueHandle))
                 | (Facade(FacadeTypeJs::unknown), Facade(FacadeTypeJs::unknown))
-                | (Abi(AbiType::Unit), Abi(AbiType::Unit))
-                | (Abi(AbiType::bool), Abi(AbiType::bool))
-                | (Abi(AbiType::String), Abi(AbiType::String))
-                | (Abi(AbiType::f64), Abi(AbiType::f64))
-                | (Abi(AbiType::usize), Abi(AbiType::usize)) => {
+                | (Transport(TransportType::Unit), Transport(TransportType::Unit))
+                | (Transport(TransportType::bool), Transport(TransportType::bool))
+                | (Transport(TransportType::String), Transport(TransportType::String))
+                | (Transport(TransportType::f64), Transport(TransportType::f64))
+                | (Transport(TransportType::usize), Transport(TransportType::usize)) => {
                     frag!(
                         const ~{out_var_name}~=~{in_expr};@
                         {continue_with}
                     )
                     .apply(printer);
                 }
-                (Facade(FacadeTypeJs::Unit), Abi(AbiType::Unit))
+                (Facade(FacadeTypeJs::Unit), Transport(TransportType::Unit))
                 | (Facade(FacadeTypeJs::Unit), Facade(FacadeTypeJs::Unit)) => {
                     primitives::render_js_checked_identity(
                         "undefined",
@@ -131,7 +131,7 @@ impl<'db> CastRenderer<'db> for Renderer {
                     .apply(printer);
                 }
                 // classes
-                (Facade(FacadeTypeJs::Class(source)), Abi(AbiType::usize)) => {
+                (Facade(FacadeTypeJs::Class(source)), Transport(TransportType::usize)) => {
                     classes::render_facade_class_to_abi(
                         db,
                         source,
@@ -141,7 +141,7 @@ impl<'db> CastRenderer<'db> for Renderer {
                     )
                     .apply(printer);
                 }
-                (Abi(AbiType::usize), Facade(FacadeTypeJs::Class(target))) => {
+                (Transport(TransportType::usize), Facade(FacadeTypeJs::Class(target))) => {
                     classes::render_abi_handle_to_facade(
                         db,
                         target,
@@ -152,21 +152,21 @@ impl<'db> CastRenderer<'db> for Renderer {
                     .apply(printer);
                 }
                 // boolean
-                (Facade(FacadeTypeJs::boolean), Abi(AbiType::bool))
+                (Facade(FacadeTypeJs::boolean), Transport(TransportType::bool))
                 | (Facade(FacadeTypeJs::boolean), Facade(FacadeTypeJs::boolean)) => {
                     primitives::render_bool_cast(in_expr, out_var_name, continue_with)
                         .apply(printer);
                 }
 
                 // string
-                (Facade(FacadeTypeJs::string), Abi(AbiType::String))
+                (Facade(FacadeTypeJs::string), Transport(TransportType::String))
                 | (Facade(FacadeTypeJs::string), Facade(FacadeTypeJs::string)) => {
                     primitives::render_string_cast(in_expr, out_var_name, continue_with)
                         .apply(printer);
                 }
 
                 // number
-                (Facade(FacadeTypeJs::number), Abi(AbiType::f64))
+                (Facade(FacadeTypeJs::number), Transport(TransportType::f64))
                 | (Facade(FacadeTypeJs::number), Facade(FacadeTypeJs::number)) => {
                     primitives::render_number_cast(in_expr, out_var_name, continue_with)
                         .apply(printer);
@@ -288,9 +288,9 @@ mod tests {
         codegen::fragment::frag,
         db::Db,
         ir::{
-            abi::AbiType,
             facade::{FacadeClass, FacadeMember, type_js::FacadeTypeJs},
             rust::Rust,
+            transport::TransportType,
         },
     };
 
@@ -355,36 +355,36 @@ mod tests {
     cast_snapshot! {
         name: boolean_to_abi,
         from: |_db| FacadeTypeJs::boolean,
-        to: |_db| AbiType::bool,
+        to: |_db| TransportType::bool,
     }
 
     cast_snapshot! {
         name: boolean_to_facade,
-        from: |_db| AbiType::bool,
+        from: |_db| TransportType::bool,
         to: |_db| FacadeTypeJs::boolean,
     }
 
     cast_snapshot! {
         name: string_to_abi,
         from: |_db| FacadeTypeJs::string,
-        to: |_db| AbiType::String,
+        to: |_db| TransportType::String,
     }
 
     cast_snapshot! {
         name: string_to_facade,
-        from: |_db| AbiType::String,
+        from: |_db| TransportType::String,
         to: |_db| FacadeTypeJs::string,
     }
 
     cast_snapshot! {
         name: number_to_abi,
         from: |_db| FacadeTypeJs::number,
-        to: |_db| AbiType::f64,
+        to: |_db| TransportType::f64,
     }
 
     cast_snapshot! {
         name: number_to_facade,
-        from: |_db| AbiType::f64,
+        from: |_db| TransportType::f64,
         to: |_db| FacadeTypeJs::number,
     }
 
@@ -395,7 +395,7 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| FacadeTypeJs::Class(test_facade_class(db)),
-        to: |_db| AbiType::usize,
+        to: |_db| TransportType::usize,
     }
 
     cast_snapshot! {
@@ -404,7 +404,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |_db| AbiType::usize,
+        from: |_db| TransportType::usize,
         to: |db| FacadeTypeJs::Class(test_facade_class(db)),
     }
 
@@ -416,8 +416,8 @@ mod tests {
 
     cast_snapshot! {
         name: abi_identity,
-        from: |_db| AbiType::f64,
-        to: |_db| AbiType::f64,
+        from: |_db| TransportType::f64,
+        to: |_db| TransportType::f64,
     }
 
     fn test_facade_class<'db>(db: &'db dyn Db) -> FacadeClass<'db> {

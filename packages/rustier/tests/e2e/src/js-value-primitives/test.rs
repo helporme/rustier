@@ -1,4 +1,4 @@
-use rustier_rt::js::{JsEnv, JsValue};
+use rustier_ext::runtime::js::{JsEnv, JsValue};
 
 pub fn type_name(value: JsValue) -> String {
     format!("{:?}", value.type_of())

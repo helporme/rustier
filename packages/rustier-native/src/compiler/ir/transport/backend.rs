@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, salsa::Update)]
-pub enum AbiTransport {
+pub enum TransportBackend {
     Wasm(WasmTransport),
     Napi,
 }

@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use crate::{
     compiler::{
         codegen::{
-            abi::js::{AbiJsTarget, NAPI_LOADER},
             js::JsCodegenPaths,
+            transport::js::{NAPI_LOADER, TransportJsTarget},
         },
         db::Db,
         path::FilePath,
@@ -43,7 +43,7 @@ impl<'a> BridgeCrateNode<'a> {
         if path == ABI_MODULE_ID {
             return Some(self.project(db).reachable_facade(db).runtime(db).render_js(
                 db,
-                AbiJsTarget::Native {
+                TransportJsTarget::Native {
                     path: artifact?.js_path.as_str(),
                 },
             ));

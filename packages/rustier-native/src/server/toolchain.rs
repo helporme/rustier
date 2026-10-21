@@ -173,9 +173,9 @@ impl Effect for WasmBindgen {
             })?;
         let name = format!("{name}_{}", self.name_suffix);
         let output_dir = prepare_output(&self.output_dir)?;
-        let imports_path = output_dir.join(rustier_rt::js::wasm::WASM_RUNTIME_FILENAME);
+        let imports_path = output_dir.join(rustier_ext::transport::WASM_RUNTIME_FILENAME);
 
-        fs::write(&imports_path, rustier_rt::js::wasm::WASM_RUNTIME).map_err(|source| {
+        fs::write(&imports_path, rustier_ext::transport::WASM_RUNTIME).map_err(|source| {
             ToolchainError::Io {
                 operation: "write JavaScript value imports",
                 path: imports_path,
@@ -209,7 +209,7 @@ impl Effect for WasmBindgen {
                 })?;
 
                 let path = output_dir.join(format!("{name}.mjs"));
-                let loader = crate::compiler::codegen::abi::js::render_wasm_node_loader(
+                let loader = crate::compiler::codegen::transport::js::render_wasm_node_loader(
                     &bindings_name,
                     &format!("{name}_bg.wasm"),
                 );
@@ -237,7 +237,7 @@ impl Effect for WasmBindgen {
             && output.wasm_path.is_file()
             && output
                 .js_path
-                .with_file_name(rustier_rt::js::wasm::WASM_RUNTIME_FILENAME)
+                .with_file_name(rustier_ext::transport::WASM_RUNTIME_FILENAME)
                 .is_file())
     }
 }

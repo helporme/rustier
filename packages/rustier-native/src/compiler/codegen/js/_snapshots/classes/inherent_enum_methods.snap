@@ -51,7 +51,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 	) {
 		{
 			const result = cast.from(
-				"Abi(usize)"
+				"Transport(usize)"
 			).to(
 				"Facade(Class(Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: FunctionReturn(Function { hir: FunctionId(FunctionId(8c01)) }) } })))"
 			).an(
@@ -108,7 +108,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "First":{
 				{
 					const result = cast.from(
-						"Abi(usize)"
+						"Transport(usize)"
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } })))"
 					).an(
@@ -122,7 +122,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "Second":{
 				{
 					const result = cast.from(
-						"Abi(usize)"
+						"Transport(usize)"
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } })))"
 					).an(

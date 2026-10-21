@@ -2578,7 +2578,7 @@ dependencies = [
  "ra_ap_test_fixture",
  "ra_ap_vfs",
  "rustdoc-types",
- "rustier-rt",
+ "rustier-ext",
  "salsa",
  "serde",
  "serde_json",
@@ -2591,7 +2591,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustier-rt"
+name = "rustier-ext"
 version = "0.0.1"
 dependencies = [
  "napi-sys",

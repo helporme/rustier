@@ -1,4 +1,4 @@
-use rustier_rt::js::JsEnv;
+use rustier_ext::runtime::js::JsEnv;
 
 pub fn accepts_env(_env: JsEnv) -> bool {
     true

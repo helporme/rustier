@@ -7,7 +7,7 @@
 ///
 /// These handles may only be used on their owning JavaScript thread.
 pub mod js {
-    pub use rustier_rt::js::{JsEnv, JsValue, JsValueType, Key, backend};
+    pub use rustier_ext::runtime::js::{JsEnv, JsValue, JsValueType, Key};
 }
 
 pub mod compiler;

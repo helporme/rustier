@@ -1,8 +1,8 @@
 //! Intermediate representation of the ABI between the Rust runtime and
 //! JavaScript.
 
+pub mod backend;
 pub mod ext;
-pub mod transport;
 
 use crate::compiler::{
     db::Db,
@@ -11,12 +11,12 @@ use crate::compiler::{
 
 /// The ABI exports of a reachable interface API.
 #[salsa::interned(debug)]
-pub struct Abi<'db> {
-    facade: Facade<'db>,
+pub struct Transport<'db> {
+    pub facade: Facade<'db>,
 }
 
 #[salsa::tracked]
-impl<'db> Abi<'db> {
+impl<'db> Transport<'db> {
     #[salsa::tracked(returns(ref))]
     pub fn symbols(self, db: &'db dyn Db) -> Vec<String> {
         let runtime = self.facade(db).runtime(db);
@@ -24,7 +24,7 @@ impl<'db> Abi<'db> {
         let functions = runtime
             .functions(db)
             .iter()
-            .map(|function| function.abi(db).symbol(db));
+            .map(|function| function.transport(db).symbol(db));
 
         let symbols: std::collections::BTreeSet<_> = functions.collect();
 
@@ -33,64 +33,66 @@ impl<'db> Abi<'db> {
 }
 
 #[salsa::interned(debug)]
-pub struct AbiFunction<'db> {
+pub struct TransportFunction<'db> {
     runtime: RuntimeFunction<'db>,
 }
 
 #[salsa::tracked]
-impl<'db> AbiFunction<'db> {
+impl<'db> TransportFunction<'db> {
     pub fn symbol(self, db: &'db dyn Db) -> &'db str {
         self.runtime(db).symbol(db)
     }
 
     #[salsa::tracked(returns(ref))]
-    pub fn params(self, db: &'db dyn Db) -> Vec<AbiType> {
+    pub fn params(self, db: &'db dyn Db) -> Vec<TransportType> {
         self.runtime(db)
             .params(db)
             .iter()
-            .map(|type_| type_.abi(db))
+            .map(|type_| type_.transport(db))
             .collect()
     }
 
-    pub fn ret_type(self, db: &'db dyn Db) -> AbiReturn<'db> {
-        self.runtime(db).abi_ret(db)
+    pub fn ret_type(self, db: &'db dyn Db) -> TransportReturn<'db> {
+        self.runtime(db).transport_ret(db)
     }
 
     pub fn uses_js_values(self, db: &'db dyn Db) -> bool {
-        if self.params(db).contains(&AbiType::JsValue) {
+        if self.params(db).contains(&TransportType::JsValueHandle) {
             return true;
         }
 
         match self.ret_type(db) {
-            AbiReturn::Value(type_) => type_ == AbiType::JsValue,
-            AbiReturn::Union(union) => union.variants(db).contains(&AbiType::JsValue),
+            TransportReturn::Value(type_) => type_ == TransportType::JsValueHandle,
+            TransportReturn::Union(union) => {
+                union.variants(db).contains(&TransportType::JsValueHandle)
+            }
         }
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
-pub enum AbiReturn<'db> {
-    Value(AbiType),
-    // There is currently no need for abi to support union as input type (e.g as argument),
-    // however once we will need it, the AbiReturn should be removed and Union should be placed as
-    // AbiType variant.
-    Union(AbiUnion<'db>),
+pub enum TransportReturn<'db> {
+    Value(TransportType),
+    // There is currently no need for transport to support union as input type (e.g as argument),
+    // however once we will need it, the TransportReturn should be removed and Union should be
+    // placed as TransportType variant.
+    Union(TransportUnion<'db>),
 }
 
 #[salsa::interned(debug)]
-pub struct AbiUnion<'db> {
+pub struct TransportUnion<'db> {
     #[returns(ref)]
-    pub variants: Vec<AbiType>,
+    pub variants: Vec<TransportType>,
 }
 
 /// A logical type transferred across the ABI.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 #[allow(non_camel_case_types)]
-pub enum AbiType {
+pub enum TransportType {
     Unit,
     f64,
     bool,
     String,
     usize,
-    JsValue,
+    JsValueHandle,
 }

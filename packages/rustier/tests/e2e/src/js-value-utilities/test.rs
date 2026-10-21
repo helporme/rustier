@@ -1,4 +1,4 @@
-use rustier_rt::js::{JsEnv, JsValue, Key};
+use rustier_ext::runtime::js::{JsEnv, JsValue, Key};
 
 pub fn strict_eq(left: JsValue, right: JsValue) -> bool {
     left.strict_eq(&right)

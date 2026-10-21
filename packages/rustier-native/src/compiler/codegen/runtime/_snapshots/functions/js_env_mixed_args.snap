@@ -5,7 +5,7 @@ expression: snapshot
 # Source
 
 ```rust
-pub use rustier_rt::js::JsEnv as Environment;
+pub use rustier_ext::runtime::js::JsEnv as Environment;
 type Alias = Environment;
 pub fn combine(
     _first: Environment,
@@ -27,46 +27,54 @@ pub fn __fn__free__10_test_crate__7_combine(
     _0: f64,
     _1: f64,
 ) -> (u32, napi::bindgen_prelude::Either5<(), f64, bool, String, u64>) {
-    let __js_env = unsafe { rustier_rt::js::JsEnv::from_raw(__env.raw() as usize) };
-    enum __AbiReturn {
+    let __js_env = unsafe {
+        rustier_ext::transport::JsEnvHandle::from_raw(__env.raw() as usize)
+    };
+    enum __TransportReturn {
         V0(f64),
         V1(String),
     }
-    let result: __AbiReturn = {
-        let result = (|| -> rustier_rt::CallResult<f64> {
+    let result: __TransportReturn = {
+        let result = (|| -> rustier_ext::runtime::errors::CallResult<f64> {
             Ok(
                 cast
                     .from(
                         "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5c00)) }) })",
                     )
-                    .to("Abi(f64)")
+                    .to("Transport(f64)")
                     .an({
                         let _0 = cast
-                            .from("Abi(f64)")
+                            .from("Transport(f64)")
                             .to(
                                 "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5c00)) }, index: 1 } })",
                             )
                             .an(_0);
                         {
                             let _1 = cast
-                                .from("Abi(f64)")
+                                .from("Transport(f64)")
                                 .to(
                                     "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5c00)) }, index: 3 } })",
                                 )
                                 .an(_1);
-                            test_crate::combine(__js_env, _0, __js_env, _1, __js_env)
+                            test_crate::combine(
+                                __js_env.into(),
+                                _0,
+                                __js_env.into(),
+                                _1,
+                                __js_env.into(),
+                            )
                         }
                     }),
             )
         })();
         match result {
-            Ok(value) => __AbiReturn::V0(value),
-            Err(error) => __AbiReturn::V1(error.to_string()),
+            Ok(value) => __TransportReturn::V0(value),
+            Err(error) => __TransportReturn::V1(error.to_string()),
         }
     };
     match result {
-        __AbiReturn::V0(value) => (0u32, napi::bindgen_prelude::Either5::B(value)),
-        __AbiReturn::V1(value) => (1u32, napi::bindgen_prelude::Either5::D(value)),
+        __TransportReturn::V0(value) => (0u32, napi::bindgen_prelude::Either5::B(value)),
+        __TransportReturn::V1(value) => (1u32, napi::bindgen_prelude::Either5::D(value)),
     }
 }
 ```
@@ -75,46 +83,52 @@ pub fn __fn__free__10_test_crate__7_combine(
 ```rust
 #[wasm_bindgen(js_name = "__fn__free__10_test_crate__7_combine")]
 pub fn __fn__free__10_test_crate__7_combine(_0: f64, _1: f64) -> Vec<JsValue> {
-    let __js_env = unsafe { rustier_rt::js::JsEnv::from_raw(0) };
-    enum __AbiReturn {
+    let __js_env = unsafe { rustier_ext::transport::JsEnvHandle::from_raw(0) };
+    enum __TransportReturn {
         V0(f64),
         V1(String),
     }
-    let result: __AbiReturn = {
-        let result = (|| -> rustier_rt::CallResult<f64> {
+    let result: __TransportReturn = {
+        let result = (|| -> rustier_ext::runtime::errors::CallResult<f64> {
             Ok(
                 cast
                     .from(
                         "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5c00)) }) })",
                     )
-                    .to("Abi(f64)")
+                    .to("Transport(f64)")
                     .an({
                         let _0 = cast
-                            .from("Abi(f64)")
+                            .from("Transport(f64)")
                             .to(
                                 "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5c00)) }, index: 1 } })",
                             )
                             .an(_0);
                         {
                             let _1 = cast
-                                .from("Abi(f64)")
+                                .from("Transport(f64)")
                                 .to(
                                     "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(5c00)) }, index: 3 } })",
                                 )
                                 .an(_1);
-                            test_crate::combine(__js_env, _0, __js_env, _1, __js_env)
+                            test_crate::combine(
+                                __js_env.into(),
+                                _0,
+                                __js_env.into(),
+                                _1,
+                                __js_env.into(),
+                            )
                         }
                     }),
             )
         })();
         match result {
-            Ok(value) => __AbiReturn::V0(value),
-            Err(error) => __AbiReturn::V1(error.to_string()),
+            Ok(value) => __TransportReturn::V0(value),
+            Err(error) => __TransportReturn::V1(error.to_string()),
         }
     };
     match result {
-        __AbiReturn::V0(value) => vec![JsValue::from(0u32), JsValue::from(value)],
-        __AbiReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
+        __TransportReturn::V0(value) => vec![JsValue::from(0u32), JsValue::from(value)],
+        __TransportReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
     }
 }
 ```

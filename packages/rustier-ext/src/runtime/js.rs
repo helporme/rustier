@@ -1,68 +1,14 @@
 //! JavaScript environments and values.
 
-#[cfg(not(target_family = "wasm"))]
-#[path = "js/backend/node.rs"]
-pub mod backend;
-#[cfg(target_family = "wasm")]
-#[path = "js/backend/wasm.rs"]
-pub mod backend;
+use crate::transport::{JsEnvHandle, JsValueHandle};
 
-pub mod wasm;
-
-/// The type of a JavaScript value.
-///
-/// This follows JavaScript's `typeof` operator, except that `null` has its own
-/// variant.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
-#[repr(u32)]
-pub enum JsValueType {
-    /// A primitive string.
-    String = 0,
-    /// A number.
-    Number = 1,
-    /// A bigint.
-    Bigint = 2,
-    /// A boolean.
-    Boolean = 3,
-    /// A symbol.
-    Symbol = 4,
-    /// The `undefined` value.
-    Undefined = 5,
-    /// The `null` value.
-    Null = 6,
-    /// An object other than a function.
-    Object = 7,
-    /// A function.
-    Function = 8,
-}
+pub use crate::transport::JsValueType;
 
 /// A non-owning handle to a JavaScript environment.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
-pub struct JsEnv(backend::EnvHandle);
+pub struct JsEnv(JsEnvHandle);
 
 impl JsEnv {
-    /// Creates an environment handle from its raw representation.
-    ///
-    /// # Safety
-    ///
-    /// On Node.js, `raw` must be a live Node-API environment pointer on the
-    /// current JavaScript thread. On WebAssembly, it must be zero.
-    pub unsafe fn from_raw(raw: usize) -> Self {
-        Self(unsafe { backend::EnvHandle::from_raw(raw) })
-    }
-
-    /// Returns the raw environment handle.
-    ///
-    /// This does not release or extend the lifetime of the environment.
-    ///
-    /// # Safety
-    ///
-    /// The returned handle must not be used after the environment is destroyed
-    /// or from another thread.
-    pub unsafe fn into_raw(self) -> usize {
-        self.0.into_raw()
-    }
-
     /// Creates a JavaScript number.
     pub fn new_number(&self, value: f64) -> JsValue {
         self.0.new_number(value).into()
@@ -99,13 +45,13 @@ impl JsEnv {
     }
 }
 
-impl From<backend::EnvHandle> for JsEnv {
-    fn from(handle: backend::EnvHandle) -> Self {
+impl From<JsEnvHandle> for JsEnv {
+    fn from(handle: JsEnvHandle) -> Self {
         Self(handle)
     }
 }
 
-impl From<JsEnv> for backend::EnvHandle {
+impl From<JsEnv> for JsEnvHandle {
     fn from(js: JsEnv) -> Self {
         js.0
     }
@@ -117,7 +63,7 @@ impl From<JsEnv> for backend::EnvHandle {
 /// other JavaScript references keep it alive.
 #[derive(Debug, Clone)]
 pub struct JsValue {
-    handle: backend::ValueHandle,
+    handle: JsValueHandle,
 }
 
 impl JsValue {
@@ -307,13 +253,13 @@ impl JsValue {
     }
 }
 
-impl From<backend::ValueHandle> for JsValue {
-    fn from(handle: backend::ValueHandle) -> Self {
+impl From<JsValueHandle> for JsValue {
+    fn from(handle: JsValueHandle) -> Self {
         Self { handle }
     }
 }
 
-impl From<JsValue> for backend::ValueHandle {
+impl From<JsValue> for JsValueHandle {
     fn from(value: JsValue) -> Self {
         value.handle
     }
@@ -334,7 +280,7 @@ pub enum Key {
 }
 
 impl Key {
-    fn into_handle(self, env: JsEnv) -> backend::ValueHandle {
+    fn into_handle(self, env: JsEnv) -> JsValueHandle {
         match self {
             Self::Value(value) => value.handle,
             Self::String(value) => env.0.new_string(&value),

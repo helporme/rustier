@@ -62,11 +62,11 @@ pub(super) fn build_js_env_test_db(source: &str) -> RootDatabase {
     let source = format_rust_source(source);
     let fixture = format!(
         "//- minicore: clone, derive\n\
-         //- /src/lib.rs crate:test_crate deps:std,rustier_rt edition:2024\n\
+         //- /src/lib.rs crate:test_crate deps:std,rustier_ext edition:2024\n\
          {source}\n\
          {TEST_STD_FIXTURE}\n\
-         //- /rustier_rt/lib.rs crate:rustier_rt new_source_root:library edition:2024\n\
-         pub mod js {{ pub struct JsEnv; }}\n",
+         //- /rustier_ext/lib.rs crate:rustier_ext new_source_root:library edition:2024\n\
+         pub mod runtime {{ pub mod js {{ pub struct JsEnv; }} }}\n",
     );
     let mut db = RootDatabase::default();
 

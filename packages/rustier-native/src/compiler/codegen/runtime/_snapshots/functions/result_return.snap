@@ -18,13 +18,15 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> (
     u32,
     napi::bindgen_prelude::Either5<(), f64, bool, String, u64>,
 ) {
-    enum __AbiReturn {
+    enum __TransportReturn {
         V0(f64),
         V1(String),
         V2(String),
     }
-    let result: __AbiReturn = {
-        let result = (|| -> rustier_rt::CallResult<core::result::Result<f64, String>> {
+    let result: __TransportReturn = {
+        let result = (|| -> rustier_ext::runtime::errors::CallResult<
+            core::result::Result<f64, String>,
+        > {
             Ok(
                 match test_crate::test_fn() {
                     core::result::Result::Ok(value) => {
@@ -33,7 +35,7 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> (
                                 .from(
                                     "Rust(Type { origin: TypeArgument { type_: Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5c00)) }) }, index: 0 } })",
                                 )
-                                .to("Abi(f64)")
+                                .to("Transport(f64)")
                                 .an(value),
                         )
                     }
@@ -43,7 +45,7 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> (
                                 .from(
                                     "Rust(Type { origin: TypeArgument { type_: Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5c00)) }) }, index: 1 } })",
                                 )
-                                .to("Abi(String)")
+                                .to("Transport(String)")
                                 .an(error),
                         )
                     }
@@ -51,15 +53,15 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> (
             )
         })();
         match result {
-            Ok(core::result::Result::Ok(value)) => __AbiReturn::V0(value),
-            Ok(core::result::Result::Err(error)) => __AbiReturn::V1(error),
-            Err(error) => __AbiReturn::V2(error.to_string()),
+            Ok(core::result::Result::Ok(value)) => __TransportReturn::V0(value),
+            Ok(core::result::Result::Err(error)) => __TransportReturn::V1(error),
+            Err(error) => __TransportReturn::V2(error.to_string()),
         }
     };
     match result {
-        __AbiReturn::V0(value) => (0u32, napi::bindgen_prelude::Either5::B(value)),
-        __AbiReturn::V1(value) => (1u32, napi::bindgen_prelude::Either5::D(value)),
-        __AbiReturn::V2(value) => (2u32, napi::bindgen_prelude::Either5::D(value)),
+        __TransportReturn::V0(value) => (0u32, napi::bindgen_prelude::Either5::B(value)),
+        __TransportReturn::V1(value) => (1u32, napi::bindgen_prelude::Either5::D(value)),
+        __TransportReturn::V2(value) => (2u32, napi::bindgen_prelude::Either5::D(value)),
     }
 }
 ```
@@ -68,13 +70,15 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> (
 ```rust
 #[wasm_bindgen(js_name = "__fn__free__10_test_crate__7_test_fn")]
 pub fn __fn__free__10_test_crate__7_test_fn() -> Vec<JsValue> {
-    enum __AbiReturn {
+    enum __TransportReturn {
         V0(f64),
         V1(String),
         V2(String),
     }
-    let result: __AbiReturn = {
-        let result = (|| -> rustier_rt::CallResult<core::result::Result<f64, String>> {
+    let result: __TransportReturn = {
+        let result = (|| -> rustier_ext::runtime::errors::CallResult<
+            core::result::Result<f64, String>,
+        > {
             Ok(
                 match test_crate::test_fn() {
                     core::result::Result::Ok(value) => {
@@ -83,7 +87,7 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> Vec<JsValue> {
                                 .from(
                                     "Rust(Type { origin: TypeArgument { type_: Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5c00)) }) }, index: 0 } })",
                                 )
-                                .to("Abi(f64)")
+                                .to("Transport(f64)")
                                 .an(value),
                         )
                     }
@@ -93,7 +97,7 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> Vec<JsValue> {
                                 .from(
                                     "Rust(Type { origin: TypeArgument { type_: Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(5c00)) }) }, index: 1 } })",
                                 )
-                                .to("Abi(String)")
+                                .to("Transport(String)")
                                 .an(error),
                         )
                     }
@@ -101,15 +105,15 @@ pub fn __fn__free__10_test_crate__7_test_fn() -> Vec<JsValue> {
             )
         })();
         match result {
-            Ok(core::result::Result::Ok(value)) => __AbiReturn::V0(value),
-            Ok(core::result::Result::Err(error)) => __AbiReturn::V1(error),
-            Err(error) => __AbiReturn::V2(error.to_string()),
+            Ok(core::result::Result::Ok(value)) => __TransportReturn::V0(value),
+            Ok(core::result::Result::Err(error)) => __TransportReturn::V1(error),
+            Err(error) => __TransportReturn::V2(error.to_string()),
         }
     };
     match result {
-        __AbiReturn::V0(value) => vec![JsValue::from(0u32), JsValue::from(value)],
-        __AbiReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
-        __AbiReturn::V2(value) => vec![JsValue::from(2u32), JsValue::from(value)],
+        __TransportReturn::V0(value) => vec![JsValue::from(0u32), JsValue::from(value)],
+        __TransportReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
+        __TransportReturn::V2(value) => vec![JsValue::from(2u32), JsValue::from(value)],
     }
 }
 ```

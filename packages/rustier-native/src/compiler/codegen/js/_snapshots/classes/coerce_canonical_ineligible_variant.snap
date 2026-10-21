@@ -54,7 +54,7 @@ const $facade__discr__10_test_crate__4_Test = class Test {
 			case "http":{
 				{
 					const result = cast.from(
-						"Abi(usize)"
+						"Transport(usize)"
 					).to(
 						"Facade(Class(Discriminated(FacadeClassDiscriminated { src: EnumType { def: Enum { hir: Enum { id: EnumId(5800) } }, gen_args: [], origin: EnumDeclaration(Enum { hir: Enum { id: EnumId(5800) } }) } })))"
 					).an(

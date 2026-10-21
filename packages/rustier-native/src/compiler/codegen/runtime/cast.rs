@@ -10,23 +10,23 @@ use crate::compiler::{
     codegen::fragment::{FragmentOnce, Printer, frag, fragment},
     db::Db,
     ir::{
-        abi::AbiType,
         runtime::tethering::RuntimeTethering,
         rust::{Type, TypeKind},
+        transport::TransportType,
     },
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CastType<'db> {
     Tethered(RuntimeTethering<'db>),
-    Abi(AbiType),
+    Transport(TransportType),
     Rust(Type<'db>),
 }
 
 impl<'db> CastType<'db> {
     fn same_representation(self, db: &'db dyn Db, other: Self) -> bool {
         match (self, other) {
-            (Self::Abi(left), Self::Abi(right)) => left == right,
+            (Self::Transport(left), Self::Transport(right)) => left == right,
             (Self::Tethered(a), Self::Tethered(b)) => a
                 .source(db)
                 .src_type(db)
@@ -43,9 +43,9 @@ impl<'db> From<RuntimeTethering<'db>> for CastType<'db> {
     }
 }
 
-impl<'db> From<AbiType> for CastType<'db> {
-    fn from(value: AbiType) -> Self {
-        Self::Abi(value)
+impl<'db> From<TransportType> for CastType<'db> {
+    fn from(value: TransportType) -> Self {
+        Self::Transport(value)
     }
 }
 
@@ -203,35 +203,35 @@ impl<'db> CastRenderer<'db> for RuntimeCastRenderer {
                 }
 
                 // handles
-                (Abi(AbiType::usize), Tethered(target)) => {
+                (Transport(TransportType::usize), Tethered(target)) => {
                     handles::render_handle_to_tethered(db, target, in_expr, output).apply(printer);
                 }
-                (Tethered(_), Abi(AbiType::usize)) => {
+                (Tethered(_), Transport(TransportType::usize)) => {
                     handles::render_tethered_to_handle(in_expr, output).apply(printer);
                 }
-                (Abi(AbiType::usize), Rust(target)) => {
+                (Transport(TransportType::usize), Rust(target)) => {
                     handles::render_handle_to_type(db, target, in_expr, output).apply(printer);
                 }
-                (Rust(source), Abi(AbiType::usize)) => {
+                (Rust(source), Transport(TransportType::usize)) => {
                     handles::render_type_to_handle(db, source, in_expr, output).apply(printer);
                 }
 
                 // numbers
-                (Abi(AbiType::f64), Rust(target)) => {
+                (Transport(TransportType::f64), Rust(target)) => {
                     numbers::render_f64_to_type(db, target, in_expr, output).apply(printer);
                 }
-                (Rust(source), Abi(AbiType::f64)) => {
+                (Rust(source), Transport(TransportType::f64)) => {
                     numbers::render_type_to_f64(db, source, in_expr, output).apply(printer);
                 }
 
                 // borrowed primitives
-                (Abi(AbiType::Unit), Rust(target))
+                (Transport(TransportType::Unit), Rust(target))
                     if matches!(target.kind(db), TypeKind::Borrowed(borrowed)
                         if borrowed.inner(db).kind(db) == TypeKind::Unit) =>
                 {
                     borrowing::render_owned_to_borrowed(db, target, in_expr, output).apply(printer);
                 }
-                (Abi(AbiType::bool), Rust(target))
+                (Transport(TransportType::bool), Rust(target))
                     if matches!(target.kind(db), TypeKind::Borrowed(borrowed)
                         if borrowed.inner(db).kind(db) == TypeKind::bool) =>
                 {
@@ -239,32 +239,36 @@ impl<'db> CastRenderer<'db> for RuntimeCastRenderer {
                 }
 
                 // strings
-                (Abi(AbiType::String), Rust(target))
+                (Transport(TransportType::String), Rust(target))
                     if matches!(target.kind(db), TypeKind::Borrowed(_)) =>
                 {
                     strings::render_string_to_type(db, target, in_expr, output).apply(printer);
                 }
 
                 // identity casts
-                (Abi(AbiType::Unit), Rust(type_)) | (Rust(type_), Abi(AbiType::Unit))
+                (Transport(TransportType::Unit), Rust(type_))
+                | (Rust(type_), Transport(TransportType::Unit))
                     if type_.kind(db) == TypeKind::Unit =>
                 {
                     adapt_to_cast_output(in_expr, output).apply(printer);
                 }
-                (Abi(AbiType::bool), Rust(type_)) | (Rust(type_), Abi(AbiType::bool))
+                (Transport(TransportType::bool), Rust(type_))
+                | (Rust(type_), Transport(TransportType::bool))
                     if type_.kind(db) == TypeKind::bool =>
                 {
                     adapt_to_cast_output(in_expr, output).apply(printer);
                 }
-                (Abi(AbiType::String), Rust(type_)) | (Rust(type_), Abi(AbiType::String))
+                (Transport(TransportType::String), Rust(type_))
+                | (Rust(type_), Transport(TransportType::String))
                     if type_.kind(db) == TypeKind::String =>
                 {
                     adapt_to_cast_output(in_expr, output).apply(printer);
                 }
-                (Abi(AbiType::JsValue), Rust(type_)) | (Rust(type_), Abi(AbiType::JsValue))
+                (Transport(TransportType::JsValueHandle), Rust(type_))
+                | (Rust(type_), Transport(TransportType::JsValueHandle))
                     if type_.kind(db) == TypeKind::JsValue =>
                 {
-                    adapt_to_cast_output(in_expr, output).apply(printer);
+                    adapt_to_cast_output(frag!(({ in_expr }).into()), output).apply(printer);
                 }
 
                 _ => unreachable!("unsupported runtime cast from `{src:?}` to `{dst:?}`"),
@@ -395,8 +399,8 @@ mod tests {
         codegen::fragment::frag,
         db::Db,
         ir::{
-            abi::AbiType,
             rust::{Member, Rust, Type},
+            transport::TransportType,
         },
     };
 
@@ -478,26 +482,26 @@ mod tests {
         ) => {
             cast_snapshot! {
                 name: $in_name,
-                from: |_db| AbiType::f64,
+                from: |_db| TransportType::f64,
                 to: |db| test_type(db, stringify!($value)),
             }
 
             cast_snapshot! {
                 name: $ref_name,
-                from: |_db| AbiType::f64,
+                from: |_db| TransportType::f64,
                 to: |db| test_type(db, stringify!($value)).borrowed(db),
             }
 
             cast_snapshot! {
                 name: $mut_name,
-                from: |_db| AbiType::f64,
+                from: |_db| TransportType::f64,
                 to: |db| test_type(db, stringify!($value)).borrowed_mut(db),
             }
 
             cast_snapshot! {
                 name: $out_name,
                 from: |db| test_type(db, stringify!($value)),
-                to: |_db| AbiType::f64,
+                to: |_db| TransportType::f64,
             }
         };
     }
@@ -576,62 +580,62 @@ mod tests {
 
     cast_snapshot! {
         name: bool_in,
-        from: |_db| AbiType::bool,
+        from: |_db| TransportType::bool,
         to: |db| test_type(db, "bool"),
     }
 
     cast_snapshot! {
         name: bool_ref_in,
-        from: |_db| AbiType::bool,
+        from: |_db| TransportType::bool,
         to: |db| test_type(db, "bool").borrowed(db),
     }
 
     cast_snapshot! {
         name: bool_mut_in,
-        from: |_db| AbiType::bool,
+        from: |_db| TransportType::bool,
         to: |db| test_type(db, "bool").borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: bool_out,
         from: |db| test_type(db, "bool"),
-        to: |_db| AbiType::bool,
+        to: |_db| TransportType::bool,
     }
 
     cast_snapshot! {
         name: string_in,
-        from: |_db| AbiType::String,
+        from: |_db| TransportType::String,
         to: |db| test_type(db, "string"),
     }
 
     cast_snapshot! {
         name: string_ref_in,
-        from: |_db| AbiType::String,
+        from: |_db| TransportType::String,
         to: |db| test_type(db, "string").borrowed(db),
     }
 
     cast_snapshot! {
         name: string_mut_in,
-        from: |_db| AbiType::String,
+        from: |_db| TransportType::String,
         to: |db| test_type(db, "string").borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: str_ref_in,
-        from: |_db| AbiType::String,
+        from: |_db| TransportType::String,
         to: |db| test_type(db, "str").borrowed(db),
     }
 
     cast_snapshot! {
         name: str_mut_in,
-        from: |_db| AbiType::String,
+        from: |_db| TransportType::String,
         to: |db| test_type(db, "str").borrowed_mut(db),
     }
 
     cast_snapshot! {
         name: string_out,
         from: |db| test_type(db, "string"),
-        to: |_db| AbiType::String,
+        to: |_db| TransportType::String,
     }
 
     cast_snapshot! {
@@ -640,7 +644,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |_db| AbiType::usize,
+        from: |_db| TransportType::usize,
         to: |db| test_type(db, "ExampleStruct"),
     }
 
@@ -650,7 +654,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |_db| AbiType::usize,
+        from: |_db| TransportType::usize,
         to: |db| test_type(db, "ExampleStruct").borrowed(db),
     }
 
@@ -660,7 +664,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |_db| AbiType::usize,
+        from: |_db| TransportType::usize,
         to: |db| test_type(db, "ExampleStruct").borrowed_mut(db),
     }
 
@@ -671,7 +675,7 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| test_type(db, "ExampleStruct"),
-        to: |_db| AbiType::usize,
+        to: |_db| TransportType::usize,
     }
 
     cast_snapshot! {
@@ -682,7 +686,7 @@ mod tests {
                 Variant,
             }
         },
-        from: |_db| AbiType::usize,
+        from: |_db| TransportType::usize,
         to: |db| test_type(db, "ExampleEnum"),
     }
 
@@ -694,7 +698,7 @@ mod tests {
                 Variant,
             }
         },
-        from: |_db| AbiType::usize,
+        from: |_db| TransportType::usize,
         to: |db| test_type(db, "ExampleEnum").borrowed(db),
     }
 
@@ -706,7 +710,7 @@ mod tests {
                 Variant,
             }
         },
-        from: |_db| AbiType::usize,
+        from: |_db| TransportType::usize,
         to: |db| test_type(db, "ExampleEnum").borrowed_mut(db),
     }
 
@@ -719,7 +723,7 @@ mod tests {
             }
         },
         from: |db| test_type(db, "ExampleEnum"),
-        to: |_db| AbiType::usize,
+        to: |_db| TransportType::usize,
     }
 
     cast_snapshot! {
@@ -768,7 +772,7 @@ mod tests {
             #[derive(Clone)]
             pub struct ExampleStruct;
         },
-        from: |_db| AbiType::usize,
+        from: |_db| TransportType::usize,
         to: |db| test_type(db, "ExampleStruct").tethering(db).unwrap(),
     }
 
@@ -779,7 +783,7 @@ mod tests {
             pub struct ExampleStruct;
         },
         from: |db| test_type(db, "ExampleStruct").tethering(db).unwrap(),
-        to: |_db| AbiType::usize,
+        to: |_db| TransportType::usize,
     }
 
     cast_snapshot! {
@@ -790,8 +794,8 @@ mod tests {
 
     cast_snapshot! {
         name: abi_identity,
-        from: |_db| AbiType::bool,
-        to: |_db| AbiType::bool,
+        from: |_db| TransportType::bool,
+        to: |_db| TransportType::bool,
     }
 
     cast_snapshot! {

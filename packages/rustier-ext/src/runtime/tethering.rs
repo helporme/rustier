@@ -3,7 +3,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::CallResult;
+use super::errors::CallResult;
 
 pub type AccessResult<T> = CallResult<T>;
 

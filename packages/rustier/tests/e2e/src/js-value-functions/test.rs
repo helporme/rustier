@@ -1,4 +1,4 @@
-use rustier_rt::js::{JsEnv, JsValue};
+use rustier_ext::runtime::js::{JsEnv, JsValue};
 
 pub fn apply0(function: JsValue) -> Result<JsValue, JsValue> {
     function.apply(&[])

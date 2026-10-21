@@ -7,8 +7,8 @@ use crate::compiler::{
     },
     db::Db,
     ir::{
-        abi::{AbiReturn, AbiUnion},
         facade::{FacadeFreeFunction, FacadeFunction, FacadeMethod, type_js::FacadeTypeJs},
+        transport::{TransportReturn, TransportUnion},
     },
 };
 
@@ -191,7 +191,10 @@ where
         self.render_param_casts(fragment(move |p| {
             if let Some(err) = function.ret_err_type(db) {
                 let ok = function.ret_type(db);
-                let result = AbiReturn::Union(AbiUnion::new(db, vec![ok.abi(db), err.abi(db)]));
+                let result = TransportReturn::Union(TransportUnion::new(
+                    db,
+                    vec![ok.transport(db), err.transport(db)],
+                ));
 
                 result
                     .render_js_with(db, self.render_call_expr(), |value| {
@@ -231,7 +234,7 @@ where
                     .render_stmt(
                         db,
                         Cast {
-                            from: function.ret_type(db).abi(db),
+                            from: function.ret_type(db).transport(db),
                             to: target,
                             in_expr: self.render_call_expr(),
                             out_var_name: "result",
@@ -259,7 +262,7 @@ where
     fn render_param_casts(self, continuation: impl FragmentOnce + 'db) -> impl FragmentOnce + 'db {
         let db = self.db();
         let function = self.function();
-        let abi_params = function.abi(db).params(db);
+        let abi_params = function.transport(db).params(db);
         let receiver_offset = usize::from(matches!(
             function,
             FacadeFunction::Method(method) if !method.is_static(db)
@@ -281,7 +284,7 @@ where
     fn render_call_expr(self) -> impl FragmentOnce {
         let db = self.db();
         let function = self.function();
-        let abi_fn_symbol = function.abi(db).symbol(db);
+        let abi_fn_symbol = function.transport(db).symbol(db);
         let is_instance_method = matches!(
             function,
             FacadeFunction::Method(method) if !method.is_static(db)

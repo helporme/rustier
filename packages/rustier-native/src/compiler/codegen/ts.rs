@@ -37,7 +37,7 @@ impl<'db> Facade<'db> {
 
 impl RuntimeModule {
     pub fn render_ts_mod(self) -> &'static str {
-        include_str!("runtime/rustier-rt.d.ts")
+        include_str!("runtime/rustier-root.d.ts")
     }
 }
 

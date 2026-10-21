@@ -1235,7 +1235,7 @@ impl<'db> Type<'db> {
             TypeKind::f64 => "f64",
             TypeKind::Str => "str",
             TypeKind::String => "String",
-            TypeKind::JsValue => "rustier_rt::js::JsValue",
+            TypeKind::JsValue => "rustier_ext::runtime::js::JsValue",
             TypeKind::Generic(param) => param.display(db),
             TypeKind::Struct(s) => s.fqn(db),
             TypeKind::Enum(e) => e.fqn(db),

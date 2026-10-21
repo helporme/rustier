@@ -3,7 +3,7 @@ use std::{fs, io::ErrorKind, path::Path};
 use itertools::Itertools;
 use rustier::compiler::{
     diag::Theme,
-    ir::abi::transport::{AbiTransport, WasmMemory, WasmTransport},
+    ir::transport::backend::{TransportBackend, WasmMemory, WasmTransport},
 };
 
 use crate::common::ProgramTest;
@@ -37,10 +37,10 @@ fn parse_ui_test(src: String) -> Result<UiTest, String> {
             let mut parsed_platforms = Vec::new();
             for value in value.split(',').map(str::trim) {
                 let platform = match value {
-                    "wasm" | "wasm(web)" => AbiTransport::Wasm(WasmTransport {
+                    "wasm" | "wasm(web)" => TransportBackend::Wasm(WasmTransport {
                         memory: WasmMemory::x32,
                     }),
-                    "node" => AbiTransport::Napi,
+                    "node" => TransportBackend::Napi,
                     "" => {
                         return Err(format!(
                             "empty API target in `//@ api` directive on line {}",

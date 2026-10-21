@@ -3,11 +3,11 @@ use std::path::PathBuf;
 use crate::{
     compiler::{
         codegen::{
-            abi::js::{AbiJsTarget, WasmLoading},
             js::JsCodegenPaths,
+            transport::js::{TransportJsTarget, WasmLoading},
         },
         db::Db,
-        ir::abi::transport::{WasmMemory, WasmTransport},
+        ir::transport::backend::{WasmMemory, WasmTransport},
         path::FilePath,
     },
     server::{
@@ -58,7 +58,7 @@ impl<'a> BridgeCrateWasm<'a> {
 
             return Some(self.project(db).reachable_facade(db).runtime(db).render_js(
                 db,
-                AbiJsTarget::Wasm {
+                TransportJsTarget::Wasm {
                     loading,
                     path: artifact.js_path.as_str(),
                     wasm_path: artifact.bin_path.as_str(),
@@ -167,7 +167,7 @@ impl Effect for WasmBuild {
             && artifact
                 .js_path
                 .as_path()
-                .with_file_name(rustier_rt::js::wasm::WASM_RUNTIME_FILENAME)
+                .with_file_name(rustier_ext::transport::WASM_RUNTIME_FILENAME)
                 .is_file())
     }
 }

@@ -1,5 +1,5 @@
-use rustier_rt::js::JsEnv;
-pub use rustier_rt::js::JsValue as Value;
+use rustier_ext::runtime::js::JsEnv;
+pub use rustier_ext::runtime::js::JsValue as Value;
 
 pub type Alias = Value;
 

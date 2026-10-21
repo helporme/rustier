@@ -17,7 +17,7 @@ pub enum ExampleEnum {
 fn cast(input: ()) {
     {
         let output = unsafe {
-            rustier_rt::rust_handles::clone_from_handle::<
+            rustier_ext::runtime::rust_handles::clone_from_handle::<
                 __tethering__10_test_crate__11_ExampleEnum,
             >(input)
         }
@@ -32,7 +32,7 @@ fn cast(input: ()) {
 fn cast(input: ()) {
     {
         let output = unsafe {
-            rustier_rt::rust_handles::clone_from_handle::<
+            rustier_ext::runtime::rust_handles::clone_from_handle::<
                 __tethering__10_test_crate__11_ExampleEnum,
             >(input)
         }

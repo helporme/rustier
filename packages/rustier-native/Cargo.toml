@@ -17,7 +17,7 @@ napi-binding = ["dep:napi", "dep:napi-derive", "dep:napi-build", "dep:ra_ap_load
 local-runtime = []
 
 [dependencies]
-rustier-rt = { version = "=0.0.1", path = "../rustier-rt" }
+rustier-ext = { version = "=0.0.1", path = "../rustier-ext" }
 napi = { version = "3", default-features = false, features = ["napi6", "serde-json", "async"], optional = true }
 napi-derive = { version = "3", features = ["type-def"], optional = true }
 serde = { version = "1", features = ["derive"] }

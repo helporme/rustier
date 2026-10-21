@@ -34,7 +34,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			const out = cast.from(
 				"Facade(number)"
 			).to(
-				"Abi(f64)"
+				"Transport(f64)"
 			).an(
 				value
 			);
@@ -57,7 +57,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			const out = cast.from(
 				"Facade(string)"
 			).to(
-				"Abi(String)"
+				"Transport(String)"
 			).an(
 				value
 			);
@@ -86,7 +86,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 			const __0 = cast.from(
 				"Facade(number)"
 			).to(
-				"Abi(f64)"
+				"Transport(f64)"
 			).an(
 				value[0]
 			);
@@ -94,13 +94,13 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 				const __1 = cast.from(
 					"Facade(string)"
 				).to(
-					"Abi(String)"
+					"Transport(String)"
 				).an(
 					value[1]
 				);
 				{
 					const result = cast.from(
-						"Abi(usize)"
+						"Transport(usize)"
 					).to(
 						"Facade(Class(Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } })))"
 					).an(

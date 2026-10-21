@@ -19,14 +19,14 @@ pub fn __fn__coe__10_test_crate__4_Test__6_Record(
     _0: String,
     _1: bool,
 ) -> (u32, napi::bindgen_prelude::Either5<(), f64, bool, String, u64>) {
-    enum __AbiReturn {
+    enum __TransportReturn {
         V0(usize),
         V1(String),
     }
-    let result: __AbiReturn = {
-        let result = (|| -> rustier_rt::CallResult<usize> {
+    let result: __TransportReturn = {
+        let result = (|| -> rustier_ext::runtime::errors::CallResult<usize> {
             Ok(
-                rustier_rt::rust_handles::into_handle(
+                rustier_ext::runtime::rust_handles::into_handle(
                     std::rc::Rc::new(
                         __tethering__10_test_crate__4_Test::new_owned({
                             let _0 = _0;
@@ -43,13 +43,15 @@ pub fn __fn__coe__10_test_crate__4_Test__6_Record(
             )
         })();
         match result {
-            Ok(value) => __AbiReturn::V0(value),
-            Err(error) => __AbiReturn::V1(error.to_string()),
+            Ok(value) => __TransportReturn::V0(value),
+            Err(error) => __TransportReturn::V1(error.to_string()),
         }
     };
     match result {
-        __AbiReturn::V0(value) => (0u32, napi::bindgen_prelude::Either5::E(value as u64)),
-        __AbiReturn::V1(value) => (1u32, napi::bindgen_prelude::Either5::D(value)),
+        __TransportReturn::V0(value) => {
+            (0u32, napi::bindgen_prelude::Either5::E(value as u64))
+        }
+        __TransportReturn::V1(value) => (1u32, napi::bindgen_prelude::Either5::D(value)),
     }
 }
 ```
@@ -58,14 +60,14 @@ pub fn __fn__coe__10_test_crate__4_Test__6_Record(
 ```rust
 #[wasm_bindgen(js_name = "__fn__coe__10_test_crate__4_Test__6_Record")]
 pub fn __fn__coe__10_test_crate__4_Test__6_Record(_0: String, _1: bool) -> Vec<JsValue> {
-    enum __AbiReturn {
+    enum __TransportReturn {
         V0(usize),
         V1(String),
     }
-    let result: __AbiReturn = {
-        let result = (|| -> rustier_rt::CallResult<usize> {
+    let result: __TransportReturn = {
+        let result = (|| -> rustier_ext::runtime::errors::CallResult<usize> {
             Ok(
-                rustier_rt::rust_handles::into_handle(
+                rustier_ext::runtime::rust_handles::into_handle(
                     std::rc::Rc::new(
                         __tethering__10_test_crate__4_Test::new_owned({
                             let _0 = _0;
@@ -82,13 +84,15 @@ pub fn __fn__coe__10_test_crate__4_Test__6_Record(_0: String, _1: bool) -> Vec<J
             )
         })();
         match result {
-            Ok(value) => __AbiReturn::V0(value),
-            Err(error) => __AbiReturn::V1(error.to_string()),
+            Ok(value) => __TransportReturn::V0(value),
+            Err(error) => __TransportReturn::V1(error.to_string()),
         }
     };
     match result {
-        __AbiReturn::V0(value) => vec![JsValue::from(0u32), JsValue::from(value as u32)],
-        __AbiReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
+        __TransportReturn::V0(value) => {
+            vec![JsValue::from(0u32), JsValue::from(value as u32)]
+        }
+        __TransportReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
     }
 }
 ```

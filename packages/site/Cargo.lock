@@ -668,6 +668,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78"
 
 [[package]]
+name = "libloading"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "754ca22de805bb5744484a5b151a9e1a8e837d5dc232c2d7d8c2e3492edc8b60"
+dependencies = [
+ "cfg-if",
+ "windows-link",
+]
+
+[[package]]
 name = "line-index"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -782,6 +792,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "536bfad37a309d62069485248eeaba1e8d9853aaf951caaeaed0585a95346f08"
 dependencies = [
  "windows-sys",
+]
+
+[[package]]
+name = "napi-sys"
+version = "3.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e22a4f25c16a5c5411d987cd6fbd48313522ae1789ade2d6dd3efdc6d40a0fc8"
+dependencies = [
+ "libloading",
 ]
 
 [[package]]
@@ -1795,7 +1814,7 @@ dependencies = [
  "ra_ap_syntax",
  "ra_ap_vfs",
  "rustdoc-types",
- "rustier-rt",
+ "rustier-ext",
  "salsa",
  "serde",
  "serde_json",
@@ -1806,8 +1825,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustier-rt"
+name = "rustier-ext"
 version = "0.0.1"
+dependencies = [
+ "napi-sys",
+]
 
 [[package]]
 name = "rustier-site"

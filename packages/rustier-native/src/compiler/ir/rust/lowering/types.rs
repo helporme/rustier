@@ -81,12 +81,12 @@ pub(super) fn is_js_type(db: &dyn Db, type_: &HirType<'_>, name: &str) -> bool {
 
     crate_
         .display_name(db)
-        .is_some_and(|name| name.to_string() == "rustier_rt")
+        .is_some_and(|name| name.to_string() == "rustier_ext")
         && struct_.name(db).as_str() == name
         && module
             .path_segments(db)
             .map(|name| name.as_str().to_owned())
-            .eq(["js"])
+            .eq(["runtime", "js"])
 }
 
 /// Checks whether the HIR type satisfies the `Clone` trait obligation.

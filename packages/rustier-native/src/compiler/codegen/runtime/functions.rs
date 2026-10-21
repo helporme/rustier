@@ -2,33 +2,33 @@ use itertools::Either;
 
 use crate::compiler::{
     codegen::{
-        abi::{AbiArgs, AbiFunctionRenderOps},
         fragment::{FragmentOnce, FragmentPrint as _, Printer, comma_list, frag, fragment},
         runtime::cast::{Cast, CastRenderer, RuntimeCastRenderer},
+        transport::{TransportFunctionRenderOps, TransportInput},
     },
     db::Db,
     ir::{
-        abi::{AbiReturn, transport::AbiTransport},
         facade::FacadeClass,
         runtime::{
             RuntimeDiscriminatedCoerce, RuntimeDiscriminator, RuntimeFunction, RuntimeGetter,
             RuntimePlainCoerce, RuntimeSetter, RuntimeType, tethering::RuntimeTetheredFieldKind,
         },
         rust::{Callable, Shape, Type, TypeKind},
+        transport::{TransportReturn, backend::TransportBackend},
     },
 };
 
 #[salsa::tracked]
 impl<'db> RuntimeFunction<'db> {
     #[salsa::tracked(returns(ref))]
-    pub(super) fn render_rust(self, db: &'db dyn Db, transport: AbiTransport) -> String {
+    pub(super) fn render_rust(self, db: &'db dyn Db, transport: TransportBackend) -> String {
         self.render_with(db, transport, RuntimeCastRenderer).print()
     }
 
     fn render_with<Renderer>(
         self,
         db: &'db dyn Db,
-        transport: AbiTransport,
+        transport: TransportBackend,
         cast_compiler: Renderer,
     ) -> impl FragmentOnce
     where
@@ -46,7 +46,7 @@ impl<'db> RuntimeFunction<'db> {
 #[derive(Copy, Clone)]
 struct FunctionFragment<'db, CastCompiler> {
     function: RuntimeFunction<'db>,
-    transport: AbiTransport,
+    transport: TransportBackend,
     cast_compiler: CastCompiler,
     db: &'db dyn Db,
 }
@@ -54,7 +54,7 @@ struct FunctionFragment<'db, CastCompiler> {
 #[derive(Copy, Clone)]
 struct CoerceFnFragment<'db, CastCompiler> {
     coerce: Either<RuntimePlainCoerce<'db>, RuntimeDiscriminatedCoerce<'db>>,
-    args: AbiArgs<'db>,
+    args: TransportInput<'db>,
     cast_compiler: CastCompiler,
     db: &'db dyn Db,
 }
@@ -107,7 +107,7 @@ where
             }
         });
         let value = self.cast_compiler.render_many(db, casts, value);
-        let ret_type = source_type.abi(db);
+        let ret_type = source_type.transport(db);
 
         let result = self
             .cast_compiler
@@ -130,27 +130,17 @@ where
     CastCompiler: CastRenderer<'db> + Copy + Clone + 'db,
 {
     fn render(self) -> impl FragmentOnce {
-        let abi = self.function.abi(self.db);
+        let abi = self.function.transport(self.db);
         let abi_return = abi.ret_type(self.db);
         let ret_type = self.function.ret_type(self.db);
-        let source = match self.function {
-            RuntimeFunction::Free(function) => Some(function.src(self.db)),
-            RuntimeFunction::Associated(function) => Some(function.src(self.db)),
-            _ => None,
-        };
-        let ops = AbiFunctionRenderOps {
+        let ops = TransportFunctionRenderOps {
             transport: self.transport,
-            inject_js_env: source.is_some_and(|source| {
-                source
-                    .params(self.db)
-                    .iter()
-                    .any(|param| param.type_(self.db).is_js_env(self.db))
-            }),
+            inject_js_env: self.function.needs_js_env(self.db),
         };
 
         abi.render_rust_with_body(self.db, ops, move |args| {
             fragment(move |p| {
-                let AbiReturn::Union(union) = abi_return else {
+                let TransportReturn::Union(union) = abi_return else {
                     self.render_body(args).apply(p);
                     return;
                 };
@@ -158,7 +148,7 @@ where
                 let success = union.render_rust_variant(0, "value");
                 let user_error = union.render_rust_variant(1, "error");
                 let failure = union.render_rust_variant(
-                    union.variants(self.db).len() - 1,
+                    self.function.runtime_error_index(self.db).unwrap(),
                     frag!(error.to_string()),
                 );
                 let branches = fragment(move |p| match ret_type {
@@ -174,7 +164,7 @@ where
                 });
 
                 frag!(
-                    let result = (|| -> rustier_rt::CallResult<{ret_type.render_rust(self.db)}> {{
+                    let result = (|| -> rustier_ext::runtime::errors::CallResult<{ret_type.render_rust(self.db)}> {{
                         {self.render_body(args)}
                     }})();@@
 
@@ -188,7 +178,7 @@ where
         })
     }
 
-    fn render_body(self, args: AbiArgs<'db>) -> impl FragmentOnce {
+    fn render_body(self, args: TransportInput<'db>) -> impl FragmentOnce {
         fragment(move |p| match self.function {
             RuntimeFunction::Free(free_fn) => self
                 .render_source_fn_call_body(free_fn.src(self.db), args)
@@ -221,7 +211,7 @@ where
 
                 frag!(unsafe {
                     {
-                        rustier_rt::rust_handles::drop_handle::<{ target }>({ handle });
+                        rustier_ext::runtime::rust_handles::drop_handle::<{ target }>({ handle });
                     }
                 })
                 .apply(p);
@@ -229,7 +219,11 @@ where
         })
     }
 
-    fn render_source_fn_call(self, src_fn: Callable<'db>, args: AbiArgs<'db>) -> impl FragmentOnce {
+    fn render_source_fn_call(
+        self,
+        src_fn: Callable<'db>,
+        args: TransportInput<'db>,
+    ) -> impl FragmentOnce {
         let params = self.function.params(self.db);
 
         // Owned arguments must be cloned before reference borrows are held, so an
@@ -281,7 +275,7 @@ where
 
                         fragment(move |p| match index {
                             Some(index) => frag!(_{index}).apply(p),
-                            None => frag!(__js_env).apply(p),
+                            None => frag!({ args.env_expr() }.into()).apply(p),
                         })
                     }),
             );
@@ -296,7 +290,7 @@ where
     fn render_source_fn_call_body(
         self,
         src_fn: Callable<'db>,
-        args: AbiArgs<'db>,
+        args: TransportInput<'db>,
     ) -> impl FragmentOnce {
         let src_ret_type = src_fn.ret_type(self.db);
 
@@ -309,7 +303,7 @@ where
                 let casted_result_expr = self.cast_compiler.render_expr(
                     self.db,
                     src_ret_type,
-                    src_ret_type.abi(self.db),
+                    src_ret_type.transport(self.db),
                     self.render_source_fn_call(src_fn, args),
                 );
 
@@ -321,16 +315,16 @@ where
     fn render_source_fn_result_body(
         self,
         src_fn: Callable<'db>,
-        args: AbiArgs<'db>,
+        args: TransportInput<'db>,
         ok: Type<'db>,
         err: Type<'db>,
     ) -> impl FragmentOnce {
         let ok_value = self
             .cast_compiler
-            .render_expr(self.db, ok, ok.abi(self.db), "value");
-        let err_value = self
-            .cast_compiler
-            .render_expr(self.db, err, err.abi(self.db), "error");
+            .render_expr(self.db, ok, ok.transport(self.db), "value");
+        let err_value =
+            self.cast_compiler
+                .render_expr(self.db, err, err.transport(self.db), "error");
         frag!(
             Ok(match ~{self.render_source_fn_call(src_fn, args)}~{{
                 core::result::Result::Ok(value) => core::result::Result::Ok({ok_value}),@
@@ -342,7 +336,7 @@ where
     fn render_fn_getter_body(
         self,
         getter: RuntimeGetter<'db>,
-        args: AbiArgs<'db>,
+        args: TransportInput<'db>,
     ) -> impl FragmentOnce {
         let tethered_field = getter.field(self.db).tethered(self.db);
         let field = tethered_field.src(self.db);
@@ -357,7 +351,7 @@ where
         let field_tethering_value_expr =
             tethered_field.render_get_expr(self.db, cls_tethering_struct_expr);
 
-        let ret_type = field._type(self.db).abi(self.db);
+        let ret_type = field._type(self.db).transport(self.db);
 
         let output = fragment(move |p| match tethered_field.kind(self.db) {
             RuntimeTetheredFieldKind::Tethered(tethering) => self
@@ -381,7 +375,7 @@ where
     fn render_fn_setter_body(
         self,
         setter: RuntimeSetter<'db>,
-        args: AbiArgs<'db>,
+        args: TransportInput<'db>,
     ) -> impl FragmentOnce {
         let tethered_field = setter.field(self.db).tethered(self.db);
         let field = tethered_field.src(self.db);
@@ -416,7 +410,7 @@ where
     fn render_enum_discriminator_body(
         self,
         discriminator: RuntimeDiscriminator<'db>,
-        args: AbiArgs<'db>,
+        args: TransportInput<'db>,
     ) -> impl FragmentOnce {
         let src = discriminator.class(self.db).src(self.db);
         let cls_tethering_struct_expr = self.cast_compiler.render_expr(
@@ -438,7 +432,7 @@ where
             }
 
             if src.def(self.db).is_non_exhaustive(self.db) {
-                frag!(_ => return Err(rustier_rt::EnumError::UnknownVariant.into()),).apply(p);
+                frag!(_ => return Err(rustier_ext::runtime::errors::EnumError::UnknownVariant.into()),).apply(p);
             }
         });
 
@@ -464,8 +458,8 @@ mod tests {
                 runtime::{cast::test::TestCastRenderer, test::build_rust_snapshot},
             },
             ir::{
-                abi::transport::{WasmMemory, WasmTransport},
                 rust::Rust,
+                transport::backend::{WasmMemory, WasmTransport},
             },
             test::build_js_env_test_db,
         },
@@ -495,12 +489,12 @@ mod tests {
                 )
             });
             let node = function
-                .render_with(&db, AbiTransport::Napi, TestCastRenderer)
+                .render_with(&db, TransportBackend::Napi, TestCastRenderer)
                 .print();
             let wasm = function
                 .render_with(
                     &db,
-                    AbiTransport::Wasm(WasmTransport {
+                    TransportBackend::Wasm(WasmTransport {
                         memory: WasmMemory::x32,
                     }),
                     TestCastRenderer,
@@ -524,7 +518,7 @@ mod tests {
         snapshot_js_env(
             "js_env_only",
             r#"
-                use rustier_rt::js::JsEnv;
+                use rustier_ext::runtime::js::JsEnv;
 
                 pub fn record_env(_env: JsEnv) {}
             "#,
@@ -536,7 +530,7 @@ mod tests {
         snapshot_js_env(
             "js_env_mixed_args",
             r#"
-                pub use rustier_rt::js::JsEnv as Environment;
+                pub use rustier_ext::runtime::js::JsEnv as Environment;
                 type Alias = Environment;
 
                 pub fn combine(
@@ -557,7 +551,7 @@ mod tests {
         snapshot_js_env(
             "js_env_method",
             r#"
-                use rustier_rt::js::JsEnv;
+                use rustier_ext::runtime::js::JsEnv;
 
                 pub struct Counter;
 

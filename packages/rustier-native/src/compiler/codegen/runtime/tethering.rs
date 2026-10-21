@@ -329,7 +329,7 @@ impl<'db> RuntimeTetheredField<'db> {
                 let enum_ = src_field.target(db);
                 let field_name = src_field.declaration(db).name(db);
                 let error = frag!(
-                    rustier_rt::EnumError::InactiveField~{{
+                    rustier_ext::runtime::errors::EnumError::InactiveField~{{
                         type_name: {doubles(enum_.display(db))},@
                         variant: {doubles(variant.name(db))},@
                         field: {doubles(field_name)},

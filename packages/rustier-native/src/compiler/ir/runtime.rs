@@ -1,14 +1,4 @@
 //! Intermediate representation of the generated Rust runtime.
-//!
-//! The runtime implements a facade semantics, i.e tethering, exceptions
-//! throwing, etc. The idea of separating it from
-//! [`abi`](crate::compiler::ir::abi) is to allow having a runtime
-//! implementation separated from the concrete way of how the values are
-//! transferred from js to rust and back.
-//!
-//! The separation between runtime and abi is very hard to maintain since
-//! runtime optimization depends too much on concrete transport implementation.
-//! FIXME: refactor the abi & runtime split.
 
 pub mod ext;
 pub mod tethering;
@@ -18,13 +8,13 @@ use itertools::Either;
 use crate::compiler::{
     db::Db,
     ir::{
-        abi::AbiReturn,
         facade::{
             Facade, FacadeClass, FacadeClassDiscriminated, FacadeClassPlain, FacadeFieldPlain,
             FacadeFreeFunction, FacadeMethod, FacadeVariant,
         },
         runtime::tethering::RuntimeTethering,
         rust::{Type, TypeKind},
+        transport::{TransportReturn, TransportType, TransportUnion},
     },
 };
 
@@ -41,7 +31,7 @@ impl<'db> Runtime<'db> {
         if self
             .functions(db)
             .iter()
-            .any(|function| matches!(function.abi_ret(db), AbiReturn::Union(_)))
+            .any(|function| function.runtime_error_index(db).is_some())
         {
             vec![RuntimeExport::RuntimeError]
         } else {
@@ -177,6 +167,45 @@ pub enum RuntimeFunction<'db> {
 
 #[salsa::tracked]
 impl<'db> RuntimeFunction<'db> {
+    pub fn needs_js_env(self, db: &'db dyn Db) -> bool {
+        let source = match self {
+            Self::Free(function) => function.src(db),
+            Self::Associated(function) => function.src(db),
+            _ => return false,
+        };
+
+        source
+            .params(db)
+            .iter()
+            .any(|param| param.type_(db).is_js_env(db))
+    }
+
+    pub fn runtime_error_index(self, db: &'db dyn Db) -> Option<usize> {
+        if matches!(self, Self::DropHandle(_)) {
+            return None;
+        }
+
+        Some(match self.ret_type(db).as_transport_return(db) {
+            TransportReturn::Value(_) => 1,
+            TransportReturn::Union(union) => union.variants(db).len(),
+        })
+    }
+
+    pub fn transport_ret(self, db: &'db dyn Db) -> TransportReturn<'db> {
+        let value = self.ret_type(db).as_transport_return(db);
+        if self.runtime_error_index(db).is_none() {
+            return value;
+        }
+
+        let mut variants = match value {
+            TransportReturn::Value(type_) => vec![type_],
+            TransportReturn::Union(union) => union.variants(db).clone(),
+        };
+        variants.push(TransportType::String);
+
+        TransportReturn::Union(TransportUnion::new(db, variants))
+    }
+
     /// The mangled unique symbol name of this function.
     pub fn symbol(self, db: &'db dyn Db) -> &'db str {
         match self {

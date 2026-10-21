@@ -12,8 +12,8 @@ use rustier::compiler::{
     diag::Diag,
     inputs::LocalCrates,
     ir::{
-        abi::transport::{AbiTransport, WasmMemory, WasmTransport},
         rust::{PathSegment, Rust, usages::UsageGraph},
+        transport::backend::{TransportBackend, WasmMemory, WasmTransport},
     },
 };
 use serde_json::Value;
@@ -32,7 +32,7 @@ pub struct ProgramTest {
     /// validation.
     pub cargo_check: bool,
     /// Platforms for which the source program should be compiled.
-    pub platforms: Vec<AbiTransport>,
+    pub platforms: Vec<TransportBackend>,
 }
 
 /// Reuses one filesystem workspace and Cargo target directory across program
@@ -127,13 +127,13 @@ impl ProgramCompiler {
         let mut diagnostics = Vec::new();
         for (platform_index, &platform) in program.platforms.iter().enumerate() {
             let (platform_name, generated_dir_name) = match platform {
-                AbiTransport::Wasm(WasmTransport {
+                TransportBackend::Wasm(WasmTransport {
                     memory: WasmMemory::x32,
                 }) => ("wasm", "wasm"),
-                AbiTransport::Wasm(WasmTransport {
+                TransportBackend::Wasm(WasmTransport {
                     memory: WasmMemory::x64,
                 }) => ("wasm64", "wasm64"),
-                AbiTransport::Napi => ("node", "node"),
+                TransportBackend::Napi => ("node", "node"),
             };
             let generated_dir = workspace.generated_root.join(generated_dir_name);
             let (mut db, _, _) = load_workspace_at(
@@ -244,7 +244,7 @@ impl ProgramCompiler {
 fn write_generated_crate(
     generated_dir: &Path,
     source_dir: &Path,
-    platform: AbiTransport,
+    platform: TransportBackend,
     interface: &str,
 ) -> Result<(), String> {
     fs::create_dir_all(generated_dir.join("src"))
@@ -259,7 +259,7 @@ fn write_generated_crate(
         source_package_path: source_dir,
         runtime_path: Some(Path::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../rustier-rt"
+            "/../rustier-ext"
         ))),
         transport: platform,
     };

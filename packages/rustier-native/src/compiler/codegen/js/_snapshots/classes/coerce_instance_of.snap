@@ -49,7 +49,7 @@ const $facade__plain__10_test_crate__4_Test = class Test {
 		}
 		{
 			const result = cast.from(
-				"Abi(usize)"
+				"Transport(usize)"
 			).to(
 				"Facade(Class(Plain(FacadeClassPlain { src: StructType { def: Struct { hir: Struct { id: StructId(5001) } }, gen_args: [], origin: StructDeclaration(Struct { hir: Struct { id: StructId(5001) } }) } })))"
 			).an(

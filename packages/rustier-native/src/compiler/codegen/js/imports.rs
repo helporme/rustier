@@ -19,7 +19,7 @@ impl<'db> FacadeImportJs<'db> {
     #[salsa::tracked(returns(ref))]
     pub(super) fn render_path(self, db: &'db dyn Db, paths: JsCodegenPaths) -> String {
         let to_path = match self.item(db) {
-            FacadeImportItemJs::AbiFunction(_) => {
+            FacadeImportItemJs::TransportFunction(_) => {
                 return paths.abi_js_mod_id.as_str().to_owned();
             }
             FacadeImportItemJs::Runtime(export) => {
@@ -53,7 +53,7 @@ impl<'db> FacadeImportItemJs<'db> {
         let alias = match self {
             Self::FacadeClass(class) => Some(class.import_alias(db).as_str()),
             Self::Runtime(export) => Some(export.import_alias()),
-            Self::AbiFunction(_) => None,
+            Self::TransportFunction(_) => None,
         }
         .map(|alias| frag!(~as~{alias}));
 

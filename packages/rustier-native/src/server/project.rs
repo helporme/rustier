@@ -3,9 +3,9 @@ use std::path::{Path, PathBuf};
 use crate::compiler::{
     db::Db,
     ir::{
-        abi::transport::AbiTransport,
         facade::Facade,
         rust::{Crate, Rust, usages::UsageGraph},
+        transport::backend::TransportBackend,
     },
 };
 
@@ -35,10 +35,10 @@ pub struct ProjectConfig {
 
 impl<'a> Project<'a> {
     /// Bridge crate of the project.
-    pub fn bridge_crate(self, db: &'a dyn Db, transport: AbiTransport) -> BridgeCrate<'a> {
+    pub fn bridge_crate(self, db: &'a dyn Db, transport: TransportBackend) -> BridgeCrate<'a> {
         match transport {
-            AbiTransport::Napi => BridgeCrate::Node(BridgeCrateNode::new(db, self)),
-            AbiTransport::Wasm(transport) => {
+            TransportBackend::Napi => BridgeCrate::Node(BridgeCrateNode::new(db, self)),
+            TransportBackend::Wasm(transport) => {
                 BridgeCrate::Wasm(BridgeCrateWasm::new(db, self, transport))
             }
         }

@@ -5,7 +5,7 @@ expression: snapshot
 # Source
 
 ```rust
-use rustier_rt::js::JsEnv;
+use rustier_ext::runtime::js::JsEnv;
 pub struct Counter;
 impl Counter {
     pub fn combine(&self, left: i32, _env: JsEnv, right: i32) -> i32 {
@@ -24,55 +24,57 @@ pub fn __fn__associated__10_test_crate__7_Counter__7_combine(
     _1: f64,
     _2: f64,
 ) -> (u32, napi::bindgen_prelude::Either5<(), f64, bool, String, u64>) {
-    let __js_env = unsafe { rustier_rt::js::JsEnv::from_raw(__env.raw() as usize) };
+    let __js_env = unsafe {
+        rustier_ext::transport::JsEnvHandle::from_raw(__env.raw() as usize)
+    };
     let _0 = _0.get_u64().1 as usize;
-    enum __AbiReturn {
+    enum __TransportReturn {
         V0(f64),
         V1(String),
     }
-    let result: __AbiReturn = {
-        let result = (|| -> rustier_rt::CallResult<f64> {
+    let result: __TransportReturn = {
+        let result = (|| -> rustier_ext::runtime::errors::CallResult<f64> {
             Ok(
                 cast
                     .from(
                         "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(6c01)) }) })",
                     )
-                    .to("Abi(f64)")
+                    .to("Transport(f64)")
                     .an({
                         let _1 = cast
-                            .from("Abi(f64)")
+                            .from("Transport(f64)")
                             .to(
                                 "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(6c01)) }, index: 0 } })",
                             )
                             .an(_1);
                         {
                             let _2 = cast
-                                .from("Abi(f64)")
+                                .from("Transport(f64)")
                                 .to(
                                     "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(6c01)) }, index: 2 } })",
                                 )
                                 .an(_2);
                             {
                                 let _0 = cast
-                                    .from("Abi(usize)")
+                                    .from("Transport(usize)")
                                     .to(
                                         "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(6c01)) }) })",
                                     )
                                     .an(_0);
-                                test_crate::Counter::combine(_0, _1, __js_env, _2)
+                                test_crate::Counter::combine(_0, _1, __js_env.into(), _2)
                             }
                         }
                     }),
             )
         })();
         match result {
-            Ok(value) => __AbiReturn::V0(value),
-            Err(error) => __AbiReturn::V1(error.to_string()),
+            Ok(value) => __TransportReturn::V0(value),
+            Err(error) => __TransportReturn::V1(error.to_string()),
         }
     };
     match result {
-        __AbiReturn::V0(value) => (0u32, napi::bindgen_prelude::Either5::B(value)),
-        __AbiReturn::V1(value) => (1u32, napi::bindgen_prelude::Either5::D(value)),
+        __TransportReturn::V0(value) => (0u32, napi::bindgen_prelude::Either5::B(value)),
+        __TransportReturn::V1(value) => (1u32, napi::bindgen_prelude::Either5::D(value)),
     }
 }
 ```
@@ -85,55 +87,55 @@ pub fn __fn__associated__10_test_crate__7_Counter__7_combine(
     _1: f64,
     _2: f64,
 ) -> Vec<JsValue> {
-    let __js_env = unsafe { rustier_rt::js::JsEnv::from_raw(0) };
+    let __js_env = unsafe { rustier_ext::transport::JsEnvHandle::from_raw(0) };
     let _0 = _0 as usize;
-    enum __AbiReturn {
+    enum __TransportReturn {
         V0(f64),
         V1(String),
     }
-    let result: __AbiReturn = {
-        let result = (|| -> rustier_rt::CallResult<f64> {
+    let result: __TransportReturn = {
+        let result = (|| -> rustier_ext::runtime::errors::CallResult<f64> {
             Ok(
                 cast
                     .from(
                         "Rust(Type { origin: FunctionReturn(Function { hir: FunctionId(FunctionId(6c01)) }) })",
                     )
-                    .to("Abi(f64)")
+                    .to("Transport(f64)")
                     .an({
                         let _1 = cast
-                            .from("Abi(f64)")
+                            .from("Transport(f64)")
                             .to(
                                 "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(6c01)) }, index: 0 } })",
                             )
                             .an(_1);
                         {
                             let _2 = cast
-                                .from("Abi(f64)")
+                                .from("Transport(f64)")
                                 .to(
                                     "Rust(Type { origin: FunctionParameter { function: Function { hir: FunctionId(FunctionId(6c01)) }, index: 2 } })",
                                 )
                                 .an(_2);
                             {
                                 let _0 = cast
-                                    .from("Abi(usize)")
+                                    .from("Transport(usize)")
                                     .to(
                                         "Rust(Type { origin: FunctionReceiver(Function { hir: FunctionId(FunctionId(6c01)) }) })",
                                     )
                                     .an(_0);
-                                test_crate::Counter::combine(_0, _1, __js_env, _2)
+                                test_crate::Counter::combine(_0, _1, __js_env.into(), _2)
                             }
                         }
                     }),
             )
         })();
         match result {
-            Ok(value) => __AbiReturn::V0(value),
-            Err(error) => __AbiReturn::V1(error.to_string()),
+            Ok(value) => __TransportReturn::V0(value),
+            Err(error) => __TransportReturn::V1(error.to_string()),
         }
     };
     match result {
-        __AbiReturn::V0(value) => vec![JsValue::from(0u32), JsValue::from(value)],
-        __AbiReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
+        __TransportReturn::V0(value) => vec![JsValue::from(0u32), JsValue::from(value)],
+        __TransportReturn::V1(value) => vec![JsValue::from(1u32), JsValue::from(value)],
     }
 }
 ```

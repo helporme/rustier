@@ -7,8 +7,8 @@ use napi_derive::napi;
 
 use crate::{
     compiler::ir::{
-        abi::transport::{AbiTransport, WasmMemory, WasmTransport},
         runtime::RuntimeModule,
+        transport::backend::{TransportBackend, WasmMemory, WasmTransport},
     },
     server::{
         effects::Effect,
@@ -147,8 +147,8 @@ impl Server {
         let features = features.unwrap_or_default();
 
         let transport = match &platform {
-            ServerPlatform::Node { .. } => AbiTransport::Napi,
-            ServerPlatform::Wasm { .. } => AbiTransport::Wasm(WasmTransport {
+            ServerPlatform::Node { .. } => TransportBackend::Napi,
+            ServerPlatform::Wasm { .. } => TransportBackend::Wasm(WasmTransport {
                 memory: WasmMemory::x32,
             }),
         };
@@ -369,13 +369,13 @@ pub enum ServerPlatform {
     Node { target: Option<ServerNodeTarget> },
 }
 
-impl From<ServerPlatform> for AbiTransport {
+impl From<ServerPlatform> for TransportBackend {
     fn from(value: ServerPlatform) -> Self {
         match value {
-            ServerPlatform::Wasm { .. } => AbiTransport::Wasm(WasmTransport {
+            ServerPlatform::Wasm { .. } => TransportBackend::Wasm(WasmTransport {
                 memory: WasmMemory::x32,
             }),
-            ServerPlatform::Node { .. } => AbiTransport::Napi,
+            ServerPlatform::Node { .. } => TransportBackend::Napi,
         }
     }
 }

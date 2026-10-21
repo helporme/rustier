@@ -1,8 +1,8 @@
 [package]
-name = "rustier-rt"
+name = "rustier-ext"
 version = "0.0.1"
 edition = "2024"
-description = "Rustier runtime."
+description = "Rustier runtime and transport support."
 license = "MIT"
 repository = "https://github.com/helporme/rustier"
 

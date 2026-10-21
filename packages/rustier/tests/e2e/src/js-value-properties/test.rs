@@ -1,4 +1,4 @@
-use rustier_rt::js::{JsEnv, JsValue};
+use rustier_ext::runtime::js::{JsEnv, JsValue};
 
 use crate::fn_js_value::ValueStore;
 
