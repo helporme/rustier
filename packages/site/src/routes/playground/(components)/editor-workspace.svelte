@@ -1,14 +1,8 @@
-<script lang="ts" module>
-	const sources = [
-		{ id: 'lib.rs', label: 'lib.rs', language: 'rust' },
-		{ id: 'index.ts', label: 'index.ts', language: 'typescript' }
-	] as const;
-</script>
-
 <script lang="ts">
 	import * as Resizable from '#lib/ui/components/resizable';
 	import EditorPane from './editor-pane.svelte';
 	import InspectionPane from './inspection-pane.svelte';
+	import SourcePane from './source-pane.svelte';
 	import type { Playground } from './playground.svelte';
 
 	let {
@@ -24,42 +18,34 @@
 	const snap = new Resizable.CenterSnap();
 </script>
 
-{#snippet sourceEditor()}
-	<EditorPane
-		label="Source files"
-		tabs={sources}
-		bind:selected={playground.sourceTab}
-		language={playground.sourceTab === 'lib.rs' ? 'rust' : 'typescript'}
-		filename={playground.sourceTab}
-		bind:value={
-			() => (playground.sourceTab === 'lib.rs' ? rust : typescript),
-			(value) => {
-				if (playground.sourceTab === 'lib.rs') rust = value;
-				else typescript = value;
-			}
-		}
-	/>
-{/snippet}
-
-{#if !playground.inspect}
-	<div class="h-full min-h-0 min-w-0 md:hidden">
-		{#key playground.selected}
-			{@render sourceEditor()}
-		{/key}
-	</div>
-{/if}
+<div class="h-full min-h-0 min-w-0 md:hidden">
+	{#key playground.selected}
+		<SourcePane
+			inspector={playground.inspector}
+			inspect={playground.inspect}
+			bind:selected={playground.mobileTab}
+			bind:rust
+			bind:typescript
+		/>
+	{/key}
+</div>
 
 <Resizable.PaneGroup
 	bind:ref={snap.group}
-	direction={playground.direction}
+	direction="horizontal"
 	keyboardResizeBy={5}
 	onLayoutChange={snap.onLayoutChange}
-	class={playground.inspect ? 'max-md:flex-col!' : 'hidden! md:flex!'}
+	class="hidden! md:flex!"
 >
 	<Resizable.Pane bind:this={snap.pane} defaultSize={50} minSize={20} class="min-h-0 min-w-0">
 		{#key playground.selected}
 			{#if playground.inspect}
-				{@render sourceEditor()}
+				<SourcePane
+					inspector={playground.inspector}
+					bind:selected={playground.sourceTab}
+					bind:rust
+					bind:typescript
+				/>
 			{:else}
 				<EditorPane language="rust" filename="lib.rs" bind:value={rust} />
 			{/if}
@@ -67,8 +53,8 @@
 	</Resizable.Pane>
 	<Resizable.Handle
 		aria-label="Resize editors"
-		aria-orientation={playground.direction === 'horizontal' ? 'vertical' : 'horizontal'}
-		class="focus-visible:ring-rust data-[active=pointer]:bg-rust data-[active=pointer]:ring-rust max-md:h-px! max-md:w-full!"
+		aria-orientation="vertical"
+		class="focus-visible:ring-rust data-[active=pointer]:bg-rust data-[active=pointer]:ring-rust"
 	/>
 	<Resizable.Pane defaultSize={50} minSize={20} class="min-h-0 min-w-0">
 		{#key playground.selected}

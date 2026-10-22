@@ -16,7 +16,7 @@
 	/>
 </svelte:head>
 
-<div class="flex min-h-svh flex-col overflow-clip bg-rust-surface text-on-ink-surface">
+<div class="flex min-h-dvh flex-col overflow-clip bg-rust-surface text-on-ink-surface">
 	<SiteHeader />
 	<main
 		id="introduction"

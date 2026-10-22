@@ -38,5 +38,5 @@ services:
           action: rebuild
         - path: ../rustier-native/src
           action: rebuild
-        - path: ../rustier-rt/src
+        - path: ../rustier-ext/src
           action: rebuild

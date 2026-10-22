@@ -87,7 +87,7 @@ export async function compilerFingerprint(architecture) {
 	for (const name of [
 		'packages/rustier',
 		'packages/rustier-native',
-		'packages/rustier-rt',
+		'packages/rustier-ext',
 		'packages/site-compiler-service',
 		'rust-toolchain.toml',
 		'pnpm-workspace.yaml'
@@ -192,7 +192,12 @@ async function main() {
 	remote(
 		'if systemctl is-active --quiet rustier-ufw-rollback.timer; then systemctl stop rustier-ufw-rollback.timer; fi'
 	);
-	if (!compilerPresent) await transferImage(compilerImage, ssh);
+	if (!compilerPresent) {
+		// Docker image save needs temporary disk space. Release unused local build
+		// cache before exporting, without pruning images, containers, or volumes.
+		run('docker', ['builder', 'prune', '--force']);
+		await transferImage(compilerImage, ssh);
+	}
 	const release = `${Date.now()}-${randomBytes(6).toString('hex')}`;
 	const staging = path.join(repo, 'packages/site/.deploy', release);
 	await fs.mkdir(path.join(staging, 'site'), { recursive: true });

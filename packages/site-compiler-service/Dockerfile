@@ -26,7 +26,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml rust-toolchain.toml LICENSE README.md ./
 COPY packages/rustier/ ./packages/rustier/
 COPY packages/rustier-native/ ./packages/rustier-native/
-COPY packages/rustier-rt/ ./packages/rustier-rt/
+COPY packages/rustier-ext/ ./packages/rustier-ext/
 COPY packages/site-compiler-service/package.json ./packages/site-compiler-service/
 RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN cargo fetch --locked --manifest-path packages/rustier-native/Cargo.toml
@@ -47,8 +47,8 @@ COPY --from=toolchain /opt/cargo/bin /opt/cargo/bin
 COPY --from=toolchain /opt/cargo/registry /opt/cargo/registry
 COPY --from=toolchain --chown=node:node /opt/playground /opt/playground
 COPY --from=toolchain /compiler /app/packages/site-compiler-service
-COPY --from=toolchain /app/packages/rustier-rt/Cargo.toml /app/packages/rustier-rt/Cargo.toml
-COPY --from=toolchain /app/packages/rustier-rt/src /app/packages/rustier-rt/src
+COPY --from=toolchain /app/packages/rustier-ext/Cargo.toml /app/packages/rustier-ext/Cargo.toml
+COPY --from=toolchain /app/packages/rustier-ext/src /app/packages/rustier-ext/src
 RUN mkdir -p /work /tmp /proc /dev /app/packages/rustier-native
 
 FROM ${NODE_IMAGE} AS compiler

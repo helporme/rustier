@@ -8,6 +8,7 @@ export class Playground {
 	#desktop = new MediaQuery('(min-width: 48rem)', true);
 
 	sourceTab = $state('lib.rs');
+	mobileTab = $state('lib.rs');
 	outputTab = $state('js_code');
 	selected = $state<string>(examples[0].id);
 	drafts = $state(
