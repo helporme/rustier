@@ -1,12 +1,20 @@
 <script lang="ts" module>
-	import { Logo, ViteIcon, TsdownIcon, WasmIcon, NodeIcon } from '#lib/ui/components/icons';
+	import {
+		Logo,
+		ViteIcon,
+		TsdownIcon,
+		WasmIcon,
+		NodeIcon,
+		GithubIcon
+	} from '#lib/ui/components/icons';
 
 	const icons = [
 		{ name: 'Logo', component: Logo },
 		{ name: 'ViteIcon', component: ViteIcon },
 		{ name: 'TsdownIcon', component: TsdownIcon },
 		{ name: 'WasmIcon', component: WasmIcon },
-		{ name: 'NodeIcon', component: NodeIcon }
+		{ name: 'NodeIcon', component: NodeIcon },
+		{ name: 'GithubIcon', component: GithubIcon }
 	];
 </script>
 

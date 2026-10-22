@@ -24,30 +24,42 @@
 	const snap = new Resizable.CenterSnap();
 </script>
 
+{#snippet sourceEditor()}
+	<EditorPane
+		label="Source files"
+		tabs={sources}
+		bind:selected={playground.sourceTab}
+		language={playground.sourceTab === 'lib.rs' ? 'rust' : 'typescript'}
+		filename={playground.sourceTab}
+		bind:value={
+			() => (playground.sourceTab === 'lib.rs' ? rust : typescript),
+			(value) => {
+				if (playground.sourceTab === 'lib.rs') rust = value;
+				else typescript = value;
+			}
+		}
+	/>
+{/snippet}
+
+{#if !playground.inspect}
+	<div class="h-full min-h-0 min-w-0 md:hidden">
+		{#key playground.selected}
+			{@render sourceEditor()}
+		{/key}
+	</div>
+{/if}
+
 <Resizable.PaneGroup
 	bind:ref={snap.group}
 	direction={playground.direction}
 	keyboardResizeBy={5}
 	onLayoutChange={snap.onLayoutChange}
-	class="max-md:flex-col!"
+	class={playground.inspect ? 'max-md:flex-col!' : 'hidden! md:flex!'}
 >
 	<Resizable.Pane bind:this={snap.pane} defaultSize={50} minSize={20} class="min-h-0 min-w-0">
 		{#key playground.selected}
 			{#if playground.inspect}
-				<EditorPane
-					label="Source files"
-					tabs={sources}
-					bind:selected={playground.sourceTab}
-					language={playground.sourceTab === 'lib.rs' ? 'rust' : 'typescript'}
-					filename={playground.sourceTab}
-					bind:value={
-						() => (playground.sourceTab === 'lib.rs' ? rust : typescript),
-						(value) => {
-							if (playground.sourceTab === 'lib.rs') rust = value;
-							else typescript = value;
-						}
-					}
-				/>
+				{@render sourceEditor()}
 			{:else}
 				<EditorPane language="rust" filename="lib.rs" bind:value={rust} />
 			{/if}

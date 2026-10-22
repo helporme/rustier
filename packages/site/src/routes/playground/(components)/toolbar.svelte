@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Play } from '@lucide/svelte';
+	import { Microscope, Play } from '@lucide/svelte';
 	import { Logo } from '#lib/ui/components/icons';
 	import { Button } from '#lib/ui/components/button';
 	import { Toggle } from '#lib/ui/components/toggle';
@@ -23,23 +23,22 @@
 </script>
 
 <header
-	class="flex min-h-15 shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-ink-outline bg-rust-surface px-6 py-2 text-on-ink-surface"
+	class="flex min-h-15 shrink-0 items-center justify-between gap-2 border-b border-ink-outline bg-rust-surface px-3 py-2 text-on-ink-surface sm:gap-4 sm:px-6"
 >
-	<div class="flex min-w-0 flex-wrap items-center gap-x-6 gap-y-2">
-		<h1 class="flex items-center gap-3">
-			<a
-				href={resolve('/')}
-				aria-label="Rustier home"
-				class="flex items-center gap-2 [view-transition-name:rustier-logo]"
-			>
-				<Logo class="size-10" aria-hidden="true" />
-				<span class="font-brand text-wordmark">rustier</span>
+	<div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
+		<h1 class="flex shrink-0 items-center gap-3">
+			<a href={resolve('/')} aria-label="Rustier home" class="flex items-center gap-2">
+				<Logo class="size-10 [view-transition-name:rustier-logo]" aria-hidden="true" />
+				<span
+					class="hidden font-brand text-wordmark [view-transition-name:rustier-wordmark] sm:inline"
+					>rustier</span
+				>
 			</a>
 			<span class="sr-only">playground</span>
 		</h1>
 		<span id="example-label" class="sr-only">Example</span>
 		<Select.Root type="single" bind:value={selected} allowDeselect={false}>
-			<Select.Trigger aria-labelledby="example-label" class="w-52">
+			<Select.Trigger aria-labelledby="example-label" class="w-52 max-w-full shrink px-2 sm:px-3.5">
 				{current?.name ?? 'Choose an example'}
 			</Select.Trigger>
 			<Select.Content>
@@ -58,11 +57,25 @@
 			</Select.Content>
 		</Select.Root>
 	</div>
-	<div class="flex items-center gap-3.5">
-		<Toggle variant="alternative" bind:pressed={inspect}>Inspect</Toggle>
-		<Button onclick={onrun} disabled={pending} aria-busy={pending}>
+	<div class="flex shrink-0 items-center gap-2">
+		<Toggle
+			variant="alternative"
+			bind:pressed={inspect}
+			aria-label="Inspect"
+			class="w-10 px-0 min-[30rem]:w-auto min-[30rem]:px-3 sm:px-5"
+		>
+			<Microscope aria-hidden="true" class="size-4" />
+			<span class="hidden min-[30rem]:inline">Inspect</span>
+		</Toggle>
+		<Button
+			onclick={onrun}
+			disabled={pending}
+			aria-busy={pending}
+			aria-label={pending ? 'Running…' : 'Run'}
+			class="w-10 px-0 min-[30rem]:w-auto min-[30rem]:px-5"
+		>
 			<Play aria-hidden="true" class="size-3 fill-current" />
-			{pending ? 'Running…' : 'Run'}
+			<span class="hidden min-[30rem]:inline">{pending ? 'Running…' : 'Run'}</span>
 		</Button>
 	</div>
 </header>
