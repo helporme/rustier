@@ -3,23 +3,34 @@
 	import { Logo } from '#lib/ui/components/icons';
 	import { Button } from '#lib/ui/components/button';
 	import { Toggle } from '#lib/ui/components/toggle';
-	import * as Select from '#lib/ui/components/select';
 	import { resolve } from '$app/paths';
-	import { examples, exampleGroups } from './examples';
+	import ExamplePicker from './examples/example-picker.svelte';
+	import SavePopover from './snippets/save-popover.svelte';
+	import type { SavedSnippets } from './snippets/saved-snippets.svelte';
 
 	let {
-		selected = $bindable(),
+		selected,
+		title,
+		saved,
 		inspect = $bindable(false),
 		pending = false,
+		saving = false,
+		copied = false,
+		saveError = '',
+		onsave,
 		onrun
 	}: {
 		selected: string;
+		title: string;
+		saved: SavedSnippets;
 		inspect: boolean;
 		pending?: boolean;
+		saving?: boolean;
+		copied?: boolean;
+		saveError?: string;
+		onsave: (title: string, copy: boolean) => Promise<boolean>;
 		onrun: () => void;
 	} = $props();
-
-	const current = $derived(examples.find((example) => example.id === selected));
 </script>
 
 <header
@@ -36,28 +47,10 @@
 			</a>
 			<span class="sr-only">playground</span>
 		</h1>
-		<span id="example-label" class="sr-only">Example</span>
-		<Select.Root type="single" bind:value={selected} allowDeselect={false}>
-			<Select.Trigger aria-labelledby="example-label" class="w-52 max-w-full shrink px-2 sm:px-3.5">
-				{current?.name ?? 'Choose an example'}
-			</Select.Trigger>
-			<Select.Content>
-				{#each exampleGroups as group (group.topic)}
-					<Select.Group class="not-first:mt-2 not-first:border-t not-first:border-ink-outline">
-						<Select.GroupHeading
-							class="px-3 pt-2 pb-1 text-ui font-bold text-on-ink-surface-variant"
-						>
-							{group.topic}
-						</Select.GroupHeading>
-						{#each group.examples as example (example.id)}
-							<Select.Item value={example.id} label={example.name} />
-						{/each}
-					</Select.Group>
-				{/each}
-			</Select.Content>
-		</Select.Root>
+		<ExamplePicker {selected} {title} {saved} />
 	</div>
 	<div class="flex shrink-0 items-center gap-2">
+		<SavePopover {title} {saving} {copied} error={saveError} {onsave} />
 		<Toggle
 			variant="alternative"
 			bind:pressed={inspect}

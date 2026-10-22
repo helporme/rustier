@@ -50,7 +50,7 @@
 						><NodeIcon class="mr-1" />Node.js addons.</span
 					>
 				</p>
-				<Button href={resolve('/playground')} size="lg"
+				<Button href={resolve('/playground/[[slug]]', {})} size="lg"
 					>Try the playground <ArrowUpRight aria-hidden="true" class="size-4" /></Button
 				>
 			</div>

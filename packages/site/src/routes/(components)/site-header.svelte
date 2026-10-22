@@ -25,7 +25,11 @@
 			<span class="hidden sm:inline">GitHub</span>
 			<ArrowUpRight aria-hidden="true" class="hidden size-4 sm:block" />
 		</a>
-		<Button href={resolve('/playground')} variant="outline" class="hidden md:inline-flex">
+		<Button
+			href={resolve('/playground/[[slug]]', {})}
+			variant="outline"
+			class="hidden md:inline-flex"
+		>
 			Playground <ArrowUpRight aria-hidden="true" class="size-4" />
 		</Button>
 	</nav>

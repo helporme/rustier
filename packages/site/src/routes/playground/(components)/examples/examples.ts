@@ -1,6 +1,6 @@
 export const examples = [
 	{
-		id: 'hello',
+		id: 'hello-world',
 		name: 'Hello world',
 		topic: 'Getting started',
 		rust: `pub fn greet(name: &str) -> String {

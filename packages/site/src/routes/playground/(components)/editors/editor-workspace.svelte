@@ -3,7 +3,7 @@
 	import EditorPane from './editor-pane.svelte';
 	import InspectionPane from './inspection-pane.svelte';
 	import SourcePane from './source-pane.svelte';
-	import type { Playground } from './playground.svelte';
+	import type { Playground } from '../playground.svelte';
 
 	let {
 		playground,

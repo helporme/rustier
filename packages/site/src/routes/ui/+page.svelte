@@ -10,6 +10,7 @@
 	import IconExamples from './(components)/icon-examples.svelte';
 	import TabsExamples from './(components)/tabs-examples.svelte';
 	import ToggleExamples from './(components)/toggle-examples.svelte';
+	import PopoverExamples from './(components)/popover-examples.svelte';
 </script>
 
 <svelte:head>
@@ -21,13 +22,16 @@
 		<h1 class="font-brand text-3xl">UI playground</h1>
 		<div class="flex flex-wrap items-center gap-3">
 			<ThemeToggle />
-			<Button href={resolve('/playground')} variant="outline">Back to playground</Button>
+			<Button href={resolve('/playground/[[slug]]', {})} variant="outline">
+				Back to playground
+			</Button>
 		</div>
 	</header>
 	<ThemeExamples />
 	<IconExamples />
 	<ButtonExamples />
 	<ToggleExamples />
+	<PopoverExamples />
 	<SelectExamples />
 	<TabsExamples />
 	<EditorExamples />
