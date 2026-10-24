@@ -1,5 +1,5 @@
 #[cfg(not(target_family = "wasm"))]
-pub mod node;
+mod node;
 #[cfg(target_family = "wasm")]
 pub mod wasm;
 

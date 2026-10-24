@@ -1,0 +1,50 @@
+---
+source: src/codegen/test.rs
+expression: output
+---
+# Source
+
+```tsx
+
+import { rs } from "rustier";
+rs`r#"a\nb"#`;
+rs`"\u{1f600}"`;
+```
+
+# Macros
+
+__rustier_2f696e7075742e747378_0: 31..44
+__rustier_2f696e7075742e747378_1: 46..61
+
+# Wasm
+
+```rust
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __rustier_2f696e7075742e747378_0(
+    __rustier_env_raw: usize,
+) -> u32 {
+    let __rustier_env = ::runtime_next::runtime::js::JsEnv::from(unsafe {
+        ::runtime_next::transport::JsEnvHandle::from_raw(__rustier_env_raw)
+    });
+    ::runtime_next::runtime::rust_handles::validate_distinct(&[])
+        .expect("cannot move the same Rust handle twice");
+    let __rustier_output: ::runtime_next::runtime::js::JsValue = (|| -> ::runtime_next::runtime::js::JsValue {
+        r#"a\nb"#
+    })();
+    ::runtime_next::transport::JsValueHandle::from(__rustier_output).into_raw()
+}
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __rustier_2f696e7075742e747378_1(
+    __rustier_env_raw: usize,
+) -> u32 {
+    let __rustier_env = ::runtime_next::runtime::js::JsEnv::from(unsafe {
+        ::runtime_next::transport::JsEnvHandle::from_raw(__rustier_env_raw)
+    });
+    ::runtime_next::runtime::rust_handles::validate_distinct(&[])
+        .expect("cannot move the same Rust handle twice");
+    let __rustier_output: ::runtime_next::runtime::js::JsValue = (|| -> ::runtime_next::runtime::js::JsValue {
+        "\u{1f600}"
+    })();
+    ::runtime_next::transport::JsValueHandle::from(__rustier_output).into_raw()
+}
+```
