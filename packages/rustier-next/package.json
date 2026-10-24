@@ -1,0 +1,36 @@
+{
+  "name": "rustier-next",
+  "version": "0.0.1",
+  "description": "Inline Rust snippets for JavaScript and TypeScript builds.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/helporme/rustier.git",
+    "directory": "packages/rustier-next"
+  },
+  "type": "module",
+  "files": ["dist"],
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./tsdown": "./dist/tsdown.mjs"
+  },
+  "scripts": {
+    "build:native": "pnpm --dir ../server-next run build",
+    "build:ts": "tsdown",
+    "build": "pnpm run build:native && pnpm run build:ts",
+    "build:release": "pnpm --dir ../server-next run build:release && pnpm run build:ts"
+  },
+  "dependencies": {
+    "server-next": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "rolldown": "^1.0.0",
+    "tsdown": "^0.22.0",
+    "typescript": "^6.0.2"
+  },
+  "peerDependencies": {
+    "rolldown": "^1.0.0",
+    "tsdown": "^0.22.0"
+  }
+}

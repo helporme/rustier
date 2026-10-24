@@ -60,7 +60,9 @@ fn macros<'db>(db: &'db dyn Db, file: JsFile) -> Result<Vec<Macro<'db>>, Vec<JsD
         let AstKind::ImportDeclaration(import) = node.kind() else {
             continue;
         };
-        if import.source.value != "rustier" || import.import_kind == ImportOrExportKind::Type {
+        if !matches!(import.source.value.as_str(), "rustier" | "rustier-next")
+            || import.import_kind == ImportOrExportKind::Type
+        {
             continue;
         }
         for specifier in import.specifiers.iter().flatten() {

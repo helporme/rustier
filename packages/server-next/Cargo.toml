@@ -6,5 +6,17 @@ description = "Rustier's snippet-based compiler server."
 license = "MIT"
 repository = "https://github.com/helporme/rustier"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 compiler = { package = "compiler-next", path = "../compiler-next" }
+runtime-next = { path = "../runtime-next" }
+salsa = "=0.27.2"
+napi = { version = "3", default-features = false, features = ["napi6", "serde-json"] }
+napi-derive = "3"
+serde_json = "1"
+toml = "0.9"
+
+[build-dependencies]
+napi-build = "2"

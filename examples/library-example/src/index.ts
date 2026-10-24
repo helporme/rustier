@@ -1,6 +1,10 @@
-import { greet } from "./lib.rs";
+import { rs } from "rustier";
 
-let value = greet();
-if (value.type === "some") {
-  console.log(value[0])
+export function greet(): string {
+  return rs`
+    let js = ${undefined};
+    js.env().new_string(library_example::greet().unwrap())
+  `;
 }
+
+console.log(greet());

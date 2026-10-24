@@ -1,0 +1,20 @@
+{
+  "name": "server-next",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/server-next.js",
+  "types": "dist/server-next.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "napi build --manifest-path Cargo.toml --platform --esm --js server-next.js --dts server-next.d.ts --output-dir dist",
+    "build:release": "pnpm run build --release"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.6.2"
+  },
+  "napi": {
+    "binaryName": "server-next",
+    "targets": []
+  }
+}

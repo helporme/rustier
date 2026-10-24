@@ -11,8 +11,8 @@ importers:
   examples/library-example:
     devDependencies:
       rustier:
-        specifier: workspace:*
-        version: link:../../packages/rustier
+        specifier: workspace:rustier-next@*
+        version: link:../../packages/rustier-next
       tsdown:
         specifier: ^0.22.0
         version: 0.22.14(publint@0.3.25)(typescript@6.0.3)(unrun@0.2.39)
@@ -103,7 +103,26 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^3.6.2
-        version: 3.10.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
+        version: 3.10.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@25.9.9)
+
+  packages/rustier-next:
+    dependencies:
+      server-next:
+        specifier: workspace:*
+        version: link:../server-next
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.2
+        version: 25.9.9
+      rolldown:
+        specifier: ^1.0.0
+        version: 1.2.13
+      tsdown:
+        specifier: ^0.22.0
+        version: 0.22.14(publint@0.3.25)(typescript@6.0.3)(unrun@0.2.39)
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
 
   packages/rustier/tests/e2e:
     devDependencies:
@@ -116,6 +135,12 @@ importers:
       vitest:
         specifier: ^4.1.7
         version: 4.1.11(@types/node@25.9.9)(vite@8.3.4(@types/node@25.9.9)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/server-next:
+    devDependencies:
+      '@napi-rs/cli':
+        specifier: ^3.6.2
+        version: 3.10.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@25.9.9)
 
   packages/site:
     dependencies:
@@ -3529,7 +3554,7 @@ snapshots:
 
   '@marijn/find-cluster-break@1.0.4': {}
 
-  '@napi-rs/cli@3.10.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
+  '@napi-rs/cli@3.10.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@25.9.9)':
     dependencies:
       '@inquirer/prompts': 8.7.3(@types/node@25.9.9)
       '@napi-rs/cross-toolchain': 1.0.3
