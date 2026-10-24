@@ -1,0 +1,10 @@
+[package]
+name = "server-next"
+version = "0.0.1"
+edition = "2024"
+description = "Rustier's snippet-based compiler server."
+license = "MIT"
+repository = "https://github.com/helporme/rustier"
+
+[dependencies]
+compiler = { package = "compiler-next", path = "../compiler-next" }
