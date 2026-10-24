@@ -1,0 +1,10 @@
+[package]
+name = "runtime-next"
+version = "0.0.1"
+edition = "2024"
+description = "Rustier snippet runtime and transport support."
+license = "MIT"
+repository = "https://github.com/helporme/rustier"
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+napi-sys = { version = "3", default-features = false, features = ["napi10"] }
