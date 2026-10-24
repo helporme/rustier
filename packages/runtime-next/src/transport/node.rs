@@ -1,16 +1,29 @@
 //! Low-level handles for Node.js environments and values.
 
-use std::{ffi::CStr, marker::PhantomData, ptr, rc::Rc};
+use std::{
+    ffi::{CStr, CString},
+    marker::PhantomData,
+    panic::{AssertUnwindSafe, catch_unwind},
+    ptr,
+    rc::Rc,
+    sync::Once,
+};
+
+pub use napi_sys::{
+    napi_callback as Callback, napi_callback_info as CallbackInfo, napi_env as Env,
+    napi_value as Value,
+};
 
 use napi_sys::{
     Status, ValueType, napi_call_function, napi_close_handle_scope, napi_create_double,
-    napi_create_object, napi_create_reference, napi_create_string_utf8, napi_create_symbol,
-    napi_create_type_error, napi_delete_reference, napi_env, napi_get_and_clear_last_exception,
-    napi_get_array_length, napi_get_boolean, napi_get_element, napi_get_global,
-    napi_get_named_property, napi_get_null, napi_get_reference_value, napi_get_undefined,
-    napi_get_value_bool, napi_get_value_double, napi_get_value_string_utf8, napi_handle_scope,
-    napi_is_exception_pending, napi_new_instance, napi_open_handle_scope, napi_ref,
-    napi_reference_ref, napi_reference_unref, napi_status, napi_strict_equals, napi_typeof,
+    napi_create_function, napi_create_object, napi_create_reference, napi_create_string_utf8,
+    napi_create_symbol, napi_create_type_error, napi_delete_reference, napi_env,
+    napi_get_and_clear_last_exception, napi_get_array_length, napi_get_boolean, napi_get_cb_info,
+    napi_get_element, napi_get_global, napi_get_named_property, napi_get_null,
+    napi_get_reference_value, napi_get_undefined, napi_get_value_bool, napi_get_value_double,
+    napi_get_value_string_utf8, napi_handle_scope, napi_is_exception_pending, napi_new_instance,
+    napi_open_handle_scope, napi_ref, napi_reference_ref, napi_reference_unref,
+    napi_set_named_property, napi_status, napi_strict_equals, napi_throw_error, napi_typeof,
     napi_value, napi_valuetype,
 };
 
@@ -94,7 +107,12 @@ impl ValueHandle {
             raw: call(|output| unsafe { napi_open_handle_scope(env, output) }),
         };
         let value = call(|output| create(env, output));
-        let reference = call(|output| unsafe { napi_create_reference(env, value, 1, output) });
+        let root = call(|output| unsafe { napi_create_object(env, output) });
+        let status = unsafe { napi_set_named_property(env, root, c"value".as_ptr(), value) };
+        if status != Status::napi_ok {
+            panic!("Node-API operation failed with status {status}");
+        }
+        let reference = call(|output| unsafe { napi_create_reference(env, root, 1, output) });
 
         Self {
             raw: reference,
@@ -107,13 +125,19 @@ impl ValueHandle {
         self.env
     }
 
+    fn value(&self, env: napi_env) -> napi_value {
+        let root = call(|output| unsafe { napi_get_reference_value(env, self.raw, output) });
+
+        call(|output| unsafe { napi_get_named_property(env, root, c"value".as_ptr(), output) })
+    }
+
     fn with_value<T>(&self, read: impl FnOnce(napi_env, napi_value) -> T) -> T {
         let env = self.env.into_raw() as napi_env;
         let _scope = HandleScope {
             env,
             raw: call(|output| unsafe { napi_open_handle_scope(env, output) }),
         };
-        let value = call(|output| unsafe { napi_get_reference_value(env, self.raw, output) });
+        let value = self.value(env);
 
         read(env, value)
     }
@@ -194,7 +218,7 @@ impl ValueHandle {
         }
 
         self.with_value(|env, value| {
-            let other = call(|output| unsafe { napi_get_reference_value(env, other.raw, output) });
+            let other = other.value(env);
 
             call(|output| unsafe { napi_strict_equals(env, value, other, output) })
         })
@@ -321,9 +345,7 @@ impl ValueHandle {
                     ));
                 }
 
-                checked(self.env, |output| unsafe {
-                    napi_get_reference_value(env, value.raw, output)
-                })
+                Ok(value.value(env))
             })
             .collect()
     }
@@ -357,9 +379,7 @@ impl ValueHandle {
         self.with_value(|env, function| {
             let args = self.arguments(env, args)?;
             let this = match this {
-                Some(value) => checked(self.env, |output| unsafe {
-                    napi_get_reference_value(env, value.raw, output)
-                })?,
+                Some(value) => value.value(env),
                 None => checked(self.env, |output| unsafe {
                     napi_get_undefined(env, output)
                 })?,
@@ -425,7 +445,7 @@ impl ValueHandle {
     /// The returned value must not be used after that scope closes.
     pub unsafe fn into_napi_value(self) -> usize {
         let env = self.env.into_raw() as napi_env;
-        let value = call(|output| unsafe { napi_get_reference_value(env, self.raw, output) });
+        let value = self.value(env);
 
         value as usize
     }
@@ -541,4 +561,115 @@ fn call<T: Default>(operation: impl FnOnce(*mut T) -> napi_status) -> T {
     }
 
     output
+}
+
+pub fn initialize() {
+    static INIT: Once = Once::new();
+    INIT.call_once(|| {
+        std::mem::forget(unsafe { napi_sys::setup() });
+    });
+}
+
+/// # Safety
+///
+/// `env` and `exports` must belong to the current Node-API callback scope.
+/// `callback` must be valid for the lifetime of the loaded addon.
+pub unsafe fn register(env: Env, exports: Value, name: &CStr, callback: Callback) {
+    let function = call(|output| unsafe {
+        napi_create_function(
+            env,
+            name.as_ptr(),
+            name.to_bytes().len() as isize,
+            callback,
+            ptr::null_mut(),
+            output,
+        )
+    });
+    let status = unsafe { napi_set_named_property(env, exports, name.as_ptr(), function) };
+    if status != Status::napi_ok {
+        panic!("Node-API operation failed with status {status}");
+    }
+}
+
+/// # Safety
+///
+/// `env` must be live on the current thread with a Node-API scope open.
+/// `invoke` must return a `napi_value` belonging to that scope and environment.
+pub unsafe fn guard(env: Env, invoke: impl FnOnce() -> usize) -> Value {
+    match catch_unwind(AssertUnwindSafe(invoke)) {
+        Ok(value) => value as Value,
+        Err(error) => {
+            let message = error
+                .downcast_ref::<String>()
+                .map(String::as_str)
+                .or_else(|| error.downcast_ref::<&str>().copied())
+                .unwrap_or("Rust snippet panicked");
+            let message = CString::new(message.replace('\0', "\\0")).unwrap();
+
+            unsafe {
+                napi_throw_error(env, ptr::null(), message.as_ptr());
+            }
+            ptr::null_mut()
+        }
+    }
+}
+
+/// # Safety
+///
+/// `env` and `info` must be the arguments of the current Node-API callback.
+/// `invoke` must return a `napi_value` in the current scope and environment.
+pub unsafe fn callback<const N: usize>(
+    env: Env,
+    info: CallbackInfo,
+    invoke: impl FnOnce(usize, [usize; N]) -> usize,
+) -> Value {
+    unsafe {
+        guard(env, || {
+            let mut count = N;
+            let mut arguments = [ptr::null_mut(); N];
+            let status = napi_get_cb_info(
+                env,
+                info,
+                &mut count,
+                arguments.as_mut_ptr(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+            );
+            if status != Status::napi_ok {
+                panic!("Node-API operation failed with status {status}");
+            }
+            if count < N {
+                panic!("expected at least {N} arguments");
+            }
+
+            invoke(env as usize, arguments.map(|value| value as usize))
+        })
+    }
+}
+
+/// # Safety
+///
+/// A Node-API scope for `env` must be open on the current JavaScript thread.
+pub unsafe fn export(value: ValueHandle, env: usize) -> usize {
+    if value.env().into_raw() != env {
+        panic!("JsValue belongs to another JavaScript environment");
+    }
+
+    unsafe { value.into_napi_value() }
+}
+
+pub unsafe extern "C" fn drop_rust_handle(env: Env, info: CallbackInfo) -> Value {
+    unsafe {
+        callback::<1>(env, info, |raw_env, arguments| {
+            let env = EnvHandle::from_raw(raw_env);
+            let value =
+                crate::runtime::js::JsValue::from(ValueHandle::from_napi_value(arguments[0], env));
+            let handle = value.as_u32().expect("expected a Rust handle ID");
+            let released = crate::runtime::rust_handles::RustHandle::from_raw(handle)
+                .release()
+                .is_ok();
+
+            env.new_boolean(released).into_napi_value()
+        })
+    }
 }

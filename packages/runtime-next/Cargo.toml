@@ -7,4 +7,4 @@ license = "MIT"
 repository = "https://github.com/helporme/rustier"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-napi-sys = { version = "3", default-features = false, features = ["napi10"] }
+napi-sys = { version = "3", default-features = false, features = ["napi10", "dyn-symbols"] }

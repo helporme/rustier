@@ -1,7 +1,7 @@
 #[cfg(not(target_family = "wasm"))]
-mod node;
+pub mod node;
 #[cfg(target_family = "wasm")]
-mod wasm;
+pub mod wasm;
 
 #[cfg(not(target_family = "wasm"))]
 pub use node::{EnvHandle as JsEnvHandle, ValueHandle as JsValueHandle};
