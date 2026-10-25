@@ -1,0 +1,22 @@
+---
+source: src/codegen/js_transform.rs
+expression: output
+---
+# Source
+
+```tsx
+#!/usr/bin/env node
+import { rs } from 'rustier';
+const __rustier_ffi = 1;
+rs`${__rustier_ffi}`;
+```
+
+# Result
+
+```tsx
+#!/usr/bin/env node
+import * as __rustier_ffi_ from "rustier-next:runtime";
+import { rs } from 'rustier';
+const __rustier_ffi = 1;
+__rustier_ffi_.__rustier_8edf2a92b93d1e58764933cd47b6f366f9c8466cccef8b18f299da6e6e9b544d((__rustier_ffi));
+```

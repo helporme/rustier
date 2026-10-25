@@ -1,0 +1,17 @@
+---
+source: src/codegen/js_transform.rs
+expression: output
+---
+# Source
+
+```tsx
+import { rs } from 'another-library';
+rs`not a Rust snippet`;
+```
+
+# Result
+
+```tsx
+import { rs } from 'another-library';
+rs`not a Rust snippet`;
+```

@@ -1,15 +1,17 @@
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     fs,
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::Command,
 };
 
 use compiler::{
+    codegen::{TransportBackend, TransportBackendWasm, TransportCodegenOpts, WasmImport},
     db::RootDatabase,
-    ir::{JsFile, Macro, Part, SourceRange, Transport},
+    diag::Theme,
+    ir::js::{JsFile, JsProgram},
 };
-use napi::{Error, Result, bindgen_prelude::Buffer};
+use napi::{Error, Result};
 use napi_derive::napi;
 use salsa::Setter;
 
@@ -17,16 +19,29 @@ use salsa::Setter;
 pub struct ServerOptions {
     pub root_dir: String,
     pub release: Option<bool>,
-    pub crates: Option<serde_json::Value>,
+    pub mem64: Option<bool>,
+    pub wasm_import: Option<String>,
+    pub crates: Option<HashMap<String, String>>,
+}
+
+#[napi(object)]
+pub struct BuildResult {
+    pub diagnostics: Vec<String>,
+    pub bin_ffi_path: Option<String>,
 }
 
 #[napi]
 pub struct Server {
     db: RootDatabase,
-    files: BTreeMap<String, JsFile>,
+    program: JsProgram,
     directory: PathBuf,
     release: bool,
-    dependencies: toml::Table,
+    backend: TransportBackend,
+    js_ffi_mod_id: String,
+    bin_ffi_mod_id: String,
+    js_modules: HashMap<String, String>,
+    crates: BTreeMap<String, String>,
+    next_artifact: u64,
 }
 
 #[napi]
@@ -35,164 +50,184 @@ impl Server {
     pub fn new(options: ServerOptions) -> Result<Self> {
         let root = fs::canonicalize(&options.root_dir)
             .map_err(|error| Error::from_reason(format!("invalid project root: {error}")))?;
-        let mut dependencies = match options.crates {
-            Some(value) => toml::Value::try_from(value)
-                .map_err(|error| {
-                    Error::from_reason(format!("invalid crates configuration: {error}"))
-                })?
-                .as_table()
-                .cloned()
-                .ok_or_else(|| Error::from_reason("crates must be an object"))?,
-            None => toml::Table::new(),
-        };
-        if dependencies.contains_key("runtime-next") {
-            return Err(Error::from_reason("runtime-next is reserved by Rustier"));
-        }
-        for (_, dependency) in dependencies.iter_mut() {
-            if let Some(table) = dependency.as_table_mut() {
-                if let Some(path) = table.get_mut("path") {
-                    let value = path
-                        .as_str()
-                        .ok_or_else(|| Error::from_reason("dependency path must be a string"))?;
-                    let absolute = fs::canonicalize(root.join(value)).map_err(|error| {
-                        Error::from_reason(format!("invalid dependency path {value:?}: {error}"))
-                    })?;
-                    *path = toml::Value::String(absolute.to_string_lossy().into_owned());
-                }
+        let db = RootDatabase::default();
+        let program = JsProgram::new(&db, Vec::new());
+        let import = match options.wasm_import.as_deref().unwrap_or("fetch") {
+            "fetch" => WasmImport::Fetch,
+            "node-js" => WasmImport::NodeJs,
+            "module" => WasmImport::Module,
+            mode => {
+                return Err(Error::from_reason(format!(
+                    "unsupported Wasm import mode: {mode}"
+                )));
             }
-        }
-        let runtime = Path::new(env!("CARGO_MANIFEST_DIR")).join("../runtime-next");
-        let runtime = fs::canonicalize(runtime)
-            .map_err(|error| Error::from_reason(format!("cannot locate runtime-next: {error}")))?;
-        dependencies.insert(
-            "runtime-next".to_owned(),
-            toml::Value::Table(toml::Table::from_iter([(
-                "path".to_owned(),
-                toml::Value::String(runtime.to_string_lossy().into_owned()),
-            )])),
-        );
+        };
+        let backend = TransportBackend::Wasm(TransportBackendWasm {
+            mem64: options.mem64.unwrap_or(false),
+            import,
+        });
+        let directory = root.join(".rustier/bridge");
+        let js_ffi_mod_id = directory.join("ffi.mjs").to_string_lossy().into_owned();
+        let bin_ffi_mod_id = directory.join("binary.mjs").to_string_lossy().into_owned();
+        let opts = TransportCodegenOpts {
+            ffi_module_id: js_ffi_mod_id.clone(),
+            ffi_bin_id: bin_ffi_mod_id.clone(),
+        };
+        let js_modules = HashMap::from([(js_ffi_mod_id.clone(), backend.render_js_backend(&opts))]);
+        let crates = options
+            .crates
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(name, path)| {
+                let path = fs::canonicalize(root.join(path)).map_err(|error| {
+                    Error::from_reason(format!("invalid crate path for {name}: {error}"))
+                })?;
+                Ok((name, path.to_string_lossy().into_owned()))
+            })
+            .collect::<Result<BTreeMap<_, _>>>()?;
 
         Ok(Self {
-            db: RootDatabase::default(),
-            files: BTreeMap::new(),
-            directory: root.join(".rustier-next"),
+            db,
+            program,
+            directory,
             release: options.release.unwrap_or(false),
-            dependencies,
+            backend,
+            js_ffi_mod_id,
+            bin_ffi_mod_id,
+            js_modules,
+            crates,
+            next_artifact: 0,
         })
     }
 
+    #[napi(getter)]
+    pub fn js_ffi_mod_id(&self) -> String {
+        self.js_ffi_mod_id.clone()
+    }
+
+    #[napi(getter)]
+    pub fn bin_ffi_mod_id(&self) -> String {
+        self.bin_ffi_mod_id.clone()
+    }
+
+    /// Compiler-generated modules available before the Rust build.
     #[napi]
-    pub fn transform(&mut self, module_id: String, contents: String) -> Result<Option<String>> {
-        let file = match self.files.get(&module_id) {
-            Some(file) => {
-                let file = *file;
-                file.set_contents(&mut self.db).to(contents);
-                file
-            }
-            None => {
-                let file = JsFile::new(&self.db, module_id.clone(), contents);
-                self.files.insert(module_id.clone(), file);
-                file
-            }
-        };
-        let macros = file.macros(&self.db).as_ref().map_err(|diagnostics| {
-            Error::from_reason(format!(
-                "{module_id}:\n{}",
-                diagnostics
-                    .iter()
-                    .map(|diagnostic| format!("{:?}: {}", diagnostic.range, diagnostic.message))
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            ))
-        })?;
-        if macros.is_empty() {
-            return Ok(None);
+    pub fn js_ffi_module(&self, module_id: String) -> Option<String> {
+        self.js_modules.get(&module_id).cloned()
+    }
+
+    #[napi]
+    pub fn transform(&mut self, module_id: String, contents: String) -> Result<String> {
+        let file = JsFile::new(&self.db, module_id.clone(), contents);
+        let mut files = self.program.files(&self.db).clone();
+        match files
+            .iter_mut()
+            .find(|entry| entry.module_id(&self.db) == &module_id)
+        {
+            Some(entry) => *entry = file,
+            None => files.push(file),
+        }
+        self.program.set_files(&mut self.db).to(files);
+
+        let diagnostics = file.diagnostics(&self.db);
+        if !diagnostics.is_empty() {
+            let messages = diagnostics
+                .iter()
+                .map(|diagnostic| diagnostic.render(Theme::UnicodeNoColor))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .map_err(|error| Error::from_reason(error.to_string()))?;
+            return Err(Error::from_reason(messages.join("\n")));
         }
 
-        let source = file.contents(&self.db);
-        let mut invoke = format!("{}_invoke", macros[0].name(&self.db));
-        while source.contains(&invoke) {
-            invoke.push('_');
-        }
-        let start = if source.starts_with("#!") {
-            source.find('\n').map_or(source.len(), |index| index + 1)
+        let ffi_module_id = format!("{}?source={module_id}", self.js_ffi_mod_id);
+        if file.module(&self.db).macros(&self.db).is_empty() {
+            self.js_modules.remove(&ffi_module_id);
         } else {
-            0
-        };
-        let mut output = source[..start].to_owned();
-        output.push_str(&format!(
-            "import {{ invoke as {invoke} }} from \"rustier-next:runtime\";\n"
-        ));
-        output.push_str(&self.render_range(
-            source,
-            macros,
-            SourceRange {
-                start: start as u32,
-                end: source.len() as u32,
-            },
-            &invoke,
-        ));
-
-        Ok(Some(output))
-    }
-
-    #[napi]
-    pub fn retain_modules(&mut self, modules: Vec<String>) {
-        self.files.retain(|id, _| modules.contains(id));
-    }
-
-    #[napi]
-    pub fn build(&self) -> Result<Buffer> {
-        let mut macros = Vec::new();
-        for (module_id, file) in &self.files {
-            let entries = file.macros(&self.db).as_ref().map_err(|diagnostics| {
-                Error::from_reason(format!("{module_id}: {diagnostics:?}"))
-            })?;
-            macros.extend(entries.iter().copied());
+            let program = JsProgram::new(&self.db, vec![file]);
+            let opts = TransportCodegenOpts {
+                ffi_module_id: self.js_ffi_mod_id.clone(),
+                ffi_bin_id: self.bin_ffi_mod_id.clone(),
+            };
+            self.js_modules.insert(
+                ffi_module_id.clone(),
+                program.render_js_ffi_exports(&self.db, &self.backend, &opts),
+            );
         }
-        let source = Transport::new(&self.db, macros).render(&self.db);
-        let manifest = toml::Table::from_iter([
-            (
-                "package".to_owned(),
-                toml::Value::Table(toml::Table::from_iter([
-                    ("name".to_owned(), "rustier-snippets".into()),
-                    ("version".to_owned(), "0.0.0".into()),
-                    ("edition".to_owned(), "2024".into()),
-                ])),
-            ),
-            (
-                "lib".to_owned(),
-                toml::Value::Table(toml::Table::from_iter([(
-                    "crate-type".to_owned(),
-                    toml::Value::Array(vec!["cdylib".into()]),
-                )])),
-            ),
-            (
-                "dependencies".to_owned(),
-                toml::Value::Table(self.dependencies.clone()),
-            ),
-            (
-                "workspace".to_owned(),
-                toml::Value::Table(toml::Table::new()),
-            ),
-        ]);
-        fs::create_dir_all(self.directory.join("src"))
-            .and_then(|_| fs::write(self.directory.join("src/lib.rs"), source))
-            .map_err(|error| Error::from_reason(format!("cannot write generated Rust: {error}")))?;
-        let manifest = toml::to_string(&manifest).map_err(|error| {
-            Error::from_reason(format!("cannot generate Cargo manifest: {error}"))
-        })?;
-        fs::write(self.directory.join("Cargo.toml"), manifest)
-            .map_err(|error| Error::from_reason(format!("cannot write Cargo manifest: {error}")))?;
+        Ok(file
+            .module(&self.db)
+            .render_transformed(&self.db, ffi_module_id)
+            .clone())
+    }
 
+    #[napi]
+    pub fn build(&mut self) -> Result<BuildResult> {
+        let artifacts = self.directory.join("artifacts");
+        fs::create_dir_all(&artifacts).map_err(|error| {
+            Error::from_reason(format!("cannot create artifacts directory: {error}"))
+        })?;
+        for entry in fs::read_dir(&artifacts)
+            .map_err(|error| Error::from_reason(format!("cannot list artifacts: {error}")))?
+        {
+            let entry = entry.map_err(|error| Error::from_reason(error.to_string()))?;
+            let Some(number) = entry
+                .file_name()
+                .to_str()
+                .and_then(|name| name.parse::<u64>().ok())
+            else {
+                continue;
+            };
+            if entry
+                .file_type()
+                .map_err(|error| Error::from_reason(error.to_string()))?
+                .is_dir()
+            {
+                let next = number
+                    .checked_add(1)
+                    .ok_or_else(|| Error::from_reason("artifact counter exhausted"))?;
+                self.next_artifact = self.next_artifact.max(next);
+                fs::remove_dir_all(entry.path()).map_err(|error| {
+                    Error::from_reason(format!("cannot remove previous artifact: {error}"))
+                })?;
+            }
+        }
+        let number = self.next_artifact;
+        self.next_artifact = number
+            .checked_add(1)
+            .ok_or_else(|| Error::from_reason("artifact counter exhausted"))?;
+        let artifact_directory = artifacts.join(number.to_string());
+        fs::create_dir_all(&artifact_directory).map_err(|error| {
+            Error::from_reason(format!("cannot create artifact directory: {error}"))
+        })?;
+        let mut result = BuildResult {
+            diagnostics: Vec::new(),
+            bin_ffi_path: None,
+        };
+        result.diagnostics = self
+            .program
+            .diagnostics(&self.db)
+            .iter()
+            .map(|diagnostic| diagnostic.render(Theme::UnicodeNoColor))
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|error| Error::from_reason(error.to_string()))?;
+        if !result.diagnostics.is_empty() {
+            return Ok(result);
+        }
+
+        let source = self.program.render_rs_ffi(&self.db, &self.backend);
+        let manifest = self.program.render_cargo_toml(&self.db, &self.crates);
+        fs::write(self.directory.join("lib.rs"), source)
+            .and_then(|_| fs::write(self.directory.join("Cargo.toml"), manifest))
+            .map_err(|error| Error::from_reason(format!("cannot write bridge crate: {error}")))?;
+
+        let TransportBackend::Wasm(wasm) = &self.backend;
+        let target = if wasm.mem64 {
+            "wasm64-unknown-unknown"
+        } else {
+            "wasm32-unknown-unknown"
+        };
         let mut command = Command::new("cargo");
         command
-            .args([
-                "build",
-                "--target",
-                "wasm32-unknown-unknown",
-                "--manifest-path",
-            ])
+            .args(["build", "--quiet", "--target", target, "--manifest-path"])
             .arg(self.directory.join("Cargo.toml"))
             .arg("--target-dir")
             .arg(self.directory.join("target"));
@@ -202,64 +237,32 @@ impl Server {
         let build = command
             .output()
             .map_err(|error| Error::from_reason(format!("cannot run Cargo: {error}")))?;
-        if !build.status.success() {
-            return Err(Error::from_reason(
-                String::from_utf8_lossy(&build.stderr).into_owned(),
-            ));
+        let diagnostics = String::from_utf8_lossy(&build.stderr).trim().to_owned();
+        if !diagnostics.is_empty() {
+            result.diagnostics.push(diagnostics);
         }
+        if !build.status.success() {
+            if result.diagnostics.is_empty() {
+                result
+                    .diagnostics
+                    .push(format!("Cargo exited with {}", build.status));
+            }
+            return Ok(result);
+        }
+
         let profile = if self.release { "release" } else { "debug" };
-        let artifact = self
+        let source = self
             .directory
-            .join("target/wasm32-unknown-unknown")
+            .join("target")
+            .join(target)
             .join(profile)
             .join("rustier_snippets.wasm");
+        let binary = artifact_directory.join("bridge.wasm");
+        fs::copy(source, &binary)
+            .map_err(|error| Error::from_reason(format!("cannot store compiled Wasm: {error}")))?;
 
-        fs::read(artifact)
-            .map(Buffer::from)
-            .map_err(|error| Error::from_reason(format!("cannot read compiled Wasm: {error}")))
-    }
+        result.bin_ffi_path = Some(binary.to_string_lossy().into_owned());
 
-    #[napi]
-    pub fn js_runtime(&self) -> String {
-        runtime_next::transport::WASM_RUNTIME.to_owned()
-    }
-}
-
-impl Server {
-    fn render_range(
-        &self,
-        source: &str,
-        macros: &[Macro<'_>],
-        range: SourceRange,
-        invoke: &str,
-    ) -> String {
-        let mut output = String::new();
-        let mut cursor = range.start;
-        for macro_ in macros {
-            let span = macro_.range(&self.db);
-            if span.start < cursor || span.end > range.end {
-                continue;
-            }
-            output.push_str(&source[cursor as usize..span.start as usize]);
-            output.push_str(invoke);
-            output.push('(');
-            output.push_str(&serde_json::to_string(macro_.name(&self.db)).unwrap());
-            output.push_str(", [");
-            let mut first = true;
-            for part in macro_.body(&self.db) {
-                if let Part::Interpolation { expression, .. } = part {
-                    if !first {
-                        output.push_str(", ");
-                    }
-                    first = false;
-                    output.push_str(&self.render_range(source, macros, *expression, invoke));
-                }
-            }
-            output.push_str("])");
-            cursor = span.end;
-        }
-        output.push_str(&source[cursor as usize..range.end as usize]);
-
-        output
+        Ok(result)
     }
 }

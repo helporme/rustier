@@ -1,0 +1,408 @@
+---
+source: src/codegen/transport/wasm.rs
+expression: output
+---
+# Source
+
+```ts
+import { rs } from 'rustier';
+rs`let a = ${left}; let b = ${right}; if a.strict_eq(&b) { a } else { b }`;
+```
+
+# Result
+
+```rust
+use ::aux_next::transport::{
+    JsEnvHandle as __RustierEnvHandle, JsValueHandle as __RustierValueHandle,
+};
+type __RustierEnvRaw = u32;
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __rustier_17cd6c9cd71eeae515dda0f24bcdcf4028ab22df1709260999ab86092f696229(
+    __rustier_env_raw: __RustierEnvRaw,
+    __rustier_raw_0: u32,
+    __rustier_raw_1: u32,
+) -> u32 {
+    let __rustier_env_handle = unsafe {
+        __RustierEnvHandle::from_raw(__rustier_env_raw as usize)
+    };
+    let __rustier_handle_0 = unsafe {
+        __RustierValueHandle::clone_from_raw(__rustier_raw_0)
+    };
+    let __rustier_handle_1 = unsafe {
+        __RustierValueHandle::clone_from_raw(__rustier_raw_1)
+    };
+    let __rustier_output = {
+        let __rustier_env = ::aux_next::runtime::js::JsEnv::from(__rustier_env_handle);
+        let __rustier_arg_0 = ::aux_next::runtime::js::JsValue::from(__rustier_handle_0);
+        let __rustier_arg_1 = ::aux_next::runtime::js::JsValue::from(__rustier_handle_1);
+        let __rustier_output = (|| -> ::aux_next::runtime::js::JsValue {
+            let a = __rustier_arg_0;
+            let b = __rustier_arg_1;
+            if a.strict_eq(&b) { a } else { b }
+        })();
+        ::aux_next::transport::JsValueHandle::from(__rustier_output)
+    };
+    __rustier_output.into_raw()
+}
+```
+
+# JS
+
+```js
+const __rustier_values =(() => {
+  const values = [];
+  let next = 0;
+  let memory;
+  let encoder;
+  let decoder;
+
+  function __rustier_js_init_memory(value) {
+    memory = value;
+  }
+
+  function memoryIndex(value) {
+    return typeof value === "bigint" ? Number(value) : value >>> 0;
+  }
+
+  function __rustier_js_insert(value) {
+    if (next === values.length) {
+      values.push(next + 1);
+    }
+    const index = next;
+    next = values[index];
+    values[index] = value;
+    return index;
+  }
+
+  function __rustier_js_new_number(value) {
+    return __rustier_js_insert(value);
+  }
+
+  function stringFromMemory(ptr, len) {
+    decoder ??= new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
+    const bytes = new Uint8Array(memory.buffer, memoryIndex(ptr), memoryIndex(len));
+    return decoder.decode(bytes);
+  }
+
+  function __rustier_js_new_string(ptr, len) {
+    return __rustier_js_insert(stringFromMemory(ptr, len));
+  }
+
+  function __rustier_js_new_symbol(ptr, len, hasDescription) {
+    const description = hasDescription ? stringFromMemory(ptr, len) : undefined;
+    return __rustier_js_insert(Symbol(description));
+  }
+
+  function __rustier_js_new_boolean(value) {
+    return __rustier_js_insert(value !== 0);
+  }
+
+  function __rustier_js_null() {
+    return __rustier_js_insert(null);
+  }
+
+  function __rustier_js_undefined() {
+    return __rustier_js_insert(undefined);
+  }
+
+  function __rustier_js_new_object() {
+    return __rustier_js_insert({});
+  }
+
+  function __rustier_js_type_of(handle) {
+    const value = values[handle >>> 0];
+    if (value === null)
+      return 6;
+    switch (typeof value) {
+      case "string":
+        return 0;
+      case "number":
+        return 1;
+      case "bigint":
+        return 2;
+      case "boolean":
+        return 3;
+      case "symbol":
+        return 4;
+      case "undefined":
+        return 5;
+      case "object":
+        return 7;
+      case "function":
+        return 8;
+    }
+  }
+
+  function __rustier_js_number(handle) {
+    return values[handle >>> 0];
+  }
+
+  function __rustier_js_boolean(handle) {
+    return values[handle >>> 0];
+  }
+
+  function __rustier_js_string_encode(handle) {
+    encoder ??= new TextEncoder();
+    return __rustier_js_insert(encoder.encode(values[handle >>> 0]));
+  }
+
+  function __rustier_js_buffer_length(handle) {
+    return values[handle >>> 0].length;
+  }
+
+  function __rustier_js_buffer_copy(handle, ptr, len) {
+    const bytes = new Uint8Array(memory.buffer, memoryIndex(ptr), memoryIndex(len));
+    bytes.set(values[handle >>> 0]);
+  }
+
+  function valueResult(failed, result, error) {
+    const rooted = __rustier_js_insert(result);
+    new DataView(memory.buffer).setUint32(memoryIndex(failed), error, true);
+    return rooted;
+  }
+
+  function argumentsFromMemory(ptr, len) {
+    const length = memoryIndex(len);
+    const handles = new Uint32Array(memory.buffer, memoryIndex(ptr), length);
+    const args = new Array(length);
+    for (let index = 0; index < length; index++) {
+      args[index] = values[handles[index]];
+    }
+    return args;
+  }
+
+  function __rustier_js_strict_eq(left, right) {
+    return values[left >>> 0] === values[right >>> 0];
+  }
+
+  function __rustier_js_soft_eq(left, right) {
+    const a = values[left >>> 0];
+    const b = values[right >>> 0];
+    return a === b ? a !== 0 || 1 / a === 1 / b : a !== a && b !== b;
+  }
+
+  function __rustier_js_get(handle, key, failed) {
+    let result;
+    let error = 0;
+    try {
+      result = Reflect.get(values[handle >>> 0], values[key >>> 0]);
+    }
+    catch (exception) {
+      result = exception;
+      error = 1;
+    }
+    return valueResult(failed, result, error);
+  }
+
+  function reflectBoolean(operation, handle, key, value, failed) {
+    let result;
+    let error = 0;
+    try {
+      const accepted = Reflect[operation](values[handle >>> 0], values[key >>> 0], values[value >>> 0]);
+      if (typeof accepted !== "boolean") {
+        throw new TypeError(`Reflect.${operation} did not return a boolean`);
+      }
+      result = accepted ? 1 : 0;
+    }
+    catch (exception) {
+      result = __rustier_js_insert(exception);
+      error = 1;
+    }
+    new DataView(memory.buffer).setUint32(memoryIndex(failed), error, true);
+    return result;
+  }
+
+  function __rustier_js_set(handle, key, value, failed) {
+    return reflectBoolean("set", handle, key, value, failed);
+  }
+
+  function __rustier_js_has(handle, key, failed) {
+    return reflectBoolean("has", handle, key, 0, failed);
+  }
+
+  function __rustier_js_delete(handle, key, failed) {
+    return reflectBoolean("deleteProperty", handle, key, 0, failed);
+  }
+
+  function __rustier_js_define_property(handle, key, descriptor, failed) {
+    return reflectBoolean("defineProperty", handle, key, descriptor, failed);
+  }
+
+  function __rustier_js_get_own_property_descriptor(handle, key, failed) {
+    let result;
+    let error = 0;
+    try {
+      result = Reflect.getOwnPropertyDescriptor(values[handle >>> 0], values[key >>> 0]);
+    }
+    catch (exception) {
+      result = exception;
+      error = 1;
+    }
+    return valueResult(failed, result, error);
+  }
+
+  function __rustier_js_own_keys(handle, failed) {
+    let result;
+    let error = 0;
+    try {
+      result = Reflect.ownKeys(values[handle >>> 0]);
+    }
+    catch (exception) {
+      result = exception;
+      error = 1;
+    }
+    return valueResult(failed, result, error);
+  }
+
+  function __rustier_js_array_get(handle, index) {
+    return __rustier_js_insert(values[handle >>> 0][memoryIndex(index)]);
+  }
+
+  function __rustier_js_apply(handle, receiver, hasReceiver, args, len, failed) {
+    let result;
+    let error = 0;
+    try {
+      const argumentsList = argumentsFromMemory(args, len);
+      const thisValue = hasReceiver ? values[receiver >>> 0] : undefined;
+      result = Reflect.apply(values[handle >>> 0], thisValue, argumentsList);
+    }
+    catch (exception) {
+      result = exception;
+      error = 1;
+    }
+    return valueResult(failed, result, error);
+  }
+
+  function __rustier_js_call(handle, method, args, len, failed) {
+    let result;
+    let error = 0;
+    try {
+      const object = values[handle >>> 0];
+      const key = values[method >>> 0];
+      const argumentsList = argumentsFromMemory(args, len);
+      const functionValue = Reflect.get(object, key);
+      result = Reflect.apply(functionValue, object, argumentsList);
+    }
+    catch (exception) {
+      result = exception;
+      error = 1;
+    }
+    return valueResult(failed, result, error);
+  }
+
+  function __rustier_js_construct(handle, args, len, failed) {
+    let result;
+    let error = 0;
+    try {
+      const argumentsList = argumentsFromMemory(args, len);
+      result = Reflect.construct(values[handle >>> 0], argumentsList);
+    }
+    catch (exception) {
+      result = exception;
+      error = 1;
+    }
+    return valueResult(failed, result, error);
+  }
+
+  function __rustier_js_clone_ref(handle) {
+    return __rustier_js_insert(values[handle >>> 0]);
+  }
+
+  function __rustier_js_take(handle) {
+    const value = values[handle >>> 0];
+    __rustier_js_drop_ref(handle);
+    return value;
+  }
+
+  function __rustier_js_drop_ref(handle) {
+    handle >>>= 0;
+    values[handle] = next;
+    next = handle;
+  }
+
+  return {
+    __rustier_js_init_memory,
+    __rustier_js_insert,
+    __rustier_js_new_number,
+    __rustier_js_new_string,
+    __rustier_js_new_symbol,
+    __rustier_js_new_boolean,
+    __rustier_js_null,
+    __rustier_js_undefined,
+    __rustier_js_new_object,
+    __rustier_js_type_of,
+    __rustier_js_number,
+    __rustier_js_boolean,
+    __rustier_js_string_encode,
+    __rustier_js_buffer_length,
+    __rustier_js_buffer_copy,
+    __rustier_js_strict_eq,
+    __rustier_js_soft_eq,
+    __rustier_js_get,
+    __rustier_js_set,
+    __rustier_js_has,
+    __rustier_js_delete,
+    __rustier_js_define_property,
+    __rustier_js_get_own_property_descriptor,
+    __rustier_js_own_keys,
+    __rustier_js_array_get,
+    __rustier_js_apply,
+    __rustier_js_call,
+    __rustier_js_construct,
+    __rustier_js_clone_ref,
+    __rustier_js_take,
+    __rustier_js_drop_ref,
+  };
+})()
+;
+const __rustier_imports ={
+	"./rustier-wasm-rt.mjs": __rustier_values
+};
+import __rustier_binary_url from "./rustier.wasm";
+const{
+	instance: __rustier_instance
+}= await WebAssembly.instantiate(
+	await(
+		await fetch(
+			new URL(
+				__rustier_binary_url, import.meta.url
+			)
+		)
+	).arrayBuffer(), __rustier_imports
+);
+const __rustier_exports = __rustier_instance.exports;
+__rustier_values.__rustier_js_init_memory(
+	__rustier_exports.memory
+);
+export function __rustier_17cd6c9cd71eeae515dda0f24bcdcf4028ab22df1709260999ab86092f696229(__rustier_arg_0, __rustier_arg_1){
+	let __rustier_result;
+	{
+		const handles =[];
+		try{
+			handles.push(
+				__rustier_values.__rustier_js_insert(
+					__rustier_arg_0
+				)
+			);
+			handles.push(
+				__rustier_values.__rustier_js_insert(
+					__rustier_arg_1
+				)
+			);
+			const result = __rustier_exports.__rustier_17cd6c9cd71eeae515dda0f24bcdcf4028ab22df1709260999ab86092f696229(
+				0, ...handles
+			);
+			__rustier_result=__rustier_values.__rustier_js_take(
+				result
+			);
+		}finally{
+			for(
+				const handle of handles
+			)__rustier_values.__rustier_js_drop_ref(
+				handle
+			);
+		}
+	}
+	return __rustier_result;
+}
+```

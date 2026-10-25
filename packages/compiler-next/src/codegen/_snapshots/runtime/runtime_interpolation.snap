@@ -1,0 +1,35 @@
+---
+source: src/codegen/runtime.rs
+expression: output
+---
+# Input
+
+```js
+rs`${input0}`
+```
+
+# Result
+
+```rust
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __rustier_48fc721fbbc172e0925fa27af1671de225ba927134802998b10a1568a188652b(
+    __rustier_env_raw: __RustierEnvRaw,
+    __rustier_raw_0: u32,
+) -> u32 {
+    let __rustier_env_handle = unsafe {
+        __RustierEnvHandle::from_raw(__rustier_env_raw as usize)
+    };
+    let __rustier_handle_0 = unsafe {
+        __RustierValueHandle::clone_from_raw(__rustier_raw_0)
+    };
+    let __rustier_output = {
+        let __rustier_env = ::aux_next::runtime::js::JsEnv::from(__rustier_env_handle);
+        let __rustier_arg_0 = ::aux_next::runtime::js::JsValue::from(__rustier_handle_0);
+        let __rustier_output = (|| -> ::aux_next::runtime::js::JsValue {
+            __rustier_arg_0
+        })();
+        ::aux_next::transport::JsValueHandle::from(__rustier_output)
+    };
+    __rustier_output.into_raw()
+}
+```

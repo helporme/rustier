@@ -1,0 +1,152 @@
+//! IR defining a runtime behavior of rustier, like supported types or kind of macros.
+
+use std::collections::HashSet;
+
+use crate::{
+    db::Db,
+    ir::{
+        js::{JsPart, JsProgram, RsMacroSrc},
+        transport::{TransportFunction, TransportTypeRs},
+    },
+};
+
+impl JsProgram {
+    /// Macros encountered in the program.
+    pub fn macros<'db>(self, db: &'db dyn Db) -> Vec<RsMacro<'db>> {
+        let mut seen = HashSet::new();
+        let mut macros = Vec::new();
+
+        for module in self.modules(db) {
+            for src in module.macros(db) {
+                let macro_ = src.as_macro(db);
+                if seen.insert(macro_) {
+                    macros.push(macro_);
+                }
+            }
+        }
+
+        macros.sort_by(|left, right| left.symbol(db).cmp(right.symbol(db)));
+        macros
+    }
+}
+
+/// The `rs` macro.
+#[salsa::interned]
+pub struct RsMacro<'db> {
+    #[returns(ref)]
+    pub body: Vec<RsPart>,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, salsa::Update)]
+pub enum RsPart {
+    /// Rust source text preserved verbatim.
+    Text(String),
+    /// The next positional input expression.
+    Input,
+}
+
+#[salsa::tracked]
+impl<'db> RsMacroSrc<'db> {
+    /// Converts this macro source into an [`RsMacro`].
+    #[salsa::tracked]
+    pub fn as_macro(self, db: &'db dyn Db) -> RsMacro<'db> {
+        let body: Vec<_> = self
+            .body(db)
+            .iter()
+            .map(|part| match part {
+                JsPart::Text(range) => {
+                    let source = range.file(db).contents(db);
+                    RsPart::Text(
+                        source[range.start(db) as usize..range.end(db) as usize].to_owned(),
+                    )
+                }
+                JsPart::Interpolation { .. } => RsPart::Input,
+            })
+            .collect();
+
+        RsMacro::new(db, body)
+    }
+}
+
+#[salsa::tracked]
+impl<'db> RsMacro<'db> {
+    /// A stable macro export name.
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        let mut hash = blake3::Hasher::new();
+        for part in self.body(db) {
+            match part {
+                RsPart::Text(text) => {
+                    hash.update(&[0]);
+                    hash.update(&(text.len() as u64).to_le_bytes());
+                    hash.update(text.as_bytes());
+                }
+                RsPart::Input => {
+                    hash.update(&[1]);
+                }
+            }
+        }
+        format!("__rustier_{}", hash.finalize().to_hex())
+    }
+
+    /// Rust-side input types in interpolation order.
+    #[salsa::tracked(returns(ref))]
+    pub fn inputs(self, db: &'db dyn Db) -> Vec<RsType> {
+        self.body(db)
+            .iter()
+            .filter_map(|part| match part {
+                RsPart::Text(_) => None,
+                RsPart::Input => Some(RsType::JsValue),
+            })
+            .collect()
+    }
+
+    /// Rust-side type returned by this macro.
+    pub fn ret_type(self, _db: &'db dyn Db) -> RsType {
+        RsType::JsValue
+    }
+
+    /// Transport-level function of this macro.
+    #[salsa::tracked]
+    pub fn transport(self, db: &'db dyn Db) -> TransportFunction<'db> {
+        TransportFunction::new(
+            db,
+            self.symbol(db),
+            self.inputs(db)
+                .iter()
+                .map(|type_| type_.transport())
+                .collect::<Vec<_>>(),
+            self.ret_type(db).transport(),
+        )
+    }
+}
+
+/// A Rust-side runtime type.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub enum RsType {
+    /// Matches `aux_next::runtime::js::JsValue`.
+    JsValue,
+}
+
+/// A js-side runtime type.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub enum JsType {
+    /// An arbitrary JS value.
+    Any,
+}
+
+impl RsType {
+    /// Chooses the Rust transport representation needed to carry this runtime type.
+    pub fn transport(self) -> TransportTypeRs {
+        match self {
+            Self::JsValue => TransportTypeRs::JsValueHandle,
+        }
+    }
+
+    /// Maps this runtime type to its JS-facing representation.
+    pub fn js(self) -> JsType {
+        match self {
+            Self::JsValue => JsType::Any,
+        }
+    }
+}

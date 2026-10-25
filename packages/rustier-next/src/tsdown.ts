@@ -1,112 +1,77 @@
+import { readFileSync } from 'node:fs'
 import type { Plugin } from 'rolldown'
 import { Server } from 'server-next'
 
 export type Platform = {
   type: 'wasm'
   loading: 'web' | 'node-js'
+  mem64?: boolean
 }
-
-export type CrateDependency =
-  | string
-  | {
-      version?: string
-      path?: string
-      git?: string
-      branch?: string
-      tag?: string
-      rev?: string
-      package?: string
-      features?: string[]
-      'default-features'?: boolean
-    }
 
 export interface RustierOptions {
   release?: boolean
-  crates?: Record<string, CrateDependency>
   platform: Platform
+  crates?: Record<string, { path: string }>
 }
 
-const runtimeId = '\0rustier-next:runtime'
-const valuesId = '\0rustier-next:values'
-
 export default function rustier(options: RustierOptions): Plugin {
-  if (
-    options.platform?.type !== 'wasm' ||
-    !['web', 'node-js'].includes(options.platform.loading)
-  ) {
-    throw new Error('Rustier requires a wasm platform with web or node-js loading')
-  }
-
-  const server = new Server({
+  const serverOptions = {
     rootDir: process.cwd(),
     release: options.release ?? false,
-    crates: options.crates ?? {},
-  })
-  let wasm: string
+    mem64: options.platform.mem64 ?? false,
+    wasmImport: options.platform.loading === 'node-js' ? 'node-js' : 'fetch',
+    crates: Object.fromEntries(
+      Object.entries(options.crates ?? {}).map(([name, crate]) => [name, crate.path]),
+    ),
+  }
+
+  let server = new Server(serverOptions)
+  let binaryReference: string | null = null
+  let binary: Uint8Array | null = null
 
   return {
     name: 'rustier-next',
     buildStart() {
-      wasm = this.emitFile({
-        type: 'asset',
-        fileName: 'rustier.wasm',
-        source: new Uint8Array(),
-      })
+      server = new Server(serverOptions)
+      binaryReference = null
+      binary = null
     },
     resolveId(id) {
-      if (id === 'rustier-next:runtime') return runtimeId
-      if (id === 'rustier-next:values') return valuesId
+      if (id === server.binFfiModId || server.jsFfiModule(id) != null) return id
     },
     load(id) {
-      if (id === valuesId) return server.jsRuntime()
-      if (id !== runtimeId) return
-
-      const loading =
-        options.platform.loading === 'node-js'
-          ? `import { readFileSync } from 'node:fs';
-const instance = new WebAssembly.Instance(
-  new WebAssembly.Module(readFileSync(new URL(import.meta.ROLLUP_FILE_URL_${wasm}, import.meta.url))),
-  imports
-);`
-          : `const { instance } = await WebAssembly.instantiate(
-  await (await fetch(new URL(import.meta.ROLLUP_FILE_URL_${wasm}, import.meta.url))).arrayBuffer(),
-  imports
-);`
-
-      return `
-import * as values from 'rustier-next:values';
-const imports = { './rustier-wasm-rt.mjs': values };
-${loading}
-values.__rustier_js_init_memory(instance.exports.memory);
-export function invoke(name, arguments_) {
-  const handles = arguments_.map(value => values.__rustier_js_insert(value));
-  try {
-    const result = instance.exports[name](0, ...handles);
-    return values.__rustier_js_take(result);
-  } finally {
-    for (const handle of handles) values.__rustier_js_drop_ref(handle);
-  }
-}
-`
+      if (id === server.binFfiModId) {
+        // Rolldown requires an asset source at emission time. A fixed filename
+        // lets us fill the reserved asset later without invalidating its URL/hash.
+        binaryReference ??= this.emitFile({
+          type: 'asset',
+          fileName: 'bridge.wasm',
+          source: new Uint8Array(),
+        })
+        return `export default import.meta.ROLLUP_FILE_URL_${binaryReference};`
+      }
+      return server.jsFfiModule(id)
     },
     transform(code, id) {
       if (id.startsWith('\0') || id.includes('/node_modules/')) return
+      if (id === server.binFfiModId || server.jsFfiModule(id) != null) return
       if (/\.d\.[cm]?ts(?:[?#]|$)/.test(id)) return
       if (!/\.[cm]?[jt]sx?(?:[?#]|$)/.test(id)) return
-      const transformed = server.transform(id, code)
-      if (transformed != null) return { code: transformed, map: null }
+      return { code: server.transform(id, code), map: null }
     },
-    generateBundle(_options, bundle) {
-      const modules = [...this.getModuleIds()]
-      const fileName = this.getFileName(wasm)
-      if (!modules.includes(runtimeId)) {
-        delete bundle[fileName]
-        return
-      }
-      server.retainModules(modules)
-      const asset = bundle[fileName]
-      if (asset.type !== 'asset') throw new Error('Rustier Wasm asset is missing')
-      asset.source = server.build()
+    buildEnd(error) {
+      if (error || binaryReference == null) return
+      const result = server.build()
+      if (!result.binFfiPath) this.error(result.diagnostics.join('\n') || 'Rustier build failed')
+      for (const diagnostic of result.diagnostics) this.warn(diagnostic)
+      binary = readFileSync(result.binFfiPath)
+    },
+    generateBundle(_, bundle) {
+      if (binaryReference == null) return
+      if (binary == null) this.error('Rustier binary was not built')
+      const asset = bundle[this.getFileName(binaryReference)]
+      if (!asset || asset.type !== 'asset') this.error('Rustier binary asset is missing')
+      asset.source = binary
     },
   }
 }

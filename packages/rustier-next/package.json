@@ -18,6 +18,7 @@
     "build:native": "pnpm --dir ../server-next run build",
     "build:ts": "tsdown",
     "build": "pnpm run build:native && pnpm run build:ts",
+    "test": "pnpm run build && node --test tests/*.test.mjs",
     "build:release": "pnpm --dir ../server-next run build:release && pnpm run build:ts"
   },
   "dependencies": {

@@ -7,6 +7,7 @@ license = "MIT"
 repository = "https://github.com/helporme/rustier"
 
 [dependencies]
+blake3 = "1"
 salsa = "=0.27.2"
 ra_ap_hir = "=0.0.345"
 ra_ap_ide_db = "=0.0.345"
@@ -16,6 +17,10 @@ oxc_diagnostics = "=0.138.0"
 oxc_parser = "=0.138.0"
 oxc_semantic = "=0.138.0"
 oxc_span = "=0.138.0"
+toml = "0.9"
+miette = { version = "7", features = ["fancy-no-syscall"] }
+thiserror = "2"
+triomphe = "0.1"
 
 [dev-dependencies]
 tempfile = "3.27.0"

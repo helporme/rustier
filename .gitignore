@@ -4,6 +4,7 @@ dist
 *.local.*
 target/
 .rustier-next/
+.rustier/
 *.node
 .DS_Store
 .env

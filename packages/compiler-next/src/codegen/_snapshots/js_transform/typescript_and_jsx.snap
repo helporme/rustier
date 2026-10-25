@@ -1,0 +1,24 @@
+---
+source: src/codegen/js_transform.rs
+expression: output
+---
+# Source
+
+```tsx
+import { rs as rust } from 'rustier';
+import type { rs } from 'rustier';
+const x: number = 1;
+const view = <div>{rust`${x}`}</div>;
+rs`not a value import`;
+```
+
+# Result
+
+```tsx
+import * as __rustier_ffi from "rustier-next:runtime";
+import { rs as rust } from 'rustier';
+import type { rs } from 'rustier';
+const x: number = 1;
+const view = <div>{__rustier_ffi.__rustier_8edf2a92b93d1e58764933cd47b6f366f9c8466cccef8b18f299da6e6e9b544d((x))}</div>;
+rs`not a value import`;
+```

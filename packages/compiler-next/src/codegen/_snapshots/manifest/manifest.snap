@@ -1,0 +1,22 @@
+---
+source: src/codegen/manifest.rs
+expression: "format!(\"```toml\\n{manifest}```\\n\")"
+---
+```toml
+[dependencies.aux-next]
+path = "<aux-next>"
+
+[dependencies.example]
+path = "<example-crate>"
+
+[lib]
+crate-type = ["cdylib"]
+path = "lib.rs"
+
+[package]
+edition = "2024"
+name = "rustier-snippets"
+version = "0.0.0"
+
+[workspace]
+```

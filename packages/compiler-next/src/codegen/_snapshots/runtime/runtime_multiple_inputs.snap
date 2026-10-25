@@ -1,0 +1,42 @@
+---
+source: src/codegen/runtime.rs
+expression: output
+---
+# Input
+
+```js
+rs`let left = ${input0}; let right = ${input1}; if left.strict_eq(&right) { left } else { right }`
+```
+
+# Result
+
+```rust
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __rustier_66d21b0ca11dcf9288a008ffb7927853c38e8fbbf806c76d0648081fe53dab5a(
+    __rustier_env_raw: __RustierEnvRaw,
+    __rustier_raw_0: u32,
+    __rustier_raw_1: u32,
+) -> u32 {
+    let __rustier_env_handle = unsafe {
+        __RustierEnvHandle::from_raw(__rustier_env_raw as usize)
+    };
+    let __rustier_handle_0 = unsafe {
+        __RustierValueHandle::clone_from_raw(__rustier_raw_0)
+    };
+    let __rustier_handle_1 = unsafe {
+        __RustierValueHandle::clone_from_raw(__rustier_raw_1)
+    };
+    let __rustier_output = {
+        let __rustier_env = ::aux_next::runtime::js::JsEnv::from(__rustier_env_handle);
+        let __rustier_arg_0 = ::aux_next::runtime::js::JsValue::from(__rustier_handle_0);
+        let __rustier_arg_1 = ::aux_next::runtime::js::JsValue::from(__rustier_handle_1);
+        let __rustier_output = (|| -> ::aux_next::runtime::js::JsValue {
+            let left = __rustier_arg_0;
+            let right = __rustier_arg_1;
+            if left.strict_eq(&right) { left } else { right }
+        })();
+        ::aux_next::transport::JsValueHandle::from(__rustier_output)
+    };
+    __rustier_output.into_raw()
+}
+```

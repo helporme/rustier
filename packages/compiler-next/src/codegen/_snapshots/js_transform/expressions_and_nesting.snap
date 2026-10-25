@@ -1,0 +1,22 @@
+---
+source: src/codegen/js_transform.rs
+expression: output
+---
+# Source
+
+```tsx
+import { rs } from 'rustier';
+const café = 1;
+rs`(${(café, other)}, ${condition ? `${café}` : other})`;
+rs`consume(${rs`${value}`})`;
+```
+
+# Result
+
+```tsx
+import * as __rustier_ffi from "rustier-next:runtime";
+import { rs } from 'rustier';
+const café = 1;
+__rustier_ffi.__rustier_cbedfea548f357e9dd7edda0765b8f804580e39c0a18cbde3052e1fa5c13607b(((café, other)), (condition ? `${café}` : other));
+__rustier_ffi.__rustier_023cfb7b8bf12f0430438778e71f9f11cb0c3fc7a58eab404210953a14a5cd9a((__rustier_ffi.__rustier_8edf2a92b93d1e58764933cd47b6f366f9c8466cccef8b18f299da6e6e9b544d((value))));
+```

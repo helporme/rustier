@@ -1,0 +1,18 @@
+---
+source: src/codegen/js_transform.rs
+expression: "format!(\"# Source\\n\\n```ts\\n{source}\\n```\\n\\n# Result\\n\\n```ts\\n{result}\\n```\\n\")"
+---
+# Source
+
+```ts
+import { rs } from 'rustier';
+rs`${value}`;
+```
+
+# Result
+
+```ts
+import * as __rustier_ffi from "./generated/ffi \"snippets\".js";
+import { rs } from 'rustier';
+__rustier_ffi.__rustier_8edf2a92b93d1e58764933cd47b6f366f9c8466cccef8b18f299da6e6e9b544d((value));
+```

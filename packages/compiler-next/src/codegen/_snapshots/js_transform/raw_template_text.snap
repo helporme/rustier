@@ -1,0 +1,22 @@
+---
+source: src/codegen/js_transform.rs
+expression: output
+---
+# Source
+
+```tsx
+import { rs } from 'rustier';
+rs`__rustier_env.new_string(r#"a\nb"#)`;
+const text = `first
+second`;
+```
+
+# Result
+
+```tsx
+import * as __rustier_ffi from "rustier-next:runtime";
+import { rs } from 'rustier';
+__rustier_ffi.__rustier_a0d69beb46b85e39f195a03a8886cbf0ce36413124e050d8c8c35b30f77f7da0();
+const text = `first
+second`;
+```

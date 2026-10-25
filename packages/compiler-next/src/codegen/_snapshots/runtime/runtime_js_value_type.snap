@@ -1,0 +1,7 @@
+---
+source: src/codegen/runtime.rs
+expression: output
+---
+```rust
+::aux_next::runtime::js::JsValue
+```
