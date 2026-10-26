@@ -9,7 +9,7 @@ impl JsProgram {
             (
                 "package".to_owned(),
                 toml::Value::Table(toml::Table::from_iter([
-                    ("name".to_owned(), "rustier-snippets".into()),
+                    ("name".to_owned(), "rustier-macros".into()),
                     ("version".to_owned(), "0.0.0".into()),
                     ("edition".to_owned(), "2024".into()),
                 ])),

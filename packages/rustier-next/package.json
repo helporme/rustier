@@ -1,7 +1,7 @@
 {
   "name": "rustier-next",
   "version": "0.0.1",
-  "description": "Inline Rust snippets for JavaScript and TypeScript builds.",
+  "description": "Inline Rust macros for JavaScript and TypeScript builds.",
   "license": "MIT",
   "repository": {
     "type": "git",

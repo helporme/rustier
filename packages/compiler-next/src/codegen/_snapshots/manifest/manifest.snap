@@ -15,7 +15,7 @@ path = "lib.rs"
 
 [package]
 edition = "2024"
-name = "rustier-snippets"
+name = "rustier-macros"
 version = "0.0.0"
 
 [workspace]

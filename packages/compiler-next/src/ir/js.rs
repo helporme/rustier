@@ -43,7 +43,7 @@ pub struct JsFile {
     pub contents: String,
 }
 
-/// The parsed snippet occurrences belonging to one source snapshot.
+/// The parsed macro occurrences belonging to one source snapshot.
 #[salsa::interned]
 pub struct JsModule<'db> {
     /// The source snapshot from which this module was parsed.

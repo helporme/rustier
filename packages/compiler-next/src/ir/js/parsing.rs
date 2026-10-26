@@ -62,7 +62,7 @@ impl JsFile {
     /// Parses this snapshot and resolves imported `rs` tags, respecting shadowing.
     ///
     /// Parsing or semantic errors are accumulated as diagnostics and yield a
-    /// module with no snippet occurrences.
+    /// module with no macro occurrences.
     pub fn module<'db>(self, db: &'db dyn Db) -> JsModule<'db> {
         module(db, self)
     }

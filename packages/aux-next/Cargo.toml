@@ -2,7 +2,7 @@
 name = "aux-next"
 version = "0.0.1"
 edition = "2024"
-description = "Rustier snippet runtime and transport support."
+description = "Rustier macro runtime and transport support."
 license = "MIT"
 repository = "https://github.com/helporme/rustier"
 

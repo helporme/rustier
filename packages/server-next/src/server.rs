@@ -229,7 +229,7 @@ impl Server {
             .join("target")
             .join(target)
             .join(profile)
-            .join("rustier_snippets.wasm");
+            .join("rustier_macros.wasm");
         let binary = artifact_directory.join("bridge.wasm");
         fs::copy(source, &binary)
             .map_err(|error| Error::from_reason(format!("cannot store compiled Wasm: {error}")))?;

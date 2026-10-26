@@ -248,9 +248,9 @@ mod tests {
     }
 
     #[test]
-    fn identical_snippets() {
+    fn identical_macros() {
         snapshot(
-            "identical_snippets",
+            "identical_macros",
             "import { rs } from 'rustier';\nrs`${left}`;\nrs`${right}`;",
             &test_backend(),
         );

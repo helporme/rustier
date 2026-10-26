@@ -9,7 +9,7 @@ use crate::{
 };
 
 impl<'db> Runtime<'db> {
-    /// JavaScript runtime initialization and specialized snippet exports.
+    /// JavaScript runtime initialization and specialized macro exports.
     pub fn render_js_ffi(
         self,
         db: &'db dyn Db,
@@ -25,7 +25,7 @@ impl<'db> Runtime<'db> {
         .print()
     }
 
-    /// Rust FFI crate, including transport setup and snippet exports.
+    /// Rust FFI crate, including transport setup and macro exports.
     pub fn render_rs_ffi(self, db: &'db dyn Db, backend: &TransportBackend) -> String {
         fragment(|printer| {
             render_transport_preamble_rs(backend).apply(printer);
@@ -254,7 +254,7 @@ mod tests {
     }
 
     #[test]
-    fn program_runtime_tracks_and_deduplicates_snippets() {
+    fn program_runtime_tracks_and_deduplicates_macros() {
         use crate::ir::js::{JsFile, JsProgram};
         use salsa::Setter;
 

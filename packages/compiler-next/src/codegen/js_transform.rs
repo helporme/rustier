@@ -6,7 +6,7 @@ use crate::{
 
 #[salsa::tracked]
 impl<'db> JsModule<'db> {
-    /// Replaces imported `rs` tags with calls to their exported snippet functions.
+    /// Replaces imported `rs` tags with calls to their exported macro functions.
     ///
     /// Interpolations remain JS expressions and are evaluated at each call site,
     /// including nested tags. Untouched source is preserved verbatim; the helper
@@ -157,7 +157,7 @@ mod tests {
     fn no_macros() {
         snapshot(
             "no_macros",
-            "import { rs } from 'another-library';\nrs`not a Rust snippet`;",
+            "import { rs } from 'another-library';\nrs`not a Rust macro`;",
         );
     }
 
@@ -176,7 +176,7 @@ mod tests {
         let file = JsFile::new(&db, "/input.ts", source);
         let result = file
             .module(&db)
-            .render_transformed(&db, "./generated/ffi-snippets.js".into());
+            .render_transformed(&db, "./generated/ffi-macros.js".into());
         insta::with_settings!({
             snapshot_path => "_snapshots/js_transform",
             prepend_module_to_snapshot => false,

@@ -43,7 +43,7 @@ export default function rustier(options: RustierOptions): Plugin {
     resolveId(id) {
       if (id !== ffiJsModPath) return
       needsRuntime = true
-      // Do not load the runtime until all snippets have been collected.
+      // Do not load the runtime until all macros have been collected.
       return { id, external: true }
     },
     transform(code, id) {

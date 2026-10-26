@@ -6,12 +6,12 @@ expression: output
 
 ```tsx
 import { rs } from 'another-library';
-rs`not a Rust snippet`;
+rs`not a Rust macro`;
 ```
 
 # Result
 
 ```tsx
 import { rs } from 'another-library';
-rs`not a Rust snippet`;
+rs`not a Rust macro`;
 ```
