@@ -1,7 +1,7 @@
 use std::{
     collections::{BTreeMap, HashMap},
-    fs,
-    path::PathBuf,
+    fs, io,
+    path::{Path, PathBuf},
     process::Command,
 };
 
@@ -188,8 +188,8 @@ impl Server {
             .runtime(&self.db)
             .render_rs_ffi(&self.db, &self.backend);
         let manifest = self.program.render_cargo_toml(&self.db, &self.crates);
-        fs::write(self.directory.join("lib.rs"), source)
-            .and_then(|_| fs::write(self.directory.join("Cargo.toml"), manifest))
+        write_if_changed(&self.directory.join("lib.rs"), source.as_bytes())
+            .and_then(|_| write_if_changed(&self.directory.join("Cargo.toml"), manifest.as_bytes()))
             .map_err(|error| Error::from_reason(format!("cannot write bridge crate: {error}")))?;
 
         let TransportBackend::Wasm(wasm) = &self.backend;
@@ -237,5 +237,15 @@ impl Server {
         result.bin_ffi_path = Some(binary.to_string_lossy().into_owned());
 
         Ok(result)
+    }
+}
+
+/// Preserve mtimes so Cargo can reuse the bridge when only JavaScript changed.
+fn write_if_changed(path: &Path, contents: &[u8]) -> io::Result<()> {
+    match fs::read(path) {
+        Ok(previous) if previous == contents => Ok(()),
+        Ok(_) => fs::write(path, contents),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => fs::write(path, contents),
+        Err(error) => Err(error),
     }
 }
