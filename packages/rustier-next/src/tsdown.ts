@@ -1,15 +1,9 @@
-import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
-import { posix } from 'node:path'
-import { RolldownMagicString, type Plugin } from 'rolldown'
-import { parseSync } from 'rolldown/utils'
+import type { Plugin } from 'rolldown'
 import { Server } from 'server-next'
+import { buildRuntime, rewriteRuntimeImports } from './bundle'
+import { toProfileOptions, type Platform } from './options'
 
-export type Platform = {
-  type: 'wasm'
-  loading: 'web' | 'node-js'
-  mem64?: boolean
-} | { type: 'node' }
+export type { Platform } from './options'
 
 export interface RustierOptions {
   release?: boolean
@@ -20,25 +14,20 @@ export interface RustierOptions {
 export default function rustier(options: RustierOptions): Plugin {
   const serverOptions = {
     rootDir: process.cwd(),
-    release: options.release ?? false,
-    backend: options.platform.type,
-    mem64: options.platform.type === 'wasm' ? options.platform.mem64 ?? false : false,
-    wasmImport: options.platform.type === 'wasm' && options.platform.loading === 'node-js' ? 'node-js' : 'fetch',
-    crates: Object.fromEntries(
-      Object.entries(options.crates ?? {}).map(([name, crate]) => [name, crate.path]),
-    ),
+    profiles: { default: toProfileOptions(options, options.platform, false) },
   }
   const ffiJsModPath = 'rustier:runtime'
   const binFileName = options.platform.type === 'node' ? 'bridge.node' : 'bridge.wasm'
-  const binFilePath = `./${binFileName}`
-  let server = new Server(serverOptions)
+  const server = new Server(serverOptions)
+  const sources = new Map<string, string>()
   let needsRuntime = false
   let runtimeFileName: string | null = null
 
   return {
     name: 'rustier-next',
     buildStart() {
-      server = new Server(serverOptions)
+      server.reset('default')
+      for (const [id, code] of sources) server.transformModule('default', id, code, ffiJsModPath)
       needsRuntime = false
       runtimeFileName = null
     },
@@ -52,20 +41,24 @@ export default function rustier(options: RustierOptions): Plugin {
       if (id.startsWith('\0') || id.includes('/node_modules/')) return
       if (/\.d\.[cm]?ts(?:[?#]|$)/.test(id)) return
       if (!/\.[cm]?[jt]sx?(?:[?#]|$)/.test(id)) return
-      return { code: server.transform(id, code, ffiJsModPath), map: null }
+      const transformed = server.transformModule('default', id, code, ffiJsModPath)
+      sources.set(id, code)
+      return { code: transformed, map: null }
     },
     buildEnd(error) {
-      if (error || !needsRuntime) return
-      const result = server.build()
-      if (!result.binFfiPath) this.error(result.diagnostics.join('\n') || 'Rustier build failed')
+      if (error) return
+      const modules = new Set(this.getModuleIds())
+      for (const id of sources.keys()) {
+        if (modules.has(id)) continue
+        server.removeModule('default', id)
+        sources.delete(id)
+      }
+      if (!needsRuntime && !modules.has(ffiJsModPath)) return
+      const result = buildRuntime(server, 'default', binFileName)
       for (const diagnostic of result.diagnostics) this.warn(diagnostic)
-      const binary = readFileSync(result.binFfiPath)
-      const runtime = server.renderJsFfi(binFilePath)
-      // A changed binary must also change the runtime URL, including in watch mode.
-      const hash = createHash('sha256').update(runtime).update(binary).digest('hex').slice(0, 16)
-      runtimeFileName = `runtime-${hash}.mjs`
-      this.emitFile({ type: 'asset', fileName: binFileName, source: binary })
-      this.emitFile({ type: 'asset', fileName: runtimeFileName, source: runtime })
+      runtimeFileName = result.runtimeFileName
+      this.emitFile({ type: 'asset', fileName: binFileName, source: result.binary })
+      this.emitFile({ type: 'asset', fileName: runtimeFileName, source: result.runtime })
     },
     renderStart(output) {
       if (runtimeFileName != null && output.format !== 'es') {
@@ -74,17 +67,7 @@ export default function rustier(options: RustierOptions): Plugin {
     },
     renderChunk(code, chunk) {
       if (runtimeFileName == null || !chunk.imports.includes(ffiJsModPath)) return
-      const relative = posix.relative(posix.dirname(chunk.fileName), runtimeFileName)
-      const path = relative.startsWith('.') ? relative : `./${relative}`
-      const result = new RolldownMagicString(code)
-      // Rewrite import specifiers, never strings in application code.
-      const parsed = parseSync(chunk.fileName, code)
-      for (const statement of parsed.program.body) {
-        if (statement.type === 'ImportDeclaration' && statement.source.value === ffiJsModPath) {
-          result.overwrite(statement.source.start, statement.source.end, JSON.stringify(path))
-        }
-      }
-      return { code: result.toString(), map: result.generateMap({ hires: true }).toString() }
+      return rewriteRuntimeImports(code, chunk.fileName, ffiJsModPath, runtimeFileName)
     },
   }
 }

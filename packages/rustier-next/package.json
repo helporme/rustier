@@ -12,7 +12,8 @@
   "files": ["dist"],
   "exports": {
     ".": "./dist/index.mjs",
-    "./tsdown": "./dist/tsdown.mjs"
+    "./tsdown": "./dist/tsdown.mjs",
+    "./vite": "./dist/vite.mjs"
   },
   "scripts": {
     "build:native": "pnpm --dir ../server-next run build",
@@ -28,10 +29,17 @@
     "@types/node": "^25.6.2",
     "rolldown": "^1.0.0",
     "tsdown": "^0.22.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vite": "^8.0.0"
   },
   "peerDependencies": {
     "rolldown": "^1.0.0",
-    "tsdown": "^0.22.0"
+    "tsdown": "^0.22.0",
+    "vite": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": { "optional": true },
+    "tsdown": { "optional": true },
+    "rolldown": { "optional": true }
   }
 }
