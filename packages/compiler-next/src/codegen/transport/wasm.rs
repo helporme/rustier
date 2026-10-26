@@ -1,6 +1,5 @@
 use crate::{
     codegen::fragment::{FragmentOnce, FragmentPrint, frag, fragment},
-    codegen::js::js_string,
     db::Db,
     ir::transport::{TransportFunction, TransportTypeJs, TransportTypeRs},
 };
@@ -34,26 +33,24 @@ pub(super) fn render_transport_preamble_rs(wasm: &TransportBackendWasm) -> impl 
 
 pub(super) fn render_transport_preamble_js(
     wasm: &TransportBackendWasm,
-    opts: &super::TransportCodegenOpts,
+    bin_file_path: &String,
 ) -> impl FragmentOnce {
-    let wasm_path = js_string(&opts.ffi_bin_id).print();
+    let wasm_path = format!("\"{bin_file_path}\"");
     let values = include_str!("wasm/runtime.mjs");
 
     let loading = fragment(move |printer| {
         match wasm.import {
             WasmImport::Fetch => frag!(
-                import __rustier_binary_url from ~{wasm_path};@
                 const {{ instance: __rustier_instance }} = await WebAssembly.instantiate(
-                    await (await fetch(new URL(__rustier_binary_url, import.meta.url))).arrayBuffer(),
+                    await (await fetch(new URL({wasm_path}, import.meta.url))).arrayBuffer(),
                     __rustier_imports
                 );@
             ).apply(printer),
 
             WasmImport::NodeJs => frag!(
-                import __rustier_binary_url from ~{wasm_path};@
                 import {{ readFileSync as __rustier_read_file }} from "node:fs";@
                 const __rustier_instance = new WebAssembly.Instance(
-                    new WebAssembly.Module(__rustier_read_file(new URL(__rustier_binary_url, import.meta.url))),
+                    new WebAssembly.Module(__rustier_read_file(new URL({wasm_path}, import.meta.url))),
                     __rustier_imports
                 );@
             ).apply(printer),
@@ -197,20 +194,14 @@ mod tests {
         let db = RootDatabase::default();
         let file = JsFile::new(&db, "/input.ts", source);
         let program = JsProgram::new(&db, vec![file]);
-        let rust = program.render_rs_ffi(&db, backend);
+        let runtime = program.runtime(&db);
+        let rust = runtime.render_rs_ffi(&db, backend);
         let result = prettyplease::unparse(&syn::parse_file(&rust).unwrap());
         let mut output =
             format!("# Source\n\n```ts\n{source}\n```\n\n# Result\n\n```rust\n{result}```\n");
         output.push_str(&format!(
-            "\n# JS\n\n```js\n{}\n```\n",
-            program.render_js_ffi(
-                &db,
-                backend,
-                &super::super::TransportCodegenOpts {
-                    ffi_module_id: "rustier-next:runtime".into(),
-                    ffi_bin_id: "./rustier.wasm".into(),
-                }
-            )
+            "\n# JS runtime\n\n```js\n{}\n```\n",
+            runtime.render_js_ffi(&db, backend, &"./rustier.wasm".into()),
         ));
         insta::with_settings!({
             snapshot_path => "../_snapshots/transport",

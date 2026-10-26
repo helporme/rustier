@@ -4,7 +4,6 @@ import rustier from "rustier/tsdown";
 export default defineConfig({
   plugins: [
     rustier({
-      crates: { "library-example": { path: "." } },
       platform: { type: "wasm", loading: "node-js" },
     }),
   ],

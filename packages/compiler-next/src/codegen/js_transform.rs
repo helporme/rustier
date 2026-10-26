@@ -1,8 +1,5 @@
 use crate::{
-    codegen::{
-        fragment::{FragmentOnce, FragmentPrint, frag, fragment},
-        js::js_string,
-    },
+    codegen::fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment},
     db::Db,
     ir::js::{JsFileRange, JsModule, JsPart, RsMacroSrc},
 };
@@ -15,7 +12,7 @@ impl<'db> JsModule<'db> {
     /// including nested tags. Untouched source is preserved verbatim; the helper
     /// import is inserted after any shebang with a collision-free local name.
     #[salsa::tracked(returns(ref))]
-    pub fn render_transformed(self, db: &'db dyn Db, ffi_module_id: String) -> String {
+    pub fn render_transformed(self, db: &'db dyn Db, ffi_js_mod_path: String) -> String {
         let file = self.file(db);
         let macros = self.macros(db);
         let source = file.contents(db);
@@ -41,11 +38,10 @@ impl<'db> JsModule<'db> {
             JsFileRange::new(db, file, start as u32, source.len() as u32),
             &binding,
         );
-        let module_id = js_string(&ffi_module_id);
-
+        let path = doubles(ffi_js_mod_path);
         frag!(
             {prefix}
-            import * as ~{binding}~from ~{module_id};@
+            import * as ~{binding}~from ~{path};@
             {body}
         )
         .print()
@@ -180,7 +176,7 @@ mod tests {
         let file = JsFile::new(&db, "/input.ts", source);
         let result = file
             .module(&db)
-            .render_transformed(&db, "./generated/ffi \"snippets\".js".into());
+            .render_transformed(&db, "./generated/ffi-snippets.js".into());
         insta::with_settings!({
             snapshot_path => "_snapshots/js_transform",
             prepend_module_to_snapshot => false,

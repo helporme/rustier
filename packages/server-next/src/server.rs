@@ -6,7 +6,7 @@ use std::{
 };
 
 use compiler::{
-    codegen::{TransportBackend, TransportBackendWasm, TransportCodegenOpts, WasmImport},
+    codegen::{TransportBackend, TransportBackendWasm, WasmImport},
     db::RootDatabase,
     diag::Theme,
     ir::js::{JsFile, JsProgram},
@@ -37,9 +37,6 @@ pub struct Server {
     directory: PathBuf,
     release: bool,
     backend: TransportBackend,
-    js_ffi_mod_id: String,
-    bin_ffi_mod_id: String,
-    js_modules: HashMap<String, String>,
     crates: BTreeMap<String, String>,
     next_artifact: u64,
 }
@@ -67,13 +64,6 @@ impl Server {
             import,
         });
         let directory = root.join(".rustier/bridge");
-        let js_ffi_mod_id = directory.join("ffi.mjs").to_string_lossy().into_owned();
-        let bin_ffi_mod_id = directory.join("binary.mjs").to_string_lossy().into_owned();
-        let opts = TransportCodegenOpts {
-            ffi_module_id: js_ffi_mod_id.clone(),
-            ffi_bin_id: bin_ffi_mod_id.clone(),
-        };
-        let js_modules = HashMap::from([(js_ffi_mod_id.clone(), backend.render_js_backend(&opts))]);
         let crates = options
             .crates
             .unwrap_or_default()
@@ -92,32 +82,26 @@ impl Server {
             directory,
             release: options.release.unwrap_or(false),
             backend,
-            js_ffi_mod_id,
-            bin_ffi_mod_id,
-            js_modules,
             crates,
             next_artifact: 0,
         })
     }
 
-    #[napi(getter)]
-    pub fn js_ffi_mod_id(&self) -> String {
-        self.js_ffi_mod_id.clone()
-    }
-
-    #[napi(getter)]
-    pub fn bin_ffi_mod_id(&self) -> String {
-        self.bin_ffi_mod_id.clone()
-    }
-
-    /// Compiler-generated modules available before the Rust build.
+    /// Complete JavaScript runtime for the collected source files.
     #[napi]
-    pub fn js_ffi_module(&self, module_id: String) -> Option<String> {
-        self.js_modules.get(&module_id).cloned()
+    pub fn render_js_ffi(&self, bin_file_path: String) -> String {
+        self.program
+            .runtime(&self.db)
+            .render_js_ffi(&self.db, &self.backend, &bin_file_path)
     }
 
     #[napi]
-    pub fn transform(&mut self, module_id: String, contents: String) -> Result<String> {
+    pub fn transform(
+        &mut self,
+        module_id: String,
+        contents: String,
+        ffi_js_mod_path: String,
+    ) -> Result<String> {
         let file = JsFile::new(&self.db, module_id.clone(), contents);
         let mut files = self.program.files(&self.db).clone();
         match files
@@ -139,23 +123,9 @@ impl Server {
             return Err(Error::from_reason(messages.join("\n")));
         }
 
-        let ffi_module_id = format!("{}?source={module_id}", self.js_ffi_mod_id);
-        if file.module(&self.db).macros(&self.db).is_empty() {
-            self.js_modules.remove(&ffi_module_id);
-        } else {
-            let program = JsProgram::new(&self.db, vec![file]);
-            let opts = TransportCodegenOpts {
-                ffi_module_id: self.js_ffi_mod_id.clone(),
-                ffi_bin_id: self.bin_ffi_mod_id.clone(),
-            };
-            self.js_modules.insert(
-                ffi_module_id.clone(),
-                program.render_js_ffi_exports(&self.db, &self.backend, &opts),
-            );
-        }
         Ok(file
             .module(&self.db)
-            .render_transformed(&self.db, ffi_module_id)
+            .render_transformed(&self.db, ffi_js_mod_path)
             .clone())
     }
 
@@ -213,7 +183,10 @@ impl Server {
             return Ok(result);
         }
 
-        let source = self.program.render_rs_ffi(&self.db, &self.backend);
+        let source = self
+            .program
+            .runtime(&self.db)
+            .render_rs_ffi(&self.db, &self.backend);
         let manifest = self.program.render_cargo_toml(&self.db, &self.crates);
         fs::write(self.directory.join("lib.rs"), source)
             .and_then(|_| fs::write(self.directory.join("Cargo.toml"), manifest))

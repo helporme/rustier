@@ -40,7 +40,7 @@ pub unsafe extern "C" fn __rustier_8edf2a92b93d1e58764933cd47b6f366f9c8466cccef8
 }
 ```
 
-# JS
+# JS runtime
 
 ```js
 const __rustier_values =(() => {
@@ -352,14 +352,13 @@ const __rustier_values =(() => {
 const __rustier_imports ={
 	"./rustier-wasm-rt.mjs": __rustier_values
 };
-import __rustier_binary_url from "./rustier.wasm";
 const{
 	instance: __rustier_instance
 }= await WebAssembly.instantiate(
 	await(
 		await fetch(
 			new URL(
-				__rustier_binary_url, import.meta.url
+				"./rustier.wasm", import.meta.url
 			)
 		)
 	).arrayBuffer(), __rustier_imports
@@ -368,6 +367,7 @@ const __rustier_exports = __rustier_instance.exports;
 __rustier_values.__rustier_js_init_memory(
 	__rustier_exports.memory
 );
+
 export function __rustier_8edf2a92b93d1e58764933cd47b6f366f9c8466cccef8b18f299da6e6e9b544d(__rustier_arg_0){
 	let __rustier_result;
 	{

@@ -2,25 +2,55 @@ use crate::{
     codegen::{
         TransportBackend,
         fragment::{FragmentOnce, FragmentPrint, frag, fragment},
+        transport::{render_transport_preamble_js, render_transport_preamble_rs},
     },
     db::Db,
-    ir::runtime::{JsType, RsMacro, RsPart, RsType},
+    ir::runtime::{JsType, RsMacro, RsPart, RsType, Runtime},
 };
 
+impl<'db> Runtime<'db> {
+    /// JavaScript runtime initialization and specialized snippet exports.
+    pub fn render_js_ffi(
+        self,
+        db: &'db dyn Db,
+        backend: &TransportBackend,
+        bin_file_path: &String,
+    ) -> String {
+        fragment(|printer| {
+            render_transport_preamble_js(backend, bin_file_path).apply(printer);
+            for macro_ in self.macros(db) {
+                frag!(@{macro_.render_js_ffi(db, backend)}@).apply(printer);
+            }
+        })
+        .print()
+    }
+
+    /// Rust FFI crate, including transport setup and snippet exports.
+    pub fn render_rs_ffi(self, db: &'db dyn Db, backend: &TransportBackend) -> String {
+        fragment(|printer| {
+            render_transport_preamble_rs(backend).apply(printer);
+            for macro_ in self.macros(db) {
+                frag!(@{macro_.render_rs_ffi(db, backend)}@).apply(printer);
+            }
+        })
+        .print()
+    }
+}
+
 impl RsType {
-    pub(super) fn render(self) -> impl FragmentOnce {
+    fn render(self) -> impl FragmentOnce {
         match self {
             Self::JsValue => frag!(::aux_next::runtime::js::JsValue),
         }
     }
 
-    pub(super) fn render_from_transport(self, value: impl FragmentOnce) -> impl FragmentOnce {
+    fn render_from_transport(self, value: impl FragmentOnce) -> impl FragmentOnce {
         match self {
             Self::JsValue => frag!(::aux_next::runtime::js::JsValue::from({ value })),
         }
     }
 
-    pub(super) fn render_to_transport(self, value: impl FragmentOnce) -> impl FragmentOnce {
+    fn render_to_transport(self, value: impl FragmentOnce) -> impl FragmentOnce {
         match self {
             Self::JsValue => frag!(::aux_next::transport::JsValueHandle::from({ value })),
         }
@@ -28,7 +58,7 @@ impl RsType {
 }
 
 impl<'db> RsMacro<'db> {
-    pub(super) fn render_rs_ffi(self, db: &'db dyn Db, backend: &TransportBackend) -> String {
+    fn render_rs_ffi(self, db: &'db dyn Db, backend: &TransportBackend) -> String {
         self.transport(db)
             .render_rs_adapter_with_body(db, backend, |env, arguments| {
                 let ret_type = self.ret_type(db).render();
@@ -66,7 +96,7 @@ impl<'db> RsMacro<'db> {
             })
     }
 
-    pub(super) fn render_js_ffi(self, db: &'db dyn Db, backend: &TransportBackend) -> String {
+    fn render_js_ffi(self, db: &'db dyn Db, backend: &TransportBackend) -> String {
         let transport = self.transport(db);
         let name = self.symbol(db);
         let arguments: Vec<_> = self
@@ -221,5 +251,33 @@ mod tests {
                 RsPart::Text("; first".into()),
             ]),
         );
+    }
+
+    #[test]
+    fn program_runtime_tracks_and_deduplicates_snippets() {
+        use crate::ir::js::{JsFile, JsProgram};
+        use salsa::Setter;
+
+        let mut db = RootDatabase::default();
+        let first = JsFile::new(&db, "/first.js", "import { rs } from 'rustier'; rs`${a}`;");
+        let second = JsFile::new(&db, "/second.js", "import { rs } from 'rustier'; rs`${b}`;");
+        let program = JsProgram::new(&db, vec![first, second]);
+        let runtime = program.runtime(&db);
+        assert!(runtime == program.runtime(&db));
+        assert_eq!(runtime.macros(&db).len(), 1);
+        let backend = test_backend();
+        let js = runtime.render_js_ffi(&db, &backend, &"./bridge.wasm".into());
+        assert_eq!(js.matches("export function ").count(), 1);
+        assert_eq!(js.matches("WebAssembly.instantiate(").count(), 1);
+        assert!(js.contains("\"./bridge.wasm\""));
+        assert!(!js.contains("export{"));
+
+        let changed = JsFile::new(
+            &db,
+            "/second.js",
+            "import { rs } from 'rustier'; rs`__rustier_env.null()`;",
+        );
+        program.set_files(&mut db).to(vec![first, changed]);
+        assert_eq!(program.runtime(&db).macros(&db).len(), 2);
     }
 }

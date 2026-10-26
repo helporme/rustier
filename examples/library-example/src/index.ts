@@ -3,7 +3,7 @@ import { rs } from "rustier";
 export function greet(): string {
   return rs`
     let js = ${undefined};
-    js.env().new_string(library_example::greet().unwrap())
+    js.env().new_string("Hello world!")
   `;
 }
 

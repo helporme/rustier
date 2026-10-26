@@ -1,5 +1,8 @@
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
-import type { Plugin } from 'rolldown'
+import { posix } from 'node:path'
+import { RolldownMagicString, type Plugin } from 'rolldown'
+import { parseSync } from 'rolldown/utils'
 import { Server } from 'server-next'
 
 export type Platform = {
@@ -24,54 +27,62 @@ export default function rustier(options: RustierOptions): Plugin {
       Object.entries(options.crates ?? {}).map(([name, crate]) => [name, crate.path]),
     ),
   }
-
+  const ffiJsModPath = 'rustier:runtime'
+  const binFilePath = './bridge.wasm'
   let server = new Server(serverOptions)
-  let binaryReference: string | null = null
-  let binary: Uint8Array | null = null
+  let needsRuntime = false
+  let runtimeFileName: string | null = null
 
   return {
     name: 'rustier-next',
     buildStart() {
       server = new Server(serverOptions)
-      binaryReference = null
-      binary = null
+      needsRuntime = false
+      runtimeFileName = null
     },
     resolveId(id) {
-      if (id === server.binFfiModId || server.jsFfiModule(id) != null) return id
-    },
-    load(id) {
-      if (id === server.binFfiModId) {
-        // Rolldown requires an asset source at emission time. A fixed filename
-        // lets us fill the reserved asset later without invalidating its URL/hash.
-        binaryReference ??= this.emitFile({
-          type: 'asset',
-          fileName: 'bridge.wasm',
-          source: new Uint8Array(),
-        })
-        return `export default import.meta.ROLLUP_FILE_URL_${binaryReference};`
-      }
-      return server.jsFfiModule(id)
+      if (id !== ffiJsModPath) return
+      needsRuntime = true
+      // Do not load the runtime until all snippets have been collected.
+      return { id, external: true }
     },
     transform(code, id) {
       if (id.startsWith('\0') || id.includes('/node_modules/')) return
-      if (id === server.binFfiModId || server.jsFfiModule(id) != null) return
       if (/\.d\.[cm]?ts(?:[?#]|$)/.test(id)) return
       if (!/\.[cm]?[jt]sx?(?:[?#]|$)/.test(id)) return
-      return { code: server.transform(id, code), map: null }
+      return { code: server.transform(id, code, ffiJsModPath), map: null }
     },
     buildEnd(error) {
-      if (error || binaryReference == null) return
+      if (error || !needsRuntime) return
       const result = server.build()
       if (!result.binFfiPath) this.error(result.diagnostics.join('\n') || 'Rustier build failed')
       for (const diagnostic of result.diagnostics) this.warn(diagnostic)
-      binary = readFileSync(result.binFfiPath)
+      const binary = readFileSync(result.binFfiPath)
+      const runtime = server.renderJsFfi(binFilePath)
+      // A changed binary must also change the runtime URL, including in watch mode.
+      const hash = createHash('sha256').update(runtime).update(binary).digest('hex').slice(0, 16)
+      runtimeFileName = `runtime-${hash}.mjs`
+      this.emitFile({ type: 'asset', fileName: 'bridge.wasm', source: binary })
+      this.emitFile({ type: 'asset', fileName: runtimeFileName, source: runtime })
     },
-    generateBundle(_, bundle) {
-      if (binaryReference == null) return
-      if (binary == null) this.error('Rustier binary was not built')
-      const asset = bundle[this.getFileName(binaryReference)]
-      if (!asset || asset.type !== 'asset') this.error('Rustier binary asset is missing')
-      asset.source = binary
+    renderStart(output) {
+      if (runtimeFileName != null && output.format !== 'es') {
+        this.error('Rustier runtime assets require ES module output')
+      }
+    },
+    renderChunk(code, chunk) {
+      if (runtimeFileName == null || !chunk.imports.includes(ffiJsModPath)) return
+      const relative = posix.relative(posix.dirname(chunk.fileName), runtimeFileName)
+      const path = relative.startsWith('.') ? relative : `./${relative}`
+      const result = new RolldownMagicString(code)
+      // Rewrite import specifiers, never strings in application code.
+      const parsed = parseSync(chunk.fileName, code)
+      for (const statement of parsed.program.body) {
+        if (statement.type === 'ImportDeclaration' && statement.source.value === ffiJsModPath) {
+          result.overwrite(statement.source.start, statement.source.end, JSON.stringify(path))
+        }
+      }
+      return { code: result.toString(), map: result.generateMap({ hires: true }).toString() }
     },
   }
 }

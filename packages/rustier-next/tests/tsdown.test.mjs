@@ -23,6 +23,7 @@ test('collects bundler-provided sources before compiling and shares one backend'
         import { identity } from './child.ts';
         export const echo = value => identity(rs\`\${value}\`);
         export const late = async () => (await import('./lazy.ts')).late();
+        export const runtimePath = 'rustier:runtime';
       `],
       [child, `
         import { rs as rust } from 'rustier';
@@ -86,6 +87,8 @@ test('collects bundler-provided sources before compiling and shares one backend'
           format: 'esm',
           entryFileNames: 'entries/[name].mjs',
           chunkFileNames: 'chunks/[name]-[hash].mjs',
+          minify: true,
+          sourcemap: true,
         })
       } finally {
         await build.close()
@@ -100,6 +103,13 @@ test('collects bundler-provided sources before compiling and shares one backend'
     const otherEntry = await import(pathToFileURL(join(output, 'entries/other.mjs')).href)
     assert.equal(otherEntry.other(value), value)
     assert.equal(await first.late(), 'late module')
+    assert.equal(first.runtimePath, 'rustier:runtime', 'ordinary string literals must not be rewritten')
+    const runtimes = readdirSync(output).filter(name => /^runtime-.*\.mjs$/.test(name))
+    assert.equal(runtimes.length, 1, 'every entry and lazy chunk shares one runtime asset')
+    const runtime = readFileSync(join(output, runtimes[0]), 'utf8')
+    assert.equal((runtime.match(/new WebAssembly\.Instance\(/g) ?? []).length, 1)
+    assert.equal((runtime.match(/export function __rustier_/g) ?? []).length, 4)
+    assert.ok(!runtime.includes('rustier:runtime'))
     assert.ok(WebAssembly.validate(readFileSync(join(output, 'bridge.wasm'))))
     assert.equal(builds, 1)
 
@@ -221,6 +231,7 @@ test('skips plain JS builds and supports the fetch loader', async () => {
     assert.equal((await bundle(join(root, 'plain'))).plain, 42)
     assert.ok(!existsSync(join(root, '.rustier/bridge')))
     assert.ok(!existsSync(join(root, 'plain/bridge.wasm')))
+    assert.ok(!readdirSync(join(root, 'plain')).some(name => name.startsWith('runtime-')))
     source = "import { rs } from 'rustier'; export const echo = value => rs`${value}`;"
     let requests = 0
     globalThis.fetch = async url => {

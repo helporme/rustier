@@ -1,11 +1,9 @@
+use std::collections::BTreeMap;
+
 use crate::{db::Db, ir::js::JsProgram};
 
 impl JsProgram {
-    pub fn render_cargo_toml(
-        &self,
-        _db: &dyn Db,
-        crates: &std::collections::BTreeMap<String, String>,
-    ) -> String {
+    pub fn render_cargo_toml(&self, _db: &dyn Db, crates: &BTreeMap<String, String>) -> String {
         let aux = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../aux-next");
         let mut manifest = toml::Table::from_iter([
             (
@@ -68,7 +66,7 @@ mod tests {
         let mut manifest: toml::Table = program
             .render_cargo_toml(
                 &db,
-                &std::collections::BTreeMap::from([("example".into(), "<example-crate>".into())]),
+                &BTreeMap::from([("example".into(), "<example-crate>".into())]),
             )
             .parse()
             .unwrap();

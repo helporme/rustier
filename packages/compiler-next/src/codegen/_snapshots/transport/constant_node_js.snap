@@ -34,7 +34,7 @@ pub unsafe extern "C" fn __rustier_607663b6eedca55d32c2d04d2eb65ba263399f7c5c636
 }
 ```
 
-# JS
+# JS runtime
 
 ```js
 const __rustier_values =(() => {
@@ -346,7 +346,6 @@ const __rustier_values =(() => {
 const __rustier_imports ={
 	"./rustier-wasm-rt.mjs": __rustier_values
 };
-import __rustier_binary_url from "./rustier.wasm";
 import{
 	readFileSync as __rustier_read_file
 }from "node:fs";
@@ -354,7 +353,7 @@ const __rustier_instance = new WebAssembly.Instance(
 	new WebAssembly.Module(
 		__rustier_read_file(
 			new URL(
-				__rustier_binary_url, import.meta.url
+				"./rustier.wasm", import.meta.url
 			)
 		)
 	), __rustier_imports
@@ -363,6 +362,7 @@ const __rustier_exports = __rustier_instance.exports;
 __rustier_values.__rustier_js_init_memory(
 	__rustier_exports.memory
 );
+
 export function __rustier_607663b6eedca55d32c2d04d2eb65ba263399f7c5c636730df7a1fb448c65e0b(){
 	let __rustier_result;
 	{

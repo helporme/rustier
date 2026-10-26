@@ -11,12 +11,25 @@ use crate::{
 };
 
 impl JsProgram {
+    /// The runtime associated with this program.
+    pub fn runtime<'db>(self, db: &'db dyn Db) -> Runtime<'db> {
+        Runtime::new(db, self)
+    }
+}
+
+/// Runtime behavior collected from a JavaScript program.
+#[salsa::interned]
+pub struct Runtime<'db> {
+    js_program: JsProgram,
+}
+
+impl<'db> Runtime<'db> {
     /// Macros encountered in the program.
-    pub fn macros<'db>(self, db: &'db dyn Db) -> Vec<RsMacro<'db>> {
+    pub fn macros(self, db: &'db dyn Db) -> Vec<RsMacro<'db>> {
         let mut seen = HashSet::new();
         let mut macros = Vec::new();
 
-        for module in self.modules(db) {
+        for module in self.js_program(db).modules(db) {
             for src in module.macros(db) {
                 let macro_ = src.as_macro(db);
                 if seen.insert(macro_) {
