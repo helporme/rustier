@@ -236,7 +236,9 @@ mod tests {
             ("node_js", WasmImport::NodeJs),
             ("module", WasmImport::Module),
         ] {
-            let TransportBackend::Wasm(mut wasm) = test_backend();
+            let TransportBackend::Wasm(mut wasm) = test_backend() else {
+                unreachable!()
+            };
             wasm.import = import;
             let backend = TransportBackend::Wasm(wasm);
             snapshot(

@@ -5,4 +5,4 @@ pub mod manifest;
 mod runtime;
 mod transport;
 
-pub use transport::{TransportBackend, TransportBackendWasm, WasmImport};
+pub use transport::{TransportBackend, TransportBackendNode, TransportBackendWasm, WasmImport};

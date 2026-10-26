@@ -1,5 +1,7 @@
 #[cfg(not(target_family = "wasm"))]
 mod node;
+#[cfg(not(target_family = "wasm"))]
+pub use napi_sys;
 #[cfg(target_family = "wasm")]
 pub mod wasm;
 

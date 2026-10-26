@@ -94,7 +94,24 @@ impl JsValueHandle {
             raw: call(|output| unsafe { napi_open_handle_scope(env, output) }),
         };
         let value = call(|output| create(env, output));
-        let reference = call(|output| unsafe { napi_create_reference(env, value, 1, output) });
+        // Node-API references cannot hold primitives. A private wrapper keeps any
+        // JavaScript value alive without changing its identity or representation.
+        let wrapper = call(|output| unsafe { napi_create_object(env, output) });
+        let property = napi_sys::napi_property_descriptor {
+            utf8name: c"value".as_ptr(),
+            name: ptr::null_mut(),
+            method: None,
+            getter: None,
+            setter: None,
+            value,
+            attributes: napi_sys::PropertyAttributes::default,
+            data: ptr::null_mut(),
+        };
+        // Define an own data property rather than invoking a possible inherited
+        // setter on Object.prototype.
+        let status = unsafe { napi_sys::napi_define_properties(env, wrapper, 1, &property) };
+        assert_eq!(status, Status::napi_ok);
+        let reference = call(|output| unsafe { napi_create_reference(env, wrapper, 1, output) });
 
         Self {
             raw: reference,
@@ -113,9 +130,14 @@ impl JsValueHandle {
             env,
             raw: call(|output| unsafe { napi_open_handle_scope(env, output) }),
         };
-        let value = call(|output| unsafe { napi_get_reference_value(env, self.raw, output) });
+        let value = self.value(env);
 
         read(env, value)
+    }
+
+    fn value(&self, env: napi_env) -> napi_value {
+        let wrapper = call(|output| unsafe { napi_get_reference_value(env, self.raw, output) });
+        call(|output| unsafe { napi_get_named_property(env, wrapper, c"value".as_ptr(), output) })
     }
 
     fn read<T>(
@@ -194,7 +216,7 @@ impl JsValueHandle {
         }
 
         self.with_value(|env, value| {
-            let other = call(|output| unsafe { napi_get_reference_value(env, other.raw, output) });
+            let other = other.value(env);
 
             call(|output| unsafe { napi_strict_equals(env, value, other, output) })
         })
@@ -321,9 +343,7 @@ impl JsValueHandle {
                     ));
                 }
 
-                checked(self.env, |output| unsafe {
-                    napi_get_reference_value(env, value.raw, output)
-                })
+                Ok(value.value(env))
             })
             .collect()
     }
@@ -357,9 +377,7 @@ impl JsValueHandle {
         self.with_value(|env, function| {
             let args = self.arguments(env, args)?;
             let this = match this {
-                Some(value) => checked(self.env, |output| unsafe {
-                    napi_get_reference_value(env, value.raw, output)
-                })?,
+                Some(value) => value.value(env),
                 None => checked(self.env, |output| unsafe {
                     napi_get_undefined(env, output)
                 })?,
@@ -425,7 +443,7 @@ impl JsValueHandle {
     /// The returned value must not be used after that scope closes.
     pub unsafe fn into_napi_value(self) -> usize {
         let env = self.env.into_raw() as napi_env;
-        let value = call(|output| unsafe { napi_get_reference_value(env, self.raw, output) });
+        let value = self.value(env);
 
         value as usize
     }

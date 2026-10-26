@@ -2,7 +2,10 @@ use crate::{
     codegen::{
         TransportBackend,
         fragment::{FragmentOnce, FragmentPrint, frag, fragment},
-        transport::{render_transport_preamble_js, render_transport_preamble_rs},
+        transport::{
+            render_transport_preamble_js, render_transport_preamble_rs,
+            render_transport_registration_rs,
+        },
     },
     db::Db,
     ir::runtime::{JsType, RsMacro, RsPart, RsType, Runtime},
@@ -32,6 +35,12 @@ impl<'db> Runtime<'db> {
             for macro_ in self.macros(db) {
                 frag!(@{macro_.render_rs_ffi(db, backend)}@).apply(printer);
             }
+            render_transport_registration_rs(
+                backend,
+                db,
+                self.macros(db).iter().map(|macro_| macro_.transport(db)),
+            )
+            .apply(printer);
         })
         .print()
     }

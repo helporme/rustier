@@ -9,7 +9,7 @@ export type Platform = {
   type: 'wasm'
   loading: 'web' | 'node-js'
   mem64?: boolean
-}
+} | { type: 'node' }
 
 export interface RustierOptions {
   release?: boolean
@@ -21,14 +21,16 @@ export default function rustier(options: RustierOptions): Plugin {
   const serverOptions = {
     rootDir: process.cwd(),
     release: options.release ?? false,
-    mem64: options.platform.mem64 ?? false,
-    wasmImport: options.platform.loading === 'node-js' ? 'node-js' : 'fetch',
+    backend: options.platform.type,
+    mem64: options.platform.type === 'wasm' ? options.platform.mem64 ?? false : false,
+    wasmImport: options.platform.type === 'wasm' && options.platform.loading === 'node-js' ? 'node-js' : 'fetch',
     crates: Object.fromEntries(
       Object.entries(options.crates ?? {}).map(([name, crate]) => [name, crate.path]),
     ),
   }
   const ffiJsModPath = 'rustier:runtime'
-  const binFilePath = './bridge.wasm'
+  const binFileName = options.platform.type === 'node' ? 'bridge.node' : 'bridge.wasm'
+  const binFilePath = `./${binFileName}`
   let server = new Server(serverOptions)
   let needsRuntime = false
   let runtimeFileName: string | null = null
@@ -62,7 +64,7 @@ export default function rustier(options: RustierOptions): Plugin {
       // A changed binary must also change the runtime URL, including in watch mode.
       const hash = createHash('sha256').update(runtime).update(binary).digest('hex').slice(0, 16)
       runtimeFileName = `runtime-${hash}.mjs`
-      this.emitFile({ type: 'asset', fileName: 'bridge.wasm', source: binary })
+      this.emitFile({ type: 'asset', fileName: binFileName, source: binary })
       this.emitFile({ type: 'asset', fileName: runtimeFileName, source: runtime })
     },
     renderStart(output) {

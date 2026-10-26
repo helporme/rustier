@@ -1,12 +1,19 @@
-use crate::{codegen::fragment::FragmentOnce, db::Db, ir::transport::TransportFunction};
+use crate::{
+    codegen::fragment::{FragmentOnce, fragment},
+    db::Db,
+    ir::transport::TransportFunction,
+};
 
+mod node;
 mod wasm;
 
+pub use node::TransportBackendNode;
 pub use wasm::{TransportBackendWasm, WasmImport};
 
 /// Backend-specific transport code generation.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum TransportBackend {
+    Node(TransportBackendNode),
     Wasm(TransportBackendWasm),
 }
 
@@ -14,16 +21,33 @@ pub(super) fn render_transport_preamble_js(
     backend: &TransportBackend,
     bin_file_path: &String,
 ) -> impl FragmentOnce {
-    match backend {
-        TransportBackend::Wasm(backend) => {
-            wasm::render_transport_preamble_js(backend, bin_file_path)
+    fragment(move |printer| match backend {
+        TransportBackend::Node(backend) => {
+            node::render_transport_preamble_js(backend, bin_file_path).apply(printer)
         }
-    }
+        TransportBackend::Wasm(backend) => {
+            wasm::render_transport_preamble_js(backend, bin_file_path).apply(printer)
+        }
+    })
 }
 
 pub(super) fn render_transport_preamble_rs(backend: &TransportBackend) -> impl FragmentOnce {
+    fragment(move |printer| match backend {
+        TransportBackend::Node(_) => node::render_transport_preamble_rs().apply(printer),
+        TransportBackend::Wasm(backend) => {
+            wasm::render_transport_preamble_rs(backend).apply(printer)
+        }
+    })
+}
+
+pub(super) fn render_transport_registration_rs<'db>(
+    backend: &TransportBackend,
+    db: &'db dyn Db,
+    functions: impl IntoIterator<Item = TransportFunction<'db>>,
+) -> String {
     match backend {
-        TransportBackend::Wasm(backend) => wasm::render_transport_preamble_rs(backend),
+        TransportBackend::Node(_) => node::render_registration(db, functions),
+        TransportBackend::Wasm(_) => String::new(),
     }
 }
 
@@ -35,6 +59,9 @@ impl<'db> TransportFunction<'db> {
         render_body: impl FnOnce(&str, &[String]) -> String,
     ) -> String {
         match backend {
+            TransportBackend::Node(backend) => {
+                backend.render_rs_adapter_with_body(self, db, render_body)
+            }
             TransportBackend::Wasm(backend) => {
                 backend.render_rs_adapter_with_body(self, db, render_body)
             }
@@ -49,6 +76,9 @@ impl<'db> TransportFunction<'db> {
         result_var: &str,
     ) -> String {
         match backend {
+            TransportBackend::Node(backend) => {
+                backend.render_js_ffi_call_stmt(self, db, arguments, result_var)
+            }
             TransportBackend::Wasm(backend) => {
                 backend.render_js_ffi_call_stmt(self, db, arguments, result_var)
             }

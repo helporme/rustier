@@ -6,7 +6,7 @@ use std::{
 };
 
 use compiler::{
-    codegen::{TransportBackend, TransportBackendWasm, WasmImport},
+    codegen::{TransportBackend, TransportBackendNode, TransportBackendWasm, WasmImport},
     db::RootDatabase,
     diag::Theme,
     ir::js::{JsFile, JsProgram},
@@ -19,6 +19,7 @@ use salsa::Setter;
 pub struct ServerOptions {
     pub root_dir: String,
     pub release: Option<bool>,
+    pub backend: Option<String>,
     pub mem64: Option<bool>,
     pub wasm_import: Option<String>,
     pub crates: Option<HashMap<String, String>>,
@@ -59,10 +60,18 @@ impl Server {
                 )));
             }
         };
-        let backend = TransportBackend::Wasm(TransportBackendWasm {
-            mem64: options.mem64.unwrap_or(false),
-            import,
-        });
+        let backend = match options.backend.as_deref().unwrap_or("wasm") {
+            "wasm" => TransportBackend::Wasm(TransportBackendWasm {
+                mem64: options.mem64.unwrap_or(false),
+                import,
+            }),
+            "node" => TransportBackend::Node(TransportBackendNode),
+            backend => {
+                return Err(Error::from_reason(format!(
+                    "unsupported backend: {backend}"
+                )));
+            }
+        };
         let directory = root.join(".rustier/bridge");
         let crates = options
             .crates
@@ -192,15 +201,25 @@ impl Server {
             .and_then(|_| write_if_changed(&self.directory.join("Cargo.toml"), manifest.as_bytes()))
             .map_err(|error| Error::from_reason(format!("cannot write bridge crate: {error}")))?;
 
-        let TransportBackend::Wasm(wasm) = &self.backend;
-        let target = if wasm.mem64 {
-            "wasm64-unknown-unknown"
-        } else {
-            "wasm32-unknown-unknown"
+        let target = match &self.backend {
+            TransportBackend::Wasm(wasm) => Some(if wasm.mem64 {
+                "wasm64-unknown-unknown"
+            } else {
+                "wasm32-unknown-unknown"
+            }),
+            TransportBackend::Node(_) => None,
         };
         let mut command = Command::new("cargo");
+        if let Some(target) = target {
+            command.args(["build", "--quiet", "--target", target]);
+        } else {
+            command.args(["build", "--quiet"]);
+            if cfg!(target_os = "macos") {
+                command.args(["--config", "build.rustflags=[\"-C\", \"link-arg=-undefined\", \"-C\", \"link-arg=dynamic_lookup\"]"]);
+            }
+        }
         command
-            .args(["build", "--quiet", "--target", target, "--manifest-path"])
+            .arg("--manifest-path")
             .arg(self.directory.join("Cargo.toml"))
             .arg("--target-dir")
             .arg(self.directory.join("target"));
@@ -224,15 +243,27 @@ impl Server {
         }
 
         let profile = if self.release { "release" } else { "debug" };
-        let source = self
-            .directory
-            .join("target")
-            .join(target)
-            .join(profile)
-            .join("rustier_macros.wasm");
-        let binary = artifact_directory.join("bridge.wasm");
-        fs::copy(source, &binary)
-            .map_err(|error| Error::from_reason(format!("cannot store compiled Wasm: {error}")))?;
+        let mut source = self.directory.join("target");
+        if let Some(target) = target {
+            source.push(target);
+        }
+        source.push(profile);
+        let (library, artifact) = match &self.backend {
+            TransportBackend::Wasm(_) => ("rustier_macros.wasm".to_owned(), "bridge.wasm"),
+            TransportBackend::Node(_) => (
+                format!(
+                    "{}rustier_macros{}",
+                    std::env::consts::DLL_PREFIX,
+                    std::env::consts::DLL_SUFFIX
+                ),
+                "bridge.node",
+            ),
+        };
+        source.push(library);
+        let binary = artifact_directory.join(artifact);
+        fs::copy(source, &binary).map_err(|error| {
+            Error::from_reason(format!("cannot store compiled binary: {error}"))
+        })?;
 
         result.bin_ffi_path = Some(binary.to_string_lossy().into_owned());
 
