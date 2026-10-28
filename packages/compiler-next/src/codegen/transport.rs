@@ -21,22 +21,20 @@ pub(super) fn render_transport_preamble_js(
     backend: &TransportBackend,
     bin_file_path: &String,
 ) -> impl FragmentOnce {
-    fragment(move |printer| match backend {
+    fragment(move |p| match backend {
         TransportBackend::Node(backend) => {
-            node::render_transport_preamble_js(backend, bin_file_path).apply(printer)
+            node::render_transport_preamble_js(backend, bin_file_path).apply(p)
         }
         TransportBackend::Wasm(backend) => {
-            wasm::render_transport_preamble_js(backend, bin_file_path).apply(printer)
+            wasm::render_transport_preamble_js(backend, bin_file_path).apply(p)
         }
     })
 }
 
 pub(super) fn render_transport_preamble_rs(backend: &TransportBackend) -> impl FragmentOnce {
-    fragment(move |printer| match backend {
-        TransportBackend::Node(_) => node::render_transport_preamble_rs().apply(printer),
-        TransportBackend::Wasm(backend) => {
-            wasm::render_transport_preamble_rs(backend).apply(printer)
-        }
+    fragment(move |p| match backend {
+        TransportBackend::Node(_) => node::render_transport_preamble_rs().apply(p),
+        TransportBackend::Wasm(backend) => wasm::render_transport_preamble_rs(backend).apply(p),
     })
 }
 

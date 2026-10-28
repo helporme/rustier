@@ -19,10 +19,10 @@ impl<'db> Runtime<'db> {
         backend: &TransportBackend,
         bin_file_path: &String,
     ) -> String {
-        fragment(|printer| {
-            render_transport_preamble_js(backend, bin_file_path).apply(printer);
+        fragment(|p| {
+            render_transport_preamble_js(backend, bin_file_path).apply(p);
             for macro_ in self.macros(db) {
-                frag!(@{macro_.render_js_ffi(db, backend)}@).apply(printer);
+                frag!(@{macro_.render_js_ffi(db, backend)}@).apply(p);
             }
         })
         .print()
@@ -30,39 +30,42 @@ impl<'db> Runtime<'db> {
 
     /// Rust FFI crate, including transport setup and macro exports.
     pub fn render_rs_ffi(self, db: &'db dyn Db, backend: &TransportBackend) -> String {
-        fragment(|printer| {
-            render_transport_preamble_rs(backend).apply(printer);
+        fragment(|p| {
+            render_transport_preamble_rs(backend).apply(p);
             for macro_ in self.macros(db) {
-                frag!(@{macro_.render_rs_ffi(db, backend)}@).apply(printer);
+                frag!(@{macro_.render_rs_ffi(db, backend)}@).apply(p);
             }
             render_transport_registration_rs(
                 backend,
                 db,
                 self.macros(db).iter().map(|macro_| macro_.transport(db)),
             )
-            .apply(printer);
+            .apply(p);
         })
         .print()
     }
 }
 
 impl RsType {
-    fn render(self) -> impl FragmentOnce {
+    pub(super) fn render(self) -> impl FragmentOnce {
         match self {
+            Self::Void => frag!(()),
             Self::JsValue => frag!(::aux_next::runtime::js::JsValue),
         }
     }
 
     fn render_from_transport(self, value: impl FragmentOnce) -> impl FragmentOnce {
-        match self {
-            Self::JsValue => frag!(::aux_next::runtime::js::JsValue::from({ value })),
-        }
+        fragment(move |p| match self {
+            Self::Void => value.apply(p),
+            Self::JsValue => frag!(::aux_next::runtime::js::JsValue::from({ value })).apply(p),
+        })
     }
 
     fn render_to_transport(self, value: impl FragmentOnce) -> impl FragmentOnce {
-        match self {
-            Self::JsValue => frag!(::aux_next::transport::JsValueHandle::from({ value })),
-        }
+        fragment(move |p| match self {
+            Self::Void => value.apply(p),
+            Self::JsValue => frag!(::aux_next::transport::JsValueHandle::from({ value })).apply(p),
+        })
     }
 }
 
@@ -71,21 +74,21 @@ impl<'db> RsMacro<'db> {
         self.transport(db)
             .render_rs_adapter_with_body(db, backend, |env, arguments| {
                 let ret_type = self.ret_type(db).render();
-                let conversions = fragment(|printer| {
+                let conversions = fragment(|p| {
                     for (index, (type_, argument)) in
                         self.inputs(db).iter().zip(arguments).enumerate()
                     {
                         let value = type_.render_from_transport(argument);
-                        frag!(let __rustier_arg_{index} = {value};@).apply(printer);
+                        frag!(let __rustier_arg_{index} = {value};@).apply(p);
                     }
                 });
-                let body = fragment(|printer| {
+                let body = fragment(|p| {
                     let mut index = 0;
                     for part in self.body(db) {
                         match part {
-                            RsPart::Text(text) => text.apply(printer),
+                            RsPart::Text(text) => text.apply(p),
                             RsPart::Input => {
-                                frag!(__rustier_arg_ { index }).apply(printer);
+                                frag!(__rustier_arg_ { index }).apply(p);
                                 index += 1;
                             }
                         }
@@ -120,12 +123,14 @@ impl<'db> RsMacro<'db> {
             .iter()
             .zip(&arguments)
             .map(|(type_, argument)| match type_.js() {
+                JsType::Undefined => "undefined".into(),
                 JsType::Any => argument.clone(),
             })
             .collect();
         let result_var = "__rustier_result";
         let call = transport.render_js_ffi_call_stmt(db, backend, &transport_arguments, result_var);
         let result = match self.ret_type(db).js() {
+            JsType::Undefined => "undefined",
             JsType::Any => result_var,
         };
 
@@ -144,7 +149,6 @@ impl<'db> RsMacro<'db> {
 mod tests {
     use super::*;
     use crate::codegen::{TransportBackendWasm, WasmImport};
-    use crate::db::RootDatabase;
 
     fn test_backend() -> TransportBackend {
         TransportBackend::Wasm(TransportBackendWasm {
@@ -163,9 +167,9 @@ mod tests {
     }
 
     fn render(body: Vec<RsPart>) -> String {
-        let db = RootDatabase::default();
+        let db = crate::test_common::database();
         let runtime = RsMacro::new(&db, body);
-        let source = runtime.render_rs_ffi(&db, &test_backend());
+        let source = ra_ap_hir::attach_db(&db, || runtime.render_rs_ffi(&db, &test_backend()));
         let result = prettyplease::unparse(&syn::parse_file(&source).unwrap());
         let input = render_input(runtime.body(&db));
         format!("# Input\n\n```js\n{input}\n```\n\n# Result\n\n```rust\n{result}```\n")
@@ -188,9 +192,9 @@ mod tests {
     }
 
     fn render_js(body: Vec<RsPart>) -> String {
-        let db = RootDatabase::default();
+        let db = crate::test_common::database();
         let runtime = RsMacro::new(&db, body);
-        let result = runtime.render_js_ffi(&db, &test_backend());
+        let result = ra_ap_hir::attach_db(&db, || runtime.render_js_ffi(&db, &test_backend()));
         let input = render_input(runtime.body(&db));
         format!("# Input\n\n```js\n{input}\n```\n\n# Result\n\n```js\n{result}\n```\n")
     }
@@ -267,7 +271,7 @@ mod tests {
         use crate::ir::js::{JsFile, JsProgram};
         use salsa::Setter;
 
-        let mut db = RootDatabase::default();
+        let mut db = crate::test_common::database();
         let first = JsFile::new(&db, "/first.js", "import { rs } from 'rustier'; rs`${a}`;");
         let second = JsFile::new(&db, "/second.js", "import { rs } from 'rustier'; rs`${b}`;");
         let program = JsProgram::new(&db, vec![first, second]);
@@ -275,7 +279,9 @@ mod tests {
         assert!(runtime == program.runtime(&db));
         assert_eq!(runtime.macros(&db).len(), 1);
         let backend = test_backend();
-        let js = runtime.render_js_ffi(&db, &backend, &"./bridge.wasm".into());
+        let js = ra_ap_hir::attach_db(&db, || {
+            runtime.render_js_ffi(&db, &backend, &"./bridge.wasm".into())
+        });
         assert_eq!(js.matches("export function ").count(), 1);
         assert_eq!(js.matches("WebAssembly.instantiate(").count(), 1);
         assert!(js.contains("\"./bridge.wasm\""));

@@ -38,14 +38,14 @@ pub(super) fn render_transport_preamble_js(
     let wasm_path = format!("\"{bin_file_path}\"");
     let values = include_str!("wasm/runtime.mjs");
 
-    let loading = fragment(move |printer| {
+    let loading = fragment(move |p| {
         match wasm.import {
             WasmImport::Fetch => frag!(
                 const {{ instance: __rustier_instance }} = await WebAssembly.instantiate(
                     await (await fetch(new URL({wasm_path}, import.meta.url))).arrayBuffer(),
                     __rustier_imports
                 );@
-            ).apply(printer),
+            ).apply(p),
 
             WasmImport::NodeJs => frag!(
                 import {{ readFileSync as __rustier_read_file }} from "node:fs";@
@@ -53,12 +53,12 @@ pub(super) fn render_transport_preamble_js(
                     new WebAssembly.Module(__rustier_read_file(new URL({wasm_path}, import.meta.url))),
                     __rustier_imports
                 );@
-            ).apply(printer),
+            ).apply(p),
 
             WasmImport::Module => frag!(
                 import __rustier_module from ~{wasm_path};@
                 const __rustier_instance = new WebAssembly.Instance(__rustier_module, __rustier_imports);@
-            ).apply(printer),
+            ).apply(p),
         }
     });
 
@@ -87,18 +87,22 @@ impl TransportBackendWasm {
             .map(|(index, _)| format!("__rustier_handle_{index}"))
             .collect();
         let body = render_body("__rustier_env_handle", &arguments);
-        let params = fragment(|printer| {
+        let params = fragment(|p| {
             for (index, type_) in function.inputs(db).iter().enumerate() {
                 match type_ {
+                    TransportTypeRs::Void => {}
                     TransportTypeRs::JsValueHandle => {
-                        frag!(, ~__rustier_raw_{index}: u32).apply(printer);
+                        frag!(, ~__rustier_raw_{index}: u32).apply(p);
                     }
                 }
             }
         });
-        let conversions = fragment(|printer| {
+        let conversions = fragment(|p| {
             for (index, type_) in function.inputs(db).iter().enumerate() {
                 match type_ {
+                    TransportTypeRs::Void => {
+                        frag!(let __rustier_handle_{index} = ();@).apply(p);
+                    }
                     TransportTypeRs::JsValueHandle => {
                         frag!(
                             let __rustier_handle_{index} = unsafe {{
@@ -107,22 +111,25 @@ impl TransportBackendWasm {
                                 )
                             }};@
                         )
-                        .apply(printer);
+                        .apply(p);
                     }
                 }
             }
         });
         let export = match function.ret_type(db) {
-            TransportTypeRs::JsValueHandle => {
-                frag!(__rustier_output.into_raw())
-            }
+            TransportTypeRs::Void => "()",
+            TransportTypeRs::JsValueHandle => "__rustier_output.into_raw()",
+        };
+        let ret = match function.ret_type(db) {
+            TransportTypeRs::Void => "()",
+            TransportTypeRs::JsValueHandle => "u32",
         };
 
         frag!(
             #[unsafe(no_mangle)]@
             pub unsafe extern "C" fn ~{name}(
                 __rustier_env_raw: __RustierEnvRaw{params}
-            ) -> u32 ~{"{\n"}
+            ) -> {ret} ~{"{\n"}
                 let __rustier_env_handle = unsafe {{
                     __RustierEnvHandle::from_raw(__rustier_env_raw as usize)
                 }};@
@@ -143,21 +150,21 @@ impl TransportBackendWasm {
     ) -> String {
         let env_raw = if self.mem64 { "0n" } else { "0" };
         let name = function.symbol(db);
-        let inputs = fragment(|printer| {
+        let inputs = fragment(|p| {
             for (type_, argument) in function.inputs(db).iter().zip(arguments) {
                 match type_ {
+                    TransportTypeRs::Void => {}
                     TransportTypeRs::JsValueHandle => {
                         frag!(handles.push(__rustier_values.__rustier_js_insert({argument}));@)
-                            .apply(printer);
+                            .apply(p);
                     }
                 }
             }
         });
-        let result = match (function.ret_type(db), function.ret_type(db).js()) {
-            (TransportTypeRs::JsValueHandle, TransportTypeJs::Any) => {
-                frag!(__rustier_values.__rustier_js_take(result))
-            }
-        };
+        let result = fragment(|p| match function.ret_type(db).js() {
+            TransportTypeJs::Undefined => frag!(undefined).apply(p),
+            TransportTypeJs::Any => frag!(__rustier_values.__rustier_js_take(result)).apply(p),
+        });
         frag!(
             {{
                 const handles = [];@
@@ -191,17 +198,21 @@ mod tests {
     }
 
     fn snapshot(name: &str, source: &str, backend: &TransportBackend) {
-        let db = RootDatabase::default();
+        let db = crate::test_common::database();
         let file = JsFile::new(&db, "/input.ts", source);
         let program = JsProgram::new(&db, vec![file]);
         let runtime = program.runtime(&db);
-        let rust = runtime.render_rs_ffi(&db, backend);
+        let rust = ra_ap_hir::attach_db(&db, || runtime.render_rs_ffi(&db, backend));
         let result = prettyplease::unparse(&syn::parse_file(&rust).unwrap());
         let mut output =
             format!("# Source\n\n```ts\n{source}\n```\n\n# Result\n\n```rust\n{result}```\n");
         output.push_str(&format!(
             "\n# JS runtime\n\n```js\n{}\n```\n",
-            runtime.render_js_ffi(&db, backend, &"./rustier.wasm".into()),
+            ra_ap_hir::attach_db(&db, || runtime.render_js_ffi(
+                &db,
+                backend,
+                &"./rustier.wasm".into()
+            )),
         ));
         insta::with_settings!({
             snapshot_path => "../_snapshots/transport",

@@ -23,6 +23,8 @@ use napi_derive::napi;
 use notify::{RecursiveMode, Watcher};
 use salsa::Setter;
 
+mod analysis;
+
 #[napi(object)]
 pub struct BackendOptions {
     #[napi(js_name = "type")]
@@ -67,6 +69,8 @@ struct Profile {
     backend: TransportBackend,
     crates: BTreeMap<String, String>,
     revision: Arc<AtomicU64>,
+    dependency_revision: Arc<AtomicU64>,
+    analysis: Option<(u64, Arc<analysis::Snapshot>)>,
     built: Option<(u64, BuildResult)>,
 }
 
@@ -77,6 +81,7 @@ pub struct Server {
     watchers: Vec<notify::RecommendedWatcher>,
     watch_callback: Option<Arc<ChangeCallback>>,
     watch_graph_dirty: Arc<AtomicBool>,
+    analysis_profile: Option<(String, u64)>,
 }
 
 #[napi]
@@ -144,6 +149,8 @@ impl Server {
                     backend,
                     crates,
                     revision: Arc::new(AtomicU64::new(0)),
+                    dependency_revision: Arc::new(AtomicU64::new(0)),
+                    analysis: None,
                     built: None,
                 },
             );
@@ -155,6 +162,7 @@ impl Server {
             watchers: Vec::new(),
             watch_callback: None,
             watch_graph_dirty: Arc::new(AtomicBool::new(false)),
+            analysis_profile: None,
         })
     }
 
@@ -162,13 +170,16 @@ impl Server {
     ///
     /// Does not build the binary. Returns an error if the profile is unknown.
     #[napi]
-    pub fn render_js_ffi(&self, profile: String, bin_file_path: String) -> Result<String> {
+    pub fn render_js_ffi(&mut self, profile: String, bin_file_path: String) -> Result<String> {
+        self.prepare_analysis(&profile)?;
         let profile = self.profile(&profile)?;
-        Ok(profile.program.runtime(&self.db).render_js_ffi(
-            &self.db,
-            &profile.backend,
-            &bin_file_path,
-        ))
+        Ok(ra_ap_hir::attach_db(&self.db, || {
+            profile.program.runtime(&self.db).render_js_ffi(
+                &self.db,
+                &profile.backend,
+                &bin_file_path,
+            )
+        }))
     }
 
     /// Adds or replaces a module in the profile and replaces its Rust snippet tags
@@ -270,6 +281,7 @@ impl Server {
                 }
             }
         }
+        self.prepare_analysis(&profile)?;
         let state = self
             .profiles
             .get_mut(&profile)
@@ -286,18 +298,52 @@ impl Server {
     pub fn watch(&mut self, callback: ChangeCallback) -> Result<()> {
         self.configure_watch(Arc::new(callback))
     }
-
-    /// Stops dependency watching and releases the callback.
-    ///
-    /// Programs and build artifacts remain available. Calling this repeatedly is safe.
-    #[napi]
-    pub fn close(&mut self) {
-        self.watchers.clear();
-        self.watch_callback = None;
-    }
 }
 
 impl Server {
+    fn prepare_analysis(&mut self, name: &str) -> Result<()> {
+        let profile = self.profile(name)?;
+        let revision = profile.dependency_revision.load(Ordering::SeqCst);
+        if self
+            .analysis_profile
+            .as_ref()
+            .is_some_and(|(active, version)| active == name && *version == revision)
+        {
+            return Ok(());
+        }
+        let snapshot = match &profile.analysis {
+            Some((version, snapshot)) if *version == revision => snapshot.clone(),
+            _ => {
+                let manifest = profile.program.render_cargo_toml(&self.db, &profile.crates);
+                let target = match &profile.backend {
+                    TransportBackend::Node(_) => None,
+                    TransportBackend::Wasm(wasm) => Some(
+                        if wasm.mem64 {
+                            "wasm64-unknown-unknown"
+                        } else {
+                            "wasm32-unknown-unknown"
+                        }
+                        .to_owned(),
+                    ),
+                };
+                let directory = profile
+                    .directory
+                    .parent()
+                    .unwrap()
+                    .parent()
+                    .unwrap()
+                    .join("analysis")
+                    .join(name);
+                Arc::new(analysis::load(&directory, &manifest, target).map_err(Error::from_reason)?)
+            }
+        };
+        let template = snapshot.apply(&mut self.db);
+        self.profiles.get_mut(name).unwrap().analysis = Some((revision, snapshot));
+        compiler::ir::runtime::RuntimeAnalysis::set(&mut self.db, template);
+        self.analysis_profile = Some((name.to_owned(), revision));
+        Ok(())
+    }
+
     fn configure_watch(&mut self, callback: Arc<ChangeCallback>) -> Result<()> {
         let mut watchers = Vec::new();
         for (name, profile) in &self.profiles {
@@ -338,6 +384,7 @@ impl Server {
             }
             let name = name.clone();
             let revision = profile.revision.clone();
+            let dependency_revision = profile.dependency_revision.clone();
             let watch_graph_dirty = self.watch_graph_dirty.clone();
             let callback = callback.clone();
             let mut watcher =
@@ -369,6 +416,7 @@ impl Server {
                         Err(error) => Some(error.to_string()),
                     };
                     revision.fetch_add(1, Ordering::SeqCst);
+                    dependency_revision.fetch_add(1, Ordering::SeqCst);
                     let _ = callback.call(
                         DependencyChange {
                             profile: name.clone(),
@@ -397,6 +445,13 @@ impl Server {
     }
 }
 
+impl Drop for Server {
+    fn drop(&mut self) {
+        self.watchers.clear();
+        self.watch_callback = None;
+    }
+}
+
 impl Profile {
     fn build(&mut self, db: &RootDatabase) -> Result<BuildResult> {
         let revision = self.revision.load(Ordering::SeqCst);
@@ -421,7 +476,9 @@ impl Profile {
         fs::create_dir_all(&self.directory).map_err(|error| {
             Error::from_reason(format!("cannot create bridge directory: {error}"))
         })?;
-        let source = self.program.runtime(db).render_rs_ffi(db, &self.backend);
+        let source = ra_ap_hir::attach_db(db, || {
+            self.program.runtime(db).render_rs_ffi(db, &self.backend)
+        });
         let manifest = self.program.render_cargo_toml(db, &self.crates);
         write_if_changed(&self.directory.join("lib.rs"), source.as_bytes())
             .and_then(|_| write_if_changed(&self.directory.join("Cargo.toml"), manifest.as_bytes()))
@@ -439,6 +496,10 @@ impl Profile {
         command.args(["build", "--quiet"]);
         if let Some(target) = target {
             command.args(["--target", target]);
+            if target == "wasm64-unknown-unknown" {
+                // wasm64 is a tier-3 target without distributed std artifacts.
+                command.arg("-Zbuild-std=std,panic_abort");
+            }
         } else if cfg!(target_os = "macos") {
             command.args(["--config", "build.rustflags=[\"-C\", \"link-arg=-undefined\", \"-C\", \"link-arg=dynamic_lookup\"]"]);
         }

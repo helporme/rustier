@@ -17,15 +17,16 @@ export function buildRuntime(server: Server, profile: string, binaryName: string
 export function rewriteRuntimeImports(
   code: string,
   fileName: string,
-  moduleId: string,
-  runtimeFileName: string,
+  runtimes: ReadonlyMap<string, string>,
 ) {
-  const relative = posix.relative(posix.dirname(fileName), runtimeFileName)
-  const path = relative.startsWith('.') ? relative : `./${relative}`
   const result = new RolldownMagicString(code)
   const parsed = parseSync(fileName, code)
   for (const statement of parsed.program.body) {
-    if (statement.type === 'ImportDeclaration' && statement.source.value === moduleId) {
+    if (statement.type === 'ImportDeclaration') {
+      const runtimeFileName = runtimes.get(statement.source.value)
+      if (!runtimeFileName) continue
+      const relative = posix.relative(posix.dirname(fileName), runtimeFileName)
+      const path = relative.startsWith('.') ? relative : `./${relative}`
       result.overwrite(statement.source.start, statement.source.end, JSON.stringify(path))
     }
   }

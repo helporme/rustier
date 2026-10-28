@@ -12,6 +12,7 @@
 - Do not defensively handle states excluded by the program’s invariants. If such a state occurs, fail immediately (using `unreachable!()` where appropriate) so the bug remains visible and fixable; do not silently deduplicate, default, or otherwise recover. Reserve validation and recovery for external inputs, explicitly unsupported representations, and behavior required by domain semantics.
 - Add blank lines between logical groups of statements in generated and edited Rust code, especially between setup, checks, traversal, and final returns.
 - When a function returns `Result`, its error type should cover exactly the errors that function can produce. Prefer fine-grained error types over a single module-wide error type.
+- Do not add boolean flag to functions that alter it's behavior, better add two differnet functions.
 
 ## Codegen
 - When generating source code, prefer `frag!()` over `format!()` whenever possible to avoid intermediate allocations. Prefer `IntoIterator` over vectors where possible, adding `+ Clone` to `IntoIter` when needed. Only materialize an owned `String` when required by an API.

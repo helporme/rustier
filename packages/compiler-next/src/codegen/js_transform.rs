@@ -56,7 +56,7 @@ fn render_range<'db>(
 ) -> String {
     let source = range.file(db).contents(db);
 
-    fragment(|printer| {
+    fragment(|p| {
         let mut cursor = range.start(db);
 
         for src in macros {
@@ -65,30 +65,30 @@ fn render_range<'db>(
                 continue;
             }
 
-            source[cursor as usize..span.start(db) as usize].apply(printer);
+            source[cursor as usize..span.start(db) as usize].apply(p);
 
             let name = src.as_macro(db).symbol(db);
-            let arguments = fragment(|printer| {
+            let arguments = fragment(|p| {
                 let mut first = true;
 
                 for part in src.body(db) {
                     if let JsPart::Interpolation { expression, .. } = part {
                         if !first {
-                            frag!(, ~).apply(printer);
+                            frag!(, ~).apply(p);
                         }
                         first = false;
 
                         let argument = render_range(db, macros, *expression, binding);
-                        frag!({"("}{argument}{")"}).apply(printer);
+                        frag!({"("}{argument}{")"}).apply(p);
                     }
                 }
             });
 
-            frag!({binding}{"."}{name}{"("}{arguments}{")"}).apply(printer);
+            frag!({binding}{"."}{name}{"("}{arguments}{")"}).apply(p);
             cursor = span.end(db);
         }
 
-        source[cursor as usize..range.end(db) as usize].apply(printer);
+        source[cursor as usize..range.end(db) as usize].apply(p);
     })
     .print()
 }

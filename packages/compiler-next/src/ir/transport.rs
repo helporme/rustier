@@ -13,6 +13,8 @@ pub struct TransportFunction<'db> {
 /// The Rust-side representation of a value carried by transport.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum TransportTypeRs {
+    /// Rust unit.
+    Void,
     /// An `aux_next::transport::JsValueHandle`.
     JsValueHandle,
 }
@@ -20,6 +22,8 @@ pub enum TransportTypeRs {
 /// The JS-side representation of a value carried by transport.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum TransportTypeJs {
+    /// JavaScript `undefined`.
+    Undefined,
     /// An arbitrary JS value
     Any,
 }
@@ -28,6 +32,7 @@ impl TransportTypeRs {
     /// Maps a Rust transport type to its corresponding JS representation.
     pub fn js(self) -> TransportTypeJs {
         match self {
+            Self::Void => TransportTypeJs::Undefined,
             Self::JsValueHandle => TransportTypeJs::Any,
         }
     }

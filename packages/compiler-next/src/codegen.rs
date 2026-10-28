@@ -1,4 +1,4 @@
-#[allow(dead_code)]
+mod analysis;
 mod fragment;
 mod js_transform;
 pub mod manifest;

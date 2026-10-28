@@ -2,6 +2,10 @@
 
 use std::collections::HashSet;
 
+mod analysis;
+
+pub use analysis::RuntimeAnalysis;
+
 use crate::{
     db::Db,
     ir::{
@@ -103,20 +107,13 @@ impl<'db> RsMacro<'db> {
     }
 
     /// Rust-side input types in interpolation order.
-    #[salsa::tracked(returns(ref))]
-    pub fn inputs(self, db: &'db dyn Db) -> Vec<RsType> {
-        self.body(db)
-            .iter()
-            .filter_map(|part| match part {
-                RsPart::Text(_) => None,
-                RsPart::Input => Some(RsType::JsValue),
-            })
-            .collect()
+    pub fn inputs(self, db: &'db dyn Db) -> &'db Vec<RsType> {
+        self.infer_input_types(db)
     }
 
     /// Rust-side type returned by this macro.
-    pub fn ret_type(self, _db: &'db dyn Db) -> RsType {
-        RsType::JsValue
+    pub fn ret_type(self, db: &'db dyn Db) -> RsType {
+        self.infer_ret_type(db)
     }
 
     /// Transport-level function of this macro.
@@ -137,6 +134,8 @@ impl<'db> RsMacro<'db> {
 /// A Rust-side runtime type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum RsType {
+    /// Rust unit (`()`).
+    Void,
     /// Matches `aux_next::runtime::js::JsValue`.
     JsValue,
 }
@@ -144,6 +143,8 @@ pub enum RsType {
 /// A js-side runtime type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum JsType {
+    /// JavaScript `undefined`.
+    Undefined,
     /// An arbitrary JS value.
     Any,
 }
@@ -152,6 +153,7 @@ impl RsType {
     /// Chooses the Rust transport representation needed to carry this runtime type.
     pub fn transport(self) -> TransportTypeRs {
         match self {
+            Self::Void => TransportTypeRs::Void,
             Self::JsValue => TransportTypeRs::JsValueHandle,
         }
     }
@@ -159,6 +161,7 @@ impl RsType {
     /// Maps this runtime type to its JS-facing representation.
     pub fn js(self) -> JsType {
         match self {
+            Self::Void => JsType::Undefined,
             Self::JsValue => JsType::Any,
         }
     }

@@ -1,0 +1,9 @@
+---
+source: src/codegen/analysis.rs
+expression: output
+---
+```rust
+fn __rustier_probe(__rustier_env: ::aux_next::runtime::js::JsEnv) {
+    let __rustier_snippet = || { () };
+}
+```

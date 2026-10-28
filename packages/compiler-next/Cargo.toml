@@ -10,7 +10,12 @@ repository = "https://github.com/helporme/rustier"
 blake3 = "1"
 salsa = "=0.27.2"
 ra_ap_hir = "=0.0.345"
+ra_ap_hir_def = "=0.0.345"
+ra_ap_hir_ty = "=0.0.345"
 ra_ap_ide_db = "=0.0.345"
+ra_ap_base_db = "=0.0.345"
+ra_ap_syntax = "=0.0.345"
+ra_ap_vfs = "=0.0.345"
 oxc_allocator = "=0.138.0"
 oxc_ast = "=0.138.0"
 oxc_diagnostics = "=0.138.0"
@@ -27,3 +32,7 @@ tempfile = "3.27.0"
 insta = "1"
 syn = { version = "2", features = ["full"] }
 prettyplease = "0.2"
+
+# Keep compiler code easy to debug while optimizing RA and its dependencies.
+[profile.dev.package."*"]
+opt-level = 3

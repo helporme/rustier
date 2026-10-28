@@ -30,7 +30,7 @@ pub(super) fn render_registration<'db>(
     db: &'db dyn Db,
     functions: impl IntoIterator<Item = TransportFunction<'db>>,
 ) -> String {
-    let exports = fragment(|printer| {
+    let exports = fragment(|p| {
         for function in functions {
             let name = function.symbol(db);
             let name_literal = format!("c{name:?}");
@@ -44,7 +44,7 @@ pub(super) fn render_registration<'db>(
                 assert_eq!(unsafe {{
                     __rustier_napi::napi_set_named_property(env, exports, {name_literal}.as_ptr(), function)
                 }}, __rustier_napi::Status::napi_ok);@
-            ).apply(printer);
+            ).apply(p);
         }
     });
     frag!(
@@ -73,17 +73,26 @@ impl TransportBackendNode {
             .map(|index| format!("__rustier_handle_{index}"))
             .collect();
         let body = render_body("__rustier_env_handle", &arguments);
-        let conversions = fragment(|printer| {
+        let conversions = fragment(|p| {
             for (index, type_) in function.inputs(db).iter().enumerate() {
                 match type_ {
+                    TransportTypeRs::Void => frag!(
+                        let __rustier_handle_{index} = ();@
+                    ).apply(p),
                     TransportTypeRs::JsValueHandle => frag!(
                         let __rustier_handle_{index} = unsafe {{
                             __RustierValueHandle::from_napi_value(__rustier_args[{index}] as usize, __rustier_env_handle)
                         }};@
-                    ).apply(printer),
+                    ).apply(p),
                 }
             }
         });
+        let output = match function.ret_type(db) {
+            TransportTypeRs::Void => "undefined",
+            TransportTypeRs::JsValueHandle => {
+                "unsafe { __rustier_output.into_napi_value() as __rustier_napi::napi_value }"
+            }
+        };
         frag!(
             unsafe extern "C" fn ~{name}(
                 env: __rustier_napi::napi_env,
@@ -103,7 +112,7 @@ impl TransportBackendNode {
                     let __rustier_env_handle = unsafe {{ __RustierEnvHandle::from_raw(env as usize) }};@
                     {conversions}
                     let __rustier_output = {"{\n"}{body}{"\n};"}@
-                    unsafe {{ __rustier_output.into_napi_value() as __rustier_napi::napi_value }}
+                    {output}
                 }}));@
                 match result {{
                     Ok(value) => value,
@@ -134,14 +143,13 @@ mod tests {
     use super::*;
     use crate::{
         codegen::TransportBackend,
-        db::RootDatabase,
         ir::js::{JsFile, JsProgram},
     };
     use std::{collections::BTreeMap, fs, process::Command};
 
     #[test]
     fn native_snippets_run_in_node() {
-        let db = RootDatabase::default();
+        let db = crate::test_common::database();
         let source = r#"
 import { rs } from 'rustier';
 export function echo(value) { return rs`${value}`; }
@@ -160,7 +168,7 @@ export function panic() { return rs`panic!("test panic")`; }
         assert!(program.diagnostics(&db).is_empty());
         let backend = TransportBackend::Node(TransportBackendNode);
         let directory = tempfile::tempdir().unwrap();
-        let rust = program.runtime(&db).render_rs_ffi(&db, &backend);
+        let rust = ra_ap_hir::attach_db(&db, || program.runtime(&db).render_rs_ffi(&db, &backend));
         syn::parse_file(&rust).unwrap();
         fs::write(directory.path().join("lib.rs"), rust).unwrap();
         fs::write(
@@ -193,9 +201,11 @@ export function panic() { return rs`panic!("test panic")`; }
         .unwrap();
         fs::write(
             directory.path().join("runtime.mjs"),
-            program
-                .runtime(&db)
-                .render_js_ffi(&db, &backend, &"./bridge.node".into()),
+            ra_ap_hir::attach_db(&db, || {
+                program
+                    .runtime(&db)
+                    .render_js_ffi(&db, &backend, &"./bridge.node".into())
+            }),
         )
         .unwrap();
         fs::write(
