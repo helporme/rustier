@@ -79,6 +79,15 @@ impl TransportBackendNode {
                     TransportTypeRs::Void => frag!(
                         let __rustier_handle_{index} = ();@
                     ).apply(p),
+                    TransportTypeRs::F64 => frag!(
+                        let mut __rustier_handle_{index}: f64 = 0.0;@
+                        let status = unsafe {{
+                            __rustier_napi::napi_get_value_double(env, __rustier_args[{index}], &mut __rustier_handle_{index})
+                        }};@
+                        if status != __rustier_napi::Status::napi_ok {{
+                            panic!("Expected a JavaScript number");@
+                        }}
+                    ).apply(p),
                     TransportTypeRs::JsValueHandle => frag!(
                         let __rustier_handle_{index} = unsafe {{
                             __RustierValueHandle::from_napi_value(__rustier_args[{index}] as usize, __rustier_env_handle)
@@ -87,12 +96,26 @@ impl TransportBackendNode {
                 }
             }
         });
-        let output = match function.ret_type(db) {
-            TransportTypeRs::Void => "undefined",
-            TransportTypeRs::JsValueHandle => {
-                "unsafe { __rustier_output.into_napi_value() as __rustier_napi::napi_value }"
-            }
-        };
+        let output = fragment(|p| match function.ret_type(db) {
+            TransportTypeRs::Void => frag!(undefined).apply(p),
+            TransportTypeRs::F64 => frag!(
+                {{
+                    let mut value = ::std::ptr::null_mut();@
+                    let status = unsafe {{
+                        __rustier_napi::napi_create_double(env, __rustier_output, &mut value)
+                    }};@@
+                    if status != __rustier_napi::Status::napi_ok {{
+                        panic!("Could not create a JavaScript number");@
+                    }}@
+                    value
+                }}
+            )
+            .apply(p),
+            TransportTypeRs::JsValueHandle => frag!(unsafe {
+                { __rustier_output.into_napi_value() as __rustier_napi::napi_value }
+            })
+            .apply(p),
+        });
         frag!(
             unsafe extern "C" fn ~{name}(
                 env: __rustier_napi::napi_env,

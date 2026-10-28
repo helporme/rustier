@@ -1,0 +1,54 @@
+---
+source: src/codegen/runtime.rs
+expression: output
+---
+# Input
+
+```js
+rs`let _: () = ${input0}; let _: f64 = ${input1}; ${input2}`
+```
+
+# Result
+
+```js
+export function __rustier_9143c60af8ec6f23d28d49e5b439e80c4f8169203bbab55b6ef5f81c285ced19(__rustier_arg_0, __rustier_arg_1, __rustier_arg_2){
+	if(
+		typeof __rustier_arg_0 !== "undefined"
+	){
+		throw new TypeError(
+			"Rustier input 0: expected undefined"
+		);
+	}
+	if(
+		typeof __rustier_arg_1 !== "number"
+	){
+		throw new TypeError(
+			"Rustier input 1: expected number"
+		);
+	}
+	let __rustier_result;
+	{
+		const handles =[];
+		try{
+			handles.push(
+				__rustier_values.__rustier_js_insert(
+					__rustier_arg_2
+				)
+			);
+			const result = __rustier_exports.__rustier_9143c60af8ec6f23d28d49e5b439e80c4f8169203bbab55b6ef5f81c285ced19(
+				0, __rustier_arg_1, handles[0]
+			);
+			__rustier_result=__rustier_values.__rustier_js_take(
+				result
+			);
+		}finally{
+			for(
+				const handle of handles
+			)__rustier_values.__rustier_js_drop_ref(
+				handle
+			);
+		}
+	}
+	return __rustier_result;
+}
+```

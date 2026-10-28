@@ -1,0 +1,57 @@
+---
+source: src/codegen/transport/wasm.rs
+expression: "format!(\"```rust\\n{rs}```\\n\\n```js\\n{js}\\n```\\n\")"
+---
+```rust
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn numbers(
+    __rustier_env_raw: __RustierEnvRaw,
+    __rustier_raw_0: f64,
+    __rustier_raw_1: u32,
+    __rustier_raw_3: f64,
+    __rustier_raw_4: u32,
+) -> f64 {
+    let __rustier_env_handle = unsafe {
+        __RustierEnvHandle::from_raw(__rustier_env_raw as usize)
+    };
+    let __rustier_handle_0 = __rustier_raw_0;
+    let __rustier_handle_1 = unsafe {
+        __RustierValueHandle::clone_from_raw(__rustier_raw_1)
+    };
+    let __rustier_handle_2 = ();
+    let __rustier_handle_3 = __rustier_raw_3;
+    let __rustier_handle_4 = unsafe {
+        __RustierValueHandle::clone_from_raw(__rustier_raw_4)
+    };
+    let __rustier_output = { __rustier_handle_0 + __rustier_handle_3 };
+    __rustier_output
+}
+```
+
+```js
+{
+	const handles =[];
+	try{
+		handles.push(
+			__rustier_values.__rustier_js_insert(
+				b
+			)
+		);
+		handles.push(
+			__rustier_values.__rustier_js_insert(
+				d
+			)
+		);
+		const result = __rustier_exports.numbers(
+			0n, a, handles[0], c, handles[1]
+		);
+		output=result;
+	}finally{
+		for(
+			const handle of handles
+		)__rustier_values.__rustier_js_drop_ref(
+			handle
+		);
+	}
+}
+```

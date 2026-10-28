@@ -1,7 +1,7 @@
 use crate::{
     codegen::{
         TransportBackend,
-        fragment::{FragmentOnce, FragmentPrint, frag, fragment},
+        fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment},
         transport::{
             render_transport_preamble_js, render_transport_preamble_rs,
             render_transport_registration_rs,
@@ -51,6 +51,14 @@ impl RsType {
         match self {
             Self::Void => frag!(()),
             Self::JsValue => frag!(::aux_next::runtime::js::JsValue),
+            Self::I8 => frag!(i8),
+            Self::I16 => frag!(i16),
+            Self::I32 => frag!(i32),
+            Self::U8 => frag!(u8),
+            Self::U16 => frag!(u16),
+            Self::U32 => frag!(u32),
+            Self::F32 => frag!(f32),
+            Self::F64 => frag!(f64),
         }
     }
 
@@ -58,6 +66,12 @@ impl RsType {
         fragment(move |p| match self {
             Self::Void => value.apply(p),
             Self::JsValue => frag!(::aux_next::runtime::js::JsValue::from({ value })).apply(p),
+            Self::F64 => value.apply(p),
+            Self::F32 => frag!(({ value }).clamp(f32::MIN as f64, f32::MAX as f64) as f32).apply(p),
+            Self::I8 | Self::I16 | Self::I32 | Self::U8 | Self::U16 | Self::U32 => {
+                let target = self.render();
+                frag!(({value}) as ~{target}).apply(p);
+            }
         })
     }
 
@@ -65,6 +79,10 @@ impl RsType {
         fragment(move |p| match self {
             Self::Void => value.apply(p),
             Self::JsValue => frag!(::aux_next::transport::JsValueHandle::from({ value })).apply(p),
+            Self::F64 => value.apply(p),
+            Self::I8 | Self::I16 | Self::I32 | Self::U8 | Self::U16 | Self::U32 | Self::F32 => {
+                frag!(({ value }) as f64).apply(p)
+            }
         })
     }
 }
@@ -118,24 +136,44 @@ impl<'db> RsMacro<'db> {
             .map(|(index, _)| frag!(__rustier_arg_ { index }).print())
             .collect();
         let params = arguments.join(", ");
+        let checks = fragment(|p| {
+            for (index, (type_, argument)) in self.inputs(db).iter().zip(&arguments).enumerate() {
+                let expected = match type_.js() {
+                    JsType::Number => "number",
+                    JsType::Undefined => "undefined",
+                    JsType::Any => continue,
+                };
+                let expected_literal = doubles(expected);
+                let message_literal =
+                    doubles(frag!({"Rustier input "}{index}{": expected "}{expected}));
+
+                frag!(
+                    if (typeof ~{argument} ~!== ~{expected_literal}) {{
+                        throw new TypeError({message_literal});@
+                    }}@
+                )
+                .apply(p);
+            }
+        });
         let transport_arguments: Vec<_> = self
             .inputs(db)
             .iter()
             .zip(&arguments)
             .map(|(type_, argument)| match type_.js() {
                 JsType::Undefined => "undefined".into(),
-                JsType::Any => argument.clone(),
+                JsType::Any | JsType::Number => argument.clone(),
             })
             .collect();
         let result_var = "__rustier_result";
         let call = transport.render_js_ffi_call_stmt(db, backend, &transport_arguments, result_var);
         let result = match self.ret_type(db).js() {
             JsType::Undefined => "undefined",
-            JsType::Any => result_var,
+            JsType::Any | JsType::Number => result_var,
         };
 
         frag!(
             export function ~{name}{"("}{params}{")"} {{
+                {checks}
                 let ~{result_var};@
                 {call}@
                 return ~{result};@
@@ -200,6 +238,22 @@ mod tests {
     }
 
     #[test]
+    fn runtime_numbers() {
+        for type_ in ["i8", "i16", "i32", "u8", "u16", "u32", "f32", "f64"] {
+            let body = vec![
+                RsPart::Text(format!("let value: {type_} = ")),
+                RsPart::Input,
+                RsPart::Text("; value".into()),
+            ];
+
+            snapshot(
+                &format!("runtime_{type_}"),
+                format!("{}\n{}", render(body.clone()), render_js(body)),
+            );
+        }
+    }
+
+    #[test]
     fn runtime_interpolation() {
         snapshot("runtime_interpolation", render(vec![RsPart::Input]));
     }
@@ -241,6 +295,21 @@ mod tests {
         snapshot(
             "runtime_js_value_type",
             format!("```rust\n{}\n```\n", RsType::JsValue.render().print()),
+        );
+    }
+
+    #[test]
+    fn runtime_js_input_checks() {
+        snapshot(
+            "runtime_js_input_checks",
+            render_js(vec![
+                RsPart::Text("let _: () = ".into()),
+                RsPart::Input,
+                RsPart::Text("; let _: f64 = ".into()),
+                RsPart::Input,
+                RsPart::Text("; ".into()),
+                RsPart::Input,
+            ]),
         );
     }
 

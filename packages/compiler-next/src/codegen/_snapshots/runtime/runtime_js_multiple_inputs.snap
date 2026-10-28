@@ -27,7 +27,7 @@ export function __rustier_8a156f23017e77104f25b77d0c0a7683285bfb3b25d60cb2a00191
 				)
 			);
 			const result = __rustier_exports.__rustier_8a156f23017e77104f25b77d0c0a7683285bfb3b25d60cb2a00191f5f9930b94(
-				0, ...handles
+				0, handles[0], handles[1]
 			);
 			__rustier_result=__rustier_values.__rustier_js_take(
 				result

@@ -49,7 +49,7 @@ output = echo(arg0);
 			)
 		);
 		const result = __rustier_exports.echo(
-			0, ...handles
+			0, handles[0]
 		);
 		output=__rustier_values.__rustier_js_take(
 			result

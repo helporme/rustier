@@ -3,7 +3,10 @@
 use ra_ap_base_db::Crate;
 use ra_ap_hir::HasSource;
 use ra_ap_hir_def::{
-    DefWithBodyId, ModuleDefId, expr_store::ExpressionStore, nameres::crate_def_map,
+    DefWithBodyId, ModuleDefId,
+    builtin_type::{BuiltinFloat, BuiltinInt, BuiltinType, BuiltinUint},
+    expr_store::ExpressionStore,
+    nameres::crate_def_map,
 };
 use ra_ap_hir_ty::{
     InferenceResult,
@@ -147,7 +150,17 @@ fn classify_type(ty: Ty<'_>) -> RsType {
     if ty.is_unit() {
         RsType::Void
     } else {
-        RsType::JsValue
+        match ty.as_builtin() {
+            Some(BuiltinType::Int(BuiltinInt::I8)) => RsType::I8,
+            Some(BuiltinType::Int(BuiltinInt::I16)) => RsType::I16,
+            Some(BuiltinType::Int(BuiltinInt::I32)) => RsType::I32,
+            Some(BuiltinType::Uint(BuiltinUint::U8)) => RsType::U8,
+            Some(BuiltinType::Uint(BuiltinUint::U16)) => RsType::U16,
+            Some(BuiltinType::Uint(BuiltinUint::U32)) => RsType::U32,
+            Some(BuiltinType::Float(BuiltinFloat::F32)) => RsType::F32,
+            Some(BuiltinType::Float(BuiltinFloat::F64)) => RsType::F64,
+            _ => RsType::JsValue,
+        }
     }
 }
 
@@ -156,6 +169,52 @@ mod tests {
     use super::*;
     use crate::db::RootDatabase;
     use crate::test_common::{database, template};
+
+    #[test]
+    fn numeric_signatures() {
+        let db = database();
+
+        ra_ap_hir::attach_db(&db, || {
+            for (name, expected) in [
+                ("i8", RsType::I8),
+                ("i16", RsType::I16),
+                ("i32", RsType::I32),
+                ("u8", RsType::U8),
+                ("u16", RsType::U16),
+                ("u32", RsType::U32),
+                ("f32", RsType::F32),
+                ("f64", RsType::F64),
+            ] {
+                let macro_ = RsMacro::new(
+                    &db,
+                    vec![
+                        RsPart::Text(format!(
+                            "type Number = {name}; fn identity(value: Number) -> Number {{ value }} identity("
+                        )),
+                        RsPart::Input,
+                        RsPart::Text(")".into()),
+                    ],
+                );
+
+                assert_eq!(macro_.inputs(&db), &[expected], "{name}");
+                assert_eq!(macro_.ret_type(&db), expected, "{name}");
+                assert_eq!(
+                    expected.transport(),
+                    crate::ir::transport::TransportTypeRs::F64
+                );
+                assert_eq!(expected.js(), crate::ir::runtime::JsType::Number);
+            }
+
+            for (body, expected) in [
+                ("42", RsType::I32),
+                ("1.5", RsType::F64),
+                ("42u64", RsType::JsValue),
+            ] {
+                let macro_ = RsMacro::new(&db, vec![RsPart::Text(body.into())]);
+                assert_eq!(macro_.ret_type(&db), expected, "{body}");
+            }
+        });
+    }
 
     #[test]
     fn signatures_need_only_shared_database_access() {
@@ -208,7 +267,7 @@ mod tests {
         RuntimeAnalysis::set(&mut db, changed);
 
         ra_ap_hir::attach_db(&db, || {
-            assert_eq!(RsMacro::new(&db, body).ret_type(&db), RsType::JsValue);
+            assert_eq!(RsMacro::new(&db, body).ret_type(&db), RsType::U32);
         });
     }
 
@@ -223,7 +282,7 @@ mod tests {
                 vec![RsPart::Text("fn helper() -> u32 { 1 } helper()".into())],
             );
             assert_eq!(first.ret_type(&db), RsType::Void);
-            assert_eq!(second.ret_type(&db), RsType::JsValue);
+            assert_eq!(second.ret_type(&db), RsType::U32);
             assert_eq!(first.ret_type(&db), RsType::Void);
         });
     }
@@ -262,7 +321,7 @@ mod tests {
         std::thread::scope(|scope| {
             for (text, expected) in [
                 ("fn helper() {} helper()", RsType::Void),
-                ("fn helper() -> u32 { 1 } helper()", RsType::JsValue),
+                ("fn helper() -> u32 { 1 } helper()", RsType::U32),
                 ("return ();", RsType::Void),
             ] {
                 let db = db.clone();

@@ -1,0 +1,62 @@
+---
+source: src/codegen/runtime.rs
+expression: output
+---
+# Input
+
+```js
+rs`let value: u8 = ${input0}; value`
+```
+
+# Result
+
+```rust
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __rustier_ae2871c16d8e79be858e729f066d9ec6cf72574eb14817dd4b6c1f22172b49b7(
+    __rustier_env_raw: __RustierEnvRaw,
+    __rustier_raw_0: f64,
+) -> f64 {
+    let __rustier_env_handle = unsafe {
+        __RustierEnvHandle::from_raw(__rustier_env_raw as usize)
+    };
+    let __rustier_handle_0 = __rustier_raw_0;
+    let __rustier_output = {
+        let __rustier_env = ::aux_next::runtime::js::JsEnv::from(__rustier_env_handle);
+        let __rustier_arg_0 = (__rustier_handle_0) as u8;
+        let __rustier_output = (|| -> u8 {
+            let value: u8 = __rustier_arg_0;
+            value
+        })();
+        (__rustier_output) as f64
+    };
+    __rustier_output
+}
+```
+
+# Input
+
+```js
+rs`let value: u8 = ${input0}; value`
+```
+
+# Result
+
+```js
+export function __rustier_ae2871c16d8e79be858e729f066d9ec6cf72574eb14817dd4b6c1f22172b49b7(__rustier_arg_0){
+	if(
+		typeof __rustier_arg_0 !== "number"
+	){
+		throw new TypeError(
+			"Rustier input 0: expected number"
+		);
+	}
+	let __rustier_result;
+	{
+		const result = __rustier_exports.__rustier_ae2871c16d8e79be858e729f066d9ec6cf72574eb14817dd4b6c1f22172b49b7(
+			0, __rustier_arg_0
+		);
+		__rustier_result=result;
+	}
+	return __rustier_result;
+}
+```

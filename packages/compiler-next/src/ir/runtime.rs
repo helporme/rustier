@@ -134,6 +134,14 @@ impl<'db> RsMacro<'db> {
 /// A Rust-side runtime type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum RsType {
+    I8,
+    I16,
+    I32,
+    U8,
+    U16,
+    U32,
+    F32,
+    F64,
     /// Rust unit (`()`).
     Void,
     /// Matches `aux_next::runtime::js::JsValue`.
@@ -143,6 +151,7 @@ pub enum RsType {
 /// A js-side runtime type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum JsType {
+    Number,
     /// JavaScript `undefined`.
     Undefined,
     /// An arbitrary JS value.
@@ -155,6 +164,14 @@ impl RsType {
         match self {
             Self::Void => TransportTypeRs::Void,
             Self::JsValue => TransportTypeRs::JsValueHandle,
+            Self::I8
+            | Self::I16
+            | Self::I32
+            | Self::U8
+            | Self::U16
+            | Self::U32
+            | Self::F32
+            | Self::F64 => TransportTypeRs::F64,
         }
     }
 
@@ -163,6 +180,14 @@ impl RsType {
         match self {
             Self::Void => JsType::Undefined,
             Self::JsValue => JsType::Any,
+            Self::I8
+            | Self::I16
+            | Self::I32
+            | Self::U8
+            | Self::U16
+            | Self::U32
+            | Self::F32
+            | Self::F64 => JsType::Number,
         }
     }
 }

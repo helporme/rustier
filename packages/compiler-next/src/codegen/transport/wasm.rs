@@ -91,6 +91,9 @@ impl TransportBackendWasm {
             for (index, type_) in function.inputs(db).iter().enumerate() {
                 match type_ {
                     TransportTypeRs::Void => {}
+                    TransportTypeRs::F64 => {
+                        frag!(, ~__rustier_raw_{index}: f64).apply(p);
+                    }
                     TransportTypeRs::JsValueHandle => {
                         frag!(, ~__rustier_raw_{index}: u32).apply(p);
                     }
@@ -102,6 +105,9 @@ impl TransportBackendWasm {
                 match type_ {
                     TransportTypeRs::Void => {
                         frag!(let __rustier_handle_{index} = ();@).apply(p);
+                    }
+                    TransportTypeRs::F64 => {
+                        frag!(let __rustier_handle_{index} = __rustier_raw_{index};@).apply(p);
                     }
                     TransportTypeRs::JsValueHandle => {
                         frag!(
@@ -118,10 +124,12 @@ impl TransportBackendWasm {
         });
         let export = match function.ret_type(db) {
             TransportTypeRs::Void => "()",
+            TransportTypeRs::F64 => "__rustier_output",
             TransportTypeRs::JsValueHandle => "__rustier_output.into_raw()",
         };
         let ret = match function.ret_type(db) {
             TransportTypeRs::Void => "()",
+            TransportTypeRs::F64 => "f64",
             TransportTypeRs::JsValueHandle => "u32",
         };
 
@@ -153,7 +161,7 @@ impl TransportBackendWasm {
         let inputs = fragment(|p| {
             for (type_, argument) in function.inputs(db).iter().zip(arguments) {
                 match type_ {
-                    TransportTypeRs::Void => {}
+                    TransportTypeRs::Void | TransportTypeRs::F64 => {}
                     TransportTypeRs::JsValueHandle => {
                         frag!(handles.push(__rustier_values.__rustier_js_insert({argument}));@)
                             .apply(p);
@@ -163,21 +171,47 @@ impl TransportBackendWasm {
         });
         let result = fragment(|p| match function.ret_type(db).js() {
             TransportTypeJs::Undefined => frag!(undefined).apply(p),
+            TransportTypeJs::Number => frag!(result).apply(p),
             TransportTypeJs::Any => frag!(__rustier_values.__rustier_js_take(result)).apply(p),
         });
-        frag!(
-            {{
-                const handles = [];@
-                try {{
-                    {inputs}
-                    const result = __rustier_exports.{name}({env_raw}, ...handles);@
-                    {result_var} = {result};@
-                }} finally {{
-                    for (const handle of handles) __rustier_values.__rustier_js_drop_ref(handle);@
+        let mut handle_index = 0;
+        let call_arguments = fragment(|p| {
+            for (type_, argument) in function.inputs(db).iter().zip(arguments) {
+                match type_ {
+                    TransportTypeRs::Void => {}
+                    TransportTypeRs::F64 => frag!(, ~{argument}).apply(p),
+                    TransportTypeRs::JsValueHandle => {
+                        frag!(, ~handles[{handle_index}]).apply(p);
+                        handle_index += 1;
+                    }
+                }
+            }
+        });
+
+        let call = frag!(
+            const result = __rustier_exports.{name}({env_raw}{call_arguments});@
+            {result_var} = {result};@
+        );
+
+        if function
+            .inputs(db)
+            .contains(&TransportTypeRs::JsValueHandle)
+        {
+            frag!(
+                {{
+                    const handles = [];@
+                    try {{
+                        {inputs}
+                        {call}
+                    }} finally {{
+                        for (const handle of handles) __rustier_values.__rustier_js_drop_ref(handle);@
+                    }}
                 }}
-            }}
-        )
-        .print()
+            )
+            .print()
+        } else {
+            frag!({ { { call } } }).print()
+        }
     }
 }
 
@@ -220,6 +254,62 @@ mod tests {
         }, {
             insta::assert_snapshot!(name, output);
         });
+    }
+
+    #[test]
+    fn numeric_transport() {
+        let db = RootDatabase::default();
+
+        for (name, backend) in [
+            ("number_wasm32", test_backend()),
+            (
+                "number_wasm64",
+                TransportBackend::Wasm(TransportBackendWasm {
+                    mem64: true,
+                    import: WasmImport::NodeJs,
+                }),
+            ),
+            (
+                "number_node",
+                TransportBackend::Node(crate::codegen::TransportBackendNode),
+            ),
+        ] {
+            let function = TransportFunction::new(
+                &db,
+                "numbers",
+                vec![
+                    TransportTypeRs::F64,
+                    TransportTypeRs::JsValueHandle,
+                    TransportTypeRs::Void,
+                    TransportTypeRs::F64,
+                    TransportTypeRs::JsValueHandle,
+                ],
+                TransportTypeRs::F64,
+            );
+            let rs = function.render_rs_adapter_with_body(&db, &backend, |_, args| {
+                format!("{} + {}", args[0], args[3])
+            });
+            let rs = prettyplease::unparse(&syn::parse_file(&rs).unwrap());
+            let js = function.render_js_ffi_call_stmt(
+                &db,
+                &backend,
+                &[
+                    "a".into(),
+                    "b".into(),
+                    "undefined".into(),
+                    "c".into(),
+                    "d".into(),
+                ],
+                "output",
+            );
+
+            insta::with_settings!({
+                snapshot_path => "../_snapshots/transport",
+                prepend_module_to_snapshot => false,
+            }, {
+                insta::assert_snapshot!(name, format!("```rust\n{rs}```\n\n```js\n{js}\n```\n"));
+            });
+        }
     }
 
     #[test]
