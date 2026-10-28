@@ -134,6 +134,7 @@ impl<'db> RsMacro<'db> {
 /// A Rust-side runtime type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum RsType {
+    Bool,
     I8,
     I16,
     I32,
@@ -151,6 +152,7 @@ pub enum RsType {
 /// A js-side runtime type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum JsType {
+    Boolean,
     Number,
     /// JavaScript `undefined`.
     Undefined,
@@ -162,6 +164,7 @@ impl RsType {
     /// Chooses the Rust transport representation needed to carry this runtime type.
     pub fn transport(self) -> TransportTypeRs {
         match self {
+            Self::Bool => TransportTypeRs::Bool,
             Self::Void => TransportTypeRs::Void,
             Self::JsValue => TransportTypeRs::JsValueHandle,
             Self::I8
@@ -178,6 +181,7 @@ impl RsType {
     /// Maps this runtime type to its JS-facing representation.
     pub fn js(self) -> JsType {
         match self {
+            Self::Bool => JsType::Boolean,
             Self::Void => JsType::Undefined,
             Self::JsValue => JsType::Any,
             Self::I8

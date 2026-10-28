@@ -49,6 +49,7 @@ impl<'db> Runtime<'db> {
 impl RsType {
     pub(super) fn render(self) -> impl FragmentOnce {
         match self {
+            Self::Bool => frag!(bool),
             Self::Void => frag!(()),
             Self::JsValue => frag!(::aux_next::runtime::js::JsValue),
             Self::I8 => frag!(i8),
@@ -64,7 +65,7 @@ impl RsType {
 
     fn render_from_transport(self, value: impl FragmentOnce) -> impl FragmentOnce {
         fragment(move |p| match self {
-            Self::Void => value.apply(p),
+            Self::Void | Self::Bool => value.apply(p),
             Self::JsValue => frag!(::aux_next::runtime::js::JsValue::from({ value })).apply(p),
             Self::F64 => value.apply(p),
             Self::F32 => frag!(({ value }).clamp(f32::MIN as f64, f32::MAX as f64) as f32).apply(p),
@@ -77,7 +78,7 @@ impl RsType {
 
     fn render_to_transport(self, value: impl FragmentOnce) -> impl FragmentOnce {
         fragment(move |p| match self {
-            Self::Void => value.apply(p),
+            Self::Void | Self::Bool => value.apply(p),
             Self::JsValue => frag!(::aux_next::transport::JsValueHandle::from({ value })).apply(p),
             Self::F64 => value.apply(p),
             Self::I8 | Self::I16 | Self::I32 | Self::U8 | Self::U16 | Self::U32 | Self::F32 => {
@@ -139,6 +140,7 @@ impl<'db> RsMacro<'db> {
         let checks = fragment(|p| {
             for (index, (type_, argument)) in self.inputs(db).iter().zip(&arguments).enumerate() {
                 let expected = match type_.js() {
+                    JsType::Boolean => "boolean",
                     JsType::Number => "number",
                     JsType::Undefined => "undefined",
                     JsType::Any => continue,
@@ -161,14 +163,14 @@ impl<'db> RsMacro<'db> {
             .zip(&arguments)
             .map(|(type_, argument)| match type_.js() {
                 JsType::Undefined => "undefined".into(),
-                JsType::Any | JsType::Number => argument.clone(),
+                JsType::Any | JsType::Number | JsType::Boolean => argument.clone(),
             })
             .collect();
         let result_var = "__rustier_result";
         let call = transport.render_js_ffi_call_stmt(db, backend, &transport_arguments, result_var);
         let result = match self.ret_type(db).js() {
             JsType::Undefined => "undefined",
-            JsType::Any | JsType::Number => result_var,
+            JsType::Any | JsType::Number | JsType::Boolean => result_var,
         };
 
         frag!(
@@ -251,6 +253,18 @@ mod tests {
                 format!("{}\n{}", render(body.clone()), render_js(body)),
             );
         }
+    }
+
+    #[test]
+    fn runtime_bool() {
+        let body = vec![
+            RsPart::Text("let value: bool = ".into()),
+            RsPart::Input,
+            RsPart::Text("; !value".into()),
+        ];
+
+        snapshot("runtime_bool", render(body.clone()));
+        snapshot("runtime_bool_js", render_js(body));
     }
 
     #[test]

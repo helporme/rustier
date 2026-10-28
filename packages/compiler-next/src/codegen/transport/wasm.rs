@@ -91,6 +91,9 @@ impl TransportBackendWasm {
             for (index, type_) in function.inputs(db).iter().enumerate() {
                 match type_ {
                     TransportTypeRs::Void => {}
+                    TransportTypeRs::Bool => {
+                        frag!(, ~__rustier_raw_{index}: bool).apply(p);
+                    }
                     TransportTypeRs::F64 => {
                         frag!(, ~__rustier_raw_{index}: f64).apply(p);
                     }
@@ -106,7 +109,7 @@ impl TransportBackendWasm {
                     TransportTypeRs::Void => {
                         frag!(let __rustier_handle_{index} = ();@).apply(p);
                     }
-                    TransportTypeRs::F64 => {
+                    TransportTypeRs::F64 | TransportTypeRs::Bool => {
                         frag!(let __rustier_handle_{index} = __rustier_raw_{index};@).apply(p);
                     }
                     TransportTypeRs::JsValueHandle => {
@@ -124,10 +127,11 @@ impl TransportBackendWasm {
         });
         let export = match function.ret_type(db) {
             TransportTypeRs::Void => "()",
-            TransportTypeRs::F64 => "__rustier_output",
+            TransportTypeRs::F64 | TransportTypeRs::Bool => "__rustier_output",
             TransportTypeRs::JsValueHandle => "__rustier_output.into_raw()",
         };
         let ret = match function.ret_type(db) {
+            TransportTypeRs::Bool => "bool",
             TransportTypeRs::Void => "()",
             TransportTypeRs::F64 => "f64",
             TransportTypeRs::JsValueHandle => "u32",
@@ -161,7 +165,7 @@ impl TransportBackendWasm {
         let inputs = fragment(|p| {
             for (type_, argument) in function.inputs(db).iter().zip(arguments) {
                 match type_ {
-                    TransportTypeRs::Void | TransportTypeRs::F64 => {}
+                    TransportTypeRs::Void | TransportTypeRs::F64 | TransportTypeRs::Bool => {}
                     TransportTypeRs::JsValueHandle => {
                         frag!(handles.push(__rustier_values.__rustier_js_insert({argument}));@)
                             .apply(p);
@@ -170,6 +174,7 @@ impl TransportBackendWasm {
             }
         });
         let result = fragment(|p| match function.ret_type(db).js() {
+            TransportTypeJs::Boolean => frag!(Boolean(result)).apply(p),
             TransportTypeJs::Undefined => frag!(undefined).apply(p),
             TransportTypeJs::Number => frag!(result).apply(p),
             TransportTypeJs::Any => frag!(__rustier_values.__rustier_js_take(result)).apply(p),
@@ -179,7 +184,7 @@ impl TransportBackendWasm {
             for (type_, argument) in function.inputs(db).iter().zip(arguments) {
                 match type_ {
                     TransportTypeRs::Void => {}
-                    TransportTypeRs::F64 => frag!(, ~{argument}).apply(p),
+                    TransportTypeRs::F64 | TransportTypeRs::Bool => frag!(, ~{argument}).apply(p),
                     TransportTypeRs::JsValueHandle => {
                         frag!(, ~handles[{handle_index}]).apply(p);
                         handle_index += 1;
@@ -308,6 +313,67 @@ mod tests {
                 prepend_module_to_snapshot => false,
             }, {
                 insta::assert_snapshot!(name, format!("```rust\n{rs}```\n\n```js\n{js}\n```\n"));
+            });
+        }
+    }
+
+    #[test]
+    fn bool_transport() {
+        let db = RootDatabase::default();
+
+        for (name, backend) in [
+            ("bool_wasm32", test_backend()),
+            (
+                "bool_wasm64",
+                TransportBackend::Wasm(TransportBackendWasm {
+                    mem64: true,
+                    import: WasmImport::NodeJs,
+                }),
+            ),
+            (
+                "bool_node",
+                TransportBackend::Node(crate::codegen::TransportBackendNode),
+            ),
+        ] {
+            let function = TransportFunction::new(
+                &db,
+                "choose",
+                vec![
+                    TransportTypeRs::Bool,
+                    TransportTypeRs::JsValueHandle,
+                    TransportTypeRs::Void,
+                    TransportTypeRs::F64,
+                    TransportTypeRs::Bool,
+                ],
+                TransportTypeRs::Bool,
+            );
+            let rs = function.render_rs_adapter_with_body(&db, &backend, |_, args| {
+                let first = &args[0];
+                let number = &args[3];
+                let last = &args[4];
+
+                frag!({ first } && { last } && { number } > 0.0).print()
+            });
+            let rs = prettyplease::unparse(&syn::parse_file(&rs).unwrap());
+            let js = function.render_js_ffi_call_stmt(
+                &db,
+                &backend,
+                &[
+                    "first".into(),
+                    "value".into(),
+                    "undefined".into(),
+                    "number".into(),
+                    "last".into(),
+                ],
+                "output",
+            );
+            let output = frag!({"```rust\n"}{rs}{"```\n\n```js\n"}{js}{"\n```\n"}).print();
+
+            insta::with_settings!({
+                snapshot_path => "../_snapshots/transport",
+                prepend_module_to_snapshot => false,
+            }, {
+                insta::assert_snapshot!(name, output);
             });
         }
     }

@@ -1,0 +1,34 @@
+---
+source: src/codegen/runtime.rs
+expression: output
+---
+# Input
+
+```js
+rs`let value: bool = ${input0}; !value`
+```
+
+# Result
+
+```rust
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __rustier_ea3081819618f2e004e66e6a9ed9d078961f793fbeb89e979553b8463e9c0239(
+    __rustier_env_raw: __RustierEnvRaw,
+    __rustier_raw_0: bool,
+) -> bool {
+    let __rustier_env_handle = unsafe {
+        __RustierEnvHandle::from_raw(__rustier_env_raw as usize)
+    };
+    let __rustier_handle_0 = __rustier_raw_0;
+    let __rustier_output = {
+        let __rustier_env = ::aux_next::runtime::js::JsEnv::from(__rustier_env_handle);
+        let __rustier_arg_0 = __rustier_handle_0;
+        let __rustier_output = (|| -> bool {
+            let value: bool = __rustier_arg_0;
+            !value
+        })();
+        __rustier_output
+    };
+    __rustier_output
+}
+```

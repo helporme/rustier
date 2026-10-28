@@ -76,6 +76,15 @@ impl TransportBackendNode {
         let conversions = fragment(|p| {
             for (index, type_) in function.inputs(db).iter().enumerate() {
                 match type_ {
+                    TransportTypeRs::Bool => frag!(
+                        let mut __rustier_handle_{index}: bool = false;@
+                        let status = unsafe {{
+                            __rustier_napi::napi_get_value_bool(env, __rustier_args[{index}], &mut __rustier_handle_{index})
+                        }};@
+                        if status != __rustier_napi::Status::napi_ok {{
+                            panic!("Expected a JavaScript boolean");@
+                        }}
+                    ).apply(p),
                     TransportTypeRs::Void => frag!(
                         let __rustier_handle_{index} = ();@
                     ).apply(p),
@@ -97,6 +106,19 @@ impl TransportBackendNode {
             }
         });
         let output = fragment(|p| match function.ret_type(db) {
+            TransportTypeRs::Bool => frag!(
+                {{
+                    let mut value = ::std::ptr::null_mut();@
+                    let status = unsafe {{
+                        __rustier_napi::napi_get_boolean(env, __rustier_output, &mut value)
+                    }};@@
+                    if status != __rustier_napi::Status::napi_ok {{
+                        panic!("Could not create a JavaScript boolean");@
+                    }}@
+                    value
+                }}
+            )
+            .apply(p),
             TransportTypeRs::Void => frag!(undefined).apply(p),
             TransportTypeRs::F64 => frag!(
                 {{

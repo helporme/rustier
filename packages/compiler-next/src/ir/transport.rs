@@ -13,6 +13,7 @@ pub struct TransportFunction<'db> {
 /// The Rust-side representation of a value carried by transport.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum TransportTypeRs {
+    Bool,
     F64,
     /// Rust unit.
     Void,
@@ -23,6 +24,7 @@ pub enum TransportTypeRs {
 /// The JS-side representation of a value carried by transport.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum TransportTypeJs {
+    Boolean,
     Number,
     /// JavaScript `undefined`.
     Undefined,
@@ -34,6 +36,7 @@ impl TransportTypeRs {
     /// Maps a Rust transport type to its corresponding JS representation.
     pub fn js(self) -> TransportTypeJs {
         match self {
+            Self::Bool => TransportTypeJs::Boolean,
             Self::F64 => TransportTypeJs::Number,
             Self::Void => TransportTypeJs::Undefined,
             Self::JsValueHandle => TransportTypeJs::Any,

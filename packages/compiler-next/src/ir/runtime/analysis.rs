@@ -151,6 +151,7 @@ fn classify_type(ty: Ty<'_>) -> RsType {
         RsType::Void
     } else {
         match ty.as_builtin() {
+            Some(BuiltinType::Bool) => RsType::Bool,
             Some(BuiltinType::Int(BuiltinInt::I8)) => RsType::I8,
             Some(BuiltinType::Int(BuiltinInt::I16)) => RsType::I16,
             Some(BuiltinType::Int(BuiltinInt::I32)) => RsType::I32,
@@ -217,6 +218,34 @@ mod tests {
     }
 
     #[test]
+    fn boolean_signatures() {
+        let db = database();
+
+        ra_ap_hir::attach_db(&db, || {
+            for (prefix, suffix) in [
+                ("let value: bool = ", "; value"),
+                (
+                    "type Flag = bool; fn take(value: Flag) -> Flag { value } take(",
+                    ")",
+                ),
+                ("if ", " { true } else { false }"),
+            ] {
+                let macro_ = RsMacro::new(
+                    &db,
+                    vec![
+                        RsPart::Text(prefix.into()),
+                        RsPart::Input,
+                        RsPart::Text(suffix.into()),
+                    ],
+                );
+
+                assert_eq!(macro_.inputs(&db), &[RsType::Bool]);
+                assert_eq!(macro_.ret_type(&db), RsType::Bool);
+            }
+        });
+    }
+
+    #[test]
     fn signatures_need_only_shared_database_access() {
         let db = database();
 
@@ -226,6 +255,9 @@ mod tests {
                 ("()", RsType::Void),
                 ("return ();", RsType::Void),
                 ("fn nothing() {} nothing()", RsType::Void),
+                ("true", RsType::Bool),
+                ("false", RsType::Bool),
+                ("fn value() -> bool { true } value()", RsType::Bool),
                 ("__rustier_env.undefined()", RsType::JsValue),
                 ("__rustier_env.undefined().discard()", RsType::Void),
             ] {

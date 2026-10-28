@@ -1,0 +1,103 @@
+---
+source: src/codegen/transport/wasm.rs
+expression: output
+---
+```rust
+unsafe extern "C" fn choose(
+    env: __rustier_napi::napi_env,
+    info: __rustier_napi::napi_callback_info,
+) -> __rustier_napi::napi_value {
+    let result = ::std::panic::catch_unwind(
+        ::std::panic::AssertUnwindSafe(|| {
+            let mut __rustier_args = [::std::ptr::null_mut(); 5];
+            let mut argc = 5;
+            assert_eq!(
+                unsafe { __rustier_napi::napi_get_cb_info(env, info, & mut argc,
+                __rustier_args.as_mut_ptr(), ::std::ptr::null_mut(),
+                ::std::ptr::null_mut()) }, __rustier_napi::Status::napi_ok
+            );
+            let mut undefined = ::std::ptr::null_mut();
+            assert_eq!(
+                unsafe { __rustier_napi::napi_get_undefined(env, & mut undefined) },
+                __rustier_napi::Status::napi_ok
+            );
+            for argument in __rustier_args.iter_mut().skip(argc) {
+                *argument = undefined;
+            }
+            let __rustier_env_handle = unsafe {
+                __RustierEnvHandle::from_raw(env as usize)
+            };
+            let mut __rustier_handle_0: bool = false;
+            let status = unsafe {
+                __rustier_napi::napi_get_value_bool(
+                    env,
+                    __rustier_args[0],
+                    &mut __rustier_handle_0,
+                )
+            };
+            if status != __rustier_napi::Status::napi_ok {
+                panic!("Expected a JavaScript boolean");
+            }
+            let __rustier_handle_1 = unsafe {
+                __RustierValueHandle::from_napi_value(
+                    __rustier_args[1] as usize,
+                    __rustier_env_handle,
+                )
+            };
+            let __rustier_handle_2 = ();
+            let mut __rustier_handle_3: f64 = 0.0;
+            let status = unsafe {
+                __rustier_napi::napi_get_value_double(
+                    env,
+                    __rustier_args[3],
+                    &mut __rustier_handle_3,
+                )
+            };
+            if status != __rustier_napi::Status::napi_ok {
+                panic!("Expected a JavaScript number");
+            }
+            let mut __rustier_handle_4: bool = false;
+            let status = unsafe {
+                __rustier_napi::napi_get_value_bool(
+                    env,
+                    __rustier_args[4],
+                    &mut __rustier_handle_4,
+                )
+            };
+            if status != __rustier_napi::Status::napi_ok {
+                panic!("Expected a JavaScript boolean");
+            }
+            let __rustier_output = {
+                __rustier_handle_0 && __rustier_handle_4 && __rustier_handle_3 > 0.0
+            };
+            {
+                let mut value = ::std::ptr::null_mut();
+                let status = unsafe {
+                    __rustier_napi::napi_get_boolean(env, __rustier_output, &mut value)
+                };
+                if status != __rustier_napi::Status::napi_ok {
+                    panic!("Could not create a JavaScript boolean");
+                }
+                value
+            }
+        }),
+    );
+    match result {
+        Ok(value) => value,
+        Err(_) => {
+            unsafe {
+                __rustier_napi::napi_throw_error(
+                    env,
+                    ::std::ptr::null(),
+                    c"Rust snippet panicked".as_ptr(),
+                );
+            }
+            ::std::ptr::null_mut()
+        }
+    }
+}
+```
+
+```js
+output= __rustier_exports.choose(first, value, undefined, number, last);
+```
