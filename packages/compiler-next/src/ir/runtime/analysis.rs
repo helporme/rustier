@@ -66,7 +66,7 @@ impl<'db> RsMacro<'db> {
                 .inputs()
                 .iter()
                 .copied()
-                .map(classify_type)
+                .map(|ty| classify_type(db, ty))
                 .collect(),
             None => self
                 .body(db)
@@ -83,7 +83,9 @@ impl<'db> RsMacro<'db> {
     pub(super) fn infer_ret_type(self, db: &'db dyn Db) -> RsType {
         let file = self.analysis_file_for_output(db);
 
-        infer_closure(db, file).map_or(RsType::JsValue, |callable| classify_type(callable.output()))
+        infer_closure(db, file).map_or(RsType::JsValue, |callable| {
+            classify_type(db, callable.output())
+        })
     }
 }
 
@@ -146,9 +148,25 @@ fn single_file_crate(db: &dyn Db, file: VirtFile) -> Crate {
     .new(db)
 }
 
-fn classify_type(ty: Ty<'_>) -> RsType {
+fn classify_type(db: &dyn Db, ty: Ty<'_>) -> RsType {
     if ty.is_unit() {
         RsType::Void
+    } else if ty.as_adt().is_some_and(|(adt, _)| {
+        let ra_ap_hir_def::AdtId::StructId(id) = adt else {
+            return false;
+        };
+        let struct_: ra_ap_hir::Struct = id.into();
+        let module = struct_.module(db);
+        let crate_ = module.krate(db);
+
+        crate_.is_builtin(db)
+            && struct_.name(db).display(db, crate_.edition(db)).to_string() == "String"
+            && module
+                .path_segments(db)
+                .map(|name| name.display(db, crate_.edition(db)).to_string())
+                .eq(["string"])
+    }) {
+        RsType::String
     } else {
         match ty.as_builtin() {
             Some(BuiltinType::Bool) => RsType::Bool,
@@ -213,6 +231,53 @@ mod tests {
             ] {
                 let macro_ = RsMacro::new(&db, vec![RsPart::Text(body.into())]);
                 assert_eq!(macro_.ret_type(&db), expected, "{body}");
+            }
+        });
+    }
+
+    #[test]
+    fn string_signatures() {
+        let mut db = database();
+        let template = template(
+            &mut db,
+            "pub mod string { pub struct String; } pub fn text() -> std::string::String { loop {} }",
+        );
+        RuntimeAnalysis::set(&mut db, template);
+
+        ra_ap_hir::attach_db(&db, || {
+            for (body, expected) in [
+                ("std::string::String::new()", RsType::String),
+                (
+                    "type Text = std::string::String; Text::new()",
+                    RsType::String,
+                ),
+                ("dep::text()", RsType::String),
+                ("struct String; String", RsType::JsValue),
+                ("dep::string::String", RsType::JsValue),
+                ("\"borrowed\"", RsType::JsValue),
+                ("&std::string::String::new()", RsType::JsValue),
+            ] {
+                let macro_ = RsMacro::new(&db, vec![RsPart::Text(body.into())]);
+                assert_eq!(macro_.ret_type(&db), expected, "{body}");
+            }
+
+            for (prefix, suffix) in [
+                ("let value: std::string::String = ", "; value"),
+                (
+                    "type Text = std::string::String; fn identity(value: Text) -> Text { value } identity(",
+                    ")",
+                ),
+            ] {
+                let macro_ = RsMacro::new(
+                    &db,
+                    vec![
+                        RsPart::Text(prefix.into()),
+                        RsPart::Input,
+                        RsPart::Text(suffix.into()),
+                    ],
+                );
+                assert_eq!(macro_.inputs(&db), &[RsType::String]);
+                assert_eq!(macro_.ret_type(&db), RsType::String);
             }
         });
     }

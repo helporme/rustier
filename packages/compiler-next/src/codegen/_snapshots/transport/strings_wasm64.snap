@@ -1,0 +1,72 @@
+---
+source: src/codegen/transport/wasm.rs
+expression: output
+---
+```rust
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn text(
+    __rustier_env_raw: __RustierEnvRaw,
+    __rustier_raw_0: u32,
+    __rustier_raw_1: f64,
+    __rustier_raw_2: u32,
+    __rustier_raw_4: bool,
+    __rustier_raw_5: u32,
+) -> u32 {
+    let __rustier_env_handle = unsafe {
+        __RustierEnvHandle::from_raw(__rustier_env_raw as usize)
+    };
+    let __rustier_handle_0 = unsafe {
+        __RustierValueHandle::clone_from_raw(__rustier_raw_0)
+    }
+        .to_string()
+        .expect("Expected a JavaScript string");
+    let __rustier_handle_1 = __rustier_raw_1;
+    let __rustier_handle_2 = unsafe {
+        __RustierValueHandle::clone_from_raw(__rustier_raw_2)
+    };
+    let __rustier_handle_3 = ();
+    let __rustier_handle_4 = __rustier_raw_4;
+    let __rustier_handle_5 = unsafe {
+        __RustierValueHandle::clone_from_raw(__rustier_raw_5)
+    }
+        .to_string()
+        .expect("Expected a JavaScript string");
+    let __rustier_output = { __rustier_handle_0 + &__rustier_handle_5 };
+    __rustier_env_handle.new_string(&__rustier_output).into_raw()
+}
+```
+
+```js
+{
+	const handles =[];
+	try{
+		handles.push(
+			__rustier_values.__rustier_js_insert(
+				first
+			)
+		);
+		handles.push(
+			__rustier_values.__rustier_js_insert(
+				value
+			)
+		);
+		handles.push(
+			__rustier_values.__rustier_js_insert(
+				last
+			)
+		);
+		const result = __rustier_exports.text(
+			0n, handles[0], number, handles[1], flag, handles[2]
+		);
+		output=__rustier_values.__rustier_js_take(
+			result
+		);
+	}finally{
+		for(
+			const handle of handles
+		)__rustier_values.__rustier_js_drop_ref(
+			handle
+		);
+	}
+}
+```

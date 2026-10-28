@@ -40,6 +40,7 @@ pub(super) fn template(db: &mut RootDatabase, dependency: &str) -> Crate {
     let root_file = FileId::from_raw(0);
     let aux_file = FileId::from_raw(1);
     let dep_file = FileId::from_raw(2);
+    let std_file = FileId::from_raw(3);
     let mut files = FileSet::default();
     files.insert(
         root_file,
@@ -47,9 +48,10 @@ pub(super) fn template(db: &mut RootDatabase, dependency: &str) -> Crate {
     );
     files.insert(aux_file, VfsPath::new_virtual_path("/aux/lib.rs".into()));
     files.insert(dep_file, VfsPath::new_virtual_path("/dep/lib.rs".into()));
+    files.insert(std_file, VfsPath::new_virtual_path("/std/lib.rs".into()));
 
     let mut graph = CrateGraphBuilder::default();
-    let mut add_crate = |file| {
+    let mut add_crate = |file, origin| {
         graph.add_crate_root(
             file,
             Edition::Edition2024,
@@ -58,10 +60,7 @@ pub(super) fn template(db: &mut RootDatabase, dependency: &str) -> Crate {
             Default::default(),
             None,
             Default::default(),
-            CrateOrigin::Local {
-                repo: None,
-                name: None,
-            },
+            origin,
             vec![],
             false,
             Arc::new(AbsPathBuf::assert_utf8(if cfg!(windows) {
@@ -75,9 +74,26 @@ pub(super) fn template(db: &mut RootDatabase, dependency: &str) -> Crate {
             }),
         )
     };
-    let root = add_crate(root_file);
-    let aux = add_crate(aux_file);
-    let dep = add_crate(dep_file);
+    let local = CrateOrigin::Local {
+        repo: None,
+        name: None,
+    };
+    let root = add_crate(root_file, local.clone());
+    let aux = add_crate(aux_file, local.clone());
+    let dep = add_crate(dep_file, local);
+    let std = add_crate(
+        std_file,
+        CrateOrigin::Lang(ra_ap_base_db::LangCrateOrigin::Std),
+    );
+
+    for crate_ in [root, dep] {
+        graph
+            .add_dep(
+                crate_,
+                DependencyBuilder::new(ra_ap_base_db::CrateName::new("std").unwrap(), std),
+            )
+            .unwrap();
+    }
 
     graph
         .add_dep(
@@ -98,6 +114,9 @@ pub(super) fn template(db: &mut RootDatabase, dependency: &str) -> Crate {
     change.change_file(root_file, Some(String::new()));
     change.change_file(aux_file, Some(RUNTIME.into()));
     change.change_file(dep_file, Some(dependency.into()));
+    change.change_file(std_file, Some(
+        "pub mod string { pub struct String; impl String { pub fn new() -> Self { loop {} } } }".into()
+    ));
 
     change.apply(db).unwrap()[&root]
 }

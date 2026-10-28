@@ -1,0 +1,47 @@
+---
+source: src/codegen/runtime.rs
+expression: output
+---
+# Input
+
+```js
+rs`let value: std::string::String = ${input0}; value`
+```
+
+# Result
+
+```js
+export function __rustier_3affb54f83521dda01e1b131f860e01d30ac0be2f52fc0fa46f24269622c3522(__rustier_arg_0){
+	if(
+		typeof __rustier_arg_0 !== "string"
+	){
+		throw new TypeError(
+			"Rustier input 0: expected string"
+		);
+	}
+	let __rustier_result;
+	{
+		const handles =[];
+		try{
+			handles.push(
+				__rustier_values.__rustier_js_insert(
+					__rustier_arg_0
+				)
+			);
+			const result = __rustier_exports.__rustier_3affb54f83521dda01e1b131f860e01d30ac0be2f52fc0fa46f24269622c3522(
+				0, handles[0]
+			);
+			__rustier_result=__rustier_values.__rustier_js_take(
+				result
+			);
+		}finally{
+			for(
+				const handle of handles
+			)__rustier_values.__rustier_js_drop_ref(
+				handle
+			);
+		}
+	}
+	return __rustier_result;
+}
+```

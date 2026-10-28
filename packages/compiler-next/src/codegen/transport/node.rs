@@ -76,6 +76,11 @@ impl TransportBackendNode {
         let conversions = fragment(|p| {
             for (index, type_) in function.inputs(db).iter().enumerate() {
                 match type_ {
+                    TransportTypeRs::String => frag!(
+                        let __rustier_handle_{index} = unsafe {{
+                            __RustierValueHandle::from_napi_value(__rustier_args[{index}] as usize, __rustier_env_handle)
+                        }}.to_string().expect("Expected a JavaScript string");@
+                    ).apply(p),
                     TransportTypeRs::Bool => frag!(
                         let mut __rustier_handle_{index}: bool = false;@
                         let status = unsafe {{
@@ -106,6 +111,14 @@ impl TransportBackendNode {
             }
         });
         let output = fragment(|p| match function.ret_type(db) {
+            TransportTypeRs::String => frag!(unsafe {
+                {
+                    __rustier_env_handle
+                        .new_string(&__rustier_output)
+                        .into_napi_value() as __rustier_napi::napi_value
+                }
+            })
+            .apply(p),
             TransportTypeRs::Bool => frag!(
                 {{
                     let mut value = ::std::ptr::null_mut();@
