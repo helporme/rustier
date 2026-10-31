@@ -1,6 +1,7 @@
 use ra_ap_base_db::{
     FileSourceRootInput, FileText, SourceDatabase, SourceRoot, SourceRootId, SourceRootInput,
 };
+use ra_ap_syntax::TextRange;
 use ra_ap_vfs::{FileId, VfsPath, file_set::FileSet};
 use salsa::plumbing::{AsId, FromId};
 use triomphe::Arc;
@@ -11,6 +12,8 @@ const VIRT_FILE_TAG: u32 = (ra_ap_ide_db::span::EditionedFileId::MAX_FILE_ID + 1
 pub(crate) struct VirtFile {
     #[returns(ref)]
     text: Arc<str>,
+    #[returns(ref)]
+    pub source_map: Vec<(TextRange, usize)>,
 }
 
 #[salsa::tracked]

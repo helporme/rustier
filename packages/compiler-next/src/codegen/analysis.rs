@@ -1,58 +1,133 @@
-//! Generates the Rust closure used to infer an `rs` macro's signature.
-//! This source is analyzed in memory, not emitted into the bridge crate.
+//! In-memory analysis probes and their mapping to macro body parts.
 
 use crate::{
     db::Db,
     ir::runtime::{RsMacro, RsPart, RsType},
 };
 
+use ra_ap_syntax::{
+    AstNode, Edition, SourceFile, TextRange, TextSize,
+    ast::{self, HasModuleItem, HasName},
+};
+
 use super::fragment::{FragmentOnce, FragmentPrint, frag, fragment};
 
-impl<'db> RsMacro<'db> {
-    /// Renders the macro body with one closure parameter per interpolation.
-    pub(crate) fn render_analysis_rs(self, db: &'db dyn Db, types: Option<&[RsType]>) -> String {
-        let parts = self.body(db);
-        let params = fragment(|p| {
-            for (index, _) in parts
-                .iter()
-                .filter(|part| matches!(part, RsPart::Input))
-                .enumerate()
+pub(crate) struct AnalysisSource {
+    pub text: String,
+    pub source_map: Vec<(TextRange, usize)>,
+}
+
+impl AnalysisSource {
+    fn new(text: String, parts: &[RsPart]) -> Self {
+        let parsed = SourceFile::parse(&text, Edition::CURRENT);
+        let mut source_map = Vec::new();
+
+        for item in parsed.tree().items() {
+            let ast::Item::Fn(function) = item else {
+                continue;
+            };
+            if !function
+                .name()
+                .is_some_and(|name| matches!(name.text(), "__rustier_probe" | "__rustier_check"))
             {
-                if index != 0 {
-                    frag!(, ~).apply(p);
-                }
-
-                frag!(__rustier_arg_ { index }).apply(p);
-
-                if let Some(types) = types {
-                    let type_ = types[index].render();
-                    frag!(: ~{type_}).apply(p);
-                }
+                continue;
             }
-        });
 
-        let body = fragment(|p| {
-            let mut index = 0;
+            let Some(closure) = function
+                .syntax()
+                .descendants()
+                .find_map(ast::ClosureExpr::cast)
+            else {
+                continue;
+            };
+            let Some(ast::Expr::BlockExpr(body)) = closure.body() else {
+                continue;
+            };
+            let Some(open) = body.stmt_list().and_then(|body| body.l_curly_token()) else {
+                continue;
+            };
+            let Some(parameters) = closure.param_list() else {
+                continue;
+            };
+            let mut parameters = parameters.params();
+            let mut offset = open.text_range().end();
 
-            for part in parts {
-                match part {
-                    RsPart::Text(text) => text.apply(p),
+            for (part, value) in parts.iter().enumerate() {
+                let len = match value {
+                    RsPart::Text(text) => TextSize::of(text),
                     RsPart::Input => {
-                        frag!(__rustier_arg_ { index }).apply(p);
-                        index += 1;
+                        let Some(param) = parameters.next() else {
+                            break;
+                        };
+                        let Some(name) = param.pat() else { break };
+                        source_map.push((param.syntax().text_range(), part));
+                        name.syntax().text_range().len()
+                    }
+                };
+
+                source_map.push((TextRange::at(offset, len), part));
+                offset += len;
+            }
+        }
+
+        Self { text, source_map }
+    }
+}
+
+impl<'db> RsMacro<'db> {
+    pub(crate) fn render_analysis_rs(
+        self,
+        db: &'db dyn Db,
+        types: Option<&[RsType]>,
+        output: Option<RsType>,
+    ) -> AnalysisSource {
+        let text = fragment(|p| {
+            for (index, output) in std::iter::once(None).chain(output.map(Some)).enumerate() {
+                let name = if index == 0 {
+                    "__rustier_probe"
+                } else {
+                    "__rustier_check"
+                };
+                frag!(
+                    fn ~{name}(__rustier_env: ::aux_next::runtime::js::JsEnv) ~{"{"}@
+                    let __rustier_snippet = |
+                )
+                .apply(p);
+
+                for (input, _) in self
+                    .body(db)
+                    .iter()
+                    .filter(|value| matches!(value, RsPart::Input))
+                    .enumerate()
+                {
+                    if input != 0 {
+                        frag!(, ~).apply(p);
+                    }
+
+                    let annotation = types.map(|types| frag!(: ~{types[input].render()}));
+                    frag!(__rustier_arg_{input}{annotation}).apply(p);
+                }
+
+                let output = output.map(|ty| frag!(~-> ~{ty.render()}));
+                frag!(|{output} ~{"{"}).apply(p);
+                let mut input = 0;
+
+                for value in self.body(db) {
+                    match value {
+                        RsPart::Text(text) => text.apply(p),
+                        RsPart::Input => {
+                            frag!(__rustier_arg_ { input }).apply(p);
+                            input += 1;
+                        }
                     }
                 }
-            }
-        });
 
-        frag!(
-            fn __rustier_probe(__rustier_env: ::aux_next::runtime::js::JsEnv) {{
-                let __rustier_snippet = |{params}| {{
-                    {body}@
-                }};@
-            }}
-        )
-        .print()
+                frag!(@{"};"}@{"}"}@).apply(p);
+            }
+        })
+        .print();
+
+        AnalysisSource::new(text, self.body(db))
     }
 }
 
@@ -64,8 +139,8 @@ mod tests {
     fn snapshot(name: &str, parts: Vec<RsPart>, types: Option<&[RsType]>) {
         let db = RootDatabase::default();
         let macro_ = RsMacro::new(&db, parts);
-        let source = macro_.render_analysis_rs(&db, types);
-        let rust = prettyplease::unparse(&syn::parse_file(&source).unwrap());
+        let source = macro_.render_analysis_rs(&db, types, None);
+        let rust = prettyplease::unparse(&syn::parse_file(&source.text).unwrap());
         let output = format!("```rust\n{rust}```\n");
 
         insta::with_settings!({

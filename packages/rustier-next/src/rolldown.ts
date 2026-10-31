@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url'
 import type { Plugin } from 'rolldown'
 import type { Plugin as VitePlugin, ViteDevServer } from 'vite'
 import { Server } from 'server-next'
-import { buildRuntime, rewriteRuntimeImports } from './bundle'
+import { buildRuntime, reportDiagnostics, rewriteRuntimeImports } from './bundle'
 import { toProfileOptions, type Platform, type RustierConfiguration } from './options'
 
 export type { Platform } from './options'
@@ -47,7 +47,8 @@ export default function rustier(options: RustierOptions): Plugin {
   let dev: ViteDevServer | undefined
 
   const profiles = new Map(names.map(name => [name, {
-    sources: new Map<string, string>(),
+    sources: new Map<string, { code: string, diagnostics: string[] }>(),
+    reportedDiagnostics: new Set<string>(),
     needsRuntime: false,
     runtimeFileName: null as string | null,
   }]))
@@ -67,9 +68,11 @@ export default function rustier(options: RustierOptions): Plugin {
     buildStart() {
       for (const [name, state] of profiles) {
         getServer().reset(name)
+        state.reportedDiagnostics.clear()
 
-        for (const [id, code] of state.sources) {
-          getServer().transformModule(name, id, code, `${runtimePrefix}${name}`)
+        for (const [id, source] of state.sources) {
+          const result = getServer().transformModule(name, id, source.code, `${runtimePrefix}${name}`)
+          source.diagnostics = result.diagnostics
         }
 
         state.needsRuntime = false
@@ -108,9 +111,11 @@ export default function rustier(options: RustierOptions): Plugin {
       }
 
       const transformed = getServer().transformModule(name, id, code, runtimeId)
-      state.sources.set(id, code)
+      if (dev && state.sources.get(id)?.code !== code) state.reportedDiagnostics.clear()
+      state.sources.set(id, { code, diagnostics: transformed.diagnostics })
+      reportDiagnostics(state.reportedDiagnostics, transformed.diagnostics, message => this.warn(message))
 
-      return { code: transformed, map: null }
+      return { code: transformed.code, map: null }
     },
     resolveId(id) {
       if (!id.startsWith(runtimePrefix)) return
@@ -148,9 +153,7 @@ export default function rustier(options: RustierOptions): Plugin {
         this.error(result.diagnostics.join('\n') || 'Rustier build failed')
       }
 
-      for (const diagnostic of result.diagnostics) {
-        this.warn(diagnostic)
-      }
+      reportDiagnostics(profiles.get(name)!.reportedDiagnostics, result.diagnostics, message => this.warn(message))
 
       const platform = options.profiles[name].platform
       let binary = result.binFfiPath
@@ -184,15 +187,17 @@ export default function rustier(options: RustierOptions): Plugin {
           state.sources.delete(id)
         }
 
+        for (const source of state.sources.values()) {
+          reportDiagnostics(state.reportedDiagnostics, source.diagnostics, message => this.warn(message))
+        }
+
         if (!state.needsRuntime) continue
 
         const extension = options.profiles[name].platform.type === 'node' ? 'node' : 'wasm'
         const binaryName = `bridge-${name}.${extension}`
         const result = buildRuntime(getServer(), name, binaryName)
 
-        for (const diagnostic of result.diagnostics) {
-          this.warn(diagnostic)
-        }
+        reportDiagnostics(state.reportedDiagnostics, result.diagnostics, message => this.warn(message))
 
         state.runtimeFileName = result.runtimeFileName
 

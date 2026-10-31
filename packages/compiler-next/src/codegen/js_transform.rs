@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use crate::{
     codegen::fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment},
     db::Db,
@@ -7,10 +9,6 @@ use crate::{
 #[salsa::tracked]
 impl<'db> JsModule<'db> {
     /// Replaces imported `rs` tags with calls to their exported macro functions.
-    ///
-    /// Interpolations remain JS expressions and are evaluated at each call site,
-    /// including nested tags. Untouched source is preserved verbatim; the helper
-    /// import is inserted after any shebang with a collision-free local name.
     #[salsa::tracked(returns(ref))]
     pub fn render_transformed(self, db: &'db dyn Db, ffi_js_mod_path: String) -> String {
         let file = self.file(db);
@@ -67,6 +65,23 @@ fn render_range<'db>(
 
             source[cursor as usize..span.start(db) as usize].apply(p);
 
+            let diagnostics = src.check_compile_errors(db);
+            if !diagnostics.is_empty() {
+                let message = diagnostics
+                    .iter()
+                    .map(|diagnostic| {
+                        diagnostic
+                            .render(crate::diag::Theme::UnicodeNoColor)
+                            .expect("rendering a diagnostic into a String cannot fail")
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                let message = js_string(&message);
+                frag!({"(() => { throw new Error("}{message}{"); })()"}).apply(p);
+                cursor = span.end(db);
+                continue;
+            }
+
             let name = src.as_macro(db).symbol(db);
             let arguments = fragment(|p| {
                 let mut first = true;
@@ -93,16 +108,39 @@ fn render_range<'db>(
     .print()
 }
 
+fn js_string(value: &str) -> impl FragmentOnce + '_ {
+    fragment(move |p| {
+        frag!({ "\"" }).apply(p);
+
+        for ch in value.chars() {
+            match ch {
+                '"' => frag!({ "\\\"" }).apply(p),
+                '\\' => frag!({ "\\\\" }).apply(p),
+                '\n' => frag!({ "\\n" }).apply(p),
+                '\r' => frag!({ "\\r" }).apply(p),
+                '\t' => frag!({ "\\t" }).apply(p),
+                '\u{2028}' => frag!({ "\\u2028" }).apply(p),
+                '\u{2029}' => frag!({ "\\u2029" }).apply(p),
+                ch if ch < '\u{20}' => write!(p, "\\u{:04x}", ch as u32).unwrap(),
+                ch => p.write_char(ch).unwrap(),
+            }
+        }
+
+        frag!({ "\"" }).apply(p);
+    })
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{db::RootDatabase, ir::js::JsFile};
+    use crate::ir::js::JsFile;
 
     fn snapshot(name: &str, source: &str) {
-        let db = RootDatabase::default();
+        let db = crate::test_common::database();
         let file = JsFile::new(&db, "/input.tsx", source);
-        let result = file
-            .module(&db)
-            .render_transformed(&db, "rustier-next:runtime".into());
+        let result = ra_ap_hir::attach_db(&db, || {
+            file.module(&db)
+                .render_transformed(&db, "rustier-next:runtime".into())
+        });
         let output =
             format!("# Source\n\n```tsx\n{source}\n```\n\n# Result\n\n```tsx\n{result}\n```\n");
         insta::with_settings!({
@@ -133,7 +171,7 @@ mod tests {
     fn expressions_and_nesting() {
         snapshot(
             "expressions_and_nesting",
-            "import { rs } from 'rustier';\nconst café = 1;\nrs`(${(café, other)}, ${condition ? `${café}` : other})`;\nrs`consume(${rs`${value}`})`;",
+            "import { rs } from 'rustier';\nconst café = 1;\nrs`let _ = (${(café, other)}, ${condition ? `${café}` : other});`;\nrs`${rs`${value}`}`;",
         );
     }
 
@@ -171,12 +209,13 @@ mod tests {
 
     #[test]
     fn custom_ffi_module() {
-        let db = RootDatabase::default();
+        let db = crate::test_common::database();
         let source = "import { rs } from 'rustier';\nrs`${value}`;";
         let file = JsFile::new(&db, "/input.ts", source);
-        let result = file
-            .module(&db)
-            .render_transformed(&db, "./generated/ffi-macros.js".into());
+        let result = ra_ap_hir::attach_db(&db, || {
+            file.module(&db)
+                .render_transformed(&db, "./generated/ffi-macros.js".into())
+        });
         insta::with_settings!({
             snapshot_path => "_snapshots/js_transform",
             prepend_module_to_snapshot => false,

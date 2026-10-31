@@ -18,6 +18,10 @@ use salsa::Setter;
 use super::{RsMacro, RsPart, RsType};
 use crate::db::{Db, VirtFile};
 
+mod compile_errors;
+
+pub use compile_errors::CompileError;
+
 /// The dependency and source configuration used by all runtime type queries.
 #[salsa::input(singleton)]
 pub struct RuntimeAnalysis {
@@ -42,23 +46,26 @@ impl RuntimeAnalysis {
 
 #[salsa::tracked]
 impl<'db> RsMacro<'db> {
-    #[salsa::tracked]
-    fn analysis_file_for_inputs(self, db: &'db dyn Db) -> VirtFile {
-        let source = self.render_analysis_rs(db, None);
+    /// Checks the macro's rust code for compile errors using rust-analyzer.
+    ///
+    /// It's not necessary capable of detecting all compile errors, but it can
+    /// catch most common ones.
+    #[salsa::tracked(returns(ref))]
+    pub fn check_compile_errors(self, db: &'db dyn Db) -> Option<Vec<CompileError>> {
+        let source = self.render_analysis_rs(db, Some(self.inputs(db)), Some(self.ret_type(db)));
+        let file = VirtFile::new(db, source.text.as_str(), source.source_map);
+        let crate_ = single_file_crate(db, file);
 
-        VirtFile::new(db, source.as_str())
+        compile_errors::check(db, crate_)
     }
 
-    #[salsa::tracked]
-    fn analysis_file_for_output(self, db: &'db dyn Db) -> VirtFile {
-        let types = self.infer_input_types(db);
-        let source = self.render_analysis_rs(db, Some(types));
-
-        VirtFile::new(db, source.as_str())
+    /// Whether rust-analyzer found no compilation errors in this macro.
+    pub fn is_compilable(self, db: &'db dyn Db) -> bool {
+        self.check_compile_errors(db).is_none()
     }
 
     #[salsa::tracked(returns(ref))]
-    pub(super) fn infer_input_types(self, db: &'db dyn Db) -> Vec<RsType> {
+    pub fn inputs(self, db: &'db dyn Db) -> Vec<RsType> {
         let file = self.analysis_file_for_inputs(db);
 
         match infer_closure(db, file) {
@@ -80,12 +87,27 @@ impl<'db> RsMacro<'db> {
     }
 
     #[salsa::tracked]
-    pub(super) fn infer_ret_type(self, db: &'db dyn Db) -> RsType {
+    pub fn ret_type(self, db: &'db dyn Db) -> RsType {
         let file = self.analysis_file_for_output(db);
 
         infer_closure(db, file).map_or(RsType::JsValue, |callable| {
             classify_type(db, callable.output())
         })
+    }
+
+    #[salsa::tracked]
+    fn analysis_file_for_inputs(self, db: &'db dyn Db) -> VirtFile {
+        let source = self.render_analysis_rs(db, None, None);
+
+        VirtFile::new(db, source.text.as_str(), source.source_map)
+    }
+
+    #[salsa::tracked]
+    fn analysis_file_for_output(self, db: &'db dyn Db) -> VirtFile {
+        let types = self.inputs(db);
+        let source = self.render_analysis_rs(db, Some(types), None);
+
+        VirtFile::new(db, source.text.as_str(), source.source_map)
     }
 }
 
@@ -395,12 +417,8 @@ mod tests {
             assert_eq!(RsMacro::new(&db, body.clone()).ret_type(&db), RsType::Void);
         });
 
-        let file = VirtFile::new(
-            &db,
-            RsMacro::new(&db, body.clone())
-                .render_analysis_rs(&db, None)
-                .as_str(),
-        );
+        let source = RsMacro::new(&db, body.clone()).render_analysis_rs(&db, None, None);
+        let file = VirtFile::new(&db, source.text.as_str(), source.source_map);
         let before = single_file_crate(&db, file);
 
         RuntimeAnalysis::set(&mut db, template);

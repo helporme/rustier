@@ -17,6 +17,10 @@
 ## Codegen
 - When generating source code, prefer `frag!()` over `format!()` whenever possible to avoid intermediate allocations. Prefer `IntoIterator` over vectors where possible, adding `+ Clone` to `IntoIter` when needed. Only materialize an owned `String` when required by an API.
 - In `frag!`, write source tokens directly; use `{expr}` for interpolation, `{{ ... }}` for braces, `~` for spaces, and `@` for newlines.
+- All codegen code must be in codegen module.
+
+# Rust analyzer
+- NEVER use attach_db inside the compiler code. It must be used inside the tests or server.
 
 ## Module ordering
 

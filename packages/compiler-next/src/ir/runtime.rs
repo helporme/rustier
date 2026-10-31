@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 mod analysis;
 
-pub use analysis::RuntimeAnalysis;
+pub use analysis::{CompileError, RuntimeAnalysis};
 
 use crate::{
     db::Db,
@@ -104,16 +104,6 @@ impl<'db> RsMacro<'db> {
             }
         }
         format!("__rustier_{}", hash.finalize().to_hex())
-    }
-
-    /// Rust-side input types in interpolation order.
-    pub fn inputs(self, db: &'db dyn Db) -> &'db Vec<RsType> {
-        self.infer_input_types(db)
-    }
-
-    /// Rust-side type returned by this macro.
-    pub fn ret_type(self, db: &'db dyn Db) -> RsType {
-        self.infer_ret_type(db)
     }
 
     /// Transport-level function of this macro.

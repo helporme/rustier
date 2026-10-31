@@ -1,10 +1,9 @@
 import { rs } from "rustier";
 
 export function greet(): string {
-  return rs`
-    println!("hi");
-    ${undefined}
-  `;
+  let x = 10;
+
+  return rs` fn drop_(_y: u32) } `;
 }
 
-greet();
+console.log(greet());

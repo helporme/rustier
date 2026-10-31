@@ -5,6 +5,14 @@ import { RolldownMagicString } from 'rolldown'
 import { parseSync } from 'rolldown/utils'
 import type { Server } from 'server-next'
 
+export function reportDiagnostics(reported: Set<string>, diagnostics: string[], warn: (message: string) => void) {
+  for (const diagnostic of diagnostics) {
+    if (reported.has(diagnostic)) continue
+    reported.add(diagnostic)
+    warn(diagnostic)
+  }
+}
+
 export function buildRuntime(server: Server, profile: string, binaryName: string) {
   const result = server.build(profile)
   if (!result.binFfiPath) throw new Error(result.diagnostics.join('\n') || 'Rustier build failed')

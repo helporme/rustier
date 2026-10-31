@@ -54,6 +54,12 @@ pub struct BuildResult {
 }
 
 #[napi(object)]
+pub struct TransformResult {
+    pub code: String,
+    pub diagnostics: Vec<String>,
+}
+
+#[napi(object)]
 pub struct DependencyChange {
     pub profile: String,
     pub error: Option<String>,
@@ -195,7 +201,7 @@ impl Server {
         module_id: String,
         contents: String,
         ffi_js_mod_path: String,
-    ) -> Result<String> {
+    ) -> Result<TransformResult> {
         let state = self.profile(&profile)?;
         let program = state.program;
         let revision = state.revision.clone();
@@ -223,10 +229,25 @@ impl Server {
             return Err(Error::from_reason(messages.join("\n")));
         }
 
-        Ok(file
-            .module(&self.db)
-            .render_transformed(&self.db, ffi_js_mod_path)
-            .clone())
+        if !file.module(&self.db).macros(&self.db).is_empty() {
+            self.prepare_analysis(&profile)?;
+        }
+
+        ra_ap_hir::attach_db(&self.db, || {
+            let module = file.module(&self.db);
+            let diagnostics = module
+                .macros(&self.db)
+                .iter()
+                .flat_map(|src| src.check_compile_errors(&self.db))
+                .map(|diagnostic| diagnostic.render(Theme::UnicodeNoColor))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .map_err(|error| Error::from_reason(error.to_string()))?;
+
+            Ok(TransformResult {
+                code: module.render_transformed(&self.db, ffi_js_mod_path).clone(),
+                diagnostics,
+            })
+        })
     }
 
     /// Removes all modules from a profile and invalidates its cached build.
@@ -273,19 +294,21 @@ impl Server {
     #[napi]
     pub fn build(&mut self, profile: String) -> Result<BuildResult> {
         self.profile(&profile)?;
-        if self.watch_graph_dirty.swap(false, Ordering::SeqCst) {
-            if let Some(callback) = self.watch_callback.clone() {
-                if let Err(error) = self.configure_watch(callback) {
-                    self.watch_graph_dirty.store(true, Ordering::SeqCst);
-                    return Err(error);
-                }
-            }
+        if self.watch_graph_dirty.swap(false, Ordering::SeqCst)
+            && let Some(callback) = self.watch_callback.clone()
+            && let Err(error) = self.configure_watch(callback)
+        {
+            self.watch_graph_dirty.store(true, Ordering::SeqCst);
+            return Err(error);
         }
+
         self.prepare_analysis(&profile)?;
+
         let state = self
             .profiles
             .get_mut(&profile)
             .ok_or_else(|| Error::from_reason(format!("unknown profile: {profile}")))?;
+
         state.build(&self.db)
     }
 
@@ -461,16 +484,21 @@ impl Profile {
             }
         }
         let mut result = BuildResult {
-            diagnostics: self
-                .program
-                .diagnostics(db)
+            diagnostics: ra_ap_hir::attach_db(db, || self.program.check(db))
                 .iter()
                 .map(|diagnostic| diagnostic.render(Theme::UnicodeNoColor))
                 .collect::<std::result::Result<Vec<_>, _>>()
                 .map_err(|error| Error::from_reason(error.to_string()))?,
             bin_ffi_path: None,
         };
-        if !result.diagnostics.is_empty() {
+        // Parsing errors prevent transforming a module. Rust errors, however,
+        // have JS-only throwing replacements and are omitted from the bridge.
+        if self
+            .program
+            .files(db)
+            .iter()
+            .any(|file| !file.diagnostics(db).is_empty())
+        {
             return Ok(result);
         }
         fs::create_dir_all(&self.directory).map_err(|error| {

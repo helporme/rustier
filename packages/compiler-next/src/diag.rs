@@ -42,6 +42,14 @@ pub struct Diag {
     pub inner: StdArc<dyn Diagnostic + RefUnwindSafe + Send + Sync + 'static>,
 }
 
+impl PartialEq for Diag {
+    fn eq(&self, other: &Self) -> bool {
+        StdArc::ptr_eq(&self.inner, &other.inner)
+    }
+}
+
+impl Eq for Diag {}
+
 impl Diag {
     pub fn render(&self, theme: Theme) -> Result<String, std::fmt::Error> {
         let handler = match theme {
@@ -53,7 +61,6 @@ impl Diag {
                     .without_syntax_highlighting()
             }
         }
-        .with_context_lines(0)
         .with_show_related_as_nested(true);
         let mut rendered = String::new();
 

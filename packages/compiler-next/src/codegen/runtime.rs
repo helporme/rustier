@@ -21,7 +21,11 @@ impl<'db> Runtime<'db> {
     ) -> String {
         fragment(|p| {
             render_transport_preamble_js(backend, bin_file_path).apply(p);
-            for macro_ in self.macros(db) {
+            for macro_ in self
+                .macros(db)
+                .into_iter()
+                .filter(|macro_| macro_.is_compilable(db))
+            {
                 frag!(@{macro_.render_js_ffi(db, backend)}@).apply(p);
             }
         })
@@ -32,13 +36,20 @@ impl<'db> Runtime<'db> {
     pub fn render_rs_ffi(self, db: &'db dyn Db, backend: &TransportBackend) -> String {
         fragment(|p| {
             render_transport_preamble_rs(backend).apply(p);
-            for macro_ in self.macros(db) {
+            for macro_ in self
+                .macros(db)
+                .into_iter()
+                .filter(|macro_| macro_.is_compilable(db))
+            {
                 frag!(@{macro_.render_rs_ffi(db, backend)}@).apply(p);
             }
             render_transport_registration_rs(
                 backend,
                 db,
-                self.macros(db).iter().map(|macro_| macro_.transport(db)),
+                self.macros(db)
+                    .into_iter()
+                    .filter(|macro_| macro_.is_compilable(db))
+                    .map(|macro_| macro_.transport(db)),
             )
             .apply(p);
         })

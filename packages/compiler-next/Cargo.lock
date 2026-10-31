@@ -135,7 +135,6 @@ dependencies = [
  "ra_ap_vfs",
  "salsa",
  "syn 2.0.119",
- "tempfile",
  "thiserror",
  "toml",
  "triomphe",
