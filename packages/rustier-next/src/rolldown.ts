@@ -19,11 +19,17 @@ export interface RustierOptions {
   activeProfile: (fileId: string) => string
 }
 
-type RustierPlugin = Plugin & Pick<VitePlugin, 'config' | 'configureServer' | 'enforce'>
+export interface RustierPluginApi {
+  check(profile: string): string[]
+}
+
+export type RustierPlugin = Omit<Plugin, 'api'> & Pick<VitePlugin, 'config' | 'configureServer' | 'enforce'> & {
+  api: RustierPluginApi
+}
 
 const runtimePrefix = 'rustier:runtime/'
 
-export default function rustier(options: RustierOptions): Plugin {
+export default function rustier(options: RustierOptions): RustierPlugin {
   const names = Object.keys(options.profiles)
 
   if (names.length === 0) {
@@ -58,6 +64,11 @@ export default function rustier(options: RustierOptions): Plugin {
 
   const plugin: RustierPlugin = {
     name: 'rustier-next',
+    api: {
+      check(profile) {
+        return getServer().check(profile)
+      },
+    },
     enforce: 'post',
     config() {
       return { optimizeDeps: { exclude: ['rustier', 'rustier-next'] } }

@@ -188,6 +188,21 @@ impl Server {
         }))
     }
 
+    #[napi]
+    pub fn check(&mut self, profile: String) -> Result<Vec<String>> {
+        self.prepare_analysis(&profile)?;
+        let program = self.profile(&profile)?.program;
+
+        ra_ap_hir::attach_db(&self.db, || {
+            program
+                .check(&self.db)
+                .iter()
+                .map(|diagnostic| diagnostic.render(Theme::UnicodeNoColor))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .map_err(|error| Error::from_reason(error.to_string()))
+        })
+    }
+
     /// Adds or replaces a module in the profile and replaces its Rust snippet tags
     /// with calls imported from `ffi_js_mod_path`.
     ///
