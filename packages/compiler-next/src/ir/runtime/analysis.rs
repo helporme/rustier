@@ -10,7 +10,7 @@ use ra_ap_hir_def::{
 };
 use ra_ap_hir_ty::{
     InferenceResult,
-    next_solver::{DbInterner, FnSig, Ty},
+    next_solver::{DbInterner, FnSig, Ty, TyKind},
 };
 use ra_ap_syntax::{AstNode, ast, ast::HasName};
 use salsa::Setter;
@@ -92,10 +92,14 @@ impl<'db> RsMacro<'db> {
 
         infer_closure(db, file).map_or(RsType::JsValue, |(callable, _)| {
             let output = callable.output();
-            classify_type(
-                db,
-                result_types(db, output).map_or(output, |(value, _)| value),
-            )
+
+            match result_types(db, output) {
+                Some((value, _)) if matches!(value.inner().internee, TyKind::Error(_)) => {
+                    RsType::Void
+                }
+                Some((value, _)) => classify_type(db, value),
+                None => classify_type(db, output),
+            }
         })
     }
 
@@ -279,6 +283,29 @@ mod tests {
     use super::*;
     use crate::db::RootDatabase;
     use crate::test_common::{database, template};
+
+    #[test]
+    fn error_only_result_success_types() {
+        let db = database();
+
+        ra_ap_hir::attach_db(&db, || {
+            for (body, expected) in [
+                ("std::result::Result::Err(\"Error\")", RsType::Void),
+                ("return std::result::Result::Err(\"Error\");", RsType::Void),
+                ("std::result::Result::<u32, _>::Err(\"Error\")", RsType::U32),
+                (
+                    "std::result::Result::<aux_next::runtime::js::JsValue, _>::Err(\"Error\")",
+                    RsType::JsValue,
+                ),
+            ] {
+                let macro_ = RsMacro::new(&db, vec![RsPart::Text(body.into())]);
+
+                assert!(macro_.can_return_error(&db), "{body}");
+                assert!(macro_.has_inferred_error_type(&db), "{body}");
+                assert_eq!(macro_.ret_type(&db), expected, "{body}");
+            }
+        });
+    }
 
     #[test]
     fn numeric_signatures() {

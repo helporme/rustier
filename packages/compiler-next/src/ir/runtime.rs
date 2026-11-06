@@ -117,6 +117,7 @@ impl<'db> RsMacro<'db> {
                 .map(|type_| type_.transport())
                 .collect::<Vec<_>>(),
             self.ret_type(db).transport(),
+            self.can_return_error(db),
         )
     }
 }

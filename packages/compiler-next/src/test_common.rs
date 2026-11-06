@@ -114,9 +114,14 @@ pub(super) fn template(db: &mut RootDatabase, dependency: &str) -> Crate {
     change.change_file(root_file, Some(String::new()));
     change.change_file(aux_file, Some(RUNTIME.into()));
     change.change_file(dep_file, Some(dependency.into()));
-    change.change_file(std_file, Some(
-        "pub mod string { pub struct String; impl String { pub fn new() -> Self { loop {} } } }".into()
-    ));
+    change.change_file(
+        std_file,
+        Some(
+            "pub mod string { pub struct String; impl String { pub fn new() -> Self { loop {} } } }
+             pub mod result { pub enum Result<T, E> { Ok(T), Err(E) } }"
+                .into(),
+        ),
+    );
 
     change.apply(db).unwrap()[&root]
 }

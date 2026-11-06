@@ -1,7 +1,15 @@
-import { rs } from "rustier";
+import { rs } from 'rustier';
 
-export function greet(): string {
-  return rs`"hello".to_owned()`;
-}
+let value = rs`
+  fn get() -> Result<u32, String> { Ok(10) }
+  let x = get()?;
+  Ok(x * 2)
+`;
 
-console.log(greet());
+console.log(value) // 20
+
+rs`
+  fn get() -> Result<u32, String> { Err("Hello from rust!".to_owned()) }
+  let x = get()?;
+  Ok(x * 2)
+`; // throws RustError("Hello from rust")
