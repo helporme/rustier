@@ -7,6 +7,7 @@ use super::JsValueType;
 // This import-module name must match the key generated in compiler-next's codegen/transport/wasm.rs.
 #[link(wasm_import_module = "./rustier-wasm-rt.mjs")]
 unsafe extern "C" {
+    fn __rustier_js_set_error(ptr: *const u8, len: usize);
     fn __rustier_js_new_number(value: f64) -> u32;
     fn __rustier_js_new_string(ptr: *const u8, len: usize) -> u32;
     fn __rustier_js_new_symbol(ptr: *const u8, len: usize, has_description: bool) -> u32;
@@ -105,6 +106,12 @@ impl JsEnvHandle {
 
     pub fn new_object(&self) -> JsValueHandle {
         JsValueHandle(unsafe { __rustier_js_new_object() }, PhantomData)
+    }
+
+    pub fn set_error(&self, error: super::TransportError) {
+        let message = error.as_ref();
+
+        unsafe { __rustier_js_set_error(message.as_ptr(), message.len()) };
     }
 }
 

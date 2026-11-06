@@ -10,6 +10,21 @@ pub use node::{JsEnvHandle, JsValueHandle};
 #[cfg(target_family = "wasm")]
 pub use wasm::{JsEnvHandle, JsValueHandle};
 
+#[derive(Debug)]
+pub enum TransportError {
+    Static(&'static str),
+    Dynamic(String),
+}
+
+impl AsRef<str> for TransportError {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::Static(message) => message,
+            Self::Dynamic(message) => message,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 #[repr(u32)]
 pub enum JsValueType {

@@ -69,7 +69,7 @@ impl<'db> RsMacro<'db> {
         let file = self.analysis_file_for_inputs(db);
 
         match infer_closure(db, file) {
-            Some(callable) => callable
+            Some((callable, _)) => callable
                 .inputs()
                 .iter()
                 .copied()
@@ -90,8 +90,36 @@ impl<'db> RsMacro<'db> {
     pub fn ret_type(self, db: &'db dyn Db) -> RsType {
         let file = self.analysis_file_for_output(db);
 
-        infer_closure(db, file).map_or(RsType::JsValue, |callable| {
-            classify_type(db, callable.output())
+        infer_closure(db, file).map_or(RsType::JsValue, |(callable, _)| {
+            let output = callable.output();
+            classify_type(
+                db,
+                result_types(db, output).map_or(output, |(value, _)| value),
+            )
+        })
+    }
+
+    /// Whether the macro can return an error.
+    #[salsa::tracked]
+    pub fn can_return_error(self, db: &'db dyn Db) -> bool {
+        let file = self.analysis_file_for_output(db);
+
+        infer_closure(db, file).is_some_and(|(callable, has_try)| {
+            has_try || result_types(db, callable.output()).is_some()
+        })
+    }
+
+    /// Whether rust-analyzer inferred the error type of the macro's `Result`.
+    ///
+    /// Unlike `can_return_error`, which determines whether the macro can return an error,
+    /// this functions returns whether the rust-analyzer knows concrete error type for the
+    /// macro's `Result`. Usually if this function returns `false`, codegen needs to use Box<dyn Error + ...>
+    /// or similar to handle the error.
+    #[salsa::tracked]
+    pub(crate) fn has_inferred_error_type(self, db: &'db dyn Db) -> bool {
+        infer_closure(db, self.analysis_file_for_output(db)).is_some_and(|(callable, _)| {
+            result_types(db, callable.output())
+                .is_some_and(|(_, error)| !error.references_non_lt_error())
         })
     }
 
@@ -111,7 +139,7 @@ impl<'db> RsMacro<'db> {
     }
 }
 
-fn infer_closure<'db>(db: &'db dyn Db, file: VirtFile) -> Option<FnSig<'db>> {
+fn infer_closure<'db>(db: &'db dyn Db, file: VirtFile) -> Option<(FnSig<'db>, bool)> {
     let crate_ = single_file_crate(db, file);
     let def_map = crate_def_map(db, crate_);
 
@@ -139,6 +167,25 @@ fn infer_closure<'db>(db: &'db dyn Db, file: VirtFile) -> Option<FnSig<'db>> {
         .descendants()
         .find_map(ast::ClosureExpr::cast)?;
 
+    let has_try = closure
+        .syntax()
+        .descendants()
+        .filter_map(ast::TryExpr::cast)
+        .any(|expr| {
+            expr.syntax()
+                .ancestors()
+                .skip(1)
+                .take_while(|node| node != closure.syntax())
+                .all(|node| {
+                    !ast::Fn::can_cast(node.kind())
+                        && !ast::ClosureExpr::can_cast(node.kind())
+                        && !ast::BlockExpr::cast(node).is_some_and(|block| {
+                            block.async_token().is_some()
+                                || block.const_token().is_some()
+                                || block.try_block_modifier().is_some()
+                        })
+                })
+        });
     let expr = ast::Expr::ClosureExpr(closure);
     let owner = DefWithBodyId::FunctionId(function_id);
     let (_, source_map) = ExpressionStore::with_source_map(db, owner.into());
@@ -150,7 +197,7 @@ fn infer_closure<'db>(db: &'db dyn Db, file: VirtFile) -> Option<FnSig<'db>> {
         .callable_sig(DbInterner::new_with(db, crate_))?
         .skip_binder();
 
-    Some(callable)
+    Some((callable, has_try))
 }
 
 /// Constructs a crate containing the macro definition for the given file.
@@ -168,6 +215,28 @@ fn single_file_crate(db: &dyn Db, file: VirtFile) -> Crate {
         template.env(db).clone(),
     )
     .new(db)
+}
+
+fn result_types<'db>(db: &'db dyn Db, ty: Ty<'db>) -> Option<(Ty<'db>, Ty<'db>)> {
+    let (adt, args) = ty.as_adt()?;
+    let ra_ap_hir_def::AdtId::EnumId(id) = adt else {
+        return None;
+    };
+    let enum_: ra_ap_hir::Enum = id.into();
+    let module = enum_.module(db);
+    let crate_ = module.krate(db);
+
+    (crate_.is_builtin(db)
+        && enum_.name(db).display(db, crate_.edition(db)).to_string() == "Result"
+        && module
+            .path_segments(db)
+            .map(|name| name.display(db, crate_.edition(db)).to_string())
+            .eq(["result"]))
+    .then(|| {
+        let mut types = args.types();
+
+        (types.next().unwrap(), types.next().unwrap())
+    })
 }
 
 fn classify_type(db: &dyn Db, ty: Ty<'_>) -> RsType {

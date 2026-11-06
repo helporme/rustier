@@ -81,8 +81,12 @@ impl<'db> RsMacro<'db> {
         types: Option<&[RsType]>,
         output: Option<RsType>,
     ) -> AnalysisSource {
+        let fallible_check = output.is_some() && self.can_return_error(db);
         let text = fragment(|p| {
             for (index, output) in std::iter::once(None).chain(output.map(Some)).enumerate() {
+                if index == 0 && fallible_check {
+                    continue;
+                }
                 let name = if index == 0 {
                     "__rustier_probe"
                 } else {
@@ -108,7 +112,16 @@ impl<'db> RsMacro<'db> {
                     frag!(__rustier_arg_{input}{annotation}).apply(p);
                 }
 
-                let output = output.map(|ty| frag!(~-> ~{ty.render()}));
+                let output = output.map(|ty| {
+                    fragment(move |p| {
+                        frag!(~-> ~).apply(p);
+                        if self.can_return_error(db) {
+                            self.render_result_type(db).apply(p);
+                        } else {
+                            ty.render().apply(p);
+                        }
+                    })
+                });
                 frag!(|{output} ~{"{"}).apply(p);
                 let mut input = 0;
 
@@ -122,7 +135,27 @@ impl<'db> RsMacro<'db> {
                     }
                 }
 
-                frag!(@{"};"}@{"}"}@).apply(p);
+                frag!(@{"};"}@).apply(p);
+
+                if fallible_check {
+                    let inputs = fragment(|p| {
+                        for ty in types.unwrap() {
+                            frag!({ty.render()},).apply(p);
+                        }
+                    });
+                    let value = self.ret_type(db).render();
+
+                    frag!(
+                        fn __rustier_check_error<E, F>(_: F)
+                        where
+                            E: Into<::std::boxed::Box<dyn ::std::error::Error + Send + Sync + 'static>>,
+                            F: FnOnce({inputs}) -> ::std::result::Result<{value}, E>
+                        {{}}@
+                        __rustier_check_error(__rustier_snippet);@
+                    ).apply(p);
+                }
+
+                frag!({"}"}@).apply(p);
             }
         })
         .print();

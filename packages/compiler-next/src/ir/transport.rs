@@ -20,6 +20,18 @@ pub enum TransportTypeRs {
     JsValueHandle,
 }
 
+pub type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
+pub type Result2<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
+
+pub fn test() -> Result2<u32> {
+    other()?;
+    Ok(0)
+}
+
+pub fn other() -> Result<(), String> {
+    Ok(())
+}
+
 /// The JS-side representation of a value carried by transport.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum TransportTypeJs {

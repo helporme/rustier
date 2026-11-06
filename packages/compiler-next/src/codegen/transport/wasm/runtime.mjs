@@ -4,6 +4,20 @@
   let memory;
   let encoder;
   let decoder;
+  let pendingError;
+
+  function __rustier_js_set_error(ptr, len) {
+    pendingError = new Error(stringFromMemory(ptr, len));
+    pendingError.name = "RustError";
+  }
+
+  function __rustier_js_check_error() {
+    if (pendingError !== undefined) {
+      const error = pendingError;
+      pendingError = undefined;
+      throw error;
+    }
+  }
 
   function __rustier_js_init_memory(value) {
     memory = value;
@@ -270,6 +284,8 @@
   }
 
   return {
+    __rustier_js_set_error,
+    __rustier_js_check_error,
     __rustier_js_init_memory,
     __rustier_js_insert,
     __rustier_js_new_number,

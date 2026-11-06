@@ -149,6 +149,17 @@ impl TransportBackendWasm {
             TransportTypeRs::F64 => "f64",
             TransportTypeRs::JsValueHandle | TransportTypeRs::String => "u32",
         };
+        let unwrap = function.can_return_error(db).then(|| {
+            frag!(
+                let __rustier_output = match __rustier_output {{
+                    Ok(value) => value,
+                    Err(error) => {{
+                        __rustier_env_handle.set_error(error);@
+                        return ::std::default::Default::default();@
+                    }}
+                }};@
+            )
+        });
 
         frag!(
             #[unsafe(no_mangle)]@
@@ -160,6 +171,7 @@ impl TransportBackendWasm {
                 }};@
                 {conversions}@
                 let __rustier_output = {"{\n"}{body}{"\n};"}@@
+                {unwrap}
                 {export}
             {"\n}"}
         )
@@ -208,8 +220,14 @@ impl TransportBackendWasm {
             }
         });
 
+        let check_error = function.can_return_error(db).then(|| {
+            frag!(
+                __rustier_values.__rustier_js_check_error();@
+            )
+        });
         let call = frag!(
             const result = __rustier_exports.{name}({env_raw}{call_arguments});@
+            {check_error}
             {result_var} = {result};@
         );
 

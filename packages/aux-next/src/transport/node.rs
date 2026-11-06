@@ -77,6 +77,32 @@ impl JsEnvHandle {
             napi_create_object(env, output)
         })
     }
+
+    pub fn throw_error(&self, error: super::TransportError) {
+        let env = self.into_raw() as napi_env;
+        let message = error.as_ref();
+        let message = call(|output| unsafe {
+            napi_create_string_utf8(env, message.as_ptr().cast(), message.len() as isize, output)
+        });
+        let exception = call(|output| unsafe {
+            napi_sys::napi_create_error(env, ptr::null_mut(), message, output)
+        });
+        let name = call(|output| unsafe {
+            napi_create_string_utf8(env, c"RustError".as_ptr(), 9, output)
+        });
+        let status =
+            unsafe { napi_sys::napi_set_named_property(env, exception, c"name".as_ptr(), name) };
+
+        if status != Status::napi_ok {
+            panic!("Could not name RustError");
+        }
+
+        let status = unsafe { napi_sys::napi_throw(env, exception) };
+
+        if status != Status::napi_ok {
+            panic!("Could not throw RustError");
+        }
+    }
 }
 
 #[derive(Debug)]

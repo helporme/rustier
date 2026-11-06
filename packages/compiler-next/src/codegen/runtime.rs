@@ -101,10 +101,27 @@ impl RsType {
 }
 
 impl<'db> RsMacro<'db> {
+    pub(super) fn render_result_type(self, db: &'db dyn Db) -> impl FragmentOnce {
+        let value = self.ret_type(db).render();
+        let error = if self.has_inferred_error_type(db) {
+            frag!(_)
+        } else {
+            frag!(::std::boxed::Box<dyn ::std::error::Error + Send + Sync + 'static>)
+        };
+
+        frag!(::std::result::Result<{value}, {error}>)
+    }
+
     fn render_rs_ffi(self, db: &'db dyn Db, backend: &TransportBackend) -> String {
         self.transport(db)
             .render_rs_adapter_with_body(db, backend, |env, arguments| {
-                let ret_type = self.ret_type(db).render();
+                let ret_type = fragment(|p| {
+                    if self.can_return_error(db) {
+                        self.render_result_type(db).apply(p);
+                    } else {
+                        self.ret_type(db).render().apply(p);
+                    }
+                });
                 let conversions = fragment(|p| {
                     for (index, (type_, argument)) in
                         self.inputs(db).iter().zip(arguments).enumerate()
@@ -128,6 +145,20 @@ impl<'db> RsMacro<'db> {
                 let output = self
                     .ret_type(db)
                     .render_to_transport(frag!(__rustier_output));
+                let output = fragment(|p| {
+                    if self.can_return_error(db) {
+                        frag!(
+                            __rustier_output
+                                .map(|__rustier_output| {output})
+                                .map_err(|error| {{
+                                    let error: ::std::boxed::Box<dyn ::std::error::Error + Send + Sync + 'static> = error.into();@
+                                    ::aux_next::transport::TransportError::Dynamic(error.to_string())
+                                }})
+                        ).apply(p);
+                    } else {
+                        output.apply(p);
+                    }
+                });
 
                 frag!(
                     let __rustier_env = ::aux_next::runtime::js::JsEnv::from({env});@

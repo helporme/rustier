@@ -76,6 +76,17 @@ impl TransportBackendNode {
             .map(|index| format!("__rustier_handle_{index}"))
             .collect();
         let body = render_body("__rustier_env_handle", &arguments);
+        let unwrap = function.can_return_error(db).then(|| {
+            frag!(
+                let __rustier_output = match __rustier_output {{
+                    Ok(value) => value,
+                    Err(error) => {{
+                        __rustier_env_handle.throw_error(error);@
+                        return ::std::ptr::null_mut();@
+                    }}
+                }};@
+            )
+        });
         let conversions = fragment(|p| {
             for (index, type_) in function.inputs(db).iter().enumerate() {
                 match type_ {
@@ -173,6 +184,7 @@ impl TransportBackendNode {
                     let __rustier_env_handle = unsafe {{ __RustierEnvHandle::from_raw(env as usize) }};@
                     {conversions}
                     let __rustier_output = {"{\n"}{body}{"\n};"}@
+                    {unwrap}
                     {output}
                 }}));@
                 match result {{
