@@ -1,7 +1,7 @@
 import { pathToFileURL } from 'node:url'
 import { normalizePath, type Plugin, type ResolvedConfig, type ViteDevServer } from 'vite'
 import { Server } from 'server-next'
-import { buildRuntime, reportDiagnostics, rewriteRuntimeImports } from './bundle'
+import { applyTransformEdits, buildRuntime, reportDiagnostics, rewriteRuntimeImports } from './bundle'
 import { toProfileOptions, type RustierConfiguration } from './options'
 
 export type { Platform, RustierConfiguration } from './options'
@@ -152,7 +152,7 @@ export default function rustier(options: RustierOptions = {}): Plugin {
           }
         }
       }
-      return { code: transformed.code, map: null }
+      return applyTransformEdits(code, id, transformed.edits)
     },
     async hotUpdate(context) {
       const profile: ProfileName = this.environment.config.consumer === 'server' ? 'ssr' : 'browser'

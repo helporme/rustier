@@ -51,6 +51,38 @@ test('defaults the success type of error-only results to unit', () => {
   }
 })
 
+test('starts RustError stacks at the macro caller', () => {
+  function throwFromMacro() {
+    return rs`Err("stack trace error".to_owned())`
+  }
+
+  expect.assertions(5)
+  try {
+    throwFromMacro()
+  } catch (error) {
+    expect(error).toBeInstanceOf(Error)
+    const exception = error as Error
+    expect(exception.name).toBe('RustError')
+    expect(exception.message).toBe('stack trace error')
+    expect(exception.stack?.split('\n')[1]).toContain('throwFromMacro')
+    expect(exception.stack).not.toMatch(/__rustier_|wasm-function/)
+  }
+})
+
+test('preserves RustError when stack capture is unavailable', () => {
+  const descriptor = Object.getOwnPropertyDescriptor(Error, 'captureStackTrace')!
+  Object.defineProperty(Error, 'captureStackTrace', { ...descriptor, value: undefined })
+
+  try {
+    expect(() => rs`Err("no stack capture".to_owned())`).toThrowError(expect.objectContaining({
+      name: 'RustError',
+      message: 'no stack capture',
+    }))
+  } finally {
+    Object.defineProperty(Error, 'captureStackTrace', descriptor)
+  }
+})
+
 test('infers a boxed error type for otherwise unconstrained Ok expressions', () => {
   expect(rs`Ok(20u32)`).toBe(20)
   expect(rs`Ok("hello".to_owned())`).toBe('hello')

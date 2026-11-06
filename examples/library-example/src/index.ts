@@ -1,6 +1,6 @@
 import { rs } from 'rustier';
 
-let value = rs`
+const value = rs`
   fn get() -> Result<u32, String> { Ok(10) }
   let x = get()?;
   Ok(x * 2)
@@ -8,8 +8,11 @@ let value = rs`
 
 console.log(value) // 20
 
-rs`
+const value2 = rs`
   fn get() -> Result<u32, String> { Err("Hello from rust!".to_owned()) }
   let x = get()?;
   Ok(x * 2)
 `; // throws RustError("Hello from rust")
+
+
+console.log(value2) // 20

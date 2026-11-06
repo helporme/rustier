@@ -6,17 +6,42 @@ use crate::{
     ir::js::{JsFileRange, JsModule, JsPart, RsMacroSrc},
 };
 
+#[derive(Clone, PartialEq, Eq, salsa::Update)]
+pub struct JsEdit {
+    pub start: u32,
+    pub end: u32,
+    pub text: String,
+}
+
 #[salsa::tracked]
 impl<'db> JsModule<'db> {
     /// Replaces imported `rs` tags with calls to their exported macro functions.
     #[salsa::tracked(returns(ref))]
     pub fn render_transformed(self, db: &'db dyn Db, ffi_js_mod_path: String) -> String {
+        let source = self.file(db).contents(db);
+
+        fragment(|p| {
+            let mut cursor = 0;
+
+            for edit in self.render_edits(db, ffi_js_mod_path) {
+                source[cursor..edit.start as usize].apply(p);
+                edit.text.as_str().apply(p);
+                cursor = edit.end as usize;
+            }
+
+            source[cursor..].apply(p);
+        })
+        .print()
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn render_edits(self, db: &'db dyn Db, ffi_js_mod_path: String) -> Vec<JsEdit> {
         let file = self.file(db);
         let macros = self.macros(db);
         let source = file.contents(db);
 
         if macros.is_empty() {
-            return source.clone();
+            return Vec::new();
         }
 
         let mut binding = "__rustier_ffi".to_owned();
@@ -29,83 +54,95 @@ impl<'db> JsModule<'db> {
         } else {
             0
         };
-        let prefix = &source[..start];
-        let body = render_range(
+        let path = doubles(ffi_js_mod_path);
+        let mut edits = vec![JsEdit {
+            start: start as u32,
+            end: start as u32,
+            text: {
+                let mut text = frag!(import * as ~{&binding}~from ~{path};).print();
+                text.push('\n');
+                text
+            },
+        }];
+
+        render_range_edits(
             db,
             macros,
             JsFileRange::new(db, file, start as u32, source.len() as u32),
             &binding,
+            &mut edits,
         );
-        let path = doubles(ffi_js_mod_path);
-        frag!(
-            {prefix}
-            import * as ~{binding}~from ~{path};@
-            {body}
-        )
-        .print()
+
+        edits
     }
 }
 
-fn render_range<'db>(
+fn render_range_edits<'db>(
     db: &'db dyn Db,
     macros: &[RsMacroSrc<'db>],
     range: JsFileRange<'db>,
     binding: &str,
-) -> String {
-    let source = range.file(db).contents(db);
+    edits: &mut Vec<JsEdit>,
+) {
+    let mut cursor = range.start(db);
 
-    fragment(|p| {
-        let mut cursor = range.start(db);
-
-        for src in macros {
-            let span = src.range(db);
-            if span.start(db) < cursor || span.end(db) > range.end(db) {
-                continue;
-            }
-
-            source[cursor as usize..span.start(db) as usize].apply(p);
-
-            let diagnostics = src.check_compile_errors(db);
-            if !diagnostics.is_empty() {
-                let message = diagnostics
-                    .iter()
-                    .map(|diagnostic| {
-                        diagnostic
-                            .render(crate::diag::Theme::UnicodeNoColor)
-                            .expect("rendering a diagnostic into a String cannot fail")
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                let message = js_string(&message);
-                frag!({"(() => { throw new Error("}{message}{"); })()"}).apply(p);
-                cursor = span.end(db);
-                continue;
-            }
-
-            let name = src.as_macro(db).symbol(db);
-            let arguments = fragment(|p| {
-                let mut first = true;
-
-                for part in src.body(db) {
-                    if let JsPart::Interpolation { expression, .. } = part {
-                        if !first {
-                            frag!(, ~).apply(p);
-                        }
-                        first = false;
-
-                        let argument = render_range(db, macros, *expression, binding);
-                        frag!({"("}{argument}{")"}).apply(p);
-                    }
-                }
-            });
-
-            frag!({binding}{"."}{name}{"("}{arguments}{")"}).apply(p);
-            cursor = span.end(db);
+    for src in macros {
+        let span = src.range(db);
+        if span.start(db) < cursor || span.end(db) > range.end(db) {
+            continue;
         }
 
-        source[cursor as usize..range.end(db) as usize].apply(p);
-    })
-    .print()
+        let diagnostics = src.check_compile_errors(db);
+        if !diagnostics.is_empty() {
+            let message = diagnostics
+                .iter()
+                .map(|diagnostic| {
+                    diagnostic
+                        .render(crate::diag::Theme::UnicodeNoColor)
+                        .expect("rendering a diagnostic into a String cannot fail")
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            let message = js_string(&message);
+            edits.push(JsEdit {
+                start: span.start(db),
+                end: span.end(db),
+                text: frag!({"(() => { throw new Error("}{message}{"); })()"}).print(),
+            });
+            cursor = span.end(db);
+            continue;
+        }
+
+        let name = src.as_macro(db).symbol(db);
+        let mut prefix = frag!({binding}{"."}{name}{"("}).print();
+        let mut start = span.start(db);
+        let mut has_arguments = false;
+
+        for part in src.body(db) {
+            if let JsPart::Interpolation { expression, .. } = part {
+                edits.push(JsEdit {
+                    start,
+                    end: expression.start(db),
+                    text: frag!({prefix}{"("}).print(),
+                });
+                render_range_edits(db, macros, *expression, binding, edits);
+                start = expression.end(db);
+                prefix = "), ".into();
+                has_arguments = true;
+            }
+        }
+
+        edits.push(JsEdit {
+            start,
+            end: span.end(db),
+            text: if has_arguments {
+                "))".into()
+            } else {
+                frag!({prefix}{")"}).print()
+            },
+        });
+        cursor = span.end(db);
+    }
 }
 
 fn js_string(value: &str) -> impl FragmentOnce + '_ {

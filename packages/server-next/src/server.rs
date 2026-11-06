@@ -55,8 +55,15 @@ pub struct BuildResult {
 
 #[napi(object)]
 pub struct TransformResult {
-    pub code: String,
+    pub edits: Vec<TransformEdit>,
     pub diagnostics: Vec<String>,
+}
+
+#[napi(object)]
+pub struct TransformEdit {
+    pub start: u32,
+    pub end: u32,
+    pub text: String,
 }
 
 #[napi(object)]
@@ -258,10 +265,31 @@ impl Server {
                 .collect::<std::result::Result<Vec<_>, _>>()
                 .map_err(|error| Error::from_reason(error.to_string()))?;
 
-            Ok(TransformResult {
-                code: module.render_transformed(&self.db, ffi_js_mod_path).clone(),
-                diagnostics,
-            })
+            let source = file.contents(&self.db);
+            let mut byte_offset = 0;
+            let mut utf16_offset = 0;
+            let edits = module
+                .render_edits(&self.db, ffi_js_mod_path)
+                .iter()
+                .map(|edit| {
+                    utf16_offset += source[byte_offset..edit.start as usize]
+                        .encode_utf16()
+                        .count() as u32;
+                    let start = utf16_offset;
+                    utf16_offset += source[edit.start as usize..edit.end as usize]
+                        .encode_utf16()
+                        .count() as u32;
+                    byte_offset = edit.end as usize;
+
+                    TransformEdit {
+                        start,
+                        end: utf16_offset,
+                        text: edit.text.clone(),
+                    }
+                })
+                .collect();
+
+            Ok(TransformResult { edits, diagnostics })
         })
     }
 

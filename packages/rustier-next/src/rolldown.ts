@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url'
 import type { Plugin } from 'rolldown'
 import type { Plugin as VitePlugin, ViteDevServer } from 'vite'
 import { Server } from 'server-next'
-import { buildRuntime, reportDiagnostics, rewriteRuntimeImports } from './bundle'
+import { applyTransformEdits, buildRuntime, reportDiagnostics, rewriteRuntimeImports } from './bundle'
 import { toProfileOptions, type Platform, type RustierConfiguration } from './options'
 
 export type { Platform } from './options'
@@ -126,7 +126,7 @@ export default function rustier(options: RustierOptions): RustierPlugin {
       state.sources.set(id, { code, diagnostics: transformed.diagnostics })
       reportDiagnostics(state.reportedDiagnostics, transformed.diagnostics, message => this.warn(message))
 
-      return { code: transformed.code, map: null }
+      return applyTransformEdits(code, id, transformed.edits)
     },
     resolveId(id) {
       if (!id.startsWith(runtimePrefix)) return

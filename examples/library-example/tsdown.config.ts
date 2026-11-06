@@ -8,5 +8,6 @@ export default defineConfig({
     }),
   ],
   dts: true,
+  sourcemap: true,
   exports: true,
 });

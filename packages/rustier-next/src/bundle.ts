@@ -3,7 +3,22 @@ import { readFileSync } from 'node:fs'
 import { posix } from 'node:path'
 import { RolldownMagicString } from 'rolldown'
 import { parseSync } from 'rolldown/utils'
-import type { Server } from 'server-next'
+import type { Server, TransformEdit } from 'server-next'
+
+export function applyTransformEdits(code: string, id: string, edits: TransformEdit[]) {
+  const result = new RolldownMagicString(code)
+  for (const edit of edits) {
+    if (edit.start === edit.end) {
+      result.appendLeft(edit.start, edit.text)
+    } else {
+      result.overwrite(edit.start, edit.end, edit.text)
+    }
+  }
+  return {
+    code: result.toString(),
+    map: result.generateMap({ source: id, includeContent: true, hires: true }).toString(),
+  }
+}
 
 export function reportDiagnostics(reported: Set<string>, diagnostics: string[], warn: (message: string) => void) {
   for (const diagnostic of diagnostics) {

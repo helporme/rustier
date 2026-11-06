@@ -212,6 +212,23 @@ impl<'db> RsMacro<'db> {
             .collect();
         let result_var = "__rustier_result";
         let call = transport.render_js_ffi_call_stmt(db, backend, &transport_arguments, result_var);
+        let call = fragment(|p| {
+            if transport.can_return_error(db) {
+                frag!(
+                    try {{
+                        {call}@
+                    }} catch (error) {{
+                        if (error instanceof Error && error.name === "RustError" && typeof Error.captureStackTrace === "function") {{
+                            Error.captureStackTrace(error, {name});@
+                        }}@
+                        throw error;@
+                    }}
+                )
+                .apply(p);
+            } else {
+                call.apply(p);
+            }
+        });
         let result = match self.ret_type(db).js() {
             JsType::Undefined => "undefined",
             JsType::Any | JsType::Number | JsType::Boolean | JsType::String => result_var,
